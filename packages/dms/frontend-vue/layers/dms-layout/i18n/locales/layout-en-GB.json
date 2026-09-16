@@ -1,0 +1,272 @@
+{
+  "navigation": {
+    "goToHomepage": "Go to homepage"
+  },
+  "menu": {
+    "favorites": "Favorites",
+    "modules": "Modules",
+    "back": "Back",
+    "switch_account": "Switch account",
+    "user_settings": "User Settings",
+    "store": "Store",
+    "profile": "Profile",
+    "sessions": "Sessions",
+    "help": "Help",
+    "build_mode": "Build mode",
+    "notifications": "Notifications",
+    "shortcuts": "Shortcuts",
+    "members": "Members",
+    "invites": "Pending invites",
+    "roles": "Roles",
+    "general": "General",
+    "appearance": "Appearance",
+    "preset_store": "Preset Store",
+    "module_store": "Module Store",
+    "component_store": "Component Store",
+    "section": {
+      "pages": "Pages",
+      "modules": "Modules",
+      "settings": "Settings"
+    }
+  },
+  "footer": {
+    "french": "French",
+    "english": "English"
+  },
+  "builder": {
+    "button": "Builder",
+    "title": "Builder — no-code editor",
+    "description": "A fully no-code way to configure your DMS — pages, tables, forms and logic — without writing a single line of code.",
+    "soon": "Coming soon"
+  },
+  "quickActions": {
+    "title": "Quick actions"
+  },
+  "commandPalette": {
+    "dialog": {
+      "title": "Search",
+      "description": "Search pages, actions and settings"
+    },
+    "groups": {
+      "navigation": "Navigation",
+      "recentModules": "Recent modules",
+      "session": "Session"
+    },
+    "session": {
+      "changeLanguage": "Change language",
+      "copyUrl": "Copy current page URL",
+      "urlCopied": "URL copied to clipboard",
+      "copyFailed": "Copy failed"
+    }
+  },
+  "notification": {
+    "dropdown": {
+      "title": "Notifications",
+      "no_unread": "No unread notifications",
+      "no_notifications": "No notifications",
+      "view_all": "View all notifications"
+    }
+  },
+  "page": {
+    "legal": {
+      "no_content_title": "No content available",
+      "no_content_message": "This page has not been configured yet. Please contact the administrator."
+    },
+    "settings": {
+      "title": "Settings",
+      "intro": "Manage and customize your application settings.",
+      "description": {
+        "notifications": "Configure your notification preferences to stay optimally informed",
+        "shortcuts": "Explore the different DMS shortcuts to improve your productivity",
+        "members": "Manage members and their permissions",
+        "invites": "Review, resend or cancel pending user invitations",
+        "roles": "Manage permissions and user groups for optimal access control",
+        "general": "Modify your platform's general information",
+        "appearance": "Customize and adapt your dashboard appearance according to your preferences for a more intuitive and pleasant experience",
+        "preset_store": "Discover available presets",
+        "module_store": "Discover available modules",
+        "component_store": "Discover available components"
+      },
+      "notifications": {
+        "preferences_title": "Configuration",
+        "preferences_description": "Customize your notification preferences",
+        "system_label": "System",
+        "system_description": "System updates, New connection, Admin invitation accepted,...",
+        "module_label": "Module",
+        "module_description": "Allow modules to send you notifications",
+        "list_title": "Your notifications list",
+        "list_description": "View all recent notifications from your account to stay informed",
+        "no_notifications": "No notifications to display",
+        "mark_all_read": "All read",
+        "delete_all": "Delete all",
+        "confirm_mark_all_read_title": "Mark all as read?",
+        "confirm_mark_all_read_description": "This action will mark all notifications as read. This cannot be undone.",
+        "confirm_delete_all_title": "Delete all notifications?",
+        "confirm_delete_all_description": "This action will permanently delete all your notifications. This cannot be undone.",
+        "mark_all_read_success": "All notifications marked as read",
+        "delete_all_success": "All notifications deleted"
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Configure your platform's general information"
+      },
+      "members": {
+        "table": {
+          "caption": "Members list"
+        },
+        "column": {
+          "name": "Full name",
+          "email": "Email",
+          "roles": "Roles",
+          "tenant_owner": "Owner",
+          "joined_at": "Joined at",
+          "created_at": "Created at",
+          "updated_at": "Updated at",
+          "connected": "Connected"
+        },
+        "placeholder": {
+          "name": "Enter full name",
+          "email": "email{'@'}example.com",
+          "roles": "Select roles"
+        },
+        "description": {
+          "roles": "Roles assigned to the user",
+          "tenant_owner": "User has full access",
+          "joined_at": "When the user joined",
+          "created_at": "When the user account was created",
+          "updated_at": "Last modification time",
+          "connected": "User connection status"
+        },
+        "invite": {
+          "button": "Invite",
+          "title": "Invite a user",
+          "description": "Enter the email address of the person to invite and click 'Send invitation' to grant them access.",
+          "submit": "Send invitation",
+          "success": "Invitation sent successfully",
+          "field": {
+            "email": "Email address",
+            "firstname": "First name",
+            "lastname": "Last name",
+            "name_description": "Required when email validation is skipped, optional otherwise",
+            "roles": "Role(s)",
+            "roles_description": "Roles to assign to the invited user",
+            "language": "Language",
+            "tenant_owner": "Owner",
+            "tenant_owner_description": "Grant full access without permission restrictions",
+            "skip_email_validation": "Skip email validation",
+            "skip_email_validation_description": "If enabled, the invited user will not need to verify their email address and their first and last name must be provided"
+          },
+          "placeholder": {
+            "email": "user{'@'}example.com",
+            "firstname": "First name",
+            "lastname": "Last name",
+            "roles": "Select one or more roles"
+          },
+          "roles_required": "At least one role is required when the user is not an owner",
+          "firstname_required": "First name is required when email validation is skipped",
+          "lastname_required": "Last name is required when email validation is skipped",
+          "already_member": "This user is already registered"
+        },
+        "action": {
+          "validate_email": "Validate email",
+          "validate_email_success": "Email validated successfully",
+          "validate_email_confirm_title": "Validate email",
+          "validate_email_confirm_description": "Are you sure you want to manually validate this user's email address?"
+        },
+        "error": {
+          "user_not_found": "User not found",
+          "last_owner": "Cannot remove the last owner. At least one owner must remain.",
+          "last_owner_delete": "Cannot delete all owners. At least one owner must remain."
+        }
+      },
+      "invites": {
+        "table": {
+          "caption": "Pending invites"
+        },
+        "column": {
+          "email": "Email",
+          "firstname": "First name",
+          "lastname": "Last name",
+          "roles": "Roles",
+          "owner": "Owner",
+          "language": "Language",
+          "skip_email_validation": "Skip email validation",
+          "status": "Status",
+          "created_at": "Sent at",
+          "expires_at": "Expires at"
+        },
+        "placeholder": {
+          "email": "email{'@'}example.com",
+          "roles": "Select roles"
+        },
+        "description": {
+          "skip_email_validation": "If enabled, the invited user will not need to verify their email"
+        },
+        "status": {
+          "pending": "Pending",
+          "expired": "Expired"
+        },
+        "action": {
+          "resend": "Resend",
+          "resend_success": "Invitation resent successfully",
+          "resend_confirm_title": "Resend invitation",
+          "resend_confirm_description": "This will generate a new invitation link and send it to the user. The previous link will be invalidated.",
+          "cancel": "Cancel invite",
+          "cancel_success": "Invitation cancelled successfully",
+          "cancel_confirm_title": "Cancel invitation",
+          "cancel_confirm_description": "Are you sure you want to cancel this invitation? The invite link will no longer work."
+        },
+        "error": {
+          "not_found": "Invitation not found"
+        }
+      },
+      "roles": {
+        "table": {
+          "caption": "Roles list"
+        },
+        "column": {
+          "name": "Role name",
+          "permissions": "Permissions",
+          "created_at": "Created at",
+          "updated_at": "Updated at"
+        },
+        "placeholder": {
+          "name": "Enter role name",
+          "permissions": "Select permissions"
+        },
+        "description": {
+          "permissions": "Permissions assigned to this role",
+          "created_at": "When the role was created",
+          "updated_at": "Last modification time"
+        }
+      },
+      "appearance": {
+        "theme_title": "Interface theme",
+        "theme_description": "Adapt your color theme for your Antelope DMS",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark",
+        "scale_title": "Interface density",
+        "scale_description": "Scale the whole interface up or down while keeping proportions. Use Small to fit more data on screen, Large for comfort on big displays",
+        "scale_small": "Small",
+        "scale_normal": "Normal",
+        "scale_large": "Large",
+        "scale_small_hint": "Compact · more data",
+        "scale_normal_hint": "Default",
+        "scale_large_hint": "Spacious · big screens",
+        "css_variables": "CSS Variables",
+        "css_variables_description": "List of all UI CSS properties used in the design system"
+      },
+      "shortcuts": {
+        "title": "Keyboard Shortcuts",
+        "intro": "Available keyboard shortcuts for components"
+      }
+    }
+  },
+  "modules": {
+    "title": "Modules",
+    "intro": "Browse the modules available on this platform.",
+    "empty": "No modules are accessible to you yet.",
+    "open": "Open module"
+  }
+}

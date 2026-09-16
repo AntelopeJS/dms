@@ -1,0 +1,22 @@
+{
+  "page": {
+    "onboarding": {
+      "start_title": "Platform configuration",
+      "start_description": "Basic information about your application",
+      "create_admin": "Administrator account",
+      "modif_last": "Modify previous information here.",
+      "documentation": "Documentation",
+      "website": "Website",
+      "contributor": "Contribution",
+      "start_button": "Access your administration panel",
+      "success": {
+        "title": "Welcome to your DMS",
+        "description": "Your application is ready to be used. We invite you to discover the useful links relating to Antelope and its framework below:",
+        "dms": "Antelope DMS",
+        "dms_description": "Deep explore the capabilities of your application by accessing the different links offered by the DMS. Find out about advanced features and maximize the potential of your platform.",
+        "framework": "Antelope Framework",
+        "framework_description": "Your application is based on the powerful Antelope framework. Explore the extent of its capabilities and the many creative possibilities it provides you with."
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+:root {
+  --color-example-50: #f5f3ff;
+  --color-example-100: #ede9fe;
+  --color-example-200: #ddd6fe;
+  --color-example-300: #c4b5fd;
+  --color-example-400: #a78bfa;
+  --color-example-500: #8b5cf6;
+  --color-example-600: #7c3aed;
+  --color-example-700: #6d28d9;
+  --color-example-800: #5b21b6;
+  --color-example-900: #4c1d95;
+  --color-example-950: #2e1065;
+  --font-sans: Georgia, serif;
+  --ui-radius: 0.5rem;
+}
+
+.dark {
+  --dms-surface-card: #241536;
+}

@@ -1,0 +1,22 @@
+{
+  "page": {
+    "onboarding": {
+      "start_title": "Configuration de votre plateforme",
+      "start_description": "Informations de base sur votre application",
+      "create_admin": "Compte administrateur",
+      "modif_last": "Modifier les informations précédentes ici.",
+      "documentation": "Documentation",
+      "website": "Site web",
+      "contributor": "Contribution",
+      "start_button": "Accéder à votre panel d'administration",
+      "success": {
+        "title": "Bienvenue sur votre DMS",
+        "description": "Votre application est prête à être utilisée. Nous vous invitons à découvrir les liens utiles relatifs à Antelope et à son framework ci-dessous :",
+        "dms": "Antelope DMS",
+        "dms_description": "Explorez en profondeur les capacités de votre application en accédant aux différents liens proposés par le DMS. Informez-vous sur les fonctionnalités avancées et maximisez le potentiel de votre plateforme.",
+        "framework": "Antelope Framework",
+        "framework_description": "Votre application repose sur le puissant framework Antelope. Explorez l'étendue de ses capacités et les nombreuses possibilités créatives qu'il met à votre disposition."
+      }
+    }
+  }
+}

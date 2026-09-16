@@ -1,0 +1,13 @@
+packages:
+  - packages/*
+  # Installed like a project consuming the DMS, but from inside the workspace so
+  # it resolves the two packages by link rather than through a committed
+  # `file:` override.
+  - packages/dms/playground
+
+onlyBuiltDependencies:
+  - sharp
+  - "@parcel/watcher"
+  - esbuild
+  - puppeteer
+  - vue-demi

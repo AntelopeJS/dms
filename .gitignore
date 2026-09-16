@@ -1,0 +1,36 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# VSC
+.history
+
+# Antelope
+.antelope
+.amp
+generated-layers.json
+i18n-registry.generated.ts
+
+# Design reference mockup (local only, not versioned)
+Antelopejs-DMS-Dashboard v1.1/

@@ -1,0 +1,461 @@
+{
+  "dms": {
+    "table": {
+      "row_selections": "{length} élément sélectionné",
+      "sort_asc": "Trier par ordre croissant",
+      "sort_desc": "Trier par ordre décroissant",
+      "toggle_visibility": "Masquer",
+      "pin_column": "Épingler",
+      "unpin_column": "Détacher",
+      "empty_title": "Table vide",
+      "empty_message": "Aucune donnée disponible",
+      "no_results_title": "Pas de résultat",
+      "no_results_message": "Aucune donnée ne correspond à ces critères",
+      "load_error_title": "Impossible de charger les données",
+      "load_error_message": "Une erreur est survenue lors du chargement de ces données.",
+      "load_error_retry": "Réessayer",
+      "new_row": "Nouvelle entrée",
+      "new_item": "Nouvel élément",
+      "new_item_description": "Créer un nouvel élément dans ce tableau",
+      "view_item": "Voir les détails",
+      "view_item_description": "Afficher les informations détaillées de cet élément",
+      "edit_item": "Modifier l'élément",
+      "edit_item_description": "Modifier les informations de cet élément",
+      "search_placeholder": "Rechercher...",
+      "options_title": "Options de la table",
+      "filters_title": "Filtres",
+      "columns_title": "Colonnes",
+      "sort_title": "Trier",
+      "page_size_title": "Taille des pages",
+      "export_config": "Exporter la configuration",
+      "import_config": "Importer une configuration",
+      "import_config_title": "Importer une configuration",
+      "import_config_placeholder": "Collez le code de configuration ici",
+      "import_config_apply": "Appliquer",
+      "export_config_copied": "Configuration copiée dans le presse-papiers",
+      "export_config_failed": "Impossible de copier dans le presse-papiers",
+      "import_config_success": "Configuration importée",
+      "import_config_invalid": "Code de configuration invalide",
+      "organize_columns": "Organiser les colonnes",
+      "reset_column_order": "Réinitialiser l'ordre des colonnes",
+      "filter_accessor": "Colonnes à filtrer",
+      "filter_comparator": "Mode de comparaison",
+      "filter_value": "Saisir une valeur",
+      "delete_filters": "Supprimer les filtres",
+      "add_filter": "Ajouter un filtre",
+      "between_separator": "et",
+      "link_copied": "Lien copié !",
+      "delete_rows": "{count} éléments supprimés",
+      "delete_error": "Échec de la suppression des éléments",
+      "delete_confirm_title": "Confirmer la suppression",
+      "delete_confirm_description": "Êtes-vous sûr de vouloir supprimer {count} élément(s) ? Cette action est irréversible.",
+      "delete_confirm_button": "Supprimer",
+      "archive_rows": "{count} éléments archivés",
+      "archive_error": "Échec de l'archivage des éléments",
+      "restore_rows": "{count} éléments restaurés",
+      "restore_error": "Échec de la restauration des éléments",
+      "duplicate_rows": "{count} éléments dupliqués",
+      "duplicate_error": "Échec de la duplication des éléments",
+      "compare_mode": {
+        "is": "égal à",
+        "is_not": "différent de",
+        "greater_than": "supérieur à",
+        "less_than": "inférieur à",
+        "greater_than_or_equal_to": "supérieur ou égal à",
+        "less_than_or_equal_to": "inférieur ou égal à",
+        "is_empty": "vide",
+        "is_not_empty": "non vide",
+        "is_between": "entre",
+        "include": "contient",
+        "exclude": "ne contient pas",
+        "contains": "contient",
+        "not_contains": "ne contient pas"
+      },
+      "filter": {
+        "boolean": {
+          "checked": "Oui",
+          "unchecked": "Non"
+        }
+      },
+      "action_list": "Lister",
+      "action_select": "Sélectionner",
+      "action_select_description": "Autoriser la sélection d'une ligne de ce tableau pour remplir une autre ressource",
+      "action_add": "Ajouter",
+      "action_edit": "Modifier",
+      "action_delete": "Supprimer",
+      "action_view": "Voir",
+      "action_archive": "Archiver",
+      "action_restore": "Restaurer",
+      "action_export": "Exporter",
+      "action_view_archived": "Voir les éléments archivés",
+      "show_active": "Voir les éléments actifs",
+      "show_archived": "Voir les éléments archivés",
+      "tabs": {
+        "all": "Tous"
+      },
+      "export": {
+        "title": "Exporter les données",
+        "exporting": "Export en cours...",
+        "downloading": "Téléchargement...",
+        "success_title": "Export terminé",
+        "success_message": "Les données ont été exportées avec succès",
+        "error_title": "Erreur",
+        "retry": "Réessayer"
+      },
+      "view_mode_table": "Vue tableau",
+      "view_mode_kanban": "Vue kanban",
+      "kanban": {
+        "group_by": "Grouper par",
+        "load_more": "Charger plus",
+        "move_error": "Impossible de déplacer la carte",
+        "no_columns": "Aucune colonne éligible pour le groupage",
+        "move_success": "Carte déplacée vers « {column} »"
+      },
+      "view_mode_title": "Mode d'affichage"
+    },
+    "table_form": {
+      "edit_title": "Modifier l'élément",
+      "new_title": "Ajouter un élément",
+      "view_title": "Consulter les détails",
+      "updated_at": "Date de mise à jour",
+      "created_at": "Date de création"
+    },
+    "pagination": {
+      "label": "Navigation",
+      "count": "{count} éléments",
+      "size": "Affiché par {pageSize}",
+      "current_page": "Page {currentPage} sur {totalPages}",
+      "first_page": "Première page",
+      "previous_page": "Page précédente",
+      "next_page": "Page suivante",
+      "last_page": "Dernière page"
+    },
+    "sort": {
+      "no_sorting": "Aucun tri n'est appliqué"
+    },
+    "button": {
+      "copy": "Copier",
+      "copied": "Copié",
+      "copy_link": "Copier le lien",
+      "details": "Voir les détails",
+      "edit": "Éditer",
+      "duplicate": "Dupliquer",
+      "delete": "Supprimer",
+      "archive": "Archiver",
+      "restore": "Restaurer",
+      "apply": "Appliquer",
+      "add": "Ajouter",
+      "reset": "Réinitialiser",
+      "cancel": "Annuler",
+      "save_changes": "Enregistrer les modifications",
+      "refresh_data": "Actualiser les données",
+      "export_data": "Exporter les données"
+    },
+    "tree": {
+      "load_error_title": "Erreur de chargement",
+      "load_error_message": "Impossible de charger les éléments enfants",
+      "no_entries": "Aucun élément à afficher"
+    },
+    "form": {
+      "success_title": "Succès",
+      "success_message": "Les données ont été enregistrées avec succès",
+      "error_title": "Erreur",
+      "error_unknown": "Une erreur inconnue s'est produite",
+      "no_data": "Aucune donnée disponible",
+      "empty_value": "—",
+      "actions": "Actions",
+      "add_placeholder": "Ajouter un nouvel élément",
+      "row_added": "Élément ajouté",
+      "row_added_success": "L'élément a été ajouté avec succès",
+      "error_missing_fields": "Champs requis manquants",
+      "error_fill_all_fields": "Veuillez remplir tous les champs requis",
+      "error_not_submitted": "Le formulaire n'a pas été soumis",
+      "fetch_error_title": "Échec de la récupération des données",
+      "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+      "select_date": "Sélectionner une date",
+      "relation": {
+        "selected_count": "{count} sélectionné(s)",
+        "add_new": "Ajouter une nouvelle entrée"
+      },
+      "cascader": {
+        "placeholder": "Sélectionner un élément",
+        "search_placeholder": "Rechercher...",
+        "no_results": "Aucun résultat",
+        "selected_count": "{count} sélectionné(s)",
+        "partial_results": "Affichage des {shown} premiers éléments sur {total}"
+      },
+      "input": {
+        "show_password": "Afficher le mot de passe",
+        "hide_password": "Masquer le mot de passe"
+      },
+      "validation": {
+        "password_mismatch": "Les mots de passe ne correspondent pas",
+        "required": "Requis"
+      },
+      "address": {
+        "search": "Rechercher une adresse",
+        "search_placeholder": "Rechercher ou saisir une rue",
+        "country": "Pays",
+        "country_placeholder": "Sélectionner un pays",
+        "street_name": "Rue",
+        "street_name_placeholder": "Nom de la rue",
+        "house_number": "Numéro",
+        "house_number_placeholder": "N°",
+        "box_number": "Boîte",
+        "box_number_placeholder": "Boîte / unité",
+        "address_line2": "Complément d'adresse",
+        "address_line2_placeholder": "Appartement, étage, etc.",
+        "postal_code": "Code postal",
+        "postal_code_placeholder": "Code postal",
+        "city": "Ville",
+        "city_placeholder": "Ville",
+        "country_subdivision": "Région",
+        "country_subdivision_placeholder": "Région / province / état",
+        "optional": "optionnel"
+      },
+      "localized": {
+        "toggle_translations": "Traductions"
+      },
+      "file": {
+        "count": "{count} fichier(s)",
+        "max_size": "Taille max : {size}",
+        "uploaded_files": "Fichiers téléversés",
+        "rejected_title": "Fichier non ajouté",
+        "rejected_size": "{name} dépasse la taille maximale ({size})",
+        "rejected_type": "{name} n'est pas un type de fichier autorisé"
+      },
+      "image": {
+        "add": "Ajouter",
+        "drop_hint": "ou glisser ici",
+        "gallery_hint": "Glisser-déposer · coller ⌘V · réordonner par glissé",
+        "single_prompt": "Glisser une image, coller (⌘V) ou parcourir",
+        "single_hint": "Une seule image",
+        "formats_any": "Tous formats d'image",
+        "upload_failed": "Échec de l'envoi",
+        "retry": "Réessayer",
+        "replace": "Remplacer",
+        "delete": "Supprimer",
+        "principal": "Principale",
+        "principal_current": "Image principale",
+        "set_principal": "Définir principale",
+        "edit_alt": "Texte alternatif",
+        "alt_label": "Texte alternatif (alt)",
+        "alt_placeholder": "Décris l'image pour le SEO et l'accessibilité…",
+        "save": "Enregistrer",
+        "uploading": "Envoi · {progress}%",
+        "count": "{count} image(s)",
+        "rejected_title": "Image non ajoutée",
+        "rejected_size": "{name} dépasse la taille maximale ({size})",
+        "rejected_type": "{name} n'est pas une image acceptée",
+        "rejected_max": "{count} image(s) dépassaient la limite et n'ont pas été ajoutées"
+      },
+      "richtext": {
+        "toolbar": {
+          "undo": "Annuler",
+          "redo": "Rétablir",
+          "heading_1": "Titre 1",
+          "heading_2": "Titre 2",
+          "heading_3": "Titre 3",
+          "align_left": "Aligner à gauche",
+          "align_center": "Centrer",
+          "align_right": "Aligner à droite",
+          "align_justify": "Justifier",
+          "bold": "Gras",
+          "italic": "Italique",
+          "underline": "Souligné",
+          "link": "Lien",
+          "bullet_list": "Liste à puces",
+          "numbered_list": "Liste numérotée",
+          "quote": "Citation",
+          "code_block": "Bloc de code",
+          "horizontal_rule": "Séparateur"
+        },
+        "link": {
+          "placeholder": "Entrer l'URL...",
+          "insert": "Insérer",
+          "cancel": "Annuler"
+        },
+        "character_count": "{count} caractères"
+      }
+    },
+    "chart": {
+      "default_label": "Dataset {index}",
+      "no_data": "Aucune donnée à afficher"
+    },
+    "top_list": {
+      "empty": "Aucune donnée"
+    },
+    "shortcuts": {
+      "tableview": {
+        "meta_r": {
+          "description": "Actualiser les données du tableau"
+        },
+        "escape": {
+          "description": "Fermer la recherche ou désélectionner les lignes"
+        },
+        "shift_n": {
+          "description": "Créer une nouvelle ligne",
+          "condition": "Uniquement quand canAddRow est activé"
+        },
+        "shift_a": {
+          "description": "Sélectionner toutes les lignes visibles",
+          "condition": "Uniquement quand enableRowSelection est activé"
+        },
+        "shift_f": {
+          "description": "Ouvrir/focus la barre de recherche"
+        },
+        "delete": {
+          "description": "Supprimer la ligne survolée",
+          "condition": "Uniquement quand enableRowDelete est activé"
+        }
+      },
+      "tree": {
+        "arrowdown": {
+          "description": "Naviguer vers le bas"
+        },
+        "arrowup": {
+          "description": "Naviguer vers le haut"
+        },
+        "enter": {
+          "description": "Sélectionner le nœud"
+        },
+        "space": {
+          "description": "Sélectionner le nœud"
+        },
+        "home": {
+          "description": "Aller au premier nœud"
+        },
+        "end": {
+          "description": "Aller au dernier nœud"
+        },
+        "escape": {
+          "description": "Désélectionner tous les nœuds"
+        },
+        "shift_a": {
+          "description": "Sélectionner tous les nœuds récursivement",
+          "condition": "Uniquement quand multiple est activé"
+        }
+      },
+      "tab": {
+        "shift_letter": {
+          "description": "Naviguer vers l'onglet avec le raccourci défini",
+          "condition": "Généré dynamiquement depuis la propriété item.shortcut"
+        }
+      }
+    },
+    "notifications": {
+      "categories": {
+        "system": "Système",
+        "system_desc": "Notifications système et alertes de sécurité",
+        "module_one": "Sécurité",
+        "module_one_desc": "Surveillance et détection des menaces",
+        "module_two": "Logistique",
+        "module_two_desc": "Expéditions, inventaire et chaîne d'approvisionnement"
+      },
+      "subjects": {
+        "general": "Général",
+        "security": "Alertes de sécurité",
+        "security_desc": "Connexions, mot de passe, e-mail et double authentification de votre compte",
+        "account": "Compte",
+        "account_desc": "Mises à jour importantes concernant votre compte",
+        "collaboration": "Collaboration",
+        "collaboration_desc": "Invitations et arrivée de nouveaux collaborateurs sur la plateforme",
+        "automation": "Automatisation",
+        "automation_desc": "Notifications envoyées par les procédures d'automatisation",
+        "updates": "Mises à jour des modules",
+        "updates_desc": "Mises à jour disponibles des modules Antelope du projet (mode développement)",
+        "module_one_alerts": "Alertes de sécurité",
+        "module_one_alerts_desc": "Événements critiques nécessitant une attention immédiate",
+        "module_one_updates": "Rapports de menaces",
+        "module_one_updates_desc": "Mises à jour sur les menaces et vulnérabilités de sécurité",
+        "module_two_notifications": "Suivi des expéditions",
+        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire"
+      },
+      "preferences": {
+        "success": "Préférences de notification mises à jour",
+        "error_loading": "Échec du chargement des préférences de notification",
+        "error_saving": "Échec de l'enregistrement des préférences de notification",
+        "allow_notifications": "Autoriser les notifications",
+        "mandatory_tooltip": "Cette notification est obligatoire et ne peut pas être désactivée"
+      },
+      "messages": {
+        "new_login": {
+          "title": "Nouvelle connexion à votre compte",
+          "description": "Une nouvelle connexion à votre compte a été détectée depuis {device}{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+        },
+        "new_login_unknown_device": {
+          "title": "Nouvelle connexion à votre compte",
+          "description": "Une nouvelle connexion à votre compte a été détectée{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+        },
+        "password_changed": {
+          "title": "Votre mot de passe a été modifié",
+          "description": "Le mot de passe de votre compte vient d'être modifié. Si vous n'êtes pas à l'origine de ce changement, réinitialisez votre mot de passe et contactez un administrateur."
+        },
+        "login_method_added": {
+          "title": "Nouvelle méthode de connexion ajoutée",
+          "description": "La connexion via {provider} vient d'être liée à votre compte. Si vous n'êtes pas à l'origine de ce liage, changez votre mot de passe immédiatement."
+        },
+        "password_reset": {
+          "title": "Votre mot de passe a été réinitialisé",
+          "description": "Votre mot de passe a été réinitialisé via la procédure de récupération. Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement un administrateur."
+        },
+        "email_changed": {
+          "title": "Votre adresse e-mail a été modifiée",
+          "description": "L'adresse e-mail de votre compte a été remplacée par {email}. Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement un administrateur."
+        },
+        "two_factor_enabled_totp": {
+          "title": "Double authentification activée",
+          "description": "La double authentification via une application d'authentification est désormais active sur votre compte."
+        },
+        "two_factor_enabled_email": {
+          "title": "Double authentification activée",
+          "description": "La double authentification par e-mail est désormais active sur votre compte."
+        },
+        "two_factor_disabled_totp": {
+          "title": "Double authentification désactivée",
+          "description": "La double authentification via une application d'authentification a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+        },
+        "two_factor_disabled_email": {
+          "title": "Double authentification désactivée",
+          "description": "La double authentification par e-mail a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+        },
+        "backup_codes_regenerated": {
+          "title": "Vos codes de secours ont été régénérés",
+          "description": "Un nouveau jeu de codes de secours pour la double authentification a été généré. Vos anciens codes de secours ne fonctionnent plus."
+        },
+        "welcome": {
+          "title": "Bienvenue",
+          "description": "Bienvenue, {name} ! Votre compte est prêt. Prenez un moment pour vérifier votre profil et vos paramètres de sécurité."
+        },
+        "collaborator_joined": {
+          "title": "Un nouveau collaborateur a rejoint la plateforme",
+          "description": "{name} ({email}) a accepté son invitation et a rejoint la plateforme."
+        },
+        "module_updates": {
+          "title": "Mises à jour de modules disponibles",
+          "description": "Nouvelles versions disponibles : {modules}. Mettez à jour les versions dans antelope.config.ts ou lancez « ajs project modules update » pour les appliquer."
+        }
+      }
+    },
+    "realtime": {
+      "editing_warning_title": "Élément en cours d'édition",
+      "editing_warning_description": "{names} édite actuellement cet élément. L'éditer maintenant peut faire que vos changements écrasent les leurs.",
+      "editing_warning_message": "L'éditer en même temps risque d'{action} ou de perdre des données entre vous deux.",
+      "editing_warning_action": "écraser ses changements",
+      "editing_subtitle": "{name} le modifie depuis {time}. | {name} le modifient depuis {time}.",
+      "duration_moment": "quelques secondes",
+      "duration_short": {
+        "day": "j",
+        "hour": "h",
+        "minute": "min",
+        "second": "s"
+      },
+      "editing_warning_confirm": "Éditer quand même",
+      "row_edited_by": "{names} en train d'éditer",
+      "concurrent_edit_banner_title": "Cet élément vient d'être mis à jour",
+      "concurrent_edit_banner_description": "Un autre utilisateur a enregistré des modifications pendant votre édition. Enregistrer maintenant écrasera ses modifications.",
+      "concurrent_edit_banner_discard": "Annuler et actualiser",
+      "concurrent_edit_banner_keep": "Continuer l'édition"
+    }
+  }
+}

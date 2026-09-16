@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vérification des axes DMS</title>
+  <style>
+    body {
+      font: 16px system-ui;
+      color: #21324b;
+      background: #f2f6fc;
+      margin: 24px;
+    }
+    main {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+    }
+    article {
+      background: white;
+      padding: 16px;
+      min-width: 0;
+    }
+    h2 {
+      font-size: 16px;
+    }
+    @media (max-width: 650px) {
+      main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+  <h1>Axes X · rendu ApexCharts réel</h1>
+  <p>
+    Options produites par useApexChart · 2 intervalles · libellés horizontaux
+  </p>
+  <main id="charts"></main>
+  <script type="module" src="./chart-axes.ts"></script>
+</html>

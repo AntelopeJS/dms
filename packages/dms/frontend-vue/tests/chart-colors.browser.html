@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DMS chart color browser check</title>
+  <style>
+    :root {
+      --ui-color-primary-500: oklch(60.6% 0.25 292.717);
+      --ui-color-primary-400: oklch(70.2% 0.183 293.541);
+      --ui-primary: var(--ui-color-primary-500);
+      --ui-text-muted: #6b7280;
+      --ui-text-highlighted: #111827;
+      --invalid-color: 12px;
+      --transparent-color: transparent;
+      background: white;
+      color: #111827;
+      font: 16px system-ui;
+    }
+    :root.dark {
+      --ui-primary: var(--ui-color-primary-400);
+      --ui-text-muted: #9ca3af;
+      --ui-text-highlighted: #f9fafb;
+      background: #111827;
+      color: #f9fafb;
+    }
+    body {
+      max-width: 960px;
+      margin: 48px auto;
+      padding: 24px;
+    }
+    button {
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+  <h1>DMS chart color browser check</h1>
+  <p>
+    Real resolver, theme observer and ApexCharts. Violet scale values are test
+    fixtures, not a new application palette.
+  </p>
+  <button id="theme">Toggle light / dark</button>
+  <div id="app"></div>
+  <script type="module">
+    import { createApp, h, onMounted, watch } from "vue";
+    import ApexCharts from "apexcharts";
+    import { useThemeRevision } from "../layers/dms-ui/app/composables/chart/useThemeRevision.ts";
+    import { useApexChart } from "../layers/dms-ui/app/composables/chart/useApexChart.ts";
+    import { resolveChartColor } from "../layers/dms-ui/app/composables/chart/useChartTheme.ts";
+
+    const HEIGHT = 360;
+    const EXPECTED_FALLBACK = "#7c3aed";
+    const series = [
+      {
+        name: "Semantic primary",
+        data: [
+          { x: "Mon", y: 25 },
+          { x: "Tue", y: 60 },
+          { x: "Wed", y: 40 },
+        ],
+      },
+      {
+        name: "Typed primary-400",
+        color: "primary-400",
+        data: [
+          { x: "Mon", y: 10 },
+          { x: "Tue", y: 35 },
+          { x: "Wed", y: 20 },
+        ],
+      },
+    ];
+
+    function verifyResolution() {
+      const alias = resolveChartColor("var(--ui-color-primary-500)");
+      if (alias !== resolveChartColor("primary-500"))
+        throw Error("Alias mismatch");
+      if (!alias.startsWith("rgba(")) throw Error("OKLCH was not normalized");
+      for (const token of ["--invalid-color", "--transparent-color"]) {
+        if (resolveChartColor(token) !== EXPECTED_FALLBACK)
+          throw Error(`Invalid fallback: ${token}`);
+      }
+      if (resolveChartColor("--missing") !== "rgb(124, 58, 237)")
+        throw Error("Missing token inherited text color");
+      const stops = [...document.querySelectorAll("stop")];
+      if (
+        !stops.length ||
+        stops.some(
+          (stop) => !stop.getAttribute("stop-color")?.startsWith("rgba("),
+        )
+      )
+        throw Error("Unresolved Apex gradient stop");
+      return "PASS: aliases, OKLCH → sRGB, missing / invalid / transparent fallback";
+    }
+
+    function apexOptions(chart) {
+      return {
+        ...chart.options.value,
+        series: chart.series.value,
+        chart: {
+          type: "area",
+          height: HEIGHT,
+          animations: { enabled: false },
+          toolbar: { show: false },
+        },
+        fill: {
+          type: "gradient",
+          gradient: { opacityFrom: 0.5, opacityTo: 0.1 },
+        },
+      };
+    }
+
+    function renderCheck(chart, revision) {
+      return h("section", [
+        h("div", { id: "chart" }),
+        h(
+          "pre",
+          { id: "values" },
+          JSON.stringify({
+            revision: revision.value,
+            colors: chart.options.value.colors,
+          }),
+        ),
+        h("pre", { id: "checks" }),
+      ]);
+    }
+
+    createApp({
+      setup() {
+        const revision = useThemeRevision();
+        const chart = useApexChart(() => ({
+          type: "area",
+          series,
+          colors: ["primary"],
+          themeRevision: revision.value,
+        }));
+        let apex;
+        onMounted(async () => {
+          apex = new ApexCharts(
+            document.querySelector("#chart"),
+            apexOptions(chart),
+          );
+          await apex.render();
+          document.querySelector("#checks").textContent = verifyResolution();
+        });
+        watch(chart.options, async () => {
+          await apex?.updateOptions(apexOptions(chart));
+          document.querySelector("#checks").textContent = verifyResolution();
+        });
+        return () => renderCheck(chart, revision);
+      },
+    }).mount("#app");
+    document.querySelector("#theme").onclick = () =>
+      document.documentElement.classList.toggle("dark");
+  </script>
+</html>

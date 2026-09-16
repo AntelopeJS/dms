@@ -1,0 +1,25 @@
+{
+  "demo": {
+    "widgets": {
+      "status": {
+        "label": "System status",
+        "title": "System status",
+        "ok": "All systems operational"
+      },
+      "actions": {
+        "label": "Demo actions",
+        "title": "Framed widget demo",
+        "description": "Interactive content provided by the module, framed and positioned by the DMS.",
+        "clicked": "Clicked {count} times"
+      },
+      "sidebar": {
+        "title": "Sidebar widget demo",
+        "description": "Free component above the search bar"
+      },
+      "moduleSidebar": {
+        "title": "Module widget demo",
+        "description": "Only visible inside the demo module"
+      }
+    }
+  }
+}

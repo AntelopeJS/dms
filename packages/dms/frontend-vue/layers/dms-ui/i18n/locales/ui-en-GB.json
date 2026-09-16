@@ -1,0 +1,460 @@
+{
+  "dms": {
+    "table": {
+      "row_selections": "{length} item selected",
+      "sort_asc": "Sort in ascending order",
+      "sort_desc": "Sort in descending order",
+      "toggle_visibility": "Hide",
+      "pin_column": "Pin",
+      "unpin_column": "Unpin",
+      "empty_title": "Empty table",
+      "empty_message": "No data available",
+      "no_results_title": "No results",
+      "no_results_message": "No data matches these criteria",
+      "load_error_title": "Unable to load data",
+      "load_error_message": "Something went wrong while loading this data.",
+      "load_error_retry": "Try again",
+      "new_row": "New entry",
+      "new_item": "New Item",
+      "new_item_description": "Create a new item in this table",
+      "view_item": "View Details",
+      "view_item_description": "View detailed information about this item",
+      "edit_item": "Edit Item",
+      "edit_item_description": "Modify the information of this item",
+      "search_placeholder": "Search...",
+      "options_title": "Table options",
+      "filters_title": "Filters",
+      "columns_title": "Columns",
+      "sort_title": "Sort",
+      "page_size_title": "Page size",
+      "export_config": "Export configuration",
+      "import_config": "Import configuration",
+      "import_config_title": "Import configuration",
+      "import_config_placeholder": "Paste the configuration code here",
+      "import_config_apply": "Apply",
+      "export_config_copied": "Configuration copied to clipboard",
+      "export_config_failed": "Could not copy to clipboard",
+      "import_config_success": "Configuration imported",
+      "import_config_invalid": "Invalid configuration code",
+      "organize_columns": "Organize columns",
+      "reset_column_order": "Reset column order",
+      "filter_accessor": "Columns to filter",
+      "filter_comparator": "Comparison mode",
+      "filter_value": "Enter a value",
+      "delete_filters": "Delete filters",
+      "add_filter": "Add a filter",
+      "between_separator": "and",
+      "link_copied": "Link copied!",
+      "delete_rows": "{count} items deleted",
+      "delete_error": "Failed to delete items",
+      "delete_confirm_title": "Confirm deletion",
+      "delete_confirm_description": "Are you sure you want to delete {count} item(s)? This action cannot be undone.",
+      "delete_confirm_button": "Delete",
+      "archive_rows": "{count} items archived",
+      "archive_error": "Failed to archive items",
+      "restore_rows": "{count} items restored",
+      "restore_error": "Failed to restore items",
+      "duplicate_rows": "{count} items duplicated",
+      "duplicate_error": "Failed to duplicate items",
+      "compare_mode": {
+        "is": "Is",
+        "is_not": "Is not",
+        "greater_than": "Greater than",
+        "less_than": "Less than",
+        "greater_than_or_equal_to": "Greater than or equal to",
+        "less_than_or_equal_to": "Less than or equal to",
+        "is_empty": "Is empty",
+        "is_not_empty": "Is not empty",
+        "is_between": "Is between",
+        "include": "Includes",
+        "exclude": "Excludes",
+        "contains": "Contains",
+        "not_contains": "Does not contain"
+      },
+      "filter": {
+        "boolean": {
+          "checked": "Yes",
+          "unchecked": "No"
+        }
+      },
+      "action_list": "List",
+      "action_select": "Pick from list",
+      "action_select_description": "Allow picking a row from this table when filling another resource",
+      "action_add": "Add",
+      "action_edit": "Edit",
+      "action_delete": "Delete",
+      "action_view": "View",
+      "action_archive": "Archive",
+      "action_restore": "Restore",
+      "action_export": "Export",
+      "action_view_archived": "View archived items",
+      "show_active": "Show active items",
+      "show_archived": "Show archived items",
+      "tabs": {
+        "all": "All"
+      },
+      "export": {
+        "title": "Export data",
+        "exporting": "Exporting...",
+        "downloading": "Downloading...",
+        "success_title": "Export completed",
+        "success_message": "Data has been successfully exported",
+        "error_title": "Error",
+        "retry": "Retry"
+      },
+      "view_mode_table": "Table view",
+      "view_mode_kanban": "Kanban view",
+      "kanban": {
+        "group_by": "Group by",
+        "load_more": "Load more",
+        "move_error": "Failed to move the card",
+        "no_columns": "No eligible column to group by",
+        "move_success": "Card moved to “{column}”"
+      },
+      "view_mode_title": "View mode"
+    },
+    "table_form": {
+      "edit_title": "Edit item",
+      "new_title": "Add item",
+      "view_title": "View details",
+      "updated_at": "Last updated",
+      "created_at": "Created"
+    },
+    "pagination": {
+      "label": "Navigation",
+      "count": "{count} items",
+      "size": "Displayed per {pageSize}",
+      "current_page": "Page {currentPage} of {totalPages}",
+      "first_page": "First page",
+      "previous_page": "Previous page",
+      "next_page": "Next page",
+      "last_page": "Last page"
+    },
+    "sort": {
+      "no_sorting": "No sorting applied"
+    },
+    "button": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "copy_link": "Copy link",
+      "details": "View details",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "archive": "Archive",
+      "restore": "Restore",
+      "apply": "Apply",
+      "add": "Add",
+      "reset": "Reset",
+      "cancel": "Cancel",
+      "save_changes": "Save changes",
+      "refresh_data": "Refresh data",
+      "export_data": "Export data"
+    },
+    "tree": {
+      "load_error_title": "Loading Error",
+      "load_error_message": "Unable to load child items",
+      "no_entries": "No items to display"
+    },
+    "form": {
+      "success_title": "Success",
+      "success_message": "Data has been successfully saved",
+      "error_title": "Error",
+      "error_unknown": "An unknown error occurred",
+      "no_data": "No data available",
+      "empty_value": "—",
+      "actions": "Actions",
+      "add_placeholder": "Add new item",
+      "row_added": "Item added",
+      "row_added_success": "The item has been successfully added",
+      "error_missing_fields": "Missing required fields",
+      "error_fill_all_fields": "Please fill in all required fields",
+      "fetch_error_title": "Failed to fetch data",
+      "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
+      "select_date": "Select date",
+      "relation": {
+        "selected_count": "{count} selected",
+        "add_new": "Add new entry"
+      },
+      "cascader": {
+        "placeholder": "Select an item",
+        "search_placeholder": "Search...",
+        "no_results": "No results found",
+        "selected_count": "{count} selected",
+        "partial_results": "Showing first {shown} of {total} items"
+      },
+      "input": {
+        "show_password": "Show password",
+        "hide_password": "Hide password"
+      },
+      "validation": {
+        "password_mismatch": "Passwords do not match",
+        "required": "Required"
+      },
+      "address": {
+        "search": "Find an address",
+        "search_placeholder": "Search or type a street",
+        "country": "Country",
+        "country_placeholder": "Select a country",
+        "street_name": "Street",
+        "street_name_placeholder": "Street name",
+        "house_number": "Number",
+        "house_number_placeholder": "No.",
+        "box_number": "Box",
+        "box_number_placeholder": "Box / unit",
+        "address_line2": "Address line 2",
+        "address_line2_placeholder": "Apartment, suite, etc.",
+        "postal_code": "Postal code",
+        "postal_code_placeholder": "Postal code",
+        "city": "City",
+        "city_placeholder": "City",
+        "country_subdivision": "Region",
+        "country_subdivision_placeholder": "Region / state / province",
+        "optional": "optional"
+      },
+      "localized": {
+        "toggle_translations": "Translations"
+      },
+      "file": {
+        "count": "{count} file(s)",
+        "max_size": "Max size: {size}",
+        "uploaded_files": "Uploaded files",
+        "rejected_title": "File not added",
+        "rejected_size": "{name} exceeds the maximum size ({size})",
+        "rejected_type": "{name} is not an allowed file type"
+      },
+      "image": {
+        "add": "Add",
+        "drop_hint": "or drop here",
+        "gallery_hint": "Drag & drop · paste ⌘V · drag to reorder",
+        "single_prompt": "Drop an image, paste (⌘V) or browse",
+        "single_hint": "Single image",
+        "formats_any": "Any image format",
+        "upload_failed": "Upload failed",
+        "retry": "Retry",
+        "replace": "Replace",
+        "delete": "Delete",
+        "principal": "Main",
+        "principal_current": "Main image",
+        "set_principal": "Set as main",
+        "edit_alt": "Alt text",
+        "alt_label": "Alt text",
+        "alt_placeholder": "Describe the image for SEO and accessibility…",
+        "save": "Save",
+        "uploading": "Uploading · {progress}%",
+        "count": "{count} image(s)",
+        "rejected_title": "Image not added",
+        "rejected_size": "{name} exceeds the maximum size ({size})",
+        "rejected_type": "{name} is not an accepted image",
+        "rejected_max": "{count} image(s) exceeded the limit and were not added"
+      },
+      "richtext": {
+        "toolbar": {
+          "undo": "Undo",
+          "redo": "Redo",
+          "heading_1": "Heading 1",
+          "heading_2": "Heading 2",
+          "heading_3": "Heading 3",
+          "align_left": "Align Left",
+          "align_center": "Align Center",
+          "align_right": "Align Right",
+          "align_justify": "Justify",
+          "bold": "Bold",
+          "italic": "Italic",
+          "underline": "Underline",
+          "link": "Link",
+          "bullet_list": "Bullet List",
+          "numbered_list": "Numbered List",
+          "quote": "Quote",
+          "code_block": "Code Block",
+          "horizontal_rule": "Separator"
+        },
+        "link": {
+          "placeholder": "Enter URL...",
+          "insert": "Insert",
+          "cancel": "Cancel"
+        },
+        "character_count": "{count} characters"
+      }
+    },
+    "chart": {
+      "default_label": "Dataset {index}",
+      "no_data": "No data to display"
+    },
+    "top_list": {
+      "empty": "No data"
+    },
+    "shortcuts": {
+      "tableview": {
+        "meta_r": {
+          "description": "Refresh table data"
+        },
+        "escape": {
+          "description": "Close search or deselect rows"
+        },
+        "shift_n": {
+          "description": "Create new row",
+          "condition": "Only when canAddRow is enabled"
+        },
+        "shift_a": {
+          "description": "Select all visible rows",
+          "condition": "Only when enableRowSelection is enabled"
+        },
+        "shift_f": {
+          "description": "Open/focus search bar"
+        },
+        "delete": {
+          "description": "Delete hovered row",
+          "condition": "Only when enableRowDelete is enabled"
+        }
+      },
+      "tree": {
+        "arrowdown": {
+          "description": "Navigate down"
+        },
+        "arrowup": {
+          "description": "Navigate up"
+        },
+        "enter": {
+          "description": "Select node"
+        },
+        "space": {
+          "description": "Select node"
+        },
+        "home": {
+          "description": "Go to first node"
+        },
+        "end": {
+          "description": "Go to last node"
+        },
+        "escape": {
+          "description": "Deselect all nodes"
+        },
+        "shift_a": {
+          "description": "Select all nodes recursively",
+          "condition": "Only when multiple is enabled"
+        }
+      },
+      "tab": {
+        "shift_letter": {
+          "description": "Navigate to tab with defined shortcut",
+          "condition": "Dynamically generated from item.shortcut property"
+        }
+      }
+    },
+    "notifications": {
+      "categories": {
+        "system": "System",
+        "system_desc": "Core system notifications and security alerts",
+        "module_one": "Security",
+        "module_one_desc": "Security monitoring and threat detection",
+        "module_two": "Logistics",
+        "module_two_desc": "Shipping, inventory and supply chain updates"
+      },
+      "subjects": {
+        "general": "General",
+        "security": "Security alerts",
+        "security_desc": "Sign-ins, password, email and two-factor changes on your account",
+        "account": "Account",
+        "account_desc": "Important updates about your account",
+        "collaboration": "Collaboration",
+        "collaboration_desc": "Invitations and new collaborators joining the platform",
+        "automation": "Automation",
+        "automation_desc": "Notifications sent by automation procedures",
+        "updates": "Module updates",
+        "updates_desc": "Available updates for the project's Antelope modules (development mode)",
+        "module_one_alerts": "Security alerts",
+        "module_one_alerts_desc": "Critical security events requiring immediate attention",
+        "module_one_updates": "Threat reports",
+        "module_one_updates_desc": "Updates on security threats and vulnerabilities",
+        "module_two_notifications": "Shipment updates",
+        "module_two_notifications_desc": "Updates on shipping and inventory"
+      },
+      "preferences": {
+        "success": "Notification preferences updated",
+        "error_loading": "Failed to load notification preferences",
+        "error_saving": "Failed to save notification preferences",
+        "allow_notifications": "Allow notifications",
+        "mandatory_tooltip": "This notification is mandatory and cannot be disabled"
+      },
+      "messages": {
+        "new_login": {
+          "title": "New sign-in to your account",
+          "description": "A new sign-in to your account was detected from {device}{origin}. If this wasn't you, change your password immediately."
+        },
+        "new_login_unknown_device": {
+          "title": "New sign-in to your account",
+          "description": "A new sign-in to your account was detected{origin}. If this wasn't you, change your password immediately."
+        },
+        "password_changed": {
+          "title": "Your password was changed",
+          "description": "Your account password was just changed. If you didn't make this change, reset your password and contact an administrator."
+        },
+        "login_method_added": {
+          "title": "New sign-in method added",
+          "description": "Signing in with {provider} has just been linked to your account. If you did not do this, change your password immediately."
+        },
+        "password_reset": {
+          "title": "Your password was reset",
+          "description": "Your password was reset using the password recovery flow. If you didn't request this, contact an administrator immediately."
+        },
+        "email_changed": {
+          "title": "Your email address was changed",
+          "description": "The email address for your account was changed to {email}. If you didn't make this change, contact an administrator immediately."
+        },
+        "two_factor_enabled_totp": {
+          "title": "Two-factor authentication enabled",
+          "description": "Two-factor authentication via an authenticator app is now active on your account."
+        },
+        "two_factor_enabled_email": {
+          "title": "Two-factor authentication enabled",
+          "description": "Two-factor authentication via email is now active on your account."
+        },
+        "two_factor_disabled_totp": {
+          "title": "Two-factor authentication disabled",
+          "description": "Two-factor authentication via an authenticator app was turned off. If you didn't make this change, secure your account immediately."
+        },
+        "two_factor_disabled_email": {
+          "title": "Two-factor authentication disabled",
+          "description": "Two-factor authentication via email was turned off. If you didn't make this change, secure your account immediately."
+        },
+        "backup_codes_regenerated": {
+          "title": "Your backup codes were regenerated",
+          "description": "A new set of two-factor backup codes was generated. Your previous backup codes no longer work."
+        },
+        "welcome": {
+          "title": "Welcome aboard",
+          "description": "Welcome, {name}! Your account is ready. Take a moment to review your profile and security settings."
+        },
+        "collaborator_joined": {
+          "title": "A new collaborator joined",
+          "description": "{name} ({email}) accepted their invitation and joined the platform."
+        },
+        "module_updates": {
+          "title": "Module updates available",
+          "description": "New versions available: {modules}. Update the versions in antelope.config.ts or run 'ajs project modules update' to apply them."
+        }
+      }
+    },
+    "realtime": {
+      "editing_warning_title": "Item is being edited",
+      "editing_warning_description": "{names} is currently editing this item. Editing it now may cause your changes to overwrite theirs.",
+      "editing_warning_message": "Editing it at the same time risks {action} or losing data between you both.",
+      "editing_warning_action": "overwriting their changes",
+      "editing_subtitle": "{name} has been editing it for {time}. | {name} have been editing it for {time}.",
+      "duration_moment": "a few seconds",
+      "duration_short": {
+        "day": "d",
+        "hour": "h",
+        "minute": "min",
+        "second": "s"
+      },
+      "editing_warning_confirm": "Edit anyway",
+      "row_edited_by": "{names} editing",
+      "concurrent_edit_banner_title": "This item was just updated",
+      "concurrent_edit_banner_description": "Another user saved changes while you were editing. Saving now will overwrite their changes.",
+      "concurrent_edit_banner_discard": "Discard and refresh",
+      "concurrent_edit_banner_keep": "Keep editing"
+    }
+  }
+}

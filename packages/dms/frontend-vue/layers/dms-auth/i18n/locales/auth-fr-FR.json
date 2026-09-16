@@ -1,0 +1,174 @@
+{
+  "page": {
+    "auth": {
+      "login_title": "Connectez-vous à votre compte",
+      "keep_login": "Garder ma session active",
+      "new_here": "Nouveau ici ?",
+      "already_have": "Déjà un compte ?",
+      "error_title": "Erreur de connexion",
+      "back_to_accounts": "Retour à la liste des comptes",
+      "oauth": {
+        "continue_with": "Continuer avec {provider}",
+        "separator": "ou par e-mail",
+        "completing": "Connexion en cours…"
+      }
+    },
+    "signup": {
+      "create_account_title": "Créer votre compte",
+      "error_title": "Erreur de création de compte"
+    },
+    "2fa": {
+      "title": "Vérification à deux facteurs",
+      "description_totp": "Entrez le code à 6 chiffres de votre application d'authentification.",
+      "description_email": "Entrez le code à 6 chiffres envoyé à votre adresse e-mail.",
+      "send_email": "Envoyer le code par e-mail",
+      "email_sent": "Code de vérification envoyé par e-mail",
+      "email_error": "Impossible d'envoyer le code de vérification",
+      "error_title": "Erreur de vérification",
+      "use_email": "Utiliser la vérification par e-mail",
+      "use_totp": "Utiliser l'application d'authentification",
+      "use_backup": "Utiliser un code de secours",
+      "back_to_2fa": "Retour à la vérification"
+    },
+    "backup": {
+      "title": "Utiliser un code de secours",
+      "description": "Entrez l'un de vos codes de récupération pour vous connecter.",
+      "code": "Code de secours",
+      "error_title": "Erreur de vérification"
+    },
+    "forgot": {
+      "title_success": "Mot de passe réinitialisé !",
+      "title_forget": "Mot de passe oublié",
+      "description_success": "Votre mot de passe a été réinitialisé avec succès. Vous allez maintenant être connecté à votre compte.",
+      "description_validation": "Veuillez entrer le code à 6 chiffres que vous avez reçu par e-mail pour réinitialiser votre mot de passe.",
+      "description_forget": "Un e-mail contenant un code de récupération vous sera envoyé pour réinitialiser votre mot de passe.",
+      "error_title": "Erreur de réinitialisation"
+    },
+    "validate": {
+      "title": "Validation de l'e-mail",
+      "description": "Afin de valider votre adresse e-mail, veuillez entrer le code à 6 chiffres que vous avez reçu dans le mail qui vous a été envoyé.",
+      "error_title": "Erreur de validation",
+      "request_validation_in": "Demander une nouvelle validation dans {time} secondes",
+      "request_validation": "Demander une nouvelle validation",
+      "request_sended": "Demande de validation envoyée",
+      "request_sended_description": "Un nouveau code de validation vous a été envoyé par e-mail."
+    },
+    "recover": {
+      "title": "Réinitialiser votre mot de passe",
+      "description": "Veuillez définir un nouveau mot de passe pour sécuriser votre compte."
+    },
+    "accounts": {
+      "title": "Choisir un compte",
+      "description": "Sélectionnez un compte pour accéder à votre plateforme.",
+      "active_account": "Actif",
+      "expired_account": "Expiré",
+      "add_account": "Ajouter un compte",
+      "account_removed": "Compte supprimé"
+    },
+    "settings": {
+      "sessions": {
+        "title": "Sessions",
+        "description": "Visualisez et gérez toutes les sessions actives de votre compte.",
+        "disconnect_all": "Fermer toutes les sessions",
+        "disconnect": "Déconnexion",
+        "empty": "Aucune session active",
+        "current": "Session actuelle",
+        "revoked": "Session déconnectée",
+        "revoke_error": "Impossible de déconnecter la session",
+        "revoke_all_error": "Impossible de déconnecter toutes les sessions",
+        "device_desktop": "Ordinateur",
+        "device_mobile": "Smartphone",
+        "device_tablet": "Tablette",
+        "sessions_on_device": "{count} Sessions sur {device}",
+        "session_number": "Session #{number}",
+        "date_time": "Date et heure",
+        "location": "Localisation",
+        "unknown_location": "Inconnue",
+        "operating_system": "Système d'exploitation",
+        "browser_label": "Application",
+        "ip_address": "Adresse IP",
+        "just_now": "à l'instant",
+        "minutes_ago": "il y a {count} minutes",
+        "hours_ago": "il y a {count} heures",
+        "days_ago": "il y a {count} jours"
+      },
+      "two_factor": {
+        "title": "Authentification à deux facteurs",
+        "description": "Ajoutez une couche de sécurité supplémentaire à votre compte en exigeant un code de vérification à chaque connexion.",
+        "enabled": "Activé",
+        "disabled": "Désactivé",
+        "enable_success": "Authentification à deux facteurs activée",
+        "disable_success": "Authentification à deux facteurs désactivée",
+        "setup_error": "Impossible de configurer l'authentification à deux facteurs",
+        "invalid_code": "Code de vérification invalide",
+        "enter_code": "Code de vérification",
+        "confirm_disable": "Désactiver",
+        "send_code": "Envoyer le code par e-mail",
+        "email_code_sent": "Code de vérification envoyé par e-mail",
+        "email_code_error": "Impossible d'envoyer le code de vérification",
+        "totp_title": "Application d'authentification",
+        "totp_description": "Utilisez une application comme Google Authenticator ou Authy pour générer des codes de vérification.",
+        "totp_enable": "Configurer l'authentification",
+        "totp_disable": "Désactiver l'authentification",
+        "email_title": "Vérification par e-mail",
+        "email_description": "Recevez un code de vérification par e-mail à chaque connexion.",
+        "email_enable": "Activer la vérification par e-mail",
+        "email_disable": "Désactiver la vérification par e-mail",
+        "setup_qr_description": "Scannez le QR code avec votre application d'authentification, puis entrez le code à 6 chiffres pour vérifier.",
+        "setup_secret_label": "Ou entrez ce secret manuellement :",
+        "setup_verify_code": "Code de vérification",
+        "backup_title": "Codes de récupération",
+        "backup_section_title": "Codes de récupération",
+        "backup_description": "Générez des codes de secours à usage unique en cas de perte d'accès à vos méthodes de vérification.",
+        "backup_warning": "Conservez ces codes dans un endroit sûr. Chaque code ne peut être utilisé qu'une seule fois et ils ne seront plus affichés.",
+        "backup_regenerate": "Régénérer les codes",
+        "backup_regenerated": "Codes de récupération régénérés",
+        "backup_dismiss": "J'ai sauvegardé mes codes",
+        "add_method": "Ajouter une méthode d'authentification",
+        "remove": "Supprimer",
+        "confirm_disable_title": "Désactiver l'authentification à deux facteurs",
+        "confirm_disable_description": "Entrez votre code de vérification actuel pour confirmer la désactivation de cette méthode.",
+        "regenerate_description": "Entrez un code de vérification pour générer de nouveaux codes de secours. Vos codes existants seront invalidés."
+      },
+      "profile": {
+        "title": "Informations personnelles",
+        "description": "Gérez et mettez à jour vos informations personnelles pour maintenir votre profil à jour et sécurisé.",
+        "avatar": "Avatar",
+        "avatar_description": "Image carrée, enregistrée en 100x100 pixels maximum.",
+        "name": "Nom et prénom",
+        "email": "Email",
+        "password": "Mot de passe",
+        "password_placeholder": "Mot de passe",
+        "password_confirm_placeholder": "Confirmer le mot de passe",
+        "language_title": "Langue de l'application",
+        "language_description": "Votre langue préférée pour personnaliser l'affichage du tableau de bord."
+      },
+      "description": {
+        "profile": "Gérez et mettez à jour vos informations personnelles pour maintenir votre profil à jour et sécurisé",
+        "sessions": "Consultez et gérez vos sessions actives sur tous vos appareils"
+      }
+    }
+  },
+  "error": {
+    "oauth": {
+      "cancelled": "Connexion annulée.",
+      "invalid_state": "Session de connexion expirée ou invalide, réessayez.",
+      "failed": "La connexion avec ce fournisseur a échoué.",
+      "provider_disabled": "Ce fournisseur de connexion n'est pas activé.",
+      "provider_unreachable": "Fournisseur injoignable, réessayez dans un instant.",
+      "token_exchange_failed": "Le fournisseur a refusé la connexion.",
+      "email_unavailable": "Impossible de récupérer votre adresse e-mail depuis ce fournisseur.",
+      "email_not_verified": "L'adresse e-mail de ce compte n'est pas vérifiée chez le fournisseur.",
+      "linking_disabled": "Un compte existe déjà avec cette adresse e-mail. Connectez-vous avec votre mot de passe.",
+      "account_not_validated": "Un compte existe déjà avec cette adresse e-mail mais n'est pas validé. Validez-le avant de lier ce fournisseur.",
+      "registration_disabled": "Aucun compte n'est associé à cette identité et l'inscription par fournisseur est désactivée.",
+      "identity_already_linked": "Ce compte fournisseur est déjà lié à un autre utilisateur.",
+      "user_not_created": "La création du compte a échoué.",
+      "jwt_secret_missing": "La connexion par fournisseur n'est pas configurée sur cette instance.",
+      "resolution_mismatch": "Impossible de déterminer le compte associé à cette identité.",
+      "relay_required": "Appel direct refusé : ce point d'entrée n'accepte que le serveur frontend de l'instance.",
+      "identity_malformed": "Le fournisseur a renvoyé une identité inexploitable, réessayez."
+    },
+    "rate_limited": "Trop de tentatives, réessayez dans une minute."
+  }
+}

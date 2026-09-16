@@ -1,0 +1,20 @@
+{
+  "name": "dms-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.2.0",
+  "devDependencies": {
+    "@antelopejs/tooling-configs": "^0.0.4",
+    "oxfmt": "^0.66.0",
+    "oxlint": "1.81.0",
+    "oxlint-tsgolint": "^7.0.2001"
+  },
+  "scripts": {
+    "build": "pnpm --filter @antelopejs/dms build",
+    "typecheck": "pnpm --filter @antelopejs/dms typecheck",
+    "lint": "pnpm --filter @antelopejs/interface-dms lint && pnpm --filter @antelopejs/dms lint",
+    "lint:fix": "pnpm --filter @antelopejs/interface-dms lint:fix && pnpm --filter @antelopejs/dms lint:fix",
+    "format": "pnpm --filter @antelopejs/interface-dms format && pnpm --filter @antelopejs/dms format",
+    "knip": "pnpm --filter @antelopejs/dms knip",
+    "test": "pnpm --filter @antelopejs/dms test"
+  }
+}

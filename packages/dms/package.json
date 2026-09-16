@@ -1,0 +1,129 @@
+{
+  "name": "@antelopejs/dms",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntelopeJS/dms.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "frontend-vue",
+    "skills",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.2.0",
+  "scripts": {
+    "build": "pnpm --filter @antelopejs/interface-dms build && rimraf dist && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "format": "oxfmt . && pnpm --dir frontend-vue format",
+    "dev": "ajs project run --inspect -w -p playground",
+    "frontend:dev": "pnpm --dir playground frontend:dev",
+    "lint:fix": "oxlint --fix --max-warnings=1000000 && oxfmt . && pnpm --dir frontend-vue lint:fix",
+    "lint": "oxlint && oxfmt --check . && pnpm --dir frontend-vue lint",
+    "performance:inertia-navigation": "node scripts/check-inertia-navigation.mjs",
+    "check:inertia-runtime": "node scripts/check-inertia-runtime.mjs",
+    "check:inertia-contracts": "node scripts/check-inertia-contracts.mjs",
+    "check:inertia-modules": "node scripts/check-inertia-modules.mjs",
+    "typecheck": "pnpm --filter @antelopejs/interface-dms build && tsc -p tsconfig.json",
+    "check:package": "node scripts/check-package.mjs",
+    "test": "pnpm run build && ajs module test . && pnpm run check:package",
+    "test:unit": "pnpm run build && DMS_TEST_DIR=dist/test/unit ajs module test .",
+    "test:integration": "pnpm run build && DMS_TEST_DIR=dist/test/integration ajs module test .",
+    "test:watch": "tsc -p tsconfig.build.json -w & tsc-alias -p tsconfig.build.json -w",
+    "release": "pnpm --dir frontend-vue install --frozen-lockfile && release-it",
+    "prepack": "pnpm run build && pnpm run check:package",
+    "knip": "knip --dependencies",
+    "knip:all": "knip"
+  },
+  "antelopeJs": {
+    "implements": [
+      "@antelopejs/interface-dms"
+    ],
+    "baseUrl": "dist",
+    "test": "src/test/antelope.test.ts",
+    "skills": [
+      "./skills"
+    ]
+  },
+  "dependencies": {
+    "2fa": "^0.1.2",
+    "@antelopejs/core": "^1.4.11",
+    "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
+    "@antelopejs/interface-core": "^0.0.12",
+    "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
+    "@antelopejs/interface-database": ">=0.1.7 <1.0.0",
+    "@antelopejs/interface-database-decorators": ">=0.1.6 <1.0.0",
+    "@antelopejs/interface-dms": "workspace:*",
+    "@antelopejs/interface-email": ">=0.0.5 <1.0.0",
+    "@antelopejs/interface-file-storage": ">=0.1.3 <1.0.0",
+    "archiver": "^7.0.1",
+    "csv-stringify": "^6.7.0",
+    "defu": "^6.1.4",
+    "ignore": "^7.0.5",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
+    "randomstring": "^1.3.1",
+    "semver": "^7.7.2",
+    "striptags": "^3.2.0",
+    "ua-parser-js": "^2.0.9",
+    "zod": "~3.24.2"
+  },
+  "devDependencies": {
+    "@antelopejs/tooling-configs": "^0.0.4",
+    "@types/archiver": "^6.0.4",
+    "@types/chai": "^4.3.20",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mocha": "^10",
+    "@types/node": "^24.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/randomstring": "^1.3.0",
+    "@types/semver": "^7.7.1",
+    "axios": "^1.7.9",
+    "chai": "^4.5.0",
+    "knip": "^6.34.0",
+    "mongodb": "^7.1.1",
+    "mongodb-memory-server-core": "^11.0.1",
+    "oxfmt": "^0.66.0",
+    "oxlint": "1.81.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "release-it": "^19.2.4",
+    "release-it-changelogen": "^0.1.0",
+    "rimraf": "^6.1.3",
+    "tsc-alias": "^1.9.1",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./pages": {
+      "types": "./dist/pages/index.d.ts",
+      "default": "./dist/pages/index.js"
+    },
+    "./interfaces/*": null
+  },
+  "typesVersions": {
+    "*": {
+      "pages": [
+        "dist/pages/index.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "optionalDependencies": {
+    "@antelopejs/interface-dms-automation": ">=0.0.1 <1.0.0",
+    "@antelopejs/interface-redis": ">=0.0.8 <1.0.0"
+  }
+}

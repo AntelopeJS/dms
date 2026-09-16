@@ -1,0 +1,276 @@
+{
+  "navigation": {
+    "goToHomepage": "Aller à la page d'accueil"
+  },
+  "menu": {
+    "favorites": "Favoris",
+    "modules": "Modules",
+    "back": "Retour",
+    "switch_account": "Changer de compte",
+    "help": "Aide",
+    "build_mode": "Mode construction",
+    "user_settings": "Paramètres utilisateur",
+    "store": "Magasin",
+    "profile": "Profil",
+    "sessions": "Sessions",
+    "notifications": "Notifications",
+    "shortcuts": "Raccourcis",
+    "members": "Membres",
+    "invites": "Invitations en attente",
+    "roles": "Rôles",
+    "general": "Général",
+    "appearance": "Apparence",
+    "preset_store": "Magasin de préréglages",
+    "module_store": "Magasin de modules",
+    "component_store": "Magasin de composants",
+    "section": {
+      "pages": "Pages",
+      "modules": "Modules",
+      "settings": "Paramètres"
+    }
+  },
+  "footer": {
+    "french": "Français",
+    "english": "Anglais"
+  },
+  "builder": {
+    "button": "Builder",
+    "title": "Builder — éditeur no-code",
+    "description": "Une façon 100 % no-code de configurer votre DMS — pages, tables, formulaires et logique — sans écrire une seule ligne de code.",
+    "soon": "Bientôt disponible"
+  },
+  "quickActions": {
+    "title": "Actions rapides"
+  },
+  "commandPalette": {
+    "dialog": {
+      "title": "Recherche",
+      "description": "Rechercher des pages, des actions et des réglages"
+    },
+    "groups": {
+      "navigation": "Navigation",
+      "recentModules": "Modules récents",
+      "session": "Session"
+    },
+    "session": {
+      "changeLanguage": "Changer de langue",
+      "copyUrl": "Copier l'URL de la page",
+      "urlCopied": "URL copiée dans le presse-papiers",
+      "copyFailed": "La copie a échoué"
+    }
+  },
+  "notification": {
+    "dropdown": {
+      "title": "Notifications",
+      "no_unread": "Aucune notification non lue",
+      "no_notifications": "Aucune notification",
+      "view_all": "Voir toutes les notifications"
+    }
+  },
+  "page": {
+    "legal": {
+      "no_content_title": "Aucun contenu disponible",
+      "no_content_message": "Cette page n'a pas encore été configurée. Veuillez contacter l'administrateur."
+    },
+    "settings": {
+      "title": "Paramètres",
+      "intro": "Gérez et personnalisez les paramètres de votre application.",
+      "description": {
+        "notifications": "Configurez vos préférences de notifications pour rester informé de manière optimale",
+        "shortcuts": "Explorer les différents raccourcis du DMS pour améliorer votre productivité",
+        "members": "Gérer les membres et leurs permissions",
+        "invites": "Consulter, renvoyer ou annuler les invitations d'utilisateurs en attente",
+        "roles": "Gérer les permissions et les groupes d'utilisateurs pour un contrôle d'accès optimal",
+        "general": "Modifications des informations générales de votre plateforme",
+        "appearance": "Personnalisez et adaptez l'apparence de votre dashboard selon vos préférences pour une expérience plus intuitive et agréable",
+        "preset_store": "Découvrez les préréglages disponibles",
+        "module_store": "Découvrez les modules disponibles",
+        "component_store": "Découvrez les composants disponibles"
+      },
+      "notifications": {
+        "preferences_title": "Configuration",
+        "preferences_description": "Adaptez vos préférences de notifications",
+        "system_label": "Système",
+        "system_description": "Mise à jour système, Nouvelle connexion, Invitation admin acceptée,...",
+        "module_label": "Module",
+        "module_description": "Autoriser les modules à vous envoyer des notifications",
+        "list_title": "Liste de vos notifications",
+        "list_description": "Consultez toutes les notifications récentes de votre compte pour rester informé",
+        "no_notifications": "Aucune notification à afficher",
+        "mark_all_read": "Tout vu",
+        "delete_all": "Tout supprimer",
+        "confirm_mark_all_read_title": "Tout marquer comme lu ?",
+        "confirm_mark_all_read_description": "Cette action marquera toutes vos notifications comme lues. Cette action est irréversible.",
+        "confirm_delete_all_title": "Supprimer toutes les notifications ?",
+        "confirm_delete_all_description": "Cette action supprimera définitivement toutes vos notifications. Cette action est irréversible.",
+        "mark_all_read_success": "Toutes les notifications ont été marquées comme lues",
+        "delete_all_success": "Toutes les notifications ont été supprimées"
+      },
+      "general": {
+        "title": "Paramètres généraux",
+        "description": "Configurez les informations générales de votre plateforme"
+      },
+      "members": {
+        "table": {
+          "caption": "Liste des membres"
+        },
+        "column": {
+          "name": "Nom et prénom",
+          "email": "Email",
+          "roles": "Rôles",
+          "tenant_owner": "Propriétaire",
+          "joined_at": "Date d'arrivée",
+          "created_at": "Date de création",
+          "updated_at": "Date de modification",
+          "connected": "Connecté"
+        },
+        "placeholder": {
+          "name": "Entrer nom et prénom",
+          "email": "email{'@'}exemple.com",
+          "roles": "Sélectionner des rôles"
+        },
+        "description": {
+          "roles": "Rôles attribués à l'utilisateur",
+          "tenant_owner": "L'utilisateur a un accès complet",
+          "joined_at": "Date à laquelle l'utilisateur a rejoint",
+          "created_at": "Date de création du compte utilisateur",
+          "updated_at": "Dernière modification",
+          "connected": "Statut de connexion de l'utilisateur"
+        },
+        "status": {
+          "online": "En ligne",
+          "offline": "Hors ligne"
+        },
+        "invite": {
+          "button": "Inviter",
+          "title": "Inviter un utilisateur",
+          "description": "Saisissez l'adresse e-mail de la personne à inviter et cliquez sur 'Envoyer l'invitation' pour lui accorder l'accès.",
+          "submit": "Envoyer l'invitation",
+          "success": "Invitation envoyée avec succès",
+          "already_member": "Cet utilisateur est déjà enregistré",
+          "field": {
+            "email": "Adresse e-mail",
+            "firstname": "Prénom",
+            "lastname": "Nom",
+            "name_description": "Requis lorsque la validation e-mail est ignorée, optionnel sinon",
+            "roles": "Rôle(s)",
+            "roles_description": "Rôles à attribuer à l'utilisateur invité",
+            "language": "Langue",
+            "tenant_owner": "Propriétaire",
+            "tenant_owner_description": "Accorder un accès complet sans restrictions de permissions",
+            "skip_email_validation": "Ignorer la validation e-mail",
+            "skip_email_validation_description": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son adresse e-mail et son prénom et son nom doivent être renseignés"
+          },
+          "placeholder": {
+            "email": "utilisateur{'@'}exemple.com",
+            "firstname": "Prénom",
+            "lastname": "Nom",
+            "roles": "Sélectionner un ou plusieurs rôles"
+          },
+          "roles_required": "Au moins un rôle est requis lorsque l'utilisateur n'est pas propriétaire",
+          "firstname_required": "Le prénom est requis lorsque la validation e-mail est ignorée",
+          "lastname_required": "Le nom est requis lorsque la validation e-mail est ignorée"
+        },
+        "action": {
+          "validate_email": "Valider l'e-mail",
+          "validate_email_success": "E-mail validé avec succès",
+          "validate_email_confirm_title": "Valider l'e-mail",
+          "validate_email_confirm_description": "Êtes-vous sûr de vouloir valider manuellement l'adresse e-mail de cet utilisateur ?"
+        },
+        "error": {
+          "user_not_found": "Utilisateur introuvable",
+          "last_owner": "Impossible de retirer le dernier propriétaire. Au moins un propriétaire doit rester.",
+          "last_owner_delete": "Impossible de supprimer tous les propriétaires. Au moins un propriétaire doit rester."
+        }
+      },
+      "invites": {
+        "table": {
+          "caption": "Invitations en attente"
+        },
+        "column": {
+          "email": "E-mail",
+          "firstname": "Prénom",
+          "lastname": "Nom",
+          "roles": "Rôles",
+          "owner": "Propriétaire",
+          "language": "Langue",
+          "skip_email_validation": "Ignorer la validation e-mail",
+          "status": "Statut",
+          "created_at": "Envoyée le",
+          "expires_at": "Expire le"
+        },
+        "placeholder": {
+          "email": "email{'@'}exemple.com",
+          "roles": "Sélectionner des rôles"
+        },
+        "description": {
+          "skip_email_validation": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son e-mail"
+        },
+        "status": {
+          "pending": "En attente",
+          "expired": "Expirée"
+        },
+        "action": {
+          "resend": "Renvoyer",
+          "resend_success": "Invitation renvoyée avec succès",
+          "resend_confirm_title": "Renvoyer l'invitation",
+          "resend_confirm_description": "Un nouveau lien d'invitation sera généré et envoyé à l'utilisateur. L'ancien lien sera invalidé.",
+          "cancel": "Annuler l'invitation",
+          "cancel_success": "Invitation annulée avec succès",
+          "cancel_confirm_title": "Annuler l'invitation",
+          "cancel_confirm_description": "Êtes-vous sûr de vouloir annuler cette invitation ? Le lien d'invitation ne fonctionnera plus."
+        },
+        "error": {
+          "not_found": "Invitation introuvable"
+        }
+      },
+      "roles": {
+        "table": {
+          "caption": "Liste des rôles"
+        },
+        "column": {
+          "name": "Nom du rôle",
+          "permissions": "Permissions",
+          "created_at": "Date de création",
+          "updated_at": "Date de modification"
+        },
+        "placeholder": {
+          "name": "Entrer nom du rôle",
+          "permissions": "Sélectionner les permissions"
+        },
+        "description": {
+          "permissions": "Permissions assignées à ce rôle",
+          "created_at": "Date de création du rôle",
+          "updated_at": "Dernière modification"
+        }
+      },
+      "appearance": {
+        "theme_title": "Thème de l'interface",
+        "theme_description": "Adapter votre thème de couleur pour votre DMS Antelope",
+        "system": "Système",
+        "light": "Clair",
+        "dark": "Sombre",
+        "scale_title": "Densité de l'interface",
+        "scale_description": "Agrandissez ou réduisez l'ensemble de l'interface en conservant les proportions. Petite pour afficher plus de données, Grande pour plus de confort sur grands écrans",
+        "scale_small": "Petite",
+        "scale_normal": "Normale",
+        "scale_large": "Grande",
+        "scale_small_hint": "Compact · plus de données",
+        "scale_normal_hint": "Par défaut",
+        "scale_large_hint": "Spacieux · grands écrans",
+        "css_variables": "Variables CSS",
+        "css_variables_description": "Liste de toutes les variables CSS utilisées dans le design system"
+      },
+      "shortcuts": {
+        "title": "Raccourcis clavier",
+        "intro": "Raccourcis clavier disponibles pour les composants"
+      }
+    }
+  },
+  "modules": {
+    "title": "Modules",
+    "intro": "Parcourez les modules disponibles sur cette plateforme.",
+    "empty": "Aucun module ne vous est accessible pour le moment.",
+    "open": "Ouvrir le module"
+  }
+}

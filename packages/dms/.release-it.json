@@ -1,0 +1,19 @@
+{
+  "git": {
+    "commitMessage": "chore(release): @antelopejs/dms v${version}",
+    "tagName": "v${version}"
+  },
+  "github": {
+    "release": true,
+    "releaseName": "@antelopejs/dms v${version}"
+  },
+  "hooks": {
+    "before:init": ["pnpm lint"],
+    "after:bump": "git add CHANGELOG.md"
+  },
+  "plugins": {
+    "release-it-changelogen": {
+      "disableVersion": true
+    }
+  }
+}

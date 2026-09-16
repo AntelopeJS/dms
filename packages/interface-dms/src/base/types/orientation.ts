@@ -1,0 +1,7 @@
+/**
+ * Generic orientation enum
+ */
+export enum AxeOrientation {
+  horizontal = "horizontal",
+  vertical = "vertical",
+}

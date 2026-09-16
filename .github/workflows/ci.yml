@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  # No branch filter: the lint wave stacks pull requests on top of each other,
+  # and filtering on `main` left every intermediate step ungated -- only the
+  # secret scanner ran.
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Before setup-node, which needs pnpm on PATH to resolve the store it
+      # caches. The version comes from the root `packageManager` field.
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+
+      - uses: actions/setup-node@v4
+        with:
+          # .nvmrc is the version of record. oxlint needs at least 22.18 to
+          # read a TypeScript config, which every value there clears.
+          node-version-file: .nvmrc
+          cache: pnpm
+          # The Vue layer is installed on its own, the way the loader installs
+          # it, so its lockfile has to key the cache too.
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            packages/dms/frontend-vue/pnpm-lock.yaml
+
+      # `...` selects the dependencies too, so the workspace interface comes
+      # along and nothing else in the workspace is installed for nothing.
+      - run: pnpm install --filter @antelopejs/dms... --frozen-lockfile
+      - run: pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
+
+      # The runtime compiles against the interface's declarations, so the
+      # interface is built before anything reads them.
+      - run: pnpm --dir packages/interface-dms build
+      - run: pnpm --dir packages/interface-dms lint
+      - run: pnpm --dir packages/interface-dms typecheck
+      - run: pnpm --dir packages/interface-dms knip
+      # Node does not fall back to a directory index inside an exports map, so
+      # a new interface folder is unreachable until the map lists it.
+      - run: pnpm --dir packages/interface-dms check:exports
+      # Compiles a packed consumer under node, node16 and bundler resolution,
+      # with skipLibCheck off: how modules actually consume this package.
+      - run: pnpm --dir packages/interface-dms check:consumer
+
+      - run: pnpm --dir packages/dms lint
+      # tsconfig.json is the config the editors and oxlint's type-aware pass
+      # read; tsconfig.build.json is the one the build uses. Without this the
+      # first is never exercised, and a resolution failure there degrades every
+      # type-aware rule to `any` without failing anything.
+      - run: pnpm --dir packages/dms typecheck
+      # Unused dependencies only. `pnpm knip:all` also reports dead files and
+      # exports, which the interface architecture makes noisy enough to need a
+      # human, so they stay out of the gate.
+      - run: pnpm --dir packages/dms knip
+      - run: pnpm --dir packages/dms build
+      # `test:unit` builds first, so this also gates on compile errors.
+      - run: pnpm --dir packages/dms test:unit
+      - run: pnpm --dir packages/dms/frontend-vue test
+      - run: pnpm --dir packages/dms/frontend-vue typecheck
+      - run: pnpm --dir packages/dms check:package

@@ -1,0 +1,268 @@
+@layer theme, base, dms, components, utilities;
+
+@import "tailwindcss";
+@import "@nuxt/ui";
+@plugin "@tailwindcss/typography";
+@source "../../app.config.ts";
+
+/* Self-hosted Geist (SIL OFL 1.1, files in /public/fonts + LICENSE.txt).
+   Variable files cover weights 100–900 and keep builds deterministic offline. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/Geist-Italic-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/GeistMono-Italic-Variable.woff2") format("woff2");
+}
+
+/* Interface scale: Nuxt UI / Tailwind sizing is rem-based, so scaling the
+   root font-size scales the whole interface while keeping proportions. */
+:root[data-scale="small"] {
+  font-size: 87.5%;
+}
+:root[data-scale="large"] {
+  font-size: 112.5%;
+}
+
+/* Antelope DMS design tokens (see Antelopejs-DMS-Dashboard proposal).
+   "dms" is the cyan DMS product accent (--dms-* from dms-shell.css, NOT the
+   cobalt --blue-* which is the Labs/foundation color); the neutral scale is
+   re-tuned with a cool blue undertone on the dark steps. */
+@theme static {
+  /* Geist display/body + Geist Mono. Inter and the system stack are fallbacks. */
+  --font-sans:
+    "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Tailwind v4 preflight sets the base element font from
+     --default-font-family (NOT --font-sans), so wire it through. */
+  --default-font-family: var(--font-sans);
+  --default-mono-font-family: var(--font-mono);
+
+  --color-dms-50: #e6fbfc;
+  --color-dms-100: #c5f5f8;
+  --color-dms-200: #95ecf0;
+  --color-dms-300: #66e1e8;
+  --color-dms-400: #4dd9e6;
+  --color-dms-500: #2dc1cf;
+  --color-dms-600: #1ba2af;
+  --color-dms-700: #167f8a;
+  --color-dms-800: #136470;
+  --color-dms-900: #114f59;
+  --color-dms-950: #062e35;
+
+  --color-neutral-50: #f8f8f9;
+  --color-neutral-100: #f1f1f3;
+  --color-neutral-200: #dcdce1;
+  --color-neutral-300: #c4c4cb;
+  --color-neutral-400: #9b9ba4;
+  --color-neutral-500: #71717a;
+  --color-neutral-600: #52525b;
+  --color-neutral-700: #3f3f46;
+  --color-neutral-800: #2a2a30;
+  --color-neutral-900: #15151b;
+  --color-neutral-950: #0a0b12;
+}
+
+/* Defaults beat framework tokens, but not unlayered consumer declarations,
+   regardless of stylesheet order. */
+@layer dms {
+  :root {
+    --font-sans:
+      "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+
+    /* Light accent: dms-600 keeps white text readable on accent fills */
+    --ui-primary: var(--ui-color-primary-600);
+
+    /* Signature radius. Nuxt UI renders rounded-md at 1.5x --ui-radius, so
+     0.25rem yields 6px on buttons/inputs (design --radius-md). */
+    --ui-radius: 0.25rem;
+
+    /* Card frame surface (design --surface-card) */
+    --dms-surface-card: var(--ui-bg);
+
+    /* Surfaces — white cards on a cool neutral app canvas
+     (design --bg #fff / --bg-subtle #f8f8f9 / --bg-muted #f1f1f3) */
+    --ui-bg: #ffffff;
+    --ui-bg-muted: #f8f8f9;
+    --ui-bg-elevated: #f1f1f3;
+    --ui-bg-accented: #e7e7eb;
+
+    /* Hairline borders (n-150 / n-100 / n-200 in the design scale) */
+    --ui-border: #e7e7eb;
+    --ui-border-muted: #f1f1f3;
+    --ui-border-accented: #dcdce1;
+
+    /* Elevation (design --shadow-*, light) */
+    --shadow-xs: 0 1px 0 0 rgba(9, 9, 11, 0.04);
+    --shadow-sm:
+      0 1px 2px 0 rgba(9, 9, 11, 0.06), 0 1px 1px 0 rgba(9, 9, 11, 0.04);
+    --shadow-md:
+      0 4px 12px -2px rgba(9, 9, 11, 0.06), 0 2px 4px -1px rgba(9, 9, 11, 0.04);
+    --shadow-lg:
+      0 12px 32px -8px rgba(9, 9, 11, 0.1), 0 4px 8px -2px rgba(9, 9, 11, 0.06);
+    --shadow-xl:
+      0 24px 48px -12px rgba(9, 9, 11, 0.18),
+      0 8px 16px -4px rgba(9, 9, 11, 0.08);
+    --shadow-glow:
+      0 0 0 1px color-mix(in srgb, var(--dms-accent) 30%, transparent),
+      0 0 24px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
+
+    --dms-accent: var(--ui-color-primary-500);
+
+    /* Motion (design --ease-* / --dur-*) */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-instant: 80ms;
+    --dur-fast: 150ms;
+    --dur-base: 220ms;
+    --dur-slow: 400ms;
+    --dur-slower: 700ms;
+  }
+
+  .dark {
+    --ui-primary: var(--ui-color-primary-400);
+
+    /* Card surface = design --surface-card (#101119): its own tier sitting
+     between the sidebar (--surface-side #0a0b12 = --ui-bg) and the raised
+     --surface-card-2 (~#15151b = --ui-bg-elevated). The --ui-* scale has no
+     exact stop for it, so it's set literally to match the reference design. */
+    --dms-surface-card: #101119;
+
+    /* Dashboard surfaces aligned to the design dark scale:
+     canvas --bg-muted #06070d (n-975) · sidebar --bg #0a0b12 (n-950) ·
+     raised inner surfaces --bg-elevated #15151b (n-900). */
+    --ui-bg: #0a0b12;
+    --ui-bg-muted: #06070d;
+    --ui-bg-elevated: #15151b;
+    --ui-bg-accented: #1a1b24;
+
+    /* Hairline borders with a slight blue cast (design dark borders) */
+    --ui-border: rgba(120, 140, 200, 0.1);
+    --ui-border-muted: rgba(120, 140, 200, 0.06);
+    --ui-border-accented: rgba(140, 160, 220, 0.18);
+
+    /* Elevation softer in dark; most depth comes from borders (design). */
+    --shadow-xs: 0 1px 0 0 rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+    --shadow-xl: 0 24px 56px -12px rgba(0, 0, 0, 0.7);
+    --shadow-glow:
+      0 0 0 1px color-mix(in srgb, var(--dms-accent) 35%, transparent),
+      0 0 32px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
+    --dms-accent: var(--ui-color-primary-400);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Card frame around primary components (design .card: surface-card
+   background, hairline border, radius-xl, soft shadow). */
+@layer components {
+  .dms-card {
+    background-color: var(--dms-surface-card);
+    border: 1px solid var(--ui-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Floating surfaces (auth boxes, full-page panels) sit on an empty
+     backdrop and need more lift than in-app cards. */
+  .dms-card--elevated {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Clickable surfaces (settings/nav tiles, selection cards). */
+  .dms-card--interactive {
+    cursor: pointer;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s,
+      transform 0.2s;
+  }
+  .dms-card--interactive:hover {
+    border-color: var(--ui-border-accented);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* Live-edit highlight: animates page components added / removed / modified
+   when the active page's layout changes in place (DMS dev hot-reload). */
+.dms-fresh-enter-active {
+  animation: dms-fresh-in 0.5s ease-out;
+}
+.dms-fresh-leave-active {
+  animation: dms-fresh-out 0.4s ease-in forwards;
+}
+.dms-fresh-move {
+  transition: transform 0.3s ease;
+}
+.dms-fresh-modified {
+  animation: dms-fresh-pulse 0.9s ease-out;
+  border-radius: 0.5rem;
+}
+
+@keyframes dms-fresh-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dms-fresh-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@keyframes dms-fresh-pulse {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  35% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dms-accent) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

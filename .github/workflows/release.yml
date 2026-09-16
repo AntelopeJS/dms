@@ -1,0 +1,63 @@
+name: Release DMS module
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: npm distribution channel
+        required: true
+        default: latest
+        type: choice
+        options: [latest, next]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate module release metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release source and package metadata
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/$DEFAULT_BRANCH"
+          case "$CHANNEL" in latest|next) ;; *) exit 1 ;; esac
+          node <<'NODE'
+          const pkg = require('./packages/dms/package.json')
+          if (
+            pkg.name !== '@antelopejs/dms' ||
+            pkg.private === true ||
+            pkg.license !== 'Apache-2.0' ||
+            pkg.repository.url !== 'git+https://github.com/AntelopeJS/dms.git' ||
+            pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
+            pkg.publishConfig.access !== 'public' ||
+            pkg.publishConfig.provenance !== true ||
+            pkg.dependencies['@antelopejs/interface-dms'] !== 'workspace:*' ||
+            pkg.antelopeJs.implements.join() !== '@antelopejs/interface-dms'
+          ) process.exit(1)
+          NODE
+      # pnpm rewrites `workspace:*` to the interface version at publish time, so
+      # a module released against an unpublished interface installs broken. The
+      # interface is released by its own workflow; this one only refuses to run
+      # before it has landed.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify the interface release it will point at
+        run: |
+          version=$(node -p "require('./packages/interface-dms/package.json').version")
+          npm view "@antelopejs/interface-dms@$version" version \
+            --registry=https://registry.npmjs.org/
+  release:
+    needs: validate
+    uses: AntelopeJS/.github/.github/workflows/release-npm-public.yml@1df63ee37c5ecb869124cb58f199cef1e19dd138
+    with:
+      channel: ${{ inputs.channel }}
+      package-directory: packages/dms
+    secrets:
+      RELEASE_GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}

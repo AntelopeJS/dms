@@ -1,0 +1,25 @@
+{
+  "demo": {
+    "widgets": {
+      "status": {
+        "label": "Statut système",
+        "title": "Statut système",
+        "ok": "Tout est opérationnel"
+      },
+      "actions": {
+        "label": "Actions démo",
+        "title": "Widget cadré démo",
+        "description": "Contenu interactif fourni par le module, cadré et positionné par le DMS.",
+        "clicked": "Cliqué {count} fois"
+      },
+      "sidebar": {
+        "title": "Widget sidebar démo",
+        "description": "Composant libre au-dessus de la recherche"
+      },
+      "moduleSidebar": {
+        "title": "Widget module démo",
+        "description": "Visible uniquement dans le module démo"
+      }
+    }
+  }
+}

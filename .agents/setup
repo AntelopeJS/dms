@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly NODE_MAJOR="22"
+readonly PNPM_VERSION="10.2.0"
+readonly ANTELOPE_VERSION="1.4.11"
+readonly MONGODB_MAJOR="8.0"
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+cd "$repo_root"
+
+run_step() {
+  local label="$1"
+  shift
+  local started_at=$SECONDS
+
+  printf '\n==> %s\n' "$label"
+  "$@"
+  printf '<== %s (%ss)\n' "$label" "$((SECONDS - started_at))"
+}
+
+install_node() {
+  local current_major=""
+  if command -v node >/dev/null 2>&1; then
+    current_major="$(node --eval 'process.stdout.write(process.versions.node.split(".")[0])')"
+  fi
+
+  if [[ "$current_major" != "$NODE_MAJOR" ]]; then
+    if ! command -v n >/dev/null 2>&1; then
+      sudo npm install --global n
+    fi
+    sudo n "$NODE_MAJOR"
+    hash -r
+  fi
+
+  node --version
+}
+
+configure_pnpm() {
+  if ! command -v corepack >/dev/null 2>&1; then
+    echo "corepack is required but was not provided by the orb's Node.js installation" >&2
+    return 1
+  fi
+
+  local current_version=""
+  if ! current_version="$(pnpm --version 2>/dev/null)" || [[ "$current_version" != "$PNPM_VERSION" ]]; then
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack prepare "pnpm@$PNPM_VERSION" --activate
+    sudo corepack enable pnpm
+  fi
+
+  pnpm --version
+}
+
+install_antelope_cli() {
+  local current_version=""
+  if command -v ajs >/dev/null 2>&1; then
+    current_version="$(ajs --version 2>/dev/null || true)"
+  fi
+
+  if [[ "$current_version" != "$ANTELOPE_VERSION" ]]; then
+    sudo npm install --global "@antelopejs/core@$ANTELOPE_VERSION"
+  fi
+
+  ajs --version
+}
+
+install_mongodb() {
+  if command -v mongod >/dev/null 2>&1; then
+    mongod --version | sed -n '1p'
+    return
+  fi
+
+  local prerequisites_missing=false
+  local package
+  for package in ca-certificates curl gnupg; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fq "install ok installed"; then
+      prerequisites_missing=true
+      break
+    fi
+  done
+
+  if [[ "$prerequisites_missing" == true ]]; then
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg
+  fi
+
+  local keyring="/usr/share/keyrings/mongodb-server-$MONGODB_MAJOR.gpg"
+  if [[ ! -f "$keyring" ]]; then
+    curl -fsSL "https://www.mongodb.org/static/pgp/server-$MONGODB_MAJOR.asc" \
+      | gpg --batch --dearmor --output "$tmp_dir/mongodb.gpg"
+    sudo install -m 0644 "$tmp_dir/mongodb.gpg" "$keyring"
+  fi
+
+  local repo_file="/etc/apt/sources.list.d/mongodb-org-$MONGODB_MAJOR.list"
+  local repo_line="deb [ arch=amd64,arm64 signed-by=$keyring ] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/$MONGODB_MAJOR main"
+  if [[ ! -f "$repo_file" ]] || ! grep -Fqx "$repo_line" "$repo_file"; then
+    printf '%s\n' "$repo_line" | sudo tee "$repo_file" >/dev/null
+  fi
+
+  sudo apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org
+}
+
+start_mongodb() {
+  sudo systemctl enable --now mongod >/dev/null
+
+  local attempt
+  for attempt in {1..10}; do
+    if mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' 2>/dev/null | grep -Fxq "1"; then
+      echo "MongoDB is ready"
+      return
+    fi
+    sleep 0.5
+  done
+
+  echo "MongoDB did not become ready" >&2
+  return 1
+}
+
+install_dependencies() {
+  pnpm install --frozen-lockfile
+  pnpm build
+  pnpm --dir packages/dms/playground install --frozen-lockfile --force
+  pnpm --dir packages/dms/frontend-vue install --frozen-lockfile --ignore-scripts
+}
+
+run_step "Install Node.js $NODE_MAJOR" install_node
+run_step "Configure pnpm $PNPM_VERSION" configure_pnpm
+run_step "Install AntelopeJS CLI $ANTELOPE_VERSION" install_antelope_cli
+run_step "Install MongoDB $MONGODB_MAJOR" install_mongodb
+run_step "Start MongoDB" start_mongodb
+run_step "Install locked Node.js dependencies" install_dependencies
+
+printf '\nOrb setup complete.\n'

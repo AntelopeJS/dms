@@ -1,0 +1,174 @@
+{
+  "page": {
+    "auth": {
+      "login_title": "Connect to your account",
+      "keep_login": "Keep my active session",
+      "new_here": "New here?",
+      "already_have": "Already an account?",
+      "error_title": "Connection error",
+      "back_to_accounts": "Back to account list",
+      "oauth": {
+        "continue_with": "Continue with {provider}",
+        "separator": "or with e-mail",
+        "completing": "Signing you in…"
+      }
+    },
+    "signup": {
+      "create_account_title": "Create your account",
+      "error_title": "Account creation error"
+    },
+    "2fa": {
+      "title": "Two-factor verification",
+      "description_totp": "Enter the 6-digit code from your authenticator app.",
+      "description_email": "Enter the 6-digit code sent to your email.",
+      "send_email": "Send verification code by email",
+      "email_sent": "Verification code sent to your email",
+      "email_error": "Failed to send verification code",
+      "error_title": "Verification error",
+      "use_email": "Use email verification instead",
+      "use_totp": "Use authenticator app instead",
+      "use_backup": "Use a backup code",
+      "back_to_2fa": "Back to verification"
+    },
+    "backup": {
+      "title": "Use a backup code",
+      "description": "Enter one of your backup recovery codes to sign in.",
+      "code": "Backup code",
+      "error_title": "Verification error"
+    },
+    "forgot": {
+      "title_success": "Password reset!",
+      "title_forget": "Forgot password",
+      "description_success": "Your password has been successfully reset. You will now be connected to your account.",
+      "description_validation": "Please enter the 6-digit code you received by email to reset your password.",
+      "description_forget": "An email containing a recovery code will be sent to you to reset your password.",
+      "error_title": "Reset error"
+    },
+    "validate": {
+      "title": "Email validation",
+      "description": "In order to validate your email address, please enter the 6-digit code you received in the email sent to you.",
+      "error_title": "Validation error",
+      "request_validation_in": "Request new validation in {time} seconds",
+      "request_validation": "Request new validation",
+      "request_sended": "Validation request sent",
+      "request_sended_description": "A new validation code has been sent to you by email."
+    },
+    "recover": {
+      "title": "Reset your password",
+      "description": "Please define a new password to secure your account."
+    },
+    "accounts": {
+      "title": "Choose an account",
+      "description": "Select an account to access your platform.",
+      "active_account": "Active",
+      "expired_account": "Expired",
+      "add_account": "Add an account",
+      "account_removed": "Account removed"
+    },
+    "settings": {
+      "sessions": {
+        "title": "Sessions",
+        "description": "View and manage all active sessions on your account.",
+        "disconnect_all": "Disconnect all sessions",
+        "disconnect": "Disconnect",
+        "empty": "No active sessions",
+        "current": "Current session",
+        "revoked": "Session disconnected",
+        "revoke_error": "Failed to disconnect session",
+        "revoke_all_error": "Failed to disconnect all sessions",
+        "device_desktop": "Desktop",
+        "device_mobile": "Smartphone",
+        "device_tablet": "Tablet",
+        "sessions_on_device": "{count} Sessions on {device}",
+        "session_number": "Session #{number}",
+        "date_time": "Date and time",
+        "location": "Location",
+        "unknown_location": "Unknown",
+        "operating_system": "Operating system",
+        "browser_label": "Browser",
+        "ip_address": "IP address",
+        "just_now": "just now",
+        "minutes_ago": "{count} minutes ago",
+        "hours_ago": "{count} hours ago",
+        "days_ago": "{count} days ago"
+      },
+      "two_factor": {
+        "title": "Two-factor authentication",
+        "description": "Add an extra layer of security to your account by requiring a verification code at login.",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "enable_success": "Two-factor authentication enabled",
+        "disable_success": "Two-factor authentication disabled",
+        "setup_error": "Failed to set up two-factor authentication",
+        "invalid_code": "Invalid verification code",
+        "enter_code": "Verification code",
+        "confirm_disable": "Disable",
+        "send_code": "Send code by email",
+        "email_code_sent": "Verification code sent to your email",
+        "email_code_error": "Failed to send verification code",
+        "totp_title": "Authenticator app",
+        "totp_description": "Use an authenticator app like Google Authenticator or Authy to generate verification codes.",
+        "totp_enable": "Set up authenticator",
+        "totp_disable": "Disable authenticator",
+        "email_title": "Email verification",
+        "email_description": "Receive a verification code by email each time you sign in.",
+        "email_enable": "Enable email verification",
+        "email_disable": "Disable email verification",
+        "setup_qr_description": "Scan the QR code with your authenticator app, then enter the 6-digit code to verify.",
+        "setup_secret_label": "Or enter this secret manually:",
+        "setup_verify_code": "Verification code",
+        "backup_title": "Backup recovery codes",
+        "backup_section_title": "Recovery codes",
+        "backup_description": "Generate one-time-use backup codes in case you lose access to your verification methods.",
+        "backup_warning": "Save these codes in a safe place. Each code can only be used once and they will not be shown again.",
+        "backup_regenerate": "Regenerate codes",
+        "backup_regenerated": "Backup codes regenerated",
+        "backup_dismiss": "I have saved my codes",
+        "add_method": "Add an authentication method",
+        "remove": "Remove",
+        "confirm_disable_title": "Disable two-factor authentication",
+        "confirm_disable_description": "Enter your current verification code to confirm disabling this method.",
+        "regenerate_description": "Enter a verification code to generate new backup codes. Your existing codes will be invalidated."
+      },
+      "profile": {
+        "title": "Personal information",
+        "description": "Manage and update your personal information to keep your profile up-to-date and secure.",
+        "avatar": "Avatar",
+        "avatar_description": "Square picture, stored at up to 100x100 pixels.",
+        "name": "Full name",
+        "email": "Email",
+        "password": "Password",
+        "password_placeholder": "Password",
+        "password_confirm_placeholder": "Confirm password",
+        "language_title": "Application language",
+        "language_description": "Your preferred language for customizing the dashboard display."
+      },
+      "description": {
+        "profile": "Manage and update your personal information to keep your profile up-to-date and secure",
+        "sessions": "View and manage your active sessions across all devices"
+      }
+    }
+  },
+  "error": {
+    "oauth": {
+      "cancelled": "Sign-in cancelled.",
+      "invalid_state": "Sign-in session expired or invalid, please try again.",
+      "failed": "Signing in with this provider failed.",
+      "provider_disabled": "This login provider is not enabled.",
+      "provider_unreachable": "Provider unreachable, please try again shortly.",
+      "token_exchange_failed": "The provider rejected the sign-in.",
+      "email_unavailable": "Could not read your e-mail address from this provider.",
+      "email_not_verified": "This provider account has no verified e-mail address.",
+      "linking_disabled": "An account already exists with this e-mail address. Sign in with your password.",
+      "account_not_validated": "An account already exists with this e-mail address but is not validated. Validate it before linking this provider.",
+      "registration_disabled": "No account matches this identity and provider sign-up is disabled.",
+      "identity_already_linked": "This provider account is already linked to another user.",
+      "user_not_created": "Account creation failed.",
+      "jwt_secret_missing": "Provider sign-in is not configured on this instance.",
+      "resolution_mismatch": "Could not determine which account this identity belongs to.",
+      "relay_required": "Direct call refused: this endpoint only accepts the instance's frontend server.",
+      "identity_malformed": "The provider returned an unusable identity, please try again."
+    },
+    "rate_limited": "Too many attempts, please try again in a minute."
+  }
+}

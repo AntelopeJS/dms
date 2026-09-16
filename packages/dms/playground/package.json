@@ -1,0 +1,36 @@
+{
+  "name": "playground",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "packageManager": "pnpm@10.2.0",
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "dev": "ajs project run -w",
+    "frontend:dev": "ajs-dms dev"
+  },
+  "devDependencies": {
+    "@antelopejs/dms-frontend": ">=0.0.1 <1.0.0",
+    "@types/node": "^20.5.7",
+    "prettier": "^2.6.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  },
+  "antelopeJs": {
+    "baseUrl": "dist",
+    "paths": {
+      "@/*": [
+        "*"
+      ]
+    }
+  },
+  "dependencies": {
+    "@antelopejs/dms": "workspace:*",
+    "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-core": ">=0.0.12 <1.0.0",
+    "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
+    "@antelopejs/interface-database": ">=0.1.7 <1.0.0",
+    "@antelopejs/interface-database-decorators": ">=0.1.6 <1.0.0",
+    "@antelopejs/interface-dms": "workspace:*",
+    "zod": "~3.24.2"
+  }
+}
