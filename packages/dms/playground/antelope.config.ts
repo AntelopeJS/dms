@@ -1,7 +1,7 @@
 import { defineConfig } from "@antelopejs/interface-core/config";
 
 const apiPort = process.env.PORT ?? "5010";
-const dmsClientUrl = process.env.DMS_CLIENT_URL;
+const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
 
 export default defineConfig({
   name: "test",
