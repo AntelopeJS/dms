@@ -1,6 +1,6 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { RegisterInviteExtension } from "@antelopejs/interface-dms/invite-extensions";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
+import { Form } from "@antelopejs/interface-dms/base/form";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { z } from "zod";
 

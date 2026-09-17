@@ -92,7 +92,7 @@ export async function start(): Promise<void> {
     renderer: { name: "vue", version: "3" },
     options: {},
     privateOptions: {},
-    // priority: -1,  // negative to override base-layer components (base sits at 0)
+    // priority: 1,  // higher than the base module (0) to take one of its component names
   });
 }
 export function stop(): void {}

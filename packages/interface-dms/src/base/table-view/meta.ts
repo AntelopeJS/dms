@@ -29,7 +29,7 @@ import {
   type FieldGroup,
   type FormField,
   type FormFieldOrGroup,
-} from "../form";
+} from "../form-types";
 import { adaptFieldValidationSchema } from "../form-schema";
 import {
   type DefaultValue,

@@ -39,12 +39,12 @@ import * as permissionsResolverInterface from "@antelopejs/interface-dms/permiss
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
+  Form,
   type FormBuilder,
   type FormFieldOrGroupSerialized,
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
 
 const TENANT = "ie-tenant";
 const MEMBER = { _id: "member-1", userId: "user-1" } as TenantMember;

@@ -1,7 +1,7 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { ChartColumn, ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
+import { Form } from "@antelopejs/interface-dms/base/form";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
 import { Tab } from "@antelopejs/interface-dms/base/tab";
 import {

@@ -7,7 +7,7 @@
 import { ComponentBuilder } from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
-import { FormEvents } from "../form";
+import { FormEvents } from "../form-types";
 import type {
   CustomButton,
   CustomButtonSerialized,

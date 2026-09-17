@@ -12,7 +12,6 @@ export * from "./chart-card";
 export * from "./chart-schemas";
 export * from "./export-jobs";
 export * from "./form";
-export * from "./form-schema";
 export * from "./grid";
 export * from "./kpi-card";
 export * from "./layouts";

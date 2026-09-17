@@ -1,7 +1,10 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { FormEvents, FormFunctions } from "@antelopejs/interface-dms/base/form";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
+import {
+  Form,
+  FormEvents,
+  FormFunctions,
+} from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
 
