@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -6,86 +6,52 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import {
+  API_PACKAGE_NAME,
+  API_PACKAGE_VERSION,
+  OPTIONAL_AUTOMATION_INTERFACE,
+  createConsumer,
+  interfaceManifest,
+  interfacePackageRoot,
+  manifest,
+  packageRoot,
+  readJson,
+  writeTypeScriptConfigs,
+} from "./check-package-consumer.mjs";
+
+const selfPath = fileURLToPath(import.meta.url);
+
+/**
+ * pnpm exports `NODE_PATH` (the `extend-node-path` setting) pointing at the
+ * hoisted store of the workspace that runs the script, and Node appends it to
+ * every `require()` lookup, whatever the directory the lookup starts from. The
+ * scratch consumer would then resolve packages it never installed -- the
+ * optional automation interface among them, once it is on the registry and the
+ * workspace install has it on disk. Node freezes the global paths at bootstrap,
+ * so the variable has to be gone before this process starts: re-exec once with
+ * a clean environment.
+ */
+if (process.env.NODE_PATH) {
+  const { NODE_PATH: _hoistedStore, ...cleanEnv } = process.env;
+  const rerun = spawnSync(process.execPath, [selfPath], {
+    stdio: "inherit",
+    env: cleanEnv,
+  });
+  if (rerun.error) throw rerun.error;
+  process.exit(rerun.status ?? 1);
+}
+
 const execFileAsync = promisify(execFile);
-const packageRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-);
-const manifest = readJson(path.join(packageRoot, "package.json"));
-const interfacePackageRoot = path.join(packageRoot, "..", "interface-dms");
-const interfaceManifest = readJson(
-  path.join(interfacePackageRoot, "package.json"),
-);
 
 const CONCURRENCY = 8;
-const API_PACKAGE_NAME = "@antelopejs/api";
-const API_PACKAGE_VERSION = "1.2.4";
 const API_INTERFACE_PACKAGE_NAME = "@antelopejs/interface-api";
-const UNAVAILABLE_OPTIONAL_PACKAGE = "@antelopejs/interface-dms-automation";
+const AUTOMATION_REGISTRATION_FUNCTIONS = [
+  "RegisterTriggerType",
+  "RegisterActionType",
+];
 const CODE_EXTENSIONS = new Set([".cjs", ".js", ".mjs"]);
 const PACKAGE_ARCHIVE_NAME = "package.tgz";
 const INTERFACE_ARCHIVE_NAME = "interface-dms.tgz";
-const SOURCE_FILE_NAME = "consumer.ts";
-const TYPESCRIPT_CONFIGS = [
-  ["node", "commonjs"],
-  ["Node16", "Node16"],
-];
-const CONSUMER_SOURCE = `
-import { construct, type Config } from "@antelopejs/dms";
-import { SettingsIndexPage } from "@antelopejs/dms/pages";
-import { AuthUser, type TenantTokenInput } from "@antelopejs/interface-dms/auth";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { TenantModel } from "@antelopejs/interface-dms/db";
-import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
-import { Grid, type GridOptions, type ChartColorToken } from "@antelopejs/interface-dms/base";
-import type { ChartColorValue } from "@antelopejs/interface-dms/base/chart";
-import { DataType, type DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types";
-import { Color, type JsonValue } from "@antelopejs/interface-dms/base/types";
-import { RegisterHtmlTemplate, type HtmlTemplateRef } from "@antelopejs/interface-dms/html-render";
-import { Notification, SystemCategory } from "@antelopejs/interface-dms/notifications";
-import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
-import { PageController, type PageInfo } from "@antelopejs/interface-dms/page";
-import { TableView, type TableViewOptions } from "@antelopejs/interface-dms/base/table-view";
-import { Component } from "@antelopejs/interface-dms/component";
-
-const runtimeSurface = [
-  construct,
-  SettingsIndexPage,
-  AuthUser,
-  UserModel,
-  TenantModel,
-  memberSettingDataAPI,
-  Grid,
-  DataType,
-  Color,
-  RegisterHtmlTemplate,
-  Notification,
-  SystemCategory,
-  CORE_SCHEMA_NAME,
-  PageController,
-  TableView,
-  Component,
-];
-const config = undefined as Config | undefined;
-const token = undefined as TenantTokenInput | undefined;
-const grid = undefined as GridOptions | undefined;
-const dataType = undefined as DataTypeSerialized | undefined;
-const json = undefined as JsonValue | undefined;
-const template = undefined as HtmlTemplateRef | undefined;
-const page = undefined as PageInfo | undefined;
-const table = undefined as TableViewOptions | undefined;
-const shade: ChartColorToken = "primary-500";
-const chartColors: ChartColorValue[] = [shade, "neutral-950", "--usage", "var(--usage)"];
-// @ts-expect-error Nuxt UI does not define this shade step.
-const invalidShade: ChartColorToken = "primary-123";
-// @ts-expect-error The generic job-lock contract was removed.
-import type { JobLockModel } from "@antelopejs/interface-dms/job-locks";
-void [runtimeSurface, config, token, grid, dataType, json, template, page, table, chartColors, invalidShade];
-`;
-
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
-}
 
 function runPnpm(args, cwd) {
   return execFileAsync("pnpm", args, {
@@ -162,93 +128,33 @@ function collectPublicSpecifiers(packageDir, packageManifest) {
     .sort();
 }
 
-/**
- * The runtime depends on the interface by version. What this check is about is
- * the pair that was just packed, so the tarball wins over whatever the registry
- * holds -- and before the first release there is nothing there.
- */
-function createConsumer(consumerRoot, archivePath, interfaceArchivePath) {
-  const interfaceSpecifier = `file:${interfaceArchivePath}`;
-  if (
-    !(UNAVAILABLE_OPTIONAL_PACKAGE in (manifest.optionalDependencies ?? {}))
-  ) {
-    throw new Error(
-      `${UNAVAILABLE_OPTIONAL_PACKAGE} must remain declared as optional.`,
-    );
-  }
-  const availableOptionalDependencies = Object.fromEntries(
-    Object.entries(manifest.optionalDependencies ?? {}).filter(
-      ([packageName]) => packageName !== UNAVAILABLE_OPTIONAL_PACKAGE,
-    ),
-  );
-  const packageJson = {
-    name: "dms-package-contract-consumer",
-    version: "1.0.0",
-    private: true,
-    packageManager: manifest.packageManager,
-    dependencies: {
-      [manifest.name]: `file:${archivePath}`,
-      [interfaceManifest.name]: interfaceSpecifier,
-      [API_PACKAGE_NAME]: API_PACKAGE_VERSION,
-      ...availableOptionalDependencies,
-    },
-    devDependencies: {
-      "@types/node": manifest.devDependencies["@types/node"],
-      typescript: manifest.devDependencies.typescript,
-    },
-    // pnpm 10 reads the override here, pnpm 11 from `pnpm-workspace.yaml`.
-    pnpm: { overrides: { [interfaceManifest.name]: interfaceSpecifier } },
-  };
-  fs.writeFileSync(
-    path.join(consumerRoot, "package.json"),
-    `${JSON.stringify(packageJson, null, 2)}\n`,
-  );
-  fs.writeFileSync(
-    path.join(consumerRoot, "pnpm-workspace.yaml"),
-    `packages:\n  - "."\noverrides:\n  "${interfaceManifest.name}": "${interfaceSpecifier}"\n`,
-  );
-  fs.writeFileSync(path.join(consumerRoot, SOURCE_FILE_NAME), CONSUMER_SOURCE);
-}
-
-function checkUnavailableOptionalPackage(consumerRoot) {
+function checkOptionalInterfaceIsAbsent(consumerRoot) {
   const scopedRequire = createRequire(path.join(consumerRoot, "package.json"));
   try {
-    scopedRequire.resolve(UNAVAILABLE_OPTIONAL_PACKAGE);
+    scopedRequire.resolve(OPTIONAL_AUTOMATION_INTERFACE);
   } catch (error) {
     if (error.code === "MODULE_NOT_FOUND") {
       console.log(
-        `${UNAVAILABLE_OPTIONAL_PACKAGE} is absent from the consumer as intended.`,
+        `${OPTIONAL_AUTOMATION_INTERFACE} is absent from the consumer as intended.`,
       );
       return;
     }
     throw error;
   }
-  throw new Error(`${UNAVAILABLE_OPTIONAL_PACKAGE} unexpectedly resolved.`);
+  throw new Error(
+    `${OPTIONAL_AUTOMATION_INTERFACE} resolved in a consumer that removed it.`,
+  );
 }
 
-function createTypeScriptConfig(moduleResolution, module) {
-  return {
-    compilerOptions: {
-      moduleResolution,
-      module,
-      target: "ES2022",
-      strict: true,
-      noEmit: true,
-    },
-    files: [SOURCE_FILE_NAME],
-  };
-}
-
-function writeTypeScriptConfigs(consumerRoot) {
-  return TYPESCRIPT_CONFIGS.map(([moduleResolution, module]) => {
-    const fileName = `tsconfig.${moduleResolution.toLowerCase()}.json`;
-    const config = createTypeScriptConfig(moduleResolution, module);
-    fs.writeFileSync(
-      path.join(consumerRoot, fileName),
-      `${JSON.stringify(config, null, 2)}\n`,
-    );
-    return fileName;
-  });
+function checkOptionalInterfaceIsPresent(consumerRoot) {
+  const packageDir = resolvePackageRoot(
+    OPTIONAL_AUTOMATION_INTERFACE,
+    consumerRoot,
+  );
+  const { version } = readJson(path.join(packageDir, "package.json"));
+  console.log(
+    `${OPTIONAL_AUTOMATION_INTERFACE}@${version} is installed in the consumer that keeps it.`,
+  );
 }
 
 function resolvePackageRoot(packageName, fromDir) {
@@ -379,7 +285,15 @@ async function checkEntrypoints(consumerRoot, packageDir) {
   );
 }
 
-async function checkAbsentAutomationRuntime(consumerRoot, packageDir) {
+/**
+ * The runtime loads the automation interface lazily and swallows the missing
+ * module, so its lifecycle has to stay inert rather than throw when the
+ * optional package is not installed.
+ */
+async function checkAutomationRuntimeWithoutInterface(
+  consumerRoot,
+  packageDir,
+) {
   const entrypoint = path.join(packageDir, "dist", "automation", "index.js");
   const source = `
 const automation = require(${JSON.stringify(entrypoint)});
@@ -394,6 +308,30 @@ Promise.resolve()
   );
 }
 
+/**
+ * The mirror image: the packed runtime must reach the optional interface from
+ * its own location once a consumer installs it, which is what its lazy
+ * `import()` of the bare specifier depends on.
+ */
+async function checkAutomationRuntimeWithInterface(consumerRoot, packageDir) {
+  const entrypoint = path.join(packageDir, "dist", "automation", "index.js");
+  const source = `
+const { createRequire } = require("node:module");
+require(${JSON.stringify(entrypoint)});
+const requireFromPacked = createRequire(${JSON.stringify(entrypoint)});
+const automationInterface = requireFromPacked(${JSON.stringify(OPTIONAL_AUTOMATION_INTERFACE)});
+for (const name of ${JSON.stringify(AUTOMATION_REGISTRATION_FUNCTIONS)}) {
+  if (typeof automationInterface[name] !== "function") {
+    throw new Error(name + " is missing from " + requireFromPacked.resolve(${JSON.stringify(OPTIONAL_AUTOMATION_INTERFACE)}) + ".");
+  }
+}
+`;
+  await execFileAsync(process.execPath, ["-e", source], { cwd: consumerRoot });
+  console.log(
+    "The packed automation entry reaches its optional interface when installed.",
+  );
+}
+
 async function checkTypeScriptConsumers(consumerRoot) {
   const configs = writeTypeScriptConfigs(consumerRoot);
   for (const config of configs) {
@@ -402,41 +340,81 @@ async function checkTypeScriptConsumers(consumerRoot) {
   }
 }
 
+function installedPackageDir(consumerRoot, packageName) {
+  return fs.realpathSync(path.join(consumerRoot, "node_modules", packageName));
+}
+
+async function installConsumer(
+  temporaryRoot,
+  archives,
+  withAutomationInterface,
+) {
+  const consumerRoot = path.join(
+    temporaryRoot,
+    withAutomationInterface ? "consumer-with-automation" : "consumer",
+  );
+  fs.mkdirSync(consumerRoot);
+  createConsumer(
+    consumerRoot,
+    archives.archivePath,
+    archives.interfaceArchivePath,
+    withAutomationInterface,
+  );
+  const installArgs = ["install", "--prefer-offline"];
+  if (!withAutomationInterface) installArgs.push("--no-optional");
+  await runPnpm(installArgs, consumerRoot);
+  console.log(
+    `Packed consumer installed ${withAutomationInterface ? "with" : "without"} the optional automation interface.`,
+  );
+  return consumerRoot;
+}
+
+async function checkConsumerWithoutAutomationInterface(consumerRoot) {
+  const packageDir = installedPackageDir(consumerRoot, manifest.name);
+  const interfaceDir = installedPackageDir(
+    consumerRoot,
+    interfaceManifest.name,
+  );
+  checkOptionalInterfaceIsAbsent(consumerRoot);
+  checkCanonicalApiInterface(consumerRoot, packageDir);
+  checkRemovedSpecifiers(consumerRoot);
+  await checkEntrypoints(consumerRoot, packageDir);
+  await checkEntrypoints(consumerRoot, interfaceDir);
+  await checkAutomationRuntimeWithoutInterface(consumerRoot, packageDir);
+  await checkTypeScriptConsumers(consumerRoot);
+}
+
+async function checkConsumerWithAutomationInterface(consumerRoot) {
+  checkOptionalInterfaceIsPresent(consumerRoot);
+  await checkAutomationRuntimeWithInterface(
+    consumerRoot,
+    installedPackageDir(consumerRoot, manifest.name),
+  );
+}
+
 async function checkPackage() {
   const temporaryRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), "dms-package-check-"),
   );
-  const archivePath = path.join(temporaryRoot, PACKAGE_ARCHIVE_NAME);
-  const interfaceArchivePath = path.join(temporaryRoot, INTERFACE_ARCHIVE_NAME);
-  const consumerRoot = path.join(temporaryRoot, "consumer");
-  fs.mkdirSync(consumerRoot);
+  const archives = {
+    archivePath: path.join(temporaryRoot, PACKAGE_ARCHIVE_NAME),
+    interfaceArchivePath: path.join(temporaryRoot, INTERFACE_ARCHIVE_NAME),
+  };
   try {
-    await runPnpm(["pack", "--out", archivePath, "--silent"], packageRoot);
     await runPnpm(
-      ["pack", "--out", interfaceArchivePath, "--silent"],
+      ["pack", "--out", archives.archivePath, "--silent"],
+      packageRoot,
+    );
+    await runPnpm(
+      ["pack", "--out", archives.interfaceArchivePath, "--silent"],
       interfacePackageRoot,
     );
-    createConsumer(consumerRoot, archivePath, interfaceArchivePath);
-    await runPnpm(
-      ["install", "--prefer-offline", "--no-optional"],
-      consumerRoot,
+    await checkConsumerWithoutAutomationInterface(
+      await installConsumer(temporaryRoot, archives, false),
     );
-    const packageDir = fs.realpathSync(
-      path.join(consumerRoot, "node_modules", manifest.name),
+    await checkConsumerWithAutomationInterface(
+      await installConsumer(temporaryRoot, archives, true),
     );
-    console.log(
-      "Packed consumer installed without the unavailable private optional dependency.",
-    );
-    const interfaceDir = fs.realpathSync(
-      path.join(consumerRoot, "node_modules", interfaceManifest.name),
-    );
-    checkUnavailableOptionalPackage(consumerRoot);
-    checkCanonicalApiInterface(consumerRoot, packageDir);
-    checkRemovedSpecifiers(consumerRoot);
-    await checkEntrypoints(consumerRoot, packageDir);
-    await checkEntrypoints(consumerRoot, interfaceDir);
-    await checkAbsentAutomationRuntime(consumerRoot, packageDir);
-    await checkTypeScriptConsumers(consumerRoot);
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
   }
