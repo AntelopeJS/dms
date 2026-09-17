@@ -1,8 +1,25 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 
-export interface CapturedWarnings {
+export interface CapturedMessages {
   messages: string[];
   restore: () => void;
+}
+
+type LogLevel = "Warn" | "Error";
+
+function capture(level: LogLevel): CapturedMessages {
+  const messages: string[] = [];
+  const logger = Logging as Record<LogLevel, (...args: unknown[]) => void>;
+  const original = logger[level];
+  logger[level] = (...args: unknown[]) => {
+    messages.push(String(args[0]));
+  };
+  return {
+    messages,
+    restore: () => {
+      logger[level] = original;
+    },
+  };
 }
 
 /**
@@ -15,16 +32,11 @@ export interface CapturedWarnings {
  * Always restore in a `finally`: the logger is module-wide, so a suite that
  * throws before restoring swallows every later suite's warnings.
  */
-export function captureWarnings(): CapturedWarnings {
-  const messages: string[] = [];
-  const original = Logging.Warn;
-  (Logging as { Warn: typeof Logging.Warn }).Warn = (...args: unknown[]) => {
-    messages.push(String(args[0]));
-  };
-  return {
-    messages,
-    restore: () => {
-      (Logging as { Warn: typeof Logging.Warn }).Warn = original;
-    },
-  };
+export function captureWarnings(): CapturedMessages {
+  return capture("Warn");
+}
+
+/** Collect what the code under test reports as an error. See {@link captureWarnings}. */
+export function captureErrors(): CapturedMessages {
+  return capture("Error");
 }

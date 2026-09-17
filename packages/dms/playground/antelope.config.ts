@@ -17,6 +17,9 @@ export default defineConfig({
     // playground first pins `@antelopejs/interface-dms` to the playground, and
     // the first hot reload of the playground then breaks the interface for
     // everyone. The module that implements the interface must come first.
+    // The page extensions no longer weigh in: they name their target page by
+    // id, so the playground imports nothing of `@antelopejs/dms` and owns none
+    // of its registrations whichever order the two are loaded in.
     dms: {
       source: {
         type: "local",

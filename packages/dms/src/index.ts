@@ -50,6 +50,11 @@ import {
   type RealtimeConfig,
   stopRealtime,
 } from "./realtime";
+import {
+  cancelPendingExtensionReport,
+  startPendingExtensionReport,
+  stopPendingExtensionReport,
+} from "./page-extensions/pending-report";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { detectSaasMode, ensureDefaultTenantExists } from "./utils";
@@ -222,6 +227,7 @@ async function registerDmsFrontend(): Promise<void> {
 function cancelDeferredNotifications(): void {
   cancelPendingMenuNotifications();
   cancelScheduledBroadcast();
+  cancelPendingExtensionReport();
 }
 
 export function destroy(): void {
@@ -238,9 +244,11 @@ export async function start(): Promise<void> {
   cronTasks = registerDmsCrons();
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
+  startPendingExtensionReport();
 }
 
 export async function stop(): Promise<void> {
+  stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
   await unregisterAutomationNodes();
   try {
