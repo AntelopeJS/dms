@@ -12,6 +12,9 @@ const HTTP_NOT_FOUND = 404;
 const ZIP_MAGIC = "PK";
 const ARCHIVE_TIMEOUT_MS = 30_000;
 const BOOTSTRAP_REQUIRED = "error.frontend.bootstrap_required";
+const ESTABLISH_ENDPOINT = "/api/saas/register/finalize";
+const TEST_RENDERER_MANIFEST =
+  "/dms/frontend?renderer=test-renderer&rendererVersion=1";
 
 interface FrontendRenderer {
   name: string;
@@ -23,6 +26,7 @@ interface FrontendManifestModule {
   renderer: FrontendRenderer;
   path?: string;
   privateOptions?: Record<string, unknown>;
+  authEstablishEndpoints?: string[];
 }
 
 interface FrontendManifest {
@@ -58,6 +62,7 @@ describe("[integration] dms frontend endpoints", () => {
       sourcePath: `${process.cwd()}/frontend-vue`,
       renderer: { name: "test-renderer", version: "1.1.0" },
       priority: 0,
+      authEstablishEndpoints: [ESTABLISH_ENDPOINT],
     });
   });
 
@@ -157,9 +162,20 @@ describe("[integration] dms frontend endpoints", () => {
       );
     });
 
+    it("serves the establish endpoints a module declared", async () => {
+      const response = await client.get<FrontendManifest>(
+        TEST_RENDERER_MANIFEST,
+        { headers: { [BOOTSTRAP_HEADER]: bootstrapSecret() } },
+      );
+      expect(response.status).to.equal(HTTP_OK);
+      expect(response.data.modules[0].authEstablishEndpoints).to.deep.equal([
+        ESTABLISH_ENDPOINT,
+      ]);
+    });
+
     it("isolates implementations sharing a logical module name", async () => {
       const response = await client.get<FrontendManifest>(
-        "/dms/frontend?renderer=test-renderer&rendererVersion=1",
+        TEST_RENDERER_MANIFEST,
         { headers: { [BOOTSTRAP_HEADER]: bootstrapSecret() } },
       );
       expect(response.status).to.equal(HTTP_OK);

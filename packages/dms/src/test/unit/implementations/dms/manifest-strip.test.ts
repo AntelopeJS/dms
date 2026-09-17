@@ -24,6 +24,7 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
         path: "/srv/app/node_modules/@scope/dms/frontend",
         options: { baseURL: "https://api.example.com" },
         privateOptions: { oauth: { relaySecret: "s3cret" } },
+        authEstablishEndpoints: ["/api/saas/register/finalize"],
       },
       {
         name: "@scope/dms-lang-layer",
@@ -36,11 +37,12 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
 }
 
 describe("[unit] manifest field policy", () => {
-  it("keeps everything when the caller is entitled to both fields", () => {
+  it("keeps everything when the caller is entitled to every field", () => {
     const manifest = buildManifest();
     const shaped = stripPrivateManifestFields(manifest, {
       privateOptions: true,
       path: true,
+      authEstablishEndpoints: true,
     });
     expect(shaped).to.deep.equal(manifest);
   });
@@ -49,6 +51,7 @@ describe("[unit] manifest field policy", () => {
     const shaped = stripPrivateManifestFields(buildManifest(), {
       privateOptions: false,
       path: true,
+      authEstablishEndpoints: false,
     });
     for (const module of shaped.modules) {
       expect(module).to.not.have.property("privateOptions");
@@ -62,6 +65,7 @@ describe("[unit] manifest field policy", () => {
     const shaped = stripPrivateManifestFields(buildManifest(), {
       privateOptions: true,
       path: false,
+      authEstablishEndpoints: true,
     });
     for (const module of shaped.modules) {
       expect(module).to.not.have.property("path");
@@ -71,21 +75,36 @@ describe("[unit] manifest field policy", () => {
     });
   });
 
-  it("drops both for an anonymous caller", () => {
+  it("drops every private field for an anonymous caller", () => {
     const shaped = stripPrivateManifestFields(buildManifest(), {
       privateOptions: false,
       path: false,
+      authEstablishEndpoints: false,
     });
     for (const module of shaped.modules) {
       expect(module).to.not.have.property("privateOptions");
       expect(module).to.not.have.property("path");
+      expect(module).to.not.have.property("authEstablishEndpoints");
     }
+  });
+
+  it("serves the declared establish endpoints to an entitled caller", () => {
+    const shaped = stripPrivateManifestFields(buildManifest(), {
+      privateOptions: false,
+      path: false,
+      authEstablishEndpoints: true,
+    });
+    expect(shaped.modules[0].authEstablishEndpoints).to.deep.equal([
+      "/api/saas/register/finalize",
+    ]);
+    expect(shaped.modules[1]).to.not.have.property("authEstablishEndpoints");
   });
 
   it("leaves every other field untouched", () => {
     const shaped = stripPrivateManifestFields(buildManifest(), {
       privateOptions: false,
       path: false,
+      authEstablishEndpoints: false,
     });
     expect(shaped.pack).to.equal("/dms/frontend/modules");
     expect(shaped.modules[0].name).to.equal("@scope/dms-frontend");
@@ -102,6 +121,7 @@ describe("[unit] manifest field policy", () => {
     stripPrivateManifestFields(manifest, {
       privateOptions: false,
       path: false,
+      authEstablishEndpoints: false,
     });
     expect(manifest).to.deep.equal(buildManifest());
   });
