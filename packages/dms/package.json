@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "2fa": "^0.1.2",
-    "@antelopejs/core": "^1.4.11",
+    "@antelopejs/core": ">=2.0.0 <3",
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
     "@antelopejs/interface-core": ">=0.0.13 <1.0.0",

@@ -27,8 +27,8 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2
       '@antelopejs/core':
-        specifier: ^1.4.11
-        version: 1.4.11(@types/node@24.13.3)
+        specifier: '>=2.0.0 <3'
+        version: 2.0.0(@types/node@24.13.3)
       '@antelopejs/interface-api':
         specifier: '>=0.0.13 <1.0.0'
         version: 0.0.13(@antelopejs/interface-core@0.0.13)
@@ -285,8 +285,8 @@ packages:
   2fa@0.1.2:
     resolution: {integrity: sha512-PbQttc6USc2TmZwOPE/zlNWTJTySLt50rWhUbZgPkZ5LAOLpgShT3yclbxwHPfHGUXEjfLrTo3Lunyx8onGnXw==}
 
-  '@antelopejs/core@1.4.11':
-    resolution: {integrity: sha512-Fsk0n0yBqs+s3mDmCPWkSJOEFsTWMLTt7UKoOk4cGh4F94byZJSFjnBkEzy+F5t3V8Wr4QUS3ke5YKmATIGGyA==}
+  '@antelopejs/core@2.0.0':
+    resolution: {integrity: sha512-2g64Oz/P0ccyar9ASQlG/fRCtAR+CMG+VRbb9KWzKksoFcsF/bIORtr2VrU7oo6PgKhmrxuTL+saL64eELFAag==}
     hasBin: true
 
   '@antelopejs/dms-frontend@0.0.1':
@@ -1479,10 +1479,6 @@ packages:
   cli-cursor@5.0.0:
     resolution: {integrity: sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==}
     engines: {node: '>=18'}
-
-  cli-progress@3.12.0:
-    resolution: {integrity: sha512-tRkV3HJ1ASwm19THiiLIXLO7Im7wlTuKnvkYaTkyoAPefqjNg7W7DHKUlGRxy9vxDvbyCYQkQozvptuMkGCg8A==}
-    engines: {node: '>=4'}
 
   cli-spinners@3.4.0:
     resolution: {integrity: sha512-bXfOC4QcT1tKXGorxL3wbJm6XJPDqEnij2gQ2m7ESQuE+/z9YFIWnl/5RpTiKWbMq3EVKR4fRLJGn6DVfu0mpw==}
@@ -3132,13 +3128,12 @@ snapshots:
       qr-image: 3.2.0
       thirty-two: 0.0.2
 
-  '@antelopejs/core@1.4.11(@types/node@24.13.3)':
+  '@antelopejs/core@2.0.0(@types/node@24.13.3)':
     dependencies:
       '@antelopejs/interface-core': 0.0.13
       '@types/proper-lockfile': 4.1.4
       boxen: 8.0.1
       chalk: 4.1.2
-      cli-progress: 3.12.0
       commander: 13.1.0
       figlet: 1.11.0
       inly: 5.0.1
@@ -4157,10 +4152,6 @@ snapshots:
   cli-cursor@5.0.0:
     dependencies:
       restore-cursor: 5.1.0
-
-  cli-progress@3.12.0:
-    dependencies:
-      string-width: 4.2.3
 
   cli-spinners@3.4.0: {}
 

@@ -82,7 +82,7 @@ local storage provider, set the optional `DMS_TEST_STORAGE_PATH` variable:
 ```bash
 DMS_TEST_STORAGE_PATH=/path/to/file-storage-local \
 DMS_TEST_DIR=dist/test/integration/files \
-pnpm dlx @antelopejs/core@1.5.1 module test .
+pnpm dlx @antelopejs/core@2.0.0 module test .
 ```
 
 Build the DMS first with `pnpm build`. Omit `DMS_TEST_STORAGE_PATH` to use the
