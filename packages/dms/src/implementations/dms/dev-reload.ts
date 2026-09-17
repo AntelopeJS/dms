@@ -23,8 +23,14 @@ export function setSlugProvider(provider: SlugProvider): void {
 // added/removed/moved page) by diffing the freshly-fetched site layout against
 // what it already had — the backend cannot tell reliably because a dev reload
 // re-registers every page, churning the slug set.
-function formatSseMessage(): string {
-  return `event: reload\ndata: {"type":"resync"}\n\n`;
+//
+// `error` carries the one thing the client cannot work out by fetching: the
+// reload finished with nothing registered, so the layout it is about to ask
+// for is empty rather than merely different. Both go out under the same event
+// name — the client's job either way is to re-probe until its route comes
+// back, and the payload only decides what it logs.
+function formatSseMessage(type: "resync" | "error"): string {
+  return `event: reload\ndata: {"type":"${type}"}\n\n`;
 }
 
 function writeToClient(stream: PassThrough, payload: string): void {
@@ -37,11 +43,16 @@ function writeToClient(stream: PassThrough, payload: string): void {
 
 function runBroadcast(): void {
   broadcastTimer = null;
-  // Skip while the page registry is empty (e.g. mid hot-reload): clients would
-  // otherwise refetch a partial/empty site layout.
-  if (slugProvider().length === 0) return;
   if (clients.size === 0) return;
-  const payload = formatSseMessage();
+  // An empty registry used to swallow the broadcast, on the grounds that
+  // clients would refetch a partial site layout. They would not: the client
+  // polls, commits a layout only once it serves the route it is waiting for,
+  // and gives up on its own deadline. Silence is what actually hurt — a reload
+  // that ended with nothing registered left the page showing a 404 with no
+  // reason to ever look again, so even the NEXT good reload went unnoticed.
+  const payload = formatSseMessage(
+    slugProvider().length === 0 ? "error" : "resync",
+  );
   for (const stream of clients) {
     writeToClient(stream, payload);
   }

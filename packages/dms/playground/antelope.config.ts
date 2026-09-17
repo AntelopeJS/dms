@@ -11,15 +11,12 @@ export default defineConfig({
     },
   },
   modules: {
-    playground: {
-      source: {
-        type: "local",
-        path: ".",
-        watchDir: ["src"],
-        installCommand: ["true"],
-        reloadCommand: ["pnpm build"],
-      },
-    },
+    // `dms` before `playground`: a shared interface package binds the
+    // interfaces it imports to the context of whichever module requires it
+    // first, and that binding dies with that module's generation. Loading the
+    // playground first pins `@antelopejs/interface-dms` to the playground, and
+    // the first hot reload of the playground then breaks the interface for
+    // everyone. The module that implements the interface must come first.
     dms: {
       source: {
         type: "local",
@@ -43,6 +40,15 @@ export default defineConfig({
           // supply its own.
           jwtSecret: "dev",
         },
+      },
+    },
+    playground: {
+      source: {
+        type: "local",
+        path: ".",
+        watchDir: ["src"],
+        installCommand: ["true"],
+        reloadCommand: ["pnpm build"],
       },
     },
     mongodb: {
@@ -93,7 +99,7 @@ export default defineConfig({
       },
       config: {
         storagePath: ".antelope/file-storage",
-        baseUrl: "http://127.0.0.1:5010",
+        baseUrl: `http://127.0.0.1:${apiPort}`,
         defaultVisibility: "private",
         // Sweep abandoned staged uploads (files presigned with `staging: true`
         // but never saved, so never promoted out of `__staging__/`) after this
