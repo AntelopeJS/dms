@@ -55,7 +55,7 @@ export const myModule = RegisterModule({
 
 export async function construct(config: Config): Promise<void> {
   void ImplementInterface(            // wire the module's own interface to its implementation, if any
-    await import("<your-module-package>/interfaces/<name>"),
+    await import("<your-interface-package>"),   // the companion @scope/interface-<name> package
     await import("./implementations/<name>"),
   );
   AddFrontendModule({
@@ -64,7 +64,7 @@ export async function construct(config: Config): Promise<void> {
     renderer: { name: "vue", version: "3" },
     options: {},
     privateOptions: {},
-    // priority: -1,                  // negative only to override base-layer components (base sits at 0)
+    // priority: 1,                   // higher than the base module (0) to take one of its component names
   });
 }
 

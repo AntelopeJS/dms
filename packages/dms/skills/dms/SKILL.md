@@ -75,7 +75,8 @@ chatbox.
 ## Docs & exact interface surfaces (read for depth)
 
 Long-form reference docs live in this package's `docs/` directory (shipped with the package; also
-at the repo root), in six numbered sections. DataTypes, component builder options, and auth
+at the repo root), in eight numbered sections — the last, `docs/08.interfaces/`, is the contract
+reference for `@antelopejs/interface-dms` domain by domain. DataTypes, component builder options, and auth
 decorators are **versioned interface contracts** — look them up rather than hand-recalling; treat
 skill examples as patterns, not gospel. See [REFERENCE.md](REFERENCE.md) for the docs map and the
 resolver commands that fetch an interface's exact surface.

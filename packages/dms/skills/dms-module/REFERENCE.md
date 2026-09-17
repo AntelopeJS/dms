@@ -10,16 +10,20 @@ The **package name is free** (nothing in the framework or DMS keys on it); the o
 first-party modules follow `dms-<name>` purely for discoverability.
 
 ```
-<your-module>/
-  src/
-    index.ts                        # entry: construct/start/stop/destroy lifecycle
-    db/                             # schema, models, tables (if it owns data)
-    pages/                          # @RegisterPage classes + category.ts (see dms-pages)
-    routes/                         # HTTP controllers feeding the components
-    interfaces/<name>/index.ts      # the module's OWN interface (rare — many modules ship none)
-    implementations/<name>/index.ts # implementation of that interface
-  frontend-vue/                     # Vue module: dms.frontend.ts, app/, i18n/locales/
-  package.json / tsconfig.json
+<your-module>/                      # a workspace when the module owns an interface
+  packages/
+    <your-module>/
+      src/
+        index.ts                    # entry: construct/start/stop/destroy lifecycle
+        db/                         # schema, models, tables (if it owns data)
+        pages/                      # @RegisterPage classes + category.ts (see dms-pages)
+        routes/                     # HTTP controllers feeding the components
+        implementations/<name>/index.ts  # implementation of the module's own interface
+      frontend-vue/                 # Vue module: dms.frontend.ts, app/, i18n/locales/
+      package.json / tsconfig.json
+    interface-<name>/               # the module's OWN interface, its own published package
+      src/index.ts                  # (rare — many modules ship none)
+      package.json / tsconfig.json
 ```
 
 ## The full `package.json` manifest
@@ -33,16 +37,14 @@ first-party modules follow `dms-<name>` purely for discoverability.
   },
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./package.json": "./package.json",
-    // the module's own interface, as an EXPLICIT subpath (only if it defines one):
-    "./interfaces/<name>": {
-      "types": "./dist/interfaces/<name>/index.d.ts",
-      "default": "./dist/interfaces/<name>/index.js"
-    }
-  },
-  "typesVersions": { "*": { "interfaces/<name>": ["dist/interfaces/<name>/index.d.ts"] } }
+    "./package.json": "./package.json"
+  }
 }
 ```
+
+The runtime package exports its entry and nothing else. A consumer-facing API never becomes a
+subpath of the runtime package — it goes in the companion interface package, which is what
+`implements` names and what consumers depend on.
 
 ## Defining the module's own interface
 
