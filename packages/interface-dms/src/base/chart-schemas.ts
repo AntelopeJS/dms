@@ -125,7 +125,9 @@ const baseChartShape = {
   fetchUrl: ui(z.string().optional(), {
     label: "Data source",
     group: "data",
-    widget: "query",
+    widget: "dataSource",
+    responseShape: "series",
+    periodOption: "periodScope",
   }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",

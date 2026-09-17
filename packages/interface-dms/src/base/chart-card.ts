@@ -77,7 +77,9 @@ export const ChartCardSchema = z.object({
   fetchUrl: ui(z.string().optional(), {
     label: "Data source",
     group: "data",
-    widget: "query",
+    widget: "dataSource",
+    responseShape: "card",
+    periodOption: "periodScope",
   }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
