@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.0...v0.3.1)
+
+### 🏡 Chore
+
+- Require @antelopejs/core 1.7 ([#14](https://github.com/AntelopeJS/dms/pull/14))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.2.2...v0.3.0)
