@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.2.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.1.0...v0.2.0)
+
+### 🩹 Fixes
+
+- **dms:** ⚠️  Self-declare the runtime package and gate the frontend endpoints on the configured secret ([#8](https://github.com/AntelopeJS/dms/pull/8))
+
+### 🤖 CI
+
+- **release:** Accept the self-declared runtime name in implements ([#9](https://github.com/AntelopeJS/dms/pull/9))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** ⚠️  Self-declare the runtime package and gate the frontend endpoints on the configured secret ([#8](https://github.com/AntelopeJS/dms/pull/8))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.1.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.0.2...v0.1.0)
