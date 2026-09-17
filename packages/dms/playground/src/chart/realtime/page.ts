@@ -1,7 +1,7 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { ChartArea } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
+import { Form } from "@antelopejs/interface-dms/base/form";
 import { Color, HttpMethod } from "@antelopejs/interface-dms/base/types";
 import { REALTIME_DEMO_TOPIC } from "../api/realtime";
 import { pageCategory } from "../category";

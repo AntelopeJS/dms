@@ -7,7 +7,7 @@ import {
   type PermissionTree,
 } from "@antelopejs/interface-dms/permissions";
 import { TableView } from "@antelopejs/interface-dms/base";
-import type { FormComponents } from "@antelopejs/interface-dms/base/form-schema";
+import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import { userCategory } from "./category";
 
 RegisterDataController()(roleSettingDataAPI);

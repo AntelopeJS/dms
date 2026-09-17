@@ -30,7 +30,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import type { FormComponents } from "@antelopejs/interface-dms/base/form-schema";
+import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import { RolesSettingsController } from "../../../../pages/settings/users/roles";
 
 const TENANT = "cc-tenant";

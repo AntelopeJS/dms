@@ -26,7 +26,7 @@ import {
 } from "@antelopejs/interface-dms/invite-resolution";
 import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
+import { Form } from "@antelopejs/interface-dms/base/form";
 import { consumeInvite } from "../../routes/auth/invite";
 import { resetDatabase } from "../helpers/db";
 

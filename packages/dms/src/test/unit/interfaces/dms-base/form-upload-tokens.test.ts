@@ -5,11 +5,11 @@ import * as uploadsInterface from "@antelopejs/interface-dms/uploads";
 import { StampUploadFieldTokens } from "@antelopejs/interface-dms/uploads";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
+  Form,
   type FormFieldSerialized,
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
-import { Form } from "@antelopejs/interface-dms/base/form-schema";
 import { verifyUploadToken } from "../../../../utils/upload-token";
 
 function fieldOptions(field: FormFieldSerialized): Record<string, unknown> {
