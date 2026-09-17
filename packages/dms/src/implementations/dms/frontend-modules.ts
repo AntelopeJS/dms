@@ -43,6 +43,7 @@ interface FrontendModule {
   privateOptions?: FrontendModuleOptions;
   configKey?: string;
   renderer: AddFrontendModuleOptions["renderer"];
+  authEstablishEndpoints: string[];
 }
 
 interface FrontendSelection {
@@ -51,7 +52,10 @@ interface FrontendSelection {
   rendererMajor: number;
 }
 
-type ServedModule = Omit<FrontendModule, "path"> & { path?: string };
+type ServedModule = Omit<FrontendModule, "path" | "authEstablishEndpoints"> & {
+  path?: string;
+  authEstablishEndpoints?: string[];
+};
 
 const BUILD_ARTIFACT_PATTERNS = [
   "node_modules/",
@@ -88,6 +92,15 @@ const SECRET_BEARING_PATTERNS = [
   ".netrc",
   ".pgpass",
 ];
+/**
+ * Absolute backend API paths only: no scheme, no authority, no query string,
+ * and no segment that could climb out of `/api/`. Kept character-for-character
+ * in sync with the frontend server's own grammar, which re-checks every path
+ * it is asked to open a session from.
+ */
+const BACKEND_API_PATH =
+  /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/[A-Za-z0-9][A-Za-z0-9._~-]*)*$/;
+
 const DEFAULT_RENDERER = "vue";
 const DEFAULT_RENDERER_VERSION = "3";
 const HTTP_BAD_REQUEST = 400;
@@ -190,9 +203,43 @@ async function createModuleArchive(
   cachedModulesArchives.set(selectionKey(selection), bufferPromise);
 }
 
+/**
+ * The session-opening endpoints a module declares, checked and de-duplicated.
+ *
+ * The frontend server turns each of these into a route the browser may ask it
+ * to log in through, so a malformed declaration is a registration error rather
+ * than something to drop silently: the module would otherwise start, and its
+ * flow would only fail at the point a visitor tries to finish signing up.
+ *
+ * The DMS's own login, signup and 2FA routes are wired into the frontend
+ * server directly and must not be declared here.
+ *
+ * @param config Module registration as the module wrote it
+ * @returns The declared endpoints, in declaration order, without duplicates
+ */
+function resolveAuthEstablishEndpoints(
+  config: AddFrontendModuleOptions,
+): string[] {
+  const declared = config.authEstablishEndpoints ?? [];
+  const invalid = declared.filter(
+    (endpoint) =>
+      typeof endpoint !== "string" || !BACKEND_API_PATH.test(endpoint),
+  );
+  if (invalid.length > 0) {
+    throw new Error(
+      `Frontend module "${config.name}" declares invalid authEstablishEndpoints: ` +
+        `${invalid.map((endpoint) => JSON.stringify(endpoint)).join(", ")}. ` +
+        "Each entry must be an absolute backend API path under /api/, with no " +
+        "query string and no segment that climbs out of it.",
+    );
+  }
+  return [...new Set(declared)];
+}
+
 export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   cachedModulesArchives.clear();
   const identity = moduleIdentity(config);
+  const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
   const registeredModule = modules[identity];
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
@@ -206,6 +253,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     privateOptions: config.privateOptions || {},
     configKey: config.configKey,
     renderer: config.renderer,
+    authEstablishEndpoints,
   };
   scheduleBroadcast();
 }
@@ -235,6 +283,7 @@ export function GetFrontendModules(): FrontendModuleMetadata[] {
     renderer: { name: module.renderer.name, version: module.renderer.version },
     priority: module.priority,
     options: copyFrontendOptions(module.options ?? {}),
+    authEstablishEndpoints: [...module.authEstablishEndpoints],
   }));
 }
 
@@ -258,7 +307,11 @@ function resolveManifestFieldPolicy(
   dev: boolean,
 ): ManifestFieldPolicy {
   const authenticated = outcome === "authenticated";
-  return { privateOptions: authenticated, path: authenticated && dev };
+  return {
+    privateOptions: authenticated,
+    path: authenticated && dev,
+    authEstablishEndpoints: authenticated,
+  };
 }
 
 function applyDevManifestOverrides<T extends ManifestModuleEntry>(

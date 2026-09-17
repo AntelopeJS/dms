@@ -4,6 +4,7 @@ export interface ManifestModuleEntry {
   options?: Record<string, unknown>;
   privateOptions?: Record<string, unknown>;
   path?: string;
+  authEstablishEndpoints?: string[];
 }
 
 export interface ModuleManifestShape<
@@ -144,6 +145,7 @@ export function applyDevManifestUrls<T extends ManifestModuleEntry>(
 export interface ManifestFieldPolicy {
   privateOptions: boolean;
   path: boolean;
+  authEstablishEndpoints: boolean;
 }
 
 function applyFieldPolicy<T extends ManifestModuleEntry>(
@@ -153,6 +155,7 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
   const shaped = { ...module };
   if (!keep.privateOptions) delete shaped.privateOptions;
   if (!keep.path) delete shaped.path;
+  if (!keep.authEstablishEndpoints) delete shaped.authEstablishEndpoints;
   return shaped;
 }
 
@@ -172,7 +175,8 @@ export function stripPrivateManifestFields<T extends ManifestModuleEntry>(
   manifest: ModuleManifestShape<T>,
   keep: ManifestFieldPolicy,
 ): ModuleManifestShape<T> {
-  if (keep.privateOptions && keep.path) return manifest;
+  if (keep.privateOptions && keep.path && keep.authEstablishEndpoints)
+    return manifest;
   return {
     ...manifest,
     modules: manifest.modules.map((module) => applyFieldPolicy(module, keep)),
