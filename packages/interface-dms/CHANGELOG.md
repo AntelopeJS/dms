@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.2...v0.1.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Extend another module's page by its id ([#17](https://github.com/AntelopeJS/dms/pull/17))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Extend another module's page by its id ([#17](https://github.com/AntelopeJS/dms/pull/17))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.0.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.1...v0.0.4)
