@@ -30,7 +30,7 @@ import { AuthUser, type TenantTokenInput } from "@antelopejs/interface-dms/auth"
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { Grid, type GridOptions, type ChartColorToken } from "@antelopejs/interface-dms/base";
 import { Color, type JsonValue } from "@antelopejs/interface-dms/base/types";
-import { DataType, type DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types";
+import { DataType, DefaultDataCompareTypes, type DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { TableView, type TableViewOptions } from "@antelopejs/interface-dms/base/table-view";
 // The documented home of the form surface: props and field shapes together
@@ -59,6 +59,7 @@ const surface = [
   Color,
   DataType,
   DefaultDataTypes,
+  DefaultDataCompareTypes,
   TableView,
   Form,
   FormComponents,
