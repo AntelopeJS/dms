@@ -46,6 +46,7 @@ import {
   assembleLayoutComponents,
   type PageExtensionEntry,
 } from "./extension-assembly";
+import { collectExtensionErrors } from "./extension-validation";
 import { type ComponentNodeMap, filterComponents } from "./layout-filter";
 import {
   pageExtensions,
@@ -837,8 +838,20 @@ export class PageMetadata {
   // recorded either way, so a later sync never replays an `onPageCreated` side
   // effect that already ran.
   private async addExtension(info: PageExtensionInfo): Promise<void> {
+    const errors = collectExtensionErrors(info, {
+      own: this.ownComponents,
+      taken: this.takenComponentKeys(),
+    });
     const entries: PageExtensionEntry[] = [];
+    // Recorded even when it contributes nothing: an extension the page refused
+    // must not be re-examined — and re-reported — on every later sync.
     this.extensionEntries.set(info, entries);
+    if (errors.length > 0) {
+      for (const error of errors) {
+        Logging.Error(`[dms] ${error}`);
+      }
+      return;
+    }
 
     for (const [declarationIndex, contribution] of info.components.entries()) {
       entries.push({
@@ -868,6 +881,24 @@ export class PageMetadata {
     if (this.detached) {
       this.dropExtension(info);
     }
+  }
+
+  /**
+   * Who owns each component key of the page right now: the page itself for its
+   * own fields, the extension that injected it otherwise. One namespace,
+   * because a page's components share one permission subtree.
+   */
+  private takenComponentKeys(): Map<string, string> {
+    const owner = this.pageInfo?.fullId ?? "";
+    const taken = new Map<string, string>(
+      Object.keys(this.ownComponents).map((key) => [key, owner]),
+    );
+    for (const [info, entries] of this.extensionEntries) {
+      for (const entry of entries) {
+        taken.set(entry.key, info.extensionName);
+      }
+    }
+    return taken;
   }
 
   private dropExtension(info: PageExtensionInfo): void {

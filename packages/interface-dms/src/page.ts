@@ -41,7 +41,10 @@ export {
   ClearPageLayoutBySlug,
   GetComponentPermissionIds,
   GetPageLayoutBySlug,
+  GetPendingPageExtensions,
   GetPermissionId,
+  GetRegisteredPageIds,
+  type PendingPageExtension,
 } from "./page/registry";
 export * from "./page/roots";
 export * from "./page/types";

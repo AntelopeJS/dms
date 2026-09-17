@@ -2,12 +2,7 @@ import { Controller, type ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, InterfaceFunction } from "@antelopejs/interface-core";
 import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
-import {
-  Component,
-  type ComponentInfo,
-  type ComponentTargetInput,
-  DEFAULT_PLACEMENT,
-} from "../component";
+import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
 import {
   applyModuleResolution,
   calculateFullSlug,
@@ -16,11 +11,6 @@ import {
   resolveCategoryInfo,
   validateNotInsideSettings,
 } from "./categories";
-import {
-  componentDeclaresChild,
-  resolveComponentTarget,
-} from "./component-target";
-import { assertKeysAvailable } from "./extension-assembly";
 import { PageMetadata } from "./metadata";
 import type {
   CategoryInfo,
@@ -70,59 +60,12 @@ export const RegisterPage = MakeClassDecorator((cl) => {
   void meta.Register();
 });
 
-/**
- * Every component the target page owns, keyed by its field name. Reads the
- * class's static fields (the extension may be declared before the target ran
- * `@RegisterPage`) and the page metadata (which also carries the components a
- * page class inherits from another).
- */
-function collectTargetComponents(
-  target: ControllerClass,
-  targetMeta: PageMetadata,
-): Map<string, Component> {
-  const components = new Map<string, Component>();
-  for (const { key, component } of collectStaticComponents(target)) {
-    components.set(key, component);
-  }
-  for (const [key, component] of Object.entries(targetMeta.components)) {
-    components.set(key, component);
-  }
-  return components;
-}
-
-function resolveAnchorPath(
-  anchor: ComponentTargetInput,
-  targetComponents: Map<string, Component>,
-  contributionKey: string,
-  extensionName: string,
-  targetFullId: string,
-): string[] {
-  const resolved = resolveComponentTarget(anchor, targetComponents);
-  if (resolved) {
-    if (
-      resolved.parent &&
-      componentDeclaresChild(resolved.parent, contributionKey)
-    ) {
-      throw new Error(
-        `Page extension "${extensionName}" injects child "${contributionKey}" into page "${targetFullId}", but that id already belongs to the anchor's parent. Rename the field.`,
-      );
-    }
-    return [resolved.rootKey, ...resolved.path];
-  }
-  throw new Error(
-    `Page extension "${extensionName}" anchors a component on a position that does not exist on page "${targetFullId}". Anchors must reference a static component field or one of its declared children.`,
-  );
-}
-
 function buildExtensionComponents(
   // `object` is the contract: this walks a decorated class whose static
   // fields are only known at run time, which is the whole point of the
   // decorator. A narrower type would only push an assertion here.
   // oxlint-disable-next-line anti-slop/no-object-parameters
   extensionClass: object,
-  targetComponents: Map<string, Component>,
-  extensionName: string,
-  targetFullId: string,
 ): PageExtensionComponent[] {
   return collectStaticComponents(extensionClass).map(({ key, component }) => {
     const placement = component.placement ?? DEFAULT_PLACEMENT;
@@ -135,13 +78,7 @@ function buildExtensionComponents(
       order: placement.order,
     };
     if (placement.anchor) {
-      entry.anchorPath = resolveAnchorPath(
-        placement.anchor,
-        targetComponents,
-        key,
-        extensionName,
-        targetFullId,
-      );
+      entry.anchorPath = placement.anchor;
     }
     return entry;
   });
@@ -149,71 +86,69 @@ function buildExtensionComponents(
 
 /**
  * Inject components into a page owned by another module. The decorated class is
- * not a page: every static component field on it becomes a component of
- * `target`, keyed by its field name, and therefore permissioned as
- * `<target fullId>.<field name>` in the target page's own permission tree —
- * exactly like a component the target declares itself.
+ * not a page: every static component field on it becomes a component of the
+ * target page, keyed by its field name, and therefore permissioned as
+ * `<target page id>.<field name>` in that page's own permission tree — exactly
+ * like a component the page declares itself.
+ *
+ * The target is named by its page id, never imported: an extending module
+ * depends on `@antelopejs/interface-dms` alone, and stays out of the target
+ * module's registrations. A page id is the dotted path of its categories
+ * followed by its own id — it is also the page's permission id, the one listed
+ * in the roles screen and returned by `GetPermissionId(ThePageClass)` inside
+ * the owning module. The DMS members page, for instance, is
+ * `settings.user.members`.
  *
  * Placement is declared on each component with `.before(anchor)` /
- * `.after(anchor)`. An anchor can be a static component field of the target
- * page or a nested position selected with `.targetChild()`. Without one, the
- * component is appended after the page's own components. When several
- * components land at the same spot, `.order(n)` decides, and equal orders fall
- * back to the extension class name then to declaration order — never to module
- * start order.
+ * `.after(anchor)`, where an anchor is a static field name of the target page
+ * (`"table"`) or the dotted path to a nested position (`"content.tasks"`).
+ * Without one, the component is appended after the page's own components. When
+ * several components land at the same spot, `.order(n)` decides, and equal
+ * orders fall back to the extension class name then to declaration order —
+ * never to module start order.
  *
  * The injection applies as soon as the target page has finished registering —
- * it is held until then whichever module starts first, so anchors always
- * resolve against the page's complete component set — and is removed when the
- * extending module stops. A field name already used by the target page or by another
- * extension of it is a registration error.
+ * it is held until then whichever module starts first, and stays held, with a
+ * warning once the project has started, for a page id no module registers — and
+ * is removed when the extending module stops. Anchors and field names are
+ * checked against the target page when the injection applies: a field name the
+ * page or another extension already uses, or an anchor the page does not
+ * declare, is reported and the extension is skipped.
  *
  * ```ts
- * @RegisterPageExtension(MembersSettingsController)
+ * @RegisterPageExtension("settings.user.members")
  * export class SeatQuotaExtension {
  *   static seatQuota = CustomComponent("SeatQuotaBanner")
  *     .meta({ name: "Seat quota" })
- *     .before(MembersSettingsController.table);
+ *     .before("table");
  * }
  * ```
  *
- * @param target The page controller class to extend, imported from its module.
+ * @param targetPageId Full id of the page to extend.
  */
 export const RegisterPageExtension = MakeClassDecorator(
-  (cl, target: ControllerClass) => {
+  (cl, targetPageId: string) => {
     const extensionName =
       (cl as ControllerClass).name || "anonymous page extension";
-    const targetMeta = GetMetadata(target, PageMetadata);
-    if (!targetMeta.pageInfo) {
+    if (!targetPageId.trim()) {
       throw new Error(
-        `Page extension "${extensionName}" targets a class that is not a page. Pass a class built with PageController(...).`,
+        `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.user.members".`,
       );
     }
 
-    const targetFullId = targetMeta.pageInfo.fullId;
-    const targetComponents = collectTargetComponents(target, targetMeta);
-    const info: PageExtensionInfo = {
-      extensionName,
-      targetFullId,
-      components: buildExtensionComponents(
-        cl,
-        targetComponents,
-        extensionName,
-        targetFullId,
-      ),
-    };
-
-    if (info.components.length === 0) {
+    const components = buildExtensionComponents(cl);
+    if (components.length === 0) {
       Logging.Warn(
-        `[dms] page extension "${extensionName}" declares no component field — nothing is injected into page "${targetFullId}".`,
+        `[dms] page extension "${extensionName}" declares no component field — nothing is injected into page "${targetPageId}".`,
       );
       return;
     }
 
-    assertKeysAvailable(
-      new Map([...targetComponents.keys()].map((key) => [key, targetFullId])),
-      info,
-    );
+    const info: PageExtensionInfo = {
+      extensionName,
+      targetFullId: targetPageId,
+      components,
+    };
     internal.RegisterPageExtension.register(info);
   },
 );

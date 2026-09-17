@@ -181,6 +181,36 @@ export function acceptsPageExtensions(targetFullId: string): boolean {
   return pageMetadataByFullId.get(targetFullId)?.AcceptsExtensions() ?? false;
 }
 
+/** One page extension still waiting for the page id it names to register. */
+export interface PendingPageExtension {
+  extensionName: string;
+  targetFullId: string;
+}
+
+/**
+ * Extensions whose target page no module has registered. An extension names its
+ * target by id, so a typo — or a module that is simply not deployed — is
+ * indistinguishable from a page that has yet to start; both surface here.
+ */
+export function GetPendingPageExtensions(): PendingPageExtension[] {
+  const pending: PendingPageExtension[] = [];
+  for (const [targetFullId, infos] of pageExtensions) {
+    if (pageMetadataByFullId.has(targetFullId)) continue;
+    for (const info of infos) {
+      pending.push({ extensionName: info.extensionName, targetFullId });
+    }
+  }
+  return pending;
+}
+
+/**
+ * Ids of every registered page, sorted. The id of a page is what
+ * `@RegisterPageExtension` takes, and also its permission id.
+ */
+export function GetRegisteredPageIds(): string[] {
+  return [...pageMetadataByFullId.keys()].sort();
+}
+
 export function syncTargetExtensions(targetFullId: string): Promise<void> {
   const metadata = pageMetadataByFullId.get(targetFullId);
   if (!metadata) {
