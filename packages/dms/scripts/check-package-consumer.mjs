@@ -39,7 +39,6 @@ const TYPESCRIPT_CONFIGS = [
 ];
 const CONSUMER_SOURCE = `
 import { construct, type Config } from "@antelopejs/dms";
-import { SettingsIndexPage } from "@antelopejs/dms/pages";
 import { AuthUser, type TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TenantModel } from "@antelopejs/interface-dms/db";
@@ -57,7 +56,6 @@ import { Component } from "@antelopejs/interface-dms/component";
 
 const runtimeSurface = [
   construct,
-  SettingsIndexPage,
   AuthUser,
   UserModel,
   TenantModel,
