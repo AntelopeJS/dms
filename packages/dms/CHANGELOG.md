@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.2.2...v0.3.0)
+
+### 🩹 Fixes
+
+- **deps:** ⚠️  Stop shipping AntelopeJS core as a runtime dependency ([#13](https://github.com/AntelopeJS/dms/pull/13))
+
+#### ⚠️ Breaking Changes
+
+- **deps:** ⚠️  Stop shipping AntelopeJS core as a runtime dependency ([#13](https://github.com/AntelopeJS/dms/pull/13))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.0.3...v0.2.2)
