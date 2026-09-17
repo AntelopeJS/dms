@@ -1,5 +1,5 @@
 import type { Component, ComponentInfoSerialized } from "../../component";
-import type { FormPropsSerialized } from "../form";
+import type { FormPropsSerialized } from "../form-types";
 import type { ColorValue } from "../types";
 import type {
   CustomButton,

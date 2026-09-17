@@ -1,7 +1,6 @@
 // Building and serializing a form's schema, from its fields, its props or a
-// builder.
-//
-// Split out of form.ts.
+// builder. The shapes it works on live in `form-types.ts`; both halves are
+// re-exported together by `form.ts`, the documented subpath.
 
 import { ComponentBuilder, type ComponentInfoSerialized } from "../component";
 import { StampUploadFieldTokens } from "../uploads";
@@ -23,7 +22,7 @@ import {
   FormProps,
   FormPropsSerialized,
   isFieldGroup,
-} from "./form";
+} from "./form-types";
 /**
  * Adapts a Zod schema to handle localization and optional/required state
  */

@@ -33,6 +33,9 @@ import { Color, type JsonValue } from "@antelopejs/interface-dms/base/types";
 import { DataType, type DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { TableView, type TableViewOptions } from "@antelopejs/interface-dms/base/table-view";
+// The documented home of the form surface: props and field shapes together
+// with the builder and the schema helpers split out of the same module.
+import { Form, FormComponents, FormEvents, formSchema, type FormProps } from "@antelopejs/interface-dms/base/form";
 import { TenantModel } from "@antelopejs/interface-dms/db";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import { AddFrontendModule, type PageInfo } from "@antelopejs/interface-dms/page";
@@ -57,6 +60,10 @@ const surface = [
   DataType,
   DefaultDataTypes,
   TableView,
+  Form,
+  FormComponents,
+  FormEvents,
+  formSchema,
   TenantModel,
   memberSettingDataAPI,
   AddFrontendModule,
@@ -71,6 +78,7 @@ const grid = undefined as GridOptions | undefined;
 const json = undefined as JsonValue | undefined;
 const dataType = undefined as DataTypeSerialized | undefined;
 const table = undefined as TableViewOptions | undefined;
+const form = undefined as FormProps | undefined;
 const page = undefined as PageInfo | undefined;
 const template = undefined as HtmlTemplateRef | undefined;
 const shade: ChartColorToken = "primary-500";

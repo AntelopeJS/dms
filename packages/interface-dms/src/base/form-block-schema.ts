@@ -8,7 +8,7 @@ import {
   ui,
 } from "./block-registry";
 import type { DataType } from "./data-types/core";
-import type { FieldGroup, FormField, FormProps } from "./form";
+import type { FieldGroup, FormField, FormProps } from "./form-types";
 import type { DefaultValue } from "./types";
 import { HttpMethod } from "./types/http";
 
