@@ -2,6 +2,7 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import {
   assertFrontendBootstrap,
+  decideLayerAccess,
   matchesFrontendBootstrap,
   resolveBootstrapOutcome,
 } from "../../implementations/dms/frontend-bootstrap";
@@ -67,5 +68,42 @@ describe("[unit] frontend bootstrap", () => {
 
   it("refuses an anonymous caller at the gate", () => {
     expectRefusal(() => assertFrontendBootstrap("anonymous"));
+  });
+
+  describe("layer access decision", () => {
+    it("lets an authenticated caller through whatever is configured", () => {
+      expect(decideLayerAccess("authenticated", true, "enforce")).to.equal(
+        "allow",
+      );
+      expect(decideLayerAccess("authenticated", true, "warn")).to.equal(
+        "allow",
+      );
+      expect(decideLayerAccess("authenticated", false, "warn")).to.equal(
+        "allow",
+      );
+      expect(decideLayerAccess("authenticated", false, "enforce")).to.equal(
+        "allow",
+      );
+    });
+
+    it("refuses an anonymous caller as soon as a secret is configured", () => {
+      expect(decideLayerAccess("anonymous", true, "enforce")).to.equal(
+        "refuse",
+      );
+    });
+
+    it("refuses an anonymous caller even when requireBootstrap says warn", () => {
+      expect(decideLayerAccess("anonymous", true, "warn")).to.equal("refuse");
+    });
+
+    it("degrades an anonymous caller when no secret is configured", () => {
+      expect(decideLayerAccess("anonymous", false, "warn")).to.equal("degrade");
+    });
+
+    it("refuses an anonymous caller when enforcement is asked for without a secret", () => {
+      expect(decideLayerAccess("anonymous", false, "enforce")).to.equal(
+        "refuse",
+      );
+    });
   });
 });

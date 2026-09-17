@@ -93,10 +93,15 @@ export interface UploadsConfig {
 }
 
 /**
- * How an unauthenticated caller of the layer endpoints is treated.
+ * How an unauthenticated caller of the layer endpoints is treated **on an
+ * instance that configures no `bootstrapSecret`**.
  *
  * `warn` still serves them, minus every secret-bearing field, and logs once
- * per route. `enforce` refuses them outright.
+ * per route. `enforce` refuses them outright, closing the routes to everyone
+ * since nothing can authenticate.
+ *
+ * It has no say once a `bootstrapSecret` is configured: that alone refuses
+ * unauthenticated callers.
  */
 export type BootstrapEnforcement = "warn" | "enforce";
 
@@ -113,6 +118,10 @@ export interface FrontendConfig {
    * `.antelope/dms-dev.json` for the local build tool to pick up.
    */
   bootstrapSecret?: string;
+  /**
+   * Only consulted when no {@link FrontendConfig.bootstrapSecret} is
+   * configured. Defaults to `warn`.
+   */
   requireBootstrap?: BootstrapEnforcement;
 }
 
