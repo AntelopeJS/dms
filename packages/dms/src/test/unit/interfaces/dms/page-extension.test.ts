@@ -15,6 +15,8 @@ import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   type CategoryInfo,
   GetPageLayoutBySlug,
+  GetPendingPageExtensions,
+  GetRegisteredPageIds,
   PageController,
   type PageExtensionInfo,
   type PageLayout,
@@ -28,7 +30,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { captureWarnings } from "../../../helpers/logging";
+import { captureErrors, captureWarnings } from "../../../helpers/logging";
 
 // Page registration and extension syncing are promise-chained but do no I/O:
 // one macrotask hop is enough for every pending microtask to settle.
@@ -149,7 +151,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static footNote = CustomComponent("FootNote").meta({ name: "Foot note" });
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-append")(Extension);
     await settle();
 
     expect(await layoutKeys("/pe-append")).to.deep.equal([
@@ -169,7 +171,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
       static zulu = CustomComponent("Zulu").meta({ name: "Zulu" });
       static alpha = CustomComponent("Alpha").meta({ name: "Alpha" });
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-declaration-order")(Extension);
     await settle();
 
     expect(await layoutKeys("/pe-declaration-order")).to.deep.equal([
@@ -189,12 +191,12 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static banner = CustomComponent("Banner")
         .meta({ name: "Banner" })
-        .before(Target.table);
+        .before("table");
       static bridge = CustomComponent("Bridge")
         .meta({ name: "Bridge" })
-        .after(Target.table);
+        .after("table");
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-anchored")(Extension);
     await settle();
 
     expect(await layoutKeys("/pe-anchored")).to.deep.equal([
@@ -216,12 +218,12 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static banner = CustomComponent("Banner")
         .meta({ name: "Banner" })
-        .before(Target.content.targetChild("table"));
+        .before("content.table");
       static summary = CustomComponent("Summary")
         .meta({ name: "Summary" })
-        .after(Target.content.targetChild("table"));
+        .after("content.table");
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-child-anchor")(Extension);
     await settle();
 
     expect(await layoutChildIds("/pe-child-anchor", "content")).to.deep.equal([
@@ -244,29 +246,29 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class ZuluExtension {
       static zuluBlock = CustomComponent("Zulu")
         .meta({ name: "Zulu" })
-        .after(TargetA.table);
+        .after("table");
     }
     class AlphaExtension {
       static alphaBlock = CustomComponent("Alpha")
         .meta({ name: "Alpha" })
-        .after(TargetA.table);
+        .after("table");
     }
     class ZuluExtensionB {
       static zuluBlock = CustomComponent("Zulu")
         .meta({ name: "Zulu" })
-        .after(TargetB.table);
+        .after("table");
     }
     class AlphaExtensionB {
       static alphaBlock = CustomComponent("Alpha")
         .meta({ name: "Alpha" })
-        .after(TargetB.table);
+        .after("table");
     }
 
     // Page A: the "Zulu module" starts first. Page B: the "Alpha module" does.
-    RegisterPageExtension(TargetA)(ZuluExtension);
-    RegisterPageExtension(TargetA)(AlphaExtension);
-    RegisterPageExtension(TargetB)(AlphaExtensionB);
-    RegisterPageExtension(TargetB)(ZuluExtensionB);
+    RegisterPageExtension("pages.pe-race-a")(ZuluExtension);
+    RegisterPageExtension("pages.pe-race-a")(AlphaExtension);
+    RegisterPageExtension("pages.pe-race-b")(AlphaExtensionB);
+    RegisterPageExtension("pages.pe-race-b")(ZuluExtensionB);
     await settle();
 
     const startedZuluFirst = await layoutKeys("/pe-race-a");
@@ -289,17 +291,17 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class AlphaExtension {
       static alphaBlock = CustomComponent("Alpha")
         .meta({ name: "Alpha" })
-        .after(Target.table)
+        .after("table")
         .order(10);
     }
     class ZuluExtension {
       static zuluBlock = CustomComponent("Zulu")
         .meta({ name: "Zulu" })
-        .after(Target.table)
+        .after("table")
         .order(-10);
     }
-    RegisterPageExtension(Target)(AlphaExtension);
-    RegisterPageExtension(Target)(ZuluExtension);
+    RegisterPageExtension("pages.pe-order")(AlphaExtension);
+    RegisterPageExtension("pages.pe-order")(ZuluExtension);
     await settle();
 
     expect(await layoutKeys("/pe-order")).to.deep.equal([
@@ -317,11 +319,11 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static earlyBlock = CustomComponent("Early")
         .meta({ name: "Early" })
-        .before(Target.table);
+        .before("table");
     }
     // The extending module starts first: the target page has not run its
     // @RegisterPage yet, so the injection is held until it does.
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-deferred")(Extension);
     await settle();
     expect(GetPageLayoutBySlug("/pe-deferred")).to.equal(undefined);
 
@@ -343,19 +345,17 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static banner = CustomComponent("Banner")
         .meta({ name: "Banner" })
-        .before(Target.table);
+        .before("table");
     }
 
     // No settle() in between: the extending module registers while the page is
-    // still serializing its own components. The page is already in the registry
-    // at that point, but "table" is not yet a key it declares — an anchor
-    // resolved then falls to the end of the page, and the registration's own
-    // rebuild puts it back where it belongs, so the warning is the only lasting
-    // trace of a graft that read a half-built page.
+    // still serializing its own components, so "table" is not yet a key the
+    // page declares. The graft waits for the page to finish before resolving
+    // anything, so the anchor still lands where it belongs and nothing warns.
     const captured = captureWarnings();
     try {
       RegisterPage()(Target);
-      RegisterPageExtension(Target)(Extension);
+      RegisterPageExtension("pages.pe-mid-registration")(Extension);
       await settle();
     } finally {
       captured.restore();
@@ -390,9 +390,9 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class Extension {
       static block = CustomComponent("Block")
         .meta({ name: "Block" })
-        .after(Target.table);
+        .after("table");
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-failed-registration")(Extension);
     await settle();
 
     const meta = GetMetadata(Target, PageMetadata);
@@ -428,7 +428,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
           CustomComponent("QuotaDetails").meta({ name: "Quota details" }),
         );
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-permissions")(Extension);
     await settle();
 
     const permission = permissionsImpl.GetPermission(
@@ -454,9 +454,9 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
           "details",
           CustomComponent("GatedDetails").meta({ name: "Details" }),
         )
-        .after(Target.table);
+        .after("table");
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-gated")(Extension);
     await settle();
 
     // Granted the page's own component but not the injected one: the block is
@@ -488,7 +488,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
         CustomComponent("Details").meta({ name: "Details" }),
       );
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-gated-child")(Extension);
     await settle();
 
     const layout = await loadLayout(
@@ -556,7 +556,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
         name: "Stranded",
       });
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-page-gone")(Extension);
     await settle();
     expect(
       permissionsImpl.GetPermission("pages.pe-page-gone.strandedBlock"),
@@ -678,7 +678,7 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
           CustomComponent("ReloadedDetails").meta({ name: "Details" }),
         );
     }
-    RegisterPageExtension(Target)(Extension);
+    RegisterPageExtension("pages.pe-hot-reload")(Extension);
     await settle();
 
     // A dev hot reload: the page unregisters and comes straight back under a
@@ -708,19 +708,31 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     ).to.not.equal(undefined);
   });
 
-  it("rejects a key that collides with a component of the target page", async () => {
+  it("skips an extension whose key collides with a component of the target page", async () => {
     class Target extends definePage("pe-collision-page") {
       static table = CustomComponent("Table").meta({ name: "Table" });
     }
     await registerPage(Target);
 
-    class Extension {
+    class CollidingExtension {
       static table = CustomComponent("Other").meta({ name: "Other" });
     }
-    expect(() => RegisterPageExtension(Target)(Extension)).to.throw(/table/);
+    const captured = captureErrors();
+    try {
+      RegisterPageExtension("pages.pe-collision-page")(CollidingExtension);
+      await settle();
+    } finally {
+      captured.restore();
+    }
+
+    expect(await layoutKeys("/pe-collision-page")).to.deep.equal(["table"]);
+    expect(captured.messages).to.have.lengthOf(1);
+    expect(captured.messages[0]).to.contain("CollidingExtension");
+    expect(captured.messages[0]).to.contain("pages.pe-collision-page");
+    expect(captured.messages[0]).to.contain("table");
   });
 
-  it("rejects a key that collides with a sibling of a child anchor", async () => {
+  it("skips an extension whose key collides with a sibling of a child anchor", async () => {
     class Target extends definePage("pe-child-collision") {
       static content = CustomComponent("Content")
         .child("banner", CustomComponent("ExistingBanner"))
@@ -728,16 +740,26 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     }
     await registerPage(Target);
 
-    class Extension {
-      static banner = CustomComponent("OtherBanner").before(
-        Target.content.targetChild("table"),
-      );
+    class SiblingExtension {
+      static banner = CustomComponent("OtherBanner").before("content.table");
+    }
+    const captured = captureErrors();
+    try {
+      RegisterPageExtension("pages.pe-child-collision")(SiblingExtension);
+      await settle();
+    } finally {
+      captured.restore();
     }
 
-    expect(() => RegisterPageExtension(Target)(Extension)).to.throw(/banner/);
+    expect(
+      await layoutChildIds("/pe-child-collision", "content"),
+    ).to.deep.equal(["banner", "table"]);
+    expect(captured.messages).to.have.lengthOf(1);
+    expect(captured.messages[0]).to.contain("SiblingExtension");
+    expect(captured.messages[0]).to.contain("banner");
   });
 
-  it("rejects a key already injected by another extension", async () => {
+  it("skips an extension whose key another extension already injected", async () => {
     class Target extends definePage("pe-collision-ext") {
       static table = CustomComponent("Table").meta({ name: "Table" });
     }
@@ -749,36 +771,71 @@ describe("[unit] interfaces/dms/page — @RegisterPageExtension", () => {
     class SecondExtension {
       static sharedKey = CustomComponent("Second").meta({ name: "Second" });
     }
-    RegisterPageExtension(Target)(FirstExtension);
+    RegisterPageExtension("pages.pe-collision-ext")(FirstExtension);
     await settle();
 
-    expect(() => RegisterPageExtension(Target)(SecondExtension)).to.throw(
-      /sharedKey/,
-    );
+    const captured = captureErrors();
+    try {
+      RegisterPageExtension("pages.pe-collision-ext")(SecondExtension);
+      await settle();
+    } finally {
+      captured.restore();
+    }
+
+    expect(await layoutKeys("/pe-collision-ext")).to.deep.equal([
+      "table",
+      "sharedKey",
+    ]);
+    expect(captured.messages).to.have.lengthOf(1);
+    expect(captured.messages[0]).to.contain("SecondExtension");
+    expect(captured.messages[0]).to.contain("sharedKey");
+    expect(captured.messages[0]).to.contain("FirstExtension");
   });
 
-  it("rejects an anchor that is not a component of the target page", async () => {
+  it("skips an extension anchored on a key the target page does not declare", async () => {
     class Target extends definePage("pe-bad-anchor") {
       static table = CustomComponent("Table").meta({ name: "Table" });
     }
     await registerPage(Target);
 
-    const foreign = CustomComponent("Foreign").meta({ name: "Foreign" });
-    class Extension {
+    class StrayAnchorExtension {
       static block = CustomComponent("Block")
         .meta({ name: "Block" })
-        .after(foreign);
+        .after("nowhere");
     }
-    expect(() => RegisterPageExtension(Target)(Extension)).to.throw(/anchor/i);
+    const captured = captureErrors();
+    try {
+      RegisterPageExtension("pages.pe-bad-anchor")(StrayAnchorExtension);
+      await settle();
+    } finally {
+      captured.restore();
+    }
+
+    expect(await layoutKeys("/pe-bad-anchor")).to.deep.equal(["table"]);
+    expect(captured.messages).to.have.lengthOf(1);
+    expect(captured.messages[0]).to.contain("StrayAnchorExtension");
+    expect(captured.messages[0]).to.contain("nowhere");
+    expect(captured.messages[0]).to.contain("pages.pe-bad-anchor");
   });
 
-  it("rejects a target class that is not a page", async () => {
-    class NotAPage {}
+  it("holds an extension whose target page id no module registers", async () => {
+    class PendingExtension {
+      static block = CustomComponent("Block").meta({ name: "Block" });
+    }
+    RegisterPageExtension("pages.pe-never-registered")(PendingExtension);
+    await settle();
+
+    expect(GetPendingPageExtensions()).to.deep.contain({
+      extensionName: "PendingExtension",
+      targetFullId: "pages.pe-never-registered",
+    });
+    expect(GetRegisteredPageIds()).to.not.contain("pages.pe-never-registered");
+  });
+
+  it("refuses an extension that names no target page", () => {
     class Extension {
       static block = CustomComponent("Block").meta({ name: "Block" });
     }
-    expect(() =>
-      RegisterPageExtension(NotAPage as unknown as ControllerClass)(Extension),
-    ).to.throw(/not a page/);
+    expect(() => RegisterPageExtension("  ")(Extension)).to.throw(/full id/);
   });
 });

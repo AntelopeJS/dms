@@ -42,8 +42,7 @@
   },
   "antelopeJs": {
     "implements": [
-      "@antelopejs/interface-dms",
-      "@antelopejs/dms"
+      "@antelopejs/interface-dms"
     ],
     "baseUrl": "dist",
     "test": "src/test/antelope.test.ts",

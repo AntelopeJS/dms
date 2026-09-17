@@ -7,7 +7,6 @@ import {
   type Permission,
   RegisterPermission,
 } from "../permissions";
-import { assertExtensionKeysAvailable } from "./extension-assembly";
 // Categories resolve controller classes through their PageMetadata, and the
 // metadata module registers pages through the proxies declared here: the
 // two-way import stays safe because neither module dereferences the other
@@ -100,7 +99,6 @@ export namespace internal {
 
   export function applyPageExtension(info: PageExtensionInfo): void {
     const registered = pageExtensions.get(info.targetFullId) ?? [];
-    assertExtensionKeysAvailable(info, registered);
     registered.push(info);
     pageExtensions.set(info.targetFullId, registered);
     if (!acceptsPageExtensions(info.targetFullId)) {

@@ -166,9 +166,6 @@ importers:
 
   packages/dms/playground:
     dependencies:
-      '@antelopejs/dms':
-        specifier: workspace:*
-        version: link:..
       '@antelopejs/interface-api':
         specifier: '>=0.0.13 <1.0.0'
         version: 0.0.13(@antelopejs/interface-core@0.0.13)

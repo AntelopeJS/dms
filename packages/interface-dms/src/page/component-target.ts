@@ -67,16 +67,6 @@ export function resolveComponentTarget(
   return { rootKey: rootEntry[0], path, ...descendant };
 }
 
-/** Whether a component already declares a child with the given id. */
-export function componentDeclaresChild(
-  component: Component,
-  id: string,
-): boolean {
-  return getDeclaredComponentChildren(component).some(
-    (child) => child.id === id,
-  );
-}
-
 /** Build the id assigned by the recursive frontend component renderer. */
 export function componentTargetClientId(
   target: ResolvedComponentTarget,

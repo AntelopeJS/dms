@@ -24,7 +24,6 @@
     }
   },
   "dependencies": {
-    "@antelopejs/dms": "workspace:*",
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-core": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",

@@ -150,12 +150,29 @@ export type ComponentInfoPromise<T = unknown> = MaybePromise<
 export type PlacementSide = "before" | "after" | "end";
 
 /**
+ * An anchor names a position on the *target* page by the static field names
+ * leading to it, never by a reference to the component itself: an extending
+ * module has no access to the target module's classes. `"table"` is the page's
+ * static `table` field, `"content.tasks"` (or `["content", "tasks"]`) the
+ * child declared as `tasks` under its `content` field.
+ */
+export type ComponentAnchor = string | readonly string[];
+
+const ANCHOR_SEPARATOR = ".";
+
+function normalizeComponentAnchor(anchor: ComponentAnchor): readonly string[] {
+  return typeof anchor === "string"
+    ? anchor.split(ANCHOR_SEPARATOR)
+    : [...anchor];
+}
+
+/**
  * Placement of a component injected into another page by
  * `@RegisterPageExtension`. Ignored on a component declared on its own page.
  */
 export interface ComponentPlacement {
   side: PlacementSide;
-  anchor?: ComponentTargetInput;
+  anchor?: readonly string[];
   order: number;
 }
 
@@ -225,18 +242,24 @@ export class Component<T = unknown> {
   }
 
   /**
-   * Inject this component just above `anchor` on the extended page. Use a
-   * static component field for a root anchor, or `.targetChild()` to inject it
-   * beside a nested anchor. Only meaningful on a component declared inside a
-   * `@RegisterPageExtension` class.
+   * Inject this component just above `anchor` on the extended page. The anchor
+   * is the target page's own static field name -- `"table"` -- or the dotted
+   * path to a nested position -- `"content.tasks"`. Only meaningful on a
+   * component declared inside a `@RegisterPageExtension` class.
    */
-  before(anchor: ComponentTargetInput): this {
-    return this.setPlacement({ side: "before", anchor });
+  before(anchor: ComponentAnchor): this {
+    return this.setPlacement({
+      side: "before",
+      anchor: normalizeComponentAnchor(anchor),
+    });
   }
 
   /** Inject this component just below `anchor`. See {@link Component.before}. */
-  after(anchor: ComponentTargetInput): this {
-    return this.setPlacement({ side: "after", anchor });
+  after(anchor: ComponentAnchor): this {
+    return this.setPlacement({
+      side: "after",
+      anchor: normalizeComponentAnchor(anchor),
+    });
   }
 
   /**

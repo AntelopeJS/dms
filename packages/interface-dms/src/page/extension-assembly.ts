@@ -1,37 +1,6 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { ChildSerialized, ComponentInfoSerialized } from "../component";
-import type { PageExtensionComponent, PageExtensionInfo } from "./types";
-
-/**
- * A page's component keys are unique: the target's own fields and every
- * extension of it share one namespace, because they share one permission
- * subtree. `taken` maps an already-used key to whoever owns it.
- */
-export function assertKeysAvailable(
-  taken: Map<string, string>,
-  info: PageExtensionInfo,
-): void {
-  for (const contribution of info.components) {
-    const owner = taken.get(contribution.key);
-    if (owner === undefined) continue;
-    throw new Error(
-      `Page extension "${info.extensionName}" injects "${contribution.key}" into page "${info.targetFullId}", but that key already belongs to "${owner}". Rename the field.`,
-    );
-  }
-}
-
-export function assertExtensionKeysAvailable(
-  info: PageExtensionInfo,
-  registered: PageExtensionInfo[],
-): void {
-  const taken = new Map<string, string>();
-  for (const other of registered) {
-    for (const contribution of other.components) {
-      taken.set(contribution.key, other.extensionName);
-    }
-  }
-  assertKeysAvailable(taken, info);
-}
+import type { PageExtensionComponent } from "./types";
 
 export interface PageExtensionEntry extends PageExtensionComponent {
   extensionName: string;
