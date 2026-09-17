@@ -1,10 +1,10 @@
-// `npm publish` does not understand the pnpm `workspace:*` protocol: it ships the
-// specifier verbatim and consumers cannot install the package. pnpm rewrites the
-// specifier to the sibling package version while packing, so the release
-// publishes through pnpm. release-it's own npm publish step is disabled with
-// `npm.publish: false` in .release-it.json, and this script runs from the
-// `after:bump` hook, once the new version and the changelog are written but
-// before the release commit, tag and push.
+// `npm publish` does not understand pnpm's workspace specifiers (`workspace:`,
+// `catalog:`): it ships them verbatim and consumers cannot install the package.
+// pnpm resolves them while it packs, so the release publishes through pnpm.
+// release-it's own npm publish step is disabled with `npm.publish: false` in
+// .release-it.json, and this script runs from the `after:bump` hook, once the
+// new version and the changelog are written but before the release commit, tag
+// and push.
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";

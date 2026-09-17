@@ -29,6 +29,21 @@ jobs:
           case "$CHANNEL" in latest|next) ;; *) exit 1 ;; esac
           node <<'NODE'
           const pkg = require('./packages/dms/package.json')
+          const iface = require('./packages/interface-dms/package.json')
+          // The interface sitting in the tree only has to SATISFY the range the
+          // module publishes: a floor that lags it widens what consumers may
+          // install, it does not create a second copy. The fleet shape is
+          // `>=<floor> <1.0.0`, so the ceiling is out of reach for a 0.x
+          // interface and comparing the release triples is enough.
+          const compare = (a, b) => {
+            const parts = (v) => v.split('-')[0].split('.').map(Number)
+            const [x, y] = [parts(a), parts(b)]
+            return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
+          }
+          const satisfiesFleetRange = (version, range) => {
+            const floor = /^>=(\d+\.\d+\.\d+) <1\.0\.0$/.exec(range ?? '')?.[1]
+            return floor !== undefined && compare(version, floor) >= 0
+          }
           if (
             pkg.name !== '@antelopejs/dms' ||
             pkg.private === true ||
@@ -37,12 +52,12 @@ jobs:
             pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
-            pkg.dependencies['@antelopejs/interface-dms'] !== 'workspace:*' ||
+            !satisfiesFleetRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
             pkg.antelopeJs.implements.join() !== '@antelopejs/interface-dms'
           ) process.exit(1)
           NODE
-      # pnpm rewrites `workspace:*` to the interface version at publish time, so
-      # a module released against an unpublished interface installs broken. The
+      # The module depends on the interface through `>=<interface version> <1.0.0`,
+      # so a module released against an unpublished interface installs broken. The
       # interface is released by its own workflow; this one only refuses to run
       # before it has landed.
       - uses: actions/setup-node@v4
