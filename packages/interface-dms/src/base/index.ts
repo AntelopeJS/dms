@@ -8,6 +8,7 @@ import "./data-types/status-type";
 
 export * from "./block-types";
 export * from "./data-sources";
+export * from "./query-response";
 export * from "./chart";
 export * from "./chart-card";
 export * from "./chart-schemas";

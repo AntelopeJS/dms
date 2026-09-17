@@ -32,7 +32,13 @@ export interface DataSourceDefinition {
    * The period the route reads from the query string, when it takes one. A
    * source that says so can be bound to a page's period selector.
    */
-  period?: { from: string; to: string };
+  period?: DataSourcePeriod;
+}
+
+/** The query parameters a source reads its period bounds from. */
+export interface DataSourcePeriod {
+  from: string;
+  to: string;
 }
 
 const SOURCES = new Map<string, DataSourceDefinition>();
