@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.2.0...v0.2.1)
+
+### 🩹 Fixes
+
+- **dev-reload:** Always notify the client after a reload ([#10](https://github.com/AntelopeJS/dms/pull/10))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.1.0...v0.2.0)
