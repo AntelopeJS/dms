@@ -35,7 +35,7 @@
     "test:unit": "pnpm run build && DMS_TEST_DIR=dist/test/unit ajs module test .",
     "test:integration": "pnpm run build && DMS_TEST_DIR=dist/test/integration ajs module test .",
     "test:watch": "tsc -p tsconfig.build.json -w & tsc-alias -p tsconfig.build.json -w",
-    "release": "pnpm --dir frontend-vue install --frozen-lockfile && release-it",
+    "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
     "prepack": "pnpm run build && pnpm run check:package",
     "knip": "knip --dependencies",
     "knip:all": "knip"
