@@ -14,15 +14,12 @@ import type {
 import archiver from "archiver";
 import ignore from "ignore";
 import { coerce, major } from "semver";
-import {
-  getConfig,
-  getFrontendConfig,
-  setDevClientBaseUrl,
-} from "../../config";
+import { getConfig, setDevClientBaseUrl } from "../../config";
 import { scheduleBroadcast } from "./dev-reload";
 import {
   assertFrontendBootstrap,
   type BootstrapOutcome,
+  decideLayerAccess,
   resolveBootstrapOutcome,
 } from "./frontend-bootstrap";
 import {
@@ -242,18 +239,17 @@ export function GetFrontendModules(): FrontendModuleMetadata[] {
 }
 
 function enforceLayerAccess(outcome: BootstrapOutcome, route: string): void {
-  if (outcome === "authenticated") return;
-  if (getFrontendConfig().requireBootstrap === "enforce") {
-    assertFrontendBootstrap(outcome);
-  }
+  const decision = decideLayerAccess(outcome);
+  if (decision === "allow") return;
+  if (decision === "refuse") assertFrontendBootstrap(outcome);
   warnOnceFor(
     modules,
     route,
-    `[DMS] ${route} was served to a caller presenting no valid bootstrap credential. ` +
-      "Private layer options were withheld, so server-side HTML rendering and OAuth " +
-      "login will fail in a frontend built from this response. Set frontend.bootstrapSecret " +
-      "in the backend config and DMS_BOOTSTRAP_SECRET where the frontend is built. " +
-      "A future major version will refuse this request.",
+    `[DMS] ${route} was served to a caller presenting no valid bootstrap credential, ` +
+      "because this instance configures none. Private layer options were withheld, so " +
+      "server-side HTML rendering and OAuth login will fail in a frontend built from this " +
+      "response. Set frontend.bootstrapSecret in the backend config and DMS_BOOTSTRAP_SECRET " +
+      "where the frontend is built; the route is then refused to unauthenticated callers.",
   );
 }
 
