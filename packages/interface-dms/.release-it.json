@@ -8,11 +8,7 @@
     "releaseName": "@antelopejs/interface-dms v${version}"
   },
   "hooks": {
-    "before:init": [
-      "pnpm lint",
-      "pnpm run build",
-      "pnpm run check:exports"
-    ],
+    "before:init": ["pnpm lint", "pnpm run build", "pnpm run check:exports"],
     "after:bump": "git add CHANGELOG.md"
   },
   "plugins": {
