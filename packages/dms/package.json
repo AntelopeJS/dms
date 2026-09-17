@@ -59,7 +59,7 @@
     "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.7 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.6 <1.0.0",
-    "@antelopejs/interface-dms": "workspace:*",
+    "@antelopejs/interface-dms": ">=0.0.2 <1.0.0",
     "@antelopejs/interface-email": ">=0.0.5 <1.0.0",
     "@antelopejs/interface-file-storage": ">=0.1.3 <1.0.0",
     "archiver": "^7.0.1",
