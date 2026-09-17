@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.3...v0.3.4)
+
+### 🏡 Chore
+
+- **dms:** Drop the pages export and require interface-dms 0.1.0 ([#18](https://github.com/AntelopeJS/dms/pull/18))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.1.0...v0.3.3)
