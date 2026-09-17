@@ -53,7 +53,9 @@ jobs:
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
             !satisfiesFleetRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
-            pkg.antelopeJs.implements.join() !== '@antelopejs/interface-dms'
+            // The runtime self-declares its own name so modules importing it resolve.
+            !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
+            pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms' && name !== pkg.name)
           ) process.exit(1)
           NODE
       # The module depends on the interface through `>=<interface version> <1.0.0`,
