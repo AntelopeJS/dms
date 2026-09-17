@@ -160,9 +160,7 @@ export type ComponentAnchor = string | readonly string[];
 
 const ANCHOR_SEPARATOR = ".";
 
-function normalizeComponentAnchor(
-  anchor: ComponentAnchor,
-): readonly string[] {
+function normalizeComponentAnchor(anchor: ComponentAnchor): readonly string[] {
   return typeof anchor === "string"
     ? anchor.split(ANCHOR_SEPARATOR)
     : [...anchor];
