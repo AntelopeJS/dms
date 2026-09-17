@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.0.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.1...v0.0.4)
+
+### 🚀 Enhancements
+
+- Let backend modules declare the endpoints /auth/establish may open a session from ([#16](https://github.com/AntelopeJS/dms/pull/16))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.0.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.2.1...v0.0.3)

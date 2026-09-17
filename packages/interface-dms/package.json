@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Public AntelopeJS interfaces of the DMS: pages, components, permissions, tenancy, auth, notifications and HTML rendering.",
   "keywords": [
     "antelopejs",
