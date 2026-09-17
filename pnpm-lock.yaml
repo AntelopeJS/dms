@@ -26,9 +26,6 @@ importers:
       2fa:
         specifier: ^0.1.2
         version: 0.1.2
-      '@antelopejs/core':
-        specifier: '>=2.0.0 <3'
-        version: 2.0.0(@types/node@24.13.3)
       '@antelopejs/interface-api':
         specifier: '>=0.0.13 <1.0.0'
         version: 0.0.13(@antelopejs/interface-core@0.0.13)
@@ -90,6 +87,9 @@ importers:
         specifier: ~3.24.2
         version: 3.24.4
     devDependencies:
+      '@antelopejs/core':
+        specifier: '>=2.0.0 <3'
+        version: 2.0.0(@types/node@24.13.3)
       '@antelopejs/tooling-configs':
         specifier: '>=0.0.6 <1.0.0'
         version: 0.0.6(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
