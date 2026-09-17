@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.2.0",
   "devDependencies": {
-    "@antelopejs/tooling-configs": "^0.0.4",
+    "@antelopejs/tooling-configs": ">=0.0.6 <1.0.0",
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001"
