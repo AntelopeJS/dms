@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.2.1...v0.0.3)
+
 ## v0.0.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.0.1...v0.0.2)
