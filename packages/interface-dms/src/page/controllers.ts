@@ -377,6 +377,27 @@ export interface AddFrontendModuleOptions {
   privateOptions?: FrontendModuleOptions;
   priority?: number;
   configKey?: string;
+  /**
+   * Absolute backend API paths (`/api/...`) the frontend server may open a
+   * session from on behalf of this module.
+   *
+   * A module whose own flow ends on an authenticated user — a self-service
+   * registration completing, an invitation being redeemed — names here the
+   * backend route that mints the token pair. The frontend server then accepts
+   * that path on its `/auth/establish` route and seals its session cookie from
+   * the tokens it fetched itself, so the browser never carries one.
+   *
+   * Declaring a path is what makes it a session-opening route: any backend
+   * endpoint left out stays refused, and the operator can still widen the list
+   * per deployment through the frontend server's
+   * `DMS_AUTH_ESTABLISH_ENDPOINTS`. The DMS's own login, signup and 2FA routes
+   * are wired into the frontend server directly and need no declaration.
+   *
+   * Each entry must be an absolute path under `/api/`, with no query string
+   * and no segment that climbs out of it; anything else is rejected at
+   * registration.
+   */
+  authEstablishEndpoints?: string[];
 }
 
 export const AddFrontendModule =
@@ -388,6 +409,14 @@ export interface FrontendModuleMetadata {
   renderer: FrontendRendererMetadata;
   priority: number;
   options: FrontendModuleOptions;
+  /**
+   * Absolute backend API paths (`/api/...`) the frontend server may open a
+   * session from on behalf of this module, as declared by
+   * {@link AddFrontendModuleOptions.authEstablishEndpoints}. Empty when the
+   * module declared none, absent when the DMS serving this metadata predates
+   * the field.
+   */
+  authEstablishEndpoints?: string[];
 }
 
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */
