@@ -91,16 +91,13 @@ export const TopListCardSchema = z.object({
     group: "content",
     widget: "textarea",
   }),
-  fetchUrl: ui(
-    z.string().optional().describe("Where the list is read from."),
-    {
-      label: "Data source",
-      group: "data",
-      widget: "dataSource",
-      responseShape: "items",
-      periodOption: "periodScope",
-    },
-  ),
+  fetchUrl: ui(z.string().optional().describe("Where the list is read from."), {
+    label: "Data source",
+    group: "data",
+    widget: "dataSource",
+    responseShape: "items",
+    periodOption: "periodScope",
+  }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
     group: "data",
