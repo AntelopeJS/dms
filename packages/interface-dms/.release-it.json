@@ -15,5 +15,8 @@
     "release-it-changelogen": {
       "disableVersion": true
     }
+  },
+  "npm": {
+    "skipChecks": true
   }
 }
