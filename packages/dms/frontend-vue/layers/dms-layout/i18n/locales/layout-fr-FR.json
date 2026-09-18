@@ -43,6 +43,7 @@
     "title": "Actions rapides"
   },
   "commandPalette": {
+    "button": "Rechercher…",
     "dialog": {
       "title": "Recherche",
       "description": "Rechercher des pages, des actions et des réglages"

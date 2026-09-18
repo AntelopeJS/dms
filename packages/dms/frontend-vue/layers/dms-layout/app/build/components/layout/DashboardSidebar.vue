@@ -277,7 +277,17 @@ const footerItems = computed((): NavigationMenuItem[] => {
 
       <UDashboardSearchButton
         :collapsed="collapsed"
-        class="bg-elevated ring-default"
+        :label="t('commandPalette.button')"
+        :kbds="['⌘K']"
+        icon="i-ph-magnifying-glass-light"
+        variant="outline"
+        class="border-default bg-elevated text-dimmed hover:border-accented hover:bg-elevated hover:text-muted w-full justify-between rounded-md border px-2.5 py-2 text-[12.5px] font-normal"
+        :ui="{
+          base: 'gap-2',
+          leadingIcon: 'size-[15px]',
+          trailing:
+            '[&>kbd]:rounded-[4px] [&>kbd]:border [&>kbd]:border-accented [&>kbd]:px-[5px] [&>kbd]:py-px [&>kbd]:text-[10px] [&>kbd]:font-normal [&>kbd]:tracking-normal',
+        }"
       />
 
       <div

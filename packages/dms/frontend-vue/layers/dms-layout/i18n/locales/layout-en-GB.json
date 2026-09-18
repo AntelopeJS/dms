@@ -43,6 +43,7 @@
     "title": "Quick actions"
   },
   "commandPalette": {
+    "button": "Search…",
     "dialog": {
       "title": "Search",
       "description": "Search pages, actions and settings"
