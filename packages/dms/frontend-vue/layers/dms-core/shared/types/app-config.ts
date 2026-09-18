@@ -29,7 +29,7 @@ export interface DmsAppConfig {
   branding: DmsBrandingConfig;
 }
 
-declare module "#dms-inertia/frontend-module" {
+declare module "#dms/frontend-module" {
   interface DmsAppConfig {
     ui: DmsUiConfig;
     branding: DmsBrandingConfig;

@@ -1,4 +1,4 @@
-import type { LocationQueryValue } from "#dms-inertia/frontend-module";
+import type { LocationQueryValue } from "#dms/frontend-module";
 
 export function registerDefaultFunctions() {
   const { registerFunction } = useDefinedFunctions();

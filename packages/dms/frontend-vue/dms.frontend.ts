@@ -2,7 +2,7 @@ import { defineAsyncComponent, type Component } from "vue";
 import {
   type DmsFrontendModule,
   useDmsAppConfig,
-} from "#dms-inertia/frontend-module";
+} from "#dms/frontend-module";
 import { defu } from "defu";
 import appConfig from "./layers/dms-layout/app/app.config";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";

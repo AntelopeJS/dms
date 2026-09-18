@@ -1,4 +1,4 @@
-import type { UseFetchOptions } from "#dms-inertia/frontend-module";
+import type { UseFetchOptions } from "#dms/frontend-module";
 
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 

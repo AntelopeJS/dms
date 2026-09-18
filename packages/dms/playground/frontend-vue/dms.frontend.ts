@@ -1,5 +1,5 @@
 import { type Component, defineAsyncComponent } from "vue";
-import type { DmsFrontendModule } from "#dms-inertia/frontend-module";
+import type { DmsFrontendModule } from "#dms/frontend-module";
 import appWidgetDemoPlugin from "./app/plugins/app-widget-demo";
 import dmsPageSetupDemoPlugin from "./app/plugins/dms-page-setup-demo.client";
 import sidebarWidgetDemoPlugin from "./app/plugins/sidebar-widget-demo";

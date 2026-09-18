@@ -4,7 +4,7 @@ import type { QueryParamFilters } from "../../../composables/table-view/types";
 import type {
   LocationQuery,
   LocationQueryValue,
-} from "#dms-inertia/frontend-module";
+} from "#dms/frontend-module";
 import {
   TableRowAction,
   FormContainerType,
