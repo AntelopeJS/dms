@@ -3,7 +3,7 @@
 # Run from the DMS backend package dir (DMS_BACK_DIR). By default it invokes that project's
 # `pnpm dev` / `pnpm frontend:dev` scripts — a convention our playground projects adopt, which
 # expand to `ajs project dev …` (the AntelopeJS backend; `ajs project run` is the legacy
-# alias) and `ajs-dms dev` (the Inertia frontend loader — it auto-discovers the backend, -b optional).
+# alias) and `ajs dms dev` (the Inertia frontend loader — it auto-discovers the backend, -b optional).
 # Those script names aren't shipped by the DMS, so override the actual commands with
 # DMS_BACK_CMD / DMS_FRONT_CMD when a project starts its servers differently.
 # Dev watchers cover many edits, but the deterministic recipe when verifying a change is:
@@ -24,7 +24,7 @@ BACK_ERROR_PATTERN='Failed to load module|Module load failed|Error loading modul
 FRONT_ERROR_PATTERN='Cannot find module|Failed to compile|Vite error|ENOENT.*package\.json|EADDRINUSE'
 WAIT_TIMEOUT="${DMS_DEV_TIMEOUT:-180}"
 
-PROC_PATTERN='antelope-runner|ajs project (run|dev)|(^|[[:space:]/])ajs-dms dev|dms-frontend/dist/index\.js dev'
+PROC_PATTERN='antelope-runner|ajs project (run|dev)|(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev'
 
 log() { printf '[dms-dev] %s\n' "$*"; }
 
@@ -48,7 +48,7 @@ stop_servers() {
   log "stopping dev servers…"
   pkill -9 -f "antelope-runner" 2>/dev/null || true
   pkill -9 -f "ajs project (run|dev)" 2>/dev/null || true
-  pkill -9 -f "(^|[[:space:]/])ajs-dms dev" 2>/dev/null || true
+  pkill -9 -f "(^|[[:space:]/])(ajs dms|ajs-dms) dev" 2>/dev/null || true
   pkill -9 -f "dms-frontend/dist/index\.js dev" 2>/dev/null || true
   sleep 2
   if pgrep -af "$PROC_PATTERN" >/dev/null 2>&1; then
@@ -112,7 +112,7 @@ start_frontend() {
   # shellcheck disable=SC2086  # word-splitting of the command is intentional
   ( cd "$DMS_BACK_DIR" && setsid nohup $FRONT_CMD >> "$FRONT_LOG" 2>&1 < /dev/null & )
   wait_for "$FRONT_LOG" "$FRONT_READY_PATTERN" "frontend (http://localhost:3001)" \
-    "$FRONT_ERROR_PATTERN" 'pnpm.*frontend:dev|(^|[[:space:]/])ajs-dms dev|dms-frontend/dist/index\.js dev'
+    "$FRONT_ERROR_PATTERN" 'pnpm.*frontend:dev|(^|[[:space:]/])(ajs dms|ajs-dms) dev|dms-frontend/dist/index\.js dev'
 }
 
 status() {
@@ -141,7 +141,7 @@ Environment:
   DMS_BACK_CMD    Command to start the backend, run in DMS_BACK_DIR (default: "pnpm dev",
                   the playground convention for "ajs project dev -w" / legacy "run -w").
   DMS_FRONT_CMD   Command to start the frontend, run in DMS_BACK_DIR (default:
-                  "pnpm frontend:dev", the playground convention for "ajs-dms dev").
+                  "pnpm frontend:dev", the playground convention for "ajs dms dev").
   DMS_BACK_LOG    (default: /tmp/dms-back.log)
   DMS_FRONT_LOG   (default: /tmp/dms-front.log)
   DMS_DEV_TIMEOUT (default: 180 seconds per server)

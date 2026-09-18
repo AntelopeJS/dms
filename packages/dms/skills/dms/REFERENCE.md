@@ -10,7 +10,7 @@ List a section to see its files:
 | Doc | Covers |
 | --- | --- |
 | `docs/01.getting-started/` | Intro, installation, quickstart, tutorial, **architecture**, the built-in dashboard |
-| `docs/02.building/` | Project setup (**the common case**), every config key, pages & components, navigation, actions, backend services (hooks, notifications, realtime, replayable jobs, HTML/email rendering, export jobs), localization, frontend layer & `ajs-dms` CLI, distributable modules, deployment, troubleshooting |
+| `docs/02.building/` | Project setup (**the common case**), every config key, pages & components, navigation, actions, backend services (hooks, notifications, realtime, replayable jobs, HTML/email rendering, export jobs), localization, frontend layer & `ajs dms` CLI, distributable modules, deployment, troubleshooting |
 | `docs/03.auth-and-tenancy/` | Auth flows (JWT, 2FA, invites), decorators & RBAC, multi-tenant data, SaaS mode |
 | `docs/04.components/` | Component catalog: charts/widgets, layout, forms, tables, tree, DataTypes, DataController, file storage |
 | `docs/05.extending-the-dashboard/` | Dashboard chrome, theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
