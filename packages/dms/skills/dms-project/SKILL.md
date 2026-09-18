@@ -29,7 +29,7 @@ An AntelopeJS app whose `antelope.config.ts` loads **`@antelopejs/dms`** (+ the
 infrastructure it needs) and whose own `src/` is the `local` module. It provides no interfaces, so
 its `package.json` has **no `antelopeJs.implements`** (that field marks a distributable module);
 deps are `@antelopejs/dms` + the interface libs, plus `@antelopejs/dms-frontend` (the
-`ajs-dms` CLI) as a dependency — the template keeps it in `dependencies`; a devDependency also works
+`ajs dms` CLI) as a dependency — the template keeps it in `dependencies`; a devDependency also works
 since it is only a CLI. The frontend attaches at runtime with `AddFrontendModule`, and the DMS
 **auto-registers its base dashboard layer** (shell, login, component vocabulary) — a pages-only
 project needs no `frontend-vue/` of its own.
@@ -114,9 +114,9 @@ under the built-in `pagesCategory` (`RegisterModule` is for distributable module
 
 - Backend: `ajs project dev -w` (`ajs project run` is the legacy alias; `-e STAGING` picks an
   environment). Projects often start Mongo/Redis in Docker first (`docker-compose up -d`).
-- Frontend: the `@antelopejs/dms-frontend` loader, `ajs-dms dev` — auto-discovers the running
+- Frontend: the `@antelopejs/dms-frontend` loader, `ajs dms dev` — auto-discovers the running
   backend via `.antelope/dev.json`, so `-b <apiBaseUrl>` is optional.
 
 The `pnpm dev` / `frontend:dev` script names are **your project's conventions** — they expand to
-`ajs project dev` and `ajs-dms dev`. Whenever a change doesn't show (or you're about to verify one),
+`ajs project dev` and `ajs dms dev`. Whenever a change doesn't show (or you're about to verify one),
 full-restart both, backend first — see **dms-dev**. Production: `docs/02.building/11.deployment.md`.

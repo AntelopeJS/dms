@@ -20,9 +20,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
 - **Two coupled packages.** **`@antelopejs/dms`** is the backend: an AntelopeJS module
   providing the page system, component builders, DataTypes, auth, and platform services,
   auto-registering its **base Vue dashboard frontend** (`frontend-vue/`). **`@antelopejs/dms-frontend`**
-  is the frontend loader (the `ajs-dms` CLI): an Inertia SSR app whose single catch-all
+  is the frontend loader (the `ajs dms` CLI): an Inertia SSR app whose single catch-all
   route renders the component tree the backend describes. In dev: two processes, `ajs project dev -w`
-  (legacy alias: `ajs project run`) and `ajs-dms dev` (auto-discovers a backend; `-b <url>` optional) —
+  (legacy alias: `ajs project run`) and `ajs dms dev` (auto-discovers a backend; `-b <url>` optional) —
   see **Running**.
 - **Two ways to build — usually a project.** Most commonly you build a **project**: your own app
   loading the DMS via `antelope.config.ts`, registering *its own* pages and data — **dms-project**.

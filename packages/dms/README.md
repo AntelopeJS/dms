@@ -20,7 +20,7 @@ ajs project modules add @antelopejs/dms
 ```
 
 The dashboard also requires an API module, a module implementing the Database interface, and an
-authentication module. The frontend is served separately by the `ajs-dms` CLI from
+authentication module. The frontend is served separately by the `ajs dms` CLI from
 [`@antelopejs/dms-frontend`](https://github.com/AntelopeJS/dms-frontend).
 
 ## Getting started

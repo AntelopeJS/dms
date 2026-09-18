@@ -6,9 +6,10 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "dev": "ajs project run -w",
-    "frontend:dev": "ajs-dms dev"
+    "frontend:dev": "ajs dms dev"
   },
   "devDependencies": {
+    "@antelopejs/core": ">=1.8.0 <2",
     "@antelopejs/dms-frontend": ">=0.2.0 <1.0.0",
     "@types/node": "^20.5.7",
     "prettier": "^2.6.1",

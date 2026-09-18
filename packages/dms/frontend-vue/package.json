@@ -11,13 +11,13 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.6.5",
   "scripts": {
-    "typecheck": "ajs-dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
+    "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
     "test": "vitest run",
     "format": "prettier --write .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "frontend:build": "ajs-dms build -b http://127.0.0.1:5010",
-    "frontend:start": "ajs-dms start -p 3001"
+    "frontend:build": "ajs dms build -b http://127.0.0.1:5010",
+    "frontend:start": "ajs dms start -p 3001"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.64",
@@ -58,6 +58,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@antelopejs/core": ">=1.8.0 <2",
     "@antelopejs/dms-frontend": ">=0.2.0 <1.0.0",
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
