@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.4...v0.3.5)
+
+### 💅 Refactors
+
+- **frontend:** Import the SDK through #dms/frontend-module ([#20](https://github.com/AntelopeJS/dms/pull/20))
+
+### 🏡 Chore
+
+- Align community files with the organization defaults ([#19](https://github.com/AntelopeJS/dms/pull/19))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.3...v0.3.4)
