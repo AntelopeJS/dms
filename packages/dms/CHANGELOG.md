@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.5...v0.3.6)
+
+### 🩹 Fixes
+
+- **frontend:** Match sidebar search design ([#21](https://github.com/AntelopeJS/dms/pull/21))
+
+### 🏡 Chore
+
+- Migrate dms frontend commands to ajs plugin ([#22](https://github.com/AntelopeJS/dms/pull/22))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.4...v0.3.5)
