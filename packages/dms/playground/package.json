@@ -9,7 +9,7 @@
     "frontend:dev": "ajs-dms dev"
   },
   "devDependencies": {
-    "@antelopejs/dms-frontend": ">=0.0.1 <1.0.0",
+    "@antelopejs/dms-frontend": ">=0.2.0 <1.0.0",
     "@types/node": "^20.5.7",
     "prettier": "^2.6.1",
     "rimraf": "^6.0.1",

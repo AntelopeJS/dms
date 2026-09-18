@@ -37,7 +37,7 @@ const theme = tv({
 </script>
 
 <script setup lang="ts">
-import { DmsLink } from "#dms-inertia/frontend-module";
+import { DmsLink } from "#dms/frontend-module";
 interface Props {
   item: DmsMenuItem;
   isTopLevel?: boolean;

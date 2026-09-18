@@ -54,7 +54,7 @@ interface DmsBrowserSession {
   activeTenantId?: string;
 }
 
-declare module "#dms-inertia/frontend-module" {
+declare module "#dms/frontend-module" {
   import type { User } from "../../app/types/user";
 
   interface PublicRuntimeConfig {

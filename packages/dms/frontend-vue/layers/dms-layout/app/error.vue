@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DmsErrorData } from "#dms-inertia/frontend-module";
+import type { DmsErrorData } from "#dms/frontend-module";
 
 const ERROR_CONFIGS: Record<
   number,

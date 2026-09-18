@@ -1,7 +1,7 @@
 import {
   type DmsAppContext,
   type DmsPluginSetup,
-} from "#dms-inertia/frontend-module";
+} from "#dms/frontend-module";
 import dmsMenuSyncPlugin from "./layers/dms-layout/app/plugins/dms-menu-sync.client";
 import commandPaletteNavigationPlugin from "./layers/dms-layout/app/plugins/command-palette-navigation.client";
 import commandPalettePersonalPagesPlugin from "./layers/dms-layout/app/plugins/command-palette-personal-pages.client";
