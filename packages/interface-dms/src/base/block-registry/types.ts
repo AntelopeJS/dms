@@ -29,6 +29,7 @@ export type BlockOptionWidget =
   | "field"
   | "dataType"
   | "query"
+  | "dataSource"
   | "permission"
   | "json"
   | "block";
@@ -70,7 +71,32 @@ export interface BlockOptionUi {
    * under its label — a set of switches that reads as one list of features.
    */
   flatten?: boolean;
+  /**
+   * What the block does with what it fetches, for a `dataSource` option.
+   *
+   * A source editor offers only the calculations whose answer this block can
+   * read: a card wants one number, a chart wants one point per group, a ranked
+   * list wants those points as entries. Without it an editor would let someone
+   * wire a series into a slot that renders a single value.
+   */
+  responseShape?: BlockResponseShape;
+  /**
+   * The option this block reads its period from, for a `dataSource` option.
+   *
+   * Binding a source to a period means writing two options at once — the source
+   * itself, and the scope it follows — and only the block knows what its own
+   * period option is called.
+   */
+  periodOption?: string;
 }
+
+/**
+ * The shape of the answer a block reads from its data source.
+ *
+ * `value` is one number, `series` one point per group, `items` those points as a
+ * ranked list, and `card` a number and its series together.
+ */
+export type BlockResponseShape = "value" | "series" | "items" | "card";
 
 /**
  * A resource aspect a field must carry for an option naming it to work at

@@ -71,8 +71,14 @@ export const KpiCardSchema = z.object({
     { label: "Variant", group: "appearance", widget: "segmented" },
   ),
   fetchUrl: ui(
-    z.string().optional().describe("Endpoint the card reads its value from."),
-    { label: "Data source", group: "data", widget: "query" },
+    z.string().optional().describe("Where the card reads its value from."),
+    {
+      label: "Data source",
+      group: "data",
+      widget: "dataSource",
+      responseShape: "value",
+      periodOption: "periodScope",
+    },
   ),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
