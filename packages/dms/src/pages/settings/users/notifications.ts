@@ -7,6 +7,7 @@ import {
   Put,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { Model } from "@antelopejs/interface-database-decorators";
 import {
   AuthTenantMember,
@@ -93,7 +94,7 @@ export class NotificationsApiController extends Controller(
 
   @Get("/list")
   async getNotifications(
-    @Model(UserNotificationsModel)
+    @Model(UserNotificationsModel, CROSS_INSTANCE)
     notificationsModel: UserNotificationsModel,
     @Parameter("limit", "query") limitParam?: string,
     @Parameter("offset", "query") offsetParam?: string,
@@ -105,7 +106,7 @@ export class NotificationsApiController extends Controller(
 
   @Get("/unread-count")
   async getUnreadCount(
-    @Model(UserNotificationsModel)
+    @Model(UserNotificationsModel, CROSS_INSTANCE)
     notificationsModel: UserNotificationsModel,
   ) {
     const count = await notificationsModel.countUnread(this.user._id);
@@ -114,7 +115,7 @@ export class NotificationsApiController extends Controller(
 
   @Get("/unread-preview")
   async getUnreadPreview(
-    @Model(UserNotificationsModel)
+    @Model(UserNotificationsModel, CROSS_INSTANCE)
     notificationsModel: UserNotificationsModel,
   ) {
     return await notificationsModel.getUnreadByUserId(this.user._id, 3);

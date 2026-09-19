@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { sign } from "jsonwebtoken";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { MongoClient } from "mongodb";
 import {
@@ -15,11 +16,20 @@ import { SendableNotification } from "@antelopejs/interface-dms/notifications/se
 import type { NotificationData } from "@antelopejs/interface-dms/notifications/types";
 import { buildUserNotificationTopic, getRealtimeBroker } from "../../realtime";
 import { resetDatabase } from "../helpers/db";
+import { createClient } from "../helpers/http";
 
 const USER = "notification-user";
 const OTHER_USER = "notification-other";
 const EVENT = "budget:event:1";
 const CONCURRENT_SENDS = 8;
+const HTTP_USER = "notification-http-user";
+const HTTP_AUTH_KEY = "notification-http-auth-key";
+const HTTP_JWT_SECRET = "test-jwt-secret";
+
+interface SeedDocument {
+  _id: string;
+  [key: string]: unknown;
+}
 const data: NotificationData = {
   icon: "i-ph-bell",
   title: "Budget alert",
@@ -31,6 +41,70 @@ const data: NotificationData = {
   },
   params: { amount: 100 },
 };
+
+async function seedHttpMember(): Promise<string> {
+  const mongoUrl = process.env.TEST_MONGO_URL;
+  assert.ok(mongoUrl);
+  const client = await MongoClient.connect(mongoUrl);
+  try {
+    const database = client.db("dms-core");
+    const collectionNames = (await database.listCollections().toArray()).map(
+      (collection) => collection.name,
+    );
+    const usersCollection = collectionNames.find((name) =>
+      name.endsWith("__users"),
+    );
+    const membersCollection = collectionNames.find((name) =>
+      name.endsWith("__tenant_members"),
+    );
+    assert.ok(usersCollection);
+    assert.ok(membersCollection);
+    await database.collection<SeedDocument>(usersCollection).insertOne({
+      _id: HTTP_USER,
+      _instance: null,
+      email: "notification-http@test.local",
+      name: "HTTP Notification User",
+      authKey: HTTP_AUTH_KEY,
+      isValidated: true,
+      owner: true,
+      language: "en",
+      avatar: null,
+      password: null,
+      twoFactorMethods: [],
+      twoFactorSecret: null,
+      twoFactorPendingSecret: null,
+      twoFactorBackupCodes: [],
+      twoFactorEmailCode: null,
+      twoFactorEmailCodeRequestedAt: null,
+      validationToken: null,
+      validationRequestedAt: null,
+      forgotPasswordToken: null,
+      forgotPasswordRequestedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await database.collection<SeedDocument>(membersCollection).insertOne({
+      _id: "notification-http-membership",
+      _instance: DEFAULT_TENANT_ID,
+      userId: HTTP_USER,
+      roleIds: [],
+      isTenantOwner: true,
+      invitedBy: null,
+      joinedAt: new Date(),
+    });
+  } finally {
+    await client.close();
+  }
+
+  return sign(
+    {
+      id: HTTP_USER,
+      tenantId: DEFAULT_TENANT_ID,
+      purpose: "access",
+    },
+    `1:${HTTP_AUTH_KEY}:${HTTP_JWT_SECRET}`,
+  );
+}
 
 describe("Notification idempotency (MongoDB adapter)", () => {
   let model: UserNotificationsModel;
@@ -45,6 +119,24 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     for (const userId of [USER, OTHER_USER]) {
       await GetModel(UserNotificationPreferencesModel).createDefault(userId);
     }
+  });
+
+  it("serves empty authenticated notification reads over HTTP", async () => {
+    const token = await seedHttpMember();
+    const client = createClient();
+    client.defaults.headers.common.Authorization = `Bearer ${token}`;
+
+    const [count, preview, categories] = await Promise.all([
+      client.get("/settings/user/notifications/unread-count"),
+      client.get("/settings/user/notifications/unread-preview"),
+      client.get("/settings/user/notifications/categories"),
+    ]);
+
+    assert.equal(count.status, 200, JSON.stringify(count.data));
+    assert.deepEqual(count.data, { count: 0 });
+    assert.equal(preview.status, 200, JSON.stringify(preview.data));
+    assert.deepEqual(preview.data, []);
+    assert.equal(categories.status, 200, JSON.stringify(categories.data));
   });
 
   it("atomically deduplicates concurrent sends and emits realtime only once", async () => {
