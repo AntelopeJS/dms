@@ -8,7 +8,7 @@ services:
     command: >-
       until curl -fsS http://127.0.0.1:5010/api/onboarding/informations >/dev/null; do sleep 0.5; done;
       export DMS_SESSION_SECRET="${DMS_SESSION_SECRET:-$(openssl rand -hex 32)}";
-      DMS_CLIENT_BASE_URL="$DMS_GATEWAY_URL"
+      export DMS_CLIENT_BASE_URL="$DMS_GATEWAY_URL";
       pnpm --dir packages/dms/playground exec ajs dms dev -b http://127.0.0.1:5010 -p 3001
     port: 3001
     env:
