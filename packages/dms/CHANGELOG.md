@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.6...v0.3.7)
+
+### 🩹 Fixes
+
+- **ui:** Let Grid drop columns instead of overflowing its container ([#26](https://github.com/AntelopeJS/dms/pull/26))
+
+### 🏡 Chore
+
+- Make playground orb setup reliable ([#23](https://github.com/AntelopeJS/dms/pull/23))
+- **playground:** Use dms frontend 0.2.1 ([#24](https://github.com/AntelopeJS/dms/pull/24))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.5...v0.3.6)
