@@ -4,4 +4,5 @@ export interface GridContext {
   registerRowColumnCount: (count: number) => void;
   maxColumns: ComputedRef<number>;
   gap: ComputedRef<string>;
+  minColumnWidth: ComputedRef<string>;
 }

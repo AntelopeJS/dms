@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import { GRID_CONTEXT, type GridContext } from "./constants";
+import { GRID_DEFAULT_MIN_COLUMN_WIDTH, gridColumnsTemplate } from "./columns";
 
 interface GridProps extends DefaultComponentProps {
   gap?: string;
+  minColumnWidth?: string;
 }
 
 const props = withDefaults(defineProps<GridProps>(), {
   gap: "1rem",
+  minColumnWidth: GRID_DEFAULT_MIN_COLUMN_WIDTH,
 });
 
 const rowColumnCounts = ref<number[]>([]);
@@ -18,6 +21,7 @@ const maxColumns = computed(() => {
 });
 
 const gapRef = computed(() => props.gap);
+const minColumnWidthRef = computed(() => props.minColumnWidth);
 
 provide<GridContext>(GRID_CONTEXT, {
   registerRowColumnCount: (columnCount: number) => {
@@ -25,11 +29,16 @@ provide<GridContext>(GRID_CONTEXT, {
   },
   maxColumns,
   gap: gapRef,
+  minColumnWidth: minColumnWidthRef,
 });
 
 const gridStyle = computed(() => ({
   display: "grid",
-  gridTemplateColumns: `repeat(${maxColumns.value}, 1fr)`,
+  gridTemplateColumns: gridColumnsTemplate(
+    maxColumns.value,
+    props.gap,
+    props.minColumnWidth,
+  ),
   gap: props.gap,
   width: "100%",
 }));

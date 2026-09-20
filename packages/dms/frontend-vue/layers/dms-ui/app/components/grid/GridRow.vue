@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import { GRID_CONTEXT, type GridContext } from "./constants";
+import { GRID_DEFAULT_MIN_COLUMN_WIDTH, gridColumnsTemplate } from "./columns";
 
 interface GridRowProps extends DefaultComponentProps {}
+
+const DEFAULT_GAP = "1rem";
 
 const props = defineProps<GridRowProps>();
 
@@ -13,12 +16,19 @@ if (gridContext) {
   gridContext.registerRowColumnCount(columnCount);
 }
 
-const rowStyle = computed(() => ({
-  gridColumn: "1 / -1",
-  display: "grid",
-  gridTemplateColumns: `repeat(${gridContext?.maxColumns.value || 1}, 1fr)`,
-  gap: gridContext?.gap.value ?? "1rem",
-}));
+const rowStyle = computed(() => {
+  const gap = gridContext?.gap.value ?? DEFAULT_GAP;
+  return {
+    gridColumn: "1 / -1",
+    display: "grid",
+    gridTemplateColumns: gridColumnsTemplate(
+      gridContext?.maxColumns.value || 1,
+      gap,
+      gridContext?.minColumnWidth.value ?? GRID_DEFAULT_MIN_COLUMN_WIDTH,
+    ),
+    gap,
+  };
+});
 </script>
 
 <template>
