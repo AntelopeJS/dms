@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, reactive, watchEffect } from "vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
-import { formatValue } from "../../composables/chart/formatValue";
+import {
+  ABSENT_VALUE_TEXT,
+  formatValue,
+} from "../../composables/chart/formatValue";
 import { resolveChartColor } from "../../composables/chart/useChartTheme";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import {
@@ -64,7 +67,7 @@ const { data, isLoading } = useChartFetch<ChartCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-const value = computed(() => data.value?.value ?? 0);
+const value = computed(() => data.value?.value);
 const previousValue = computed(() => data.value?.previousValue);
 const delta = computed(() => data.value?.delta ?? null);
 
@@ -87,13 +90,15 @@ const cardComparisonSeries = computed<ChartSeries[]>(() =>
 );
 
 const formatted = computed(() =>
-  formatValue(
-    value.value,
-    props.valueFormat,
-    locale.value,
-    props.currencyCode,
-    props.valuePrecision,
-  ),
+  value.value === undefined
+    ? ABSENT_VALUE_TEXT
+    : formatValue(
+        value.value,
+        props.valueFormat,
+        locale.value,
+        props.currencyCode,
+        props.valuePrecision,
+      ),
 );
 
 const previousFormatted = computed(() =>

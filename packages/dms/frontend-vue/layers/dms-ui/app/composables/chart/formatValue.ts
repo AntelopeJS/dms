@@ -112,6 +112,21 @@ export interface FormattedValueParts {
   unitIsPrefix: boolean;
 }
 
+/**
+ * What a card prints where its figure would go when the query measured nothing.
+ *
+ * An em dash and not a zero: a zero is itself a measurement, so a card printing
+ * one for a period with no rows in it states a result nobody computed. No unit
+ * either — there is no quantity for it to qualify.
+ */
+export const ABSENT_VALUE_TEXT = "—";
+
+export const ABSENT_VALUE_PARTS: FormattedValueParts = {
+  value: ABSENT_VALUE_TEXT,
+  unit: "",
+  unitIsPrefix: false,
+};
+
 /** Splits the same formatted value into numeric and unit parts for KPI cards. */
 export function formatValueParts(
   value: number,

@@ -9,41 +9,58 @@
  *
  * That keeps a generated route to a single expression, which is what lets the
  * builder go on reading its own code back.
+ *
+ * Nothing here invents a figure it was not given: an absent measure stays absent
+ * all the way to the block, because a fabricated zero reads exactly like a
+ * measured one.
  */
+import type { ChartSeries } from "./chart";
 
 /** One measured group: what it is, and what was measured. */
 export interface SeriesPoint {
   x: number | string;
-  y: number;
+  /** Null for a group the calculation found nothing to measure in. */
+  y: number | null;
 }
 
 /** How the headline figure is taken from the points. */
 export type SeriesMeasure = "count" | "sum" | "avg" | "min" | "max";
 
 export interface SeriesOptions {
-  measure?: SeriesMeasure;
+  measure: SeriesMeasure;
+  /**
+   * What a legend and a tooltip call the series. The caller is expected to supply
+   * one a reader recognizes — the builder derives it from the measured field —
+   * because all that is left to name a series by is the measure's own word.
+   */
+  label?: string;
   /** The same calculation over the preceding period, when one was asked for. */
   previous?: SeriesPoint[];
 }
 
 /** A figure alongside the one before it, and the share between them. */
 export interface ComparedFigure {
+  /** Absent when the preceding period measured nothing to compare against. */
   previousValue?: number;
+  /**
+   * Absent when no share can be stated, which includes a preceding zero: growth
+   * away from nothing is unbounded, so 0 to 100 carries no variation at all.
+   * Blocks show none in that case rather than a stand-in for one. Written down
+   * because consumers depend on it, not left to be discovered.
+   */
   delta?: number;
 }
 
-export interface ChartCardData {
-  value: number;
-  series: SeriesPoint[];
-  previousValue?: number;
-  delta?: number;
-  comparisonSeries?: SeriesPoint[];
+export interface ChartCardData extends ComparedFigure {
+  /** Absent when no group was measured; see `headline`. */
+  value?: number;
+  series: ChartSeries[];
+  comparisonSeries?: ChartSeries[];
 }
 
-export interface KpiCardData {
-  value: number;
-  previousValue?: number;
-  delta?: number;
+export interface KpiCardData extends ComparedFigure {
+  /** Absent when no group was measured; see `headline`. */
+  value?: number;
   sparkline?: number[];
 }
 
@@ -58,8 +75,46 @@ export interface TopListData {
   items: TopListEntry[];
 }
 
+const DEFAULT_MEASURE: SeriesMeasure = "sum";
+
+const MS_PER_DAY = 86_400_000;
+
 /**
- * The figure a card shows above its chart.
+ * The window a time bucket's key can fall in. Read as milliseconds, a group key
+ * outside it is a quantity or an identifier rather than an instant.
+ */
+const BUCKET_EPOCH_FIRST = Date.UTC(2000, 0, 1);
+const BUCKET_EPOCH_LAST = Date.UTC(2100, 0, 1);
+
+const ISO_DATE_END = 10;
+const ISO_MINUTE_END = 16;
+
+const total = (values: number[]): number =>
+  values.reduce((running, value) => running + value, 0);
+
+const HEADLINE_BY_MEASURE: Record<SeriesMeasure, (values: number[]) => number> =
+  {
+    count: total,
+    sum: total,
+    avg: (values) => total(values) / values.length,
+    min: (values) => Math.min(...values),
+    max: (values) => Math.max(...values),
+  };
+
+/** What the calculation actually measured, unmeasured groups dropped. */
+function measuredValues(points: SeriesPoint[]): number[] {
+  return points
+    .map((point) => point.y)
+    .filter((value): value is number => value !== null);
+}
+
+/**
+ * The figure a card shows above its chart, or nothing when there is none.
+ *
+ * Unmeasured groups are dropped rather than read as zero: a minimum or an
+ * average taken over invented zeroes is wrong in a way no reader can see. With
+ * nothing left to measure the answer is `undefined`, and every caller leaves the
+ * field out of its response instead of writing a figure the query never gave.
  *
  * Counts and sums add up; a minimum or a maximum over groups is the minimum or
  * maximum of the group figures. An average is the average of the group averages,
@@ -69,20 +124,13 @@ export interface TopListData {
  */
 export function headline(
   points: SeriesPoint[],
-  measure: SeriesMeasure = "sum",
-): number {
-  if (points.length === 0) {
-    return 0;
+  measure: SeriesMeasure = DEFAULT_MEASURE,
+): number | undefined {
+  const values = measuredValues(points);
+  if (values.length === 0) {
+    return undefined;
   }
-  const values = points.map((point) => point.y);
-  if (measure === "min") {
-    return Math.min(...values);
-  }
-  if (measure === "max") {
-    return Math.max(...values);
-  }
-  const sum = values.reduce((running, value) => running + value, 0);
-  return measure === "avg" ? sum / values.length : sum;
+  return HEADLINE_BY_MEASURE[measure](values);
 }
 
 /** The share a figure gained or lost against the one before it. */
@@ -96,30 +144,54 @@ function variation(current: number, previous: number): number | undefined {
 /** Fill in the figure before this one and the share it moved, when there is one. */
 function addComparison(
   target: ComparedFigure,
-  value: number,
+  value: number | undefined,
   options: SeriesOptions,
 ): void {
   if (!options.previous) {
     return;
   }
   const previousValue = headline(options.previous, options.measure);
+  if (previousValue === undefined) {
+    return;
+  }
   target.previousValue = previousValue;
+  if (value === undefined) {
+    return;
+  }
   const delta = variation(value, previousValue);
   if (delta !== undefined) {
     target.delta = delta;
   }
 }
 
+/**
+ * The points as the one named series a chart draws.
+ *
+ * A chart reads `{ name, data }` and indexes into `data`; handed the bare points
+ * it takes each of them for a series with nothing in it and draws an empty
+ * canvas, without an error anywhere to say why.
+ */
+function chartSeries(points: SeriesPoint[], name: string): ChartSeries[] {
+  return [{ name, data: points }];
+}
+
 /** Points as a chart card reads them: a figure, its series, and its variation. */
 export function chartCardData(
   points: SeriesPoint[],
-  options: SeriesOptions = {},
+  options: SeriesOptions,
 ): ChartCardData {
+  const name = options.label ?? options.measure;
+  const data: ChartCardData = { series: chartSeries(points, name) };
   const value = headline(points, options.measure);
-  const data: ChartCardData = { value, series: points };
+  if (value !== undefined) {
+    data.value = value;
+  }
   addComparison(data, value, options);
-  if (options.previous) {
-    data.comparisonSeries = options.previous;
+  if (options.previous && options.previous.length > 0) {
+    // Named after the series it is compared against, not marked apart in its
+    // name: the block already sets it apart by colour and stroke, and a word
+    // added here would reach the legend in one language whatever the reader's is.
+    data.comparisonSeries = chartSeries(options.previous, name);
   }
   return data;
 }
@@ -132,40 +204,87 @@ export function chartCardData(
  */
 export function kpiCardData(
   points: SeriesPoint[],
-  options: SeriesOptions = {},
+  options: SeriesOptions,
 ): KpiCardData {
+  const data: KpiCardData = {};
   const value = headline(points, options.measure);
-  const data: KpiCardData = { value };
+  if (value !== undefined) {
+    data.value = value;
+  }
   addComparison(data, value, options);
+  const values = measuredValues(points);
   // One point is a figure, not a trend: a sparkline of it would draw a dot.
-  if (points.length > 1) {
-    data.sparkline = points.map((point) => point.y);
+  if (values.length > 1) {
+    data.sparkline = values;
   }
   return data;
 }
 
-/** Points as a ranked list reads them, each group an entry. */
+/**
+ * A group's key as a person reads it.
+ *
+ * A time bucket arrives as epoch milliseconds, and a row titled `1772409600000`
+ * names nothing. A bucket that lands on a UTC midnight — which every day, month
+ * and year bucket does — is named by its date alone, since the zeroes below it
+ * carry no information.
+ */
+function groupTitle(key: number | string): string {
+  if (
+    typeof key !== "number" ||
+    !Number.isInteger(key) ||
+    key < BUCKET_EPOCH_FIRST ||
+    key > BUCKET_EPOCH_LAST
+  ) {
+    return String(key);
+  }
+  const instant = new Date(key).toISOString();
+  return key % MS_PER_DAY === 0
+    ? instant.slice(0, ISO_DATE_END)
+    : instant.slice(0, ISO_MINUTE_END).replace("T", " ");
+}
+
+function measuredByGroup(points: SeriesPoint[]): Map<string, number> {
+  const byGroup = new Map<string, number>();
+  for (const point of points) {
+    if (point.y !== null) {
+      byGroup.set(String(point.x), point.y);
+    }
+  }
+  return byGroup;
+}
+
+function topListEntry(
+  point: SeriesPoint,
+  value: number,
+  before: Map<string, number>,
+): TopListEntry {
+  const entry: TopListEntry = {
+    id: point.x,
+    title: groupTitle(point.x),
+    value,
+  };
+  const previous = before.get(String(point.x));
+  const delta = previous === undefined ? undefined : variation(value, previous);
+  if (delta !== undefined) {
+    entry.delta = delta;
+  }
+  return entry;
+}
+
+/**
+ * Points as a ranked list reads them, each group an entry.
+ *
+ * A group with nothing measured in it has no place in a ranking: entered as a
+ * zero it would outrank every real loss, so it is left out.
+ */
 export function topListData(
   points: SeriesPoint[],
-  options: SeriesOptions = {},
+  options: SeriesOptions,
 ): TopListData {
-  const before = new Map(
-    (options.previous ?? []).map((point) => [String(point.x), point.y]),
-  );
+  const before = measuredByGroup(options.previous ?? []);
   return {
-    items: points.map((point) => {
-      const entry: TopListEntry = {
-        id: point.x,
-        title: String(point.x),
-        value: point.y,
-      };
-      const previous = before.get(String(point.x));
-      const delta =
-        previous === undefined ? undefined : variation(point.y, previous);
-      if (delta !== undefined) {
-        entry.delta = delta;
-      }
-      return entry;
-    }),
+    items: points.flatMap((point) =>
+      point.y === null ? [] : [topListEntry(point, point.y, before)],
+    ),
   };
 }

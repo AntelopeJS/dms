@@ -82,7 +82,8 @@ export interface DonutRecord {
 }
 
 export interface ChartCardResponse {
-  value: number;
+  /** Absent when the query measured no group; the card shows no figure. */
+  value?: number;
   delta?: number;
   previousValue?: number;
   series: ChartSeries[];
@@ -90,7 +91,8 @@ export interface ChartCardResponse {
 }
 
 export interface KpiCardResponse {
-  value: number;
+  /** Absent when the query measured no group; the card shows no figure. */
+  value?: number;
   delta?: number;
   previousValue?: number;
   sparkline?: number[];
