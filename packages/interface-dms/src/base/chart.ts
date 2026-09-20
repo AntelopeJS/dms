@@ -1,7 +1,7 @@
 import { ComponentBuilder } from "../component";
 import type { PageMetadata } from "../page";
 import { RegisterPageTopic } from "../realtime";
-import type { AxeOrientation, BaseComponentProps } from "./types";
+import type { AxeOrientation, BaseComponentProps, EnumOption } from "./types";
 import type { HttpMethod } from "./types/http";
 
 export namespace ChartEvents {
@@ -103,7 +103,7 @@ export interface ChartRangePoint {
 export interface ChartSeries {
   name: string;
   data: Array<ChartSeriesPoint | ChartCandlePoint | ChartRangePoint | number>;
-  type?: ChartType;
+  type?: EnumOption<ChartType>;
   color?: ChartColorValue;
   /** Stroke width in pixels; overrides chart and comparison defaults. */
   strokeWidth?: number;
@@ -153,7 +153,7 @@ interface BaseChartProps extends BaseComponentProps {
   showTooltip?: boolean;
   showLegend?: boolean;
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
   realtimeTopic?: string | string[];
   rawOptions?: KeyValuePair[];
@@ -215,7 +215,7 @@ export interface BarChartProps extends XYChartProps {
   stacked?: boolean;
   barWidth?: number;
   roundedCorners?: boolean;
-  orientation?: AxeOrientation;
+  orientation?: EnumOption<AxeOrientation>;
 }
 
 export interface ColumnChartProps extends XYChartProps {
@@ -349,9 +349,15 @@ function attachChartRealtimeHook<TProps>(
   });
 }
 
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `ChartLine()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
 function createChartBuilder<TType extends ChartType>(type: TType) {
   return <TProps extends Extract<AnyChartProps, { type: TType }>>(
-    options: Omit<TProps, "type"> | TProps,
+    options?: Omit<TProps, "type"> | TProps,
   ): ComponentBuilder<TProps> => {
     const meta = CHART_META_BY_TYPE[type];
     const merged = { ...(options as object), type } as TProps;

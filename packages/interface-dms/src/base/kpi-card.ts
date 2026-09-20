@@ -12,7 +12,7 @@ import {
   type ValueFormat,
   type ValuePrecision,
 } from "./chart";
-import type { BaseComponentProps } from "./types";
+import type { BaseComponentProps, EnumOption } from "./types";
 import { HttpMethod } from "./types/http";
 
 export interface KpiCardProps extends BaseComponentProps {
@@ -22,7 +22,7 @@ export interface KpiCardProps extends BaseComponentProps {
   description?: string;
   icon?: string;
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
   valueFormat?: ValueFormat;
   currencyCode?: string;
@@ -39,12 +39,20 @@ export interface KpiCardProps extends BaseComponentProps {
 
 const KPI_CARD_COMPONENT_NAME = "dms-kpi-card";
 
-export function KpiCard(options: KpiCardProps): ComponentBuilder<KpiCardProps> {
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `KpiCard()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
+export function KpiCard(
+  options?: KpiCardProps,
+): ComponentBuilder<KpiCardProps> {
   return new ComponentBuilder<KpiCardProps>(KPI_CARD_COMPONENT_NAME)
-    .options(options)
+    .options({ ...options } as KpiCardProps)
     .meta({
-      name: options.title,
-      icon: options.icon || "i-ph-trend-up",
+      name: options?.title || "KPI card",
+      icon: options?.icon || "i-ph-trend-up",
     });
 }
 

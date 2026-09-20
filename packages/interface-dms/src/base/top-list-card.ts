@@ -12,7 +12,7 @@ import {
   type ValueFormat,
   type ValuePrecision,
 } from "./chart";
-import type { BaseComponentProps } from "./types";
+import type { BaseComponentProps, EnumOption } from "./types";
 import { HttpMethod } from "./types/http";
 
 export interface TopListItemAvatar {
@@ -36,7 +36,7 @@ export interface TopListCardProps extends BaseComponentProps {
   title: string;
   description?: string;
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
   valueFormat?: ValueFormat;
   currencyCode?: string;
@@ -57,13 +57,19 @@ export interface TopListCardProps extends BaseComponentProps {
 const TOP_LIST_CARD_COMPONENT_NAME = "dms-top-list-card";
 const DEFAULT_ICON = "i-ph-list-numbers";
 
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `TopListCard()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
 export function TopListCard(
-  options: TopListCardProps,
+  options?: TopListCardProps,
 ): ComponentBuilder<TopListCardProps> {
   return new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
-    .options(options)
+    .options({ ...options } as TopListCardProps)
     .meta({
-      name: options.title,
+      name: options?.title || "Top list",
       icon: DEFAULT_ICON,
     });
 }

@@ -60,13 +60,19 @@ export interface PeriodSelectorProps extends BaseComponentProps {
 
 const PERIOD_SELECTOR_COMPONENT_NAME = "dms-period-selector";
 
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `PeriodSelector()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
 export function PeriodSelector(
-  options: PeriodSelectorProps,
+  options?: PeriodSelectorProps,
 ): ComponentBuilder<PeriodSelectorProps> {
   return new ComponentBuilder<PeriodSelectorProps>(
     PERIOD_SELECTOR_COMPONENT_NAME,
   )
-    .options(options)
+    .options({ ...options } as PeriodSelectorProps)
     .meta({
       name: "PeriodSelector",
       icon: "i-ph-calendar",

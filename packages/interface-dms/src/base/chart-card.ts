@@ -8,7 +8,7 @@ import {
 } from "./block-registry";
 import { VALUE_FORMATS, type ValueFormat, type ValuePrecision } from "./chart";
 import { CHART_BLOCK_TYPES } from "./chart-schemas";
-import type { BaseComponentProps } from "./types";
+import type { BaseComponentProps, EnumOption } from "./types";
 import { HttpMethod } from "./types/http";
 
 export interface ChartCardProps extends BaseComponentProps {
@@ -16,7 +16,7 @@ export interface ChartCardProps extends BaseComponentProps {
   description?: string;
   icon?: string;
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
   valueFormat?: ValueFormat;
   currencyCode?: string;
@@ -34,17 +34,25 @@ export interface ChartCardBuilderOptions extends ChartCardProps {
 const CHART_CARD_COMPONENT_NAME = "dms-chart-card";
 const NESTED_CHART_ID = "chart";
 
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `ChartCard()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
 export function ChartCard(
-  options: ChartCardBuilderOptions,
+  options?: ChartCardBuilderOptions,
 ): ComponentBuilder<ChartCardProps> {
-  const { chart, ...rest } = options;
-  return new ComponentBuilder<ChartCardProps>(CHART_CARD_COMPONENT_NAME)
-    .options(rest)
+  const { chart, ...rest } = options ?? ({} as ChartCardBuilderOptions);
+  const builder = new ComponentBuilder<ChartCardProps>(
+    CHART_CARD_COMPONENT_NAME,
+  )
+    .options(rest as ChartCardProps)
     .meta({
-      name: rest.title,
+      name: rest.title || "Chart card",
       icon: rest.icon || "i-ph-chart-line",
-    })
-    .child(NESTED_CHART_ID, chart);
+    });
+  return chart ? builder.child(NESTED_CHART_ID, chart) : builder;
 }
 
 /** The options `ChartCard` accepts, including the chart it wraps. */

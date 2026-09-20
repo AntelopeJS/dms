@@ -28,7 +28,7 @@ const CONSUMER_SOURCE = `
 import { CORE_SCHEMA_NAME, PageController, RegisterPermission } from "@antelopejs/interface-dms";
 import { AuthUser, type TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import { Grid, type GridOptions, type ChartColorToken } from "@antelopejs/interface-dms/base";
+import { ChartCard, ChartLine, Grid, KpiCard, PeriodSelector, Tab, Tree, TopListCard, type GridOptions, type ChartColorToken } from "@antelopejs/interface-dms/base";
 import { Color, type JsonValue } from "@antelopejs/interface-dms/base/types";
 import { DataType, DefaultDataCompareTypes, type DataTypeSerialized } from "@antelopejs/interface-dms/base/data-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -51,6 +51,7 @@ import type { TableViewOptions as DistDirectoryType } from "@antelopejs/interfac
 
 const surface = [
   CORE_SCHEMA_NAME,
+  Tab,
   PageController,
   RegisterPermission,
   AuthUser,
@@ -85,6 +86,33 @@ const template = undefined as HtmlTemplateRef | undefined;
 const shade: ChartColorToken = "primary-500";
 const distFile = undefined as DistFileType | undefined;
 const distDirectory = undefined as DistDirectoryType | undefined;
+
+// A page as the builder writes one: every option a literal, enum-typed ones
+// included. It has no way to write \`Size.medium\` — nothing in a serialized
+// option says which enum a value came from — so an option declared over an enum
+// has to take the value it stands for.
+Tab({
+  items: [
+    { label: "Orders", slot: "orders", badge: { label: "3", size: "sm" } },
+  ],
+  size: "md",
+  color: "primary",
+  variant: "pill",
+  orientation: "horizontal",
+});
+
+// A block the editor has just placed and nobody has configured: it writes the
+// bare call, and the page is typechecked at that point as at every other.
+void [
+  Tab(),
+  Tree(),
+  Form(),
+  KpiCard(),
+  ChartCard(),
+  TopListCard(),
+  PeriodSelector(),
+  ChartLine(),
+];
 
 // A Nuxt-layer module registers its frontend the same way the DMS does.
 AddFrontendModule({
