@@ -147,6 +147,12 @@ export interface TableViewOptionsSerialized extends Omit<
   routeParamFilters?: RouteParamFilters;
   tabs?: TableViewTab[];
   displays?: TableViewDisplayOptionSerialized[];
+  /**
+   * Resolved page-mode form URLs. Server-computed, so the frontend navigates to
+   * the very URLs the form sub-pages were registered under instead of rebuilding
+   * them from the browser path. Absent when the container is not a page.
+   */
+  formPages?: TableViewFormPageUrls;
 }
 
 export interface FormContainerPageConfig {
@@ -161,17 +167,30 @@ export interface FormContainerPageConfig {
   customPage?: boolean;
 }
 
+export interface FormContainerPages {
+  new?: FormContainerPageConfig;
+  edit?: FormContainerPageConfig;
+  view?: FormContainerPageConfig;
+}
+
 export type FormContainer =
   | { type: "drawer" }
   | { type: "modal"; size?: ModalSize }
   | {
       type: "page";
-      pages?: {
-        new?: FormContainerPageConfig;
-        edit?: FormContainerPageConfig;
-        view?: FormContainerPageConfig;
-      };
+      pages?: FormContainerPages;
     };
+
+/**
+ * Page-mode form URLs, resolved against the slug of the page the table view is
+ * mounted on. They keep the `:id` placeholder of their slug: the frontend
+ * substitutes the row id when it navigates.
+ */
+export interface TableViewFormPageUrls {
+  new: string;
+  edit: string;
+  view: string;
+}
 
 export interface QueryParamFilter {
   field: string;

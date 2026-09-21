@@ -15,12 +15,17 @@ import type {
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
 import { TableViewMeta } from "./meta";
 import {
+  type FormContainerPages,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
+  type TableViewFormPageUrls,
 } from "./options";
+
+type FormPageKind = keyof TableViewFormPageUrls;
+
 export namespace TableViewEvents {
   export const ROW_CLICK = "DmsComponent.TableView.RowClick";
   export const ROW_SELECT = "DmsComponent.TableView.RowSelect";
@@ -205,4 +210,53 @@ export function isNestedComponent(
   const prefix = `${pageFullId}.`;
   if (!permissionId.startsWith(prefix)) return false;
   return permissionId.slice(prefix.length).includes(".");
+}
+
+/** Slug a page-mode form page takes when the table view declares none. */
+export const FORM_PAGE_DEFAULT_SLUGS: Record<FormPageKind, string> = {
+  new: "new",
+  edit: ":id/edit",
+  view: ":id/view",
+};
+
+/** Append a form page slug to the slug of the page carrying the table view. */
+export function joinPageSlug(pageSlug: string, slug: string): string {
+  return `${pageSlug}/${slug}`.replace(/\/+/g, "/");
+}
+
+// A slug starting with "/" addresses a page of its own and is navigated
+// verbatim, query string included; leading ".." segments each drop one segment
+// of the carrying page. Registration joins the slug as it stands instead —
+// these two forms name a page the table view does not register.
+function toFormPageUrl(pageSlug: string, slug: string): string {
+  if (slug.startsWith("/")) return slug;
+  const parts = slug.split("/");
+  let parentCount = 0;
+  while (parentCount < parts.length && parts[parentCount] === "..") {
+    parentCount++;
+  }
+  const segments = pageSlug.replace(/\/$/, "").split("/");
+  return joinPageSlug(
+    segments.slice(0, segments.length - parentCount).join("/"),
+    parts.slice(parentCount).join("/"),
+  );
+}
+
+/**
+ * The URL each page-mode form is reached at, whether or not the table view
+ * registers a page for it: a `customPage` entry points at a hand-written page,
+ * and a nested table view registers nothing at all, yet both are navigated to.
+ */
+export function buildFormPageUrls(
+  pageSlug: string,
+  pages?: FormContainerPages,
+): TableViewFormPageUrls {
+  const urls = {} as TableViewFormPageUrls;
+  for (const [kind, defaultSlug] of Object.entries(FORM_PAGE_DEFAULT_SLUGS)) {
+    urls[kind as FormPageKind] = toFormPageUrl(
+      pageSlug,
+      pages?.[kind as FormPageKind]?.urlSlug || defaultSlug,
+    );
+  }
+  return urls;
 }

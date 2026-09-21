@@ -37,8 +37,11 @@ import { extractRuleFromConfig } from "./row-rules";
 import {
   applyFormRedirect,
   applyPermissionToAction,
+  buildFormPageUrls,
   filterCustomButtonsByPermission,
+  FORM_PAGE_DEFAULT_SLUGS,
   isNestedComponent,
+  joinPageSlug,
   mergeControllerRule,
   serializeTableViewDisplays,
   TableViewFunctions,
@@ -336,6 +339,21 @@ export function TableView<T extends ControllerClass>(
       if (!parentInfo) {
         throw new Error("Parent page info not found");
       }
+
+      const customPages =
+        options.formContainer?.type === "page"
+          ? options.formContainer.pages
+          : undefined;
+
+      // Resolved before any of the early returns below: a form page the table
+      // view declines to register — a nested table view, a `customPage` entry —
+      // is still the one the frontend navigates to.
+      if (isPageMode) {
+        builder.mergeOptions({
+          formPages: buildFormPageUrls(parentInfo.fullSlug, customPages),
+        });
+      }
+
       const tableViewPermissionId = GetPermissionId(builder);
 
       if (options.realtime !== false) {
@@ -367,11 +385,6 @@ export function TableView<T extends ControllerClass>(
         return;
       }
 
-      const customPages =
-        options.formContainer?.type === "page"
-          ? options.formContainer.pages
-          : undefined;
-
       if (
         customPages?.edit?.urlSlug &&
         !customPages.edit.urlSlug.includes(":id")
@@ -400,11 +413,9 @@ export function TableView<T extends ControllerClass>(
       if (newForm && !customPages?.new?.customPage) {
         const NewController = class extends parentPage.target {};
         const newMeta = new PageMetadata(NewController as ControllerClass);
-        const newUrlSlug = customPages?.new?.urlSlug || "new";
-        const newFullSlug = `${parentInfo.fullSlug}/${newUrlSlug}`.replace(
-          /\/+/g,
-          "/",
-        );
+        const newUrlSlug =
+          customPages?.new?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.new;
+        const newFullSlug = joinPageSlug(parentInfo.fullSlug, newUrlSlug);
         newMeta.SetInfo(
           "new",
           newFullSlug,
@@ -433,11 +444,9 @@ export function TableView<T extends ControllerClass>(
       if (editForm && !customPages?.edit?.customPage) {
         const EditController = class extends parentPage.target {};
         const editMeta = new PageMetadata(EditController as ControllerClass);
-        const editUrlSlug = customPages?.edit?.urlSlug || ":id/edit";
-        const editFullSlug = `${parentInfo.fullSlug}/${editUrlSlug}`.replace(
-          /\/+/g,
-          "/",
-        );
+        const editUrlSlug =
+          customPages?.edit?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.edit;
+        const editFullSlug = joinPageSlug(parentInfo.fullSlug, editUrlSlug);
         editMeta.SetInfo(
           "edit",
           editFullSlug,
@@ -467,11 +476,9 @@ export function TableView<T extends ControllerClass>(
       if (viewForm && !customPages?.view?.customPage) {
         const ViewController = class extends parentPage.target {};
         const viewMeta = new PageMetadata(ViewController as ControllerClass);
-        const viewUrlSlug = customPages?.view?.urlSlug || ":id/view";
-        const viewFullSlug = `${parentInfo.fullSlug}/${viewUrlSlug}`.replace(
-          /\/+/g,
-          "/",
-        );
+        const viewUrlSlug =
+          customPages?.view?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.view;
+        const viewFullSlug = joinPageSlug(parentInfo.fullSlug, viewUrlSlug);
         viewMeta.SetInfo(
           "view",
           viewFullSlug,

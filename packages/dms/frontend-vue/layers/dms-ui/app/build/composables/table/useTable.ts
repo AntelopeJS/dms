@@ -92,6 +92,8 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     ui: props.ui,
     componentId: props.tableProps.componentId,
     formContainer: props.tableProps.formContainer,
+    formPages: props.tableProps.formPages,
+    routeParams: props.tableProps.routeParams,
     onCustomRowAction: props.tableProps.onCustomRowAction,
   });
 

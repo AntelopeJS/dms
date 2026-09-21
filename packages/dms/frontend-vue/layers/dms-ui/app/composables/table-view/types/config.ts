@@ -1,4 +1,7 @@
-import type { FormContainer } from "../../../build/composables/table-view/useTableViewConfig";
+import type {
+  FormContainer,
+  FormPageUrls,
+} from "../../../build/composables/table-view/useTableViewConfig";
 import type { TableViewColumn } from "./column";
 import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
@@ -80,6 +83,7 @@ export interface TableViewConfig<T extends Data>
     view?: ComponentInfo<FormProps>;
   };
   formContainer?: FormContainer;
+  formPages?: FormPageUrls;
   componentId?: string;
   pageId?: string;
   defaultSort?: { field: string; desc?: boolean };
