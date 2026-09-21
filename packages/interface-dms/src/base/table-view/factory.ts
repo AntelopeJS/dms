@@ -4,10 +4,12 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
 import { GetPermissionId, PageMetadata } from "../../page";
+import { claimFormPageRoute } from "../../page/form-page-routes";
 import { HasPermission } from "../../permissions";
 import { StampUploadFieldTokens } from "../../uploads";
 import { getDataTypeId } from "../data-types/core";
 import { Form } from "../form-schema";
+import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
 import { FormMode, HttpMethod } from "../types";
@@ -39,11 +41,15 @@ import {
   applyPermissionToAction,
   buildFormPageUrls,
   filterCustomButtonsByPermission,
-  FORM_PAGE_DEFAULT_SLUGS,
-  isNestedComponent,
+  FORM_PAGE_DEFINITIONS,
+  FORM_PAGE_KINDS,
+  type FormPageKind,
+  formPageSlug,
+  formRouteKey,
   joinPageSlug,
   mergeControllerRule,
   serializeTableViewDisplays,
+  ROW_SCOPED_FORM_PAGE_KINDS,
   TableViewFunctions,
   validateKanbanField,
 } from "./factory-helpers";
@@ -345,15 +351,6 @@ export function TableView<T extends ControllerClass>(
           ? options.formContainer.pages
           : undefined;
 
-      // Resolved before any of the early returns below: a form page the table
-      // view declines to register — a nested table view, a `customPage` entry —
-      // is still the one the frontend navigates to.
-      if (isPageMode) {
-        builder.mergeOptions({
-          formPages: buildFormPageUrls(parentInfo.fullSlug, customPages),
-        });
-      }
-
       const tableViewPermissionId = GetPermissionId(builder);
 
       if (options.realtime !== false) {
@@ -368,136 +365,94 @@ export function TableView<T extends ControllerClass>(
         return;
       }
 
+      const routeKey = formRouteKey(tableViewPermissionId, parentInfo.fullId);
+
+      // Resolved before the early return below: a `customPage` entry registers
+      // no sub-page and is still the URL the frontend navigates to.
+      if (isPageMode) {
+        builder.mergeOptions({
+          formPages: buildFormPageUrls(
+            parentInfo.fullSlug,
+            routeKey,
+            customPages,
+          ),
+        });
+      }
+
       if (!isPageMode) {
         return;
       }
 
-      // Page-mode form routes are named after the page, not after the table
-      // view, so two of them on one page would claim the same fullId and slug —
-      // the second registration disposing the first. A table view the page
-      // mounts directly keeps them; one nested in a layout component (which
-      // registered no form route at all before nested components were walked)
-      // goes without rather than take the page's own.
-      if (isNestedComponent(tableViewPermissionId, parentInfo.fullId)) {
-        Logging.Warn(
-          `[DMS] TableView "${tableViewPermissionId}" is nested inside another component: its page-mode form routes are not registered, as they would collide with those of the page's own table views. Use a drawer or modal formContainer, or mount it as a component of the page.`,
-        );
-        return;
+      for (const kind of ROW_SCOPED_FORM_PAGE_KINDS) {
+        const declared = customPages?.[kind]?.urlSlug;
+        if (declared && !declared.includes(":id")) {
+          throw new Error(
+            `TableView formContainer.pages.${kind}.urlSlug must contain :id placeholder. Got: ${declared}`,
+          );
+        }
       }
 
-      if (
-        customPages?.edit?.urlSlug &&
-        !customPages.edit.urlSlug.includes(":id")
-      ) {
-        throw new Error(
-          `TableView formContainer.pages.edit.urlSlug must contain :id placeholder. Got: ${customPages.edit.urlSlug}`,
-        );
-      }
-      if (
-        customPages?.view?.urlSlug &&
-        !customPages.view.urlSlug.includes(":id")
-      ) {
-        throw new Error(
-          `TableView formContainer.pages.view.urlSlug must contain :id placeholder. Got: ${customPages.view.urlSlug}`,
-        );
-      }
+      const forms: Record<FormPageKind, FormBuilder | undefined> = {
+        new: newForm,
+        edit: editForm,
+        view: viewForm,
+      };
 
-      const registerSubPageTopic = (subPageFullId: string) => {
+      const registerFormPage = (kind: FormPageKind) => {
+        const form = forms[kind];
+        if (!form || customPages?.[kind]?.customPage) return;
+
+        const definition = FORM_PAGE_DEFINITIONS[kind];
+        const urlSlug = formPageSlug(kind, routeKey, customPages);
+        const fullSlug = joinPageSlug(parentInfo.fullSlug, urlSlug);
+        // The page's own id would be the same for every table view it carries,
+        // so the sub-page is filed under the table view's key as well.
+        const id = `${routeKey}.${kind}`;
+
+        claimFormPageRoute({
+          owner: tableViewPermissionId,
+          pageFullId: parentInfo.fullId,
+          kind,
+          fullId: `${parentInfo.fullId}.${id}`,
+          fullSlug,
+        });
+
+        const FormController = class extends parentPage.target {};
+        const formMeta = new PageMetadata(FormController as ControllerClass);
+        formMeta.SetInfo(
+          id,
+          fullSlug,
+          {
+            displayName:
+              customPages?.[kind]?.displayName || definition.displayName,
+            description:
+              customPages?.[kind]?.description || definition.description,
+            category: parentInfo,
+            urlSlug,
+            hidden: true,
+            permission: builder.getAction(definition.action),
+          },
+          FormPageLayout(),
+        );
+        if (definition.redirectsOnSubmit) {
+          applyFormRedirect(
+            form,
+            parentInfo.fullSlug,
+            Object.keys(options.queryParamFilters ?? {}),
+          );
+        }
+        formMeta.SetComponent("form", form);
+        void formMeta.Register();
+
         if (options.realtime === false) return;
         reportRealtimePageTopic({
-          pageId: subPageFullId,
+          pageId: `${parentInfo.fullId}.${id}`,
           controllerLocation: config.location,
         });
       };
 
-      if (newForm && !customPages?.new?.customPage) {
-        const NewController = class extends parentPage.target {};
-        const newMeta = new PageMetadata(NewController as ControllerClass);
-        const newUrlSlug =
-          customPages?.new?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.new;
-        const newFullSlug = joinPageSlug(parentInfo.fullSlug, newUrlSlug);
-        newMeta.SetInfo(
-          "new",
-          newFullSlug,
-          {
-            displayName: customPages?.new?.displayName || "$dms.table.new_item",
-            description:
-              customPages?.new?.description ||
-              "$dms.table.new_item_description",
-            category: parentInfo,
-            urlSlug: newUrlSlug,
-            hidden: true,
-            permission: builder.getAction("add"),
-          },
-          FormPageLayout(),
-        );
-        applyFormRedirect(
-          newForm,
-          parentInfo.fullSlug,
-          Object.keys(options.queryParamFilters ?? {}),
-        );
-        newMeta.SetComponent("form", newForm);
-        void newMeta.Register();
-        registerSubPageTopic(`${parentInfo.fullId}.new`);
-      }
-
-      if (editForm && !customPages?.edit?.customPage) {
-        const EditController = class extends parentPage.target {};
-        const editMeta = new PageMetadata(EditController as ControllerClass);
-        const editUrlSlug =
-          customPages?.edit?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.edit;
-        const editFullSlug = joinPageSlug(parentInfo.fullSlug, editUrlSlug);
-        editMeta.SetInfo(
-          "edit",
-          editFullSlug,
-          {
-            displayName:
-              customPages?.edit?.displayName || "$dms.table.edit_item",
-            description:
-              customPages?.edit?.description ||
-              "$dms.table.edit_item_description",
-            category: parentInfo,
-            urlSlug: editUrlSlug,
-            hidden: true,
-            permission: builder.getAction("edit"),
-          },
-          FormPageLayout(),
-        );
-        applyFormRedirect(
-          editForm,
-          parentInfo.fullSlug,
-          Object.keys(options.queryParamFilters ?? {}),
-        );
-        editMeta.SetComponent("form", editForm);
-        void editMeta.Register();
-        registerSubPageTopic(`${parentInfo.fullId}.edit`);
-      }
-
-      if (viewForm && !customPages?.view?.customPage) {
-        const ViewController = class extends parentPage.target {};
-        const viewMeta = new PageMetadata(ViewController as ControllerClass);
-        const viewUrlSlug =
-          customPages?.view?.urlSlug || FORM_PAGE_DEFAULT_SLUGS.view;
-        const viewFullSlug = joinPageSlug(parentInfo.fullSlug, viewUrlSlug);
-        viewMeta.SetInfo(
-          "view",
-          viewFullSlug,
-          {
-            displayName:
-              customPages?.view?.displayName || "$dms.table.view_item",
-            description:
-              customPages?.view?.description ||
-              "$dms.table.view_item_description",
-            category: parentInfo,
-            urlSlug: viewUrlSlug,
-            hidden: true,
-            permission: builder.getAction("view"),
-          },
-          FormPageLayout(),
-        );
-        viewMeta.SetComponent("form", viewForm);
-        void viewMeta.Register();
-        registerSubPageTopic(`${parentInfo.fullId}.view`);
+      for (const kind of FORM_PAGE_KINDS) {
+        registerFormPage(kind);
       }
     })
     .onFilter(async (permissions, options, permissionId) => {
