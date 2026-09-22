@@ -210,8 +210,8 @@ packages:
       '@antelopejs/core':
         optional: true
 
-  '@antelopejs/interface-core@0.0.13':
-    resolution: {integrity: sha512-zMVhW5OefmVNRLHvd3rPQTaShy+k9w6+cOhqOryyfxgVyRZ18nBlV8VSq9TuPkFIo5OGNAXFybOf54DRSnPVsw==}
+  '@antelopejs/interface-core@0.1.0':
+    resolution: {integrity: sha512-49mmTXREMNNEigWpmubwQD7fSrIIvmcTb9L8L79zQcDWTToud/GIap40vaKWmkbN1oGbjOB4ael/agqZ/ejYSg==}
 
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
@@ -4327,7 +4327,7 @@ snapshots:
 
   '@antelopejs/core@1.8.0(@types/node@24.8.1)':
     dependencies:
-      '@antelopejs/interface-core': 0.0.13
+      '@antelopejs/interface-core': 0.1.0
       '@types/proper-lockfile': 4.1.4
       boxen: 8.0.1
       chalk: 4.1.2
@@ -4362,7 +4362,7 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.95.0
       '@oxc-parser/binding-win32-x64-msvc': 0.95.0
 
-  '@antelopejs/interface-core@0.0.13':
+  '@antelopejs/interface-core@0.1.0':
     dependencies:
       reflect-metadata: 0.2.2
 
