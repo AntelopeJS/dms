@@ -96,18 +96,24 @@ function processFieldI18n(
   };
 }
 
-interface ReplaceUrlVariablesContext {
+// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
+// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
+// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
+// table view (see extractRouteParams).
+const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
+
+export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: Record<string, unknown>;
   response?: Record<string, unknown>;
 }
 
-function replaceUrlVariables(
+export function replaceUrlVariables(
   url: string,
   context: ReplaceUrlVariablesContext,
 ): string {
   let processedUrl = url.replace(
-    /\{\{params\.(\w+)\}\}/g,
+    PARAM_TOKEN,
     (match, key) => context.routeParams?.[key] || match,
   );
 

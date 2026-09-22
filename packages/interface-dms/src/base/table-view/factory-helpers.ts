@@ -24,7 +24,7 @@ import {
   type TableViewFormPageUrls,
 } from "./options";
 
-type FormPageKind = keyof TableViewFormPageUrls;
+export type FormPageKind = keyof TableViewFormPageUrls;
 
 export namespace TableViewEvents {
   export const ROW_CLICK = "DmsComponent.TableView.RowClick";
@@ -198,26 +198,48 @@ export function serializeTableViewDisplays(
   return serialized.length > 0 ? serialized : undefined;
 }
 
-/**
- * Whether the component sits below a page component rather than being one.
- * Permission ids are the page's `fullId` followed by the path of keys leading
- * to the component, so a nested one keeps a separator in what remains.
- */
-export function isNestedComponent(
-  permissionId: string,
-  pageFullId: string,
-): boolean {
-  const prefix = `${pageFullId}.`;
-  if (!permissionId.startsWith(prefix)) return false;
-  return permissionId.slice(prefix.length).includes(".");
+/** What a page-mode form sub-page is, beyond the form it carries. */
+export interface FormPageDefinition {
+  /** Slug it takes below the key of its table view, when none is declared. */
+  defaultSlug: string;
+  displayName: string;
+  description: string;
+  /** Table view action whose permission guards the sub-page. */
+  action: string;
+  /** Whether submitting the form sends the user back to the table. */
+  redirectsOnSubmit: boolean;
 }
 
-/** Slug a page-mode form page takes when the table view declares none. */
-export const FORM_PAGE_DEFAULT_SLUGS: Record<FormPageKind, string> = {
-  new: "new",
-  edit: ":id/edit",
-  view: ":id/view",
+export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
+  new: {
+    defaultSlug: "new",
+    displayName: "$dms.table.new_item",
+    description: "$dms.table.new_item_description",
+    action: "add",
+    redirectsOnSubmit: true,
+  },
+  edit: {
+    defaultSlug: ":id/edit",
+    displayName: "$dms.table.edit_item",
+    description: "$dms.table.edit_item_description",
+    action: "edit",
+    redirectsOnSubmit: true,
+  },
+  view: {
+    defaultSlug: ":id/view",
+    displayName: "$dms.table.view_item",
+    description: "$dms.table.view_item_description",
+    action: "view",
+    redirectsOnSubmit: false,
+  },
 };
+
+export const FORM_PAGE_KINDS = Object.keys(
+  FORM_PAGE_DEFINITIONS,
+) as FormPageKind[];
+
+/** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
+export const ROW_SCOPED_FORM_PAGE_KINDS: FormPageKind[] = ["edit", "view"];
 
 /** Append a form page slug to the slug of the page carrying the table view. */
 export function joinPageSlug(pageSlug: string, slug: string): string {
@@ -243,20 +265,63 @@ function toFormPageUrl(pageSlug: string, slug: string): string {
 }
 
 /**
+ * The key identifying a table view among the components of its page: the last
+ * segment of its permission id relative to the page's `fullId`.
+ *
+ * Form routes are named after it rather than after the page, so two table views
+ * on one page get URLs of their own; the *simple* key rather than the whole
+ * component path, so the URL stays readable and survives the layout being
+ * reorganised around the table view.
+ *
+ * @param permissionId Permission id of the table view
+ * @param pageFullId `fullId` of the page carrying it
+ */
+export function formRouteKey(permissionId: string, pageFullId: string): string {
+  const prefix = `${pageFullId}.`;
+  const path = permissionId.startsWith(prefix)
+    ? permissionId.slice(prefix.length)
+    : "";
+  const key = path.split(".").pop();
+  if (!key) {
+    throw new Error(
+      `TableView permission id "${permissionId}" names no component of page "${pageFullId}": its form routes have no key to be named after.`,
+    );
+  }
+  return key;
+}
+
+/**
+ * The slug a page-mode form page takes, relative to the page carrying the table
+ * view.
+ *
+ * A declared `urlSlug` is full control — it is taken as it stands, no key
+ * segment inserted, which is both what every existing declaration already meant
+ * and the escape hatch for anyone wanting a specific URL.
+ */
+export function formPageSlug(
+  kind: FormPageKind,
+  routeKey: string,
+  pages?: FormContainerPages,
+): string {
+  return (
+    pages?.[kind]?.urlSlug ||
+    `${routeKey}/${FORM_PAGE_DEFINITIONS[kind].defaultSlug}`
+  );
+}
+
+/**
  * The URL each page-mode form is reached at, whether or not the table view
- * registers a page for it: a `customPage` entry points at a hand-written page,
- * and a nested table view registers nothing at all, yet both are navigated to.
+ * registers a page for it: a `customPage` entry points at a hand-written page
+ * and is navigated to all the same.
  */
 export function buildFormPageUrls(
   pageSlug: string,
+  routeKey: string,
   pages?: FormContainerPages,
 ): TableViewFormPageUrls {
   const urls = {} as TableViewFormPageUrls;
-  for (const [kind, defaultSlug] of Object.entries(FORM_PAGE_DEFAULT_SLUGS)) {
-    urls[kind as FormPageKind] = toFormPageUrl(
-      pageSlug,
-      pages?.[kind as FormPageKind]?.urlSlug || defaultSlug,
-    );
+  for (const kind of FORM_PAGE_KINDS) {
+    urls[kind] = toFormPageUrl(pageSlug, formPageSlug(kind, routeKey, pages));
   }
   return urls;
 }
