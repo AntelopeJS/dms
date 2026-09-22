@@ -7,7 +7,7 @@
 import { ComponentBuilder } from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
-import { FormEvents } from "../form-types";
+import { type FormBuilder, FormEvents } from "../form-types";
 import type {
   CustomButton,
   CustomButtonSerialized,
@@ -19,6 +19,8 @@ import {
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
+  type QueryParamFilters,
+  type RouteParamFilters,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
   type TableViewFormPageUrls,
@@ -208,6 +210,8 @@ export interface FormPageDefinition {
   action: string;
   /** Whether submitting the form sends the user back to the table. */
   redirectsOnSubmit: boolean;
+  /** Whether the form submits the fields the table view filters on. */
+  submitsFilterDefaults: boolean;
 }
 
 export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
@@ -217,6 +221,7 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
     description: "$dms.table.new_item_description",
     action: "add",
     redirectsOnSubmit: true,
+    submitsFilterDefaults: true,
   },
   edit: {
     defaultSlug: ":id/edit",
@@ -224,6 +229,7 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
     description: "$dms.table.edit_item_description",
     action: "edit",
     redirectsOnSubmit: true,
+    submitsFilterDefaults: true,
   },
   view: {
     defaultSlug: ":id/view",
@@ -231,6 +237,7 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
     description: "$dms.table.view_item_description",
     action: "view",
     redirectsOnSubmit: false,
+    submitsFilterDefaults: false,
   },
 };
 
@@ -324,4 +331,92 @@ export function buildFormPageUrls(
     urls[kind] = toFormPageUrl(pageSlug, formPageSlug(kind, routeKey, pages));
   }
   return urls;
+}
+
+/** The URL filters of a table view, which its forms submit as defaults. */
+export interface TableViewUrlFilters {
+  queryParamFilters?: QueryParamFilters;
+  routeParamFilters?: RouteParamFilters;
+}
+
+/** A form page route, and the slug of the page carrying its table view. */
+export interface FormRouteFrame {
+  pageSlug: string;
+  formSlug: string;
+}
+
+// Mirrors how the frontend reads a route pattern (extractRouteParams): one
+// placeholder per segment, in pattern order.
+function slugPlaceholders(slug: string): string[] {
+  return slug
+    .split("/")
+    .filter((segment) => segment.startsWith(":"))
+    .map((segment) => segment.substring(1));
+}
+
+const countOccurrences = (names: string[], name: string): number =>
+  names.filter((candidate) => candidate === name).length;
+
+/**
+ * The token reading, on a form page, the route parameter `name` of the page
+ * carrying the table view — the value its `routeParamFilters` filter on.
+ *
+ * The bare name holds the last occurrence of a repeated placeholder, which on
+ * a form route is the form's own (`/workspaces/:id/invoiceTable/:id/edit`:
+ * the row id). The page's placeholders precede the form's, so the one the
+ * table view reads — the last of the page slug — is addressed by its number.
+ * Numbered keys exist only for repeated names, hence the bare name otherwise.
+ */
+function pageParamToken(name: string, frame?: FormRouteFrame): string {
+  if (!frame) return `{{params.${name}}}`;
+  const occurrence = countOccurrences(slugPlaceholders(frame.pageSlug), name);
+  const total = countOccurrences(slugPlaceholders(frame.formSlug), name);
+  return occurrence > 0 && total > 1
+    ? `{{params.${name}:${occurrence}}}`
+    : `{{params.${name}}}`;
+}
+
+/**
+ * Default the filtered fields from the URL tokens that `queryParamFilters` /
+ * `routeParamFilters` apply to the table, so a form opened from a filtered view
+ * inherits that context. The form resolves these tokens at submit time and
+ * drops any that are absent.
+ *
+ * @param filters URL filters of the table view
+ * @param frame Route of the form page the form is registered under; without
+ * one, the form renders on the page carrying the table view
+ */
+export function buildFilterSubmitDefaults(
+  filters: TableViewUrlFilters,
+  frame?: FormRouteFrame,
+): Record<string, string> | undefined {
+  const defaults: Record<string, string> = {};
+  for (const [param, filter] of Object.entries(
+    filters.queryParamFilters ?? {},
+  )) {
+    defaults[filter.field] = `{{query.${param}}}`;
+  }
+  for (const [param, filter] of Object.entries(
+    filters.routeParamFilters ?? {},
+  )) {
+    defaults[filter.field] = pageParamToken(param, frame);
+  }
+  return Object.keys(defaults).length > 0 ? defaults : undefined;
+}
+
+/**
+ * Re-resolve the filter defaults of a form for the page it is registered as.
+ *
+ * The form was built for the page carrying the table view — where the table
+ * view embeds it, and where `{{params.<name>}}` is the parameter it filters
+ * on. On a form route repeating that name, the bare name is shadowed by the
+ * form's own placeholder.
+ */
+export function applyFormPageSubmitDefaults(
+  form: FormBuilder,
+  filters: TableViewUrlFilters,
+  frame: FormRouteFrame,
+): void {
+  const submitDefaults = buildFilterSubmitDefaults(filters, frame);
+  if (submitDefaults) form.mergeOptions({ submitDefaults });
 }

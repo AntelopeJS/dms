@@ -37,8 +37,10 @@ import {
 import { TableViewRoutes } from "./routes";
 import { extractRuleFromConfig } from "./row-rules";
 import {
+  applyFormPageSubmitDefaults,
   applyFormRedirect,
   applyPermissionToAction,
+  buildFilterSubmitDefaults,
   buildFormPageUrls,
   filterCustomButtonsByPermission,
   FORM_PAGE_DEFINITIONS,
@@ -145,25 +147,7 @@ export function TableView<T extends ControllerClass>(
   const formFieldsEdit = meta.getFormFields(FormMode.edit);
   const formFieldsView = meta.getFormFields(FormMode.view);
 
-  // Default the filtered fields from the URL tokens that `queryParamFilters` /
-  // `routeParamFilters` apply to the table, so a form opened from a filtered
-  // view (any container) inherits that context. The form resolves these tokens
-  // at submit time and drops any that are absent.
-  const buildFilterSubmitDefaults = (): Record<string, string> | undefined => {
-    const defaults: Record<string, string> = {};
-    for (const [param, filter] of Object.entries(
-      options.queryParamFilters ?? {},
-    )) {
-      defaults[filter.field] = `{{query.${param}}}`;
-    }
-    for (const [param, filter] of Object.entries(
-      options.routeParamFilters ?? {},
-    )) {
-      defaults[filter.field] = `{{params.${param}}}`;
-    }
-    return Object.keys(defaults).length > 0 ? defaults : undefined;
-  };
-  const filterSubmitDefaults = buildFilterSubmitDefaults();
+  const filterSubmitDefaults = buildFilterSubmitDefaults(options);
 
   const newForm =
     formFieldsNew.length > 0
@@ -434,6 +418,12 @@ export function TableView<T extends ControllerClass>(
           },
           FormPageLayout(),
         );
+        if (definition.submitsFilterDefaults) {
+          applyFormPageSubmitDefaults(form, options, {
+            pageSlug: parentInfo.fullSlug,
+            formSlug: fullSlug,
+          });
+        }
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,

@@ -183,6 +183,30 @@ function collectSubmitData(
   };
 }
 
+// `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
+// tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
+// against the current route at submit time; drop entries whose tokens cannot
+// be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
+export function resolveSubmitDefaults(
+  submitDefaults: Record<string, unknown> | undefined,
+  context: ReplaceUrlVariablesContext,
+): Record<string, unknown> | undefined {
+  if (!submitDefaults) return undefined;
+
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(submitDefaults)) {
+    if (typeof value === "string" && value.includes("{{")) {
+      const replaced = replaceUrlVariables(value, context);
+      if (replaced.includes("{{")) continue;
+      resolved[key] = replaced;
+    } else {
+      resolved[key] = value;
+    }
+  }
+
+  return Object.keys(resolved).length > 0 ? resolved : undefined;
+}
+
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
     return makeFieldSchemaRequired(schema.unwrap());
@@ -352,28 +376,8 @@ export const useForm = (props: FormProps) => {
     response,
   });
 
-  // `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
-  // tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
-  // against the current route at submit time; drop entries whose tokens cannot
-  // be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
-  const effectiveSubmitDefaults = computed<Record<string, unknown> | undefined>(
-    () => {
-      if (!props.submitDefaults) return undefined;
-
-      const context = buildUrlContext();
-      const resolved: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(props.submitDefaults)) {
-        if (typeof value === "string" && value.includes("{{")) {
-          const replaced = replaceUrlVariables(value, context);
-          if (replaced.includes("{{")) continue;
-          resolved[key] = replaced;
-        } else {
-          resolved[key] = value;
-        }
-      }
-
-      return Object.keys(resolved).length > 0 ? resolved : undefined;
-    },
+  const effectiveSubmitDefaults = computed(() =>
+    resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
   );
 
   const resolvedFetchUrl = computed(() => {
