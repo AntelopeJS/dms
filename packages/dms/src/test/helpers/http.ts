@@ -1,17 +1,33 @@
 import axios, { type AxiosInstance } from "axios";
 
-const DEFAULT_BASE_URL = "http://127.0.0.1:5010";
+const API_BASE_URL_ENV = "TEST_API_BASE_URL";
+
+export function publishApiBaseUrl(baseUrl: string): void {
+  process.env[API_BASE_URL_ENV] = baseUrl;
+}
 
 export function getBaseUrl(): string {
-  return process.env.TEST_API_BASE_URL ?? DEFAULT_BASE_URL;
+  const baseUrl = process.env[API_BASE_URL_ENV];
+  if (!baseUrl) {
+    throw new Error(
+      `${API_BASE_URL_ENV} is unset: the api-endpoint test module publishes it once the api has reserved its port.`,
+    );
+  }
+  return baseUrl;
 }
 
 export function createClient(): AxiosInstance {
-  return axios.create({
-    baseURL: getBaseUrl(),
+  const client = axios.create({
     validateStatus: () => true,
     headers: {
       "x-antelopejs-namespace": "default",
     },
   });
+  // Resolved per request rather than at creation, so a client built before the
+  // runtime has booted still reaches the api it started.
+  client.interceptors.request.use((request) => {
+    request.baseURL = getBaseUrl();
+    return request;
+  });
+  return client;
 }

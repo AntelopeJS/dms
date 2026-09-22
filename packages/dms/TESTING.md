@@ -72,7 +72,10 @@ suites declare their own), never for one the DMS provisions.
 
 The attachment integration host registers its controllers before API startup and
 uses HTTP or raw MongoDB fixtures. It does not depend on test-side model registries.
-Run only one backend test process at a time because the harness uses port 5010.
+The api listens on a port the OS assigns, so a process already holding a fixed
+port cannot capture the suite. The `api-endpoint` test host consumes
+`${@api.API_LOCAL_BASE_URL}` and publishes it as `TEST_API_BASE_URL`; the HTTP
+helpers read it on every request.
 
 ### Storage-provider development
 
@@ -82,7 +85,7 @@ local storage provider, set the optional `DMS_TEST_STORAGE_PATH` variable:
 ```bash
 DMS_TEST_STORAGE_PATH=/path/to/file-storage-local \
 DMS_TEST_DIR=dist/test/integration/files \
-pnpm dlx @antelopejs/core@1.8.0 module test .
+pnpm dlx @antelopejs/core@1.9.0 module test .
 ```
 
 Build the DMS first with `pnpm build`. Omit `DMS_TEST_STORAGE_PATH` to use the
