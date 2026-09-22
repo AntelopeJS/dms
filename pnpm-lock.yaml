@@ -189,11 +189,11 @@ importers:
         version: 3.24.4
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.8.0 <2'
-        version: 1.8.0(@types/node@20.19.43)
+        specifier: '>=1.9.0 <2'
+        version: 1.9.0(@types/node@20.19.43)
       '@antelopejs/dms-frontend':
         specifier: 0.2.1
-        version: 0.2.1(@antelopejs/core@1.8.0(@types/node@20.19.43))
+        version: 0.2.1(@antelopejs/core@1.9.0(@types/node@20.19.43))
       '@types/node':
         specifier: ^20.5.7
         version: 20.19.43
@@ -289,6 +289,10 @@ packages:
     resolution: {integrity: sha512-aH0t8YsPT76Fvgt+p83mFsfIFqNp5QMON4ZhNnK3ov7/2SepRFimakcrT2llrz8GArLHmrGwbvO/3kTh+I+ZjA==}
     hasBin: true
 
+  '@antelopejs/core@1.9.0':
+    resolution: {integrity: sha512-M34InFniN5PXuhjVipsZCFGx3AvqNXBPqzhcdwf0GG0+LhdKt8s7Svz2kcRyS4UzaCKTaKK820II/HmEuQkvkg==}
+    hasBin: true
+
   '@antelopejs/dms-frontend@0.2.1':
     resolution: {integrity: sha512-hTujfIA6OJ1lTsi02f0EFDsFW46VI1pyJFRWj4KPPhB8WHXQQX+Rq0bYBOf/wuxNPoO5uM47SrTiMU5OBnxnBg==}
     engines: {node: '>=20.12.0'}
@@ -318,6 +322,9 @@ packages:
 
   '@antelopejs/interface-core@0.0.13':
     resolution: {integrity: sha512-zMVhW5OefmVNRLHvd3rPQTaShy+k9w6+cOhqOryyfxgVyRZ18nBlV8VSq9TuPkFIo5OGNAXFybOf54DRSnPVsw==}
+
+  '@antelopejs/interface-core@0.1.0':
+    resolution: {integrity: sha512-49mmTXREMNNEigWpmubwQD7fSrIIvmcTb9L8L79zQcDWTToud/GIap40vaKWmkbN1oGbjOB4ael/agqZ/ejYSg==}
 
   '@antelopejs/interface-data-api@0.1.9':
     resolution: {integrity: sha512-LQBroBvJc/iTciLXf2QVsZW5gtqj7i5MfD3IP1sCLUZBZDeRLErhxgdHrlI+e6IcoCzTrTlBYe2FivmGb4T8mg==}
@@ -3129,25 +3136,6 @@ snapshots:
       qr-image: 3.2.0
       thirty-two: 0.0.2
 
-  '@antelopejs/core@1.8.0(@types/node@20.19.43)':
-    dependencies:
-      '@antelopejs/interface-core': 0.0.13
-      '@types/proper-lockfile': 4.1.4
-      boxen: 8.0.1
-      chalk: 4.1.2
-      commander: 13.1.0
-      figlet: 1.11.0
-      inly: 5.0.1
-      inquirer: 12.11.1(@types/node@20.19.43)
-      jiti: 2.7.0
-      mocha: 11.7.6
-      proper-lockfile: 4.1.2
-      reflect-metadata: 0.2.2
-      semver: 7.8.5
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - '@types/node'
-
   '@antelopejs/core@1.8.0(@types/node@24.13.3)':
     dependencies:
       '@antelopejs/interface-core': 0.0.13
@@ -3167,7 +3155,26 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@antelopejs/dms-frontend@0.2.1(@antelopejs/core@1.8.0(@types/node@20.19.43))':
+  '@antelopejs/core@1.9.0(@types/node@20.19.43)':
+    dependencies:
+      '@antelopejs/interface-core': 0.1.0
+      '@types/proper-lockfile': 4.1.4
+      boxen: 8.0.1
+      chalk: 4.1.2
+      commander: 13.1.0
+      figlet: 1.11.0
+      inly: 5.0.1
+      inquirer: 12.11.1(@types/node@20.19.43)
+      jiti: 2.7.0
+      mocha: 11.7.6
+      proper-lockfile: 4.1.2
+      reflect-metadata: 0.2.2
+      semver: 7.8.5
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@antelopejs/dms-frontend@0.2.1(@antelopejs/core@1.9.0(@types/node@20.19.43))':
     dependencies:
       boxen: 5.1.2
       chalk: 4.1.2
@@ -3178,7 +3185,7 @@ snapshots:
       semver: 7.8.5
       unzipper: 0.12.5
     optionalDependencies:
-      '@antelopejs/core': 1.8.0(@types/node@20.19.43)
+      '@antelopejs/core': 1.9.0(@types/node@20.19.43)
       '@oxc-parser/binding-darwin-arm64': 0.95.0
       '@oxc-parser/binding-darwin-x64': 0.95.0
       '@oxc-parser/binding-linux-arm64-gnu': 0.95.0
@@ -3200,6 +3207,10 @@ snapshots:
       '@antelopejs/interface-core': 0.0.13
 
   '@antelopejs/interface-core@0.0.13':
+    dependencies:
+      reflect-metadata: 0.2.2
+
+  '@antelopejs/interface-core@0.1.0':
     dependencies:
       reflect-metadata: 0.2.2
 
