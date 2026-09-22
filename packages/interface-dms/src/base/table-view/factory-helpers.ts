@@ -358,22 +358,49 @@ const countOccurrences = (names: string[], name: string): number =>
   names.filter((candidate) => candidate === name).length;
 
 /**
- * The token reading, on a form page, the route parameter `name` of the page
- * carrying the table view — the value its `routeParamFilters` filter on.
+ * The token reading, on a form page, an occurrence of the route parameter
+ * `name` of the page carrying the table view — by default its last, the value
+ * its `routeParamFilters` filter on.
  *
  * The bare name holds the last occurrence of a repeated placeholder, which on
  * a form route is the form's own (`/workspaces/:id/invoiceTable/:id/edit`:
- * the row id). The page's placeholders precede the form's, so the one the
- * table view reads — the last of the page slug — is addressed by its number.
- * Numbered keys exist only for repeated names, hence the bare name otherwise.
+ * the row id). The page's placeholders precede the form's, so the page's
+ * occurrence is addressed by its number. Numbered keys exist only for repeated
+ * names, hence the bare name otherwise.
  */
-function pageParamToken(name: string, frame?: FormRouteFrame): string {
+function pageParamToken(
+  name: string,
+  frame?: FormRouteFrame,
+  occurrence?: number,
+): string {
   if (!frame) return `{{params.${name}}}`;
-  const occurrence = countOccurrences(slugPlaceholders(frame.pageSlug), name);
+  const pageOccurrence =
+    occurrence ?? countOccurrences(slugPlaceholders(frame.pageSlug), name);
   const total = countOccurrences(slugPlaceholders(frame.formSlug), name);
-  return occurrence > 0 && total > 1
-    ? `{{params.${name}:${occurrence}}}`
+  return pageOccurrence > 0 && total > 1
+    ? `{{params.${name}:${pageOccurrence}}}`
     : `{{params.${name}}}`;
+}
+
+/**
+ * The URL a form page sends the user back to on submit: the slug of the page
+ * carrying the table view, each placeholder replaced by the token reading its
+ * value on the form route, which the frontend resolves before navigating
+ * (`/workspaces/:id` becomes `/workspaces/{{params.id:1}}` from
+ * `/workspaces/:id/invoiceTable/:id/edit`). A slug without placeholder is
+ * returned as is.
+ */
+export function buildFormRedirectUrl(frame: FormRouteFrame): string {
+  const seen: Record<string, number> = {};
+  return frame.pageSlug
+    .split("/")
+    .map((segment) => {
+      if (!segment.startsWith(":")) return segment;
+      const name = segment.substring(1);
+      seen[name] = (seen[name] ?? 0) + 1;
+      return pageParamToken(name, frame, seen[name]);
+    })
+    .join("/");
 }
 
 /**

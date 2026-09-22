@@ -42,6 +42,7 @@ import {
   applyPermissionToAction,
   buildFilterSubmitDefaults,
   buildFormPageUrls,
+  buildFormRedirectUrl,
   filterCustomButtonsByPermission,
   FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
@@ -418,16 +419,14 @@ export function TableView<T extends ControllerClass>(
           },
           FormPageLayout(),
         );
+        const frame = { pageSlug: parentInfo.fullSlug, formSlug: fullSlug };
         if (definition.submitsFilterDefaults) {
-          applyFormPageSubmitDefaults(form, options, {
-            pageSlug: parentInfo.fullSlug,
-            formSlug: fullSlug,
-          });
+          applyFormPageSubmitDefaults(form, options, frame);
         }
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,
-            parentInfo.fullSlug,
+            buildFormRedirectUrl(frame),
             Object.keys(options.queryParamFilters ?? {}),
           );
         }
