@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.3.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.7...v0.3.8)
+
+### 🚀 Enhancements
+
+- **table-view:** Name page-mode form routes after the table view ([#29](https://github.com/AntelopeJS/dms/pull/29))
+
+### 🩹 Fixes
+
+- **realtime:** Publish a menu burst once when its trailing timer runs late ([#34](https://github.com/AntelopeJS/dms/pull/34))
+- **table-view:** Resolve route param filter defaults against the table's page ([#35](https://github.com/AntelopeJS/dms/pull/35))
+- **table-view:** Resolve page-mode form redirects against the form route ([#37](https://github.com/AntelopeJS/dms/pull/37))
+
+### 💅 Refactors
+
+- **table-view:** Serialize the resolved form page URLs ([#28](https://github.com/AntelopeJS/dms/pull/28))
+
+### 🏡 Chore
+
+- **agents:** Install Node 24 in setup script ([#27](https://github.com/AntelopeJS/dms/pull/27))
+- **playground:** Derive api URLs from config variables ([#31](https://github.com/AntelopeJS/dms/pull/31))
+
+### 🤖 CI
+
+- Run the integration suite in CI ([#36](https://github.com/AntelopeJS/dms/pull/36))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.6...v0.3.7)
