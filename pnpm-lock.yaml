@@ -88,8 +88,8 @@ importers:
         version: 3.24.4
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.8.0 <2'
-        version: 1.8.0(@types/node@24.13.3)
+        specifier: '>=1.9.0 <2'
+        version: 1.9.0(@types/node@24.13.3)
       '@antelopejs/tooling-configs':
         specifier: '>=0.0.6 <1.0.0'
         version: 0.0.6(knip@6.34.0)(oxfmt@0.66.0)(oxlint@1.81.0(oxlint-tsgolint@7.0.2001))
@@ -284,10 +284,6 @@ packages:
 
   2fa@0.1.2:
     resolution: {integrity: sha512-PbQttc6USc2TmZwOPE/zlNWTJTySLt50rWhUbZgPkZ5LAOLpgShT3yclbxwHPfHGUXEjfLrTo3Lunyx8onGnXw==}
-
-  '@antelopejs/core@1.8.0':
-    resolution: {integrity: sha512-aH0t8YsPT76Fvgt+p83mFsfIFqNp5QMON4ZhNnK3ov7/2SepRFimakcrT2llrz8GArLHmrGwbvO/3kTh+I+ZjA==}
-    hasBin: true
 
   '@antelopejs/core@1.9.0':
     resolution: {integrity: sha512-M34InFniN5PXuhjVipsZCFGx3AvqNXBPqzhcdwf0GG0+LhdKt8s7Svz2kcRyS4UzaCKTaKK820II/HmEuQkvkg==}
@@ -3133,25 +3129,6 @@ snapshots:
       qr-image: 3.2.0
       thirty-two: 0.0.2
 
-  '@antelopejs/core@1.8.0(@types/node@24.13.3)':
-    dependencies:
-      '@antelopejs/interface-core': 0.1.0
-      '@types/proper-lockfile': 4.1.4
-      boxen: 8.0.1
-      chalk: 4.1.2
-      commander: 13.1.0
-      figlet: 1.11.0
-      inly: 5.0.1
-      inquirer: 12.11.1(@types/node@24.13.3)
-      jiti: 2.7.0
-      mocha: 11.7.6
-      proper-lockfile: 4.1.2
-      reflect-metadata: 0.2.2
-      semver: 7.8.5
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - '@types/node'
-
   '@antelopejs/core@1.9.0(@types/node@20.19.43)':
     dependencies:
       '@antelopejs/interface-core': 0.1.0
@@ -3162,6 +3139,25 @@ snapshots:
       figlet: 1.11.0
       inly: 5.0.1
       inquirer: 12.11.1(@types/node@20.19.43)
+      jiti: 2.7.0
+      mocha: 11.7.6
+      proper-lockfile: 4.1.2
+      reflect-metadata: 0.2.2
+      semver: 7.8.5
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@types/node'
+
+  '@antelopejs/core@1.9.0(@types/node@24.13.3)':
+    dependencies:
+      '@antelopejs/interface-core': 0.1.0
+      '@types/proper-lockfile': 4.1.4
+      boxen: 8.0.1
+      chalk: 4.1.2
+      commander: 13.1.0
+      figlet: 1.11.0
+      inly: 5.0.1
+      inquirer: 12.11.1(@types/node@24.13.3)
       jiti: 2.7.0
       mocha: 11.7.6
       proper-lockfile: 4.1.2

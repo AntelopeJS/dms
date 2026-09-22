@@ -4,7 +4,14 @@ import { join } from "node:path";
 import { defineConfig } from "@antelopejs/interface-core/config";
 import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 
-const API_PORT = 5010;
+// Core runs tests outside development mode, where the api refuses to fall back
+// to the next free port. Asking for any free port keeps the harness off
+// whatever already holds a fixed one; the api publishes the port it reserved.
+const ANY_FREE_PORT = 0;
+// Required outside development mode. Nothing in the harness consumes
+// API_PUBLIC_BASE_URL: every in-process URL derives from API_LOCAL_BASE_URL.
+const UNUSED_PUBLIC_BASE_URL = "https://api.test.example.com";
+const API_LOCAL_BASE_URL = "${@api.API_LOCAL_BASE_URL}";
 const JWT_SECRET = "test-jwt-secret";
 const BOOTSTRAP_SECRET = "test-bootstrap-secret";
 const MONGO_BINARY_VERSION = "8.0.8";
@@ -60,6 +67,15 @@ export default defineConfig({
         path: "src/test/attachment-host",
       },
     },
+    "api-endpoint": {
+      source: {
+        type: "local",
+        path: "src/test/api-endpoint",
+      },
+      config: {
+        apiBaseUrl: API_LOCAL_BASE_URL,
+      },
+    },
     mongodb: {
       source: providerSource(
         LOCAL_MONGODB_PATH,
@@ -78,9 +94,10 @@ export default defineConfig({
       },
     },
     api: {
-      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", "^1.2.4"),
+      source: providerSource(LOCAL_API_PATH, "@antelopejs/api", "^1.3.0"),
       config: {
-        servers: [{ protocol: "http", host: "127.0.0.1", port: API_PORT }],
+        publicBaseUrl: UNUSED_PUBLIC_BASE_URL,
+        servers: [{ protocol: "http", host: "127.0.0.1", port: ANY_FREE_PORT }],
       },
     },
     "file-storage-local": {
@@ -115,7 +132,6 @@ export default defineConfig({
 
       const mongoUrl = mongod.getUri();
       process.env.TEST_MONGO_URL = mongoUrl;
-      process.env.TEST_API_BASE_URL = `http://127.0.0.1:${API_PORT}`;
       process.env.TEST_JWT_SECRET = JWT_SECRET;
       process.env.TEST_BOOTSTRAP_SECRET = BOOTSTRAP_SECRET;
 
@@ -127,7 +143,7 @@ export default defineConfig({
           "file-storage-local": {
             config: {
               storagePath: storageDir,
-              baseUrl: `http://127.0.0.1:${API_PORT}`,
+              baseUrl: API_LOCAL_BASE_URL,
               defaultVisibility: "private",
             },
           },
