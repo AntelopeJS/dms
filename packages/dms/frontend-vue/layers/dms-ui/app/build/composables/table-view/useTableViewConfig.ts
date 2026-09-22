@@ -35,15 +35,50 @@ const withBuiltinDefaults = (
   };
 };
 
+// The per-page slugs the table view declares are resolved server-side and
+// arrive as `formPages`; the frontend never reads them.
 export interface FormContainer {
   type: FormContainerType;
   size?: ModalSize;
-  pages?: {
-    new?: { urlSlug?: string; displayName?: string; description?: string };
-    edit?: { urlSlug?: string; displayName?: string; description?: string };
-    view?: { urlSlug?: string; displayName?: string; description?: string };
-  };
 }
+
+/**
+ * Page-mode form URLs resolved by the server, placeholders included: the `:id`
+ * of the row, and those the slug of the carrying page contributes.
+ */
+export interface FormPageUrls {
+  new: string;
+  edit: string;
+  view: string;
+}
+
+const ROW_ID_PLACEHOLDER = ":id";
+
+/**
+ * Turn a serialized form page URL into the one to navigate to. The row id
+ * takes the last `:id` — the form slug contributes it after the slug of the
+ * carrying page, so an earlier one belongs to that page — and the params of
+ * the current route fill whatever placeholder is left.
+ */
+export const fillFormPageUrl = (
+  url: string,
+  routeParams?: Record<string, string>,
+  itemId?: string,
+): string => {
+  let filled = url;
+  const rowIdAt =
+    itemId === undefined ? -1 : url.lastIndexOf(ROW_ID_PLACEHOLDER);
+  if (rowIdAt >= 0) {
+    filled =
+      url.slice(0, rowIdAt) +
+      itemId +
+      url.slice(rowIdAt + ROW_ID_PLACEHOLDER.length);
+  }
+  for (const [param, value] of Object.entries(routeParams ?? {})) {
+    filled = filled.replace(new RegExp(`:${param}(?![\\w])`, "g"), value);
+  }
+  return filled;
+};
 
 export const useTableViewConfig = <T extends Data>(
   config: TableViewConfig<T>,
@@ -90,6 +125,8 @@ export const useTableViewConfig = <T extends Data>(
     customNavItems: config.customNavItems,
     componentId: config.componentId,
     formContainer: config.formContainer,
+    formPages: config.formPages,
+    routeParams: config.routeParams,
     data: config.data,
     loading: config.loading,
     orderOptions: config.orderOptions,
@@ -117,6 +154,7 @@ export const useTableViewConfig = <T extends Data>(
     customButtons: config.customButtons,
     formComponents: config.formComponents,
     formContainer: config.formContainer,
+    formPages: config.formPages,
     componentId: config.componentId,
     pageId: config.pageId,
     defaultSort: config.defaultSort,

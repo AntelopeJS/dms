@@ -26,7 +26,10 @@ import type {
   CustomButton,
   TableViewDisplayCapabilities,
 } from "../../../composables/table-view/types";
-import type { FormContainer } from "../../composables/table-view/useTableViewConfig";
+import type {
+  FormContainer,
+  FormPageUrls,
+} from "../../composables/table-view/useTableViewConfig";
 import type { CustomRowAction } from "../../../types/row-action";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./Tabs.vue";
@@ -97,6 +100,8 @@ export interface TableProps<T> {
   onCustomRowAction?: (action: CustomRowAction, rowData: T) => void;
   componentId?: string;
   formContainer?: FormContainer;
+  formPages?: FormPageUrls;
+  routeParams?: Record<string, string>;
   defaultSort?: { field: string; desc?: boolean };
   initialColumnVisibility?: VisibilityState;
   presenceByRow?: TableRowPresenceMap;

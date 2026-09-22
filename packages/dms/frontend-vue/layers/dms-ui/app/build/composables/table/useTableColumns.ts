@@ -28,7 +28,11 @@ import {
   FormContainerType,
   DEFAULT_FORM_CONTAINER_TYPE,
 } from "../table-view/types";
-import type { FormContainer } from "../table-view/useTableViewConfig";
+import {
+  fillFormPageUrl,
+  type FormContainer,
+  type FormPageUrls,
+} from "../table-view/useTableViewConfig";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 const SORT_DIRECTION_ICON: Record<SortDirection, string> = {
@@ -84,6 +88,8 @@ interface ColumnConfig<T> {
   ui: ComputedRef<TableStyleSlots>;
   componentId?: string;
   formContainer?: FormContainer;
+  formPages?: FormPageUrls;
+  routeParams?: Record<string, string>;
   onCustomRowAction?: (action: CustomRowAction, rowData: T) => void;
 }
 
@@ -353,13 +359,13 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
     const containerType =
       config.formContainer?.type ?? DEFAULT_FORM_CONTAINER_TYPE;
-    if (containerType === FormContainerType.page) {
+    const viewPageUrl =
+      containerType === FormContainerType.page
+        ? config.formPages?.view
+        : undefined;
+    if (viewPageUrl) {
       const itemId = get(rowData, config.rowIdKey);
-      const viewSlug =
-        config.formContainer?.pages?.view?.urlSlug ||
-        `${currentRoute.path}/${itemId}/view`;
-      const viewUrl = viewSlug.replace(":id", itemId);
-      itemUrl = `${window.location.origin}${viewUrl}`;
+      itemUrl = `${window.location.origin}${fillFormPageUrl(viewPageUrl, config.routeParams, itemId)}`;
     } else {
       const updatedQuery = {
         ...currentRoute.query,
