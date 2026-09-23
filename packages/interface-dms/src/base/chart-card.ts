@@ -91,12 +91,12 @@ export const ChartCardSchema = z.object({
   }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
-    group: "data",
+    group: "advanced",
     widget: "select",
   }),
   periodScope: ui(z.string().optional(), {
     label: "Period scope",
-    group: "data",
+    group: "advanced",
   }),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",

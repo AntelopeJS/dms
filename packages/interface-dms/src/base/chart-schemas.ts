@@ -131,12 +131,12 @@ const baseChartShape = {
   }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
-    group: "data",
+    group: "advanced",
     widget: "select",
   }),
   periodScope: ui(z.string().optional(), {
     label: "Period scope",
-    group: "data",
+    group: "advanced",
   }),
   realtimeTopic: ui(z.union([z.string(), z.array(z.string())]).optional(), {
     label: "Realtime topics",
@@ -163,7 +163,7 @@ const xyChartShape = {
   }),
   staticDataset: ui(z.array(chartSeriesSchema).optional(), {
     label: "Static series",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
   yRange: ui(yRangeSchema.optional(), {
@@ -208,7 +208,7 @@ const circularChartShape = {
   ...baseChartShape,
   staticDataset: ui(z.array(donutRecordSchema).optional(), {
     label: "Static values",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
 };
@@ -369,7 +369,7 @@ export const ChartHeatmapSchema = z.object({
   ...baseChartShape,
   staticDataset: ui(z.array(chartSeriesSchema).optional(), {
     label: "Static series",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
   shadeIntensity: ui(z.number().optional(), {

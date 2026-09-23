@@ -90,7 +90,7 @@ export const KpiCardSchema = z.object({
   ),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
-    group: "data",
+    group: "advanced",
     widget: "select",
   }),
   periodScope: ui(
@@ -98,7 +98,7 @@ export const KpiCardSchema = z.object({
       .string()
       .optional()
       .describe("Id of the PeriodSelector driving this card."),
-    { label: "Period scope", group: "data" },
+    { label: "Period scope", group: "advanced" },
   ),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",
@@ -140,16 +140,16 @@ export const KpiCardSchema = z.object({
   }),
   staticValue: ui(
     z.number().optional().describe("Value shown when no data source is set."),
-    { label: "Static value", group: "data", widget: "number" },
+    { label: "Static value", group: "advanced", widget: "number" },
   ),
   staticDelta: ui(z.number().optional(), {
     label: "Static variation",
-    group: "data",
+    group: "advanced",
     widget: "number",
   }),
   staticSparkline: ui(z.array(z.number()).optional(), {
     label: "Static sparkline",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
 }) satisfies BlockOptionsFor<KpiCardProps>;
