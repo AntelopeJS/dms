@@ -59,7 +59,7 @@ describe("grid column template", () => {
     expect(resolveColumnCount(template, 200, 16)).toBe(1);
   });
 
-  it("gives every row holding the same count one template, so they line up", () => {
+  it("gives rows of the same grid one shared template, so they stay aligned", () => {
     expect(gridColumnsTemplate(4, GAP, MIN)).toBe(
       gridColumnsTemplate(4, GAP, MIN),
     );
