@@ -161,6 +161,7 @@
       "success_message": "Data has been successfully saved",
       "error_title": "Error",
       "error_unknown": "An unknown error occurred",
+      "error_no_target": "This form does not know which item to save. Open it from a link that names one.",
       "no_data": "No data available",
       "empty_value": "—",
       "actions": "Actions",
