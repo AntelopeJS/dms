@@ -1,4 +1,8 @@
-import type { FormContainer } from "./useTableViewConfig";
+import {
+  fillFormPageUrl,
+  type FormContainer,
+  type FormPageUrls,
+} from "./useTableViewConfig";
 import type { FormProps } from "../../../composables/form/types";
 import type { QueryParamFilters } from "../../../composables/table-view/types";
 import type {
@@ -38,6 +42,8 @@ interface TableRowActionsConfig {
     view?: ComponentInfo<FormProps>;
   };
   formContainer?: FormContainer;
+  formPages?: FormPageUrls;
+  routeParams?: Record<string, string>;
   componentId: string;
   pageId: string;
   queryParamFilters?: QueryParamFilters;
@@ -81,20 +87,6 @@ export const useTableRowActions = <T extends Data>(
       }
     }
     return Object.keys(forwarded).length > 0 ? forwarded : undefined;
-  };
-
-  const resolveFormPageUrl = (urlSlug: string): string => {
-    if (urlSlug.startsWith("/")) return urlSlug;
-    const baseSegments = route.path.replace(/\/$/, "").split("/");
-    const parts = urlSlug.split("/");
-    let popCount = 0;
-    let partStart = 0;
-    while (partStart < parts.length && parts[partStart] === "..") {
-      popCount++;
-      partStart++;
-    }
-    const base = baseSegments.slice(0, baseSegments.length - popCount);
-    return [...base, ...parts.slice(partStart)].join("/");
   };
 
   const handleApiError = (error: unknown, defaultMessage: string) => {
@@ -335,10 +327,9 @@ export const useTableRowActions = <T extends Data>(
   };
 
   const openRowByIdImpl = (itemId: string, item?: T) => {
-    if (getContainerType() === FormContainerType.page) {
-      const viewSlug = config.formContainer?.pages?.view?.urlSlug || ":id/view";
-      const viewUrl = resolveFormPageUrl(viewSlug).replace(":id", itemId);
-      navigateDms(viewUrl);
+    const viewPageUrl = config.formPages?.view;
+    if (getContainerType() === FormContainerType.page && viewPageUrl) {
+      navigateDms(fillFormPageUrl(viewPageUrl, config.routeParams, itemId));
       return;
     }
 
@@ -355,12 +346,15 @@ export const useTableRowActions = <T extends Data>(
   const editRowImpl = (item: T, submitDefaults?: Record<string, unknown>) => {
     const itemId = getItemId(item, config.rowIdKey ?? DEFAULT_ROW_ID_KEY);
 
-    if (getContainerType() === FormContainerType.page && itemId) {
-      const editSlug = config.formContainer?.pages?.edit?.urlSlug || ":id/edit";
-      const editUrl = resolveFormPageUrl(editSlug).replace(":id", itemId);
+    const editPageUrl = config.formPages?.edit;
+    if (
+      getContainerType() === FormContainerType.page &&
+      itemId &&
+      editPageUrl
+    ) {
       const forwardedQuery = buildForwardedQuery();
       navigateDms({
-        path: editUrl,
+        path: fillFormPageUrl(editPageUrl, config.routeParams, itemId),
         ...(forwardedQuery ? { query: forwardedQuery } : {}),
       });
       return;
@@ -377,11 +371,11 @@ export const useTableRowActions = <T extends Data>(
   };
 
   const newRowImpl = (submitDefaults?: Record<string, unknown>) => {
-    if (getContainerType() === FormContainerType.page) {
-      const newSlug = config.formContainer?.pages?.new?.urlSlug || "new";
+    const newPageUrl = config.formPages?.new;
+    if (getContainerType() === FormContainerType.page && newPageUrl) {
       const forwardedQuery = buildForwardedQuery();
       navigateDms({
-        path: resolveFormPageUrl(newSlug),
+        path: fillFormPageUrl(newPageUrl, config.routeParams),
         ...(forwardedQuery ? { query: forwardedQuery } : {}),
       });
       return;
@@ -396,10 +390,10 @@ export const useTableRowActions = <T extends Data>(
   };
 
   const duplicateRowImpl = (itemId: string) => {
-    if (getContainerType() === FormContainerType.page) {
-      const newSlug = config.formContainer?.pages?.new?.urlSlug || "new";
+    const newPageUrl = config.formPages?.new;
+    if (getContainerType() === FormContainerType.page && newPageUrl) {
       navigateDms({
-        path: resolveFormPageUrl(newSlug),
+        path: fillFormPageUrl(newPageUrl, config.routeParams),
         query: { duplicate: itemId },
       });
       return;

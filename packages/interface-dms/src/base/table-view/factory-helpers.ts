@@ -7,7 +7,7 @@
 import { ComponentBuilder } from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
-import { FormEvents } from "../form-types";
+import { type FormBuilder, FormEvents } from "../form-types";
 import type {
   CustomButton,
   CustomButtonSerialized,
@@ -15,12 +15,19 @@ import type {
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
 import { TableViewMeta } from "./meta";
 import {
+  type FormContainerPages,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
+  type QueryParamFilters,
+  type RouteParamFilters,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
+  type TableViewFormPageUrls,
 } from "./options";
+
+export type FormPageKind = keyof TableViewFormPageUrls;
+
 export namespace TableViewEvents {
   export const ROW_CLICK = "DmsComponent.TableView.RowClick";
   export const ROW_SELECT = "DmsComponent.TableView.RowSelect";
@@ -193,16 +200,250 @@ export function serializeTableViewDisplays(
   return serialized.length > 0 ? serialized : undefined;
 }
 
+/** What a page-mode form sub-page is, beyond the form it carries. */
+export interface FormPageDefinition {
+  /** Slug it takes below the key of its table view, when none is declared. */
+  defaultSlug: string;
+  displayName: string;
+  description: string;
+  /** Table view action whose permission guards the sub-page. */
+  action: string;
+  /** Whether submitting the form sends the user back to the table. */
+  redirectsOnSubmit: boolean;
+  /** Whether the form submits the fields the table view filters on. */
+  submitsFilterDefaults: boolean;
+}
+
+export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
+  new: {
+    defaultSlug: "new",
+    displayName: "$dms.table.new_item",
+    description: "$dms.table.new_item_description",
+    action: "add",
+    redirectsOnSubmit: true,
+    submitsFilterDefaults: true,
+  },
+  edit: {
+    defaultSlug: ":id/edit",
+    displayName: "$dms.table.edit_item",
+    description: "$dms.table.edit_item_description",
+    action: "edit",
+    redirectsOnSubmit: true,
+    submitsFilterDefaults: true,
+  },
+  view: {
+    defaultSlug: ":id/view",
+    displayName: "$dms.table.view_item",
+    description: "$dms.table.view_item_description",
+    action: "view",
+    redirectsOnSubmit: false,
+    submitsFilterDefaults: false,
+  },
+};
+
+export const FORM_PAGE_KINDS = Object.keys(
+  FORM_PAGE_DEFINITIONS,
+) as FormPageKind[];
+
+/** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
+export const ROW_SCOPED_FORM_PAGE_KINDS: FormPageKind[] = ["edit", "view"];
+
+/** Append a form page slug to the slug of the page carrying the table view. */
+export function joinPageSlug(pageSlug: string, slug: string): string {
+  return `${pageSlug}/${slug}`.replace(/\/+/g, "/");
+}
+
+// A slug starting with "/" addresses a page of its own and is navigated
+// verbatim, query string included; leading ".." segments each drop one segment
+// of the carrying page. Registration joins the slug as it stands instead —
+// these two forms name a page the table view does not register.
+function toFormPageUrl(pageSlug: string, slug: string): string {
+  if (slug.startsWith("/")) return slug;
+  const parts = slug.split("/");
+  let parentCount = 0;
+  while (parentCount < parts.length && parts[parentCount] === "..") {
+    parentCount++;
+  }
+  const segments = pageSlug.replace(/\/$/, "").split("/");
+  return joinPageSlug(
+    segments.slice(0, segments.length - parentCount).join("/"),
+    parts.slice(parentCount).join("/"),
+  );
+}
+
 /**
- * Whether the component sits below a page component rather than being one.
- * Permission ids are the page's `fullId` followed by the path of keys leading
- * to the component, so a nested one keeps a separator in what remains.
+ * The key identifying a table view among the components of its page: the last
+ * segment of its permission id relative to the page's `fullId`.
+ *
+ * Form routes are named after it rather than after the page, so two table views
+ * on one page get URLs of their own; the *simple* key rather than the whole
+ * component path, so the URL stays readable and survives the layout being
+ * reorganised around the table view.
+ *
+ * @param permissionId Permission id of the table view
+ * @param pageFullId `fullId` of the page carrying it
  */
-export function isNestedComponent(
-  permissionId: string,
-  pageFullId: string,
-): boolean {
+export function formRouteKey(permissionId: string, pageFullId: string): string {
   const prefix = `${pageFullId}.`;
-  if (!permissionId.startsWith(prefix)) return false;
-  return permissionId.slice(prefix.length).includes(".");
+  const path = permissionId.startsWith(prefix)
+    ? permissionId.slice(prefix.length)
+    : "";
+  const key = path.split(".").pop();
+  if (!key) {
+    throw new Error(
+      `TableView permission id "${permissionId}" names no component of page "${pageFullId}": its form routes have no key to be named after.`,
+    );
+  }
+  return key;
+}
+
+/**
+ * The slug a page-mode form page takes, relative to the page carrying the table
+ * view.
+ *
+ * A declared `urlSlug` is full control — it is taken as it stands, no key
+ * segment inserted, which is both what every existing declaration already meant
+ * and the escape hatch for anyone wanting a specific URL.
+ */
+export function formPageSlug(
+  kind: FormPageKind,
+  routeKey: string,
+  pages?: FormContainerPages,
+): string {
+  return (
+    pages?.[kind]?.urlSlug ||
+    `${routeKey}/${FORM_PAGE_DEFINITIONS[kind].defaultSlug}`
+  );
+}
+
+/**
+ * The URL each page-mode form is reached at, whether or not the table view
+ * registers a page for it: a `customPage` entry points at a hand-written page
+ * and is navigated to all the same.
+ */
+export function buildFormPageUrls(
+  pageSlug: string,
+  routeKey: string,
+  pages?: FormContainerPages,
+): TableViewFormPageUrls {
+  const urls = {} as TableViewFormPageUrls;
+  for (const kind of FORM_PAGE_KINDS) {
+    urls[kind] = toFormPageUrl(pageSlug, formPageSlug(kind, routeKey, pages));
+  }
+  return urls;
+}
+
+/** The URL filters of a table view, which its forms submit as defaults. */
+export interface TableViewUrlFilters {
+  queryParamFilters?: QueryParamFilters;
+  routeParamFilters?: RouteParamFilters;
+}
+
+/** A form page route, and the slug of the page carrying its table view. */
+export interface FormRouteFrame {
+  pageSlug: string;
+  formSlug: string;
+}
+
+// Mirrors how the frontend reads a route pattern (extractRouteParams): one
+// placeholder per segment, in pattern order.
+function slugPlaceholders(slug: string): string[] {
+  return slug
+    .split("/")
+    .filter((segment) => segment.startsWith(":"))
+    .map((segment) => segment.substring(1));
+}
+
+const countOccurrences = (names: string[], name: string): number =>
+  names.filter((candidate) => candidate === name).length;
+
+/**
+ * The token reading, on a form page, an occurrence of the route parameter
+ * `name` of the page carrying the table view — by default its last, the value
+ * its `routeParamFilters` filter on.
+ *
+ * The bare name holds the last occurrence of a repeated placeholder, which on
+ * a form route is the form's own (`/workspaces/:id/invoiceTable/:id/edit`:
+ * the row id). The page's placeholders precede the form's, so the page's
+ * occurrence is addressed by its number. Numbered keys exist only for repeated
+ * names, hence the bare name otherwise.
+ */
+function pageParamToken(
+  name: string,
+  frame?: FormRouteFrame,
+  occurrence?: number,
+): string {
+  if (!frame) return `{{params.${name}}}`;
+  const pageOccurrence =
+    occurrence ?? countOccurrences(slugPlaceholders(frame.pageSlug), name);
+  const total = countOccurrences(slugPlaceholders(frame.formSlug), name);
+  return pageOccurrence > 0 && total > 1
+    ? `{{params.${name}:${pageOccurrence}}}`
+    : `{{params.${name}}}`;
+}
+
+/**
+ * The URL a form page sends the user back to on submit: the slug of the page
+ * carrying the table view, each placeholder replaced by the token reading its
+ * value on the form route, which the frontend resolves before navigating
+ * (`/workspaces/:id` becomes `/workspaces/{{params.id:1}}` from
+ * `/workspaces/:id/invoiceTable/:id/edit`). A slug without placeholder is
+ * returned as is.
+ */
+export function buildFormRedirectUrl(frame: FormRouteFrame): string {
+  const seen: Record<string, number> = {};
+  return frame.pageSlug
+    .split("/")
+    .map((segment) => {
+      if (!segment.startsWith(":")) return segment;
+      const name = segment.substring(1);
+      seen[name] = (seen[name] ?? 0) + 1;
+      return pageParamToken(name, frame, seen[name]);
+    })
+    .join("/");
+}
+
+/**
+ * Default the filtered fields from the URL tokens that `queryParamFilters` /
+ * `routeParamFilters` apply to the table, so a form opened from a filtered view
+ * inherits that context. The form resolves these tokens at submit time and
+ * drops any that are absent.
+ *
+ * @param filters URL filters of the table view
+ * @param frame Route of the form page the form is registered under; without
+ * one, the form renders on the page carrying the table view
+ */
+export function buildFilterSubmitDefaults(
+  filters: TableViewUrlFilters,
+  frame?: FormRouteFrame,
+): Record<string, string> | undefined {
+  const defaults: Record<string, string> = {};
+  for (const [param, filter] of Object.entries(
+    filters.queryParamFilters ?? {},
+  )) {
+    defaults[filter.field] = `{{query.${param}}}`;
+  }
+  for (const [param, filter] of Object.entries(
+    filters.routeParamFilters ?? {},
+  )) {
+    defaults[filter.field] = pageParamToken(param, frame);
+  }
+  return Object.keys(defaults).length > 0 ? defaults : undefined;
+}
+
+/**
+ * Re-resolve the filter defaults of a form for the page it is registered as.
+ *
+ * The form was built for the page carrying the table view — where the table
+ * view embeds it, and where `{{params.<name>}}` is the parameter it filters
+ * on. On a form route repeating that name, the bare name is shadowed by the
+ * form's own placeholder.
+ */
+export function applyFormPageSubmitDefaults(
+  form: FormBuilder,
+  filters: TableViewUrlFilters,
+  frame: FormRouteFrame,
+): void {
+  const submitDefaults = buildFilterSubmitDefaults(filters, frame);
+  if (submitDefaults) form.mergeOptions({ submitDefaults });
 }

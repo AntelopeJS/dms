@@ -401,12 +401,15 @@ function schedulePublishMenuChanged(tenantId: string | undefined): void {
     }
   };
 
+  // A pending trailing publish covers this call even once the window has
+  // elapsed: its timer is merely late, held back by synchronous work, and
+  // publishing now as well would send the burst's trailing event twice.
+  if (pendingMenuNotifications.has(target)) return;
   const sinceLast = Date.now() - (lastMenuPublishAt.get(target) ?? 0);
   if (sinceLast >= MENU_NOTIFICATION_WINDOW_MS) {
     publish();
     return;
   }
-  if (pendingMenuNotifications.has(target)) return;
   const timer = setTimeout(() => {
     pendingMenuNotifications.delete(target);
     publish();

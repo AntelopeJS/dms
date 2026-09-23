@@ -47,6 +47,7 @@ import {
   type PageExtensionEntry,
 } from "./extension-assembly";
 import { collectExtensionErrors } from "./extension-validation";
+import { FormPageRouteConflictError } from "./form-page-routes";
 import { type ComponentNodeMap, filterComponents } from "./layout-filter";
 import {
   pageExtensions,
@@ -770,6 +771,10 @@ export class PageMetadata {
     try {
       node.component.onPageCreated(this);
     } catch (error) {
+      // …except a route two components both claim: the page cannot honour both
+      // declarations, and carrying on would publish one of them at an address
+      // the other answers.
+      if (error instanceof FormPageRouteConflictError) throw error;
       Logging.Error(
         `[dms] component "${node.permissionId}" failed its onCreated hook on page "${this.pageInfo?.fullId}": ${String(error)}`,
       );
@@ -872,6 +877,7 @@ export class PageMetadata {
           contribution.component,
           this.extensionComponentPath(contribution),
         );
+        if (error instanceof FormPageRouteConflictError) throw error;
         Logging.Error(
           `[dms] page extension "${info.extensionName}" could not register component "${contribution.key}" on page "${info.targetFullId}": ${String(error)}`,
         );

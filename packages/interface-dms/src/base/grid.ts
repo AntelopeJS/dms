@@ -5,6 +5,7 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 const GRID_COMPONENT_NAME = "dms-grid";
 const GRID_ROW_COMPONENT_NAME = "dms-grid-row";
 const GRID_DEFAULT_GAP = "1rem";
+const GRID_DEFAULT_MIN_COLUMN_WIDTH = "240px";
 
 /**
  * Options for Grid component
@@ -15,6 +16,14 @@ export interface GridOptions {
    * @default '1rem'
    */
   gap?: string;
+  /**
+   * Width below which a column is dropped rather than squeezed (CSS length).
+   * The grid keeps as many columns as the available width affords at this
+   * floor, up to the widest row's child count, so a row that does not fit
+   * wraps instead of overflowing.
+   * @default '240px'
+   */
+  minColumnWidth?: string;
 }
 
 /** The options `Grid` accepts. */
@@ -25,6 +34,13 @@ export const GridSchema = z.object({
       .default(GRID_DEFAULT_GAP)
       .describe("Gap between rows and columns, as a CSS length."),
     { label: "Gap", group: "layout" },
+  ),
+  minColumnWidth: ui(
+    z
+      .string()
+      .default(GRID_DEFAULT_MIN_COLUMN_WIDTH)
+      .describe("Width below which a column is dropped, as a CSS length."),
+    { label: "Minimum column width", group: "layout" },
   ),
 }) satisfies BlockOptionsFor<GridOptions>;
 
@@ -52,6 +68,11 @@ export const GridChildSchema = z.object({
  * the maximum number of children in any row. Each GridRow child will be rendered
  * as a row in the grid.
  *
+ * The column count is an upper bound, not a fixed value: columns narrower than
+ * `minColumnWidth` are dropped, so on a narrow viewport a row wraps onto
+ * several lines instead of overflowing. Rows share one template, so they stay
+ * aligned on one another at every width.
+ *
  * @example
  * ```typescript
  * Grid({ gap: '1rem' })
@@ -68,6 +89,7 @@ export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
   return new ComponentBuilder<GridOptions>(GRID_COMPONENT_NAME)
     .options({
       gap: GRID_DEFAULT_GAP,
+      minColumnWidth: GRID_DEFAULT_MIN_COLUMN_WIDTH,
       ...options,
     })
     .meta({

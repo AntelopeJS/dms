@@ -1,6 +1,8 @@
 import { defineConfig } from "@antelopejs/interface-core/config";
 
-const apiPort = process.env.PORT ?? "5010";
+// Preferred port only: when it is taken, the api module reserves the next free
+// one and publishes it, so every other URL derives from `${@api.*}`.
+const preferredApiPort = process.env.PORT ?? "5010";
 const dmsClientUrl = process.env.DMS_CLIENT_BASE_URL;
 
 export default defineConfig({
@@ -43,6 +45,7 @@ export default defineConfig({
           // supply its own.
           jwtSecret: "dev",
         },
+        apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
       },
     },
     playground: {
@@ -51,7 +54,7 @@ export default defineConfig({
         path: ".",
         watchDir: ["src"],
         installCommand: ["true"],
-        reloadCommand: ["pnpm build"],
+        reloadCommand: ["pnpm exec tsc"],
       },
     },
     mongodb: {
@@ -81,10 +84,10 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/api",
-        version: "1.2.5",
+        version: "^1.3.0",
       },
       config: {
-        servers: [{ protocol: "http", port: apiPort }],
+        servers: [{ protocol: "http", port: preferredApiPort }],
         cors: {
           allowedOrigins: [
             "http://localhost:3001",
@@ -102,7 +105,7 @@ export default defineConfig({
       },
       config: {
         storagePath: ".antelope/file-storage",
-        baseUrl: `http://127.0.0.1:${apiPort}`,
+        baseUrl: "${@api.API_PUBLIC_BASE_URL}",
         defaultVisibility: "private",
         // Sweep abandoned staged uploads (files presigned with `staging: true`
         // but never saved, so never promoted out of `__staging__/`) after this

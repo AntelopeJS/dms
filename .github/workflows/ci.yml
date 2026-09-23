@@ -58,10 +58,8 @@ jobs:
       - run: pnpm --dir packages/interface-dms check:consumer
 
       - run: pnpm --dir packages/dms lint
-      # tsconfig.json is the config the editors and oxlint's type-aware pass
-      # read; tsconfig.build.json is the one the build uses. Without this the
-      # first is never exercised, and a resolution failure there degrades every
-      # type-aware rule to `any` without failing anything.
+      # oxlint's type-aware pass degrades to `any` on a broken tsconfig
+      # without failing, so the typecheck is what catches it.
       - run: pnpm --dir packages/dms typecheck
       # Unused dependencies only. `pnpm knip:all` also reports dead files and
       # exports, which the interface architecture makes noisy enough to need a
@@ -70,6 +68,9 @@ jobs:
       - run: pnpm --dir packages/dms build
       # `test:unit` builds first, so this also gates on compile errors.
       - run: pnpm --dir packages/dms test:unit
+      # Needs no service: the harness starts an in-memory MongoDB replica set
+      # and lets the OS pick the api port.
+      - run: pnpm --dir packages/dms test:integration
       - run: pnpm --dir packages/dms/frontend-vue test
       - run: pnpm --dir packages/dms/frontend-vue typecheck
       - run: pnpm --dir packages/dms check:package

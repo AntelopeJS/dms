@@ -96,18 +96,24 @@ function processFieldI18n(
   };
 }
 
-interface ReplaceUrlVariablesContext {
+// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
+// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
+// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
+// table view (see extractRouteParams).
+const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
+
+export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: Record<string, unknown>;
   response?: Record<string, unknown>;
 }
 
-function replaceUrlVariables(
+export function replaceUrlVariables(
   url: string,
   context: ReplaceUrlVariablesContext,
 ): string {
   let processedUrl = url.replace(
-    /\{\{params\.(\w+)\}\}/g,
+    PARAM_TOKEN,
     (match, key) => context.routeParams?.[key] || match,
   );
 
@@ -194,6 +200,30 @@ function collectSubmitData(
     ...(submitDefaults as FormData),
     ...fieldData,
   };
+}
+
+// `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
+// tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
+// against the current route at submit time; drop entries whose tokens cannot
+// be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
+export function resolveSubmitDefaults(
+  submitDefaults: Record<string, unknown> | undefined,
+  context: ReplaceUrlVariablesContext,
+): Record<string, unknown> | undefined {
+  if (!submitDefaults) return undefined;
+
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(submitDefaults)) {
+    if (typeof value === "string" && value.includes("{{")) {
+      const replaced = replaceUrlVariables(value, context);
+      if (replaced.includes("{{")) continue;
+      resolved[key] = replaced;
+    } else {
+      resolved[key] = value;
+    }
+  }
+
+  return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
@@ -365,28 +395,8 @@ export const useForm = (props: FormProps) => {
     response,
   });
 
-  // `submitDefaults` string values may contain `{{query.X}}` / `{{params.X}}`
-  // tokens (e.g. a "new" form generated from `queryParamFilters`). Resolve them
-  // against the current route at submit time; drop entries whose tokens cannot
-  // be resolved so an unfiltered form doesn't submit a literal `{{...}}`.
-  const effectiveSubmitDefaults = computed<Record<string, unknown> | undefined>(
-    () => {
-      if (!props.submitDefaults) return undefined;
-
-      const context = buildUrlContext();
-      const resolved: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(props.submitDefaults)) {
-        if (typeof value === "string" && value.includes("{{")) {
-          const replaced = replaceUrlVariables(value, context);
-          if (replaced.includes("{{")) continue;
-          resolved[key] = replaced;
-        } else {
-          resolved[key] = value;
-        }
-      }
-
-      return Object.keys(resolved).length > 0 ? resolved : undefined;
-    },
+  const effectiveSubmitDefaults = computed(() =>
+    resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
   );
 
   const resolvedFetchUrl = computed(() => {

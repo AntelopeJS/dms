@@ -37,36 +37,65 @@ interface MatchRouteResult {
   params: Record<string, string>;
 }
 
-function extractRouteParams(
-  pattern: string,
-  path: string,
-): Record<string, string> | null {
-  const regexPattern = pattern
-    .split("/")
-    .map((segment) => {
-      if (segment.startsWith(":")) {
-        return "([^/]+)";
-      }
-      return segment;
-    })
-    .join("/");
+// A route pattern can carry the same placeholder name twice: a page-mode form
+// sub-page under a page whose own slug is `:id` resolves to
+// `/workspaces/:id/invoiceTable/:id/edit`. The bare name holds the LAST
+// occurrence, so `params.id` keeps meaning the row id the way it does on every
+// single-placeholder form route, and each occurrence of a repeated name is
+// exposed as well under `<name>:<n>`, numbered from 1 in pattern order, so the
+// id of the carrying page stays reachable as `id:1`. A name that occurs only
+// once gets no indexed key: those bags are exactly what they were.
+const OCCURRENCE_KEY_SEPARATOR = ":";
 
-  const regex = new RegExp(`^${regexPattern}$`);
-  const match = path.match(regex);
+const occurrenceKey = (name: string, occurrence: number): string =>
+  `${name}${OCCURRENCE_KEY_SEPARATOR}${occurrence}`;
 
-  if (!match) return null;
+function countByName(names: string[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const name of names) {
+    totals[name] = (totals[name] ?? 0) + 1;
+  }
+  return totals;
+}
 
-  const paramNames = pattern
-    .split("/")
-    .filter((segment) => segment.startsWith(":"))
-    .map((segment) => segment.substring(1));
-
+function buildParamBag(
+  names: string[],
+  values: string[],
+): Record<string, string> {
+  const totals = countByName(names);
+  const seen: Record<string, number> = {};
   const params: Record<string, string> = {};
-  paramNames.forEach((name, index) => {
-    params[name] = match[index + 1]!;
+
+  names.forEach((name, index) => {
+    const value = values[index]!;
+    const occurrence = (seen[name] ?? 0) + 1;
+    seen[name] = occurrence;
+    params[name] = value;
+    if (totals[name]! > 1) {
+      params[occurrenceKey(name, occurrence)] = value;
+    }
   });
 
   return params;
+}
+
+export function extractRouteParams(
+  pattern: string,
+  path: string,
+): Record<string, string> | null {
+  const segments = pattern.split("/");
+  const regexPattern = segments
+    .map((segment) => (segment.startsWith(":") ? "([^/]+)" : segment))
+    .join("/");
+
+  const match = path.match(new RegExp(`^${regexPattern}$`));
+  if (!match) return null;
+
+  const paramNames = segments
+    .filter((segment) => segment.startsWith(":"))
+    .map((segment) => segment.substring(1));
+
+  return buildParamBag(paramNames, match.slice(1));
 }
 
 export const useSiteLayout = () => {

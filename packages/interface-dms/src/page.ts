@@ -36,6 +36,7 @@ export {
   RootCategory,
   RootPageController,
 } from "./page/controllers";
+export { FormPageRouteConflictError } from "./page/form-page-routes";
 export { PageMetadata } from "./page/metadata";
 export {
   ClearPageLayoutBySlug,
