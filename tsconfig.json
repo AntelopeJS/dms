@@ -1,9 +1,8 @@
 {
   "compilerOptions": {
-    "noEmit": true,
     "moduleResolution": "bundler",
     "target": "esnext",
-    "module": "preserve",
+    "module": "commonjs",
     "lib": ["esnext", "dom"],
     "incremental": true,
     "strict": true,

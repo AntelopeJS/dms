@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "noEmit": true,
     "moduleResolution": "bundler",
     "target": "esnext",
-    "module": "preserve",
+    "module": "commonjs",
     "lib": ["ES2020"],
+    "types": ["node"],
     "allowJs": true,
     "incremental": true,
     "tsBuildInfoFile": "dist/.tsbuildinfo",

@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "rimraf dist && tsc",
     "dev": "ajs project run -w",
     "frontend:dev": "ajs dms dev"
   },
@@ -14,7 +14,7 @@
     "@types/node": "^20.5.7",
     "prettier": "^2.6.1",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   },
   "antelopeJs": {
     "baseUrl": "dist",

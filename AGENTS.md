@@ -91,14 +91,15 @@ ceilings and `import/no-cycle` report as warnings on purpose: each has a backlog
 it that is being worked through in its own pass, and they become errors once clear. Do
 not add code that adds to those backlogs.
 
-Two tsconfigs, on purpose. `tsconfig.json` uses `bundler` resolution, which is what
-oxlint's type-aware rules require — TypeScript 7 removed `moduleResolution: node`, and
-tsgolint rejects a config that still uses it. It never emits, so `bundler` costs nothing
-and, unlike `node16`, does not demand a file extension on every relative import.
-`tsconfig.build.json` sets the module system back to CommonJS for emit only, so
-`await import()` keeps compiling to `require()` and the runtime's directory-based
-interface loading keeps working. Edit the first for type settings; the build one only
-exists to pin the emit. Both packages follow the same pair.
+One tsconfig per project, used by the editors, oxlint's type-aware pass and the build
+alike. It pairs `module: commonjs` with `moduleResolution: bundler`, which needs
+TypeScript 6 or later. `bundler` is what oxlint's type-aware rules require — TypeScript 7
+removed `moduleResolution: node`, and tsgolint rejects a config that still uses it — and,
+unlike `nodenext`, it does not demand a file extension on every relative import.
+`commonjs` keeps `await import()` compiling to `require()`, so the runtime's
+directory-based interface loading keeps working; `nodenext` would emit a real
+`import()` there, which cannot load a directory. Both packages extend the root
+`tsconfig.json`; the playground carries its own.
 
 `moduleResolution: node` does not read an `exports` map, which is why
 `@antelopejs/interface-dms` also carries a `typesVersions` mapping and
