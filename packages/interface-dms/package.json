@@ -32,7 +32,6 @@
     "format": "oxfmt .",
     "prepack": "pnpm run build && pnpm run check:exports",
     "check:exports": "node scripts/check-exports.mjs",
-    "check:consumer": "node scripts/check-consumer.mjs",
     "release": "release-it",
     "knip": "knip --dependencies",
     "knip:all": "knip"
@@ -136,69 +135,9 @@
       "types": "./dist/notifications/index.d.ts",
       "default": "./dist/notifications/index.js"
     },
-    "./dist": {
-      "types": "./dist/index.d.ts"
-    },
-    "./dist/auth": {
-      "types": "./dist/auth/index.d.ts"
-    },
-    "./dist/auth/db": {
-      "types": "./dist/auth/db/index.d.ts"
-    },
-    "./dist/auth/db/models": {
-      "types": "./dist/auth/db/models/index.d.ts"
-    },
-    "./dist/auth/db/tables": {
-      "types": "./dist/auth/db/tables/index.d.ts"
-    },
-    "./dist/base": {
-      "types": "./dist/base/index.d.ts"
-    },
-    "./dist/base/block-registry": {
-      "types": "./dist/base/block-registry/index.d.ts"
-    },
-    "./dist/base/data-types": {
-      "types": "./dist/base/data-types/index.d.ts"
-    },
-    "./dist/base/types": {
-      "types": "./dist/base/types/index.d.ts"
-    },
-    "./dist/data-controllers": {
-      "types": "./dist/data-controllers/index.d.ts"
-    },
-    "./dist/db": {
-      "types": "./dist/db/index.d.ts"
-    },
-    "./dist/db/models": {
-      "types": "./dist/db/models/index.d.ts"
-    },
-    "./dist/db/tables": {
-      "types": "./dist/db/tables/index.d.ts"
-    },
-    "./dist/html-render": {
-      "types": "./dist/html-render/index.d.ts"
-    },
-    "./dist/notifications": {
-      "types": "./dist/notifications/index.d.ts"
-    },
-    "./dist/*": {
-      "types": "./dist/*.d.ts"
-    },
     "./*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "dist/*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ],
-      "*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ]
     }
   },
   "publishConfig": {
