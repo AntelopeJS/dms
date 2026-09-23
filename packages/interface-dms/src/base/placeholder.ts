@@ -66,7 +66,7 @@ export function Placeholder(
     .options({ ...options })
     .meta({
       name: "Placeholder",
-      icon: "i-ph-square-dashed",
+      icon: "i-ph-selection",
     });
 }
 
@@ -76,7 +76,7 @@ RegisterBlockType({
   schema: PlaceholderSchema,
   meta: {
     name: "Placeholder",
-    icon: "i-ph-square-dashed",
+    icon: "i-ph-selection",
     description: "Empty box standing in for content still to come.",
     group: "layout",
   },
