@@ -17,6 +17,7 @@ import "./grid";
 import "./kpi-card";
 import "./period-selector";
 import "./placeholder";
+import "./resource-form-schema";
 import "./stack";
 import "./tab";
 import "./table-view/schema";

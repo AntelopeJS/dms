@@ -6,11 +6,8 @@ import { ComponentBuilder } from "../../component";
 import { GetPermissionId, PageMetadata } from "../../page";
 import { HasPermission } from "../../permissions";
 import { StampUploadFieldTokens } from "../../uploads";
-import { getDataTypeId } from "../data-types/core";
-import { Form } from "../form-schema";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
-import { FormMode, HttpMethod } from "../types";
 import type {
   CustomButton,
   CustomButtonSerialized,
@@ -27,11 +24,8 @@ import {
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
 } from "./options";
-import {
-  REALTIME_PRESENCE_ACQUIRE_VALUE,
-  REALTIME_PRESENCE_QUERY,
-  reportRealtimePageTopic,
-} from "./realtime";
+import { reportRealtimePageTopic } from "./realtime";
+import { resourceForm, stampAttachmentFields } from "./resource-form";
 import { TableViewRoutes } from "./routes";
 import { extractRuleFromConfig } from "./row-rules";
 import {
@@ -83,13 +77,7 @@ export function TableView<T extends ControllerClass>(
   const { config } = meta;
   const { endpoints } = GetMetadata(controller, DataAPIMeta);
 
-  for (const [columnKey, column] of Object.entries(meta.columns)) {
-    const typeId = getDataTypeId(column.type);
-    if (typeId === "file" || typeId === "image") {
-      const typeOptions = column.type.options as Record<string, unknown>;
-      typeOptions.attachmentField = `${config.location}#${columnKey}`;
-    }
-  }
+  stampAttachmentFields(meta, config.location);
 
   const isExportEnabled = Object.keys(TableViewRoutes.ExportRoutes).every(
     (key) => !!endpoints[key],
@@ -132,10 +120,6 @@ export function TableView<T extends ControllerClass>(
     }
   }
 
-  const formFieldsNew = meta.getFormFields(FormMode.new);
-  const formFieldsEdit = meta.getFormFields(FormMode.edit);
-  const formFieldsView = meta.getFormFields(FormMode.view);
-
   // Default the filtered fields from the URL tokens that `queryParamFilters` /
   // `routeParamFilters` apply to the table, so a form opened from a filtered
   // view (any container) inherits that context. The form resolves these tokens
@@ -156,36 +140,13 @@ export function TableView<T extends ControllerClass>(
   };
   const filterSubmitDefaults = buildFilterSubmitDefaults();
 
-  const newForm =
-    formFieldsNew.length > 0
-      ? Form({
-          fields: formFieldsNew,
-          fetchUrl: `${config.location}/get?id={{query.duplicate}}`,
-          fetchUrlMethod: HttpMethod.get,
-          submitUrl: `${config.location}/new`,
-          submitUrlMethod: HttpMethod.post,
-          submitDefaults: filterSubmitDefaults,
-        })
-      : undefined;
-  const editForm =
-    formFieldsEdit.length > 0
-      ? Form({
-          fields: formFieldsEdit,
-          fetchUrl: `${config.location}/get?id={{params.id}}&${REALTIME_PRESENCE_QUERY}=${REALTIME_PRESENCE_ACQUIRE_VALUE}`,
-          fetchUrlMethod: HttpMethod.get,
-          submitUrl: `${config.location}/edit?id={{params.id}}`,
-          submitUrlMethod: HttpMethod.put,
-          submitDefaults: filterSubmitDefaults,
-        })
-      : undefined;
-  const viewForm =
-    formFieldsView.length > 0
-      ? Form({
-          fields: formFieldsView,
-          fetchUrl: `${config.location}/get?id={{params.id}}`,
-          fetchUrlMethod: HttpMethod.get,
-        })
-      : undefined;
+  const newForm = resourceForm(controller, "new", {
+    submitDefaults: filterSubmitDefaults,
+  });
+  const editForm = resourceForm(controller, "edit", {
+    submitDefaults: filterSubmitDefaults,
+  });
+  const viewForm = resourceForm(controller, "view");
 
   const serializeActionTarget = (
     target: CustomButton["target"],

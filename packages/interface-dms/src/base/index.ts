@@ -19,6 +19,7 @@ export * from "./kpi-card";
 export * from "./layouts";
 export * from "./period-selector";
 export * from "./placeholder";
+export * from "./resource-form-schema";
 export * from "./searchable";
 export * from "./stack";
 export * from "./tab";
