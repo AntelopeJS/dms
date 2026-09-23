@@ -1,7 +1,8 @@
 {
   "git": {
     "commitMessage": "chore(release): @antelopejs/dms v${version}",
-    "tagName": "v${version}"
+    "tagName": "v${version}",
+    "requireCommits": true
   },
   "github": {
     "release": true,
