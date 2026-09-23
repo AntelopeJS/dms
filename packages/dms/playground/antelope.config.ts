@@ -54,7 +54,7 @@ export default defineConfig({
         path: ".",
         watchDir: ["src"],
         installCommand: ["true"],
-        reloadCommand: ["pnpm build"],
+        reloadCommand: ["pnpm exec tsc"],
       },
     },
     mongodb: {

@@ -178,6 +178,11 @@ function createTypeScriptConfig(moduleResolution, module) {
     compilerOptions: {
       moduleResolution,
       module,
+      // TypeScript 6 deprecates `node` resolution, which consumers still use
+      // and this check exists to cover.
+      ignoreDeprecations: "6.0",
+      // TypeScript 6 no longer loads every installed `@types` package.
+      types: ["node"],
       target: "ES2022",
       strict: true,
       noEmit: true,
