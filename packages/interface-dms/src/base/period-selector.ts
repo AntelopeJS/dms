@@ -40,8 +40,15 @@ export type PeriodAlign = (typeof PERIOD_ALIGNS)[number];
 export const PERIOD_SELECTOR_VARIANTS = ["default", "segmented"] as const;
 export type PeriodSelectorVariant = (typeof PERIOD_SELECTOR_VARIANTS)[number];
 
+/**
+ * The scope a selector drives when nothing else is named: the one a builder
+ * binds a card's period to. One selector per page needs no other.
+ */
+export const DEFAULT_PERIOD_SCOPE = "page";
+
 export interface PeriodSelectorProps extends BaseComponentProps {
-  id: string;
+  /** Scope id the cards on the page refer to. Defaults to {@link DEFAULT_PERIOD_SCOPE}. */
+  id?: string;
   defaultPreset?: PeriodPreset;
   defaultComparison?: PeriodComparison;
   presets?: PeriodPreset[];
@@ -72,7 +79,7 @@ export function PeriodSelector(
   return new ComponentBuilder<PeriodSelectorProps>(
     PERIOD_SELECTOR_COMPONENT_NAME,
   )
-    .options({ ...options } as PeriodSelectorProps)
+    .options({ ...options, id: options?.id ?? DEFAULT_PERIOD_SCOPE })
     .meta({
       name: "PeriodSelector",
       icon: "i-ph-calendar",
@@ -81,10 +88,15 @@ export function PeriodSelector(
 
 /** The options `PeriodSelector` accepts. */
 export const PeriodSelectorSchema = z.object({
-  id: ui(z.string().describe("Scope id the cards on the page refer to."), {
-    label: "Scope id",
-    group: "data",
-  }),
+  // A card bound to a period follows the page's scope, so a selector seeded
+  // with an id of its own drove no card at all — and said nothing.
+  id: ui(
+    z
+      .string()
+      .default(DEFAULT_PERIOD_SCOPE)
+      .describe("Scope id the cards on the page refer to."),
+    { label: "Scope id", group: "advanced" },
+  ),
   defaultPreset: ui(z.enum(PERIOD_PRESETS).optional(), {
     label: "Default range",
     group: "behavior",
