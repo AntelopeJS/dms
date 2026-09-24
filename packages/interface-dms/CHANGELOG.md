@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.1...v0.2.2)
+
+### 🩹 Fixes
+
+- **roles:** Show permissions whose parent id is not registered ([#44](https://github.com/AntelopeJS/dms/pull/44))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.1 ([36f5bde](https://github.com/AntelopeJS/dms/commit/36f5bde))
+- **release:** @antelopejs/dms v0.4.2 ([2e415ae](https://github.com/AntelopeJS/dms/commit/2e415ae))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.0...v0.2.1)
