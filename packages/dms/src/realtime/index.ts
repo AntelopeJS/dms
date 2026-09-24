@@ -18,7 +18,10 @@ import {
 } from "./current";
 import { instanceId } from "./instance";
 import { RedisBroker } from "./redis-broker";
-import { installTableViewRealtimeBridge } from "./tableview-bridge";
+import {
+  installTableViewRealtimeBridge,
+  uninstallTableViewRealtimeBridge,
+} from "./tableview-bridge";
 
 export * from "./broker";
 // Only the readers: setCurrentRealtime does not migrate subscriptions and
@@ -160,6 +163,15 @@ export async function configureRealtime(
   } catch (error) {
     Logging.Warn("Realtime: heartbeat/sweep failed on startup", error);
   }
+}
+
+/**
+ * Release what this module generation installed in the shared interface
+ * packages. Run from `destroy()`, which core calls before it constructs the
+ * next generation on a hot reload.
+ */
+export function releaseRealtimeHooks(): void {
+  uninstallTableViewRealtimeBridge();
 }
 
 export async function stopRealtime(): Promise<void> {

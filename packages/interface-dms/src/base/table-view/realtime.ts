@@ -55,11 +55,25 @@ const realtimeHooks: {
   pageTopic?: RealtimePageTopicHook;
 } = {};
 
-const pendingPageTopics: RealtimePageTopicContext[] = [];
+// Every page topic reported so far, by page then controller. The page topic
+// hook belongs to one generation of the DMS module; when it comes back after a
+// hot reload, the pages of other modules do not register again, so the new
+// hook is handed all of them — not only those reported before any hook.
+const reportedPageTopics = new Map<
+  string,
+  Map<string, RealtimePageTopicContext>
+>();
 
 const realtimeMutationListeners = new Set<RealtimeMutationHook>();
 
-export function setRealtimeMutationHook(hook: RealtimeMutationHook): void {
+/**
+ * Install the hook the DMS module handles mutations with, or release it with
+ * `undefined` when that module shuts down: a hook left behind belongs to a
+ * module context that no longer exists, and calling it throws.
+ */
+export function setRealtimeMutationHook(
+  hook: RealtimeMutationHook | undefined,
+): void {
   realtimeHooks.mutation = hook;
 }
 
@@ -103,26 +117,45 @@ async function dispatchRealtimeMutation(
   }
 }
 
-export function setRealtimePresenceHook(hook: RealtimePresenceHook): void {
+/** Install or release (`undefined`) the presence hook, as `setRealtimeMutationHook`. */
+export function setRealtimePresenceHook(
+  hook: RealtimePresenceHook | undefined,
+): void {
   realtimeHooks.presence = hook;
 }
 
-export function setRealtimePageTopicHook(hook: RealtimePageTopicHook): void {
+/**
+ * Install the page topic hook and hand it every topic reported so far, or
+ * release it with `undefined`, as `setRealtimeMutationHook`.
+ */
+export function setRealtimePageTopicHook(
+  hook: RealtimePageTopicHook | undefined,
+): void {
   realtimeHooks.pageTopic = hook;
-  while (pendingPageTopics.length > 0) {
-    const context = pendingPageTopics.shift();
-    if (context) hook(context);
+  if (!hook) return;
+  for (const topics of reportedPageTopics.values()) {
+    for (const context of topics.values()) hook(context);
   }
 }
 
 export function reportRealtimePageTopic(
   context: RealtimePageTopicContext,
 ): void {
-  if (realtimeHooks.pageTopic) {
-    realtimeHooks.pageTopic(context);
-    return;
+  let topics = reportedPageTopics.get(context.pageId);
+  if (!topics) {
+    topics = new Map();
+    reportedPageTopics.set(context.pageId, topics);
   }
-  pendingPageTopics.push(context);
+  topics.set(context.controllerLocation, context);
+  realtimeHooks.pageTopic?.(context);
+}
+
+/**
+ * Forget the topics of a page that went away, so a hook installed later is not
+ * handed a surface that no longer serves.
+ */
+export function forgetRealtimePageTopics(pageId: string): void {
+  reportedPageTopics.delete(pageId);
 }
 
 type IdExtractor = (

@@ -74,6 +74,7 @@ export {
   type RealtimePageTopicContext,
   type RealtimePresenceActor,
   type RealtimePresenceContext,
+  forgetRealtimePageTopics,
   registerRealtimeMutationListener,
   setRealtimeMutationHook,
   setRealtimePageTopicHook,

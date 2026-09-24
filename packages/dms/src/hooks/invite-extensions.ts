@@ -3,13 +3,13 @@ import {
   type InviteDeletedHookPayload,
   type InviteDeletedReason,
   type MemberRemovedHookPayload,
-  RegisterHook,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import {
   CleanupInviteExtensions,
   type InviteCleanupContext,
 } from "@antelopejs/interface-dms/invite-extensions";
+import { dmsHooks } from "./owned-hooks";
 
 /**
  * Deletions that end the invitation, as opposed to the two that delete a row
@@ -65,7 +65,7 @@ async function onMemberRemoved(
  */
 export function registerInviteExtensionCleanup(): void {
   UnregisterHook(Hook.INVITE_DELETED, onInviteDeleted);
-  RegisterHook(Hook.INVITE_DELETED, onInviteDeleted);
+  dmsHooks.register(Hook.INVITE_DELETED, onInviteDeleted);
   UnregisterHook(Hook.MEMBER_REMOVED, onMemberRemoved);
-  RegisterHook(Hook.MEMBER_REMOVED, onMemberRemoved);
+  dmsHooks.register(Hook.MEMBER_REMOVED, onMemberRemoved);
 }

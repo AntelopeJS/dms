@@ -5,9 +5,10 @@ import {
   TenantMemberModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
-import { Hook, RegisterHook } from "@antelopejs/interface-dms/hooks";
+import { Hook } from "@antelopejs/interface-dms/hooks";
 import { closeTenantLifecycleAdmission } from "@antelopejs/interface-dms/tenant-lifecycle";
 import { deleteAllExportsForTenant } from "../utils";
+import { dmsHooks } from "./owned-hooks";
 
 async function deleteAllRowsForTenant(
   modelClass: Parameters<typeof GetModel>[0],
@@ -26,7 +27,7 @@ async function cleanupTenantData(tenantId: string): Promise<void> {
 }
 
 export function registerTenantDeletedCleanup(): void {
-  RegisterHook(Hook.TENANT_DELETED, async (tenantId: string) => {
+  dmsHooks.register(Hook.TENANT_DELETED, async (tenantId: string) => {
     try {
       await cleanupTenantData(tenantId);
     } catch (error) {

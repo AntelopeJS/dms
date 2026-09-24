@@ -14,11 +14,8 @@ import "./db";
 import "./realtime";
 import "./pages";
 import "./routes";
-import {
-  ExecuteHooks,
-  Hook,
-  RegisterHook,
-} from "@antelopejs/interface-dms/hooks";
+import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
+import { dmsHooks } from "./hooks/owned-hooks";
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
 import type { ScheduledTask } from "node-cron";
 import {
@@ -48,6 +45,7 @@ import { cancelPendingMenuNotifications } from "./implementations/dms/page";
 import {
   configureRealtime,
   type RealtimeConfig,
+  releaseRealtimeHooks,
   stopRealtime,
 } from "./realtime";
 import {
@@ -72,7 +70,7 @@ export async function construct(config: Config): Promise<void> {
 
   await setupFrontendBootstrap();
 
-  RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
+  dmsHooks.register(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
     return undefined;
   });
@@ -172,10 +170,15 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms-auth"),
   );
 
+  const notificationsInterface =
+    await import("@antelopejs/interface-dms/notifications");
   void ImplementInterface(
-    await import("@antelopejs/interface-dms/notifications"),
+    notificationsInterface,
     await import("./implementations/dms-notifications"),
   );
+  // Registered from here so the built-in notification category and subjects
+  // belong to this module and come back with each of its generations.
+  notificationsInterface.RegisterBuiltInNotifications();
 }
 
 async function registerDmsFrontend(): Promise<void> {
@@ -232,6 +235,8 @@ function cancelDeferredNotifications(): void {
 
 export function destroy(): void {
   cancelDeferredNotifications();
+  releaseRealtimeHooks();
+  dmsHooks.release();
 }
 
 export async function start(): Promise<void> {

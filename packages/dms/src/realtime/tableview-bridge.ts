@@ -17,6 +17,20 @@ const buildPresenceTopic = (location: string): string =>
 
 let isInstalled = false;
 
+/**
+ * Release the hooks installed by `installTableViewRealtimeBridge`. They live in
+ * the shared interface package but belong to this module generation: left
+ * behind a hot reload, the next generation's pages called into a torn-down
+ * context and the reload failed with `ModuleContextInvalidatedError`.
+ */
+export function uninstallTableViewRealtimeBridge(): void {
+  if (!isInstalled) return;
+  isInstalled = false;
+  setRealtimeMutationHook(undefined);
+  setRealtimePresenceHook(undefined);
+  setRealtimePageTopicHook(undefined);
+}
+
 export function installTableViewRealtimeBridge(): void {
   if (isInstalled) return;
   isInstalled = true;

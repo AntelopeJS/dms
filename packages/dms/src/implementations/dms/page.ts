@@ -33,6 +33,7 @@ import {
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
+import { forgetRealtimePageTopics } from "@antelopejs/interface-dms/base/table-view";
 import { internal as realtimeInternal } from "@antelopejs/interface-dms/realtime";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
@@ -522,6 +523,7 @@ export namespace internal {
       // …and the realtime topics registered against it: they are the allowlist
       // the SSE routes check subscriptions against.
       realtimeInternal.RegisterPageTopic.unregister(pageInfo.fullId);
+      forgetRealtimePageTopics(pageInfo.fullId);
     },
   };
 
