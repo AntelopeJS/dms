@@ -13,19 +13,20 @@ import {
 } from "@internationalized/date";
 import { reactivePick } from "@vueuse/core";
 
+// Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
-  start: CalendarDate;
-  end: CalendarDate;
+  start: CalendarDate | undefined;
+  end: CalendarDate | undefined;
 }
 
 interface StringDateRange {
-  start: string;
-  end: string;
+  start: string | undefined;
+  end: string | undefined;
 }
 
 interface NativeDateRange {
-  start: Date;
-  end: Date;
+  start: Date | undefined;
+  end: Date | undefined;
 }
 
 type DateValue = CalendarDate | StrictDateRange | string | null | undefined;
@@ -35,7 +36,11 @@ type DatePickerProps = Omit<CalendarProps<R, M>, "modelValue">;
 const props = defineProps<DatePickerProps>();
 const emits = defineEmits<{
   "update:modelValue": [
-    value: string | { start: string; end: string } | null | undefined,
+    value:
+      | string
+      | { start: string | undefined; end: string | undefined }
+      | null
+      | undefined,
   ];
   "update:placeholder": [date: CalendarDate];
   "update:startValue": [date: CalendarDate | undefined];
@@ -50,22 +55,25 @@ function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
 }
 
+function convertDateRangeBound(
+  value: string | Date | CalendarDate | undefined,
+): CalendarDate | undefined {
+  if (isString(value)) {
+    return convertIsoStringToCalendarDate(value);
+  }
+  if (value instanceof Date) {
+    return toCalendarDate(fromDate(value, "UTC"));
+  }
+  return value;
+}
+
 function convertDateRangeValue(
   rangeValue: StringDateRange | StrictDateRange | NativeDateRange,
-): StrictDateRange | undefined {
-  if (isString(rangeValue.start) && isString(rangeValue.end)) {
-    return {
-      start: convertIsoStringToCalendarDate(rangeValue.start),
-      end: convertIsoStringToCalendarDate(rangeValue.end),
-    };
-  }
-  if (rangeValue.start instanceof Date && rangeValue.end instanceof Date) {
-    return {
-      start: toCalendarDate(fromDate(rangeValue.start, "UTC")),
-      end: toCalendarDate(fromDate(rangeValue.end, "UTC")),
-    };
-  }
-  return undefined;
+): StrictDateRange {
+  return {
+    start: convertDateRangeBound(rangeValue.start),
+    end: convertDateRangeBound(rangeValue.end),
+  };
 }
 
 function isDateRangeValue(
@@ -81,7 +89,7 @@ function convertModelValue(value: DateValue): DateValue {
     return convertIsoStringToCalendarDate(value);
   }
   if (isDateRangeValue(value)) {
-    return convertDateRangeValue(value) ?? value;
+    return convertDateRangeValue(value);
   }
   return value;
 }
@@ -106,8 +114,8 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
       emits("update:modelValue", isoString);
     } else if (isObject(value) && "start" in value && "end" in value) {
       const dateRange = value as unknown as StrictDateRange;
-      const startIso = dateRange.start.toString();
-      const endIso = dateRange.end.toString();
+      const startIso = dateRange.start?.toString();
+      const endIso = dateRange.end?.toString();
       emits("update:modelValue", { start: startIso, end: endIso });
     } else {
       emits("update:modelValue", value as string | null | undefined);
@@ -123,18 +131,40 @@ const forwarded = useForwardPropsEmits(
   wrappedEmits as typeof emits,
 );
 const buttonProps = reactivePick(props, "disabled");
+
+function formatDateLabel(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  // A CalendarDate stringifies to its ISO date.
+  const date = value instanceof Date ? value : String(value);
+  return formatDate(date, locale.value) ?? undefined;
+}
+
+// Range mode holds a { start, end } object and multiple mode an array, which
+// formatDate cannot read as a single date.
+const label = computed(() => {
+  const value: unknown = modelValue.value;
+  if (Array.isArray(value)) {
+    return value.map(formatDateLabel).filter(Boolean).join(", ") || undefined;
+  }
+  if (isDateRangeValue(value)) {
+    return (
+      [formatDateLabel(value.start), formatDateLabel(value.end)]
+        .filter(Boolean)
+        .join(" – ") || undefined
+    );
+  }
+  return formatDateLabel(value);
+});
 </script>
 
 <template>
   <UPopover>
     <UButton
-      :label="
-        modelValue
-          ? (formatDate(modelValue, locale) ?? undefined)
-          : t('dms.form.select_date')
-      "
+      :label="label ?? t('dms.form.select_date')"
       :ui="{
-        label: modelValue ? 'text-default' : 'text-dimmed',
+        label: label ? 'text-default' : 'text-dimmed',
       }"
       v-bind="buttonProps"
       variant="outline"

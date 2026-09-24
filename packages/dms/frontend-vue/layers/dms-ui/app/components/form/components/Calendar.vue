@@ -11,19 +11,20 @@ import {
   type CalendarDate,
 } from "@internationalized/date";
 
+// Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
-  start: CalendarDate;
-  end: CalendarDate;
+  start: CalendarDate | undefined;
+  end: CalendarDate | undefined;
 }
 
 interface StringDateRange {
-  start: string;
-  end: string;
+  start: string | undefined;
+  end: string | undefined;
 }
 
 interface NativeDateRange {
-  start: Date;
-  end: Date;
+  start: Date | undefined;
+  end: Date | undefined;
 }
 
 type DateValue = CalendarDate | StrictDateRange | string | null | undefined;
@@ -31,7 +32,11 @@ type DateValue = CalendarDate | StrictDateRange | string | null | undefined;
 const props = defineProps<CalendarProps<R, M>>();
 const emits = defineEmits<{
   "update:modelValue": [
-    value: string | { start: string; end: string } | null | undefined,
+    value:
+      | string
+      | { start: string | undefined; end: string | undefined }
+      | null
+      | undefined,
   ];
   "update:placeholder": [date: CalendarDate];
   "update:startValue": [date: CalendarDate | undefined];
@@ -42,22 +47,25 @@ function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
 }
 
+function convertDateRangeBound(
+  value: string | Date | CalendarDate | undefined,
+): CalendarDate | undefined {
+  if (isString(value)) {
+    return convertIsoStringToCalendarDate(value);
+  }
+  if (value instanceof Date) {
+    return toCalendarDate(fromDate(value, "UTC"));
+  }
+  return value;
+}
+
 function convertDateRangeValue(
   rangeValue: StringDateRange | StrictDateRange | NativeDateRange,
-): StrictDateRange | undefined {
-  if (isString(rangeValue.start) && isString(rangeValue.end)) {
-    return {
-      start: convertIsoStringToCalendarDate(rangeValue.start),
-      end: convertIsoStringToCalendarDate(rangeValue.end),
-    };
-  }
-  if (rangeValue.start instanceof Date && rangeValue.end instanceof Date) {
-    return {
-      start: toCalendarDate(fromDate(rangeValue.start, "UTC")),
-      end: toCalendarDate(fromDate(rangeValue.end, "UTC")),
-    };
-  }
-  return undefined;
+): StrictDateRange {
+  return {
+    start: convertDateRangeBound(rangeValue.start),
+    end: convertDateRangeBound(rangeValue.end),
+  };
 }
 
 function isDateRangeValue(
@@ -73,7 +81,7 @@ function convertModelValue(value: DateValue): DateValue {
     return convertIsoStringToCalendarDate(value);
   }
   if (isDateRangeValue(value)) {
-    return convertDateRangeValue(value) ?? value;
+    return convertDateRangeValue(value);
   }
   return value;
 }
@@ -98,8 +106,8 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
       emits("update:modelValue", isoString);
     } else if (isObject(value) && "start" in value && "end" in value) {
       const dateRange = value as unknown as StrictDateRange;
-      const startIso = dateRange.start.toString();
-      const endIso = dateRange.end.toString();
+      const startIso = dateRange.start?.toString();
+      const endIso = dateRange.end?.toString();
       emits("update:modelValue", { start: startIso, end: endIso });
     } else {
       emits("update:modelValue", value as string | null | undefined);
