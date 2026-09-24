@@ -224,6 +224,7 @@ const HANDLERS: Partial<Record<ZodFirstPartyTypeKind, Handler>> = {
   }),
   [ZodFirstPartyTypeKind.ZodRecord]: (def, depth) => ({
     type: "record",
+    keys: describeSchema(def.keyType as ZodTypeAny, depth + 1),
     values: describeSchema(def.valueType as ZodTypeAny, depth + 1),
   }),
   [ZodFirstPartyTypeKind.ZodIntersection]: (def, depth) => ({

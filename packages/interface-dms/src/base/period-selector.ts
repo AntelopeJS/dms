@@ -86,6 +86,40 @@ export function PeriodSelector(
     });
 }
 
+/**
+ * What an editor calls each range and each comparison. The same words the
+ * selector shows in English, so an author sees the entry they are relabelling.
+ */
+const PERIOD_PRESET_LABELS: Record<PeriodPreset, string> = {
+  "last-hour": "Last hour",
+  "last-24h": "Last 24 hours",
+  today: "Today",
+  yesterday: "Yesterday",
+  "last-7-days": "Last 7 days",
+  "last-30-days": "Last 30 days",
+  "last-90-days": "Last 90 days",
+  "this-month": "This month",
+  "last-month": "Last month",
+  "this-quarter": "This quarter",
+  "last-quarter": "Last quarter",
+  ytd: "Year to date",
+  "last-year": "Last year",
+  custom: "Custom",
+};
+const PERIOD_COMPARISON_LABELS: Record<PeriodComparison, string> = {
+  none: "No comparison",
+  "previous-period": "vs previous period",
+  "previous-year": "vs previous year",
+  custom: "Custom",
+};
+
+const presetSchema = ui(z.enum(PERIOD_PRESETS), {
+  valueLabels: PERIOD_PRESET_LABELS,
+});
+const comparisonSchema = ui(z.enum(PERIOD_COMPARISONS), {
+  valueLabels: PERIOD_COMPARISON_LABELS,
+});
+
 /** The options `PeriodSelector` accepts. */
 export const PeriodSelectorSchema = z.object({
   // A card bound to a period follows the page's scope, so a selector seeded
@@ -97,37 +131,34 @@ export const PeriodSelectorSchema = z.object({
       .describe("Scope id the cards on the page refer to."),
     { label: "Scope id", group: "advanced" },
   ),
-  defaultPreset: ui(z.enum(PERIOD_PRESETS).optional(), {
+  defaultPreset: ui(presetSchema.optional(), {
     label: "Default range",
     group: "behavior",
     widget: "select",
   }),
-  defaultComparison: ui(z.enum(PERIOD_COMPARISONS).optional(), {
+  defaultComparison: ui(comparisonSchema.optional(), {
     label: "Default comparison",
     group: "behavior",
     widget: "select",
   }),
-  presets: ui(
-    z.array(z.enum(PERIOD_PRESETS)).optional().describe("Ranges offered."),
-    { label: "Available ranges", group: "behavior" },
-  ),
-  comparisons: ui(z.array(z.enum(PERIOD_COMPARISONS)).optional(), {
+  presets: ui(z.array(presetSchema).optional().describe("Ranges offered."), {
+    label: "Available ranges",
+    group: "behavior",
+  }),
+  comparisons: ui(z.array(comparisonSchema).optional(), {
     label: "Available comparisons",
     group: "behavior",
   }),
-  presetLabels: ui(z.record(z.enum(PERIOD_PRESETS), z.string()).optional(), {
+  // Keyed by a closed set, so an editor lists one entry per range to relabel
+  // rather than asking for an object typed by hand.
+  presetLabels: ui(z.record(presetSchema, z.string()).optional(), {
     label: "Range labels",
     group: "content",
-    widget: "json",
   }),
-  comparisonLabels: ui(
-    z.record(z.enum(PERIOD_COMPARISONS), z.string()).optional(),
-    {
-      label: "Comparison labels",
-      group: "content",
-      widget: "json",
-    },
-  ),
+  comparisonLabels: ui(z.record(comparisonSchema, z.string()).optional(), {
+    label: "Comparison labels",
+    group: "content",
+  }),
   align: ui(z.enum(PERIOD_ALIGNS).optional(), {
     label: "Alignment",
     group: "appearance",

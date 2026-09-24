@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import { FORM_COMPONENT_NAME } from "./form-block-schema";
+import { FORM_COMPONENT_NAME, SubmitMessageOptions } from "./form-block-schema";
 import type { FormProps } from "./form-types";
 
 /** Which of a resource's forms: creating a row, editing one, or reading one. */
@@ -63,14 +63,7 @@ export const ResourceFormSchema = z.object({
     order: 4,
     group: "content",
   }),
-  successMessage: ui(z.string().optional(), {
-    label: "Success message",
-    group: "content",
-  }),
-  errorMessage: ui(z.string().optional(), {
-    label: "Error message",
-    group: "content",
-  }),
+  ...SubmitMessageOptions,
   fieldsOrientation: ui(z.enum(["horizontal", "vertical"]).optional(), {
     label: "Field orientation",
     group: "layout",

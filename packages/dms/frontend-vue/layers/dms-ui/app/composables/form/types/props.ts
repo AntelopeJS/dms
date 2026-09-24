@@ -17,6 +17,8 @@ export interface FormProps extends FormComponentProps {
   submitUrl?: string;
   submitUrlMethod?: HttpMethod;
   submitLabel?: string;
+  /** Whether the buttons show; left out, once there is somewhere to submit to. */
+  showActions?: boolean;
   successMessage?: string;
   errorMessage?: string;
   schema?: Record<string, unknown>;

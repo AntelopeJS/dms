@@ -84,6 +84,11 @@ export interface FormProps extends BaseComponentProps {
    * "Save changes" label.
    */
   submitLabel?: string;
+  /**
+   * Whether the reset and submit buttons show. Left out, they show once the
+   * form has somewhere to submit to and something to fill in.
+   */
+  showActions?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token

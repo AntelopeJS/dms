@@ -72,6 +72,42 @@ export interface BlockOptionUi {
    */
   flatten?: boolean;
   /**
+   * What to call each value of an enum, keyed by the value. An editor shows
+   * these in place of the raw values: `Last 30 days` rather than
+   * `last-30-days`.
+   */
+  valueLabels?: Record<string, string>;
+  /**
+   * The sibling option this one's value can be derived from — a field's key
+   * from its label. An editor may write it itself, and keep it following that
+   * option for as long as nobody has set it by hand, sparing an author a name
+   * that only code reads.
+   */
+  derivedFrom?: string;
+  /**
+   * The switch this option sits behind, by its label. Options naming the same
+   * one are offered together once an author turns it on, and left out — the
+   * block falling back on its own behaviour — while it is off.
+   */
+  optIn?: string;
+  /**
+   * The sibling option holding the data type this value is one of — a field's
+   * default takes the field's own type. An editor offers the input that type
+   * calls for, and keeps the JSON box for a type it has none for.
+   */
+  typedBy?: string;
+  /**
+   * Offered in an editor's advanced view only: a setting that is an address,
+   * a method or a key is written for whoever reads the code, and an editor's
+   * simple view writes it for its author instead.
+   */
+  advanced?: boolean;
+  /**
+   * What an editor places a new block with, when that is not what the option
+   * defaults to: a form placed by hand shows its buttons from the start.
+   */
+  initial?: unknown;
+  /**
    * What the block does with what it fetches, for a `dataSource` option.
    *
    * A source editor offers only the calculations whose answer this block can
@@ -144,6 +180,11 @@ export interface BlockOptionSchema {
   items?: BlockOptionSchema;
   /** Record value shape. */
   values?: BlockOptionSchema;
+  /**
+   * Record key shape. A key drawn from a closed set carries it as `enum`, so
+   * an editor can offer one entry per key rather than a free-form object.
+   */
+  keys?: BlockOptionSchema;
   /** Union branches, in declaration order. */
   oneOf?: BlockOptionSchema[];
   /** Property carrying the branch tag of a discriminated union. */

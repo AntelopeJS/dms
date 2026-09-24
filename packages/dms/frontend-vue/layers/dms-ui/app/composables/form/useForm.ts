@@ -28,6 +28,23 @@ export function cloneFormValue(
   return JSON.parse(JSON.stringify(value));
 }
 
+/**
+ * Whether a form shows its reset and submit buttons.
+ *
+ * Asked for, they show whatever else holds — a form placed in the builder shows
+ * them before it has somewhere to submit to. Left to the form, they show once
+ * it has an address and a field someone can fill in.
+ */
+export function formShowsActions(
+  options: { showActions?: boolean; submitUrl?: string },
+  fields: ReadonlyArray<{ disabled?: boolean }>,
+): boolean {
+  return (
+    options.showActions ??
+    (!!options.submitUrl && !fields.every((field) => field.disabled))
+  );
+}
+
 export function computeResetState(
   state: Record<string, unknown>,
   initialValues: FormData,
