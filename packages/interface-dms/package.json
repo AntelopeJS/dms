@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "description": "Public AntelopeJS interfaces of the DMS: pages, components, permissions, tenancy, auth, notifications and HTML rendering.",
   "keywords": [
     "antelopejs",
@@ -32,7 +32,6 @@
     "format": "oxfmt .",
     "prepack": "pnpm run build && pnpm run check:exports",
     "check:exports": "node scripts/check-exports.mjs",
-    "check:consumer": "node scripts/check-consumer.mjs",
     "release": "release-it",
     "knip": "knip --dependencies",
     "knip:all": "knip"
@@ -47,7 +46,7 @@
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
     "@antelopejs/interface-auth": ">=0.0.6 <1.0.0",
-    "@antelopejs/interface-core": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.7 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.6 <1.0.0",
@@ -57,7 +56,7 @@
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
     "@antelopejs/interface-auth": ">=0.0.6 <1.0.0",
-    "@antelopejs/interface-core": ">=0.0.13 <1.0.0",
+    "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.7 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.6 <1.0.0",
@@ -136,69 +135,9 @@
       "types": "./dist/notifications/index.d.ts",
       "default": "./dist/notifications/index.js"
     },
-    "./dist": {
-      "types": "./dist/index.d.ts"
-    },
-    "./dist/auth": {
-      "types": "./dist/auth/index.d.ts"
-    },
-    "./dist/auth/db": {
-      "types": "./dist/auth/db/index.d.ts"
-    },
-    "./dist/auth/db/models": {
-      "types": "./dist/auth/db/models/index.d.ts"
-    },
-    "./dist/auth/db/tables": {
-      "types": "./dist/auth/db/tables/index.d.ts"
-    },
-    "./dist/base": {
-      "types": "./dist/base/index.d.ts"
-    },
-    "./dist/base/block-registry": {
-      "types": "./dist/base/block-registry/index.d.ts"
-    },
-    "./dist/base/data-types": {
-      "types": "./dist/base/data-types/index.d.ts"
-    },
-    "./dist/base/types": {
-      "types": "./dist/base/types/index.d.ts"
-    },
-    "./dist/data-controllers": {
-      "types": "./dist/data-controllers/index.d.ts"
-    },
-    "./dist/db": {
-      "types": "./dist/db/index.d.ts"
-    },
-    "./dist/db/models": {
-      "types": "./dist/db/models/index.d.ts"
-    },
-    "./dist/db/tables": {
-      "types": "./dist/db/tables/index.d.ts"
-    },
-    "./dist/html-render": {
-      "types": "./dist/html-render/index.d.ts"
-    },
-    "./dist/notifications": {
-      "types": "./dist/notifications/index.d.ts"
-    },
-    "./dist/*": {
-      "types": "./dist/*.d.ts"
-    },
     "./*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "dist/*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ],
-      "*": [
-        "dist/*",
-        "dist/*/index.d.ts"
-      ]
     }
   },
   "publishConfig": {

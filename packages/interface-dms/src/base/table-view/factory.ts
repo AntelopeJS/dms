@@ -311,23 +311,24 @@ export function TableView<T extends ControllerClass>(
         return;
       }
 
-      const routeKey = formRouteKey(tableViewPermissionId, parentInfo.fullId);
-
-      // Resolved before the early return below: a `customPage` entry registers
-      // no sub-page and is still the URL the frontend navigates to.
-      if (isPageMode) {
-        builder.mergeOptions({
-          formPages: buildFormPageUrls(
-            parentInfo.fullSlug,
-            routeKey,
-            customPages,
-          ),
-        });
-      }
-
       if (!isPageMode) {
         return;
       }
+
+      const routeKey = formRouteKey(
+        tableViewPermissionId,
+        GetPermissionId(parentPage.target) ?? parentInfo.fullId,
+      );
+
+      // Every kind, `customPage` entries included: they register no sub-page
+      // below and are still the URL the frontend navigates to.
+      builder.mergeOptions({
+        formPages: buildFormPageUrls(
+          parentInfo.fullSlug,
+          routeKey,
+          customPages,
+        ),
+      });
 
       for (const kind of ROW_SCOPED_FORM_PAGE_KINDS) {
         const declared = customPages?.[kind]?.urlSlug;

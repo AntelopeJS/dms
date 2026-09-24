@@ -28,7 +28,7 @@ pnpm add @antelopejs/interface-dms
 `/auth`, `/base` and `/notifications` take subpaths of their own
 (`/auth/db`, `/base/table-view`, `/base/data-types`, `/notifications/builder`,
 ...). The reference documentation lives in the runtime package, under
-`docs/08.interfaces/`.
+`docs/07.interfaces/`.
 
 ## One copy, always
 

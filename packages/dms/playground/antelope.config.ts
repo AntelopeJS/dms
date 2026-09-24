@@ -27,7 +27,11 @@ export default defineConfig({
         type: "local",
         path: "..",
         watchDir: ["src"],
-        installCommand: ["true"],
+        // Builds the playground too. Modules install in parallel, and the
+        // playground compiles against `@antelopejs/interface-dms/dist`, which
+        // the DMS build wipes and rebuilds first: building both here runs them
+        // in order instead of racing them.
+        installCommand: ["pnpm build", "pnpm --dir playground build"],
       },
       config: {
         homepage: "/form/form-simple",
@@ -53,7 +57,7 @@ export default defineConfig({
         type: "local",
         path: ".",
         watchDir: ["src"],
-        installCommand: ["true"],
+        // Built by the `dms` install step, see above.
         reloadCommand: ["pnpm exec tsc"],
       },
     },
@@ -61,10 +65,10 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/mongodb",
-        version: "^1.2.7",
+        version: "^1.3.1",
       },
       config: {
-        url: "mongodb://localhost:27017",
+        url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
         database: "playground_dms",
       },
       importOverrides: [],
@@ -101,7 +105,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/file-storage-local",
-        version: "^0.1.3",
+        version: "^0.1.5",
       },
       config: {
         storagePath: ".antelope/file-storage",
@@ -120,7 +124,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/nodemailer",
-        version: "^0.0.4",
+        version: "^0.0.5",
       },
       config: {
         ethereal: true,

@@ -2,34 +2,13 @@ import { Get } from "@antelopejs/interface-api";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import {
-  GetPermissions,
-  type PermissionTree,
-} from "@antelopejs/interface-dms/permissions";
+import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { TableView } from "@antelopejs/interface-dms/base";
 import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import { userCategory } from "./category";
+import { mapPermissionTreeToPermissionNodes } from "./permission-tree-nodes";
 
 RegisterDataController()(roleSettingDataAPI);
-
-function mapPermissionTreeToPermissionNodes(
-  permissionTree: Record<string, PermissionTree>,
-): FormComponents.PermissionsTreeNode[] {
-  return Object.values(permissionTree)
-    .filter((node) => node.data && !node.data.defaultGranted) // Only include nodes with data and not default granted
-    .map((node) => {
-      const permissionNode: FormComponents.PermissionsTreeNode = {
-        id: node.data?.id ?? "",
-        label: node.data?.title ?? "Unknown Permission",
-        icon: node.data?.icon,
-        children:
-          Object.keys(node.children).length > 0
-            ? mapPermissionTreeToPermissionNodes(node.children)
-            : undefined,
-      };
-      return permissionNode;
-    });
-}
 
 @RegisterPage()
 export class RolesSettingsController extends PageController("roles", {

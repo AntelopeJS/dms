@@ -25,7 +25,7 @@ defining the module's own interface, and the scaffolding checklist.
 ## The `package.json` manifest
 
 The `antelopeJs` block is what makes it a DMS module ([REFERENCE.md](REFERENCE.md) has the full
-manifest, including the `exports`/`typesVersions` entries for an interface subpath).
+manifest, including the `exports` entries for an interface subpath).
 `implements` lists only the interfaces the module *provides* — the official modules keep it `[]`
 when they provide none (`dms-lang`, `dms-saas`); consumed interfaces are plain `dependencies`
 (no manifest field). Typical dependencies: `@antelopejs/dms` plus
