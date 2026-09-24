@@ -49,7 +49,7 @@ import {
   inviteLanguageSelectItems,
   memberInviteForm,
 } from "./member-invite-form";
-import { membersTableAddAction } from "./members";
+import { INVITES_PAGE_PATH, membersTableAddAction } from "./members";
 
 @RegisterDataController()
 export class inviteSettingDataAPI extends DataController(
@@ -191,12 +191,17 @@ export class inviteSettingDataAPI extends DataController(
   }
 }
 
+// Reached from the members page rather than the settings menu. It stays in the
+// user category, so its permission id (`settings.user.invites`) and the roles
+// granting it are unchanged; only its URL nests under the members page, which
+// puts Members in its breadcrumb.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$menu.invites",
   category: userCategory,
+  urlSlug: "members/invites",
+  hidden: true,
   icon: "i-ph-envelope-simple",
-  order: 5,
   description: "$page.settings.description.invites",
 }) {
   static table = TableView(inviteSettingDataAPI, {
@@ -231,7 +236,7 @@ export class InvitesSettingsController extends PageController("invites", {
           icon: "i-ph-arrow-clockwise",
           target: {
             type: "api",
-            url: "/settings/user/invites/{_id}/resend",
+            url: `${INVITES_PAGE_PATH}/{_id}/resend`,
             method: "POST",
             successMessage: "$page.settings.invites.action.resend_success",
             confirm: {
@@ -247,7 +252,7 @@ export class InvitesSettingsController extends PageController("invites", {
           icon: "i-ph-trash",
           target: {
             type: "api",
-            url: "/settings/user/invites/{_id}/cancel",
+            url: `${INVITES_PAGE_PATH}/{_id}/cancel`,
             method: "DELETE",
             successMessage: "$page.settings.invites.action.cancel_success",
             confirm: {
