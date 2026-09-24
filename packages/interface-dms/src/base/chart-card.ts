@@ -33,6 +33,19 @@ export interface ChartCardBuilderOptions extends ChartCardProps {
 
 const CHART_CARD_COMPONENT_NAME = "dms-chart-card";
 const NESTED_CHART_ID = "chart";
+/**
+ * What a chart inside a card never reads of its own: the card fetches the
+ * series it draws, heads it, and keeps its legend.
+ */
+const CARD_SUPPLIED_CHART_OPTIONS = [
+  "title",
+  "description",
+  "showLegend",
+  "fetchUrl",
+  "fetchUrlMethod",
+  "periodScope",
+  "realtimeTopic",
+];
 
 /**
  * `options` is optional because a page is written as it is built: the editor
@@ -80,6 +93,7 @@ export const ChartCardSchema = z.object({
       group: "data",
       widget: "block",
       blockTypes: CHART_BLOCK_TYPES,
+      supplies: CARD_SUPPLIED_CHART_OPTIONS,
     },
   ),
   fetchUrl: ui(z.string().optional(), {

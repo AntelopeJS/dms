@@ -57,6 +57,12 @@ export interface BlockOptionUi {
   /** Block types accepted by a `block` widget. */
   blockTypes?: string[];
   /**
+   * The options of the block a `block` widget holds that this block supplies
+   * itself, which an editor leaves out: a card fetches the series its chart
+   * draws and heads it, so the chart's own source and title are never read.
+   */
+  supplies?: string[];
+  /**
    * The aspect(s) a `field` widget's value must carry on the resource. Sorting
    * on a field that is not sortable, or filtering on one that is not
    * filterable, is written and then ignored at runtime — so the option says

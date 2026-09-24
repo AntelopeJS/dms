@@ -138,9 +138,11 @@ const baseChartShape = {
     label: "Period scope",
     group: "advanced",
   }),
+  // A topic is a name the backend publishes under, which only its code knows.
   realtimeTopic: ui(z.union([z.string(), z.array(z.string())]).optional(), {
     label: "Realtime topics",
     group: "data",
+    advanced: true,
   }),
   rawOptions: ui(z.array(keyValueSchema).optional(), {
     label: "Raw chart options",
@@ -189,13 +191,14 @@ const xyChartShape = {
     label: "Reference lines",
     group: "appearance",
     widget: "json",
+    advanced: true,
   }),
   syncGroup: ui(
     z
       .string()
       .optional()
       .describe("Charts sharing a group share crosshair and tooltip."),
-    { label: "Sync group", group: "behavior" },
+    { label: "Sync group", group: "behavior", advanced: true },
   ),
   xaxisType: ui(z.enum(X_AXIS_TYPES).optional(), {
     label: "X axis type",

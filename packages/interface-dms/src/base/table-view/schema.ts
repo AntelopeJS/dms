@@ -36,22 +36,49 @@ const rowActionConfigSchema = z.object({
   }),
 });
 
-const rowActionOption = (label: string, order: number) =>
-  ui(z.union([z.boolean(), rowActionConfigSchema]).optional(), {
+interface RowActionDefaults {
+  /**
+   * Whether the table offers the action when nothing turns it off, to whoever
+   * holds its permission. The factory reads an absent action as on, and says so
+   * here so an editor's switch does not show a feature the table has as off.
+   */
+  offered?: boolean;
+  /** When the action is offered at all, for one that depends on another. */
+  note?: string;
+}
+
+const rowActionOption = (
+  label: string,
+  order: number,
+  { offered = true, note }: RowActionDefaults = {},
+) => {
+  const action = z.union([z.boolean(), rowActionConfigSchema]);
+  const described = note ? action.describe(note) : action;
+  return ui(offered ? described.default(true) : described.optional(), {
     label,
     order,
     group: "features",
     widget: "switch",
   });
+};
 
 const rowActionsSchema = z.object({
   add: rowActionOption("Adding data", 1),
   edit: rowActionOption("Editing data", 2),
   delete: rowActionOption("Deleting data", 3),
-  details: rowActionOption("View details", 6),
+  // Turned off whenever editing is on without a rule: editing opens the row
+  // already, so the factory drops the second way in.
+  details: rowActionOption("View details", 6, {
+    offered: false,
+    note: "Offered while editing is off: editing already opens the row.",
+  }),
   duplicate: rowActionOption("Duplicate", 7),
-  archive: rowActionOption("Archive", 8),
-  restore: rowActionOption("Restore", 9),
+  archive: rowActionOption("Archive", 8, {
+    note: "Offered while ghost delete is on.",
+  }),
+  restore: rowActionOption("Restore", 9, {
+    note: "Offered while ghost delete is on.",
+  }),
   copyLink: rowActionOption("Copy link", 10),
   hasSelection: ui(z.boolean().optional(), {
     label: "Row selection",
