@@ -273,7 +273,11 @@ function toFormPageUrl(pageSlug: string, slug: string): string {
 
 /**
  * The key identifying a table view among the components of its page: the last
- * segment of its permission id relative to the page's `fullId`.
+ * segment of its permission id relative to the page's permission id.
+ *
+ * Relative to the permission id, not the `fullId`: component permission ids
+ * descend from the former, and a page declaring a custom `permission.id` has
+ * the two differ.
  *
  * Form routes are named after it rather than after the page, so two table views
  * on one page get URLs of their own; the *simple* key rather than the whole
@@ -281,17 +285,20 @@ function toFormPageUrl(pageSlug: string, slug: string): string {
  * reorganised around the table view.
  *
  * @param permissionId Permission id of the table view
- * @param pageFullId `fullId` of the page carrying it
+ * @param pagePermissionId Permission id of the page carrying it
  */
-export function formRouteKey(permissionId: string, pageFullId: string): string {
-  const prefix = `${pageFullId}.`;
+export function formRouteKey(
+  permissionId: string,
+  pagePermissionId: string,
+): string {
+  const prefix = `${pagePermissionId}.`;
   const path = permissionId.startsWith(prefix)
     ? permissionId.slice(prefix.length)
     : "";
   const key = path.split(".").pop();
   if (!key) {
     throw new Error(
-      `TableView permission id "${permissionId}" names no component of page "${pageFullId}": its form routes have no key to be named after.`,
+      `TableView permission id "${permissionId}" names no component of the page whose permission id is "${pagePermissionId}": its form routes have no key to be named after.`,
     );
   }
   return key;

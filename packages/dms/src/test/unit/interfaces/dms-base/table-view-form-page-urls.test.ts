@@ -124,6 +124,16 @@ const detailTable = TableView(DocumentAPI, {
   realtime: false,
 });
 
+const customPermissionTable = TableView(DocumentAPI, {
+  formContainer: { type: "page" },
+  realtime: false,
+});
+
+const customPermissionDrawerTable = TableView(DocumentAPI, {
+  formContainer: { type: "drawer" },
+  realtime: false,
+});
+
 @RegisterPage()
 class DefaultPage extends RootPageController("fpu-default", {
   displayName: "Default form pages",
@@ -179,6 +189,26 @@ class DetailPage extends RootPageController("fpu-detail", {
   static rows = detailTable;
 }
 
+// Its components descend from `fpu.custom-permission`, not from its `fullId`.
+@RegisterPage()
+class CustomPermissionPage extends RootPageController("fpu-permission", {
+  displayName: "Custom page permission",
+  permission: { id: "fpu.custom-permission" },
+}) {
+  static table = customPermissionTable;
+}
+
+@RegisterPage()
+class CustomPermissionDrawerPage extends RootPageController(
+  "fpu-permission-drawer",
+  {
+    displayName: "Custom page permission, drawer forms",
+    permission: { id: "fpu.custom-permission-drawer" },
+  },
+) {
+  static table = customPermissionDrawerTable;
+}
+
 const pages = [
   DefaultPage,
   CustomPage,
@@ -187,6 +217,8 @@ const pages = [
   NestedPage,
   SiblingsPage,
   DetailPage,
+  CustomPermissionPage,
+  CustomPermissionDrawerPage,
 ];
 
 async function formPages(
@@ -328,6 +360,49 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
     );
     expect(failure?.message ?? "").to.contain('at "/fpu-clash/clash"');
     expect(GetPageLayoutBySlug("/fpu-clash")).to.equal(undefined);
+  });
+
+  it("names the form routes of a page with a custom permission id after the table view", async () => {
+    expect(
+      GetMetadata(CustomPermissionPage, PageMetadata).ComponentPermissionIds(
+        customPermissionTable,
+      ),
+    ).to.deep.equal(["fpu.custom-permission.table"]);
+    expect(await formPages(customPermissionTable)).to.deep.equal({
+      new: "/fpu-permission/table/new",
+      edit: "/fpu-permission/table/:id/edit",
+      view: "/fpu-permission/table/:id/view",
+    });
+    expect(GetPageLayoutBySlug("/fpu-permission/table/new")).to.not.equal(
+      undefined,
+    );
+  });
+
+  it("registers a page with a custom permission id and drawer forms", async () => {
+    expect(await formPages(customPermissionDrawerTable)).to.equal(undefined);
+    expect(GetPageLayoutBySlug("/fpu-permission-drawer")).to.not.equal(
+      undefined,
+    );
+  });
+
+  // The first page to mount the table view owns its permission id, so on the
+  // second one it names no component and its form routes have no key.
+  it("fails the registration of a page mounting a table view owned by another", async () => {
+    class BorrowingPage extends RootPageController("fpu-borrowing", {
+      displayName: "Borrowed table view",
+    }) {}
+    const meta = GetMetadata(BorrowingPage as ControllerClass, PageMetadata);
+    meta.SetComponent("table", defaultTable);
+
+    const failure = await meta.Register().then(
+      () => undefined,
+      (error: unknown) => error as Error,
+    );
+
+    expect(failure?.message ?? "").to.contain(
+      'TableView permission id "fpu-default.table" names no component',
+    );
+    expect(GetPageLayoutBySlug("/fpu-borrowing")).to.equal(undefined);
   });
 
   it("serializes no form page URL when the container is not a page", async () => {
