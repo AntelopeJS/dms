@@ -40,12 +40,28 @@ export function RegisterModule(opts: ModuleInfo): CategoryInfo {
   return moduleRoot;
 }
 
-export const pagesCategory = internal.RootCategory("pages", {
+// Built here so every module can point its pages at it, but registered by the
+// DMS module (`RegisterBuiltInCategories`) rather than as a side effect of
+// importing this package. An import-time registration is owned by whichever
+// module imported the package first, and dies with that module's generation:
+// its first hot reload removed the category, and nothing registered it again
+// since the package is not evaluated twice.
+export const pagesCategory = internal.DefineRootCategory("pages", {
   displayName: "$menu.section.pages",
   urlSlug: "/",
   order: 1,
   type: "label",
 });
+
+/**
+ * Registers the built-in root categories. Called by the DMS module when it
+ * constructs, so they belong to it and come back with each of its generations.
+ *
+ * @internal
+ */
+export function RegisterBuiltInCategories(): void {
+  internal.RegisterRootCategory(pagesCategory);
+}
 
 export const modulesCategory = RootPageController(
   "modules",

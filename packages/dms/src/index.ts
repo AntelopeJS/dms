@@ -109,10 +109,15 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms-html-render"),
   );
 
+  const pageInterface = await import("@antelopejs/interface-dms/page");
   void ImplementInterface(
-    await import("@antelopejs/interface-dms/page"),
+    pageInterface,
     await import("./implementations/dms/page"),
   );
+  // Registered from here so the built-in root categories belong to this
+  // module: left to the interface package's import, they belonged to the first
+  // module importing it and vanished with that module's first hot reload.
+  pageInterface.RegisterBuiltInCategories();
   void ImplementInterface(
     await import("@antelopejs/interface-dms/permissions"),
     await import("./implementations/dms/permissions"),

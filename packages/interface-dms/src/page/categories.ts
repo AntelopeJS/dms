@@ -158,6 +158,23 @@ export namespace internal {
   ): CategoryInfo {
     return createCategoryFunction(id, options);
   }
+
+  /**
+   * A root category built without being registered: for categories the DMS
+   * module registers itself (see `RegisterBuiltInCategories`), so that they
+   * belong to it rather than to whichever module first imported this package.
+   */
+  export function DefineRootCategory(
+    id: string,
+    options: RootCategoryOptions,
+  ): CategoryInfo {
+    return buildCategoryInfo(id, options);
+  }
+
+  /** Registers a category built by `DefineRootCategory`. */
+  export function RegisterRootCategory(categoryInfo: CategoryInfo): void {
+    registerCategoryInfo(categoryInfo);
+  }
 }
 
 interface ModuleEntry {
@@ -318,6 +335,15 @@ export function createCategoryFunction(
   id: string,
   options: MenuOptions | internal.RootCategoryOptions,
 ): CategoryInfo {
+  const categoryInfo = buildCategoryInfo(id, options);
+  registerCategoryInfo(categoryInfo);
+  return categoryInfo;
+}
+
+function buildCategoryInfo(
+  id: string,
+  options: MenuOptions | internal.RootCategoryOptions,
+): CategoryInfo {
   const hasModuleField =
     "module" in options && (options as MenuOptions).module !== undefined;
   const effectiveOptions = hasModuleField
@@ -351,7 +377,10 @@ export function createCategoryFunction(
       effectiveOptions.bypassTenantAccessGate ||
       resolvedCategory?.bypassTenantAccessGate,
   };
+  return categoryInfo;
+}
 
+function registerCategoryInfo(categoryInfo: CategoryInfo): void {
   internal.RegisterCategory.register(categoryInfo);
   // Left exactly as it was, and it is wrong: when `permission` is an Action,
   // the spread copies the action's `id` and `definition` over the category's
@@ -378,8 +407,6 @@ export function createCategoryFunction(
   } else {
     RegisterPermission(categoryPermission.id, categoryPermission);
   }
-
-  return categoryInfo;
 }
 
 export function applyModuleResolution(
