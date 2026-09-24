@@ -80,7 +80,7 @@ export default defineConfig({
       source: providerSource(
         LOCAL_MONGODB_PATH,
         "@antelopejs/mongodb",
-        "1.3.0",
+        "1.3.1",
       ),
     },
     "auth-jwt": {
@@ -104,14 +104,14 @@ export default defineConfig({
       source: providerSource(
         LOCAL_STORAGE_PATH,
         "@antelopejs/file-storage-local",
-        "0.1.4",
+        "0.1.5",
       ),
     },
     nodemailer: {
       source: {
         type: "package",
         package: "@antelopejs/nodemailer",
-        version: "0.0.4",
+        version: "0.0.5",
       },
       config: {
         ethereal: true,
