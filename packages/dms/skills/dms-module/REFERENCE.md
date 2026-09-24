@@ -55,10 +55,9 @@ AntelopeJS — see the **antelopejs** plugin's author/consume skills. The DMS-sp
   `src/implementations/<name>/index.ts` in the module, **wire** with `ImplementInterface` in
   `construct` (the lifecycle entry in [SKILL.md](SKILL.md)). Keep `/** @internal */` on the
   `internal` namespace — the convention marking the registration surface as non-consumer API.
-- **Expose** each directory index as an explicit `exports` entry, plus the `typesVersions`
-  mapping that lets a consumer on `moduleResolution: node` resolve the types. Consumers add
-  the interface package to `dependencies` and
-  `import { … } from "@antelopejs/interface-<name>"`.
+- **Expose** each directory index as an explicit `exports` entry; consumers resolve it with
+  `moduleResolution: bundler`, `node16` or `nodenext`. Consumers add the interface package to
+  `dependencies` and `import { … } from "@antelopejs/interface-<name>"`.
 - Anything consumer-facing lives in the interface package; never re-export internal modules —
   if a helper needs internal infrastructure, use the hook-setter indirection pattern the
   existing modules use rather than exposing the internals. Runtime behaviour stays in the
@@ -76,7 +75,7 @@ AntelopeJS — see the **antelopejs** plugin's author/consume skills. The DMS-sp
 3. **Scaffold the layout above**: `src/index.ts`, `src/pages/`, `src/routes/` (if it serves data),
    `packages/interface-<name>/` + `src/implementations/<name>/` (only if it exposes one),
    `frontend-vue/` (components registered from the root `dms.frontend.ts`), and the manifest
-   (`antelopeJs` block, plus the interface package's `exports`/`typesVersions`).
+   (`antelopeJs` block, plus the interface package's `exports`).
 4. **Wire the basics**: `RegisterModule({ id, title, icon, … })`, one `@RegisterPage()` page,
    the `AddFrontendModule` call. Add the `$dms_<name>.*` keys to **every** locale file under
    `frontend-vue/i18n/locales/`.

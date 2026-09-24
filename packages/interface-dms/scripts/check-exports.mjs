@@ -59,13 +59,10 @@ const directoryIndexes = jsFiles
   .filter((file) => path.basename(file) === "index.js")
   .map(toSubpath);
 
-const missing = directoryIndexes.flatMap((subpath) => {
-  const distAlias = subpath === "." ? "./dist" : `./dist${subpath.slice(1)}`;
-  return [subpath, distAlias].filter(
-    (candidate) =>
-      !explicit.has(candidate) && !blocked.some((p) => matches(candidate, p)),
-  );
-});
+const missing = directoryIndexes.filter(
+  (subpath) =>
+    !explicit.has(subpath) && !blocked.some((p) => matches(subpath, p)),
+);
 if (missing.length > 0) {
   throw new Error(
     `exports is missing an entry for these directory indexes:\n  ${missing.join("\n  ")}`,
@@ -77,16 +74,6 @@ const unreachable = [];
 for (const subpath of [...explicit].filter(
   (subpath) => subpath !== "./package.json",
 )) {
-  const target = exportsMap[subpath];
-  // The `dist/...` aliases carry types only: a node10 consumer's declaration
-  // emit writes that form, but its JavaScript keeps the canonical specifier,
-  // so there is nothing to require.
-  if (target.default === undefined) {
-    if (!fs.existsSync(path.join(packageRoot, target.types))) {
-      unreachable.push(`${subpath}: ${target.types} is missing`);
-    }
-    continue;
-  }
   const specifier =
     subpath === "." ? manifest.name : `${manifest.name}${subpath.slice(1)}`;
   try {
@@ -98,20 +85,6 @@ for (const subpath of [...explicit].filter(
 if (unreachable.length > 0) {
   throw new Error(
     `exports entries that do not resolve:\n  ${unreachable.join("\n  ")}`,
-  );
-}
-
-// The identity entry keeps the root `types` field from resolving to dist/dist,
-// and it needs the directory fallback too: a consumer's declaration emit writes
-// `dist/<dir>` for a directory index it resolved through this mapping.
-const typesVersions = manifest.typesVersions?.["*"];
-const expected = {
-  "dist/*": ["dist/*", "dist/*/index.d.ts"],
-  "*": ["dist/*", "dist/*/index.d.ts"],
-};
-if (JSON.stringify(typesVersions) !== JSON.stringify(expected)) {
-  throw new Error(
-    `typesVersions must be ${JSON.stringify(expected)} so node10 consumers resolve both files and directory indexes.`,
   );
 }
 

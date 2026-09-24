@@ -15,8 +15,7 @@ List a section to see its files:
 | `docs/04.components/` | Component catalog: charts/widgets, layout, forms, tables, tree, DataTypes, DataController, file storage |
 | `docs/05.extending-the-dashboard/` | Dashboard chrome, theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
 | `docs/06.frontend-composables/` | Composables a custom frontend module's Vue calls: auth'd requests, realtime, page context, UI toolkit |
-| `docs/07.performance/` | Inertia navigation budgets and how to measure them |
-| `docs/08.interfaces/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
+| `docs/07.interfaces/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
 
 ## Exact interface surfaces: don't memorize, look them up
 
@@ -37,7 +36,7 @@ Three ways to read a contract:
    node "<antelopejs-plugin>/scripts/resolve-interface.mjs" show <scope>/interface-<name>
    ```
 
-2. **The prose reference** — `docs/08.interfaces/`, one folder per domain, with the whole subpath
+2. **The prose reference** — `docs/07.interfaces/`, one folder per domain, with the whole subpath
    map in its `index.md`.
 
 3. **The sources shipped with this skill** — this workspace carries the interface package; read

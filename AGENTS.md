@@ -101,10 +101,9 @@ directory-based interface loading keeps working; `nodenext` would emit a real
 `import()` there, which cannot load a directory. Both packages extend the root
 `tsconfig.json`; the playground carries its own.
 
-`moduleResolution: node` does not read an `exports` map, which is why
-`@antelopejs/interface-dms` also carries a `typesVersions` mapping and
-`./dist/*` type aliases: a consumer compiling that way resolves our types
-through `dist/...` and writes that form into the declarations it emits.
+Consumers must compile with `moduleResolution: bundler`, `node16` or `nodenext`:
+the packages publish their subpaths through `exports` only, which
+`moduleResolution: node` does not read.
 
 `pnpm lint` caps oxlint at today's exact count in each package -- **1** in
 `packages/dms`, **8** in `packages/interface-dms`. It is a debt ceiling meant to

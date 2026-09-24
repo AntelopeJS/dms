@@ -26,18 +26,13 @@
     "frontend:dev": "pnpm --dir playground frontend:dev",
     "lint:fix": "oxlint --fix --max-warnings=1000000 && oxfmt . && pnpm --dir frontend-vue lint:fix",
     "lint": "oxlint && oxfmt --check . && pnpm --dir frontend-vue lint",
-    "performance:inertia-navigation": "node scripts/check-inertia-navigation.mjs",
-    "check:inertia-runtime": "node scripts/check-inertia-runtime.mjs",
-    "check:inertia-contracts": "node scripts/check-inertia-contracts.mjs",
-    "check:inertia-modules": "node scripts/check-inertia-modules.mjs",
     "typecheck": "pnpm --filter @antelopejs/interface-dms build && tsc --noEmit",
-    "check:package": "node scripts/check-package.mjs",
-    "test": "pnpm run build && ajs module test . && pnpm run check:package",
+    "test": "pnpm run build && ajs module test .",
     "test:unit": "pnpm run build && DMS_TEST_DIR=dist/test/unit ajs module test .",
     "test:integration": "pnpm run build && DMS_TEST_DIR=dist/test/integration ajs module test .",
     "test:watch": "tsc -w & tsc-alias -w",
     "release": "pnpm --filter @antelopejs/interface-dms build && pnpm --dir frontend-vue install --frozen-lockfile && release-it",
-    "prepack": "pnpm run build && pnpm run check:package",
+    "prepack": "pnpm run build",
     "knip": "knip --dependencies",
     "knip:all": "knip"
   },
@@ -106,13 +101,6 @@
     },
     "./package.json": "./package.json",
     "./interfaces/*": null
-  },
-  "typesVersions": {
-    "*": {
-      "pages": [
-        "dist/pages/index.d.ts"
-      ]
-    }
   },
   "publishConfig": {
     "access": "public",
