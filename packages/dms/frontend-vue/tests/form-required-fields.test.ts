@@ -106,6 +106,17 @@ describe("isFieldMarkedRequired", () => {
     ).to.equal(true);
   });
 
+  it("does not mark a switch, which always holds a value", () => {
+    expect(
+      isFieldMarkedRequired(
+        { id: "owner", required: true, type: "boolean" },
+        none,
+        none,
+        new Set(["owner"]),
+      ),
+    ).to.equal(false);
+  });
+
   it("does not mark a disabled or hidden field, which is not validated", () => {
     const field = { id: "name", required: true };
     expect(
