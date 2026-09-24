@@ -169,6 +169,7 @@
       "row_added_success": "The item has been successfully added",
       "error_missing_fields": "Missing required fields",
       "error_fill_all_fields": "Please fill in all required fields",
+      "required_legend": "Required fields",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
       "select_date": "Select date",

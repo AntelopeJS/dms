@@ -258,6 +258,22 @@ export function buildValidationSchema(
   return z.object(newShape).passthrough();
 }
 
+/**
+ * Whether the form marks a field as required: declared so, or made so by a
+ * watch action, and neither disabled nor hidden, since `buildValidationSchema`
+ * does not validate inactive fields.
+ */
+export function isFieldMarkedRequired(
+  field: Pick<FormField, "id" | "required" | "disabled">,
+  disabled: Set<string> | undefined,
+  hidden: Set<string> | undefined,
+  required: Set<string> | undefined,
+): boolean {
+  if (field.disabled || disabled?.has(field.id) || hidden?.has(field.id))
+    return false;
+  return !!field.required || (required?.has(field.id) ?? false);
+}
+
 function watchFieldChanges(
   state: Ref<Record<string, unknown>>,
   componentId: string | undefined,
@@ -546,6 +562,7 @@ export const useForm = (props: FormProps) => {
     allFields,
     disabledFields,
     hiddenFields,
+    requiredFields,
     isFieldGroup,
     submitSucceeded,
     resolvedFetchUrl,
