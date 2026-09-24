@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly NODE_MAJOR="24"
 readonly PNPM_VERSION="10.2.0"
-readonly ANTELOPE_VERSION="1.8.0"
+readonly ANTELOPE_VERSION="1.9.1"
 readonly MONGODB_MAJOR="8.0"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
