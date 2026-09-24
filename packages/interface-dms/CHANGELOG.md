@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.0...v0.2.1)
+
+### 🩹 Fixes
+
+- **table-view:** Derive form route keys from the page permission id ([#43](https://github.com/AntelopeJS/dms/pull/43))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.0 ([d80807f](https://github.com/AntelopeJS/dms/commit/d80807f))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.1.0...v0.2.0)
