@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.4.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.8...v0.4.0)
+
+### 💅 Refactors
+
+- **build:** Merge tsconfig.build.json into tsconfig.json ([#39](https://github.com/AntelopeJS/dms/pull/39))
+- **package:** ⚠️  Drop moduleResolution node support and pack-based checks ([#41](https://github.com/AntelopeJS/dms/pull/41))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.0 ([98ad6f4](https://github.com/AntelopeJS/dms/commit/98ad6f4))
+
+### 🤖 CI
+
+- **release:** Release next from a dedicated branch and restore requireCommits ([#38](https://github.com/AntelopeJS/dms/pull/38))
+- **release:** Reference the shared release workflows through v1 ([#40](https://github.com/AntelopeJS/dms/pull/40))
+
+#### ⚠️ Breaking Changes
+
+- **package:** ⚠️  Drop moduleResolution node support and pack-based checks ([#41](https://github.com/AntelopeJS/dms/pull/41))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.8
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.3.7...v0.3.8)
