@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.1...v0.4.2)
+
+### 🩹 Fixes
+
+- **roles:** Show permissions whose parent id is not registered ([#44](https://github.com/AntelopeJS/dms/pull/44))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.0...v0.4.1)
