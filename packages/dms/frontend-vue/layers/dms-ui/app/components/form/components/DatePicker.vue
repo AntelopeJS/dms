@@ -29,7 +29,13 @@ interface NativeDateRange {
   end: Date | undefined;
 }
 
-type DateValue = CalendarDate | StrictDateRange | string | null | undefined;
+type DateValue =
+  | CalendarDate
+  | StrictDateRange
+  | string
+  | (string | Date | CalendarDate)[]
+  | null
+  | undefined;
 
 type DatePickerProps = Omit<CalendarProps<R, M>, "modelValue">;
 
@@ -39,6 +45,7 @@ const emits = defineEmits<{
     value:
       | string
       | { start: string | undefined; end: string | undefined }
+      | string[]
       | null
       | undefined,
   ];
@@ -55,7 +62,7 @@ function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
 }
 
-function convertDateRangeBound(
+function convertToCalendarDate(
   value: string | Date | CalendarDate | undefined,
 ): CalendarDate | undefined {
   if (isString(value)) {
@@ -71,8 +78,8 @@ function convertDateRangeValue(
   rangeValue: StringDateRange | StrictDateRange | NativeDateRange,
 ): StrictDateRange {
   return {
-    start: convertDateRangeBound(rangeValue.start),
-    end: convertDateRangeBound(rangeValue.end),
+    start: convertToCalendarDate(rangeValue.start),
+    end: convertToCalendarDate(rangeValue.end),
   };
 }
 
@@ -91,6 +98,9 @@ function convertModelValue(value: DateValue): DateValue {
   if (isDateRangeValue(value)) {
     return convertDateRangeValue(value);
   }
+  if (Array.isArray(value)) {
+    return value.map(convertToCalendarDate) as CalendarDate[];
+  }
   return value;
 }
 
@@ -104,7 +114,12 @@ type EmitValue = unknown;
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   if (event === "update:modelValue" && value) {
-    if (
+    if (Array.isArray(value)) {
+      const isoStrings = (value as CalendarDate[]).map((date) =>
+        date.toString(),
+      );
+      emits("update:modelValue", isoStrings);
+    } else if (
       isObject(value) &&
       "year" in value &&
       "month" in value &&
