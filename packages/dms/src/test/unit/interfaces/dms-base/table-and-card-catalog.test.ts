@@ -61,3 +61,30 @@ describe("[unit] interfaces/dms-base/chart-card — the chart it wraps, in the c
     );
   });
 });
+
+/**
+ * A card and its chart draw their variation, legend, tooltip, grid, curve and
+ * rounded bars unless those are turned off. A builder reading an unset switch
+ * as off would show every one of them off on a card that draws them all.
+ */
+describe("[unit] interfaces/dms-base/chart-card — the switches it draws on", () => {
+  it("says a card shows its variation and its legend", () => {
+    const card = configOf("ChartCard");
+
+    expect(card.showDelta?.default).to.equal(true);
+    expect(card.showLegend?.default).to.equal(true);
+  });
+
+  it("says a chart shows what it draws unless told not to", () => {
+    const chart = configOf("ChartColumn");
+
+    for (const option of ["showTooltip", "showGrid", "roundedCorners"]) {
+      expect(chart[option]?.default, option).to.equal(true);
+    }
+    expect(configOf("ChartLine").smooth?.default).to.equal(true);
+  });
+
+  it("leaves what it only does when asked unset", () => {
+    expect(configOf("ChartColumn").stacked?.default).to.equal(undefined);
+  });
+});

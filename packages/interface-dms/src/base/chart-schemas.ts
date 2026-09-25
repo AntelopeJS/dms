@@ -112,12 +112,15 @@ const baseChartShape = {
     group: "appearance",
     widget: "number",
   }),
-  showTooltip: ui(z.boolean().optional(), {
+  // A chart draws its tooltip, legend, grid, curve and rounded bars unless
+  // they are turned off: declared, so an editor's switch does not show them
+  // off while they show.
+  showTooltip: ui(z.boolean().default(true), {
     label: "Show tooltip",
     group: "appearance",
     widget: "switch",
   }),
-  showLegend: ui(z.boolean().optional(), {
+  showLegend: ui(z.boolean().default(true), {
     label: "Show legend",
     group: "appearance",
     widget: "switch",
@@ -158,7 +161,7 @@ const baseChartShape = {
 
 const xyChartShape = {
   ...baseChartShape,
-  showGrid: ui(z.boolean().optional(), {
+  showGrid: ui(z.boolean().default(true), {
     label: "Show grid",
     group: "appearance",
     widget: "switch",
@@ -177,7 +180,7 @@ const xyChartShape = {
     group: "appearance",
     widget: "segmented",
   }),
-  smooth: ui(z.boolean().optional(), {
+  smooth: ui(z.boolean().default(true), {
     label: "Smooth",
     group: "appearance",
     widget: "switch",
@@ -234,7 +237,7 @@ const stackedOption = () =>
   });
 
 const roundedCornersOption = () =>
-  ui(z.boolean().optional(), {
+  ui(z.boolean().default(true), {
     label: "Rounded corners",
     group: "appearance",
     widget: "switch",

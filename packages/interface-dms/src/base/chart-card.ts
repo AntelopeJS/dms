@@ -121,12 +121,14 @@ export const ChartCardSchema = z.object({
     label: "Currency",
     group: "appearance",
   }),
-  showDelta: ui(z.boolean().optional(), {
+  // The card draws its variation and its legend unless they are turned off:
+  // declared, so an editor's switch does not show them off while they show.
+  showDelta: ui(z.boolean().default(true), {
     label: "Show variation",
     group: "appearance",
     widget: "switch",
   }),
-  showLegend: ui(z.boolean().optional(), {
+  showLegend: ui(z.boolean().default(true), {
     label: "Show legend",
     group: "appearance",
     widget: "switch",
