@@ -1,13 +1,29 @@
 // @vitest-environment jsdom
 /**
- * The color-mode plugin in the browser, in boot order: the pre-paint script
- * runs while `<head>` parses, Nuxt UI's `useDark()` runs when the app installs
- * Nuxt UI, then the DMS plugins run. The `dms-color-mode` cookie is the source
- * of truth, and vueuse's store, which Nuxt UI's components share, mirrors it
- * both ways.
+ * The color-mode plugin in the browser, in boot order: the server-rendered
+ * pre-paint script runs while `<head>` parses, Nuxt UI's `useDark()` runs when
+ * the app installs Nuxt UI, then the DMS plugins run. The `dms-color-mode`
+ * cookie is the source of truth, and vueuse's store, which Nuxt UI's
+ * components share, mirrors it both ways.
  */
+import { useHead } from "@unhead/vue";
+import {
+  createHead as createClientHead,
+  renderDOMHead,
+} from "@unhead/vue/client";
+import {
+  createHead as createServerHead,
+  renderSSRHead,
+} from "@unhead/vue/server";
 import { useColorMode, useDark } from "@vueuse/core";
-import { computed, effectScope, ref, type EffectScope } from "vue";
+import {
+  computed,
+  createApp,
+  createSSRApp,
+  effectScope,
+  ref,
+  type EffectScope,
+} from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 interface ColorSchemeChange {
@@ -16,13 +32,7 @@ interface ColorSchemeChange {
 
 type ColorSchemeListener = (change: ColorSchemeChange) => void;
 
-interface HeadScript {
-  innerHTML: string;
-}
-
-interface HeadInput {
-  script: HeadScript[];
-}
+type ClientHead = ReturnType<typeof createClientHead>;
 
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)";
 const VUEUSE_STORAGE_KEY = "vueuse-color-scheme";
@@ -36,26 +46,29 @@ const preference = computed({
     storedPreference.value = next;
   },
 });
-const head = vi.fn();
 let prefersDark = false;
 let scope: EffectScope;
+let clientHead: ClientHead | undefined;
 
 vi.stubGlobal("defineDmsPlugin", (setup: unknown) => setup);
-vi.stubGlobal("useHead", head);
+vi.stubGlobal("useHead", useHead);
 vi.stubGlobal("useDmsCookie", () => preference);
 
 const { default: colorModePlugin } = await import(
   "../layers/dms-layout/app/plugins/color-mode"
 );
 
-function serverRenderedScript(): string {
+async function renderServerHead(): Promise<string> {
   vi.stubEnv("SSR", true);
-  colorModePlugin({} as never);
+  const app = createSSRApp({ render: () => null });
+  const head = createServerHead();
+  app.use(head);
+  app.runWithContext(() => colorModePlugin({} as never));
   vi.unstubAllEnvs();
-  return (head.mock.lastCall?.[0] as HeadInput).script[0].innerHTML;
+  return (await renderSSRHead(head)).headTags;
 }
 
-const prePaintScript = serverRenderedScript();
+const serverHead = await renderServerHead();
 
 function stubSystemColorScheme(): void {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -74,9 +87,12 @@ function switchSystemColorScheme(isDark: boolean): void {
   colorSchemeListeners.forEach((listener) => listener({ matches: isDark }));
 }
 
-function paint(cookie?: string): void {
+/** Parses the server's `<head>`, running its inline script as a browser would. */
+function loadDocument(cookie?: string): void {
   if (cookie !== undefined) document.cookie = `dms-color-mode=${cookie}`;
-  new Function(prePaintScript)();
+  document.head.innerHTML = serverHead;
+  const script = document.querySelector("script#dms-color-mode");
+  new Function(script?.textContent ?? "")();
 }
 
 /** What `@nuxt/ui/vue-plugin` runs when the app installs it. */
@@ -90,24 +106,31 @@ function mountNuxtUiComponent() {
 }
 
 function bootDmsPlugin(): void {
-  scope.run(() => colorModePlugin({} as never));
+  const app = createApp({ render: () => null });
+  clientHead = createClientHead();
+  app.use(clientHead);
+  scope.run(() => app.runWithContext(() => colorModePlugin({} as never)));
 }
 
 function htmlClasses(): string[] {
   return [...document.documentElement.classList];
 }
 
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve));
+/** Lets the watchers run and unhead patch the document. */
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve));
+  if (clientHead) await renderDOMHead(clientHead);
 }
 
 beforeEach(() => {
   scope = effectScope();
+  clientHead = undefined;
   prefersDark = false;
   storedPreference.value = "system";
   cookieWrites.mockClear();
   localStorage.clear();
   document.cookie = "dms-color-mode=; max-age=0";
+  document.head.innerHTML = "";
   document.documentElement.className = "";
   stubSystemColorScheme();
 });
@@ -123,7 +146,7 @@ describe("pre-paint script", () => {
     // What the renderer's own pre-paint script may still have added.
     document.documentElement.classList.add("light");
 
-    paint("%22dark%22");
+    loadDocument("%22dark%22");
 
     expect(localStorage.getItem(VUEUSE_STORAGE_KEY)).toBe("dark");
     expect(htmlClasses()).toEqual(["dark"]);
@@ -172,25 +195,36 @@ describe("pre-paint script", () => {
     ({ cookie, prefersDark: isDark, stored, painted }) => {
       prefersDark = isDark;
 
-      paint(cookie);
+      loadDocument(cookie);
 
       expect(localStorage.getItem(VUEUSE_STORAGE_KEY)).toBe(stored);
       expect(htmlClasses()).toEqual([painted]);
     },
   );
+
+  it("is adopted by the client head rather than inserted and run again", async () => {
+    loadDocument("%22dark%22");
+    bootNuxtUi();
+    bootDmsPlugin();
+    await settle();
+
+    expect(document.querySelectorAll("script#dms-color-mode")).toHaveLength(1);
+  });
 });
 
 describe("sync with Nuxt UI's store", () => {
-  it("boots without writing either side when the script already agreed", () => {
+  it("boots without writing either side when the script already agreed", async () => {
     storedPreference.value = "dark";
-    paint("%22dark%22");
+    loadDocument("%22dark%22");
     const setItem = vi.spyOn(Storage.prototype, "setItem");
 
     bootNuxtUi();
     bootDmsPlugin();
+    await settle();
 
     expect(setItem).not.toHaveBeenCalled();
     expect(cookieWrites).not.toHaveBeenCalled();
+    expect(htmlClasses()).toEqual(["dark"]);
     setItem.mockRestore();
   });
 
@@ -208,7 +242,7 @@ describe("sync with Nuxt UI's store", () => {
   });
 
   it("mirrors a preference change into the store Nuxt UI's components read", async () => {
-    paint();
+    loadDocument();
     bootNuxtUi();
     bootDmsPlugin();
     const component = mountNuxtUiComponent();
@@ -228,7 +262,7 @@ describe("sync with Nuxt UI's store", () => {
   });
 
   it("writes a theme picked in a Nuxt UI component back to the cookie", async () => {
-    paint();
+    loadDocument();
     bootNuxtUi();
     bootDmsPlugin();
     const component = mountNuxtUiComponent();
@@ -245,10 +279,29 @@ describe("sync with Nuxt UI's store", () => {
     expect(cookieWrites.mock.calls).toEqual([["dark"], ["system"]]);
   });
 
+  it.each([true, false])(
+    "keeps the class when an explicit mode gives way to a system that resolves the same (dark system: %s)",
+    async (isDark) => {
+      const mode = isDark ? "dark" : "light";
+      prefersDark = isDark;
+      storedPreference.value = mode;
+      loadDocument(`%22${mode}%22`);
+      bootNuxtUi();
+      bootDmsPlugin();
+      await settle();
+
+      preference.value = "system";
+      await settle();
+
+      expect(htmlClasses()).toEqual([mode]);
+    },
+  );
+
   it("follows the system color scheme while the preference is system", async () => {
-    paint();
+    loadDocument();
     bootNuxtUi();
     bootDmsPlugin();
+    await settle();
     expect(htmlClasses()).toEqual(["light"]);
 
     switchSystemColorScheme(true);

@@ -60,7 +60,7 @@ it.each([undefined, "system", "sepia"])(
   async (preference) => {
     const { htmlAttrs } = await renderHead(preference);
 
-    expect(htmlAttrs).not.toMatch(/class="[^"]/);
+    expect(htmlAttrs).not.toContain("class");
   },
 );
 

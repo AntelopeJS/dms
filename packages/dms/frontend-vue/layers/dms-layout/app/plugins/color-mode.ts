@@ -2,7 +2,7 @@ import {
   type BasicColorSchema,
   useColorMode as useVueUseColorMode,
 } from "@vueuse/core";
-import { computed, type Ref, watch } from "vue";
+import { type Ref, watch } from "vue";
 import type { ColorModePreference } from "../composables/general/types";
 import {
   COLOR_MODE_COOKIE,
@@ -74,16 +74,22 @@ function syncWithVueUse(preference: Ref<ColorModePreference>): void {
   });
 }
 
+/**
+ * The server renders an explicit preference's class, so the first paint is
+ * right before any script runs. In the browser the class belongs to vueuse,
+ * which Nuxt UI already drives it with: were unhead tracking it as well, it
+ * would remove it when `dark` gives way to a `system` that still resolves dark,
+ * and vueuse, seeing no change, would not put it back.
+ */
 export default defineDmsPlugin(() => {
   const preference = useColorModePreference();
+  const script = [{ id: PRE_PAINT_SCRIPT_ID, innerHTML: PRE_PAINT_SCRIPT }];
 
-  useHead({
-    htmlAttrs: {
-      class: computed(() => explicitColorMode(preference.value)),
-    },
-    script: [{ id: PRE_PAINT_SCRIPT_ID, innerHTML: PRE_PAINT_SCRIPT }],
-  });
-
-  if (import.meta.env.SSR) return;
-  syncWithVueUse(preference);
+  if (!import.meta.env.SSR) {
+    useHead({ script });
+    syncWithVueUse(preference);
+    return;
+  }
+  const mode = explicitColorMode(preference.value);
+  useHead({ htmlAttrs: mode ? { class: mode } : {}, script });
 });
