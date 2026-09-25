@@ -23,6 +23,7 @@ import { issueAuthResponse } from "./session-response";
 import type { AuthResponse } from "./types";
 
 const VALIDATION_TOKEN_LENGTH = 6;
+const DEFAULT_LANGUAGE = "en";
 
 function buildValidationFields(invite: UserInvite) {
   const config = getAuthConfig();
@@ -39,6 +40,17 @@ function buildValidationFields(invite: UserInvite) {
       : undefined,
     validationRequestedAt: shouldValidate ? new Date() : undefined,
   };
+}
+
+/**
+ * The language a signup account starts in: the one the invitee chose on the
+ * signup page, else the one the invitation was written in.
+ */
+export function signupLanguage(
+  lang: string | undefined,
+  invite: UserInvite,
+): string {
+  return lang || invite.language || DEFAULT_LANGUAGE;
 }
 
 /** The account a signup creates or takes over. `name`, `email` and `password`
@@ -65,7 +77,7 @@ async function createNewUser(
     authKey: generateAuthKey(),
     ...validation,
     owner: false,
-    language: lang || "en",
+    language: signupLanguage(lang, invite),
   });
   return result?.[0];
 }
@@ -85,7 +97,7 @@ async function overwriteUnvalidatedUser(
   existingUser.validationToken = validation.validationToken as string;
   existingUser.validationRequestedAt = validation.validationRequestedAt as Date;
   existingUser.isValidated = validation.isValidated;
-  existingUser.language = lang || "en";
+  existingUser.language = signupLanguage(lang, invite);
 
   await userModel.update(existingUser);
   return existingUser._id;

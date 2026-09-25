@@ -214,7 +214,7 @@ export class MembersSettingsController extends PageController("members", {
   @Post("/invite")
   async invite(
     @Context() ctx: RequestContext,
-    @AuthUserWithPermission(membersTableAddAction) _user: User,
+    @AuthUserWithPermission(membersTableAddAction) user: User,
     @Model(UserModel) userModel: UserModel,
     @JSONBody() body: unknown,
   ) {
@@ -246,6 +246,7 @@ export class MembersSettingsController extends PageController("members", {
       asTenantOwner,
       skipEmailValidation,
       sendEmail: true,
+      inviterName: user.name,
       extensions,
     });
     // An existing user is added straight away (no pending invite), so send the

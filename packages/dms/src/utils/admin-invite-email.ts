@@ -72,3 +72,25 @@ export function buildAdminInviteSubject(
     ? copy.joinFromInviter(names.inviterName, target)
     : copy.join(target);
 }
+
+/** What the signup link of an invitation carries. */
+export interface AdminInviteSignupTarget {
+  email: string;
+  token: string;
+  inviteeName?: string;
+  language?: string;
+}
+
+/**
+ * The signup page an invitation opens. It carries the invitation's language so
+ * the page, and the account it creates, start in that language.
+ */
+export function buildAdminInviteSignupLink(
+  clientBaseUrl: string,
+  { email, token, inviteeName, language }: AdminInviteSignupTarget,
+): string {
+  const query = new URLSearchParams({ token, email });
+  if (inviteeName) query.set("name", inviteeName);
+  if (language) query.set("lang", language);
+  return `${clientBaseUrl}/auth/signup?${query.toString()}`;
+}

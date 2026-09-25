@@ -11,7 +11,7 @@ export const authSchema = {
     name: z.string(),
     email: z.string().email(),
     password: passwordSchema,
-    lang: z.string(),
+    lang: z.string().optional(),
     token: z.string(),
   }),
   login: z.object({

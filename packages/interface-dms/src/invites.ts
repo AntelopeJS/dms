@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
+import {
+  TenantMemberModel,
+  TenantModel,
+  type UserInvite,
+  UserInviteModel,
+} from "./db";
 import { sendAdminInviteEmail } from "./auth";
 import { UserModel } from "./auth/db";
 import randomstring from "randomstring";
@@ -31,6 +36,8 @@ export interface InviteUserToTenantOptions {
   skipEmailValidation?: boolean;
   /** Opt-in: dispatch `sendAdminInviteEmail` after the invite row is created. */
   sendEmail?: boolean;
+  /** Who sends the invitation, named in its email. */
+  inviterName?: string;
   /** Module payloads collected in the invite modal, keyed by extension key. */
   extensions?: InviteExtensionPayloads;
 }
@@ -48,6 +55,42 @@ export function inviteeDisplayName(
     .join(" ")
     .trim();
   return name || undefined;
+}
+
+/** A pending tenant invitation, as its email needs it. */
+export interface TenantInviteEmail {
+  tenantId: string;
+  email: string;
+  token: string;
+  firstname?: string | null;
+  lastname?: string | null;
+  language?: string;
+  /** Who sends the invitation. */
+  inviterName?: string;
+}
+
+async function tenantName(tenantId: string): Promise<string | undefined> {
+  const tenant = await GetModel(TenantModel).get(tenantId);
+  return tenant?.name || undefined;
+}
+
+/**
+ * Send a tenant invitation's email, naming the workspace and the inviter and
+ * written in the invitation's language.
+ */
+export async function sendTenantInviteEmail(
+  invite: TenantInviteEmail,
+): Promise<void> {
+  await sendAdminInviteEmail(
+    invite.email,
+    invite.token,
+    inviteeDisplayName(invite.firstname, invite.lastname),
+    {
+      workspaceName: await tenantName(invite.tenantId),
+      inviterName: invite.inviterName,
+      language: invite.language,
+    },
+  );
 }
 
 export type InviteUserToTenantResult =
@@ -76,12 +119,7 @@ export async function inviteUserToTenant(
   );
   if (options.sendEmail && result.kind === "invited") {
     fireAndForget(
-      sendAdminInviteEmail(
-        options.email,
-        result.token,
-        inviteeDisplayName(options.firstname, options.lastname),
-        { language: options.language },
-      ),
+      sendTenantInviteEmail({ ...options, token: result.token }),
       `invite email to "${options.email}"`,
     );
   }

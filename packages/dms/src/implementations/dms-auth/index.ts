@@ -13,6 +13,7 @@ import { decode, sign, verify } from "jsonwebtoken";
 import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
 import {
   type AdminInviteEmailNames,
+  buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
 } from "../../utils/admin-invite-email";
@@ -539,10 +540,12 @@ export async function sendAdminInviteEmail(
   inviteeName?: string,
   context: AdminInviteEmailContext = {},
 ): Promise<void> {
-  const nameParam = inviteeName
-    ? `&name=${encodeURIComponent(inviteeName)}`
-    : "";
-  const signupLink = `${getClientBaseUrl()}/auth/signup?token=${token}&email=${encodeURIComponent(email)}${nameParam}`;
+  const signupLink = buildAdminInviteSignupLink(getClientBaseUrl() ?? "", {
+    email,
+    token,
+    inviteeName,
+    language: context.language,
+  });
   const language = resolveAdminInviteLanguage(context.language);
   const names: AdminInviteEmailNames = {
     workspaceName: context.workspaceName,
