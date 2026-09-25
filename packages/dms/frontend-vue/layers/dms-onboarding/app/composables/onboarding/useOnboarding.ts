@@ -37,15 +37,3 @@ export const setOnboardingComplete = () => {
   );
   cache.value = { hasOnboarded: true };
 };
-
-export const useOnboardingMiddleware = async () => {
-  const { hasOnboarded } = await useOnboarding();
-
-  if (!hasOnboarded) return;
-
-  throw createError({
-    statusCode: HTTP_PRECONDITION_FAILED,
-    statusMessage: "Invalid request",
-    message: "Onboarding already completed",
-  });
-};
