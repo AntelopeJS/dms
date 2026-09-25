@@ -57,7 +57,9 @@ export class NotificationsSettingsController extends PageController(
 export class NotificationsApiController extends Controller(
   "/settings/user/notifications",
 ) {
-  @AuthTenantMember()
+  // A user's own notifications are not tenant data: the header bell polls
+  // them on every page, including the billing page a blocked tenant needs.
+  @AuthTenantMember({ bypassTenantAccessGate: true })
   declare user: User;
 
   @Get("/preferences")

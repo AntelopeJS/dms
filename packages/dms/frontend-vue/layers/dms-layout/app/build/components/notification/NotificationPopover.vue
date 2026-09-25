@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
+import { settleWidgetRequest } from "./widgetRequest";
 
 const MAX_DISPLAYED_COUNT = 99;
 
@@ -25,9 +26,14 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   hasMore,
 );
 
+const refreshUnreadCount = () =>
+  settleWidgetRequest(fetchUnreadCount, () => {
+    unreadCount.value = 0;
+  });
+
 const handleNotificationEvent = async () => {
   if (!isOpen.value) {
-    await fetchUnreadCount();
+    await refreshUnreadCount();
   }
 };
 
@@ -37,14 +43,14 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
   if (submitUrl && submitUrl.includes("/api/notification/")) {
     if (!isOpen.value) {
-      await fetchUnreadCount();
+      await refreshUnreadCount();
     }
   }
 };
 
 const markNotificationsAsRead = async () => {
   if (hasBeenOpened.value) {
-    await markAllAsRead();
+    await settleWidgetRequest(markAllAsRead);
     hasBeenOpened.value = false;
   }
 };
@@ -57,7 +63,7 @@ const handleBeforeUnload = () => {
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  await fetchUnreadCount();
+  await refreshUnreadCount();
 
   window.addEventListener(
     NotificationEvents.NOTIFICATION_RECEIVED,
@@ -87,7 +93,7 @@ onUnmounted(() => {
 watch(isOpen, async (isNowOpen) => {
   if (isNowOpen) {
     hasBeenOpened.value = true;
-    await fetchNotifications(true);
+    await settleWidgetRequest(() => fetchNotifications(true));
     await nextTick();
     setupObserver();
   } else {
