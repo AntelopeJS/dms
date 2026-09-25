@@ -72,8 +72,11 @@ async function isPublicAccessRoute(to: ReturnType<typeof useDmsRoute>) {
 export default defineDmsMiddleware(async (to) => {
   if (to.matched.length === 0) return;
 
-  const error = useError();
-  if (error.value) throw showError(error.value);
+  // An error the page already raised (a failed `validation`, a missing page)
+  // is committed and rendered with its own status. Re-throwing it here would
+  // reject the pending navigation the SSR render awaits, turning that 404 into
+  // a 500 fallback render.
+  if (useError().value) return abortNavigation();
 
   const options = to.meta.auth as MiddlewareMeta | undefined;
   if (!options) return;
