@@ -29,9 +29,11 @@ export {
 export * from "./hooks";
 export {
   CleanupInviteExtensions,
+  CollectInviteExtensionEdits,
   CollectInviteExtensionPayloads,
   DeliverInviteExtensions,
   HTTP_BAD_REQUEST,
+  INVITE_EDIT_FORM_SLOT_ID,
   INVITE_EXTENSION_FIELD_SEPARATOR,
   INVITE_FORM_SLOT_ID,
   InviteAcceptHandler,
@@ -47,6 +49,9 @@ export {
   InviteExtensionPayloads,
   InviteExtensionPlacement,
   InviteFieldContribution,
+  InviteUpdateHandler,
+  NotifyInviteExtensionUpdates,
+  ReadInviteExtensionFields,
   RegisterInviteExtension,
   ResolvedInvitePlacement,
   getInviteExtension,

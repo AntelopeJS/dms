@@ -191,6 +191,21 @@ function createBatchCountRoute(actionId: string): DataControllerCallback {
   };
 }
 
+function createEditRoute(
+  baseRoute: DataControllerCallback,
+): DataControllerCallback {
+  return withRealtimeMutation(
+    { eventType: "updated", extractIds: extractSingleParamId },
+    withActionCheck(
+      "edit",
+      createGuardedRoute(
+        createValidatedRoute(withFilePromotion(baseRoute), "edit"),
+        "edit",
+      ),
+    ),
+  );
+}
+
 export namespace TableViewRoutes {
   export const Get = withPresenceAcquire(
     withActionCheck(VIEW_ACTION, guardedGetRoute),
@@ -225,16 +240,14 @@ export namespace TableViewRoutes {
       createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
     ),
   );
-  export const Edit = withRealtimeMutation(
-    { eventType: "updated", extractIds: extractSingleParamId },
-    withActionCheck(
-      "edit",
-      createGuardedRoute(
-        createValidatedRoute(withFilePromotion(DefaultRoutes.Edit), "edit"),
-        "edit",
-      ),
-    ),
-  );
+  export const Edit = createEditRoute(DefaultRoutes.Edit);
+  /**
+   * `Edit` around another write: the permission check, guard, row rules, file
+   * promotion and realtime broadcast still wrap it, so it runs only once the
+   * edit is allowed. `baseRoute` takes the arguments of `DefaultRoutes.Edit`,
+   * which it typically calls to write the row.
+   */
+  export const EditWith = createEditRoute;
   export const Delete = withRealtimeMutation(
     { eventType: "deleted", extractIds: extractMultiParamId },
     withActionCheck(

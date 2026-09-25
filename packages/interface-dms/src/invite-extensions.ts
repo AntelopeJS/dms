@@ -9,11 +9,14 @@
  * - `form-slot` — serialization, placement and merging of the contributed
  *   fields into the DMS invite modal
  * - `delivery` — validation at submit, delivery at acceptance, cleanup
+ * - `edit` — prefill, validation and notification of a pending invitation's
+ *   edit
  *
- * `form-slot` claims the invite form's component slot on import, so importing
- * this barrel is what opens the modal to extensions.
+ * `form-slot` claims the invite forms' component slots on import, so importing
+ * this barrel is what opens the modal and the edit form to extensions.
  */
 export * from "./invite-extensions/delivery";
+export * from "./invite-extensions/edit";
 export * from "./invite-extensions/field-ids";
 export * from "./invite-extensions/form-slot";
 export * from "./invite-extensions/registry";
