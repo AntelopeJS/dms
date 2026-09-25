@@ -44,12 +44,17 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { userCategory } from "./category";
 import {
   inviteLanguageSelectItems,
   memberInviteForm,
 } from "./member-invite-form";
-import { INVITES_PAGE_PATH, membersTableAddAction } from "./members";
+import {
+  INVITES_PAGE_PATH,
+  MembersSettingsController,
+  membersTableAddAction,
+} from "./members";
+
+const INVITES_PERMISSION_ID = "settings.user.invites";
 
 @RegisterDataController()
 export class inviteSettingDataAPI extends DataController(
@@ -191,15 +196,15 @@ export class inviteSettingDataAPI extends DataController(
   }
 }
 
-// Reached from the members page rather than the settings menu. It stays in the
-// user category, so its permission id (`settings.user.invites`) and the roles
-// granting it are unchanged; only its URL nests under the members page, which
-// puts Members in its breadcrumb.
+// Reached from the members page rather than the settings menu: nested under
+// it, so its URL and breadcrumb go through Members. The permission keeps the
+// id it had as a user-category page, so the roles that already grant it are
+// unchanged.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$menu.invites",
-  category: userCategory,
-  urlSlug: "members/invites",
+  category: MembersSettingsController,
+  permission: { id: INVITES_PERMISSION_ID },
   hidden: true,
   icon: "i-ph-envelope-simple",
   description: "$page.settings.description.invites",
