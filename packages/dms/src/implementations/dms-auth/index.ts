@@ -2,6 +2,7 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
+import type { AdminInviteEmailContext } from "@antelopejs/interface-dms/auth";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getErrorMessage } from "@antelopejs/interface-dms/base/types";
 import {
@@ -9,8 +10,14 @@ import {
   RegisterHtmlTemplate,
 } from "@antelopejs/interface-dms/html-render";
 import { decode, sign, verify } from "jsonwebtoken";
-import { getAuthConfig, getClientBaseUrl } from "../../config";
+import { getAuthConfig, getClientBaseUrl, getConfig } from "../../config";
+import {
+  type AdminInviteEmailNames,
+  buildAdminInviteSubject,
+  resolveAdminInviteLanguage,
+} from "../../utils/admin-invite-email";
 import { isObject } from "@antelopejs/interface-dms/utils/type-check";
+import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
@@ -49,10 +56,10 @@ interface EmailValidationData {
   expiresIn: string;
 }
 
-interface AdminInviteData {
+interface AdminInviteData extends AdminInviteEmailNames {
   email: string;
   signupLink: string;
-  expiresIn: string;
+  expiresInDays: number;
 }
 
 const ResetPasswordTemplate =
@@ -530,21 +537,33 @@ export async function sendAdminInviteEmail(
   email: string,
   token: string,
   inviteeName?: string,
+  context: AdminInviteEmailContext = {},
 ): Promise<void> {
   const nameParam = inviteeName
     ? `&name=${encodeURIComponent(inviteeName)}`
     : "";
   const signupLink = `${getClientBaseUrl()}/auth/signup?token=${token}&email=${encodeURIComponent(email)}${nameParam}`;
+  const language = resolveAdminInviteLanguage(context.language);
+  const names: AdminInviteEmailNames = {
+    workspaceName: context.workspaceName,
+    inviterName: context.inviterName,
+    platformName: getConfig().meta?.title || undefined,
+  };
 
-  const html = await GenerateHtml(AdminInviteTemplate, {
-    email,
-    signupLink,
-    expiresIn: "7 days",
-  });
+  const html = await GenerateHtml(
+    AdminInviteTemplate,
+    {
+      email,
+      signupLink,
+      expiresInDays: INVITE_EXPIRY_DAYS,
+      ...names,
+    },
+    language,
+  );
 
   const result = await Send({
     to: email,
-    subject: "You're Invited to Join",
+    subject: buildAdminInviteSubject(names, language),
     html,
   });
 

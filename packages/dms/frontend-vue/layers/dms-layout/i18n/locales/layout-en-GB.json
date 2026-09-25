@@ -272,5 +272,21 @@
     "intro": "Browse the modules available on this platform.",
     "empty": "No modules are accessible to you yet.",
     "open": "Open module"
+  },
+  "emails": {
+    "admin_invite": {
+      "title": "You're Invited!",
+      "title_workspace": "You're invited to {workspace}",
+      "greeting": "Hello,",
+      "invitation": "You've been invited to join our platform.",
+      "invitation_to_target": "You've been invited to join {target}.",
+      "invitation_from_inviter": "{inviter} invited you to join {target}.",
+      "workspace_on_platform": "{workspace} on {platform}",
+      "call_to_action": "Click the button below to create your account:",
+      "button": "Create Account",
+      "expires_label": "This invitation expires in",
+      "expires_in": "{days} days",
+      "footer": "If you didn't expect this invitation, you can safely ignore this email."
+    }
   }
 }

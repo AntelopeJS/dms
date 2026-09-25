@@ -241,9 +241,27 @@ export const sendEmailValidationEmail =
   InterfaceFunction<(user: User) => Promise<void>>();
 export const sendEmailForgotEmail =
   InterfaceFunction<(user: User) => Promise<void>>();
+/**
+ * What an invitation email can say about where it leads. Every field is
+ * optional: without them the email keeps its generic wording.
+ */
+export interface AdminInviteEmailContext {
+  /** The workspace the invitee is joining. */
+  workspaceName?: string;
+  /** Who sent the invitation. */
+  inviterName?: string;
+  /** The invitee's language (`en`, `fr`, ...); English when unsupported. */
+  language?: string;
+}
+
 export const sendAdminInviteEmail =
   InterfaceFunction<
-    (email: string, token: string, inviteeName?: string) => Promise<void>
+    (
+      email: string,
+      token: string,
+      inviteeName?: string,
+      context?: AdminInviteEmailContext,
+    ) => Promise<void>
   >();
 
 /**
