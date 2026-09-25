@@ -40,7 +40,9 @@
     "soon": "Bientôt disponible"
   },
   "quickActions": {
-    "title": "Actions rapides"
+    "title": "Actions rapides",
+    "category_members": "Membres",
+    "invite_member": "Inviter un membre"
   },
   "commandPalette": {
     "button": "Rechercher…",
