@@ -75,7 +75,7 @@ const iconBoxClass = computed(
   >
     <template #leading>
       <div :class="iconBoxClass">
-        <UIcon :name="icon" class="size-[21px]" aria-hidden="true" />
+        <UIcon :name="icon" class="size-[21px]" :aria-hidden="true" />
       </div>
     </template>
 

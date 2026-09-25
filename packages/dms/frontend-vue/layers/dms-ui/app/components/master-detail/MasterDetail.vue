@@ -49,7 +49,11 @@ defineSlots<{
               class="grid size-[26px] shrink-0 place-items-center"
               :class="selected === item.value ? 'text-primary' : 'text-toned'"
             >
-              <UIcon :name="item.icon" class="size-[18px]" aria-hidden="true" />
+              <UIcon
+                :name="item.icon"
+                class="size-[18px]"
+                :aria-hidden="true"
+              />
             </span>
             <span class="min-w-0">
               <span class="text-highlighted block text-sm font-semibold">

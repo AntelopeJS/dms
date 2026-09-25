@@ -51,7 +51,7 @@ const display = computed(() => {
     class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap tabular-nums transition-colors"
     :class="colorClass"
   >
-    <UIcon :name="icon" class="size-3" aria-hidden="true" />
+    <UIcon :name="icon" class="size-3" :aria-hidden="true" />
     {{ display }}
   </span>
 </template>

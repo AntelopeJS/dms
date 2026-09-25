@@ -34,6 +34,13 @@ const DEFAULT_ERROR_CONFIG = {
 
 const DEFAULT_STATUS_CODE = 500;
 
+// Their cards already say what happened; the message behind them is the
+// technical cause ("DMS backend request failed"), which the server has logged.
+const STATUSES_WITHOUT_ERROR_MESSAGE = new Set([
+  HTTP_NOT_FOUND,
+  HTTP_FORBIDDEN,
+]);
+
 const props = defineProps<{
   error: DmsErrorData;
 }>();
@@ -44,6 +51,14 @@ const homepage = useHomepage();
 const { loggedIn, reconcileSession, redirectToAuth } = useSessionRecovery();
 
 const isRecovering = ref(false);
+
+const visibleErrorMessage = computed(() =>
+  STATUSES_WITHOUT_ERROR_MESSAGE.has(
+    props.error.statusCode || DEFAULT_STATUS_CODE,
+  )
+    ? undefined
+    : props.error.message,
+);
 
 const errorConfig = computed(() => {
   const statusCode = props.error.statusCode || DEFAULT_STATUS_CODE;
@@ -121,10 +136,10 @@ onMounted(() => {
         </p>
 
         <p
-          v-if="!isRecovering && error.message"
+          v-if="!isRecovering && visibleErrorMessage"
           class="text-dimmed mb-6 text-sm"
         >
-          {{ error.message }}
+          {{ visibleErrorMessage }}
         </p>
 
         <div v-if="!isRecovering" class="flex gap-3">

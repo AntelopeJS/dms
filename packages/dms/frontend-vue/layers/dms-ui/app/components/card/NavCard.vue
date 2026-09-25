@@ -24,7 +24,7 @@ defineProps<Props>();
       <div
         class="bg-primary/10 ring-primary/20 group-hover:bg-primary/15 flex size-10 shrink-0 items-center justify-center rounded-lg ring transition-colors"
       >
-        <UIcon :name="icon" class="text-primary size-5" aria-hidden="true" />
+        <UIcon :name="icon" class="text-primary size-5" :aria-hidden="true" />
       </div>
 
       <h3 class="text-highlighted min-w-0 truncate text-base font-semibold">
@@ -34,7 +34,7 @@ defineProps<Props>();
       <UIcon
         name="i-ph-caret-right"
         class="text-dimmed ml-auto size-4 shrink-0 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
-        aria-hidden="true"
+        :aria-hidden="true"
       />
     </div>
 

@@ -35,7 +35,7 @@ const bubbleClass = computed(() => SOFT_TINT[props.iconColor]);
       :class="bubbleClass"
       class="grid size-[26px] shrink-0 place-items-center rounded-full"
     >
-      <UIcon :name="icon" class="size-3.5" aria-hidden="true" />
+      <UIcon :name="icon" class="size-3.5" :aria-hidden="true" />
     </div>
 
     <div class="min-w-0 flex-1">

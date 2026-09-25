@@ -42,8 +42,8 @@ if (!siteLayout.siteLayout.value) {
 
 const favoritePages = useFavoritePages();
 
-favoritePages.cleanupInvalidFavorites(
-  (path) => siteLayout.findMatchingRoute(path) !== null,
+favoritePages.cleanupInvalidFavorites((path) =>
+  isFavoritePathValid(path, siteLayout.findMatchingRoute),
 );
 
 const isOwner = useIsOwner();

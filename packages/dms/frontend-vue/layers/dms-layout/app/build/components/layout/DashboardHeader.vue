@@ -57,24 +57,32 @@ const siteLayout = useSiteLayout();
 const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
 
-const currentPageInfo = computed((): FavoritePage | null => {
-  const currentPath = route.path;
-  const matchedRoute = siteLayout.findMatchingRoute(currentPath);
+// A page narrowed by its query can render the entity it shows as its heading
+// (the project's name rather than "Project"); that heading names its favorite.
+const RENDERED_PAGE_HEADING_SELECTOR = "[data-dms-page-content] h1";
+
+const buildCurrentFavoritePage = (
+  renderedHeading?: string,
+): FavoritePage | null => {
+  const matchedRoute = siteLayout.findMatchingRoute(route.path);
 
   if (!matchedRoute) {
     return null;
   }
 
-  return {
-    id: matchedRoute.metadata.id || currentPath,
-    path: currentPath,
-    title:
-      matchedRoute.metadata.displayName ||
-      route.name?.toString() ||
-      currentPath,
-    icon: matchedRoute.metadata.icon,
-  };
-});
+  return buildFavoritePage({
+    path: route.path,
+    metadata: {
+      ...matchedRoute.metadata,
+      displayName: matchedRoute.metadata.displayName || route.name?.toString(),
+    },
+    query: route.query,
+    translate: processI18n,
+    renderedHeading,
+  });
+};
+
+const currentPageInfo = computed(() => buildCurrentFavoritePage());
 
 const isCurrentPageFavorite = computed(() => {
   if (!currentPageInfo.value) {
@@ -83,11 +91,16 @@ const isCurrentPageFavorite = computed(() => {
   return favoritePages.isFavorite(currentPageInfo.value.path);
 });
 
+const readRenderedPageHeading = (): string | undefined =>
+  document.querySelector(RENDERED_PAGE_HEADING_SELECTOR)?.textContent ??
+  undefined;
+
 const toggleCurrentPageFavorite = () => {
-  if (!currentPageInfo.value) {
+  const page = buildCurrentFavoritePage(readRenderedPageHeading());
+  if (!page) {
     return;
   }
-  favoritePages.toggleFavorite(currentPageInfo.value);
+  favoritePages.toggleFavorite(page);
 };
 
 const breadcrumb = computed((): BreadcrumbItem[] => {

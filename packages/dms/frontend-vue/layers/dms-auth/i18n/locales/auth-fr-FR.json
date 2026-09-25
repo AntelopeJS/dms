@@ -15,7 +15,9 @@
     },
     "signup": {
       "create_account_title": "Créer votre compte",
-      "error_title": "Erreur de création de compte"
+      "error_title": "Erreur de création de compte",
+      "invalid_invitation_title": "Ce lien d'invitation est invalide ou incomplet",
+      "invalid_invitation_description": "Rouvrez le lien de votre e-mail d'invitation, ou demandez au propriétaire de l'espace de travail de vous envoyer une nouvelle invitation. Vous avez déjà un compte ? Connectez-vous."
     },
     "2fa": {
       "title": "Vérification à deux facteurs",

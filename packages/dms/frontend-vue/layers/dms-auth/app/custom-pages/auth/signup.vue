@@ -12,14 +12,11 @@ const route = useDmsRoute();
 const queryToken = computed(() => route.query.token as string);
 const queryEmail = computed(() => route.query.email as string);
 const queryName = computed(() => route.query.name as string | undefined);
-
-if (!queryToken.value) {
-  throw createError({
-    statusCode: HTTP_BAD_REQUEST,
-    statusMessage: INVALID_REQUEST,
-    message: "Missing required token parameter",
-  });
-}
+// Only an invitation email links here, so a link without its token was cut
+// short on the way: say so, rather than answering with a server error.
+const hasInvitationToken = computed(
+  () => typeof queryToken.value === "string" && queryToken.value !== "",
+);
 
 const isLoading = ref(false);
 const isPasswordVisible = ref(false);
@@ -66,7 +63,29 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-xl">
+  <div v-if="!hasInvitationToken" class="mx-auto max-w-md">
+    <DmsCard
+      variant="elevated"
+      :padded="false"
+      class="p-6 sm:p-12"
+      data-testid="signup-invalid-invitation"
+    >
+      <UIcon
+        name="i-ph-link-break"
+        class="text-warning mb-4 size-10"
+        :aria-hidden="true"
+      />
+      <h1 class="pb-5 text-2xl font-bold">
+        {{ $t("page.signup.invalid_invitation_title") }}
+      </h1>
+      <p class="text-muted pb-7 text-sm font-normal">
+        {{ $t("page.signup.invalid_invitation_description") }}
+      </p>
+      <UButton :label="$t('button.login')" to="/auth" block />
+    </DmsCard>
+  </div>
+
+  <div v-else class="mx-auto max-w-xl">
     <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
       <h1 class="pb-11 text-xl font-bold sm:text-2xl">
         {{ $t("page.signup.create_account_title") }}
