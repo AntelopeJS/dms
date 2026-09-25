@@ -1,8 +1,7 @@
 <script setup lang="ts">
-const { locale, setLocale } = useI18n();
+const { locale } = useI18n();
 const { uniqueLocales } = useUniqueLocales();
-const { $authFetch } = useAuthFetch();
-const { user, fetch: refreshUser } = useUserSession();
+const { changeLanguage } = useUserLanguage();
 
 const languageOptions = computed(() =>
   uniqueLocales.value.map((lang) => ({
@@ -10,25 +9,6 @@ const languageOptions = computed(() =>
     value: lang.code,
   })),
 );
-
-const handleLanguageChange = async (newLanguage: "en" | "fr") => {
-  setLocale(newLanguage);
-
-  try {
-    await $authFetch("/settings/user/profile", {
-      method: "POST",
-      body: {
-        name: user.value?.name,
-        email: user.value?.email,
-        language: newLanguage,
-      },
-    });
-
-    await refreshUser();
-  } catch {
-    /* ignore — silently skip the update on network / backend errors */
-  }
-};
 </script>
 
 <template>
@@ -62,7 +42,7 @@ const handleLanguageChange = async (newLanguage: "en" | "fr") => {
             class="w-full"
             :items="languageOptions"
             :model-value="locale"
-            @update:model-value="handleLanguageChange"
+            @update:model-value="changeLanguage"
           />
         </div>
       </section>

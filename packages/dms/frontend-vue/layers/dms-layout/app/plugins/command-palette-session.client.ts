@@ -34,6 +34,7 @@ export default defineDmsPlugin(() => {
   const { i18n, translate } = getPluginI18n();
   const toast = useToast();
   const { logout } = useLogout();
+  const { changeLanguage } = useUserLanguage();
   const { copy } = useClipboard({ legacy: true });
 
   const localeItems = (): CommandPaletteItem[] =>
@@ -41,7 +42,7 @@ export default defineDmsPlugin(() => {
       label: locale.name ?? locale.code,
       active: i18n.locale.value === locale.code,
       onSelect: () => {
-        void i18n.setLocale(locale.code);
+        void changeLanguage(locale.code);
       },
     }));
 
