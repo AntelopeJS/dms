@@ -8,6 +8,7 @@ import {
   KANBAN_DISPLAY_ID,
 } from "../../../composables/table-view/types";
 import type { FormContainerType } from "./types";
+import { buildInitialColumnVisibility } from "./utils/columnVisibility";
 
 const BUILTIN_DISPLAYS: Record<
   string,
@@ -110,16 +111,11 @@ export const useTableViewConfig = <T extends Data>(
 
   const defaultDisplay = config.defaultDisplay ?? TABLE_DISPLAY_ID;
 
-  const initialVisibility = config.columns?.reduce(
-    (acc, column) => {
-      acc[column.id] = column.visible ?? true;
-      return acc;
-    },
-    {} as Record<string, boolean>,
-  );
+  const initialVisibility = buildInitialColumnVisibility(config.columns ?? []);
 
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),
+    emptyState: config.emptyState,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
     customNavItems: config.customNavItems,

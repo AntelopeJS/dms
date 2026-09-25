@@ -213,6 +213,16 @@ export const TableViewSchema = z.object({
       fieldAspect: "listable",
     },
   ),
+  emptyState: ui(
+    z
+      .object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+      })
+      .optional()
+      .describe("Message shown when the table holds no row."),
+    { label: "Empty state", order: 3, group: "content" },
+  ),
   rowActions: ui(rowActionsSchema.optional(), {
     label: "Features",
     group: "features",

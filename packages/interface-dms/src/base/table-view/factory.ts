@@ -277,6 +277,7 @@ export function TableView<T extends ControllerClass>(
       enableTableExport: isExportEnabled,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
+      emptyState: options.emptyState,
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
       defaultSort: options.defaultSort,

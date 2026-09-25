@@ -5,6 +5,10 @@ import { injectLocal } from "@vueuse/core";
 import { useId, type ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
+import {
+  resolveTableEmptyState,
+  type TableEmptyState,
+} from "../../composables/table-view/utils/emptyState";
 
 const theme = tv({
   slots: {
@@ -19,11 +23,13 @@ interface TableEmptyProps {
    * error state so a refused query never reads as "no data".
    */
   loadError?: string;
+  emptyState?: TableEmptyState;
 }
 
 const props = defineProps<TableEmptyProps>();
 
 const { t, te } = useI18n();
+const { processI18n } = useTranslation();
 
 const appConfig = useDmsAppConfig() as DmsAppConfig & {
   ui: { tableEmpty: Partial<typeof theme> };
@@ -71,8 +77,7 @@ const content = computed<EmptyStateContent>(() => {
     };
   }
   return {
-    title: t("dms.table.empty_title"),
-    description: t("dms.table.empty_message"),
+    ...resolveTableEmptyState(props.emptyState, processI18n),
     icon: "i-ph-folder-open",
   };
 });

@@ -19,7 +19,7 @@ export interface ReadonlyBehavior {
 export interface TableViewColumn {
   id: string;
   header: string;
-  visible?: boolean;
+  isVisible?: boolean;
   order?: number;
   accessorKey: string;
   listable: boolean;
