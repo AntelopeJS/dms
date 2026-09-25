@@ -190,6 +190,35 @@ export namespace internal {
   };
 }
 
+const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
+
+/**
+ * Whether a request carries a bearer token the DMS no longer accepts: expired,
+ * signed with a rotated key, or naming a user that is gone. `IfAuthUser` reads
+ * such a request as anonymous; this tells it apart from one that sent nothing.
+ * An unvalidated e-mail is not a rejection — the token itself is still good.
+ *
+ * @param authorization The raw `authorization` header, possibly absent
+ */
+export async function isRejectedBearerToken(
+  authorization: string | undefined,
+): Promise<boolean> {
+  const token = authorization?.match(BEARER_SCHEME)?.[1];
+  if (!token) {
+    return false;
+  }
+  const data = internal.IfAuthUserAuthenticator(token);
+  if (!data) {
+    return true;
+  }
+  try {
+    await validateUserToken(data, false);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export function generateAccessToken(
   tenantId: string,
   user: User,
