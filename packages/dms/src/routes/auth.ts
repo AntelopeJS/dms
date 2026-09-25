@@ -37,6 +37,10 @@ export class AuthController extends Controller("/api/auth") {
   @Parameter("x-dms-oauth-relay", "header")
   declare oauthRelayHeader: string;
 
+  private get clientIp(): string {
+    return authRoutes.clientIpFromForwardedFor(this.forwardedFor);
+  }
+
   @Post("/signup")
   signup(@JSONBody() body: unknown): Promise<AuthResponse> {
     return authRoutes.signup(
@@ -44,7 +48,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.forwardedFor || "",
+      this.clientIp,
     );
   }
 
@@ -59,7 +63,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.forwardedFor || "",
+      this.clientIp,
     );
   }
 
@@ -83,7 +87,7 @@ export class AuthController extends Controller("/api/auth") {
       providerId: provider,
       body,
       userAgent: this.userAgent || "",
-      ip: this.forwardedFor || "",
+      ip: this.clientIp,
     });
   }
 
@@ -94,7 +98,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.forwardedFor || "",
+      this.clientIp,
     );
   }
 
