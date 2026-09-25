@@ -1,3 +1,4 @@
+import type { TabCountMode } from "../../../build/composables/table-view/utils/tabCounts";
 import type {
   FormContainer,
   FormPageUrls,
@@ -72,6 +73,7 @@ export interface TableViewConfig<T extends Data>
   extends Omit<TableProps<T>, "columns" | "displays"> {
   location: string;
   enableTableExport?: boolean;
+  tabCountMode?: TabCountMode;
   archiveMode?: boolean;
   defaultFilters?: TableFilter[];
   columns: TableViewColumn[];
