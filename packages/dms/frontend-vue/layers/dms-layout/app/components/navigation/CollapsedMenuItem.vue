@@ -82,11 +82,6 @@ function onLinkHover(): void {
   const { to } = props.item;
   if (typeof to === "string") {
     prefetchPageLayout(stripQueryAndHash(to));
-    return;
-  }
-  const path = (to as MenuItemTarget | undefined)?.path;
-  if (path) {
-    prefetchPageLayout(path);
   }
 }
 </script>

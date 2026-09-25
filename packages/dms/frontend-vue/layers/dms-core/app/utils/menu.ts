@@ -1,4 +1,5 @@
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { parseLinkQuery, stripQueryAndHash } from "./routePath";
 
 // Menu items carry the registered page/category's dot-separated `fullId`
 // (e.g. `pages.erp.orders`) plus the DMS semantic fields; Nuxt UI's
@@ -88,7 +89,9 @@ const matchesRoutePrefix = (currentPath: string, to: string): boolean => {
 const resolveItemTarget = (
   to: NavigationMenuItem["to"],
 ): MenuItemTarget | null => {
-  if (typeof to === "string") return { path: to };
+  if (typeof to === "string") {
+    return { path: stripQueryAndHash(to), query: parseLinkQuery(to) };
+  }
   const target = to as MenuItemTarget | undefined;
   if (target && typeof target.path === "string") {
     return { path: target.path, query: target.query };
@@ -96,9 +99,11 @@ const resolveItemTarget = (
   return null;
 };
 
-// Subset match, mirroring the `exactQuery: "partial"` the entries are built
-// with: the entry's own parameters must be the current ones, while unrelated
-// parameters the page adds (tabs, filters) are ignored.
+const hasQuery = (target: MenuItemTarget | null): boolean =>
+  Object.keys(target?.query ?? {}).length > 0;
+
+// Subset match: the entry's own parameters must be the current ones, while
+// unrelated parameters the page adds (tabs, filters) are ignored.
 const queryMatches = (
   declared: MenuItemTarget["query"],
   currentQuery: Record<string, unknown>,
@@ -133,18 +138,29 @@ export const isMenuItemActive = (
   return matchedFullId !== null && fullId === matchedFullId;
 };
 
-// Only the boolean `true` is set: Nuxt UI forwards an explicit `active` to the
-// underlying link, and a `false` there would suppress the built-in route match.
-// Leaving it undefined preserves that native highlighting for every other item.
+// Only the boolean `true` is set on plain entries: Nuxt UI forwards an explicit
+// `active` to the underlying link, and a `false` there would suppress the
+// built-in route match. Entries carrying a query always get an explicit value,
+// because that built-in match is a URL prefix test that would light up
+// `?project=a` on `?project=ab`.
+const resolveActiveState = (
+  item: NavigationMenuItem,
+  matchedFullId: string | null,
+  currentRoute: MenuRouteState,
+): Partial<Pick<NavigationMenuItem, "active">> => {
+  if (isMenuItemActive(item, matchedFullId, currentRoute)) {
+    return { active: true };
+  }
+  return hasQuery(resolveItemTarget(item.to)) ? { active: false } : {};
+};
+
 export const addActiveStateToMenuItem = (
   item: NavigationMenuItem,
   matchedFullId: string | null,
   currentRoute: MenuRouteState,
 ): NavigationMenuItem => ({
   ...item,
-  ...(isMenuItemActive(item, matchedFullId, currentRoute)
-    ? { active: true }
-    : {}),
+  ...resolveActiveState(item, matchedFullId, currentRoute),
   children: item.children?.map((child) =>
     addActiveStateToMenuItem(child, matchedFullId, currentRoute),
   ),
