@@ -202,13 +202,21 @@ describe("pre-paint script", () => {
     },
   );
 
-  it("is adopted by the client head rather than inserted and run again", async () => {
+  it("is left in place by the client head, which neither removes nor re-inserts it", async () => {
     loadDocument("%22dark%22");
     bootNuxtUi();
     bootDmsPlugin();
     await settle();
 
     expect(document.querySelectorAll("script#dms-color-mode")).toHaveLength(1);
+  });
+
+  it("is never inserted by the client head when the page was rendered without it", async () => {
+    bootNuxtUi();
+    bootDmsPlugin();
+    await settle();
+
+    expect(document.querySelectorAll("script#dms-color-mode")).toHaveLength(0);
   });
 });
 

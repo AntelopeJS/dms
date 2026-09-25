@@ -76,20 +76,25 @@ function syncWithVueUse(preference: Ref<ColorModePreference>): void {
 
 /**
  * The server renders an explicit preference's class, so the first paint is
- * right before any script runs. In the browser the class belongs to vueuse,
- * which Nuxt UI already drives it with: were unhead tracking it as well, it
- * would remove it when `dark` gives way to a `system` that still resolves dark,
- * and vueuse, seeing no change, would not put it back.
+ * right before any script runs, and the pre-paint script, which only matters
+ * before that paint: inserted later by the browser head it would run after
+ * boot and redo what the sync already did. In the browser the class belongs to
+ * vueuse, which Nuxt UI already drives it with: were unhead tracking it as
+ * well, it would remove it when `dark` gives way to a `system` that still
+ * resolves dark, and vueuse, seeing no change, would not put it back. A page
+ * rendered without the script (client-side fallback) is corrected by the sync,
+ * which applies the cookie on boot.
  */
 export default defineDmsPlugin(() => {
   const preference = useColorModePreference();
-  const script = [{ id: PRE_PAINT_SCRIPT_ID, innerHTML: PRE_PAINT_SCRIPT }];
 
   if (!import.meta.env.SSR) {
-    useHead({ script });
     syncWithVueUse(preference);
     return;
   }
   const mode = explicitColorMode(preference.value);
-  useHead({ htmlAttrs: mode ? { class: mode } : {}, script });
+  useHead({
+    htmlAttrs: mode ? { class: mode } : {},
+    script: [{ id: PRE_PAINT_SCRIPT_ID, innerHTML: PRE_PAINT_SCRIPT }],
+  });
 });
