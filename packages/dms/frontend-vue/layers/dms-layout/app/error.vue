@@ -41,6 +41,11 @@ const STATUSES_WITHOUT_ERROR_MESSAGE = new Set([
   HTTP_FORBIDDEN,
 ]);
 
+// The status message the DMS frontend server gives the placeholder it sends
+// for any backend failure ("An unexpected error occurred"). The card's own
+// description already says that, in the visitor's language.
+const PLACEHOLDER_STATUS_MESSAGE = "Application error";
+
 const props = defineProps<{
   error: DmsErrorData;
 }>();
@@ -55,7 +60,7 @@ const isRecovering = ref(false);
 const visibleErrorMessage = computed(() =>
   STATUSES_WITHOUT_ERROR_MESSAGE.has(
     props.error.statusCode || DEFAULT_STATUS_CODE,
-  )
+  ) || props.error.statusMessage === PLACEHOLDER_STATUS_MESSAGE
     ? undefined
     : props.error.message,
 );
