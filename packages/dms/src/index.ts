@@ -57,7 +57,7 @@ import {
 } from "./page-extensions/pending-report";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
-import { detectSaasMode, ensureDefaultTenantExists } from "./utils";
+import { ensureDefaultTenantExists } from "./utils";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
 
 export * from "./config";
@@ -132,6 +132,10 @@ async function implementInterfaces(): Promise<void> {
   void ImplementInterface(
     await import("@antelopejs/interface-dms/tenant-access"),
     await import("./implementations/dms/tenant-access"),
+  );
+  void ImplementInterface(
+    await import("@antelopejs/interface-dms/utils/saas-mode"),
+    await import("./implementations/dms/saas-mode"),
   );
   void ImplementInterface(
     await import("@antelopejs/interface-dms/attachments"),
@@ -236,7 +240,6 @@ export function destroy(): void {
 
 export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
-  await detectSaasMode();
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
   await ExecuteHooks(Hook.DATABASE_INITIALIZED);

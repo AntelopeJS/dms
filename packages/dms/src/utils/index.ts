@@ -4,6 +4,5 @@ export * from "./export-jobs-run";
 export * from "./run-in-batches";
 export * from "./tenant-export-archive";
 export * from "@antelopejs/interface-dms/utils/row-instance";
-export * from "@antelopejs/interface-dms/utils/saas-mode";
 export * from "@antelopejs/interface-dms/utils/time";
 export * from "@antelopejs/interface-dms/utils/value-parser";

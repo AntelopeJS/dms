@@ -59,9 +59,15 @@ async function assertNotLastTenantOwner(
   assert(remaining > 0, 409, "$page.settings.members.error.last_owner");
 }
 
-async function assertNotLastPlatformOwnerOnDelete(
+/**
+ * Outside SaaS mode the platform owners are the default tenant's owners, so
+ * removing the last of them would leave the platform without one. In SaaS mode
+ * tenant owners are customers and platform ownership is managed separately.
+ */
+export async function assertNotLastPlatformOwnerOnDelete(
   targets: TenantMember[],
 ): Promise<void> {
+  if (await isSaasMode()) return;
   const userModel = GetModel(UserModel);
   const removedOwnerUserIds = targets
     .filter((target) => target.isTenantOwner === true)
@@ -171,9 +177,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
         409,
         "$page.settings.members.error.last_owner_delete",
       );
-      if (!isSaasMode()) {
-        await assertNotLastPlatformOwnerOnDelete(tenantTargets);
-      }
+      await assertNotLastPlatformOwnerOnDelete(tenantTargets);
       const userModel = GetModel(UserModel);
       for (const target of tenantTargets) {
         await clearPlatformOwnerOnMemberRemoval(
