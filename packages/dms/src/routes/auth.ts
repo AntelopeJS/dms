@@ -1,9 +1,11 @@
 import {
+  Context,
   Controller,
   Get,
   JSONBody,
   Parameter,
   Post,
+  type RequestContext,
 } from "@antelopejs/interface-api";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { AuthRawUser } from "@antelopejs/interface-dms/auth";
@@ -12,6 +14,7 @@ import {
   type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
+import { getAuthConfig } from "../config";
 import * as authRoutes from "./auth/index";
 import type { OAuthAuthorizeUrl } from "./auth/oauth";
 import type { LoginOutcome } from "./auth/session-response";
@@ -37,8 +40,17 @@ export class AuthController extends Controller("/api/auth") {
   @Parameter("x-dms-oauth-relay", "header")
   declare oauthRelayHeader: string;
 
+  @Context()
+  declare requestContext: RequestContext;
+
   private get clientIp(): string {
-    return authRoutes.clientIpFromForwardedFor(this.forwardedFor);
+    return authRoutes.resolveClientIp(
+      {
+        socketAddress: this.requestContext.rawRequest.socket.remoteAddress,
+        forwardedFor: this.forwardedFor,
+      },
+      authRoutes.trustedProxyCount(getAuthConfig()),
+    );
   }
 
   @Post("/signup")
