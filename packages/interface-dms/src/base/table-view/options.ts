@@ -1,4 +1,3 @@
-import type { TableViewTabCountMode } from "./tab-counts";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
 import type { ColorValue } from "../types";
@@ -136,8 +135,6 @@ export interface TableViewOptionsSerialized extends Omit<
   "customButtons" | "rowActions" | "kanban" | "displays"
 > {
   enableTableExport: boolean;
-  /** How the filter tabs fetch their counters, from the controller's routes. */
-  tabCountMode: TableViewTabCountMode;
   customButtons?: CustomButtonSerialized[];
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;
   rowActions?: TableViewRowActionOptionsSerialized;

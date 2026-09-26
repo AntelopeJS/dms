@@ -29,7 +29,6 @@ import {
 import { reportRealtimePageTopic } from "./realtime";
 import { resourceForm, stampAttachmentFields } from "./resource-form";
 import { TableViewRoutes } from "./routes";
-import { resolveTabCountMode } from "./tab-counts";
 import { extractRuleFromConfig } from "./row-rules";
 import {
   applyFormPageSubmitDefaults,
@@ -265,7 +264,6 @@ export function TableView<T extends ControllerClass>(
       rowActions: serializedRowActions,
       caption: options.caption,
       enableTableExport: isExportEnabled,
-      tabCountMode: resolveTabCountMode(endpoints),
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
       formContainer: options.formContainer,

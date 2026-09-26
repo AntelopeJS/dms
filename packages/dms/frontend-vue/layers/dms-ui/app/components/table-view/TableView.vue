@@ -34,10 +34,6 @@ import {
   buildTableDataKey,
   buildTableQuery,
 } from "../../build/composables/table-view/utils/tableQuery";
-import {
-  fetchTabCounts,
-  type TabCountFetcher,
-} from "../../build/composables/table-view/utils/tabCounts";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
 
 import UTable from "../../build/components/table/Table.vue";
@@ -87,7 +83,6 @@ const {
   caption,
   labelKey,
   enableTableExport,
-  tabCountMode,
   archiveMode,
   defaultFilters,
   customButtons,
@@ -514,16 +509,21 @@ const tabCountsQuery = computed(() =>
 const { data: tabCountsData, refresh: refreshTabCounts } =
   await useDmsAsyncData<Record<string, number>>(
     `table-view-${componentId}-${pageId}-tab-counts`,
-    () =>
-      fetchTabCounts(
-        tabCountMode,
-        location,
-        tabCountsQuery.value.map(({ id, query }) => ({
-          id,
-          query: { ...query, ...archiveQuery.value },
-        })),
-        $authFetch as TabCountFetcher,
-      ),
+    async () => {
+      if (resolvedTabs.value.length === 0) return {};
+      return await $authFetch<Record<string, number>>(
+        location + "/count/batch",
+        {
+          method: "POST",
+          body: {
+            queries: tabCountsQuery.value.map(({ id, query }) => ({
+              id,
+              query: { ...query, ...archiveQuery.value },
+            })),
+          },
+        },
+      );
+    },
     { watch: [tabCountsQuery, archiveQuery], default: () => ({}) },
   );
 

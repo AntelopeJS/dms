@@ -90,7 +90,6 @@ export {
 } from "./table-view/resource-form";
 export { TableViewRoutes } from "./table-view/routes";
 export * from "./table-view/schema";
-export * from "./table-view/tab-counts";
 export type {
   BulkGuardArgs,
   DeleteGuardArgs,
