@@ -58,7 +58,7 @@ async function upsertTenantMembership(
  * Compatibility shim: in non-SaaS mode, the legacy `users.owner` boolean is
  * kept in sync with `TenantMember.isTenantOwner` on the default tenant. This
  * is a no-op in SaaS mode (where `users.owner` reflects platform ownership
- * separately) and outside the default tenant.
+ * separately, see `RegisterSaasMode`) and outside the default tenant.
  */
 async function mirrorPlatformOwner(
   userModel: UserModel,
@@ -66,8 +66,8 @@ async function mirrorPlatformOwner(
   tenantId: string,
   isTenantOwner: boolean,
 ): Promise<void> {
-  if (isSaasMode()) return;
   if (tenantId !== DEFAULT_TENANT_ID) return;
+  if (await isSaasMode()) return;
   const user = await userModel.get(userId);
   if (!user) return;
   if (user.owner === isTenantOwner) return;

@@ -1,104 +1,50 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { randomUUID } from "node:crypto";
 import {
-  GetModuleInfo,
-  ListModules,
-  type ModuleInfo,
-} from "@antelopejs/interface-core/modules";
+  InterfaceFunction,
+  RegisteringProxy,
+} from "@antelopejs/interface-core";
 
-const SAAS_PACKAGE_NAME = "@antelopejs/dms-saas";
-const PACKAGE_SOURCE_TYPE = "package";
-const PACKAGE_MANIFEST_FILE = "package.json";
-
-/** Where a loaded module came from: its declared source and its folder on disk. */
-export type LoadedModuleOrigin = Pick<ModuleInfo, "source" | "localPath">;
-
-/** The slice of the core module registry SaaS detection reads. */
-export interface LoadedModuleRegistry {
-  listModules: () => Promise<string[]>;
-  getModuleOrigin: (moduleId: string) => Promise<LoadedModuleOrigin>;
-}
-
-interface PackageManifest {
-  name?: unknown;
-}
-
-const coreModuleRegistry: LoadedModuleRegistry = {
-  listModules: () => ListModules(),
-  getModuleOrigin: (moduleId) => GetModuleInfo(moduleId),
-};
-
-let cachedSaasMode: boolean | null = null;
-
-async function readManifestName(folder: string): Promise<string | undefined> {
-  try {
-    const content = await readFile(
-      path.join(folder, PACKAGE_MANIFEST_FILE),
-      "utf8",
-    );
-    const { name } = JSON.parse(content) as PackageManifest;
-    return typeof name === "string" ? name : undefined;
-  } catch {
-    return undefined;
-  }
+/** One active SaaS mode registration, told apart from the others by its id. */
+export interface SaasModeRegistration {
+  id: string;
 }
 
 /**
- * Resolves the npm package a loaded module was built from. The module id is
- * the key the project chose in its config, so it says nothing about the
- * package: a package source names it directly, any other source (local, git)
- * is read from the module's own manifest.
+ * @internal
  */
-export async function resolveModulePackageName(
-  origin: LoadedModuleOrigin,
-): Promise<string | undefined> {
-  const { source } = origin;
-  if (
-    source.type === PACKAGE_SOURCE_TYPE &&
-    typeof source.package === "string"
-  ) {
-    return source.package;
-  }
-  return readManifestName(origin.localPath);
-}
+export namespace internal {
+  export const RegisterSaasMode = new RegisteringProxy<
+    (registration: SaasModeRegistration) => void
+  >();
 
-async function isSaasPackage(
-  registry: LoadedModuleRegistry,
-  moduleId: string,
-): Promise<boolean> {
-  try {
-    const origin = await registry.getModuleOrigin(moduleId);
-    return (await resolveModulePackageName(origin)) === SAAS_PACKAGE_NAME;
-  } catch {
-    // A module unloaded between the listing and the lookup is not loaded.
-    return false;
-  }
+  export const IsSaasModeRegistered = InterfaceFunction<() => boolean>();
 }
 
 /**
- * Records whether `@antelopejs/dms-saas` is loaded, under whatever module id
- * the project registered it (`"dms-saas"`, `"saas"`, ...).
+ * Put the DMS in SaaS mode, where platform ownership is independent from
+ * tenant ownership:
+ * - the default tenant's owner flag is no longer mirrored into `users.owner`,
+ *   so becoming, or ceasing to be, an owner of the default tenant does not
+ *   grant or revoke platform ownership;
+ * - removing members no longer refuses to remove the last platform owner,
+ *   since tenant owners are customers, not platform owners.
+ *
+ * The SaaS module (`dms-saas`) calls it from its `construct()`. The DMS names
+ * no package and scans no module: this registration is the only signal.
+ *
+ * The registration is bound to the registering module: it is revoked when
+ * that module unloads, and SaaS mode stays on while at least one registration
+ * is active. Both behaviours read the mode per request, so calling it before
+ * or after the DMS starts makes no difference.
  */
-export async function detectSaasMode(
-  registry: LoadedModuleRegistry = coreModuleRegistry,
-): Promise<void> {
-  const moduleIds = await registry.listModules();
-  // A module registered under its package name needs no origin lookup.
-  if (moduleIds.includes(SAAS_PACKAGE_NAME)) {
-    cachedSaasMode = true;
-    return;
-  }
-  const matches = await Promise.all(
-    moduleIds.map((moduleId) => isSaasPackage(registry, moduleId)),
-  );
-  cachedSaasMode = matches.includes(true);
+export function RegisterSaasMode(): void {
+  internal.RegisterSaasMode.register({ id: randomUUID() });
 }
 
-export function isSaasMode(): boolean {
-  if (cachedSaasMode === null) {
-    throw new Error(
-      "isSaasMode() called before detectSaasMode() — ensure DMS start() has run.",
-    );
-  }
-  return cachedSaasMode;
+/**
+ * Whether a module currently holds a SaaS mode registration
+ * (see `RegisterSaasMode`). False until one registers.
+ */
+export async function isSaasMode(): Promise<boolean> {
+  return internal.IsSaasModeRegistered();
 }
