@@ -124,8 +124,8 @@ importers:
         specifier: '>=1.9.1 <2'
         version: 1.9.1(@types/node@24.8.1)
       '@antelopejs/dms-frontend':
-        specifier: '>=0.2.6 <1.0.0'
-        version: 0.2.6(@antelopejs/core@1.9.1(@types/node@24.8.1))
+        specifier: '>=0.2.8 <1.0.0'
+        version: 0.2.8(@antelopejs/core@1.9.1(@types/node@24.8.1))
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -200,8 +200,8 @@ packages:
     resolution: {integrity: sha512-MPLJak0rPluV4lgsdsO5ba03sgTxIGSncajBcoaoppuppQmksdpaemojIHiVLJ4LiG0iiH21Roaed8XXy1XkYQ==}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.2.6':
-    resolution: {integrity: sha512-dCR9EWkpW4CekV5M87igyCZyRNXt9fVr5M2t9neATj1JqN/r6MltYJd4ShKnilSN4zQZ4ykkuFL/b9b0k79rDw==}
+  '@antelopejs/dms-frontend@0.2.8':
+    resolution: {integrity: sha512-7qrlf2M3J26DZxGZVvM/3qjPDeDfoRMrE7HEPFxWav8Pe1QFct7LtgY7NmKup9XdrRyUw4nqckxvW8UZDSjpeg==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
@@ -4331,7 +4331,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@antelopejs/dms-frontend@0.2.6(@antelopejs/core@1.9.1(@types/node@24.8.1))':
+  '@antelopejs/dms-frontend@0.2.8(@antelopejs/core@1.9.1(@types/node@24.8.1))':
     dependencies:
       boxen: 5.1.2
       chalk: 4.1.2

@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.9.1 <2",
-    "@antelopejs/dms-frontend": ">=0.2.6 <1.0.0",
+    "@antelopejs/dms-frontend": ">=0.2.8 <1.0.0",
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
     "@nuxt/ui": "4.10.0",
