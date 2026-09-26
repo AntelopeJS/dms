@@ -9,9 +9,11 @@ import type {
 } from "@tanstack/vue-table";
 import { refDebounced, watchDebounced } from "@vueuse/core";
 import {
-  QUICK_ACTION_ADD,
+  QUICK_ACTION_BUTTON_KEY,
   QUICK_ACTION_COMPONENT_KEY,
   QUICK_ACTION_QUERY_KEY,
+  type QuickActionIntent,
+  readQuickActionIntent,
 } from "../../types/quick-actions";
 import type {
   KanbanConfig,
@@ -957,24 +959,45 @@ async function clearQuickActionQuery() {
   const {
     [QUICK_ACTION_QUERY_KEY]: _discarded,
     [QUICK_ACTION_COMPONENT_KEY]: _discardedComponent,
+    [QUICK_ACTION_BUTTON_KEY]: _discardedButton,
     ...rest
   } = route.query;
   await router.replace({ query: rest });
 }
 
-// A page may mount several table views, so the quick action always names the
-// one it means — resolved server-side — and only that one answers.
-function isQuickActionTarget(): boolean {
-  return route.query[QUICK_ACTION_COMPONENT_KEY] === componentId;
+// The button is looked up among the ones the server kept for this caller: a
+// button it stripped cannot be pressed through the URL either.
+function pressCustomButton(id: string) {
+  const button = customButtons?.find((candidate) => candidate.id === id);
+  if (button) handleCustomButton(button);
 }
 
+const quickActionHandlers: {
+  [K in QuickActionIntent["kind"]]: (
+    intent: Extract<QuickActionIntent, { kind: K }>,
+  ) => void;
+} = {
+  add: () => handleRowAdd(),
+  button: (intent) => pressCustomButton(intent.button),
+};
+
+// Watched key by key rather than through the parsed intent: a fresh intent
+// object on every unrelated query change would press the button twice.
 watch(
-  () => route.query[QUICK_ACTION_QUERY_KEY],
-  async (value) => {
-    if (value !== QUICK_ACTION_ADD) return;
-    if (!isQuickActionTarget()) return;
+  [
+    QUICK_ACTION_QUERY_KEY,
+    QUICK_ACTION_COMPONENT_KEY,
+    QUICK_ACTION_BUTTON_KEY,
+  ].map((key) => () => route.query[key]),
+  async () => {
+    const intent = readQuickActionIntent(route.query, componentId);
+    if (!intent) return;
     await clearQuickActionQuery();
-    handleRowAdd();
+    // Keyed by the intent's own discriminant, so the handler always matches.
+    const handler = quickActionHandlers[intent.kind] as (
+      value: QuickActionIntent,
+    ) => void;
+    handler(intent);
   },
   { immediate: true },
 );

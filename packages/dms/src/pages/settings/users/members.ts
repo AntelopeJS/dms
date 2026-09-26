@@ -39,6 +39,8 @@ RegisterDataController()(memberSettingDataAPI);
 const MEMBERS_PAGE_PATH = "/settings/user/members";
 export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
 
+export const MEMBER_INVITE_BUTTON_ID = "invite";
+
 type OwnerChange = "promote" | "demote" | null;
 
 function detectOwnerChange(
@@ -130,6 +132,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       target: { type: "page", url: INVITES_PAGE_PATH },
     },
     {
+      id: MEMBER_INVITE_BUTTON_ID,
       label: "$page.settings.members.invite.button",
       icon: "i-ph-user-plus",
       color: "primary",

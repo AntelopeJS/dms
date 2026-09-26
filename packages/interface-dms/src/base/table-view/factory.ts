@@ -211,6 +211,9 @@ export function TableView<T extends ControllerClass>(
   // The table view embeds its new/edit/view forms synchronously into its own
   // options, so it is the async host that claims their upload tokens.
   builder.transformOptions(StampUploadFieldTokens);
+  for (const { id, permission } of declaredCustomButtons ?? []) {
+    if (id) builder.button(id, { permission });
+  }
 
   builder.action(LIST_ACTION, {
     title: "$dms.table.action_list",

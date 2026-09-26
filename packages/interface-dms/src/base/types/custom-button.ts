@@ -1,4 +1,4 @@
-import type { Action } from "../../component";
+import type { ButtonPermission } from "../../component";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
 import type { ButtonVariant } from "./button";
 
@@ -12,6 +12,11 @@ export type ButtonColor =
   | "neutral";
 
 export interface CustomButton {
+  /**
+   * Names the button so a quick action can press it (`type: "button"`); the
+   * action then inherits the button's `permission`. Unique within its table.
+   */
+  id?: string;
   label: string;
   icon?: string;
   variant?: ButtonVariant;
@@ -23,7 +28,7 @@ export interface CustomButton {
    * action (e.g. another table's `add`). The button is stripped from the
    * serialized options when the caller lacks the permission.
    */
-  permission?: string | Action;
+  permission?: ButtonPermission;
 }
 
 export interface CustomButtonSerialized extends Omit<

@@ -17,7 +17,11 @@ import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as quickActionsImpl from "../../../../implementations/dms/quick-actions";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
-import { MembersSettingsController } from "../../../../pages/settings/users/members";
+import {
+  MEMBER_INVITE_BUTTON_ID,
+  MembersSettingsController,
+  membersTableAddAction,
+} from "../../../../pages/settings/users/members";
 import { inviteMemberQuickAction } from "../../../../pages/settings/users/quick-actions";
 import { stubPageAccessModels } from "../../../helpers/page-access";
 
@@ -33,6 +37,14 @@ function membersPagePermission(): string {
     throw new Error("The members page is not registered");
   }
   return pageInfo.fullId;
+}
+
+function invitePermission(): string {
+  const permissionId = membersTableAddAction.permissionId;
+  if (!permissionId) {
+    throw new Error("The members table add action has no permission id");
+  }
+  return permissionId;
 }
 
 async function actionsFor(
@@ -57,17 +69,27 @@ describe("[unit] pages/settings/users/quick-actions — invite a member", () => 
     ImplementInterface(quickActionsInterface, quickActionsImpl.internal);
   });
 
-  it("navigates to the members page", async () => {
-    const actions = await actionsFor([membersPagePermission()]);
+  it("presses the members table's invite button", async () => {
+    const actions = await actionsFor([
+      membersPagePermission(),
+      invitePermission(),
+    ]);
 
     expect(actions[ACTION_KEY]).to.deep.include({
       displayName: "$quickActions.invite_member",
       target: {
-        type: "navigate",
+        type: "button",
         to: "/settings/user/members",
-        query: undefined,
+        component: "table",
+        button: MEMBER_INVITE_BUTTON_ID,
       },
     });
+  });
+
+  it("is left out for a member who sees the members page but cannot invite", async () => {
+    const actions = await actionsFor([membersPagePermission()]);
+
+    expect(actions).to.not.have.property(ACTION_KEY);
   });
 
   it("is left out for a caller who cannot reach the members page", async () => {

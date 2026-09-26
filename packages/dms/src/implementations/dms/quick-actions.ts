@@ -37,12 +37,13 @@ export namespace internal {
 
 /**
  * A target with its page resolved: the route the browser navigates to, and the
- * component key its openForm variant addresses. The controller class never
- * leaves the server.
+ * component key its openForm and button variants address. The controller class
+ * never leaves the server.
  */
 export type QuickActionTargetSerialized =
   | { type: "navigate"; to: string; query?: Record<string, string> }
   | { type: "openForm"; to: string; component: string }
+  | { type: "button"; to: string; component: string; button: string }
   | { type: "event"; name: string; payload?: unknown };
 
 export type QuickActionSerialized = Omit<QuickActionInfo, "target"> & {

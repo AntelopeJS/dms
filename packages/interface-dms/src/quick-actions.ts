@@ -38,6 +38,22 @@ export type QuickActionTarget =
       component?: ComponentTargetInput;
     })
   | (QuickActionPageTarget & {
+      type: "button";
+      /**
+       * The `id` of the button to press — a table view's `customButtons[].id`.
+       * The action opens what the button opens, and is listed only for a
+       * caller the button's own `permission` admits: it declares none of its
+       * own, so the two cannot drift apart.
+       */
+      button: string;
+      /**
+       * Which component carries the button. Required once several components
+       * of the page declare that button id — the action is not served, with a
+       * warning, while the choice stays ambiguous.
+       */
+      component?: ComponentTargetInput;
+    })
+  | (QuickActionPageTarget & {
       type: "event";
       name: string;
       payload?: unknown;

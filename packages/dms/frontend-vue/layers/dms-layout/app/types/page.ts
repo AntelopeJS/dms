@@ -101,6 +101,7 @@ export interface QuickActionCategoryInfo {
 export type QuickActionTarget =
   | { type: "navigate"; to: string; query?: Record<string, string> }
   | { type: "openForm"; to: string; component: string }
+  | { type: "button"; to: string; component: string; button: string }
   | { type: "event"; name: string; payload?: unknown };
 
 /**
