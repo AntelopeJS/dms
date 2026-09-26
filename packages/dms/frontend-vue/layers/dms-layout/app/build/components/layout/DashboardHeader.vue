@@ -93,11 +93,13 @@ const toggleCurrentPageFavorite = () => {
 const breadcrumb = computed((): BreadcrumbItem[] => {
   const base: BreadcrumbItem[] = [{ label: "home", to: homepage || "/" }];
 
-  if (route.fullPath === (homepage || "/")) {
+  // The path only: with the query, the last segment ("data?table=x") matched
+  // no route and the current page dropped out of the breadcrumb.
+  if (route.path === (homepage || "/")) {
     return base;
   }
 
-  const paths = route.fullPath.split("/").filter((path) => path);
+  const paths = route.path.split("/").filter((path) => path);
 
   return base.concat(
     paths

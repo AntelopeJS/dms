@@ -170,6 +170,7 @@
       "row_added_success": "L'élément a été ajouté avec succès",
       "error_missing_fields": "Champs requis manquants",
       "error_fill_all_fields": "Veuillez remplir tous les champs requis",
+      "required_legend": "Champs requis",
       "error_not_submitted": "Le formulaire n'a pas été soumis",
       "fetch_error_title": "Échec de la récupération des données",
       "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",

@@ -4,6 +4,7 @@ import type { FormFieldValue } from "../../composables/form/types/value";
 import {
   cloneFormValue,
   formShowsActions,
+  isFieldMarkedRequired,
 } from "../../composables/form/useForm";
 import {
   FORM_VALIDATOR_KEY,
@@ -46,6 +47,7 @@ const {
   allFields,
   disabledFields,
   hiddenFields,
+  requiredFields,
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
@@ -204,6 +206,23 @@ function isFieldHidden(field: FormField): boolean {
 function isGroupVisible(group: { fields: FormField[] }): boolean {
   return group.fields.some((field) => !isFieldHidden(field));
 }
+
+function isFieldRequired(field: FormField): boolean {
+  return isFieldMarkedRequired(
+    field,
+    disabledFields.value,
+    hiddenFields.value,
+    requiredFields.value,
+  );
+}
+
+function isGroupRequired(group: { fields: FormField[] }): boolean {
+  return group.fields.some(isFieldRequired);
+}
+
+const hasRequiredFields = computed(() =>
+  toValue(allFields).some(isFieldRequired),
+);
 
 function shouldShowDisplay(field: FormField): boolean {
   return isFieldDisabled(field) && !!field.type;
@@ -384,6 +403,13 @@ onUnmounted(async () => {
                   class="text-default block text-base font-semibold sm:text-sm"
                 >
                   {{ processI18n(item.label || "") }}
+                  <span
+                    v-if="isGroupRequired(item)"
+                    class="text-error ms-0.5"
+                    aria-hidden="true"
+                  >
+                    *
+                  </span>
                 </label>
                 <p v-if="item.description" class="text-dimmed text-xs">
                   {{ processI18n(item.description || "") }}
@@ -458,6 +484,13 @@ onUnmounted(async () => {
                   class="text-default block text-base font-semibold sm:text-sm"
                 >
                   {{ processI18n(item.label || "") }}
+                  <span
+                    v-if="isFieldRequired(item)"
+                    class="text-error ms-0.5"
+                    aria-hidden="true"
+                  >
+                    *
+                  </span>
                 </label>
                 <p v-if="item.description" class="text-dimmed text-xs">
                   {{ processI18n(item.description || "") }}
@@ -513,6 +546,11 @@ onUnmounted(async () => {
           />
         </template>
       </div>
+
+      <p v-if="hasRequiredFields" class="text-dimmed mt-6 text-xs">
+        <span class="text-error" aria-hidden="true">*</span>
+        {{ $t("dms.form.required_legend") }}
+      </p>
 
       <template v-if="showActions">
         <section class="mt-6 flex justify-end gap-2">

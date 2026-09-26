@@ -294,6 +294,28 @@ export function buildValidationSchema(
   return z.object(newShape).passthrough();
 }
 
+// A switch always holds a value (off is `false`): it can never be left
+// missing, so marking it required would only suggest an action that does not
+// exist.
+const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
+
+/**
+ * Whether the form marks a field as required: declared so, or made so by a
+ * watch action, and neither disabled nor hidden, since `buildValidationSchema`
+ * does not validate inactive fields, nor a type that always holds a value.
+ */
+export function isFieldMarkedRequired(
+  field: Pick<FormField, "id" | "required" | "disabled" | "type">,
+  disabled: Set<string> | undefined,
+  hidden: Set<string> | undefined,
+  required: Set<string> | undefined,
+): boolean {
+  if (field.disabled || disabled?.has(field.id) || hidden?.has(field.id))
+    return false;
+  if (field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type)) return false;
+  return !!field.required || (required?.has(field.id) ?? false);
+}
+
 function watchFieldChanges(
   state: Ref<Record<string, unknown>>,
   componentId: string | undefined,
@@ -595,6 +617,7 @@ export const useForm = (props: FormProps) => {
     allFields,
     disabledFields,
     hiddenFields,
+    requiredFields,
     isFieldGroup,
     submitSucceeded,
     resolvedFetchUrl,

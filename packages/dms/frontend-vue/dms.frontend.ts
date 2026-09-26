@@ -9,6 +9,7 @@ import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
+import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
 import languageSyncPlugin from "./layers/dms-layout/app/plugins/language-sync";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
@@ -143,6 +144,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       await plugin.default(context);
     }, clientOnly);
   }
+  sdk.registerPlugin(colorModePlugin);
   sdk.registerPlugin(interfaceScalePlugin);
   sdk.registerPlugin(languageSyncPlugin);
   sdk.registerPlugin(seoPlugin);

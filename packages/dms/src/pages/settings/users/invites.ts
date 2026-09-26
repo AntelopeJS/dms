@@ -44,12 +44,17 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { userCategory } from "./category";
 import {
   inviteLanguageSelectItems,
   memberInviteForm,
 } from "./member-invite-form";
-import { membersTableAddAction } from "./members";
+import {
+  INVITES_PAGE_PATH,
+  MembersSettingsController,
+  membersTableAddAction,
+} from "./members";
+
+const INVITES_PERMISSION_ID = "settings.user.invites";
 
 @RegisterDataController()
 export class inviteSettingDataAPI extends DataController(
@@ -191,12 +196,17 @@ export class inviteSettingDataAPI extends DataController(
   }
 }
 
+// Reached from the members page rather than the settings menu: nested under
+// it, so its URL and breadcrumb go through Members. The permission keeps the
+// id it had as a user-category page, so the roles that already grant it are
+// unchanged.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$menu.invites",
-  category: userCategory,
+  category: MembersSettingsController,
+  permission: { id: INVITES_PERMISSION_ID },
+  hidden: true,
   icon: "i-ph-envelope-simple",
-  order: 5,
   description: "$page.settings.description.invites",
 }) {
   static table = TableView(inviteSettingDataAPI, {
@@ -231,7 +241,7 @@ export class InvitesSettingsController extends PageController("invites", {
           icon: "i-ph-arrow-clockwise",
           target: {
             type: "api",
-            url: "/settings/user/invites/{_id}/resend",
+            url: `${INVITES_PAGE_PATH}/{_id}/resend`,
             method: "POST",
             successMessage: "$page.settings.invites.action.resend_success",
             confirm: {
@@ -247,7 +257,7 @@ export class InvitesSettingsController extends PageController("invites", {
           icon: "i-ph-trash",
           target: {
             type: "api",
-            url: "/settings/user/invites/{_id}/cancel",
+            url: `${INVITES_PAGE_PATH}/{_id}/cancel`,
             method: "DELETE",
             successMessage: "$page.settings.invites.action.cancel_success",
             confirm: {

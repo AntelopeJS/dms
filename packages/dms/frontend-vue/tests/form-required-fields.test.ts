@@ -4,6 +4,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { jsonSchemaToZod, type JsonSchema } from "json-schema-to-zod";
 import {
   buildValidationSchema,
+  isFieldMarkedRequired,
   makeFieldSchemaRequired,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
@@ -84,5 +85,48 @@ describe("buildValidationSchema", () => {
     );
 
     expect(schema.safeParse({ firstname: "" }).success).to.equal(true);
+  });
+});
+
+describe("isFieldMarkedRequired", () => {
+  const none = new Set<string>();
+
+  it("marks a field declared required", () => {
+    expect(
+      isFieldMarkedRequired({ id: "name", required: true }, none, none, none),
+    ).to.equal(true);
+    expect(isFieldMarkedRequired({ id: "name" }, none, none, none)).to.equal(
+      false,
+    );
+  });
+
+  it("marks a field a watch action made required", () => {
+    expect(
+      isFieldMarkedRequired({ id: "name" }, none, none, new Set(["name"])),
+    ).to.equal(true);
+  });
+
+  it("does not mark a switch, which always holds a value", () => {
+    expect(
+      isFieldMarkedRequired(
+        { id: "owner", required: true, type: "boolean" },
+        none,
+        none,
+        new Set(["owner"]),
+      ),
+    ).to.equal(false);
+  });
+
+  it("does not mark a disabled or hidden field, which is not validated", () => {
+    const field = { id: "name", required: true };
+    expect(
+      isFieldMarkedRequired({ ...field, disabled: true }, none, none, none),
+    ).to.equal(false);
+    expect(
+      isFieldMarkedRequired(field, new Set(["name"]), none, none),
+    ).to.equal(false);
+    expect(
+      isFieldMarkedRequired(field, none, new Set(["name"]), none),
+    ).to.equal(false);
   });
 });

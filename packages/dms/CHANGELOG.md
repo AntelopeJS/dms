@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.4.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.2...v0.4.3)
+
+### 🚀 Enhancements
+
+- **form:** Mark required fields and add a required legend ([#46](https://github.com/AntelopeJS/dms/pull/46))
+- **settings:** Reach pending invites from the members page ([#47](https://github.com/AntelopeJS/dms/pull/47))
+
+### 🩹 Fixes
+
+- **playground:** Build the dms and the playground before starting ([ce1e7bd](https://github.com/AntelopeJS/dms/commit/ce1e7bd))
+- **form:** Handle partial ranges and show range and multiple dates in the date picker ([b12efcf](https://github.com/AntelopeJS/dms/commit/b12efcf))
+- **form:** Emit ISO strings for multiple dates in the calendar and date picker ([327ebc2](https://github.com/AntelopeJS/dms/commit/327ebc2))
+- **layout:** Keep the current page in the breadcrumb when the URL has a query ([#53](https://github.com/AntelopeJS/dms/pull/53))
+- **layout:** Keep the color-mode preference in a dms-color-mode cookie ([#56](https://github.com/AntelopeJS/dms/pull/56))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.2 ([2be2aba](https://github.com/AntelopeJS/dms/commit/2be2aba))
+- **playground:** Add sibling pages whose slugs share a prefix ([#49](https://github.com/AntelopeJS/dms/pull/49))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.1...v0.4.2)

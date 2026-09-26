@@ -26,6 +26,7 @@ import {
 } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
+import { ButtonVariant } from "@antelopejs/interface-dms/base/types";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { userCategory } from "./category";
@@ -36,7 +37,7 @@ RegisterDataController()(memberSettingDataAPI);
 // Redirect targets for the invite form: an existing user is added straight to
 // the members list, a new email lands as a pending invite.
 const MEMBERS_PAGE_PATH = "/settings/user/members";
-const INVITES_PAGE_PATH = "/settings/user/invites";
+export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
 
 type OwnerChange = "promote" | "demote" | null;
 
@@ -112,6 +113,16 @@ export const membersTable = TableView(memberSettingDataAPI, {
     ],
   },
   customButtons: [
+    // Offered to whoever may invite: managing the invitations sent is part of
+    // inviting, and the invites page itself is not listed in the settings.
+    {
+      label: "$menu.invites",
+      icon: "i-ph-envelope-simple",
+      color: "neutral",
+      variant: ButtonVariant.outline,
+      permission: "add",
+      target: { type: "page", url: INVITES_PAGE_PATH },
+    },
     {
       label: "$page.settings.members.invite.button",
       icon: "i-ph-user-plus",

@@ -3,7 +3,7 @@ import ThemePreview from "../../build/components/pages/settings/theme/ThemePrevi
 import ScalePreview from "../../build/components/pages/settings/theme/ScalePreview.vue";
 import CssVariablesList from "../../build/components/pages/settings/theme/CssVariablesList.vue";
 
-const colorOptions = [
+const colorOptions: ColorModeOption[] = [
   {
     value: "system",
     label: "$page.settings.appearance.system",
@@ -36,7 +36,7 @@ const scaleOptions: ScaleOption[] = [
   },
 ];
 
-const colorMode = useColorMode();
+const colorModePreference = useColorModePreference();
 const interfaceScale = useInterfaceScale();
 const { processI18n } = useTranslation();
 </script>
@@ -60,13 +60,13 @@ const { processI18n } = useTranslation();
           :key="`color-option-${index}`"
           class="group bg-elevated relative flex cursor-pointer flex-col overflow-hidden rounded-xl transition-all"
           :class="
-            colorMode.preference === option.value
+            colorModePreference === option.value
               ? 'outline-primary outline-2 outline-offset-2'
               : 'ring-default hover:ring-accented ring hover:-translate-y-0.5'
           "
         >
           <input
-            v-model="colorMode.preference"
+            v-model="colorModePreference"
             type="radio"
             :value="option.value"
             class="sr-only"
@@ -85,13 +85,13 @@ const { processI18n } = useTranslation();
             <span
               class="ring-accented grid size-4 shrink-0 place-items-center rounded-full ring ring-inset"
               :class="
-                colorMode.preference === option.value
+                colorModePreference === option.value
                   ? 'bg-primary ring-primary'
                   : ''
               "
             >
               <span
-                v-if="colorMode.preference === option.value"
+                v-if="colorModePreference === option.value"
                 class="bg-default size-1.5 rounded-full"
               />
             </span>
