@@ -122,6 +122,10 @@ async function implementInterfaces(): Promise<void> {
     await import("./implementations/dms/quick-actions"),
   );
   void ImplementInterface(
+    await import("@antelopejs/interface-dms/layout-banners"),
+    await import("./implementations/dms/layout-banners"),
+  );
+  void ImplementInterface(
     await import("@antelopejs/interface-dms/invite-extensions"),
     await import("./implementations/dms/invite-extensions"),
   );

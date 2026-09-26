@@ -32,6 +32,7 @@ import {
   HasPermission,
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
+import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { internal as realtimeInternal } from "@antelopejs/interface-dms/realtime";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -66,7 +67,12 @@ import {
   type QuickActionsPayload,
   type QuickActionTargetSerialized,
 } from "./quick-actions";
+import {
+  resolveLayoutBanners,
+  type LayoutBannerSerialized,
+} from "./layout-banners";
 import { fillRouteParams } from "./route-params";
+import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
 
 export {
@@ -734,6 +740,12 @@ interface AccessFlag {
 interface SiteLayoutWithAccess {
   pages: Record<string, PageInfo & AccessFlag>;
   categories: Record<string, CategoryInfo & AccessFlag>;
+  /**
+   * Carried inside the site layout rather than beside it: every renderer
+   * already hydrates this object from a page's shared payload, so the banners
+   * reach the server-rendered page with no renderer change.
+   */
+  banners: LayoutBannerSerialized[];
 }
 
 export interface SiteLayoutPayload {
@@ -960,6 +972,7 @@ async function annotateRegistryAccess<T extends NavigationEntry>(
 
 async function annotateSiteLayoutAccess(
   context: RequestAccessContext,
+  banners: Promise<LayoutBannerSerialized[]>,
 ): Promise<SiteLayoutWithAccess> {
   return {
     pages: await annotateRegistryAccess(pagesBySlug, context),
@@ -967,6 +980,24 @@ async function annotateSiteLayoutAccess(
       buildNavigableCategoryIndex(),
       context,
     ),
+    banners: await banners,
+  };
+}
+
+// Banners are chrome, not product surfaces: they read the permissions the gate
+// would hide, since telling a denied tenant why is what they are for. A copy,
+// because the same set still decides every access check of this request.
+function buildLayoutBannerContext(
+  user: User | undefined,
+  tenantId: string,
+  context: RequestAccessContext,
+): LayoutBannerContext {
+  return {
+    user,
+    tenantId,
+    permissions: new Set(context.ungated.permissions),
+    isOwner: context.ungated.isOwner,
+    isTenantAccessDenied: context.gateDenied,
   };
 }
 
@@ -983,6 +1014,11 @@ export async function buildSiteLayoutPayload(
     tenantId,
   );
 
+  // Started before the menu providers so both sets of resolvers run together;
+  // it never rejects, so it cannot surface as an unhandled rejection meanwhile.
+  const banners = resolveLayoutBanners(
+    buildLayoutBannerContext(user, tenantId, accessContext),
+  );
   const dynamicChildren = await resolveDynamicChildren(
     user,
     tenantId,
@@ -990,7 +1026,7 @@ export async function buildSiteLayoutPayload(
   );
 
   return {
-    siteLayout: await annotateSiteLayoutAccess(accessContext),
+    siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
     siteLayoutTree: await addAccessToTree(
       navigationTree,
       accessContext,
@@ -1266,28 +1302,6 @@ async function resolveProviderNodes(
   return buildDynamicNodes(provider, items, context);
 }
 
-// A resolver runs inside /dms/sitelayout, on the critical path of every page
-// load: one that hangs would hold the menu of every user of the tenant. Long
-// enough for a database round trip, short enough that a stuck provider costs a
-// slow menu rather than an unusable dashboard.
-const RESOLVER_TIMEOUT_MS = 2000;
-
-function withResolverTimeout<T>(
-  work: Promise<T>,
-  provider: DynamicMenuProviderInfo,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(
-        new Error(
-          `resolver did not answer within ${RESOLVER_TIMEOUT_MS}ms (category "${provider.categoryFullId}")`,
-        ),
-      );
-    }, RESOLVER_TIMEOUT_MS);
-    work.then(resolve, reject).finally(() => clearTimeout(timer));
-  });
-}
-
 async function runDynamicMenuResolver(
   provider: DynamicMenuProviderInfo,
   user: User | undefined,
@@ -1297,7 +1311,7 @@ async function runDynamicMenuResolver(
   try {
     return await withResolverTimeout(
       Promise.resolve(provider.resolver(user, tenantId, permissions)),
-      provider,
+      `category "${provider.categoryFullId}"`,
     );
   } catch (error) {
     // Throwing and hanging land here alike: the provider contributes nothing

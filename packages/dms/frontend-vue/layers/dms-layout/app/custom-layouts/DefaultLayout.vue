@@ -3,6 +3,7 @@ import Container from "../build/components/layout/Container.vue";
 import PageHeader from "../build/components/layout/PageHeader.vue";
 import DashboardSidebar from "../build/components/layout/DashboardSidebar.vue";
 import DashboardHeader from "../build/components/layout/DashboardHeader.vue";
+import DashboardBanners from "../build/components/layout/DashboardBanners.vue";
 
 interface Props {
   fullWidth?: boolean;
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
     <UDashboardPanel>
       <template #header>
         <DashboardHeader />
+        <DashboardBanners />
       </template>
 
       <template #body>

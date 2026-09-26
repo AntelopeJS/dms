@@ -65,9 +65,30 @@ export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   layoutUrl?: string;
   hasAccess?: boolean;
 };
+// Mirror of LayoutBannerVariant from @antelopejs/interface-dms/layout-banners.
+export type LayoutBannerVariant = "info" | "warning" | "error";
+
+/**
+ * Mirror of the backend's serialized layout banner. The payload only carries
+ * the banners whose visibility resolver passed for this request, so there is
+ * nothing left to decide here but the user's own dismissals.
+ */
+export interface LayoutBanner {
+  key: string;
+  variant: LayoutBannerVariant;
+  order: number;
+  dismissible: boolean;
+  icon?: string;
+  text?: string;
+  component?: string;
+  props?: Record<string, unknown>;
+}
+
 export type SiteLayout = {
   pages: Record<string, PageInfo>;
   categories: Record<string, CategoryInfo>;
+  /** Absent when the backend predates layout banners. */
+  banners?: LayoutBanner[];
 };
 
 export interface QuickActionCategoryInfo {
