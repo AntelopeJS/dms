@@ -5,6 +5,7 @@ import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types"
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import { formatValue } from "../../composables/chart/formatValue";
+import { toDonutRecords } from "../../composables/chart/donutRecords";
 import {
   CHART_EVENT_NAMES,
   isSegmentChart,
@@ -144,24 +145,13 @@ const finalSeries = computed<ChartSeries[]>(() => {
   return staticSeries.value;
 });
 
+// A donut plots the first series only; a nested one plots its card's, like
+// every other nested chart type.
 const finalDonutData = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
-  if (data.value && Array.isArray(data.value.series)) {
-    const first = data.value.series[0];
-    if (first && Array.isArray(first.data)) {
-      return first.data.map((entry) => {
-        if (typeof entry === "number") {
-          return { label: String(entry), value: entry };
-        }
-        const point = entry as { label?: string; x?: unknown; y?: unknown };
-        return {
-          label: point.label ?? String(point.x ?? ""),
-          value: Number(point.y ?? 0),
-        };
-      });
-    }
-  }
-  return staticDonut.value;
+  const source = nestedContext ? nestedContext.cardSeries : fetchSeries.value;
+  const records = toDonutRecords(source[0]);
+  return records.length > 0 ? records : staticDonut.value;
 });
 
 function buildCircularClickPayload(opts: {
