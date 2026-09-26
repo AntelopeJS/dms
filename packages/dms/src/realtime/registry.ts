@@ -29,6 +29,13 @@ export function registerPageTopic(pageId: string, topic: string): void {
   topics.add(topic);
 }
 
+export function unregisterPageTopic(pageId: string, topic: string): void {
+  const topics = pageTopics.get(pageId);
+  if (!topics) return;
+  topics.delete(topic);
+  if (topics.size === 0) pageTopics.delete(pageId);
+}
+
 // A page that goes away takes its topics with it: they are the allowlist the
 // SSE routes check subscriptions against, so a stale one keeps offering a
 // surface that no longer serves.
