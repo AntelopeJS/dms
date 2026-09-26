@@ -80,14 +80,14 @@ export function useTab(
   };
 
   watch(activeTab, async (newTab, oldTab) => {
-    if (newTab !== oldTab) {
+    if (newTab === oldTab) return;
+    if (props.componentId) {
       sendComponentEvent(TabEvents.TAB_CHANGE, props.componentId, {
         previousTab: Number.parseInt(oldTab, 10),
         currentTab: Number.parseInt(newTab, 10),
       });
-
-      await updateUrl(newTab);
     }
+    await updateUrl(newTab);
   });
 
   watch(

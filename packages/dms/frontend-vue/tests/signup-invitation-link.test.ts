@@ -15,6 +15,10 @@ import SignupPage from "../layers/dms-auth/app/custom-pages/auth/signup.vue";
 const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
 let app: App;
 let host: HTMLDivElement;
+const locale = ref("en");
+const setLocale = vi.fn(async (code: string) => {
+  locale.value = code;
+});
 
 const Passthrough = defineComponent({
   inheritAttrs: false,
@@ -33,7 +37,11 @@ function installRuntime() {
   Object.entries({ computed, ref, reactive }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB") }));
+  vi.stubGlobal("useI18n", () => ({
+    locale,
+    locales: ref([{ code: "en" }, { code: "fr" }]),
+    setLocale,
+  }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { mustValidateEmail: false } },
   }));
@@ -68,6 +76,8 @@ function mountSignup(query: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  locale.value = "en";
+  setLocale.mockClear();
   installRuntime();
   host = document.createElement("div");
 });
@@ -99,3 +109,18 @@ it("shows the signup form for an invitation link with its token", () => {
   );
   expect(host.textContent).toContain("page.signup.create_account_title");
 });
+
+it("opens in the language the invitation was written in", () => {
+  mountSignup({ token: "invite-token", email: "new@local.test", lang: "fr" });
+  expect(setLocale).toHaveBeenCalledWith("fr");
+  expect(locale.value).toBe("fr");
+});
+
+it.each([{}, { lang: "en" }, { lang: "de" }, { lang: ["fr", "en"] }])(
+  "keeps the current language for an invitation link carrying %o",
+  (query) => {
+    mountSignup({ token: "invite-token", email: "new@local.test", ...query });
+    expect(setLocale).not.toHaveBeenCalled();
+    expect(locale.value).toBe("en");
+  },
+);

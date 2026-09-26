@@ -64,6 +64,7 @@ async function attemptSignup(
   existingUser: User,
   token: string,
   claimedEmail: string = existingUser.email,
+  lang?: string,
 ): Promise<SignupAttempt> {
   const updatedUsers: User[] = [];
   const userModel = {
@@ -89,7 +90,7 @@ async function attemptSignup(
         name: INVITEE_NAME,
         email: claimedEmail,
         password: INVITEE_PASSWORD,
-        lang: "en",
+        lang,
         token,
       },
       USER_AGENT,
@@ -192,6 +193,38 @@ describe("[unit] auth/signup — overwriting an existing account", () => {
     await attemptSignup(draft, token, "Draft-Case@Acme.dev");
 
     expect(draft.email).to.equal("draft-case@acme.dev");
+  });
+
+  it("takes over a draft in the invitation's language when none is chosen", async () => {
+    const draft = buildAccount(
+      "signup-guard-draft-language",
+      "draft-language@acme.dev",
+      false,
+    );
+    const { token } = await seedUserInvite({
+      email: draft.email,
+      language: "fr",
+    });
+
+    await attemptSignup(draft, token);
+
+    expect(draft.language).to.equal("fr");
+  });
+
+  it("keeps the language the invitee chose over the invitation's", async () => {
+    const draft = buildAccount(
+      "signup-guard-draft-chosen-language",
+      "draft-chosen-language@acme.dev",
+      false,
+    );
+    const { token } = await seedUserInvite({
+      email: draft.email,
+      language: "fr",
+    });
+
+    await attemptSignup(draft, token, draft.email, "en");
+
+    expect(draft.language).to.equal("en");
   });
 
   // Refusing before the invitation is settled would answer an anonymous prober:

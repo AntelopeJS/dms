@@ -28,12 +28,13 @@ import {
 } from "@antelopejs/interface-dms/invite-resolution";
 import {
   createUserInviteToken,
-  inviteeDisplayName,
+  internal,
 } from "@antelopejs/interface-dms/invites";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
-import { sendAdminInviteEmail } from "@antelopejs/interface-dms/auth";
+import { AuthUser } from "@antelopejs/interface-dms/auth";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   Column,
   Exported,
@@ -281,6 +282,7 @@ export class InvitesSettingsController extends PageController("invites", {
   async resendInvite(
     @Parameter("id", "param") id: string,
     @Context() ctx: RequestContext,
+    @AuthUser() user: User,
   ) {
     const tenantId = getRequestTenantId(ctx);
     const existingInvite = await loadInviteForAction(tenantId, id);
@@ -304,12 +306,15 @@ export class InvitesSettingsController extends PageController("invites", {
     });
 
     fireAndForget(
-      sendAdminInviteEmail(
-        existingInvite.email,
+      internal.sendTenantInviteEmail({
+        tenantId,
+        email: existingInvite.email,
         token,
-        inviteeDisplayName(existingInvite.firstname, existingInvite.lastname),
-        { language: existingInvite.language },
-      ),
+        firstname: existingInvite.firstname,
+        lastname: existingInvite.lastname,
+        language: existingInvite.language,
+        inviterName: user.name,
+      }),
       `invite email to "${existingInvite.email}"`,
     );
   }

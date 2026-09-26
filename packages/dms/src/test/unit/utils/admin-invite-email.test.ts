@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import {
+  buildAdminInviteSignupLink,
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
 } from "../../../utils/admin-invite-email";
@@ -60,6 +61,38 @@ describe("[unit] utils/admin-invite-email", () => {
           "fr-FR",
         ),
       ).to.equal("Ada vous invite à rejoindre Storefront sur Acme");
+    });
+  });
+
+  describe("buildAdminInviteSignupLink", () => {
+    const BASE_URL = "https://app.local";
+
+    it("carries the token, the address and the invitation's language", () => {
+      const link = new URL(
+        buildAdminInviteSignupLink(BASE_URL, {
+          email: "ada+team@acme.dev",
+          token: "t0ken",
+          inviteeName: "Ada Lovelace",
+          language: "fr",
+        }),
+      );
+      expect(link.origin + link.pathname).to.equal(`${BASE_URL}/auth/signup`);
+      expect(Object.fromEntries(link.searchParams)).to.deep.equal({
+        token: "t0ken",
+        email: "ada+team@acme.dev",
+        name: "Ada Lovelace",
+        lang: "fr",
+      });
+    });
+
+    it("leaves out the name and the language when unknown", () => {
+      const link = new URL(
+        buildAdminInviteSignupLink(BASE_URL, {
+          email: "ada@acme.dev",
+          token: "t0ken",
+        }),
+      );
+      expect([...link.searchParams.keys()]).to.deep.equal(["token", "email"]);
     });
   });
 });

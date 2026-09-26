@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/models/tenantLifecycle.model";
 import {
@@ -27,6 +28,8 @@ import { resetDatabase } from "../helpers/db";
 const TENANT = "tenant-lifecycle-test";
 const OTHER_TENANT = "tenant-lifecycle-other";
 const LEGACY_LIFECYCLE_ID = "membership-and-invites";
+const HTTP_PAYMENT_REQUIRED = 402;
+const HTTP_INTERNAL_ERROR = 500;
 
 async function createTenantProducers(tenantId: string): Promise<void> {
   await applyTenantOwnership(GetModel(UserModel), "shared-member", tenantId, {
@@ -222,6 +225,49 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
       failedAttempts,
     );
     await assert.rejects(closeTenantLifecycleAdmission(TENANT), /blocked/);
+  });
+
+  it("retains an invocation that failed with a server error", async () => {
+    await assert.rejects(
+      runTenantLifecycleOperation(TENANT, async () => {
+        throw new HTTPResult(HTTP_INTERNAL_ERROR, "uncertain effect");
+      }),
+    );
+    const model = GetModel(TenantLifecycleModel, TENANT);
+    assert.equal((await model.state(TENANT)).activeAttemptIds.length, 1);
+    await assert.rejects(closeTenantLifecycleAdmission(TENANT), /blocked/);
+  });
+
+  // A hook refusing an invitation (a seat limit, say) used to leave its
+  // admission behind for good, and the workspace could never be hard-deleted.
+  it("releases an invocation a hook refused before any effect", async () => {
+    let refusal: unknown;
+    const refuse = () => {
+      throw new HTTPResult(HTTP_PAYMENT_REQUIRED, "seat limit reached");
+    };
+    RegisterHook(Hook.INVITE_BEING_CREATED, refuse);
+    try {
+      await createUserInviteToken({
+        tenantId: TENANT,
+        email: "refused@example.test",
+        language: "en",
+        roleIds: [],
+        asTenantOwner: false,
+        skipEmailValidation: false,
+      }).catch((error: unknown) => {
+        refusal = error;
+      });
+    } finally {
+      UnregisterHook(Hook.INVITE_BEING_CREATED, refuse);
+    }
+    assert.equal(
+      (refusal as HTTPResult | undefined)?.getStatus(),
+      HTTP_PAYMENT_REQUIRED,
+    );
+    const model = GetModel(TenantLifecycleModel, TENANT);
+    assert.deepEqual((await model.state(TENANT)).activeAttemptIds, []);
+    assert.equal((await GetModel(UserInviteModel, TENANT).getAll()).length, 0);
+    await closeTenantLifecycleAdmission(TENANT);
   });
 
   it("retains a committed admission with an unknown acknowledgement without running effects", async () => {

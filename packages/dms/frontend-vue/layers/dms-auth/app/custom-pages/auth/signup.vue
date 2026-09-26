@@ -4,7 +4,7 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 
 const MIN_VALID_PASSWORD_SCORE = 4;
 
-const { locale } = useI18n();
+const { locale, locales, setLocale } = useI18n();
 const config = useDmsRuntimeConfig();
 const homepage = useHomepage();
 
@@ -17,6 +17,16 @@ const queryName = computed(() => route.query.name as string | undefined);
 const hasInvitationToken = computed(
   () => typeof queryToken.value === "string" && queryToken.value !== "",
 );
+
+// The invitation link carries the language the invitee was invited in: the
+// page opens in it, and the footer switcher still lets them pick another one
+// before the account is created with whichever is current.
+const invitationLanguage = locales.value.find(
+  (available) => available.code === route.query.lang,
+);
+if (invitationLanguage && invitationLanguage.code !== locale.value) {
+  void setLocale(invitationLanguage.code);
+}
 
 const isLoading = ref(false);
 const isPasswordVisible = ref(false);
