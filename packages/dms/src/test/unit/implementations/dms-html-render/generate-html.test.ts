@@ -15,7 +15,7 @@ describe("[unit] implementations/dms-html-render — GenerateHtml", () => {
       htmlRender: {
         renderEndpoint: RENDER_ENDPOINT,
         serviceSecret: "test-service-secret",
-        serviceTokenLifetime: 60,
+        serviceTokenLifetime: 60_000,
       },
     });
     globalThis.fetch = async (input, init) => {

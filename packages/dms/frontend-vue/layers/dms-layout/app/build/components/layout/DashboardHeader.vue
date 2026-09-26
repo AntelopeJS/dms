@@ -112,11 +112,15 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
           return null;
         }
 
-        const isPage = "layoutUrl" in matchingRoute.metadata;
+        const target = buildBreadcrumbTarget(
+          to,
+          matchingRoute.metadata,
+          route.query,
+        );
 
         return {
           label: processI18n(matchingRoute.metadata?.displayName || path),
-          ...(isPage ? { to } : {}),
+          ...(target ? { to: target } : {}),
         };
       })
       .filter((item) => item !== null),
