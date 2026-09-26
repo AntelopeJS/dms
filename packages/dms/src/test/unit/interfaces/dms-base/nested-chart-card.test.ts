@@ -17,8 +17,8 @@ import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { ChartArea } from "@antelopejs/interface-dms/base/chart";
 import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
-// From the leaf, not the `realtime` barrel: the barrel constructs brokers and
-// installs the table-view bridge at import time, which a Map lookup does not need.
+// From the leaf, not the `realtime` barrel: the barrel constructs brokers at
+// import time, which a Map lookup does not need.
 import { getPageTopics } from "../../../../realtime/registry";
 
 const PAGE_ID = "ncc-dashboard";

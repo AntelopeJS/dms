@@ -1,15 +1,40 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
+import { Controller, type ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import {
   Events,
   type ModuleExecutionContext,
   RunWithModuleContext,
 } from "@antelopejs/interface-core/modules";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
+import {
+  Access,
+  AccessMode,
+  ModelReference,
+} from "@antelopejs/interface-data-api/metadata";
+import {
+  BasicDataModel,
+  Field,
+  Model,
+  RegisterTable,
+  Table,
+} from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
+import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import {
+  Column,
+  TableView,
+  TableViewRoutes,
+  tableViewPresenceTopic,
+  tableViewRowTopic,
+} from "@antelopejs/interface-dms/base/table-view";
+import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   PageController,
@@ -25,16 +50,40 @@ import { clearPageTopics, getPageTopics } from "../../../../realtime/registry";
 // module and hands it to every new DMS generation. Nothing on the DMS side has
 // to remember topics across generations.
 
+const TABLE = "page-topics-rows";
+const LOCATION = "/api/page-topics-rows";
 const TOPICS_PAGE = "page-topics";
 const SHARED_PAGE = "page-topics-shared";
 const CHART_TOPICS = ["page-topics:first", "page-topics:second"];
 const OWN_TOPIC = "page-topics:own";
 const OTHER_TOPIC = "page-topics:other";
 
+@RegisterTable(TABLE, CORE_SCHEMA_NAME)
+class Row extends Table {
+  @Field("string") declare name: string;
+}
+
+class RowModel extends BasicDataModel(Row, TABLE) {}
+
+@RegisterDataController()
+class RowsAPI extends DataController(
+  Row,
+  { get: TableViewRoutes.Get },
+  Controller(LOCATION),
+) {
+  @ModelReference()
+  @Model(RowModel)
+  declare model: RowModel;
+  @Column({ name: "Name", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadOnly)
+  declare name: string;
+}
+
 class TopicsPage extends PageController(TOPICS_PAGE, {
   displayName: "Page topics",
   category: pagesCategory,
 }) {
+  static rows = TableView(RowsAPI);
   static trend = ChartLine({ realtimeTopic: CHART_TOPICS });
 }
 
@@ -43,7 +92,11 @@ class SharedPage extends PageController(SHARED_PAGE, {
   category: pagesCategory,
 }) {}
 
-const TOPICS_PAGE_TOPICS = CHART_TOPICS;
+const TOPICS_PAGE_TOPICS = [
+  tableViewRowTopic(LOCATION),
+  tableViewPresenceTopic(LOCATION),
+  ...CHART_TOPICS,
+];
 
 function moduleContext(module: string): ModuleExecutionContext {
   return { module, owner: `${module}#1` };
@@ -75,6 +128,7 @@ function attachNewDmsGeneration(): void {
 
 async function registerAs(context: ModuleExecutionContext): Promise<void> {
   const meta = GetMetadata(TopicsPage, PageMetadata);
+  meta.SetComponent("rows", TopicsPage.rows);
   meta.SetComponent("trend", TopicsPage.trend);
   await RunWithModuleContext(context, () => meta.Register());
 }

@@ -1,8 +1,10 @@
 import { Parameter } from "@antelopejs/interface-api";
+import { InterfaceFunction } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
+import { RegisterPageTopic } from "../../realtime";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";
@@ -10,6 +12,8 @@ export const REALTIME_PRESENCE_QUERY = "_presence";
 export const REALTIME_PRESENCE_ACQUIRE_VALUE = "1";
 const PARAMS_INDEX = 1;
 const BULK_IDS_ARG_INDEX = 1;
+const ROW_TOPIC_PREFIX = "tableview:row:";
+const PRESENCE_TOPIC_PREFIX = "tableview:presence:";
 
 export type RealtimeMutationEventType = "created" | "updated" | "deleted";
 
@@ -36,61 +40,75 @@ export interface RealtimePresenceContext {
   actor: RealtimePresenceActor;
 }
 
-export interface RealtimePageTopicContext {
-  pageId: string;
-  controllerLocation: string;
-}
-
-type RealtimeMutationHook = (
-  context: RealtimeMutationContext,
-) => void | Promise<void>;
-type RealtimePresenceHook = (
-  context: RealtimePresenceContext,
-) => void | Promise<void>;
-type RealtimePageTopicHook = (context: RealtimePageTopicContext) => void;
-
-const realtimeHooks: {
-  mutation?: RealtimeMutationHook;
-  presence?: RealtimePresenceHook;
-  pageTopic?: RealtimePageTopicHook;
-} = {};
-
-const pendingPageTopics: RealtimePageTopicContext[] = [];
-
-const realtimeMutationListeners = new Set<RealtimeMutationHook>();
-
-export function setRealtimeMutationHook(hook: RealtimeMutationHook): void {
-  realtimeHooks.mutation = hook;
+/**
+ * The topic the row changes of the table view served at `controllerLocation`
+ * are published on.
+ */
+export function tableViewRowTopic(controllerLocation: string): string {
+  return `${ROW_TOPIC_PREFIX}${controllerLocation}`;
 }
 
 /**
- * Register an additional realtime-mutation listener. Unlike
- * `setRealtimeMutationHook` — a single slot owned by the realtime bridge —
- * listeners are additive and side observers: they run after the bridge hook
- * and their failures are logged, never propagated to the mutating request.
+ * The topic the presence on the rows of the table view served at
+ * `controllerLocation` is tracked on.
+ */
+export function tableViewPresenceTopic(controllerLocation: string): string {
+  return `${PRESENCE_TOPIC_PREFIX}${controllerLocation}`;
+}
+
+/**
+ * Bind the topics of the table view served at `controllerLocation` to the page
+ * it is placed on. Called from the builder's `onCreated`, so the module whose
+ * page it is owns them.
+ */
+export function registerTableViewPageTopics(
+  pageId: string,
+  controllerLocation: string,
+): void {
+  RegisterPageTopic(pageId, tableViewRowTopic(controllerLocation));
+  RegisterPageTopic(pageId, tableViewPresenceTopic(controllerLocation));
+}
+
+/**
+ * @internal
+ */
+export namespace internal {
+  /** Delivers a mutation of a table view's rows to the sessions watching it. */
+  export const PublishMutation =
+    InterfaceFunction<(context: RealtimeMutationContext) => Promise<void>>();
+
+  /** Records that a session holds a row of a table view open. */
+  export const AcquirePresence =
+    InterfaceFunction<(context: RealtimePresenceContext) => Promise<void>>();
+}
+
+type RealtimeMutationListener = (
+  context: RealtimeMutationContext,
+) => void | Promise<void>;
+
+const realtimeMutationListeners = new Set<RealtimeMutationListener>();
+
+/**
+ * Register an additional realtime-mutation listener. Listeners are additive
+ * side observers: they run after the DMS has published the mutation, and their
+ * failures are logged, never propagated to the mutating request.
  */
 export function registerRealtimeMutationListener(
-  listener: RealtimeMutationHook,
+  listener: RealtimeMutationListener,
 ): void {
   realtimeMutationListeners.add(listener);
 }
 
 export function unregisterRealtimeMutationListener(
-  listener: RealtimeMutationHook,
+  listener: RealtimeMutationListener,
 ): void {
   realtimeMutationListeners.delete(listener);
-}
-
-function hasRealtimeMutationConsumers(): boolean {
-  return !!realtimeHooks.mutation || realtimeMutationListeners.size > 0;
 }
 
 async function dispatchRealtimeMutation(
   context: RealtimeMutationContext,
 ): Promise<void> {
-  if (realtimeHooks.mutation) {
-    await realtimeHooks.mutation(context);
-  }
+  await internal.PublishMutation(context);
   for (const listener of realtimeMutationListeners) {
     try {
       await listener(context);
@@ -101,28 +119,6 @@ async function dispatchRealtimeMutation(
       );
     }
   }
-}
-
-export function setRealtimePresenceHook(hook: RealtimePresenceHook): void {
-  realtimeHooks.presence = hook;
-}
-
-export function setRealtimePageTopicHook(hook: RealtimePageTopicHook): void {
-  realtimeHooks.pageTopic = hook;
-  while (pendingPageTopics.length > 0) {
-    const context = pendingPageTopics.shift();
-    if (context) hook(context);
-  }
-}
-
-export function reportRealtimePageTopic(
-  context: RealtimePageTopicContext,
-): void {
-  if (realtimeHooks.pageTopic) {
-    realtimeHooks.pageTopic(context);
-    return;
-  }
-  pendingPageTopics.push(context);
 }
 
 type IdExtractor = (
@@ -179,8 +175,7 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
       const result = await (
         baseRoute.func as (...a: unknown[]) => unknown
       ).apply(this, allArgs);
-      if (!hasRealtimeMutationConsumers() || !isRealtimeEnabled(this))
-        return result;
+      if (!isRealtimeEnabled(this)) return result;
       const meta = getTableViewMetaFor(this);
       const idKey = meta.options.rowIdKey || "_id";
       const ids = config.extractIds(allArgs, result, idKey);
@@ -218,7 +213,6 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
       ).apply(this, allArgs);
       if (
         presenceFlag !== REALTIME_PRESENCE_ACQUIRE_VALUE ||
-        !realtimeHooks.presence ||
         !sessionId ||
         !isRealtimeEnabled(this)
       ) {
@@ -227,7 +221,7 @@ export function withPresenceAcquire<T extends DataControllerCallback>(
       const params = allArgs[PARAMS_INDEX] as { id?: string } | undefined;
       if (!params?.id) return result;
       const meta = getTableViewMetaFor(this);
-      await realtimeHooks.presence({
+      await internal.AcquirePresence({
         controllerLocation: getControllerLocation(this),
         rowIdKey: meta.options.rowIdKey || "_id",
         sessionId,
