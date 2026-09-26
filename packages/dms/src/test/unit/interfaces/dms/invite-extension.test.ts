@@ -18,13 +18,12 @@ import {
 } from "@antelopejs/interface-dms/hooks";
 import * as inviteExtensionsInterface from "@antelopejs/interface-dms/invite-extensions";
 import {
-  CleanupInviteExtensions,
-  CollectInviteExtensionPayloads,
-  DeliverInviteExtensions,
+  INVITE_EDIT_FORM_SLOT_ID,
   INVITE_FORM_SLOT_ID,
   type InviteCleanupContext,
   type InviteExtensionContext,
   type InviteExtensionOptions,
+  internal,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
 import * as pageInterface from "@antelopejs/interface-dms/page";
@@ -69,6 +68,17 @@ function inviteHostForm(): FormBuilder {
   return Form({
     fields: [textField("email", true), textField("roles")],
     slotId: INVITE_FORM_SLOT_ID,
+  });
+}
+
+/**
+ * Stands in for the edit form of a pending invitation, which lists the
+ * invitation's own columns — the roles field under its stored name.
+ */
+function inviteEditHostForm(): FormBuilder {
+  return Form({
+    fields: [textField("firstname"), textField("roles_ids")],
+    slotId: INVITE_EDIT_FORM_SLOT_ID,
   });
 }
 
@@ -124,13 +134,16 @@ async function hostLayoutFields(
   return options.fields;
 }
 
-async function registerHostPage(slug: string): Promise<void> {
+async function registerHostPage(
+  slug: string,
+  hostForm: () => FormBuilder = inviteHostForm,
+): Promise<void> {
   class Host extends PageController(slug, {
     displayName: `Invite host ${slug}`,
     category: pagesCategory,
     publicAccess: true,
   }) {
-    static invite = inviteHostForm();
+    static invite = hostForm();
   }
   RegisterPage()(Host);
   await settle();
@@ -255,13 +268,186 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     });
   });
 
+  describe("edit form of a pending invitation", () => {
+    function contributedFields(fields: FormFieldOrGroupSerialized[]) {
+      return fields
+        .filter(isFieldGroupSerialized)
+        .flatMap((group) => group.fields);
+    }
+
+    it("merges the contributed fields, editable unless the extension opts out", async () => {
+      register(recordingExtension("billing", "costCenter").options);
+      register({
+        ...recordingExtension("frozen", "value").options,
+        editable: false,
+      });
+      await registerHostPage("ie-edit", inviteEditHostForm);
+
+      const fields = contributedFields(await hostLayoutFields("/ie-edit"));
+
+      expect(
+        fields.map((field) => [field.id, field.disabled === true]),
+      ).to.deep.equal([
+        ["billing__costCenter", false],
+        ["frozen__value", true],
+      ]);
+    });
+
+    it("anchors a block placed by the roles field on the stored roles column", async () => {
+      register({
+        ...recordingExtension("scope", "access").options,
+        placement: { side: "after", anchorField: "roles" },
+      });
+      await registerHostPage("ie-edit-anchor", inviteEditHostForm);
+
+      expect(
+        topLevelIds(await hostLayoutFields("/ie-edit-anchor")),
+      ).to.deep.equal(["firstname", "roles_ids", "scope"]);
+    });
+
+    it("leaves the invite modal's own blocks editable", async () => {
+      register({
+        ...recordingExtension("frozen", "value").options,
+        editable: false,
+      });
+      await registerHostPage("ie-edit-modal");
+
+      const fields = contributedFields(
+        await hostLayoutFields("/ie-edit-modal"),
+      );
+
+      expect(fields.map((field) => field.disabled === true)).to.deep.equal([
+        false,
+      ]);
+    });
+
+    it("prefills the fields with the stored payloads, under their prefixed ids", () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      expect(
+        internal.ReadInviteExtensionFields({
+          billing: { costCenter: "CC-42" },
+          gone: { value: "orphan" },
+        }),
+      ).to.deep.equal({ billing__costCenter: "CC-42" });
+    });
+
+    it("prefills nothing for an invitation without payloads", () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      expect(internal.ReadInviteExtensionFields(null)).to.deep.equal({});
+    });
+  });
+
+  describe("payload edited on a pending invitation", () => {
+    const context: InviteExtensionContext = {
+      tenantId: TENANT,
+      email: "someone@acme.dev",
+      inviteId: "invite-1",
+    };
+
+    it("takes the slices the submission carries", () => {
+      register(recordingExtension("billing", "costCenter").options);
+      register(recordingExtension("onboarding", "track").options);
+
+      expect(
+        internal.CollectInviteExtensionEdits({
+          firstname: "Ada",
+          billing__costCenter: "CC-43",
+        }),
+      ).to.deep.equal({ billing: { costCenter: "CC-43" } });
+    });
+
+    it("refuses an edited slice its schema rejects", () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      expect(() =>
+        internal.CollectInviteExtensionEdits({ billing__costCenter: "" }),
+      ).to.throw();
+    });
+
+    it("ignores the slice of an extension that is not editable", () => {
+      register({
+        ...recordingExtension("frozen", "value").options,
+        editable: false,
+      });
+
+      expect(
+        internal.CollectInviteExtensionEdits({ frozen__value: "changed" }),
+      ).to.deep.equal({});
+    });
+
+    it("tells an extension its payload changed, parsed, with the previous one", async () => {
+      const updates: unknown[][] = [];
+      register({
+        key: "capacity",
+        component: extensionForm("seats"),
+        schema: z.object({ seats: z.string().transform(Number) }),
+        onAccept: () => undefined,
+        onUpdate: (payload, previous, updateContext) => {
+          updates.push([payload, previous, updateContext]);
+        },
+      });
+
+      await internal.NotifyInviteExtensionUpdates(
+        { capacity: { seats: "3" } },
+        { capacity: { seats: "5" } },
+        context,
+      );
+
+      expect(updates).to.deep.equal([[{ seats: 5 }, { seats: 3 }, context]]);
+    });
+
+    it("stays quiet when the payload did not change", async () => {
+      let calls = 0;
+      register({
+        ...recordingExtension("billing", "costCenter").options,
+        onUpdate: () => {
+          calls += 1;
+        },
+      });
+
+      await internal.NotifyInviteExtensionUpdates(
+        { billing: { costCenter: "CC-42" } },
+        { billing: { costCenter: "CC-42" } },
+        context,
+      );
+
+      expect(calls).to.equal(0);
+    });
+
+    it("keeps notifying after a handler throws", async () => {
+      const seen: string[] = [];
+      register({
+        ...recordingExtension("failing", "value").options,
+        onUpdate: () => {
+          throw new Error("update boom");
+        },
+      });
+      register({
+        ...recordingExtension("billing", "costCenter").options,
+        onUpdate: (payload) => {
+          seen.push(payload.costCenter);
+        },
+      });
+
+      await internal.NotifyInviteExtensionUpdates(
+        null,
+        { failing: { value: "x" }, billing: { costCenter: "CC-43" } },
+        context,
+      );
+
+      expect(seen).to.deep.equal(["CC-43"]);
+    });
+  });
+
   describe("payload collected at submit", () => {
     it("splits each extension's slice out of the submitted body", () => {
       register(recordingExtension("billing", "costCenter").options);
       register(recordingExtension("onboarding", "track").options);
 
       expect(
-        CollectInviteExtensionPayloads({
+        internal.CollectInviteExtensionPayloads({
           email: "someone@acme.dev",
           billing__costCenter: "CC-42",
           onboarding__track: "sales",
@@ -276,7 +462,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(() =>
-        CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
+        internal.CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
       ).to.throw();
     });
 
@@ -286,7 +472,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       disposers.length = 0;
 
       expect(
-        CollectInviteExtensionPayloads({ gone__value: "orphan" }),
+        internal.CollectInviteExtensionPayloads({ gone__value: "orphan" }),
       ).to.deep.equal({});
     });
   });
@@ -302,7 +488,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -317,7 +503,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { billing: { costCenter: 42 } },
         MEMBER,
         context,
@@ -340,8 +526,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      const stored = CollectInviteExtensionPayloads({ capacity__seats: "3" });
-      await DeliverInviteExtensions(stored, MEMBER, context);
+      const stored = internal.CollectInviteExtensionPayloads({
+        capacity__seats: "3",
+      });
+      await internal.DeliverInviteExtensions(stored, MEMBER, context);
 
       expect(seen).to.deep.equal([{ seats: 3 }]);
     });
@@ -357,7 +545,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { failing: { value: "x" }, billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -443,7 +631,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const { options } = recordingExtension("billing", "costCenter");
       register({ ...options, onCleanup: undefined });
 
-      await CleanupInviteExtensions(null, {
+      await internal.CleanupInviteExtensions(null, {
         reason: "member-removed",
         tenantId: TENANT,
         userId: "user-1",
@@ -483,10 +671,14 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(second.options);
       disposeFirst();
 
-      await DeliverInviteExtensions({ billing: { b: "value" } }, MEMBER, {
-        tenantId: TENANT,
-        email: "someone@acme.dev",
-      });
+      await internal.DeliverInviteExtensions(
+        { billing: { b: "value" } },
+        MEMBER,
+        {
+          tenantId: TENANT,
+          email: "someone@acme.dev",
+        },
+      );
 
       expect(first.recorded.accepted).to.have.length(0);
       expect(second.recorded.accepted).to.have.length(1);

@@ -61,6 +61,17 @@ export type InviteAcceptHandler<T> = (
   context: InviteExtensionContext,
 ) => MaybePromise<void>;
 
+/**
+ * Receives the payload an admin just saved on a pending invitation, parsed by
+ * the extension's schema, and the one it replaced — `undefined` when the
+ * invitation carried none or the schema no longer accepts it.
+ */
+export type InviteUpdateHandler<T> = (
+  payload: T,
+  previous: T | undefined,
+  context: InviteExtensionContext,
+) => MaybePromise<void>;
+
 export type InviteCleanupHandler<T> = (
   payload: T | undefined,
   context: InviteCleanupContext,
@@ -97,6 +108,20 @@ export interface InviteExtensionOptions<T> {
    * context.deliveryId and scope resource deletion to context.inviteId.
    */
   onCleanup?: InviteCleanupHandler<T>;
+  /**
+   * Whether an admin may change the payload while the invitation is pending,
+   * from its edit form. Defaults to `true`: the payload is only ever handed
+   * over at acceptance, so an edit before then reads exactly as if the admin
+   * had typed the new value when inviting. `false` shows the fields read-only
+   * there.
+   */
+  editable?: boolean;
+  /**
+   * Called after an admin saved a changed payload on a pending invitation, for
+   * an extension that derives something from it before acceptance. The edit is
+   * already stored: a failure is logged, never raised.
+   */
+  onUpdate?: InviteUpdateHandler<T>;
   /** Heading of the contributed block. Defaults to the form's own title. */
   label?: string;
   description?: string;
@@ -114,6 +139,9 @@ export interface InviteExtensionInfo {
   schema: ZodType<unknown, ZodTypeDef, unknown>;
   onAccept: InviteAcceptHandler<unknown>;
   onCleanup?: InviteCleanupHandler<unknown>;
+  /** Unset reads as `true`, as it does on the options. */
+  editable?: boolean;
+  onUpdate?: InviteUpdateHandler<unknown>;
   label?: string;
   description?: string;
   placement: ResolvedInvitePlacement;
@@ -133,6 +161,7 @@ export interface InviteFieldContribution {
   side: PlacementSide;
   anchorField?: string;
   order: number;
+  editable: boolean;
   group: FieldGroupSerialized;
   properties: Record<string, unknown>;
   requiredProperties: string[];

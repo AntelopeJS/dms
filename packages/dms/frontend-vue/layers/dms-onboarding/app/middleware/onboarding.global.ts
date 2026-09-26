@@ -1,6 +1,16 @@
+const ONBOARDING_PATH = "/onboarding";
+const LOGIN_PATH = "/auth";
+
+// Where a visit to the finished wizard lands: the app for a signed-in user, the
+// login page for anyone else rather than a homepage whose 401 would bounce
+// them there anyway.
+function completedOnboardingDestination(): string {
+  const { loggedIn } = useUserSession();
+  return loggedIn.value ? useHomepage() : LOGIN_PATH;
+}
+
 export default defineDmsMiddleware(async (to) => {
-  // The onboarding wizard itself must always be reachable so it can render.
-  if (to.path.startsWith("/onboarding")) return;
+  const isOnboardingRoute = to.path.startsWith(ONBOARDING_PATH);
 
   // While the instance has no admin yet, funnel every route to the onboarding
   // wizard. Running as a global middleware (instead of a plugin) lets this take
@@ -11,11 +21,18 @@ export default defineDmsMiddleware(async (to) => {
   try {
     info = await useOnboarding();
   } catch {
-    // If the onboarding status can't be resolved, don't block navigation.
+    // If the onboarding status can't be resolved, don't block navigation: the
+    // wizard stays reachable, and it is its own register call that refuses a
+    // second admin.
     return;
+  }
+
+  if (isOnboardingRoute) {
+    if (!info.hasOnboarded) return;
+    return navigateDms(completedOnboardingDestination(), { replace: true });
   }
 
   if (info.hasOnboarded) return;
 
-  return navigateDms("/onboarding");
+  return navigateDms(ONBOARDING_PATH);
 });

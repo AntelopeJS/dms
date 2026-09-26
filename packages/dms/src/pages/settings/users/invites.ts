@@ -20,6 +20,7 @@ import {
 } from "@antelopejs/interface-data-api/metadata";
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
 import { UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
+import { INVITE_EDIT_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions";
 import {
   completeInviteResolution,
   decideInvite,
@@ -44,6 +45,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import { inviteEditRoute, inviteGetRoute } from "./invite-extension-routes";
 import {
   inviteLanguageSelectItems,
   memberInviteForm,
@@ -61,8 +63,8 @@ export class inviteSettingDataAPI extends DataController(
   UserInvite,
   {
     list: TableViewRoutes.List,
-    get: TableViewRoutes.Get,
-    edit: TableViewRoutes.Edit,
+    get: inviteGetRoute,
+    edit: inviteEditRoute,
   },
   Controller("/api/tables/admin-invites"),
 ) {
@@ -212,6 +214,9 @@ export class InvitesSettingsController extends PageController("invites", {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
+    // Modules edit the data they attached through `RegisterInviteExtension`
+    // here, until the invitee accepts.
+    formSlots: { edit: INVITE_EDIT_FORM_SLOT_ID },
     customButtons: [
       {
         label: "$page.settings.members.invite.button",

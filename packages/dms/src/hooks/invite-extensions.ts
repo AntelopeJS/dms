@@ -7,8 +7,8 @@ import {
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import {
-  CleanupInviteExtensions,
   type InviteCleanupContext,
+  internal,
 } from "@antelopejs/interface-dms/invite-extensions";
 
 /**
@@ -35,7 +35,7 @@ async function onInviteDeleted(
     email: payload.email,
   };
   if (payload.deliveryId) context.deliveryId = payload.deliveryId;
-  await CleanupInviteExtensions(payload.extensions, context, {
+  await internal.CleanupInviteExtensions(payload.extensions, context, {
     retryOnFailure: payload.deliveryId !== undefined,
   });
   return undefined;
@@ -47,7 +47,7 @@ async function onMemberRemoved(
   for (const userId of payload.userIds) {
     // No payload to hand over: it left with the invitation the member accepted.
     // A contributor keys its own data off the member instead.
-    await CleanupInviteExtensions(undefined, {
+    await internal.CleanupInviteExtensions(undefined, {
       reason: "member-removed",
       tenantId: payload.tenantId,
       userId,

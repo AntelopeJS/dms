@@ -1,1 +1,1 @@
-export * from "./useOnboardingMiddleware";
+export * from "./useOnboarding";

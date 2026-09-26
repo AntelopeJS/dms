@@ -23,6 +23,34 @@ import type { InviteExtensionInfo, InviteFieldContribution } from "./types";
 /** Slot the DMS invite form opens for `RegisterInviteExtension`. */
 export const INVITE_FORM_SLOT_ID = "dms.invite-form";
 
+/**
+ * Slot the edit form of a pending invitation opens, so the contributed fields
+ * can be changed until the invitee accepts.
+ */
+export const INVITE_EDIT_FORM_SLOT_ID = "dms.invite-edit-form";
+
+/** How one of the invite forms hosts the contributed blocks. */
+interface InviteFormHost {
+  /** Blocks of an extension that is not `editable` render read-only. */
+  isEditForm: boolean;
+  /**
+   * Invite-form field ids an extension may anchor on, as this form names
+   * them. The edit form lists the invitation's own columns, and the roles
+   * field there goes by its stored name.
+   */
+  anchorAliases: Record<string, string>;
+}
+
+const INVITE_FORM_HOST: InviteFormHost = {
+  isEditForm: false,
+  anchorAliases: {},
+};
+
+const INVITE_EDIT_FORM_HOST: InviteFormHost = {
+  isEditForm: true,
+  anchorAliases: { roles: "roles_ids" },
+};
+
 interface JsonSchemaObject {
   properties?: Record<string, unknown>;
   required?: string[];
@@ -120,6 +148,7 @@ async function buildContribution(
     side: info.placement.side,
     anchorField: info.placement.anchorField,
     order: info.placement.order,
+    editable: info.editable !== false,
     group,
     watchActions,
     ...prefixSchemaEntries(info.key, options?.schema),
@@ -151,6 +180,28 @@ function compareContributions(
 ): number {
   if (a.order !== b.order) return a.order - b.order;
   return a.key < b.key ? -1 : 1;
+}
+
+function disableGroup(group: FieldGroupSerialized): FieldGroupSerialized {
+  return {
+    ...group,
+    fields: group.fields.map((field) => ({ ...field, disabled: true })),
+  };
+}
+
+// Returns a copy: the contribution is the process-wide cache shared by every
+// request and by both invite forms.
+function adaptToHost(
+  contribution: InviteFieldContribution,
+  host: InviteFormHost,
+): InviteFieldContribution {
+  const anchor = contribution.anchorField;
+  const isReadOnly = host.isEditForm && !contribution.editable;
+  return {
+    ...contribution,
+    anchorField: anchor ? (host.anchorAliases[anchor] ?? anchor) : undefined,
+    group: isReadOnly ? disableGroup(contribution.group) : contribution.group,
+  };
 }
 
 async function collectContributions(): Promise<InviteFieldContribution[]> {
@@ -287,11 +338,14 @@ function mergeSchema(
 
 async function resolveInviteFormSlot(
   options: SlotOptions,
+  host: InviteFormHost,
 ): Promise<SlotOptions> {
   // The marker has done its job here; leaving it in would ship an internal id
   // to the browser, where an unknown form prop lands as a DOM attribute.
   const { [COMPONENT_SLOT_KEY]: _slot, ...resolved } = options;
-  const contributions = await collectContributions();
+  const contributions = (await collectContributions()).map((contribution) =>
+    adaptToHost(contribution, host),
+  );
   if (contributions.length === 0) return resolved;
 
   // The source and the target do not overlap, so this cannot be one
@@ -321,6 +375,11 @@ async function resolveInviteFormSlot(
   return merged as SlotOptions;
 }
 
-// Claimed on import: the DMS invite form declares the slot at page
-// registration, which can run before any module extends it.
-RegisterComponentSlot(INVITE_FORM_SLOT_ID, resolveInviteFormSlot);
+// Claimed on import: the DMS invite forms declare their slots at page
+// registration, which can run before any module extends them.
+RegisterComponentSlot(INVITE_FORM_SLOT_ID, (options) =>
+  resolveInviteFormSlot(options, INVITE_FORM_HOST),
+);
+RegisterComponentSlot(INVITE_EDIT_FORM_SLOT_ID, (options) =>
+  resolveInviteFormSlot(options, INVITE_EDIT_FORM_HOST),
+);

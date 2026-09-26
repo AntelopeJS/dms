@@ -143,11 +143,15 @@ export function TableView<T extends ControllerClass>(
 
   const newForm = resourceForm(controller, "new", {
     submitDefaults: filterSubmitDefaults,
+    slotId: options.formSlots?.new,
   });
   const editForm = resourceForm(controller, "edit", {
     submitDefaults: filterSubmitDefaults,
+    slotId: options.formSlots?.edit,
   });
-  const viewForm = resourceForm(controller, "view");
+  const viewForm = resourceForm(controller, "view", {
+    slotId: options.formSlots?.view,
+  });
 
   const serializeActionTarget = (
     target: CustomButton["target"],

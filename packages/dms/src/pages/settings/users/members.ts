@@ -16,7 +16,7 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
-import { CollectInviteExtensionPayloads } from "@antelopejs/interface-dms/invite-extensions";
+import { internal } from "@antelopejs/interface-dms/invite-extensions";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -230,7 +230,7 @@ export class MembersSettingsController extends PageController("members", {
     } = assertValidation(body, (v) => memberInviteSchema.parse(v));
     // Validated before the invite exists: a payload a module refuses must not
     // leave a half-populated invitation behind.
-    const extensions = CollectInviteExtensionPayloads(body);
+    const extensions = internal.CollectInviteExtensionPayloads(body);
     const roleIds = roles ?? [];
     const existingUser = await userModel.getByEmail(email);
     if (existingUser) {

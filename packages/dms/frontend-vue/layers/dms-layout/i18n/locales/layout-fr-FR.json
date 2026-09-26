@@ -222,7 +222,8 @@
           "cancel_confirm_description": "Êtes-vous sûr de vouloir annuler cette invitation ? Le lien d'invitation ne fonctionnera plus."
         },
         "error": {
-          "not_found": "Invitation introuvable"
+          "not_found": "Invitation introuvable",
+          "resolved": "Cette invitation a déjà été acceptée ou annulée"
         }
       },
       "roles": {

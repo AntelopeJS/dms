@@ -218,7 +218,8 @@
           "cancel_confirm_description": "Are you sure you want to cancel this invitation? The invite link will no longer work."
         },
         "error": {
-          "not_found": "Invitation not found"
+          "not_found": "Invitation not found",
+          "resolved": "This invitation has already been accepted or cancelled"
         }
       },
       "roles": {

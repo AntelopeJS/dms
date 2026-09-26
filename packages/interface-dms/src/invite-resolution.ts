@@ -9,10 +9,8 @@ import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { UserInviteModel } from "./db/models/user_invites.model";
 import type { UserInvite } from "./db/tables/user_invites.table";
 import { ExecuteHooks, Hook } from "./hooks";
-import {
-  DeliverInviteExtensions,
-  listInviteExtensions,
-} from "./invite-extensions";
+import { listInviteExtensions } from "./invite-extensions";
+import { DeliverInviteExtensions } from "./invite-extensions/delivery";
 import { ensureInviteMembership } from "./invite-membership";
 import { ensureInviteReplacement } from "./invite-replacement";
 import { runTenantLifecycleOperation } from "./tenant-lifecycle";

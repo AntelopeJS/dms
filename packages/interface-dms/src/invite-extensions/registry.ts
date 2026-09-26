@@ -82,6 +82,10 @@ function assertUsableKey(key: string): void {
  * `onCleanup` runs when the invitation is cancelled or replaced and when a
  * member is removed — never on acceptance, which also deletes the invitation.
  *
+ * The fields also appear in the edit form of a pending invitation, prefilled
+ * with the stored payload: an admin can change it until the invitee accepts,
+ * unless `editable` is `false`, and `onUpdate` hears about each change.
+ *
  * The registration is bound to the registering module and lifted when it
  * stops, so the fields leave the modal with it.
  *
@@ -112,6 +116,8 @@ export function RegisterInviteExtension<T>(
     schema: options.schema as unknown as InviteExtensionInfo["schema"],
     onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
     onCleanup: options.onCleanup as InviteExtensionInfo["onCleanup"],
+    editable: options.editable,
+    onUpdate: options.onUpdate as InviteExtensionInfo["onUpdate"],
     label: options.label,
     description: options.description,
     placement: resolvePlacement(options.placement),

@@ -132,7 +132,7 @@ export interface TableViewDisplayOptionSerialized extends Omit<
 
 export interface TableViewOptionsSerialized extends Omit<
   TableViewOptions,
-  "customButtons" | "rowActions" | "kanban" | "displays"
+  "customButtons" | "rowActions" | "kanban" | "displays" | "formSlots"
 > {
   enableTableExport: boolean;
   customButtons?: CustomButtonSerialized[];
@@ -331,6 +331,13 @@ export interface TableViewOptions<
    * with @Model are accessible.
    */
   guards?: TableViewGuards<T>;
+  /**
+   * Component slots the generated forms open, by form kind, so another module
+   * can extend them through `RegisterComponentSlot` — the pending-invite edit
+   * form opens one for the invite extensions. Values the slot adds to a form
+   * reach the data routes only if the controller reads them.
+   */
+  formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
   /**
    * Skip the tenant access gate on every data route of this table view, the
    * table-view mirror of the guards' `bypassTenantAccessGate` option. Reserved
