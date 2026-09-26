@@ -6,6 +6,13 @@ export interface ScaleOption {
   hint: string;
 }
 
+export type ColorModePreference = "light" | "dark" | "system";
+
+export interface ColorModeOption {
+  value: ColorModePreference;
+  label: string;
+}
+
 export interface SystemStateMeta {
   title: string;
   description: string;
