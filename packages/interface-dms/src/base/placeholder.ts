@@ -3,7 +3,6 @@ import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 
 const PLACEHOLDER_COMPONENT_NAME = "dms-placeholder";
-const PLACEHOLDER_DEFAULT_HEIGHT = "120px";
 
 /**
  * Options for Placeholder component
@@ -16,7 +15,7 @@ export interface PlaceholderOptions {
 
   /**
    * Height of the box (CSS unit)
-   * @default '120px'
+   * @default undefined (fills its cell, never under 120px)
    */
   height?: string;
 
@@ -36,8 +35,8 @@ export const PlaceholderSchema = z.object({
   height: ui(
     z
       .string()
-      .default(PLACEHOLDER_DEFAULT_HEIGHT)
-      .describe("Box height, as a CSS length."),
+      .optional()
+      .describe("Box height, as a CSS length. Fills its cell when omitted."),
     { label: "Height", group: "appearance" },
   ),
   width: ui(
@@ -64,13 +63,10 @@ export function Placeholder(
   options?: PlaceholderOptions,
 ): ComponentBuilder<PlaceholderOptions> {
   return new ComponentBuilder<PlaceholderOptions>(PLACEHOLDER_COMPONENT_NAME)
-    .options({
-      height: PLACEHOLDER_DEFAULT_HEIGHT,
-      ...options,
-    })
+    .options({ ...options })
     .meta({
       name: "Placeholder",
-      icon: "i-ph-square-dashed",
+      icon: "i-ph-selection",
     });
 }
 
@@ -80,7 +76,7 @@ RegisterBlockType({
   schema: PlaceholderSchema,
   meta: {
     name: "Placeholder",
-    icon: "i-ph-square-dashed",
+    icon: "i-ph-selection",
     description: "Empty box standing in for content still to come.",
     group: "layout",
   },

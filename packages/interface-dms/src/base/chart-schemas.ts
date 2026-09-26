@@ -112,12 +112,15 @@ const baseChartShape = {
     group: "appearance",
     widget: "number",
   }),
-  showTooltip: ui(z.boolean().optional(), {
+  // A chart draws its tooltip, legend, grid, curve and rounded bars unless
+  // they are turned off: declared, so an editor's switch does not show them
+  // off while they show.
+  showTooltip: ui(z.boolean().default(true), {
     label: "Show tooltip",
     group: "appearance",
     widget: "switch",
   }),
-  showLegend: ui(z.boolean().optional(), {
+  showLegend: ui(z.boolean().default(true), {
     label: "Show legend",
     group: "appearance",
     widget: "switch",
@@ -125,20 +128,24 @@ const baseChartShape = {
   fetchUrl: ui(z.string().optional(), {
     label: "Data source",
     group: "data",
-    widget: "query",
+    widget: "dataSource",
+    responseShape: "series",
+    periodOption: "periodScope",
   }),
   fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
     label: "HTTP method",
-    group: "data",
+    group: "advanced",
     widget: "select",
   }),
   periodScope: ui(z.string().optional(), {
     label: "Period scope",
-    group: "data",
+    group: "advanced",
   }),
+  // A topic is a name the backend publishes under, which only its code knows.
   realtimeTopic: ui(z.union([z.string(), z.array(z.string())]).optional(), {
     label: "Realtime topics",
     group: "data",
+    advanced: true,
   }),
   rawOptions: ui(z.array(keyValueSchema).optional(), {
     label: "Raw chart options",
@@ -154,14 +161,14 @@ const baseChartShape = {
 
 const xyChartShape = {
   ...baseChartShape,
-  showGrid: ui(z.boolean().optional(), {
+  showGrid: ui(z.boolean().default(true), {
     label: "Show grid",
     group: "appearance",
     widget: "switch",
   }),
   staticDataset: ui(z.array(chartSeriesSchema).optional(), {
     label: "Static series",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
   yRange: ui(yRangeSchema.optional(), {
@@ -173,7 +180,7 @@ const xyChartShape = {
     group: "appearance",
     widget: "segmented",
   }),
-  smooth: ui(z.boolean().optional(), {
+  smooth: ui(z.boolean().default(true), {
     label: "Smooth",
     group: "appearance",
     widget: "switch",
@@ -187,13 +194,14 @@ const xyChartShape = {
     label: "Reference lines",
     group: "appearance",
     widget: "json",
+    advanced: true,
   }),
   syncGroup: ui(
     z
       .string()
       .optional()
       .describe("Charts sharing a group share crosshair and tooltip."),
-    { label: "Sync group", group: "behavior" },
+    { label: "Sync group", group: "behavior", advanced: true },
   ),
   xaxisType: ui(z.enum(X_AXIS_TYPES).optional(), {
     label: "X axis type",
@@ -206,7 +214,7 @@ const circularChartShape = {
   ...baseChartShape,
   staticDataset: ui(z.array(donutRecordSchema).optional(), {
     label: "Static values",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
 };
@@ -229,7 +237,7 @@ const stackedOption = () =>
   });
 
 const roundedCornersOption = () =>
-  ui(z.boolean().optional(), {
+  ui(z.boolean().default(true), {
     label: "Rounded corners",
     group: "appearance",
     widget: "switch",
@@ -367,7 +375,7 @@ export const ChartHeatmapSchema = z.object({
   ...baseChartShape,
   staticDataset: ui(z.array(chartSeriesSchema).optional(), {
     label: "Static series",
-    group: "data",
+    group: "advanced",
     widget: "json",
   }),
   shadeIntensity: ui(z.number().optional(), {

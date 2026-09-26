@@ -3,6 +3,7 @@ import type { FormProps } from "../../composables/form/types";
 import type { FormFieldValue } from "../../composables/form/types/value";
 import {
   cloneFormValue,
+  formShowsActions,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
 import {
@@ -20,7 +21,12 @@ const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_GET_SEGMENT = "/get";
 const REALTIME_EVENT_UPDATED = "updated";
 
-const props = defineProps<FormProps>();
+// `showActions` left out has to read as left out: Vue casts an absent boolean
+// prop to `false`, which would hide the buttons of every form not asking for
+// them.
+const props = withDefaults(defineProps<FormProps>(), {
+  showActions: undefined,
+});
 const form = useTemplateRef("form");
 
 // Inside a DynamicModal/DynamicDrawer the container already provides the
@@ -47,10 +53,7 @@ const {
   resolvedFetchUrl,
 } = useForm(props);
 
-const showActions = computed(
-  () =>
-    !!props.submitUrl && !toValue(allFields).every((field) => field.disabled),
-);
+const showActions = computed(() => formShowsActions(props, toValue(allFields)));
 
 const { addGuard } = useLeaveGuard();
 const { confirm } = useConfirm();

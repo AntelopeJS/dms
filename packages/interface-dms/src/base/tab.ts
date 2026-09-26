@@ -2,6 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import type { BaseComponentProps } from "./types/base-component-props";
+import type { EnumOption } from "./types/enum-option";
 import { Color } from "./types/color";
 import { AxeOrientation } from "./types/orientation";
 import { Size } from "./types/size";
@@ -19,7 +20,7 @@ export interface BadgeProps {
   label?: string | number;
   color?: string;
   variant?: "solid" | "outline" | "soft" | "subtle";
-  size?: Size;
+  size?: EnumOption<Size>;
 }
 
 export interface TabItem {
@@ -32,16 +33,16 @@ export interface TabItem {
   avatar?: {
     src?: string;
     alt?: string;
-    size?: Size;
+    size?: EnumOption<Size>;
   };
 }
 
 export interface TabProps extends BaseComponentProps {
   items: TabItem[];
-  color?: Color;
-  size?: Size;
-  variant?: TabVariant;
-  orientation?: AxeOrientation;
+  color?: EnumOption<Color>;
+  size?: EnumOption<Size>;
+  variant?: EnumOption<TabVariant>;
+  orientation?: EnumOption<AxeOrientation>;
   unmountOnHide?: boolean;
   persistState?: boolean;
   stateKey?: string;
@@ -49,9 +50,15 @@ export interface TabProps extends BaseComponentProps {
 
 const TAB_COMPONENT_NAME = "dms-tab";
 
-export const Tab = (options: TabProps): ComponentBuilder<TabProps> => {
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `Tab()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
+export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
   return new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
-    .options(options)
+    .options({ ...options } as TabProps)
     .meta({
       name: "Tabs",
       icon: "i-ph-tabs",

@@ -3,6 +3,7 @@ export * from "./button";
 export * from "./color";
 export * from "./component-input";
 export * from "./custom-button";
+export * from "./enum-option";
 export * from "./error";
 export * from "./export-status";
 export * from "./field-config";

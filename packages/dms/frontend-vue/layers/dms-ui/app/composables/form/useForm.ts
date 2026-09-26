@@ -28,6 +28,23 @@ export function cloneFormValue(
   return JSON.parse(JSON.stringify(value));
 }
 
+/**
+ * Whether a form shows its reset and submit buttons.
+ *
+ * Asked for, they show whatever else holds — a form placed in the builder shows
+ * them before it has somewhere to submit to. Left to the form, they show once
+ * it has an address and a field someone can fill in.
+ */
+export function formShowsActions(
+  options: { showActions?: boolean; submitUrl?: string },
+  fields: ReadonlyArray<{ disabled?: boolean }>,
+): boolean {
+  return (
+    options.showActions ??
+    (!!options.submitUrl && !fields.every((field) => field.disabled))
+  );
+}
+
 export function computeResetState(
   state: Record<string, unknown>,
   initialValues: FormData,
@@ -135,6 +152,25 @@ export function replaceUrlVariables(
   }
 
   return processedUrl;
+}
+
+/** Where a submit goes, or what it lacks to go anywhere. */
+export type SubmitTarget = { url: string } | { missing: "url" | "token" };
+
+/**
+ * Where a submit is sent. A form with no URL has nowhere to send it — it is a
+ * read-only one — and a URL naming a token the page does not carry, such as an
+ * edit form opened without the id of its row, is not a route either: loading
+ * already skips such a URL, and submitting to it wrote to a path that was never
+ * meant to exist.
+ */
+export function resolveSubmitTarget(
+  submitUrl: string | undefined,
+  context: ReplaceUrlVariablesContext,
+): SubmitTarget {
+  if (!submitUrl) return { missing: "url" };
+  const url = replaceUrlVariables(submitUrl, context);
+  return url.includes("{{") ? { missing: "token" } : { url };
 }
 
 function processBeforeStateMappers(
@@ -496,15 +532,28 @@ export const useForm = (props: FormProps) => {
     }
   };
 
+  const showUnresolvedTargetToast = () => {
+    toast.add({
+      title: processI18n("$dms.form.error_title"),
+      description: processI18n("$dms.form.error_no_target"),
+      color: Color.error,
+    });
+  };
+
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
+    const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
+    if ("missing" in target) {
+      // A read-only form renders no submit button, but Enter in one of its
+      // fields still submits it: that does nothing. Falling back on `/` sent
+      // the values to the site root with a PUT and reported nothing.
+      if (target.missing === "token") showUnresolvedTargetToast();
+      return;
+    }
+    const submitUrl = target.url;
     const plainData = collectSubmitData(
       event,
       allFields.value,
       effectiveSubmitDefaults.value,
-    );
-    const submitUrl = replaceUrlVariables(
-      props.submitUrl || "/",
-      buildUrlContext(),
     );
 
     loading.value = true;

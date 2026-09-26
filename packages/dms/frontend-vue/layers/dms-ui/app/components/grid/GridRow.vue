@@ -11,10 +11,13 @@ const props = defineProps<GridRowProps>();
 
 const gridContext = inject<GridContext>(GRID_CONTEXT);
 
-const columnCount = props.childCount || 0;
-if (gridContext) {
-  gridContext.registerRowColumnCount(columnCount);
-}
+/** The identity this row counts under, so its width dies with it. */
+const rowId = Symbol("grid-row");
+
+const columnCount = computed(() => props.childCount || 0);
+
+watchEffect(() => gridContext?.setRowColumnCount(rowId, columnCount.value));
+onUnmounted(() => gridContext?.dropRow(rowId));
 
 const rowStyle = computed(() => {
   const gap = gridContext?.gap.value ?? DEFAULT_GAP;

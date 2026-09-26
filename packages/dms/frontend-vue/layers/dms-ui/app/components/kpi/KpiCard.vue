@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
-import { formatValueParts } from "../../composables/chart/formatValue";
+import {
+  ABSENT_VALUE_PARTS,
+  formatValueParts,
+} from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
 import type {
   KpiCardResponse,
@@ -69,18 +72,20 @@ const { data, isLoading } = useChartFetch<KpiCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-const value = computed(() => data.value?.value ?? 0);
+const value = computed(() => data.value?.value);
 const delta = computed(() => data.value?.delta ?? null);
 const sparkline = computed(() => data.value?.sparkline ?? []);
 
 const formattedParts = computed(() =>
-  formatValueParts(
-    value.value,
-    props.valueFormat,
-    locale.value,
-    props.currencyCode,
-    props.valuePrecision,
-  ),
+  value.value === undefined
+    ? ABSENT_VALUE_PARTS
+    : formatValueParts(
+        value.value,
+        props.valueFormat,
+        locale.value,
+        props.currencyCode,
+        props.valuePrecision,
+      ),
 );
 
 const showTrend = computed(() => props.showDelta && delta.value !== null);

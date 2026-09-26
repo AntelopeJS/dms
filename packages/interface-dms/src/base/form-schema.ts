@@ -9,7 +9,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
 import type { TreeNode } from "./tree";
-import type { AxeOrientation } from "./types";
+import type { AxeOrientation, EnumOption } from "./types";
 import { FORM_COMPONENT_NAME } from "./form-block-schema";
 export * from "./form-block-schema";
 import {
@@ -136,9 +136,16 @@ export function serializeFormFields(
   });
 }
 
-export const Form = (options: FormProps): FormBuilder => {
-  const schema = buildFormSchema(options.fields);
-  const serializedFields = serializeFormFields(options.fields);
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `Form()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
+export const Form = (options?: FormProps): FormBuilder => {
+  const fields = options?.fields ?? [];
+  const schema = buildFormSchema(fields);
+  const serializedFields = serializeFormFields(fields);
 
   const builder = new ComponentBuilder<FormPropsSerialized>(FORM_COMPONENT_NAME)
     .options({
@@ -152,11 +159,11 @@ export const Form = (options: FormProps): FormBuilder => {
     // about uploads.
     .transformOptions(StampUploadFieldTokens)
     .meta({
-      name: options.title || "Form",
+      name: options?.title || "Form",
       icon: "i-ph-note-pencil",
     });
 
-  return Object.assign(builder, { fields: options.fields });
+  return Object.assign(builder, { fields });
 };
 
 export namespace FormComponents {
@@ -214,7 +221,7 @@ export namespace FormComponents {
 
   export interface RadioGroupOptions {
     items: SelectOption[];
-    orientation?: AxeOrientation;
+    orientation?: EnumOption<AxeOrientation>;
   }
 
   export interface SelectOptions {

@@ -1,7 +1,12 @@
 import { ComponentBuilder, type ComponentInfoSerialized } from "../component";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { type DataType } from "./data-types/core";
-import type { BaseComponentProps, DefaultValue, HttpMethod } from "./types";
+import type {
+  BaseComponentProps,
+  DefaultValue,
+  EnumOption,
+  HttpMethod,
+} from "./types";
 export namespace FormEvents {
   export const SUBMIT = "DmsComponent.Form.Submit";
   export const SUBMIT_SUCCESS = "DmsComponent.Form.SubmitSuccess";
@@ -69,9 +74,9 @@ export interface FormProps extends BaseComponentProps {
   description?: string;
   fields: FormFieldOrGroup[];
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   submitUrl?: string;
-  submitUrlMethod?: HttpMethod;
+  submitUrlMethod?: EnumOption<HttpMethod>;
   successMessage?: string;
   errorMessage?: string;
   /**
@@ -79,6 +84,11 @@ export interface FormProps extends BaseComponentProps {
    * "Save changes" label.
    */
   submitLabel?: string;
+  /**
+   * Whether the reset and submit buttons show. Left out, they show once the
+   * form has somewhere to submit to and something to fill in.
+   */
+  showActions?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token

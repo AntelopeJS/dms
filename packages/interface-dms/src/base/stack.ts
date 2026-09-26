@@ -212,7 +212,7 @@ export function HStack(
     })
     .meta({
       name: "HStack",
-      icon: "i-ph-rows",
+      icon: "i-ph-columns",
     });
 }
 
@@ -243,7 +243,7 @@ export function VStack(
     })
     .meta({
       name: "VStack",
-      icon: "i-ph-columns",
+      icon: "i-ph-rows",
     });
 }
 
@@ -289,7 +289,7 @@ RegisterBlockType({
   container: true,
   meta: {
     name: "Horizontal stack",
-    icon: "i-ph-rows",
+    icon: "i-ph-columns",
     description: "Lays its children out in a row.",
     group: "layout",
   },
@@ -302,7 +302,7 @@ RegisterBlockType({
   container: true,
   meta: {
     name: "Vertical stack",
-    icon: "i-ph-columns",
+    icon: "i-ph-rows",
     description: "Lays its children out in a column.",
     group: "layout",
   },

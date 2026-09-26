@@ -5,19 +5,31 @@ interface PlaceholderProps {
   width?: string;
 }
 
+/** What a box nobody sized is worth showing at, when nothing stretches it. */
+const MIN_HEIGHT = "120px";
+
 const props = withDefaults(defineProps<PlaceholderProps>(), {
   label: undefined,
-  height: "120px",
+  height: undefined,
   width: undefined,
 });
+
+/**
+ * A placeholder stands in for content still to come, so it takes the room it is
+ * given: a height of its own would keep it short in a row sized by its tallest
+ * cell, and a layout laid out with these could not be read for what it will be.
+ * A given height still wins, and a floor keeps a lone one visible.
+ */
+const box = computed(() => ({
+  height: props.height,
+  minHeight: props.height ? undefined : MIN_HEIGHT,
+  width: props.width,
+}));
 </script>
 
 <template>
   <div
-    :style="{
-      height: props.height,
-      width: props.width,
-    }"
+    :style="box"
     class="border-accented relative flex items-center justify-center overflow-hidden rounded-md border border-dashed px-4 opacity-75"
   >
     <svg

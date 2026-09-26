@@ -13,19 +13,29 @@ const props = withDefaults(defineProps<GridProps>(), {
   minColumnWidth: GRID_DEFAULT_MIN_COLUMN_WIDTH,
 });
 
-const rowColumnCounts = ref<number[]>([]);
+/**
+ * Keyed by row rather than appended to: a list that only grows keeps counting
+ * rows that have gone and widths that were never asked for, so the grid ends up
+ * reserving columns nothing fills.
+ */
+const rowColumnCounts = ref(new Map<symbol, number>());
 
 const maxColumns = computed(() => {
-  if (rowColumnCounts.value.length === 0) return 1;
-  return Math.max(...rowColumnCounts.value);
+  const counts = [...rowColumnCounts.value.values()].filter(
+    (count) => count > 0,
+  );
+  return counts.length === 0 ? 1 : Math.max(...counts);
 });
 
 const gapRef = computed(() => props.gap);
 const minColumnWidthRef = computed(() => props.minColumnWidth);
 
 provide<GridContext>(GRID_CONTEXT, {
-  registerRowColumnCount: (columnCount: number) => {
-    rowColumnCounts.value.push(columnCount);
+  setRowColumnCount: (row: symbol, columnCount: number) => {
+    rowColumnCounts.value.set(row, columnCount);
+  },
+  dropRow: (row: symbol) => {
+    rowColumnCounts.value.delete(row);
   },
   maxColumns,
   gap: gapRef,

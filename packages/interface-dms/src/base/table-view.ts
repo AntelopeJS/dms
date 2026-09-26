@@ -13,6 +13,8 @@
  * - `realtime` — mutation/presence broadcasting hooks around routes
  * - `routes` — the assembled `TableViewRoutes` a data controller mounts
  * - `factory` — the `TableView()` builder that ties it all together
+ * - `resource-form` — the forms over a resource, shared by `TableView()` and
+ *   the `ResourceForm()` block
  *
  * The barrel re-exports the exact surface the former single-file module
  * exposed; the pieces also export their cross-file internals, which are not
@@ -80,6 +82,12 @@ export {
   setRealtimePresenceHook,
   unregisterRealtimeMutationListener,
 } from "./table-view/realtime";
+export {
+  ResourceForm,
+  resourceForm,
+  ROUTE_PARAM_ROW_ID,
+  stampAttachmentFields,
+} from "./table-view/resource-form";
 export { TableViewRoutes } from "./table-view/routes";
 export * from "./table-view/schema";
 export type {

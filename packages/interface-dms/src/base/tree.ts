@@ -2,6 +2,7 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import type { BaseComponentProps } from "./types/base-component-props";
+import type { EnumOption } from "./types/enum-option";
 import { Color } from "./types/color";
 import { HttpMethod } from "./types/http";
 import { Size } from "./types/size";
@@ -37,8 +38,8 @@ export interface TreeNode {
 export interface TreeProps extends BaseComponentProps {
   title?: string;
   description?: string;
-  color?: Color;
-  size?: Size;
+  color?: EnumOption<Color>;
+  size?: EnumOption<Size>;
   trailingIcon?: string;
   expandedIcon?: string;
   collapsedIcon?: string;
@@ -46,10 +47,10 @@ export interface TreeProps extends BaseComponentProps {
   defaultExpanded?: string[];
   disabled?: boolean;
   expanded?: string[];
-  selectionBehavior: TreeSelectionBehavior;
+  selectionBehavior: EnumOption<TreeSelectionBehavior>;
   propagateSelect?: boolean;
   fetchUrl?: string;
-  fetchUrlMethod?: HttpMethod;
+  fetchUrlMethod?: EnumOption<HttpMethod>;
   staticNodes?: TreeNode[];
   lazyLoad?: boolean;
   nodeToggleFunctionId?: string;
@@ -58,11 +59,17 @@ export interface TreeProps extends BaseComponentProps {
 
 const TREE_COMPONENT_NAME = "dms-tree";
 
-export const Tree = (options: TreeProps): ComponentBuilder<TreeProps> => {
+/**
+ * `options` is optional because a page is written as it is built: the editor
+ * places a block before anything is configured, and writes that as the bare
+ * call `Tree()`. A page under construction has to compile — it is typechecked
+ * on every edit — so a block with nothing set yet has to be a legal call.
+ */
+export const Tree = (options?: TreeProps): ComponentBuilder<TreeProps> => {
   return new ComponentBuilder<TreeProps>(TREE_COMPONENT_NAME)
-    .options(options)
+    .options({ ...options } as TreeProps)
     .meta({
-      name: options.title || "Tree",
+      name: options?.title || "Tree",
       icon: "i-ph-tree-structure",
     });
 };

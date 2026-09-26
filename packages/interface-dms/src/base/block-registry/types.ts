@@ -29,6 +29,7 @@ export type BlockOptionWidget =
   | "field"
   | "dataType"
   | "query"
+  | "dataSource"
   | "permission"
   | "json"
   | "block";
@@ -56,6 +57,12 @@ export interface BlockOptionUi {
   /** Block types accepted by a `block` widget. */
   blockTypes?: string[];
   /**
+   * The options of the block a `block` widget holds that this block supplies
+   * itself, which an editor leaves out: a card fetches the series its chart
+   * draws and heads it, so the chart's own source and title are never read.
+   */
+  supplies?: string[];
+  /**
    * The aspect(s) a `field` widget's value must carry on the resource. Sorting
    * on a field that is not sortable, or filtering on one that is not
    * filterable, is written and then ignored at runtime — so the option says
@@ -70,7 +77,68 @@ export interface BlockOptionUi {
    * under its label — a set of switches that reads as one list of features.
    */
   flatten?: boolean;
+  /**
+   * What to call each value of an enum, keyed by the value. An editor shows
+   * these in place of the raw values: `Last 30 days` rather than
+   * `last-30-days`.
+   */
+  valueLabels?: Record<string, string>;
+  /**
+   * The sibling option this one's value can be derived from — a field's key
+   * from its label. An editor may write it itself, and keep it following that
+   * option for as long as nobody has set it by hand, sparing an author a name
+   * that only code reads.
+   */
+  derivedFrom?: string;
+  /**
+   * The switch this option sits behind, by its label. Options naming the same
+   * one are offered together once an author turns it on, and left out — the
+   * block falling back on its own behaviour — while it is off.
+   */
+  optIn?: string;
+  /**
+   * The sibling option holding the data type this value is one of — a field's
+   * default takes the field's own type. An editor offers the input that type
+   * calls for, and keeps the JSON box for a type it has none for.
+   */
+  typedBy?: string;
+  /**
+   * Offered in an editor's advanced view only: a setting that is an address,
+   * a method or a key is written for whoever reads the code, and an editor's
+   * simple view writes it for its author instead.
+   */
+  advanced?: boolean;
+  /**
+   * What an editor places a new block with, when that is not what the option
+   * defaults to: a form placed by hand shows its buttons from the start.
+   */
+  initial?: unknown;
+  /**
+   * What the block does with what it fetches, for a `dataSource` option.
+   *
+   * A source editor offers only the calculations whose answer this block can
+   * read: a card wants one number, a chart wants one point per group, a ranked
+   * list wants those points as entries. Without it an editor would let someone
+   * wire a series into a slot that renders a single value.
+   */
+  responseShape?: BlockResponseShape;
+  /**
+   * The option this block reads its period from, for a `dataSource` option.
+   *
+   * Binding a source to a period means writing two options at once — the source
+   * itself, and the scope it follows — and only the block knows what its own
+   * period option is called.
+   */
+  periodOption?: string;
 }
+
+/**
+ * The shape of the answer a block reads from its data source.
+ *
+ * `value` is one number, `series` one point per group, `items` those points as a
+ * ranked list, and `card` a number and its series together.
+ */
+export type BlockResponseShape = "value" | "series" | "items" | "card";
 
 /**
  * A resource aspect a field must carry for an option naming it to work at
@@ -118,6 +186,11 @@ export interface BlockOptionSchema {
   items?: BlockOptionSchema;
   /** Record value shape. */
   values?: BlockOptionSchema;
+  /**
+   * Record key shape. A key drawn from a closed set carries it as `enum`, so
+   * an editor can offer one entry per key rather than a free-form object.
+   */
+  keys?: BlockOptionSchema;
   /** Union branches, in declaration order. */
   oneOf?: BlockOptionSchema[];
   /** Property carrying the branch tag of a discriminated union. */

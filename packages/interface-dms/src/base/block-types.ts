@@ -17,12 +17,16 @@ import "./grid";
 import "./kpi-card";
 import "./period-selector";
 import "./placeholder";
+import "./resource-form-schema";
 import "./stack";
 import "./tab";
 import "./table-view/schema";
 import "./top-list-card";
 import "./tree";
 
+// Declared data sources travel with the block types: a builder reading the
+// catalog needs both to know what a block may be pointed at.
+export * from "./data-sources";
 export * from "./block-registry/helpers";
 export * from "./block-registry/registry";
 export * from "./block-registry/types";

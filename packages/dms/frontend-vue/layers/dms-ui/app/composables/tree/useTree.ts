@@ -106,12 +106,6 @@ export async function useTree<T = unknown>(props: TreeProps) {
     },
   });
 
-  if (!props.fetchUrl && !props.staticNodes) {
-    throw new Error(
-      "Either fetchUrl or staticNodes must be provided to useTree",
-    );
-  }
-
   const loadingNodes = ref<Set<string>>(new Set());
   // Shallow on purpose: `TreeItem` carries a string index signature and
   // recurses through `children`, so Vue's deep `UnwrapRef` on a tree node
@@ -194,12 +188,16 @@ export async function useTree<T = unknown>(props: TreeProps) {
     }
   }
 
+  // A tree with neither a URL nor nodes of its own holds nothing yet, which is
+  // what a block just placed on a page looks like: it is configured after it is
+  // placed, and the editor says what is still missing. Refusing to render at
+  // all would answer that gesture with a crash.
   const dataLoader = props.fetchUrl
     ? () =>
         $authFetch<TreeNode<T>[]>(props.fetchUrl!, {
           method: props.fetchUrlMethod || "GET",
         })
-    : () => Promise.resolve(props.staticNodes as TreeNode<T>[]);
+    : () => Promise.resolve((props.staticNodes ?? []) as TreeNode<T>[]);
 
   const { data, status, refresh } = await useDmsAsyncData(
     `tree-${props.componentId}-${props.pageId}-${props.componentId}`,
