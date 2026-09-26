@@ -34,7 +34,6 @@ describe("buildFavoritePage", () => {
         metadata: SETTINGS_PAGE,
         query: { tab: "general" },
         translate,
-        renderedHeading: "Settings",
       }),
     ).toEqual({
       id: "settings",
@@ -44,38 +43,34 @@ describe("buildFavoritePage", () => {
     });
   });
 
-  it("keeps the query a page requires and names it after its heading", () => {
+  it("keeps the query a page requires and names it after the page and its values", () => {
     expect(
       buildFavoritePage({
         path: "/projects/project",
         metadata: PROJECT_PAGE,
         query: { project: "p 1", service: "s1" },
         translate,
-        renderedHeading: "  Storefront \n",
       }),
     ).toEqual({
       id: "/projects/project?project=p+1",
       path: "/projects/project?project=p+1",
-      title: "Storefront",
+      title: "t(cloud.project.title) · p 1",
       icon: "i-ph-cube",
     });
   });
 
-  it("falls back to the page name and query values without an entity heading", () => {
-    const favorite = (renderedHeading?: string) =>
+  it("joins every required query value in the title", () => {
+    expect(
       buildFavoritePage({
-        path: "/projects/project",
-        metadata: PROJECT_PAGE,
-        query: { project: "p1" },
+        path: "/projects/project/service",
+        metadata: {
+          ...PROJECT_PAGE,
+          validation: { requiredQueryParams: ["project", "service"] },
+        },
+        query: { project: "p1", service: "s1" },
         translate,
-        renderedHeading,
-      })?.title;
-
-    expect(favorite()).toBe("t(cloud.project.title) · p1");
-    expect(favorite(" ")).toBe("t(cloud.project.title) · p1");
-    expect(favorite("t(cloud.project.title)")).toBe(
-      "t(cloud.project.title) · p1",
-    );
+      })?.title,
+    ).toBe("t(cloud.project.title) · p1 · s1");
   });
 
   it("gives no favorite when a required query value is missing", () => {

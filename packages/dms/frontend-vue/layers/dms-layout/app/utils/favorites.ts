@@ -17,8 +17,6 @@ export interface FavoritePageSource {
   metadata: FavoritePageMetadata;
   query: Record<string, unknown>;
   translate: (text: string) => string;
-  /** The page heading as rendered, which names the entity a page is showing. */
-  renderedHeading?: string;
 }
 
 export type FavoriteRouteResolver = (
@@ -36,15 +34,7 @@ function requiredQueryValues(
 
 // A page narrowed by its query shows one entity out of many: its generic
 // display name would label every favorite of it the same way.
-function entityTitle(
-  pageTitle: string,
-  queryValues: string[],
-  renderedHeading: string | undefined,
-): string {
-  const heading = renderedHeading?.trim();
-  if (heading && heading !== pageTitle) {
-    return heading;
-  }
+function entityTitle(pageTitle: string, queryValues: string[]): string {
   return [pageTitle, ...queryValues].join(FAVORITE_TITLE_SEPARATOR);
 }
 
@@ -76,11 +66,7 @@ export function buildFavoritePage(
   return {
     id: target,
     path: target,
-    title: entityTitle(
-      source.translate(displayName),
-      queryValues,
-      source.renderedHeading,
-    ),
+    title: entityTitle(source.translate(displayName), queryValues),
     icon: metadata.icon,
   };
 }

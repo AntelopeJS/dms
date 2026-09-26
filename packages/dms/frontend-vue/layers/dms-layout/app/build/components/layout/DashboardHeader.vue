@@ -57,13 +57,7 @@ const siteLayout = useSiteLayout();
 const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
 
-// A page narrowed by its query can render the entity it shows as its heading
-// (the project's name rather than "Project"); that heading names its favorite.
-const RENDERED_PAGE_HEADING_SELECTOR = "[data-dms-page-content] h1";
-
-const buildCurrentFavoritePage = (
-  renderedHeading?: string,
-): FavoritePage | null => {
+const currentPageInfo = computed((): FavoritePage | null => {
   const matchedRoute = siteLayout.findMatchingRoute(route.path);
 
   if (!matchedRoute) {
@@ -78,11 +72,8 @@ const buildCurrentFavoritePage = (
     },
     query: route.query,
     translate: processI18n,
-    renderedHeading,
   });
-};
-
-const currentPageInfo = computed(() => buildCurrentFavoritePage());
+});
 
 const isCurrentPageFavorite = computed(() => {
   if (!currentPageInfo.value) {
@@ -91,16 +82,11 @@ const isCurrentPageFavorite = computed(() => {
   return favoritePages.isFavorite(currentPageInfo.value.path);
 });
 
-const readRenderedPageHeading = (): string | undefined =>
-  document.querySelector(RENDERED_PAGE_HEADING_SELECTOR)?.textContent ??
-  undefined;
-
 const toggleCurrentPageFavorite = () => {
-  const page = buildCurrentFavoritePage(readRenderedPageHeading());
-  if (!page) {
+  if (!currentPageInfo.value) {
     return;
   }
-  favoritePages.toggleFavorite(page);
+  favoritePages.toggleFavorite(currentPageInfo.value);
 };
 
 const breadcrumb = computed((): BreadcrumbItem[] => {
