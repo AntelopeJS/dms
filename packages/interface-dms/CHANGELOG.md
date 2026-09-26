@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.3...v0.2.4)
+
+### 🩹 Fixes
+
+- Generic DMS console bugs found in the staging audit ([#57](https://github.com/AntelopeJS/dms/pull/57))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.4 ([bc7c88d](https://github.com/AntelopeJS/dms/commit/bc7c88d))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.2...v0.2.3)
