@@ -1,9 +1,12 @@
 // The helpers the TableView factory chains together: form redirection, custom
 // button permissions, controller rules, kanban column eligibility and display
-// serialization.
+// serialization, and the filter-tab route check.
 //
 // Split out of factory.ts.
 
+import type { ControllerClass } from "@antelopejs/interface-api";
+import { Logging } from "@antelopejs/interface-core/logging";
+import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
 import { ComponentBuilder } from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
@@ -453,4 +456,42 @@ export function applyFormPageSubmitDefaults(
 ): void {
   const submitDefaults = buildFilterSubmitDefaults(filters, frame);
   if (submitDefaults) form.mergeOptions({ submitDefaults });
+}
+
+const COUNT_BATCH_PATH = "count/batch";
+const COUNT_BATCH_METHOD = "post";
+const EDGE_SLASHES = /^\/+|\/+$/g;
+
+const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
+
+// Matched on the mounted path and method rather than on the route object: a
+// module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
+function servesCountBatch(
+  endpoints: Record<string, DataControllerCallbackWithOptions>,
+): boolean {
+  return Object.entries(endpoints).some(
+    ([key, entry]) =>
+      (entry.endpoint ?? key).replace(EDGE_SLASHES, "") === COUNT_BATCH_PATH &&
+      entry.callback.method.toLowerCase() === COUNT_BATCH_METHOD,
+  );
+}
+
+/**
+ * Warn, once per controller, when a table view declares filter tabs but its
+ * controller mounts no `POST count/batch` route: every tab counter request
+ * would fail. The fix belongs in the controller (mount
+ * `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
+ */
+export function warnIfTabsLackCountBatch(
+  controller: ControllerClass,
+  location: string,
+  hasTabs: boolean,
+  endpoints: Record<string, DataControllerCallbackWithOptions>,
+): void {
+  if (!hasTabs || controllersWarnedForTabCounts.has(controller)) return;
+  if (servesCountBatch(endpoints)) return;
+  controllersWarnedForTabCounts.add(controller);
+  Logging.Warn(
+    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: tab counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
+  );
 }
