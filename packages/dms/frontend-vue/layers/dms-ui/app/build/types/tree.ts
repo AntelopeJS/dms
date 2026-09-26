@@ -1,4 +1,5 @@
 import type { LinkProps, NavigationMenuItem } from "@nuxt/ui";
+import { buildLinkWithQuery } from "#dms-core/app/utils/routePath";
 
 export interface TreeItem extends LinkProps {
   id: string;
@@ -29,18 +30,13 @@ function isExcludedFromRoot(item: SiteLayoutTree): boolean {
 
 // A registered entry links to its own slug, narrowed by the query parameters it
 // declares so a single page (with `validation.requiredQueryParams`) can back
-// several entries. `exactQuery: "partial"` keeps sibling entries of that page
-// from all highlighting at once while tolerating unrelated query parameters.
-export function buildMenuItemTarget(
-  item: SiteLayoutTree,
-): MenuItemTarget | string | undefined {
+// several entries. The sidebar tells those sibling entries apart itself (see
+// `isMenuItemActive`), so the link stays a plain string.
+export function buildMenuItemTarget(item: SiteLayoutTree): string | undefined {
   if (!item.layoutUrl) {
     return undefined;
   }
-  if (!item.query || Object.keys(item.query).length === 0) {
-    return item.fullSlug;
-  }
-  return { path: item.fullSlug, query: item.query };
+  return buildLinkWithQuery(item.fullSlug, item.query);
 }
 
 function buildNavigationItem(
@@ -54,7 +50,6 @@ function buildNavigationItem(
     label: item.displayName,
     icon: item.icon,
     to,
-    ...(typeof to === "object" ? { exactQuery: "partial" } : {}),
     variant: item.variant,
     status: item.status,
     children: children.length > 0 ? children : undefined,

@@ -37,6 +37,9 @@
       "title": "Erreur serveur",
       "description": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
     },
+    "request_refused": {
+      "title": "Requête refusée"
+    },
     "recovering": {
       "title": "Restauration de votre session...",
       "description": "Votre session a expiré. Renouvellement de l'accès et rechargement de la page."

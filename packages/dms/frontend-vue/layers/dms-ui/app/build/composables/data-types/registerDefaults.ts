@@ -1,8 +1,10 @@
 import { defineAsyncComponent, type VNode } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
+import UBadge from "@nuxt/ui/components/Badge.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
+import { buildRelationBadges } from "./relationBadges";
 
 const FilePreview = defineAsyncComponent(
   () => import("../../../components/table-view/FilePreview.vue"),
@@ -37,6 +39,9 @@ const LINK_CLASS =
 const LINK_ICON_CLASS = "size-3 text-primary/70 flex-shrink-0";
 const LINK_ICON_NAME = "i-ph-arrow-up-right-light";
 const DEFAULT_RELATION_VALUE_KEY = "_id";
+const DEFAULT_RELATION_LABEL_KEY = "name";
+const RELATION_BADGES_CLASS = "inline-flex flex-wrap items-center gap-1";
+const RELATION_BADGE_CLASS = "max-w-40";
 const PERMISSION_SEPARATOR = ".";
 
 interface LinkRendererOptions {
@@ -263,18 +268,41 @@ function countLeafPermissions(value: string[]): number {
   return value.filter((id) => !parentIds.has(id)).length;
 }
 
+function renderRelationBadge(label: string, title?: string) {
+  return h(UBadge, {
+    label,
+    title: title ?? label,
+    color: "neutral",
+    variant: "subtle",
+    size: Size.small,
+    class: RELATION_BADGE_CLASS,
+  });
+}
+
+function renderRelationBadges(values: unknown[], labelKey: string) {
+  const { processI18n } = useTranslation();
+  const { visible, hidden } = buildRelationBadges(values, labelKey);
+  const badges = visible.map((label) =>
+    renderRelationBadge(processI18n(label)),
+  );
+  if (hidden.length > 0) {
+    const hiddenLabels = hidden.map((label) => processI18n(label)).join(", ");
+    badges.push(renderRelationBadge(`+${hidden.length}`, hiddenLabels));
+  }
+  return h("span", { class: RELATION_BADGES_CLASS }, badges);
+}
+
 function renderRelation(value: unknown, options: unknown) {
-  const { t } = useI18n();
   const opts = options as RelationOptions | undefined;
+  const labelKey = opts?.keyMapping?.label || DEFAULT_RELATION_LABEL_KEY;
 
   if (opts?.multiple && Array.isArray(value)) {
-    return t("dms.form.relation.selected_count", { count: value.length });
+    return renderRelationBadges(value, labelKey);
   }
 
   if (!value || !isObject(value)) return value;
 
   const valueObject = value as Record<string, string>;
-  const labelKey = opts?.keyMapping?.label || "name";
   const avatarKey = opts?.keyMapping?.avatar;
   const label = valueObject[labelKey] || String(value);
 

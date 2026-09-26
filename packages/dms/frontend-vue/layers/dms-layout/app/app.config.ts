@@ -134,7 +134,15 @@ export default {
     button: {
       slots: {
         // Tactile press + full transition (design .btn active:scale(.97)).
-        base: "transition active:scale-[0.98]",
+        // Nuxt UI only fades a disabled button to 75%, which still reads as
+        // enabled on a filled primary: fade it further and drop the press and
+        // the inset highlight so every variant looks inert.
+        base: [
+          "transition active:scale-[0.98]",
+          "disabled:opacity-50 aria-disabled:opacity-50",
+          "disabled:active:scale-100 aria-disabled:active:scale-100",
+          "disabled:shadow-none aria-disabled:shadow-none",
+        ].join(" "),
       },
       compoundVariants: [
         // Inset top highlight on the solid primary fill (design .btn-primary).

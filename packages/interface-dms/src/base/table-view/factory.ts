@@ -49,6 +49,7 @@ import {
   ROW_SCOPED_FORM_PAGE_KINDS,
   TableViewFunctions,
   validateKanbanField,
+  warnIfTabsLackCountBatch,
 } from "./factory-helpers";
 export function TableView<T extends ControllerClass>(
   controller: T,
@@ -88,6 +89,12 @@ export function TableView<T extends ControllerClass>(
 
   const { config } = meta;
   const { endpoints } = GetMetadata(controller, DataAPIMeta);
+  warnIfTabsLackCountBatch(
+    controller,
+    config.location,
+    (options.tabs?.length ?? 0) > 0,
+    endpoints,
+  );
 
   stampAttachmentFields(meta, config.location);
 

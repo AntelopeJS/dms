@@ -37,6 +37,9 @@
       "title": "Server error",
       "description": "An unexpected error occurred. Please try again later."
     },
+    "request_refused": {
+      "title": "Request refused"
+    },
     "recovering": {
       "title": "Restoring your session...",
       "description": "Your session has expired. Refreshing your access and reloading the page."

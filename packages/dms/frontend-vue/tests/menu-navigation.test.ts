@@ -29,10 +29,16 @@ describe("buildMenuItemTarget", () => {
     expect(buildMenuItemTarget(node({}))).to.equal("/project");
   });
 
-  it("returns a path/query target when the entry declares a query", () => {
+  it("returns a string link carrying the query the entry declares", () => {
     expect(
       buildMenuItemTarget(node({ query: { project: "invoicer" } })),
-    ).to.deep.equal({ path: "/project", query: { project: "invoicer" } });
+    ).to.equal("/project?project=invoicer");
+  });
+
+  it("encodes the query values of the link", () => {
+    expect(
+      buildMenuItemTarget(node({ query: { project: "a b&c", env: "prod" } })),
+    ).to.equal("/project?project=a+b%26c&env=prod");
   });
 
   it("returns no target for a category that has no page behind it", () => {
@@ -45,11 +51,11 @@ describe("buildMenuItemTarget", () => {
 describe("isMenuItemActive with query entries", () => {
   const invoicer = {
     fullId: "cloud.projects.invoicer",
-    to: { path: "/project", query: { project: "invoicer" } },
+    to: "/project?project=invoicer",
   };
   const resto = {
     fullId: "cloud.projects.resto",
-    to: { path: "/project", query: { project: "resto" } },
+    to: "/project?project=resto",
   };
 
   it("highlights only the entry matching the current query", () => {
@@ -61,6 +67,22 @@ describe("isMenuItemActive with query entries", () => {
   it("ignores query parameters the entry does not declare", () => {
     const current = route("/project", { project: "invoicer", env: "prod" });
     expect(isMenuItemActive(invoicer, null, current)).to.equal(true);
+  });
+
+  it("tells apart entries whose query values share a prefix", () => {
+    const current = route("/project", { project: "invoicer-2" });
+    expect(isMenuItemActive(invoicer, null, current)).to.equal(false);
+  });
+
+  it("stays active on the entry's sub-routes carrying its query", () => {
+    const current = route("/project/settings", { project: "invoicer" });
+    expect(isMenuItemActive(invoicer, null, current)).to.equal(true);
+  });
+
+  it("still accepts an object target", () => {
+    const entry = { to: { path: "/project", query: { project: "invoicer" } } };
+    const current = route("/project", { project: "invoicer" });
+    expect(isMenuItemActive(entry, null, current)).to.equal(true);
   });
 
   it("stays inactive on the same path without the entry's query", () => {
@@ -86,11 +108,8 @@ describe("addActiveStateToMenuItems", () => {
   it("marks a single query entry active across a group", () => {
     const groups = [
       [
-        {
-          id: "invoicer",
-          to: { path: "/project", query: { project: "invoicer" } },
-        },
-        { id: "resto", to: { path: "/project", query: { project: "resto" } } },
+        { id: "invoicer", to: "/project?project=invoicer" },
+        { id: "resto", to: "/project?project=resto" },
       ],
     ];
 
@@ -100,7 +119,17 @@ describe("addActiveStateToMenuItems", () => {
       route("/project", { project: "resto" }),
     );
 
-    expect(group?.[0]?.active).to.equal(undefined);
+    expect(group?.[0]?.active).to.equal(false);
     expect(group?.[1]?.active).to.equal(true);
+  });
+
+  it("leaves the native highlighting of an inactive plain entry alone", () => {
+    const [group] = addActiveStateToMenuItems(
+      [[{ id: "orders", to: "/orders" }]],
+      null,
+      route("/invoices"),
+    );
+
+    expect(group?.[0]?.active).to.equal(undefined);
   });
 });

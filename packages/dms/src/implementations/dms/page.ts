@@ -54,6 +54,7 @@ import {
 } from "../../realtime";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
+import { assertPageSessionAccepted } from "./stale-session";
 import {
   buildFrontendManifest,
   writeFrontendModules,
@@ -574,6 +575,9 @@ export class DMSController extends Controller("/dms") {
   @Parameter("shared", "query")
   declare sharedPage: string | undefined;
 
+  @Parameter("authorization", "header")
+  declare authorization: string | undefined;
+
   @Get("/frontend")
   async frontend(
     @Context() requestContext: RequestContext,
@@ -686,7 +690,7 @@ export class DMSController extends Controller("/dms") {
     @IfAuthUser() user: User | undefined,
   ): Promise<PageResponsePayload> {
     assert(this.pagePath, 400, "error.path_required");
-    return buildPagePayload(
+    const payload = await buildPagePayload(
       this.pagePath,
       user,
       memberModel,
@@ -694,6 +698,8 @@ export class DMSController extends Controller("/dms") {
       getRequestTenantId(requestContext),
       this.sharedPage !== OMIT_SHARED_PAGE_QUERY_VALUE,
     );
+    await assertPageSessionAccepted(payload, !!user, this.authorization);
+    return payload;
   }
 }
 

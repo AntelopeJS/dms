@@ -52,10 +52,13 @@ export interface OAuthConfig {
    */
   callbackBaseUrl?: string;
   /**
-   * Declares that a trusted reverse proxy sits immediately in front of the
-   * frontend servers and appends to `x-forwarded-for`. The OAuth rate limit
-   * then keys on the entry that proxy appended; off by default, it keys on
-   * the socket address only and clients behind a shared proxy share a budget.
+   * Declares that one trusted reverse proxy sits in front and appends to
+   * `x-forwarded-for`.
+   *
+   * @deprecated Set {@link AuthConfig.trustedProxies} instead. Still read when
+   * `trustedProxies` is unset, as one trusted hop. The OAuth rate limit is
+   * enforced by the frontend server, which takes its own hop count from its
+   * `DMS_TRUSTED_PROXY_HOPS` environment variable.
    */
   trustProxy?: boolean;
 }
@@ -69,6 +72,20 @@ export interface AuthConfig {
   userSensitiveKeys: string[];
   mustValidateEmail: boolean;
   oauth?: OAuthConfig;
+  /**
+   * Number of reverse proxies in front of the DMS API that append to
+   * `x-forwarded-for`; the address recorded on a session (Profile › Sessions,
+   * sign-in notices) is the one the outermost of them saw. `0`, the default,
+   * records the socket peer and ignores the header, which any caller can
+   * write.
+   *
+   * Count every hop between the browser and the API: the frontend server
+   * relays the auth routes to the API and sets `x-forwarded-for` to the
+   * client it resolved, so it is one hop, plus each proxy on its way to the
+   * API (a CDN and an ingress when it reaches the API by its public URL).
+   * Too low records a proxy address; too high trusts a client-supplied entry.
+   */
+  trustedProxies?: number;
 }
 
 export interface DmsMetaConfig {
