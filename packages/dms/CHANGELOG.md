@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.4.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.3...v0.4.4)
+
+### 🚀 Enhancements
+
+- **base:** Declare where a block's data comes from, and arrange the answer ([#15](https://github.com/AntelopeJS/dms/pull/15))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.3 ([726ddbb](https://github.com/AntelopeJS/dms/commit/726ddbb))
+
+### ❤️ Contributors
+
+- Fabrice Cst <fabrice@altab.be>
+
 ## v0.4.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.2...v0.4.3)
