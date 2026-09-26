@@ -10,7 +10,11 @@ import {
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
-import { Action, type Component } from "@antelopejs/interface-dms/component";
+import {
+  Action,
+  type Component,
+  type ComponentButton,
+} from "@antelopejs/interface-dms/component";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   type CategoryInfo,
@@ -1456,6 +1460,42 @@ function buildDynamicNode(
   };
 }
 
+/** A quick action's page, resolved and admitted for the caller. */
+interface QuickActionPage {
+  pageInfo: PageInfo;
+  meta: PageMetadata;
+  context: RequestAccessContext;
+}
+
+type QuickActionTargetOf<K extends QuickActionTarget["type"]> = Extract<
+  QuickActionTarget,
+  { type: K }
+>;
+
+type QuickActionTargetHandler<K extends QuickActionTarget["type"]> = (
+  target: QuickActionTargetOf<K>,
+  page: QuickActionPage,
+) => Promise<QuickActionTargetSerialized | undefined>;
+
+type QuickActionTargetHandlers = {
+  [K in QuickActionTarget["type"]]: QuickActionTargetHandler<K>;
+};
+
+const quickActionTargetHandlers: QuickActionTargetHandlers = {
+  event: async (target) => ({
+    type: "event",
+    name: target.name,
+    payload: target.payload,
+  }),
+  navigate: async (target, { pageInfo }) => ({
+    type: "navigate",
+    to: pageInfo.fullSlug,
+    query: target.query,
+  }),
+  openForm: resolveOpenFormTarget,
+  button: resolveButtonTarget,
+};
+
 // A quick action is an affordance of its page, never a surface of its own:
 // resolving it against that page is what makes its permission, and the tenant
 // access gate, apply to it — for free and without a second rule to keep in
@@ -1477,48 +1517,118 @@ async function resolveQuickActionTarget(
   }
   if (!(await computeEntryAccess(pageInfo, context))) return undefined;
 
-  if (target.type === "event") {
-    return { type: "event", name: target.name, payload: target.payload };
-  }
-  if (target.type === "navigate") {
-    return { type: "navigate", to: pageInfo.fullSlug, query: target.query };
-  }
+  // The map is keyed by the target's own discriminant, so the handler picked
+  // always matches it; the compiler cannot correlate the two lookups.
+  const handler = quickActionTargetHandlers[
+    target.type
+  ] as QuickActionTargetHandler<QuickActionTarget["type"]>;
+  return handler(target, { pageInfo, meta, context });
+}
 
-  const resolved = resolveOpenFormComponent(meta, target);
+// Read under the same context the page itself was judged with, or a recovery
+// page's own form would be dropped by the emptied set the gate hands ordinary
+// surfaces.
+function holdsPagePermission(
+  page: QuickActionPage,
+  permissionId: string,
+): Promise<boolean> {
+  return HasPermission(
+    selectEntryContext(page.pageInfo, page.context).permissions,
+    permissionId,
+  );
+}
+
+// Opening a creation form takes more than reaching the page: the component's
+// own `add` permission decides, so the action never offers a form its target
+// would refuse to submit. Derived from the component itself — the caller names
+// no permission and none can go stale.
+async function resolveOpenFormTarget(
+  target: QuickActionTargetOf<"openForm">,
+  page: QuickActionPage,
+): Promise<QuickActionTargetSerialized | undefined> {
+  const resolved = resolveQuickActionComponent(page.meta, target, {
+    accepts: (component) => component.getAction("add") !== undefined,
+    description: "can create a row",
+  });
   if (!resolved) return undefined;
   const [componentKey, component] = resolved;
-
-  // Opening a creation form takes more than reaching the page: the component's
-  // own `add` permission decides, so the action never offers a form its target
-  // would refuse to submit. Derived from the component itself — the caller
-  // names no permission and none can go stale. Read under the same context the
-  // page itself was judged with, or a recovery page's own form would be
-  // dropped by the emptied set the gate hands ordinary surfaces.
   const addPermission = component.getAction("add")?.permissionId;
-  if (
-    addPermission &&
-    !(await HasPermission(
-      selectEntryContext(pageInfo, context).permissions,
-      addPermission,
-    ))
-  ) {
+  if (addPermission && !(await holdsPagePermission(page, addPermission))) {
     return undefined;
   }
-  return { type: "openForm", to: pageInfo.fullSlug, component: componentKey };
+  return {
+    type: "openForm",
+    to: page.pageInfo.fullSlug,
+    component: componentKey,
+  };
+}
+
+// The action presses an existing button, so it is listed for exactly the
+// callers the button is shown to: the button's own permission decides, resolved
+// the way the table view resolves it when it filters its buttons.
+async function resolveButtonTarget(
+  target: QuickActionTargetOf<"button">,
+  page: QuickActionPage,
+): Promise<QuickActionTargetSerialized | undefined> {
+  const resolved = resolveQuickActionComponent(page.meta, target, {
+    accepts: (component) => component.getButton(target.button) !== undefined,
+    description: `declare button "${target.button}"`,
+  });
+  if (!resolved) return undefined;
+  const [componentKey, component] = resolved;
+  const button = component.getButton(target.button);
+  if (!button) {
+    warnOnceFor(
+      target,
+      "unknown-button",
+      `[DMS] Quick action presses button "${target.button}", which the targeted component of page "${page.meta.pageInfo?.fullId}" does not declare: the action is not served.`,
+    );
+    return undefined;
+  }
+  if (!(await holdsButtonPermission(page, component, button))) {
+    return undefined;
+  }
+  return {
+    type: "button",
+    to: page.pageInfo.fullSlug,
+    component: componentKey,
+    button: button.id,
+  };
+}
+
+async function holdsButtonPermission(
+  page: QuickActionPage,
+  component: Component,
+  button: ComponentButton,
+): Promise<boolean> {
+  if (button.permission === undefined) return true;
+  const permissionId = component.resolveButtonPermissionId(button.permission);
+  return (
+    permissionId !== undefined &&
+    (await holdsPagePermission(page, permissionId))
+  );
+}
+
+/** Which of a page's components can answer a quick action. */
+interface QuickActionComponentFilter {
+  accepts: (component: Component) => boolean;
+  /** What an answering component does, for the ambiguity warning. */
+  description: string;
 }
 
 /**
- * The form-capable component an `openForm` action opens, and the key the
- * browser addresses it by.
+ * The component a quick action addresses, and the key the browser addresses
+ * it by.
  *
  * Always resolved here rather than left to the client: several table views can
- * share a page, and an unnamed target would have every one of them open a form
- * at once. Naming the component object — not a string — is what keeps a
- * renamed or moved component from leaving a dangling reference behind.
+ * share a page, and an unnamed target would have every one of them answer at
+ * once. Naming the component object — not a string — is what keeps a renamed
+ * or moved component from leaving a dangling reference behind.
  */
-function resolveOpenFormComponent(
+function resolveQuickActionComponent(
   meta: PageMetadata,
-  target: Extract<QuickActionTarget, { type: "openForm" }>,
+  target: QuickActionTargetOf<"openForm" | "button">,
+  filter: QuickActionComponentFilter,
 ): [string, Component] | undefined {
   const requested = target.component;
   const entries = Object.entries(meta.components);
@@ -1535,14 +1645,14 @@ function resolveOpenFormComponent(
     return [componentTargetClientId(resolved), resolved.component];
   }
 
-  const formCapable = entries.filter(([, candidate]) =>
-    candidate.getAction("add"),
+  const candidates = entries.filter(([, candidate]) =>
+    filter.accepts(candidate),
   );
-  if (formCapable.length === 1) return formCapable[0];
+  if (candidates.length === 1) return candidates[0];
   warnOnceFor(
     target,
-    "ambiguous-form",
-    `[DMS] Quick action opens a form on page "${meta.pageInfo?.fullId}", which mounts ${formCapable.length} components that can create a row: name the one it means. The action is not served.`,
+    "ambiguous-component",
+    `[DMS] Quick action targets page "${meta.pageInfo?.fullId}", which mounts ${candidates.length} components that ${filter.description}: name the one it means. The action is not served.`,
   );
   return undefined;
 }

@@ -56,6 +56,38 @@ export const getPermissionIdRef = {
   },
 };
 
+/**
+ * The permission a button requires: one of its own component's actions by id
+ * (e.g. `"add"`), or an `Action` of any component.
+ */
+export type ButtonPermission = string | Action;
+
+/**
+ * A named affordance of a component that is not one of its actions — a table
+ * view's toolbar button. Registered so a quick action can expose it and inherit
+ * its permission instead of restating it.
+ */
+export interface ComponentButton {
+  id: string;
+  /** Absent when everyone who reaches the component may press the button. */
+  permission?: ButtonPermission;
+}
+
+/**
+ * The permission id `permission` stands for on the component whose own
+ * permission id is `componentPermissionId`. Undefined when it cannot be
+ * resolved — a component on a page that never registered — which every caller
+ * treats as refused.
+ */
+export function resolveButtonPermissionId(
+  permission: ButtonPermission,
+  componentPermissionId: string | undefined,
+): string | undefined {
+  if (typeof permission !== "string") return permission.permissionId;
+  if (!componentPermissionId) return undefined;
+  return `${componentPermissionId}.${permission}`;
+}
+
 export namespace ComponentEvents {
   export const LOAD = "DmsComponent.Load";
   export const UNLOAD = "DmsComponent.Unload";
@@ -192,6 +224,7 @@ export class Component<T = unknown> {
     permissionId: string,
   ) => MaybePromise<any>;
   protected _actions: Record<string, Action> = {};
+  protected _buttons: Record<string, ComponentButton> = {};
   protected _placement?: ComponentPlacement;
 
   get actions(): Record<string, Action> {
@@ -200,6 +233,15 @@ export class Component<T = unknown> {
 
   getAction(id: string): Action | undefined {
     return this._actions[id];
+  }
+
+  getButton(id: string): ComponentButton | undefined {
+    return this._buttons[id];
+  }
+
+  /** See {@link resolveButtonPermissionId}, resolved against this component. */
+  resolveButtonPermissionId(permission: ButtonPermission): string | undefined {
+    return resolveButtonPermissionId(permission, getPermissionIdRef.get(this));
   }
 
   constructor(
@@ -576,6 +618,16 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
 
   action(id: string, definition: ActionDefinition): this {
     this._actions[id] = new Action(id, definition, this);
+    return this;
+  }
+
+  button(id: string, info: Omit<ComponentButton, "id">): this {
+    if (this._buttons[id]) {
+      Logging.Warn(
+        `Duplicate button id "${id}" in component "${this._metadata.name}"`,
+      );
+    }
+    this._buttons[id] = { id, ...info };
     return this;
   }
 

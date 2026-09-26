@@ -1,5 +1,7 @@
 import {
   QUICK_ACTION_ADD,
+  QUICK_ACTION_BUTTON,
+  QUICK_ACTION_BUTTON_KEY,
   QUICK_ACTION_COMPONENT_KEY,
   QUICK_ACTION_QUERY_KEY,
 } from "#dms-ui/app/types/quick-actions";
@@ -32,6 +34,17 @@ const targetHandlers: Record<
       },
     });
   },
+  button: (target) => {
+    if (target.type !== "button") return;
+    return navigateDms({
+      path: target.to,
+      query: {
+        [QUICK_ACTION_QUERY_KEY]: QUICK_ACTION_BUTTON,
+        [QUICK_ACTION_COMPONENT_KEY]: target.component,
+        [QUICK_ACTION_BUTTON_KEY]: target.button,
+      },
+    });
+  },
   event: (target) => {
     if (target.type !== "event") return;
     if (typeof window === "undefined") return;
@@ -43,8 +56,8 @@ const targetHandlers: Record<
 
 /**
  * Runs the client-side behavior a quick action declares through its
- * discriminated `target`: `navigate` and `openForm` route to the action's
- * page, `event` dispatches a window `CustomEvent` in place for whoever
+ * discriminated `target`: `navigate`, `openForm` and `button` route to the
+ * action's page, `event` dispatches a window `CustomEvent` in place for whoever
  * listens.
  */
 export function dispatchQuickActionTarget(target: QuickActionTarget): unknown {

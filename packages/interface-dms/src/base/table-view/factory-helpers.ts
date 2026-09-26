@@ -7,7 +7,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
-import { ComponentBuilder } from "../../component";
+import { ComponentBuilder, resolveButtonPermissionId } from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
 import { type FormBuilder, FormEvents } from "../form-types";
@@ -77,16 +77,6 @@ export function applyPermissionToAction(
   return typeof actionConfig === "undefined" ? true : actionConfig;
 }
 
-function resolveCustomButtonPermissionId(
-  permission: CustomButton["permission"],
-  componentPermissionId: string,
-): string | undefined {
-  if (typeof permission === "string") {
-    return `${componentPermissionId}.${permission}`;
-  }
-  return permission?.permissionId;
-}
-
 // Buttons declaring a permission the caller lacks are stripped from the
 // serialized options; a declared permission that cannot be resolved to an id
 // (e.g. an action on a page that never registered) fails closed.
@@ -106,7 +96,7 @@ export async function filterCustomButtonsByPermission(
       kept.push(serialized);
       continue;
     }
-    const permissionId = resolveCustomButtonPermissionId(
+    const permissionId = resolveButtonPermissionId(
       declaredPermission,
       componentPermissionId,
     );
