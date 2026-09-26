@@ -28,10 +28,6 @@ export {
 } from "./guards";
 export * from "./hooks";
 export {
-  CleanupInviteExtensions,
-  CollectInviteExtensionEdits,
-  CollectInviteExtensionPayloads,
-  DeliverInviteExtensions,
   HTTP_BAD_REQUEST,
   INVITE_EDIT_FORM_SLOT_ID,
   INVITE_EXTENSION_FIELD_SEPARATOR,
@@ -50,8 +46,6 @@ export {
   InviteExtensionPlacement,
   InviteFieldContribution,
   InviteUpdateHandler,
-  NotifyInviteExtensionUpdates,
-  ReadInviteExtensionFields,
   RegisterInviteExtension,
   ResolvedInvitePlacement,
   getInviteExtension,

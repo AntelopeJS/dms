@@ -8,10 +8,8 @@ import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
 import { MILLISECONDS_PER_DAY } from "./utils/time";
 import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
-import {
-  DeliverInviteExtensions,
-  type InviteExtensionPayloads,
-} from "./invite-extensions";
+import type { InviteExtensionPayloads } from "./invite-extensions";
+import { DeliverInviteExtensions } from "./invite-extensions/delivery";
 import {
   completeAdmittedInviteResolution,
   decideInvite,

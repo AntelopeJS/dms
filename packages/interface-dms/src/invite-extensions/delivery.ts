@@ -8,8 +8,6 @@ import type {
   InviteExtensionPayloads,
 } from "./types";
 
-export { HTTP_BAD_REQUEST } from "./payload-slices";
-
 /**
  * Pull each registered extension's slice out of an invite submission and
  * validate it against the extension's own schema.

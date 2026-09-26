@@ -11,11 +11,7 @@ import {
   type UserInvite,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
-import {
-  CollectInviteExtensionEdits,
-  NotifyInviteExtensionUpdates,
-  ReadInviteExtensionFields,
-} from "@antelopejs/interface-dms/invite-extensions";
+import { internal } from "@antelopejs/interface-dms/invite-extensions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base";
 
@@ -58,7 +54,10 @@ export const inviteGetRoute: DataControllerCallback = {
     const invite = await GetModel(UserInviteModel, getRequestTenantId(ctx)).get(
       String(params.id),
     );
-    return { ...row, ...ReadInviteExtensionFields(invite?.extensions) };
+    return {
+      ...row,
+      ...internal.ReadInviteExtensionFields(invite?.extensions),
+    };
   },
 };
 
@@ -74,7 +73,7 @@ export async function editPendingInvite(
   body: unknown,
   writeRow: () => Promise<unknown>,
 ): Promise<void> {
-  const edits = CollectInviteExtensionEdits(body);
+  const edits = internal.CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
 
   await writeRow();
@@ -83,7 +82,7 @@ export async function editPendingInvite(
   await GetModel(UserInviteModel, tenantId).update(inviteId, {
     extensions: { ...invite.extensions, ...edits },
   });
-  await NotifyInviteExtensionUpdates(invite.extensions, edits, {
+  await internal.NotifyInviteExtensionUpdates(invite.extensions, edits, {
     tenantId,
     email: invite.email,
     inviteId,

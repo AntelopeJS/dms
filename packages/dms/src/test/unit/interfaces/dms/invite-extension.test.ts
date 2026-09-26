@@ -18,17 +18,12 @@ import {
 } from "@antelopejs/interface-dms/hooks";
 import * as inviteExtensionsInterface from "@antelopejs/interface-dms/invite-extensions";
 import {
-  CleanupInviteExtensions,
-  CollectInviteExtensionEdits,
-  CollectInviteExtensionPayloads,
-  DeliverInviteExtensions,
   INVITE_EDIT_FORM_SLOT_ID,
   INVITE_FORM_SLOT_ID,
   type InviteCleanupContext,
   type InviteExtensionContext,
   type InviteExtensionOptions,
-  NotifyInviteExtensionUpdates,
-  ReadInviteExtensionFields,
+  internal,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
 import * as pageInterface from "@antelopejs/interface-dms/page";
@@ -330,7 +325,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(
-        ReadInviteExtensionFields({
+        internal.ReadInviteExtensionFields({
           billing: { costCenter: "CC-42" },
           gone: { value: "orphan" },
         }),
@@ -340,7 +335,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("prefills nothing for an invitation without payloads", () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      expect(ReadInviteExtensionFields(null)).to.deep.equal({});
+      expect(internal.ReadInviteExtensionFields(null)).to.deep.equal({});
     });
   });
 
@@ -356,7 +351,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("onboarding", "track").options);
 
       expect(
-        CollectInviteExtensionEdits({
+        internal.CollectInviteExtensionEdits({
           firstname: "Ada",
           billing__costCenter: "CC-43",
         }),
@@ -367,7 +362,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(() =>
-        CollectInviteExtensionEdits({ billing__costCenter: "" }),
+        internal.CollectInviteExtensionEdits({ billing__costCenter: "" }),
       ).to.throw();
     });
 
@@ -378,7 +373,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       });
 
       expect(
-        CollectInviteExtensionEdits({ frozen__value: "changed" }),
+        internal.CollectInviteExtensionEdits({ frozen__value: "changed" }),
       ).to.deep.equal({});
     });
 
@@ -394,7 +389,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
+      await internal.NotifyInviteExtensionUpdates(
         { capacity: { seats: "3" } },
         { capacity: { seats: "5" } },
         context,
@@ -412,7 +407,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
+      await internal.NotifyInviteExtensionUpdates(
         { billing: { costCenter: "CC-42" } },
         { billing: { costCenter: "CC-42" } },
         context,
@@ -436,7 +431,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await NotifyInviteExtensionUpdates(
+      await internal.NotifyInviteExtensionUpdates(
         null,
         { failing: { value: "x" }, billing: { costCenter: "CC-43" } },
         context,
@@ -452,7 +447,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("onboarding", "track").options);
 
       expect(
-        CollectInviteExtensionPayloads({
+        internal.CollectInviteExtensionPayloads({
           email: "someone@acme.dev",
           billing__costCenter: "CC-42",
           onboarding__track: "sales",
@@ -467,7 +462,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(() =>
-        CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
+        internal.CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
       ).to.throw();
     });
 
@@ -477,7 +472,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       disposers.length = 0;
 
       expect(
-        CollectInviteExtensionPayloads({ gone__value: "orphan" }),
+        internal.CollectInviteExtensionPayloads({ gone__value: "orphan" }),
       ).to.deep.equal({});
     });
   });
@@ -493,7 +488,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -508,7 +503,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { billing: { costCenter: 42 } },
         MEMBER,
         context,
@@ -531,8 +526,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      const stored = CollectInviteExtensionPayloads({ capacity__seats: "3" });
-      await DeliverInviteExtensions(stored, MEMBER, context);
+      const stored = internal.CollectInviteExtensionPayloads({
+        capacity__seats: "3",
+      });
+      await internal.DeliverInviteExtensions(stored, MEMBER, context);
 
       expect(seen).to.deep.equal([{ seats: 3 }]);
     });
@@ -548,7 +545,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await DeliverInviteExtensions(
+      await internal.DeliverInviteExtensions(
         { failing: { value: "x" }, billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -634,7 +631,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const { options } = recordingExtension("billing", "costCenter");
       register({ ...options, onCleanup: undefined });
 
-      await CleanupInviteExtensions(null, {
+      await internal.CleanupInviteExtensions(null, {
         reason: "member-removed",
         tenantId: TENANT,
         userId: "user-1",
@@ -674,10 +671,14 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(second.options);
       disposeFirst();
 
-      await DeliverInviteExtensions({ billing: { b: "value" } }, MEMBER, {
-        tenantId: TENANT,
-        email: "someone@acme.dev",
-      });
+      await internal.DeliverInviteExtensions(
+        { billing: { b: "value" } },
+        MEMBER,
+        {
+          tenantId: TENANT,
+          email: "someone@acme.dev",
+        },
+      );
 
       expect(first.recorded.accepted).to.have.length(0);
       expect(second.recorded.accepted).to.have.length(1);
