@@ -9,6 +9,7 @@ import {
   ref,
   type App,
 } from "vue";
+import type { DmsErrorData } from "#dms/frontend-module";
 import ErrorPage from "../layers/dms-layout/app/error.vue";
 import {
   HTTP_FORBIDDEN,
@@ -17,6 +18,10 @@ import {
 } from "../layers/dms-core/app/utils/http-status";
 
 const TECHNICAL_MESSAGE = "DMS backend request failed";
+const SERVER_PLACEHOLDER: DmsErrorData = {
+  statusMessage: "Application error",
+  message: "An unexpected error occurred",
+};
 
 let app: App;
 let host: HTMLDivElement;
@@ -47,10 +52,11 @@ function installRuntime() {
   }));
 }
 
-function mountError(statusCode: number) {
-  app = createApp(ErrorPage, {
-    error: { statusCode, message: TECHNICAL_MESSAGE },
-  });
+function mountError(
+  statusCode: number,
+  error: DmsErrorData = { message: TECHNICAL_MESSAGE },
+) {
+  app = createApp(ErrorPage, { error: { statusCode, ...error } });
   app.config.globalProperties.$t = (key: string) => key;
   app.component("DmsAppLogo", Passthrough);
   app.component("DmsCard", Passthrough);
@@ -81,3 +87,12 @@ it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
 it("still shows the message of an unexpected error", () => {
   expect(mountError(500)).toContain(TECHNICAL_MESSAGE);
 });
+
+it.each([500, 502, 503])(
+  "does not repeat the server's placeholder under the %i description",
+  (statusCode) => {
+    const text = mountError(statusCode, SERVER_PLACEHOLDER);
+    expect(text).toContain("error.500.description");
+    expect(text).not.toContain(SERVER_PLACEHOLDER.message);
+  },
+);
