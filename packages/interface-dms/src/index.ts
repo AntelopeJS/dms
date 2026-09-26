@@ -58,7 +58,17 @@ export {
 export * from "./invite-membership";
 export * from "./invite-replacement";
 export * from "./invite-resolution";
-export * from "./invites";
+export {
+  CreateUserInviteTokenOptions,
+  CreateUserInviteTokenResult,
+  INVITE_EXPIRY_DAYS,
+  INVITE_TOKEN_LENGTH,
+  InviteUserToTenantOptions,
+  InviteUserToTenantResult,
+  createUserInviteToken,
+  inviteUserToTenant,
+  inviteeDisplayName,
+} from "./invites";
 export {
   AddFrontendModule,
   AddFrontendModuleOptions,

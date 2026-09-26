@@ -6,7 +6,7 @@ import {
   sendAdminInviteEmail,
 } from "@antelopejs/interface-dms/auth";
 import { TenantModel } from "@antelopejs/interface-dms/db";
-import { sendTenantInviteEmail } from "@antelopejs/interface-dms/invites";
+import { internal } from "@antelopejs/interface-dms/invites";
 
 const WORKSPACE_ID = "tenant-invite-email-workspace";
 const WORKSPACE_NAME = "Storefront";
@@ -46,7 +46,7 @@ describe("[unit] interfaces/dms — tenant invitation emails", () => {
   });
 
   it("names the workspace and the inviter, in the invitation's language", async () => {
-    await sendTenantInviteEmail({
+    await internal.sendTenantInviteEmail({
       tenantId: WORKSPACE_ID,
       email: INVITEE_EMAIL,
       token: TOKEN,

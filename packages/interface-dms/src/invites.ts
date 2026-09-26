@@ -57,40 +57,45 @@ export function inviteeDisplayName(
   return name || undefined;
 }
 
-/** A pending tenant invitation, as its email needs it. */
-export interface TenantInviteEmail {
-  tenantId: string;
-  email: string;
-  token: string;
-  firstname?: string | null;
-  lastname?: string | null;
-  language?: string;
-  /** Who sends the invitation. */
-  inviterName?: string;
-}
-
 async function tenantName(tenantId: string): Promise<string | undefined> {
   const tenant = await GetModel(TenantModel).get(tenantId);
   return tenant?.name || undefined;
 }
 
 /**
- * Send a tenant invitation's email, naming the workspace and the inviter and
- * written in the invitation's language.
+ * @internal
  */
-export async function sendTenantInviteEmail(
-  invite: TenantInviteEmail,
-): Promise<void> {
-  await sendAdminInviteEmail(
-    invite.email,
-    invite.token,
-    inviteeDisplayName(invite.firstname, invite.lastname),
-    {
-      workspaceName: await tenantName(invite.tenantId),
-      inviterName: invite.inviterName,
-      language: invite.language,
-    },
-  );
+export namespace internal {
+  /** A pending tenant invitation, as its email needs it. */
+  export interface TenantInviteEmail {
+    tenantId: string;
+    email: string;
+    token: string;
+    firstname?: string | null;
+    lastname?: string | null;
+    language?: string;
+    /** Who sends the invitation. */
+    inviterName?: string;
+  }
+
+  /**
+   * Send a tenant invitation's email, naming the workspace and the inviter and
+   * written in the invitation's language.
+   */
+  export async function sendTenantInviteEmail(
+    invite: TenantInviteEmail,
+  ): Promise<void> {
+    await sendAdminInviteEmail(
+      invite.email,
+      invite.token,
+      inviteeDisplayName(invite.firstname, invite.lastname),
+      {
+        workspaceName: await tenantName(invite.tenantId),
+        inviterName: invite.inviterName,
+        language: invite.language,
+      },
+    );
+  }
 }
 
 export type InviteUserToTenantResult =
@@ -119,7 +124,7 @@ export async function inviteUserToTenant(
   );
   if (options.sendEmail && result.kind === "invited") {
     fireAndForget(
-      sendTenantInviteEmail({ ...options, token: result.token }),
+      internal.sendTenantInviteEmail({ ...options, token: result.token }),
       `invite email to "${options.email}"`,
     );
   }

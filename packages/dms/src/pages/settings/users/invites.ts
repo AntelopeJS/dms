@@ -28,7 +28,7 @@ import {
 } from "@antelopejs/interface-dms/invite-resolution";
 import {
   createUserInviteToken,
-  sendTenantInviteEmail,
+  internal,
 } from "@antelopejs/interface-dms/invites";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -306,7 +306,7 @@ export class InvitesSettingsController extends PageController("invites", {
     });
 
     fireAndForget(
-      sendTenantInviteEmail({
+      internal.sendTenantInviteEmail({
         tenantId,
         email: existingInvite.email,
         token,
