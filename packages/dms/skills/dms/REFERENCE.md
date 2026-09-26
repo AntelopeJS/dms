@@ -21,7 +21,7 @@ List a section to see its files:
 
 Everything the DMS exposes to a consumer ships in **one** package, `@antelopejs/interface-dms`,
 split into subpaths: `/page`, `/component`, `/permissions`, `/guards`, `/db`, `/hooks`, `/realtime`,
-`/quick-actions`, `/auth` (+ `/auth/db`), `/base` (+ `/base/form`, `/base/table-view`,
+`/quick-actions`, `/layout-banners`, `/auth` (+ `/auth/db`), `/base` (+ `/base/form`, `/base/table-view`,
 `/base/data-types`, `/base/types`, …), `/notifications`, `/html-render`. There is no separate
 `dms-auth` or `dms-base` interface, and nothing is imported through the runtime package
 `@antelopejs/dms`. Other modules follow the same shape: one `interface-<name>` package per module.

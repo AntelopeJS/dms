@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const EXPECTED_VUE_FILES = 143;
+const EXPECTED_VUE_FILES = 144;
 
 function walk(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {

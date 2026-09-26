@@ -18,7 +18,7 @@ This section is the contract reference: the exact symbol names, options and retu
 
 | Domain | What it is for | Import prefix |
 | ------ | -------------- | ------------- |
-| [Core](./1.core/1.introduction.md) | Pages, modules, components, permissions, tenancy, invites, hooks, realtime and quick actions. | `@antelopejs/interface-dms` and its root-level subpaths |
+| [Core](./1.core/1.introduction.md) | Pages, modules, components, permissions, tenancy, invites, hooks, realtime, quick actions and layout banners. | `@antelopejs/interface-dms` and its root-level subpaths |
 | [Auth](./2.auth/1.introduction.md) | Authentication decorators, token and session handling, and the user and session tables. | `@antelopejs/interface-dms/auth` |
 | [Base](./3.base/1.introduction.md) | The component vocabulary: forms, tables, charts, layout, trees, data types and the shared prop types. | `@antelopejs/interface-dms/base` |
 | [Notifications](./4.notifications/1.introduction.md) | Declaring notification categories and subjects, and building and sending notifications. | `@antelopejs/interface-dms/notifications` |
@@ -50,6 +50,7 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/tenant-export` | The tenant export archive, contribution and manifest types | [Core](./1.core/7.hooks.md) |
 | `/realtime` | Page topics, publishing and backend subscription | [Core](./1.core/8.realtime.md) |
 | `/quick-actions` | Command-palette entries | [Core](./1.core/9.quick-actions.md) |
+| `/layout-banners` | Global banners under the dashboard header | [Core](./1.core/10.layout-banners.md) |
 | `/uploads` | Signed upload tokens for the file and image fields of a serialized component | [Core](./1.core/2.pages-and-modules.md) |
 | `/types` | `MaybePromise`, the one shared type alias | [Core](./1.core/2.pages-and-modules.md) |
 | `/auth` | Authentication decorators, tokens, sessions, external identities, account mail | [Auth](./2.auth/1.introduction.md) |

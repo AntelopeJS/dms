@@ -70,6 +70,15 @@ export {
   inviteeDisplayName,
 } from "./invites";
 export {
+  LayoutBannerComponentInfo,
+  LayoutBannerContext,
+  LayoutBannerInfo,
+  LayoutBannerTextInfo,
+  LayoutBannerVariant,
+  LayoutBannerVisibility,
+  RegisterLayoutBanner,
+} from "./layout-banners";
+export {
   AddFrontendModule,
   AddFrontendModuleOptions,
   Category,
