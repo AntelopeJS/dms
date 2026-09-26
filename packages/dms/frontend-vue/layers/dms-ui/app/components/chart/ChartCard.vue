@@ -155,10 +155,10 @@ const primaryDotColor = computed(() => resolveChartColor("primary"));
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
         <p class="text-muted text-sm">{{ processI18n(title) }}</p>
-        <p class="text-2xl font-semibold tracking-tight tabular-nums">
+        <div class="text-2xl font-semibold tracking-tight tabular-nums">
           <USkeleton v-if="isLoading && data === null" class="h-8 w-32" />
           <span v-else>{{ formatted }}</span>
-        </p>
+        </div>
         <div
           v-if="
             (showDelta && delta !== null) || previousFormatted || description

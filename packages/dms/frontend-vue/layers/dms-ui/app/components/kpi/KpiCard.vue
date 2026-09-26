@@ -118,7 +118,7 @@ const iconWrapClass = computed(() =>
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <p :class="labelClass">{{ processI18n(title) }}</p>
-        <p class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+        <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
           <USkeleton v-if="isLoading && data === null" class="h-8 w-24" />
           <span v-else class="inline-flex items-baseline gap-x-1">
             <span
@@ -135,7 +135,7 @@ const iconWrapClass = computed(() =>
               {{ formattedParts.unit }}
             </span>
           </span>
-        </p>
+        </div>
         <div
           v-if="showTrend || compareLabel || description"
           class="mt-2 flex min-w-0 items-center gap-x-2"
