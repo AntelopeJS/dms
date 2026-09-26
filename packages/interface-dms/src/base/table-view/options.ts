@@ -291,6 +291,11 @@ export interface TableViewOptions<
    * Tabs displayed above the table. Each tab applies a set of hidden filters.
    * The implicit "all" tab (no filters) is shown automatically when at least
    * one tab is configured here.
+   *
+   * Each tab shows a row counter, fetched in one request: filter tabs with
+   * counters require the controller to mount
+   * `countBatch: TableViewRoutes.CountBatch`. `TableView()` warns at
+   * registration when a table declares tabs without it.
    */
   tabs?: TableViewTab[];
   /**

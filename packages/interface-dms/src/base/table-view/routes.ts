@@ -202,7 +202,17 @@ export namespace TableViewRoutes {
       pluckMode: "select",
     },
   );
+  /**
+   * `GET <location>/count`: the row count for one filter set. It does not
+   * serve the filter tab counters, which go through {@link CountBatch}.
+   */
   export const Count = createCountRoute(LIST_ACTION);
+  /**
+   * `POST <location>/count/batch`: one count per query, in a single request.
+   * Filter tabs with counters require the controller to mount
+   * `countBatch: TableViewRoutes.CountBatch`; a table view declaring `tabs`
+   * without it gets failing counters and a registration warning.
+   */
   export const CountBatch = DefaultRoutes.WithOptions(
     createBatchCountRoute(LIST_ACTION),
     {},
