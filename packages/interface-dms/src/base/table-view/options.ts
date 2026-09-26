@@ -100,17 +100,6 @@ export interface TableViewTab {
   iconColor?: ColorValue;
 }
 
-/**
- * What an empty table says instead of the generic "Empty table" message. Both
- * values are display strings, `$`-prefixed for an i18n key; an omitted one
- * keeps the generic text. A table that is
- * empty because of the user's filters still shows the "no results" message.
- */
-export interface TableViewEmptyState {
-  title?: string;
-  description?: string;
-}
-
 export interface KanbanOptionsSerialized extends Omit<
   KanbanOptions,
   "cardComponent"
@@ -266,10 +255,6 @@ export interface TableViewOptions<
    * The key of the field to use as label for identifying items in container titles
    */
   labelKey?: string;
-  /**
-   * Replaces the generic message of the table when it holds no row.
-   */
-  emptyState?: TableViewEmptyState;
   rowActions?: TableViewRowActionOptions<T>;
   customButtons?: CustomButton[];
   formContainer?: FormContainer;

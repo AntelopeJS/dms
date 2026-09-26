@@ -115,7 +115,6 @@ export const useTableViewConfig = <T extends Data>(
 
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),
-    emptyState: config.emptyState,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
     customNavItems: config.customNavItems,

@@ -30,7 +30,6 @@ import type {
   FormContainer,
   FormPageUrls,
 } from "../../composables/table-view/useTableViewConfig";
-import type { TableEmptyState } from "../../composables/table-view/utils/emptyState";
 import type { CustomRowAction } from "../../../types/row-action";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./Tabs.vue";
@@ -126,8 +125,6 @@ export interface TableProps<T> {
    * to its error state so a refused query never reads as "no data".
    */
   loadError?: string;
-  /** Replaces the generic message of the table when it holds no row. */
-  emptyState?: TableEmptyState;
 
   orderOptions?: ColumnOrderOptions;
   sizingOptions?: Omit<ColumnSizingOptions, "onColumnSizingChange">;
@@ -808,7 +805,6 @@ defineShortcuts({
                       normalizeActionConfig(rowActions?.add).isEnabled
                     "
                     :load-error="loadError"
-                    :empty-state="emptyState"
                   />
                 </td>
               </tr>
