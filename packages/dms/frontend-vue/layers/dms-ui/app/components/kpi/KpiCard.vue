@@ -153,7 +153,7 @@ const iconWrapClass = computed(() =>
         <UIcon
           :name="resolvedIcon"
           :class="isStat ? 'size-4' : 'size-5'"
-          aria-hidden="true"
+          :aria-hidden="true"
         />
       </div>
     </div>

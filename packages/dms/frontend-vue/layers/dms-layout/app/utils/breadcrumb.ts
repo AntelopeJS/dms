@@ -6,21 +6,17 @@ export interface BreadcrumbTargetSource {
 }
 
 /**
- * The link of a breadcrumb crumb. A page that declares
- * `validation.requiredQueryParams` 404s without them, so its crumb carries the
- * values the current URL holds for them, and gets no link when any is missing.
- * Categories without a page behind them get no link either.
+ * The URL that opens the page at `path`. A page that declares
+ * `validation.requiredQueryParams` 404s without them, so the URL carries the
+ * values `currentQuery` holds for them — and only those — and there is no URL
+ * when any is missing, empty or repeated.
  */
-export function buildBreadcrumbTarget(
+export function buildPageTarget(
   path: string,
-  metadata: BreadcrumbTargetSource,
+  validation: PageValidation | undefined,
   currentQuery: Record<string, unknown>,
 ): string | undefined {
-  if (!metadata.layoutUrl) {
-    return undefined;
-  }
-
-  const requiredParams = metadata.validation?.requiredQueryParams ?? [];
+  const requiredParams = validation?.requiredQueryParams ?? [];
   const carriedQuery = new URLSearchParams();
 
   for (const param of requiredParams) {
@@ -33,4 +29,20 @@ export function buildBreadcrumbTarget(
 
   const search = carriedQuery.toString();
   return search ? `${path}?${search}` : path;
+}
+
+/**
+ * The link of a breadcrumb crumb: the page's {@link buildPageTarget}.
+ * Categories without a page behind them get no link.
+ */
+export function buildBreadcrumbTarget(
+  path: string,
+  metadata: BreadcrumbTargetSource,
+  currentQuery: Record<string, unknown>,
+): string | undefined {
+  if (!metadata.layoutUrl) {
+    return undefined;
+  }
+
+  return buildPageTarget(path, metadata.validation, currentQuery);
 }

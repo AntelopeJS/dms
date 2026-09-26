@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from "vue";
+import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 
 type DrawerDirection = "top" | "bottom" | "left" | "right";
 
@@ -82,15 +83,24 @@ function onContentResolve() {
       <!-- Same container as the body so the title aligns with the form -->
       <UContainer class="flex w-full flex-1 items-center justify-between gap-4">
         <div v-if="headerComponent" class="flex-1">
+          <VisuallyHidden>
+            <DialogTitle>{{ title }}</DialogTitle>
+            <DialogDescription>{{ description }}</DialogDescription>
+          </VisuallyHidden>
           <Suspense>
             <component :is="headerComponent" v-bind="headerComponentOptions" />
           </Suspense>
         </div>
         <div v-else class="flex-1">
-          <h2 class="text-highlighted font-semibold">{{ title }}</h2>
-          <p v-if="description" class="text-muted text-sm">
+          <DialogTitle as="h2" class="text-highlighted font-semibold">
+            {{ title }}
+          </DialogTitle>
+          <DialogDescription v-if="description" class="text-muted text-sm">
             {{ description }}
-          </p>
+          </DialogDescription>
+          <VisuallyHidden v-else>
+            <DialogDescription />
+          </VisuallyHidden>
         </div>
         <UButton
           icon="i-lucide-x"

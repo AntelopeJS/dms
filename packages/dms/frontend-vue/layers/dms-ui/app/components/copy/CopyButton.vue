@@ -32,7 +32,7 @@ const label = computed(() =>
     <UIcon
       :name="copied ? 'i-lucide-check' : 'i-lucide-copy'"
       class="size-4"
-      aria-hidden="true"
+      :aria-hidden="true"
     />
   </button>
 </template>

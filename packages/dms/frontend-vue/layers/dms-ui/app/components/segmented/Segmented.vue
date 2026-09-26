@@ -98,7 +98,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
         v-if="item.icon"
         :name="item.icon"
         class="size-3.5"
-        aria-hidden="true"
+        :aria-hidden="true"
       />
       {{ item.label }}
     </button>

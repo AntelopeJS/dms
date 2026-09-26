@@ -68,7 +68,7 @@ const resolvedIcon = computed(() => props.icon || DEFAULT_ICON[props.status]);
           :class="RING[status]"
           class="grid size-16 shrink-0 place-items-center rounded-full border-2"
         >
-          <UIcon :name="resolvedIcon" class="size-[30px]" aria-hidden="true" />
+          <UIcon :name="resolvedIcon" class="size-[30px]" :aria-hidden="true" />
         </div>
         <div>
           <p

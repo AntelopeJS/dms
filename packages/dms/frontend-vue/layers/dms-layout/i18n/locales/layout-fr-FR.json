@@ -276,5 +276,21 @@
     "intro": "Parcourez les modules disponibles sur cette plateforme.",
     "empty": "Aucun module ne vous est accessible pour le moment.",
     "open": "Ouvrir le module"
+  },
+  "emails": {
+    "admin_invite": {
+      "title": "Vous êtes invité !",
+      "title_workspace": "Vous êtes invité à rejoindre {workspace}",
+      "greeting": "Bonjour,",
+      "invitation": "Vous avez été invité à rejoindre notre plateforme.",
+      "invitation_to_target": "Vous avez été invité à rejoindre {target}.",
+      "invitation_from_inviter": "{inviter} vous invite à rejoindre {target}.",
+      "workspace_on_platform": "{workspace} sur {platform}",
+      "call_to_action": "Cliquez sur le bouton ci-dessous pour créer votre compte :",
+      "button": "Créer mon compte",
+      "expires_label": "Cette invitation expire dans",
+      "expires_in": "{days} jours",
+      "footer": "Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet e-mail."
+    }
   }
 }

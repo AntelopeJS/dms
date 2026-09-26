@@ -6,7 +6,7 @@
     <UProgress
       :color="props.color"
       :model-value="props.score"
-      :max="4"
+      :max="props.strength.length"
       size="sm"
     />
   </div>

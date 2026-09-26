@@ -308,6 +308,7 @@ export class InvitesSettingsController extends PageController("invites", {
         existingInvite.email,
         token,
         inviteeDisplayName(existingInvite.firstname, existingInvite.lastname),
+        { language: existingInvite.language },
       ),
       `invite email to "${existingInvite.email}"`,
     );

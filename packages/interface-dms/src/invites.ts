@@ -80,6 +80,7 @@ export async function inviteUserToTenant(
         options.email,
         result.token,
         inviteeDisplayName(options.firstname, options.lastname),
+        { language: options.language },
       ),
       `invite email to "${options.email}"`,
     );

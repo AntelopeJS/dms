@@ -58,22 +58,21 @@ const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
 
 const currentPageInfo = computed((): FavoritePage | null => {
-  const currentPath = route.path;
-  const matchedRoute = siteLayout.findMatchingRoute(currentPath);
+  const matchedRoute = siteLayout.findMatchingRoute(route.path);
 
   if (!matchedRoute) {
     return null;
   }
 
-  return {
-    id: matchedRoute.metadata.id || currentPath,
-    path: currentPath,
-    title:
-      matchedRoute.metadata.displayName ||
-      route.name?.toString() ||
-      currentPath,
-    icon: matchedRoute.metadata.icon,
-  };
+  return buildFavoritePage({
+    path: route.path,
+    metadata: {
+      ...matchedRoute.metadata,
+      displayName: matchedRoute.metadata.displayName || route.name?.toString(),
+    },
+    query: route.query,
+    translate: processI18n,
+  });
 });
 
 const isCurrentPageFavorite = computed(() => {
