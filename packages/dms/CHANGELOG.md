@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.4.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.5...v0.4.6)
+
+### 🚀 Enhancements
+
+- **invites:** Edit extension fields of a pending invitation ([#58](https://github.com/AntelopeJS/dms/pull/58))
+- **layout:** Add generic layout banners under the dashboard header ([#64](https://github.com/AntelopeJS/dms/pull/64))
+- **quick-actions:** Let a quick action press a table button and inherit its permission ([#65](https://github.com/AntelopeJS/dms/pull/65))
+
+### 🩹 Fixes
+
+- **console:** Send render emails, keep breadcrumbs valid, honour hidden columns, add invite quick action ([#59](https://github.com/AntelopeJS/dms/pull/59))
+- **notifications:** Keep the header bell from breaking pages of blocked workspaces ([#60](https://github.com/AntelopeJS/dms/pull/60))
+- **dms:** Close the gaps found in the final verification ([#61](https://github.com/AntelopeJS/dms/pull/61))
+- **invites:** Name the workspace and inviter in tenant invitations and keep the invitee's language ([#62](https://github.com/AntelopeJS/dms/pull/62))
+- **dms:** Let dms-saas declare SaaS mode and draw nested donut charts ([#63](https://github.com/AntelopeJS/dms/pull/63))
+- **chart:** Keep the loading skeleton of KPI and chart cards out of a paragraph ([#66](https://github.com/AntelopeJS/dms/pull/66))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.5 ([81ad4f1](https://github.com/AntelopeJS/dms/commit/81ad4f1))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.4...v0.4.5)
