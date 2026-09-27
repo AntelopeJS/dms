@@ -16,7 +16,11 @@ import {
   PromoteFile,
   stripStagingPrefix,
 } from "@antelopejs/interface-file-storage";
-import { type User } from "@antelopejs/interface-dms/auth/db";
+import {
+  normalizeEmail,
+  type User,
+  type UserModel,
+} from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { generateKey, verifyTOTP } from "2fa";
 import { decode } from "jsonwebtoken";
@@ -89,6 +93,32 @@ interface AvatarBodyProbe {
 }
 
 export const HTTP_BAD_REQUEST = 400;
+const HTTP_CONFLICT = 409;
+
+/**
+ * An e-mail resolves one account: invitations and logins look accounts up by
+ * it, so taking an address another user holds would hand that user's
+ * invitations to this one.
+ *
+ * @param userModel Model the accounts are read from
+ * @param email E-mail the user asks for
+ * @param userId The user changing their e-mail
+ * @returns The normalized e-mail, free for this user
+ */
+export async function assertEmailAvailable(
+  userModel: UserModel,
+  email: string,
+  userId: string,
+): Promise<string> {
+  const normalized = normalizeEmail(email);
+  const owner = await userModel.getByEmail(normalized);
+  assert(
+    !owner || owner._id === userId,
+    HTTP_CONFLICT,
+    "error.email_already_used",
+  );
+  return normalized;
+}
 
 /**
  * The avatar may only reference a freshly staged upload (unguessable key,
