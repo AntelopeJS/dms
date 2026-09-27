@@ -293,7 +293,8 @@
           "description": "Actualiser les données du tableau"
         },
         "escape": {
-          "description": "Fermer la recherche ou désélectionner les lignes"
+          "description": "Fermer la recherche ou désélectionner les lignes",
+          "condition": "Uniquement quand une recherche ou une sélection est active et qu'aucune fenêtre n'est ouverte"
         },
         "shift_n": {
           "description": "Créer une nouvelle ligne",
@@ -331,7 +332,8 @@
           "description": "Aller au dernier nœud"
         },
         "escape": {
-          "description": "Désélectionner tous les nœuds"
+          "description": "Désélectionner tous les nœuds",
+          "condition": "Uniquement quand des nœuds sont sélectionnés et qu'aucune fenêtre n'est ouverte"
         },
         "shift_a": {
           "description": "Sélectionner tous les nœuds récursivement",
