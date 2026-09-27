@@ -21,8 +21,27 @@ export class Session extends Table {
   @Relation({ to: () => User })
   declare userId: string;
 
+  /**
+   * Plaintext refresh token of a session written before tokens were hashed.
+   * Left empty for every session written since; still honoured until that
+   * session next rotates or replaces its token.
+   *
+   * @deprecated Read {@link Session.refreshTokenHash} instead.
+   */
   @Field("string")
   declare refreshToken: string;
+
+  /** sha256 of the current refresh token: the token itself is never stored. */
+  @Field("string")
+  declare refreshTokenHash?: string | null;
+
+  /**
+   * The current refresh token sealed under a key only its predecessor
+   * derives, so the rotation grace window can hand it back to a client that
+   * still holds the predecessor without the token being readable at rest.
+   */
+  @Field("string")
+  declare sealedRefreshToken?: string | null;
 
   @Field("string")
   declare previousRefreshTokenHash?: string | null;
