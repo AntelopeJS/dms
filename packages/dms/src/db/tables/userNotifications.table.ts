@@ -12,12 +12,16 @@ import { User } from "@antelopejs/interface-dms/auth/db/tables/users.table";
 
 export const userNotificationsTableName = "user_notifications";
 
+/** Serves a user's feed and unread count, which filter by user and sort by date. */
+const USER_FEED_INDEX = "userId_createdAt";
+
 @RegisterTable(userNotificationsTableName, CORE_SCHEMA_NAME)
 export class UserNotification extends Table {
   @Field("string")
   declare _id: string;
 
   @Index()
+  @Index({ group: USER_FEED_INDEX })
   @Field("string")
   @Relation({ to: () => User })
   declare userId: string;
@@ -61,6 +65,7 @@ export class UserNotification extends Table {
 
   @CreationTime()
   @Index()
+  @Index({ group: USER_FEED_INDEX })
   @Field("date")
   declare createdAt: Date;
 
