@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.6...v0.4.7)
+
+### 🚀 Enhancements
+
+- **interface-dms:** Export the password policy for modules ([#70](https://github.com/AntelopeJS/dms/pull/70))
+
+### 🩹 Fixes
+
+- **dms-ui:** Let Escape close modals opened over a table or a tree ([#71](https://github.com/AntelopeJS/dms/pull/71))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.6 ([67d4e23](https://github.com/AntelopeJS/dms/commit/67d4e23))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.5...v0.4.6)
