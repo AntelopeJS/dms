@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.5...v0.2.6)
+
+### 🚀 Enhancements
+
+- **interface-dms:** Export the password policy for modules ([#70](https://github.com/AntelopeJS/dms/pull/70))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.6 ([5c157dd](https://github.com/AntelopeJS/dms/commit/5c157dd))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.4...v0.2.5)
