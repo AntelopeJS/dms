@@ -1,6 +1,10 @@
 import * as z from "zod";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_PATTERN,
+} from "@antelopejs/interface-dms/auth/password";
 
-export const PASSWORD_REGEX =
-  /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
-
-export const passwordSchema = z.string().min(8).regex(PASSWORD_REGEX);
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH)
+  .regex(PASSWORD_PATTERN);
