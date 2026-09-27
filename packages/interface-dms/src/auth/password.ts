@@ -12,15 +12,15 @@ export const PASSWORD_MIN_LENGTH = 8;
  * The special characters a password may contain. A password needs at least
  * one of them, and no other non-alphanumeric character is allowed.
  */
-export const PASSWORD_ALLOWED_SPECIAL_CHARS = "@$!%*?&";
+const ALLOWED_SPECIAL_CHARS = "@$!%*?&";
 
 /**
  * The character rules of the policy, without the length: at least one
- * uppercase letter, one digit and one of `PASSWORD_ALLOWED_SPECIAL_CHARS`,
- * and only ASCII letters, digits and those special characters.
+ * uppercase letter, one digit and one of `@$!%*?&`, and only ASCII letters,
+ * digits and those special characters.
  */
 export const PASSWORD_PATTERN = new RegExp(
-  `^(?=.*[A-Z])(?=.*\\d)(?=.*[${PASSWORD_ALLOWED_SPECIAL_CHARS}])[A-Za-z\\d${PASSWORD_ALLOWED_SPECIAL_CHARS}]+$`,
+  `^(?=.*[A-Z])(?=.*\\d)(?=.*[${ALLOWED_SPECIAL_CHARS}])[A-Za-z\\d${ALLOWED_SPECIAL_CHARS}]+$`,
 );
 
 /**

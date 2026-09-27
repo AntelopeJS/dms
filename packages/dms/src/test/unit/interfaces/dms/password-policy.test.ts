@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import {
-  PASSWORD_ALLOWED_SPECIAL_CHARS,
   PASSWORD_MIN_LENGTH,
   isPasswordCompliant,
 } from "@antelopejs/interface-dms/auth/password";
 
 const COMPLIANT_PASSWORD = "StrongP@ss1";
+const ALLOWED_SPECIAL_CHARS = "@$!%*?&";
 
 describe("[unit] auth/password policy", () => {
   it("requires at least 8 characters", () => {
@@ -21,7 +21,7 @@ describe("[unit] auth/password policy", () => {
   });
 
   it("accepts every allowed special character", () => {
-    for (const special of PASSWORD_ALLOWED_SPECIAL_CHARS) {
+    for (const special of ALLOWED_SPECIAL_CHARS) {
       expect(isPasswordCompliant(`Abcdef1${special}`), special).to.equal(true);
     }
   });
