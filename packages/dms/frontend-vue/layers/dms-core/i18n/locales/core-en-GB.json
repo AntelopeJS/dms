@@ -44,6 +44,10 @@
       "title": "Restoring your session...",
       "description": "Your session has expired. Refreshing your access and reloading the page."
     },
+    "network": {
+      "title": "Connection lost",
+      "description": "The server could not be reached. Check your connection and try again."
+    },
     "switch_account_failed": "Failed to switch account",
     "email_already_used": "This email address is already used.",
     "user_not_found": "No user found with this email address.",
