@@ -1,5 +1,6 @@
 import type { ShallowRef } from "vue";
 import type { RowSelectionState } from "@tanstack/vue-table";
+import { isFocusInsideOverlay } from "../../../utils/overlayFocus";
 
 export const TABLE_VIEW_ESCAPE_METADATA: ShortcutMetadata = {
   key: ["$keyboard.escape"],
@@ -9,11 +10,6 @@ export const TABLE_VIEW_ESCAPE_METADATA: ShortcutMetadata = {
     descriptionKey: "$dms.shortcuts.tableview.escape.condition",
   },
 };
-
-// Overlays reka-ui dismisses on Escape (modals, slideovers, popovers, menus,
-// selects). They move focus inside themselves while open.
-const OVERLAY_SELECTOR =
-  '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
 /**
  * Nuxt UI's `defineShortcuts` calls `preventDefault()` on every key it
@@ -27,7 +23,7 @@ export function isTableViewEscapeActive(
   rowSelect: Ref<RowSelectionState>,
   activeElement: Ref<Element | null | undefined>,
 ): boolean {
-  if (activeElement.value?.closest(OVERLAY_SELECTOR)) return false;
+  if (isFocusInsideOverlay(activeElement.value)) return false;
   return (
     globalFilter.value !== undefined || Object.keys(rowSelect.value).length > 0
   );

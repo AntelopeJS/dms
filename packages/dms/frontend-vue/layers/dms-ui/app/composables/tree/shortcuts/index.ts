@@ -1,3 +1,4 @@
+import { computed, type ComputedRef } from "vue";
 import {
   TREE_ARROW_DOWN_METADATA,
   createTreeArrowDownShortcut,
@@ -11,7 +12,11 @@ import { TREE_SPACE_METADATA, createTreeSpaceShortcut } from "./treeSpace";
 import { TREE_HOME_METADATA, createTreeHomeShortcut } from "./treeHome";
 import { TREE_END_METADATA, createTreeEndShortcut } from "./treeEnd";
 import { TREE_SHIFT_A_METADATA, createTreeShiftAShortcut } from "./treeShiftA";
-import { TREE_ESCAPE_METADATA, createTreeEscapeShortcut } from "./treeEscape";
+import {
+  TREE_ESCAPE_METADATA,
+  createTreeEscapeShortcut,
+  isTreeEscapeActive,
+} from "./treeEscape";
 
 export const TREE_SHORTCUTS_METADATA = [
   TREE_ARROW_DOWN_METADATA,
@@ -29,15 +34,19 @@ interface BuildTreeShortcutsParams {
   props: TreeProps;
   items: ComputedRef<TreeNode[]>;
   selected: Ref<TreeNode | TreeNode[] | undefined>;
+  activeElement: Ref<Element | null | undefined>;
 }
+
+type TreeShortcuts = Record<string, (() => void) | undefined>;
 
 export function buildTreeShortcuts({
   navigateTree,
   props,
   items,
   selected,
-}: BuildTreeShortcutsParams): Record<string, () => void> {
-  return {
+  activeElement,
+}: BuildTreeShortcutsParams): ComputedRef<TreeShortcuts> {
+  const shortcuts = {
     arrowdown: createTreeArrowDownShortcut(navigateTree),
     arrowup: createTreeArrowUpShortcut(navigateTree),
     enter: createTreeEnterShortcut(navigateTree),
@@ -45,6 +54,12 @@ export function buildTreeShortcuts({
     home: createTreeHomeShortcut(navigateTree),
     end: createTreeEndShortcut(navigateTree),
     shift_a: createTreeShiftAShortcut(props, items, selected),
-    escape: createTreeEscapeShortcut(props, selected),
   };
+  const escape = createTreeEscapeShortcut(props, selected);
+  // An unregistered key is left untouched by `defineShortcuts`, so Escape
+  // reaches overlays whenever the tree has nothing to clear.
+  return computed(() => ({
+    ...shortcuts,
+    escape: isTreeEscapeActive(selected, activeElement) ? escape : undefined,
+  }));
 }

@@ -331,7 +331,8 @@
           "description": "Go to last node"
         },
         "escape": {
-          "description": "Deselect all nodes"
+          "description": "Deselect all nodes",
+          "condition": "Only when nodes are selected and no dialog is open"
         },
         "shift_a": {
           "description": "Select all nodes recursively",
