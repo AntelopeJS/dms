@@ -7,7 +7,7 @@ import type {
   Table,
   VisibilityState,
 } from "@tanstack/vue-table";
-import { refDebounced, watchDebounced } from "@vueuse/core";
+import { refDebounced, useActiveElement, watchDebounced } from "@vueuse/core";
 import {
   QUICK_ACTION_BUTTON_KEY,
   QUICK_ACTION_COMPONENT_KEY,
@@ -1010,6 +1010,7 @@ defineShortcuts(
     globalFilter,
     rowSelect,
     data: shownData,
+    activeElement: useActiveElement(),
   }),
 );
 

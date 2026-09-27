@@ -293,7 +293,8 @@
           "description": "Actualiser les données du tableau"
         },
         "escape": {
-          "description": "Fermer la recherche ou désélectionner les lignes"
+          "description": "Fermer la recherche ou désélectionner les lignes",
+          "condition": "Uniquement quand une recherche ou une sélection est active et qu'aucune fenêtre n'est ouverte"
         },
         "shift_n": {
           "description": "Créer une nouvelle ligne",

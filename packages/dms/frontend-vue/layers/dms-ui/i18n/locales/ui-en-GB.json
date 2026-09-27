@@ -292,7 +292,8 @@
           "description": "Refresh table data"
         },
         "escape": {
-          "description": "Close search or deselect rows"
+          "description": "Close search or deselect rows",
+          "condition": "Only when a search or a row selection is active and no dialog is open"
         },
         "shift_n": {
           "description": "Create new row",
