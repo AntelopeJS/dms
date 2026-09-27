@@ -26,6 +26,8 @@ const SEAL_IV_BYTES = 12;
 const SEAL_ENCODING = "base64";
 const SEAL_SEPARATOR = ".";
 const SEAL_KEY_DOMAIN = "dms-refresh-successor:";
+const LAST_ACTIVE_AT_INDEX = "lastActiveAt";
+const EPOCH_LOWER_BOUND = new Date(0);
 
 function hashRefreshToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -175,6 +177,20 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
       previousRefreshTokenHash: null,
       refreshTokenRotatedAt: null,
     });
+  }
+
+  /**
+   * Deletes the sessions nobody has used since a date. A session's current
+   * refresh token is issued no later than its last activity, so once that
+   * activity is older than the refresh token lifetime, no token can revive it.
+   *
+   * @param threshold Sessions last active before this date are deleted
+   */
+  async deleteInactiveSince(threshold: Date): Promise<void> {
+    await this.table
+      .between(LAST_ACTIVE_AT_INDEX, EPOCH_LOWER_BOUND, threshold)
+      .delete()
+      .run();
   }
 
   getByUserId(userId: string): Promise<Session[]> {

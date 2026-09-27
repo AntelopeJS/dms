@@ -72,6 +72,7 @@ export class Session extends Table {
   @Field("date")
   declare createdAt: Date;
 
+  @Index()
   @Field("date")
   declare lastActiveAt: Date;
 }
