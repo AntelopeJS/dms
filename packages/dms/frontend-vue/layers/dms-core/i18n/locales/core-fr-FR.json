@@ -44,6 +44,10 @@
       "title": "Restauration de votre session...",
       "description": "Votre session a expiré. Renouvellement de l'accès et rechargement de la page."
     },
+    "network": {
+      "title": "Connexion perdue",
+      "description": "Le serveur est injoignable. Vérifiez votre connexion et réessayez."
+    },
     "switch_account_failed": "Échec du changement de compte",
     "email_already_requested": "Cette adresse e-mail a déjà été demandée. Veuillez attendre avant de réessayer.",
     "email_already_used": "Cette adresse e-mail est déjà utilisée.",

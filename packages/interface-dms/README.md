@@ -26,7 +26,7 @@ pnpm add @antelopejs/interface-dms
 | `@antelopejs/interface-dms/html-render` | server-side HTML templates                                  |
 
 `/auth`, `/base` and `/notifications` take subpaths of their own
-(`/auth/db`, `/base/table-view`, `/base/data-types`, `/notifications/builder`,
+(`/auth/db`, `/auth/password`, `/base/table-view`, `/base/data-types`, `/notifications/builder`,
 ...). The reference documentation lives in the runtime package, under
 `docs/07.interfaces/`.
 

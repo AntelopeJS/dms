@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useActiveElement } from "@vueuse/core";
 import type { TreeNode, TreeProps } from "../../composables/tree/types";
 import {
   TreeSelectionBehavior,
@@ -120,15 +121,15 @@ function navigateTree(direction: TreeNavigationDirection) {
   navigationHandlers[direction]();
 }
 
-const shortcutHandlers: Record<string, () => void> = (
-  buildTreeShortcuts as (...args: unknown[]) => Record<string, () => void>
-)({
-  navigateTree,
-  props,
-  items,
-  selected,
-});
-defineShortcuts(shortcutHandlers as Record<string, (() => void) | undefined>);
+defineShortcuts(
+  buildTreeShortcuts({
+    navigateTree,
+    props,
+    items,
+    selected,
+    activeElement: useActiveElement(),
+  }),
+);
 </script>
 
 <template>
