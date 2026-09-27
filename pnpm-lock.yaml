@@ -45,7 +45,7 @@ importers:
         specifier: '>=0.1.6 <1.0.0'
         version: 0.1.6(@antelopejs/interface-api@0.0.13(@antelopejs/interface-core@0.1.1))(@antelopejs/interface-core@0.1.1)(@antelopejs/interface-database@0.1.7(@antelopejs/interface-core@0.1.1))
       '@antelopejs/interface-dms':
-        specifier: '>=0.2.5 <1.0.0'
+        specifier: '>=0.2.6 <1.0.0'
         version: link:../interface-dms
       '@antelopejs/interface-email':
         specifier: '>=0.0.5 <1.0.0'
@@ -192,8 +192,8 @@ importers:
         specifier: '>=1.9.1 <2'
         version: 1.9.1(@types/node@20.19.43)
       '@antelopejs/dms-frontend':
-        specifier: 0.3.0
-        version: 0.3.0(@antelopejs/core@1.9.1(@types/node@20.19.43))
+        specifier: 0.3.2
+        version: 0.3.2(@antelopejs/core@1.9.1(@types/node@20.19.43))
       '@types/node':
         specifier: ^20.5.7
         version: 20.19.43
@@ -289,8 +289,8 @@ packages:
     resolution: {integrity: sha512-MPLJak0rPluV4lgsdsO5ba03sgTxIGSncajBcoaoppuppQmksdpaemojIHiVLJ4LiG0iiH21Roaed8XXy1XkYQ==}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.3.0':
-    resolution: {integrity: sha512-hCy9iBTUEdHkF0PSFOLkFrbtIf6qdbysQBVN+QHDVEAyEqDIAni3AJG2CEr7Ed1QIIuygKatxe1kF024ID597w==}
+  '@antelopejs/dms-frontend@0.3.2':
+    resolution: {integrity: sha512-BNqLqW3UbfeOMnd4RkEynr/1mMWFhwB8dt1JbggaGte8/KrJQ3MQ5TOovnACMmrqAD7FxsMLBsNqjzGjX4O4ZA==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
@@ -3172,7 +3172,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@antelopejs/dms-frontend@0.3.0(@antelopejs/core@1.9.1(@types/node@20.19.43))':
+  '@antelopejs/dms-frontend@0.3.2(@antelopejs/core@1.9.1(@types/node@20.19.43))':
     dependencies:
       boxen: 5.1.2
       chalk: 4.1.2
