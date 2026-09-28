@@ -8,6 +8,7 @@ import DashboardBanners from "../build/components/layout/DashboardBanners.vue";
 interface Props {
   fullWidth?: boolean;
   hideHeader?: boolean;
+  fillHeight?: boolean;
   icon?: string;
   title?: string;
   description?: string;
@@ -16,10 +17,17 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   fullWidth: true,
   hideHeader: false,
+  fillHeight: false,
   icon: "i-ph-file",
   title: undefined,
   description: undefined,
 });
+
+providePageFillHeight(toRef(props, "fillHeight"));
+
+const regionClass = computed(() =>
+  props.fillHeight ? PAGE_FILL_HEIGHT_CLASSES.region : undefined,
+);
 </script>
 
 <template>
@@ -37,6 +45,7 @@ const props = withDefaults(defineProps<Props>(), {
           data-dms-page-region
           data-dms-page-content
           :full-width="props.fullWidth"
+          :class="regionClass"
         >
           <PageHeader
             v-if="props.title && !props.hideHeader"
