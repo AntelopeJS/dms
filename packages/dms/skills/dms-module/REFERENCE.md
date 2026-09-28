@@ -19,7 +19,8 @@ first-party modules follow `dms-<name>` purely for discoverability.
         pages/                      # @RegisterPage classes + category.ts (see dms-pages)
         routes/                     # HTTP controllers feeding the components
         implementations/<name>/index.ts  # implementation of the module's own interface
-      frontend-vue/                 # Vue module: dms.frontend.ts, app/, i18n/locales/
+      frontend-vue/                 # Vue module: dms.frontend.ts, app/, i18n/locales/,
+                                    # package.json (engines: the loader releases it supports)
       package.json / tsconfig.json
     interface-<name>/               # the module's OWN interface, its own published package
       src/index.ts                  # (rare — many modules ship none)
