@@ -120,9 +120,7 @@ function fitView() {
 </script>
 
 <template>
-  <div
-    class="h-[calc(100vh-7rem)] overflow-hidden rounded-lg border border-default"
-  >
+  <div class="min-h-0 flex-1 overflow-hidden rounded-lg border border-default">
     <DmsFlowCanvas
       ref="canvas"
       :nodes="nodes"
