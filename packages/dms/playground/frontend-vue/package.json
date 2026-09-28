@@ -3,5 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dms.frontend.ts"
+  "main": "./dms.frontend.ts",
+  "engines": {
+    "@antelopejs/dms-frontend": ">=0.2.8 <0.4.0"
+  }
 }
