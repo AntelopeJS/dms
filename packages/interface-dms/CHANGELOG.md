@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.6...v0.2.7)
+
+### 🔥 Performance
+
+- **db:** Mark cross-instance indexes and upgrade the MongoDB driver ([#85](https://github.com/AntelopeJS/dms/pull/85))
+
+### 🩹 Fixes
+
+- **dms-ui:** Let Escape close modals opened over a table or a tree ([#71](https://github.com/AntelopeJS/dms/pull/71))
+- **db:** Normalize emails, guard email changes and stop storing refresh tokens in plaintext ([#78](https://github.com/AntelopeJS/dms/pull/78))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.7 ([dc41912](https://github.com/AntelopeJS/dms/commit/dc41912))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.2.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.5...v0.2.6)
