@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.8...v0.3.0)
+
+### 🩹 Fixes
+
+- **realtime:** ⚠️  Let core own the table-view realtime across DMS reloads ([#73](https://github.com/AntelopeJS/dms/pull/73))
+
+#### ⚠️ Breaking Changes
+
+- **realtime:** ⚠️  Let core own the table-view realtime across DMS reloads ([#73](https://github.com/AntelopeJS/dms/pull/73))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.2.8
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.7...v0.2.8)
