@@ -121,11 +121,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.9.1 <2'
-        version: 1.9.1(@types/node@24.8.1)
+        specifier: '>=1.10.1 <2'
+        version: 1.10.1(@types/node@24.8.1)
       '@antelopejs/dms-frontend':
         specifier: '>=0.3.2 <1.0.0'
-        version: 0.3.2(@antelopejs/core@1.9.1(@types/node@24.8.1))
+        version: 0.3.2(@antelopejs/core@1.10.1(@types/node@24.8.1))
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -196,8 +196,8 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@antelopejs/core@1.9.1':
-    resolution: {integrity: sha512-MPLJak0rPluV4lgsdsO5ba03sgTxIGSncajBcoaoppuppQmksdpaemojIHiVLJ4LiG0iiH21Roaed8XXy1XkYQ==}
+  '@antelopejs/core@1.10.1':
+    resolution: {integrity: sha512-NcC6N8Aq14Ph7GRto0lpdRdgUKZAu3ZHDlAF5hXGFZPKKoNm8Da9i4nyB/NI4Sgx3rbE0/KoqCcHpTtQJgrAYg==}
     hasBin: true
 
   '@antelopejs/dms-frontend@0.3.2':
@@ -4312,7 +4312,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/core@1.9.1(@types/node@24.8.1)':
+  '@antelopejs/core@1.10.1(@types/node@24.8.1)':
     dependencies:
       '@antelopejs/interface-core': 0.1.1
       '@types/proper-lockfile': 4.1.4
@@ -4331,7 +4331,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@antelopejs/dms-frontend@0.3.2(@antelopejs/core@1.9.1(@types/node@24.8.1))':
+  '@antelopejs/dms-frontend@0.3.2(@antelopejs/core@1.10.1(@types/node@24.8.1))':
     dependencies:
       boxen: 5.1.2
       chalk: 4.1.2
@@ -4342,7 +4342,7 @@ snapshots:
       semver: 7.8.5
       unzipper: 0.12.5
     optionalDependencies:
-      '@antelopejs/core': 1.9.1(@types/node@24.8.1)
+      '@antelopejs/core': 1.10.1(@types/node@24.8.1)
       '@oxc-parser/binding-darwin-arm64': 0.95.0
       '@oxc-parser/binding-darwin-x64': 0.95.0
       '@oxc-parser/binding-linux-arm64-gnu': 0.95.0
