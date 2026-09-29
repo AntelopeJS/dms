@@ -46,6 +46,7 @@ import { generateAuthKey } from "../../../utils/auth-key";
 import { authSchema } from "../../../validation/auth.schema";
 import { userCategory } from "./category";
 import {
+  assertEmailAvailable,
   AVATAR_ATTACHMENT_FIELD,
   AVATAR_DIMENSION_PX,
   AVATAR_MAX_UPLOAD_BYTES,
@@ -217,10 +218,14 @@ export class ProfileSettingsController extends PageController(
     const { name, email, password, language, avatar } =
       parsed.data as UpdateProfileInput;
 
-    const normalizedEmail = email.toLowerCase();
+    const availableEmail = await assertEmailAvailable(
+      userModel,
+      email,
+      this.user._id,
+    );
 
     this.user.name = name;
-    this.user.email = normalizedEmail;
+    this.user.email = availableEmail;
 
     if (password) {
       this.user.password = password;

@@ -1,4 +1,5 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
+import { normalizeEmail } from "../../auth/db/models/users.model";
 import { getRowInstance } from "../../utils/row-instance";
 import {
   USER_INVITES_TABLE_NAME,
@@ -22,7 +23,7 @@ export class UserInviteModel extends BasicDataModel(
    */
   getByEmail(email: string): Promise<UserInvite | undefined> {
     return this.table
-      .getAll(email, "email")
+      .getAll(normalizeEmail(email), "email")
       .nth(0)
       .default(undefined)
       .run()

@@ -6,9 +6,10 @@ import {
   generateRefreshToken,
   validateRefreshToken,
 } from "@antelopejs/interface-dms/auth";
-import type {
-  SessionModel,
-  UserModel,
+import {
+  isCurrentRefreshToken,
+  type SessionModel,
+  type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { z } from "zod";
 import type { AuthResponse } from "./types";
@@ -48,7 +49,11 @@ export async function switchTenant(
   if (tokenPayload.sessionId) {
     const session = await sessionModel.get(tokenPayload.sessionId);
     assert(session, 401, "error.session_expired");
-    assert(session.refreshToken === refreshToken, 401, "error.session_expired");
+    assert(
+      isCurrentRefreshToken(session, refreshToken),
+      401,
+      "error.session_expired",
+    );
     sessionModel
       .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
       .catch(() => {});

@@ -2,6 +2,17 @@ import { ValueProxy } from "@antelopejs/interface-database";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { USERS_TABLE_NAME, User } from "../tables/users.table";
 
+/**
+ * Canonical form of an e-mail address as stored and looked up: accounts are
+ * written lowercased, so a lookup must not depend on the caller's casing.
+ *
+ * @param email The e-mail as typed
+ * @returns The trimmed, lowercased e-mail
+ */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export class UserModel extends BasicDataModel(User, USERS_TABLE_NAME) {
   /**
    * Get the user by their email
@@ -11,7 +22,7 @@ export class UserModel extends BasicDataModel(User, USERS_TABLE_NAME) {
    */
   getByEmail(email: string): Promise<User | undefined> {
     return this.table
-      .getAll(email, "email")
+      .getAll(normalizeEmail(email), "email")
       .nth(0)
       .default(undefined)
       .run()

@@ -8,7 +8,7 @@ import {
   UserInviteModel,
 } from "./db";
 import { sendAdminInviteEmail } from "./auth";
-import { UserModel } from "./auth/db";
+import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
 import { MILLISECONDS_PER_DAY } from "./utils/time";
@@ -290,7 +290,7 @@ function buildInviteSnapshot(
   return UserInviteModel.fromPlainData({
     _id: randomUUID(),
     createdAt: new Date(),
-    email: options.email,
+    email: normalizeEmail(options.email),
     firstname: options.firstname ?? null,
     lastname: options.lastname ?? null,
     roles_ids: options.roleIds,

@@ -6,9 +6,10 @@ import {
   generateRefreshToken,
   validateRefreshToken,
 } from "@antelopejs/interface-dms/auth";
-import type {
-  SessionModel,
-  UserModel,
+import {
+  isCurrentRefreshToken,
+  type SessionModel,
+  type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { decode } from "jsonwebtoken";
 import { authSchema } from "../../validation/auth.schema";
@@ -82,7 +83,11 @@ export async function refresh(
     refreshToken = resolvedToken;
   } else if (tokenPayload.sessionId) {
     const session = await sessionModel.get(tokenPayload.sessionId);
-    assert(session?.refreshToken === token, 401, "error.session_expired");
+    assert(
+      session && isCurrentRefreshToken(session, token),
+      401,
+      "error.session_expired",
+    );
     sessionModel
       .update(tokenPayload.sessionId, { lastActiveAt: new Date() })
       .catch(() => {});

@@ -52,3 +52,20 @@ export async function countRawDocuments(
     await client.close();
   }
 }
+
+export async function listRawIndexes(
+  collectionName: string,
+): Promise<Record<string, Record<string, unknown>>> {
+  const client = await MongoClient.connect(getMongoUrl());
+  try {
+    const indexes = await client
+      .db(DMS_SCHEMA_DB)
+      .collection(`${DMS_SCHEMA_DB}__${collectionName}`)
+      .indexes();
+    return Object.fromEntries(
+      indexes.map((index) => [index.name ?? "", index.key]),
+    );
+  } finally {
+    await client.close();
+  }
+}

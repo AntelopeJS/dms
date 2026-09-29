@@ -37,22 +37,33 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     return UserNotificationPreferencesModel.fromDatabase(result);
   }
 
+  /**
+   * Creates a user's preferences, keyed by the user id so concurrent first
+   * reads collide on the primary key instead of each inserting a row: the
+   * loser reads back the winner's.
+   */
   async createDefault(userId: string): Promise<UserNotificationPreferences> {
-    const defaultPreferences = buildDefaultPreferences();
+    let insertError: unknown;
+    try {
+      await this.table
+        .insert({
+          _id: userId,
+          userId,
+          preferences: buildDefaultPreferences(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run();
+    } catch (error) {
+      insertError = error;
+    }
 
-    await this.table
-      .insert({
-        userId,
-        preferences: defaultPreferences,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .run();
-
-    const created = await this.getByUserId(userId);
+    const created = await this.get(userId);
 
     if (!created) {
-      throw new Error("Failed to create notification preferences");
+      throw (
+        insertError ?? new Error("Failed to create notification preferences")
+      );
     }
 
     return created;
