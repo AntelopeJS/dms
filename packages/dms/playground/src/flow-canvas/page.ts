@@ -14,7 +14,7 @@ export class PageFlowCanvasDemo extends PageController(
     category: flowCanvasCategory,
     order: 0,
   },
-  DefaultLayout({ hideHeader: true, fullWidth: true }),
+  DefaultLayout({ hideHeader: true, fullWidth: true, fillHeight: true }),
 ) {
   static content = CustomComponent("FlowCanvasDemo").meta({
     name: "Flow Canvas",

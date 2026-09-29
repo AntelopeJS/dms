@@ -339,6 +339,17 @@ const components = computed(() =>
   }),
 );
 
+// A page filling the panel (`DefaultLayout({ fillHeight })`) gives the height
+// left under its header to its last component; the ones above it keep theirs.
+const fillHeight = usePageFillHeight();
+const fillColumnClass = PAGE_FILL_HEIGHT_CLASSES.column;
+const stackClass = computed(() =>
+  fillHeight.value ? fillColumnClass : undefined,
+);
+const fillingComponentId = computed(() =>
+  fillHeight.value ? components.value.at(-1)?.id : undefined,
+);
+
 // --- Live-edit highlight ---------------------------------------------------
 // When the active page's layout changes in place (DMS dev hot-reload, same
 // route), animate the components that changed. Added/removed components are
@@ -457,12 +468,16 @@ if (import.meta.env.DEV) {
     tag="div"
     name="dms-fresh"
     class="dms-page-stack space-y-6"
+    :class="stackClass"
     :css="animateLayout"
   >
     <div
       v-for="component in components"
       :key="component.id"
-      :class="{ 'dms-fresh-modified': freshComponentIds.has(component.id) }"
+      :class="[
+        { 'dms-fresh-modified': freshComponentIds.has(component.id) },
+        component.id === fillingComponentId && fillColumnClass,
+      ]"
     >
       <DmsRecursiveComponent
         :component="component"
