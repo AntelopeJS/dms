@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.7...v0.2.8)
+
+### 🚀 Enhancements
+
+- **frontend-vue:** Declare the @antelopejs/dms-frontend releases the layer supports ([#79](https://github.com/AntelopeJS/dms/pull/79))
+- **layout:** Let a page fill the height of the panel ([#80](https://github.com/AntelopeJS/dms/pull/80))
+
+### 📖 Documentation
+
+- **saas-mode:** Select a published @antelopejs/dms-saas version ([#69](https://github.com/AntelopeJS/dms/pull/69))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.4.8 ([a63ee9c](https://github.com/AntelopeJS/dms/commit/a63ee9c))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.2.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.6...v0.2.7)
