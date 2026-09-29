@@ -11,7 +11,7 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.6.5",
   "engines": {
-    "@antelopejs/dms-frontend": ">=0.2.8 <0.4.0"
+    "@antelopejs/dms-frontend": ">=0.3.1 <0.4.0"
   },
   "scripts": {
     "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
