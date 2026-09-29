@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.7...v0.4.8)
+
+### 🔥 Performance
+
+- **db:** Mark cross-instance indexes and upgrade the MongoDB driver ([#85](https://github.com/AntelopeJS/dms/pull/85))
+
+### 🩹 Fixes
+
+- **db:** Normalize emails, guard email changes and stop storing refresh tokens in plaintext ([#78](https://github.com/AntelopeJS/dms/pull/78))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.7 ([5807a35](https://github.com/AntelopeJS/dms/commit/5807a35))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.6...v0.4.7)
