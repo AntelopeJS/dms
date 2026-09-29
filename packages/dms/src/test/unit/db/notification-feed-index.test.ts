@@ -2,7 +2,9 @@ import { expect } from "chai";
 import { userNotificationsTableName } from "../../../db/tables";
 import { listRawIndexes } from "../../helpers/db";
 
-const USER_FEED_INDEX = "userId_createdAt";
+// The driver leads every per-instance index with `_instance` and names it
+// `<index>__i`; the feed is never read across instances.
+const USER_FEED_INDEX = "userId_createdAt__i";
 // Module start() runs unawaited under the test runner, so the schema, and the
 // indexes it creates, may still be in flight when this suite begins.
 const SCHEMA_READY_TIMEOUT_MS = 30_000;
@@ -25,11 +27,15 @@ async function feedIndexKey(): Promise<Record<string, unknown> | undefined> {
 }
 
 describe("[unit] user notifications — a user's feed is served by one index", () => {
-  it("indexes the user then the creation date, in that order", async function () {
+  it("indexes the instance, the user then the creation date, in that order", async function () {
     this.timeout(SCHEMA_READY_TIMEOUT_MS + POLL_INTERVAL_MS);
     const key = await feedIndexKey();
 
-    expect(key).to.deep.equal({ userId: 1, createdAt: 1 });
-    expect(Object.keys(key ?? {})).to.deep.equal(["userId", "createdAt"]);
+    expect(key).to.deep.equal({ _instance: 1, userId: 1, createdAt: 1 });
+    expect(Object.keys(key ?? {})).to.deep.equal([
+      "_instance",
+      "userId",
+      "createdAt",
+    ]);
   });
 });

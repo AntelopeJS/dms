@@ -17,7 +17,7 @@ export class TenantMember extends Table {
   @Field("string")
   declare _id: string;
 
-  @Index()
+  @Index({ crossInstance: true })
   @Field("string")
   @Relation({ to: () => User })
   declare userId: string;
@@ -34,7 +34,7 @@ export class TenantMember extends Table {
   declare inviteDeliveryId?: string;
 
   @CreationTime()
-  @Index()
+  @Index({ crossInstance: true })
   @Field("date")
   declare joinedAt: Date;
 
