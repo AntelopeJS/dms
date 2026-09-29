@@ -28,7 +28,7 @@ export type UnsubscribeMessage = () => void;
  */
 export namespace internal {
   export const RegisterPageTopic = new RegisteringProxy<
-    (pageId: string, topic: string) => void
+    (id: string, pageId: string, topic: string) => void
   >();
 
   export const SubscribeMessage = new RegisteringProxy<
@@ -36,8 +36,26 @@ export namespace internal {
   >();
 }
 
+// One registration per topic, not per page: the core keys what it replays to a
+// new DMS generation by this id, so an id shared by the topics of one page
+// would bring back only the last of them.
+function pageTopicId(pageId: string, topic: string): string {
+  return JSON.stringify([pageId, topic]);
+}
+
+/**
+ * Bind `topic` to the page `pageId`, so the sessions on that page receive what
+ * is published on it.
+ *
+ * The binding belongs to the module that registers it: it is removed when that
+ * module is unloaded, and it outlives a reload of the DMS module.
+ */
 export const RegisterPageTopic = (pageId: string, topic: string): void => {
-  internal.RegisterPageTopic.register(pageId, topic);
+  internal.RegisterPageTopic.register(
+    pageTopicId(pageId, topic),
+    pageId,
+    topic,
+  );
 };
 
 export const PublishMessage =

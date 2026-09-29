@@ -26,7 +26,7 @@ import {
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
 } from "./options";
-import { reportRealtimePageTopic } from "./realtime";
+import { registerTableViewPageTopics } from "./realtime";
 import { resourceForm, stampAttachmentFields } from "./resource-form";
 import { TableViewRoutes } from "./routes";
 import { extractRuleFromConfig } from "./row-rules";
@@ -314,10 +314,7 @@ export function TableView<T extends ControllerClass>(
       const tableViewPermissionId = GetPermissionId(builder);
 
       if (options.realtime !== false) {
-        reportRealtimePageTopic({
-          pageId: parentInfo.fullId,
-          controllerLocation: config.location,
-        });
+        registerTableViewPageTopics(parentInfo.fullId, config.location);
       }
 
       if (!tableViewPermissionId) {
@@ -410,10 +407,10 @@ export function TableView<T extends ControllerClass>(
         void formMeta.Register();
 
         if (options.realtime === false) return;
-        reportRealtimePageTopic({
-          pageId: `${parentInfo.fullId}.${id}`,
-          controllerLocation: config.location,
-        });
+        registerTableViewPageTopics(
+          `${parentInfo.fullId}.${id}`,
+          config.location,
+        );
       };
 
       for (const kind of FORM_PAGE_KINDS) {

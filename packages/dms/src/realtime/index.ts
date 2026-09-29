@@ -18,7 +18,6 @@ import {
 } from "./current";
 import { instanceId } from "./instance";
 import { RedisBroker } from "./redis-broker";
-import { installTableViewRealtimeBridge } from "./tableview-bridge";
 
 export * from "./broker";
 // Only the readers: setCurrentRealtime does not migrate subscriptions and
@@ -128,10 +127,6 @@ export function setRealtimeBroker(broker: RealtimeBroker): void {
 export async function configureRealtime(
   config?: RealtimeConfig,
 ): Promise<void> {
-  // Installed here rather than at module scope: the bridge calls back into
-  // table-view, which may still be mid-evaluation when a consumer's first
-  // entry into the package is the table-view interface subpath.
-  installTableViewRealtimeBridge();
   if (stopHeartbeatFn) {
     try {
       await stopHeartbeatFn();

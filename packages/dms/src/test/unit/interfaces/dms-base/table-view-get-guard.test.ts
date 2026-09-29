@@ -24,11 +24,12 @@ import {
   Table,
 } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import { internal as tableViewImplInternal } from "../../../../implementations/dms-base/table-view";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
 import * as tenantAccess from "@antelopejs/interface-dms/tenant-access";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { internal as tableViewInternal } from "@antelopejs/interface-dms/base/table-view";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
-import { setRealtimePresenceHook } from "@antelopejs/interface-dms/base/table-view/realtime";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
 import type { GetGuardArgs } from "@antelopejs/interface-dms/base/types/guards";
 
@@ -130,9 +131,17 @@ describe("[unit] TableView Get guard", () => {
       name: "Invoice",
     });
     [quoteId] = await model.insert({ documentType: "quote", name: "Quote" });
-    setRealtimePresenceHook(() => {
-      events.push("presence");
-    });
+    ImplementInterface(
+      { internal: tableViewInternal },
+      {
+        internal: {
+          PublishMutation: async () => undefined,
+          AcquirePresence: async () => {
+            events.push("presence");
+          },
+        },
+      },
+    );
   });
   beforeEach(() => {
     events.length = 0;
@@ -148,7 +157,10 @@ describe("[unit] TableView Get guard", () => {
   });
   after(() => {
     tenantAccess.internal.RegisterTenantAccessGate.unregister(gate);
-    setRealtimePresenceHook(() => {});
+    ImplementInterface(
+      { internal: tableViewInternal },
+      { internal: tableViewImplInternal },
+    );
   });
 
   it("authorizes, loads once, guards hidden data, transforms, then acquires presence", async () => {

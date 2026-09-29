@@ -3,22 +3,34 @@ import type {
   RealtimeMessageHandler,
 } from "@antelopejs/interface-dms/realtime";
 import {
-  clearPageTopics,
   getRealtimeBroker,
   registerPageTopic,
   subscribeRealtime,
+  unregisterPageTopic,
 } from "../../realtime";
 import type { Unsubscribe } from "../../realtime/broker";
 
+interface PageTopicBinding {
+  pageId: string;
+  topic: string;
+}
+
 const messageSubscriptions = new Map<string, Unsubscribe>();
+// The core hands `unregister` nothing but the registration id, and each id
+// names one topic of one page.
+const pageTopicBindings = new Map<string, PageTopicBinding>();
 
 export namespace internal {
   export const RegisterPageTopic = {
-    register: (pageId: string, topic: string): void => {
+    register: (id: string, pageId: string, topic: string): void => {
+      pageTopicBindings.set(id, { pageId, topic });
       registerPageTopic(pageId, topic);
     },
-    unregister: (pageId: string): void => {
-      clearPageTopics(pageId);
+    unregister: (id: string): void => {
+      const binding = pageTopicBindings.get(id);
+      if (!binding) return;
+      pageTopicBindings.delete(id);
+      unregisterPageTopic(binding.pageId, binding.topic);
     },
   };
 

@@ -10,7 +10,8 @@
  * - `guards` — consumer guard invocation around mutating routes
  * - `files` — staged upload promotion and orphaned file cleanup
  * - `auth` — per-action permission checks and the tenant access gate
- * - `realtime` — mutation/presence broadcasting hooks around routes
+ * - `realtime` — mutation/presence broadcasting around routes, and the topics
+ *   a table view registers for its page
  * - `routes` — the assembled `TableViewRoutes` a data controller mounts
  * - `factory` — the `TableView()` builder that ties it all together
  * - `resource-form` — the forms over a resource, shared by `TableView()` and
@@ -71,15 +72,14 @@ export {
   type TableViewTabFilter,
 } from "./table-view/options";
 export {
+  internal,
   type RealtimeMutationContext,
   type RealtimeMutationEventType,
-  type RealtimePageTopicContext,
   type RealtimePresenceActor,
   type RealtimePresenceContext,
   registerRealtimeMutationListener,
-  setRealtimeMutationHook,
-  setRealtimePageTopicHook,
-  setRealtimePresenceHook,
+  tableViewPresenceTopic,
+  tableViewRowTopic,
   unregisterRealtimeMutationListener,
 } from "./table-view/realtime";
 export {

@@ -32,6 +32,10 @@ import {
   getExportJobStatus,
   runExportJob,
 } from "../../utils";
+import {
+  acquireTableViewPresence,
+  publishTableViewMutation,
+} from "../../realtime/table-view";
 import { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
 import {
   applyArchiveFilter,
@@ -478,3 +482,8 @@ export async function restoreRows(
 
 export const listWithSearch = listWithSearchFunc;
 export const countWithSearch = countWithSearchFunc;
+
+export namespace internal {
+  export const PublishMutation = publishTableViewMutation;
+  export const AcquirePresence = acquireTableViewPresence;
+}

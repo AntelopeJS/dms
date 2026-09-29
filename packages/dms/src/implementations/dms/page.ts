@@ -38,7 +38,6 @@ import {
 } from "@antelopejs/interface-dms/permissions";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
-import { internal as realtimeInternal } from "@antelopejs/interface-dms/realtime";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
   CheckTenantAccess,
@@ -53,6 +52,7 @@ import {
 } from "@antelopejs/interface-dms/page/component-target";
 import {
   buildMenuTopic,
+  clearPageTopics,
   getRealtimeBroker,
   MENU_BROADCAST_TOPIC,
   MENU_CHANGED_EVENT_TYPE,
@@ -531,8 +531,10 @@ export namespace internal {
       // would otherwise keep serving the page after its module is gone.
       ClearPageLayoutBySlug(pageInfo.fullSlug);
       // …and the realtime topics registered against it: they are the allowlist
-      // the SSE routes check subscriptions against.
-      realtimeInternal.RegisterPageTopic.unregister(pageInfo.fullId);
+      // the SSE routes check subscriptions against. Cleared here rather than
+      // through the realtime proxy, whose entries are keyed per topic and
+      // belong to the modules that registered them.
+      clearPageTopics(pageInfo.fullId);
     },
   };
 
