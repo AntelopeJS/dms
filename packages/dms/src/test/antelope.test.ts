@@ -67,6 +67,14 @@ export default defineConfig({
         path: "src/test/attachment-host",
       },
     },
+    // Reloaded by the unit suite. A reload evicts only the files inside the
+    // module's folder, so it is loaded from where it compiles to.
+    "reload-host": {
+      source: {
+        type: "local",
+        path: "dist/test/reload-host",
+      },
+    },
     "api-endpoint": {
       source: {
         type: "local",
