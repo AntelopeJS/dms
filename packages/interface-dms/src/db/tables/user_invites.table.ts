@@ -18,12 +18,12 @@ export class UserInvite extends Table {
   @Field("string")
   declare _id: string;
 
-  @Index()
+  @Index({ crossInstance: true })
   @CreationTime()
   @Field("date")
   declare createdAt: Date;
 
-  @Index()
+  @Index({ crossInstance: true })
   @Field("string")
   declare email: string;
 
@@ -40,14 +40,14 @@ export class UserInvite extends Table {
   @Field("string")
   declare language: string;
 
-  @Index()
+  @Index({ crossInstance: true })
   @Field("string")
   declare token: string;
 
   @Field("boolean")
   declare asTenantOwner: boolean;
 
-  @Index()
+  @Index({ crossInstance: true })
   @Field("date")
   declare expiresAt: Date;
 

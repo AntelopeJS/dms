@@ -25,6 +25,6 @@ export class InviteResolution extends Table {
   @Field("string") declare revision: string;
   @Field("string") declare membershipPhase: InviteMembershipPhase;
   @Field("string") declare replacementPhase: InviteMembershipPhase;
-  @Index() @Field("boolean") declare completed: boolean;
+  @Index({ crossInstance: true }) @Field("boolean") declare completed: boolean;
   @Field("date") declare decidedAt: Date;
 }
