@@ -5,7 +5,6 @@ import { listenersFor, type MemberAddedEvent } from "../../automation/events";
 import { runCleanupUserInvites } from "../../crons/cleanup-user-invites";
 import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/models/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
-import { registerInviteExtensionCleanup } from "../../hooks/invite-extensions";
 import {
   TenantMemberModel,
   type UserInvite,
@@ -87,7 +86,6 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
   beforeEach(async () => {
     await resetDatabase();
     extensions.clearInviteExtensions();
-    registerInviteExtensionCleanup();
     failCleanup = false;
     failAccept = false;
     cleaned = new Set();

@@ -4,7 +4,6 @@ import {
   type InviteDeletedReason,
   type MemberRemovedHookPayload,
   RegisterHook,
-  UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
 import {
   type InviteCleanupContext,
@@ -60,12 +59,11 @@ async function onMemberRemoved(
  * Let every invite extension undo what it derived, without each of them having
  * to subscribe to the invitation lifecycle itself.
  *
- * Registering replaces rather than adds: `construct` can run again, and a
- * contributor's cleanup called twice is not the same as called once.
+ * Called once per module generation, from `construct`. The hook registry
+ * releases these handlers with the generation, so the next one registering
+ * its own never doubles a contributor's cleanup.
  */
 export function registerInviteExtensionCleanup(): void {
-  UnregisterHook(Hook.INVITE_DELETED, onInviteDeleted);
   RegisterHook(Hook.INVITE_DELETED, onInviteDeleted);
-  UnregisterHook(Hook.MEMBER_REMOVED, onMemberRemoved);
   RegisterHook(Hook.MEMBER_REMOVED, onMemberRemoved);
 }
