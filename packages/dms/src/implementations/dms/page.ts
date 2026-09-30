@@ -207,24 +207,59 @@ export async function userCanAccessPage(
   );
 }
 
+// Keyed on the category id rather than a registration: the category is what
+// is missing, so there is nothing else to key on. Never forgotten, so a module
+// whose category unregisters before its own pages on every hot reload reports
+// it once rather than on each reload.
+const warnedMissingCategories = new Set<string>();
+
+// Entries outliving or preceding their category are shown at its parent's
+// level (see `buildChildrenWithAccess`), so the menu no longer shows that
+// something is missing: the log has to.
+function warnMissingCategory(
+  categoryFullId: string,
+  entryFullIds: string[],
+): void {
+  if (warnedMissingCategories.has(categoryFullId)) return;
+  warnedMissingCategories.add(categoryFullId);
+  const entries = entryFullIds.map((fullId) => `"${fullId}"`).join(", ");
+  Logging.Warn(
+    `[dms] category "${categoryFullId}" is not registered but ${entries} hang under it: the menu shows them at its parent's level.`,
+  );
+}
+
+function ensureContainer(
+  level: Record<string, SiteLayoutTree>,
+  containerFullId: string,
+  entryFullId: string,
+): SiteLayoutTree {
+  const key = containerFullId.slice(containerFullId.lastIndexOf(".") + 1);
+  const isRegistered =
+    Boolean(level[key]?.fullId) || containerFullId in categoriesByFullId;
+  if (!isRegistered) warnMissingCategory(containerFullId, [entryFullId]);
+  level[key] ??= {
+    displayName: "none",
+    children: {},
+    childrenOrders: [],
+    id: "",
+    fullId: "",
+    fullSlug: "",
+    category: undefined,
+  };
+  return level[key];
+}
+
 function addToTree(newPageInfo: PageInfo | CategoryInfo) {
   const parts = newPageInfo.fullId.split(".");
   let currentLevel = navigationTree.children;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!currentLevel[part]) {
-      currentLevel[part] = {
-        displayName: "none",
-        children: {},
-        childrenOrders: [],
-        id: "",
-        fullId: "",
-        fullSlug: "",
-        category: undefined,
-      };
-    }
-    currentLevel = currentLevel[part].children;
+    const containerFullId = parts.slice(0, i + 1).join(".");
+    currentLevel = ensureContainer(
+      currentLevel,
+      containerFullId,
+      newPageInfo.fullId,
+    ).children;
   }
 
   const lastPart = parts[parts.length - 1];
@@ -291,12 +326,18 @@ function removeFromTree(fullId: string) {
     levels.push(currentLevel);
   }
 
-  const target = currentLevel[parts[parts.length - 1]];
+  const key = parts[parts.length - 1];
+  const target = currentLevel[key];
   if (!target) return;
-  if (Object.keys(target.children).length > 0) {
+  const heldKeys = Object.keys(target.children);
+  if (heldKeys.length > 0) {
     // Still holds registered descendants: blank the entry so nothing shows it,
     // and keep it as the container they hang from.
-    currentLevel[parts[parts.length - 1]] = {
+    warnMissingCategory(
+      fullId,
+      heldKeys.map((heldKey) => `${fullId}.${heldKey}`),
+    );
+    currentLevel[key] = {
       ...target,
       displayName: "none",
       id: "",
@@ -1180,15 +1221,11 @@ async function addAccessToTree(
 ): Promise<SiteLayoutTree> {
   const hasAccess = isRoot ? true : await computeEntryAccess(node, context);
 
-  const childrenWithAccess: Record<string, SiteLayoutTree> = {};
-  for (const [key, child] of Object.entries(node.children)) {
-    childrenWithAccess[key] = await addAccessToTree(
-      child,
-      context,
-      false,
-      dynamic,
-    );
-  }
+  const childrenWithAccess = await buildChildrenWithAccess(
+    node,
+    context,
+    dynamic,
+  );
 
   // Redacted like the flat registries: an unreachable branch keeps its shape
   // so its accessible descendants stay addressable, but stops carrying what
@@ -1196,20 +1233,71 @@ async function addAccessToTree(
   const visible = hasAccess ? node : redactPresentation(node);
 
   const dynamicChildren = dynamic.get(node.fullId);
-  if (!dynamicChildren) {
+  if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
     return { ...visible, hasAccess, children: childrenWithAccess };
   }
-  const children = mergeDynamicChildren(
-    node.fullId,
-    childrenWithAccess,
-    dynamicChildren,
-  );
+  const children = dynamicChildren
+    ? mergeDynamicChildren(node.fullId, childrenWithAccess, dynamicChildren)
+    : childrenWithAccess;
   return {
     ...visible,
     hasAccess,
     children,
     childrenOrders: sortChildIdsByOrder(children),
   };
+}
+
+// The container `addToTree` creates for a missing category, or the one
+// `removeFromTree` blanks: it stands for no registered entry, so it has nothing
+// to show and no permission of its own.
+function isContainerWithoutEntry(node: SiteLayoutTree): boolean {
+  return node.fullId === "";
+}
+
+function holdsContainerWithoutEntry(node: SiteLayoutTree): boolean {
+  return Object.values(node.children).some(isContainerWithoutEntry);
+}
+
+// A container without an entry is transparent in the client tree: what it
+// holds joins its parent's children, each with its own access, rather than
+// showing up as a "none" item that no permission ever grants. Registered
+// siblings are placed first so that on a clash they keep their place.
+async function buildChildrenWithAccess(
+  node: SiteLayoutTree,
+  context: RequestAccessContext,
+  dynamic: DynamicChildren,
+): Promise<Record<string, SiteLayoutTree>> {
+  const children: Record<string, SiteLayoutTree> = {};
+  const hoisted: Array<[string, SiteLayoutTree]> = [];
+  for (const [key, child] of Object.entries(node.children)) {
+    if (isContainerWithoutEntry(child)) {
+      const held = await buildChildrenWithAccess(child, context, dynamic);
+      hoisted.push(...Object.entries(held));
+      continue;
+    }
+    children[key] = await addAccessToTree(child, context, false, dynamic);
+  }
+  for (const [key, entry] of hoisted) {
+    if (children[key]) {
+      warnHoistedCollision(entry, children[key]);
+      continue;
+    }
+    children[key] = entry;
+  }
+  return children;
+}
+
+function warnHoistedCollision(
+  hoisted: SiteLayoutTree,
+  existing: SiteLayoutTree,
+): void {
+  const source = findNavigationEntryByFullId(hoisted.fullId);
+  if (!source) return;
+  warnOnceFor(
+    source,
+    "hoisted-collision",
+    `[dms] "${hoisted.fullId}" hangs under an unregistered category and collides with "${existing.fullId}" at its parent's level: it was left out of the menu.`,
+  );
 }
 
 // Grafted onto the per-request copy produced above, never onto `navigationTree`:
