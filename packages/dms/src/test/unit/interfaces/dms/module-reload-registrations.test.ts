@@ -51,7 +51,7 @@ describe("[unit] interfaces/dms — registrations of a reloaded module", () => {
       isTenantOwner: false,
     });
 
-    expect(takeReloadHostCalls()).to.deep.equal([
+    expect(takeReloadHostCalls("hook")).to.deep.equal([
       { generation: liveReloadHostGeneration(), source: "hook" },
     ]);
   });
@@ -65,7 +65,7 @@ describe("[unit] interfaces/dms — registrations of a reloaded module", () => {
     }
 
     expect(errors.messages).to.deep.equal([]);
-    expect(takeReloadHostCalls()).to.deep.equal([
+    expect(takeReloadHostCalls("listener")).to.deep.equal([
       { generation: liveReloadHostGeneration(), source: "listener" },
     ]);
   });

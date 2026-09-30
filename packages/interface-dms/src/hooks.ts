@@ -1,4 +1,7 @@
-import { GetResponsibleModule } from "@antelopejs/interface-core";
+import {
+  GetResponsibleModule,
+  RunWithResponsibleModule,
+} from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { InviteExtensionPayloads } from "./invite-extensions/types";
 import type {
@@ -14,6 +17,16 @@ export * from "./tenant-export";
 export type HookCallback = (...args: any[]) => any;
 
 export enum Hook {
+  /**
+   * The database schemas are registered and the DMS is about to serve.
+   *
+   * It behaves like an already-resolved promise: the DMS fires it once per
+   * start, and a handler registered after that — by a module loaded or
+   * reloaded while the DMS runs — runs at once, in the background. It fires
+   * again on every DMS start, and a reloaded module registers again, so a
+   * handler may run several times over the life of a process and must be
+   * safe to replay against a live database.
+   */
   DATABASE_INITIALIZED = "database:initialized",
   /**
    * A workspace is being provisioned, and nothing of it is final yet.
@@ -207,12 +220,27 @@ export interface RegisteredHook<H extends Hook> {
   handler: HookHandler<H>;
 }
 
+/**
+ * Hooks whose firing is a state rather than an event: once settled with
+ * {@link SettleHook}, a handler registered afterwards runs at once.
+ */
+export type StickyHook = Hook.DATABASE_INITIALIZED;
+
 interface HookEntry {
   callback: HookCallback;
   moduleId?: string;
 }
 
+interface SettledHook {
+  name: Hook;
+  args: unknown[];
+}
+
 const hooksRegistry = new Map<Hook, OwnedRegistry<HookEntry>>();
+
+// Owned by the module generation that settles a hook, so a destroyed DMS
+// takes the settled state down with it even when `stop()` never ran.
+const settledHooks = new OwnedRegistry<SettledHook>();
 
 function getHooks(name: Hook): OwnedRegistry<HookEntry> {
   const existing = hooksRegistry.get(name);
@@ -226,6 +254,33 @@ function logHookFailure(name: Hook, error: unknown): void {
   Logging.Error(`Hook '${name}' execution failed:`, error);
 }
 
+function findSettledHook(name: Hook): SettledHook | undefined {
+  return settledHooks.values().find((settled) => settled.name === name);
+}
+
+/**
+ * Runs a handler registered after its hook settled, without blocking the
+ * registration: the registering module's `construct()` or `start()` neither
+ * waits for it nor sees its failure.
+ */
+function runLateHandler(
+  settled: SettledHook,
+  callback: HookCallback,
+  owner: string | undefined,
+): void {
+  const run = async (): Promise<unknown> => callback(...settled.args);
+  const runAsOwner = async (): Promise<unknown> =>
+    owner ? RunWithResponsibleModule(owner, run) : run();
+  void Promise.resolve()
+    .then(runAsOwner)
+    .catch((error: unknown) => {
+      Logging.Error(
+        `Hook '${settled.name}' handler of module '${owner ?? "unknown"}' failed:`,
+        error,
+      );
+    });
+}
+
 /**
  * Run `callback` whenever `name` fires.
  *
@@ -234,16 +289,22 @@ function logHookFailure(name: Hook, error: unknown): void {
  * registers again from its next generation, and its previous handler is gone
  * rather than running beside the new one. Nothing has to be unregistered on
  * the way out.
+ *
+ * A handler for a {@link StickyHook} that has already settled also runs at
+ * once, in the background; a failure is logged, never thrown here.
  */
 export function RegisterHook<H extends Hook>(
   name: H,
   callback: HookHandler<H>,
   options?: HookRegistrationOptions,
 ): void {
+  const owner = GetResponsibleModule();
   getHooks(name).add({
     callback: callback as HookCallback,
-    moduleId: options?.moduleId ?? GetResponsibleModule(),
+    moduleId: options?.moduleId ?? owner,
   });
+  const settled = findSettledHook(name);
+  if (settled) runLateHandler(settled, callback as HookCallback, owner);
 }
 
 /**
@@ -293,6 +354,42 @@ export async function ExecuteHooks<H extends Hook>(
   for (const hook of getHooks(name).values()) {
     await hook.callback(...args);
   }
+}
+
+/**
+ * Fire a {@link StickyHook} and keep it settled: the handlers registered by
+ * then run in series, as {@link ExecuteHooks} runs them, along with any
+ * registered while they run, and every handler registered afterwards runs at
+ * once until {@link UnsettleHook}. A failure propagates and leaves the hook
+ * unsettled.
+ *
+ * The settled state belongs to the calling module generation and goes with it.
+ */
+export async function SettleHook<H extends StickyHook>(
+  name: H,
+  ...args: HookSignatures[H]["args"]
+): Promise<void> {
+  const ran = new Set<HookEntry>();
+  let pending = getHooks(name).values();
+  while (pending.length > 0) {
+    for (const hook of pending) {
+      ran.add(hook);
+      await hook.callback(...args);
+    }
+    pending = getHooks(name)
+      .values()
+      .filter((hook) => !ran.has(hook));
+  }
+  settledHooks.add({ name, args });
+}
+
+/**
+ * End what {@link SettleHook} started: later registrations wait for the hook
+ * to be settled again.
+ */
+export function UnsettleHook(name: StickyHook): void {
+  const isSettled = (settled: SettledHook) => settled.name === name;
+  while (settledHooks.has(isSettled)) settledHooks.remove(isSettled);
 }
 
 export async function CollectHooks<H extends Hook>(

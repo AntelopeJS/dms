@@ -15,9 +15,10 @@ import "./realtime";
 import "./pages";
 import "./routes";
 import {
-  ExecuteHooks,
   Hook,
   RegisterHook,
+  SettleHook,
+  UnsettleHook,
 } from "@antelopejs/interface-dms/hooks";
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
 import type { ScheduledTask } from "node-cron";
@@ -246,7 +247,7 @@ export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
-  await ExecuteHooks(Hook.DATABASE_INITIALIZED);
+  await SettleHook(Hook.DATABASE_INITIALIZED);
   await runSweepStaleExports();
   cronTasks = registerDmsCrons();
   await registerAutomationNodes();
@@ -255,6 +256,7 @@ export async function start(): Promise<void> {
 }
 
 export async function stop(): Promise<void> {
+  UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
   await unregisterAutomationNodes();
