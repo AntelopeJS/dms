@@ -5,6 +5,7 @@ import type {
   TenantDataExportContribution,
   TenantExportArchive,
 } from "./tenant-export";
+import { OwnedRegistry } from "./utils/owned-registry";
 
 export * from "./tenant-export";
 
@@ -192,7 +193,11 @@ export type HookHandler<H extends Hook> = (
 ) => Promise<HookSignatures[H]["result"]> | HookSignatures[H]["result"];
 
 export interface HookRegistrationOptions {
-  /** Overrides the module id auto-detected from the registering call site. */
+  /**
+   * Overrides the module id auto-detected from the registering call site. It
+   * only names the handler: the registration is released with the module
+   * generation that made it either way.
+   */
   moduleId?: string;
 }
 
@@ -207,39 +212,49 @@ interface HookEntry {
   moduleId?: string;
 }
 
-const hooksRegistry = new Map<Hook, HookEntry[]>();
+const hooksRegistry = new Map<Hook, OwnedRegistry<HookEntry>>();
 
-function getHooks(name: Hook): HookEntry[] {
-  if (!hooksRegistry.has(name)) {
-    hooksRegistry.set(name, []);
-  }
-  return hooksRegistry.get(name) ?? [];
+function getHooks(name: Hook): OwnedRegistry<HookEntry> {
+  const existing = hooksRegistry.get(name);
+  if (existing) return existing;
+  const hooks = new OwnedRegistry<HookEntry>();
+  hooksRegistry.set(name, hooks);
+  return hooks;
 }
 
 function logHookFailure(name: Hook, error: unknown): void {
   Logging.Error(`Hook '${name}' execution failed:`, error);
 }
 
+/**
+ * Run `callback` whenever `name` fires.
+ *
+ * The handler belongs to the module generation that registers it and is
+ * released when that generation is destroyed: a module reloaded in development
+ * registers again from its next generation, and its previous handler is gone
+ * rather than running beside the new one. Nothing has to be unregistered on
+ * the way out.
+ */
 export function RegisterHook<H extends Hook>(
   name: H,
   callback: HookHandler<H>,
   options?: HookRegistrationOptions,
 ): void {
-  getHooks(name).push({
+  getHooks(name).add({
     callback: callback as HookCallback,
     moduleId: options?.moduleId ?? GetResponsibleModule(),
   });
 }
 
+/**
+ * Drop a handler registered with {@link RegisterHook}, for a module that stops
+ * listening while it stays loaded.
+ */
 export function UnregisterHook<H extends Hook>(
   name: H,
   callback: HookHandler<H>,
 ): void {
-  const hooks = getHooks(name);
-  const index = hooks.findIndex((entry) => entry.callback === callback);
-  if (index !== -1) {
-    hooks.splice(index, 1);
-  }
+  getHooks(name).remove((entry) => entry.callback === callback);
 }
 
 /**
@@ -250,10 +265,12 @@ export function UnregisterHook<H extends Hook>(
 export function GetRegisteredHooks<H extends Hook>(
   name: H,
 ): RegisteredHook<H>[] {
-  return getHooks(name).map((entry) => ({
-    moduleId: entry.moduleId,
-    handler: entry.callback as HookHandler<H>,
-  }));
+  return getHooks(name)
+    .values()
+    .map((entry) => ({
+      moduleId: entry.moduleId,
+      handler: entry.callback as HookHandler<H>,
+    }));
 }
 
 /**
@@ -273,8 +290,7 @@ export async function ExecuteHooks<H extends Hook>(
   name: H,
   ...args: HookSignatures[H]["args"]
 ): Promise<void> {
-  const hooks = getHooks(name);
-  for (const hook of hooks) {
+  for (const hook of getHooks(name).values()) {
     await hook.callback(...args);
   }
 }
@@ -283,9 +299,8 @@ export async function CollectHooks<H extends Hook>(
   name: H,
   ...args: HookSignatures[H]["args"]
 ): Promise<HookSignatures[H]["result"][]> {
-  const hooks = getHooks(name);
   const results: HookSignatures[H]["result"][] = [];
-  for (const hook of hooks) {
+  for (const hook of getHooks(name).values()) {
     try {
       const value = (await hook.callback(
         ...args,

@@ -1,7 +1,6 @@
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { z } from "zod";
-import { registerInviteExtensionCleanup } from "../../../../hooks/invite-extensions";
 import * as inviteExtensionsImpl from "../../../../implementations/dms/invite-extensions";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
@@ -167,7 +166,6 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     ImplementInterface(permissionsResolverInterface, permissionsResolverImpl);
     ImplementInterface(pageInterface, pageImpl);
     ImplementInterface(inviteExtensionsInterface, inviteExtensionsImpl);
-    registerInviteExtensionCleanup();
   });
 
   afterEach(() => {

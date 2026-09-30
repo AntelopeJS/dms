@@ -5,6 +5,7 @@ import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
 import { RegisterPageTopic } from "../../realtime";
+import { OwnedRegistry } from "../../utils/owned-registry";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";
@@ -86,30 +87,39 @@ type RealtimeMutationListener = (
   context: RealtimeMutationContext,
 ) => void | Promise<void>;
 
-const realtimeMutationListeners = new Set<RealtimeMutationListener>();
+const realtimeMutationListeners = new OwnedRegistry<RealtimeMutationListener>();
 
 /**
  * Register an additional realtime-mutation listener. Listeners are additive
  * side observers: they run after the DMS has published the mutation, and their
  * failures are logged, never propagated to the mutating request.
+ *
+ * The listener belongs to the module generation that registers it and is
+ * released when that generation is destroyed, so a reloaded module does not
+ * leave its previous listener behind. Registering one already registered is a
+ * no-op.
  */
 export function registerRealtimeMutationListener(
   listener: RealtimeMutationListener,
 ): void {
+  if (realtimeMutationListeners.has((registered) => registered === listener)) {
+    return;
+  }
   realtimeMutationListeners.add(listener);
 }
 
+/** Drop a listener, for a module that stops listening while it stays loaded. */
 export function unregisterRealtimeMutationListener(
   listener: RealtimeMutationListener,
 ): void {
-  realtimeMutationListeners.delete(listener);
+  realtimeMutationListeners.remove((registered) => registered === listener);
 }
 
 async function dispatchRealtimeMutation(
   context: RealtimeMutationContext,
 ): Promise<void> {
   await internal.PublishMutation(context);
-  for (const listener of realtimeMutationListeners) {
+  for (const listener of realtimeMutationListeners.values()) {
     try {
       await listener(context);
     } catch (error) {
