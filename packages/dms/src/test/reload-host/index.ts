@@ -13,7 +13,7 @@ const PROBE_KEY = Symbol.for("@antelopejs/dms-test/reload-host");
 const PROBE_TENANT = "reload-host-tenant";
 const PROBE_LOCATION = "/reload-host/rows";
 
-type ProbeSource = "hook" | "listener";
+type ProbeSource = "hook" | "listener" | "database-initialized";
 
 interface ProbeCall {
   generation: string;
@@ -47,6 +47,10 @@ export function construct(): void {
   probe().generations.push(generation);
   RegisterHook(Hook.MEMBER_BEING_ADDED, (payload) => {
     if (payload.tenantId === PROBE_TENANT) record("hook");
+    return undefined;
+  });
+  RegisterHook(Hook.DATABASE_INITIALIZED, () => {
+    record("database-initialized");
     return undefined;
   });
   registerRealtimeMutationListener((context) => {
