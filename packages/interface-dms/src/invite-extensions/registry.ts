@@ -1,4 +1,7 @@
-import { RegisteringProxy } from "@antelopejs/interface-core";
+import {
+  GetResponsibleModule,
+  RegisteringProxy,
+} from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { INVITE_EXTENSION_FIELD_SEPARATOR } from "./field-ids";
 import type {
@@ -121,10 +124,23 @@ export function RegisterInviteExtension<T>(
     label: options.label,
     description: options.description,
     placement: resolvePlacement(options.placement),
+    // The core answers an empty string when it resolves no module, which
+    // must not read as one module shared by every unresolved registration.
+    moduleId: GetResponsibleModule() || undefined,
   };
 
   internal.RegisterInviteExtension.register(info);
   return () => internal.RegisterInviteExtension.unregister(info);
+}
+
+// An unresolved module matches nothing: two registrations whose owner is
+// unknown are not known to be the same module, so they still warn.
+function isSameRegisteringModule(
+  held: InviteExtensionInfo,
+  incoming: InviteExtensionInfo,
+): boolean {
+  if (held === incoming) return true;
+  return held.moduleId !== undefined && held.moduleId === incoming.moduleId;
 }
 
 /**
@@ -143,15 +159,17 @@ export namespace internal {
    * the departing one unregisters — leave the invite modal without the fields
    * until a full restart.
    *
-   * Two different modules on one key would overwrite each other's payload on
-   * the invitation, which is a declaration error; it cannot be told apart from
-   * a reload, so it is reported rather than raised.
+   * The holder is told apart by the module that registered it, not by the
+   * object: a reload re-registers a new one, and a DMS reload is replayed a
+   * fresh view of the same one. Two different modules on one key would
+   * overwrite each other's payload on the invitation, which is a declaration
+   * error; it is reported rather than raised, for the reason above.
    */
   export function applyInviteExtension(info: InviteExtensionInfo): void {
     const existing = inviteExtensions.get(info.key);
-    if (existing && existing.info !== info) {
+    if (existing && !isSameRegisteringModule(existing.info, info)) {
       Logging.Warn(
-        `[dms] invite extension key "${info.key}" was already registered; the latest registration now owns it. If two modules claim this key, one of them silently loses its payload — give them distinct keys.`,
+        `[dms] invite extension key "${info.key}" was already registered by another module; the latest registration now owns it. If two modules claim this key, one of them silently loses its payload — give them distinct keys.`,
       );
     }
     inviteExtensions.set(info.key, { info });
