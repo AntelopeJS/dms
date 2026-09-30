@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.5.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.8...v0.5.0)
+
+### 🚀 Enhancements
+
+- **frontend-vue:** Declare the @antelopejs/dms-frontend releases the layer supports ([#79](https://github.com/AntelopeJS/dms/pull/79))
+- **layout:** Let a page fill the height of the panel ([#80](https://github.com/AntelopeJS/dms/pull/80))
+
+### 🩹 Fixes
+
+- **realtime:** ⚠️  Let core own the table-view realtime across DMS reloads ([#73](https://github.com/AntelopeJS/dms/pull/73))
+- **hooks:** Release hook handlers and mutation listeners with the module that registered them ([#89](https://github.com/AntelopeJS/dms/pull/89))
+
+### 📖 Documentation
+
+- **saas-mode:** Select a published @antelopejs/dms-saas version ([#69](https://github.com/AntelopeJS/dms/pull/69))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.2.8 ([5da7b85](https://github.com/AntelopeJS/dms/commit/5da7b85))
+- **release:** @antelopejs/interface-dms v0.3.0 ([dbbdbf6](https://github.com/AntelopeJS/dms/commit/dbbdbf6))
+- **release:** @antelopejs/interface-dms v0.3.1 ([79f3448](https://github.com/AntelopeJS/dms/commit/79f3448))
+
+#### ⚠️ Breaking Changes
+
+- **realtime:** ⚠️  Let core own the table-view realtime across DMS reloads ([#73](https://github.com/AntelopeJS/dms/pull/73))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.4.8
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.7...v0.4.8)
