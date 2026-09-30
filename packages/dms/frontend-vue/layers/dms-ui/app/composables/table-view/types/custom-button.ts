@@ -10,4 +10,8 @@ export interface CustomButton {
   variant?: CustomButtonVariant;
   color?: ColorValue;
   target: ActionTarget;
+  /** Set by the server when the button cannot be pressed for this request. */
+  disabled?: boolean;
+  /** Why the button is disabled, shown in its tooltip. May be an i18n key. */
+  disabledReason?: string;
 }

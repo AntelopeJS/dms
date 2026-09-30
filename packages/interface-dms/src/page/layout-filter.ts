@@ -1,5 +1,9 @@
 import type { WatchAction } from "../base/types/watch";
-import type { ChildSerialized, ComponentInfoSerialized } from "../component";
+import type {
+  ChildSerialized,
+  ComponentFilterContext,
+  ComponentInfoSerialized,
+} from "../component";
 import { HasPermission } from "../permissions";
 import type { ComponentTreeNode } from "./component-tree";
 
@@ -14,6 +18,7 @@ async function filterComponentInfo(
   permissionId: string,
   permissions: Set<string>,
   componentMap: ComponentNodeMap,
+  context: ComponentFilterContext,
 ): Promise<ComponentInfoSerialized> {
   const filtered = { ...comp };
 
@@ -23,6 +28,7 @@ async function filterComponentInfo(
       permissionId,
       permissions,
       componentMap,
+      context,
     );
   }
 
@@ -32,6 +38,7 @@ async function filterComponentInfo(
       permissions,
       filtered.options,
       permissionId,
+      context,
     );
   }
 
@@ -89,6 +96,7 @@ async function filterAccessibleChildren(
   permissionId: string,
   permissions: Set<string>,
   componentMap: ComponentNodeMap,
+  context: ComponentFilterContext,
 ): Promise<ChildSerialized[]> {
   const childrenWithPermissions = await Promise.all(
     children.map(async (child: ChildSerialized) => {
@@ -116,6 +124,7 @@ async function filterAccessibleChildren(
             `${permissionId}.${id}`,
             permissions,
             componentMap,
+            context,
           ),
           ...additionalProps,
         };
@@ -128,6 +137,7 @@ export async function filterComponents(
   basePath: string,
   permissions: Set<string>,
   componentMap: ComponentNodeMap,
+  context: ComponentFilterContext,
 ): Promise<Record<string, ComponentInfoSerialized>> {
   const filtered: Record<string, ComponentInfoSerialized> = {};
 
@@ -139,6 +149,7 @@ export async function filterComponents(
         permissionId,
         permissions,
         componentMap,
+        context,
       );
     }
   }

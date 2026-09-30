@@ -11,6 +11,8 @@
  * - `delivery` — validation at submit, delivery at acceptance, cleanup
  * - `edit` — prefill, validation and notification of a pending invitation's
  *   edit
+ * - `availability` — `RegisterInviteAvailability`, which disables the invite
+ *   action with a reason
  *
  * `delivery` and `edit` are driven by the DMS runtime alone: they reach it
  * through `internal`, not as part of the contract an extension implements.
@@ -18,6 +20,10 @@
  * `form-slot` claims the invite forms' component slots on import, so importing
  * this barrel is what opens the modal and the edit form to extensions.
  */
+export {
+  type InviteAvailabilityResolver,
+  RegisterInviteAvailability,
+} from "./invite-extensions/availability";
 export * from "./invite-extensions/field-ids";
 export * from "./invite-extensions/form-slot";
 export { internal } from "./invite-extensions/internal";

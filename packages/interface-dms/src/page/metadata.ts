@@ -556,6 +556,7 @@ export class PageMetadata {
         this.pagePermissionId,
         permissions,
         this.componentMap,
+        { tenantId, user },
       ),
     };
   }

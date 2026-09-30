@@ -1,5 +1,6 @@
 import {
   Context,
+  Get,
   JSONBody,
   Parameter,
   Post,
@@ -30,7 +31,11 @@ import { ButtonVariant } from "@antelopejs/interface-dms/base/types";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { userCategory } from "./category";
-import { memberInviteForm } from "./member-invite-form";
+import {
+  type InviteFormDefaults,
+  memberInviteForm,
+  resolveInviteLanguage,
+} from "./member-invite-form";
 
 RegisterDataController()(memberSettingDataAPI);
 
@@ -137,6 +142,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       icon: "i-ph-user-plus",
       color: "primary",
       permission: "add",
+      availability: internal.ResolveInviteAvailability,
       target: {
         type: "modal",
         size: "lg",
@@ -217,6 +223,13 @@ export class MembersSettingsController extends PageController("members", {
   description: "$page.settings.description.members",
 }) {
   static table = membersTable;
+
+  @Get("/invite/defaults")
+  inviteDefaults(
+    @AuthUserWithPermission(membersTableAddAction) user: User,
+  ): InviteFormDefaults {
+    return { language: resolveInviteLanguage(user.language) };
+  }
 
   @Post("/invite")
   async invite(
