@@ -27,7 +27,10 @@ deployment has to resolve **the same installed copy**, or it registers into
 empty registries and nothing fires -- silently. `@antelopejs/core` checks this
 before constructing modules and fails with `Incompatible interface package
 resolution`, so the failure surfaces at startup. Keep its dependency ranges wide
-enough to deduplicate, and never vendor it into a module.
+enough to deduplicate, and never vendor it into a module. The DMS module is the
+one exception: it implements the interface, so `packages/dms` caps it below the
+next minor (`>=0.3.0 <0.4.0`), and a breaking interface minor never reaches a
+DMS that does not implement it. `release.yml` refuses any other shape.
 
 Across that boundary the runtime receives a per-context *view* of the values the
 interface hands it, not the values themselves. Reference equality does not

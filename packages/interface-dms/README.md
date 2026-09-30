@@ -49,6 +49,9 @@ other than the canonical one, so a mismatch is caught at startup rather than
 diagnosed later. Depend on it with a wide range -- `>=0.0.1 <1.0.0`, raising the lower bound
 to the version you actually need rather than pinning an upper one -- so package
 managers can deduplicate, and never vendor or bundle this package into a module.
+`@antelopejs/dms`, which implements this interface, is the exception: it caps its
+range below the next minor, so a breaking minor of this package never reaches an
+older DMS.
 
 One more consequence worth knowing when writing a module: the runtime hands a
 module a per-context view of the values it receives through an interface, so

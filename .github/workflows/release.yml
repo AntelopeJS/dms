@@ -36,17 +36,19 @@ jobs:
           const iface = require('./packages/interface-dms/package.json')
           // The interface sitting in the tree only has to SATISFY the range the
           // module publishes: a floor that lags it widens what consumers may
-          // install, it does not create a second copy. The fleet shape is
-          // `>=<floor> <1.0.0`, so the ceiling is out of reach for a 0.x
-          // interface and comparing the release triples is enough.
+          // install, it does not create a second copy. The module implements
+          // the interface, so it caps it below the next minor
+          // (`>=<floor> <0.<minor+1>.0`): a breaking interface minor must never
+          // reach a DMS that does not implement it.
           const compare = (a, b) => {
             const parts = (v) => v.split('-')[0].split('.').map(Number)
             const [x, y] = [parts(a), parts(b)]
             return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
           }
-          const satisfiesFleetRange = (version, range) => {
-            const floor = /^>=(\d+\.\d+\.\d+) <1\.0\.0$/.exec(range ?? '')?.[1]
-            return floor !== undefined && compare(version, floor) >= 0
+          const satisfiesImplementedRange = (version, range) => {
+            const match = /^>=(0\.(\d+)\.\d+) <(0\.(\d+)\.0)$/.exec(range ?? '')
+            if (!match || Number(match[4]) !== Number(match[2]) + 1) return false
+            return compare(version, match[1]) >= 0 && compare(version, match[3]) < 0
           }
           if (
             pkg.name !== '@antelopejs/dms' ||
@@ -56,13 +58,13 @@ jobs:
             pkg.publishConfig.registry !== 'https://registry.npmjs.org/' ||
             pkg.publishConfig.access !== 'public' ||
             pkg.publishConfig.provenance !== true ||
-            !satisfiesFleetRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
+            !satisfiesImplementedRange(iface.version, pkg.dependencies['@antelopejs/interface-dms']) ||
             // The runtime provides the interface package and nothing else.
             !pkg.antelopeJs.implements.includes('@antelopejs/interface-dms') ||
             pkg.antelopeJs.implements.some((name) => name !== '@antelopejs/interface-dms')
           ) process.exit(1)
           NODE
-      # The module depends on the interface through `>=<interface version> <1.0.0`,
+      # The module depends on the interface through `>=<floor> <0.<minor+1>.0`,
       # so a module released against an unpublished interface installs broken. The
       # interface is released by its own workflow; this one only refuses to run
       # before it has landed.
