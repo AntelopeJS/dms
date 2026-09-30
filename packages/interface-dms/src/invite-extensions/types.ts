@@ -145,6 +145,8 @@ export interface InviteExtensionInfo {
   label?: string;
   description?: string;
   placement: ResolvedInvitePlacement;
+  /** The module that registered the extension, undefined when unresolved. */
+  moduleId?: string;
 }
 
 /** Payloads stored on an invitation, keyed by extension key. */
