@@ -1,4 +1,5 @@
 import { Logging } from "@antelopejs/interface-core/logging";
+import type { User } from "./auth/db";
 import type {
   WatchAction,
   WatchActionCondition,
@@ -87,6 +88,28 @@ export function resolveButtonPermissionId(
   if (!componentPermissionId) return undefined;
   return `${componentPermissionId}.${permission}`;
 }
+
+/**
+ * The request a page layout is being filtered for. Handed to every
+ * component's filter along with the caller's permissions, so a component can
+ * adapt what it serves to the tenant and the user asking.
+ */
+export interface ComponentFilterContext {
+  tenantId: string;
+  /** Undefined for an unauthenticated request. */
+  user: User | undefined;
+}
+
+/**
+ * Adapts a component's serialized options to one request, after its
+ * permission has been granted.
+ */
+export type ComponentFilter<T> = (
+  permissions: Set<string>,
+  options: T,
+  permissionId: string,
+  context: ComponentFilterContext,
+) => MaybePromise<T>;
 
 export namespace ComponentEvents {
   export const LOAD = "DmsComponent.Load";
@@ -218,11 +241,7 @@ export class Component<T = unknown> {
   protected _componentInfo: ComponentInfoPromise<T>;
   protected _metadata: ComponentMetadata;
   protected _onPageCreated?: (page: PageMetadata) => void;
-  protected _onFilter?: (
-    permissions: Set<string>,
-    options: any,
-    permissionId: string,
-  ) => MaybePromise<any>;
+  protected _onFilter?: ComponentFilter<any>;
   protected _actions: Record<string, Action> = {};
   protected _buttons: Record<string, ComponentButton> = {};
   protected _placement?: ComponentPlacement;
@@ -419,11 +438,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     watches: WatchAction[],
     permissionId: string,
   ) => MaybePromise<WatchAction[]>;
-  private _userOnFilter?: (
-    permissions: Set<string>,
-    options: T,
-    permissionId: string,
-  ) => MaybePromise<T>;
+  private _userOnFilter?: ComponentFilter<T>;
 
   constructor(componentName: string) {
     const placeholderInfo: ComponentInfo<
@@ -526,13 +541,7 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return this;
   }
 
-  onFilter(
-    callback: (
-      permissions: Set<string>,
-      options: T,
-      permissionId: string,
-    ) => MaybePromise<T>,
-  ): this {
+  onFilter(callback: ComponentFilter<T>): this {
     this._userOnFilter = callback;
     this.installFilterChain();
     return this;
@@ -579,10 +588,15 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
   }
 
   private installFilterChain(): void {
-    this._onFilter = async (permissions, options, permissionId) => {
+    this._onFilter = async (permissions, options, permissionId, context) => {
       let next = options as T;
       if (this._userOnFilter) {
-        next = await this._userOnFilter(permissions, next, permissionId);
+        next = await this._userOnFilter(
+          permissions,
+          next,
+          permissionId,
+          context,
+        );
       }
       next = (await this.applyWatchFilters(
         permissions,

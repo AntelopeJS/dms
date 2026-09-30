@@ -1,3 +1,4 @@
+import * as availability from "./availability";
 import * as delivery from "./delivery";
 import * as edit from "./edit";
 import { internal as registry } from "./registry";
@@ -19,6 +20,9 @@ export namespace internal {
     delivery.CollectInviteExtensionPayloads;
   export const DeliverInviteExtensions = delivery.DeliverInviteExtensions;
   export const CleanupInviteExtensions = delivery.CleanupInviteExtensions;
+
+  export const ResolveInviteAvailability =
+    availability.ResolveInviteAvailability;
 
   export const ReadInviteExtensionFields = edit.ReadInviteExtensionFields;
   export const CollectInviteExtensionEdits = edit.CollectInviteExtensionEdits;

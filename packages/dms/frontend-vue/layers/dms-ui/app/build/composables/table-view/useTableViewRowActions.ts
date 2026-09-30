@@ -795,7 +795,19 @@ export const useTableRowActions = <T extends Data>(
     }
   };
 
+  // Reached for a disabled button only through a quick action, which presses
+  // it by id: the reason is told instead of the target being opened.
   const handleCustomButton = (button: CustomButton) => {
+    if (button.disabled) {
+      toast.add({
+        color: Color.warning,
+        title: processI18n(button.label),
+        description: button.disabledReason
+          ? processI18n(button.disabledReason)
+          : undefined,
+      });
+      return;
+    }
     handleActionTarget(button.target, button.label);
   };
 

@@ -1,4 +1,5 @@
-import type { ButtonPermission } from "../../component";
+import type { ButtonPermission, ComponentFilterContext } from "../../component";
+import type { MaybePromise } from "../../types";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
 import type { ButtonVariant } from "./button";
 
@@ -10,6 +11,27 @@ export type ButtonColor =
   | "warning"
   | "info"
   | "neutral";
+
+/** Why a button cannot be pressed right now. */
+export interface CustomButtonUnavailability {
+  /**
+   * Shown next to the disabled button: what blocks it, and how to lift the
+   * block when the user can. A `$`-prefixed value resolves as an i18n key.
+   */
+  reason: string;
+}
+
+/**
+ * Decides, per request, whether a button can be pressed. Runs server-side
+ * while the page layout is filtered, so the button reaches the client already
+ * disabled. Returning `undefined` leaves it enabled.
+ *
+ * It only shapes the UI: whatever the button triggers must still refuse the
+ * operation on its own.
+ */
+export type CustomButtonAvailability = (
+  context: ComponentFilterContext,
+) => MaybePromise<CustomButtonUnavailability | undefined>;
 
 export interface CustomButton {
   /**
@@ -29,11 +51,20 @@ export interface CustomButton {
    * serialized options when the caller lacks the permission.
    */
   permission?: ButtonPermission;
+  /**
+   * Disables the button for a request it answers with a reason. A button the
+   * caller lacks the permission for is stripped before this runs.
+   */
+  availability?: CustomButtonAvailability;
 }
 
 export interface CustomButtonSerialized extends Omit<
   CustomButton,
-  "target" | "permission"
+  "target" | "permission" | "availability"
 > {
   target: ActionTargetSerialized;
+  /** Set when the button's `availability` refused this request. */
+  disabled?: boolean;
+  /** The reason `availability` gave, shown next to the disabled button. */
+  disabledReason?: string;
 }

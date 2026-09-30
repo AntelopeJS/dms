@@ -37,7 +37,7 @@ import {
   buildFilterSubmitDefaults,
   buildFormPageUrls,
   buildFormRedirectUrl,
-  filterCustomButtonsByPermission,
+  resolveCustomButtons,
   FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
   type FormPageKind,
@@ -172,10 +172,12 @@ export function TableView<T extends ControllerClass>(
 
   const declaredCustomButtons = options.customButtons;
   const serializedCustomButtons: CustomButtonSerialized[] | undefined =
-    declaredCustomButtons?.map(({ permission: _permission, ...btn }) => ({
-      ...btn,
-      target: serializeActionTarget(btn.target),
-    }));
+    declaredCustomButtons?.map(
+      ({ permission: _permission, availability: _availability, ...btn }) => ({
+        ...btn,
+        target: serializeActionTarget(btn.target),
+      }),
+    );
 
   const serializeRowActions = (
     rowActions: TableViewRowActionOptions<InstanceType<T>>,
@@ -417,7 +419,7 @@ export function TableView<T extends ControllerClass>(
         registerFormPage(kind);
       }
     })
-    .onFilter(async (permissions, options, permissionId) => {
+    .onFilter(async (permissions, options, permissionId, context) => {
       const hasAddPermission = await HasPermission(
         permissions,
         `${permissionId}.add`,
@@ -518,11 +520,12 @@ export function TableView<T extends ControllerClass>(
         adaptedRowActions.details = false;
       }
 
-      const adaptedCustomButtons = await filterCustomButtonsByPermission(
+      const adaptedCustomButtons = await resolveCustomButtons(
         permissions,
         declaredCustomButtons,
         options.customButtons,
         permissionId,
+        context,
       );
 
       return {

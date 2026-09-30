@@ -244,15 +244,25 @@ const uiTableActions = computed(() => uiTableActionsVariant());
       @click="tableSharedData!.emits('add')"
     />
 
-    <UButton
+    <!-- A disabled button fires no pointer event: the tooltip hangs on a
+      wrapper, focusable so the reason also reaches keyboard users. -->
+    <UTooltip
       v-for="(button, index) in customButtons"
       :key="`custom-btn-${index}`"
-      :label="processI18n(button.label)"
-      :icon="button.icon"
-      :variant="button.variant"
-      :color="button.color"
-      size="sm"
-      @click="props.onCustomButton?.(button)"
-    />
+      :text="button.disabledReason && processI18n(button.disabledReason)"
+      :disabled="!button.disabled || !button.disabledReason"
+    >
+      <span :tabindex="button.disabled ? 0 : undefined" class="inline-flex">
+        <UButton
+          :label="processI18n(button.label)"
+          :icon="button.icon"
+          :variant="button.variant"
+          :color="button.color"
+          :disabled="button.disabled"
+          size="sm"
+          @click="props.onCustomButton?.(button)"
+        />
+      </span>
+    </UTooltip>
   </div>
 </template>

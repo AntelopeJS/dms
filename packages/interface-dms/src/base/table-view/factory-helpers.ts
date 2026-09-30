@@ -7,7 +7,11 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
-import { ComponentBuilder, resolveButtonPermissionId } from "../../component";
+import {
+  ComponentBuilder,
+  type ComponentFilterContext,
+  resolveButtonPermissionId,
+} from "../../component";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
 import { type FormBuilder, FormEvents } from "../form-types";
@@ -77,32 +81,76 @@ export function applyPermissionToAction(
   return typeof actionConfig === "undefined" ? true : actionConfig;
 }
 
-// Buttons declaring a permission the caller lacks are stripped from the
-// serialized options; a declared permission that cannot be resolved to an id
-// (e.g. an action on a page that never registered) fails closed.
-export async function filterCustomButtonsByPermission(
+// A declared permission that cannot be resolved to an id (e.g. an action on a
+// page that never registered) fails closed.
+async function isCustomButtonGranted(
+  permissions: Set<string>,
+  declared: CustomButton | undefined,
+  componentPermissionId: string,
+): Promise<boolean> {
+  if (declared?.permission === undefined) return true;
+  const permissionId = resolveButtonPermissionId(
+    declared.permission,
+    componentPermissionId,
+  );
+  return !!permissionId && (await HasPermission(permissions, permissionId));
+}
+
+// A resolver that throws leaves the button enabled: the operation behind it
+// still refuses on its own, and failing the layout would take the page down.
+async function applyCustomButtonAvailability(
+  declared: CustomButton | undefined,
+  serialized: CustomButtonSerialized,
+  context: ComponentFilterContext,
+): Promise<CustomButtonSerialized> {
+  if (!declared?.availability) return serialized;
+  try {
+    const unavailability = await declared.availability(context);
+    if (!unavailability) return serialized;
+    return {
+      ...serialized,
+      disabled: true,
+      disabledReason: unavailability.reason,
+    };
+  } catch (error) {
+    Logging.Error(
+      `[dms] availability of button "${serialized.id ?? serialized.label}" could not be resolved:`,
+      error,
+    );
+    return serialized;
+  }
+}
+
+/**
+ * The custom buttons served to one request: those whose permission the caller
+ * lacks are stripped, and those whose `availability` refuses the request are
+ * disabled with its reason.
+ */
+export async function resolveCustomButtons(
   permissions: Set<string>,
   declaredButtons: CustomButton[] | undefined,
   serializedButtons: CustomButtonSerialized[] | undefined,
   componentPermissionId: string,
+  context: ComponentFilterContext,
 ): Promise<CustomButtonSerialized[] | undefined> {
   if (!declaredButtons || !serializedButtons) {
     return serializedButtons;
   }
   const kept: CustomButtonSerialized[] = [];
   for (const [index, serialized] of serializedButtons.entries()) {
-    const declaredPermission = declaredButtons[index]?.permission;
-    if (declaredPermission === undefined) {
-      kept.push(serialized);
+    const declared = declaredButtons[index];
+    if (
+      !(await isCustomButtonGranted(
+        permissions,
+        declared,
+        componentPermissionId,
+      ))
+    ) {
       continue;
     }
-    const permissionId = resolveButtonPermissionId(
-      declaredPermission,
-      componentPermissionId,
+    kept.push(
+      await applyCustomButtonAvailability(declared, serialized, context),
     );
-    if (permissionId && (await HasPermission(permissions, permissionId))) {
-      kept.push(serialized);
-    }
   }
   return kept;
 }

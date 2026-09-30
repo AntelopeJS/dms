@@ -14,6 +14,27 @@ export const inviteLanguageSelectItems = [
   { value: "fr", label: "Français" },
 ];
 
+const DEFAULT_INVITE_LANGUAGE = "en";
+
+export const INVITE_DEFAULTS_URL = "/settings/user/members/invite/defaults";
+
+export interface InviteFormDefaults {
+  language: string;
+}
+
+/**
+ * The invitation language offered first: the inviter's own UI language, which
+ * is most often the one the team works in. The DMS keeps no per-workspace
+ * locale to prefer over it.
+ */
+export function resolveInviteLanguage(language: string | undefined): string {
+  const code = language?.slice(0, 2);
+  const isOffered = inviteLanguageSelectItems.some(
+    (item) => item.value === code,
+  );
+  return code && isOffered ? code : DEFAULT_INVITE_LANGUAGE;
+}
+
 function nameRequirementWatch(targetField: string, setRequired: boolean) {
   return {
     params: { targetField, setRequired },
@@ -76,7 +97,8 @@ export const memberInviteForm = Form({
         items: inviteLanguageSelectItems,
       }),
       required: true,
-      defaultValue: "en",
+      // Until the inviter's own language arrives from `fetchUrl`.
+      defaultValue: DEFAULT_INVITE_LANGUAGE,
     },
     {
       id: "asTenantOwner",
@@ -100,6 +122,7 @@ export const memberInviteForm = Form({
   fieldsOrientation: "vertical",
   // Modules attach their own fields here through `RegisterInviteExtension`.
   slotId: INVITE_FORM_SLOT_ID,
+  fetchUrl: INVITE_DEFAULTS_URL,
   submitUrl: "/settings/user/members/invite",
   submitUrlMethod: HttpMethod.post,
   submitLabel: "$page.settings.members.invite.submit",
