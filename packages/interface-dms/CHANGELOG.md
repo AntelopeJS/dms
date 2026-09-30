@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.3.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.0...v0.3.1)
+
+### 🩹 Fixes
+
+- **hooks:** Release hook handlers and mutation listeners with the module that registered them ([#89](https://github.com/AntelopeJS/dms/pull/89))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.3.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.2.8...v0.3.0)
