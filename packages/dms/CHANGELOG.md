@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.5.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.0...v0.5.1)
+
+### 🚀 Enhancements
+
+- **members:** Let a module disable the invite action with a reason ([#96](https://github.com/AntelopeJS/dms/pull/96))
+
+### 🏡 Chore
+
+- **lint:** Check @antelopejs/interface-* ranges ([#95](https://github.com/AntelopeJS/dms/pull/95))
+- **release:** @antelopejs/interface-dms v0.3.2 ([d186a97](https://github.com/AntelopeJS/dms/commit/d186a97))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.4.8...v0.5.0)
