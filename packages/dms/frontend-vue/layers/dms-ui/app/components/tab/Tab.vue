@@ -73,7 +73,7 @@ defineExpose({
       :unmount-on-hide="props.unmountOnHide"
     >
       <template v-for="item in props.items" :key="item.slot" #[item.slot]>
-        <div class="p-4">
+        <div class="space-y-6 p-4">
           <slot :name="item.slot" />
         </div>
       </template>
