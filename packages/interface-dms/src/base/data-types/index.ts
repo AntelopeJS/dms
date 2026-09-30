@@ -2,9 +2,9 @@
 // them -- default-types, status-type -- can import them without going through
 // the file that re-exports those very modules.
 export * from "./core";
-// The third built-in catalogue, next to the two below. It was split out of
-// default-types.ts and, unlike them, registers nothing as it evaluates, so it
-// joins the barrel as a plain re-export.
+// The third built-in catalogue, next to the two below. It registers its
+// compare modes as it evaluates, like them, but it imports core.ts only, so it
+// forms no cycle with this barrel and joins it as a plain re-export.
 export * from "./compare-types";
 // The cycle is what registers the default data types: they declare
 // themselves through decorators, and this barrel is the only value

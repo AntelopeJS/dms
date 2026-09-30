@@ -26,7 +26,10 @@ const dataCompareModesMetadata = new Map<
   DataCompareModeMetadata
 >();
 const dataTypes: Record<string, Class<DataType>> = {};
-const dataTypesReverse = new Map<Class<DataType>, string>();
+// Weak: a hot reload registers a module's data types again as new classes, and
+// the replaced ones must not stay reachable through this lookup. Only read
+// through `get`, which a WeakMap supports.
+const dataTypesReverse = new WeakMap<Class<DataType>, string>();
 
 export interface DataCompareMode {
   filter(

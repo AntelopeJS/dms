@@ -1,4 +1,7 @@
-import { ImplementInterface } from "@antelopejs/interface-core";
+import {
+  GetResponsibleModule,
+  ImplementInterface,
+} from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { z } from "zod";
 import * as inviteExtensionsImpl from "../../../../implementations/dms/invite-extensions";
@@ -21,10 +24,12 @@ import {
   INVITE_FORM_SLOT_ID,
   type InviteCleanupContext,
   type InviteExtensionContext,
+  type InviteExtensionInfo,
   type InviteExtensionOptions,
   internal,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
+import { getInviteExtension } from "@antelopejs/interface-dms/invite-extensions/registry";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   GetPageLayoutBySlug,
@@ -43,6 +48,7 @@ import {
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
+import { captureWarnings } from "../../../helpers/logging";
 
 const TENANT = "ie-tenant";
 const MEMBER = { _id: "member-1", userId: "user-1" } as TenantMember;
@@ -91,6 +97,23 @@ function register<T>(options: InviteExtensionOptions<T>): () => void {
   const dispose = RegisterInviteExtension(options);
   disposers.push(dispose);
   return dispose;
+}
+
+/** A registration as the proxy hands it over, owned by `moduleId`. */
+function infoOf(
+  key: string,
+  fieldId: string,
+  moduleId: string,
+): InviteExtensionInfo {
+  const { options } = recordingExtension(key, fieldId);
+  return {
+    key,
+    component: options.component,
+    schema: options.schema,
+    onAccept: options.onAccept as InviteExtensionInfo["onAccept"],
+    placement: { side: "end", order: 0 },
+    moduleId,
+  };
 }
 
 interface Recorded {
@@ -660,6 +683,60 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         "roles",
         "billing__b",
       ]);
+    });
+
+    // A reload is replayed straight into the registry, the way the proxy hands
+    // it over: the core runs every interface call in the importing module's
+    // context, so a test cannot stand in for another module's generation.
+    it("stays quiet when the next generation of a module reclaims its key", async () => {
+      const departing = infoOf("billing", "a", "ie-reloaded");
+      const next = infoOf("billing", "b", "ie-reloaded");
+      internal.applyInviteExtension(departing);
+      const warnings = captureWarnings();
+      try {
+        internal.applyInviteExtension(next);
+        internal.revokeInviteExtension(departing);
+      } finally {
+        warnings.restore();
+      }
+      await registerHostPage("ie-generation");
+
+      try {
+        expect(warnings.messages).to.deep.equal([]);
+        expect(
+          fieldIds(await hostLayoutFields("/ie-generation")),
+        ).to.deep.equal(["email", "roles", "billing__b"]);
+      } finally {
+        internal.revokeInviteExtension(next);
+      }
+      expect(fieldIds(await hostLayoutFields("/ie-generation"))).to.deep.equal([
+        "email",
+        "roles",
+      ]);
+    });
+
+    it("warns when a different module claims a key already held", () => {
+      const held = infoOf("billing", "a", "ie-holder");
+      const claimed = infoOf("billing", "b", "ie-claimant");
+      internal.applyInviteExtension(held);
+      const warnings = captureWarnings();
+      try {
+        internal.applyInviteExtension(claimed);
+      } finally {
+        warnings.restore();
+        internal.revokeInviteExtension(claimed);
+      }
+
+      expect(warnings.messages).to.have.length(1);
+      expect(warnings.messages[0]).to.include('"billing"');
+    });
+
+    it("records the module that registered the extension", () => {
+      const registering = GetResponsibleModule();
+      register(recordingExtension("billing", "a").options);
+
+      expect(registering).to.be.a("string").that.is.not.empty;
+      expect(getInviteExtension("billing")?.moduleId).to.equal(registering);
     });
 
     it("delivers to the registration that currently owns the key", async () => {
