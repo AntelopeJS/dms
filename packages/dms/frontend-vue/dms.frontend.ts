@@ -2,6 +2,7 @@ import { defineAsyncComponent, type Component } from "vue";
 import {
   type DmsFrontendModule,
   useDmsAppConfig,
+  useDmsRuntimeConfig,
 } from "#dms/frontend-module";
 import { defu } from "defu";
 import appConfig from "./layers/dms-layout/app/app.config";
@@ -171,9 +172,9 @@ function registerMiddleware(
 
 const frontendModule: DmsFrontendModule = {
   setup(sdk) {
-    const publicOptions = sdk.options.public as DmsPublicOptions;
-    if (publicOptions.dms && typeof window !== "undefined")
-      publicOptions.dms.baseURL = window.location.origin;
+    const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
+    if (runtimeDms && typeof window !== "undefined")
+      runtimeDms.baseURL = window.location.origin;
     const runtimeAppConfig = useDmsAppConfig();
     Object.assign(runtimeAppConfig, defu(runtimeAppConfig, appConfig));
     registerPlugins(sdk);

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { withoutTrailingSlash } from "ufo";
 
+defineOptions({ inheritAttrs: false });
+
 // Dev-only: created behind the flag so the key never reaches a production
 // SSR payload.
 const devReloading = import.meta.env.DEV ? useDevReloading() : ref(false);
