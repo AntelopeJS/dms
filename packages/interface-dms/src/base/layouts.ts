@@ -106,15 +106,15 @@ function serializeHeaderAction(
 
 export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {
   const { headerActions, ...rest } = options ?? {};
+  const layoutOptions: Omit<DefaultLayoutOptions, "headerActions"> & {
+    headerActions?: PageHeaderActionSerialized[];
+  } = { fullWidth: true, ...rest };
+  if (headerActions) {
+    layoutOptions.headerActions = headerActions.map(serializeHeaderAction);
+  }
   return {
     componentName: "dms-default-layout",
-    options: {
-      fullWidth: true,
-      ...rest,
-      ...(headerActions
-        ? { headerActions: headerActions.map(serializeHeaderAction) }
-        : {}),
-    },
+    options: layoutOptions,
   };
 }
 
