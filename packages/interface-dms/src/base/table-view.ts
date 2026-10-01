@@ -13,7 +13,10 @@
  * - `realtime` — mutation/presence broadcasting around routes, and the topics
  *   a table view registers for its page
  * - `routes` — the assembled `TableViewRoutes` a data controller mounts
- * - `factory` — the `TableView()` builder that ties it all together
+ * - `factory` — the `TableView()` builder that ties it all together, with
+ *   `factory-helpers` (serialization, actions, form pages), `validation`
+ *   (declaration checks), `tabs` (filter tabs), `request-filter` (what one
+ *   request is served) and `table-view-key` (the table a write comes from)
  * - `resource-form` — the forms over a resource, shared by `TableView()` and
  *   the `ResourceForm()` block
  *
