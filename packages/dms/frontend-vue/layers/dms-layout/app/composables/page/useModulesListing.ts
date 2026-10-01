@@ -6,6 +6,7 @@ type ModulesListingEntry = ModuleInfo & {
 const STATE_KEY_MODULES = "dms-modulesListing";
 const STATE_KEY_LOADING = "dms-modulesListingLoading";
 const STATE_KEY_ERROR = "dms-modulesListingError";
+const IN_FLIGHT_MODULES_LISTING_KEY = "__dmsInFlightModulesListing";
 const ENDPOINT_MODULES_LISTING = "/dms/modules-listing";
 const ERROR_FORBIDDEN_MESSAGE = "Forbidden: only owners can list modules";
 const ERROR_UNKNOWN_MESSAGE = "Unknown error loading modules listing";
@@ -26,8 +27,6 @@ function extractErrorMessage(error: unknown): string {
   return ERROR_UNKNOWN_MESSAGE;
 }
 
-let inFlightLoadingPromise: Promise<void> | null = null;
-
 export const useModulesListing = () => {
   const modules = useDmsState<ModulesListingEntry[] | undefined>(
     STATE_KEY_MODULES,
@@ -35,6 +34,21 @@ export const useModulesListing = () => {
   );
   const isLoading = useDmsState<boolean>(STATE_KEY_LOADING, () => false);
   const loadingError = useDmsState<string | null>(STATE_KEY_ERROR, () => null);
+
+  // Held on the DMS app, like the in-flight fetches of useSiteLayout: every
+  // caller writes the same listing state, so they share one fetch. Not module
+  // scope, which the server shares across the requests it renders at once: a
+  // second render would wait on the first one's fetch, whose answer lands in
+  // the first request's state, and render an empty listing.
+  const dmsApp = useDmsApp() as unknown as Record<PropertyKey, unknown>;
+  const inFlightLoadingPromise = {
+    get value(): Promise<void> | null {
+      return (dmsApp[IN_FLIGHT_MODULES_LISTING_KEY] as Promise<void>) ?? null;
+    },
+    set value(promise: Promise<void> | null) {
+      dmsApp[IN_FLIGHT_MODULES_LISTING_KEY] = promise;
+    },
+  };
 
   function fetchModulesListing(): Promise<void> {
     const { $authFetch } = useAuthFetch();
@@ -51,16 +65,16 @@ export const useModulesListing = () => {
       })
       .finally(() => {
         isLoading.value = false;
-        inFlightLoadingPromise = null;
+        inFlightLoadingPromise.value = null;
       });
 
-    inFlightLoadingPromise = promise;
+    inFlightLoadingPromise.value = promise;
     return promise;
   }
 
   async function loadModulesListing(): Promise<void> {
-    if (inFlightLoadingPromise) {
-      await inFlightLoadingPromise;
+    if (inFlightLoadingPromise.value) {
+      await inFlightLoadingPromise.value;
       return;
     }
     if (modules.value !== undefined) {
@@ -70,8 +84,8 @@ export const useModulesListing = () => {
   }
 
   async function refresh(): Promise<void> {
-    if (inFlightLoadingPromise) {
-      await inFlightLoadingPromise;
+    if (inFlightLoadingPromise.value) {
+      await inFlightLoadingPromise.value;
     }
     modules.value = undefined;
     loadingError.value = null;
