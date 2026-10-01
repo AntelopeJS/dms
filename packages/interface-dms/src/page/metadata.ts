@@ -54,7 +54,9 @@ import {
   pageLayoutHandlers,
   pageMetadataByFullId,
   stampPageRegistration,
+  isPageExtensionRegistered,
   permissionMap,
+  runAsPageExtensionOwner,
   syncTargetExtensions,
 } from "./registry";
 import {
@@ -860,6 +862,9 @@ export class PageMetadata {
     }
 
     for (const [declarationIndex, contribution] of info.components.entries()) {
+      // Revoked mid-way: its module is going away, and running in that
+      // module's context now would claim a generation that is being released.
+      if (!isPageExtensionRegistered(info)) break;
       entries.push({
         ...contribution,
         extensionName: info.extensionName,
@@ -867,11 +872,14 @@ export class PageMetadata {
       });
       try {
         const componentPath = this.extensionComponentPath(contribution);
-        const prepare = this.prepareComponent(
-          contribution.component,
-          componentPath,
+        // Both halves, as the extending module: the claim registers
+        // permissions and runs `onCreated`, the serialization binds native
+        // upload fields.
+        const prepare = runAsPageExtensionOwner(info, () =>
+          this.prepareComponent(contribution.component, componentPath),
         );
-        entries[entries.length - 1].serialized = (await prepare()).serialized;
+        const { serialized } = await runAsPageExtensionOwner(info, prepare);
+        entries[entries.length - 1].serialized = serialized;
       } catch (error) {
         entries.pop();
         this.unregisterComponent(

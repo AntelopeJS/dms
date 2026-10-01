@@ -30,6 +30,7 @@ import {
   pageIdentity,
   pageMetadataByFullId,
   type RegistrationIdentity,
+  capturePageExtensionContext,
   syncTargetExtensions,
 } from "./registry";
 import {
@@ -72,6 +73,21 @@ class IdentifiedRegisteringProxy<T extends object> extends RegisteringProxy<
 }
 
 /**
+ * Captures the registering module's context before the extension reaches the
+ * DMS, which applies it -- now and on every later sync -- from its own.
+ */
+class PageExtensionRegisteringProxy extends IdentifiedRegisteringProxy<PageExtensionInfo> {
+  constructor() {
+    super(pageExtensionIdentity);
+  }
+
+  override register(value: PageExtensionInfo): void {
+    capturePageExtensionContext(value);
+    super.register(value);
+  }
+}
+
+/**
  * @internal
  */
 export namespace internal {
@@ -89,8 +105,7 @@ export namespace internal {
       dynamicMenuProviderIdentity,
     );
 
-  export const RegisterPageExtension =
-    new IdentifiedRegisteringProxy<PageExtensionInfo>(pageExtensionIdentity);
+  export const RegisterPageExtension = new PageExtensionRegisteringProxy();
 
   export function clearModuleResolution(id: string): void {
     moduleRootCategories.delete(id);
