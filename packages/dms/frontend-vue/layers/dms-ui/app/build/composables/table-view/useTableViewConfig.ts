@@ -93,7 +93,9 @@ export const useTableViewConfig = <T extends Data>(
       .filter((col) => col.listable)
       .map((col) => ({
         ...col,
-        header: processI18n(col.header),
+        // A column's `display` may name its grid header ("Member" for a
+        // name drawn with its avatar and address).
+        header: processI18n(col.display?.label ?? col.header),
       })),
   );
 
@@ -111,10 +113,16 @@ export const useTableViewConfig = <T extends Data>(
 
   const defaultDisplay = config.defaultDisplay ?? TABLE_DISPLAY_ID;
 
-  const initialVisibility = buildInitialColumnVisibility(config.columns ?? []);
+  const initialVisibility = buildInitialColumnVisibility(
+    config.columns ?? [],
+    config.hiddenColumns,
+  );
 
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),
+    density: config.density,
+    stickyHeader: config.stickyHeader,
+    maxHeight: config.maxHeight,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
     customNavItems: config.customNavItems,

@@ -142,8 +142,12 @@ async function buildIdsExportQuery(
       // payload or a filter tuple, none of which the type system sees.
       // oxlint-disable-next-line anti-slop/no-chained-type-assertions
       const archiveValue = archiveConstraint[0] as unknown as boolean;
+      // "ne" also matches rows whose archive field was never written.
+      const isNotEqual = archiveConstraint[1] === "ne";
       query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
-        row.key(archiveField).eq(archiveValue),
+        isNotEqual
+          ? row.key(archiveField).ne(archiveValue)
+          : row.key(archiveField).eq(archiveValue),
       );
     }
   }
@@ -422,6 +426,11 @@ export async function validateRowsAgainstRule(
   return { eligibleIds, rejectedIds };
 }
 
+// The rows the write reached: an id with no row is not counted, so the caller
+// can tell how many of its selection were left untouched.
+const updatedRowCount = (updated: unknown, ids: string[]): number =>
+  typeof updated === "number" ? updated : ids.length;
+
 export async function archiveRows(
   controller: any,
   _ctx: RequestContext,
@@ -444,11 +453,11 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  await model.table.getAll(idArray, idField).update({
+  const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: true,
   } as any);
 
-  return { success: true, archivedCount: idArray.length };
+  return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
 
 export async function restoreRows(
@@ -473,11 +482,11 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  await model.table.getAll(idArray, idField).update({
+  const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: false,
   } as any);
 
-  return { success: true, restoredCount: idArray.length };
+  return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }
 
 export const listWithSearch = listWithSearchFunc;

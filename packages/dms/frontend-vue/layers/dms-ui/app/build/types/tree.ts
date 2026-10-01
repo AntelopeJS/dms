@@ -52,6 +52,7 @@ function buildNavigationItem(
     to,
     variant: item.variant,
     status: item.status,
+    badge: item.badge,
     children: children.length > 0 ? children : undefined,
   };
 }

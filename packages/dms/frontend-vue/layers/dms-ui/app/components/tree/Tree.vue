@@ -133,18 +133,10 @@ defineShortcuts(
 </script>
 
 <template>
-  <DmsCard>
-    <template v-if="props.title">
-      <section class="space-y-1">
-        <h2 class="text-highlighted text-xl font-semibold">
-          {{ processI18n(props.title) }}
-        </h2>
-
-        <p v-if="props.description" class="text-dimmed text-sm">
-          {{ processI18n(props.description) }}
-        </p>
-      </section>
-    </template>
+  <DmsCard :title="props.title ? processI18n(props.title) : undefined">
+    <p v-if="props.description" class="text-muted text-[13px]">
+      {{ processI18n(props.description) }}
+    </p>
 
     <div
       ref="treeContainer"

@@ -1,3 +1,4 @@
+import type { ControllerClass } from "@antelopejs/interface-api";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
 import type { ColorValue } from "../types";
@@ -17,6 +18,13 @@ import type { ModalSize } from "../types/size";
 export const TABLE_VIEW_COMPONENT_NAME = "dms-table-view";
 
 export const DEFAULT_ROW_ID_FIELD = "_id";
+
+/**
+ * Query key naming the table view a write comes from (its `tableViewKey`):
+ * the row rules of that table, and its permission, apply to the request.
+ * Several table views share a controller's routes; their rules do not.
+ */
+export const TABLE_VIEW_QUERY_KEY = "tableView";
 
 export interface TableViewRowActionOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
@@ -94,10 +102,118 @@ export interface TableViewTabFilter {
 export interface TableViewTab {
   id: string;
   label: string;
-  filters: TableViewTabFilter[];
+  /**
+   * Hidden filters the tab applies. A link tab (`to`) applies none. A tab
+   * with the id `"all"` stands in for the implicit "all" tab, at its own
+   * position, with its own label and icon.
+   */
+  filters?: TableViewTabFilter[];
   icon?: string;
   textColor?: ColorValue;
   iconColor?: ColorValue;
+  /**
+   * Turns the tab into a link to another page, typically a sibling list
+   * (Members ↔ Invitations): a registered page controller, whose URL and
+   * permission the tab follows, or a dashboard path.
+   */
+  to?: ControllerClass | string;
+  /**
+   * Permission id a caller must hold to be served a link tab given as a
+   * path. A page controller target uses that page's own permission.
+   */
+  permission?: string;
+  /**
+   * Data controller (or data API location, e.g. `"/api/tables/invites"`)
+   * whose row total a link tab shows as its counter.
+   */
+  countFrom?: ControllerClass | string;
+  /**
+   * Publishes the tab's counter as the navigation badge of the page it
+   * stands for: the linked page, or this table's page for a filter tab.
+   */
+  badge?: boolean;
+}
+
+/** A tab as it reaches the client: link targets resolved to paths. */
+export interface TableViewTabSerialized extends Omit<
+  TableViewTab,
+  "to" | "countFrom" | "permission" | "filters"
+> {
+  filters: TableViewTabFilter[];
+  /** Path the link tab opens. */
+  to?: string;
+  /** Full id of the page a link tab opens, when it is a registered page. */
+  toPage?: string;
+  /** Data API location whose total the link tab shows. */
+  countFrom?: string;
+}
+
+/** Ready-made chrome sets; see {@link TableViewChromeOptions}. */
+export type TableViewChromePreset = "full" | "minimal";
+
+/**
+ * Which controls the table draws around its rows. Every toggle defaults to
+ * the preset's value: `"full"` (the default) turns them all on with a
+ * toggle search; `"minimal"` keeps an open search field, the tabs, quick
+ * filters, custom buttons, sortable headers and a footer without the page
+ * size picker — the reduced list of a settings page.
+ */
+export interface TableViewChromeOptions {
+  preset?: TableViewChromePreset;
+  /**
+   * Caption heading and row count. Without it, the tabs move up into the
+   * header band, left of the controls.
+   */
+  caption?: boolean;
+  /**
+   * Search: `true` a button that opens a field, `"field"` an always-open
+   * field, `false` none. Needs `@Searchable` fields.
+   */
+  search?: boolean | "field";
+  /** Filter button and filters row. */
+  filters?: boolean;
+  /** Sort popover button. Sortable column headers stay clickable. */
+  sorting?: boolean;
+  /** Refresh button. */
+  refresh?: boolean;
+  /** The ⋯ table menu: columns, density, export, import, page size. */
+  menu?: boolean;
+  /** Column header menus (sort, hide, pin) and column resizing. */
+  columnMenus?: boolean;
+  /** Rows-per-page picker in the footer. */
+  pageSize?: boolean;
+}
+
+/**
+ * A one-click filter drawn in the toolbar as a dropdown button listing the
+ * values of a column: a select's items, a boolean's two labels, or the rows
+ * a relation points to. Not persisted, not shown in the filters row.
+ */
+export interface TableViewQuickFilter {
+  /** Filterable column the control filters on. */
+  field: string;
+  /** Button text while no value is picked; defaults to the column name. */
+  label?: string;
+  /** Button icon; defaults to a funnel. */
+  icon?: string;
+  /** Text of the entry that clears the filter; defaults to "All". */
+  allLabel?: string;
+  /**
+   * Compare mode of the filter. Defaults to `array_contains_string` for a
+   * multiple relation or select, `is` otherwise.
+   */
+  mode?: string;
+}
+
+/** Texts of the footer band. */
+export interface TableViewFooterOptions {
+  /**
+   * Row count text, an i18n key with `$` receiving `{ count }` and pluralized
+   * on it ("7 members"). Defaults to "{count} items".
+   */
+  countLabel?: string;
+  /** A hint at the right of the count. `$`-prefixed: an i18n key. */
+  hint?: string;
 }
 
 export interface KanbanOptionsSerialized extends Omit<
@@ -113,6 +229,12 @@ export interface TableViewDisplayCapabilities {
   search?: boolean;
   sorting?: boolean;
   tabs?: boolean;
+  /**
+   * Whether the table keeps its own chrome (caption, toolbar, tabs, filters
+   * row, bulk bar) around a display that draws a complete interface itself.
+   * Defaults to true.
+   */
+  header?: boolean;
 }
 
 export interface TableViewDisplayOption {
@@ -130,9 +252,63 @@ export interface TableViewDisplayOptionSerialized extends Omit<
   component?: ComponentInfoSerialized;
 }
 
+/** A field of the expanded row's detail band. */
+export interface TableViewExpandableField {
+  /** Column key; the value renders through that column's data type. */
+  key: string;
+  /** Label shown instead of the column's name. `$`-prefixed: an i18n key. */
+  label?: string;
+}
+
+/** Which rows open on arrival and after the listed set changes. */
+export type TableViewExpandedDefault = "none" | "first" | "all";
+
+/**
+ * Expandable rows: a caret column opens a detail band under the row. The band
+ * shows `fields` as a label/value list, `component` as a registered frontend
+ * component, or both side by side.
+ */
+export interface TableViewExpandableOptions {
+  /**
+   * Columns listed in the band, each value rendered with its column's data
+   * type. A column must be listable to carry a value; hide it from the grid
+   * with `isVisible: false` (or `hiddenColumns`) to show it only here.
+   */
+  fields?: Array<string | TableViewExpandableField>;
+  /** Eyebrow above the field list. `$`-prefixed: an i18n key. */
+  fieldsLabel?: string;
+  /**
+   * Frontend component rendered in the band, resolved by name from the global
+   * registry. It receives `row` (the listed row), `columns` (the table's column
+   * metadata) and `rowId`.
+   */
+  component?: Component;
+  /**
+   * Rows open when the table loads and whenever a new page, filter, search,
+   * sort, tab or archive view is listed. Defaults to "none".
+   */
+  defaultExpanded?: TableViewExpandedDefault;
+  /** Keep at most one row open: opening a row closes the previous one. */
+  single?: boolean;
+}
+
+export interface TableViewExpandableSerialized {
+  fields?: TableViewExpandableField[];
+  fieldsLabel?: string;
+  component?: ComponentInfoSerialized;
+  defaultExpanded?: TableViewExpandedDefault;
+  single?: boolean;
+}
+
 export interface TableViewOptionsSerialized extends Omit<
   TableViewOptions,
-  "customButtons" | "rowActions" | "kanban" | "displays" | "formSlots"
+  | "customButtons"
+  | "rowActions"
+  | "kanban"
+  | "displays"
+  | "formSlots"
+  | "expandable"
+  | "tabs"
 > {
   enableTableExport: boolean;
   customButtons?: CustomButtonSerialized[];
@@ -145,7 +321,7 @@ export interface TableViewOptionsSerialized extends Omit<
   defaultSort?: { field: string; desc?: boolean };
   queryParamFilters?: QueryParamFilters;
   routeParamFilters?: RouteParamFilters;
-  tabs?: TableViewTab[];
+  tabs?: TableViewTabSerialized[];
   displays?: TableViewDisplayOptionSerialized[];
   /**
    * Resolved page-mode form URLs. Server-computed, so the frontend navigates to
@@ -153,6 +329,13 @@ export interface TableViewOptionsSerialized extends Omit<
    * them from the browser path. Absent when the container is not a page.
    */
   formPages?: TableViewFormPageUrls;
+  expandable?: TableViewExpandableSerialized;
+  /**
+   * The table view's component permission id, sent back with its writes
+   * (`?tableView=`, see {@link TABLE_VIEW_QUERY_KEY}) so they are checked
+   * against this table's permission and row rules. Set per request.
+   */
+  tableViewKey?: string;
 }
 
 export interface FormContainerPageConfig {
@@ -247,6 +430,41 @@ export interface TableViewOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   caption?: string;
+  /** Row density: "compact" gives 36px rows under a 32px header. */
+  density?: "default" | "compact";
+  /**
+   * Keeps the column header in view while rows scroll under it. Needs
+   * `maxHeight`, which caps the scroll area (any CSS length, e.g. "60vh").
+   */
+  stickyHeader?: boolean;
+  maxHeight?: string;
+  /**
+   * Expandable rows: a caret column in front of the content opens a detail
+   * band under each row, listing `fields` and/or rendering `component`.
+   * @example { fields: ["address", "carrier"], defaultExpanded: "first" }
+   */
+  expandable?: TableViewExpandableOptions;
+  /**
+   * Controls drawn around the rows: a preset (`"full"`, the default, or
+   * `"minimal"`) or per-control toggles over a preset.
+   * @example "minimal"
+   * @example { preset: "minimal", caption: true }
+   */
+  chrome?: TableViewChromePreset | TableViewChromeOptions;
+  /** Placeholder of the search field. `$`-prefixed: an i18n key. */
+  searchPlaceholder?: string;
+  /** One-click dropdown filters drawn in the toolbar. */
+  quickFilters?: TableViewQuickFilter[];
+  /**
+   * Columns hidden from the grid by default, though still listed: a value a
+   * cell, a detail band or a form reads, without a column of its own. The
+   * column manager can show them again.
+   */
+  hiddenColumns?: string[];
+  /** Rows per page while the user has picked none. Defaults to 10. */
+  pageSize?: number;
+  /** Texts of the footer band: the row count and a hint. */
+  footer?: TableViewFooterOptions;
   /**
    * The key of the row id, default is _id
    */

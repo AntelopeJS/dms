@@ -11,7 +11,7 @@ export class PageTableViewRelationDmsMember extends PageController(
     displayName: "Relation · DMS Member (tenant)",
     icon: "i-ph-user-circle",
     category: tableViewCategory,
-    order: 91,
+    order: 121,
     description:
       "Tenant-scoped relation to the REAL DMS member (memberSettingDataAPI). Same instance as the member, so the @Joined `name` label resolves in list — the omnitec scenario. Use + New to assign a member (the table starts empty: tenant rows are created at runtime, not seeded).",
   },

@@ -5,6 +5,14 @@ export const demoModule = RegisterModule({
   title: "Demo Module",
   description: "A demo module to showcase the module system",
   icon: "i-ph-cube",
+  // Modules catalog: version, category, state pill and live readout.
+  version: "1.4.0",
+  category: "Content",
+  status: () => "live",
+  readout: () => [
+    { tone: "ok", text: "2 pages · 1 form" },
+    { tone: "info", text: `up ${formatUptime(process.uptime())}` },
+  ],
   // Group the module's loose pages under a controllable category heading
   // instead of the default "Pages" label.
   defaultCategory: {
@@ -16,3 +24,13 @@ export const demoModule = RegisterModule({
 
 export * from "./form-page";
 export * from "./welcome-page";
+
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+
+function formatUptime(seconds: number): string {
+  const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+  if (hours === 0) return `${minutes} min`;
+  return `${hours} h ${minutes % MINUTES_PER_HOUR} min`;
+}

@@ -10,6 +10,11 @@ import {
   type CascaderKeyMapping,
   type CascaderNode,
 } from "../../../utils/cascader";
+import {
+  FIELD_TRIGGER_CLASS,
+  FIELD_TRIGGER_ICON,
+  FIELD_TRIGGER_UI,
+} from "../../../utils/fieldTrigger";
 
 interface CascaderProps {
   searchUrl: string;
@@ -346,8 +351,9 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
         color="neutral"
         variant="outline"
         :disabled="props.disabled"
-        trailing-icon="i-ph-caret-up-down"
-        class="w-full justify-between font-normal"
+        :trailing-icon="FIELD_TRIGGER_ICON"
+        :ui="FIELD_TRIGGER_UI"
+        :class="['w-full justify-between', FIELD_TRIGGER_CLASS]"
         :aria-label="placeholderLabel"
       >
         <span v-if="triggerLabel" class="truncate">{{ triggerLabel }}</span>

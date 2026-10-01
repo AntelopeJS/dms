@@ -89,6 +89,13 @@ export interface FormProps extends BaseComponentProps {
    * form has somewhere to submit to and something to fill in.
    */
   showActions?: boolean;
+  /**
+   * Replaces the footer buttons with the sticky save bar (v2 .st-savebar): it
+   * shows only while the form holds unsaved changes, names the changed fields
+   * and offers Discard and Save. Suits a settings-like page, e.g. a form inside
+   * a `Section`.
+   */
+  saveBar?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token

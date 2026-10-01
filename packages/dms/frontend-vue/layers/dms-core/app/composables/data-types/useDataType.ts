@@ -2,10 +2,20 @@ import type { Component } from "vue";
 
 export type RecordWithDefault<T> = Record<string, T> & { default: T };
 
+/**
+ * Turns a value into its display. `row` is the whole listed row when the value
+ * is drawn in a table (cell, detail band), so a formatter can compose sibling
+ * fields; it is absent elsewhere (forms, filters) and must be optional.
+ *
+ * Keys of a data type's `formatter` record: `default` (required), `cell` (a
+ * shorter grid rendering), `empty` (drawn instead of the fallback for a
+ * null/undefined value), and one per compare mode for filter chips.
+ */
 export type DataTypeFormatter = (
   value: unknown,
   locale: string,
   options?: unknown,
+  row?: Record<string, unknown>,
 ) => unknown;
 
 /**

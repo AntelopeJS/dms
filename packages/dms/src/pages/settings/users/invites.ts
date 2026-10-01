@@ -2,6 +2,7 @@ import {
   Context,
   Controller,
   Delete,
+  Get,
   Parameter,
   Post,
   type RequestContext,
@@ -14,6 +15,7 @@ import {
 import {
   Access,
   AccessMode,
+  Joined,
   Listable,
   ModelReference,
   Sortable,
@@ -26,15 +28,15 @@ import {
   decideInvite,
   loadInviteForAction,
 } from "@antelopejs/interface-dms/invite-resolution";
-import {
-  createUserInviteToken,
-  internal,
-} from "@antelopejs/interface-dms/invites";
+import { inviteeDisplayName } from "@antelopejs/interface-dms/invites";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
-import { AuthUser } from "@antelopejs/interface-dms/auth";
-import type { User } from "@antelopejs/interface-dms/auth/db";
+import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import { User } from "@antelopejs/interface-dms/auth/db";
+import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
+import { getClientBaseUrl } from "../../../config";
+import { buildAdminInviteSignupLink } from "../../../utils/admin-invite-email";
 import {
   Column,
   Exported,
@@ -44,11 +46,12 @@ import {
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
-import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import {
-  type InviteEmailOutcome,
-  inviteEmailOutcome,
-} from "./invite-email-outcome";
+  ButtonVariant,
+  ReadonlyBehaviorType,
+} from "@antelopejs/interface-dms/base/types";
+import type { InviteEmailOutcome } from "./invite-email-outcome";
+import { resendPendingInvite } from "./invite-resend";
 import { inviteEditRoute, inviteGetRoute } from "./invite-extension-routes";
 import {
   inviteLanguageSelectItems,
@@ -56,55 +59,27 @@ import {
 } from "./member-invite-form";
 import {
   INVITES_PAGE_PATH,
+  INVITES_PERMISSION_ID,
+  INVITES_TAB_ICON,
+  MEMBER_INVITE_BUTTON_ID,
+  MEMBER_INVITE_HEADER_ACTION,
+  MEMBER_LISTS_CHROME,
+  MEMBER_LISTS_PAGE_SIZE,
+  MEMBERS_TAB_ICON,
   MembersSettingsController,
   membersTableAddAction,
+  ROLE_QUICK_FILTER,
 } from "./members";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 
-const INVITES_PERMISSION_ID = "settings.user.invites";
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HTTP_NOT_FOUND = 404;
+const HTTP_GONE = 410;
+const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
 
-export const INVITE_RESEND_EMAIL_FAILED_WARNING =
-  "$page.settings.invites.action.resend_email_failed";
-
-/**
- * Reissues a pending invitation with a fresh token and emails the new link,
- * waiting for the email so the inviter learns when it did not leave. The
- * reissued invitation is kept either way.
- */
-export async function resendPendingInvite(
-  tenantId: string,
-  inviteId: string,
-  inviterName?: string,
-): Promise<InviteEmailOutcome> {
-  const existingInvite = await loadInviteForAction(tenantId, inviteId);
-  assert(existingInvite, 404, "$page.settings.invites.error.not_found");
-
-  const { token } = await createUserInviteToken({
-    tenantId,
-    replacesInvite: existingInvite,
-    email: existingInvite.email,
-    firstname: existingInvite.firstname,
-    lastname: existingInvite.lastname,
-    language: existingInvite.language,
-    roleIds: existingInvite.roles_ids,
-    asTenantOwner: existingInvite.asTenantOwner,
-    skipEmailValidation: existingInvite.skipEmailValidation,
-    // Resending re-creates the row, so the module payloads have to be
-    // carried over or the invitee would join without them — and the
-    // displaced row must not read as an invitation that was retired.
-    extensions: existingInvite.extensions ?? undefined,
-    replacementReason: "resent",
-  });
-
-  const emailDelivery = await internal.deliverTenantInviteEmail({
-    tenantId,
-    email: existingInvite.email,
-    token,
-    firstname: existingInvite.firstname,
-    lastname: existingInvite.lastname,
-    language: existingInvite.language,
-    inviterName,
-  });
-  return inviteEmailOutcome(emailDelivery, INVITE_RESEND_EMAIL_FAILED_WARNING);
+/** A pending invitation's signup link, for the inviter to share by hand. */
+export interface InviteLinkResponse {
+  url: string;
 }
 
 @RegisterDataController()
@@ -112,6 +87,8 @@ export class inviteSettingDataAPI extends DataController(
   UserInvite,
   {
     list: TableViewRoutes.List,
+    // The tab counters of the members page's lists.
+    countBatch: TableViewRoutes.CountBatch,
     get: inviteGetRoute,
     edit: inviteEditRoute,
   },
@@ -135,6 +112,8 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
+    size: 170,
+    display: { type: "identity", options: { icon: "i-ph-envelope-simple" } },
   })
   @Sortable()
   @Access(AccessMode.ReadOnly)
@@ -172,6 +151,19 @@ export class inviteSettingDataAPI extends DataController(
         value: "_id",
       },
     }),
+    filterable: true,
+    size: 150,
+    display: {
+      type: "pills",
+      options: {
+        exclusive: {
+          field: "asTenantOwner",
+          label: "$page.settings.members.owner",
+          icon: "i-ph-crown",
+        },
+        emptyLabel: "$page.settings.members.no_role",
+      },
+    },
   })
   @Access(AccessMode.ReadWrite)
   declare roles_ids: string[];
@@ -204,7 +196,9 @@ export class inviteSettingDataAPI extends DataController(
   @Access(AccessMode.ReadWrite)
   declare skipEmailValidation: boolean;
 
+  @Listable()
   @Exported()
+  @Sortable()
   @Column({
     name: "$page.settings.invites.column.created_at",
     type: new DefaultDataTypes.DateType(),
@@ -213,10 +207,22 @@ export class inviteSettingDataAPI extends DataController(
       view: ReadonlyBehaviorType.disabled,
       new: ReadonlyBehaviorType.hidden,
     },
+    size: 120,
+    display: {
+      type: "relative_date",
+      label: "$page.settings.invites.column.sent",
+      options: {
+        style: "day",
+        tone: "dimmed",
+        byField: "invitedByName",
+        byLabel: "$page.settings.invites.sent_by",
+      },
+    },
   })
   @Access(AccessMode.ReadOnly)
   declare createdAt: Date;
 
+  @Listable()
   @Exported()
   @Column({
     name: "$page.settings.invites.column.expires_at",
@@ -226,9 +232,29 @@ export class inviteSettingDataAPI extends DataController(
       view: ReadonlyBehaviorType.disabled,
       new: ReadonlyBehaviorType.hidden,
     },
+    size: 100,
+    // "In 5 days", amber within a day, the bare date once expired.
+    display: {
+      type: "relative_date",
+      label: "$page.settings.invites.column.expires",
+      options: {
+        soonWithinMs: DAY_MS,
+        pastStyle: "day",
+        pastTone: "dimmed",
+      },
+    },
   })
   @Access(AccessMode.ReadOnly)
   declare expiresAt: Date;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare invitedBy: string | null;
+
+  /** Name of the user who sent the invitation, shown next to its date. */
+  @Listable(["invitedBy"])
+  @Joined({ table: User, localKey: "invitedBy", remoteField: "name" })
+  declare invitedByName: string | null;
 
   @Listable(["expiresAt"])
   @Exported()
@@ -237,9 +263,10 @@ export class inviteSettingDataAPI extends DataController(
     type: new StatusType({
       onlineLabel: "$page.settings.invites.status.pending",
       offlineLabel: "$page.settings.invites.status.expired",
-      onlineColor: "primary",
+      onlineColor: "warning",
       offlineColor: "neutral",
     }),
+    size: 100,
   })
   @Access(AccessMode.ReadOnly)
   get status(): boolean {
@@ -251,27 +278,71 @@ export class inviteSettingDataAPI extends DataController(
 // it, so its URL and breadcrumb go through Members. The permission keeps the
 // id it had as a user-category page, so the roles that already grant it are
 // unchanged.
+const inviteApiTarget = (action: string) =>
+  `${INVITES_PAGE_PATH}/{_id}/${action}`;
+
+// Pending invitations only: an expired one can be resent or removed.
+const PENDING = { field: "status", equals: true } as const;
+const EXPIRED = { field: "status", equals: false } as const;
+
+// Reached from the members page rather than the settings menu: nested under
+// it, so its URL and breadcrumb go through Members. The permission keeps the
+// id it had as a user-category page, so the roles that already grant it are
+// unchanged.
 @RegisterPage()
-export class InvitesSettingsController extends PageController("invites", {
-  displayName: "$menu.invites",
-  category: MembersSettingsController,
-  permission: { id: INVITES_PERMISSION_ID },
-  hidden: true,
-  icon: "i-ph-envelope-simple",
-  description: "$page.settings.description.invites",
-}) {
+export class InvitesSettingsController extends PageController(
+  "invites",
+  {
+    displayName: "$menu.invites",
+    category: MembersSettingsController,
+    permission: { id: INVITES_PERMISSION_ID },
+    hidden: true,
+    icon: "i-ph-envelope-simple",
+    description: "$page.settings.description.invites",
+  },
+  DefaultLayout({ headerActions: [MEMBER_INVITE_HEADER_ACTION] }),
+) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
+    chrome: MEMBER_LISTS_CHROME,
+    searchPlaceholder: "$page.settings.invites.search",
+    quickFilters: [{ field: "roles_ids", ...ROLE_QUICK_FILTER }],
+    // Drawn as the crown pill of the roles cell.
+    hiddenColumns: ["asTenantOwner"],
+    pageSize: MEMBER_LISTS_PAGE_SIZE,
+    defaultSort: { field: "createdAt", desc: true },
+    footer: {
+      countLabel: "$page.settings.invites.footer_count",
+      hint: "$page.settings.invites.expiry_hint",
+    },
+    tabs: [
+      {
+        id: "members",
+        label: "$page.settings.members.tabs.members",
+        icon: MEMBERS_TAB_ICON,
+        to: MembersSettingsController,
+        countFrom: memberSettingDataAPI,
+        badge: true,
+      },
+      {
+        id: "all",
+        label: "$page.settings.members.tabs.invites",
+        icon: INVITES_TAB_ICON,
+      },
+    ],
     // Modules edit the data they attached through `RegisterInviteExtension`
     // here, until the invitee accepts.
     formSlots: { edit: INVITE_EDIT_FORM_SLOT_ID },
     customButtons: [
       {
+        id: MEMBER_INVITE_BUTTON_ID,
         label: "$page.settings.members.invite.button",
         icon: "i-ph-user-plus",
         color: "primary",
         permission: membersTableAddAction,
+        // Pressed from the page header.
+        hidden: true,
         target: {
           type: "modal",
           size: "lg",
@@ -287,15 +358,24 @@ export class InvitesSettingsController extends PageController("invites", {
       delete: false,
       details: false,
       duplicate: false,
-      edit: { isEnabled: true, isVisible: true },
+      edit: {
+        isEnabled: true,
+        isVisible: true,
+        rule: PENDING,
+        label: "$page.settings.invites.action.edit",
+        icon: "i-ph-pencil-simple",
+      },
       hasSelection: false,
       custom: [
         {
           label: "$page.settings.invites.action.resend",
-          icon: "i-ph-arrow-clockwise",
+          icon: "i-ph-paper-plane-tilt",
+          isVisible: true,
+          showLabel: true,
+          variant: ButtonVariant.outline,
           target: {
             type: "api",
-            url: `${INVITES_PAGE_PATH}/{_id}/resend`,
+            url: inviteApiTarget("resend"),
             method: "POST",
             successMessage: "$page.settings.invites.action.resend_success",
             confirm: {
@@ -303,22 +383,64 @@ export class InvitesSettingsController extends PageController("invites", {
               description:
                 "$page.settings.invites.action.resend_confirm_description",
               confirmColor: "primary",
+              icon: "i-ph-paper-plane-tilt",
+              confirmLabel: "$page.settings.invites.action.resend",
             },
           },
         },
         {
-          label: "$page.settings.invites.action.cancel",
-          icon: "i-ph-trash",
+          label: "$page.settings.invites.action.copy_link",
+          icon: "i-ph-link",
+          isVisible: true,
+          showLabel: true,
+          rule: PENDING,
           target: {
             type: "api",
-            url: `${INVITES_PAGE_PATH}/{_id}/cancel`,
+            url: inviteApiTarget("link"),
+            method: "GET",
+            copy: "url",
+            successMessage: "$page.settings.invites.action.copy_link_success",
+          },
+        },
+        {
+          label: "$page.settings.invites.action.revoke",
+          isVisible: true,
+          showLabel: true,
+          color: "error",
+          rule: PENDING,
+          target: {
+            type: "api",
+            url: inviteApiTarget("cancel"),
             method: "DELETE",
-            successMessage: "$page.settings.invites.action.cancel_success",
+            successMessage: "$page.settings.invites.action.revoke_success",
             confirm: {
-              title: "$page.settings.invites.action.cancel_confirm_title",
+              title: "$page.settings.invites.action.revoke_confirm_title",
               description:
-                "$page.settings.invites.action.cancel_confirm_description",
+                "$page.settings.invites.action.revoke_confirm_description",
               confirmColor: "error",
+              icon: "i-ph-envelope-simple-open",
+              confirmLabel: "$page.settings.invites.action.revoke",
+            },
+          },
+        },
+        {
+          label: "$page.settings.invites.action.remove",
+          isVisible: true,
+          showLabel: true,
+          color: "error",
+          rule: EXPIRED,
+          target: {
+            type: "api",
+            url: inviteApiTarget("cancel"),
+            method: "DELETE",
+            successMessage: "$page.settings.invites.action.remove_success",
+            confirm: {
+              title: "$page.settings.invites.action.remove_confirm_title",
+              description:
+                "$page.settings.invites.action.remove_confirm_description",
+              confirmColor: "error",
+              icon: "i-ph-envelope-simple-open",
+              confirmLabel: "$page.settings.invites.action.remove",
             },
           },
         },
@@ -330,19 +452,45 @@ export class InvitesSettingsController extends PageController("invites", {
   resendInvite(
     @Parameter("id", "param") id: string,
     @Context() ctx: RequestContext,
-    @AuthUser() user: User,
+    @AuthUserWithPermission(InvitesSettingsController) user: User,
   ): Promise<InviteEmailOutcome> {
-    return resendPendingInvite(getRequestTenantId(ctx), id, user.name);
+    return resendPendingInvite(getRequestTenantId(ctx), id, {
+      name: user.name,
+      userId: user._id,
+    });
+  }
+
+  @Get("/:id/link")
+  async inviteLink(
+    @Parameter("id", "param") id: string,
+    @Context() ctx: RequestContext,
+    @AuthUserWithPermission(InvitesSettingsController) _user: User,
+  ): Promise<InviteLinkResponse> {
+    const invite = await loadInviteForAction(getRequestTenantId(ctx), id);
+    assert(invite, HTTP_NOT_FOUND, INVITE_NOT_FOUND);
+    assert(
+      new Date(invite.expiresAt) > new Date(),
+      HTTP_GONE,
+      "$page.settings.invites.error.expired",
+    );
+    const url = buildAdminInviteSignupLink(getClientBaseUrl() ?? "", {
+      email: invite.email,
+      token: invite.token,
+      inviteeName: inviteeDisplayName(invite.firstname, invite.lastname),
+      language: invite.language,
+    });
+    return { url };
   }
 
   @Delete("/:id/cancel")
   async cancelInvite(
     @Parameter("id", "param") id: string,
     @Context() ctx: RequestContext,
+    @AuthUserWithPermission(InvitesSettingsController) _user: User,
   ) {
     const tenantId = getRequestTenantId(ctx);
     const existingInvite = await loadInviteForAction(tenantId, id);
-    assert(existingInvite, 404, "$page.settings.invites.error.not_found");
+    assert(existingInvite, HTTP_NOT_FOUND, INVITE_NOT_FOUND);
 
     const resolution = await decideInvite({
       tenantId,

@@ -9,7 +9,7 @@ export const SETTINGS_ROUTE = "/settings";
 export const SWITCH_ACCOUNT_ROUTE = "/auth/accounts";
 
 /**
- * Canonical account navigation entries, rendered by both the header user
+ * Canonical account navigation entries, rendered by both the sidebar user
  * menu and the command palette's session source so the two surfaces cannot
  * drift.
  */

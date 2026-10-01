@@ -73,12 +73,67 @@ export const MODULE_URL_PREFIX = "/modules";
 
 export const ROOT_SLUG = "/";
 
+/**
+ * State a module reports on the modules catalog, rendered as a pill on its
+ * tile: `live` (working normally, the default), `beta` (usable, still
+ * changing), `update` (a newer version is available) or `attention`
+ * (something needs a platform owner, such as a failing job).
+ */
+export type ModuleStatus = "live" | "beta" | "update" | "attention";
+
+/**
+ * Tone of one readout line: `ok` (healthy figure), `info` (neutral fact),
+ * `warning` (worth a look) or `error` (something is failing).
+ */
+export type ModuleReadoutTone = "ok" | "info" | "warning" | "error";
+
+/**
+ * One short line of a module's live readout on the catalog
+ * (`42 tables · 1.9 GB`). `text` may be an i18n key prefixed with `$`.
+ */
+export interface ModuleReadoutLine {
+  text: string;
+  tone?: ModuleReadoutTone;
+}
+
+/**
+ * Request the catalog hooks of a module run for. The catalog is owner-only,
+ * so `user` is a platform owner; `tenantId` is the tenant the request is
+ * scoped to.
+ */
+export interface ModuleCatalogContext {
+  user: User | undefined;
+  tenantId: string;
+}
+
 export interface ModuleInfo {
   id: string;
   title: string;
   description: string;
   icon: string;
   landingPage?: string;
+  /** Version shown on the catalog tile (`1.4.0`). */
+  version?: string;
+  /**
+   * Catalog category the module is filed under (`Content`, `Developer`…).
+   * May be an i18n key prefixed with `$`. Modules without one are grouped
+   * under a generic "Other" category.
+   */
+  category?: string;
+  /**
+   * Reports the module's current state on the catalog. Called on each catalog
+   * load; a hook that throws or does not answer in time is ignored and the
+   * module shows as `live`.
+   */
+  status?: (context: ModuleCatalogContext) => MaybePromise<ModuleStatus>;
+  /**
+   * Returns a few short lines (two read best) saying what the module is doing
+   * right now. Called on each catalog load; a hook that throws or does not
+   * answer in time is ignored and the tile shows no readout.
+   */
+  readout?: (
+    context: ModuleCatalogContext,
+  ) => MaybePromise<ModuleReadoutLine[]>;
   /**
    * Optional category that groups the module's "loose" pages (pages declared
    * with `module` but no explicit `category`) under a real, controllable
@@ -117,6 +172,12 @@ export interface MenuOptions {
   query?: MenuItemQuery;
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
+  /**
+   * Short count or label rendered at the end of the menu entry (`3`, `new`).
+   * Takes the trailing slot, so a leaf entry shows either a badge or a
+   * status dot — the badge wins.
+   */
+  badge?: string;
   /**
    * Keep the page reachable while a tenant access gate denies the tenant, the
    * page-level mirror of the `bypassTenantAccessGate` guard option. Covers page
@@ -187,6 +248,8 @@ export interface DynamicMenuItem {
   order?: number;
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
+  /** Short count or label rendered at the end of the entry (`3`, `new`). */
+  badge?: string;
   /**
    * Permission required to see the entry, as a raw id — unlike `MenuOptions`,
    * which takes a whole permission or an `Action`. Unset means always visible.

@@ -2,10 +2,21 @@ import { computed } from "vue";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions } from "./apexPlotOptions";
+import { isReducedMotionActive } from "../../utils/accessibilityPreferences";
+import {
+  axisLabelStyle,
+  buildDataLabels,
+  buildGrid,
+  buildLegend,
+  buildMarkers,
+  buildTooltip,
+  readApexThemeColors,
+  type ApexThemeColors,
+} from "./apexTheme";
 import {
   resolveChartColor,
   resolveChartColors,
-  readThemeBorder,
+  readThemeBorderAccented,
   readThemeHighlighted,
   readThemeMuted,
 } from "./useChartTheme";
@@ -22,26 +33,26 @@ import type {
 } from "./useApexChart.types";
 
 const DEFAULT_HEIGHT = 320;
-const DASHED_DASH_LENGTH = 4;
+const DASHED_DASH_LENGTH = 5;
 const DIMMED_OPACITY = 0.4;
 const FULL_OPACITY = 1;
 const PRIMARY_STROKE_WIDTH = 2.5;
-const COMPARISON_STROKE_WIDTH = 1.5;
-const AREA_PRIMARY_FROM = 0.32;
-const AREA_PRIMARY_TO = 0.02;
-const AREA_COMPARISON_FROM = 0.08;
-const AREA_COMPARISON_TO = 0;
-const AREA_GRADIENT_STOPS = [0, 90, 100];
+const COMPARISON_STROKE_WIDTH = 1.75;
+const AREA_PRIMARY_FROM = 0.26;
+const AREA_PRIMARY_TO = 0;
+// The comparison line of an area chart takes its stroke opacity from the
+// fill (it is a line series, see asComparisonLines): v2 draws it at 70%.
+const AREA_COMPARISON_OPACITY = 0.7;
+const AREA_GRADIENT_STOPS = [0, 100];
 const RADAR_FILL_DEFAULT = 0.4;
 const RANGE_AREA_FILL_DEFAULT = 0.28;
 const ANIMATION_SPEED_MS = 300;
-const GRID_DASH = 4;
-const GRID_PADDING = { left: 8, right: 8, top: 0, bottom: 0 };
-const AXIS_LABEL_FONT_SIZE = "11px";
 const HEIGHT_NUMBER_REGEX = /[^0-9]/g;
-const TOOLTIP_DATETIME_FORMAT = "dd MMM yyyy";
-const HOVER_MARKER_SIZE = 5;
 const CROSSHAIR_DASH = 3;
+const STACKED_SEGMENT_GAP = 1.5;
+const COMPARISON_LINE_TYPE = "line";
+const LINE_LEAD_TYPES: ChartType[] = ["line", "area"];
+const STACKED_GAP_TYPES: ChartType[] = ["bar", "column"];
 
 function parseHeight(height?: string): number {
   if (!height) return DEFAULT_HEIGHT;
@@ -146,36 +157,31 @@ const FILL_BUILDERS: Partial<
   }),
 };
 
+/**
+ * Only the main series gets the fading area; the comparison is a line series
+ * whose solid "fill" sets its stroke opacity.
+ */
 function buildAreaFill(
   props: UseApexChartInput,
   comparison: ComparisonContext,
 ): Record<string, unknown> {
-  const primaryFrom = props.fillOpacity ?? AREA_PRIMARY_FROM;
-  if (!comparison.enabled) {
-    return {
-      type: "gradient",
-      gradient: {
-        shadeIntensity: 1,
-        type: "vertical",
-        opacityFrom: primaryFrom,
-        opacityTo: AREA_PRIMARY_TO,
-        stops: AREA_GRADIENT_STOPS,
-      },
-    };
-  }
+  const gradient = {
+    shadeIntensity: 1,
+    type: "vertical",
+    opacityFrom: props.fillOpacity ?? AREA_PRIMARY_FROM,
+    opacityTo: AREA_PRIMARY_TO,
+    stops: AREA_GRADIENT_STOPS,
+  };
+  if (!comparison.enabled) return { type: "gradient", gradient };
+  const isComparison = (index: number) => index >= comparison.startIndex;
   return {
-    type: "gradient",
-    gradient: {
-      shadeIntensity: 1,
-      type: "vertical",
-      opacityFrom: Array.from({ length: comparison.totalSeries }, (_, index) =>
-        index >= comparison.startIndex ? AREA_COMPARISON_FROM : primaryFrom,
-      ),
-      opacityTo: Array.from({ length: comparison.totalSeries }, (_, index) =>
-        index >= comparison.startIndex ? AREA_COMPARISON_TO : AREA_PRIMARY_TO,
-      ),
-      stops: AREA_GRADIENT_STOPS,
-    },
+    type: Array.from({ length: comparison.totalSeries }, (_, index) =>
+      isComparison(index) ? "solid" : "gradient",
+    ),
+    opacity: Array.from({ length: comparison.totalSeries }, (_, index) =>
+      isComparison(index) ? AREA_COMPARISON_OPACITY : FULL_OPACITY,
+    ),
+    gradient,
   };
 }
 
@@ -204,6 +210,7 @@ function buildStroke(
   config: (typeof APEX_TYPE_CONFIGS)[ChartType],
   comparisonDashArray: number[] | undefined,
   comparison: ComparisonContext,
+  surface: string,
 ): Record<string, unknown> {
   const stroke: Record<string, unknown> = { ...config.defaultStroke };
   if (input.smooth === false && stroke.curve) stroke.curve = "straight";
@@ -211,7 +218,27 @@ function buildStroke(
   stroke.width = buildStrokeWidths(input, comparison, stroke.width as number);
   stroke.lineCap = "round";
   if (comparisonDashArray) stroke.dashArray = comparisonDashArray;
+  applySegmentGap(stroke, input, config, surface);
   return stroke;
+}
+
+/**
+ * Donut slices and stacked segments are separated by a card-coloured stroke,
+ * which reads as a gap in both themes (Apex defaults it to white).
+ */
+function applySegmentGap(
+  stroke: Record<string, unknown>,
+  input: UseApexChartInput,
+  config: (typeof APEX_TYPE_CONFIGS)[ChartType],
+  surface: string,
+): void {
+  const isStackedBar =
+    !!input.stacked && STACKED_GAP_TYPES.includes(input.type);
+  if (!config.isCircular && !isStackedBar) return;
+  stroke.colors = [surface];
+  if (isStackedBar && input.strokeWidth === undefined) {
+    stroke.width = STACKED_SEGMENT_GAP;
+  }
 }
 
 function applySeriesStroke(
@@ -272,16 +299,14 @@ function buildAutoYRange(input: UseApexChartInput): Record<string, unknown> {
 
 function buildYAxis(
   input: UseApexChartInput,
-  muted: string,
+  theme: ApexThemeColors,
 ): Record<string, unknown> {
   const labelColor = HIGH_CONTRAST_YAXIS_TYPES.includes(input.type)
     ? readThemeHighlighted()
-    : muted;
+    : theme.dimmed;
   const yaxis: Record<string, unknown> = {
     ...buildAutoYRange(input),
-    labels: {
-      style: { colors: labelColor, fontSize: AXIS_LABEL_FONT_SIZE },
-    },
+    labels: { style: axisLabelStyle(labelColor, theme) },
   };
   if (input.yRange) {
     yaxis.min = input.yRange.min;
@@ -295,15 +320,16 @@ function buildYAxis(
 
 function buildXAxis(
   input: UseApexChartInput,
-  muted: string,
+  theme: ApexThemeColors,
 ): Record<string, unknown> {
   const settings = input.xAxis;
   const xaxis: Record<string, unknown> = {
     type: input.xaxisType ?? "category",
     axisBorder: { show: false },
     axisTicks: { show: false },
+    tooltip: { enabled: false },
     labels: {
-      style: { colors: muted, fontSize: AXIS_LABEL_FONT_SIZE },
+      style: axisLabelStyle(theme.dimmed, theme),
       datetimeUTC: false,
       ...(settings?.rotate !== undefined ? { rotate: settings.rotate } : {}),
       ...(settings?.hideOverlappingLabels !== undefined
@@ -316,7 +342,7 @@ function buildXAxis(
       ...(input.xAxisFormatter ? { formatter: input.xAxisFormatter } : {}),
     },
     crosshairs: {
-      stroke: { color: muted, dashArray: CROSSHAIR_DASH },
+      stroke: { color: readThemeBorderAccented(), dashArray: CROSSHAIR_DASH },
     },
   };
   if (settings?.tickAmount !== undefined)
@@ -388,7 +414,13 @@ function buildChartConfig(
     toolbar: { show: false },
     zoom: { enabled: false },
     stacked: input.stacked ?? false,
-    animations: { enabled: true, speed: ANIMATION_SPEED_MS },
+    // Reduced motion (Appearance setting or system) draws the chart at once.
+    // A change of the setting toggles an <html> class, which bumps the theme
+    // revision and so rebuilds these options.
+    animations: {
+      enabled: !isReducedMotionActive(),
+      speed: ANIMATION_SPEED_MS,
+    },
     fontFamily: "inherit",
     background: "transparent",
     foreColor: muted,
@@ -400,54 +432,6 @@ function buildChartConfig(
   return chartConfig;
 }
 
-function buildLegend(
-  input: UseApexChartInput,
-  isCircular: boolean,
-  muted: string,
-): Record<string, unknown> {
-  return {
-    show: input.showLegend ?? true,
-    position: isCircular ? "bottom" : "top",
-    horizontalAlign: "right",
-    labels: { colors: muted },
-  };
-}
-
-function buildGrid(
-  input: UseApexChartInput,
-  isCircular: boolean,
-  border: string,
-): Record<string, unknown> {
-  return {
-    show: !isCircular && (input.showGrid ?? true),
-    borderColor: border,
-    strokeDashArray: GRID_DASH,
-    padding: GRID_PADDING,
-    xaxis: { lines: { show: false } },
-    yaxis: { lines: { show: true } },
-  };
-}
-
-function buildTooltip(
-  input: UseApexChartInput,
-  config: (typeof APEX_TYPE_CONFIGS)[ChartType],
-): Record<string, unknown> {
-  const tooltip: Record<string, unknown> = {
-    enabled: input.showTooltip ?? true,
-    theme: "dark",
-    shared: config.sharedTooltip,
-    intersect: !config.sharedTooltip,
-    marker: { show: true },
-  };
-  if (input.xaxisType === "datetime") {
-    tooltip.x = { format: TOOLTIP_DATETIME_FORMAT };
-  }
-  if (input.yAxisFormatter) {
-    tooltip.y = { formatter: input.yAxisFormatter };
-  }
-  return tooltip;
-}
-
 function buildBaseOptions(
   input: UseApexChartInput,
   config: (typeof APEX_TYPE_CONFIGS)[ChartType],
@@ -455,21 +439,27 @@ function buildBaseOptions(
   comparisonDashArray: number[] | undefined,
   comparison: ComparisonContext,
 ): Record<string, unknown> {
-  const muted = readThemeMuted();
-  const border = readThemeBorder();
+  const theme = readApexThemeColors(readThemeMuted());
   return {
-    chart: buildChartConfig(input, muted),
+    chart: buildChartConfig(input, theme.muted),
     colors: seriesColors,
-    dataLabels: {
-      enabled: config.supportsDataLabels || input.showLabels === true,
-    },
-    stroke: buildStroke(input, config, comparisonDashArray, comparison),
-    legend: buildLegend(input, config.isCircular, muted),
+    dataLabels: buildDataLabels(
+      config.supportsDataLabels || input.showLabels === true,
+      theme,
+    ),
+    stroke: buildStroke(
+      input,
+      config,
+      comparisonDashArray,
+      comparison,
+      theme.surface,
+    ),
+    legend: buildLegend(input, config.isCircular, theme),
     tooltip: buildTooltip(input, config),
-    grid: buildGrid(input, config.isCircular, border),
-    xaxis: buildXAxis(input, muted),
-    yaxis: buildYAxis(input, muted),
-    markers: { size: 0, strokeWidth: 0, hover: { size: HOVER_MARKER_SIZE } },
+    grid: buildGrid(input, config.isCircular, theme),
+    xaxis: buildXAxis(input, theme),
+    yaxis: buildYAxis(input, theme),
+    markers: buildMarkers(input, input.series, seriesColors, theme),
   };
 }
 
@@ -605,8 +595,30 @@ function projectSeries(
     input.type === "mixed"
       ? applyMixedSeriesDefs(input.series, input.seriesDefs)
       : input.series;
-  return series.map((entry) =>
+  return asComparisonLines(series, input).map((entry) =>
     entry.color ? { ...entry, color: resolveChartColor(entry.color) } : entry,
+  );
+}
+
+/**
+ * On an area chart the comparison is drawn as a bare line (v2): Apex takes a
+ * fill's opacity from an rgba colour over any fill setting, so an unfilled
+ * series is the only reliable way to keep the comparison from being painted.
+ */
+function asComparisonLines(
+  series: ChartSeries[],
+  input: UseApexChartInput,
+): ChartSeries[] {
+  const comparison = buildComparisonContext(
+    series.length,
+    input.comparisonSeriesCount,
+    false,
+  );
+  if (input.type !== "area" || !comparison.enabled) return series;
+  return series.map((entry, index) =>
+    index >= comparison.startIndex
+      ? { ...entry, type: entry.type ?? COMPARISON_LINE_TYPE }
+      : entry,
   );
 }
 
@@ -621,6 +633,17 @@ function resolveSeriesColorPalette(
   return resolveSeriesColors(series, baseColors);
 }
 
+/**
+ * Lines lead with the sparkline tone, deeper than the bright fill used by
+ * bars, so a thin stroke keeps its contrast on white.
+ */
+function withLineLead(value: UseApexChartInput, palette: string[]): string[] {
+  if (value.colors !== undefined || !LINE_LEAD_TYPES.includes(value.type)) {
+    return palette;
+  }
+  return [resolveChartColor("--dms-sparkline"), ...palette.slice(1)];
+}
+
 interface ChartOptionsContext {
   baseColors: string[];
   seriesColors: string[];
@@ -633,7 +656,7 @@ function buildChartOptionsContext(
   cfg: (typeof APEX_TYPE_CONFIGS)[ChartType],
   finalSeries: ChartSeries[],
 ): ChartOptionsContext {
-  const baseColors = resolveChartColors(value.colors);
+  const baseColors = withLineLead(value, resolveChartColors(value.colors));
   const seriesColors = resolveSeriesColorPalette(
     value,
     cfg,

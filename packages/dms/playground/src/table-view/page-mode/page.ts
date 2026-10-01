@@ -12,7 +12,8 @@ export class PageTableViewPage extends PageController(
     icon: "i-ph-browser",
     category: tableViewCategory,
     order: 30,
-    description: "TableView with page mode - auto-generated URLs",
+    description:
+      "Add, edit and details forms open as full pages with their own URLs",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -29,5 +30,8 @@ export class PageTableViewPage extends PageController(
       hasSelection: true,
     },
     formContainer: { type: "page" },
+    // Offers the built-in cards display next to the grid (display switch in
+    // the toolbar).
+    displays: [{ id: "cards" }],
   });
 }

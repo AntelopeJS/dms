@@ -6,10 +6,11 @@ import { sendAdminInviteEmail } from "@antelopejs/interface-dms/auth";
 import { TenantModel, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 import { ACTIONS } from "../../../../automation/actions";
+import { inviteMembers } from "../../../../pages/settings/users/member-invite-batch";
 import {
   INVITE_RESEND_EMAIL_FAILED_WARNING,
   resendPendingInvite,
-} from "../../../../pages/settings/users/invites";
+} from "../../../../pages/settings/users/invite-resend";
 import {
   INVITE_EMAIL_FAILED_WARNING,
   INVITES_PAGE_PATH,
@@ -36,13 +37,16 @@ const automationCtx: ExecutionCtx = {
 };
 
 function inviteThroughMembersRoute() {
-  return inviteUserToTenant({
-    tenantId: WORKSPACE_ID,
-    email: INVITEE_EMAIL,
-    roleIds: [],
-    sendEmail: true,
-    awaitEmailDelivery: true,
-  });
+  return inviteMembers(
+    {
+      emails: [INVITEE_EMAIL],
+      language: "en",
+      asTenantOwner: true,
+      skipEmailValidation: false,
+    },
+    { tenantId: WORKSPACE_ID, userId: "inviter", name: "Inviter" },
+    undefined,
+  );
 }
 
 async function createPendingInviteId(): Promise<string> {
@@ -91,26 +95,32 @@ describe("[unit] pages/settings — invitation email delivery", () => {
     it("keeps the invitation and tells the inviter when the email fails", async () => {
       sendEmail = refuse;
 
-      const result = await inviteThroughMembersRoute();
+      const results = await inviteThroughMembersRoute();
 
-      expect(result).to.include({ kind: "invited", emailDelivery: "failed" });
+      expect(results).to.deep.equal([
+        { email: INVITEE_EMAIL, outcome: "invited", emailDelivery: "failed" },
+      ]);
       expect(await pendingInvite()).to.exist;
-      const response = memberInviteResponse(result);
+      const response = memberInviteResponse(results);
       expect(response).to.deep.equal({
+        results,
         redirectPath: INVITES_PAGE_PATH,
-        emailDelivery: "failed",
+        notice: undefined,
         warning: INVITE_EMAIL_FAILED_WARNING,
       });
       expect(JSON.stringify(response)).not.to.contain(SMTP_REFUSAL);
     });
 
     it("reports a sent email without a warning", async () => {
-      const result = await inviteThroughMembersRoute();
+      const results = await inviteThroughMembersRoute();
 
       expect(sentCount).to.equal(1);
-      expect(memberInviteResponse(result)).to.deep.equal({
+      expect(memberInviteResponse(results)).to.deep.equal({
+        results: [
+          { email: INVITEE_EMAIL, outcome: "invited", emailDelivery: "sent" },
+        ],
         redirectPath: INVITES_PAGE_PATH,
-        emailDelivery: "sent",
+        notice: undefined,
       });
     });
   });

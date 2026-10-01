@@ -11,7 +11,10 @@ import type {
   ReadScope,
 } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
-import { UserNotificationsModel } from "../../db/models/userNotifications.model";
+import {
+  UserNotificationsModel,
+  buildNewUserNotification,
+} from "../../db/models/userNotifications.model";
 import { getRealtimeBroker } from "../../realtime/current";
 import { buildUserNotificationTopic } from "../../realtime/registry";
 import { runInBatches } from "../../utils/run-in-batches";
@@ -26,6 +29,7 @@ export * from "./registry";
 const NOTIFICATION_NEW_EVENT = "notification:new";
 const NOTIFICATION_READ_EVENT = "notification:read";
 const NOTIFICATION_ALL_READ_EVENT = "notification:all-read";
+const NOTIFICATION_UNREAD_EVENT = "notification:unread";
 const NOTIFICATION_SEND_BATCH_SIZE = 20;
 const NOTIFICATION_RECIPIENT_PAGE_SIZE = 500;
 
@@ -58,6 +62,14 @@ export async function publishNotificationsRead(
   ids: string[],
 ): Promise<void> {
   await publishNotificationEvent(userId, NOTIFICATION_READ_EVENT, { ids });
+}
+
+/** Tells the user's open tabs these notifications are unread again. */
+export async function publishNotificationsUnread(
+  userId: string,
+  ids: string[],
+): Promise<void> {
+  await publishNotificationEvent(userId, NOTIFICATION_UNREAD_EVENT, { ids });
 }
 
 export async function publishAllNotificationsRead(
@@ -158,17 +170,9 @@ export namespace internal {
             idempotencyKey,
             groupId,
           )
-        : await notificationsModel.create({
-            userId,
-            icon: data.icon,
-            title: data.title,
-            description: data.description,
-            categoryId: data.subject.category.id,
-            subjectId: data.subject.id,
-            linkTo: data.linkTo,
-            groupId,
-            params: data.params,
-          });
+        : await notificationsModel.create(
+            buildNewUserNotification(userId, data, groupId),
+          );
 
     if (!created) return;
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {

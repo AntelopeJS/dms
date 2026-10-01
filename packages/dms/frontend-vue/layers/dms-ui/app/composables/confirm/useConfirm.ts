@@ -1,13 +1,11 @@
 import LazyDmsConfirmModal from "../../components/confirm/ConfirmModal.vue";
+import type { ConfirmOptions } from "./types";
 
-export interface ConfirmOptions {
-  title: string;
-  description: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  confirmColor?: "primary" | "error" | "warning";
-}
-
+/**
+ * Opens the DMS confirmation modal.
+ *
+ * @returns `confirm(options)`, resolving `true` when the user confirmed.
+ */
 export function useConfirm() {
   const overlay = useOverlay();
 

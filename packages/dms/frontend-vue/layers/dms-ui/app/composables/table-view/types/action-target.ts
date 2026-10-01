@@ -18,11 +18,17 @@ export type ActionTarget =
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /** JSON body sent with the request. */
+      body?: Record<string, unknown>;
+      /** Field of the JSON response copied to the clipboard on success. */
+      copy?: string;
       successMessage: string;
       confirm?: {
         title: string;
         description: string;
         confirmColor?: "primary" | "error" | "warning";
+        icon?: string;
+        confirmLabel?: string;
       };
     }
   | {

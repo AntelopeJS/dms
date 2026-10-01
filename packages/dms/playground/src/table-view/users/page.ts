@@ -11,7 +11,7 @@ export class PageTableViewUsers extends PageController(
     displayName: "Users",
     icon: "i-ph-users",
     category: tableViewCategory,
-    order: 130,
+    order: 140,
     description: "Users TableView used as relation target by Tasks.assignees",
   },
   DefaultLayout({ fullWidth: true }),

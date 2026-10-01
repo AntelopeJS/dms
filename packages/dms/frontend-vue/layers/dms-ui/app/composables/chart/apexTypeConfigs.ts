@@ -8,10 +8,11 @@ export interface ApexTypeConfig {
   sharedTooltip: boolean;
 }
 
-const SMOOTH_LINE_STROKE = { curve: "smooth", width: 3 } as const;
+const SMOOTH_LINE_STROKE = { curve: "smooth", width: 2.5 } as const;
 const SMOOTH_BAND_STROKE = { curve: "smooth", width: 1 } as const;
 const NO_STROKE = { width: 0 } as const;
 const THIN_STROKE = { width: 2 } as const;
+const SEGMENT_GAP_STROKE = { width: 3 } as const;
 const MEDIUM_STROKE = { width: 1 } as const;
 
 export const APEX_TYPE_CONFIGS: Record<ChartType, ApexTypeConfig> = {
@@ -60,14 +61,14 @@ export const APEX_TYPE_CONFIGS: Record<ChartType, ApexTypeConfig> = {
   donut: {
     apexType: "donut",
     isCircular: true,
-    defaultStroke: THIN_STROKE,
+    defaultStroke: SEGMENT_GAP_STROKE,
     supportsDataLabels: true,
     sharedTooltip: false,
   },
   pie: {
     apexType: "pie",
     isCircular: true,
-    defaultStroke: THIN_STROKE,
+    defaultStroke: SEGMENT_GAP_STROKE,
     supportsDataLabels: true,
     sharedTooltip: false,
   },

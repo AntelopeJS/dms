@@ -62,5 +62,6 @@ export function resolveDisplayCapabilities(
     search: capabilities?.search ?? true,
     sorting: capabilities?.sorting ?? true,
     tabs: capabilities?.tabs ?? true,
+    header: capabilities?.header ?? true,
   };
 }

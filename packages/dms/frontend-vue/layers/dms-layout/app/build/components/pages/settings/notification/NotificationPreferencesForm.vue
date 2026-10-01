@@ -1,291 +1,163 @@
 <script setup lang="ts">
-import NotificationCard from "../../../notification/NotificationCard.vue";
+import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
+import { useNotificationPreferences } from "../../../../../composables/notification/useNotificationPreferences";
+import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
+import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
+import { MATRIX_GRID_CLASS } from "./notificationDisplay";
 
-type NotificationSubject = {
-  id: string;
-  category: NotificationCategory;
-  labelKey: string;
-  descriptionKey?: string;
-  togglePermission?: TogglePermission;
-};
+const PREFERENCES_SKELETON_ROWS = 4;
 
-type NotificationCategory = {
-  id: string;
-  labelKey: string;
-  descriptionKey?: string;
-  icon: string;
-  togglePermission?: TogglePermission;
-};
-
-type TogglePermission = "allowed" | "forbidden" | "default";
-
-const { $authFetch } = useAuthFetch();
-const categories = ref<NotificationCategory[]>([]);
-const subjects = ref<NotificationSubject[]>([]);
-const preferences = ref<Record<string, boolean>>({});
-const expandedCategories = ref<Set<string>>(new Set());
-const isLoading = ref(true);
-const isSaving = ref(false);
-const toast = useToast();
 const { t } = useI18n();
+const {
+  categories,
+  subjectsOf,
+  failedChanges,
+  isLoading,
+  loadFailed,
+  isEnabled,
+  rowState,
+  toggleableSubjectsOf,
+  toggleSubject,
+  toggleCategory,
+  retry,
+  load,
+} = useNotificationPreferences();
 
-const canToggle = (data: NotificationSubject | NotificationCategory) => {
-  const parentToggle =
-    "category" in data
-      ? (data as NotificationSubject).category.togglePermission
-      : undefined;
+const visibleCategories = computed(() =>
+  categories.value.filter((category) => subjectsOf(category.id).length > 0),
+);
 
-  if (parentToggle === "default") {
-    return data.togglePermission !== "forbidden";
+const enabledCountOf = (category: NotificationCategory) =>
+  subjectsOf(category.id).filter(isEnabled).length;
+
+/** Names the direction the failed switch went back to, as v2 words it. */
+const failureMessage = computed(() => {
+  const changes = Object.values(failedChanges.value ?? {});
+  if (changes.length !== 1) {
+    return t("page.settings.notifications.save_failed_many");
   }
-
-  return parentToggle !== "forbidden" || data.togglePermission !== "forbidden";
-};
-
-const toggleCategoryExpand = (categoryId: string) => {
-  if (expandedCategories.value.has(categoryId)) {
-    expandedCategories.value.delete(categoryId);
-  } else {
-    expandedCategories.value.add(categoryId);
-  }
-};
-
-const isCategoryExpanded = (categoryId: string) =>
-  expandedCategories.value.has(categoryId);
-
-const buildPreferenceKey = (categoryId: string, subjectId: string): string => {
-  return `${categoryId}:${subjectId}`;
-};
-
-const fetchCategories = async () => {
-  const response = await $authFetch<{
-    categories: NotificationCategory[];
-    subjects: NotificationSubject[];
-  }>("/settings/user/notifications/categories");
-
-  categories.value = response.categories;
-  subjects.value = response.subjects;
-};
-
-const fetchPreferences = async () => {
-  try {
-    preferences.value = await $authFetch<Record<string, boolean>>(
-      "/settings/user/notifications/preferences",
-    );
-  } catch {
-    toast.add({
-      title: t("dms.notifications.preferences.error_loading"),
-      color: "error",
-    });
-  }
-};
-
-const savePreferences = async () => {
-  isSaving.value = true;
-  try {
-    await $authFetch("/settings/user/notifications/preferences", {
-      method: "PUT",
-      body: preferences.value,
-    });
-
-    toast.add({
-      title: t("dms.notifications.preferences.success"),
-      color: "success",
-    });
-  } catch {
-    toast.add({
-      title: t("dms.notifications.preferences.error_saving"),
-      color: "error",
-    });
-  } finally {
-    isSaving.value = false;
-  }
-};
-
-const isCategoryFullyEnabled = (category: NotificationCategory): boolean => {
-  const categorySubjects = subjects.value.filter(
-    (subject) => subject.category.id === category.id,
-  );
-  return categorySubjects.every((subject) => {
-    const key = buildPreferenceKey(category.id, subject.id);
-    return preferences.value[key] ?? true;
-  });
-};
-
-const toggleCategory = (category: NotificationCategory, newValue: boolean) => {
-  const categorySubjects = subjects.value.filter(
-    (subject) => subject.category.id === category.id,
-  );
-  for (const subject of categorySubjects) {
-    if (canToggle(subject) || newValue) {
-      const key = buildPreferenceKey(category.id, subject.id);
-      preferences.value[key] = newValue;
-    }
-  }
-  savePreferences();
-};
-
-const toggleSubject = (
-  categoryId: string,
-  subjectId: string,
-  newValue: boolean,
-) => {
-  const key = buildPreferenceKey(categoryId, subjectId);
-  preferences.value[key] = newValue;
-  savePreferences();
-};
-
-onMounted(async () => {
-  try {
-    await Promise.all([fetchCategories(), fetchPreferences()]);
-  } finally {
-    isLoading.value = false;
-  }
+  return changes[0]
+    ? t("page.settings.notifications.save_failed_off")
+    : t("page.settings.notifications.save_failed_on");
 });
+
+onMounted(load);
 </script>
 
 <template>
-  <div v-if="!isLoading" class="space-y-2">
-    <div v-for="category in categories" :key="category.id">
-      <NotificationCard
-        mode="list-top"
-        :clickable="true"
-        @click="toggleCategoryExpand(category.id)"
-      >
-        <template #icon>
-          <div
-            class="bg-accented flex size-10 items-center justify-center rounded-lg"
-          >
-            <UIcon :name="category.icon" class="size-5" />
-          </div>
-        </template>
-
-        <template #title>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-highlighted font-medium">
-              {{ $t(category.labelKey) }}
-            </span>
-            <span
-              v-if="category.descriptionKey"
-              class="text-dimmed text-xs font-normal"
-            >
-              {{ $t(category.descriptionKey) }}
-            </span>
-          </div>
-        </template>
-
-        <template #meta>
-          <UIcon
-            name="i-ph-caret-right"
-            :class="[
-              'text-muted size-4 transition-transform duration-200',
-              isCategoryExpanded(category.id) ? 'rotate-90' : '',
-            ]"
-          />
-        </template>
-      </NotificationCard>
-
+  <DmsSection
+    :title="t('page.settings.notifications.preferences_title')"
+    :description="t('page.settings.notifications.preferences_description')"
+  >
+    <div
+      role="table"
+      :aria-label="t('page.settings.notifications.preferences_title')"
+    >
       <div
-        v-if="isCategoryExpanded(category.id)"
-        class="border-muted mt-1 ml-9 space-y-1 border-l pl-4"
+        :class="MATRIX_GRID_CLASS"
+        class="border-default text-dimmed h-[34px] border-b bg-(--dms-bg-muted) font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+        role="row"
       >
-        <NotificationCard>
-          <template #title>
-            <div class="flex flex-col gap-0.5">
-              <span class="text-highlighted text-sm font-medium">
-                {{ $t("dms.notifications.preferences.allow_notifications") }}
-              </span>
-            </div>
-          </template>
-
-          <template #actions>
-            <div class="flex items-center gap-2">
-              <UTooltip
-                v-if="!canToggle(category)"
-                :delay-duration="0"
-                :text="$t('dms.notifications.preferences.mandatory_tooltip')"
-              >
-                <UButton
-                  icon="i-ph-question"
-                  variant="link"
-                  color="neutral"
-                  size="xs"
-                  class="cursor-help"
-                />
-              </UTooltip>
-              <USwitch
-                :model-value="isCategoryFullyEnabled(category)"
-                :disabled="!canToggle(category) || isSaving"
-                :ui="{
-                  base: !canToggle(category)
-                    ? 'bg-(--ui-bg-accented)!'
-                    : 'data-[state=unchecked]:bg-(--ui-text-dimmed)',
-                }"
-                @update:model-value="
-                  (value: boolean) => toggleCategory(category, value)
-                "
-              />
-            </div>
-          </template>
-        </NotificationCard>
-
-        <div
-          v-for="subject in subjects.filter(
-            (subject) => subject.category.id === category.id,
-          )"
-          :key="subject.id"
+        <span role="columnheader">
+          {{ t("page.settings.notifications.column_subject") }}
+        </span>
+        <span class="text-center" role="columnheader">
+          {{ t("page.settings.notifications.column_in_app") }}
+        </span>
+        <span
+          class="flex items-center justify-center gap-1.5"
+          role="columnheader"
         >
-          <NotificationCard>
-            <template #title>
-              <div class="flex flex-col gap-0.5">
-                <span class="text-highlighted text-sm font-medium">
-                  {{ $t(subject.labelKey) }}
-                </span>
-                <span v-if="subject.descriptionKey" class="text-dimmed text-xs">
-                  {{ $t(subject.descriptionKey) }}
-                </span>
-              </div>
-            </template>
+          {{ t("page.settings.notifications.column_email") }}
+          <UBadge
+            color="neutral"
+            size="sm"
+            class="tracking-[0.04em]"
+            :label="t('page.settings.notifications.soon')"
+          />
+        </span>
+        <span role="columnheader">
+          <span class="sr-only">
+            {{ t("page.settings.notifications.column_state") }}
+          </span>
+        </span>
+      </div>
 
-            <template #actions>
-              <div class="flex items-center gap-2">
-                <UTooltip
-                  v-if="!canToggle(subject)"
-                  :delay-duration="0"
-                  :text="$t('dms.notifications.preferences.mandatory_tooltip')"
-                >
-                  <UButton
-                    icon="i-ph-question"
-                    variant="link"
-                    color="neutral"
-                    size="xs"
-                    class="cursor-help"
-                  />
-                </UTooltip>
-                <USwitch
-                  :model-value="
-                    preferences[buildPreferenceKey(category.id, subject.id)] ??
-                    true
-                  "
-                  :disabled="!canToggle(subject) || isSaving"
-                  :ui="{
-                    base: !canToggle(subject)
-                      ? 'bg-(--ui-bg-accented)!'
-                      : 'data-[state=unchecked]:bg-(--ui-text-dimmed)',
-                  }"
-                  @update:model-value="
-                    (value: boolean) =>
-                      toggleSubject(category.id, subject.id, value)
-                  "
-                />
-              </div>
-            </template>
-          </NotificationCard>
+      <div v-if="isLoading" class="divide-y divide-(--ui-border-muted)">
+        <div
+          v-for="row in PREFERENCES_SKELETON_ROWS"
+          :key="row"
+          class="flex items-center gap-3 px-[18px] py-3.5"
+        >
+          <USkeleton class="size-[30px] rounded-lg" />
+          <div class="flex-1 space-y-1.5">
+            <USkeleton class="h-3 w-40" />
+            <USkeleton class="h-2.5 w-64" />
+          </div>
         </div>
       </div>
+
+      <div
+        v-else-if="loadFailed"
+        class="text-error flex items-center gap-3 px-[18px] py-6 text-[13px]"
+      >
+        <UIcon name="i-ph-warning-circle" class="size-4" />
+        {{ t("dms.notifications.preferences.error_loading") }}
+        <UButton
+          class="ms-auto"
+          color="neutral"
+          variant="outline"
+          size="xs"
+          icon="i-ph-arrows-clockwise"
+          :label="t('page.settings.notifications.retry')"
+          @click="load"
+        />
+      </div>
+
+      <template
+        v-for="(category, index) in visibleCategories"
+        v-else
+        :key="category.id"
+      >
+        <NotificationMatrixCategory
+          :category="category"
+          :enabled-count="enabledCountOf(category)"
+          :total="subjectsOf(category.id).length"
+          :disabled="toggleableSubjectsOf(category).length === 0"
+          :first="index === 0"
+          @toggle="(enabled) => toggleCategory(category, enabled)"
+        />
+        <NotificationMatrixSubject
+          v-for="subject in subjectsOf(category.id)"
+          :key="`${category.id}:${subject.id}`"
+          :subject="subject"
+          :enabled="isEnabled(subject)"
+          :state="rowState(subject)"
+          @toggle="(enabled) => toggleSubject(subject, enabled)"
+        />
+      </template>
     </div>
-  </div>
-  <div v-else class="flex items-center justify-center py-8">
-    <UIcon name="i-ph-spinner" class="size-8 animate-spin" />
-  </div>
+
+    <template #footer>
+      <template v-if="failedChanges">
+        <span class="text-error flex items-center gap-2" role="alert">
+          <UIcon name="i-ph-warning-circle" class="size-3.5" />
+          {{ failureMessage }}
+        </span>
+        <UButton
+          class="ms-auto"
+          color="neutral"
+          variant="outline"
+          size="xs"
+          icon="i-ph-arrows-clockwise"
+          :label="t('page.settings.notifications.retry')"
+          @click="retry"
+        />
+      </template>
+      <span v-else class="flex items-center gap-1.5 text-xs">
+        <UIcon name="i-ph-info" class="text-dimmed size-3.5" />
+        {{ t("page.settings.notifications.email_hint") }}
+      </span>
+    </template>
+  </DmsSection>
 </template>

@@ -170,6 +170,15 @@ export const FormSchema = z.object({
       advanced: true,
     },
   ),
+  saveBar: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "A sticky bar with Discard and Save, shown while there are unsaved changes, in place of the footer buttons.",
+      ),
+    { label: "Sticky save bar", group: "appearance", widget: "switch" },
+  ),
   fieldsOrientation: ui(z.enum(FIELD_ORIENTATIONS).optional(), {
     label: "Field orientation",
     group: "layout",

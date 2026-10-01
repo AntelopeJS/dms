@@ -205,7 +205,10 @@ describe("[unit] interfaces/dms-base — route param filter form defaults", () =
       status: "{{query.status}}",
       _instance: "{{params.id:1}}",
     });
-    expect(edit?.submitUrl).to.equal(`${LOCATION}/edit?id={{params.id}}`);
+    // The write names its table view, whose row rules apply to it.
+    expect(edit?.submitUrl).to.equal(
+      `${LOCATION}/edit?id={{params.id}}&tableView=rpf-detail.rows`,
+    );
   });
 
   // `/rpf-detail/:id/rows/new` carries one `:id`, which has no numbered key.

@@ -4,6 +4,7 @@ import type {
   CalendarSlots,
 } from "@nuxt/ui/components/Calendar.vue";
 import { useForwardPropsEmits } from "reka-ui";
+import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import {
   parseDate,
   fromDate,
@@ -49,6 +50,8 @@ const emits = defineEmits<{
   "update:startValue": [date: CalendarDate | undefined];
 }>();
 defineSlots<CalendarSlots>();
+
+const { weekStartsOn } = useUserRegionalPreferences();
 
 function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
@@ -140,5 +143,8 @@ const forwarded = useForwardPropsEmits(
 </script>
 
 <template>
-  <UCalendar v-bind="forwarded" />
+  <UCalendar
+    v-bind="forwarded"
+    :week-starts-on="props.weekStartsOn ?? weekStartsOn"
+  />
 </template>

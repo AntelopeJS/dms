@@ -6,7 +6,18 @@ import { applyTenantOwnership } from "@antelopejs/interface-dms/tenant-ownership
 import { normalizeEmail, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { SystemStateModel } from "../db";
 import { generateAuthKey } from "../utils/auth-key";
-import { onboardingRegisterAdminSchema } from "../validation/onboarding";
+import {
+  type OnboardingRegisterAdmin,
+  onboardingRegisterAdminSchema,
+} from "../validation/onboarding";
+
+const DEFAULT_ADMIN_LANGUAGE = "en";
+
+/** What the wizard records about the platform when it completes. */
+interface OnboardingPlatformDetails {
+  platformName?: string;
+  language?: string;
+}
 
 export class PublicOnboardingController extends Controller("/api/onboarding") {
   @Model(SystemStateModel)
@@ -49,6 +60,16 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
 
     assert(users.length === 0, 400, "error.admin_already_set");
 
+    const insertedIds = await this.createOwner(userModel, data);
+    await this.completeOnboarding(data);
+
+    return insertedIds;
+  }
+
+  private async createOwner(
+    userModel: UserModel,
+    data: OnboardingRegisterAdmin,
+  ): Promise<string[]> {
     const insertedIds = await userModel.insert({
       name: data.name,
       email: normalizeEmail(data.email),
@@ -58,7 +79,7 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
       isValidated: true,
       authKey: generateAuthKey(),
       owner: true,
-      language: "en",
+      language: data.language ?? DEFAULT_ADMIN_LANGUAGE,
     });
 
     const newUserId = insertedIds[0];
@@ -68,12 +89,10 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
       roleIds: [],
       isTenantOwner: true,
     });
-    await this.completeOnboarding();
-
     return insertedIds;
   }
 
-  private async completeOnboarding() {
+  private async completeOnboarding(details: OnboardingPlatformDetails) {
     const settings = await this.model.getConfig();
 
     assert(settings, 428, "error.settings_not_found");
@@ -82,7 +101,12 @@ export class PublicOnboardingController extends Controller("/api/onboarding") {
     // The spread row is an AntelopeJS table class: `Table` declares one
     // field and a static, no instance methods, and the value is
     // serialised to JSON on the way out. No prototype to lose.
-    // oxlint-disable-next-line typescript/no-misused-spread
-    await this.model.updateConfig({ ...settings, has_onboarded: true });
+    await this.model.updateConfig({
+      // oxlint-disable-next-line typescript/no-misused-spread
+      ...settings,
+      has_onboarded: true,
+      platform_name: details.platformName ?? settings.platform_name,
+      default_language: details.language ?? settings.default_language,
+    });
   }
 }

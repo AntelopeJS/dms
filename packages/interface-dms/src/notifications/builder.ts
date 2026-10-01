@@ -7,6 +7,7 @@ import { SendableNotification } from "./sendable";
 import type {
   NotificationData,
   NotificationSubjectInfo,
+  NotificationTone,
   RequiredFields,
 } from "./types";
 
@@ -45,6 +46,12 @@ export class NotificationBuilder<Set extends string = never> {
   ): NotificationBuilder<Set | "params"> {
     this.data.params = value;
     return this as unknown as NotificationBuilder<Set | "params">;
+  }
+
+  /** Colours the icon well the notification is listed with. */
+  tone(value: NotificationTone): NotificationBuilder<Set | "tone"> {
+    this.data.tone = value;
+    return this as unknown as NotificationBuilder<Set | "tone">;
   }
 
   build(

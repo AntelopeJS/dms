@@ -21,11 +21,26 @@ export type ActionTarget =
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /** JSON body sent with the request. */
+      body?: Record<string, unknown>;
+      /**
+       * Field of the JSON response copied to the clipboard on success (a
+       * share link, a token).
+       */
+      copy?: string;
       successMessage: string;
+      /**
+       * Asked first. On a row action, the texts receive the row's fields as
+       * i18n parameters (`"Remove {name}?"`).
+       */
       confirm?: {
         title: string;
         description: string;
         confirmColor?: "primary" | "error" | "warning";
+        /** Header icon of the dialog. */
+        icon?: string;
+        /** Text of the confirm button. `$`-prefixed: an i18n key. */
+        confirmLabel?: string;
       };
     }
   | {
@@ -70,11 +85,26 @@ export type ActionTargetSerialized =
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /** JSON body sent with the request. */
+      body?: Record<string, unknown>;
+      /**
+       * Field of the JSON response copied to the clipboard on success (a
+       * share link, a token).
+       */
+      copy?: string;
       successMessage: string;
+      /**
+       * Asked first. On a row action, the texts receive the row's fields as
+       * i18n parameters (`"Remove {name}?"`).
+       */
       confirm?: {
         title: string;
         description: string;
         confirmColor?: "primary" | "error" | "warning";
+        /** Header icon of the dialog. */
+        icon?: string;
+        /** Text of the confirm button. `$`-prefixed: an i18n key. */
+        confirmLabel?: string;
       };
     }
   | {

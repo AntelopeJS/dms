@@ -10,25 +10,38 @@ import type {
   TableSharedData,
 } from "./Table.vue";
 import TableMenuFilter from "./MenuFilter.vue";
+import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
 
+// v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
+// a chip opens its value editor in a popover.
 const theme = tv({
   slots: {
-    root: "border-default bg-elevated/30 flex items-end gap-3 rounded-md border px-3 py-2 mt-3",
-    list: "flex flex-wrap items-end gap-3",
-    item: "relative flex min-w-40 flex-col gap-1",
-    header: "flex items-center gap-1.5",
+    root: "flex flex-wrap items-center gap-2 border-b border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5",
+    list: "flex flex-wrap items-center gap-2",
+    item: "flex h-7 items-stretch divide-x divide-default overflow-hidden rounded-md border border-accented bg-(--ui-bg) text-[12.5px] shadow-xs has-[[data-state=open]]:border-primary has-[[data-state=open]]:ring-[3px] has-[[data-state=open]]:ring-primary/16",
+    chip: "flex items-stretch divide-x divide-default hover:bg-elevated/60",
     label:
-      "text-dimmed font-mono text-[10px] font-medium uppercase tracking-widest",
-    mode: "text-muted text-[10px] not-italic normal-case",
-    deleteManual: "size-4",
+      "flex items-center gap-1.5 px-2 font-[550] text-highlighted [&>svg]:size-3.5 [&>svg]:text-dimmed",
+    mode: "flex items-center px-2 font-mono text-[11px] font-medium text-muted",
+    value: "flex max-w-48 items-center truncate px-2 font-[550] text-primary",
+    remove:
+      "grid w-[26px] place-items-center text-dimmed hover:bg-elevated hover:text-highlighted [&>svg]:size-3.5",
+    editor: "grid w-72 gap-2 p-3",
+    editorLabel:
+      "font-mono text-[10.5px] font-semibold tracking-[0.12em] text-dimmed uppercase",
     inputWrapper: "w-full",
-    inputDisplay:
-      "text-default text-sm py-1.5 px-2 rounded-md border border-default bg-default min-h-9 flex items-center",
-    actions: "ms-auto flex shrink-0 items-center gap-1.5 min-h-9",
-    popover:
-      "bg-default text-default ring-default w-72 rounded-sm shadow ring-1",
+    emptyValue: "text-muted",
+    actions: "ms-auto flex shrink-0 items-center gap-1.5",
+    popover: "w-72",
+  },
+  variants: {
+    pinned: {
+      true: { item: "border-dashed" },
+    },
   },
 });
+
+const EMPTY_FILTER_VALUE = "—";
 
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -114,6 +127,36 @@ const reset = () => {
 };
 
 const addFilterOpen = ref(false);
+
+const { locale } = useI18n();
+const { getDataType } = useDataTypes();
+
+// Select-like filters show the option labels, not the raw stored values
+// (their formatter renders a pill, which a chip can't hold).
+const itemLabels = (filter: TableFilter): string | undefined => {
+  const items = resolveFilterComponent(filter)?.options?.items;
+  if (!Array.isArray(items) || filter.value === undefined) return undefined;
+  const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+  const labels = values.map((value) => {
+    const item = items.find(
+      (candidate) => (candidate as { value?: unknown })?.value === value,
+    ) as { label?: unknown } | undefined;
+    return item?.label !== undefined ? String(item.label) : String(value);
+  });
+  return labels.length ? labels.join(", ") : undefined;
+};
+
+const displayValue = (filter: TableFilter): string => {
+  const labels = itemLabels(filter);
+  if (labels) return labels;
+  const formatted = formatFilterValue(
+    filter,
+    columns.value.map((column) => ({ ...column, value: column.id })),
+    getDataType,
+    locale.value,
+  );
+  return formatted || EMPTY_FILTER_VALUE;
+};
 </script>
 
 <template>
@@ -122,68 +165,82 @@ const addFilterOpen = ref(false);
       <li
         v-for="(filter, index) in filters"
         :key="`${filter.accessorKey}-${index}`"
-        :class="ui.item()"
+        :class="ui.item({ pinned: !!filter.pinned })"
       >
-        <div :class="ui.header()">
-          <span :class="ui.label()">
-            {{ getColumn(filter.accessorKey)?.label }}
-          </span>
-          <span :class="ui.mode()">
-            {{ t(`dms.table.compare_mode.${filter.mode}`) }}
-          </span>
-          <UButton
-            v-if="!filter.pinned"
-            :ui="{ base: ui.deleteManual() }"
-            :icon="appConfig.ui.icons.close"
-            :aria-label="t('dms.button.delete')"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            square
-            @click="deleteFilter(index)"
-          />
-        </div>
+        <UPopover :content="{ align: 'start', sideOffset: 6 }">
+          <button type="button" :class="ui.chip()">
+            <span :class="ui.label()">
+              {{ getColumn(filter.accessorKey)?.label }}
+            </span>
+            <span :class="ui.mode()">
+              {{ t(`dms.table.compare_mode.${filter.mode}`) }}
+            </span>
+            <span :class="ui.value()">{{ displayValue(filter) }}</span>
+          </button>
 
-        <Suspense>
-          <Component
-            :is="
-              resolveAsyncComponent(
-                resolveFilterComponent(filter)?.componentName,
-              )
-            "
-            v-if="resolveFilterComponent(filter)"
-            :model-value="filter.value"
-            :class="ui.inputWrapper()"
-            v-bind="
-              JSON.parse(
-                JSON.stringify({
-                  ...(resolveFilterComponent(filter)?.options || {}),
-                }),
-              )
-            "
-            @update:model-value="updateFilterValue(index, $event)"
+          <template #content>
+            <div :class="ui.editor()">
+              <span :class="ui.editorLabel()">
+                {{ getColumn(filter.accessorKey)?.label }} ·
+                {{ t(`dms.table.compare_mode.${filter.mode}`) }}
+              </span>
+              <Suspense>
+                <Component
+                  :is="
+                    resolveAsyncComponent(
+                      resolveFilterComponent(filter)?.componentName,
+                    )
+                  "
+                  v-if="resolveFilterComponent(filter)"
+                  :model-value="filter.value"
+                  :class="ui.inputWrapper()"
+                  v-bind="
+                    JSON.parse(
+                      JSON.stringify({
+                        ...(resolveFilterComponent(filter)?.options || {}),
+                      }),
+                    )
+                  "
+                  @update:model-value="updateFilterValue(index, $event)"
+                />
+                <span v-else :class="ui.emptyValue()">
+                  {{ EMPTY_FILTER_VALUE }}
+                </span>
+              </Suspense>
+            </div>
+          </template>
+        </UPopover>
+
+        <button
+          v-if="!filter.pinned"
+          type="button"
+          :class="ui.remove()"
+          :aria-label="t('dms.button.delete')"
+          @click="deleteFilter(index)"
+        >
+          <UIcon :name="appConfig.ui.icons.close" />
+        </button>
+      </li>
+
+      <li>
+        <UPopover v-model:open="addFilterOpen">
+          <UButton
+            :icon="appConfig.ui.icons.plus"
+            :label="t('dms.table.add_filter')"
+            color="neutral"
+            :variant="addFilterOpen ? 'soft' : 'ghost'"
+            size="sm"
           />
-          <span v-else :class="ui.inputDisplay()">—</span>
-        </Suspense>
+          <template #content>
+            <div :class="ui.popover()">
+              <TableMenuFilter is-form-only @submit="addFilterOpen = false" />
+            </div>
+          </template>
+        </UPopover>
       </li>
     </ul>
 
-    <div :class="ui.actions()">
-      <UPopover v-model:open="addFilterOpen">
-        <UButton
-          :icon="appConfig.ui.icons.plus"
-          :label="t('dms.table.add_filter')"
-          color="neutral"
-          :variant="addFilterOpen ? 'soft' : 'ghost'"
-          size="sm"
-        />
-        <template #content>
-          <div :class="ui.popover()">
-            <TableMenuFilter is-form-only @submit="addFilterOpen = false" />
-          </div>
-        </template>
-      </UPopover>
-
+    <div v-if="filters.length" :class="ui.actions()">
       <UButton
         :label="t('dms.button.reset')"
         :icon="appConfig.ui.icons.close"

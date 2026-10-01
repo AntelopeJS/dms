@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import DmsEmptyState from "../empty-state/EmptyState.vue";
+import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
@@ -27,6 +29,8 @@ interface Props extends DefaultComponentProps {
   rankColor?: UiColor;
   showDelta?: boolean;
   showSparkline?: boolean;
+  /** 3px proportion bar under each title, width = value / largest value. */
+  showBar?: boolean;
   sparklineAccent?: string;
   invert?: boolean;
   badgeColor?: UiColor;
@@ -35,30 +39,36 @@ interface Props extends DefaultComponentProps {
   emptyLabel?: string;
 }
 
-const RANK_PAD_WIDTH = 2;
 const DEFAULT_MAX_HEIGHT = "24rem";
-const EMPTY_STATE_MIN_HEIGHT = "12rem";
 const DEFAULT_HIGHLIGHT_TOP_N = 3;
 const SKELETON_ROW_COUNT = 5;
+const PERCENT = 100;
 const PRESET_LABEL_KEY_PREFIX = "dms.period.presets";
 const EMPTY_LABEL_FALLBACK_KEY = "dms.top_list.empty";
 const EMPTY_LABEL_FALLBACK_TEXT = "No data";
-const MUTED_RANK_CLASS = "text-muted";
+const EMPTY_ICON = "i-ph-rows";
+const PLAIN_RANK_CLASS =
+  "text-dimmed font-semibold ring-1 ring-default ring-inset";
+const QUIET_BAR_OPACITY_CLASS = "opacity-45";
 
-const RANK_HIGHLIGHT_CLASSES: Record<string, string> = {
-  primary: "text-primary font-semibold",
-  secondary: "text-secondary font-semibold",
-  info: "text-info font-semibold",
-  success: "text-success font-semibold",
-  warning: "text-warning font-semibold",
-  error: "text-error font-semibold",
-  neutral: "text-toned font-semibold",
+// Solid rank fills keep dark ink in both themes (v2 top list).
+const RANK_FILL_CLASSES: Record<string, string> = {
+  primary: "bg-(--dms-accent-fill)",
+  secondary: "bg-(--ui-color-secondary-400)",
+  info: "bg-(--ui-color-info-400)",
+  success: "bg-(--ui-color-success-400)",
+  warning: "bg-(--ui-color-warning-400)",
+  error: "bg-(--ui-color-error-400)",
+  neutral: "bg-(--ui-border-accented)",
 };
+const RANK_TILE_CLASS =
+  "text-(--dms-accent-on-fill) shadow-(--dms-fill-highlight)";
 
 const props = withDefaults(defineProps<Props>(), {
   showRank: true,
   showDelta: true,
   showSparkline: false,
+  showBar: false,
   highlightTopN: DEFAULT_HIGHLIGHT_TOP_N,
   rankColor: "primary",
   badgeColor: "primary",
@@ -93,21 +103,47 @@ const items = computed<TopListItem[]>(() => data.value?.items ?? []);
 const hasAnyIcon = computed(() =>
   items.value.some((item) => Boolean(item.icon || item.avatar)),
 );
+const largestValue = computed(() =>
+  Math.max(0, ...items.value.map((item) => item.value)),
+);
 
+// The fade mask only applies when the list actually scrolls, so a short list
+// keeps its last row fully visible.
 const scrollRef = ref<HTMLElement | null>(null);
-watch(items, () => {
+const isOverflowing = ref(false);
+function measureOverflow() {
+  const element = scrollRef.value;
+  isOverflowing.value =
+    !!element && element.scrollHeight > element.clientHeight;
+}
+watch(items, async () => {
   if (scrollRef.value) scrollRef.value.scrollTop = 0;
+  await nextTick();
+  measureOverflow();
 });
+onMounted(measureOverflow);
 
-function rankLabel(index: number): string {
-  return String(index + 1).padStart(RANK_PAD_WIDTH, "0");
+const rankFillClass = computed(
+  () => RANK_FILL_CLASSES[props.rankColor] ?? RANK_FILL_CLASSES.primary!,
+);
+
+function isHighlighted(index: number): boolean {
+  return index < props.highlightTopN;
 }
 
 function rankClass(index: number): string {
-  if (index >= props.highlightTopN) return MUTED_RANK_CLASS;
-  return (
-    RANK_HIGHLIGHT_CLASSES[props.rankColor] ?? RANK_HIGHLIGHT_CLASSES.primary!
-  );
+  if (!isHighlighted(index)) return PLAIN_RANK_CLASS;
+  return `${rankFillClass.value} ${RANK_TILE_CLASS}`;
+}
+
+function barPercent(item: TopListItem): number | null {
+  if (!props.showBar || largestValue.value <= 0) return null;
+  return (Math.max(item.value, 0) / largestValue.value) * PERCENT;
+}
+
+function barClass(index: number): string {
+  if (isHighlighted(index)) return rankFillClass.value;
+  return `${rankFillClass.value} ${QUIET_BAR_OPACITY_CLASS}`;
 }
 
 function formattedValue(item: TopListItem): string {
@@ -143,23 +179,28 @@ const emptyLabelDisplay = computed(() =>
 );
 
 const maxHeightStyle = computed(() => ({ maxHeight: props.maxHeight }));
-const emptyStateStyle = { minHeight: EMPTY_STATE_MIN_HEIGHT };
 
-const RANK_COLUMN_WIDTH = "1.75rem";
-const ICON_COLUMN_WIDTH = "1.5rem";
+// Edge tracks inset the rows by 18px (6px + the 12px column gap) while the
+// hover band still runs edge to edge; padding on a subgrid row would spill
+// out of the fixed-width tracks instead.
+const EDGE_COLUMN_WIDTH = "6px";
+const RANK_COLUMN_WIDTH = "26px";
+const ICON_COLUMN_WIDTH = "26px";
 const TITLE_COLUMN_WIDTH = "minmax(0,1fr)";
 const VALUE_COLUMN_WIDTH = "auto";
 const SPARKLINE_COLUMN_WIDTH = "4rem";
-const TREND_COLUMN_WIDTH = "auto";
+// Fixed so the deltas line up down the list whatever their length.
+const TREND_COLUMN_WIDTH = "62px";
 
 const gridStyle = computed(() => {
-  const columns: string[] = [];
+  const columns: string[] = [EDGE_COLUMN_WIDTH];
   if (props.showRank) columns.push(RANK_COLUMN_WIDTH);
   if (hasAnyIcon.value) columns.push(ICON_COLUMN_WIDTH);
   columns.push(TITLE_COLUMN_WIDTH);
   columns.push(VALUE_COLUMN_WIDTH);
   if (props.showSparkline) columns.push(SPARKLINE_COLUMN_WIDTH);
   if (props.showDelta) columns.push(TREND_COLUMN_WIDTH);
+  columns.push(EDGE_COLUMN_WIDTH);
   return {
     display: "grid",
     gridTemplateColumns: columns.join(" "),
@@ -168,35 +209,32 @@ const gridStyle = computed(() => {
 </script>
 
 <template>
-  <DmsCard :padded="false" class="p-4 sm:p-5">
-    <div class="mb-4 flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="truncate text-sm font-semibold sm:text-base">
-          {{ processI18n(title) }}
-        </p>
-        <p v-if="description" class="text-muted mt-0.5 truncate text-xs">
-          {{ processI18n(description) }}
-        </p>
-      </div>
-      <UBadge
-        v-if="badgeLabel"
-        :color="badgeColor"
-        variant="soft"
-        size="sm"
-        class="shrink-0"
-      >
-        {{ badgeLabel }}
-      </UBadge>
-    </div>
+  <DmsCard :padded="false" class="flex min-w-0 flex-col overflow-hidden">
+    <DmsSectionHeader
+      size="card"
+      class="border-default border-b py-3.5 pr-4 pl-[18px]"
+      :title="processI18n(title)"
+      :description="description ? processI18n(description) : undefined"
+    >
+      <template v-if="badgeLabel" #trailing>
+        <UBadge :color="badgeColor" variant="soft" size="sm">
+          {{ badgeLabel }}
+        </UBadge>
+      </template>
+    </DmsSectionHeader>
 
     <div
       ref="scrollRef"
-      class="overflow-y-auto overscroll-contain pr-2"
+      class="[scrollbar-width:thin] overflow-y-auto overscroll-contain"
+      :class="
+        isOverflowing &&
+        '[mask-image:linear-gradient(to_bottom,black_calc(100%-36px),transparent)]'
+      "
       :style="maxHeightStyle"
     >
       <ul
         v-if="items.length > 0"
-        class="divide-default gap-x-3 divide-y"
+        class="gap-x-3 divide-y divide-(--ui-border-muted) py-1"
         :style="gridStyle"
       >
         <DmsTopListRow
@@ -204,7 +242,7 @@ const gridStyle = computed(() => {
           :key="item.id"
           :item="item"
           :show-rank="showRank"
-          :rank-label="rankLabel(index)"
+          :rank-label="String(index + 1)"
           :rank-class="rankClass(index)"
           :has-any-icon="hasAnyIcon"
           :show-sparkline="showSparkline"
@@ -212,23 +250,35 @@ const gridStyle = computed(() => {
           :show-delta="showDelta"
           :invert="invert"
           :formatted-value="formattedValue(item)"
+          :bar-percent="barPercent(item)"
+          :bar-class="barClass(index)"
         />
       </ul>
 
-      <div
+      <DmsEmptyState
         v-else-if="!isLoading"
-        class="flex items-center justify-center text-center"
-        :style="emptyStateStyle"
-      >
-        <p class="text-muted text-sm">{{ emptyLabelDisplay }}</p>
-      </div>
+        :icon="EMPTY_ICON"
+        :title="emptyLabelDisplay"
+        size="sm"
+        class="min-h-48 place-content-center"
+      />
 
-      <div v-else class="space-y-2 py-2">
-        <USkeleton
-          v-for="i in SKELETON_ROW_COUNT"
-          :key="i"
-          class="h-10 w-full"
-        />
+      <div v-else class="divide-y divide-(--ui-border-muted)" aria-busy="true">
+        <div
+          v-for="row in SKELETON_ROW_COUNT"
+          :key="row"
+          class="flex h-14 items-center gap-3 px-[18px]"
+        >
+          <USkeleton
+            v-if="showRank"
+            class="size-[26px] shrink-0 rounded-[7px] bg-(--dms-skeleton)"
+          />
+          <div class="grid flex-1 gap-1.5">
+            <USkeleton class="h-3 w-2/5 bg-(--dms-skeleton)" />
+            <USkeleton class="h-2.5 w-1/4 bg-(--dms-skeleton)" />
+          </div>
+          <USkeleton class="h-3 w-14 bg-(--dms-skeleton)" />
+        </div>
       </div>
     </div>
   </DmsCard>

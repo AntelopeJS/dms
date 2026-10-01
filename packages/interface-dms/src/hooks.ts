@@ -58,6 +58,13 @@ export enum Hook {
   MEMBER_ADDED = "member:added",
   MEMBER_REMOVED = "member:removed",
   USER_REGISTERED = "user:registered",
+  /**
+   * A user deleted their own account. Fired once the DMS has removed what it
+   * keeps about them (memberships, sessions, notifications, sign-in links and
+   * the user row); a module keeping per-user rows of its own deletes them
+   * here. A failing handler is logged and does not bring the account back.
+   */
+  USER_DELETED = "user:deleted",
 }
 
 /**
@@ -145,6 +152,11 @@ export interface MemberRemovedHookPayload {
   userIds: string[];
 }
 
+export interface UserDeletedHookPayload {
+  userId: string;
+  email: string;
+}
+
 export interface UserRegisteredHookPayload {
   tenantId: string;
   userId: string;
@@ -193,6 +205,10 @@ export interface HookSignatures {
   };
   [Hook.MEMBER_REMOVED]: {
     args: [payload: MemberRemovedHookPayload];
+    result: undefined;
+  };
+  [Hook.USER_DELETED]: {
+    args: [payload: UserDeletedHookPayload];
     result: undefined;
   };
   [Hook.USER_REGISTERED]: {

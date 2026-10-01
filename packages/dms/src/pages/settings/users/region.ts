@@ -1,0 +1,66 @@
+import { Get, JSONBody, Post } from "@antelopejs/interface-api";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { Model } from "@antelopejs/interface-database-decorators";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
+import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import { regionalPreferencesSchema } from "../../../validation/regional-preferences.schema";
+import { userCategory } from "./category";
+import {
+  applyRegionalPreferences,
+  type RegionalPreferences,
+  readRegionalPreferences,
+} from "./regional-preferences";
+
+const HTTP_NOT_FOUND = 404;
+
+/**
+ * The language the dashboard speaks and how it writes dates and times: time
+ * zone, first day of the week, clock and date format. Stored on the user, so
+ * every device follows them; each one saves as soon as it is picked.
+ */
+@RegisterPage()
+export class RegionSettingsController extends PageController(
+  "region",
+  {
+    displayName: "$menu.region",
+    category: userCategory,
+    icon: "i-ph-globe-hemisphere-west",
+    order: 1,
+    description: "$page.settings.description.region",
+  },
+  FormPageLayout(),
+) {
+  static regionComponent = CustomComponent("DmsSettingsRegion").meta({
+    name: "$menu.region",
+    icon: "i-ph-globe-hemisphere-west",
+  });
+
+  @AuthUserWithPermission(RegionSettingsController)
+  declare user: User;
+
+  @Get("/preferences")
+  getPreferences(): RegionalPreferences {
+    return readRegionalPreferences(this.user);
+  }
+
+  /** Saves the preferences the body names; returns all of them. */
+  @Post("/preferences")
+  async updatePreferences(
+    @JSONBody() body: unknown,
+    @Model(UserModel) userModel: UserModel,
+  ): Promise<RegionalPreferences> {
+    const input = assertValidation(body, (value) =>
+      regionalPreferencesSchema.parse(value),
+    );
+    // The whole stored row is written back: a partial update would drop the
+    // fields it does not name, the password hash among them.
+    const stored = await userModel.get(this.user._id);
+    assert(stored, HTTP_NOT_FOUND, "error.user_not_found");
+    applyRegionalPreferences(stored, input);
+    await userModel.update(stored);
+    return readRegionalPreferences(stored);
+  }
+}

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
+
+const ACCOUNT_SKELETON_ROWS = 2;
+
 const { t } = useI18n();
 const toast = useToast();
 const homepage = useHomepage();
@@ -68,101 +72,97 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg">
-    <DmsCard variant="elevated" :padded="false" class="p-4">
-      <div class="pb-8">
-        <h1 class="text-xl font-bold sm:text-2xl">
-          {{ $t("page.accounts.title") }}
-        </h1>
-        <p class="text-muted text-sm">
-          {{ $t("page.accounts.description") }}
-        </p>
-      </div>
-
-      <div class="space-y-3">
-        <DmsClientOnly>
-          <DmsCard
-            v-for="account in sortedAccounts"
-            :key="account.userId"
-            interactive
-            :padded="false"
-            class="group flex items-center justify-between p-4"
+  <StageCard
+    icon="i-ph-users"
+    :title="$t('page.accounts.title')"
+    :description="$t('page.accounts.description')"
+  >
+    <ul class="mt-[22px] grid gap-2">
+      <DmsClientOnly>
+        <li
+          v-for="account in sortedAccounts"
+          :key="account.userId"
+          class="group border-default hover:bg-elevated relative flex items-center gap-3 rounded-[10px] border px-3 py-2.5 transition-colors hover:border-(--dms-accent-line)"
+        >
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center gap-3 text-start after:absolute after:inset-0 after:rounded-[10px] focus-visible:outline-none focus-visible:after:shadow-(--dms-focus-ring)"
+            :disabled="loading !== null"
             @click="handleSwitchAccount(account.userId)"
           >
-            <div class="flex items-center gap-4">
-              <UAvatar :alt="account.name" size="xl" />
+            <UAvatar :alt="account.name" size="md" />
 
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-medium">{{ account.name }}</span>
-
-                  <UBadge
-                    v-if="account.userId === activeAccount?.userId"
-                    variant="subtle"
-                    size="sm"
-                  >
-                    {{ $t("page.accounts.active_account") }}
-                  </UBadge>
-
-                  <UBadge v-else-if="account.isExpired" color="error" size="sm">
-                    {{ $t("page.accounts.expired_account") }}
-                  </UBadge>
-                </div>
-
-                <span class="text-muted text-sm">
-                  {{ account.email }}
+            <span class="min-w-0">
+              <span class="flex items-center gap-2">
+                <span
+                  class="text-highlighted truncate text-[13.5px] font-semibold"
+                >
+                  {{ account.name }}
                 </span>
-              </div>
-            </div>
+                <UBadge
+                  v-if="account.userId === activeAccount?.userId"
+                  color="success"
+                  size="sm"
+                >
+                  {{ $t("page.accounts.active_account") }}
+                </UBadge>
+                <UBadge v-else-if="account.isExpired" color="warning" size="sm">
+                  {{ $t("page.accounts.expired_account") }}
+                </UBadge>
+              </span>
+              <span class="text-muted block truncate text-xs">
+                {{ account.email }}
+              </span>
+            </span>
+          </button>
 
-            <div class="flex items-center gap-2">
-              <UIcon
-                v-if="loading === account.userId"
-                name="i-ph-spinner"
-                class="animate-spin text-lg"
-              />
+          <UIcon
+            v-if="loading === account.userId"
+            name="i-ph-spinner-gap"
+            class="text-muted size-4 animate-spin"
+          />
+          <UButton
+            v-else-if="account.userId !== activeAccount?.userId"
+            icon="i-ph-x"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            square
+            :aria-label="
+              $t('page.accounts.remove_account', { name: account.name })
+            "
+            :disabled="loading !== null"
+            class="relative z-10 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-sm:opacity-100"
+            @click="handleRemoveAccount(account.userId)"
+          />
+          <UIcon v-else name="i-ph-arrow-right" class="text-dimmed size-4" />
+        </li>
 
-              <UButton
-                v-if="account.userId !== activeAccount?.userId"
-                icon="i-ph-x"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :disabled="loading !== null"
-                class="opacity-0 transition-opacity group-hover:opacity-100"
-                @click.stop="handleRemoveAccount(account.userId)"
-              />
-            </div>
-          </DmsCard>
+        <template #fallback>
+          <li
+            v-for="row in ACCOUNT_SKELETON_ROWS"
+            :key="row"
+            class="border-default flex items-center gap-3 rounded-[10px] border px-3 py-2.5"
+          >
+            <USkeleton class="size-8 rounded-full" />
+            <span class="grid gap-1.5">
+              <USkeleton class="h-3.5 w-32" />
+              <USkeleton class="h-3 w-44" />
+            </span>
+          </li>
+        </template>
+      </DmsClientOnly>
+    </ul>
 
-          <template #fallback>
-            <DmsCard
-              v-for="i in 2"
-              :key="i"
-              :padded="false"
-              class="flex items-center justify-between p-4"
-            >
-              <div class="flex items-center gap-4">
-                <USkeleton class="size-16 rounded-full" />
-                <div class="space-y-2">
-                  <USkeleton class="h-4 w-32" />
-                  <USkeleton class="h-3 w-48" />
-                </div>
-              </div>
-            </DmsCard>
-          </template>
-        </DmsClientOnly>
-
-        <UButton
-          block
-          variant="outline"
-          icon="i-ph-plus"
-          class="mt-6"
-          @click="handleAddAccount"
-        >
-          {{ $t("page.accounts.add_account") }}
-        </UButton>
-      </div>
-    </DmsCard>
-  </div>
+    <UButton
+      :label="$t('page.accounts.add_account')"
+      icon="i-ph-plus"
+      color="neutral"
+      variant="outline"
+      size="lg"
+      class="mt-4 justify-center"
+      block
+      @click="handleAddAccount"
+    />
+  </StageCard>
 </template>

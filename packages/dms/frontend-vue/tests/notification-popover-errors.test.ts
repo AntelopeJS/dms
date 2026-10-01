@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+  computed,
   createApp,
   defineComponent,
   h,
@@ -59,9 +60,15 @@ const Passthrough = defineComponent({
 });
 
 function installRuntime(): void {
-  Object.entries({ ref, watch, nextTick, onMounted, onUnmounted }).forEach(
-    ([key, value]) => vi.stubGlobal(key, value),
-  );
+  Object.entries({
+    ref,
+    computed,
+    watch,
+    nextTick,
+    onMounted,
+    onUnmounted,
+  }).forEach(([key, value]) => vi.stubGlobal(key, value));
+  vi.stubGlobal("useDmsState", <T>(_key: string, init: () => T) => ref(init()));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key, locale: "en" }));
   vi.stubGlobal("useUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("useTranslation", () => ({

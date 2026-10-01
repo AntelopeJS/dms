@@ -12,7 +12,8 @@ export class PageTableViewModal extends PageController(
     icon: "i-ph-app-window",
     category: tableViewCategory,
     order: 10,
-    description: "TableView with modal mode - forms open in centered modals",
+    description:
+      "Add, edit and details forms open in a centred modal over the task list",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

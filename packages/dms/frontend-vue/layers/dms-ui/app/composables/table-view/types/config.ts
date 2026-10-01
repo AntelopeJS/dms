@@ -29,6 +29,69 @@ export interface TableViewTab {
   icon?: string;
   textColor?: string;
   iconColor?: string;
+  /** Link tab: path of the page it opens (no filter applied). */
+  to?: string;
+  /** Full id of the page a link tab opens, when it is a registered page. */
+  toPage?: string;
+  /** Data API location whose row total a link tab shows. */
+  countFrom?: string;
+  /** Publish the tab's counter as the nav badge of the page it stands for. */
+  badge?: boolean;
+}
+
+/** Ready-made chrome sets of a table view. */
+export type TableViewChromePreset = "full" | "minimal";
+
+/** Per-control chrome toggles (backend `chrome` option). */
+export interface TableViewChromeOptions {
+  preset?: TableViewChromePreset;
+  caption?: boolean;
+  search?: boolean | "field";
+  filters?: boolean;
+  sorting?: boolean;
+  refresh?: boolean;
+  menu?: boolean;
+  columnMenus?: boolean;
+  pageSize?: boolean;
+}
+
+/** A one-click dropdown filter of the toolbar (backend `quickFilters`). */
+export interface TableViewQuickFilter {
+  field: string;
+  label?: string;
+  icon?: string;
+  allLabel?: string;
+  mode?: string;
+}
+
+/** Texts of the footer band (backend `footer`). */
+export interface TableViewFooter {
+  /** i18n key (`$`) receiving `{ count }`, pluralized on it. */
+  countLabel?: string;
+  hint?: string;
+}
+
+/** A field of the expanded row's detail band. */
+export interface TableViewExpandableField {
+  /** Column key; the value renders through that column's data type. */
+  key: string;
+  /** Label shown instead of the column's name (`$`-prefixed: i18n key). */
+  label?: string;
+}
+
+/**
+ * Expandable rows (backend `expandable` option): a caret column opens a
+ * detail band under the row, listing `fields` and/or rendering `component`
+ * (which receives `row`, `columns` and `rowId`).
+ */
+export interface TableViewExpandableConfig {
+  fields?: TableViewExpandableField[];
+  fieldsLabel?: string;
+  component?: ComponentInfo;
+  /** Rows open on arrival and after the listed set changes. */
+  defaultExpanded?: "none" | "first" | "all";
+  /** At most one row open at a time. */
+  single?: boolean;
 }
 
 export interface TableViewListResponse<T> {
@@ -69,7 +132,10 @@ export interface TableViewDisplayConfig {
 }
 
 export interface TableViewConfig<T extends Data>
-  extends Omit<TableProps<T>, "columns" | "displays"> {
+  extends Omit<
+    TableProps<T>,
+    "columns" | "displays" | "chrome" | "quickFilters"
+  > {
   location: string;
   enableTableExport?: boolean;
   archiveMode?: boolean;
@@ -95,4 +161,15 @@ export interface TableViewConfig<T extends Data>
   displays?: TableViewDisplayConfig[];
   /** Display shown by default when the user has no saved preference. Defaults to "table". */
   defaultDisplay?: string;
+  /** Expandable rows: caret column + detail band. */
+  expandable?: TableViewExpandableConfig;
+  /** Controls drawn around the rows. */
+  chrome?: TableViewChromePreset | TableViewChromeOptions;
+  searchPlaceholder?: string;
+  quickFilters?: TableViewQuickFilter[];
+  /** Columns hidden from the grid by default (still listed). */
+  hiddenColumns?: string[];
+  /** Rows per page while the user picked none. */
+  pageSize?: number;
+  footer?: TableViewFooter;
 }

@@ -5,6 +5,31 @@
 @plugin "@tailwindcss/typography";
 @source "../../app.config.ts";
 
+/* Reduced motion (Settings › Appearance › Accessibility): Tailwind's
+   motion-safe / motion-reduce variants follow the device setting, the
+   `dms-reduce-motion` / `dms-full-motion` class on <html>, before the
+   system's prefers-reduced-motion, which they follow when neither is set. */
+@custom-variant motion-reduce {
+  :root.dms-reduce-motion & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root:not(.dms-full-motion) & {
+      @slot;
+    }
+  }
+}
+@custom-variant motion-safe {
+  :root.dms-full-motion & {
+    @slot;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not(.dms-reduce-motion) & {
+      @slot;
+    }
+  }
+}
+
 /* Self-hosted Geist (SIL OFL 1.1, files in /public/fonts + LICENSE.txt).
    Variable files cover weights 100–900 and keep builds deterministic offline. */
 @font-face {
@@ -45,10 +70,10 @@
   font-size: 112.5%;
 }
 
-/* Antelope DMS design tokens (see Antelopejs-DMS-Dashboard proposal).
-   "dms" is the cyan DMS product accent (--dms-* from dms-shell.css, NOT the
-   cobalt --blue-* which is the Labs/foundation color); the neutral scale is
-   re-tuned with a cool blue undertone on the dark steps. */
+/* Antelope DMS design tokens (DMS design v2, dms-design-mockup-v2/css/tokens.css).
+   "dms" is the cyan DMS product accent, NOT the cobalt --blue-* which is the
+   Labs/foundation color; the neutral scale is the v2 cool slate, whose steps
+   are the v2 surfaces, borders and text colors of both themes. */
 @theme static {
   /* Geist display/body + Geist Mono. Inter and the system stack are fallbacks. */
   --font-sans:
@@ -71,17 +96,17 @@
   --color-dms-900: #114f59;
   --color-dms-950: #062e35;
 
-  --color-neutral-50: #f8f8f9;
-  --color-neutral-100: #f1f1f3;
-  --color-neutral-200: #dcdce1;
-  --color-neutral-300: #c4c4cb;
-  --color-neutral-400: #9b9ba4;
-  --color-neutral-500: #71717a;
-  --color-neutral-600: #52525b;
-  --color-neutral-700: #3f3f46;
-  --color-neutral-800: #2a2a30;
-  --color-neutral-900: #15151b;
-  --color-neutral-950: #0a0b12;
+  --color-neutral-50: #f4f6f7;
+  --color-neutral-100: #eef1f3;
+  --color-neutral-200: #e2e7ea;
+  --color-neutral-300: #cfd6db;
+  --color-neutral-400: #8a949d;
+  --color-neutral-500: #5b6671;
+  --color-neutral-600: #3a4550;
+  --color-neutral-700: #262e36;
+  --color-neutral-800: #161c21;
+  --color-neutral-900: #10151a;
+  --color-neutral-950: #07090b;
 }
 
 /* Defaults beat framework tokens, but not unlayered consumer declarations,
@@ -94,44 +119,126 @@
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
 
-    /* Light accent: dms-600 keeps white text readable on accent fills */
-    --ui-primary: var(--ui-color-primary-600);
+    /* Accent for text, icons and lines. The light theme needs the deep dms-700
+     to stay readable on white; solid fills keep the bright dms-400 through
+     --dms-accent-fill instead, with dark ink on top, in both themes. */
+    --ui-primary: var(--ui-color-primary-700);
+    --dms-accent-fill: var(--ui-color-primary-400);
+    --dms-accent-fill-hover: #5fe0ec;
+    --dms-accent-on-fill: #04181b;
 
-    /* Signature radius. Nuxt UI renders rounded-md at 1.5x --ui-radius, so
-     0.25rem yields 6px on buttons/inputs (design --radius-md). */
-    --ui-radius: 0.25rem;
+    /* v2 status inks: the light theme uses the 700 shades so success, warning
+     and error text stays readable on white; tints and lines stay bright. */
+    --ui-success: var(--ui-color-success-700);
+    --ui-warning: var(--ui-color-warning-700);
+    --ui-error: var(--ui-color-error-700);
+    --ui-info: var(--ui-color-info-700);
 
-    /* Card frame surface (design --surface-card) */
+    /* Nuxt UI derives its radius scale from this value (sm 1x, md 1.5x,
+     lg 2x, xl 3x): a third of 1rem gives the v2 8px buttons, inputs and nav
+     items, ~10px menus and 16px modals. */
+    --ui-radius: calc(0.5rem / 1.5);
+    --dms-radius-card: 0.875rem;
+
+    /* v2 shell metrics: 48px navbar, 56px sidebar brand row. */
+    --ui-header-height: 3rem;
+    --dms-sidebar-brand-height: 3.5rem;
+
+    /* Card frame surface (v2 --bg-card) */
     --dms-surface-card: var(--ui-bg);
 
-    /* Surfaces — white cards on a cool neutral app canvas
-     (design --bg #fff / --bg-subtle #f8f8f9 / --bg-muted #f1f1f3) */
+    /* Surfaces: white cards on the v2 slate canvas. elevated/accented are the
+     hover and pressed tints, which is how Nuxt UI components use them. */
     --ui-bg: #ffffff;
-    --ui-bg-muted: #f8f8f9;
-    --ui-bg-elevated: #f1f1f3;
-    --ui-bg-accented: #e7e7eb;
+    --ui-bg-muted: #f4f6f7;
+    --ui-bg-elevated: #eef1f3;
+    --ui-bg-accented: #e7ebee;
+    --dms-bg-sidebar: #fafbfb;
+    --dms-bg-field: #ffffff;
+    /* Bands inside a card (table header, filters row, footer): a step off the
+     card, unlike --ui-bg-muted which is the page canvas. */
+    --dms-bg-muted: #f7f9fa;
+    --dms-canvas-glow: none;
+    /* Auth and onboarding stage: a glow centred behind the card, dark only. */
+    --dms-stage-glow: none;
 
-    /* Hairline borders (n-150 / n-100 / n-200 in the design scale) */
-    --ui-border: #e7e7eb;
-    --ui-border-muted: #f1f1f3;
-    --ui-border-accented: #dcdce1;
+    --ui-border: #e2e7ea;
+    --ui-border-muted: #edf0f2;
+    --ui-border-accented: #cfd6db;
 
-    /* Elevation (design --shadow-*, light) */
-    --shadow-xs: 0 1px 0 0 rgba(9, 9, 11, 0.04);
-    --shadow-sm:
-      0 1px 2px 0 rgba(9, 9, 11, 0.06), 0 1px 1px 0 rgba(9, 9, 11, 0.04);
+    --ui-text-highlighted: #0b1114;
+    --ui-text: #2a333b;
+    --ui-text-toned: #3a4550;
+    --ui-text-muted: #5b6671;
+    --ui-text-dimmed: #8a949d;
+
+    /* Elevation (v2 --shadow-*, light) */
+    --shadow-xs: 0 1px 0 rgb(11 17 20 / 0.04);
+    --shadow-sm: 0 1px 2px rgb(11 17 20 / 0.06);
     --shadow-md:
-      0 4px 12px -2px rgba(9, 9, 11, 0.06), 0 2px 4px -1px rgba(9, 9, 11, 0.04);
+      0 1px 2px rgb(11 17 20 / 0.06), 0 4px 12px rgb(11 17 20 / 0.06);
     --shadow-lg:
-      0 12px 32px -8px rgba(9, 9, 11, 0.1), 0 4px 8px -2px rgba(9, 9, 11, 0.06);
+      0 1px 2px rgb(11 17 20 / 0.06), 0 12px 32px rgb(11 17 20 / 0.1);
     --shadow-xl:
-      0 24px 48px -12px rgba(9, 9, 11, 0.18),
-      0 8px 16px -4px rgba(9, 9, 11, 0.08);
+      0 1px 2px rgb(11 17 20 / 0.06), 0 24px 64px rgb(11 17 20 / 0.16);
     --shadow-glow:
       0 0 0 1px color-mix(in srgb, var(--dms-accent) 30%, transparent),
       0 0 24px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
+    --dms-focus-ring:
+      0 0 0 2px var(--ui-bg-muted), 0 0 0 4px rgb(27 162 175 / 0.55);
+    /* Command palette: the deepest shadow, plus an accent halo ring. */
+    --dms-shadow-cmdk:
+      0 1px 2px rgb(11 17 20 / 0.06), 0 30px 80px rgb(11 17 20 / 0.18);
+    --dms-halo-accent: 0 0 0 6px rgb(27 162 175 / 0.12);
+    /* Base surfaces (v2 --shadow-card/-pop/-modal, --overlay, --glow-accent):
+     cards, floating panels (menus, popovers, toasts), modals and drawers,
+     their backdrop, and the ring of a selected card. */
+    --dms-shadow-card: 0 1px 2px rgb(11 17 20 / 0.04);
+    --dms-shadow-pop:
+      0 1px 2px rgb(11 17 20 / 0.06), 0 12px 32px rgb(11 17 20 / 0.1);
+    --dms-shadow-modal:
+      0 1px 2px rgb(11 17 20 / 0.06), 0 24px 64px rgb(11 17 20 / 0.16);
+    --dms-overlay: rgb(11 17 20 / 0.28);
+    --dms-glow-accent:
+      0 0 0 1px var(--ui-color-primary-600), 0 4px 16px rgb(27 162 175 / 0.18);
 
     --dms-accent: var(--ui-color-primary-500);
+
+    /* Form controls (v2 --accent-tint*, --error-tint, --border-top,
+     --btn-highlight): the 3px focus halo around fields, the strongest border
+     (unchecked boxes, dropzones) and the highlight on accent fills. */
+    --dms-accent-tint: rgb(27 162 175 / 0.09);
+    --dms-accent-tint-strong: rgb(27 162 175 / 0.15);
+    --dms-accent-line: rgb(27 162 175 / 0.35);
+    --dms-error-tint: rgb(220 38 38 / 0.08);
+    --dms-border-top: #c9d1d7;
+    --dms-field-border-hover: color-mix(
+      in srgb,
+      var(--ui-border-accented) 60%,
+      var(--ui-text-muted)
+    );
+    --dms-fill-highlight:
+      inset 0 1px 0 rgb(255 255 255 / 0.45), 0 1px 2px rgb(6 46 53 / 0.18);
+
+    /* Charts and dashboards (v2 --chart-*, --sparkline, --skeleton): step 1
+     is the main series, step 2 (violet) always the comparison. Lines use
+     --dms-sparkline, deeper than the bright fill on white. */
+    --dms-chart-1: var(--ui-color-primary-400);
+    --dms-chart-2: var(--ui-color-secondary-500);
+    --dms-chart-3: var(--ui-color-primary-700);
+    --dms-chart-4: color-mix(in srgb, #f59e0b 80%, white);
+    --dms-chart-5: #15803d;
+    --dms-chart-grid: #edf0f2;
+    --dms-sparkline: var(--ui-color-primary-600);
+    --dms-skeleton: #e9edf0;
+    --dms-neutral-tint: #eef1f3;
+    --dms-success-tint: rgb(22 163 74 / 0.1);
+    --dms-success-line: rgb(22 163 74 / 0.3);
+    --dms-warning-tint: rgb(245 158 11 / 0.13);
+    --dms-warning-line: rgb(217 119 6 / 0.35);
+    --dms-error-line: rgb(220 38 38 / 0.3);
+    --dms-info-tint: rgb(27 162 175 / 0.09);
+    --dms-info-line: rgb(27 162 175 / 0.3);
 
     /* Motion (design --ease-* / --dur-*) */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -146,36 +253,175 @@
 
   .dark {
     --ui-primary: var(--ui-color-primary-400);
+    --ui-success: var(--ui-color-success-400);
+    --ui-warning: var(--ui-color-warning-400);
+    --ui-error: var(--ui-color-error-400);
+    --ui-info: var(--ui-color-info-400);
+    --dms-accent-fill-hover: var(--ui-color-primary-300);
 
-    /* Card surface = design --surface-card (#101119): its own tier sitting
-     between the sidebar (--surface-side #0a0b12 = --ui-bg) and the raised
-     --surface-card-2 (~#15151b = --ui-bg-elevated). The --ui-* scale has no
-     exact stop for it, so it's set literally to match the reference design. */
-    --dms-surface-card: #101119;
+    --dms-surface-card: var(--ui-bg);
 
-    /* Dashboard surfaces aligned to the design dark scale:
-     canvas --bg-muted #06070d (n-975) · sidebar --bg #0a0b12 (n-950) ·
-     raised inner surfaces --bg-elevated #15151b (n-900). */
-    --ui-bg: #0a0b12;
-    --ui-bg-muted: #06070d;
-    --ui-bg-elevated: #15151b;
-    --ui-bg-accented: #1a1b24;
+    /* v2 dark scale: canvas #07090b, sidebar #0b0e11, cards #10151a, with
+     hover and pressed tints above them. Borders are opaque, not alpha. */
+    --ui-bg: #10151a;
+    --ui-bg-muted: #07090b;
+    --ui-bg-elevated: #161c21;
+    --ui-bg-accented: #1b2228;
+    --dms-bg-sidebar: #0b0e11;
+    --dms-bg-field: #0b0f12;
+    --dms-bg-muted: #0d1114;
+    --dms-canvas-glow: radial-gradient(
+      900px 600px at 85% -10%,
+      rgb(77 217 230 / 0.055),
+      transparent 70%
+    );
+    --dms-stage-glow: radial-gradient(
+      closest-side,
+      rgb(77 217 230 / 0.1),
+      transparent
+    );
 
-    /* Hairline borders with a slight blue cast (design dark borders) */
-    --ui-border: rgba(120, 140, 200, 0.1);
-    --ui-border-muted: rgba(120, 140, 200, 0.06);
-    --ui-border-accented: rgba(140, 160, 220, 0.18);
+    --ui-border: #262e36;
+    --ui-border-muted: #1a2026;
+    --ui-border-accented: #2f3740;
 
-    /* Elevation softer in dark; most depth comes from borders (design). */
-    --shadow-xs: 0 1px 0 0 rgba(0, 0, 0, 0.4);
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-    --shadow-xl: 0 24px 56px -12px rgba(0, 0, 0, 0.7);
+    --ui-text-highlighted: #eef3f6;
+    --ui-text: #c7d0d8;
+    --ui-text-toned: #a3aeb8;
+    --ui-text-muted: #7c8894;
+    --ui-text-dimmed: #5b6670;
+
+    /* Elevation softer in dark; most depth comes from borders. */
+    --shadow-xs: 0 1px 0 rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.2);
+    --shadow-xl:
+      0 40px 120px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
     --shadow-glow:
       0 0 0 1px color-mix(in srgb, var(--dms-accent) 35%, transparent),
       0 0 32px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
+    --dms-focus-ring:
+      0 0 0 2px var(--ui-bg-muted), 0 0 0 4px rgb(77 217 230 / 0.6);
+    --dms-shadow-cmdk:
+      0 50px 140px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
+    --dms-halo-accent: 0 0 0 8px rgb(77 217 230 / 0.07);
+    --dms-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
+    --dms-shadow-pop: 0 16px 40px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.2);
+    --dms-shadow-modal:
+      0 40px 120px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
+    --dms-overlay: rgb(3 5 6 / 0.62);
+    --dms-glow-accent:
+      0 0 0 1px var(--ui-color-primary-400), 0 0 40px rgb(77 217 230 / 0.25);
     --dms-accent: var(--ui-color-primary-400);
+
+    --dms-accent-tint: rgb(77 217 230 / 0.1);
+    --dms-accent-tint-strong: rgb(77 217 230 / 0.16);
+    --dms-accent-line: rgb(77 217 230 / 0.35);
+    --dms-error-tint: rgb(248 113 113 / 0.13);
+    --dms-border-top: #3a4550;
+    --dms-field-border-hover: color-mix(
+      in srgb,
+      var(--ui-border-accented) 60%,
+      var(--ui-text-muted)
+    );
+    --dms-fill-highlight: inset 0 1px 0 rgb(255 255 255 / 0.25);
+
+    --dms-chart-1: var(--ui-color-primary-400);
+    --dms-chart-2: var(--ui-color-secondary-400);
+    --dms-chart-3: var(--ui-color-primary-200);
+    --dms-chart-4: #fbbf24;
+    --dms-chart-5: #4ade80;
+    --dms-chart-grid: #1a2128;
+    --dms-sparkline: var(--ui-color-primary-400);
+    --dms-skeleton: #1a2128;
+    --dms-neutral-tint: #1a2127;
+    --dms-success-tint: rgb(74 222 128 / 0.12);
+    --dms-success-line: rgb(74 222 128 / 0.4);
+    --dms-warning-tint: rgb(251 191 36 / 0.12);
+    --dms-warning-line: rgb(251 191 36 / 0.4);
+    --dms-error-line: rgb(248 113 113 / 0.4);
+    --dms-info-tint: rgb(77 217 230 / 0.1);
+    --dms-info-line: rgb(77 217 230 / 0.35);
+  }
+}
+
+/* Accessibility (Settings › Appearance), one class per option on <html>,
+   rendered by the server from the dms-accessibility cookie. */
+@layer dms {
+  /* Increase contrast: a step darker (light) or lighter (dark) on secondary
+     text and every hairline, within the v2 slate scale. Muted and dimmed text
+     clear WCAG AA (4.5:1) on cards, bands and the canvas; field borders
+     (accented) clear the 3:1 non-text minimum on cards. */
+  :root.dms-increase-contrast {
+    --ui-text: #1d252c;
+    --ui-text-toned: #2a333b;
+    --ui-text-muted: #434e59;
+    --ui-text-dimmed: #5b6671;
+    --ui-border: #aeb8c0;
+    --ui-border-muted: #c6ced4;
+    --ui-border-accented: #8a949d;
+    --dms-border-top: #8a949d;
+    --dms-chart-grid: #dfe4e8;
+    --dms-accent-line: rgb(27 162 175 / 0.6);
+    --dms-success-line: rgb(22 163 74 / 0.55);
+    --dms-warning-line: rgb(217 119 6 / 0.6);
+    --dms-error-line: rgb(220 38 38 / 0.55);
+    --dms-info-line: rgb(27 162 175 / 0.55);
+  }
+
+  :root.dms-increase-contrast.dark,
+  .dms-increase-contrast .dark {
+    --ui-text: #dde4ea;
+    --ui-text-toned: #c7d0d8;
+    --ui-text-muted: #a3aeb8;
+    --ui-text-dimmed: #8a949d;
+    --ui-border: #46515c;
+    --ui-border-muted: #36404a;
+    --ui-border-accented: #5f6b76;
+    --dms-border-top: #6b7782;
+    --dms-chart-grid: #262e36;
+    --dms-accent-line: rgb(77 217 230 / 0.6);
+    --dms-success-line: rgb(74 222 128 / 0.6);
+    --dms-warning-line: rgb(251 191 36 / 0.6);
+    --dms-error-line: rgb(248 113 113 / 0.6);
+    --dms-info-line: rgb(77 217 230 / 0.6);
+  }
+
+  /* Reduce motion: animations and transitions run in ~0ms (not `none`, so
+     the animationend / transitionend that Vue and reka-ui wait for still
+     fire) and loop once, ending on their last frame. Spinners keep turning:
+     they are the only sign that something is loading. `auto` sets no class
+     and follows the system instead. */
+  :root.dms-reduce-motion,
+  :root.dms-reduce-motion *:not(.animate-spin),
+  :root.dms-reduce-motion *::before,
+  :root.dms-reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root:not(.dms-full-motion),
+    :root:not(.dms-full-motion) *:not(.animate-spin),
+    :root:not(.dms-full-motion) *::before,
+    :root:not(.dms-full-motion) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Always underline links: content links only. They are the v2 text links,
+     which underline on hover (ULink's theme, auth and inline links, link
+     cells), plus anything marked `.dms-text-link`. Menu items, tabs, cards
+     and buttons never carry either. */
+  :root.dms-underline-links a[class~="hover:underline"],
+  :root.dms-underline-links .dms-text-link {
+    text-decoration-line: underline;
+    text-underline-offset: 3px;
   }
 }
 
@@ -192,30 +438,47 @@
 /* Card frame around primary components (design .card: surface-card
    background, hairline border, radius-xl, soft shadow). */
 @layer components {
+  /* App canvas behind the shell: the slate background and, in dark, the
+     accent glow from the top right corner, fixed while the page scrolls. */
+  .dms-canvas {
+    background-color: var(--ui-bg-muted);
+    background-image: var(--dms-canvas-glow);
+    background-attachment: fixed;
+  }
+
   .dms-card {
     background-color: var(--dms-surface-card);
     border: 1px solid var(--ui-border);
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--dms-radius-card);
+    box-shadow: var(--dms-shadow-card);
   }
 
   /* Floating surfaces (auth boxes, full-page panels) sit on an empty
      backdrop and need more lift than in-app cards. */
   .dms-card--elevated {
-    box-shadow: var(--shadow-lg);
+    border-color: var(--ui-border-accented);
+    box-shadow: var(--dms-shadow-pop);
   }
 
-  /* Clickable surfaces (settings/nav tiles, selection cards). */
+  /* Clickable surfaces (settings/nav tiles, selection cards): accent
+     border and a 1px lift on hover. */
   .dms-card--interactive {
     cursor: pointer;
     transition:
-      border-color 0.2s,
-      box-shadow 0.2s,
-      transform 0.2s;
+      border-color var(--dur-fast),
+      box-shadow var(--dur-base),
+      transform var(--dur-base) var(--ease-out);
   }
   .dms-card--interactive:hover {
-    border-color: var(--ui-border-accented);
-    box-shadow: var(--shadow-md);
+    border-color: var(--dms-accent-line);
+    transform: translateY(-1px);
+  }
+
+  /* Picked option (plan pickers, module selection). */
+  .dms-card--selected,
+  .dms-card--selected:hover {
+    border-color: var(--ui-primary);
+    box-shadow: var(--dms-glow-accent);
   }
 }
 

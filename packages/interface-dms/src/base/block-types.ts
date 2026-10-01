@@ -10,15 +10,24 @@
  * the helpers its schema needs — `ui`, `narrowString`, `opaqueOption` — have to
  * be reachable from the same place.
  */
+import "./activity-feed";
+import "./banner";
+import "./card";
 import "./chart-schemas";
 import "./chart-card";
+import "./empty-state";
 import "./form-block-schema";
 import "./grid";
+import "./key-value-list";
 import "./kpi-card";
+import "./meter";
+import "./nav-card-grid";
 import "./period-selector";
 import "./placeholder";
 import "./resource-form-schema";
+import "./section";
 import "./stack";
+import "./stat-strip";
 import "./tab";
 import "./table-view/schema";
 import "./top-list-card";

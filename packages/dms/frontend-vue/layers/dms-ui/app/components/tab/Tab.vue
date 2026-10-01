@@ -9,7 +9,8 @@ const props = withDefaults(defineProps<TabProps>(), {
   // assembled, or a serialized layout that carries no items. Without a default
   // every read of `items` throws during setup and takes the page down with it.
   items: () => [],
-  color: Color.primary,
+  // Neutral pill for in-content switches; page-level navigation passes primary.
+  color: Color.neutral,
   size: Size.medium,
   variant: TabVariant.pill,
   orientation: AxeOrientation.horizontal,
@@ -19,6 +20,20 @@ const props = withDefaults(defineProps<TabProps>(), {
 });
 
 const tabCount = computed(() => props.items.length);
+
+// The panel lines up with the list: below it, or beside a vertical one.
+const PANEL_CLASSES: Record<AxeOrientation, string> = {
+  [AxeOrientation.horizontal]: "pt-4",
+  [AxeOrientation.vertical]: "pl-5",
+};
+
+const LIST_CLASSES: Record<AxeOrientation, string> = {
+  [AxeOrientation.horizontal]: "",
+  [AxeOrientation.vertical]: "w-48 shrink-0",
+};
+
+const panelClass = computed(() => PANEL_CLASSES[props.orientation]);
+const tabsUi = computed(() => ({ list: LIST_CLASSES[props.orientation] }));
 
 const {
   activeTab,
@@ -71,9 +86,10 @@ defineExpose({
       :variant="props.variant"
       :orientation="props.orientation"
       :unmount-on-hide="props.unmountOnHide"
+      :ui="tabsUi"
     >
       <template v-for="item in props.items" :key="item.slot" #[item.slot]>
-        <div class="space-y-6 p-4">
+        <div class="space-y-6" :class="panelClass">
           <slot :name="item.slot" />
         </div>
       </template>

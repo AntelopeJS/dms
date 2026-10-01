@@ -1,0 +1,72 @@
+import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
+import { TableView } from "@antelopejs/interface-dms/base/table-view";
+import { tableViewCategory } from "../category";
+import { ORDER_STATUSES, orderDataAPI } from "./data-api";
+
+const DETAIL_FIELDS = [
+  { key: "shippingAddress", label: "Ship to" },
+  "carrier",
+  "payment",
+  "email",
+];
+
+const statusTabs = ORDER_STATUSES.map((status) => ({
+  id: status.value,
+  label: status.label,
+  filters: [{ accessorKey: "status", value: status.value, mode: "is" }],
+}));
+
+@RegisterPage()
+export class PageTableViewExpandableRows extends PageController(
+  "table-view-expandable-rows",
+  {
+    displayName: "Expandable rows",
+    icon: "i-ph-caret-circle-down",
+    category: tableViewCategory,
+    order: 34,
+    description:
+      'The expandable option of TableView: a caret column opens a detail band under each order. The first table lists detail fields (defaultExpanded "first", next to row selection and row actions); the second renders the OrderLinesDetail component beside the fields, one row at a time, under status tabs, compact density and a sticky header',
+  },
+  DefaultLayout({ fullWidth: true }),
+) {
+  static fields = TableView(orderDataAPI, {
+    caption: "Orders · detail fields",
+    labelKey: "number",
+    defaultSort: { field: "placedAt", desc: true },
+    expandable: {
+      fields: DETAIL_FIELDS,
+      fieldsLabel: "Shipping & payment",
+      defaultExpanded: "first",
+    },
+    rowActions: {
+      add: true,
+      edit: { isVisible: true },
+      delete: true,
+      duplicate: true,
+      hasSelection: true,
+    },
+  });
+
+  static component = TableView(orderDataAPI, {
+    caption: "Orders · detail component, one row at a time",
+    labelKey: "number",
+    density: "compact",
+    stickyHeader: true,
+    maxHeight: "560px",
+    defaultSort: { field: "placedAt", desc: true },
+    tabs: statusTabs,
+    expandable: {
+      component: CustomComponent("OrderLinesDetail"),
+      fields: DETAIL_FIELDS,
+      fieldsLabel: "Shipping & payment",
+      single: true,
+    },
+    rowActions: {
+      edit: true,
+      delete: true,
+      hasSelection: true,
+    },
+  });
+}

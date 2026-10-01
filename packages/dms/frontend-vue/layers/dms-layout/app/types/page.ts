@@ -23,6 +23,7 @@ export interface MenuOptions {
   query?: MenuItemQuery;
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
+  badge?: string;
   bypassTenantAccessGate?: boolean;
 }
 
@@ -43,6 +44,8 @@ export interface ModuleInfo {
   description: string;
   icon: string;
   landingPage?: string;
+  version?: string;
+  category?: string;
   defaultCategory?: {
     displayName?: string;
     icon?: string;
@@ -52,6 +55,25 @@ export interface ModuleInfo {
 }
 
 export type ModuleWithAccess = ModuleInfo & { hasAccess: boolean };
+
+// Mirror of ModuleStatus / ModuleReadoutLine from @antelopejs/interface-dms/page.
+export type ModuleStatus = "live" | "beta" | "update" | "attention";
+export type ModuleReadoutTone = "ok" | "info" | "warning" | "error";
+export interface ModuleReadoutLine {
+  text: string;
+  tone?: ModuleReadoutTone;
+}
+
+/**
+ * One entry of `/dms/modules-listing`: the module's info plus what its
+ * catalog hooks reported. `status` and `readout` are optional so a backend
+ * predating the hooks still reads as live with no readout.
+ */
+export type ModuleCatalogEntry = ModuleWithAccess & {
+  landingSlug: string;
+  status?: ModuleStatus;
+  readout?: ModuleReadoutLine[];
+};
 
 export const MODULE_URL_PREFIX = "/modules";
 

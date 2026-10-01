@@ -1,21 +1,52 @@
 {
   "page": {
     "onboarding": {
-      "start_title": "Platform configuration",
-      "start_description": "Basic information about your application",
-      "create_admin": "Administrator account",
-      "modif_last": "Modify previous information here.",
-      "documentation": "Documentation",
-      "website": "Website",
-      "contributor": "Contribution",
-      "start_button": "Access your administration panel",
-      "success": {
-        "title": "Welcome to your DMS",
-        "description": "Your application is ready to be used. We invite you to discover the useful links relating to Antelope and its framework below:",
-        "dms": "Antelope DMS",
-        "dms_description": "Deep explore the capabilities of your application by accessing the different links offered by the DMS. Find out about advanced features and maximize the potential of your platform.",
-        "framework": "Antelope Framework",
-        "framework_description": "Your application is based on the powerful Antelope framework. Explore the extent of its capabilities and the many creative possibilities it provides you with."
+      "start_title": "Set up your platform",
+      "steps": {
+        "aria_label": "Setup progress",
+        "eyebrow": "Step {step} of {total} · {label}",
+        "platform": "Platform",
+        "administrator": "Administrator",
+        "ready": "Ready"
+      },
+      "platform": {
+        "duration": "about 1 min",
+        "title": "Welcome to Antelope DMS",
+        "description": "Name the platform and pick its default language. The name appears in the browser tab and on the sign-in page.",
+        "name_help": "Shown in the browser tab and on the sign-in page.",
+        "language": "Default language",
+        "language_help": "Your administrator account starts in this language. Everyone can switch in their profile.",
+        "address": "Address",
+        "address_secure": "Detected from this browser · HTTPS is on",
+        "address_insecure": "Detected from this browser · HTTPS is off",
+        "submit": "Continue to administrator",
+        "team_hint": "Setting up for a team? You invite teammates once the platform is ready."
+      },
+      "administrator": {
+        "title": "Create the administrator account",
+        "description": "This account owns the platform: it can manage modules, settings and invite everyone else.",
+        "first_name": "First name",
+        "last_name": "Last name",
+        "name_required": "Required",
+        "email": "Work e-mail",
+        "submit": "Create administrator account",
+        "back": "Back to platform details",
+        "error_title": "The account could not be created"
+      },
+      "ready": {
+        "title": "{platform} is ready",
+        "description": "You're signed in as {name}, owner of the platform. Here's what most teams do first.",
+        "invite_title": "Invite your teammates",
+        "invite_description": "Give them a role so they only see what they need.",
+        "security_title": "Turn on two-factor authentication",
+        "security_description": "Recommended for the owner account.",
+        "modules_title": "Review installed modules",
+        "modules_description": "See what each installed module adds to the platform.",
+        "docs_title": "Read the documentation",
+        "docs_description": "Antelope DMS and the Antelope framework.",
+        "submit": "Open the dashboard",
+        "recap_platform": "Platform",
+        "recap_language": "Default language"
       }
     }
   }

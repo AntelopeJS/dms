@@ -401,7 +401,9 @@
       "discard": "Abandonner",
       "stay": "Rester",
       "confirm": "Confirmer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "esc_hint": "pour annuler",
+      "type_to_confirm": "Saisissez {text} pour confirmer"
     },
     "date": {
       "undefined": "Inconnue"
@@ -409,7 +411,8 @@
     "components": {
       "tableview": "📄 TableView",
       "tree": "🎋 Arbre",
-      "tab": "🗂️ Onglet"
+      "tab": "🗂️ Onglet",
+      "global": "🌐 Global"
     },
     "chart": {
       "no_data": "Aucune donnée",
@@ -442,6 +445,27 @@
         "previous-period": "vs période précédente",
         "previous-year": "vs année précédente",
         "custom": "Personnalisé"
+      },
+      "compare_options": {
+        "none": "Aucune comparaison",
+        "previous-period": "Période précédente",
+        "previous-year": "Année précédente",
+        "custom": "Personnalisée"
+      },
+      "popover": {
+        "dialog_aria": "Choisir la période",
+        "presets": "Préréglages",
+        "custom_range": "Plage personnalisée",
+        "start": "Début",
+        "end": "Fin",
+        "compare_to": "Comparer à",
+        "cancel": "Annuler",
+        "apply": "Appliquer",
+        "vs": "vs",
+        "days": "{count} jour | {count} jours",
+        "hours": "{count} heure | {count} heures",
+        "previous_month": "Mois précédent",
+        "next_month": "Mois suivant"
       }
     }
   }

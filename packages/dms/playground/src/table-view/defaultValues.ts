@@ -943,6 +943,8 @@ const buildRandomAddress = (): RandomAddress | undefined => {
   };
 };
 
+const ARCHIVED_TASK_INTERVAL = 30;
+
 const buildRandomTask = (i: number): Partial<Task> => {
   const ownerName = pickRandom(RANDOM_NAMES);
   const taskName = pickRandom(RANDOM_TASK_NAMES);
@@ -963,7 +965,9 @@ const buildRandomTask = (i: number): Partial<Task> => {
     phone: "+1-555-123-4567",
     done: false,
     address: buildRandomAddress(),
-    isArchived: i > 700 && i <= 710,
+    // Every 30th generated task starts archived, so the Archive Mode demo has
+    // rows to show (ids run 16–315).
+    isArchived: i % ARCHIVED_TASK_INTERVAL === 0,
     createdAt: dates.createdDate,
     updatedAt: dates.updatedDate,
   };

@@ -18,6 +18,7 @@ import type { RowActionConfig, RowActionRule } from "../types/row-action";
 import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
 import {
+  DEFAULT_ROW_ID_FIELD,
   KANBAN_DISPLAY_ID,
   TABLE_DISPLAY_ID,
   TABLE_VIEW_COMPONENT_NAME,
@@ -34,10 +35,13 @@ import {
   applyFormPageSubmitDefaults,
   applyFormRedirect,
   applyPermissionToAction,
+  assertKnownColumns,
   buildFilterSubmitDefaults,
   buildFormPageUrls,
   buildFormRedirectUrl,
   resolveCustomButtons,
+  resolveCustomRowActions,
+  resolveTableViewTabs,
   FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
   type FormPageKind,
@@ -45,11 +49,16 @@ import {
   formRouteKey,
   joinPageSlug,
   mergeControllerRule,
+  serializeExpandable,
   serializeTableViewDisplays,
+  serializeTableViewTabs,
   ROW_SCOPED_FORM_PAGE_KINDS,
   TableViewFunctions,
   validateKanbanField,
+  validateQuickFilters,
   warnIfTabsLackCountBatch,
+  appendTableViewKey,
+  withTableViewKeyOnSubmit,
 } from "./factory-helpers";
 export function TableView<T extends ControllerClass>(
   controller: T,
@@ -57,16 +66,6 @@ export function TableView<T extends ControllerClass>(
 ): ComponentBuilder<TableViewOptionsSerialized> {
   const meta = GetMetadata(controller, TableViewMeta);
   meta.setOptions(options);
-
-  if (options.rowActions) {
-    const hasRules = Object.values(options.rowActions).some(
-      (config) =>
-        typeof config === "object" && config !== null && "rule" in config,
-    );
-    if (hasRules && !meta.controllerRowActionRules) {
-      meta.setControllerRowActionRules(options.rowActions);
-    }
-  }
 
   if (options.guards && !meta.controllerGuards) {
     meta.setControllerGuards(options.guards);
@@ -139,6 +138,20 @@ export function TableView<T extends ControllerClass>(
     }
   }
 
+  assertKnownColumns(
+    controller.name,
+    meta,
+    "hiddenColumns",
+    options.hiddenColumns ?? [],
+  );
+  validateQuickFilters(controller.name, meta, options.quickFilters);
+
+  const serializedExpandable = serializeExpandable(
+    controller.name,
+    meta,
+    options.expandable,
+  );
+
   const filterSubmitDefaults = buildFilterSubmitDefaults(options);
 
   const newForm = resourceForm(controller, "new", {
@@ -198,11 +211,17 @@ export function TableView<T extends ControllerClass>(
       target: serializeActionTarget(action.target),
       isVisible: action.isVisible,
       isDefault: action.isDefault,
+      color: action.color,
+      variant: action.variant,
+      showLabel: action.showLabel,
     })),
   });
 
   const serializedRowActions: TableViewRowActionOptionsSerialized | undefined =
     options.rowActions ? serializeRowActions(options.rowActions) : undefined;
+  // Kept for the per-request filter, whose `options` are the serialized ones.
+  const declaredCustomRowActions = options.rowActions?.custom;
+  const declaredTabs = options.tabs;
 
   const isPageMode =
     options.formContainer === undefined ||
@@ -273,12 +292,23 @@ export function TableView<T extends ControllerClass>(
   }
 
   meta.addComponentBuilder(builder);
+  // This table's rules, archive-mode defaults included, enforced on the
+  // writes that come from it — never on another table sharing the controller.
+  meta.setRowScope(builder, {
+    rowActions: options.rowActions,
+    idField: options.rowIdKey || DEFAULT_ROW_ID_FIELD,
+    strictMode: options.strictRuleValidation ?? false,
+  });
 
   builder
     .options({
       ...config,
       rowActions: serializedRowActions,
       caption: options.caption,
+      density: options.density,
+      stickyHeader: options.stickyHeader,
+      maxHeight: options.maxHeight,
+      expandable: serializedExpandable,
       enableTableExport: isExportEnabled,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
@@ -289,7 +319,13 @@ export function TableView<T extends ControllerClass>(
       routeParamFilters: options.routeParamFilters,
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
-      tabs: options.tabs,
+      tabs: serializeTableViewTabs(options.tabs),
+      chrome: options.chrome,
+      searchPlaceholder: options.searchPlaceholder,
+      quickFilters: options.quickFilters,
+      hiddenColumns: options.hiddenColumns,
+      pageSize: options.pageSize,
+      footer: options.footer,
       displays: serializeTableViewDisplays(options.displays, options.kanban),
       defaultDisplay: options.defaultDisplay,
       formComponents: {
@@ -398,6 +434,14 @@ export function TableView<T extends ControllerClass>(
         if (definition.submitsFilterDefaults) {
           applyFormPageSubmitDefaults(form, options, frame);
         }
+        if (kind === "edit") {
+          const submitUrl = form.serializeSync().options?.submitUrl;
+          if (submitUrl) {
+            form.mergeOptions({
+              submitUrl: appendTableViewKey(submitUrl, tableViewPermissionId),
+            });
+          }
+        }
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,
@@ -448,10 +492,21 @@ export function TableView<T extends ControllerClass>(
         permissions,
         `${permissionId}.viewArchived`,
       );
+      // The export routes refuse a caller without the action: its toolbar
+      // entry is left out too, like the add/edit/delete buttons.
+      const hasExportPermission = await HasPermission(
+        permissions,
+        `${permissionId}.export`,
+      );
 
+      // Writes name the table they come from, so its permission and row
+      // rules — not another table's over the same controller — apply.
+      const tableViewKey = GetPermissionId(builder) ?? permissionId;
       const adaptedFormComponents = {
         new: hasAddPermission ? options.formComponents.new : undefined,
-        edit: hasEditPermission ? options.formComponents.edit : undefined,
+        edit: hasEditPermission
+          ? withTableViewKeyOnSubmit(options.formComponents.edit, tableViewKey)
+          : undefined,
         view: hasViewPermission ? options.formComponents.view : undefined,
       };
 
@@ -493,9 +548,16 @@ export function TableView<T extends ControllerClass>(
           options.rowActions?.copyLink,
         ),
         hasSelection: options.rowActions?.hasSelection,
-        custom: options.rowActions?.custom,
+        custom: await resolveCustomRowActions(
+          permissions,
+          declaredCustomRowActions,
+          options.rowActions?.custom,
+          permissionId,
+        ),
       };
 
+      // The table's own rules are already in its options; a controller-wide
+      // rule (set explicitly) applies on top, as the routes enforce it.
       const controllerRules = meta.controllerRowActionRules;
       if (controllerRules) {
         for (const actionName of [
@@ -528,11 +590,20 @@ export function TableView<T extends ControllerClass>(
         context,
       );
 
+      const adaptedTabs = await resolveTableViewTabs(
+        permissions,
+        declaredTabs,
+        options.tabs,
+      );
+
       return {
         ...options,
+        tableViewKey,
+        enableTableExport: options.enableTableExport && hasExportPermission,
         formComponents: adaptedFormComponents,
         rowActions: adaptedRowActions,
         customButtons: adaptedCustomButtons,
+        tabs: adaptedTabs,
       };
     });
 

@@ -12,7 +12,8 @@ export class PageTableViewArchive extends PageController(
     icon: "i-ph-archive",
     category: tableViewCategory,
     order: 80,
-    description: "TableView with archive mode enabled",
+    description:
+      'Archive rows instead of deleting them: archived rows leave the list and are viewed (and restored) with the "Archive" toolbar button',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
