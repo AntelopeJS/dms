@@ -25,7 +25,11 @@ interface ImageProps {
   disabled?: boolean;
 }
 
-type ItemStatus = "uploading" | "done" | "error";
+/**
+ * `error` is a failed upload of a picked file; `unavailable` is a stored value
+ * whose metadata could not be read (deleted, swept from staging, or denied).
+ */
+type ItemStatus = "uploading" | "done" | "error" | "unavailable";
 
 interface GalleryItem {
   id: string;
@@ -68,6 +72,18 @@ const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
 const DEFAULT_ACCEPT = "image/*";
 const URL_REFRESH_LEAD_MS = 5000;
 const TRANSIENT_RETRY_MS = 1000;
+const FAILURE_LABEL_KEYS: Partial<Record<ItemStatus, string>> = {
+  error: "dms.form.image.upload_failed",
+  unavailable: "dms.form.image.file_unavailable",
+};
+
+/**
+ * Item ids are random, so they differ between the server render and
+ * hydration; DOM ids derive from `useId()`, which both sides agree on.
+ */
+const fieldId = useId();
+const singleAltInputId = `${fieldId}-alt`;
+const detailAltInputId = `${fieldId}-alt-detail`;
 
 const items = ref<GalleryItem[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -149,7 +165,7 @@ const fetchItemMetadata = async (item: GalleryItem, force = false) => {
       (item.expiresAt !== undefined && item.expiresAt <= Date.now())
     ) {
       item.url = "";
-      item.status = "error";
+      item.status = "unavailable";
     }
     scheduleItemMetadataRefresh(item, TRANSIENT_RETRY_MS);
   } finally {
@@ -524,6 +540,9 @@ const formatFileSize = (bytes: number): string => {
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 };
 
+const failureLabelKey = (item: GalleryItem): string | undefined =>
+  FAILURE_LABEL_KEYS[item.status];
+
 const itemMeta = (item: GalleryItem): string => {
   const parts: string[] = [];
   if (item.width && item.height) parts.push(`${item.width}×${item.height}`);
@@ -650,13 +669,13 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            v-else-if="item.status === 'error'"
+            v-else-if="failureLabelKey(item)"
             class="bg-error/15 absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 p-2 text-center backdrop-blur-[1px]"
           >
             <span
               class="bg-error rounded-md px-2 py-0.5 text-[11px] font-semibold text-white"
             >
-              {{ t("dms.form.image.upload_failed") }}
+              {{ t(failureLabelKey(item)!) }}
             </span>
             <UButton
               v-if="item.file"
@@ -794,13 +813,13 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            v-else-if="singleItem.status === 'error'"
+            v-else-if="failureLabelKey(singleItem)"
             class="bg-error/15 absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 p-2 text-center backdrop-blur-[1px]"
           >
             <span
               class="bg-error rounded-md px-2 py-0.5 text-[11px] font-semibold text-white"
             >
-              {{ t("dms.form.image.upload_failed") }}
+              {{ t(failureLabelKey(singleItem)!) }}
             </span>
             <UButton
               v-if="singleItem.file"
@@ -835,21 +854,21 @@ onBeforeUnmount(() => {
                 t("dms.form.image.uploading", { progress: singleItem.progress })
               }}
             </template>
-            <template v-else-if="singleItem.status === 'error'">
-              {{ t("dms.form.image.upload_failed") }}
+            <template v-else-if="failureLabelKey(singleItem)">
+              {{ t(failureLabelKey(singleItem)!) }}
             </template>
             <template v-else>{{ itemMeta(singleItem) }}</template>
           </div>
 
           <div class="mt-3">
             <label
-              :for="`${singleItem.id}-alt`"
+              :for="singleAltInputId"
               class="text-muted mb-1.5 block text-xs font-semibold"
             >
               {{ t("dms.form.image.alt_label") }}
             </label>
             <UInput
-              :id="`${singleItem.id}-alt`"
+              :id="singleAltInputId"
               v-model="singleItem.alt"
               :placeholder="t('dms.form.image.alt_placeholder')"
               :disabled="disabled || singleItem.status !== 'done'"
@@ -903,13 +922,13 @@ onBeforeUnmount(() => {
 
           <div class="flex flex-col gap-2 p-4">
             <label
-              :for="`${detailItem.id}-alt-detail`"
+              :for="detailAltInputId"
               class="text-muted text-xs font-semibold"
             >
               {{ t("dms.form.image.alt_label") }}
             </label>
             <UTextarea
-              :id="`${detailItem.id}-alt-detail`"
+              :id="detailAltInputId"
               v-model="detailAltDraft"
               :placeholder="t('dms.form.image.alt_placeholder')"
               :rows="3"
