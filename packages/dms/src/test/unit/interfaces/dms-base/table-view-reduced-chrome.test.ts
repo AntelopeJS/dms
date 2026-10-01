@@ -25,10 +25,8 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
-import {
-  resolveCustomRowActions,
-  resolveTableViewTabs,
-} from "@antelopejs/interface-dms/base/table-view/factory-helpers";
+import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/request-filter";
+import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/tabs";
 
 const TABLE = "reduced-chrome-orders";
 const LOCATION = "/api/reduced-chrome-orders";
