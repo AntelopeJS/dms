@@ -3,7 +3,7 @@ name: dms-dev
 description: Starts, stops, or restarts the AntelopeJS DMS backend and Inertia frontend.
 category: tooling
 tags: [dev-server, restart, backend, inertia, workflow]
-allowed-tools: Bash(bash:*), Bash(pkill:*), Bash(pgrep:*), Bash(tail:*), Bash(curl:*), Read, Write
+allowed-tools: Bash(bash:*), Bash(pgrep:*), Bash(tail:*), Bash(curl:*), Read, Write
 ---
 
 # dms-dev
@@ -14,6 +14,15 @@ Owns the dev-server lifecycle for an AntelopeJS DMS project. Ships with the
 resolve the project path. For authoring see the sibling **dms**, **dms-module**,
 **dms-pages**, and **dms-auth** skills.
 
+## Never from inside the DMS
+
+An agent that runs inside the DMS -- the dms-ai assistant, whose sidecar the backend
+spawns, or any process started by these dev servers -- must **not** run `stop`, `restart`
+or `start`: stopping the backend takes the agent down with it. Rely on hot reload (the
+backend's `-w` watcher and the frontend's live layer resync) and, when a change needs a
+full restart, ask the user to run it. The script refuses to stop a process tree that
+contains the shell calling it.
+
 ## Choose the process manager
 
 In an Amp orb, use the repository's `.amp/services.yaml` with `amp orb services ensure`,
@@ -21,18 +30,18 @@ or `amp orb service start` for a one-off service. Inspect readiness with service
 HTTP checks; share the returned portal URL for browser review. The bundled detached-shell
 script is for local shells, not managed orbs: its processes do not survive orb updates.
 
-## Why full restart, not hot reload
+## Hot reload first, restart when it cannot apply
 
 The DMS has two coupled processes, both started from the DMS backend package directory:
 
-- **Backend**: the AntelopeJS project — `ajs project dev -w` (`ajs project run` is the legacy alias). Listens on `http://localhost:5010`. Ready when the log emits `Server started, listening on http://localhost:5010`.
-- **Frontend**: the `@antelopejs/dms-frontend` loader — `ajs dms dev`. It auto-discovers the running backend via `.antelope/dev.json`, so `-b <backend-url>` is optional. Listens on `http://localhost:3001`. Ready when the log emits `Local: http://localhost:3001/`.
+- **Backend**: the AntelopeJS project — `ajs project dev -w` (`ajs project run` is the legacy alias). Ready when the log emits `Server started, listening on <url>`; the real endpoint is recorded in the project's `.antelope/dev.json` (`servers.api.endpoints`), `http://localhost:5010` by default.
+- **Frontend**: the `@antelopejs/dms-frontend` loader — `ajs dms dev`. It auto-discovers the running backend via `.antelope/dev.json`, so `-b <backend-url>` is optional. Ready when the log emits `Server ready on <url>` (`http://localhost:3001` by default).
 
 By default the script runs each via the project's `pnpm dev` / `pnpm frontend:dev` scripts — a convention our playground projects adopt that expands to the two commands above. Those script names aren't shipped by the DMS, so if a project starts its servers differently, override the actual commands with the `DMS_BACK_CMD` / `DMS_FRONT_CMD` env vars (the script reads them; readiness detection and process cleanup already cover `ajs`, `ajs dms`, and the loader's Node entry point directly).
 
 Order matters: start the backend first and wait for ready, **then** start the frontend. The frontend materializes the backend's layers into a `~/.antelopejs/dms-frontend/` workspace at startup; starting it before the backend is up produces stale or empty layer copies.
 
-The docs claim dev-mode watchers normally propagate edits (backend `-w` recompile, live layer resync into `~/.antelopejs/dms-frontend/`) — and they often do. But the failure modes are silent: `RegisterModule` can throw "already registered" on rebuild, and a missed resync serves a stale layer copy that *looks* like your bug. The documented troubleshooting recipe — and this skill's contract as an agent — is: **full restart both, backend first, before verifying any change**. A 60-second restart beats debugging a phantom.
+Dev-mode watchers propagate most edits (backend `-w` recompile, live layer resync into `~/.antelopejs/dms-frontend/`). Their failure modes are silent, though: `RegisterModule` can throw "already registered" on rebuild, and a missed resync serves a stale layer copy that *looks* like your bug. So restart only when hot reload cannot apply the change -- a new module or dependency, a config edit, a backend log showing a failed rebuild, or a behaviour that still looks stale after the watcher reported the rebuild -- and then restart both, backend first. Never restart from inside the DMS (see above).
 
 ## Resolving the backend path (do this FIRST, eagerly)
 
@@ -71,27 +80,29 @@ bundled script lives at `scripts/dms-dev.sh` under it. Subcommands:
 
 | Command           | Use when                                                                |
 |-------------------|-------------------------------------------------------------------------|
-| `restart`         | After any source edit, or unconditionally if you don't know the state.  |
+| `restart`         | When hot reload cannot apply a change, or the state is unknown. Never from inside the DMS. |
 | `start`           | When you're sure nothing is running (fresh shell / after `stop`).       |
-| `stop`            | Before walking away, before destructive operations, on session cleanup. |
+| `stop`            | Before walking away, before destructive operations, on session cleanup. Never from inside the DMS. |
 | `status`          | Quickly check what's running.                                           |
 | `back-log [N]`    | Read the last N (default 60) backend log lines. Use to diagnose boot.   |
 | `front-log [N]`   | Same for the frontend log.                                              |
 
-The script writes the long-running server logs to `/tmp/dms-back.log` and `/tmp/dms-front.log`. The `Bash` tool invocation completes as soon as both servers print their ready strings (or after a 180 s timeout per server — worst case ~6 minutes for a restart; override with `DMS_DEV_TIMEOUT`). The servers themselves keep running detached via `setsid nohup` so they survive the Bash call exiting.
+The script writes the long-running server logs to `/tmp/dms-back.log` and `/tmp/dms-front.log`. The `Bash` tool invocation completes as soon as both servers print their ready strings, and reports the URLs they really listen on. It fails fast when a server process exits before becoming ready, and otherwise after a 180 s timeout per server (override with `DMS_DEV_TIMEOUT`). The servers keep running detached in their own session (`setsid`, or perl's `POSIX::setsid` on macOS) so they survive the Bash call exiting.
+
+`stop` and `restart` only touch the project in `DMS_BACK_DIR`: the pids the script starts are recorded in `DMS_BACK_DIR/.antelope/dms-dev.pid`, and without that file it only matches dev processes whose working directory or command line lies under `DMS_BACK_DIR`. Each process gets SIGTERM, then SIGKILL after `DMS_DEV_STOP_GRACE` seconds (default 10). Other projects' dev servers on the machine are never signalled.
 
 ## When to reach for the subcommands
 
-- The user edits any `.ts` or `.vue` file under the DMS backend package or under a DMS module's `src/` or `frontend-vue/` and then wants to test the change live. Run `restart` unconditionally — don't try hot reload.
-- The user says "restart the dms", "restart servers", "reload", or "test it now". Run `restart`.
+- The user edits a `.ts` or `.vue` file under the DMS backend package or under a DMS module's `src/` or `frontend-vue/` and wants to test the change live. Let hot reload apply it first; run `restart` only when it cannot (see above). From inside the DMS, never run it.
+- The user says "restart the dms", "restart servers", "reload", or "test it now". Run `restart` -- unless you run inside the DMS, in which case say so and let the user restart.
 - A browser smoke test fails in a way that looks like stale state. Run `restart` before diagnosing.
 - The user asks "is the dms running?". Run `status`.
-- A boot fails (backend never prints "Server started" or frontend never prints "Local:"). Print the relevant `back-log` / `front-log` tail to diagnose; common causes include `RegisterModule … already registered` (a previous stop failed — run `stop` then `restart`), port already in use (kill the listed PID), or a missing dependency (run `pnpm install` in the offending module).
-- **You are handing off to the user for manual testing** (e.g. a plan phase whose acceptance criterion is "user verifies in browser"). Run `restart` yourself first, wait for both ready strings, and only *then* tell the user what to click. Never ask the user to start the servers themselves — that's the whole reason this skill exists.
+- A boot fails (backend never prints "Server started" or frontend never prints "Server ready on"). Print the relevant `back-log` / `front-log` tail to diagnose; common causes include `RegisterModule … already registered` (a previous stop failed — run `stop` then `restart`), port already in use (kill the listed PID), or a missing dependency (run `pnpm install` in the offending module).
+- **You are handing off to the user for manual testing** (e.g. a plan phase whose acceptance criterion is "user verifies in browser"). Run `restart` yourself first, wait for both ready strings, and only *then* tell the user what to click. Never ask the user to start the servers themselves — that's the whole reason this skill exists. The one exception is an agent running inside the DMS, which already runs on live servers.
 
 ## Common pitfalls
 
-- **Zombie frontend processes.** The frontend CLI can spawn child processes that survive `pkill ajs`. The script's `stop` does an automatic second-pass kill via `pgrep | xargs kill -9` to catch them. If `start` reports servers already running, run `stop` and check that `status` shows `(none)` before starting again.
+- **Zombie frontend processes.** The frontend CLI spawns child processes. The script's `stop` signals the whole session and process tree it started, and SIGKILLs whatever survives the grace period. If `start` reports servers already running, run `stop` and check that `status` shows `(none)` before starting again.
 - **Backend exits with "Module already registered".** Means a previous instance is still holding the registration. Run `stop` to clear it, then `restart`.
 - **Frontend's "auth redirect" 302** on `/modules/...` URLs is **normal** — it's the auth-protected admin routes. The frontend layer is loaded correctly even when curl returns 302. Don't restart on this alone; have the user log in.
 - **Don't run `start` or `restart` more than once concurrently** in a single session — the second invocation will hit a port/lock conflict. If multiple background Bash tasks are queued, use the foreground `restart`.
@@ -101,7 +112,8 @@ The script writes the long-running server logs to `/tmp/dms-back.log` and `/tmp/
 
 ## Don't
 
-- Don't try to hot-reload by editing files and refreshing the browser without `restart`. It will work intermittently and waste debugging cycles on phantom issues.
-- Don't `pkill -9 node` — it kills unrelated processes. The script targets specific patterns (`antelope-runner`, `ajs project run|dev`, `ajs dms dev`, and paths ending in `dms-frontend/dist/index.js dev`).
+- Don't keep debugging a behaviour that looks stale after hot reload: that is the case for `restart` (from outside the DMS).
+- Don't run `stop`, `restart` or `start` from an agent running inside the DMS (e.g. dms-ai): it would stop its own host.
+- Don't `pkill` dev servers by name (`pkill -9 node`, `pkill -f antelope-runner`): other projects on the machine run the same processes. Use the script, which only signals the processes of `DMS_BACK_DIR`.
 - Don't hardcode a backend path into a session. Always resolve via memory-or-prompt so the skill works across projects.
-- Don't ask the user to start or restart the servers themselves before manual testing. You have the script — run it, wait for ready, then hand off. Asking the user to do it defeats the point of the skill and breaks the testing loop.
+- Don't ask the user to start or restart the servers themselves before manual testing. You have the script — run it, wait for ready, then hand off. Asking the user to do it defeats the point of the skill and breaks the testing loop. (An agent inside the DMS is the exception: it never restarts its own host.)
