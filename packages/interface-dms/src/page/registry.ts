@@ -1,4 +1,10 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
+import { GetResponsibleModule } from "@antelopejs/interface-core";
+import {
+  GetModuleContext,
+  type ModuleExecutionContext,
+  RunWithModuleContext,
+} from "@antelopejs/interface-core/modules";
 import {
   type Component,
   ComponentTarget,
@@ -133,6 +139,51 @@ export const dynamicMenuProviderIdentity =
 export const pageExtensionIdentity =
   new RegistrationIdentity<PageExtensionInfo>("page-extension");
 
+/**
+ * The execution context of the module that registered each page extension,
+ * keyed by the registered reference.
+ *
+ * The DMS applies an extension from its own context -- it receives it through
+ * its implementation of `RegisterPageExtension`, and re-applies it whenever the
+ * target page registers again. What preparing the extension's components
+ * registers (their permissions, native upload fields, form sub-pages, realtime
+ * topics) would then belong to whichever generation happened to run the sync,
+ * and go away with it rather than with the module that extends the page.
+ */
+const pageExtensionContexts = new WeakMap<
+  PageExtensionInfo,
+  ModuleExecutionContext
+>();
+
+/**
+ * Remember the context of the module registering `info`. Called from the
+ * registration itself, before the extension crosses into the DMS.
+ */
+export function capturePageExtensionContext(info: PageExtensionInfo): void {
+  const context = GetModuleContext();
+  if (context) {
+    pageExtensionContexts.set(info, context);
+    return;
+  }
+  const module = GetResponsibleModule();
+  if (module) pageExtensionContexts.set(info, { module });
+}
+
+/**
+ * Run `callback` as the module that registered `info`, so everything it
+ * registers is owned by, and released with, that module. Runs in the current
+ * context when the registering module is unknown.
+ */
+export function runAsPageExtensionOwner<T>(
+  info: PageExtensionInfo,
+  callback: () => T,
+): T {
+  const context = pageExtensionContexts.get(
+    pageExtensionIdentity.resolve(info),
+  );
+  return context ? RunWithModuleContext(context, callback) : callback();
+}
+
 export function stampPageRegistration(pageInfo: PageInfo): void {
   pageIdentity.stamp(pageInfo);
 }
@@ -151,6 +202,16 @@ export function GetComponentPermissionIds(component: Component): string[] {
   );
 }
 export const pageExtensions = new Map<string, PageExtensionInfo[]>();
+
+/**
+ * Whether `info` is still registered: an extension whose module went away is
+ * revoked before that module's context is invalidated, and must not be
+ * prepared in that context afterwards.
+ */
+export function isPageExtensionRegistered(info: PageExtensionInfo): boolean {
+  const registered = pageExtensions.get(info.targetFullId) ?? [];
+  return registered.some((entry) => pageExtensionIdentity.isSame(entry, info));
+}
 
 export function GetPageLayoutBySlug(
   slug: string,

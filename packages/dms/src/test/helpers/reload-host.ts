@@ -11,6 +11,12 @@ export const RELOAD_HOST_TENANT = "reload-host-tenant";
 /** Controller location the suite mutates; the module ignores every other one. */
 export const RELOAD_HOST_LOCATION = "/reload-host/rows";
 
+/** Component key of the chart the module injects into each extended page. */
+export const RELOAD_HOST_EXTENSION_KEY = "injectedTrend";
+
+/** Realtime topic of the chart the module injects into each extended page. */
+export const RELOAD_HOST_EXTENSION_TOPIC = "reload-host:extension";
+
 const PROBE_KEY = Symbol.for("@antelopejs/dms-test/reload-host");
 
 /** What a generation of the reload-host module was called through. */
@@ -25,17 +31,37 @@ export interface ReloadHostCall {
 interface ReloadHostProbe {
   generations: string[];
   calls: ReloadHostCall[];
+  owners: string[];
+  extendedPages: string[];
 }
 
 function probe(): ReloadHostProbe {
   const holder = globalThis as Record<symbol, ReloadHostProbe | undefined>;
-  holder[PROBE_KEY] ??= { generations: [], calls: [] };
+  holder[PROBE_KEY] ??= {
+    generations: [],
+    calls: [],
+    owners: [],
+    extendedPages: [],
+  };
   return holder[PROBE_KEY];
 }
 
 /** The generation constructed last: the only one a reload leaves running. */
 export function liveReloadHostGeneration(): string | undefined {
   return probe().generations.at(-1);
+}
+
+/** The execution owner of the generation constructed last. */
+export function liveReloadHostOwner(): string | undefined {
+  return probe().owners.at(-1);
+}
+
+/**
+ * The pages the module's next generations extend, each with a chart: an empty
+ * list leaves the pages it extended so far without its extension.
+ */
+export function setReloadHostExtendedPages(pageIds: string[]): void {
+  probe().extendedPages = [...pageIds];
 }
 
 /**
