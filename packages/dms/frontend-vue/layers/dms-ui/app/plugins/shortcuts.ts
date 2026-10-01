@@ -1,4 +1,4 @@
-import aggregatedShortcuts from "../config/shortcuts-registry";
+import aggregatedShortcuts from "#shortcuts-aggregated";
 export default defineDmsPlugin(() => {
   const { registerShortcut } = useShortcutRegistry();
 
