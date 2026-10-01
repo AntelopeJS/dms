@@ -291,7 +291,7 @@ export function TableView<T extends ControllerClass>(
     });
   }
 
-  meta.componentBuilder = builder;
+  meta.addComponentBuilder(builder);
   // This table's rules, archive-mode defaults included, enforced on the
   // writes that come from it — never on another table sharing the controller.
   meta.setRowScope(builder, {

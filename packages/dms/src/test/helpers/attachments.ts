@@ -13,9 +13,10 @@ export async function nativeUploadToken(
   client: AxiosInstance,
   field = "file",
   mode = "new",
+  slug = "/nativefiles",
 ): Promise<string> {
   const response = await client.get("/dms/pagelayout", {
-    params: { slug: "/nativefiles" },
+    params: { slug },
   });
   expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
   const form = response.data.components.content.options.formComponents[mode];

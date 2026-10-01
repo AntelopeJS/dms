@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import {
   DeleteFile,
@@ -12,6 +13,7 @@ import type {
 } from "@antelopejs/interface-dms/attachments";
 import type { UploadTokenClaims } from "../utils/upload-token";
 import { assertNativeFileAccess } from "./access";
+import { findConstraintViolation } from "./constraints";
 import {
   type AttachmentReference,
   collectAttachments,
@@ -19,23 +21,42 @@ import {
 } from "./fields";
 import { denyAttachment, findAttachment, loadAttachment } from "./registry";
 
+const BAD_REQUEST = 400;
+// Matched by name: the storage module throws its own copy of the class, which
+// `instanceof` against the one imported here does not recognise.
+const FILE_NOT_FOUND_ERROR_NAME = "FileNotFoundError";
+
+function isFileNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.name === FILE_NOT_FOUND_ERROR_NAME;
+}
+
+/**
+ * The canonical key of a submitted reference and its stored metadata. A
+ * reference whose bytes never reached storage (an upload that failed or never
+ * ran) is the client's to fix, so it is refused as a bad request rather than
+ * surfacing the storage error and its key.
+ */
+async function storedReference(ref: AttachmentReference) {
+  try {
+    const key = isStagedKey(ref.key)
+      ? (await PromoteFile(ref.key, ref.field.storage)).resourceKey
+      : ref.key;
+    return { key, metadata: await GetFileMetadata(key, ref.field.storage) };
+  } catch (error) {
+    if (isFileNotFoundError(error))
+      throw new HTTPResult(
+        BAD_REQUEST,
+        "A submitted file was never stored. Upload it again.",
+      );
+    throw error;
+  }
+}
+
 function assertConstraints(
   metadata: FileMetadata,
   reference: AttachmentReference,
 ): void {
-  const constraints = reference.field.constraints;
-  if (constraints?.maxSize !== undefined && metadata.size > constraints.maxSize)
-    denyAttachment();
-  const allowed = constraints?.allowedMimetypes;
-  if (
-    allowed?.length &&
-    !allowed.some(
-      (pattern) =>
-        pattern === metadata.mimetype ||
-        (pattern.endsWith("/*") &&
-          metadata.mimetype.startsWith(pattern.slice(0, -1))),
-    )
-  )
+  if (findConstraintViolation(reference.field.constraints, metadata))
     denyAttachment();
 }
 
@@ -91,10 +112,8 @@ async function promoteReferences(
   for (const field of request.fields) {
     const mapping = new Map<string, string>();
     for (const ref of refs.filter((ref) => ref.field.id === field.id)) {
-      const key = isStagedKey(ref.key)
-        ? (await PromoteFile(ref.key, field.storage)).resourceKey
-        : ref.key;
-      assertConstraints(await GetFileMetadata(key, field.storage), ref);
+      const { key, metadata } = await storedReference(ref);
+      assertConstraints(metadata, ref);
       mapping.set(ref.key, key);
     }
     if (field.key in document)

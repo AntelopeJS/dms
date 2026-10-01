@@ -32,7 +32,7 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
     disabled?: string;
   };
   addForm?: { componentName: string; options?: FormProps };
-  addPermissionId?: string;
+  addPermissionIds?: string[];
 }
 
 const props = withDefaults(defineProps<RelationProps>(), {
@@ -49,7 +49,7 @@ const forwardedProps = computed(() => {
     deselectable: ____,
     modelValue: _____,
     addForm: ______,
-    addPermissionId: _______,
+    addPermissionIds: _______,
     ...rest
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
@@ -111,7 +111,8 @@ const canAdd = computed(
   () =>
     !!props.addForm &&
     !!props.addForm.options?.submitUrl &&
-    (!props.addPermissionId || hasPermission(props.addPermissionId)),
+    (!props.addPermissionIds?.length ||
+      props.addPermissionIds.some((id) => hasPermission(id))),
 );
 
 interface RelationResponse {

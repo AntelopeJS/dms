@@ -27,6 +27,7 @@ import { isString } from "../../utils/type-check";
 import { type DataType, serializeType } from "../data-types";
 import {
   type FieldGroup,
+  type FormBuilder,
   type FormField,
   type FormFieldOrGroup,
 } from "../form-types";
@@ -50,6 +51,26 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   edit: FormMode.edit,
   new: FormMode.new,
 };
+
+/** Insertion-ordered set of weakly held objects; `live` drops the collected ones. */
+class WeakRefList<T extends object> {
+  private readonly refs = new Set<WeakRef<T>>();
+
+  public add(value: T): void {
+    if (this.live().includes(value)) return;
+    this.refs.add(new WeakRef(value));
+  }
+
+  public live(): T[] {
+    const values: T[] = [];
+    for (const ref of this.refs) {
+      const value = ref.deref();
+      if (value) values.push(value);
+      else this.refs.delete(ref);
+    }
+    return values;
+  }
+}
 
 export interface ColumnGroupConfig {
   label: string;
@@ -129,37 +150,78 @@ export class TableViewMeta {
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
+  // Held weakly: a page module that hot-reloads builds a new TableView or
+  // ResourceForm on the same controller, and the one it replaced must not stay
+  // reachable from here.
+  private readonly componentBuilderRefs = new WeakRefList<
+    ComponentBuilder<TableViewOptionsSerialized>
+  >();
+  private readonly resourceFormRefs = new WeakRefList<FormBuilder>();
 
   /**
-   * Every table view built over this controller, in registration order. Their
-   * data routes are the controller's, shared: an action is guarded by the
-   * permission of each table view mounting it (see `permissionIdsFor`).
+   * Every live TableView built on this controller, in build order. Several
+   * pages may mount their own TableView over the same data routes: an action
+   * is guarded by the permission of each table view mounting it (see
+   * `actionPermissionIds`).
    */
-  public readonly componentBuilders: ComponentBuilder<TableViewOptionsSerialized>[] =
-    [];
+  public get componentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
+    return this.componentBuilderRefs.live();
+  }
 
-  /** The table view built last over this controller. */
+  /** Records a TableView built on this controller (once per builder). */
+  public addComponentBuilder(
+    builder: ComponentBuilder<TableViewOptionsSerialized>,
+  ): void {
+    this.componentBuilderRefs.add(builder);
+  }
+
+  /** The live table view built last over this controller. */
   public get componentBuilder():
     | ComponentBuilder<TableViewOptionsSerialized>
     | undefined {
     return this.componentBuilders.at(-1);
   }
 
-  /** Records a table view built over this controller. */
+  /**
+   * Records a table view built over this controller, like
+   * `addComponentBuilder`: it joins the others, never replaces them.
+   */
   public set componentBuilder(
     builder: ComponentBuilder<TableViewOptionsSerialized> | undefined,
   ) {
-    if (builder && !this.componentBuilders.includes(builder)) {
-      this.componentBuilders.push(builder);
-    }
+    if (builder) this.addComponentBuilder(builder);
   }
 
   /**
-   * The permission ids guarding an action of the controller's data routes:
-   * one per table view whose action was stamped by a mounted page, without
-   * duplicates. Empty when no mounted table view declares the action.
+   * Every live `new` / `edit` form built over this controller, in build order:
+   * the `ResourceForm` blocks and the forms each TableView opens. They all
+   * submit to its data routes.
    */
-  public permissionIdsFor(actionId: string): string[] {
+  public get resourceFormBuilders(): FormBuilder[] {
+    return this.resourceFormRefs.live();
+  }
+
+  public addResourceFormBuilder(builder: FormBuilder): void {
+    this.resourceFormRefs.add(builder);
+  }
+
+  /**
+   * Every live component that submits to this controller's write routes: its
+   * TableViews and its `new` / `edit` forms (ResourceForm blocks, and the
+   * forms a page-mode TableView mounts on its form sub-pages). A file one of
+   * them staged is one those routes may save.
+   */
+  public get writingComponents(): Component[] {
+    return [...this.componentBuilders, ...this.resourceFormBuilders];
+  }
+
+  /**
+   * The permission id `actionId` carries on each TableView of this controller
+   * that a page mounts, without duplicates. The data routes are shared by all
+   * of them, so holding any one of these ids is what authorizes the action.
+   * Empty when no mounted table view declares the action.
+   */
+  public actionPermissionIds(actionId: string): string[] {
     const ids = this.componentBuilders
       .map((builder) => builder.getAction(actionId)?.permissionId)
       .filter((id): id is string => !!id);
@@ -181,7 +243,8 @@ export class TableViewMeta {
     );
   }
 
-  private readonly rowScopes = new Map<
+  // Weak, like the builders: a hot-reloaded table view's rules go with it.
+  private readonly rowScopes = new WeakMap<
     ComponentBuilder<TableViewOptionsSerialized>,
     TableViewRowScope
   >();

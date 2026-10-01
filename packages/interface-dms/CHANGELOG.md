@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.3.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.3...v0.3.4)
+
+### 🩹 Fixes
+
+- **table-view:** Validate file provenance against every TableView sharing a data controller ([#112](https://github.com/AntelopeJS/dms/pull/112))
+- **dms-ui:** Stable SSR ids, forbidden upload headers and missing-file state in upload inputs ([#113](https://github.com/AntelopeJS/dms/pull/113))
+- **attachments:** Enforce field constraints at presign and stop retrying missing stored files ([#114](https://github.com/AntelopeJS/dms/pull/114))
+- **resource-form:** Accept native files submitted from ResourceForm blocks ([#115](https://github.com/AntelopeJS/dms/pull/115))
+- **playground:** Promote, validate and clean profile files through SaveComponentFiles ([#116](https://github.com/AntelopeJS/dms/pull/116))
+- **table-view:** Accept native files from page-mode TableView forms ([#117](https://github.com/AntelopeJS/dms/pull/117))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.5.2 ([2496b99](https://github.com/AntelopeJS/dms/commit/2496b99))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
+## v0.3.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.2...v0.3.3)
+
+### 🚀 Enhancements
+
+- **hooks:** Run DATABASE_INITIALIZED handlers registered after startup ([#104](https://github.com/AntelopeJS/dms/pull/104))
+
+### 🩹 Fixes
+
+- **layout:** Keep the page prop off the page stack and write baseURL where it is read ([#100](https://github.com/AntelopeJS/dms/pull/100))
+- **dms:** Hoist entries of a missing category in the site layout tree ([#101](https://github.com/AntelopeJS/dms/pull/101))
+- **invite-extensions:** Tell a module reclaiming its key from a conflict ([#103](https://github.com/AntelopeJS/dms/pull/103))
+- **shortcuts:** Register every module's shortcut registry, not only dms-ui's ([#107](https://github.com/AntelopeJS/dms/pull/107))
+- **skills:** Scope dms-dev stop/restart to the project and support macOS ([#108](https://github.com/AntelopeJS/dms/pull/108))
+- **realtime:** End SSE streams on stop and reconnect user streams on EOF ([#109](https://github.com/AntelopeJS/dms/pull/109))
+- **page:** Prepare page-extension components as the extending module ([#110](https://github.com/AntelopeJS/dms/pull/110))
+
+### 📖 Documentation
+
+- Drop the Nuxt-era nuxt.config.ts references ([#99](https://github.com/AntelopeJS/dms/pull/99))
+- **quickstart:** Follow the template README instead of copying its setup ([#105](https://github.com/AntelopeJS/dms/pull/105))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.5.1 ([93888bf](https://github.com/AntelopeJS/dms/commit/93888bf))
+- **data-types:** Release replaced data type classes on reload and fix the compare-types comment ([#102](https://github.com/AntelopeJS/dms/pull/102))
+- **playground:** Open module source ranges ([#106](https://github.com/AntelopeJS/dms/pull/106))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.3.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.1...v0.3.2)

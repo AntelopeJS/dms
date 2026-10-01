@@ -17,7 +17,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetEffectiveUserPermissions,
-  HasPermission,
+  HasAnyPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -129,7 +129,7 @@ async function canViewArchived(
   const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
   // Every table view mounting the controller guards its archived rows with
   // its own permission: holding it on any of them lets the archive show.
-  const permissionIds = tableViewMeta?.permissionIdsFor("viewArchived") ?? [];
+  const permissionIds = tableViewMeta.actionPermissionIds("viewArchived");
   if (permissionIds.length === 0) {
     return true;
   }
@@ -137,10 +137,7 @@ async function canViewArchived(
   if (!resolved) {
     return false;
   }
-  for (const permissionId of permissionIds) {
-    if (await HasPermission(resolved, permissionId)) return true;
-  }
-  return false;
+  return HasAnyPermission(resolved, permissionIds);
 }
 
 /**

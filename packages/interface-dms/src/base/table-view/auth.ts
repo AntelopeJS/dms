@@ -11,7 +11,11 @@ import type {
 } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "../../db";
-import { GetEffectiveUserPermissions, HasPermission } from "../../permissions";
+import {
+  GetEffectiveUserPermissions,
+  HasAnyPermission,
+  HasPermission,
+} from "../../permissions";
 import { getRequestTenantId } from "../../request-tenant";
 import { AssertTenantAccess } from "../../tenant-access";
 import { AuthUser } from "../../auth";
@@ -56,23 +60,6 @@ function isGateBypassableAction(
   return permissionIds.length > 0 && GATE_BYPASSABLE_ACTIONS.includes(actionId);
 }
 
-/**
- * Whether the caller holds the action on at least one of the table views
- * mounting the controller. Their data routes are the controller's, shared:
- * every table view exposes exactly these rows through them, so a permission
- * on any one of them grants what that table already grants, and never more.
- */
-// @internal
-export async function holdsAnyPermission(
-  permissions: Set<string>,
-  permissionIds: string[],
-): Promise<boolean> {
-  for (const permissionId of permissionIds) {
-    if (await HasPermission(permissions, permissionId)) return true;
-  }
-  return false;
-}
-
 type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
 
 /** The table view a request names (`?tableView=`), if any. */
@@ -114,7 +101,7 @@ export function actionPermissionIds(
   actionId: string,
   tableKey: string | undefined,
 ): string[] {
-  if (tableKey === undefined) return meta.permissionIdsFor(actionId);
+  if (tableKey === undefined) return meta.actionPermissionIds(actionId);
   const named = namedTableView(meta, tableKey, actionId);
   return [named.getAction(actionId)!.permissionId!];
 }
@@ -174,13 +161,13 @@ export async function authorizeAction(
     roleIds,
     roleModel,
   );
-  if (await holdsAnyPermission(permissions, permissionIds)) {
+  if (await HasAnyPermission(permissions, permissionIds)) {
     return permissions;
   }
   throwHttpAssert(
     false,
     403,
-    `Forbidden: missing permission ${permissionIds.join(" | ")}`,
+    `Forbidden: missing permission ${permissionIds.join(" or ")}`,
   );
 }
 

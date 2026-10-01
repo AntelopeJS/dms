@@ -721,7 +721,7 @@ export namespace DefaultDataTypes {
         searchUrl: location,
         keyMapping: this.options.keyMapping,
         addForm: addOptions?.addForm,
-        addPermissionId: addOptions?.addPermissionId,
+        addPermissionIds: addOptions?.addPermissionIds,
       });
     }
 
@@ -743,8 +743,7 @@ export namespace DefaultDataTypes {
 
       return {
         addForm,
-        addPermissionId:
-          tableViewMeta.componentBuilder?.getAction("add")?.permissionId,
+        addPermissionIds: tableViewMeta.actionPermissionIds("add"),
       };
     }
 

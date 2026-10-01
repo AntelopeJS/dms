@@ -255,7 +255,8 @@
         "uploaded_files": "Uploaded files",
         "rejected_title": "File not added",
         "rejected_size": "{name} exceeds the maximum size ({size})",
-        "rejected_type": "{name} is not an allowed file type"
+        "rejected_type": "{name} is not an allowed file type",
+        "file_unavailable": "File unavailable"
       },
       "image": {
         "add": "Add",
@@ -265,6 +266,7 @@
         "single_hint": "Single image",
         "formats_any": "Any image format",
         "upload_failed": "Upload failed",
+        "file_unavailable": "File unavailable",
         "retry": "Retry",
         "replace": "Replace",
         "delete": "Delete",

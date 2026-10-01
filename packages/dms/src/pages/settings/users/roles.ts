@@ -123,7 +123,7 @@ for (const action of Object.values(rolesTable.actions)) {
 // pickers) authorize against the component carrying their actions. The table
 // is not mounted, so they would resolve no permission and serve any member;
 // pointing them at the mounted editor keeps them guarded by the same ids.
-GetMetadata(roleSettingDataAPI, TableViewMeta).componentBuilder = rolesEditor;
+GetMetadata(roleSettingDataAPI, TableViewMeta).addComponentBuilder(rolesEditor);
 
 function requireEditorAction(id: string): Action {
   const action = rolesEditor.getAction(id);

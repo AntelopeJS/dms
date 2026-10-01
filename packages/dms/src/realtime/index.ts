@@ -18,6 +18,7 @@ import {
 } from "./current";
 import { instanceId } from "./instance";
 import { RedisBroker } from "./redis-broker";
+import { closeAllSessions } from "./sessions";
 
 export * from "./broker";
 // Only the readers: setCurrentRealtime does not migrate subscriptions and
@@ -158,6 +159,9 @@ export async function configureRealtime(
 }
 
 export async function stopRealtime(): Promise<void> {
+  // Before the broker goes: closing a session releases its presence entries,
+  // which still need a live store.
+  await closeAllSessions();
   if (stopHeartbeatFn) {
     try {
       await stopHeartbeatFn();

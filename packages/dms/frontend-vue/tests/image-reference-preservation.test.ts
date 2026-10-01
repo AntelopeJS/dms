@@ -5,6 +5,7 @@ import {
   createSSRApp,
   defineComponent,
   effectScope,
+  getCurrentInstance,
   h,
   nextTick,
   onScopeDispose,
@@ -12,12 +13,17 @@ import {
   reactive,
   ref,
   watch,
+  useId,
   type EffectScope,
   type Ref,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import {
+  isDefinitiveMetadataFailure,
+  resolveMetadataRetryDelay,
+} from "../layers/dms-ui/app/utils/metadataRetry";
 
 interface ImageValue {
   key: string;
@@ -66,7 +72,7 @@ function loadImage(): ImageHarness {
     .split('<script setup lang="ts">')[1]!
     .split("</script>")[0]!;
   const source = script
-    .replace(/^import[\s\S]*?from "[^"]+";\n/gm, "")
+    .replace(/^import[\s\S]*?from "[^"]+";\r?\n/gm, "")
     .replaceAll("import.meta.env.SSR", "false")
     .replace(/^export type /gm, "type ");
   const { outputText } = transpileModule(source, {});
@@ -90,11 +96,14 @@ beforeEach(() => {
         }),
   );
   vi.stubGlobal("defineProps", () => props);
+  vi.stubGlobal("isDefinitiveMetadataFailure", isDefinitiveMetadataFailure);
+  vi.stubGlobal("resolveMetadataRetryDelay", resolveMetadataRetryDelay);
   vi.stubGlobal("defineEmits", () => emit);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("inject", () => null);
+  vi.stubGlobal("useId", () => (getCurrentInstance() ? useId() : "image"));
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
@@ -117,7 +126,7 @@ afterEach(() => {
 it("preserves a denied image when another image is removed", async () => {
   const image = loadImage();
   await nextTick();
-  expect(image.items.value[0]!.status).toBe("error");
+  expect(image.items.value[0]!.status).toBe("unavailable");
   image.removeItem(image.items.value[1]!.id);
   expect(emit).toHaveBeenLastCalledWith("update:modelValue", [original]);
 });
@@ -191,7 +200,8 @@ it("keeps the denied image and its explicit deletion control in rendered markup"
   );
   app.component("UModal", defineComponent({ setup: () => () => null }));
   const html = await renderToString(app);
-  expect(html).toContain("dms.form.image.upload_failed");
+  expect(html).toContain("dms.form.image.file_unavailable");
+  expect(html).not.toContain("dms.form.image.upload_failed");
   expect(html).toContain("dms.form.image.delete</button>");
   expect(emit).not.toHaveBeenCalled();
 });

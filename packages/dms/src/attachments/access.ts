@@ -76,15 +76,23 @@ async function hasComponentAccess(
   ).every(Boolean);
 }
 
+/** The live page declaration a token's claims were signed from, never anything the client sent. */
+export function findNativeUploadDeclaration(
+  owner: UploadTokenClaims,
+  write: boolean,
+): NativeUploadFieldRegistration | undefined {
+  if (!owner.pageId || !owner.componentId) return undefined;
+  return [...registrations.values()].find((item) =>
+    declarationsMatch(item.declaration, owner, write),
+  )?.declaration;
+}
+
 export async function assertNativeFileAccess(
   context: RequestContext,
   owner: UploadTokenClaims,
   write: boolean,
 ): Promise<RequestPrincipal> {
-  if (!owner.pageId || !owner.componentId) denyAttachment();
-  const registration = [...registrations.values()].find((item) =>
-    declarationsMatch(item.declaration, owner, write),
-  )?.declaration;
+  const registration = findNativeUploadDeclaration(owner, write);
   if (!registration) denyAttachment();
   if (write && registration.writePermission === "__native_upload_disabled__")
     denyAttachment();

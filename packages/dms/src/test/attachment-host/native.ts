@@ -36,6 +36,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Column,
+  ResourceForm,
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -50,6 +51,7 @@ class NativeDocument extends Table.with(LocalizationModifier) {
   @Field(["string"]) declare files: string[];
   @Field("string") declare publicFile: string;
   @Localized() @Field("any") declare image: DefaultDataTypes.ImageValue;
+  @Field("any") declare gallery: DefaultDataTypes.ImageValue[];
 }
 
 class NativeDocumentModel extends BasicDataModel(NativeDocument, TABLE) {}
@@ -61,6 +63,7 @@ class NativeDocumentController extends DataController(
     new: TableViewRoutes.New,
     edit: TableViewRoutes.Edit,
     get: TableViewRoutes.Get,
+    select: TableViewRoutes.Select,
     delete: TableViewRoutes.Delete,
   },
   Controller(LOCATION),
@@ -96,6 +99,15 @@ class NativeDocumentController extends DataController(
   @Column({ name: "Image", type: new DefaultDataTypes.ImageType() })
   @Access(AccessMode.ReadWrite)
   declare image: DefaultDataTypes.ImageValue;
+  @Column({
+    name: "Gallery",
+    type: new DefaultDataTypes.ImageType({
+      multiple: true,
+      constraints: { allowedMimetypes: ["image/png"], maxSize: 64 },
+    }),
+  })
+  @Access(AccessMode.ReadWrite)
+  declare gallery: DefaultDataTypes.ImageValue[];
 }
 
 GetMetadata(NativeDocumentController, DataAPIMeta).fields.file.dbName =
@@ -120,11 +132,51 @@ export class NativeFilePage extends RootPageController("nativefiles", {
   static content = form;
 }
 
+// Evaluated after `form`, so it is the last TableView built on the controller:
+// files staged from the first one must still save through the shared routes.
+const secondaryTable = TableView(NativeDocumentController, {
+  rowIdKey: "id",
+  rowActions: { add: true, edit: true, details: true },
+});
+
+@RegisterPage()
+export class NativeFileSecondaryPage extends RootPageController(
+  "nativefiles-secondary",
+  { displayName: "Native files (secondary)" },
+) {
+  static content = secondaryTable;
+}
+
+// Standalone forms posting to the same data routes as the TableViews above.
+@RegisterPage()
+export class NativeFileNewFormPage extends RootPageController(
+  "nativefiles-new-form",
+  { displayName: "Native files (new form)" },
+) {
+  static content = ResourceForm(NativeDocumentController, { mode: "new" });
+}
+
+@RegisterPage()
+export class NativeFileEditFormPage extends RootPageController(
+  "nativefiles-edit-form",
+  { displayName: "Native files (edit form)" },
+) {
+  static content = ResourceForm(NativeDocumentController, { mode: "edit" });
+}
+
 export class NativeAttachmentFormController extends Controller(
   `${LOCATION}/form`,
 ) {
   @Get("/")
   async get(@AuthTenantMember() _user: User) {
     return form.serialize();
+  }
+
+  // Serialized per request, once both table views are mounted.
+  @Get("/relation")
+  async relation(@AuthTenantMember() _user: User) {
+    return new DefaultDataTypes.RelationType({
+      dataApiController: NativeDocumentController,
+    }).inputComponent();
   }
 }

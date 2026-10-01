@@ -1,5 +1,5 @@
 import type { RequestContext } from "@antelopejs/interface-api";
-import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import { Logging } from "@antelopejs/interface-core/logging";
 
 const SSE_CONTENT_TYPE = "text/event-stream";
 const SSE_KEEPALIVE_INTERVAL_MS = 20_000;
@@ -20,7 +20,8 @@ interface SseStreamWriter {
 export interface SseStream {
   send: (eventName: string, data: unknown) => void;
   onClose: (handler: () => void | Promise<void>) => void;
-  close: () => void;
+  /** Runs the close handlers, then ends the response. Never rejects. */
+  close: () => Promise<void>;
 }
 
 const formatFrame = (eventName: string, data: unknown): string =>
@@ -70,11 +71,13 @@ export function openSseStream(ctx: RequestContext): SseStream {
       writer.write(formatFrame(eventName, data));
     },
     onClose: (handler) => closeHandlers.push(handler),
-    close: () => {
-      fireAndForget(
-        cleanup().then(() => writer.end()),
-        "SSE stream close",
-      );
+    close: async () => {
+      try {
+        await cleanup();
+        writer.end();
+      } catch (error) {
+        Logging.Warn("Realtime: SSE stream close failed", error);
+      }
     },
   };
 }

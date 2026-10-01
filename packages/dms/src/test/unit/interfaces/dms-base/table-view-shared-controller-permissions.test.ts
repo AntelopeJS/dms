@@ -19,7 +19,6 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
-import { holdsAnyPermission } from "@antelopejs/interface-dms/base/table-view/auth";
 
 const TABLE = "shared-controller-rows";
 
@@ -66,7 +65,7 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
       stampedBuilder({ list: "pages.a.table.list" }),
       stampedBuilder({ list: "pages.b.table.list" }),
     );
-    expect(meta.permissionIdsFor("list")).to.deep.equal([
+    expect(meta.actionPermissionIds("list")).to.deep.equal([
       "pages.a.table.list",
       "pages.b.table.list",
     ]);
@@ -78,8 +77,10 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
       stampedBuilder({ list: "pages.a.table.list" }),
       stampedBuilder({ list: "pages.a.table.list" }),
     );
-    expect(meta.permissionIdsFor("list")).to.deep.equal(["pages.a.table.list"]);
-    expect(meta.permissionIdsFor("delete")).to.deep.equal([]);
+    expect(meta.actionPermissionIds("list")).to.deep.equal([
+      "pages.a.table.list",
+    ]);
+    expect(meta.actionPermissionIds("delete")).to.deep.equal([]);
   });
 
   it("counts a builder assigned twice once", () => {
@@ -88,7 +89,7 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
     expect(meta.componentBuilders).to.have.length(1);
   });
 
-  describe("holdsAnyPermission", () => {
+  describe("HasAnyPermission", () => {
     before(() => {
       ImplementInterface(permissionsInterface, permissionsImpl);
     });
@@ -96,7 +97,7 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
     it("admits a caller holding the action on any one of the tables", async () => {
       const permissions = new Set(["pages.page-mode.table.list"]);
       expect(
-        await holdsAnyPermission(permissions, [
+        await permissionsInterface.HasAnyPermission(permissions, [
           "pages.page-extension.content.tasks.list",
           "pages.page-mode.table.list",
         ]),
@@ -106,12 +107,14 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
     it("refuses a caller holding it on none of them", async () => {
       const permissions = new Set(["pages.other.table.list"]);
       expect(
-        await holdsAnyPermission(permissions, [
+        await permissionsInterface.HasAnyPermission(permissions, [
           "pages.page-extension.content.tasks.list",
           "pages.page-mode.table.list",
         ]),
       ).to.equal(false);
-      expect(await holdsAnyPermission(permissions, [])).to.equal(false);
+      expect(
+        await permissionsInterface.HasAnyPermission(permissions, []),
+      ).to.equal(false);
     });
   });
 });
