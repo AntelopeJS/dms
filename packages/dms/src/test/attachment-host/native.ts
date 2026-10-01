@@ -50,6 +50,7 @@ class NativeDocument extends Table.with(LocalizationModifier) {
   @Field(["string"]) declare files: string[];
   @Field("string") declare publicFile: string;
   @Localized() @Field("any") declare image: DefaultDataTypes.ImageValue;
+  @Field("any") declare gallery: DefaultDataTypes.ImageValue[];
 }
 
 class NativeDocumentModel extends BasicDataModel(NativeDocument, TABLE) {}
@@ -97,6 +98,15 @@ class NativeDocumentController extends DataController(
   @Column({ name: "Image", type: new DefaultDataTypes.ImageType() })
   @Access(AccessMode.ReadWrite)
   declare image: DefaultDataTypes.ImageValue;
+  @Column({
+    name: "Gallery",
+    type: new DefaultDataTypes.ImageType({
+      multiple: true,
+      constraints: { allowedMimetypes: ["image/png"], maxSize: 64 },
+    }),
+  })
+  @Access(AccessMode.ReadWrite)
+  declare gallery: DefaultDataTypes.ImageValue[];
 }
 
 GetMetadata(NativeDocumentController, DataAPIMeta).fields.file.dbName =

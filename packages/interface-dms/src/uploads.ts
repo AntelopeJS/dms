@@ -2,6 +2,7 @@ import {
   InterfaceFunction,
   RegisteringProxy,
 } from "@antelopejs/interface-core";
+import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 
 export interface UploadTokenClaims {
   pageId?: string;
@@ -17,6 +18,8 @@ export type NativeUploadFieldRegistration = UploadTokenClaims & {
   pageId: string;
   componentId: string;
   readPermissions: string[];
+  /** The field's own declared constraints, enforced at presign on top of the global ones. */
+  constraints?: UploadConstraints;
 };
 
 /** @internal */

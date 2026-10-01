@@ -12,6 +12,7 @@ import type {
 } from "@antelopejs/interface-dms/attachments";
 import type { UploadTokenClaims } from "../utils/upload-token";
 import { assertNativeFileAccess } from "./access";
+import { findConstraintViolation } from "./constraints";
 import {
   type AttachmentReference,
   collectAttachments,
@@ -23,19 +24,7 @@ function assertConstraints(
   metadata: FileMetadata,
   reference: AttachmentReference,
 ): void {
-  const constraints = reference.field.constraints;
-  if (constraints?.maxSize !== undefined && metadata.size > constraints.maxSize)
-    denyAttachment();
-  const allowed = constraints?.allowedMimetypes;
-  if (
-    allowed?.length &&
-    !allowed.some(
-      (pattern) =>
-        pattern === metadata.mimetype ||
-        (pattern.endsWith("/*") &&
-          metadata.mimetype.startsWith(pattern.slice(0, -1))),
-    )
-  )
+  if (findConstraintViolation(reference.field.constraints, metadata))
     denyAttachment();
 }
 

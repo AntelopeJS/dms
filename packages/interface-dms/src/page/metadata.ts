@@ -7,6 +7,7 @@ import {
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Model } from "@antelopejs/interface-database-decorators";
+import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 import { AuthOwnerOnly, AuthUser } from "../auth";
 import type { User } from "../auth/db";
 // Import from the defining leaf, not the dms-base barrel: the barrel pulls in
@@ -94,6 +95,21 @@ function isNativeUploadField(value: unknown): value is UploadFieldNode {
     !!node.component &&
     typeof node.component === "object"
   );
+}
+
+function readUploadConstraints(
+  options: Record<string, unknown>,
+): UploadConstraints | undefined {
+  const declared = options.constraints as UploadConstraints | undefined;
+  if (!declared || typeof declared !== "object") return undefined;
+  const constraints: UploadConstraints = {};
+  if (typeof declared.maxSize === "number")
+    constraints.maxSize = declared.maxSize;
+  if (Array.isArray(declared.allowedMimetypes))
+    constraints.allowedMimetypes = declared.allowedMimetypes.filter(
+      (mimetype) => typeof mimetype === "string",
+    );
+  return constraints;
 }
 
 function resolveWritePermission(
@@ -706,6 +722,7 @@ export class PageMetadata {
                   `${this.pagePermissionId}.${parts.slice(0, index + 1).join(".")}`,
               )
           : [],
+      constraints: readUploadConstraints(options),
     };
     options.uploadToken = await SignUploadToken(registration);
     if (this.detached || this.componentMap.get(componentId) !== mount) return;

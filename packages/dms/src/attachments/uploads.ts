@@ -7,7 +7,8 @@ import {
 import { getUploadsConfig } from "../config";
 import { buildUploadConstraints } from "../utils/upload-constraints";
 import type { UploadTokenClaims } from "../utils/upload-token";
-import { assertNativeFileAccess } from "./access";
+import { assertNativeFileAccess, findNativeUploadDeclaration } from "./access";
+import { assertUploadSatisfiesField } from "./constraints";
 import { attachmentId, attachmentTable, findAttachment } from "./registry";
 
 /** Persist immutable native-file provenance; staging promotion keeps its identity. */
@@ -17,6 +18,10 @@ export async function createAttachmentUpload(
   claims: UploadTokenClaims,
 ) {
   const principal = await assertNativeFileAccess(context, claims, true);
+  assertUploadSatisfiesField(
+    findNativeUploadDeclaration(claims, true)?.constraints,
+    request,
+  );
   const upload = await CreateUploadUrl(
     { ...request, staging: true, visibility: claims.visibility || "private" },
     buildUploadConstraints(getUploadsConfig()),
