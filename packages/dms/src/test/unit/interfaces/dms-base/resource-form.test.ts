@@ -157,6 +157,20 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     ).to.not.include.members([created, edited]);
   });
 
+  it("counts a TableView's own new and edit forms among the components writing to the table", () => {
+    const meta = GetMetadata(TicketAPI, TableViewMeta);
+    const built = meta.resourceFormBuilders.length;
+    TableView(TicketAPI);
+
+    // A page-mode TableView mounts these as the components of its form
+    // sub-pages, which stage files under their own component ids.
+    expect(
+      meta.resourceFormBuilders
+        .slice(built)
+        .map((form) => optionsOf(form).submitUrl),
+    ).to.deep.equal([`${LOCATION}/new`, `${LOCATION}/edit?id={{params.id}}`]);
+  });
+
   it("is declared as a block over a table, picked by mode", () => {
     const declared = ListBlockTypes().find(
       (block) => block.type === "ResourceForm",
