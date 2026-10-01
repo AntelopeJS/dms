@@ -17,7 +17,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
   GetEffectiveUserPermissions,
-  HasPermission,
+  HasAnyPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -127,16 +127,15 @@ async function canViewArchived(
   permissions: Set<string> | undefined,
 ): Promise<boolean> {
   const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
-  const action = tableViewMeta?.componentBuilder?.getAction("viewArchived");
-  const permissionId = action?.permissionId;
-  if (!permissionId) {
+  const permissionIds = tableViewMeta.actionPermissionIds("viewArchived");
+  if (permissionIds.length === 0) {
     return true;
   }
   const resolved = await computeEffectivePermissions(reqCtx, user, permissions);
   if (!resolved) {
     return false;
   }
-  return HasPermission(resolved, permissionId);
+  return HasAnyPermission(resolved, permissionIds);
 }
 
 export async function applyArchiveFilter(

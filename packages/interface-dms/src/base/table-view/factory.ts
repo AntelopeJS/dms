@@ -272,7 +272,7 @@ export function TableView<T extends ControllerClass>(
     });
   }
 
-  meta.componentBuilder = builder;
+  meta.addComponentBuilder(builder);
 
   builder
     .options({

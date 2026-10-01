@@ -61,6 +61,7 @@ class NativeDocumentController extends DataController(
     new: TableViewRoutes.New,
     edit: TableViewRoutes.Edit,
     get: TableViewRoutes.Get,
+    select: TableViewRoutes.Select,
     delete: TableViewRoutes.Delete,
   },
   Controller(LOCATION),
@@ -120,11 +121,34 @@ export class NativeFilePage extends RootPageController("nativefiles", {
   static content = form;
 }
 
+// Evaluated after `form`, so it is the last TableView built on the controller:
+// files staged from the first one must still save through the shared routes.
+const secondaryTable = TableView(NativeDocumentController, {
+  rowIdKey: "id",
+  rowActions: { add: true, edit: true, details: true },
+});
+
+@RegisterPage()
+export class NativeFileSecondaryPage extends RootPageController(
+  "nativefiles-secondary",
+  { displayName: "Native files (secondary)" },
+) {
+  static content = secondaryTable;
+}
+
 export class NativeAttachmentFormController extends Controller(
   `${LOCATION}/form`,
 ) {
   @Get("/")
   async get(@AuthTenantMember() _user: User) {
     return form.serialize();
+  }
+
+  // Serialized per request, once both table views are mounted.
+  @Get("/relation")
+  async relation(@AuthTenantMember() _user: User) {
+    return new DefaultDataTypes.RelationType({
+      dataApiController: NativeDocumentController,
+    }).inputComponent();
   }
 }

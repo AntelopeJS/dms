@@ -262,7 +262,12 @@ export namespace FormComponents {
       disabled?: string;
     };
     addForm?: ComponentInfoSerialized<FormPropsSerialized>;
-    addPermissionId?: string;
+    /**
+     * The `add` permission of each TableView mounted on the related
+     * controller: the inline add form posts to their shared `new` route, which
+     * any one of them grants.
+     */
+    addPermissionIds?: string[];
   }
 
   export interface CascaderRelationKeyMapping {

@@ -86,7 +86,43 @@ export class TableViewMeta {
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
-  public componentBuilder?: ComponentBuilder<TableViewOptionsSerialized>;
+  // Held weakly: a page module that hot-reloads builds a new TableView on the
+  // same controller, and the one it replaced must not stay reachable from here.
+  private readonly componentBuilderRefs = new Set<
+    WeakRef<ComponentBuilder<TableViewOptionsSerialized>>
+  >();
+
+  /**
+   * Every live TableView built on this controller, in build order. Several
+   * pages may mount their own TableView over the same data routes.
+   */
+  public get componentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
+    const builders: ComponentBuilder<TableViewOptionsSerialized>[] = [];
+    for (const ref of this.componentBuilderRefs) {
+      const builder = ref.deref();
+      if (builder) builders.push(builder);
+      else this.componentBuilderRefs.delete(ref);
+    }
+    return builders;
+  }
+
+  public addComponentBuilder(
+    builder: ComponentBuilder<TableViewOptionsSerialized>,
+  ): void {
+    this.componentBuilderRefs.add(new WeakRef(builder));
+  }
+
+  /**
+   * The permission id `actionId` carries on each TableView of this controller
+   * that a page mounts. The data routes are shared by all of them, so holding
+   * any one of these ids is what authorizes the action.
+   */
+  public actionPermissionIds(actionId: string): string[] {
+    const ids = this.componentBuilders
+      .map((builder) => builder.getAction(actionId)?.permissionId)
+      .filter((id): id is string => !!id);
+    return [...new Set(ids)];
+  }
 
   public setControllerRowActionRules(rules: TableViewRowActionOptions<any>) {
     this.controllerRowActionRules = rules;
