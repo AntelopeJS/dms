@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.5.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.2...v0.5.3)
+
+### 🩹 Fixes
+
+- **table-view:** Validate file provenance against every TableView sharing a data controller ([#112](https://github.com/AntelopeJS/dms/pull/112))
+- **dms-ui:** Stable SSR ids, forbidden upload headers and missing-file state in upload inputs ([#113](https://github.com/AntelopeJS/dms/pull/113))
+- **attachments:** Enforce field constraints at presign and stop retrying missing stored files ([#114](https://github.com/AntelopeJS/dms/pull/114))
+- **resource-form:** Accept native files submitted from ResourceForm blocks ([#115](https://github.com/AntelopeJS/dms/pull/115))
+- **playground:** Promote, validate and clean profile files through SaveComponentFiles ([#116](https://github.com/AntelopeJS/dms/pull/116))
+- **table-view:** Accept native files from page-mode TableView forms ([#117](https://github.com/AntelopeJS/dms/pull/117))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.3.4 ([9f115b0](https://github.com/AntelopeJS/dms/commit/9f115b0))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.1...v0.5.2)
