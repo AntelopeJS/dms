@@ -3,6 +3,14 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
+import {
+  AVATAR_ATTACHMENT_FIELD,
+  AVATAR_CONSTRAINTS,
+  COVER_IMAGE_ATTACHMENT_FIELD,
+  COVER_IMAGE_CONSTRAINTS,
+  GALLERY_ATTACHMENT_FIELD,
+  GALLERY_CONSTRAINTS,
+} from "../profile-attachments";
 
 @RegisterPage()
 export class PageFormProfileEdit extends PageController(
@@ -29,10 +37,8 @@ export class PageFormProfileEdit extends PageController(
         type: new DefaultDataTypes.FileType({
           multiple: false,
           path: "avatars",
-          constraints: {
-            allowedMimetypes: ["image/png", "image/jpeg"],
-            maxSize: 1024 * 1024 * 5,
-          },
+          attachmentField: AVATAR_ATTACHMENT_FIELD,
+          constraints: AVATAR_CONSTRAINTS,
         }),
       },
       {
@@ -42,9 +48,8 @@ export class PageFormProfileEdit extends PageController(
         type: new DefaultDataTypes.ImageType({
           multiple: false,
           path: "covers",
-          constraints: {
-            maxSize: 1024 * 1024 * 10,
-          },
+          attachmentField: COVER_IMAGE_ATTACHMENT_FIELD,
+          constraints: COVER_IMAGE_CONSTRAINTS,
         }),
       },
       {
@@ -55,10 +60,8 @@ export class PageFormProfileEdit extends PageController(
           multiple: true,
           max: 12,
           path: "gallery",
-          constraints: {
-            allowedMimetypes: ["image/png", "image/jpeg", "image/webp"],
-            maxSize: 1024 * 1024 * 10,
-          },
+          attachmentField: GALLERY_ATTACHMENT_FIELD,
+          constraints: GALLERY_CONSTRAINTS,
         }),
       },
       {
