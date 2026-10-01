@@ -24,3 +24,25 @@ describe("[unit] notification preferences — one row per user", () => {
     for (const result of results) expect(result._id).to.equal(USER_ID);
   });
 });
+
+describe("[unit] notification preferences — per-subject merge", () => {
+  const model = GetModel(UserNotificationPreferencesModel);
+  const MERGE_USER_ID = "notification-preferences-merge-user";
+
+  after(async () => {
+    await model.table.getAll(MERGE_USER_ID, "userId").delete().run();
+  });
+
+  it("keeps every change when subjects are saved concurrently", async () => {
+    await model.getOrCreatePreferences(MERGE_USER_ID);
+    await Promise.all([
+      model.mergePreferences(MERGE_USER_ID, { "system:account": false }),
+      model.mergePreferences(MERGE_USER_ID, { "system:automation": false }),
+    ]);
+
+    const stored = await model.getOrCreatePreferences(MERGE_USER_ID);
+    expect(stored.preferences["system:account"]).to.equal(false);
+    expect(stored.preferences["system:automation"]).to.equal(false);
+    expect(stored.preferences["system:security"]).to.equal(true);
+  });
+});

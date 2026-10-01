@@ -1,21 +1,51 @@
 <script setup lang="ts" generic="T extends Data">
-import { useFocus, useFocusWithin } from "@vueuse/core";
+import { injectLocal, useFocus, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
+import type { ShallowRef } from "vue";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 import TableMenu from "./Menu.vue";
-import type { Data } from "./Table.vue";
+import type { Data, TableSharedData } from "./Table.vue";
+import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import { useTableContext } from "../../composables/table/useTableContext";
 import { createTableViewShiftFShortcut } from "../../../composables/table-view/shortcuts/tableViewShiftF";
+import {
+  FULL_TABLE_CHROME,
+  type ResolvedTableChrome,
+} from "../../composables/table-view/utils/chrome";
+import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
 
 const theme = tv({
   slots: {
-    root: "flex items-center gap-1",
+    root: "flex flex-wrap items-center gap-1.5",
     base: "flex items-center gap-0.5",
     search: "flex items-center",
     searchContainer:
       "transition-width relative overflow-hidden duration-300 ease-in-out",
+    // Always-open search field of a reduced chrome (v2 settings lists).
+    searchField: "w-[240px] max-sm:w-full",
+    // A quick filter: a secondary button naming the picked value.
+    quickFilter: "",
+    // v2 toolbar icon triggers: muted until hovered, lit while their panel
+    // is open or their configuration differs from the default.
+    trigger: "text-muted hover:bg-elevated hover:text-highlighted",
+    triggerIndicatorHost: "relative inline-flex",
+    triggerIndicator:
+      "pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-(--dms-accent-fill) ring-2 ring-(--ui-bg)",
+    separator: "mx-1 h-[18px] w-px bg-(--ui-border)",
+    // v2 display switch: an icon-only segmented control (table, kanban,
+    // cards…) on the band color, the active display raised onto the card.
+    displaySwitch:
+      "inline-flex h-7 items-center gap-0.5 rounded-md border border-default bg-(--dms-bg-muted) p-0.5",
+    displaySwitchItem:
+      "inline-flex h-full items-center rounded-[6px] px-[7px] text-muted transition-colors hover:text-highlighted [&>svg]:size-[15px]",
+    groupBy:
+      "inline-flex h-7 items-center gap-1.5 rounded-full border border-accented px-[11px] font-mono text-xs text-muted hover:text-highlighted",
+    groupByValue: "font-semibold text-default",
+    // Archive mode toggle: a secondary button that turns amber while the
+    // table lists archived rows.
+    archiveToggle: "",
 
     add: "hidden sm:flex",
     addMobile: "sm:hidden",
@@ -23,10 +53,32 @@ const theme = tv({
   variants: {
     searchActive: {
       true: {
-        searchContainer: "w-40 sm:w-64",
+        searchContainer: "w-40 sm:w-[220px]",
       },
       false: {
         searchContainer: "w-0",
+      },
+    },
+    triggerOn: {
+      true: {
+        trigger: "bg-accented text-highlighted",
+      },
+    },
+    displayActive: {
+      true: {
+        displaySwitchItem:
+          "bg-(--ui-bg) text-highlighted shadow-sm ring-1 ring-(--ui-border-accented)",
+      },
+    },
+    archiveOn: {
+      true: {
+        archiveToggle:
+          "bg-(--dms-warning-tint) text-warning ring-(--dms-warning-line) hover:bg-(--dms-warning-tint) hover:text-warning",
+      },
+    },
+    quickFilterOn: {
+      true: {
+        quickFilter: "text-highlighted",
       },
     },
   },
@@ -34,11 +86,40 @@ const theme = tv({
 
 interface TableActionsProps {
   canAddRow?: boolean;
+  /** Shows the archive mode toggle, bound to the `showArchived` model. */
+  archiveToggle?: boolean;
   customButtons?: CustomButton[];
   onCustomButton?: (button: CustomButton) => void;
+  /** Which controls are drawn; the full chrome by default. */
+  chrome?: ResolvedTableChrome;
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
+  /** Dropdown filters, their values bound to `quickFilterValues`. */
+  quickFilters?: ResolvedQuickFilter[];
 }
 
 const props = defineProps<TableActionsProps>();
+
+const showArchived = defineModel<boolean>("showArchived", { default: false });
+const quickFilterValues = defineModel<Record<string, string | undefined>>(
+  "quickFilterValues",
+  { default: (): Record<string, string | undefined> => ({}) },
+);
+
+const chrome = computed(() => props.chrome ?? FULL_TABLE_CHROME);
+const showSearch = computed(
+  () => capabilities.value.search && chrome.value.search !== "none",
+);
+const isSearchField = computed(() => chrome.value.search === "field");
+// The icon toolbar is left out altogether when the chrome draws none of it.
+const hasIconControls = computed(
+  () =>
+    (showSearch.value && !isSearchField.value) ||
+    (capabilities.value.filters && chrome.value.filters) ||
+    (capabilities.value.sorting && chrome.value.sorting) ||
+    chrome.value.refresh ||
+    chrome.value.menu,
+);
 
 const tableSharedData = useTableContext<T>();
 
@@ -79,10 +160,52 @@ const toggleSearch = () => {
   inputFocus.value = !inputFocus.value;
 };
 
+const searchFieldRef = ref<{ $el: HTMLElement }>();
+
 const focusSearchBar = () => {
-  (searchInputRef.value as unknown as { $el: HTMLElement } | undefined)?.$el
+  const host = isSearchField.value
+    ? searchFieldRef.value
+    : searchInputRef.value;
+  (host as unknown as { $el: HTMLElement } | undefined)?.$el
     ?.querySelector("input")
     ?.focus();
+};
+
+const searchPlaceholderText = computed(() =>
+  props.searchPlaceholder
+    ? processI18n(props.searchPlaceholder)
+    : t("dms.table.search_placeholder"),
+);
+
+const quickFilterLabel = (filter: ResolvedQuickFilter): string => {
+  const value = quickFilterValues.value[filter.field];
+  return (
+    filter.items.find((item) => item.value === value)?.label ?? filter.label
+  );
+};
+
+const setQuickFilter = (field: string, value: string | undefined) => {
+  quickFilterValues.value = { ...quickFilterValues.value, [field]: value };
+};
+
+const quickFilterItems = (filter: ResolvedQuickFilter) => {
+  const picked = quickFilterValues.value[filter.field];
+  return [
+    [
+      {
+        label: filter.allLabel,
+        type: "checkbox" as const,
+        checked: picked === undefined,
+        onSelect: () => setQuickFilter(filter.field, undefined),
+      },
+    ],
+    filter.items.map((item) => ({
+      label: item.label,
+      type: "checkbox" as const,
+      checked: item.value === picked,
+      onSelect: () => setQuickFilter(filter.field, item.value),
+    })),
+  ];
 };
 
 const closeSearch = () => {
@@ -125,7 +248,56 @@ const filtersRowOpen = computed(
   () => !!tableSharedData?.filtersRowOpenState.value,
 );
 
-const triggerVariant = (isOpen: boolean) => (isOpen ? "soft" : "ghost");
+const hasCustomSort = computed(() => !!tableSharedData?.hasCustomSort.value);
+
+// The offered displays and the group-by options arrive after hydration (the
+// display registry is client-only), so they are read from the live shared ref
+// rather than from the snapshot `useTableContext` returns.
+const sharedDataRef =
+  injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
+const displays = computed(() => sharedDataRef?.value?.displays ?? []);
+const activeDisplay = computed(
+  () => sharedDataRef?.value?.activeDisplayState.value,
+);
+const setActiveDisplay = (id: string) => {
+  if (sharedDataRef?.value) sharedDataRef.value.activeDisplayState.value = id;
+};
+
+const groupByOptions = computed(
+  () => sharedDataRef?.value?.kanbanGroupByOptions ?? [],
+);
+const groupByField = computed(
+  () => sharedDataRef?.value?.kanbanGroupByState.value,
+);
+const showGroupBy = computed(
+  () =>
+    activeDisplay.value === KANBAN_DISPLAY_ID &&
+    groupByOptions.value.length > 1,
+);
+const groupByLabel = computed(
+  () =>
+    groupByOptions.value.find((option) => option.value === groupByField.value)
+      ?.label ?? "",
+);
+const groupByItems = computed(() =>
+  groupByOptions.value.map((option) => ({
+    label: option.label,
+    type: "checkbox" as const,
+    checked: option.value === groupByField.value,
+    onSelect: () => {
+      if (sharedDataRef?.value) {
+        sharedDataRef.value.kanbanGroupByState.value = option.value;
+      }
+    },
+  })),
+);
+
+const hasTrailingButtons = computed(
+  () =>
+    props.canAddRow ||
+    props.archiveToggle ||
+    (props.customButtons?.length ?? 0) > 0,
+);
 
 const uiTableActionsVariant = tv({
   extend: tv(theme),
@@ -136,18 +308,54 @@ const uiTableActions = computed(() => uiTableActionsVariant());
 
 <template>
   <div :class="uiTableActions.root()">
-    <div :class="uiTableActions.base()">
+    <UInput
+      v-if="showSearch && isSearchField"
+      ref="searchFieldRef"
+      v-model="tableSharedData!.globalFilterState.value"
+      :placeholder="searchPlaceholderText"
+      :aria-label="searchPlaceholderText"
+      icon="i-ph-magnifying-glass"
+      size="sm"
+      :class="uiTableActions.searchField()"
+      @keydown.esc="closeSearch"
+    />
+
+    <UDropdownMenu
+      v-for="filter in props.quickFilters ?? []"
+      :key="filter.field"
+      :items="quickFilterItems(filter)"
+      :content="{ align: 'end' }"
+      :ui="{ content: 'min-w-48' }"
+    >
+      <UButton
+        size="sm"
+        color="neutral"
+        :variant="quickFilterValues[filter.field] ? 'soft' : 'outline'"
+        :icon="filter.icon"
+        :label="quickFilterLabel(filter)"
+        :aria-label="filter.label"
+        :class="
+          uiTableActions.quickFilter({
+            quickFilterOn: !!quickFilterValues[filter.field],
+          })
+        "
+      />
+    </UDropdownMenu>
+
+    <div v-if="hasIconControls" :class="uiTableActions.base()">
       <div
-        v-if="capabilities.search"
+        v-if="showSearch && !isSearchField"
         ref="searchSectionRef"
         :class="uiTableActions.search()"
       >
         <UButton
+          v-if="!searchActive"
           icon="i-ph-magnifying-glass"
           color="neutral"
           variant="ghost"
           size="sm"
           square
+          :class="uiTableActions.trigger()"
           @click="toggleSearch"
         />
 
@@ -157,44 +365,67 @@ const uiTableActions = computed(() => uiTableActionsVariant());
             ref="searchInputRef"
             v-model="tableSharedData!.globalFilterState.value"
             :placeholder="t('dms.table.search_placeholder')"
+            icon="i-ph-magnifying-glass"
             size="sm"
             class="w-full"
-            variant="ghost"
             autofocus
             @keydown.esc="closeSearch"
-          />
+          >
+            <template #trailing>
+              <UKbd value="Esc" size="sm" />
+            </template>
+          </UInput>
         </div>
       </div>
 
-      <UChip
-        v-if="capabilities.filters"
+      <span
+        v-if="capabilities.filters && chrome.filters"
         id="filter-trigger"
-        :show="hasCustomFilterConfig"
+        :class="uiTableActions.triggerIndicatorHost()"
       >
         <UButton
           icon="i-ph-funnel"
           color="neutral"
-          :variant="triggerVariant(filtersRowOpen)"
+          variant="ghost"
           size="sm"
           square
+          :class="
+            uiTableActions.trigger({
+              triggerOn: filtersRowOpen || hasCustomFilterConfig,
+            })
+          "
           :aria-label="t('dms.table.filters_title')"
           @click="toggleFiltersRow"
         />
-      </UChip>
+        <span
+          v-if="hasCustomFilterConfig"
+          :class="uiTableActions.triggerIndicator()"
+        />
+      </span>
 
-      <UPopover v-if="capabilities.sorting" v-model:open="sortOpen">
-        <UChip
+      <UPopover
+        v-if="capabilities.sorting && chrome.sorting"
+        v-model:open="sortOpen"
+      >
+        <span
           id="sorting-trigger"
-          :show="!!tableSharedData?.hasCustomSort.value"
+          :class="uiTableActions.triggerIndicatorHost()"
         >
           <UButton
             icon="i-ph-arrows-down-up"
             color="neutral"
-            :variant="triggerVariant(sortOpen)"
+            variant="ghost"
             size="sm"
             square
+            :class="
+              uiTableActions.trigger({ triggerOn: sortOpen || hasCustomSort })
+            "
           />
-        </UChip>
+          <span
+            v-if="hasCustomSort"
+            :class="uiTableActions.triggerIndicator()"
+          />
+        </span>
 
         <template #content>
           <TableMenu default-view="sort" />
@@ -202,24 +433,27 @@ const uiTableActions = computed(() => uiTableActionsVariant());
       </UPopover>
 
       <UButton
+        v-if="chrome.refresh"
         id="refresh-trigger"
-        icon="i-ph-arrow-clockwise"
+        icon="i-ph-arrows-clockwise"
         :aria-label="t('dms.button.refresh_data')"
         color="neutral"
         variant="ghost"
         size="sm"
         square
+        :class="uiTableActions.trigger()"
         @click="tableSharedData!.emits('refresh')"
       />
 
-      <UPopover v-model:open="menuOpen">
+      <UPopover v-if="chrome.menu" v-model:open="menuOpen">
         <UButton
           id="table-menu"
           :icon="appConfig.ui.icons.ellipsis"
           color="neutral"
-          :variant="triggerVariant(menuOpen)"
+          variant="ghost"
           size="sm"
           square
+          :class="uiTableActions.trigger({ triggerOn: menuOpen })"
         />
 
         <template #content>
@@ -228,20 +462,63 @@ const uiTableActions = computed(() => uiTableActionsVariant());
       </UPopover>
     </div>
 
-    <UButton
-      v-if="canAddRow"
-      :label="t('dms.table.new_row')"
-      :class="uiTableActions.add()"
-      size="sm"
-      @click="tableSharedData!.emits('add')"
+    <template v-if="displays.length > 1">
+      <span aria-hidden="true" :class="uiTableActions.separator()" />
+      <div
+        role="radiogroup"
+        :aria-label="t('dms.table.view_mode_title')"
+        :class="uiTableActions.displaySwitch()"
+      >
+        <UTooltip
+          v-for="display in displays"
+          :key="display.id"
+          :text="t(display.label)"
+        >
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="activeDisplay === display.id"
+            :aria-label="t(display.label)"
+            :class="
+              uiTableActions.displaySwitchItem({
+                displayActive: activeDisplay === display.id,
+              })
+            "
+            @click="setActiveDisplay(display.id)"
+          >
+            <UIcon :name="display.icon" />
+          </button>
+        </UTooltip>
+      </div>
+    </template>
+
+    <UDropdownMenu v-if="showGroupBy" :items="groupByItems">
+      <button type="button" :class="uiTableActions.groupBy()">
+        {{ t("dms.table.kanban.group_by") }}
+        <span :class="uiTableActions.groupByValue()">{{ groupByLabel }}</span>
+        <UIcon :name="appConfig.ui.icons.chevronDown" class="size-3.5" />
+      </button>
+    </UDropdownMenu>
+
+    <span
+      v-if="hasTrailingButtons"
+      aria-hidden="true"
+      :class="uiTableActions.separator()"
     />
+
     <UButton
-      v-if="canAddRow"
-      :aria-label="t('dms.table.new_row')"
-      :icon="appConfig.ui.icons.plus"
-      :class="uiTableActions.addMobile()"
+      v-if="archiveToggle"
+      id="archive-toggle"
+      :label="
+        showArchived ? t('dms.table.archived') : t('dms.table.archive_toggle')
+      "
+      icon="i-ph-archive"
+      color="neutral"
+      variant="outline"
       size="sm"
-      @click="tableSharedData!.emits('add')"
+      :aria-pressed="showArchived"
+      :class="uiTableActions.archiveToggle({ archiveOn: showArchived })"
+      @click="showArchived = !showArchived"
     />
 
     <!-- A disabled button fires no pointer event: the tooltip hangs on a
@@ -256,13 +533,30 @@ const uiTableActions = computed(() => uiTableActionsVariant());
         <UButton
           :label="processI18n(button.label)"
           :icon="button.icon"
-          :variant="button.variant"
-          :color="button.color"
+          :variant="button.variant ?? 'outline'"
+          :color="button.color ?? 'neutral'"
           :disabled="button.disabled"
           size="sm"
           @click="props.onCustomButton?.(button)"
         />
       </span>
     </UTooltip>
+
+    <UButton
+      v-if="canAddRow"
+      :label="t('dms.table.new_row')"
+      :icon="appConfig.ui.icons.plus"
+      :class="uiTableActions.add()"
+      size="sm"
+      @click="tableSharedData!.emits('add')"
+    />
+    <UButton
+      v-if="canAddRow"
+      :aria-label="t('dms.table.new_row')"
+      :icon="appConfig.ui.icons.plus"
+      :class="uiTableActions.addMobile()"
+      size="sm"
+      @click="tableSharedData!.emits('add')"
+    />
   </div>
 </template>

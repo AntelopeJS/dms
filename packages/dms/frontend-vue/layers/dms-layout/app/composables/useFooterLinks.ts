@@ -5,7 +5,26 @@ export interface FooterLink {
   order: number;
 }
 
-const links = ref<FooterLink[]>([]);
+/**
+ * The Antelope links every footer starts with. A layer replaces one by
+ * registering an entry under the same id.
+ */
+const DEFAULT_FOOTER_LINKS: FooterLink[] = [
+  {
+    id: "dms:documentation",
+    label: "empty_layout.footer.documentation",
+    to: "https://dms.antelopejs.com/docs/",
+    order: 10,
+  },
+  {
+    id: "dms:website",
+    label: "empty_layout.footer.website",
+    to: "https://dms.antelopejs.com/",
+    order: 20,
+  },
+];
+
+const links = ref<FooterLink[]>([...DEFAULT_FOOTER_LINKS]);
 
 function compareByOrder(a: FooterLink, b: FooterLink): number {
   return a.order - b.order;

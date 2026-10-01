@@ -1,52 +1,71 @@
-type ModulesListingEntry = ModuleInfo & {
-  hasAccess: boolean;
-  landingSlug: string;
-};
+import type { ModuleCatalogEntry } from "../../types/page";
+
+/**
+ * Why the catalog could not be loaded: `forbidden` when the server refused
+ * the caller (not a platform owner), `failed` for anything else. `status` is
+ * the HTTP status when the server answered at all.
+ */
+export interface ModulesListingError {
+  kind: "forbidden" | "failed";
+  status?: number;
+}
 
 const STATE_KEY_MODULES = "dms-modulesListing";
 const STATE_KEY_LOADING = "dms-modulesListingLoading";
 const STATE_KEY_ERROR = "dms-modulesListingError";
-const ENDPOINT_MODULES_LISTING = "/dms/modules-listing";
-const ERROR_FORBIDDEN_MESSAGE = "Forbidden: only owners can list modules";
-const ERROR_UNKNOWN_MESSAGE = "Unknown error loading modules listing";
+const STATE_KEY_FETCHED_AT = "dms-modulesListingFetchedAt";
+// A listing younger than this is fresh enough to show without refetching:
+// it also covers the hydration right after a server render.
+const REVALIDATE_AFTER_MS = 30_000;
+export const ENDPOINT_MODULES_LISTING = "/dms/modules-listing";
 
-function isForbiddenError(error: unknown): boolean {
-  const status = error as
-    | { response?: { status?: number }; statusCode?: number }
+function readStatus(error: unknown): number | undefined {
+  const details = error as
+    | { response?: { status?: number }; statusCode?: number; status?: number }
     | undefined;
-  if (!status) return false;
-  if (status.response?.status === HTTP_FORBIDDEN) return true;
-  if (status.statusCode === HTTP_FORBIDDEN) return true;
-  return false;
+  return details?.response?.status ?? details?.statusCode ?? details?.status;
 }
 
-function extractErrorMessage(error: unknown): string {
-  if (isForbiddenError(error)) return ERROR_FORBIDDEN_MESSAGE;
-  if (error instanceof Error) return error.message;
-  return ERROR_UNKNOWN_MESSAGE;
+function toListingError(error: unknown): ModulesListingError {
+  const status = readStatus(error);
+  if (status === HTTP_FORBIDDEN) return { kind: "forbidden", status };
+  return { kind: "failed", status };
 }
 
 let inFlightLoadingPromise: Promise<void> | null = null;
 
 export const useModulesListing = () => {
-  const modules = useDmsState<ModulesListingEntry[] | undefined>(
+  const modules = useDmsState<ModuleCatalogEntry[] | undefined>(
     STATE_KEY_MODULES,
     () => undefined,
   );
   const isLoading = useDmsState<boolean>(STATE_KEY_LOADING, () => false);
-  const loadingError = useDmsState<string | null>(STATE_KEY_ERROR, () => null);
+  const loadingError = useDmsState<ModulesListingError | null>(
+    STATE_KEY_ERROR,
+    () => null,
+  );
+  const fetchedAt = useDmsState<number>(STATE_KEY_FETCHED_AT, () => 0);
 
-  function fetchModulesListing(): Promise<void> {
+  /**
+   * Fetches the catalog. With `keepOnFailure`, a failed request leaves the
+   * modules already on screen in place (a background revalidation must not
+   * blank the page); otherwise the failure replaces them with the error.
+   */
+  function fetchModulesListing(keepOnFailure = false): Promise<void> {
     const { $authFetch } = useAuthFetch();
     isLoading.value = true;
-    loadingError.value = null;
+    if (!keepOnFailure) loadingError.value = null;
 
-    const promise = $authFetch<ModulesListingEntry[]>(ENDPOINT_MODULES_LISTING)
+    const promise = $authFetch<ModuleCatalogEntry[]>(ENDPOINT_MODULES_LISTING)
       .then((result) => {
         modules.value = result;
+        loadingError.value = null;
+        fetchedAt.value = Date.now();
       })
       .catch((error: unknown) => {
-        loadingError.value = extractErrorMessage(error);
+        const listingError = toListingError(error);
+        if (keepOnFailure && listingError.kind === "failed") return;
+        loadingError.value = listingError;
         modules.value = undefined;
       })
       .finally(() => {
@@ -69,13 +88,29 @@ export const useModulesListing = () => {
     await fetchModulesListing();
   }
 
+  /**
+   * Loads the catalog again on request (Refresh, Try again): the current list
+   * stays on screen while loading, and a failure is shown, not swallowed.
+   */
   async function refresh(): Promise<void> {
     if (inFlightLoadingPromise) {
       await inFlightLoadingPromise;
     }
-    modules.value = undefined;
-    loadingError.value = null;
     await fetchModulesListing();
+  }
+
+  /**
+   * Reloads statuses and readouts while keeping the current list on screen,
+   * unless the listing is only a few seconds old: readouts are live figures,
+   * so a later revisit should not show stale ones.
+   */
+  async function revalidate(): Promise<void> {
+    if (inFlightLoadingPromise) {
+      await inFlightLoadingPromise;
+      return;
+    }
+    if (Date.now() - fetchedAt.value < REVALIDATE_AFTER_MS) return;
+    await fetchModulesListing(true);
   }
 
   return {
@@ -84,5 +119,6 @@ export const useModulesListing = () => {
     loadingError,
     loadModulesListing,
     refresh,
+    revalidate,
   };
 };

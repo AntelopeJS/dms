@@ -36,4 +36,18 @@ declare module "2fa" {
     account: string,
     key: string,
   ): string;
+  interface GoogleQrOptions {
+    /** qr-image options; the result is always a PNG. */
+    size?: number;
+    margin?: number;
+    ec_level?: "L" | "M" | "Q" | "H";
+  }
+
+  export function generateGoogleQR(
+    issuer: string,
+    account: string,
+    key: string,
+    opts: GoogleQrOptions,
+    cb: (err: Error | null, dataUrl: string) => void,
+  ): void;
 }

@@ -59,6 +59,13 @@ export class UserInvite extends Table {
   declare skipEmailValidation: boolean;
 
   /**
+   * Id of the user who sent the invitation, or last resent it. `null` for an
+   * invitation created outside a signed-in request (an import, a module).
+   */
+  @Field("string")
+  declare invitedBy?: string | null;
+
+  /**
    * Payloads modules attached to the invitation through
    * `RegisterInviteExtension`, keyed by extension key. Delivered to their
    * owners when the invitee joins, and gone with the row when it does not.

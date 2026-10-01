@@ -2,56 +2,80 @@
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import striptags from "striptags";
+import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
+import AuthFormAlert from "../../../../../dms-auth/app/components/AuthFormAlert.vue";
+import AuthNewPasswordField from "../../../../../dms-auth/app/components/AuthNewPasswordField.vue";
+import { useAuthFormError } from "../../../../../dms-auth/app/composables/useAuthFormError";
+import type {
+  OnboardingAdministrator,
+  OnboardingPlatform,
+} from "../../../composables/onboarding/steps";
+import StepMeta from "../StepMeta.vue";
+
+interface RegisterStepProps {
+  platform: OnboardingPlatform;
+}
+
+interface RegisterStepEmits {
+  back: [];
+  registered: [administrator: OnboardingAdministrator];
+}
+
+const props = defineProps<RegisterStepProps>();
+const emit = defineEmits<RegisterStepEmits>();
 
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
-const toast = useToast();
 const dmsApp = useDmsApp();
-const { siteLayoutTree } = useSiteLayout();
-const homepage = useHomepage();
+const { formError, showFormError, clearFormError } = useAuthFormError();
 
-const MIN_VALID_PASSWORD_SCORE = 4;
 const LOGIN_PATH = "/auth";
+const MAX_NAME_PART_LENGTH = 100;
 
 const isLoading = ref(false);
 const isRegistered = ref(false);
-const isPasswordVisible = ref(false);
+const isPasswordValid = ref(false);
+
+const namePart = z
+  .string()
+  .trim()
+  .min(1, { message: t("page.onboarding.administrator.name_required") })
+  .max(MAX_NAME_PART_LENGTH);
 
 const schema = z
   .object({
+    firstName: namePart,
+    lastName: namePart,
     email: z.string().trim().email(),
-    name: z
-      .string()
-      .trim()
-      .min(2, { message: t("form.error.min_two") }),
     password: passwordSchema,
   })
   .transform((data) => ({
+    firstName: striptags(data.firstName),
+    lastName: striptags(data.lastName),
     email: striptags(data.email),
-    name: striptags(data.name),
     password: data.password,
   }));
 
 type Schema = z.output<typeof schema>;
 
 const state = reactive<Partial<Schema>>({
+  firstName: undefined,
+  lastName: undefined,
   email: undefined,
-  name: undefined,
   password: undefined,
 });
 
-const { strength, score, color } = usePasswordStrength(
-  computed(() => state.password || ""),
-);
-
-async function loginAdmin(data: Schema) {
-  await $fetch("/auth/login", {
+async function registerAdmin(data: Schema) {
+  await $authFetch("/api/onboarding/register", {
     method: "POST",
-    body: { email: data.email, password: data.password },
+    body: {
+      ...data,
+      platformName: props.platform.name,
+      language: props.platform.language,
+    },
   });
-  await dmsApp.runWithContext(() =>
-    usePostLoginRedirect(() => firstAccessiblePagePath(siteLayoutTree.value)),
-  );
+  isRegistered.value = true;
+  dmsApp.runWithContext(() => setOnboardingComplete());
 }
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
@@ -59,19 +83,15 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
   try {
     isLoading.value = true;
-
-    await $authFetch("/api/onboarding/register", {
+    clearFormError();
+    await registerAdmin(event.data);
+    await $fetch("/auth/login", {
       method: "POST",
-      body: event.data,
+      body: { email: event.data.email, password: event.data.password },
     });
-
-    isRegistered.value = true;
-    dmsApp.runWithContext(() => setOnboardingComplete());
-    await loginAdmin(event.data);
-
-    toast.add({
-      title: t("page.onboarding.success.title"),
-      color: "success",
+    emit("registered", {
+      name: `${event.data.firstName} ${event.data.lastName}`,
+      email: event.data.email,
     });
   } catch (error: unknown) {
     if (isRegistered.value) {
@@ -79,12 +99,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       window.location.replace(LOGIN_PATH);
       return;
     }
-    dmsApp.runWithContext(() =>
-      useApiError(error, {
-        title: "error.500.title",
-        description: "error.500.description",
-      }),
-    );
+    showFormError(error, "page.onboarding.administrator.error_title");
   } finally {
     isLoading.value = false;
   }
@@ -92,81 +107,90 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-xl">
-    <DmsCard variant="elevated" :padded="false" class="grid gap-4 p-6 sm:p-12">
-      <div>
-        <h1 class="pb-11 text-xl font-bold sm:text-2xl">
-          {{ $t("page.onboarding.create_admin") }}
-        </h1>
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-7"
-          @submit="onSubmit"
+  <StageCard
+    :title="$t('page.onboarding.administrator.title')"
+    :description="$t('page.onboarding.administrator.description')"
+  >
+    <template #eyebrow>
+      <StepMeta
+        :step="2"
+        :label="$t('page.onboarding.steps.administrator')"
+        :aside="props.platform.name"
+      />
+    </template>
+
+    <UForm
+      :schema="schema"
+      :state="state"
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+    >
+      <AuthFormAlert :error="formError" />
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <UFormField
+          :label="$t('page.onboarding.administrator.first_name')"
+          name="firstName"
         >
-          <UFormField :label="$t('form.name.label')" name="name">
-            <UInput v-model="state.name" :loading="isLoading" class="w-full" />
-          </UFormField>
-
-          <UFormField :label="$t('form.email.label')" name="email">
-            <UInput
-              v-model="state.email"
-              :loading="isLoading"
-              type="email"
-              class="w-full"
-            />
-          </UFormField>
-
-          <UFormField :label="$t('form.password.label')" name="password">
-            <UInput
-              v-model="state.password"
-              :color="color"
-              :loading="isLoading"
-              :type="isPasswordVisible ? 'text' : 'password'"
-              :aria-invalid="score < MIN_VALID_PASSWORD_SCORE"
-              aria-describedby="password-strength"
-              class="w-full"
-            >
-              <template #trailing>
-                <UButton
-                  color="neutral"
-                  square
-                  size="xs"
-                  variant="ghost"
-                  :icon="
-                    isPasswordVisible ? 'i-lucide-eye-off' : 'i-lucide-eye'
-                  "
-                  :aria-label="
-                    isPasswordVisible ? 'Hide password' : 'Show password'
-                  "
-                  :aria-pressed="isPasswordVisible"
-                  aria-controls="password"
-                  @click="isPasswordVisible = !isPasswordVisible"
-                />
-              </template>
-            </UInput>
-          </UFormField>
-
-          <DmsPasswordStrength
-            :color="color"
-            :score="score"
-            :strength="strength"
+          <UInput
+            v-model="state.firstName"
+            autocomplete="given-name"
+            size="lg"
+            class="w-full"
           />
-
-          <UButton type="submit" block>
-            {{ $t("button.next") }}
-          </UButton>
-
-          <div class="text-center text-sm">
-            <p>
-              {{ $t("page.onboarding.modif_last") }}
-              <DmsLink :to="homepage" class="text-primary font-medium">
-                {{ $t("button.back") }}
-              </DmsLink>
-            </p>
-          </div>
-        </UForm>
+        </UFormField>
+        <UFormField
+          :label="$t('page.onboarding.administrator.last_name')"
+          name="lastName"
+        >
+          <UInput
+            v-model="state.lastName"
+            autocomplete="family-name"
+            size="lg"
+            class="w-full"
+          />
+        </UFormField>
       </div>
-    </DmsCard>
-  </div>
+
+      <UFormField
+        :label="$t('page.onboarding.administrator.email')"
+        name="email"
+      >
+        <UInput
+          v-model="state.email"
+          type="email"
+          autocomplete="email"
+          icon="i-ph-envelope-simple"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
+
+      <AuthNewPasswordField
+        v-model="state.password"
+        v-model:valid="isPasswordValid"
+        :label="$t('form.password.label')"
+      />
+
+      <UButton
+        :label="$t('page.onboarding.administrator.submit')"
+        :loading="isLoading"
+        :disabled="!isPasswordValid || isRegistered"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
+
+    <button
+      type="button"
+      class="text-muted hover:text-highlighted mx-auto mt-3.5 flex items-center justify-center gap-1.5 text-[13px] transition-colors"
+      :disabled="isLoading || isRegistered"
+      @click="emit('back')"
+    >
+      <UIcon name="i-ph-arrow-left" class="size-3.5" />
+      {{ $t("page.onboarding.administrator.back") }}
+    </button>
+  </StageCard>
 </template>

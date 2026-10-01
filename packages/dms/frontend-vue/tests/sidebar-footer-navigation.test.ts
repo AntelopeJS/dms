@@ -60,6 +60,11 @@ function installRuntime() {
   vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
     ref(initial()),
   );
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
+  );
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),
     siteLayoutTree: ref(),
@@ -109,6 +114,10 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     app.component("DmsNavigationMenu", Navigation);
     app.component(
       "DmsDashboardSearch",
+      defineComponent({ render: () => null }),
+    );
+    app.component(
+      "DmsSidebarUserMenu",
       defineComponent({ render: () => null }),
     );
     app.mount(host);

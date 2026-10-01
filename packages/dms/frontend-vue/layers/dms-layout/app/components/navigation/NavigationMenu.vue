@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
+import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import {
+  applyPreviewEntryStates,
+  type PreviewEntryState,
+} from "#dms-core/app/utils/permission-preview";
 
 interface Props {
   items: NavigationMenuItem[] | NavigationMenuItem[][];
@@ -42,7 +47,14 @@ const VARIANT_CLASSES: Record<MenuItemVariant, MenuVariantClasses> = {
 };
 
 const STATUS_DOT_ICON = "i-ph-circle-fill";
-const STATUS_DOT_SIZE = "size-2";
+const STATUS_DOT_SIZE = "size-1.5";
+/** v2 nav trail badge: a small neutral pill with a mono count. */
+const MENU_BADGE_PROPS = {
+  color: "neutral",
+  variant: "soft",
+  size: "sm",
+  class: "font-mono tabular-nums",
+} as const;
 
 /** The per-item slot classes Nuxt UI accepts on a navigation menu item. */
 type MenuItemUi = NonNullable<DmsMenuItem["ui"]>;
@@ -96,21 +108,87 @@ function buildItemUi(
     : undefined;
 }
 
+// A plain badge value (a page's `badge`) gets the v2 look; a badge already
+// given as props is the caller's own choice.
+function resolveMenuBadge(badge: DmsMenuItem["badge"]): DmsMenuItem["badge"] {
+  if (typeof badge === "string" || typeof badge === "number") {
+    return { ...MENU_BADGE_PROPS, label: String(badge) };
+  }
+  return badge;
+}
+
+// "Preview as role": an entry the previewed role could not open stays in the
+// menu, hatched red and locked, so the preview shows what the role loses
+// instead of a shorter menu; one it opens without all of it (a block or an
+// action of its page, or one of its entries) is hatched orange with the same
+// lock. Labels and parents are drawn too; a parent keeps its trailing slot
+// for the chevron and shows the lock in place of its icon. Outside a preview
+// `entryState` is always null: nothing is ever drawn.
+const preview = usePermissionPreview();
+const { t } = useI18n();
+const PREVIEW_LOCK_ICON = "i-ph-lock-simple";
+const PREVIEW_ENTRY_LINK_CLASSES: Record<PreviewEntryState, string> = {
+  hidden:
+    "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
+  partial:
+    "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
+};
+const PREVIEW_LOCK_TONES: Record<PreviewEntryState, string> = {
+  hidden: "text-error",
+  partial: "text-warning",
+};
+const PREVIEW_ENTRY_TITLES: Record<PreviewEntryState, string> = {
+  hidden: "page.settings.roles.preview.menu_hidden",
+  partial: "page.settings.roles.preview.menu_partial",
+};
+
+function drawPreviewEntry(
+  item: DmsMenuItem,
+  state: PreviewEntryState,
+): DmsMenuItem {
+  const hasChildren = (item.children?.length ?? 0) > 0;
+  const title = t(PREVIEW_ENTRY_TITLES[state], {
+    role: preview.session.value?.roleName ?? "",
+  });
+  return {
+    ...item,
+    previewState: state,
+    previewLocked: state === "hidden",
+    class: [item.class, PREVIEW_ENTRY_LINK_CLASSES[state]],
+    title,
+    "aria-label": `${String(item.label ?? "")} · ${title}`,
+    ...(hasChildren
+      ? {}
+      : {
+          trailingIcon: PREVIEW_LOCK_ICON,
+          badge: undefined,
+          ui: {
+            ...UNSET_MENU_ITEM_UI,
+            ...item.ui,
+            linkTrailingIcon: `size-3.5 ${PREVIEW_LOCK_TONES[state]}`,
+          },
+        }),
+  };
+}
+
 // A status dot lands in the trailing slot, which a parent entry already uses for
-// its accordion chevron — so it is rendered on leaf entries only.
+// its accordion chevron — so it is rendered on leaf entries only, and a badge
+// takes precedence over it.
 function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   const variant = VARIANT_CLASSES[item.variant ?? "default"];
   const hasChildren = (item.children?.length ?? 0) > 0;
   const statusClass =
-    item.status && !hasChildren
+    item.status && !hasChildren && !item.badge
       ? MENU_STATUS_TEXT_CLASSES[item.status]
       : undefined;
   const ui = buildItemUi(item, variant, statusClass);
+  const badge = resolveMenuBadge(item.badge);
 
   return {
     ...item,
     ...(variant.link ? { class: [item.class, variant.link] } : {}),
     ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
+    ...(badge !== undefined ? { badge } : {}),
     ...(ui ? { ui } : {}),
     children: item.children?.map(decorateMenuItem),
   };
@@ -125,7 +203,13 @@ const groupedItems = computed((): NavigationMenuItem[][] => {
   }
 
   const groups = isArrayOfArrays(props.items) ? props.items : [props.items];
-  return groups.map((group) => group.map(decorateMenuItem));
+  return groups.map((group) =>
+    applyPreviewEntryStates(
+      group.map(decorateMenuItem),
+      preview.entryState,
+      drawPreviewEntry,
+    ),
+  );
 });
 
 const { prefetchPageLayout } = usePrefetch();
@@ -188,6 +272,17 @@ function onStateChange(id: string, open: boolean): void {
         :class="
           ui.linkLeadingAvatar({
             class: item.ui?.linkLeadingAvatar,
+            active,
+            disabled: !!item.disabled,
+          })
+        "
+      />
+      <UIcon
+        v-else-if="item.previewState && item.children?.length"
+        :name="PREVIEW_LOCK_ICON"
+        :class="
+          ui.linkLeadingIcon({
+            class: PREVIEW_LOCK_TONES[item.previewState as PreviewEntryState],
             active,
             disabled: !!item.disabled,
           })

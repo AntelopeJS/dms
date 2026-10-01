@@ -7,6 +7,8 @@ import type { CustomRowAction } from "../../../types/row-action";
 export const TABLE_DISPLAY_ID = "table";
 /** The built-in kanban display id. */
 export const KANBAN_DISPLAY_ID = "kanban";
+/** The built-in cards display id. */
+export const CARDS_DISPLAY_ID = "cards";
 
 /**
  * A row "actor" currently editing an item (realtime presence). Keyed by row id
@@ -126,6 +128,12 @@ export interface TableViewDisplayCapabilities {
   sorting?: boolean;
   /** Filter tabs. Default true (kanban: false). */
   tabs?: boolean;
+  /**
+   * The table's own chrome above the body: caption, actions toolbar, tabs,
+   * filters row and bulk-selection bar. Default true; a display that draws a
+   * complete interface of its own sets it to false.
+   */
+  header?: boolean;
 }
 
 /** Lightweight context passed to {@link TableViewDisplay.isAvailable}. */

@@ -64,6 +64,7 @@ defineExpose({ refresh: () => kanbanBoardRef.value?.refresh() });
     :page-id="context.pageId"
     :edit-action="bridge?.editAction"
     :delete-action="bridge?.deleteAction"
+    :table-view-key="bridge?.tableViewKey"
     @card-click="(item) => onCardClick(item as T)"
     @card-delete="(item) => onCardDelete(item as T)"
   />

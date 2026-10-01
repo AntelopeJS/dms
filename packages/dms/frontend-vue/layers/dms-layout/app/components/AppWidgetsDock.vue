@@ -30,7 +30,7 @@ const { processI18n } = useTranslation();
         type="button"
         :aria-label="processI18n(widget.label)"
         :title="processI18n(widget.label)"
-        class="border-default bg-default text-muted focus-visible:ring-primary group-hover/widget:text-highlighted group-focus-within/widget:text-highlighted flex size-10 items-center justify-center rounded-xl border opacity-50 shadow-lg transition-all duration-200 group-focus-within/widget:scale-105 group-focus-within/widget:opacity-100 group-hover/widget:scale-105 group-hover/widget:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none"
+        class="border-accented bg-default text-muted focus-visible:ring-primary group-hover/widget:text-highlighted group-focus-within/widget:text-highlighted flex size-10 items-center justify-center rounded-[10px] border opacity-50 shadow-lg transition-all duration-200 group-focus-within/widget:scale-105 group-focus-within/widget:opacity-100 group-hover/widget:scale-105 group-hover/widget:opacity-100 focus:outline-none focus-visible:ring-2 motion-reduce:transition-none"
       >
         <UIcon :name="widget.icon" class="size-5" />
       </button>
@@ -39,7 +39,7 @@ const { processI18n } = useTranslation();
         class="pointer-events-none invisible absolute bottom-0 left-full z-10 -translate-x-2 pl-2 opacity-0 transition-all duration-200 ease-out group-focus-within/widget:pointer-events-auto group-focus-within/widget:visible group-focus-within/widget:translate-x-0 group-focus-within/widget:opacity-100 group-hover/widget:pointer-events-auto group-hover/widget:visible group-hover/widget:translate-x-0 group-hover/widget:opacity-100 motion-reduce:transition-none"
       >
         <div
-          class="dms-widget-card border-default bg-default relative w-max max-w-sm rounded-xl border shadow-2xl"
+          class="dms-widget-card border-accented bg-default relative w-max max-w-sm rounded-(--dms-radius-card) border shadow-[var(--shadow-lg),var(--dms-halo-accent)]"
         >
           <component :is="widget.body" />
         </div>

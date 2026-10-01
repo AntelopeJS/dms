@@ -2,42 +2,75 @@
 import { computed } from "vue";
 import { formatDeltaPercent } from "../../../composables/chart/formatValue";
 
+type TrendTone = "up" | "down" | "flat";
+type TrendBadgeVariant = "pill" | "text";
+
 interface Props {
   delta: number | null | undefined;
   invert?: boolean;
   suffix?: string;
+  /** "pill" = tinted mono chip (chart cards), "text" = bare mono delta (KPI, lists). */
+  variant?: TrendBadgeVariant;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  variant: "pill",
+});
 
-const POSITIVE_CLASSES = "bg-success/10 text-success";
-const NEGATIVE_CLASSES = "bg-error/10 text-error";
-const NEUTRAL_CLASSES = "bg-elevated text-muted";
-const ICON_UP = "i-lucide-trending-up";
-const ICON_DOWN = "i-lucide-trending-down";
-const ICON_FLAT = "i-lucide-minus";
+const TONE_CLASSES: Record<TrendBadgeVariant, Record<TrendTone, string>> = {
+  pill: {
+    up: "bg-(--dms-success-tint) text-success",
+    down: "bg-(--dms-error-tint) text-error",
+    flat: "bg-(--dms-neutral-tint) text-muted",
+  },
+  text: {
+    up: "text-success",
+    down: "text-error",
+    flat: "text-muted",
+  },
+};
+
+const VARIANT_CLASSES: Record<TrendBadgeVariant, string> = {
+  pill: "h-5 gap-1 rounded-[5px] px-1.5 text-[11.5px]",
+  text: "gap-[3px] text-xs",
+};
+
+const DIRECTION_ICON: Record<TrendTone, string> = {
+  up: "i-ph-trend-up",
+  down: "i-ph-trend-down",
+  flat: "i-ph-minus",
+};
+
+const DIRECTION_GLYPH: Record<TrendTone, string> = {
+  up: "▲",
+  down: "▼",
+  flat: "●",
+};
+
+const INVERTED_TONE: Record<TrendTone, TrendTone> = {
+  up: "down",
+  down: "up",
+  flat: "flat",
+};
+
 const EMPTY_DISPLAY = "—";
 
 const { locale } = useI18n();
 
-const isPositive = computed(() => {
-  if (props.delta === null || props.delta === undefined) return null;
-  if (props.delta === 0) return null;
-  const positive = props.delta > 0;
-  return props.invert ? !positive : positive;
-});
+function directionOf(delta: number | null | undefined): TrendTone {
+  if (delta === null || delta === undefined || delta === 0) return "flat";
+  return delta > 0 ? "up" : "down";
+}
 
-const colorClass = computed(() => {
-  if (isPositive.value === null) return NEUTRAL_CLASSES;
-  return isPositive.value ? POSITIVE_CLASSES : NEGATIVE_CLASSES;
-});
+// The arrow follows the raw direction; the colour follows the meaning.
+const direction = computed(() => directionOf(props.delta));
+const tone = computed(() =>
+  props.invert ? INVERTED_TONE[direction.value] : direction.value,
+);
 
-const icon = computed(() => {
-  if (props.delta === null || props.delta === undefined || props.delta === 0) {
-    return ICON_FLAT;
-  }
-  return props.delta > 0 ? ICON_UP : ICON_DOWN;
-});
+const hasDelta = computed(
+  () => props.delta !== null && props.delta !== undefined,
+);
 
 const display = computed(() => {
   if (props.delta === null || props.delta === undefined) return EMPTY_DISPLAY;
@@ -48,10 +81,18 @@ const display = computed(() => {
 
 <template>
   <span
-    class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap tabular-nums transition-colors"
-    :class="colorClass"
+    class="inline-flex items-center font-mono font-semibold whitespace-nowrap tabular-nums transition-colors"
+    :class="[VARIANT_CLASSES[variant], TONE_CLASSES[variant][tone]]"
   >
-    <UIcon :name="icon" class="size-3" :aria-hidden="true" />
+    <UIcon
+      v-if="variant === 'pill'"
+      :name="DIRECTION_ICON[direction]"
+      class="size-3"
+      :aria-hidden="true"
+    />
+    <span v-else-if="hasDelta" aria-hidden="true">
+      {{ DIRECTION_GLYPH[direction] }}
+    </span>
     {{ display }}
   </span>
 </template>

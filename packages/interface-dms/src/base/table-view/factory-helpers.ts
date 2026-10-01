@@ -4,22 +4,38 @@
 //
 // Split out of factory.ts.
 
-import type { ControllerClass } from "@antelopejs/interface-api";
+import {
+  type ControllerClass,
+  ControllerMeta,
+} from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
 import {
+  type ButtonPermission,
   ComponentBuilder,
   type ComponentFilterContext,
+  type ComponentInfoSerialized,
   resolveButtonPermissionId,
 } from "../../component";
+import { GetPermissionId, PageMetadata } from "../../page";
 import { HasPermission } from "../../permissions";
 import { getDataTypeId } from "../data-types";
-import { type FormBuilder, FormEvents } from "../form-types";
+import {
+  type FormBuilder,
+  FormEvents,
+  type FormPropsSerialized,
+} from "../form-types";
 import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
-import type { RowActionConfig, RowActionRule } from "../types/row-action";
+import type {
+  CustomRowAction,
+  CustomRowActionSerialized,
+  RowActionConfig,
+  RowActionRule,
+} from "../types/row-action";
 import { TableViewMeta } from "./meta";
 import {
   type FormContainerPages,
@@ -30,7 +46,13 @@ import {
   type RouteParamFilters,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
+  type TableViewExpandableOptions,
+  type TableViewExpandableSerialized,
   type TableViewFormPageUrls,
+  type TableViewQuickFilter,
+  type TableViewTab,
+  type TableViewTabSerialized,
+  TABLE_VIEW_QUERY_KEY,
 } from "./options";
 
 export type FormPageKind = keyof TableViewFormPageUrls;
@@ -85,7 +107,7 @@ export function applyPermissionToAction(
 // page that never registered) fails closed.
 async function isCustomButtonGranted(
   permissions: Set<string>,
-  declared: CustomButton | undefined,
+  declared: { permission?: ButtonPermission } | undefined,
   componentPermissionId: string,
 ): Promise<boolean> {
   if (declared?.permission === undefined) return true;
@@ -155,6 +177,140 @@ export async function resolveCustomButtons(
   return kept;
 }
 
+/**
+ * The custom row actions served to one request: those whose `permission` the
+ * caller lacks are stripped, like custom buttons.
+ */
+export async function resolveCustomRowActions(
+  permissions: Set<string>,
+  declaredActions: Array<Pick<CustomRowAction, "permission">> | undefined,
+  serializedActions: CustomRowActionSerialized[] | undefined,
+  componentPermissionId: string,
+): Promise<CustomRowActionSerialized[] | undefined> {
+  if (!declaredActions || !serializedActions) return serializedActions;
+  const kept: CustomRowActionSerialized[] = [];
+  for (const [index, serialized] of serializedActions.entries()) {
+    if (
+      await isCustomButtonGranted(
+        permissions,
+        declaredActions[index],
+        componentPermissionId,
+      )
+    ) {
+      kept.push(serialized);
+    }
+  }
+  return kept;
+}
+
+function dataApiLocation(countFrom: ControllerClass | string): string {
+  return typeof countFrom === "string"
+    ? countFrom
+    : GetMetadata(countFrom, ControllerMeta).location;
+}
+
+/**
+ * Tabs as the options carry them: a link tab's path target and its count
+ * location are plain strings already; a page controller target is resolved
+ * per request by {@link resolveTableViewTabs}, once pages are registered.
+ */
+export function serializeTableViewTabs(
+  tabs: TableViewTab[] | undefined,
+): TableViewTabSerialized[] | undefined {
+  return tabs?.map(
+    ({ to, countFrom, permission: _permission, filters, ...tab }) => {
+      const serialized: TableViewTabSerialized = {
+        ...tab,
+        filters: to ? [] : (filters ?? []),
+      };
+      if (typeof to === "string") serialized.to = to;
+      if (countFrom) serialized.countFrom = dataApiLocation(countFrom);
+      return serialized;
+    },
+  );
+}
+
+const withLeadingSlash = (path: string): string =>
+  path.startsWith("/") ? path : `/${path}`;
+
+/**
+ * The tabs served to one request: a link tab is kept only for a caller its
+ * target admits — the page's own permission, or the declared `permission` —
+ * and a page target is resolved to its path and full id. A page that never
+ * registered drops its tab.
+ */
+export async function resolveTableViewTabs(
+  permissions: Set<string>,
+  declaredTabs: TableViewTab[] | undefined,
+  serializedTabs: TableViewTabSerialized[] | undefined,
+): Promise<TableViewTabSerialized[] | undefined> {
+  if (!declaredTabs || !serializedTabs) return serializedTabs;
+  const kept: TableViewTabSerialized[] = [];
+  for (const [index, tab] of serializedTabs.entries()) {
+    const declared = declaredTabs[index];
+    const target = declared?.to;
+    if (target && typeof target !== "string") {
+      const page = GetMetadata(target, PageMetadata).pageInfo;
+      if (!page) continue;
+      const permissionId = GetPermissionId(target);
+      if (permissionId && !(await HasPermission(permissions, permissionId))) {
+        continue;
+      }
+      kept.push({
+        ...tab,
+        to: withLeadingSlash(page.fullSlug),
+        toPage: page.fullId,
+      });
+      continue;
+    }
+    if (
+      declared?.permission &&
+      !(await HasPermission(permissions, declared.permission))
+    ) {
+      continue;
+    }
+    kept.push(tab);
+  }
+  return kept;
+}
+
+/** Throws when a table view option names a column the controller lacks. */
+export function assertKnownColumns(
+  controllerName: string,
+  meta: TableViewMeta,
+  option: string,
+  keys: string[],
+): void {
+  for (const key of keys) {
+    if (!meta.columns[key]) {
+      throw new Error(
+        `TableView ${option} on ${controllerName} references unknown column "${key}"`,
+      );
+    }
+  }
+}
+
+/** Quick filters must name filterable columns: they filter with `filter_<field>`. */
+export function validateQuickFilters(
+  controllerName: string,
+  meta: TableViewMeta,
+  quickFilters: TableViewQuickFilter[] | undefined,
+): void {
+  for (const { field } of quickFilters ?? []) {
+    const column = meta.columns[field];
+    if (!column) {
+      throw new Error(
+        `TableView quickFilters on ${controllerName} references unknown column "${field}"`,
+      );
+    }
+    if (!column.filterable) {
+      throw new Error(
+        `TableView quickFilters on ${controllerName}: column "${field}" must be filterable`,
+      );
+    }
+  }
+}
+
 // Row action rules are registered once per controller but enforced server-side
 // for every table view on that controller; expose them to pages that did not
 // declare their own rule so their UI matches what the server will accept.
@@ -172,6 +328,37 @@ export function mergeControllerRule(
     return { ...actionConfig, rule };
   }
   return actionConfig;
+}
+
+const TABLE_VIEW_PARAM = new RegExp(`([?&])${TABLE_VIEW_QUERY_KEY}=[^&#]*`);
+
+/**
+ * `url` naming the table view a write comes from (`?tableView=`). Replaces a
+ * key already there. Plain string work: the URL may hold `{{…}}` tokens the
+ * frontend fills in.
+ */
+export function appendTableViewKey(url: string, tableViewKey: string): string {
+  const param = `${TABLE_VIEW_QUERY_KEY}=${encodeURIComponent(tableViewKey)}`;
+  if (TABLE_VIEW_PARAM.test(url)) {
+    return url.replace(TABLE_VIEW_PARAM, `$1${param}`);
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}${param}`;
+}
+
+/** A serialized form whose submit URL names the table view it belongs to. */
+export function withTableViewKeyOnSubmit(
+  form: ComponentInfoSerialized<FormPropsSerialized> | undefined,
+  tableViewKey: string,
+): ComponentInfoSerialized<FormPropsSerialized> | undefined {
+  const options = form?.options;
+  if (!form || !options?.submitUrl) return form;
+  return {
+    ...form,
+    options: {
+      ...options,
+      submitUrl: appendTableViewKey(options.submitUrl, tableViewKey),
+    },
+  };
 }
 
 interface KanbanGroupColumnType {
@@ -209,6 +396,36 @@ export function validateKanbanField(
       `TableView kanban groupByField "${groupByField}" on ${controllerName} must be a non-multiple SelectType, a BooleanType or a StatusType column (got "${typeId}")`,
     );
   }
+}
+
+/**
+ * The detail band of expandable rows, with its fields normalized to objects
+ * and its component serialized. Every field must name a declared column: its
+ * value renders through that column's data type.
+ */
+export function serializeExpandable(
+  controllerName: string,
+  meta: TableViewMeta,
+  expandable: TableViewExpandableOptions | undefined,
+): TableViewExpandableSerialized | undefined {
+  if (!expandable) return undefined;
+  const fields = expandable.fields?.map((field) =>
+    typeof field === "string" ? { key: field } : field,
+  );
+  for (const { key } of fields ?? []) {
+    if (!meta.columns[key]) {
+      throw new Error(
+        `TableView expandable fields on ${controllerName} references unknown column "${key}"`,
+      );
+    }
+  }
+  return {
+    fields,
+    fieldsLabel: expandable.fieldsLabel,
+    component: expandable.component?.serializeSync(),
+    defaultExpanded: expandable.defaultExpanded,
+    single: expandable.single,
+  };
 }
 
 /**

@@ -17,7 +17,7 @@ export class PageTableViewGateBypass extends PageController(
     displayName: "Gate Bypass",
     icon: "i-ph-lock-open",
     category: tableViewCategory,
-    order: 130,
+    order: 150,
     description: "TableView kept readable while a tenant access gate denies",
     bypassTenantAccessGate: true,
   },

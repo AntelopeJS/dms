@@ -1,135 +1,208 @@
 <script setup lang="ts">
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
+import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+
+type KeyboardPlatform = "mac" | "other";
+
+interface ShortcutGroupView {
+  key: string;
+  title: string;
+  description: string;
+  shortcuts: ShortcutMetadata[];
+}
 
 const SKELETON_SECTION_COUNT = 3;
-const META_KEYBOARD_TOKEN = "$keyboard.meta";
-const META_KEY_LABELS = {
-  mac: "⌘",
-  other: "Ctrl",
+const I18N_PREFIX = "$";
+const GROUP_I18N = "page.settings.shortcuts.groups";
+
+/** How each platform prints the modifier and special keys. */
+const PLATFORM_KEY_LABELS: Record<KeyboardPlatform, Record<string, string>> = {
+  mac: {
+    "$keyboard.meta": "⌘",
+    "$keyboard.shift": "⇧",
+    "$keyboard.enter": "↵",
+    "$keyboard.delete": "⌫",
+  },
+  other: {
+    "$keyboard.meta": "Ctrl",
+  },
 };
 
-// Per-group accent icon (design panel-title pill). Keyed by the lowercased
-// component name; falls back to a keyboard glyph for unknown groups.
-const GROUP_ICONS: Record<string, string> = {
-  global: "i-ph-command",
-  tab: "i-ph-browsers",
-  tableview: "i-ph-table",
-  tree: "i-ph-tree-structure",
-  form: "i-ph-note-pencil",
-};
-
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { getRegistry } = useShortcutRegistry();
 const shortcuts: Ref<ComponentShortcuts[]> = getRegistry();
 
-const sortedShortcuts = computed(() => {
-  return shortcuts.value.map((componentShortcuts: ComponentShortcuts) => ({
-    ...componentShortcuts,
-    shortcuts: [...componentShortcuts.shortcuts].sort((a, b) => {
-      return a.key.join("+").localeCompare(b.key.join("+"));
-    }),
-  }));
-});
-
-function isMacPlatform(): boolean {
-  if (typeof window === "undefined") return false;
-  const navAny = window.navigator as Navigator & {
+function detectPlatform(): KeyboardPlatform {
+  if (typeof window === "undefined") return "other";
+  const navigatorWithData = window.navigator as Navigator & {
     userAgentData?: { platform?: string };
   };
   const platform =
-    navAny.userAgentData?.platform ?? window.navigator.platform ?? "";
-  return /Mac/i.test(platform);
+    navigatorWithData.userAgentData?.platform ??
+    window.navigator.platform ??
+    "";
+  return /Mac/i.test(platform) ? "mac" : "other";
 }
 
-function getMetaKeyLabel(): string {
-  return isMacPlatform() ? META_KEY_LABELS.mac : META_KEY_LABELS.other;
+const detectedPlatform = detectPlatform();
+const platform = ref<KeyboardPlatform>(detectedPlatform);
+const query = ref("");
+
+const platformItems = computed(() => [
+  {
+    value: "mac",
+    label: t("page.settings.shortcuts.os_mac"),
+    icon: "i-ph-apple-logo",
+  },
+  {
+    value: "other",
+    label: t("page.settings.shortcuts.os_other"),
+    icon: "i-ph-windows-logo",
+  },
+]);
+
+usePageHeaderActions(() =>
+  h(DmsSegmented, {
+    items: platformItems.value,
+    modelValue: platform.value,
+    size: "xs",
+    ariaLabel: t("page.settings.shortcuts.layout_label"),
+    "onUpdate:modelValue": (value: string | number | undefined) => {
+      if (value !== undefined) platform.value = value as KeyboardPlatform;
+    },
+  }),
+);
+
+function translate(token: string): string {
+  if (token.startsWith(I18N_PREFIX)) return t(token.slice(I18N_PREFIX.length));
+  return token.toUpperCase();
 }
 
-function attemptTranslation(toTranslate: string): string {
-  if (toTranslate === META_KEYBOARD_TOKEN) {
-    return getMetaKeyLabel();
-  }
-  if (toTranslate.startsWith("$")) {
-    return t(toTranslate.slice(1));
-  }
-  return toTranslate.toUpperCase();
+function keyLabel(token: string): string {
+  return PLATFORM_KEY_LABELS[platform.value][token] ?? translate(token);
 }
 
 function groupKey(component: string): string {
-  return component.replace(/^\$/, "").toLowerCase();
+  return component.replace(/^\$/, "").split(".").pop()!.toLowerCase();
 }
 
-function groupIcon(component: string): string {
-  return GROUP_ICONS[groupKey(component)] ?? "i-ph-keyboard";
+function groupText(component: string, field: "title" | "description"): string {
+  const key = `${GROUP_I18N}.${groupKey(component)}.${field}`;
+  if (te(key)) return t(key);
+  return field === "title" ? translate(component) : "";
 }
 
-// Group title keeps its natural case (e.g. "TableView"), unlike keys/labels.
-function groupTitle(component: string): string {
-  return component.startsWith("$") ? t(component.slice(1)) : component;
+function matchesQuery(shortcut: ShortcutMetadata, needle: string): boolean {
+  const haystack = [
+    translate(shortcut.descriptionKey),
+    shortcut.condition ? translate(shortcut.condition.descriptionKey) : "",
+    ...shortcut.key.map(keyLabel),
+  ];
+  return haystack.some((text) => text.toLocaleLowerCase().includes(needle));
 }
+
+const groups = computed<ShortcutGroupView[]>(() => {
+  const needle = query.value.trim().toLocaleLowerCase();
+  return shortcuts.value
+    .map((group) => ({
+      key: group.component,
+      title: groupText(group.component, "title"),
+      description: groupText(group.component, "description"),
+      shortcuts: group.shortcuts.filter(
+        (shortcut) => !needle || matchesQuery(shortcut, needle),
+      ),
+    }))
+    .filter((group) => group.shortcuts.length > 0);
+});
+
+const shortcutCount = computed(() =>
+  shortcuts.value.reduce((total, group) => total + group.shortcuts.length, 0),
+);
+
+const detectedLabel = computed(() =>
+  detectedPlatform === "mac"
+    ? t("page.settings.shortcuts.os_mac")
+    : t("page.settings.shortcuts.os_other"),
+);
+
+defineShortcuts({
+  "/": () => document.getElementById("shortcuts-search")?.focus(),
+});
 </script>
 
 <template>
   <DmsClientOnly>
-    <div class="space-y-5 pb-16">
-      <DmsCard
-        v-for="(componentShortcuts, componentIndex) in sortedShortcuts"
-        :key="componentIndex"
-        as="section"
-        :padded="false"
-        class="overflow-hidden"
+    <div>
+      <div class="mb-7 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <UInput
+          id="shortcuts-search"
+          v-model="query"
+          :placeholder="t('page.settings.shortcuts.search_placeholder')"
+          icon="i-ph-magnifying-glass"
+          class="w-full max-w-[420px]"
+        >
+          <template #trailing>
+            <UKbd value="/" size="sm" />
+          </template>
+        </UInput>
+        <span class="text-muted inline-flex items-center gap-1.5 text-xs">
+          <UIcon name="i-ph-info" class="size-3.5" />
+          {{
+            t("page.settings.shortcuts.detected", {
+              os: detectedLabel,
+              count: shortcutCount,
+              groups: shortcuts.length,
+            })
+          }}
+        </span>
+      </div>
+
+      <DmsSection
+        v-for="group in groups"
+        :key="group.key"
+        :title="group.title"
+        :description="group.description"
       >
-        <div class="border-default flex items-center gap-3 border-b px-5 py-4">
+        <template #badge>
           <span
-            class="bg-primary/10 ring-primary/20 text-primary flex size-[34px] shrink-0 items-center justify-center rounded-md ring"
+            class="bg-elevated text-dimmed rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold"
           >
-            <UIcon
-              :name="groupIcon(componentShortcuts.component)"
-              class="size-[17px]"
-            />
+            {{ group.shortcuts.length }}
           </span>
-          <h2 class="text-highlighted text-[17px] font-semibold tracking-tight">
-            {{ groupTitle(componentShortcuts.component) }}
-          </h2>
-        </div>
+        </template>
 
-        <div class="p-2">
-          <div
-            v-for="(shortcut, shortcutIndex) in componentShortcuts.shortcuts"
-            :key="shortcutIndex"
-            class="hover:bg-default flex items-center justify-between gap-4 rounded-md px-4 py-3.5 transition-colors"
-            :class="{ 'border-muted border-t': shortcutIndex > 0 }"
-          >
-            <span class="text-muted text-sm">
-              {{ attemptTranslation(shortcut.descriptionKey) }}
-            </span>
-
-            <KeyboardShortcut :keys="shortcut.key.map(attemptTranslation)" />
+        <div
+          v-for="(shortcut, index) in group.shortcuts"
+          :key="`${group.key}-${index}`"
+          class="border-muted flex items-center gap-4 border-t px-[18px] py-3 first:border-t-0"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="text-highlighted text-[13px] font-medium">
+              {{ translate(shortcut.descriptionKey) }}
+            </div>
+            <div
+              v-if="shortcut.condition"
+              class="text-muted mt-0.5 text-[12px]"
+            >
+              {{ translate(shortcut.condition.descriptionKey) }}
+            </div>
           </div>
+          <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
         </div>
-      </DmsCard>
+      </DmsSection>
+
+      <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
+        {{ t("page.settings.shortcuts.no_results") }}
+      </p>
     </div>
 
     <template #fallback>
-      <div class="space-y-5 pb-16">
-        <DmsCard
-          v-for="i in SKELETON_SECTION_COUNT"
-          :key="i"
-          as="section"
-          :padded="false"
-          class="overflow-hidden"
-        >
-          <div
-            class="border-default flex items-center gap-3 border-b px-5 py-4"
-          >
-            <USkeleton class="size-[34px] rounded-md" />
-            <USkeleton class="h-5 w-28" />
-          </div>
-          <div class="space-y-2 p-2">
-            <USkeleton class="h-11 w-full rounded-md" />
-            <USkeleton class="h-11 w-full rounded-md" />
-          </div>
-        </DmsCard>
+      <div class="space-y-7">
+        <div v-for="i in SKELETON_SECTION_COUNT" :key="i" class="space-y-2.5">
+          <USkeleton class="h-5 w-32" />
+          <USkeleton class="h-32 w-full rounded-(--dms-radius-card)" />
+        </div>
       </div>
     </template>
   </DmsClientOnly>

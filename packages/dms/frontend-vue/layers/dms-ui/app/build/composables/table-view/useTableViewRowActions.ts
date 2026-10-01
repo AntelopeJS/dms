@@ -5,10 +5,7 @@ import {
 } from "./useTableViewConfig";
 import type { FormProps } from "../../../composables/form/types";
 import type { QueryParamFilters } from "../../../composables/table-view/types";
-import type {
-  LocationQuery,
-  LocationQueryValue,
-} from "#dms/frontend-module";
+import type { LocationQuery, LocationQueryValue } from "#dms/frontend-module";
 import {
   TableRowAction,
   FormContainerType,
@@ -17,7 +14,16 @@ import {
 import DmsForm from "../../../components/form/Form.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
+import type { RowActionConfirmDescriptor } from "#dms-core/app/types/row-action";
+import { useClipboard } from "@vueuse/core";
 import { TableViewEvents } from "../../../composables/table-view/types";
+import {
+  bulkActionConfirm,
+  bulkActionOutcome,
+  bulkActionQuery,
+  type BulkActionConfirm,
+  type ConfirmedBulkAction,
+} from "./utils/bulkActions";
 
 const DEFAULT_ROW_ID_KEY = "_id";
 const DEFAULT_MODAL_SIZE = "xl";
@@ -47,6 +53,11 @@ interface TableRowActionsConfig {
   componentId: string;
   pageId: string;
   queryParamFilters?: QueryParamFilters;
+  /**
+   * The table view's key (`tableViewKey` of its options): sent with every
+   * write so the server applies this table's permission and row rules.
+   */
+  tableViewKey?: string;
 }
 
 interface BulkActionConfig {
@@ -55,6 +66,11 @@ interface BulkActionConfig {
   queryKey: string;
   successKey: string;
   errorKey: string;
+}
+
+/** Options of a delete: from the archive, it is a permanent one. */
+interface DeleteRowsOptions {
+  permanently?: boolean;
 }
 
 export const useTableRowActions = <T extends Data>(
@@ -68,6 +84,7 @@ export const useTableRowActions = <T extends Data>(
   const { open: openDrawer } = useDrawer();
   const route = useDmsRoute();
   const { runJob: runExportJob } = useExportJob();
+  const { copy: copyToClipboard } = useClipboard({ legacy: true });
 
   const getContainerType = () =>
     config.formContainer?.type ?? DEFAULT_FORM_CONTAINER_TYPE;
@@ -498,20 +515,25 @@ export const useTableRowActions = <T extends Data>(
     },
   });
 
+  /** Runs a bulk action; resolves whether the request went through. */
   const performBulkAction = async (
     ids: string[],
     actionConfig: boolean | RowActionConfig | undefined,
     bulkConfig: BulkActionConfig,
-  ) => {
+  ): Promise<boolean> => {
     const normalized = normalizeActionConfig(actionConfig);
-    if (!normalized.isEnabled) return;
+    if (!normalized.isEnabled) return false;
 
     try {
-      await bulkAction.execute(
+      const response = await bulkAction.execute(
         () =>
           config.api(`${config.location}/${bulkConfig.endpoint}`, {
             method: bulkConfig.method,
-            query: { [bulkConfig.queryKey]: ids },
+            query: bulkActionQuery(
+              bulkConfig.queryKey,
+              ids,
+              config.tableViewKey,
+            ),
           }),
         {
           startPayload: { ids },
@@ -520,30 +542,99 @@ export const useTableRowActions = <T extends Data>(
         },
       );
 
+      // Rows a row rule refuses are left out by the server: the toast counts
+      // what changed and says how many were skipped.
+      const { processed, skipped } = bulkActionOutcome(response, ids.length);
       toast.add({
-        color: Color.success,
-        title: t(bulkConfig.successKey, { count: ids.length }),
+        color: processed === 0 ? Color.warning : Color.success,
+        title: normalized.successMessage
+          ? processI18n(normalized.successMessage, { count: processed })
+          : t(bulkConfig.successKey, { count: processed }, processed),
+        description: skipped
+          ? t("dms.table.bulk_skipped", { count: skipped }, skipped)
+          : undefined,
       });
 
       config.refreshCallback?.();
+      return true;
     } catch (error) {
       handleApiError(error, t(bulkConfig.errorKey));
+      return false;
     }
   };
 
+  /**
+   * The confirmation the server words for one row (`confirmFrom`): what the
+   * action takes with it, or why it cannot run (a `blocked` descriptor only
+   * explains, and resolves false).
+   */
+  const confirmFromServer = async (
+    template: string,
+    id: string,
+    fallback: BulkActionConfirm,
+  ): Promise<boolean> => {
+    const url = interpolateUrl(template, {
+      id,
+      [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: id,
+    });
+    let descriptor: RowActionConfirmDescriptor;
+    try {
+      descriptor = await config.api<RowActionConfirmDescriptor>(url);
+    } catch (error) {
+      handleApiError(error, t("dms.form.error_unknown"));
+      return false;
+    }
+    const text = (value: string | undefined) =>
+      value ? processI18n(value, descriptor.params) : undefined;
+    const isConfirmed = await confirm({
+      title: text(descriptor.title) ?? "",
+      description: text(descriptor.description) ?? "",
+      icon: descriptor.icon ?? fallback.icon,
+      confirmColor: descriptor.confirmColor ?? fallback.confirmColor,
+      confirmLabel: text(descriptor.confirmLabel),
+      confirmIcon: descriptor.confirmIcon,
+      cancelLabel: text(descriptor.cancelLabel),
+      hideConfirm: descriptor.blocked,
+      impact: descriptor.impact?.map((entry) => ({
+        icon: entry.icon,
+        label: text(entry.label) ?? "",
+        count:
+          typeof entry.count === "string" ? text(entry.count) : entry.count,
+      })),
+    });
+    return isConfirmed && !descriptor.blocked;
+  };
+
+  /**
+   * Asks before a bulk action: the server's own wording for a single row when
+   * the action declares `confirmFrom`, else the generic confirmation, toned
+   * for the action and counting the rows it reaches.
+   */
+  const confirmBulkAction = async (
+    ids: string[],
+    actionConfig: boolean | RowActionConfig | undefined,
+    action: ConfirmedBulkAction,
+  ): Promise<boolean> => {
+    const fallback = bulkActionConfirm(action, ids.length, t);
+    const { confirmFrom } = normalizeActionConfig(actionConfig);
+    if (confirmFrom && ids.length === 1) {
+      return confirmFromServer(confirmFrom, ids[0]!, fallback);
+    }
+    return confirm(fallback);
+  };
+
+  /**
+   * Deletes rows once confirmed; resolves whether they went (false when the
+   * user cancelled or the request failed), so a caller keeps its selection.
+   */
   const deleteRows = async (
     ids: string[],
     deleteConfig: boolean | RowActionConfig | undefined,
-  ) => {
-    const isConfirmed = await confirm({
-      title: t("dms.table.delete_confirm_title"),
-      description: t("dms.table.delete_confirm_description", {
-        count: ids.length,
-      }),
-      confirmLabel: t("dms.table.delete_confirm_button"),
-      confirmColor: "error",
-    });
-    if (!isConfirmed) return;
+    options: DeleteRowsOptions = {},
+  ): Promise<boolean> => {
+    if (!normalizeActionConfig(deleteConfig).isEnabled) return false;
+    const action = options.permanently ? "deletePermanently" : "delete";
+    if (!(await confirmBulkAction(ids, deleteConfig, action))) return false;
 
     return performBulkAction(ids, deleteConfig, {
       endpoint: "delete",
@@ -557,49 +648,83 @@ export const useTableRowActions = <T extends Data>(
   const archiveRows = async (
     ids: string[],
     archiveConfig: boolean | RowActionConfig | undefined,
-  ) =>
-    performBulkAction(ids, archiveConfig, {
+  ): Promise<boolean> => {
+    if (!normalizeActionConfig(archiveConfig).isEnabled) return false;
+    if (!(await confirmBulkAction(ids, archiveConfig, "archive"))) return false;
+    return performBulkAction(ids, archiveConfig, {
       endpoint: "archive",
       method: HttpMethod.put,
       queryKey: "ids",
       successKey: "dms.table.archive_rows",
       errorKey: "dms.table.archive_error",
     });
+  };
 
+  // Restoring takes nothing away: it asks only when the server words a
+  // confirmation for the row (`confirmFrom`).
   const restoreRows = async (
     ids: string[],
     restoreConfig: boolean | RowActionConfig | undefined,
-  ) =>
-    performBulkAction(ids, restoreConfig, {
+  ): Promise<boolean> => {
+    const { confirmFrom } = normalizeActionConfig(restoreConfig);
+    if (confirmFrom && ids.length === 1) {
+      const fallback: BulkActionConfirm = {
+        title: "",
+        description: "",
+        confirmLabel: t("dms.button.restore"),
+        confirmColor: "primary",
+        icon: "i-ph-arrow-counter-clockwise",
+      };
+      if (!(await confirmFromServer(confirmFrom, ids[0]!, fallback))) {
+        return false;
+      }
+    }
+    return performBulkAction(ids, restoreConfig, {
       endpoint: "restore",
       method: HttpMethod.put,
       queryKey: "ids",
       successKey: "dms.table.restore_rows",
       errorKey: "dms.table.restore_error",
     });
+  };
 
+  // On a row action, the texts take the row's fields as parameters
+  // ("Make {name} an owner?").
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
+    rowData?: Data,
   ) => {
     if (target.confirm) {
+      const text = (value: string | undefined) =>
+        value ? processI18n(value, rowData) : undefined;
       const isConfirmed = await confirm({
-        title: processI18n(target.confirm.title),
-        description: processI18n(target.confirm.description),
+        title: text(target.confirm.title) ?? "",
+        description: text(target.confirm.description) ?? "",
         confirmColor: target.confirm.confirmColor,
+        icon: target.confirm.icon,
+        confirmLabel: text(target.confirm.confirmLabel),
       });
       if (!isConfirmed) return;
     }
 
     try {
-      await config.api(url, {
-        method: target.method || HttpMethod.post,
-      });
+      const response = await config.api<Record<string, unknown> | undefined>(
+        url,
+        {
+          method: target.method || HttpMethod.post,
+          ...(target.body ? { body: target.body } : {}),
+        },
+      );
+      if (target.copy) {
+        await copyToClipboard(String(response?.[target.copy] ?? ""));
+      }
       toast.add({
         color: Color.success,
-        title: processI18n(target.successMessage),
+        title: processI18n(target.successMessage, rowData),
       });
-      config.refreshCallback?.();
+      // A read-only call (a link to copy) changes no row.
+      if (target.method !== "GET") config.refreshCallback?.();
     } catch (error: unknown) {
       handleApiError(error, t("dms.form.error_unknown"));
     }
@@ -745,7 +870,7 @@ export const useTableRowActions = <T extends Data>(
       const url = rowData
         ? interpolateUrl(apiTarget.url, rowData)
         : apiTarget.url;
-      await handleApiTarget(apiTarget, url);
+      await handleApiTarget(apiTarget, url, rowData);
     },
     exportJob: async (target, _label, rowData) => {
       const jobTarget = target as ActionTarget & { type: "exportJob" };

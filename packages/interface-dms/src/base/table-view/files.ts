@@ -19,7 +19,9 @@ export const withFilePromotion = (
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
     }
-    const component = getTableViewMetaFor(this).componentBuilder;
+    // An upload token is claimed by the form of one of the table views the
+    // controller's routes serve: every one of them may hand it in.
+    const components = getTableViewMetaFor(this).componentBuilders;
     return internal.SaveTableViewAttachments({
       controller: this,
       route: baseRoute,
@@ -27,7 +29,9 @@ export const withFilePromotion = (
       params,
       args,
       mode,
-      componentIds: component ? GetComponentPermissionIds(component) : [],
+      componentIds: [
+        ...new Set(components.flatMap((c) => GetComponentPermissionIds(c))),
+      ],
     });
   },
   args: baseRoute.args,

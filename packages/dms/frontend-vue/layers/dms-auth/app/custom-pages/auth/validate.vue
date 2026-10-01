@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useWindowSize } from "@vueuse/core";
+import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
+import AuthCodeInput from "../../components/AuthCodeInput.vue";
+import AuthFormAlert from "../../components/AuthFormAlert.vue";
+import AuthResendCode from "../../components/AuthResendCode.vue";
+import { useAuthFormError } from "../../composables/useAuthFormError";
 
 const route = useDmsRoute();
 const { t } = useI18n();
 const toast = useToast();
-const { width } = useWindowSize();
+const dmsApp = useDmsApp();
 const homepage = useHomepage();
 const { $authFetch } = useAuthFetch();
+const { formError, showFormError, clearFormError } = useAuthFormError();
 
 if (!route.query.id) {
   throw createError({
@@ -18,13 +23,8 @@ if (!route.query.id) {
   });
 }
 
-const MOBILE_BREAKPOINT = 375;
 const PIN_LENGTH = 6;
 const COOLDOWN_DURATION = 60;
-
-const computedSize = computed(() => {
-  return width.value < MOBILE_BREAKPOINT ? "lg" : "xl";
-});
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");
@@ -35,6 +35,10 @@ const schema = z.object({
 type Schema = z.output<typeof schema>;
 const state = reactive<Partial<Schema>>({});
 
+const isCodeComplete = computed(
+  () => (state.pin ?? []).join("").length === PIN_LENGTH,
+);
+
 const { cooldown, startCooldown } = useCooldown(COOLDOWN_DURATION);
 
 onMounted(() => {
@@ -44,6 +48,7 @@ onMounted(() => {
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     isLoading.value = true;
+    clearFormError();
     await $authFetch("/api/auth/verify-email", {
       method: "POST",
       body: {
@@ -52,18 +57,16 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       },
     });
 
-    navigateDms(homepage);
+    await dmsApp.runWithContext(() => navigateDms(homepage));
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.validate.error_title",
-    });
+    showFormError(error, "page.validate.error_title");
   } finally {
     isLoading.value = false;
   }
 }
 
-function onUpdatePin(value: string[]) {
-  if (value.length !== PIN_LENGTH) return;
+function onUpdatePin(value: string[] | undefined) {
+  if ((value ?? []).join("").length !== PIN_LENGTH) return;
 
   form.value?.submit();
 }
@@ -81,9 +84,7 @@ async function requestEmailValidation() {
       color: "success",
     });
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.validate.error_title",
-    });
+    showFormError(error, "page.validate.error_title");
   } finally {
     isLoading.value = false;
   }
@@ -91,61 +92,43 @@ async function requestEmailValidation() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.validate.title") }}
-      </h1>
+  <StageCard
+    icon="i-ph-envelope-simple-open"
+    :title="$t('page.validate.title')"
+    :description="$t('page.validate.description')"
+  >
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+    >
+      <AuthFormAlert :error="formError" />
 
-      <p class="text-muted pb-7 text-sm font-normal">
-        {{ $t("page.validate.description") }}
-      </p>
+      <AuthCodeInput
+        v-model="state.pin"
+        :length="PIN_LENGTH"
+        :disabled="isLoading"
+        is-otp
+        @update:model-value="onUpdatePin"
+      />
 
-      <UForm
-        ref="form"
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
-      >
-        <div class="flex items-center justify-center">
-          <UPinInput
-            v-model="state.pin"
-            :length="PIN_LENGTH"
-            :size="computedSize"
-            type="text"
-            otp
-            @update:model-value="onUpdatePin"
-          />
-        </div>
+      <UButton
+        :loading="isLoading"
+        :disabled="!isCodeComplete"
+        :label="$t('page.validate.submit')"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
 
-        <div class="flex justify-center">
-          <UButton
-            v-if="cooldown === 0"
-            :label="$t('page.validate.request_validation')"
-            :loading="isLoading"
-            color="primary"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="requestEmailValidation()"
-          />
-
-          <UButton
-            v-else
-            :label="
-              $t('page.validate.request_validation_in', {
-                time: cooldown,
-              })
-            "
-            :loading="isLoading"
-            color="neutral"
-            variant="link"
-            size="sm"
-            disabled
-          />
-        </div>
-      </UForm>
-    </DmsCard>
-  </div>
+    <AuthResendCode
+      :cooldown="cooldown"
+      :disabled="isLoading"
+      @resend="requestEmailValidation"
+    />
+  </StageCard>
 </template>

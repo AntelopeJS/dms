@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import SettingsAccountSummary from "../../build/components/pages/settings/shell/SettingsAccountSummary.vue";
+import SettingsActivityCard from "../../build/components/pages/settings/shell/SettingsActivityCard.vue";
+import {
+  SettingsNavGroupId,
+  useSettingsNavigation,
+} from "../../composables/settings/useSettingsNavigation";
+import { useSettingsNavTrails } from "../../composables/settings/useSettingsNavTrails";
+
 const siteLayout = useSiteLayout();
 if (!siteLayout.siteLayout.value) {
   await siteLayout.loadSiteLayout();
@@ -12,153 +21,78 @@ if (siteLayout.loadingError && siteLayout.loadingError.value) {
   });
 }
 
-interface SettingsOption {
-  name: string;
-  description: string;
-  icon: string;
-  to: string;
-}
+const GROUP_DESCRIPTIONS: Record<string, string> = {
+  [SettingsNavGroupId.ACCOUNT]: "$page.settings.overview.account_description",
+  [SettingsNavGroupId.WORKSPACE]:
+    "$page.settings.overview.workspace_description",
+};
+const OTHER_GROUP_DESCRIPTION = "$page.settings.overview.other_description";
 
-interface Group {
-  groupName: string;
-  groupIcon?: string;
-  options: SettingsOption[];
-}
-
-interface PageWithParent {
-  page: typeof siteLayout.siteLayoutTree.value;
-  parent: typeof siteLayout.siteLayoutTree.value;
-}
-
-interface FindSettingsPagesResult {
-  results: PageWithParent[];
-  hasSettingsChildren: boolean;
-}
-
-function findSettingsPages(
-  node: typeof siteLayout.siteLayoutTree.value,
-  parent: typeof siteLayout.siteLayoutTree.value | null = null,
-): FindSettingsPagesResult {
-  if (!node) return { results: [], hasSettingsChildren: false };
-
-  const results: PageWithParent[] = [];
-  let hasSettingsChildrenInSubtree = false;
-
-  if (node.children) {
-    for (const child of Object.values(node.children)) {
-      if (child) {
-        const childResult = findSettingsPages(child, node);
-        results.push(...childResult.results);
-        if (childResult.hasSettingsChildren) {
-          hasSettingsChildrenInSubtree = true;
-        }
-      }
-    }
-  }
-
-  const isSettingsPage = !!(
-    node.layoutUrl &&
-    node.fullId.startsWith("settings.") &&
-    node.fullId !== "settings.settings"
-  );
-
-  if (isSettingsPage) {
-    if (parent && node.hasAccess !== false && !hasSettingsChildrenInSubtree) {
-      results.push({ page: node, parent });
-    }
-    hasSettingsChildrenInSubtree = true;
-  }
-
-  return { results, hasSettingsChildren: hasSettingsChildrenInSubtree };
-}
-
-function buildGroupFromPages(
-  parent: NonNullable<typeof siteLayout.siteLayoutTree.value>,
-  pages: NonNullable<typeof siteLayout.siteLayoutTree.value>[],
-): (Group & { order: number }) | null {
-  if (parent.hasAccess === false) return null;
-
-  const sortedPages = pages
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map((page) => ({
-      name: page.displayName,
-      description: page.description || "",
-      icon: page.icon || "i-ph-gear",
-      to: page.fullSlug,
-    }));
-
-  return {
-    groupName: parent.displayName,
-    groupIcon: parent.icon,
-    options: sortedPages,
-    order: parent.order ?? 0,
-  };
-}
-
-const groups = computed<Group[]>(() => {
-  if (!siteLayout.siteLayoutTree.value) return [];
-
-  const tree = siteLayout.siteLayoutTree.value;
-  if (!tree) return [];
-
-  const { results: pagesWithParents } = findSettingsPages(tree);
-
-  const groupsMap = new Map<
-    string,
-    { parent: typeof tree; pages: (typeof tree)[] }
-  >();
-
-  for (const { page, parent } of pagesWithParents) {
-    if (!page || !parent) continue;
-    const parentId = parent.fullId;
-    if (!groupsMap.has(parentId)) {
-      groupsMap.set(parentId, { parent, pages: [] });
-    }
-    groupsMap.get(parentId)!.pages.push(page);
-  }
-
-  return Array.from(groupsMap.values())
-    .map(({ parent, pages }) => buildGroupFromPages(parent, pages))
-    .filter((item): item is Group & { order: number } => item !== null)
-    .sort((a, b) => a.order - b.order)
-    .map(({ groupName, groupIcon, options }) => ({
-      groupName,
-      groupIcon,
-      options,
-    }));
-});
-
+const { groups } = useSettingsNavigation();
+const { trails } = useSettingsNavTrails();
 const { processI18n } = useTranslation();
+const { t } = useI18n();
+
+// "Preview as role": the card of a page the role could not open is veiled,
+// like the sidebar entry and the settings nav item; the card of a page it
+// opens without all of it carries the orange partial veil. Never outside a
+// preview.
+const preview = usePermissionPreview();
+const previewRole = computed(() => ({
+  role: preview.session.value?.roleName ?? "",
+}));
+const previewVeilLabel = (fullId: string): string => {
+  const state = preview.entryState(fullId);
+  if (state === "hidden") {
+    return t("page.settings.roles.preview.veil_hidden", previewRole.value);
+  }
+  return state === "partial"
+    ? t("page.settings.roles.preview.veil_partial")
+    : "";
+};
+const previewVeilDetail = (fullId: string): string | undefined =>
+  preview.entryState(fullId) === "partial"
+    ? t("page.settings.roles.preview.menu_partial", previewRole.value)
+    : undefined;
 </script>
 
 <template>
-  <div class="space-y-8 pb-20">
-    <section
-      v-for="(group, index) in groups"
-      :key="`group-${index}`"
-      class="pb-14"
-    >
-      <h2
-        class="text-muted flex items-center gap-2.5 pb-6 text-sm font-medium tracking-wider uppercase"
-      >
-        <Icon
-          v-if="group.groupIcon"
-          :name="group.groupIcon"
-          class="text-primary size-4.5"
-        />
-        {{ processI18n(group.groupName) }}
-      </h2>
+  <div>
+    <div class="mb-8 grid gap-4 lg:grid-cols-2">
+      <SettingsAccountSummary />
+      <SettingsActivityCard />
+    </div>
 
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <DmsNavCard
-          v-for="(option, optIndex) in group.options"
-          :key="`option-${index}-${optIndex}`"
-          :to="option.to"
-          :icon="option.icon"
-          :title="processI18n(option.name)"
-          :description="processI18n(option.description)"
-        />
+    <DmsSection
+      v-for="group in groups"
+      :key="group.id"
+      :title="group.label"
+      :description="GROUP_DESCRIPTIONS[group.id] ?? OTHER_GROUP_DESCRIPTION"
+      bare
+    >
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <!-- v2 settings navcard (.sx-grid): tighter rhythm, the page's live
+             state in mono, and its module tag after the title. -->
+        <DmsPermissionVeil
+          v-for="page in group.pages"
+          :key="page.fullId"
+          :state="preview.entryState(page.fullId)"
+          :label="previewVeilLabel(page.fullId)"
+          :detail="previewVeilDetail(page.fullId)"
+          :persistent="preview.isActive.value"
+        >
+          <DmsNavCard
+            class="hover:border-primary/35 h-full gap-2.5"
+            :to="page.to"
+            :icon="page.icon"
+            :title="processI18n(page.label)"
+            :description="processI18n(page.description)"
+            :badge="trails[page.fullId]?.tag"
+            :state="trails[page.fullId]?.label ?? trails[page.fullId]?.badge"
+            :state-tone="trails[page.fullId]?.status ?? 'neutral'"
+          />
+        </DmsPermissionVeil>
       </div>
-    </section>
+    </DmsSection>
   </div>
 </template>

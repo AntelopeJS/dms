@@ -72,6 +72,44 @@ export interface ColumnOptions {
   group?: string;
   /** Wrap grid cell content without a line limit. Omit to keep single-line clipping. */
   cellWrap?: boolean;
+  /**
+   * Default width of the grid column, in px (150 when omitted). The grid
+   * spreads any room left between its columns in proportion.
+   */
+  size?: number;
+  /**
+   * How table cells (and expanded-row fields) draw the value: the id of a
+   * data type registered on the frontend and its options. The column keeps
+   * `type` for its forms, filters, validation and exports. The frontend
+   * formatter also receives the row, so a display can compose sibling fields.
+   * @example { type: "identity", options: { subtitleField: "email" } }
+   */
+  display?: ColumnDisplay;
+}
+
+/** A frontend data type a column renders its cells with. */
+export interface ColumnDisplay {
+  /** Id of the data type registered on the frontend (`registerDataType`). */
+  type: string;
+  /** Options handed to its formatter. */
+  options?: Record<string, unknown>;
+  /**
+   * Column header in the grid, in place of `name` (which forms, filters and
+   * exports keep). `$`-prefixed: an i18n key.
+   */
+  label?: string;
+}
+
+/**
+ * What one table view enforces on the rows its write actions reach: its own
+ * row rules (archive-mode defaults included) and how it identifies a row.
+ * Kept per table view: the data routes are shared by every table view over
+ * the controller, the rules of one of them are not.
+ */
+export interface TableViewRowScope {
+  rowActions?: TableViewRowActionOptions<any>;
+  idField: string;
+  strictMode: boolean;
 }
 
 export class TableViewMeta {
@@ -83,10 +121,85 @@ export class TableViewMeta {
   public readonly columns: Record<string, ColumnOptions> = {};
   public readonly groups: Record<string, ColumnGroupConfig> = {};
   public archiveField?: string;
+  /**
+   * Row rules applied controller-wide, on top of each table view's own: set
+   * only by an explicit `setControllerRowActionRules`. `TableView()` keeps a
+   * table's rules to that table (see `setRowScope`).
+   */
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
-  public componentBuilder?: ComponentBuilder<TableViewOptionsSerialized>;
+
+  /**
+   * Every table view built over this controller, in registration order. Their
+   * data routes are the controller's, shared: an action is guarded by the
+   * permission of each table view mounting it (see `permissionIdsFor`).
+   */
+  public readonly componentBuilders: ComponentBuilder<TableViewOptionsSerialized>[] =
+    [];
+
+  /** The table view built last over this controller. */
+  public get componentBuilder():
+    | ComponentBuilder<TableViewOptionsSerialized>
+    | undefined {
+    return this.componentBuilders.at(-1);
+  }
+
+  /** Records a table view built over this controller. */
+  public set componentBuilder(
+    builder: ComponentBuilder<TableViewOptionsSerialized> | undefined,
+  ) {
+    if (builder && !this.componentBuilders.includes(builder)) {
+      this.componentBuilders.push(builder);
+    }
+  }
+
+  /**
+   * The permission ids guarding an action of the controller's data routes:
+   * one per table view whose action was stamped by a mounted page, without
+   * duplicates. Empty when no mounted table view declares the action.
+   */
+  public permissionIdsFor(actionId: string): string[] {
+    const ids = this.componentBuilders
+      .map((builder) => builder.getAction(actionId)?.permissionId)
+      .filter((id): id is string => !!id);
+    return [...new Set(ids)];
+  }
+
+  /**
+   * The mounted table view a request names by its component permission id
+   * (`tableKey`), provided it declares `actionId`. Undefined for an unknown
+   * key, an unstamped table view or one without the action.
+   */
+  public tableViewFor(
+    tableKey: string,
+    actionId: string,
+  ): ComponentBuilder<TableViewOptionsSerialized> | undefined {
+    const permissionId = `${tableKey}.${actionId}`;
+    return this.componentBuilders.find(
+      (builder) => builder.getAction(actionId)?.permissionId === permissionId,
+    );
+  }
+
+  private readonly rowScopes = new Map<
+    ComponentBuilder<TableViewOptionsSerialized>,
+    TableViewRowScope
+  >();
+
+  /** Records the row rules a table view built over this controller enforces. */
+  public setRowScope(
+    builder: ComponentBuilder<TableViewOptionsSerialized>,
+    scope: TableViewRowScope,
+  ): void {
+    this.rowScopes.set(builder, scope);
+  }
+
+  /** The row rules of one table view, as `setRowScope` recorded them. */
+  public rowScopeOf(
+    builder: ComponentBuilder<TableViewOptionsSerialized>,
+  ): TableViewRowScope | undefined {
+    return this.rowScopes.get(builder);
+  }
 
   public setControllerRowActionRules(rules: TableViewRowActionOptions<any>) {
     this.controllerRowActionRules = rules;
@@ -255,6 +368,8 @@ export class TableViewMeta {
             enableSorting: meta.sortable !== undefined,
             enableColumnFilter: !!options.filterable,
             cellWrap: options.cellWrap,
+            size: options.size,
+            display: options.display,
             defaultValue: options.defaultValue,
             accessMode: meta.mode,
             readonlyBehavior:

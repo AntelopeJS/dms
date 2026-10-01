@@ -1,12 +1,17 @@
 import { defineAsyncComponent } from "vue";
 import { isEligibleKanbanColumn } from "../composables/table-view/kanban";
 import {
+  CARDS_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
   TABLE_DISPLAY_ID,
 } from "../composables/table-view/types";
 
 const KanbanDisplay = defineAsyncComponent(
   () => import("../components/table-view/KanbanDisplay.vue"),
+);
+
+const CardsDisplay = defineAsyncComponent(
+  () => import("../components/table-view/CardsDisplay.vue"),
 );
 
 // Registers the presentation of the built-in displays (client-only: displays
@@ -27,5 +32,13 @@ export default defineDmsPlugin(() => {
     order: 20,
     component: KanbanDisplay,
     isAvailable: (ctx) => ctx.columns.some(isEligibleKanbanColumn),
+  });
+
+  registerTableViewDisplay({
+    id: CARDS_DISPLAY_ID,
+    label: "dms.table.view_mode_cards",
+    icon: "i-ph-cards",
+    order: 30,
+    component: CardsDisplay,
   });
 });

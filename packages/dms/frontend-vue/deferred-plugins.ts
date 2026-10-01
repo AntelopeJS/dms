@@ -8,6 +8,7 @@ import commandPalettePersonalPagesPlugin from "./layers/dms-layout/app/plugins/c
 import commandPaletteQuickActionsPlugin from "./layers/dms-layout/app/plugins/command-palette-quick-actions.client";
 import commandPaletteSessionPlugin from "./layers/dms-layout/app/plugins/command-palette-session.client";
 import notificationStreamPlugin from "./layers/dms-layout/app/plugins/notification-stream.client";
+import permissionPreviewPlugin from "./layers/dms-layout/app/plugins/permission-preview.client";
 import profileSyncPlugin from "./layers/dms-layout/app/plugins/profile-sync.client";
 
 const deferredPlugins: DmsPluginSetup[] = [
@@ -17,6 +18,7 @@ const deferredPlugins: DmsPluginSetup[] = [
   commandPaletteQuickActionsPlugin,
   commandPaletteSessionPlugin,
   notificationStreamPlugin,
+  permissionPreviewPlugin,
   profileSyncPlugin,
 ];
 

@@ -33,15 +33,22 @@ import type {
 import type { CustomRowAction } from "../../../types/row-action";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./Tabs.vue";
+import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
+import type { ResolvedTableChrome } from "../../composables/table-view/utils/chrome";
+import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
 
 export interface Data {
   [key: string]: unknown;
 }
 
+export type TableDensity = "default" | "compact";
+
 export type TableColumn<T> = ColumnDef<T> & {
   type?: DataTypeConfig;
   /** Wrap the default cell renderer without clipping; custom cell slots own their layout. */
   cellWrap?: boolean;
+  /** Data type the cells render through instead of the column's own `type`. */
+  display?: ColumnDisplay;
 };
 
 export interface TableRowActionOptions {
@@ -117,6 +124,35 @@ export interface TableProps<T> {
   /** Chrome capabilities of the active display; gates filters/search/sort/columns. */
   activeCapabilities?: Required<TableViewDisplayCapabilities>;
 
+  /**
+   * Archive mode: shows the "Archived" toolbar toggle (bound to the
+   * `showArchived` model). While on, the table lists archived rows under an
+   * amber strip and swaps the row and bulk actions to restore.
+   */
+  archiveToggle?: boolean;
+  /** Row height: `compact` gives 36px rows under a 32px header band. */
+  density?: TableDensity;
+  /**
+   * Controls drawn around the rows (the resolved backend `chrome`). Defaults
+   * to the full chrome.
+   */
+  chrome?: ResolvedTableChrome;
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
+  /**
+   * One-click dropdown filters of the toolbar, their picked values bound to
+   * the `quickFilterValues` model.
+   */
+  quickFilters?: ResolvedQuickFilter[];
+  /** Footer texts: the row count (i18n key receiving `{ count }`) and a hint. */
+  footer?: TableFooterTexts;
+  /**
+   * Keeps the header band visible while the rows scroll. Takes effect with
+   * `maxHeight`, which caps the scroll area (any CSS length).
+   */
+  stickyHeader?: boolean;
+  maxHeight?: string;
+
   data?: T[] | null;
   columns?: TableColumn<T>[];
   loading?: boolean;
@@ -143,6 +179,13 @@ export interface TableProps<T> {
   >;
   rowSelectionOptions?: Omit<RowSelectionOptions<T>, "onRowSelectionChange">;
   paginationOptions?: Omit<PaginationOptions, "onPaginationChange">;
+}
+
+export interface TableFooterTexts {
+  /** i18n key (`$`-prefixed) receiving `{ count }`, pluralized on it. */
+  countLabel?: string;
+  /** Hint at the right of the count. */
+  hint?: string;
 }
 
 export interface TableEmits<T> {
@@ -185,6 +228,9 @@ export interface TableSharedData<T> {
   activeCapabilities: ComputedRef<Required<TableViewDisplayCapabilities>>;
   kanbanGroupByState: ModelRef<string>;
   kanbanGroupByOptions: KanbanGroupByOption[];
+  showArchivedState: ModelRef<boolean>;
+  chrome: ComputedRef<ResolvedTableChrome>;
+  footer?: TableFooterTexts;
 }
 </script>
 
@@ -201,6 +247,8 @@ import {
   type ModelRef,
   ref,
   shallowRef,
+  useId,
+  useSlots,
   watchEffect,
 } from "vue";
 import { provideLocal } from "@vueuse/core";
@@ -214,6 +262,7 @@ import TableFiltersRow from "./FiltersRow.vue";
 import TableRowSelection from "./RowSelection.vue";
 import TableTabs from "./Tabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
+import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
 import {
   DEFAULT_PAGE_INDEX,
   DEFAULT_PAGE_SIZE,
@@ -223,48 +272,97 @@ import {
 // rail/pinned cells blend in instead of showing a contrasting block.
 const PANEL_MATCH_BG = "bg-(--dms-surface-card)";
 
-// Header cells sit on the muted header band; sticky header cells need the
-// same opaque background as the non-sticky ones.
-const HEADER_MATCH_BG = "bg-muted dark:bg-accented";
+// Header cells sit on the v2 band color; sticky header cells need the same
+// opaque background as the non-sticky ones.
+const HEADER_MATCH_BG = "bg-(--dms-bg-muted)";
 
 // Sticky cells paint their own opaque background over the row's, so they have
 // to repeat the hover tint under the exact same condition as the row itself;
 // otherwise only the pinned column lights up.
-const ROW_HOVER_BG = "hover:bg-elevated dark:hover:bg-accented";
-const ROW_HOVER_CELL_BG =
-  "group-hover:bg-elevated dark:group-hover:bg-accented";
+const ROW_HOVER_BG = "hover:bg-elevated";
+const ROW_HOVER_CELL_BG = "group-hover:bg-elevated";
+
+// A selected row is tinted with the accent; sticky cells need an opaque mix of
+// the same tint so scrolled content never shows through them.
+const ROW_SELECTED_BG = "data-[selected=true]:bg-primary/10";
+const ROW_SELECTED_CELL_BG =
+  "group-data-[selected=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
+
+// An expanded row keeps the hover tint and hands its bottom rule to the detail
+// band below it.
+const ROW_EXPANDED_BG = "data-[expanded=true]:bg-elevated";
+const ROW_EXPANDED_CELL_BG = "group-data-[expanded=true]:bg-elevated";
+
+// Sticky header: the band gains a soft shadow once the body scrolls under it.
+const HEADER_SCROLL_SHADOW =
+  "shadow-[0_8px_10px_-8px_color-mix(in_srgb,var(--ui-border-accented)_90%,transparent)]";
+
+// The v2 bands start 18px from the card edge. The first data cell carries that
+// gutter; after the 2px presence rail (an empty first cell) it takes the rest.
+const FIRST_HEAD_CELL_GUTTER = "first:ps-[18px] [th:empty:first-child+&]:ps-4";
+const FIRST_ROW_CELL_GUTTER = "first:ps-[18px] [td:empty:first-child+&]:ps-4";
 
 const theme = tv({
   slots: {
-    root: "dms-card flow-root p-4 sm:p-6",
-    header: "flex justify-between",
-    caption: "text-lg md:text-xl font-semibold truncate",
+    root: "dms-card flow-root overflow-hidden",
+    header:
+      "flex flex-wrap items-center gap-x-3 gap-y-2.5 py-3 ps-[18px] pe-3.5",
+    caption:
+      "me-auto flex min-w-0 items-center gap-2.5 text-[15px] leading-[1.2] font-[650] tracking-[-0.015em] text-highlighted",
+    captionLabel: "truncate",
+    captionCount: "font-mono text-xs font-medium tabular-nums text-dimmed",
 
-    tableRoot:
-      "border-default mt-4 overflow-x-auto rounded-lg border whitespace-nowrap",
+    tableRoot: "relative overflow-x-auto whitespace-nowrap",
     tableBase: "inline-block min-w-full align-middle",
-    table: "text-default w-full min-w-full table-fixed text-left text-sm/6",
+    table: "text-default w-full min-w-full table-fixed text-left text-[13px]/5",
     tableCaption: "sr-only",
 
-    headCell: `${HEADER_MATCH_BG} border-b-default text-muted group relative touch-none select-none overflow-hidden border-b px-4 py-3 text-xs font-semibold`,
-    headCellInternal: "flex w-full items-center justify-between",
+    // 2px indeterminate bar riding the bottom edge of the header band.
+    loadingBar:
+      "pointer-events-none absolute inset-x-0 top-9 z-40 h-0.5 overflow-hidden",
+    loadingBarIndicator:
+      "absolute inset-y-0 start-0 w-1/2 rounded-full bg-(--dms-accent-fill) animate-[carousel_1.3s_ease-in-out_infinite]",
+    skeletonRow: "pointer-events-none",
+    skeletonCell: "block h-2.5 rounded-md",
+
+    // Archive mode: an amber strip under the chrome while archived rows show.
+    archiveStrip:
+      "flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-(--dms-warning-line) bg-(--dms-warning-tint) py-[9px] ps-[18px] pe-3.5 text-[13px] text-highlighted",
+    archiveStripIcon: "size-[17px] shrink-0 text-warning",
+    archiveStripText: "min-w-0",
+    archiveStripTitle: "font-semibold",
+    archiveStripDescription: "text-[12.5px] text-muted",
+    archiveStripAction: "ms-auto",
+
+    // Detail band of an expanded row, on the muted surface and indented to
+    // the content column.
+    expandedCell:
+      "border-b border-default bg-(--dms-bg-muted) p-0 whitespace-normal in-[tr:last-child]:border-b-0",
+    expandedBody: "pt-4 pb-[18px] pe-[18px] ps-[68px]",
+
+    headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase last:pe-2.5`,
+    headCellInternal: "flex w-full items-center justify-between gap-1",
     colOptionsTrigger: "opacity-0 transition-opacity group-hover:opacity-100",
     colResizer:
       "bg-primary/40 absolute right-0 top-0 z-10 h-full w-1 cursor-col-resize touch-none select-none opacity-0 hover:opacity-100",
 
-    row: "group",
-    rowCell:
-      "border-b-muted border-b px-4 py-3.5 text-sm in-[tr:last-child]:border-b-0",
+    row: `group ${ROW_SELECTED_BG} ${ROW_EXPANDED_BG}`,
+    rowCell: `${FIRST_ROW_CELL_GUTTER} border-b-muted border-b h-11 px-3.5 py-0 text-[13px] last:pe-2.5 in-[tr:last-child]:border-b-0 group-data-[expanded=true]:border-b-transparent`,
     rowInternal: "",
     rowContainer: "relative",
     rowSpan: "line-clamp-1",
 
-    rowSelection: "opacity-0 transition-opacity group-hover:opacity-100",
-    rowAction: "flex items-center justify-end gap-1",
+    // The row checkbox and the row actions (the … menu and every other icon
+    // of the last column) stay visible but faded, and come to full strength
+    // when the row is hovered, selected, focused or one of its menus is open.
+    rowSelection:
+      "opacity-40 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+    rowAction:
+      "flex items-center justify-end gap-1 opacity-40 transition-opacity group-hover:opacity-100 group-data-[selected=true]:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100",
 
-    columnActiveSortIcon: "size-4",
+    columnActiveSortIcon: "size-3 text-primary",
 
-    skeletonTd: "absolute inset-px",
+    skeletonTd: "absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-md",
   },
   variants: {
     cellWrap: {
@@ -272,14 +370,56 @@ const theme = tv({
         rowSpan: "line-clamp-none whitespace-normal [overflow-wrap:anywhere]",
       },
     },
+    // The header sits straight on the column band when no tabs row follows
+    // it, and then carries the rule itself.
+    headerDivided: {
+      true: {
+        header: "border-b border-default",
+      },
+    },
+    // Tabs up in the header band (no caption): they take its full height and
+    // their underline lands on its bottom rule.
+    tabsInline: {
+      true: {
+        header: "min-h-11 py-0",
+      },
+    },
     pinned: {
       left: {
         headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} group-data-[presence=true]:bg-elevated dark:group-data-[presence=true]:bg-accented sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
       },
       right: {
         headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} group-data-[presence=true]:bg-elevated dark:group-data-[presence=true]:bg-accented sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
+      },
+    },
+    // Dense lists: 36px rows under a 32px header band.
+    density: {
+      default: "",
+      compact: {
+        headCell: "h-8",
+        rowCell: "h-9 text-[12.5px]",
+        loadingBar: "top-8",
+      },
+    },
+    // The header band sticks to the top of a height-capped scroll area.
+    stickyHeader: {
+      true: {
+        tableRoot: "overflow-y-auto overscroll-contain",
+        table: "border-separate border-spacing-0",
+        headCell: "sticky top-0 z-20",
+      },
+    },
+    scrolled: {
+      true: "",
+    },
+    // Rows listed while viewing the archive read as set aside.
+    // Restore stays on show there, it is the only thing to do with them.
+    archived: {
+      true: {
+        rowCell: "text-muted",
+        rowAction: "opacity-100",
       },
     },
     loading: {
@@ -301,9 +441,15 @@ const theme = tv({
         rowSelection: "opacity-100",
       },
     },
+    // Labelled inline actions are the row's actions on show: never faded.
+    prominent: {
+      true: {
+        rowAction: "opacity-100",
+      },
+    },
     presence: {
       true: {
-        row: "opacity-70 bg-elevated dark:bg-accented",
+        row: "bg-elevated",
       },
     },
   },
@@ -321,6 +467,20 @@ const theme = tv({
       pinned: ["left", "right"],
       class: {
         rowCell: ROW_HOVER_CELL_BG,
+      },
+    },
+    {
+      stickyHeader: true,
+      pinned: ["left", "right"],
+      class: {
+        headCell: "z-30",
+      },
+    },
+    {
+      stickyHeader: true,
+      scrolled: true,
+      class: {
+        headCell: HEADER_SCROLL_SHADOW,
       },
     },
   ],
@@ -376,6 +536,44 @@ const kanbanGroupByState = defineModel<string>("kanbanGroupBy", {
 const expandedState = defineModel<ExpandedState>("expanded", {
   default: (): ExpandedState => ({}),
 });
+const showArchivedState = defineModel<boolean>("showArchived", {
+  default: false,
+});
+const quickFilterValuesState = defineModel<Record<string, string | undefined>>(
+  "quickFilterValues",
+  { default: (): Record<string, string | undefined> => ({}) },
+);
+
+const slots = useSlots();
+// A detail renderer turns the expander column on.
+const isExpandable = !!slots.expanded;
+// The caret button names the detail row it opens (aria-controls).
+const tableDomId = `dms-table-${useId()}`;
+const expandedRowDomId = (rowId: string): string =>
+  `${tableDomId}-detail-${rowId.replace(/\s+/g, "_")}`;
+
+// Rows are archived ones only while the toggle is on.
+const isShowingArchived = computed(
+  () => !!props.archiveToggle && showArchivedState.value,
+);
+
+const SKELETON_ROW_COUNT = 5;
+const SKELETON_ROW_FADE = 0.14;
+const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
+const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
+  SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
+
+// The scroll shadow under a sticky header only shows once rows went under it.
+const isScrolled = ref(false);
+const onTableScroll = (event: Event) => {
+  if (!props.stickyHeader) return;
+  isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
+};
+const tableRootStyle = computed(() =>
+  props.stickyHeader && props.maxHeight
+    ? { maxHeight: props.maxHeight }
+    : undefined,
+);
 const paginationState = defineModel<PaginationState>("pagination", {
   default: (): PaginationState => ({
     pageIndex: DEFAULT_PAGE_INDEX,
@@ -392,7 +590,10 @@ const onResize = (
 
 const PRESENCE_RAIL_WIDTH = 2;
 const PRESENCE_RAIL_WIDTH_PX = `${PRESENCE_RAIL_WIDTH}px`;
-const PRESENCE_RAIL_ACTIVE_BG = "bg-primary";
+// Someone else editing the row is the violet (AI/collaboration) accent; a row
+// selected here is the cyan one.
+const PRESENCE_RAIL_ACTIVE_BG = "bg-secondary";
+const SELECTION_RAIL_BG = "bg-primary";
 
 const hasPresenceRail = computed(() => props.presenceByRow !== undefined);
 
@@ -434,7 +635,14 @@ const uiTableRoot = tv({
   extend: tv(theme),
   ...(appConfig.ui?.table || {}),
 });
-const uiTable = computed(() => uiTableRoot());
+const uiTable = computed(() =>
+  uiTableRoot({
+    density: props.density ?? "default",
+    stickyHeader: !!props.stickyHeader,
+    scrolled: isScrolled.value,
+    archived: isShowingArchived.value,
+  }),
+);
 
 const { table, labeledColumns, deleteFilter, resetFilters, deleteSorting } =
   useTable<T>({
@@ -453,9 +661,48 @@ const { table, labeledColumns, deleteFilter, resetFilters, deleteSorting } =
       paginationState,
     },
     ui: uiTable,
+    expandable: isExpandable,
+    expandedRowDomId,
+    showArchived: props.archiveToggle ? isShowingArchived : undefined,
+    columnMenus: (props.chrome ?? FULL_TABLE_CHROME).columnMenus,
   });
 
 const rowCount = computed(() => props.paginationOptions?.rowCount ?? 0);
+
+const { t, locale } = useI18n();
+
+const formattedRowCount = computed(() =>
+  new Intl.NumberFormat(locale.value).format(rowCount.value),
+);
+
+const captionCountLabel = computed(() =>
+  isShowingArchived.value
+    ? t("dms.table.archived_count", { count: formattedRowCount.value })
+    : formattedRowCount.value,
+);
+
+const hasTabs = computed(() => (props.tabs?.length ?? 0) > 0);
+
+const resolvedChrome = computed<ResolvedTableChrome>(
+  () => props.chrome ?? FULL_TABLE_CHROME,
+);
+// Without a caption, the tabs move up into the header band.
+const tabsInline = computed(
+  () => hasTabs.value && !resolvedChrome.value.caption,
+);
+// A hidden custom button stays pressable by id (quick action, header action).
+const toolbarButtons = computed(() =>
+  (props.customButtons ?? []).filter((button) => !button.hidden),
+);
+
+// The bulk bar shows whenever selected rows have something to go to.
+const hasBulkActions = computed(
+  () =>
+    normalizeActionConfig(props.rowActions?.delete).isEnabled ||
+    normalizeActionConfig(props.rowActions?.archive).isEnabled ||
+    normalizeActionConfig(props.rowActions?.restore).isEnabled ||
+    !!props.canExport,
+);
 
 // Defined once (stable ref identity) so consumers that capture tableSharedData
 // by value (e.g. Actions.vue via useTableContext) still react when the active
@@ -538,6 +785,9 @@ watchEffect(() => {
     activeCapabilities: resolvedCapabilities,
     kanbanGroupByState,
     kanbanGroupByOptions: props.kanbanGroupByOptions || [],
+    showArchivedState,
+    chrome: resolvedChrome,
+    footer: props.footer,
   };
 });
 
@@ -554,8 +804,6 @@ const handleRowHover = (row: { original: T; id: string }) => {
 const handleRowLeave = () => {
   hoveredRowId.value = null;
 };
-
-const { t } = useI18n();
 
 const getRowPresence = (row: T): TableRowPresenceActor[] | undefined => {
   if (!props.presenceByRow) return undefined;
@@ -604,39 +852,109 @@ defineShortcuts({
 
 <template>
   <div :class="uiTable.root()">
-    <header :class="uiTable.header()">
-      <h2 :class="uiTable.caption()">
-        {{ caption }}
-      </h2>
+    <template v-if="resolvedCapabilities.header">
+      <header
+        :class="
+          uiTable.header({
+            headerDivided: !hasTabs || tabsInline,
+            tabsInline,
+          })
+        "
+      >
+        <TableTabs
+          v-if="tabsInline && tabs"
+          v-model="activeTabId"
+          :tabs="tabs"
+          :label="caption"
+          inline
+        />
+        <h2 v-else-if="resolvedChrome.caption" :class="uiTable.caption()">
+          <span :class="uiTable.captionLabel()">{{ caption }}</span>
+          <span v-if="rowCount > 0" :class="uiTable.captionCount()">
+            {{ captionCountLabel }}
+          </span>
+        </h2>
 
-      <TableActions
-        v-model:global-filter="globalFilterState"
-        v-model:column-visibility="columnVisibilityState"
-        v-model:sorting="sortingState"
-        :table
-        :can-add-row="normalizeActionConfig(rowActions?.add).isEnabled"
-        :custom-buttons="customButtons"
-        :on-custom-button="onCustomButton"
+        <TableActions
+          v-model:global-filter="globalFilterState"
+          v-model:column-visibility="columnVisibilityState"
+          v-model:sorting="sortingState"
+          v-model:show-archived="showArchivedState"
+          v-model:quick-filter-values="quickFilterValuesState"
+          :table
+          :can-add-row="normalizeActionConfig(rowActions?.add).isEnabled"
+          :archive-toggle="archiveToggle"
+          :custom-buttons="toolbarButtons"
+          :on-custom-button="onCustomButton"
+          :chrome="resolvedChrome"
+          :search-placeholder="searchPlaceholder"
+          :quick-filters="quickFilters"
+          :class="{
+            'ms-auto': !resolvedChrome.caption && !tabsInline,
+            'py-2': tabsInline,
+          }"
+        />
+      </header>
+
+      <TableTabs
+        v-if="hasTabs && tabs && !tabsInline"
+        v-model="activeTabId"
+        :tabs="tabs"
       />
-    </header>
 
-    <TableTabs
-      v-if="tabs && tabs.length > 0"
-      v-model="activeTabId"
-      :tabs="tabs"
-    />
+      <TableFiltersRow
+        v-if="
+          filtersRowOpen &&
+          resolvedCapabilities.filters &&
+          resolvedChrome.filters
+        "
+      />
 
-    <TableFiltersRow v-if="filtersRowOpen && resolvedCapabilities.filters" />
+      <div
+        v-if="isShowingArchived"
+        role="status"
+        :class="uiTable.archiveStrip()"
+      >
+        <UIcon name="i-ph-archive" :class="uiTable.archiveStripIcon()" />
+        <span :class="uiTable.archiveStripText()">
+          <strong :class="uiTable.archiveStripTitle()">
+            {{ t("dms.table.archive_strip_title") }}
+          </strong>
+          {{ " " }}
+          <span :class="uiTable.archiveStripDescription()">
+            {{ t("dms.table.archive_strip_description") }}
+          </span>
+        </span>
+        <UButton
+          :label="t('dms.table.show_active')"
+          :icon="appConfig.ui.icons.arrowLeft"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :class="uiTable.archiveStripAction()"
+          @click="showArchivedState = false"
+        />
+      </div>
 
-    <TableRowSelection
-      v-if="rowActions?.delete || canExport"
-      v-model:row-selection="rowSelectionState"
-      :row-actions="rowActions"
-      :can-export="canExport"
-    />
+      <TableRowSelection
+        v-if="hasBulkActions"
+        v-model:row-selection="rowSelectionState"
+        :row-actions="rowActions"
+        :can-export="canExport"
+        :archived="isShowingArchived"
+      />
+    </template>
 
     <slot name="body" :table="table">
-      <section :class="uiTable.tableRoot()">
+      <section
+        :class="uiTable.tableRoot()"
+        :style="tableRootStyle"
+        @scroll.passive="onTableScroll"
+      >
+        <div v-if="loading" aria-hidden="true" :class="uiTable.loadingBar()">
+          <span :class="uiTable.loadingBarIndicator()" />
+        </div>
+
         <div :class="uiTable.tableBase()">
           <table :class="uiTable.table()">
             <caption v-if="caption" :class="uiTable.tableCaption()">
@@ -653,6 +971,7 @@ defineShortcuts({
                   :class="[
                     HEADER_MATCH_BG,
                     'border-b-default sticky left-0 z-30 border-b p-0',
+                    stickyHeader && 'top-0 z-40',
                   ]"
                   :style="{
                     width: PRESENCE_RAIL_WIDTH_PX,
@@ -728,7 +1047,9 @@ defineShortcuts({
                       v-if="hasPresenceRail"
                       :class="[
                         'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
-                        presenceRailBackground(row.original),
+                        row.getIsSelected() && !getRowPresence(row.original)
+                          ? SELECTION_RAIL_BG
+                          : presenceRailBackground(row.original),
                       ]"
                       :style="{
                         width: PRESENCE_RAIL_WIDTH_PX,
@@ -781,16 +1102,48 @@ defineShortcuts({
                       </div>
                     </td>
                   </tr>
-                  <tr v-if="row.getIsExpanded()">
+                  <tr v-if="row.getIsExpanded()" :id="expandedRowDomId(row.id)">
                     <td
                       :colspan="
-                        row.getAllCells().length + (hasPresenceRail ? 1 : 0)
+                        row.getVisibleCells().length + (hasPresenceRail ? 1 : 0)
                       "
+                      :class="uiTable.expandedCell()"
                     >
-                      <slot name="expanded" :row="row" />
+                      <div :class="uiTable.expandedBody()">
+                        <slot name="expanded" :row="row" />
+                      </div>
                     </td>
                   </tr>
                 </template>
+              </template>
+              <!-- First load: skeleton rows keep the column rhythm instead of
+                flashing the empty state. -->
+              <template v-else-if="loading">
+                <tr
+                  v-for="rowIndex in SKELETON_ROW_COUNT"
+                  :key="`skeleton-${rowIndex}`"
+                  aria-hidden="true"
+                  :class="uiTable.skeletonRow()"
+                  :style="{ opacity: 1 - (rowIndex - 1) * SKELETON_ROW_FADE }"
+                >
+                  <td
+                    v-if="hasPresenceRail"
+                    class="border-b-muted border-b p-0 in-[tr:last-child]:border-b-0"
+                  />
+                  <td
+                    v-for="(
+                      column, columnIndex
+                    ) in table.getVisibleLeafColumns()"
+                    :key="column.id"
+                    :class="uiTable.rowCell()"
+                  >
+                    <USkeleton
+                      v-if="column.columnDef.meta"
+                      :class="uiTable.skeletonCell()"
+                      :style="{ width: skeletonWidth(rowIndex, columnIndex) }"
+                    />
+                  </td>
+                </tr>
               </template>
               <tr v-else>
                 <td
@@ -805,6 +1158,7 @@ defineShortcuts({
                       normalizeActionConfig(rowActions?.add).isEnabled
                     "
                     :load-error="loadError"
+                    :archived="isShowingArchived"
                   />
                 </td>
               </tr>

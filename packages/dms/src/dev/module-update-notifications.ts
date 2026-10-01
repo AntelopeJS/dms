@@ -46,6 +46,7 @@ function ensureUpdatesSubject(): NotificationSubjectInfo {
     category: SystemCategory,
     labelKey: "dms.notifications.subjects.updates",
     descriptionKey: "dms.notifications.subjects.updates_desc",
+    badgeKey: "dms.notifications.subjects.updates_badge",
     togglePermission: "default",
   });
   return updatesSubject;

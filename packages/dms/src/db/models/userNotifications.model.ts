@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import type { NotificationData } from "@antelopejs/interface-dms/notifications/types";
+import type {
+  NotificationData,
+  NotificationTone,
+} from "@antelopejs/interface-dms/notifications/types";
 import { runInBatches } from "../../utils/run-in-batches";
 import { UserNotification, userNotificationsTableName } from "../tables";
 
@@ -21,8 +24,35 @@ export interface NewUserNotification {
   linkTo?: string;
   groupId?: string;
   params?: Record<string, string | number>;
+  tone?: NotificationTone;
   /** Fixed row id, set only by an idempotent delivery, which the row records. */
   id?: string;
+}
+
+/** Read and unread totals of a user's visible feed. */
+export interface UserNotificationCounts {
+  all: number;
+  unread: number;
+}
+
+/** Maps a delivery onto the row to store for one recipient. */
+export function buildNewUserNotification(
+  userId: string,
+  data: NotificationData,
+  groupId?: string,
+): NewUserNotification {
+  return {
+    userId,
+    icon: data.icon,
+    title: data.title,
+    description: data.description,
+    categoryId: data.subject.category.id,
+    subjectId: data.subject.id,
+    linkTo: data.linkTo,
+    groupId,
+    params: data.params,
+    tone: data.tone,
+  };
 }
 
 function matchesDelivery(
@@ -44,6 +74,7 @@ function matchesDelivery(
         existing.description,
         existing.linkTo,
         existing.params,
+        existing.tone ?? null,
       ],
       [
         userId,
@@ -55,6 +86,7 @@ function matchesDelivery(
         data.description,
         data.linkTo || null,
         data.params || null,
+        data.tone ?? null,
       ],
     )
   );
@@ -85,15 +117,29 @@ export class UserNotificationsModel extends BasicDataModel(
     );
   }
 
+  private visibleFeed(userId: string) {
+    return this.table
+      .getAll(userId, "userId")
+      .filter((row) => row.key("isDismissed").ne(true));
+  }
+
+  private unreadFeed(userId: string) {
+    return this.visibleFeed(userId).filter((row) =>
+      row.key("isRead").eq(false),
+    );
+  }
+
+  /** Lists a user's feed, newest first; `unreadOnly` narrows it to unread rows. */
   async getByUserId(
     userId: string,
     limit?: number,
     offset?: number,
+    unreadOnly = false,
   ): Promise<UserNotification[]> {
-    let query = this.table
-      .getAll(userId, "userId")
-      .filter((row) => row.key("isDismissed").ne(true))
-      .orderBy("createdAt", "desc");
+    const feed = unreadOnly
+      ? this.unreadFeed(userId)
+      : this.visibleFeed(userId);
+    let query = feed.orderBy("createdAt", "desc");
 
     if (limit !== undefined && offset !== undefined) {
       query = query.slice(offset, offset + limit);
@@ -108,15 +154,20 @@ export class UserNotificationsModel extends BasicDataModel(
       );
   }
 
+  /** Totals behind the All and Unread tabs of the inbox. */
+  async countFeed(userId: string): Promise<UserNotificationCounts> {
+    const [all, unread] = await Promise.all([
+      this.visibleFeed(userId).count().run(),
+      this.countUnread(userId),
+    ]);
+    return { all, unread };
+  }
+
   async getUnreadByUserId(
     userId: string,
     limit?: number,
   ): Promise<UserNotification[]> {
-    let query = this.table
-      .getAll(userId, "userId")
-      .filter((row) => row.key("isDismissed").ne(true))
-      .filter((row) => row.key("isRead").eq(false))
-      .orderBy("createdAt", "desc");
+    let query = this.unreadFeed(userId).orderBy("createdAt", "desc");
 
     if (limit) {
       query = query.slice(0, limit);
@@ -148,53 +199,81 @@ export class UserNotificationsModel extends BasicDataModel(
   }
 
   async countUnread(userId: string): Promise<number> {
-    return this.table
-      .getAll(userId, "userId")
-      .filter((row) => row.key("isDismissed").ne(true))
-      .filter((row) => row.key("isRead").eq(false))
-      .count()
-      .run();
+    return this.unreadFeed(userId).count().run();
   }
 
   async markAsRead(id: string): Promise<void> {
+    await this.setReadState(id, true);
+  }
+
+  /** Puts a notification back in the unread list; a shared copy reopens for its whole group. */
+  async markAsUnread(id: string): Promise<void> {
+    await this.setReadState(id, false);
+  }
+
+  private async setReadState(id: string, isRead: boolean): Promise<void> {
     const notification = await this.get(id);
     if (!notification) return;
 
-    if (notification?.groupId) {
-      await this.markSharedGroupAsRead(notification.groupId);
+    if (notification.groupId) {
+      await this.setSharedGroupReadState(notification.groupId, isRead);
       return;
     }
 
     await this.table
       .get(id)
       .update({
-        isRead: true,
+        isRead,
         updatedAt: new Date(),
       })
       .run();
   }
 
   async markSharedGroupAsRead(groupId: string): Promise<void> {
+    await this.setSharedGroupReadState(groupId, true);
+  }
+
+  private async setSharedGroupReadState(
+    groupId: string,
+    isRead: boolean,
+  ): Promise<void> {
     await this.table
       .getAll(groupId, "groupId")
       .filter((row) => row.key("isDismissed").ne(true))
-      .filter((row) => row.key("isRead").eq(false))
+      .filter((row) => row.key("isRead").eq(!isRead))
       .update({
-        isRead: true,
+        isRead,
         updatedAt: new Date(),
       })
       .run();
   }
 
-  async markAllAsRead(userId: string): Promise<void> {
-    const notifications = await this.table
-      .getAll(userId, "userId")
-      .filter((row) => row.key("isDismissed").ne(true))
-      .filter((row) => row.key("isRead").eq(false))
-      .run();
+  /**
+   * Marks the given notifications of one user unread again (the undo of
+   * "mark all as read"). Ids of other users or of missing rows are skipped;
+   * the ids actually reopened are returned.
+   */
+  async markManyAsUnread(userId: string, ids: string[]): Promise<string[]> {
+    const reopened: string[] = [];
+    await runInBatches(
+      [...new Set(ids)],
+      SHARED_GROUP_UPDATE_BATCH_SIZE,
+      async (id) => {
+        const notification = await this.get(id);
+        if (notification?.userId !== userId || !notification.isRead) return;
+        await this.markAsUnread(id);
+        reopened.push(id);
+      },
+    );
+    return reopened;
+  }
+
+  /** Marks every unread notification of a user read and returns their ids, so the change can be undone. */
+  async markAllAsRead(userId: string): Promise<string[]> {
+    const notifications = await this.unreadFeed(userId).run();
 
     if (notifications.length === 0) {
-      return;
+      return [];
     }
 
     const uniqueGroupIds = [
@@ -205,10 +284,7 @@ export class UserNotificationsModel extends BasicDataModel(
       ),
     ];
 
-    await this.table
-      .getAll(userId, "userId")
-      .filter((row) => row.key("isDismissed").ne(true))
-      .filter((row) => row.key("isRead").eq(false))
+    await this.unreadFeed(userId)
       .update({
         isRead: true,
         updatedAt: new Date(),
@@ -220,6 +296,8 @@ export class UserNotificationsModel extends BasicDataModel(
       SHARED_GROUP_UPDATE_BATCH_SIZE,
       (groupId) => this.markSharedGroupAsRead(groupId),
     );
+
+    return notifications.map((n) => n._id);
   }
 
   /** Retains keyed notifications as receipts so dismissal cannot undo deduplication. */
@@ -243,6 +321,15 @@ export class UserNotificationsModel extends BasicDataModel(
       .run();
   }
 
+  /**
+   * Removes every row of a user, the dismissed receipts included: what
+   * `deleteAll` keeps to block a repeat delivery has no one left to protect
+   * once the account is gone.
+   */
+  async purgeUser(userId: string): Promise<void> {
+    await this.table.getAll(userId, "userId").delete().run();
+  }
+
   /** Atomically inserts a delivery, returning undefined when the same event already exists. */
   async createIdempotently(
     userId: string,
@@ -255,15 +342,7 @@ export class UserNotificationsModel extends BasicDataModel(
       .digest("hex")}`;
     try {
       return await this.create({
-        userId,
-        icon: data.icon,
-        title: data.title,
-        description: data.description,
-        categoryId: data.subject.category.id,
-        subjectId: data.subject.id,
-        linkTo: data.linkTo,
-        groupId,
-        params: data.params,
+        ...buildNewUserNotification(userId, data, groupId),
         id,
       });
     } catch (error) {
@@ -285,6 +364,7 @@ export class UserNotificationsModel extends BasicDataModel(
     linkTo,
     groupId,
     params,
+    tone,
     id,
   }: NewUserNotification): Promise<UserNotification> {
     const notification: Partial<UserNotification> = {
@@ -298,6 +378,7 @@ export class UserNotificationsModel extends BasicDataModel(
       categoryId,
       subjectId,
       groupId: groupId || null,
+      tone: tone ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

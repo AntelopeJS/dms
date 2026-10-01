@@ -27,6 +27,18 @@ export interface DmsMenuItem extends NavigationMenuItem {
   fullId?: string;
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
+  /**
+   * Set by "Preview as role" only, on an entry the previewed role could not
+   * open: the menu draws it hatched and locked. Never set outside a preview.
+   */
+  previewLocked?: boolean;
+  /**
+   * Set by "Preview as role" only: `hidden` on an entry the previewed role
+   * could not open (red hatch and lock), `partial` on one it opens without
+   * some of its blocks, actions or entries (orange hatch and lock). Never set
+   * outside a preview.
+   */
+  previewState?: "hidden" | "partial";
 }
 
 /** The route a menu is highlighted against. */

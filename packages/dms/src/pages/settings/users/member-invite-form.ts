@@ -6,8 +6,10 @@ import {
   FormFunctions,
   HttpMethod,
 } from "@antelopejs/interface-dms/base";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { INVITE_NAME_MAX_LENGTH } from "../../../validation/member-invite.schema";
+import { INVITE_FULL_NAME_MAX_LENGTH } from "../../../validation/member-invite.schema";
+import { InviteEmailListType } from "./invite-email-list-type";
 
 export const inviteLanguageSelectItems = [
   { value: "en", label: "English" },
@@ -17,6 +19,8 @@ export const inviteLanguageSelectItems = [
 const DEFAULT_INVITE_LANGUAGE = "en";
 
 export const INVITE_DEFAULTS_URL = "/settings/user/members/invite/defaults";
+export const INVITE_ROLES_URL = "/settings/user/members/invite/roles";
+export const ROLES_PAGE_PATH = "/settings/user/roles";
 
 export interface InviteFormDefaults {
   language: string;
@@ -35,64 +39,43 @@ export function resolveInviteLanguage(language: string | undefined): string {
   return code && isOffered ? code : DEFAULT_INVITE_LANGUAGE;
 }
 
-function nameRequirementWatch(targetField: string, setRequired: boolean) {
-  return {
-    params: { targetField, setRequired },
-    onParam: [
-      { key: "fieldId", value: "skipEmailValidation" },
-      { key: "value", value: setRequired },
-    ],
-  };
+function whenFieldIs(fieldId: string, value: boolean) {
+  return [
+    { key: "fieldId", value: fieldId },
+    { key: "value", value },
+  ];
 }
 
 export const memberInviteForm = Form({
   fields: [
     {
-      id: "email",
-      label: "$page.settings.members.invite.field.email",
-      type: new DefaultDataTypes.EmailType({
-        placeholder: "$page.settings.members.invite.placeholder.email",
+      id: "emails",
+      label: "$page.settings.members.invite.field.emails",
+      description: "$page.settings.members.invite.field.emails_description",
+      type: new InviteEmailListType({
+        placeholder: "$page.settings.members.invite.placeholder.emails",
       }),
       required: true,
     },
     {
-      id: "firstname",
-      label: "$page.settings.members.invite.field.firstname",
-      description: "$page.settings.members.invite.field.name_description",
-      type: new DefaultDataTypes.StringType({
-        placeholder: "$page.settings.members.invite.placeholder.firstname",
-        maxLength: INVITE_NAME_MAX_LENGTH,
-      }),
-      required: false,
-    },
-    {
-      id: "lastname",
-      label: "$page.settings.members.invite.field.lastname",
-      description: "$page.settings.members.invite.field.name_description",
-      type: new DefaultDataTypes.StringType({
-        placeholder: "$page.settings.members.invite.placeholder.lastname",
-        maxLength: INVITE_NAME_MAX_LENGTH,
-      }),
-      required: false,
-    },
-    {
       id: "roles",
       label: "$page.settings.members.invite.field.roles",
-      description: "$page.settings.members.invite.field.roles_description",
       type: new DefaultDataTypes.RelationType({
         multiple: true,
-        placeholder: "$page.settings.members.invite.placeholder.roles",
         dataApiController: roleSettingDataAPI,
-        keyMapping: {
-          label: "name",
-          value: "_id",
-        },
+        keyMapping: { label: "name", value: "_id" },
       }),
+      // Pills with each role's permission count instead of a relation picker:
+      // the inviter compares roles while choosing them.
+      inputComponent: CustomComponent("DmsInviteRolePicker")
+        .options({ rolesUrl: INVITE_ROLES_URL, rolesPageUrl: ROLES_PAGE_PATH })
+        .serializeSync(),
       required: true,
     },
     {
       id: "language",
       label: "$page.settings.members.invite.field.language",
+      description: "$page.settings.members.invite.field.language_description",
       type: new DefaultDataTypes.SelectType({
         items: inviteLanguageSelectItems,
       }),
@@ -101,11 +84,21 @@ export const memberInviteForm = Form({
       defaultValue: DEFAULT_INVITE_LANGUAGE,
     },
     {
+      id: "name",
+      label: "$page.settings.members.invite.field.name",
+      description: "$page.settings.members.invite.field.name_description",
+      type: new DefaultDataTypes.StringType({
+        placeholder: "$page.settings.members.invite.placeholder.name",
+        maxLength: INVITE_FULL_NAME_MAX_LENGTH,
+      }),
+      required: false,
+    },
+    {
       id: "asTenantOwner",
-      label: "$page.settings.members.invite.field.tenant_owner",
-      description:
-        "$page.settings.members.invite.field.tenant_owner_description",
       type: new DefaultDataTypes.BooleanType(),
+      // A bordered row with its own title and explanation, as the owner role
+      // deserves more than a bare switch.
+      inputComponent: CustomComponent("DmsInviteOwnerSwitch").serializeSync(),
       required: true,
       defaultValue: false,
     },
@@ -127,47 +120,24 @@ export const memberInviteForm = Form({
   submitUrlMethod: HttpMethod.post,
   submitLabel: "$page.settings.members.invite.submit",
   successMessage: "$page.settings.members.invite.success",
-  // Resolved from the invite response: pending invites vs a directly-added
-  // existing user land on different pages.
+  // Resolved from the invite response: pending invites vs directly-added
+  // existing users land on different pages.
   redirectOnSuccess: "{{response.redirectPath}}",
 })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
-    params: {
-      targetField: "roles",
-      setHidden: true,
-    },
-    onParam: [
-      { key: "fieldId", value: "asTenantOwner" },
-      { key: "value", value: true },
-    ],
+  // Owners hold every permission, so the roles stay visible but inert.
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
+    params: { targetField: "roles", setDisabled: true },
+    onParam: whenFieldIs("asTenantOwner", true),
   })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_HIDDEN, {
-    params: {
-      targetField: "roles",
-      setHidden: false,
-    },
-    onParam: [
-      { key: "fieldId", value: "asTenantOwner" },
-      { key: "value", value: false },
-    ],
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
+    params: { targetField: "roles", setDisabled: false },
+    onParam: whenFieldIs("asTenantOwner", false),
   })
-  .watch(
-    FormEvents.FIELD_CHANGE,
-    FormFunctions.SET_FIELD_REQUIRED,
-    nameRequirementWatch("firstname", true),
-  )
-  .watch(
-    FormEvents.FIELD_CHANGE,
-    FormFunctions.SET_FIELD_REQUIRED,
-    nameRequirementWatch("firstname", false),
-  )
-  .watch(
-    FormEvents.FIELD_CHANGE,
-    FormFunctions.SET_FIELD_REQUIRED,
-    nameRequirementWatch("lastname", true),
-  )
-  .watch(
-    FormEvents.FIELD_CHANGE,
-    FormFunctions.SET_FIELD_REQUIRED,
-    nameRequirementWatch("lastname", false),
-  );
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
+    params: { targetField: "name", setRequired: true },
+    onParam: whenFieldIs("skipEmailValidation", true),
+  })
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
+    params: { targetField: "name", setRequired: false },
+    onParam: whenFieldIs("skipEmailValidation", false),
+  });

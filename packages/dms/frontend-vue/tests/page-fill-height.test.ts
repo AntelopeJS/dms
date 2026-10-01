@@ -40,6 +40,10 @@ vi.mock(
   "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue",
   () => ({ default: () => null }),
 );
+vi.mock(
+  "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
+  () => ({ default: () => null }),
+);
 
 interface PageLayoutFixture {
   components: Record<string, { componentName: string }>;
@@ -48,22 +52,22 @@ interface PageLayoutFixture {
 const route = reactive({ path: "/tools/explorer", query: {} });
 const pageLayout = ref<PageLayoutFixture | null>(null);
 
-// The markup `DefaultLayout` and `pages/[...slug].vue` rendered for a
-// two-component page before `fillHeight` existed, with the stubs below.
+// The markup `DefaultLayout` and `pages/[...slug].vue` render for a
+// two-component page outside the settings area, with the stubs below.
 const FLOW_PAGE_MARKUP =
-  "<div data-dms-persistent-shell data-group><!---->" +
-  "<div data-panel><!--[--><!----><!----><!--]-->" +
+  '<div data-dms-persistent-shell storage-key="dms-dashboard" unit="px" data-group><!---->' +
+  "<div data-panel><!--[--><!----><!----><!----><!--]-->" +
   "<div data-body>" +
-  '<div class="w-full max-w-none" data-dms-page-region data-dms-page-content><!--[-->' +
-  '<section class="flex gap-4 items-start pt-6 pb-7">' +
-  '<div class="rounded-lg bg-primary/10 shrink-0 ring ring-primary/20 flex items-center justify-center size-12"><i class="text-primary"></i></div>' +
+  '<div class="w-full max-w-none" data-dms-page-region data-dms-page-content><!--[--><!--[-->' +
+  '<section class="flex gap-3.5 items-start pb-6">' +
+  '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
   '<div class="flex-1 min-w-0">' +
-  '<h1 class="text-highlighted text-[22px] font-semibold leading-tight tracking-tight"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--]--></section><!--[-->' +
+  '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--]--></section><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
-  '<section data-component="stats" page-id="tools.explorer"></section></div>' +
+  '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
   '<div class="">' +
-  '<section data-component="explorer" page-id="tools.explorer"></section></div></div><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>';
+  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>';
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {
@@ -148,6 +152,10 @@ function installRuntime(): void {
       refresh: async () => {},
       refreshIfStale: async () => {},
       findMatchingRoute: () => ({
+        metadata: { fullId: "tools.explorer", hasAccess: true },
+        params: {},
+      }),
+      findMatchingRouteOrCategory: () => ({
         metadata: { fullId: "tools.explorer", hasAccess: true },
         params: {},
       }),
@@ -274,10 +282,9 @@ describe("DefaultLayout with fillHeight", () => {
     const header = host.querySelector("[data-dms-page-content] > section");
     expect(classesOf(header)).toEqual([
       "flex",
-      "gap-4",
+      "gap-3.5",
       "items-start",
-      "pt-6",
-      "pb-7",
+      "pb-6",
     ]);
   });
 

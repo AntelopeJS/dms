@@ -7,6 +7,16 @@ import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
+
+/** A toast a submit response asks for, on top of the success one. */
+interface FormSubmitNotice {
+  title: string;
+  description?: string;
+  /** Toast color; `info` by default. */
+  color?: string;
+  /** i18n parameters of the texts; a numeric `count` pluralizes them. */
+  params?: Record<string, unknown>;
+}
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 
 interface FormResetTarget {
@@ -502,6 +512,35 @@ export const useForm = (props: FormProps) => {
     });
   };
 
+  const { t } = useI18n();
+
+  // A notice text: an i18n key (`$`) pluralized on a numeric `count` param.
+  const noticeText = (value: string, params?: Record<string, unknown>) => {
+    if (!value.startsWith("$")) return value;
+    const count = params?.count;
+    return typeof count === "number"
+      ? t(value.slice(1), params ?? {}, count)
+      : t(value.slice(1), params ?? {});
+  };
+
+  /**
+   * A submit response may carry a `notice` the server words for this
+   * submission (some of a batch skipped, a partial success): shown as a toast
+   * of its own next to the success one.
+   */
+  const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
+    const notice = (response as { notice?: FormSubmitNotice } | undefined)
+      ?.notice;
+    if (!notice?.title) return;
+    toast.add({
+      title: noticeText(notice.title, notice.params),
+      description: notice.description
+        ? noticeText(notice.description, notice.params)
+        : undefined,
+      color: (notice.color as Color | undefined) ?? Color.info,
+    });
+  };
+
   const resolveSubmitErrorDescription = (error: EventError) => {
     if (props.errorMessage) return processI18n(props.errorMessage);
     if (isString(error.data)) return processApiMessage(error.data);
@@ -521,6 +560,7 @@ export const useForm = (props: FormProps) => {
     plainData: FormData,
   ) => {
     showSubmitSuccessToast();
+    showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
     initialValues.value = snapshotFormState(state.value);
     if (props.redirectOnSuccess) {

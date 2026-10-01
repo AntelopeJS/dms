@@ -24,6 +24,12 @@ export class SystemState extends Table {
 
   @Field("boolean") declare has_onboarded: boolean;
 
+  /** Platform name chosen during onboarding; the configured meta title otherwise. */
+  @Field("string") declare platform_name?: string;
+
+  /** Language chosen during onboarding for the administrator account. */
+  @Field("string") declare default_language?: string;
+
   @Index() @Field("date") declare createdAt: Date;
   @Index() @Field("date") declare updatedAt: Date;
 }

@@ -18,6 +18,7 @@ import {
   resolveAdminInviteLanguage,
 } from "../../utils/admin-invite-email";
 import { isObject } from "@antelopejs/interface-dms/utils/type-check";
+import { recordUserActivity } from "../../utils/user-activity";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -104,7 +105,7 @@ async function validateUserToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  userModel.update(data.id, user).catch(() => {});
+  recordUserActivity(userModel, user);
 
   if (checkEmailValidation) {
     const config = getAuthConfig();

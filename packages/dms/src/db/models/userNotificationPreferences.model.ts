@@ -37,6 +37,11 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     return UserNotificationPreferencesModel.fromDatabase(result);
   }
 
+  /** Removes the preferences of a user whose account is deleted. */
+  async purgeUser(userId: string): Promise<void> {
+    await this.table.getAll(userId, "userId").delete().run();
+  }
+
   /**
    * Creates a user's preferences, keyed by the user id so concurrent first
    * reads collide on the primary key instead of each inserting a row: the
@@ -82,6 +87,27 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
       .run();
 
     return preferences;
+  }
+
+  /**
+   * Applies a partial map on top of the stored preferences in one database
+   * update, so switches saved concurrently each keep their own change.
+   */
+  async mergePreferences(
+    userId: string,
+    changes: Record<string, boolean>,
+  ): Promise<Record<string, boolean>> {
+    await this.getOrCreatePreferences(userId);
+    await this.table
+      .getAll(userId, "userId")
+      .update((row) => ({
+        preferences: row.key("preferences").merge(changes),
+        updatedAt: new Date(),
+      }))
+      .run();
+
+    const stored = await this.getByUserId(userId);
+    return stored?.preferences ?? changes;
   }
 
   async getOrCreatePreferences(

@@ -401,7 +401,9 @@
       "discard": "Discard",
       "stay": "Stay",
       "confirm": "Confirm",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "esc_hint": "to cancel",
+      "type_to_confirm": "Type {text} to confirm"
     },
     "date": {
       "undefined": "Unknown"
@@ -409,7 +411,8 @@
     "components": {
       "tableview": "📄 TableView",
       "tree": "🎋 Tree",
-      "tab": "🗂️ Tab"
+      "tab": "🗂️ Tab",
+      "global": "🌐 Global"
     },
     "chart": {
       "no_data": "No data",
@@ -442,6 +445,27 @@
         "previous-period": "vs previous period",
         "previous-year": "vs previous year",
         "custom": "Custom"
+      },
+      "compare_options": {
+        "none": "No comparison",
+        "previous-period": "Previous period",
+        "previous-year": "Previous year",
+        "custom": "Custom"
+      },
+      "popover": {
+        "dialog_aria": "Choose period",
+        "presets": "Presets",
+        "custom_range": "Custom range",
+        "start": "Start",
+        "end": "End",
+        "compare_to": "Compare to",
+        "cancel": "Cancel",
+        "apply": "Apply",
+        "vs": "vs",
+        "days": "{count} day | {count} days",
+        "hours": "{count} hour | {count} hours",
+        "previous_month": "Previous month",
+        "next_month": "Next month"
       }
     }
   }

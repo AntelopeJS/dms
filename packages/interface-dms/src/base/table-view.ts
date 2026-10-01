@@ -42,6 +42,7 @@ export {
 export {
   ArchiveField,
   Column,
+  type ColumnDisplay,
   ColumnGroup,
   type ColumnGroupConfig,
   type ColumnOptions,
@@ -64,12 +65,21 @@ export {
   type TableViewDisplayCapabilities,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
+  type TableViewChromeOptions,
+  type TableViewChromePreset,
+  type TableViewExpandableField,
+  type TableViewExpandableOptions,
+  type TableViewExpandableSerialized,
+  type TableViewExpandedDefault,
+  type TableViewFooterOptions,
+  type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewOptionsSerialized,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
   type TableViewTab,
   type TableViewTabFilter,
+  type TableViewTabSerialized,
 } from "./table-view/options";
 export {
   internal,
@@ -98,4 +108,8 @@ export type {
   NewGuardArgs,
   TableViewGuards,
 } from "./types/guards";
-export type { RowActionRule } from "./types/row-action";
+export type {
+  RowActionConfirmDescriptor,
+  RowActionConfirmImpact,
+  RowActionRule,
+} from "./types/row-action";

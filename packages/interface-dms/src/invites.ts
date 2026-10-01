@@ -38,6 +38,8 @@ export interface InviteUserToTenantOptions {
   sendEmail?: boolean;
   /** Who sends the invitation, named in its email. */
   inviterName?: string;
+  /** Id of the user who sends the invitation, shown next to it in the list. */
+  invitedBy?: string | null;
   /** Module payloads collected in the invite modal, keyed by extension key. */
   extensions?: InviteExtensionPayloads;
 }
@@ -143,6 +145,7 @@ async function inviteAdmittedUser(
     roleIds = [],
     asTenantOwner = false,
     skipEmailValidation = false,
+    invitedBy = null,
     extensions,
   } = options;
 
@@ -171,6 +174,7 @@ async function inviteAdmittedUser(
     roleIds,
     asTenantOwner,
     skipEmailValidation,
+    invitedBy,
     extensions,
   });
 
@@ -214,6 +218,8 @@ export interface CreateUserInviteTokenOptions {
   roleIds: string[];
   asTenantOwner: boolean;
   skipEmailValidation: boolean;
+  /** Id of the user who sends the invitation; `null` when nobody signed in did. */
+  invitedBy?: string | null;
   extensions?: InviteExtensionPayloads;
   /**
    * How to report the deletion of an invitation this one displaces. Defaults
@@ -299,6 +305,7 @@ function buildInviteSnapshot(
     asTenantOwner: options.asTenantOwner,
     expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * MILLISECONDS_PER_DAY),
     skipEmailValidation: options.skipEmailValidation,
+    invitedBy: options.invitedBy ?? null,
     extensions: options.extensions ?? null,
   });
 }

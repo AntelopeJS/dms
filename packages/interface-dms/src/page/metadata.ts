@@ -48,7 +48,11 @@ import {
 } from "./extension-assembly";
 import { collectExtensionErrors } from "./extension-validation";
 import { FormPageRouteConflictError } from "./form-page-routes";
-import { type ComponentNodeMap, filterComponents } from "./layout-filter";
+import {
+  type ComponentNodeMap,
+  filterComponents,
+  filterLayoutHeaderActions,
+} from "./layout-filter";
 import {
   pageExtensions,
   pageLayoutHandlers,
@@ -538,19 +542,30 @@ export class PageMetadata {
     // Upload tokens are already baked into the cached layout: each form
     // stamped its own fields when it serialized, at registration
     // (`SignUploadToken` in interfaces/dms/uploads).
+    const loadPermissions = async (): Promise<Set<string>> => {
+      if (!user) return new Set<string>();
+      const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
+      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+    };
+
+    // Header actions declaring a permission are filtered on every page, even
+    // one skipping component permissions: they name their own requirement.
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return { ...layout, components };
+      return {
+        ...layout,
+        layout: await filterLayoutHeaderActions(layout.layout, loadPermissions),
+        components,
+      };
     }
 
-    const roleIds = user
-      ? ((await memberModel.getByUser(user._id))?.roleIds ?? [])
-      : [];
-    const permissions = user
-      ? await GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel)
-      : new Set<string>();
+    const permissions = await loadPermissions();
 
     return {
       ...layout,
+      layout: await filterLayoutHeaderActions(
+        layout.layout,
+        async () => permissions,
+      ),
       components: await filterComponents(
         components,
         this.pagePermissionId,

@@ -7,6 +7,15 @@ import type { ModalSize } from "../../types/modal";
  */
 export type DrawerDirection = "top" | "bottom" | "left" | "right";
 
+/** Tint of the optional header icon well of a container. */
+export type ContainerColor =
+  | "primary"
+  | "neutral"
+  | "success"
+  | "info"
+  | "warning"
+  | "error";
+
 /**
  * Options shared by every themed container opened through a public composable.
  * They map one-to-one onto the props of the internal Dynamic{Drawer,Modal}
@@ -20,6 +29,10 @@ export interface ContainerOptions {
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
   containerId?: string;
+  /** Icon rendered in a 36px tinted well before the title. */
+  icon?: string;
+  /** Tint of the icon well (default primary). */
+  color?: ContainerColor;
 }
 
 /** Options accepted by {@link useDrawer}'s `open`. */

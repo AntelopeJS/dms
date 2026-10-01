@@ -25,6 +25,7 @@ export async function resetPassword(
   user.forgotPasswordToken = null;
   user.forgotPasswordRequestedAt = null;
   user.password = password;
+  user.passwordChangedAt = new Date();
 
   await userModel.update(user);
 

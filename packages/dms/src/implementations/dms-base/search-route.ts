@@ -127,16 +127,37 @@ async function canViewArchived(
   permissions: Set<string> | undefined,
 ): Promise<boolean> {
   const tableViewMeta = GetMetadata(thisObj.constructor, TableViewMeta);
-  const action = tableViewMeta?.componentBuilder?.getAction("viewArchived");
-  const permissionId = action?.permissionId;
-  if (!permissionId) {
+  // Every table view mounting the controller guards its archived rows with
+  // its own permission: holding it on any of them lets the archive show.
+  const permissionIds = tableViewMeta?.permissionIdsFor("viewArchived") ?? [];
+  if (permissionIds.length === 0) {
     return true;
   }
   const resolved = await computeEffectivePermissions(reqCtx, user, permissions);
   if (!resolved) {
     return false;
   }
-  return HasPermission(resolved, permissionId);
+  for (const permissionId of permissionIds) {
+    if (await HasPermission(resolved, permissionId)) return true;
+  }
+  return false;
+}
+
+/**
+ * The filter tuple listing archived rows, or active ones. A row whose archive
+ * field was never written (created before archive mode, or by a form that
+ * leaves the field out) is active: it is matched as "not archived" rather
+ * than "archived is false", which a missing field never equals.
+ */
+// @internal
+export function archiveFilter(
+  archived: boolean,
+): NonNullable<Parameters.ListParameters["filters"]>[string] {
+  // The source and the target do not overlap, so this cannot be one
+  // assertion: the value reaches here through a decorator, a JWT payload or
+  // a filter tuple, none of which the type system sees.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+  return [true as unknown as string, archived ? "eq" : "ne"];
 }
 
 export async function applyArchiveFilter(
@@ -166,14 +187,7 @@ export async function applyArchiveFilter(
       403,
       "Forbidden: cannot view archived rows",
     );
-    return {
-      ...filters,
-      // The source and the target do not overlap, so this cannot be one
-      // assertion: the value reaches here through a decorator, a JWT
-      // payload or a filter tuple, none of which the type system sees.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-      [archiveField]: [false as unknown as string, "eq"],
-    };
+    return { ...filters, [archiveField]: archiveFilter(false) };
   }
 
   if (typeof showArchived !== "string") {
@@ -182,11 +196,7 @@ export async function applyArchiveFilter(
 
   return {
     ...filters,
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    [archiveField]: [(showArchived === "true") as unknown as string, "eq"],
+    [archiveField]: archiveFilter(showArchived === "true"),
   };
 }
 

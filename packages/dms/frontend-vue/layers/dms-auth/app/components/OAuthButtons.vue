@@ -31,7 +31,8 @@ function startUrl(providerId: string): string {
 </script>
 
 <template>
-  <div v-if="providers.length" class="space-y-4 pb-7">
+  <!-- v2 .au-oauth: secondary buttons first, then the mono "or" separator. -->
+  <div v-if="providers.length" class="mt-6 grid gap-2.5">
     <UButton
       v-for="provider in providers"
       :key="provider.id"
@@ -41,6 +42,8 @@ function startUrl(providerId: string): string {
       color="neutral"
       variant="outline"
       size="lg"
+      class="justify-center"
+      :ui="{ leadingIcon: 'size-[18px]' }"
       external
       block
     />
@@ -49,10 +52,8 @@ function startUrl(providerId: string): string {
       {{ note }}
     </p>
 
-    <USeparator>
-      <span class="text-dimmed text-xs font-medium uppercase">
-        {{ $t("page.auth.oauth.separator") }}
-      </span>
+    <USeparator class="mt-3" :ui="{ border: 'border-default' }">
+      <DmsEyebrow as="span" :label="$t('page.auth.oauth.separator')" />
     </USeparator>
   </div>
 </template>

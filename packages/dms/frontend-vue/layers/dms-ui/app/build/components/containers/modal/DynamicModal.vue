@@ -2,6 +2,9 @@
 import type { Component } from "vue";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import type { ModalSize } from "../../../../types/modal";
+import type { ContainerColor } from "../../../../composables/containers/types";
+import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
+import { CONTAINER_SKELETON_FIELDS } from "../constants";
 
 interface DynamicModalProps {
   title: string;
@@ -12,13 +15,23 @@ interface DynamicModalProps {
   componentOptions?: Record<string, unknown>;
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
+  icon?: string;
+  color?: ContainerColor;
 }
 
 interface DynamicModalEmits {
   (e: "close", result?: unknown): void;
 }
 
-const props = defineProps<DynamicModalProps>();
+const props = withDefaults(defineProps<DynamicModalProps>(), {
+  description: undefined,
+  size: undefined,
+  componentOptions: undefined,
+  headerComponent: undefined,
+  headerComponentOptions: undefined,
+  icon: undefined,
+  color: "primary",
+});
 const emit = defineEmits<DynamicModalEmits>();
 
 // Let a DmsForm rendered in the body drop its DmsCard (the modal is the surface).
@@ -26,8 +39,18 @@ provide("dmsFormContainer", true);
 
 // UModal has no size variant, so map our ModalSize onto a max-width. Form
 // modals default wider than Nuxt UI's max-w-lg for breathing room.
-const SIZE_ORDER = ["sm", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl"];
-const SIZE_MAX_W: Record<string, string> = {
+const SIZE_ORDER: ModalSize[] = [
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "5xl",
+  "full",
+];
+const SIZE_CONTENT: Record<ModalSize, string> = {
   sm: "sm:max-w-sm",
   md: "sm:max-w-md",
   lg: "sm:max-w-lg",
@@ -36,17 +59,24 @@ const SIZE_MAX_W: Record<string, string> = {
   "3xl": "sm:max-w-3xl",
   "4xl": "sm:max-w-4xl",
   "5xl": "sm:max-w-5xl",
+  full: "sm:max-w-5xl h-[calc(100dvh-4rem)]",
 };
 // Form modals shouldn't be narrower than this; callers asking for a bigger
 // size are still honored.
-const MIN_SIZE = "3xl";
-const contentClass = computed(() => {
+const MIN_SIZE: ModalSize = "3xl";
+
+const resolvedSize = computed(() => {
   const requested = props.size ?? MIN_SIZE;
-  const idx = SIZE_ORDER.indexOf(requested);
-  const minIdx = SIZE_ORDER.indexOf(MIN_SIZE);
-  const size = idx > minIdx ? requested : MIN_SIZE;
-  return SIZE_MAX_W[size] ?? "sm:max-w-3xl";
+  return SIZE_ORDER.indexOf(requested) > SIZE_ORDER.indexOf(MIN_SIZE)
+    ? requested
+    : MIN_SIZE;
 });
+
+// A divided head: the body below is a form, not a continuation of the title.
+const modalUi = computed(() => ({
+  content: SIZE_CONTENT[resolvedSize.value],
+  header: "border-b border-default pb-4",
+}));
 
 const { executeGuards, clearGuards } = useLeaveGuard();
 
@@ -93,12 +123,13 @@ function onContentResolve() {
     :description="description"
     :title="title"
     :dismissible="false"
-    :ui="{ content: contentClass }"
+    :ui="modalUi"
     @close:prevent="tryClose"
   >
     <template #header>
-      <div class="flex w-full items-center justify-between gap-4">
-        <div v-if="headerComponent" class="flex-1">
+      <div class="flex w-full items-start gap-3">
+        <DmsIconWell v-if="icon" :icon="icon" :tone="color" />
+        <div v-if="headerComponent" class="min-w-0 flex-1">
           <VisuallyHidden>
             <DialogTitle>{{ title }}</DialogTitle>
             <DialogDescription>{{ description }}</DialogDescription>
@@ -107,11 +138,17 @@ function onContentResolve() {
             <component :is="headerComponent" v-bind="headerComponentOptions" />
           </Suspense>
         </div>
-        <div v-else class="flex-1">
-          <DialogTitle as="h2" class="text-highlighted font-semibold">
+        <div v-else class="min-w-0 flex-1 self-center">
+          <DialogTitle
+            as="h2"
+            class="text-highlighted text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]"
+          >
             {{ title }}
           </DialogTitle>
-          <DialogDescription v-if="description" class="text-muted text-sm">
+          <DialogDescription
+            v-if="description"
+            class="text-muted mt-1 text-[13px]"
+          >
             {{ description }}
           </DialogDescription>
           <VisuallyHidden v-else>
@@ -119,10 +156,13 @@ function onContentResolve() {
           </VisuallyHidden>
         </div>
         <UButton
-          icon="i-lucide-x"
+          icon="i-ph-x"
           color="neutral"
           variant="ghost"
+          size="sm"
+          square
           aria-label="Close"
+          :disabled="isContentLoading"
           @click="tryClose"
         />
       </div>
@@ -135,6 +175,18 @@ function onContentResolve() {
           :container-id="containerId"
           @success="handleSuccess"
         />
+        <template #fallback>
+          <div class="grid gap-4 sm:grid-cols-2" aria-busy="true">
+            <div
+              v-for="field in CONTAINER_SKELETON_FIELDS"
+              :key="field"
+              class="flex flex-col gap-2"
+            >
+              <USkeleton class="h-3 w-24" />
+              <USkeleton class="h-8 w-full" />
+            </div>
+          </div>
+        </template>
       </Suspense>
     </template>
   </UModal>

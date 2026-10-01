@@ -559,7 +559,7 @@ onBeforeUnmount(() => {
           :key="item.id"
           class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-sm transition-transform"
           :class="{
-            'ring-warning ring-2': item.principal && item.status === 'done',
+            'ring-primary ring-2': item.principal && item.status === 'done',
             'opacity-40': dragItemId === item.id,
             'scale-95': dragOverItemId === item.id && dragItemId !== item.id,
           }"
@@ -589,7 +589,7 @@ onBeforeUnmount(() => {
 
           <span
             v-if="item.principal && item.status === 'done'"
-            class="bg-warning absolute top-1.5 left-1.5 z-[3] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm"
+            class="absolute top-1.5 left-1.5 z-[3] inline-flex items-center gap-1 rounded-full bg-(--dms-accent-fill) px-2 py-0.5 text-[11px] font-semibold text-(--dms-accent-on-fill) shadow-sm"
           >
             <UIcon name="i-lucide-star" class="size-3" />
             {{ t("dms.form.image.principal") }}
@@ -608,7 +608,7 @@ onBeforeUnmount(() => {
                 size="xs"
                 color="neutral"
                 variant="solid"
-                class="hover:text-warning bg-white/90 text-neutral-600 shadow-sm backdrop-blur-sm hover:bg-white"
+                class="bg-white/90 text-neutral-600 shadow-sm backdrop-blur-sm hover:bg-white hover:text-(--ui-color-primary-700)"
                 @click.stop="setPrincipal(item.id)"
               />
             </UTooltip>
@@ -684,9 +684,9 @@ onBeforeUnmount(() => {
         <button
           v-if="!isFull && !disabled"
           type="button"
-          class="border-default text-dimmed hover:border-primary hover:bg-primary/5 hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed transition-colors"
+          class="text-muted hover:border-primary hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
           :class="{
-            'border-primary bg-primary/5 text-primary border-solid':
+            'border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]':
               isDraggingOver,
           }"
           @click="openFilePicker"
@@ -714,9 +714,9 @@ onBeforeUnmount(() => {
       <button
         v-if="!singleItem"
         type="button"
-        class="border-default text-dimmed hover:border-primary hover:bg-primary/5 hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed transition-colors"
+        class="text-muted hover:border-primary hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
         :class="{
-          'border-primary bg-primary/5 text-primary border-solid':
+          'border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]':
             isDraggingOver,
         }"
         :disabled="disabled"
@@ -894,7 +894,7 @@ onBeforeUnmount(() => {
             />
             <span
               v-if="detailItem.principal"
-              class="bg-warning absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm"
+              class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-(--dms-accent-fill) px-2 py-0.5 text-[11px] font-semibold text-(--dms-accent-on-fill) shadow-sm"
             >
               <UIcon name="i-lucide-star" class="size-3" />
               {{ t("dms.form.image.principal") }}
@@ -924,7 +924,7 @@ onBeforeUnmount(() => {
                     ? t('dms.form.image.principal_current')
                     : t('dms.form.image.set_principal')
                 "
-                color="warning"
+                color="primary"
                 variant="subtle"
                 size="sm"
                 :disabled="detailItem.principal"

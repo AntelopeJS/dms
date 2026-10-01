@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useWindowSize } from "@vueuse/core";
+import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
+import AuthBackLink from "../../components/AuthBackLink.vue";
+import AuthCodeInput from "../../components/AuthCodeInput.vue";
+import AuthFormAlert from "../../components/AuthFormAlert.vue";
+import AuthResendCode from "../../components/AuthResendCode.vue";
+import { useAuthFormError } from "../../composables/useAuthFormError";
 
 const route = useDmsRoute();
 const { t } = useI18n();
 const toast = useToast();
-const { width } = useWindowSize();
+const dmsApp = useDmsApp();
 const { $authFetch } = useAuthFetch();
+const { formError, showFormError, clearFormError } = useAuthFormError();
 
 if (!route.query.email) {
   throw createError({
@@ -17,13 +23,10 @@ if (!route.query.email) {
   });
 }
 
-const MOBILE_BREAKPOINT = 375;
 const PIN_LENGTH = 6;
 const COOLDOWN_DURATION = 60;
 
-const computedSize = computed(() => {
-  return width.value < MOBILE_BREAKPOINT ? "lg" : "xl";
-});
+const email = computed(() => route.query.email as string);
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");
@@ -34,6 +37,10 @@ const schema = z.object({
 type Schema = z.output<typeof schema>;
 const state = reactive<Partial<Schema>>({});
 
+const isCodeComplete = computed(
+  () => (state.pin ?? []).join("").length === PIN_LENGTH,
+);
+
 const { cooldown, startCooldown } = useCooldown(COOLDOWN_DURATION);
 
 onMounted(() => {
@@ -43,28 +50,32 @@ onMounted(() => {
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     isLoading.value = true;
+    clearFormError();
     const token = event.data.pin.join("");
 
     await $authFetch("/api/auth/validate-forgot-password-token", {
       method: "POST",
       body: {
         token,
-        email: route.query.email,
+        email: email.value,
       },
     });
 
-    navigateDms(`/auth/recover?token=${token}&email=${route.query.email}`);
+    await dmsApp.runWithContext(() =>
+      navigateDms({
+        path: "/auth/recover",
+        query: { token, email: email.value },
+      }),
+    );
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.forgot.error_title",
-    });
+    showFormError(error, "page.forgot.error_title");
   } finally {
     isLoading.value = false;
   }
 }
 
-function onUpdatePin(value: string[]) {
-  if (value.length !== PIN_LENGTH) return;
+function onUpdatePin(value: string[] | undefined) {
+  if ((value ?? []).join("").length !== PIN_LENGTH) return;
 
   form.value?.submit();
 }
@@ -76,7 +87,7 @@ async function requestForgotPassword() {
     await $authFetch("/api/auth/forgot-password", {
       method: "POST",
       body: {
-        email: route.query.email as string,
+        email: email.value,
       },
     });
 
@@ -88,9 +99,7 @@ async function requestForgotPassword() {
       color: "success",
     });
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.validate.error_title",
-    });
+    showFormError(error, "page.validate.error_title");
   } finally {
     isLoading.value = false;
   }
@@ -98,61 +107,53 @@ async function requestForgotPassword() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.forgot.title_forget") }}
-      </h1>
-
-      <p class="text-muted wrap pb-7 text-sm font-normal">
-        {{ $t("page.forgot.description_validation") }}
-      </p>
-
-      <UForm
-        ref="form"
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
+  <StageCard icon="i-ph-envelope-simple" :title="$t('page.forgot.title_inbox')">
+    <template #description>
+      <i18n-t
+        keypath="page.forgot.description_validation"
+        tag="span"
+        scope="global"
       >
-        <div class="flex items-center justify-center">
-          <UPinInput
-            v-model="state.pin"
-            :length="PIN_LENGTH"
-            :size="computedSize"
-            type="text"
-            otp
-            @update:model-value="onUpdatePin"
-          />
-        </div>
+        <template #email>
+          <b>{{ email }}</b>
+        </template>
+      </i18n-t>
+    </template>
 
-        <div class="flex justify-center">
-          <UButton
-            v-if="cooldown === 0"
-            :label="$t('page.validate.request_validation')"
-            :loading="isLoading"
-            color="primary"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="requestForgotPassword()"
-          />
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+    >
+      <AuthFormAlert :error="formError" />
 
-          <UButton
-            v-else
-            :label="
-              $t('page.validate.request_validation_in', {
-                time: cooldown,
-              })
-            "
-            :loading="isLoading"
-            color="neutral"
-            variant="link"
-            size="sm"
-            disabled
-          />
-        </div>
-      </UForm>
-    </DmsCard>
-  </div>
+      <AuthCodeInput
+        v-model="state.pin"
+        :length="PIN_LENGTH"
+        :disabled="isLoading"
+        is-otp
+        @update:model-value="onUpdatePin"
+      />
+
+      <UButton
+        :loading="isLoading"
+        :disabled="!isCodeComplete"
+        :label="$t('page.forgot.reset_button')"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
+
+    <AuthResendCode
+      :cooldown="cooldown"
+      :disabled="isLoading"
+      @resend="requestForgotPassword"
+    />
+
+    <AuthBackLink to="/auth" :label="$t('button.back_to_login')" />
+  </StageCard>
 </template>

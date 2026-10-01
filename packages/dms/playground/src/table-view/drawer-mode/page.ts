@@ -12,7 +12,8 @@ export class PageTableViewDrawer extends PageController(
     icon: "i-ph-sidebar",
     category: tableViewCategory,
     order: 0,
-    description: "TableView with drawer mode",
+    description:
+      "Add, edit and details forms open in a side drawer next to the task list",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

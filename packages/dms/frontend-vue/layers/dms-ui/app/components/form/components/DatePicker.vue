@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="R extends boolean, M extends boolean">
 import { formatDate } from "#dms-core/app/utils/formatter";
+import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import type {
   CalendarProps,
   CalendarSlots,
@@ -12,6 +13,10 @@ import {
   type CalendarDate,
 } from "@internationalized/date";
 import { reactivePick } from "@vueuse/core";
+import {
+  FIELD_TRIGGER_CLASS,
+  FIELD_TRIGGER_UI,
+} from "../../../utils/fieldTrigger";
 
 // Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {
@@ -55,6 +60,16 @@ const emits = defineEmits<{
 defineSlots<CalendarSlots>();
 
 const { locale, t } = useI18n();
+const { weekStartsOn } = useUserRegionalPreferences();
+
+// The picker holds calendar days, read as UTC midnights (see
+// convertToCalendarDate): written in UTC, a day never shifts with the zone.
+const DATE_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "long",
+  day: "2-digit",
+  timeZone: "UTC",
+};
 
 const modelValue = defineModel<string | undefined | null>();
 
@@ -153,7 +168,7 @@ function formatDateLabel(value: unknown): string | undefined {
   }
   // A CalendarDate stringifies to its ISO date.
   const date = value instanceof Date ? value : String(value);
-  return formatDate(date, locale.value) ?? undefined;
+  return formatDate(date, locale.value, DATE_LABEL_FORMAT) ?? undefined;
 }
 
 // Range mode holds a { start, end } object and multiple mode an array, which
@@ -179,18 +194,24 @@ const label = computed(() => {
     <UButton
       :label="label ?? t('dms.form.select_date')"
       :ui="{
-        label: label ? 'text-default' : 'text-dimmed',
+        ...FIELD_TRIGGER_UI,
+        label: label ? 'truncate text-highlighted' : 'truncate text-dimmed',
       }"
       v-bind="buttonProps"
       variant="outline"
       color="neutral"
-      trailing
+      icon="i-ph-calendar-blank"
       trailing-icon="i-ph-caret-down"
       block
+      :class="['justify-start', FIELD_TRIGGER_CLASS]"
     />
 
     <template #content>
-      <UCalendar v-bind="forwarded" />
+      <UCalendar
+        v-bind="forwarded"
+        :week-starts-on="props.weekStartsOn ?? weekStartsOn"
+        class="p-2.5"
+      />
     </template>
   </UPopover>
 </template>

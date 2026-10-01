@@ -1,16 +1,15 @@
 <script setup lang="ts" generic="T extends Data">
-import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import { tv } from "tailwind-variants";
 import { injectLocal } from "@vueuse/core";
-import { useId, type ShallowRef } from "vue";
+import type { ShallowRef } from "vue";
+import DmsEmptyState, {
+  type EmptyStateVariant,
+} from "../../../components/empty-state/EmptyState.vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
 
-const theme = tv({
-  slots: {
-    root: "relative flex min-h-96 w-full flex-col items-center justify-center overflow-hidden rounded-b-lg z-10",
-  },
-});
+// The table's empty body: the generic v2 empty state (hatched, 44px well),
+// worded and equipped for why the table is empty — load error, filters
+// matching nothing, archive view, or no rows yet.
 
 interface TableEmptyProps {
   canAddRow?: boolean;
@@ -19,21 +18,17 @@ interface TableEmptyProps {
    * error state so a refused query never reads as "no data".
    */
   loadError?: string;
+  /** The table lists archived rows (archive mode toggle on). */
+  archived?: boolean;
 }
 
 const props = defineProps<TableEmptyProps>();
 
 const { t, te } = useI18n();
 
-const appConfig = useDmsAppConfig() as DmsAppConfig & {
-  ui: { tableEmpty: Partial<typeof theme> };
-};
-
 const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
-
-const stripesId = `table-empty-stripes-${useId()}`;
 
 const isFiltered = computed(() => {
   const hasGlobalFilter = !!tableSharedData.value?.globalFilterState?.value;
@@ -46,6 +41,7 @@ interface EmptyStateContent {
   title: string;
   description: string;
   icon: string;
+  variant: EmptyStateVariant;
 }
 
 const content = computed<EmptyStateContent>(() => {
@@ -61,19 +57,30 @@ const content = computed<EmptyStateContent>(() => {
           ? t(props.loadError)
           : t("dms.table.load_error_message"),
       icon: "i-ph-warning-circle",
+      variant: "error",
     };
   }
   if (isFiltered.value) {
     return {
       title: t("dms.table.no_results_title"),
       description: t("dms.table.no_results_message"),
-      icon: "i-ph-folder-open",
+      icon: "i-ph-magnifying-glass",
+      variant: "no-result",
+    };
+  }
+  if (props.archived) {
+    return {
+      title: t("dms.table.archived_empty_title"),
+      description: t("dms.table.archived_empty_message"),
+      icon: "i-ph-archive",
+      variant: "no-data",
     };
   }
   return {
     title: t("dms.table.empty_title"),
     description: t("dms.table.empty_message"),
-    icon: "i-ph-folder-open",
+    icon: "i-ph-tray",
+    variant: "no-data",
   };
 });
 
@@ -82,8 +89,38 @@ const actions = computed(() => {
     return [
       {
         label: t("dms.table.load_error_retry"),
+        icon: "i-ph-arrows-clockwise",
         color: "neutral" as const,
+        variant: "outline" as const,
+        size: "md" as const,
         onClick: () => tableSharedData.value?.emits("refresh"),
+      },
+    ];
+  }
+  if (isFiltered.value) {
+    return [
+      {
+        label: t("dms.table.delete_filters"),
+        icon: "i-ph-x",
+        color: "neutral" as const,
+        variant: "outline" as const,
+        size: "md" as const,
+        onClick: () => tableSharedData.value?.resetFilters(),
+      },
+    ];
+  }
+  if (props.archived) {
+    return [
+      {
+        label: t("dms.table.show_active"),
+        icon: "i-ph-arrow-left",
+        color: "neutral" as const,
+        variant: "outline" as const,
+        size: "md" as const,
+        onClick: () => {
+          const state = tableSharedData.value?.showArchivedState;
+          if (state) state.value = false;
+        },
       },
     ];
   }
@@ -91,53 +128,26 @@ const actions = computed(() => {
     return [
       {
         label: t("dms.table.new_row"),
-        color: "neutral" as const,
+        icon: "i-ph-plus",
+        color: "primary" as const,
+        size: "md" as const,
         onClick: () => tableSharedData.value?.emits("add"),
       },
     ];
   }
   return undefined;
 });
-
-const uiTableEmptyVariant = tv({
-  extend: tv(theme),
-  ...(appConfig.ui?.tableEmpty || {}),
-});
-const uiTableEmpty = computed(() => uiTableEmptyVariant());
 </script>
 
 <template>
-  <div :class="uiTableEmpty.root()">
-    <svg
-      class="stroke-inverted/10 absolute inset-0 -z-10 size-full"
-      fill="none"
-    >
-      <defs>
-        <pattern
-          :id="stripesId"
-          x="0"
-          y="0"
-          width="10"
-          height="10"
-          patternUnits="userSpaceOnUse"
-        >
-          <path d="M-3 13 15-5M-5 5l18-18M-1 21 17 3" />
-        </pattern>
-      </defs>
-      <rect
-        stroke="none"
-        :fill="`url(#${stripesId})`"
-        width="100%"
-        height="100%"
-      />
-    </svg>
-
-    <UEmpty
-      :title="content.title"
-      :description="content.description"
-      :actions="actions"
-      :icon="content.icon"
-      variant="naked"
-    />
-  </div>
+  <DmsEmptyState
+    :variant="content.variant"
+    :icon="content.icon"
+    :title="content.title"
+    :description="content.description"
+    :actions="actions"
+    size="lg"
+    framed
+    class="z-10 w-full"
+  />
 </template>

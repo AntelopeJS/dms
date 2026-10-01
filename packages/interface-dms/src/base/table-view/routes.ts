@@ -88,13 +88,16 @@ function buildBatchCountContext(
   return { ...ctx, url };
 }
 
+// The selection arrives as a repeated query parameter (`?ids=a&ids=b`): every
+// value is read, a single-value read would act on the first row only.
 const createBulkOperationRoute = (
   operationFunc: (...args: RowBulkOperationParams) => unknown,
 ): DataControllerCallback => ({
-  func: function (ctx: RequestContext, ids: string | string[]) {
+  func: function (ctx: RequestContext, ids: string[]) {
+    assert(ids.length > 0, 400, "Missing ids.");
     return operationFunc(this, ctx, ids);
   },
-  args: [Context(), Parameter("ids", "query")],
+  args: [Context(), MultiParameter("ids", "query")],
   method: "put",
 });
 

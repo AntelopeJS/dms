@@ -31,6 +31,10 @@ export class Role extends Table {
   @Field("string")
   declare name: string;
 
+  /** What the role is for, shown in the roles editor. Absent on older rows. */
+  @Field("string")
+  declare description?: string | null;
+
   /* 🔐 Permissions */
   @Field(["string"])
   declare permissions: string[];

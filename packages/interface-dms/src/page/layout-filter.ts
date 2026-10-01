@@ -1,5 +1,7 @@
+import type { PageHeaderActionSerialized } from "../base/layouts";
 import type { WatchAction } from "../base/types/watch";
 import type {
+  ComponentInfo,
   ChildSerialized,
   ComponentFilterContext,
   ComponentInfoSerialized,
@@ -155,4 +157,37 @@ export async function filterComponents(
   }
 
   return filtered;
+}
+
+/**
+ * The page layout (the frame around the components) as one caller may see it:
+ * the header actions declaring a `permission` the caller lacks are left out.
+ * `loadPermissions` is only called when an action declares one.
+ */
+export async function filterLayoutHeaderActions<T>(
+  layout: ComponentInfo<T> | undefined,
+  loadPermissions: () => Promise<Set<string>>,
+): Promise<ComponentInfo<T> | undefined> {
+  const options = layout?.options as
+    | { headerActions?: PageHeaderActionSerialized[] }
+    | undefined;
+  const actions = options?.headerActions;
+  if (!layout || !actions?.some((action) => action.permission)) {
+    return layout;
+  }
+  const permissions = await loadPermissions();
+  const granted = await Promise.all(
+    actions.map((action) =>
+      action.permission
+        ? HasPermission(permissions, action.permission)
+        : Promise.resolve(true),
+    ),
+  );
+  return {
+    ...layout,
+    options: {
+      ...options,
+      headerActions: actions.filter((_, index) => granted[index]),
+    } as T,
+  };
 }

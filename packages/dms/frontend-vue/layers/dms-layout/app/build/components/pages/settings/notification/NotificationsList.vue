@@ -1,226 +1,337 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
-import NotificationCard from "../../../notification/NotificationCard.vue";
+import { useNotificationCatalog } from "../../../../../composables/notification/useNotificationCatalog";
+import type {
+  NotificationInboxFilter,
+  UserNotification,
+} from "../../../../../composables/notification/useNotifications";
+import NotificationInboxItem from "./NotificationInboxItem.vue";
+import {
+  type NotificationSourceTag,
+  formatNotificationTime,
+  groupNotificationsByDay,
+} from "./notificationDisplay";
+
+interface InboxTab {
+  id: NotificationInboxFilter;
+  label: string;
+  count: number;
+}
+
+const UNDO_TOAST_DURATION_MS = 6000;
 
 const { t, locale } = useI18n();
-const { processI18n } = useTranslation();
 const toast = useToast();
+const { confirm } = useConfirm();
+const catalog = useNotificationCatalog();
 const {
-  notifications,
-  hasMore,
-  fetchNotifications,
+  inboxFilter,
+  inboxItems,
+  inboxHasMore,
+  inboxCounts,
+  fetchInbox,
+  fetchCounts,
+  setInboxFilter,
   markAsRead,
+  markAsUnread,
   deleteNotification,
   markAllAsRead,
+  undoMarkAllAsRead,
   deleteAll,
 } = useNotifications();
+
 const sentinel = ref<HTMLElement | null>(null);
-
+const isLoaded = ref(false);
 const isMarkingAllRead = ref(false);
-const isDeletingAll = ref(false);
-
-const hasNotifications = computed(() => notifications.value.length > 0);
 
 const { isLoadingMore, setupObserver } = useInfiniteScroll(
   sentinel,
-  () => fetchNotifications(),
-  hasMore,
+  () => fetchInbox(),
+  inboxHasMore,
 );
 
-onMounted(async () => {
-  await fetchNotifications(true);
-  setupObserver();
+const tabs = computed<InboxTab[]>(() => [
+  {
+    id: "all",
+    label: t("page.settings.notifications.tab_all"),
+    count: inboxCounts.value.all,
+  },
+  {
+    id: "unread",
+    label: t("page.settings.notifications.tab_unread"),
+    count: inboxCounts.value.unread,
+  },
+]);
+
+const groups = computed(() => groupNotificationsByDay(inboxItems.value));
+const remainingCount = computed(() => {
+  const total =
+    inboxFilter.value === "unread"
+      ? inboxCounts.value.unread
+      : inboxCounts.value.all;
+  return Math.max(total - inboxItems.value.length, 0);
 });
 
-const handleNotificationClick = async (notification: UserNotification) => {
-  if (!notification.isRead) {
-    await markAsRead(notification._id);
-  }
+const timeOf = (notification: UserNotification) =>
+  formatNotificationTime(notification.createdAt, locale.value, (date) =>
+    formatRelativeTime(date, t, locale.value),
+  );
 
-  if (notification.linkTo) {
-    await navigateDms(notification.linkTo);
+/** A module's category tag wins; core notifications show their subject. */
+const sourceOf = (
+  notification: UserNotification,
+): NotificationSourceTag | undefined => {
+  const category = catalog.findCategory(notification.categoryId);
+  if (category?.tagKey) return { label: t(category.tagKey), isModule: true };
+  const subject = catalog.findSubject(
+    notification.categoryId,
+    notification.subjectId,
+  );
+  const labelKey = subject?.labelKey ?? category?.labelKey;
+  return labelKey ? { label: t(labelKey), isModule: false } : undefined;
+};
+
+const notifyFailure = () =>
+  toast.add({ title: t("dms.form.error_title"), color: "error" });
+
+const runSafely = async (action: () => Promise<unknown>) => {
+  try {
+    await action();
+  } catch {
+    notifyFailure();
   }
 };
 
-const handleDelete = async (notificationId: string, event: Event) => {
-  event.stopPropagation();
-  await deleteNotification(notificationId);
+const openNotification = async (notification: UserNotification) => {
+  if (!notification.isRead) await runSafely(() => markAsRead(notification._id));
+  if (notification.linkTo) await navigateDms(notification.linkTo);
 };
 
-const handleMarkAsReadSingle = async (notificationId: string, event: Event) => {
-  event.stopPropagation();
-  await markAsRead(notificationId);
+const toggleRead = (notification: UserNotification) =>
+  runSafely(() =>
+    notification.isRead
+      ? markAsUnread(notification._id)
+      : markAsRead(notification._id),
+  );
+
+const selectTab = (filter: NotificationInboxFilter) =>
+  runSafely(() => setInboxFilter(filter));
+
+const offerUndo = (ids: string[]) => {
+  toast.add({
+    title: t(
+      "page.settings.notifications.mark_all_read_toast",
+      { count: ids.length },
+      ids.length,
+    ),
+    icon: "i-ph-checks",
+    duration: UNDO_TOAST_DURATION_MS,
+    actions: [
+      {
+        label: t("page.settings.notifications.undo"),
+        icon: "i-ph-arrow-counter-clockwise",
+        color: "neutral",
+        variant: "outline",
+        size: "xs",
+        onClick: () => runSafely(() => undoMarkAllAsRead(ids)),
+      },
+    ],
+  });
 };
 
 const handleMarkAllAsRead = async () => {
   isMarkingAllRead.value = true;
-
   try {
-    await markAllAsRead();
-    toast.add({
-      title: t("page.settings.notifications.mark_all_read_success"),
-      color: "success",
-    });
+    const ids = await markAllAsRead();
+    if (ids.length > 0) offerUndo(ids);
   } catch {
-    toast.add({
-      title: t("dms.form.error_title"),
-      color: "error",
-    });
+    notifyFailure();
   } finally {
     isMarkingAllRead.value = false;
   }
 };
 
-const handleDeleteAll = async () => {
-  isDeletingAll.value = true;
-
-  try {
-    await deleteAll();
-    toast.add({
-      title: t("page.settings.notifications.delete_all_success"),
-      color: "success",
-    });
-  } catch {
-    toast.add({
-      title: t("dms.form.error_title"),
-      color: "error",
-    });
-  } finally {
-    isDeletingAll.value = false;
-  }
+// v2 .modal.confirm; a failure is toasted and the dialog stays open.
+const confirmDeleteAll = () => {
+  const total = inboxCounts.value.all;
+  const unread = inboxCounts.value.unread;
+  return confirm({
+    title: t(
+      "page.settings.notifications.delete_all_title",
+      { count: total },
+      total,
+    ),
+    description:
+      unread > 0
+        ? t(
+            "page.settings.notifications.delete_all_description_unread",
+            { count: unread },
+            unread,
+          )
+        : t("page.settings.notifications.delete_all_description"),
+    icon: "i-ph-trash",
+    confirmColor: "error",
+    confirmLabel: t(
+      "page.settings.notifications.delete_all_confirm",
+      { count: total },
+      total,
+    ),
+    cancelLabel: t("page.settings.notifications.cancel"),
+    onConfirm: async () => {
+      try {
+        await deleteAll();
+        return true;
+      } catch {
+        notifyFailure();
+        return false;
+      }
+    },
+  });
 };
+
+watch(sentinel, (element) => {
+  if (element) setupObserver();
+});
+
+onMounted(async () => {
+  await runSafely(() =>
+    Promise.all([
+      fetchInbox(true),
+      fetchCounts(),
+      catalog.isLoaded.value ? undefined : catalog.loadCatalog(),
+    ]),
+  );
+  isLoaded.value = true;
+});
 </script>
 
 <template>
-  <div>
-    <section class="mb-6 space-y-6">
-      <div class="flex items-start justify-between gap-4">
-        <div class="space-y-1">
-          <h2 class="text-highlighted text-2xl font-semibold sm:text-xl">
-            {{ $t("page.settings.notifications.list_title") }}
-          </h2>
-          <p class="text-dimmed text-base sm:text-sm">
-            {{ $t("page.settings.notifications.list_description") }}
-          </p>
-        </div>
-
-        <div class="flex gap-2">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            icon="i-ph-checks"
-            :disabled="!hasNotifications"
-            :loading="isMarkingAllRead"
-            @click="handleMarkAllAsRead"
-          >
-            {{ $t("page.settings.notifications.mark_all_read") }}
-          </UButton>
-          <UButton
-            variant="ghost"
-            color="neutral"
-            icon="i-ph-broom"
-            :disabled="!hasNotifications"
-            :loading="isDeletingAll"
-            @click="handleDeleteAll"
-          >
-            {{ $t("page.settings.notifications.delete_all") }}
-          </UButton>
-        </div>
-      </div>
-    </section>
-
-    <div>
-      <UEmpty
-        v-if="notifications.length === 0"
-        icon="i-ph-bell-slash"
-        :title="$t('page.settings.notifications.no_notifications')"
-      />
-
-      <NotificationCard
-        v-for="notification in notifications"
-        :key="notification._id"
-        :clickable="true"
-        :dimmed="notification.isRead"
-        mode="list"
-        actions-on-hover
-        @click="handleNotificationClick(notification)"
+  <DmsSection
+    :title="t('page.settings.notifications.inbox_title')"
+    :description="t('page.settings.notifications.inbox_description')"
+  >
+    <div
+      class="border-default flex items-center gap-2.5 border-b pr-3.5 pl-[18px]"
+    >
+      <nav
+        class="flex gap-[18px]"
+        role="tablist"
+        :aria-label="t('page.settings.notifications.filter_label')"
       >
-        <template #icon>
-          <div class="relative">
-            <div
-              v-if="!notification.isRead"
-              class="bg-primary absolute top-4 -left-4 size-2 rounded-full"
-            />
-            <div
-              :class="[
-                'flex size-10 items-center justify-center rounded-lg',
-                notification.isRead ? 'bg-accented' : 'bg-primary/10',
-              ]"
-            >
-              <UIcon
-                :name="notification.icon"
-                :class="[
-                  'size-5',
-                  notification.isRead ? 'text-muted' : 'text-primary',
-                ]"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #title>
-          <div class="text-highlighted mb-1 text-sm font-medium">
-            {{ processI18n(notification.title, notification.params) }}
-          </div>
-        </template>
-
-        <template #description>
-          <div class="text-dimmed text-xs">
-            {{ processI18n(notification.description, notification.params) }}
-          </div>
-        </template>
-
-        <template #meta>
-          <span class="text-muted text-xs whitespace-nowrap">
-            {{ formatRelativeTime(notification.createdAt, t, locale) }}
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          role="tab"
+          :aria-selected="inboxFilter === tab.id"
+          class="relative inline-flex h-[38px] items-center gap-1.5 px-0.5 text-[13px] transition-colors"
+          :class="
+            inboxFilter === tab.id
+              ? 'text-highlighted after:bg-primary font-semibold after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-t-[2px]'
+              : 'text-muted hover:text-highlighted font-medium'
+          "
+          @click="selectTab(tab.id)"
+        >
+          {{ tab.label }}
+          <span
+            class="rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums"
+            :class="
+              inboxFilter === tab.id
+                ? 'text-primary bg-(--dms-accent-tint)'
+                : 'bg-elevated text-dimmed'
+            "
+          >
+            {{ tab.count }}
           </span>
-        </template>
-
-        <template #actions>
-          <div class="flex min-w-14 items-center justify-end gap-1">
-            <UButton
-              v-if="!notification.isRead"
-              icon="i-ph-check"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              @click="
-                (event: Event) =>
-                  handleMarkAsReadSingle(notification._id, event)
-              "
-            />
-            <UButton
-              icon="i-ph-broom"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              @click="(event: Event) => handleDelete(notification._id, event)"
-            />
-          </div>
-        </template>
-      </NotificationCard>
-
-      <div
-        v-if="hasMore"
-        ref="sentinel"
-        class="flex h-4 items-center justify-center"
-      >
-        <UIcon
-          v-if="isLoadingMore"
-          name="i-ph-spinner"
-          class="size-4 animate-spin"
+        </button>
+      </nav>
+      <div class="ms-auto flex items-center gap-1.5">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-ph-checks"
+          :label="t('page.settings.notifications.mark_all_read')"
+          :disabled="inboxCounts.unread === 0"
+          :loading="isMarkingAllRead"
+          @click="handleMarkAllAsRead"
+        />
+        <UButton
+          v-if="inboxCounts.all > 0"
+          color="error"
+          variant="ghost"
+          size="sm"
+          icon="i-ph-trash"
+          :label="t('page.settings.notifications.delete_all')"
+          @click="confirmDeleteAll"
         />
       </div>
     </div>
-  </div>
+
+    <div v-if="!isLoaded" class="space-y-4 px-[18px] py-5">
+      <div v-for="row in 3" :key="row" class="flex items-start gap-3">
+        <USkeleton class="size-[34px] rounded-[9px]" />
+        <div class="flex-1 space-y-1.5">
+          <USkeleton class="h-3 w-56" />
+          <USkeleton class="h-2.5 w-80" />
+        </div>
+      </div>
+    </div>
+
+    <template v-else-if="inboxItems.length > 0">
+      <section v-for="(group, index) in groups" :key="group.key">
+        <DmsEyebrow
+          as="h3"
+          class="border-muted bg-(--dms-bg-muted) pt-2 pr-[18px] pb-1.5 pl-[18px]"
+          :class="{ 'border-t': index > 0 }"
+          :label="t(`page.settings.notifications.day_${group.key}`)"
+        />
+        <NotificationInboxItem
+          v-for="notification in group.items"
+          :key="notification._id"
+          :notification="notification"
+          :time="timeOf(notification)"
+          :source="sourceOf(notification)"
+          @open="openNotification(notification)"
+          @toggle-read="toggleRead(notification)"
+          @delete="runSafely(() => deleteNotification(notification._id))"
+        />
+      </section>
+    </template>
+
+    <DmsEmptyState
+      v-else
+      icon="i-ph-bell-slash"
+      :title="t('page.settings.notifications.empty_title')"
+      :description="t('page.settings.notifications.empty_description')"
+    />
+
+    <template v-if="isLoaded && inboxHasMore && inboxItems.length > 0" #footer>
+      <div ref="sentinel" class="flex w-full justify-center">
+        <span
+          v-if="isLoadingMore"
+          class="text-muted inline-flex items-center gap-1.5 font-mono text-[11.5px] font-medium"
+        >
+          <UIcon name="i-ph-circle-notch" class="size-3 animate-spin" />
+          {{
+            t("page.settings.notifications.loading_more", {
+              count: remainingCount,
+            })
+          }}
+        </span>
+        <UButton
+          v-else
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :label="
+            t('page.settings.notifications.load_more', {
+              count: remainingCount,
+            })
+          "
+          @click="runSafely(() => fetchInbox())"
+        />
+      </div>
+    </template>
+  </DmsSection>
 </template>

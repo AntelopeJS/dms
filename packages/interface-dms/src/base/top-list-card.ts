@@ -46,6 +46,8 @@ export interface TopListCardProps extends BaseComponentProps {
   rankColor?: ChartColorValue;
   showDelta?: boolean;
   showSparkline?: boolean;
+  /** Draws a proportional bar under each row, scaled to the largest value. */
+  showBar?: boolean;
   sparklineAccent?: ChartColorValue | "auto";
   invert?: boolean;
   badgeColor?: ChartColorValue;
@@ -138,6 +140,11 @@ export const TopListCardSchema = z.object({
   }),
   showDelta: ui(z.boolean().optional(), {
     label: "Show variation",
+    group: "appearance",
+    widget: "switch",
+  }),
+  showBar: ui(z.boolean().optional(), {
+    label: "Show bar",
     group: "appearance",
     widget: "switch",
   }),
