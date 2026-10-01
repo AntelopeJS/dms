@@ -19,9 +19,10 @@ export const withFilePromotion = (
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
     }
-    // Every TableView mounted on this controller saves through this route, so
-    // a file staged from any of them is one it may promote.
-    const { componentBuilders } = getTableViewMetaFor(this);
+    // Every TableView and ResourceForm mounted on this controller saves
+    // through this route, so a file staged from any of them is one it may
+    // promote.
+    const { writingComponents } = getTableViewMetaFor(this);
     return internal.SaveTableViewAttachments({
       controller: this,
       route: baseRoute,
@@ -29,7 +30,7 @@ export const withFilePromotion = (
       params,
       args,
       mode,
-      componentIds: componentBuilders.flatMap(GetComponentPermissionIds),
+      componentIds: writingComponents.flatMap(GetComponentPermissionIds),
     });
   },
   args: baseRoute.args,

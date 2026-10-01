@@ -15,6 +15,7 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
+import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -23,7 +24,10 @@ import type {
   FormPropsSerialized,
 } from "@antelopejs/interface-dms/base/form";
 import { TableView } from "@antelopejs/interface-dms/base/table-view/factory";
-import { Column } from "@antelopejs/interface-dms/base/table-view/meta";
+import {
+  Column,
+  TableViewMeta,
+} from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
 import { ResourceForm } from "@antelopejs/interface-dms/base/table-view/resource-form";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base/table-view/routes";
@@ -136,6 +140,21 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
       edited,
       "the row token is the form's to resolve, not an option",
     ).to.not.have.property("rowId");
+  });
+
+  it("counts among the components writing to the table only when it submits", () => {
+    const meta = GetMetadata(TicketAPI, TableViewMeta);
+    const created = ResourceForm(TicketAPI, { mode: "new" });
+    const edited = ResourceForm(TicketAPI, { mode: "edit" });
+    const shown = ResourceForm(TicketAPI, { mode: "view" });
+    const table = TableView(TicketAPI);
+
+    expect(meta.writingComponents).to.include.members([created, edited, table]);
+    expect(meta.writingComponents).to.not.include(shown);
+    expect(
+      meta.componentBuilders,
+      "a form carries no TableView action permission",
+    ).to.not.include.members([created, edited]);
   });
 
   it("is declared as a block over a table, picked by mode", () => {

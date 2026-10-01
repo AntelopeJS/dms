@@ -27,6 +27,7 @@ import { isString } from "../../utils/type-check";
 import { type DataType, serializeType } from "../data-types";
 import {
   type FieldGroup,
+  type FormBuilder,
   type FormField,
   type FormFieldOrGroup,
 } from "../form-types";
@@ -50,6 +51,25 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   edit: FormMode.edit,
   new: FormMode.new,
 };
+
+/** Insertion-ordered set of weakly held objects; `live` drops the collected ones. */
+class WeakRefList<T extends object> {
+  private readonly refs = new Set<WeakRef<T>>();
+
+  public add(value: T): void {
+    this.refs.add(new WeakRef(value));
+  }
+
+  public live(): T[] {
+    const values: T[] = [];
+    for (const ref of this.refs) {
+      const value = ref.deref();
+      if (value) values.push(value);
+      else this.refs.delete(ref);
+    }
+    return values;
+  }
+}
 
 export interface ColumnGroupConfig {
   label: string;
@@ -86,30 +106,47 @@ export class TableViewMeta {
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
-  // Held weakly: a page module that hot-reloads builds a new TableView on the
-  // same controller, and the one it replaced must not stay reachable from here.
-  private readonly componentBuilderRefs = new Set<
-    WeakRef<ComponentBuilder<TableViewOptionsSerialized>>
+  // Held weakly: a page module that hot-reloads builds a new TableView or
+  // ResourceForm on the same controller, and the one it replaced must not stay
+  // reachable from here.
+  private readonly componentBuilderRefs = new WeakRefList<
+    ComponentBuilder<TableViewOptionsSerialized>
   >();
+  private readonly resourceFormRefs = new WeakRefList<FormBuilder>();
 
   /**
    * Every live TableView built on this controller, in build order. Several
    * pages may mount their own TableView over the same data routes.
    */
   public get componentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
-    const builders: ComponentBuilder<TableViewOptionsSerialized>[] = [];
-    for (const ref of this.componentBuilderRefs) {
-      const builder = ref.deref();
-      if (builder) builders.push(builder);
-      else this.componentBuilderRefs.delete(ref);
-    }
-    return builders;
+    return this.componentBuilderRefs.live();
   }
 
   public addComponentBuilder(
     builder: ComponentBuilder<TableViewOptionsSerialized>,
   ): void {
-    this.componentBuilderRefs.add(new WeakRef(builder));
+    this.componentBuilderRefs.add(builder);
+  }
+
+  /**
+   * Every live `ResourceForm` block built on this controller that submits to
+   * its data routes — a `new` or `edit` one — in build order.
+   */
+  public get resourceFormBuilders(): FormBuilder[] {
+    return this.resourceFormRefs.live();
+  }
+
+  public addResourceFormBuilder(builder: FormBuilder): void {
+    this.resourceFormRefs.add(builder);
+  }
+
+  /**
+   * Every live component that submits to this controller's write routes: its
+   * TableViews and its `new` / `edit` ResourceForm blocks. A file one of them
+   * staged is one those routes may save.
+   */
+  public get writingComponents(): Component[] {
+    return [...this.componentBuilders, ...this.resourceFormBuilders];
   }
 
   /**

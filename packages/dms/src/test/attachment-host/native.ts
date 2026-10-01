@@ -36,6 +36,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Column,
+  ResourceForm,
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -144,6 +145,23 @@ export class NativeFileSecondaryPage extends RootPageController(
   { displayName: "Native files (secondary)" },
 ) {
   static content = secondaryTable;
+}
+
+// Standalone forms posting to the same data routes as the TableViews above.
+@RegisterPage()
+export class NativeFileNewFormPage extends RootPageController(
+  "nativefiles-new-form",
+  { displayName: "Native files (new form)" },
+) {
+  static content = ResourceForm(NativeDocumentController, { mode: "new" });
+}
+
+@RegisterPage()
+export class NativeFileEditFormPage extends RootPageController(
+  "nativefiles-edit-form",
+  { displayName: "Native files (edit form)" },
+) {
+  static content = ResourceForm(NativeDocumentController, { mode: "edit" });
 }
 
 export class NativeAttachmentFormController extends Controller(
