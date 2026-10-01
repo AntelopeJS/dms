@@ -129,8 +129,9 @@ export class TableViewMeta {
   }
 
   /**
-   * Every live `ResourceForm` block built on this controller that submits to
-   * its data routes — a `new` or `edit` one — in build order.
+   * Every live `new` / `edit` form built over this controller, in build order:
+   * the `ResourceForm` blocks and the forms each TableView opens. They all
+   * submit to its data routes.
    */
   public get resourceFormBuilders(): FormBuilder[] {
     return this.resourceFormRefs.live();
@@ -142,8 +143,9 @@ export class TableViewMeta {
 
   /**
    * Every live component that submits to this controller's write routes: its
-   * TableViews and its `new` / `edit` ResourceForm blocks. A file one of them
-   * staged is one those routes may save.
+   * TableViews and its `new` / `edit` forms (ResourceForm blocks, and the
+   * forms a page-mode TableView mounts on its form sub-pages). A file one of
+   * them staged is one those routes may save.
    */
   public get writingComponents(): Component[] {
     return [...this.componentBuilders, ...this.resourceFormBuilders];

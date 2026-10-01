@@ -100,11 +100,17 @@ export function resourceForm<T extends ControllerClass>(
     return undefined;
   }
   const { rowId = ROUTE_PARAM_ROW_ID, ...formOptions } = options;
-  return Form({
+  const form = Form({
     ...formOptions,
     fields,
     ...formRoutes(location, mode, rowId),
   });
+  // A form that submits to the controller's write routes is a provenance the
+  // routes accept files from, as each of its TableViews is. That covers a
+  // TableView's own form too: a page-mode TableView mounts it as the component
+  // of its form sub-page, whose upload tokens are claimed under that form.
+  if (mode !== "view") meta.addResourceFormBuilder(form);
+  return form;
 }
 
 /**
@@ -124,11 +130,5 @@ export function ResourceForm<T extends ControllerClass>(
   const form = resourceForm(controller, mode, { ...formOptions, rowId });
   // A resource with nothing to fill in for this mode still renders as a form —
   // its title, and no field — rather than as a hole in the page.
-  if (!form) return Form({ ...formOptions, fields: [] });
-  // A form that submits to the controller's write routes is a provenance the
-  // routes accept files from, as each of its TableViews is.
-  if (mode !== "view") {
-    GetMetadata(controller, TableViewMeta).addResourceFormBuilder(form);
-  }
-  return form;
+  return form ?? Form({ ...formOptions, fields: [] });
 }
