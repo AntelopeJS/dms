@@ -45,7 +45,7 @@ import {
   combineRowRules,
   createValidatedRoute,
 } from "@antelopejs/interface-dms/base/table-view/row-rules";
-import { appendTableViewKey } from "@antelopejs/interface-dms/base/table-view/factory-helpers";
+import { appendTableViewKey } from "@antelopejs/interface-dms/base/table-view/table-view-key";
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
 // Several table views mount one controller and share its data routes, never
