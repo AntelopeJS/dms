@@ -20,6 +20,10 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import {
+  isDefinitiveMetadataFailure,
+  resolveMetadataRetryDelay,
+} from "../layers/dms-ui/app/utils/metadataRetry";
 
 interface ImageValue {
   key: string;
@@ -92,6 +96,8 @@ beforeEach(() => {
         }),
   );
   vi.stubGlobal("defineProps", () => props);
+  vi.stubGlobal("isDefinitiveMetadataFailure", isDefinitiveMetadataFailure);
+  vi.stubGlobal("resolveMetadataRetryDelay", resolveMetadataRetryDelay);
   vi.stubGlobal("defineEmits", () => emit);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);

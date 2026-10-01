@@ -7,6 +7,10 @@ import {
   type FileConstraintViolation,
   type FileFieldConstraints,
 } from "../../../utils/fileConstraints";
+import {
+  isDefinitiveMetadataFailure,
+  resolveMetadataRetryDelay,
+} from "../../../utils/metadataRetry";
 
 export type FileConstraints = FileFieldConstraints;
 
@@ -55,11 +59,11 @@ const uploadedKeys = ref<string[]>([]);
 const fileMetadata = ref<Map<string, FileMetadataResponse>>(new Map());
 const unavailableKeys = ref<Set<string>>(new Set());
 const metadataTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const metadataFailures = new Map<string, number>();
 const pendingMetadata = new Map<string, Promise<void>>();
 let isDisposed = false;
 const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
 const URL_REFRESH_LEAD_MS = 5000;
-const TRANSIENT_RETRY_MS = 1000;
 
 const initializeFromModelValue = (
   val: string | string[] | null | undefined,
@@ -107,6 +111,33 @@ const fetchMetadata = async (
   await request;
 };
 
+const markUnavailable = (resourceKey: string, error: unknown) => {
+  const cached = fileMetadata.value.get(resourceKey);
+  const isExpired =
+    cached?.expiresAt !== undefined && cached.expiresAt <= Date.now();
+  if (cached && !isExpired && !isDefinitiveMetadataFailure(error)) return;
+  fileMetadata.value.set(resourceKey, {
+    resourceKey,
+    filename: cached?.filename ?? resourceKey,
+    size: cached?.size ?? 0,
+    mimetype: cached?.mimetype ?? "application/octet-stream",
+    url: "",
+  });
+  unavailableKeys.value.add(resourceKey);
+};
+
+const handleMetadataFailure = (resourceKey: string, error: unknown) => {
+  markUnavailable(resourceKey, error);
+  const failures = (metadataFailures.get(resourceKey) ?? 0) + 1;
+  metadataFailures.set(resourceKey, failures);
+  const delay = resolveMetadataRetryDelay(error, failures);
+  if (delay === null || import.meta.env.SSR) return;
+  metadataTimers.set(
+    resourceKey,
+    setTimeout(() => fetchMetadata(resourceKey, true), delay),
+  );
+};
+
 const requestMetadata = async (resourceKey: string): Promise<void> => {
   try {
     const metadata = await $authFetch<FileMetadataResponse>(
@@ -124,28 +155,11 @@ const requestMetadata = async (resourceKey: string): Promise<void> => {
     if (isDisposed || !uploadedKeys.value.includes(resourceKey)) return;
     fileMetadata.value.set(resourceKey, metadata);
     unavailableKeys.value.delete(resourceKey);
+    metadataFailures.delete(resourceKey);
     scheduleMetadataRefresh(resourceKey, metadata.expiresAt);
-  } catch (_error) {
+  } catch (error) {
     if (isDisposed || !uploadedKeys.value.includes(resourceKey)) return;
-    const cached = fileMetadata.value.get(resourceKey);
-    const isExpired =
-      cached?.expiresAt !== undefined && cached.expiresAt <= Date.now();
-    if (!cached || isExpired) {
-      fileMetadata.value.set(resourceKey, {
-        resourceKey,
-        filename: cached?.filename ?? resourceKey,
-        size: cached?.size ?? 0,
-        mimetype: cached?.mimetype ?? "application/octet-stream",
-        url: "",
-      });
-      unavailableKeys.value.add(resourceKey);
-    }
-    if (!import.meta.env.SSR) {
-      metadataTimers.set(
-        resourceKey,
-        setTimeout(() => fetchMetadata(resourceKey, true), TRANSIENT_RETRY_MS),
-      );
-    }
+    handleMetadataFailure(resourceKey, error);
   } finally {
     pendingMetadata.delete(resourceKey);
   }
@@ -288,6 +302,7 @@ const removeUploadedFile = (key: string) => {
   uploadedKeys.value = uploadedKeys.value.filter((k) => k !== key);
   fileMetadata.value.delete(key);
   unavailableKeys.value.delete(key);
+  metadataFailures.delete(key);
   const timer = metadataTimers.get(key);
   if (timer) clearTimeout(timer);
   emitValue();
