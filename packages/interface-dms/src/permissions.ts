@@ -127,3 +127,14 @@ export async function HasPermission(
   const permission = await GetPermission(permissionId);
   return permissions.has(permissionId) || permission?.defaultGranted || false;
 }
+
+/** Whether `permissions` grants at least one of `permissionIds`. */
+export async function HasAnyPermission(
+  permissions: Set<string>,
+  permissionIds: string[],
+): Promise<boolean> {
+  for (const permissionId of permissionIds) {
+    if (await HasPermission(permissions, permissionId)) return true;
+  }
+  return false;
+}

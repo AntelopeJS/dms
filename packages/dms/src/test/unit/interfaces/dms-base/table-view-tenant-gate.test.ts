@@ -48,9 +48,9 @@ function tableViewInstance(
     meta.setBypassTenantAccessGate();
   }
   if (permissionId) {
-    meta.componentBuilder = {
+    meta.addComponentBuilder({
       getAction: () => ({ permissionId }),
-    } as unknown as ComponentBuilder<TableViewOptionsSerialized>;
+    } as unknown as ComponentBuilder<TableViewOptionsSerialized>);
   }
   return new Controller();
 }

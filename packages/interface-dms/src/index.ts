@@ -135,6 +135,7 @@ export {
   GetPermission,
   GetPermissions,
   GetUserPermissions,
+  HasAnyPermission,
   HasPermission,
   IsModuleScopedPermission,
   MarkModuleScopedPermission,

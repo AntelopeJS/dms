@@ -11,7 +11,10 @@ import type {
 } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { RoleModel, TenantMemberModel } from "../../db";
-import { GetEffectiveUserPermissions, HasPermission } from "../../permissions";
+import {
+  GetEffectiveUserPermissions,
+  HasAnyPermission,
+} from "../../permissions";
 import { getRequestTenantId } from "../../request-tenant";
 import { AssertTenantAccess } from "../../tenant-access";
 import { AuthUser } from "../../auth";
@@ -46,9 +49,9 @@ export const GATE_BYPASSABLE_ACTIONS = [
 
 function isGateBypassableAction(
   actionId: string,
-  permissionId: string | undefined,
+  permissionIds: string[],
 ): boolean {
-  return !!permissionId && GATE_BYPASSABLE_ACTIONS.includes(actionId);
+  return permissionIds.length > 0 && GATE_BYPASSABLE_ACTIONS.includes(actionId);
 }
 
 // @internal
@@ -66,8 +69,7 @@ export async function authorizeAction(
   // gate applies even when the action carries no permission id. Table views
   // flagged `bypassTenantAccessGate` opt out so they stay reachable on
   // recovery surfaces.
-  const action = meta.componentBuilder?.getAction(actionId);
-  const permissionId = action?.permissionId;
+  const permissionIds = meta.actionPermissionIds(actionId);
   // The opt-out only rides along with a stamped, read-only action. The flag
   // latches controller-wide, so anything else — an unstamped action on a
   // component no page mounted, or a write — would be served from every page
@@ -76,7 +78,7 @@ export async function authorizeAction(
   // of a tenant the product has been shut off for.
   if (
     !meta.bypassTenantAccessGate ||
-    !isGateBypassableAction(actionId, permissionId)
+    !isGateBypassableAction(actionId, permissionIds)
   ) {
     if (meta.bypassTenantAccessGate) {
       Logging.Trace(
@@ -85,7 +87,7 @@ export async function authorizeAction(
     }
     await AssertTenantAccess(user._id, tenantId);
   }
-  if (!action || !permissionId) {
+  if (permissionIds.length === 0) {
     return undefined;
   }
   const roleModel = GetModel(RoleModel, tenantId);
@@ -98,10 +100,14 @@ export async function authorizeAction(
     roleIds,
     roleModel,
   );
-  if (await HasPermission(permissions, permissionId)) {
+  if (await HasAnyPermission(permissions, permissionIds)) {
     return permissions;
   }
-  throwHttpAssert(false, 403, `Forbidden: missing permission ${permissionId}`);
+  throwHttpAssert(
+    false,
+    403,
+    `Forbidden: missing permission ${permissionIds.join(" or ")}`,
+  );
 }
 
 export function withActionCheck<T extends DataControllerCallback>(
