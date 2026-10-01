@@ -10,6 +10,10 @@ import {
   type ImageResizeBounds,
   resizeImageToBounds,
 } from "../../../utils/imageResize";
+import {
+  isDefinitiveMetadataFailure,
+  resolveMetadataRetryDelay,
+} from "../../../utils/metadataRetry";
 
 export type ImageConstraints = FileFieldConstraints;
 
@@ -71,7 +75,6 @@ const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
 
 const DEFAULT_ACCEPT = "image/*";
 const URL_REFRESH_LEAD_MS = 5000;
-const TRANSIENT_RETRY_MS = 1000;
 const FAILURE_LABEL_KEYS: Partial<Record<ItemStatus, string>> = {
   error: "dms.form.image.upload_failed",
   unavailable: "dms.form.image.file_unavailable",
@@ -93,6 +96,7 @@ const dragOverItemId = ref<string | null>(null);
 const detailItemId = ref<string | null>(null);
 const detailAltDraft = ref("");
 const metadataTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const metadataFailures = new Map<string, number>();
 const pendingMetadata = new Set<string>();
 let isDisposed = false;
 
@@ -136,6 +140,21 @@ const scheduleItemExpiryRefresh = (item: GalleryItem) => {
   scheduleItemMetadataRefresh(item, remaining - refreshLead);
 };
 
+const handleItemMetadataFailure = (item: GalleryItem, error: unknown) => {
+  if (
+    isDefinitiveMetadataFailure(error) ||
+    !item.url ||
+    (item.expiresAt !== undefined && item.expiresAt <= Date.now())
+  ) {
+    item.url = "";
+    item.status = "unavailable";
+  }
+  const failures = (metadataFailures.get(item.id) ?? 0) + 1;
+  metadataFailures.set(item.id, failures);
+  const delay = resolveMetadataRetryDelay(error, failures);
+  if (delay !== null) scheduleItemMetadataRefresh(item, delay);
+};
+
 const fetchItemMetadata = async (item: GalleryItem, force = false) => {
   if (isDisposed) return;
   if (!item.key || (!force && item.url) || pendingMetadata.has(item.id)) return;
@@ -157,17 +176,11 @@ const fetchItemMetadata = async (item: GalleryItem, force = false) => {
     item.size = metadata.size;
     item.expiresAt = metadata.expiresAt;
     item.status = "done";
+    metadataFailures.delete(item.id);
     scheduleItemExpiryRefresh(item);
-  } catch (_error) {
+  } catch (error) {
     if (isDisposed || !items.value.some(({ id }) => id === item.id)) return;
-    if (
-      !item.url ||
-      (item.expiresAt !== undefined && item.expiresAt <= Date.now())
-    ) {
-      item.url = "";
-      item.status = "unavailable";
-    }
-    scheduleItemMetadataRefresh(item, TRANSIENT_RETRY_MS);
+    handleItemMetadataFailure(item, error);
   } finally {
     pendingMetadata.delete(item.id);
   }
@@ -196,6 +209,7 @@ const releaseItem = (item: GalleryItem) => {
   const timer = metadataTimers.get(item.id);
   if (timer) clearTimeout(timer);
   metadataTimers.delete(item.id);
+  metadataFailures.delete(item.id);
 };
 
 const initializeFromModelValue = () => {
