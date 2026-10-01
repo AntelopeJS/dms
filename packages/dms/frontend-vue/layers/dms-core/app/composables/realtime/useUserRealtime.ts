@@ -1,4 +1,8 @@
-import { isUnauthorizedStreamError, openSseStream } from "./useSseStream";
+import {
+  isUnauthorizedStreamError,
+  openSseStream,
+  type SseStreamHandle,
+} from "./useSseStream";
 
 const REALTIME_USER_PATH = "/api/realtime/user";
 const REALTIME_SUBSCRIBE_PATH_PREFIX = "/api/realtime/subscribe/";
@@ -117,57 +121,109 @@ const handleEvent =
     }
   };
 
+interface ConnectionCallbacks {
+  onConnected: () => void;
+  onDisconnected: () => void;
+  refreshSession: () => Promise<boolean>;
+  redirectToAuth: () => Promise<void>;
+}
+
+interface Reconnector {
+  isCancelled(): boolean;
+  schedule(open: () => void): void;
+  resetDelay(): void;
+  cancel(): void;
+}
+
+const createReconnector = (): Reconnector => {
+  let isCancelled = false;
+  let delay = RECONNECT_INITIAL_DELAY_MS;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return {
+    isCancelled: () => isCancelled,
+    schedule: (open) => {
+      // A pending reconnect absorbs concurrent triggers: one stream per tab.
+      if (isCancelled || timer) return;
+      timer = setTimeout(() => {
+        timer = undefined;
+        open();
+      }, delay);
+      delay = Math.min(delay * RECONNECT_MULTIPLIER, RECONNECT_MAX_DELAY_MS);
+    },
+    resetDelay: () => {
+      delay = RECONNECT_INITIAL_DELAY_MS;
+    },
+    cancel: () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+    },
+  };
+};
+
+const recoverFromError = (
+  error: unknown,
+  reconnect: () => void,
+  callbacks: ConnectionCallbacks,
+): void => {
+  if (!isUnauthorizedStreamError(error)) {
+    reconnect();
+    return;
+  }
+  void callbacks.refreshSession().then((isRefreshed) => {
+    if (isRefreshed) {
+      reconnect();
+    } else {
+      void callbacks.redirectToAuth();
+    }
+  }, reconnect);
+};
+
+/**
+ * Keeps one user stream open until cancelled. The server ends the stream when
+ * it stops (a dev reload included), so a clean EOF reconnects just like an
+ * error does: the user stream has no business completion.
+ */
 const connectWithBackoff = (
   url: string,
   state: UserRealtimeState,
-  onConnected: () => void,
-  refreshSession: () => Promise<boolean>,
-  redirectToAuth: () => Promise<void>,
+  callbacks: ConnectionCallbacks,
 ): (() => void) => {
-  let cancelled = false;
-  let delay = RECONNECT_INITIAL_DELAY_MS;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let activeHandle: { close(): void } | undefined;
+  const reconnector = createReconnector();
   const dispatch = handleEvent(state);
+  let activeHandle: SseStreamHandle | undefined;
   const open = () => {
-    if (cancelled) return;
-    activeHandle = openSseStream({
+    if (reconnector.isCancelled()) return;
+    activeHandle?.close();
+    const handle: SseStreamHandle = openSseStream({
       url,
       onEvent: (eventName, data) => {
-        if (cancelled) return;
-        delay = RECONNECT_INITIAL_DELAY_MS;
+        if (handle !== activeHandle) return;
+        reconnector.resetDelay();
         dispatch(eventName, data);
-        if (eventName === HELLO_EVENT) onConnected();
+        if (eventName === HELLO_EVENT) callbacks.onConnected();
       },
       onError: (error) => {
-        if (cancelled) return;
-        state.appliedPageId.value = null;
-        const scheduleReconnect = () => {
-          if (cancelled) return;
-          timer = setTimeout(open, delay);
-          delay = Math.min(
-            delay * RECONNECT_MULTIPLIER,
-            RECONNECT_MAX_DELAY_MS,
-          );
-        };
-        if (isUnauthorizedStreamError(error)) {
-          void refreshSession().then((refreshed) => {
-            if (refreshed) {
-              scheduleReconnect();
-            } else {
-              void redirectToAuth();
-            }
-          }, scheduleReconnect);
-          return;
-        }
-        scheduleReconnect();
+        if (!retire(handle)) return;
+        recoverFromError(error, reconnect, callbacks);
+      },
+      onClose: (reason) => {
+        if (reason !== "eof" || !retire(handle)) return;
+        reconnect();
       },
     });
+    activeHandle = handle;
+  };
+  const reconnect = () => reconnector.schedule(open);
+  const retire = (handle: SseStreamHandle): boolean => {
+    if (handle !== activeHandle || reconnector.isCancelled()) return false;
+    activeHandle = undefined;
+    callbacks.onDisconnected();
+    return true;
   };
   open();
   return () => {
-    cancelled = true;
-    if (timer) clearTimeout(timer);
+    reconnector.cancel();
     activeHandle?.close();
     activeHandle = undefined;
   };
@@ -196,12 +252,27 @@ const reconcilePage = async (
   baseUrl: string,
 ): Promise<void> => {
   const desired = state.pageId.value ?? null;
+  const sessionId = state.sessionId.value;
   if (state.appliedPageId.value === desired) return;
-  if (!state.sessionId.value) return;
+  if (!sessionId) return;
   await callPageEndpoint(state, desired, baseUrl);
+  // A reconnect during the call replaced the session: the page is applied to
+  // the dead one, and the new one still needs it.
+  if (state.sessionId.value !== sessionId) return;
   if ((state.pageId.value ?? null) === desired) {
     state.appliedPageId.value = desired;
   }
+};
+
+/**
+ * Forgets what the server held for the closed session. The next greeting
+ * brings a new session id, which re-applies the page topics here and lets the
+ * components holding presence re-acquire it.
+ */
+const resetSession = (state: UserRealtimeState): void => {
+  state.sessionId.value = undefined;
+  state.appliedPageId.value = null;
+  state.snapshots.clear();
 };
 
 const buildApi = (): UserRealtimeApi => {
@@ -232,19 +303,20 @@ const buildApi = (): UserRealtimeApi => {
       (isLoggedIn) => {
         state.cancelConnect?.();
         state.cancelConnect = undefined;
-        state.sessionId.value = undefined;
+        resetSession(state);
         state.menuTopics.value = [];
-        state.appliedPageId.value = null;
-        state.snapshots.clear();
         if (!isLoggedIn) return;
         state.cancelConnect = connectWithBackoff(
           `${baseUrl}${REALTIME_USER_PATH}`,
           state,
-          () => {
-            void reconcilePage(state, baseUrl);
+          {
+            onConnected: () => {
+              void reconcilePage(state, baseUrl);
+            },
+            onDisconnected: () => resetSession(state),
+            refreshSession,
+            redirectToAuth,
           },
-          refreshSession,
-          redirectToAuth,
         );
       },
       { immediate: true },

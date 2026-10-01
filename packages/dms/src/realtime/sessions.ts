@@ -2,12 +2,15 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { Unsubscribe } from "./broker";
 
 export type SessionSend = (eventName: string, data: unknown) => void;
+export type SessionClose = () => Promise<void>;
 
 export interface SessionInfo {
   user?: User;
   tenantId?: string;
   pageId?: string;
   send: SessionSend;
+  /** Ends the session's stream; its close handlers unregister the session. */
+  close: SessionClose;
 }
 
 interface SessionState {
@@ -45,4 +48,14 @@ export function getSessionSubscriptions(
   sessionId: string,
 ): Map<string, Unsubscribe> | undefined {
   return sessions.get(sessionId)?.subscriptions;
+}
+
+/**
+ * Ends every open session stream. A stream left open across a stop stays bound
+ * to a broker that no longer delivers anything: the client keeps receiving
+ * keepalives but never another event, and has no reason to reconnect.
+ */
+export async function closeAllSessions(): Promise<void> {
+  const open = [...sessions.values()];
+  await Promise.allSettled(open.map((state) => state.info.close()));
 }

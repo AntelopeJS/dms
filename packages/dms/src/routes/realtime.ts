@@ -145,7 +145,12 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     const sessionId = randomUUID();
     const tenantId = getRequestTenantId(ctx);
     const stream = openSseStream(ctx);
-    registerSession(sessionId, { user, tenantId, send: stream.send });
+    registerSession(sessionId, {
+      user,
+      tenantId,
+      send: stream.send,
+      close: stream.close,
+    });
     // The menu topics travel with the greeting: the client cannot derive its
     // tenant's topic name on its own, and dispatch is keyed by topic.
     stream.send(HELLO_EVENT, {
@@ -154,9 +159,11 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       menuTopics: menuTopicsFor(tenantId),
     });
     let isClosed = false;
-    stream.onClose(() => {
+    // Awaited so that stopRealtime() releases presence before the broker
+    // closes.
+    stream.onClose(async () => {
       isClosed = true;
-      void cleanupSession(sessionId).catch((error) =>
+      await cleanupSession(sessionId).catch((error) =>
         Logging.Warn("Realtime: cleanupSession failed", error),
       );
     });
