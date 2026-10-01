@@ -224,7 +224,8 @@
         "uploaded_files": "Fichiers téléversés",
         "rejected_title": "Fichier non ajouté",
         "rejected_size": "{name} dépasse la taille maximale ({size})",
-        "rejected_type": "{name} n'est pas un type de fichier autorisé"
+        "rejected_type": "{name} n'est pas un type de fichier autorisé",
+        "file_unavailable": "Fichier indisponible"
       },
       "image": {
         "add": "Ajouter",
@@ -234,6 +235,7 @@
         "single_hint": "Une seule image",
         "formats_any": "Tous formats d'image",
         "upload_failed": "Échec de l'envoi",
+        "file_unavailable": "Fichier indisponible",
         "retry": "Réessayer",
         "replace": "Remplacer",
         "delete": "Supprimer",

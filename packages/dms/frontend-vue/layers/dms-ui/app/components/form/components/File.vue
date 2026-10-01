@@ -53,6 +53,7 @@ const selectedFiles = ref<File | File[] | null>(null);
 const uploadingFiles = ref<UploadingFile[]>([]);
 const uploadedKeys = ref<string[]>([]);
 const fileMetadata = ref<Map<string, FileMetadataResponse>>(new Map());
+const unavailableKeys = ref<Set<string>>(new Set());
 const metadataTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const pendingMetadata = new Map<string, Promise<void>>();
 let isDisposed = false;
@@ -122,6 +123,7 @@ const requestMetadata = async (resourceKey: string): Promise<void> => {
     );
     if (isDisposed || !uploadedKeys.value.includes(resourceKey)) return;
     fileMetadata.value.set(resourceKey, metadata);
+    unavailableKeys.value.delete(resourceKey);
     scheduleMetadataRefresh(resourceKey, metadata.expiresAt);
   } catch (_error) {
     if (isDisposed || !uploadedKeys.value.includes(resourceKey)) return;
@@ -136,6 +138,7 @@ const requestMetadata = async (resourceKey: string): Promise<void> => {
         mimetype: cached?.mimetype ?? "application/octet-stream",
         url: "",
       });
+      unavailableKeys.value.add(resourceKey);
     }
     if (!import.meta.env.SSR) {
       metadataTimers.set(
@@ -284,6 +287,7 @@ const removeUploadingFile = (id: string) => {
 const removeUploadedFile = (key: string) => {
   uploadedKeys.value = uploadedKeys.value.filter((k) => k !== key);
   fileMetadata.value.delete(key);
+  unavailableKeys.value.delete(key);
   const timer = metadataTimers.get(key);
   if (timer) clearTimeout(timer);
   emitValue();
@@ -292,6 +296,8 @@ const removeUploadedFile = (key: string) => {
 const getMetadata = (key: string): FileMetadataResponse | undefined => {
   return fileMetadata.value.get(key);
 };
+
+const isUnavailable = (key: string): boolean => unavailableKeys.value.has(key);
 
 const isImage = (mimetype: string): boolean => {
   return mimetype.startsWith("image/");
@@ -400,6 +406,11 @@ onScopeDispose(() => {
             class="h-8 w-8 rounded object-cover"
           />
           <UIcon
+            v-else-if="isUnavailable(key)"
+            name="i-lucide-alert-circle"
+            class="text-error h-4 w-4"
+          />
+          <UIcon
             v-else
             name="i-lucide-file-check"
             class="text-success h-4 w-4"
@@ -412,7 +423,10 @@ onScopeDispose(() => {
           >
             {{ getMetadata(key)!.filename }}
           </ULink>
-          <span class="text-muted text-xs">
+          <span v-if="isUnavailable(key)" class="text-error text-xs">
+            {{ $t("dms.form.file.file_unavailable") }}
+          </span>
+          <span v-else class="text-muted text-xs">
             {{ formatFileSize(getMetadata(key)!.size) }}
           </span>
         </template>
