@@ -175,6 +175,22 @@ describe("[unit] pages/settings/users members page", () => {
       ]);
     });
 
+    it("leaves out a category with nothing left to grant, as the editor does", () => {
+      expect(
+        [
+          ...collectGrantablePermissionIds(
+            {
+              ...tree,
+              pages: registered("pages", {
+                login: registered("pages.login", {}, { defaultGranted: true }),
+              }),
+            },
+            new Set(["pages"]),
+          ),
+        ].sort(),
+      ).to.deep.equal(["media", "settings.members", "settings.members.edit"]);
+    });
+
     it("counts only grantable permissions of each role, sorted by name", () => {
       const options = buildInviteRoleOptions(
         [

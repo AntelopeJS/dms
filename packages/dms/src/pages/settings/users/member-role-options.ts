@@ -1,5 +1,6 @@
 import type { Role } from "@antelopejs/interface-dms/db";
 import type { PermissionTree } from "@antelopejs/interface-dms/permissions";
+import { mapPermissionTree } from "./permission-tree-nodes";
 
 /** A role offered in the invite dialog, with what it grants. */
 export interface InviteRoleOption {
@@ -7,6 +8,11 @@ export interface InviteRoleOption {
   name: string;
   /** Grantable permissions of the role, the ones the roles editor lists. */
   permissionIds: string[];
+}
+
+interface GrantableNode {
+  id: string;
+  children?: GrantableNode[];
 }
 
 /** Roles the invite dialog offers, and how many permissions exist in all. */
@@ -17,20 +23,30 @@ export interface InviteRoleOptions {
 
 /**
  * Every permission id a role can grant: the nodes the roles editor renders.
- * Mirrors `mapPermissionTreeToPermissionNodes` — a node without data is only a
- * namespace, and a `defaultGranted` node hides its whole subtree — so "21 of
- * 52" reads the same as the editor.
+ * Read from `mapPermissionTree`, the mapping the editor uses — a node without
+ * data is only a namespace, a `defaultGranted` node hides its whole subtree
+ * and a category over nothing is left out — so "21 of 52" reads the same as
+ * the editor.
  */
 export function collectGrantablePermissionIds(
   tree: Record<string, PermissionTree>,
-  into: Set<string> = new Set(),
+  categoryIds?: ReadonlySet<string>,
 ): Set<string> {
-  for (const node of Object.values(tree)) {
-    if (node.data?.defaultGranted) continue;
-    if (node.data) into.add(node.data.id);
-    collectGrantablePermissionIds(node.children, into);
-  }
-  return into;
+  const ids = new Set<string>();
+  const collect = (nodes: GrantableNode[]): void => {
+    for (const node of nodes) {
+      ids.add(node.id);
+      collect(node.children ?? []);
+    }
+  };
+  collect(
+    mapPermissionTree<GrantableNode>(
+      tree,
+      (permission, children) => ({ id: permission.id, children }),
+      categoryIds,
+    ),
+  );
+  return ids;
 }
 
 /**
@@ -41,8 +57,9 @@ export function collectGrantablePermissionIds(
 export function buildInviteRoleOptions(
   roles: Role[],
   tree: Record<string, PermissionTree>,
+  categoryIds?: ReadonlySet<string>,
 ): InviteRoleOptions {
-  const grantable = collectGrantablePermissionIds(tree);
+  const grantable = collectGrantablePermissionIds(tree, categoryIds);
   const options = roles
     .map((role) => ({
       _id: role._id,

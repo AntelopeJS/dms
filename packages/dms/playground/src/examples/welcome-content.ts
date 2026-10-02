@@ -15,36 +15,11 @@ export const DOCS_LINKS = {
   deployment: `${DMS_DOCS_URL}/building/deployment`,
 };
 
-/** The demo areas built from the page DSL, each opening a representative demo. */
+/**
+ * The demo areas built from the page DSL, each opening a representative demo,
+ * in the order of the sidebar's Library section.
+ */
 export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
-  {
-    icon: "i-ph-note-pencil",
-    title: "Forms",
-    description:
-      "Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type.",
-    to: "/form/form-simple",
-  },
-  {
-    icon: "i-ph-table",
-    title: "Table view",
-    description:
-      "Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions.",
-    to: "/table-view/table-view-users",
-  },
-  {
-    icon: "i-ph-tree-structure",
-    title: "Tree",
-    description:
-      "Static and fetched trees with selection, colors, sizes and variants.",
-    to: "/tree/tree-default",
-  },
-  {
-    icon: "i-ph-chart-line-up",
-    title: "Charts",
-    description:
-      "A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.",
-    to: "/charts/chart-dashboard",
-  },
   {
     icon: "i-ph-palette",
     title: "Design system",
@@ -59,6 +34,34 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Grid and stack layouts, tabs, drawers and modals, a flow canvas and pages that combine several components.",
     to: "/grid/layout-grid-simple",
+  },
+  {
+    icon: "i-ph-table",
+    title: "Table view",
+    description:
+      "Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions.",
+    to: "/table-view/table-view-users",
+  },
+  {
+    icon: "i-ph-note-pencil",
+    title: "Forms",
+    description:
+      "Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type.",
+    to: "/form/form-simple",
+  },
+  {
+    icon: "i-ph-chart-line-up",
+    title: "Charts",
+    description:
+      "A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.",
+    to: "/charts/chart-dashboard",
+  },
+  {
+    icon: "i-ph-tree-structure",
+    title: "Tree",
+    description:
+      "Static and fetched trees with selection, colors, sizes and variants.",
+    to: "/tree/tree-default",
   },
 ];
 
