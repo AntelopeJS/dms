@@ -25,7 +25,7 @@ export default defineConfig({
         installCommand: ["pnpm build", "pnpm --dir playground build"],
       },
       config: {
-        homepage: "/form/form-simple",
+        homepage: "/examples/overview",
         meta: {
           title: "AntelopeJS",
           description: "AntelopeJS DMS playground",
