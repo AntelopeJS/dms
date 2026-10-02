@@ -65,9 +65,17 @@ const hasTitle = computed(() => !!props.title || !!slots.default);
     :interactive="props.interactive"
   >
     <template v-if="hasTitle" #default>
+      <!-- One line on wide screens (the full text shows on hover); on a
+           phone a sentence wraps rather than losing its end, while a mono
+           path or query keeps its line. -->
       <span
         class="min-w-0 truncate"
-        :class="props.mono && 'text-toned font-mono text-[12.5px]'"
+        :class="
+          props.mono
+            ? 'text-toned font-mono text-[12.5px]'
+            : 'max-sm:whitespace-normal'
+        "
+        :title="props.title"
       >
         <slot>{{ props.title }}</slot>
       </span>

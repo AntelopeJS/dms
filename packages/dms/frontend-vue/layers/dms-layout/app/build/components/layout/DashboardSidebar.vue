@@ -10,6 +10,8 @@ import {
   SidebarWidgetPosition,
 } from "../../../composables/useSidebarWidgets";
 import { useSidebarState } from "./sidebarState";
+import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
+import { useMediaQuery } from "@vueuse/core";
 
 const SETTINGS_PATH = "/settings";
 const MODULES_PATH = "/modules";
@@ -25,17 +27,40 @@ const SIDEBAR_DEFAULT_WIDTH_PX = 240;
 const SIDEBAR_MIN_WIDTH_PX = 200;
 const SIDEBAR_MAX_WIDTH_PX = 320;
 const SIDEBAR_COLLAPSED_WIDTH_PX = 60;
+const SEARCH_SHORTCUT_KEYS = ["meta", "k"];
+const DESKTOP_QUERY = "(min-width: 1024px)";
+// On a short screen the menu overflows the body, which then scrolls: without
+// this the flex column squeezed the search field and widgets instead.
+const SIDEBAR_UI = { body: "*:shrink-0" };
 
 const { t } = useI18n();
 const appConfig = useDmsAppConfig();
 const { processI18n } = useTranslation();
 const route = useDmsRoute();
 const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
+const { formatShortcut } = useKeyboardPlatform();
+// The palette's own key (Nuxt UI binds `meta_k`: ⌘ on macOS, Ctrl elsewhere),
+// printed for the platform: "⌘K" or "Ctrl K".
+const searchShortcutHint = computed(() => formatShortcut(SEARCH_SHORTCUT_KEYS));
+// The collapsed rail shows only the icon: its tooltip (shown only while
+// collapsed, labelled with the button's label) adds the key.
+const searchTooltip = computed(() => ({ kbds: [searchShortcutHint.value] }));
 
 function closeMobileSidebar(event?: KeyboardEvent): void {
   if (event && event.key !== ESCAPE_KEY) return;
   sidebarOpen.value = false;
 }
+
+// The drawer only exists below `lg`: widening past it (a tablet turned to
+// landscape) closes it, so the desktop sidebar never stays pinned as one.
+const isDesktop = useMediaQuery(DESKTOP_QUERY);
+watch(isDesktop, (desktop) => {
+  if (desktop) sidebarOpen.value = false;
+});
+
+// The drawer always shows the full menu, even when the desktop sidebar was
+// collapsed to its rail.
+const isRail = (collapsed: boolean): boolean => collapsed && !sidebarOpen.value;
 
 onMounted(() => window.addEventListener("keydown", closeMobileSidebar));
 onBeforeUnmount(() =>
@@ -274,6 +299,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
     :max-size="SIDEBAR_MAX_WIDTH_PX"
     :collapsed-size="SIDEBAR_COLLAPSED_WIDTH_PX"
     :toggle="false"
+    :ui="SIDEBAR_UI"
     collapsible
     resizable
     class="bg-(--dms-bg-sidebar)"
@@ -282,45 +308,46 @@ const footerItems = computed((): NavigationMenuItem[] => {
         sidebarOpen,
     }"
   >
-    <template #header="{ collapsed }">
+    <template #header="{ collapsed: sidebarRail }">
       <DmsLink
         :to="homepage"
         class="flex w-full items-center"
-        :class="{ 'justify-center': collapsed }"
+        :class="{ 'justify-center': isRail(sidebarRail) }"
       >
         <UColorModeImage
           :light="
-            collapsed
+            isRail(sidebarRail)
               ? appConfig.branding?.logo?.collapsed.light
               : appConfig.branding?.logo?.default.light
           "
           :dark="
-            collapsed
+            isRail(sidebarRail)
               ? appConfig.branding?.logo?.collapsed.dark
               : appConfig.branding?.logo?.default.dark
           "
-          :class="collapsed ? 'size-7' : 'h-12 w-auto'"
+          :class="isRail(sidebarRail) ? 'size-7' : 'h-12 w-auto'"
           class="object-contain"
           :alt="t('navigation.goToHomepage')"
         />
       </DmsLink>
     </template>
 
-    <template #default="{ collapsed }">
+    <template #default="{ collapsed: sidebarRail }">
       <component
         :is="widget.component"
         v-for="widget in widgetsAboveSearchBar"
         :key="widget.id"
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
       />
 
       <UDashboardSearchButton
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
         :label="t('commandPalette.button')"
-        :kbds="['⌘K']"
+        :kbds="[searchShortcutHint]"
+        :tooltip="searchTooltip"
         icon="i-ph-magnifying-glass-light"
         variant="outline"
-        class="border-default text-dimmed hover:border-accented hover:text-muted h-8 w-full justify-between rounded-md border bg-(--dms-bg-field) py-0 ps-2.5 pe-1.5 text-[13px] font-normal ring-0 hover:bg-(--dms-bg-field)"
+        class="border-default text-dimmed hover:border-accented hover:text-muted h-8 w-full justify-start rounded-md border bg-(--dms-bg-field) py-0 ps-2.5 pe-1.5 text-[13px] font-normal ring-0 hover:bg-(--dms-bg-field)"
         :ui="{
           base: 'gap-2',
           leadingIcon: 'size-[15px]',
@@ -332,7 +359,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
       <div
         v-if="currentModule"
         class="border-primary/35 bg-primary/5 flex items-center gap-2.5 rounded-md border px-2 py-[7px]"
-        :class="{ 'justify-center': collapsed }"
+        :class="{ 'justify-center': isRail(sidebarRail) }"
       >
         <span
           class="bg-primary/10 text-primary grid size-7 shrink-0 place-items-center rounded-[7px]"
@@ -340,7 +367,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
           <UIcon :name="currentModule.info.icon" class="size-4" />
         </span>
         <span
-          v-if="!collapsed"
+          v-if="!isRail(sidebarRail)"
           class="text-highlighted min-w-0 truncate text-[13px] font-semibold"
         >
           {{ processI18n(currentModule.info.title) }}
@@ -351,33 +378,33 @@ const footerItems = computed((): NavigationMenuItem[] => {
         :is="widget.component"
         v-for="widget in widgetsBelowSearchBar"
         :key="widget.id"
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
       />
 
       <DmsNavigationMenu
         v-if="favoriteItems.length > 0"
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
         :items="favoriteItems"
         orientation="vertical"
       />
 
       <DmsNavigationMenu
         v-model="openCategories"
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
         :items="items"
         orientation="vertical"
       />
     </template>
 
-    <template #footer="{ collapsed }">
+    <template #footer="{ collapsed: sidebarRail }">
       <DmsNavigationMenu
         v-if="footerItems.length > 0"
-        :collapsed="collapsed"
+        :collapsed="isRail(sidebarRail)"
         :items="footerItems"
         orientation="vertical"
         class="w-full"
       />
-      <DmsSidebarUserMenu :collapsed="collapsed" />
+      <DmsSidebarUserMenu :collapsed="isRail(sidebarRail)" />
     </template>
   </UDashboardSidebar>
 

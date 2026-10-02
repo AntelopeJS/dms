@@ -21,7 +21,7 @@ const label = computed(() =>
     type="button"
     :title="label"
     :aria-label="label"
-    class="inline-grid size-7 place-items-center rounded-[7px] transition-colors"
+    class="inline-grid size-7 shrink-0 place-items-center rounded-[7px] transition-colors"
     :class="
       copied
         ? 'text-success bg-success/10'

@@ -13,14 +13,16 @@ const DONE_ICON = "i-ph-check-bold";
 
 const props = defineProps<StepIndicatorProps>();
 
-// Done steps show a check; upcoming labels give way on phones.
+// Done steps show a check. On phones only the current step keeps its label,
+// so the three steps stay on one row (a done label beside the current one
+// pushed the last step onto a second line).
 const items = computed<StepperItem[]>(() =>
   props.labels.map((label, index) => ({
     title: label,
     icon: index < props.current ? DONE_ICON : undefined,
     // Nuxt UI types an item's `ui` as every slot at once; one is enough.
     ui:
-      index > props.current
+      index !== props.current
         ? ({ wrapper: "max-sm:hidden" } as StepperItem["ui"])
         : undefined,
   })),

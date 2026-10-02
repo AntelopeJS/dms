@@ -66,7 +66,7 @@ export class PageFoundationsSurfaces extends PageController(
   {
     displayName: "Cards & controls",
     description:
-      "DmsCard (title, count, actions, footer, selected), DmsNavCard (state, badge, readout), DmsSegmented and the settings rows: DmsFieldRow, DmsSaveStatus, DmsSaveBar",
+      "DmsCard (title, count, actions, footer, selected), DmsNavCard (state, badge, readout), DmsSegmented and the settings rows: DmsFieldRow, DmsSaveStatus, DmsInstantSaveBadge, DmsSaveBar",
     icon: "i-ph-cards-three",
     category: foundationsCategory,
     order: 30,

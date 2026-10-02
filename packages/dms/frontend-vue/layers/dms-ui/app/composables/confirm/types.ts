@@ -39,8 +39,18 @@ export interface ConfirmOptions {
   /**
    * Awaited on confirm: the modal shows a loading confirm button, blocks
    * dismissal, and resolves `true` only once it succeeds; a rejection is
-   * shown inline and the modal stays open. Resolving `false` also keeps it
+   * shown inline and the modal stays open (a {@link ConfirmTextError} under
+   * the typed field). Resolving `false` also keeps it
    * open, for a handler that already reported the problem itself (toast).
    */
   onConfirm?: () => Promise<void | boolean>;
+}
+
+/**
+ * Thrown by `onConfirm` when the server refused the typed confirmation text:
+ * the modal shows the message under the typed field (marked invalid, then
+ * focused) instead of its error alert.
+ */
+export class ConfirmTextError extends Error {
+  readonly field = "confirmText";
 }

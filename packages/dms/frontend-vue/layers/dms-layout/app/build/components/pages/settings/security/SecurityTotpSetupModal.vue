@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
+import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
 import type { TotpSetup } from "../../../../../composables/settings/security/useSecurityOverview";
+import { PIN_PHONE_UI } from "./security-pin";
 
 interface SecurityTotpSetupModalProps {
   setup: TotpSetup | null;
@@ -20,8 +25,14 @@ const KEY_GROUP = /.{1,4}/g;
 const COPIED_RESET_MS = 2000;
 
 const isOpen = defineModel<boolean>("open", { default: false });
+/** A code the API refused, shown under the cells; typing clears it. */
+const error = defineModel<string | undefined>("error");
 const { t } = useI18n();
 const digits = ref<string[]>([]);
+const codeField = useTemplateRef<HTMLElement>("codeField");
+const ERROR_ID = fieldErrorId("security-totp-code");
+
+useCodeFieldError(digits, error, codeField);
 const isKeyCopied = ref(false);
 
 const code = computed(() => digits.value.join(""));
@@ -84,8 +95,10 @@ function confirm(): void {
             <div class="text-muted mt-0.5 text-[12.5px]">
               {{ t("page.settings.security.totp.scan_description") }}
             </div>
+            <!-- Phones: the key column stretches to the modal (the QR keeps
+                 its size) so a long key truncates instead of overflowing. -->
             <div
-              class="mt-2.5 flex items-center gap-4 max-sm:flex-col max-sm:items-start"
+              class="mt-2.5 flex items-center gap-4 max-sm:flex-col max-sm:items-stretch"
             >
               <img
                 :src="props.setup.qrCode"
@@ -96,19 +109,21 @@ function confirm(): void {
                 "
                 class="border-accented size-[148px] shrink-0 rounded-[10px] border [image-rendering:pixelated]"
               />
-              <div class="grid min-w-0 gap-1.5">
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
                 <span class="text-muted text-xs">
                   {{ t("page.settings.two_factor.setup_secret_label") }}
                 </span>
+                <!-- The key wraps between its groups rather than truncating:
+                     it is typed by hand when the QR cannot be scanned. -->
                 <code
-                  class="text-highlighted border-accented flex h-8 items-center gap-1.5 rounded-md border bg-(--dms-bg-field) ps-2.5 pe-1 font-mono text-[12.5px] font-semibold tracking-[0.08em] whitespace-nowrap"
+                  class="text-highlighted border-accented flex min-h-8 items-center gap-1.5 rounded-md border bg-(--dms-bg-field) py-1 ps-2.5 pe-1 font-mono text-[12.5px] font-semibold tracking-[0.08em]"
                 >
-                  <span class="truncate">{{ groupedKey }}</span>
+                  <span class="min-w-0 flex-1">{{ groupedKey }}</span>
                   <UButton
                     color="neutral"
                     variant="ghost"
                     size="xs"
-                    class="ms-auto"
+                    class="ms-auto shrink-0 self-start"
                     :icon="isKeyCopied ? 'i-ph-check' : 'i-ph-copy'"
                     :label="
                       isKeyCopied
@@ -119,7 +134,10 @@ function confirm(): void {
                   />
                 </code>
                 <span class="text-muted flex items-center gap-1.5 text-xs">
-                  <UIcon name="i-ph-lock-simple" class="text-dimmed size-3.5" />
+                  <UIcon
+                    name="i-ph-lock-simple"
+                    class="text-dimmed size-3.5 shrink-0"
+                  />
                   {{ t("page.settings.security.totp.local_hint") }}
                 </span>
               </div>
@@ -132,7 +150,7 @@ function confirm(): void {
           >
             2
           </span>
-          <div>
+          <div ref="codeField">
             <div class="text-highlighted mt-[3px] text-sm font-semibold">
               {{ t("page.settings.security.totp.code_title") }}
             </div>
@@ -146,9 +164,15 @@ function confirm(): void {
               otp
               type="number"
               size="lg"
+              :ui="PIN_PHONE_UI"
               :aria-label="t('page.settings.security.totp.code_title')"
+              :color="error ? 'error' : undefined"
+              :highlight="!!error"
+              :aria-invalid="!!error || undefined"
+              :aria-describedby="error ? ERROR_ID : undefined"
               @complete="confirm"
             />
+            <DmsFieldError :id="ERROR_ID" class="mt-2" :message="error" />
           </div>
         </div>
       </form>

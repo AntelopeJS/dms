@@ -82,8 +82,10 @@ const columnClass = computed(
       Math.min(MAX_COLUMNS, Math.max(1, Math.round(props.columns)))
     ],
 );
+// The row wraps: a value too long to sit beside its label (a phone, a narrow
+// column) drops under it, still right-aligned, instead of being cut.
 const rowClass = computed(() => [
-  "border-muted flex items-center gap-3 border-t",
+  "border-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t",
   props.dense ? "min-h-8 py-1" : "min-h-[38px] py-1.5",
 ]);
 const showPlaceholders = computed(
@@ -146,7 +148,9 @@ function valueClass(item: KeyValueItem): string[] {
       : item.tone
         ? DMS_TONE_TEXT[canonicalTone(item.tone)]
         : "text-highlighted";
-  return ["truncate", color, TYPE_CLASSES[type] ?? ""];
+  // A value longer than the whole row (an id, a long name) wraps rather than
+  // hiding its end: there is no hover on a phone to reveal it.
+  return ["wrap-anywhere", color, TYPE_CLASSES[type] ?? ""];
 }
 
 function keyOf(item: KeyValueItem, index: number): string {
@@ -178,7 +182,7 @@ function keyOf(item: KeyValueItem, index: number): string {
       >
         <dt class="text-muted min-w-[120px] flex-none">{{ item.label }}</dt>
         <dd
-          class="ms-auto flex min-w-0 items-center justify-end gap-1.5 text-end"
+          class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
         >
           <USkeleton v-if="props.loading" class="h-3 w-24" />
           <slot

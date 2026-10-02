@@ -56,7 +56,7 @@ const saveText = computed(() => {
     >
       <span class="text-muted flex min-w-0 items-center gap-2">
         <span class="bg-warning size-[7px] shrink-0 rounded-full" />
-        <span class="truncate">
+        <span class="truncate max-sm:whitespace-normal">
           {{ t("dms.save_bar.unsaved") }}
           <template v-if="changedFields">· {{ changedFields }}</template>
         </span>

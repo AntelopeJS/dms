@@ -1,9 +1,14 @@
 import UFormField from "@nuxt/ui/components/FormField.vue";
+import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import UInput from "@nuxt/ui/components/Input.vue";
 import type { Component, Ref } from "vue";
 import { downloadFile } from "#dms-core/app/utils/downloadFile";
 import { useConfirm } from "#dms-ui/app/composables/confirm";
-import type { ConfirmImpact } from "#dms-ui/app/composables/confirm/types";
+import {
+  type ConfirmImpact,
+  ConfirmTextError,
+} from "#dms-ui/app/composables/confirm/types";
+import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { useSecurityFormat } from "../security/useSecurityFormat";
 
 const PROFILE_ENDPOINT = "/settings/user/profile";
@@ -14,6 +19,17 @@ const JSON_INDENT = 2;
 const ISO_DATE_LENGTH = 10;
 const AUTH_ROUTE = "/auth";
 const I18N = "page.settings.profile.data";
+const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
+const CONFIRMATION_REFUSED = `$${I18N}.delete_error_confirmation`;
+const SECURITY_ERRORS = "page.settings.security.errors";
+
+/** Fields of the deletion dialog an API error can belong to. */
+type DeletionField = "password" | "confirmation";
+
+/** The password control of the deletion dialog, as `UInput` exposes it. */
+interface PasswordInputHandle {
+  inputRef?: HTMLInputElement;
+}
 
 /** Why the account cannot be deleted yet, as the API answers it. */
 export interface DeletionBlocker {
@@ -49,7 +65,7 @@ export function useAccountData() {
   const { confirm } = useConfirm();
   const { user, clear } = useUserSession<User>();
   const { removeAccount } = useMultiAccount();
-  const { processI18n } = useTranslation();
+  const { processI18n, processApiMessage } = useTranslation();
   const { errorMessage, errorCode } = useSecurityFormat();
   const toast = useToast();
   const { t } = useI18n();
@@ -120,19 +136,44 @@ export function useAccountData() {
     ];
   }
 
-  function passwordField(password: Ref<string>) {
+  /**
+   * The password of the deletion dialog; a wrong one shows under it (the
+   * field marks itself invalid and describes the input with it).
+   */
+  function passwordField(
+    password: Ref<string>,
+    error: Ref<string | undefined>,
+    input: Ref<PasswordInputHandle | null>,
+  ) {
     return () =>
-      h(UFormField, { label: t(`${I18N}.delete_password`) }, () =>
-        // Generic in its value type, which `h` cannot infer.
-        h(UInput as Component, {
-          modelValue: password.value,
-          type: "password",
-          autocomplete: "current-password",
-          class: "w-full",
-          "onUpdate:modelValue": (value: unknown) => {
-            password.value = typeof value === "string" ? value : "";
-          },
-        }),
+      h(
+        UFormField,
+        { label: t(`${I18N}.delete_password`), error: error.value },
+        {
+          default: () =>
+            // Generic in its value type, which `h` cannot infer.
+            h(UInput as Component, {
+              ref: input,
+              modelValue: password.value,
+              type: "password",
+              autocomplete: "current-password",
+              class: "w-full",
+              "onUpdate:modelValue": (value: unknown) => {
+                password.value = typeof value === "string" ? value : "";
+                error.value = undefined;
+              },
+            }),
+          error: ({ error: message }: { error?: string | boolean }) =>
+            message
+              ? [
+                  h(UIcon, {
+                    name: "i-ph-warning-circle",
+                    class: "size-3.5 shrink-0",
+                  }),
+                  String(message),
+                ]
+              : [],
+        },
       );
   }
 
@@ -172,10 +213,18 @@ export function useAccountData() {
     await navigateDms(AUTH_ROUTE);
   }
 
+  /**
+   * Sends the deletion. A wrong password shows under the password field, a
+   * refused e-mail under the typed one; anything else is a toast. The dialog
+   * stays open on every failure.
+   */
   async function submitDeletion(
     impact: AccountDeletionImpact,
     password: string,
-  ): Promise<void> {
+    passwordError: Ref<string | undefined>,
+    passwordInput: Ref<PasswordInputHandle | null>,
+  ): Promise<boolean> {
+    passwordError.value = undefined;
     try {
       await $authFetch(DELETION_ENDPOINT, {
         method: "POST",
@@ -184,13 +233,42 @@ export function useAccountData() {
           confirmation: impact.email,
         },
       });
+      return true;
     } catch (error) {
-      throw new Error(describeError(error, `${I18N}.delete_error`));
+      const [fieldError] = resolveFieldErrors<DeletionField>(error, {
+        fields: impact.hasPassword
+          ? ["password", "confirmation"]
+          : ["confirmation"],
+        codes: {
+          [INVALID_CURRENT_PASSWORD]: {
+            field: "password",
+            message: `${SECURITY_ERRORS}.invalid_current_password`,
+          },
+          [CONFIRMATION_REFUSED]: "confirmation",
+        },
+      }).fields;
+      if (fieldError?.field === "confirmation") {
+        throw new ConfirmTextError(processApiMessage(fieldError.message));
+      }
+      if (fieldError?.field === "password") {
+        passwordError.value = processApiMessage(fieldError.message);
+        await nextTick();
+        passwordInput.value?.inputRef?.focus();
+        return false;
+      }
+      toast.add({
+        color: "error",
+        icon: "i-ph-warning-circle",
+        title: describeError(error, `${I18N}.delete_error`),
+      });
+      return false;
     }
   }
 
   async function confirmDeletion(impact: AccountDeletionImpact): Promise<void> {
     const password = ref("");
+    const passwordError = ref<string>();
+    const passwordInput = ref<PasswordInputHandle | null>(null);
     const confirmed = await confirm({
       title: t(`${I18N}.delete_confirm_title`),
       description: t(`${I18N}.delete_confirm_description`),
@@ -199,9 +277,12 @@ export function useAccountData() {
       confirmIcon: "i-ph-trash",
       confirmLabel: t(`${I18N}.delete_confirm_button`),
       impact: impactList(impact),
-      body: impact.hasPassword ? passwordField(password) : undefined,
+      body: impact.hasPassword
+        ? passwordField(password, passwordError, passwordInput)
+        : undefined,
       confirmText: impact.email,
-      onConfirm: () => submitDeletion(impact, password.value),
+      onConfirm: () =>
+        submitDeletion(impact, password.value, passwordError, passwordInput),
     });
     if (confirmed) await signOutDeleted();
   }

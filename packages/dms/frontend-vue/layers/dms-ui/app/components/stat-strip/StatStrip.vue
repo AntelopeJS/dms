@@ -65,23 +65,26 @@ const props = withDefaults(defineProps<StatStripProps>(), {
 const MIN_COLUMNS = 1;
 const MAX_COLUMNS = 6;
 
-// Literal class strings (Tailwind extracts them). The joined strip carries a
-// detail line, so it drops to one column on phones; the compact cards keep two.
+// Literal class strings (Tailwind extracts them). The columns follow the
+// strip's own width (container queries on the root), not the viewport: in a
+// narrow settings column at 1024px a four-cell strip keeps two columns
+// instead of four cramped ones. The joined strip carries a detail line, so it
+// drops to one column when narrow; the compact cards keep two.
 const JOINED_COLUMNS: Record<number, string> = {
   1: "grid-cols-1",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-3",
-  4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
-  5: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5",
-  6: "grid-cols-1 sm:grid-cols-3 lg:grid-cols-6",
+  2: "grid-cols-1 @sm:grid-cols-2",
+  3: "grid-cols-1 @xl:grid-cols-3",
+  4: "grid-cols-1 @sm:grid-cols-2 @3xl:grid-cols-4",
+  5: "grid-cols-1 @sm:grid-cols-2 @4xl:grid-cols-5",
+  6: "grid-cols-1 @lg:grid-cols-3 @5xl:grid-cols-6",
 };
 const CARD_COLUMNS: Record<number, string> = {
   1: "grid-cols-1",
   2: "grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-3",
-  4: "grid-cols-2 xl:grid-cols-4",
-  5: "grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
-  6: "grid-cols-2 lg:grid-cols-3 xl:grid-cols-6",
+  3: "grid-cols-1 @xl:grid-cols-3",
+  4: "grid-cols-2 @3xl:grid-cols-4",
+  5: "grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-5",
+  6: "grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6",
 };
 
 // Every joined cell draws its top and start hairlines; the grid is pulled 1px
@@ -89,7 +92,11 @@ const CARD_COLUMNS: Record<number, string> = {
 // column lose theirs at any column count and on every breakpoint.
 const JOINED_CELL =
   "border-muted flex min-w-0 items-start gap-3 border-s border-t px-4 py-3.5";
-const CARD_CELL = "dms-card flex items-center gap-3.5 px-4 py-3.5";
+// Two cards side by side in a strip under 28rem (a phone) are too narrow for
+// a well beside the text ("Updates available" lost to an ellipsis at 320px):
+// the well goes on top.
+const CARD_CELL =
+  "dms-card flex items-center gap-3.5 px-4 py-3.5 @max-md:flex-col @max-md:items-start @max-md:gap-2.5";
 const CARD_SKELETON = "bg-(--dms-skeleton)";
 
 const isJoined = computed(() => props.layout === "joined");
@@ -126,7 +133,7 @@ function detailClass(item: StatStripItem): string {
   <component
     :is="hasLinks ? 'nav' : 'div'"
     v-if="isJoined"
-    class="dms-card overflow-hidden"
+    class="dms-card @container overflow-hidden"
     :aria-label="props.label"
     :aria-busy="props.loading || undefined"
   >
@@ -187,72 +194,74 @@ function detailClass(item: StatStripItem): string {
     </div>
   </component>
 
-  <div
-    v-else
-    class="grid gap-3"
-    :class="columnClass"
-    :aria-busy="props.loading || undefined"
-  >
-    <template v-if="showPlaceholders">
-      <div v-for="index in props.skeletonCount" :key="index" :class="CARD_CELL">
-        <USkeleton
-          class="size-10 shrink-0 rounded-[10px]"
-          :class="CARD_SKELETON"
-        />
-        <div class="grid flex-1 gap-1.5">
-          <USkeleton class="h-2.5 w-20" :class="CARD_SKELETON" />
-          <USkeleton class="h-[22px] w-10" :class="CARD_SKELETON" />
-        </div>
-      </div>
-    </template>
-    <template v-else>
-      <component
-        :is="item.href ? DmsAutoLink : 'div'"
-        v-for="(item, index) in props.items"
-        :key="keyOf(item, index)"
-        :to="item.href"
-        :class="[CARD_CELL, item.href && 'dms-card--interactive']"
-      >
-        <USkeleton
-          v-if="props.loading && item.icon"
-          class="size-10 shrink-0 rounded-[10px]"
-          :class="CARD_SKELETON"
-        />
-        <DmsIconWell
-          v-else-if="item.icon"
-          :icon="item.icon"
-          :tone="wellTone(item)"
-          size="xl"
-        />
-        <div class="grid min-w-0 flex-1 gap-[3px]">
-          <!-- Truncated on wide screens; on phones the two-column cards are
-             too narrow for "Updates available", so the label wraps. -->
-          <DmsEyebrow
-            tone="muted"
-            truncate
-            class="max-sm:whitespace-normal"
-            :label="item.eyebrow"
-          />
+  <div v-else class="@container" :aria-busy="props.loading || undefined">
+    <div class="grid gap-3" :class="columnClass">
+      <template v-if="showPlaceholders">
+        <div
+          v-for="index in props.skeletonCount"
+          :key="index"
+          :class="CARD_CELL"
+        >
           <USkeleton
-            v-if="props.loading"
-            class="h-[22px] w-10"
+            class="size-10 shrink-0 rounded-[10px]"
             :class="CARD_SKELETON"
           />
-          <p
-            v-else
-            class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
-          >
-            {{ item.value }}
-          </p>
-          <p
-            v-if="item.detail && !props.loading"
-            class="truncate text-xs"
-            :class="detailClass(item)"
-          >
-            {{ item.detail }}
-          </p>
+          <div class="grid flex-1 gap-1.5">
+            <USkeleton class="h-2.5 w-20" :class="CARD_SKELETON" />
+            <USkeleton class="h-[22px] w-10" :class="CARD_SKELETON" />
+          </div>
         </div>
-      </component>
-    </template>
+      </template>
+      <template v-else>
+        <component
+          :is="item.href ? DmsAutoLink : 'div'"
+          v-for="(item, index) in props.items"
+          :key="keyOf(item, index)"
+          :to="item.href"
+          :class="[CARD_CELL, item.href && 'dms-card--interactive']"
+        >
+          <USkeleton
+            v-if="props.loading && item.icon"
+            class="size-10 shrink-0 rounded-[10px]"
+            :class="CARD_SKELETON"
+          />
+          <DmsIconWell
+            v-else-if="item.icon"
+            :icon="item.icon"
+            :tone="wellTone(item)"
+            size="xl"
+          />
+          <div class="grid min-w-0 flex-1 gap-[3px]">
+            <!-- Truncated on wide screens; on phones the two-column cards are
+             too narrow for "Updates available", so the label and the detail
+             wrap. -->
+            <DmsEyebrow
+              tone="muted"
+              truncate
+              class="@max-md:whitespace-normal"
+              :label="item.eyebrow"
+            />
+            <USkeleton
+              v-if="props.loading"
+              class="h-[22px] w-10"
+              :class="CARD_SKELETON"
+            />
+            <p
+              v-else
+              class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
+            >
+              {{ item.value }}
+            </p>
+            <p
+              v-if="item.detail && !props.loading"
+              class="truncate text-xs @max-md:whitespace-normal"
+              :class="detailClass(item)"
+            >
+              {{ item.detail }}
+            </p>
+          </div>
+        </component>
+      </template>
+    </div>
   </div>
 </template>

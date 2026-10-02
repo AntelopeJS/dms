@@ -18,6 +18,29 @@ interface FormSubmitNotice {
   params?: Record<string, unknown>;
 }
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import {
+  type ApiFieldError,
+  apiErrorText,
+  resolveFieldErrors,
+} from "#dms-core/app/composables/useFieldErrors";
+
+/** A server error shown under its field, translated. */
+export interface FormServerFieldError {
+  /** The field id. */
+  name: string;
+  message: string;
+  /** The values of the field the error names (addresses of a list…). */
+  values?: string[];
+}
+
+export interface UseFormOptions {
+  /**
+   * Shows server errors under their fields (and focuses the first one): a
+   * submit refused for a field never shows a toast. Returns whether any
+   * landed on a rendered field; the toast shows otherwise.
+   */
+  showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
+}
 
 interface FormResetTarget {
   clear?: () => void;
@@ -364,7 +387,28 @@ function watchFieldChanges(
   );
 }
 
-export const useForm = (props: FormProps) => {
+/**
+ * The errors of a refused submit the form shows under its fields: only the
+ * fields it shows (neither hidden nor disabled) can carry one, anything else
+ * is a toast.
+ */
+export function resolveFormFieldErrors(
+  error: unknown,
+  fields: ReadonlyArray<Pick<FormField, "id" | "disabled">>,
+  inactive: { disabled?: Set<string>; hidden?: Set<string> } = {},
+): ApiFieldError[] {
+  const shown = fields
+    .filter(
+      (field) =>
+        !field.disabled &&
+        !inactive.disabled?.has(field.id) &&
+        !inactive.hidden?.has(field.id),
+    )
+    .map((field) => field.id);
+  return resolveFieldErrors(error, { fields: shown }).fields;
+}
+
+export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const toast = useToast();
   const { $authFetch } = useAuthFetch();
   const { getDataType } = useDataTypes();
@@ -543,8 +587,33 @@ export const useForm = (props: FormProps) => {
 
   const resolveSubmitErrorDescription = (error: EventError) => {
     if (props.errorMessage) return processI18n(props.errorMessage);
-    if (isString(error.data)) return processApiMessage(error.data);
+    const text = apiErrorText(error);
+    if (text) return processApiMessage(text);
     return processI18n("$dms.form.error_unknown");
+  };
+
+  /** Puts a refused submit's field errors under their fields, if any. */
+  const showServerFieldErrors = (error: unknown): boolean => {
+    if (!options.showFieldErrors) return false;
+    const fieldErrors = resolveFormFieldErrors(error, allFields.value, {
+      disabled: disabledFields.value,
+      hidden: hiddenFields.value,
+    });
+    if (fieldErrors.length === 0) return false;
+    return options.showFieldErrors(
+      fieldErrors.map((entry) => ({
+        name: entry.field,
+        // An error naming values of the field (addresses of a list) lists
+        // them: the field shows which ones to fix.
+        message: entry.values?.length
+          ? t("dms.field_errors.with_values", {
+              message: processApiMessage(entry.message),
+              values: entry.values.join(", "),
+            })
+          : processApiMessage(entry.message),
+        values: entry.values,
+      })),
+    );
   };
 
   const showSubmitErrorToast = (error: EventError) => {
@@ -625,7 +694,9 @@ export const useForm = (props: FormProps) => {
       submitSucceeded.value = true;
       await handleSubmitSuccess(submitResponse, plainData);
     } catch (error) {
-      showSubmitErrorToast(error as EventError);
+      if (!showServerFieldErrors(error)) {
+        showSubmitErrorToast(error as EventError);
+      }
     } finally {
       loading.value = false;
     }

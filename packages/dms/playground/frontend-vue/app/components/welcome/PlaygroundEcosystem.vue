@@ -99,7 +99,7 @@ const LINK_ATTRIBUTES = { target: "_blank", rel: "noopener noreferrer" };
               aria-hidden="true"
             />
           </span>
-          <h3 class="text-highlighted min-w-0 truncate text-sm font-[650]">
+          <h3 class="text-highlighted min-w-0 text-sm font-[650]">
             {{ product.title }}
           </h3>
           <UIcon
@@ -125,7 +125,7 @@ const LINK_ATTRIBUTES = { target: "_blank", rel: "noopener noreferrer" };
 
     <div
       v-if="props.hosting"
-      class="eco-accent eco-hosting mt-6 flex items-center gap-3.5 rounded-(--dms-radius-card) border px-4 py-3.5 max-sm:flex-wrap"
+      class="eco-accent eco-hosting mt-6 flex items-center gap-3.5 rounded-(--dms-radius-card) border px-4 py-3.5 max-sm:flex-wrap max-sm:items-start"
       :style="accentStyle(props.hosting.accent)"
     >
       <span class="eco-well grid size-10 shrink-0 place-items-center">

@@ -192,20 +192,27 @@ const SPARKLINE_COLUMN_WIDTH = "4rem";
 // Fixed so the deltas line up down the list whatever their length.
 const TREND_COLUMN_WIDTH = "62px";
 
-const gridStyle = computed(() => {
+// The columns follow the card's own width (a container query), not the
+// viewport: a narrow card (a phone, a third of a dashboard row) drops the
+// sparkline column under 28rem, then the icon column under 22rem, so the
+// title keeps room instead of being squeezed to nothing.
+function columnsTemplate(sparkline: boolean, icon: boolean): string {
   const columns: string[] = [EDGE_COLUMN_WIDTH];
   if (props.showRank) columns.push(RANK_COLUMN_WIDTH);
-  if (hasAnyIcon.value) columns.push(ICON_COLUMN_WIDTH);
+  if (icon && hasAnyIcon.value) columns.push(ICON_COLUMN_WIDTH);
   columns.push(TITLE_COLUMN_WIDTH);
   columns.push(VALUE_COLUMN_WIDTH);
-  if (props.showSparkline) columns.push(SPARKLINE_COLUMN_WIDTH);
+  if (sparkline && props.showSparkline) columns.push(SPARKLINE_COLUMN_WIDTH);
   if (props.showDelta) columns.push(TREND_COLUMN_WIDTH);
   columns.push(EDGE_COLUMN_WIDTH);
-  return {
-    display: "grid",
-    gridTemplateColumns: columns.join(" "),
-  };
-});
+  return columns.join(" ");
+}
+
+const gridStyle = computed(() => ({
+  "--dms-top-list-cols": columnsTemplate(true, true),
+  "--dms-top-list-cols-mid": columnsTemplate(false, true),
+  "--dms-top-list-cols-narrow": columnsTemplate(false, false),
+}));
 </script>
 
 <template>
@@ -225,7 +232,7 @@ const gridStyle = computed(() => {
 
     <div
       ref="scrollRef"
-      class="[scrollbar-width:thin] overflow-y-auto overscroll-contain"
+      class="@container [scrollbar-width:thin] overflow-y-auto overscroll-contain"
       :class="
         isOverflowing &&
         '[mask-image:linear-gradient(to_bottom,black_calc(100%-36px),transparent)]'
@@ -234,7 +241,7 @@ const gridStyle = computed(() => {
     >
       <ul
         v-if="items.length > 0"
-        class="gap-x-3 divide-y divide-(--ui-border-muted) py-1"
+        class="grid [grid-template-columns:var(--dms-top-list-cols-narrow)] gap-x-2 divide-y divide-(--ui-border-muted) py-1 @[22rem]:[grid-template-columns:var(--dms-top-list-cols-mid)] @[22rem]:gap-x-3 @[28rem]:[grid-template-columns:var(--dms-top-list-cols)]"
         :style="gridStyle"
       >
         <DmsTopListRow

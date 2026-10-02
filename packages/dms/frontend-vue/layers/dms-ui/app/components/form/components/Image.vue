@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import DmsFieldError from "../../field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../../composables/form/types/content-language";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
+import { useKeyboardPlatform } from "../../../composables/global/keyboardPlatform";
 import {
   type FileFieldConstraints,
   matchMimetype,
@@ -68,7 +71,9 @@ const emit = defineEmits<{
 const { $authFetch } = useAuthFetch();
 const { emitFormChange } = useFormField();
 const { t } = useI18n();
-const toast = useToast();
+const { formatShortcut } = useKeyboardPlatform();
+/** The paste key the hints mention: "⌘V" on macOS, "Ctrl V" elsewhere. */
+const pasteShortcut = computed(() => formatShortcut(["meta", "v"]));
 const { uploadWithProgress } = useUploadWithProgress();
 const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
 const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
@@ -353,23 +358,26 @@ const createItemFromFile = (file: File): GalleryItem => ({
   progress: 0,
 });
 
+// Pictures refused by the field's constraints (size, type, count), named
+// under the field: an error of this field, not a toast.
+const rejections = ref<string[]>([]);
+const rejectionId = fieldErrorId(`${fieldId}-rejection`);
+
 const notifyRejected = (file: File, reason: "size" | "mimetype") => {
   const maxSize = props.constraints?.maxSize;
-  toast.add({
-    title: t("dms.form.image.rejected_title"),
-    description:
-      reason === "size"
-        ? t("dms.form.image.rejected_size", {
-            name: file.name,
-            size: maxSize ? formatFileSize(maxSize) : "",
-          })
-        : t("dms.form.image.rejected_type", { name: file.name }),
-    color: "error",
-  });
+  rejections.value.push(
+    reason === "size"
+      ? t("dms.form.image.rejected_size", {
+          name: file.name,
+          size: maxSize ? formatFileSize(maxSize) : "",
+        })
+      : t("dms.form.image.rejected_type", { name: file.name }),
+  );
 };
 
 const addFiles = (files: FileList | File[] | null) => {
   if (props.disabled || !files?.length) return;
+  rejections.value = [];
 
   const accepted: File[] = [];
   for (const file of Array.from(files)) {
@@ -394,11 +402,7 @@ const addFiles = (files: FileList | File[] | null) => {
   const admitted = accepted.slice(0, room);
   const dropped = accepted.length - admitted.length;
   if (dropped > 0) {
-    toast.add({
-      title: t("dms.form.image.rejected_title"),
-      description: t("dms.form.image.rejected_max", { count: dropped }),
-      color: "error",
-    });
+    rejections.value.push(t("dms.form.image.rejected_max", { count: dropped }));
   }
 
   const newItems = admitted.map(createItemFromFile);
@@ -579,13 +583,22 @@ onBeforeUnmount(() => {
       :accept="acceptString"
       :multiple="multiple"
       class="sr-only"
+      :aria-invalid="rejections.length > 0 || undefined"
+      :aria-describedby="rejections.length ? rejectionId : undefined"
       @change="onFileInputChange"
     />
 
     <div v-if="multiple" class="flex flex-col gap-3">
+      <!-- A phone-narrow field still gets two tiles a row instead of one
+        full-width square. -->
       <div
         class="grid gap-3"
-        style="grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr))"
+        style="
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(8.25rem, calc(50% - 0.375rem)), 1fr)
+          );
+        "
       >
         <div
           v-for="item in items"
@@ -739,7 +752,8 @@ onBeforeUnmount(() => {
 
       <p class="text-dimmed flex items-center gap-1.5 text-xs">
         <UIcon name="i-lucide-image" class="size-3.5" />
-        {{ t("dms.form.image.gallery_hint") }} · {{ formatsHint }}
+        {{ t("dms.form.image.gallery_hint", { shortcut: pasteShortcut }) }} ·
+        {{ formatsHint }}
       </p>
     </div>
 
@@ -747,7 +761,7 @@ onBeforeUnmount(() => {
       <button
         v-if="!singleItem"
         type="button"
-        class="text-muted hover:border-primary hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
+        class="text-muted hover:border-primary hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) px-4 py-3 text-center transition-colors hover:bg-(--dms-accent-tint)"
         :class="{
           'border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]':
             isDraggingOver,
@@ -760,7 +774,7 @@ onBeforeUnmount(() => {
       >
         <UIcon name="i-lucide-upload" class="size-6" />
         <span class="text-[13px] font-medium">
-          {{ t("dms.form.image.single_prompt") }}
+          {{ t("dms.form.image.single_prompt", { shortcut: pasteShortcut }) }}
         </span>
         <span class="text-[11px]">
           {{ t("dms.form.image.single_hint") }} · {{ formatsHint }}
@@ -975,5 +989,10 @@ onBeforeUnmount(() => {
         </div>
       </template>
     </UModal>
+    <DmsFieldError
+      :id="rejectionId"
+      class="mt-2"
+      :message="rejections.join(' ')"
+    />
   </div>
 </template>

@@ -76,7 +76,7 @@ const accountItems = computed<KeyValueItem[]>(() => [
       />
       <DmsLink
         :to="PROFILE_PATH"
-        class="text-primary ms-auto inline-flex items-center gap-1 text-[12.5px] font-[550]"
+        class="text-primary ms-auto inline-flex shrink-0 items-center gap-1 text-[12.5px] font-[550] whitespace-nowrap"
       >
         {{ t("page.settings.overview.edit_profile") }}
         <UIcon name="i-ph-arrow-right" class="size-3.5" />
@@ -92,16 +92,19 @@ const accountItems = computed<KeyValueItem[]>(() => [
         }"
       />
       <div class="min-w-0 flex-1">
-        <div class="text-highlighted truncate text-sm font-semibold">
+        <div
+          class="text-highlighted truncate text-sm font-semibold"
+          :title="user?.name"
+        >
           {{ user?.name }}
         </div>
-        <div class="text-muted truncate font-mono text-xs">
+        <div class="text-muted truncate font-mono text-xs" :title="user?.email">
           {{ user?.email }}
         </div>
       </div>
       <span
         v-if="isOwner"
-        class="inline-flex h-[22px] items-center gap-1 rounded-full bg-(--dms-accent-fill) px-[9px] font-mono text-[11px] font-[550] text-(--dms-accent-on-fill)"
+        class="inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-(--dms-accent-fill) px-[9px] font-mono text-[11px] font-[550] text-(--dms-accent-on-fill)"
       >
         <UIcon name="i-ph-crown-simple" class="size-3" />
         {{ t("page.settings.overview.owner") }}

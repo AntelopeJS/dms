@@ -494,10 +494,11 @@ interface PillsOptions {
 }
 
 const PILL_CLASS =
-  "inline-flex h-[22px] shrink-0 items-center gap-[5px] rounded-full border px-[9px] font-mono text-[11px] whitespace-nowrap";
+  "inline-flex h-[22px] items-center gap-[5px] rounded-full border px-[9px] font-mono text-[11px] whitespace-nowrap";
 const PILL_OUTLINE_CLASS = "border-accented text-toned font-[550]";
+const PILL_SHRINK_CLASS = "min-w-12";
 const PILL_FILLED_CLASS =
-  "border-(--dms-accent-fill) bg-(--dms-accent-fill) font-[650] text-(--dms-accent-on-fill)";
+  "shrink-0 border-(--dms-accent-fill) bg-(--dms-accent-fill) font-[650] text-(--dms-accent-on-fill)";
 
 /**
  * `pills`: a list (relation rows, select values, strings) as v2 role pills,
@@ -534,11 +535,17 @@ function renderPills(value: unknown, options: unknown, row: Row) {
         )
       : "";
   }
+  // Pills too wide for the column shrink to an ellipsis (no shorter than a
+  // few letters); the list's tooltip names them all.
   return h(
     "span",
-    { class: "flex min-w-0 gap-1 overflow-hidden" },
+    { class: "flex min-w-0 gap-1 overflow-hidden", title: labels.join(", ") },
     labels.map((label) =>
-      h("span", { class: [PILL_CLASS, PILL_OUTLINE_CLASS] }, label),
+      h(
+        "span",
+        { class: [PILL_CLASS, PILL_OUTLINE_CLASS, PILL_SHRINK_CLASS] },
+        [h("span", { class: "truncate" }, label)],
+      ),
     ),
   );
 }

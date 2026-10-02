@@ -352,6 +352,25 @@ const tabsTheme = {
       variant: "pill",
       class: { indicator: "inset-y-[3px]" },
     },
+    // A row of tabs wider than its column (a phone, a narrow card) scrolls
+    // sideways instead of cutting every label to an ellipsis.
+    {
+      orientation: "horizontal",
+      class: {
+        list: "overflow-x-auto [scrollbar-width:none]",
+        trigger: "shrink-0",
+      },
+    },
+    // The scrolling list clips its border box, so the hairline is drawn
+    // inside it (an inset shadow) for the underline to cover it as before.
+    {
+      orientation: "horizontal",
+      variant: "link",
+      class: {
+        list: "overflow-y-hidden border-b-0 shadow-[inset_0_-1px_0_var(--ui-border)]",
+        indicator: "bottom-0",
+      },
+    },
     ...TABS_PILL_COMPOUNDS,
     ...TABS_LINK_COMPOUNDS,
   ],

@@ -251,7 +251,10 @@ it("posts the new address with the current password, then collapses", async () =
 });
 
 it("shows a wrong current password under its field, without a toast", async () => {
-  authFetch.mockRejectedValue({ data: "error.invalid_current_password" });
+  authFetch.mockRejectedValue({
+    statusCode: 400,
+    data: "error.invalid_current_password",
+  });
   await mountEmail();
   await openPanel();
   await type(emailInput(), "new@example.com");

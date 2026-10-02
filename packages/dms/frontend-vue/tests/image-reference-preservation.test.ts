@@ -20,6 +20,8 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import { useKeyboardPlatform } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
+import { fieldErrorId } from "../layers/dms-core/app/composables/useFieldErrors";
 import {
   isDefinitiveMetadataFailure,
   resolveMetadataRetryDelay,
@@ -114,6 +116,14 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useFormField", () => ({ emitFormChange: vi.fn() }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
+  );
+  // The script runs without its imports: hand it the paste-hint composable.
+  vi.stubGlobal("useKeyboardPlatform", useKeyboardPlatform);
+  vi.stubGlobal("fieldErrorId", fieldErrorId);
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
 });
 

@@ -7,7 +7,7 @@ import { useSidebarStartCollapsed } from "../../composables/general/useSidebarSt
 import { useAccessibilityPreferences } from "../../composables/general/useAccessibilityPreferences";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import type { ReduceMotionPreference } from "#dms-ui/app/utils/accessibilityPreferences";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+import { useInstantSaveHeader } from "../../composables/layout/useInstantSaveHeader";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 
 // Number of `--ui-*` variables, shown in the Developer block summary.
@@ -87,20 +87,8 @@ function setReduceMotion(value: string | number | undefined): void {
 }
 
 // Everything on this page is a per-device preference saved as soon as it is
-// picked, which the v2 header states once instead of per control.
-usePageHeaderActions(() =>
-  h(
-    "span",
-    {
-      class:
-        "inline-flex h-7 items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-[11px] text-xs font-[550] text-success",
-    },
-    [
-      h(UIcon, { name: "i-ph-lightning", class: "size-3.5" }),
-      t("page.settings.appearance.instant"),
-    ],
-  ),
-);
+// picked, which the shared header pill states once instead of per control.
+useInstantSaveHeader();
 </script>
 
 <template>

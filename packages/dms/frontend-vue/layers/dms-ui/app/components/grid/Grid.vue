@@ -2,6 +2,7 @@
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import { GRID_CONTEXT, type GridContext } from "./constants";
 import { GRID_DEFAULT_MIN_COLUMN_WIDTH, gridColumnsTemplate } from "./columns";
+import { GRID_TRACKS_VAR, useGridTrackCount } from "./trackCount";
 
 interface GridProps extends DefaultComponentProps {
   gap?: string;
@@ -42,20 +43,35 @@ provide<GridContext>(GRID_CONTEXT, {
   minColumnWidth: minColumnWidthRef,
 });
 
+const columnsTemplate = computed(() =>
+  gridColumnsTemplate(maxColumns.value, props.gap, props.minColumnWidth),
+);
+const gridRef = ref<HTMLElement | null>(null);
+const trackCount = useGridTrackCount(gridRef, () => ({
+  maxColumns: maxColumns.value,
+  minColumnWidth: props.minColumnWidth,
+}));
+
+// Fewer tracks than the widest row asks for: spacers stop holding cells.
+const isReflowed = computed(
+  () => trackCount.value !== undefined && trackCount.value < maxColumns.value,
+);
+
 const gridStyle = computed(() => ({
   display: "grid",
-  gridTemplateColumns: gridColumnsTemplate(
-    maxColumns.value,
-    props.gap,
-    props.minColumnWidth,
-  ),
+  gridTemplateColumns: columnsTemplate.value,
   gap: props.gap,
   width: "100%",
+  [GRID_TRACKS_VAR]: trackCount.value?.toString(),
 }));
 </script>
 
 <template>
-  <div :style="gridStyle">
+  <div
+    ref="gridRef"
+    :style="gridStyle"
+    :data-dms-grid-reflowed="isReflowed || undefined"
+  >
     <slot />
   </div>
 </template>

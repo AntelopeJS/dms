@@ -75,6 +75,8 @@ const initials = computed(() =>
 </script>
 
 <template>
+  <!-- In a narrow column the badges give way first (down to a readable
+    ellipsis, the full label in their tooltip), then the name. -->
   <div class="flex min-w-0 items-center gap-2.5">
     <span
       v-if="props.icon"
@@ -97,7 +99,7 @@ const initials = computed(() =>
       <span
         class="text-highlighted flex min-w-0 items-center gap-1.5 leading-[1.3] font-semibold"
       >
-        <span class="truncate">{{ label }}</span>
+        <span class="truncate" :title="label">{{ label }}</span>
         <span
           v-if="isSelf && props.selfLabel"
           class="text-dimmed shrink-0 font-mono text-[10px] font-semibold tracking-[0.06em] uppercase"
@@ -111,7 +113,9 @@ const initials = computed(() =>
           variant="soft"
           size="sm"
           :label="badge.label"
-          class="shrink-0"
+          :title="badge.label"
+          :ui="{ label: 'truncate' }"
+          class="min-w-16 shrink-[3]"
         />
       </span>
       <span

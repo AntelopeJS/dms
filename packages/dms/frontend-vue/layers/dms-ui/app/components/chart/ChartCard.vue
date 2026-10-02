@@ -162,7 +162,7 @@ const hasMeta = computed(
         <DmsEyebrow
           tone="muted"
           truncate
-          class="max-w-full"
+          class="max-w-full max-sm:whitespace-normal"
           :label="processI18n(title)"
         />
         <div

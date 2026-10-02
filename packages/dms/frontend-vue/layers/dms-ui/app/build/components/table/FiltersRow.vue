@@ -17,13 +17,16 @@ import { formatFilterValue } from "../../composables/table/utils/formatFilterVal
 const theme = tv({
   slots: {
     root: "flex flex-wrap items-center gap-2 border-b border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5",
-    list: "flex flex-wrap items-center gap-2",
-    item: "flex h-7 items-stretch divide-x divide-default overflow-hidden rounded-md border border-accented bg-(--ui-bg) text-[12.5px] shadow-xs has-[[data-state=open]]:border-primary has-[[data-state=open]]:ring-[3px] has-[[data-state=open]]:ring-primary/16",
-    chip: "flex items-stretch divide-x divide-default hover:bg-elevated/60",
+    list: "flex min-w-0 flex-wrap items-center gap-2",
+    // A chip never outgrows the row: on a phone its compare mode and value
+    // shrink to an ellipsis (the chip's tooltip spells them out).
+    item: "flex h-7 max-w-full min-w-0 items-stretch divide-x divide-default overflow-hidden rounded-md border border-accented bg-(--ui-bg) text-[12.5px] shadow-xs has-[[data-state=open]]:border-primary has-[[data-state=open]]:ring-[3px] has-[[data-state=open]]:ring-primary/16",
+    chip: "flex min-w-0 items-stretch divide-x divide-default hover:bg-elevated/60",
     label:
-      "flex items-center gap-1.5 px-2 font-[550] text-highlighted [&>svg]:size-3.5 [&>svg]:text-dimmed",
-    mode: "flex items-center px-2 font-mono text-[11px] font-medium text-muted",
-    value: "flex max-w-48 items-center truncate px-2 font-[550] text-primary",
+      "flex shrink-0 items-center gap-1.5 px-2 font-[550] whitespace-nowrap text-highlighted [&>svg]:size-3.5 [&>svg]:text-dimmed",
+    mode: "min-w-0 shrink-[3] truncate px-2 font-mono text-[11px] leading-[26px] font-medium text-muted",
+    value:
+      "max-w-48 min-w-9 truncate px-2 leading-[26px] font-[550] text-primary",
     remove:
       "grid w-[26px] place-items-center text-dimmed hover:bg-elevated hover:text-highlighted [&>svg]:size-3.5",
     editor: "grid w-72 gap-2 p-3",
@@ -157,6 +160,16 @@ const displayValue = (filter: TableFilter): string => {
   );
   return formatted || EMPTY_FILTER_VALUE;
 };
+
+// The whole filter in words, for a chip shrunk to an ellipsis.
+const chipTitle = (filter: TableFilter): string =>
+  [
+    getColumn(filter.accessorKey)?.label,
+    t(`dms.table.compare_mode.${filter.mode}`),
+    displayValue(filter),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 </script>
 
 <template>
@@ -168,7 +181,7 @@ const displayValue = (filter: TableFilter): string => {
         :class="ui.item({ pinned: !!filter.pinned })"
       >
         <UPopover :content="{ align: 'start', sideOffset: 6 }">
-          <button type="button" :class="ui.chip()">
+          <button type="button" :class="ui.chip()" :title="chipTitle(filter)">
             <span :class="ui.label()">
               {{ getColumn(filter.accessorKey)?.label }}
             </span>

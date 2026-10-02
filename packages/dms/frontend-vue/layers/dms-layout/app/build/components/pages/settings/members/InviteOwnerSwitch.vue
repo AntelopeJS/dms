@@ -19,8 +19,9 @@ const isOwner = computed({
   <div
     class="border-default flex items-start gap-3 rounded-md border bg-(--dms-bg-muted) px-3.5 py-3"
   >
+    <!-- No crown on phones: it left the description a 120px column. -->
     <span
-      class="border-default bg-default text-muted grid size-[34px] shrink-0 place-items-center rounded-[9px] border"
+      class="border-default bg-default text-muted grid size-[34px] shrink-0 place-items-center rounded-[9px] border max-sm:hidden"
     >
       <UIcon name="i-ph-crown" class="size-[18px]" />
     </span>

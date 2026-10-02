@@ -64,7 +64,10 @@ const theme = tv({
         root: "flex-nowrap items-start gap-2.5",
         heading: "flex-1",
         title: "flex-nowrap",
-        description: "text-dimmed mt-1 truncate text-xs",
+        // One line each on wide screens; on a phone, beside the trailing
+        // badge or actions, the title and description wrap instead.
+        description:
+          "text-dimmed mt-1 truncate text-xs max-sm:whitespace-normal",
         trailing: "shrink-0",
       },
     },
@@ -95,7 +98,7 @@ const hasCount = computed(
             v-if="isCard"
             as="span"
             tone="muted"
-            class="min-w-0"
+            class="min-w-0 max-sm:whitespace-normal"
             truncate
             :label="props.title"
           />

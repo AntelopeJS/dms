@@ -262,8 +262,8 @@
       "image": {
         "add": "Ajouter",
         "drop_hint": "ou glisser ici",
-        "gallery_hint": "Glisser-déposer · coller ⌘V · réordonner par glissé",
-        "single_prompt": "Glisser une image, coller (⌘V) ou parcourir",
+        "gallery_hint": "Glisser-déposer · coller {shortcut} · réordonner par glissé",
+        "single_prompt": "Glisser une image, coller ({shortcut}) ou parcourir",
         "single_hint": "Une seule image",
         "formats_any": "Tous formats d'image",
         "upload_failed": "Échec de l'envoi",
@@ -547,7 +547,9 @@
       "discard": "Annuler",
       "save": "Enregistrer",
       "saving": "Enregistrement",
-      "saved": "Enregistré"
+      "saved": "Enregistré",
+      "instant": "Enregistré instantanément",
+      "instant_hint": "Les modifications de cette page sont enregistrées dès que vous les faites"
     },
     "blocks": {
       "empty": "Rien à afficher pour l'instant",

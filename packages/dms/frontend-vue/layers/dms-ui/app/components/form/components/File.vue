@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useId } from "vue";
+import DmsFieldError from "../../field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../../composables/form/types/content-language";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
@@ -47,9 +50,12 @@ const emit = defineEmits<{
 
 const { $authFetch } = useAuthFetch();
 const { t } = useI18n();
-const toast = useToast();
 
 const { emitFormChange } = useFormField();
+// Files refused by the field's constraints, named under the drop zone: an
+// error of this field, not a toast.
+const rejections = ref<string[]>([]);
+const rejectionId = fieldErrorId(`file-${useId()}`);
 
 const { uploadWithProgress } = useUploadWithProgress();
 
@@ -264,21 +270,19 @@ const processFile = async (file: File) => {
 };
 
 const notifyRejected = (file: File, violation: FileConstraintViolation) => {
-  toast.add({
-    title: t("dms.form.file.rejected_title"),
-    description:
-      violation === "size"
-        ? t("dms.form.file.rejected_size", {
-            name: file.name,
-            size: maxSizeFormatted.value ?? "",
-          })
-        : t("dms.form.file.rejected_type", { name: file.name }),
-    color: "error",
-  });
+  rejections.value.push(
+    violation === "size"
+      ? t("dms.form.file.rejected_size", {
+          name: file.name,
+          size: maxSizeFormatted.value ?? "",
+        })
+      : t("dms.form.file.rejected_type", { name: file.name }),
+  );
 };
 
 watch(selectedFiles, async (value) => {
   if (!value) return;
+  rejections.value = [];
 
   const files = Array.isArray(value) ? value : [value];
 
@@ -359,11 +363,14 @@ onScopeDispose(() => {
       :multiple="multiple"
       :accept="acceptString"
       :disabled="disabled || isUploading"
+      :aria-invalid="rejections.length > 0 || undefined"
+      :aria-describedby="rejections.length ? rejectionId : undefined"
     >
       <template v-if="maxSizeFormatted" #description>
         {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
       </template>
     </UFileUpload>
+    <DmsFieldError :id="rejectionId" :message="rejections.join(' ')" />
 
     <div v-if="uploadingFiles.length" class="flex flex-col gap-1">
       <div

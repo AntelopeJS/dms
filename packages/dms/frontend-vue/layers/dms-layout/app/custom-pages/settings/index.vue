@@ -58,7 +58,7 @@ const previewVeilDetail = (fullId: string): string | undefined =>
 
 <template>
   <div>
-    <div class="mb-8 grid gap-4 lg:grid-cols-2">
+    <div class="mb-8 grid gap-4 @2xl/settings:grid-cols-2">
       <SettingsAccountSummary />
       <SettingsActivityCard />
     </div>
@@ -70,7 +70,12 @@ const previewVeilDetail = (fullId: string): string | undefined =>
       :description="GROUP_DESCRIPTIONS[group.id] ?? OTHER_GROUP_DESCRIPTION"
       bare
     >
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <!-- As many 16rem tracks as the settings column holds: fixed
+           viewport breakpoints squeezed three cards into it at 1280px (and
+           two at 1024px), truncating their titles. -->
+      <div
+        class="grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-3"
+      >
         <!-- v2 settings navcard (.sx-grid): tighter rhythm, the page's live
              state in mono, and its module tag after the title. -->
         <DmsPermissionVeil

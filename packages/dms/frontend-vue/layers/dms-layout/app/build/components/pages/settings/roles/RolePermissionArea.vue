@@ -34,10 +34,13 @@ const subtitle = computed(() =>
 );
 
 // v2 .cs-parea: caret, tri-state box, icon tile, title over its subtitle and
-// the "n/m" count with its bar; the count turns accent when complete.
+// the "n/m" count with its bar; the count turns accent when complete. The
+// row reads the editor's width (@container/editor): the hover id goes under
+// 576px, and under 448px (phones) the icon tile and the bar go too and the
+// title wraps, which otherwise kept three letters of it.
 const theme = tv({
   slots: {
-    root: "group mt-1 grid min-h-[46px] grid-cols-[20px_20px_30px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-elevated",
+    root: "group mt-1 grid min-h-[46px] grid-cols-[20px_20px_30px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-elevated @max-md/editor:grid-cols-[20px_20px_minmax(0,1fr)_auto]",
     count:
       "flex items-center gap-2 font-mono text-[11.5px] font-semibold text-muted",
   },
@@ -84,7 +87,7 @@ const ui = computed(() => theme({ completion: completion.value }));
         @update:model-value="emit('toggle', props.state !== true)"
       />
       <span
-        class="border-default text-muted grid size-7 place-items-center rounded-[7px] border bg-(--dms-bg-muted)"
+        class="border-default text-muted grid size-7 place-items-center rounded-[7px] border bg-(--dms-bg-muted) @max-md/editor:hidden"
       >
         <UIcon
           :name="props.area.node.icon ?? FALLBACK_ICON"
@@ -97,23 +100,29 @@ const ui = computed(() => theme({ completion: completion.value }));
         :disabled="!hasRows"
         @click="emit('toggle-expanded')"
       >
-        <b class="text-highlighted block truncate text-[13px] font-[650]">
+        <b
+          class="text-highlighted block truncate text-[13px] font-[650] @max-md/editor:whitespace-normal"
+        >
           {{ processI18n(props.area.node.label) }}
         </b>
-        <small v-if="subtitle" class="text-muted block truncate text-xs">
+        <small
+          v-if="subtitle"
+          class="text-muted block truncate text-xs @max-md/editor:whitespace-normal"
+        >
           {{ subtitle }}
         </small>
       </button>
       <span :class="ui.count()">
         <span
-          class="text-dimmed font-medium opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-sm:hidden"
+          class="text-dimmed max-w-40 min-w-0 truncate font-medium opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 @max-xl/editor:hidden"
+          :title="props.area.node.id"
         >
           {{ props.area.node.id }}
         </span>
         <DmsMeter
           as="span"
           size="xs"
-          class="w-14 shrink-0"
+          class="w-14 shrink-0 @max-md/editor:hidden"
           :value="props.count.selected"
           :max="props.count.total"
         />
@@ -124,7 +133,7 @@ const ui = computed(() => theme({ completion: completion.value }));
       v-if="props.isExpanded && hasRows"
       :id="childrenId"
       role="group"
-      class="border-default ms-[19px] mt-0.5 mb-1.5 border-s ps-1.5"
+      class="border-default ms-[19px] mt-0.5 mb-1.5 border-s ps-1.5 @max-md/editor:ms-[9px] @max-md/editor:ps-0.5"
     >
       <slot />
     </div>

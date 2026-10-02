@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
+import { useTemplateRef } from "vue";
 import RolePermissionTree from "./RolePermissionTree.vue";
 import {
   buildPermissionLevels,
@@ -15,6 +16,7 @@ import {
 import {
   ROLE_DESCRIPTION_MAX_LENGTH,
   ROLE_NAME_MAX_LENGTH,
+  type RoleEditorField,
   type RoleMemberPreview,
 } from "./role-types";
 
@@ -37,6 +39,14 @@ interface RoleEditorProps {
   changes: string[];
   /** Whether "Preview as role" is offered (the viewer may edit roles). */
   canPreview?: boolean;
+  /** Inline error under the name (required, already taken…). */
+  nameError?: string;
+  /** Inline error under the description. */
+  descriptionError?: string;
+}
+
+interface InputHandle {
+  inputRef?: HTMLInputElement;
 }
 
 const props = defineProps<RoleEditorProps>();
@@ -54,6 +64,14 @@ const description = defineModel<string>("description", { required: true });
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
+const nameInput = useTemplateRef<InputHandle>("nameInput");
+const descriptionInput = useTemplateRef<InputHandle>("descriptionInput");
+
+defineExpose({
+  /** The input of a field, which the page focuses when an error lands on it. */
+  inputOf: (field: RoleEditorField): HTMLInputElement | undefined =>
+    (field === "name" ? nameInput : descriptionInput).value?.inputRef,
+});
 
 const NAMED_MEMBERS_LIMIT = 2;
 
@@ -199,29 +217,50 @@ function toggleArea(id: string): void {
     <div
       class="border-default grid gap-x-4 gap-y-3.5 border-b px-[18px] py-4 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)]"
     >
-      <UFormField :label="t('page.settings.roles.editor.field_name')" required>
+      <UFormField
+        :label="t('page.settings.roles.editor.field_name')"
+        :error="props.nameError"
+        required
+      >
         <UInput
+          ref="nameInput"
           v-model="name"
           class="w-full"
           :maxlength="ROLE_NAME_MAX_LENGTH"
           :disabled="props.readonly"
           :placeholder="t('page.settings.roles.editor.placeholder_name')"
         />
+        <template #error="{ error }">
+          <template v-if="error">
+            <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
+            {{ error }}
+          </template>
+        </template>
       </UFormField>
       <UFormField
         :label="t('page.settings.roles.editor.field_description')"
         :hint="t('page.settings.roles.editor.optional')"
+        :error="props.descriptionError"
       >
         <UInput
+          ref="descriptionInput"
           v-model="description"
           class="w-full"
           :maxlength="ROLE_DESCRIPTION_MAX_LENGTH"
           :disabled="props.readonly"
           :placeholder="t('page.settings.roles.editor.placeholder_description')"
         />
+        <template #error="{ error }">
+          <template v-if="error">
+            <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
+            {{ error }}
+          </template>
+        </template>
       </UFormField>
     </div>
 
+    <!-- Phones (editor under 448px): the search takes the first line, the
+         level tools and the count share the next. -->
     <div
       class="border-muted flex flex-wrap items-center gap-2 border-b py-3 ps-[18px] pe-4"
     >
@@ -229,7 +268,7 @@ function toggleArea(id: string): void {
         v-model="query"
         icon="i-ph-magnifying-glass"
         size="sm"
-        class="max-w-[280px] flex-[1_1_180px]"
+        class="max-w-[280px] flex-[1_1_180px] @max-md/editor:max-w-none @max-md/editor:basis-full"
         :placeholder="t('page.settings.roles.editor.search_permissions')"
         :aria-label="t('page.settings.roles.editor.search_permissions')"
       />
@@ -293,7 +332,7 @@ function toggleArea(id: string): void {
           <DmsMeter
             as="span"
             size="xs"
-            class="w-20 shrink-0"
+            class="w-20 shrink-0 @max-md/editor:hidden"
             :value="selectedCount"
             :max="props.totalPermissions"
           />

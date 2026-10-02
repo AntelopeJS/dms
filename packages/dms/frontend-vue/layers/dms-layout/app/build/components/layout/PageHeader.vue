@@ -4,12 +4,15 @@ import type { ClassNameValue } from "tailwind-merge";
 
 const theme = tv({
   slots: {
-    root: "flex gap-3.5 items-start",
+    // Wraps so the actions drop under the title once both no longer fit (the
+    // layout puts them on their own full-width row below `md`).
+    root: "flex flex-wrap gap-x-3.5 gap-y-4 items-start",
     badge:
       "mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9",
     icon: "text-primary",
 
-    content: "flex-1 min-w-0",
+    // From `md` the title keeps at least 16rem before the actions wrap.
+    content: "flex-1 min-w-0 md:flex-[1_1_16rem]",
     // v2 .page-header__title: 24px, weight 650, line-height 1.2, -0.03em.
     title:
       "text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]",

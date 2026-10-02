@@ -53,7 +53,12 @@ function getColSpanStyle(
 ): Record<string, string> | undefined {
   const colSpan = Number(child.colSpan);
   if (!colSpan || colSpan <= 1) return undefined;
-  return { gridColumn: `span ${colSpan}` };
+  // Never more tracks than the grid has left at its current width (a phone
+  // keeps one): a wider span would add implicit columns past the screen.
+  // `--dms-grid-tracks` comes from the enclosing Grid / GridRow.
+  return {
+    gridColumn: `span min(${colSpan}, var(--dms-grid-tracks, ${colSpan}))`,
+  };
 }
 
 const columnCount = computed(() =>

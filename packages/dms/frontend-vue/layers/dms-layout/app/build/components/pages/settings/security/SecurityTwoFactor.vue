@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
+import type { Ref } from "vue";
 import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -9,6 +10,7 @@ import {
 import SecurityBackupCodesModal from "./SecurityBackupCodesModal.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityTotpSetupModal from "./SecurityTotpSetupModal.vue";
+import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
 type TwoFactorMethod = "totp" | "email";
 
@@ -29,6 +31,12 @@ interface BackupCodesResponse {
 }
 
 const TWO_FACTOR_URL = `${SECURITY_ENDPOINT}/two-factor`;
+const INVALID_CODE_KEY = "page.settings.two_factor.invalid_code";
+// Refusals of the typed code: shown under the code, in its dialog.
+const CODE_ERRORS = {
+  "error.invalid_2fa_code": "code",
+  "error.2fa_code_expired": "code",
+} as const;
 // Opening a dialog while the previous one is still leaving nests them, and the
 // leaving one stays on top until the new one closes: let it finish first.
 const DIALOG_SWAP_MS = 300;
@@ -70,6 +78,9 @@ const isRegenerated = useDmsState<boolean>(
   () => false,
 );
 const isRemoveOpen = ref(false);
+const totpCodeError = ref<string>();
+const removeCodeError = ref<string>();
+const regenerateCodeError = ref<string>();
 const removingMethod = ref<MethodConfig | null>(null);
 const isRegenerateOpen = ref(false);
 
@@ -128,16 +139,34 @@ function showCodes(
   setTimeout(() => (isCodesOpen.value = true), DIALOG_SWAP_MS);
 }
 
+/** Whether the API refused the typed code itself (not the request). */
+function isCodeError(error: unknown): boolean {
+  return (
+    resolveFieldErrors(error, { fields: ["code"], codes: CODE_ERRORS }).fields
+      .length > 0
+  );
+}
+
+/**
+ * @param codeError Where a refused code shows (under the code of the open
+ *   dialog) instead of a toast
+ */
 async function run(
   action: () => Promise<void>,
   fallbackKey: string,
+  codeError?: Ref<string | undefined>,
 ): Promise<void> {
   isProcessing.value = true;
+  if (codeError) codeError.value = undefined;
   try {
     await action();
     await refresh();
   } catch (error) {
-    fail(error, fallbackKey);
+    if (codeError && isCodeError(error)) {
+      codeError.value = errorMessage(error, INVALID_CODE_KEY);
+    } else {
+      fail(error, fallbackKey);
+    }
   } finally {
     isProcessing.value = false;
   }
@@ -156,18 +185,22 @@ async function startTotp(): Promise<void> {
 }
 
 async function confirmTotp(code: string): Promise<void> {
-  await run(async () => {
-    const response = await $authFetch<MethodEnabledResponse>(
-      `${TWO_FACTOR_URL}/confirm-totp`,
-      { method: "POST", body: { code } },
-    );
-    isTotpOpen.value = false;
-    toast.add({
-      title: t("page.settings.two_factor.enable_success"),
-      color: "success",
-    });
-    showCodes(response.backupCodes);
-  }, "page.settings.two_factor.invalid_code");
+  await run(
+    async () => {
+      const response = await $authFetch<MethodEnabledResponse>(
+        `${TWO_FACTOR_URL}/confirm-totp`,
+        { method: "POST", body: { code } },
+      );
+      isTotpOpen.value = false;
+      toast.add({
+        title: t("page.settings.two_factor.enable_success"),
+        color: "success",
+      });
+      showCodes(response.backupCodes);
+    },
+    INVALID_CODE_KEY,
+    totpCodeError,
+  );
 }
 
 async function enableEmail(): Promise<void> {
@@ -201,17 +234,21 @@ function openRemove(method: MethodConfig): void {
 async function confirmRemove(code: string): Promise<void> {
   const method = removingMethod.value;
   if (!method) return;
-  await run(async () => {
-    await $authFetch(`${TWO_FACTOR_URL}/disable`, {
-      method: "POST",
-      body: { method: method.key, code },
-    });
-    isRemoveOpen.value = false;
-    toast.add({
-      title: t("page.settings.two_factor.disable_success"),
-      color: "success",
-    });
-  }, "page.settings.two_factor.invalid_code");
+  await run(
+    async () => {
+      await $authFetch(`${TWO_FACTOR_URL}/disable`, {
+        method: "POST",
+        body: { method: method.key, code },
+      });
+      isRemoveOpen.value = false;
+      toast.add({
+        title: t("page.settings.two_factor.disable_success"),
+        color: "success",
+      });
+    },
+    INVALID_CODE_KEY,
+    removeCodeError,
+  );
 }
 
 async function sendEmailCode(): Promise<void> {
@@ -229,14 +266,18 @@ async function sendEmailCode(): Promise<void> {
 }
 
 async function confirmRegenerate(code: string): Promise<void> {
-  await run(async () => {
-    const response = await $authFetch<BackupCodesResponse>(
-      `${TWO_FACTOR_URL}/regenerate-backup`,
-      { method: "POST", body: { code } },
-    );
-    isRegenerateOpen.value = false;
-    showCodes(response.backupCodes, true);
-  }, "page.settings.two_factor.invalid_code");
+  await run(
+    async () => {
+      const response = await $authFetch<BackupCodesResponse>(
+        `${TWO_FACTOR_URL}/regenerate-backup`,
+        { method: "POST", body: { code } },
+      );
+      isRegenerateOpen.value = false;
+      showCodes(response.backupCodes, true);
+    },
+    INVALID_CODE_KEY,
+    regenerateCodeError,
+  );
 }
 
 async function markSaved(): Promise<void> {
@@ -419,6 +460,7 @@ async function markSaved(): Promise<void> {
 
     <SecurityTotpSetupModal
       v-model:open="isTotpOpen"
+      v-model:error="totpCodeError"
       :setup="totpSetup"
       :account="email"
       :loading="isProcessing"
@@ -433,6 +475,7 @@ async function markSaved(): Promise<void> {
     />
     <SecurityCodeModal
       v-model:open="isRemoveOpen"
+      v-model:error="removeCodeError"
       :title="
         t('page.settings.security.two_factor.remove_title', {
           method: removingMethod ? t(removingMethod.nameKey) : '',
@@ -450,6 +493,7 @@ async function markSaved(): Promise<void> {
     />
     <SecurityCodeModal
       v-model:open="isRegenerateOpen"
+      v-model:error="regenerateCodeError"
       :title="t('page.settings.security.backup.regenerate_title')"
       :description="t('page.settings.two_factor.regenerate_description')"
       icon="i-ph-arrows-clockwise"

@@ -34,8 +34,10 @@ const readToggleLabel = computed(() =>
 );
 // Row actions stay compact until the row is hovered or holds focus, then
 // show their labels (v2 C07).
+// Hover or focus spells the actions out, except on phones: a tap focuses
+// the row, and the labels would squeeze the text there.
 const actionLabelUi = {
-  label: "hidden group-hover:inline group-focus-within:inline",
+  label: "hidden sm:group-hover:inline sm:group-focus-within:inline",
 };
 </script>
 
@@ -50,7 +52,7 @@ const actionLabelUi = {
     :unread-label="t('page.settings.notifications.unread')"
     :icon="props.notification.icon"
     :tone="iconWellTone"
-    class="group relative cursor-pointer focus-within:shadow-[inset_0_0_0_2px_var(--dms-accent-line)]"
+    class="group relative cursor-pointer focus-within:shadow-[inset_0_0_0_2px_var(--dms-accent-line)] max-sm:grid-cols-1 max-sm:gap-y-1.5"
     @click="emit('open')"
   >
     <button
@@ -80,8 +82,10 @@ const actionLabelUi = {
       </span>
     </template>
     <template #trailing>
+      <!-- Phones: the actions drop under the text, end-aligned, instead of
+           taking a column from it (the row is one column there). -->
       <div
-        class="flex items-center gap-1 opacity-55 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
+        class="flex items-center gap-1 opacity-55 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 max-sm:ms-auto"
         @click.stop
       >
         <UButton

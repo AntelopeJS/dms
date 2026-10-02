@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick, useTemplateRef } from "vue";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
 import AuthCodeInput from "../../components/AuthCodeInput.vue";
@@ -11,7 +12,8 @@ type TwoFactorMethod = "totp" | "email";
 const { t } = useI18n();
 const toast = useToast();
 const route = useDmsRoute();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, showFormError, clearFormError, showError } =
+  useAuthFormError();
 
 const token = computed(() => (route.query.token as string) || "");
 const availableMethods = computed(() =>
@@ -19,6 +21,11 @@ const availableMethods = computed(() =>
 );
 
 const PIN_LENGTH = 6;
+// Refusals of the typed code: shown under the cells, not above the form.
+const CODE_ERRORS = {
+  "error.invalid_2fa_code": "code",
+  "error.2fa_code_expired": "code",
+} as const;
 
 const METHOD_ICONS: Record<TwoFactorMethod, string> = {
   totp: "i-ph-device-mobile",
@@ -34,6 +41,13 @@ const isLoading = ref(false);
 const activeMethod = ref<TwoFactorMethod>("totp");
 const pin = ref<string[]>([]);
 const isEmailSent = ref(false);
+const codeError = ref<string>();
+const codeInput = useTemplateRef<{ focus: () => void }>("codeInput");
+
+// Typing a new code clears the refusal of the previous one.
+watch(pin, (digits) => {
+  if (digits.some(Boolean)) codeError.value = undefined;
+});
 
 const hasTotp = computed(() => availableMethods.value.includes("totp"));
 const hasEmail = computed(() => availableMethods.value.includes("email"));
@@ -83,6 +97,7 @@ async function verify() {
 
   isLoading.value = true;
   clearFormError();
+  codeError.value = undefined;
   try {
     await $fetch("/auth/verify-2fa", {
       method: "POST",
@@ -95,8 +110,16 @@ async function verify() {
 
     await usePostLoginRedirect();
   } catch (error: unknown) {
-    showFormError(error, "page.2fa.error_title");
     pin.value = [];
+    await showError(error, "page.2fa.error_title", {
+      fields: ["code"],
+      codes: CODE_ERRORS,
+      show: (_field, message) => {
+        codeError.value = message;
+      },
+    });
+    await nextTick();
+    codeInput.value?.focus();
   } finally {
     isLoading.value = false;
   }
@@ -106,6 +129,7 @@ function switchMethod(method: TwoFactorMethod) {
   activeMethod.value = method;
   pin.value = [];
   isEmailSent.value = false;
+  codeError.value = undefined;
   clearFormError();
 }
 </script>
@@ -130,7 +154,12 @@ function switchMethod(method: TwoFactorMethod) {
       />
 
       <template v-else>
-        <AuthCodeInput v-model="pin" :length="PIN_LENGTH" />
+        <AuthCodeInput
+          ref="codeInput"
+          v-model="pin"
+          :length="PIN_LENGTH"
+          :error="codeError"
+        />
         <UButton
           :loading="isLoading"
           :disabled="!isCodeComplete"

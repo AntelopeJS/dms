@@ -136,7 +136,12 @@ const isStat = computed(() => props.variant === "stat");
     />
     <DmsIconWell v-else :icon="resolvedIcon" size="xl" />
     <div class="grid min-w-0 flex-1 gap-[3px]">
-      <DmsEyebrow tone="muted" truncate :label="processI18n(title)" />
+      <DmsEyebrow
+        tone="muted"
+        truncate
+        class="max-sm:whitespace-normal"
+        :label="processI18n(title)"
+      />
       <USkeleton
         v-if="isFirstLoad"
         class="h-[22px] w-24"
@@ -194,7 +199,12 @@ const isStat = computed(() => props.variant === "stat");
         class="text-dimmed size-[15px] shrink-0"
         :aria-hidden="true"
       />
-      <DmsEyebrow tone="muted" truncate :label="processI18n(title)" />
+      <DmsEyebrow
+        tone="muted"
+        truncate
+        class="max-sm:whitespace-normal"
+        :label="processI18n(title)"
+      />
     </div>
     <USkeleton
       v-if="isFirstLoad"
@@ -260,7 +270,10 @@ const isStat = computed(() => props.variant === "stat");
           :invert="invert"
           variant="text"
         />
-        <p v-if="footnote" class="text-dimmed truncate text-xs">
+        <p
+          v-if="footnote"
+          class="text-dimmed truncate text-xs max-sm:whitespace-normal"
+        >
           {{ footnote }}
         </p>
       </div>

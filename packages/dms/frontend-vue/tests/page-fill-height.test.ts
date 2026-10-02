@@ -58,10 +58,10 @@ const FLOW_PAGE_MARKUP =
   '<div data-dms-persistent-shell storage-key="dms-dashboard" unit="px" data-group><!---->' +
   "<div data-panel><!--[--><!----><!----><!----><!--]-->" +
   "<div data-body>" +
-  '<div class="w-full max-w-none" data-dms-page-region data-dms-page-content><!--[--><!--[-->' +
-  '<section class="flex gap-3.5 items-start pb-6">' +
+  '<div class="w-full max-w-none pb-12 lg:pb-16" data-dms-page-region data-dms-page-content><!--[--><!--[-->' +
+  '<section class="flex flex-wrap gap-x-3.5 gap-y-4 items-start pb-6">' +
   '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
-  '<div class="flex-1 min-w-0">' +
+  '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
   '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--]--></section><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
@@ -132,6 +132,7 @@ function installRuntime(): void {
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDevReloading: () => ref(false),
     useDmsRoute: () => route,
+    useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
     useHomepage: () => "/",
     usePageLayout: async () => ({ pageLayout }),
     usePageRealtime: () => ({}),
@@ -272,7 +273,7 @@ describe("DefaultLayout with fillHeight", () => {
     );
     const region = host.querySelector("[data-dms-page-content]");
     expectClasses(region, PAGE_FILL_HEIGHT_CLASSES.region);
-    expectClasses(region, "w-full max-w-none");
+    expectClasses(region, "w-full max-w-none pb-12 lg:pb-16");
   });
 
   it("keeps the page header a plain item of that column", async () => {
@@ -282,7 +283,9 @@ describe("DefaultLayout with fillHeight", () => {
     const header = host.querySelector("[data-dms-page-content] > section");
     expect(classesOf(header)).toEqual([
       "flex",
-      "gap-3.5",
+      "flex-wrap",
+      "gap-x-3.5",
+      "gap-y-4",
       "items-start",
       "pb-6",
     ]);

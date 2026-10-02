@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import striptags from "striptags";
 import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthFormAlert from "../../../../../dms-auth/app/components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../../../../dms-auth/app/components/AuthNewPasswordField.vue";
-import { useAuthFormError } from "../../../../../dms-auth/app/composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../../../../dms-auth/app/composables/useAuthFormError";
 import type {
   OnboardingAdministrator,
   OnboardingPlatform,
@@ -27,7 +31,8 @@ const emit = defineEmits<RegisterStepEmits>();
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 const dmsApp = useDmsApp();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const LOGIN_PATH = "/auth";
 const MAX_NAME_PART_LENGTH = 100;
@@ -99,7 +104,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       window.location.replace(LOGIN_PATH);
       return;
     }
-    showFormError(error, "page.onboarding.administrator.error_title");
+    // A refused value shows under its field; anything else (an administrator
+    // already set) above the form.
+    await showError(error, "page.onboarding.administrator.error_title", {
+      fields: ["firstName", "lastName", "email", "password"],
+      form,
+    });
   } finally {
     isLoading.value = false;
   }
@@ -120,6 +130,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     </template>
 
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-[22px] grid gap-4"

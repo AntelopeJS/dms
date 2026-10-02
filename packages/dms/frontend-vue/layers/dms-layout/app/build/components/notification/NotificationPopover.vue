@@ -145,8 +145,8 @@ const goToNotifications = () => {
 <template>
   <UPopover
     v-model:open="isOpen"
-    :ui="{ content: 'w-[460px]' }"
-    :popper="{ placement: 'bottom-end' }"
+    :ui="{ content: 'w-[460px] max-w-[calc(100vw-1rem)]' }"
+    :content="{ align: 'end', collisionPadding: 8 }"
   >
     <UTooltip
       :text="$t('notification.dropdown.title')"

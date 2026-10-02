@@ -48,11 +48,14 @@ const SORT_DIRECTION_ICON: Record<SortDirection, string> = {
 // v2 sortable header: the label is the sort button; its arrow stays hidden
 // until the header is hovered, and turns accent once the column is sorted.
 const SORTABLE_LABEL_CLASS =
-  "-mx-1.5 inline-flex items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
+  "-mx-1.5 inline-flex min-w-0 items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
+// A label wider than its column ends in an ellipsis and reads in full in its
+// tooltip.
+const HEADER_LABEL_CLASS = "truncate";
 const SORTABLE_LABEL_ACTIVE_CLASS = "text-primary hover:text-primary";
 const SORT_HINT_ICON = "i-ph-arrow-down";
 const SORT_HINT_CLASS =
-  "size-3 opacity-0 transition-opacity group-hover:opacity-60";
+  "size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-60";
 
 const ACTIONS_COLUMN_BASE_SIZE = 55;
 const ACTIONS_COLUMN_BUTTON_SIZE = 36;
@@ -745,7 +748,12 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     isSorted: false | SortDirection,
     Icon: ReturnType<typeof resolveComponent>,
   ) => {
-    if (!column.getCanSort()) return h("span", label);
+    const labelNode = h(
+      "span",
+      { class: HEADER_LABEL_CLASS, title: label },
+      label,
+    );
+    if (!column.getCanSort()) return labelNode;
     const icon = isSorted
       ? h(Icon, {
           name: SORT_DIRECTION_ICON[isSorted],
@@ -763,7 +771,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
         ],
         onClick: () => column.toggleSorting(isSorted === "asc"),
       },
-      [h("span", label), icon],
+      [labelNode, icon],
     );
   };
 

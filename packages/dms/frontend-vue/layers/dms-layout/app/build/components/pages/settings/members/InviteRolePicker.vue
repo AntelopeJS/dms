@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useFormField } from "@nuxt/ui/composables/useFormField";
+
 interface RoleOption {
   _id: string;
   name: string;
@@ -22,6 +24,9 @@ const model = defineModel<string[] | null | undefined>();
 
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
+// The wrapping UFormField's error ("pick at least one role") marks the group
+// invalid and describes it.
+const { ariaAttrs } = useFormField();
 
 const options = ref<RoleOptionsResponse>({ roles: [], totalPermissions: 0 });
 const isLoading = ref(true);
@@ -70,6 +75,7 @@ function toggle(roleId: string) {
       class="flex flex-wrap gap-1.5"
       role="group"
       :aria-label="t('page.settings.members.invite.field.roles')"
+      v-bind="ariaAttrs"
     >
       <USkeleton v-if="isLoading" class="h-[26px] w-48 rounded-full" />
       <button

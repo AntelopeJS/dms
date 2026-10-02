@@ -69,10 +69,18 @@ const cardClass = computed(() => [
     <template v-if="isSectioned">
       <div
         v-if="hasHead"
-        class="border-default flex min-h-12 items-center gap-2.5 border-b py-2 ps-[18px] pe-4"
+        class="border-default @container flex min-h-12 flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b py-2 ps-[18px] pe-4"
       >
         <slot name="header">
-          <DmsEyebrow as="span" tone="muted" truncate :label="title" />
+          <!-- One line on wide screens; wraps on a phone, where the count
+               and the actions leave it little room. -->
+          <DmsEyebrow
+            as="span"
+            tone="muted"
+            truncate
+            class="max-sm:whitespace-normal"
+            :label="title"
+          />
           <UBadge
             v-if="count !== undefined"
             :label="String(count)"
@@ -82,7 +90,12 @@ const cardClass = computed(() => [
             class="font-mono"
           />
         </slot>
-        <div v-if="slots.actions" class="ms-auto flex items-center gap-1">
+        <!-- A header under 24rem (a phone, a narrow column) puts the actions
+             on their own line under the title instead of squeezing it. -->
+        <div
+          v-if="slots.actions"
+          class="ms-auto flex shrink-0 items-center gap-1 @max-sm:ms-0 @max-sm:basis-full @max-sm:flex-wrap"
+        >
           <slot name="actions" />
         </div>
       </div>

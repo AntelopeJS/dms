@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { resolveComponent } from "vue";
+import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
+import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
@@ -60,7 +61,7 @@ const theme = tv({
     },
     inline: {
       true: {
-        root: "me-auto shrink-0 self-stretch border-b-0 px-0",
+        root: "me-auto max-w-full shrink-0 self-stretch border-b-0 px-0",
         tab: "h-11",
       },
     },
@@ -105,6 +106,29 @@ const onTabClick = (tab: TableTabItem) => {
   activeId.value = tab.id;
 };
 
+// A strip wider than the card scrolls sideways: its clipped edges fade out so
+// the hidden tabs read as reachable.
+const FADE_EDGE = "24px";
+const navRef = useTemplateRef<HTMLElement>("nav");
+const fadeStart = ref(false);
+const fadeEnd = ref(false);
+const syncFades = () => {
+  const nav = navRef.value;
+  if (!nav) return;
+  fadeStart.value = nav.scrollLeft > 1;
+  fadeEnd.value = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+useResizeObserver(navRef, syncFades);
+onMounted(syncFades);
+const fadeStyle = computed(() => {
+  if (!fadeStart.value && !fadeEnd.value) return undefined;
+  const start = fadeStart.value ? "transparent" : "#000";
+  const end = fadeEnd.value ? "transparent" : "#000";
+  return {
+    maskImage: `linear-gradient(to right, ${start}, #000 ${FADE_EDGE}, #000 calc(100% - ${FADE_EDGE}), ${end})`,
+  };
+});
+
 const { locale } = useI18n();
 const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 </script>
@@ -112,8 +136,11 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 <template>
   <nav
     v-if="props.tabs.length > 0"
+    ref="nav"
     :class="ui.root()"
+    :style="fadeStyle"
     :aria-label="props.label"
+    @scroll.passive="syncFades"
   >
     <component
       :is="tab.to ? DmsLink : 'button'"

@@ -243,9 +243,12 @@ describe("[unit] pages/settings/users members page", () => {
 
     it("answers already-a-member when every address was one", () => {
       const failure = batchFailure([results[2]]);
-      expect(failure.getBody()).to.equal(
-        "$page.settings.members.invite.already_member",
-      );
+      expect(failure.getContentType()).to.equal("application/json");
+      expect(JSON.parse(failure.getBody())).to.deep.equal({
+        message: "$page.settings.members.invite.already_member",
+        field: "emails",
+        values: ["c@test.local"],
+      });
     });
   });
 

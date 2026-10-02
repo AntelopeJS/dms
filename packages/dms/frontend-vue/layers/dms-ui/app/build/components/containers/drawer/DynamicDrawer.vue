@@ -86,13 +86,15 @@ function onContentResolve() {
     :title="title"
     :dismissible="false"
     :ui="{
-      header: 'border-b border-default flex items-center gap-4 pb-4',
+      header: 'border-b border-default flex shrink-0 items-center gap-4 pb-4',
     }"
     @close:prevent="tryClose"
   >
     <template #header>
-      <!-- Same container as the body so the title aligns with the form -->
-      <UContainer class="flex w-full flex-1 items-start gap-3">
+      <!-- Same container as the body so the title aligns with the form. On
+        phones the drawer's own padding is the 16px gutter: the container
+        drops its own. -->
+      <UContainer class="flex w-full flex-1 items-start gap-3 max-sm:px-0">
         <DmsIconWell v-if="icon" :icon="icon" :tone="color" />
         <div v-if="headerComponent" class="min-w-0 flex-1">
           <VisuallyHidden>
@@ -133,7 +135,7 @@ function onContentResolve() {
       </UContainer>
     </template>
     <template #body>
-      <UContainer>
+      <UContainer class="max-sm:px-0">
         <Suspense @pending="onContentPending" @resolve="onContentResolve">
           <component
             :is="component"

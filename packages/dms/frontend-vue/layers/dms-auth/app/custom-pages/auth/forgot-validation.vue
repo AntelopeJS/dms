@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick, useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
@@ -13,7 +14,8 @@ const { t } = useI18n();
 const toast = useToast();
 const dmsApp = useDmsApp();
 const { $authFetch } = useAuthFetch();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, showFormError, clearFormError, showError } =
+  useAuthFormError();
 
 if (!route.query.email) {
   throw createError({
@@ -24,12 +26,18 @@ if (!route.query.email) {
 }
 
 const PIN_LENGTH = 6;
+// Refusals of the typed code: shown under the cells, not above the form.
+const CODE_ERRORS = {
+  "error.invalid_or_expired_token": "token",
+} as const;
 const COOLDOWN_DURATION = 60;
 
 const email = computed(() => route.query.email as string);
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");
+const codeInput = useTemplateRef<{ focus: () => void }>("codeInput");
+const codeError = ref<string>();
 
 const schema = z.object({
   pin: z.string().array().length(PIN_LENGTH),
@@ -39,6 +47,14 @@ const state = reactive<Partial<Schema>>({});
 
 const isCodeComplete = computed(
   () => (state.pin ?? []).join("").length === PIN_LENGTH,
+);
+
+// Typing a new code clears the refusal of the previous one.
+watch(
+  () => state.pin,
+  (digits) => {
+    if (digits?.some(Boolean)) codeError.value = undefined;
+  },
 );
 
 const { cooldown, startCooldown } = useCooldown(COOLDOWN_DURATION);
@@ -51,6 +67,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     isLoading.value = true;
     clearFormError();
+    codeError.value = undefined;
     const token = event.data.pin.join("");
 
     await $authFetch("/api/auth/validate-forgot-password-token", {
@@ -68,9 +85,21 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       }),
     );
   } catch (error: unknown) {
-    showFormError(error, "page.forgot.error_title");
+    const isCodeError = await showError(error, "page.forgot.error_title", {
+      fields: ["token"],
+      codes: CODE_ERRORS,
+      show: (_field, message) => {
+        codeError.value = message;
+      },
+    });
+    if (isCodeError) state.pin = [];
   } finally {
     isLoading.value = false;
+  }
+  // The cells are disabled while the request runs: focus them once enabled.
+  if (codeError.value) {
+    await nextTick();
+    codeInput.value?.focus();
   }
 }
 
@@ -130,7 +159,9 @@ async function requestForgotPassword() {
       <AuthFormAlert :error="formError" />
 
       <AuthCodeInput
+        ref="codeInput"
         v-model="state.pin"
+        :error="codeError"
         :length="PIN_LENGTH"
         :disabled="isLoading"
         is-otp

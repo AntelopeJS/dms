@@ -143,18 +143,19 @@ it("scrolls the list inside the card without letting it size the card row", asyn
   await mountCard();
   const body = host.querySelector<HTMLElement>("[data-activity-body]");
   const scroller = host.querySelector<HTMLElement>("[data-activity-scroll]");
-  // Side by side, the body fills the stretched card and the scroller is out
-  // of the flow, so only "Your account" sets the row height.
+  // Side by side (the settings column's @2xl container width, where the
+  // overview grid goes two-up), the body fills the stretched card and the
+  // scroller is out of the flow, so only "Your account" sets the row height.
   expect(body?.classList).toContain("relative");
   expect(body?.classList).toContain("min-h-0");
-  expect(body?.classList).toContain("lg:h-full");
+  expect(body?.classList).toContain("@2xl/settings:h-full");
   expect(scroller?.parentElement).toBe(body);
   expect(scroller?.classList).toContain("overflow-y-auto");
-  expect(scroller?.classList).toContain("lg:absolute");
-  expect(scroller?.classList).toContain("lg:inset-0");
+  expect(scroller?.classList).toContain("@2xl/settings:absolute");
+  expect(scroller?.classList).toContain("@2xl/settings:inset-0");
   // Stacked, the list is capped to three rows of the feed row height.
   expect(scroller?.classList).toContain(
-    "max-lg:max-h-[calc(3*var(--dms-activity-row-h)+0.5rem)]",
+    "@max-2xl/settings:max-h-[calc(3*var(--dms-activity-row-h)+0.5rem)]",
   );
   expect(body?.style.getPropertyValue("--dms-activity-row-h")).toMatch(
     /^calc\(/,

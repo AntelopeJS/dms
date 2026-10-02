@@ -17,7 +17,7 @@ const theme = new Function("tv", `${themeSource}; return theme;`)(tv);
 
 describe("Table grid cell layout theme", () => {
   it.each([undefined, false])("preserves the default for %s", (cellWrap) => {
-    expect(theme().rowSpan({ cellWrap })).toBe("line-clamp-1");
+    expect(theme().rowSpan({ cellWrap })).toBe("line-clamp-1 text-ellipsis");
   });
 
   it("removes the clamp and inherited nowrap only for opted-in cells", () => {
@@ -26,7 +26,7 @@ describe("Table grid cell layout theme", () => {
     expect(classes).toContain("whitespace-normal");
     expect(classes).toContain("[overflow-wrap:anywhere]");
     expect(classes).not.toContain("line-clamp-1");
-    expect(theme().rowSpan()).toBe("line-clamp-1");
+    expect(theme().rowSpan()).toBe("line-clamp-1 text-ellipsis");
   });
 
   it("preserves pinned cell and table layout classes", () => {

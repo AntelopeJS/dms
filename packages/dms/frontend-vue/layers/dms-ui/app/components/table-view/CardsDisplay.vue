@@ -85,7 +85,7 @@ const openItem = (item: T) => {
          its selection and its pagination footer. -->
     <div
       v-if="props.context.loading && props.context.items.length === 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
       <USkeleton
         v-for="n in SKELETON_CARD_COUNT"
@@ -101,12 +101,12 @@ const openItem = (item: T) => {
 
     <div
       v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
       <article
         v-for="item in props.context.items"
         :key="rowId(item)"
-        class="group border-default hover:border-primary/35 cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
+        class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
         :class="{
           'border-primary ring-primary ring-1':
             props.context.selection.isSelected(rowId(item)),
@@ -120,7 +120,10 @@ const openItem = (item: T) => {
             {{ initialsOf(item) }}
           </span>
           <div class="min-w-0 flex-1">
-            <div class="text-highlighted truncate text-[13px] font-semibold">
+            <div
+              class="text-highlighted truncate text-[13px] font-semibold"
+              :title="titleOf(item)"
+            >
               {{ titleOf(item) }}
             </div>
             <div class="text-dimmed truncate font-mono text-[11px]">
@@ -137,7 +140,11 @@ const openItem = (item: T) => {
           />
         </header>
 
-        <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5">
+        <!-- A phone-narrow card stacks its fields: two columns would clip
+          every value. -->
+        <dl
+          class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+        >
           <div v-for="column in fieldColumns" :key="column.id" class="min-w-0">
             <DmsEyebrow as="dt" truncate :label="processI18n(column.header)" />
             <dd class="text-default mt-0.5 flex min-w-0">

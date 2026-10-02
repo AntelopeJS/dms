@@ -88,12 +88,14 @@ const DISMISS_BUTTON = {
 // whole surface here: the card background under a 100deg tint that fades out
 // at 70%, like the reference.
 const alertUi = computed(() => ({
-  // On a phone the actions wrap under the text instead of squeezing it.
+  // On a phone the actions wrap under the text instead of squeezing it. Nuxt
+  // UI renders the dismiss button inside the actions box: a banner with no
+  // actions keeps that box (the lone dismiss) on the text line.
   root: `items-center border ring-0 bg-default bg-linear-100 to-transparent to-70% max-sm:flex-wrap ${SIZE_ROOT[props.size]} ${SURFACE[props.color]}`,
   wrapper: SIZE_WRAPPER[props.size],
   title: "text-highlighted text-sm font-[650]",
   description: `text-muted text-[13px] leading-relaxed ${SIZE_DESCRIPTION[props.size]}`,
-  actions: "items-center gap-2 mt-0 max-sm:basis-full max-sm:flex-wrap",
+  actions: `items-center gap-2 mt-0 ${slots.actions ? "max-sm:basis-full max-sm:flex-wrap" : ""}`,
 }));
 
 function onOpenChange(open: boolean) {

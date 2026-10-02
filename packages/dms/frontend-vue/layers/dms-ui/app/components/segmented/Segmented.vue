@@ -26,6 +26,12 @@ interface Props {
   disabled?: boolean;
   /** Stretch the track to its container, segments sharing the width. */
   block?: boolean;
+  /**
+   * What a track wider than its container does: `scroll` (default) slides
+   * sideways inside its pill, `wrap` breaks the segments onto more lines
+   * (a short list of long labels on a phone, a narrow settings column).
+   */
+  overflow?: "scroll" | "wrap";
 }
 
 // v2 heights (24/28/32/36/40) live on the track; segments fill it.
@@ -35,6 +41,16 @@ const TRACK_SIZE_CLASSES: Record<SegmentedSize, string> = {
   md: "h-8",
   lg: "h-9",
   xl: "h-10",
+};
+
+// A wrapping track grows with its lines, so segments carry the height
+// (the track's minus its 2px padding on each side).
+const WRAP_ITEM_HEIGHT_CLASSES: Record<SegmentedSize, string> = {
+  xs: "h-5",
+  sm: "h-6",
+  md: "h-7",
+  lg: "h-8",
+  xl: "h-9",
 };
 
 const ITEM_SIZE_CLASSES: Record<SegmentedSize, string> = {
@@ -60,7 +76,15 @@ const props = withDefaults(defineProps<Props>(), {
   variant: "default",
   disabled: false,
   block: false,
+  overflow: "scroll",
 });
+
+const isWrapping = computed(() => props.overflow === "wrap");
+const trackClass = computed(() => [
+  isWrapping.value ? "h-auto flex-wrap" : TRACK_SIZE_CLASSES[props.size],
+  props.block ? "flex w-full" : "inline-flex",
+  props.disabled && "opacity-50",
+]);
 
 const model = defineModel<string | number>();
 
@@ -123,10 +147,15 @@ function onKeydown(event: KeyboardEvent, index: number) {
   select(firstEnabledFrom(target, move.direction));
 }
 
+// A track wider than its container (a phone, a narrow column) scrolls
+// sideways inside its pill, or wraps with `overflow="wrap"`; the focus ring
+// sits inside the segment so the scroll box never clips it. (No root-level
+// template comment: it would break the class fallthrough.)
 function itemClass(item: SegItem, index: number): (string | false)[] {
   const isActive = model.value === item.value;
   return [
     ITEM_SIZE_CLASSES[props.size],
+    isWrapping.value ? WRAP_ITEM_HEIGHT_CLASSES[props.size] : "h-full",
     VARIANT_CLASSES[props.variant],
     isActive ? ACTIVE_CLASS : IDLE_CLASS,
     isDisabled(index) && DISABLED_CLASS,
@@ -140,12 +169,8 @@ function itemClass(item: SegItem, index: number): (string | false)[] {
     role="radiogroup"
     :aria-label="ariaLabel"
     :aria-disabled="disabled || undefined"
-    class="ring-default items-center gap-0.5 rounded-lg bg-(--dms-bg-muted) p-0.5 ring ring-inset"
-    :class="[
-      TRACK_SIZE_CLASSES[size],
-      block ? 'flex w-full' : 'inline-flex',
-      disabled && 'opacity-50',
-    ]"
+    class="ring-default max-w-full [scrollbar-width:none] items-center gap-0.5 overflow-x-auto rounded-lg bg-(--dms-bg-muted) p-0.5 ring ring-inset"
+    :class="trackClass"
   >
     <button
       v-for="(item, index) in items"
@@ -160,7 +185,7 @@ function itemClass(item: SegItem, index: number): (string | false)[] {
       :aria-checked="model === item.value"
       :disabled="isDisabled(index)"
       :tabindex="index === focusIndex ? 0 : -1"
-      class="focus-visible:outline-primary inline-flex h-full items-center gap-1.5 rounded-[6px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+      class="focus-visible:outline-primary inline-flex shrink-0 items-center gap-1.5 rounded-[6px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2"
       :class="itemClass(item, index)"
       @click="select(index)"
       @keydown="onKeydown($event, index)"

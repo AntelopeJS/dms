@@ -4,10 +4,14 @@ import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
 import {
   buildPageSearchShortcuts,
+  PAGE_SEARCH_HINT_KEYS,
   pageSearchAriaKeyshortcuts,
 } from "#dms-ui/app/composables/global/searchShortcuts";
-
-type KeyboardPlatform = "mac" | "other";
+import {
+  keyboardKeyLabel,
+  type KeyboardPlatform,
+  useKeyboardPlatform,
+} from "#dms-ui/app/composables/global/keyboardPlatform";
 
 interface ShortcutGroupView {
   key: string;
@@ -18,39 +22,20 @@ interface ShortcutGroupView {
 
 const SKELETON_SECTION_COUNT = 3;
 const I18N_PREFIX = "$";
+const KEYBOARD_I18N_PREFIX = "$keyboard.";
 const GROUP_I18N = "page.settings.shortcuts.groups";
-
-/** How each platform prints the modifier and special keys. */
-const PLATFORM_KEY_LABELS: Record<KeyboardPlatform, Record<string, string>> = {
-  mac: {
-    "$keyboard.meta": "⌘",
-    "$keyboard.shift": "⇧",
-    "$keyboard.enter": "↵",
-    "$keyboard.delete": "⌫",
-  },
-  other: {
-    "$keyboard.meta": "Ctrl",
-  },
-};
 
 const { t, te } = useI18n();
 const { getRegistry } = useShortcutRegistry();
 const shortcuts: Ref<ComponentShortcuts[]> = getRegistry();
 
-function detectPlatform(): KeyboardPlatform {
-  if (typeof window === "undefined") return "other";
-  const navigatorWithData = window.navigator as Navigator & {
-    userAgentData?: { platform?: string };
-  };
-  const platform =
-    navigatorWithData.userAgentData?.platform ??
-    window.navigator.platform ??
-    "";
-  return /Mac/i.test(platform) ? "mac" : "other";
-}
-
-const detectedPlatform = detectPlatform();
-const platform = ref<KeyboardPlatform>(detectedPlatform);
+// The layout the dashboard detected (the one every other hint uses); the
+// header switch previews the other one on this page only.
+const { platform: detectedPlatform, isMac } = useKeyboardPlatform();
+const platform = ref<KeyboardPlatform>(detectedPlatform.value);
+watch(detectedPlatform, (next) => {
+  platform.value = next;
+});
 const query = ref("");
 
 const platformItems = computed(() => [
@@ -83,8 +68,17 @@ function translate(token: string): string {
   return token.toUpperCase();
 }
 
+/**
+ * A `$keyboard.*` key takes the platform's label when it has one (⌘, Ctrl,
+ * ⇧…, shared with every other hint); any other keeps its translated name.
+ */
 function keyLabel(token: string): string {
-  return PLATFORM_KEY_LABELS[platform.value][token] ?? translate(token);
+  if (token.startsWith(KEYBOARD_I18N_PREFIX)) {
+    const key = token.slice(KEYBOARD_I18N_PREFIX.length);
+    const label = keyboardKeyLabel(key, platform.value);
+    if (label !== key) return label;
+  }
+  return translate(token);
 }
 
 function groupKey(component: string): string {
@@ -125,7 +119,7 @@ const shortcutCount = computed(() =>
 );
 
 const detectedLabel = computed(() =>
-  detectedPlatform === "mac"
+  isMac.value
     ? t("page.settings.shortcuts.os_mac")
     : t("page.settings.shortcuts.os_other"),
 );
@@ -138,7 +132,9 @@ defineShortcuts(
 );
 
 /** The search's key hint follows the layout picked in the header. */
-const searchHintKeys = computed(() => [keyLabel("$keyboard.meta"), "/"]);
+const searchHintKeys = computed(() =>
+  PAGE_SEARCH_HINT_KEYS.map((key) => keyboardKeyLabel(key, platform.value)),
+);
 </script>
 
 <template>
@@ -152,12 +148,11 @@ const searchHintKeys = computed(() => [keyLabel("$keyboard.meta"), "/"]);
           :placeholder="t('page.settings.shortcuts.search_placeholder')"
           icon="i-ph-magnifying-glass"
           class="w-full max-w-[420px]"
-          :aria-keyshortcuts="
-            pageSearchAriaKeyshortcuts(detectedPlatform === 'mac')
-          "
+          :aria-keyshortcuts="pageSearchAriaKeyshortcuts(isMac)"
         >
+          <!-- No key hint on phones: it covered the placeholder there. -->
           <template #trailing>
-            <span class="flex items-center gap-0.5">
+            <span class="flex items-center gap-0.5 max-sm:hidden">
               <UKbd
                 v-for="key in searchHintKeys"
                 :key="key"
@@ -168,7 +163,7 @@ const searchHintKeys = computed(() => [keyLabel("$keyboard.meta"), "/"]);
           </template>
         </UInput>
         <span class="text-muted inline-flex items-center gap-1.5 text-xs">
-          <UIcon name="i-ph-info" class="size-3.5" />
+          <UIcon name="i-ph-info" class="size-3.5 shrink-0" />
           {{
             t("page.settings.shortcuts.detected", {
               os: detectedLabel,

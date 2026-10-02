@@ -25,9 +25,12 @@ const theme = tv({
     actions: "ms-auto flex items-center gap-0.5",
     pageInfo: "me-1.5 tabular-nums",
     pageNumber: "font-mono font-semibold text-default",
-    navButton: "text-muted hover:text-highlighted",
+    // Phones get 32px touch targets (28px from sm up).
+    navButton: "text-muted hover:text-highlighted max-sm:size-8",
     hint: "ms-auto inline-flex min-w-0 items-center gap-1.5 text-xs text-muted",
     hintIcon: "size-3.5 shrink-0 text-dimmed",
+    // Phones wrap the hint onto a second line rather than cut it.
+    hintText: "truncate max-sm:whitespace-normal",
   },
 });
 
@@ -123,7 +126,9 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
 
     <span v-if="hint" :class="uiTablePagination.hint()">
       <UIcon name="i-ph-info" :class="uiTablePagination.hintIcon()" />
-      <span class="truncate">{{ hint }}</span>
+      <span :class="uiTablePagination.hintText()" :title="hint">
+        {{ hint }}
+      </span>
     </span>
 
     <label v-if="showPageSize" :class="uiTablePagination.pageSize()">

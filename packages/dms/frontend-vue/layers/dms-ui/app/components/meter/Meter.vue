@@ -99,7 +99,8 @@ const theme = tv({
     root: "grid min-w-0 gap-1.5",
     top: "flex min-w-0 items-baseline gap-2 text-[13px]",
     label: "text-toned",
-    hint: "text-dimmed truncate text-xs",
+    // One line beside the label; wraps on a phone rather than being cut.
+    hint: "text-dimmed truncate text-xs max-sm:whitespace-normal",
     value: "text-toned ms-auto font-mono text-xs font-semibold tabular-nums",
     track: "bg-accented flex w-full gap-0.5 overflow-hidden rounded-full",
     fill: "block h-full shrink-0 transition-[width] duration-300",

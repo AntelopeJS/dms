@@ -1,16 +1,21 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../components/AuthNewPasswordField.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../composables/useAuthFormError";
 
 const route = useDmsRoute();
 const dmsApp = useDmsApp();
 const { $authFetch } = useAuthFetch();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 if (!route.query.token || !route.query.email) {
   throw createError({
@@ -47,7 +52,11 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
     await dmsApp.runWithContext(() => navigateDms("/auth/recover-success"));
   } catch (error: unknown) {
-    showFormError(error, "page.forgot.error_title");
+    // A refused password shows under its field; an expired link above the form.
+    await showError(error, "page.forgot.error_title", {
+      fields: ["password"],
+      form,
+    });
   } finally {
     isLoading.value = false;
   }
@@ -61,6 +70,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     :description="$t('page.recover.description')"
   >
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-[22px] grid gap-4"

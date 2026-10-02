@@ -9,10 +9,13 @@ import SettingsNav from "./SettingsNav.vue";
        its place whenever the content was tall enough, so it jumped on page
        changes and sat higher on short pages. -->
   <div
-    class="mx-auto grid w-full max-w-[1200px] gap-4 lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-10"
+    class="mx-auto grid w-full max-w-[1200px] gap-4 lg:grid-cols-[216px_minmax(0,1fr)] lg:gap-6 xl:gap-10"
   >
     <SettingsNav class="lg:sticky lg:top-0 lg:self-start" />
-    <div class="min-w-0">
+    <!-- The content column is a size container: at lg the app sidebar and
+         this nav leave it narrower than a phone in landscape, so the pages
+         lay out from its width (@…/settings variants), not the viewport's. -->
+    <div class="@container/settings min-w-0">
       <slot />
     </div>
   </div>

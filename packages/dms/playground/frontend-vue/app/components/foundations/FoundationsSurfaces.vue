@@ -279,8 +279,8 @@ const LOCALES = [
 
     <ShowcaseSection
       id="settings-rows"
-      title="DmsFieldRow · DmsSaveStatus · DmsSaveBar"
-      description="Settings rows inside a card (inline, form and stack layouts), the instant-save feedback of a row, and the sticky bar that shows while a form is dirty."
+      title="DmsFieldRow · DmsSaveStatus · DmsInstantSaveBadge · DmsSaveBar"
+      description="Settings rows inside a card (inline, form and stack layouts), the instant-save feedback of a row, the header pill of instant-save pages, and the sticky bar that shows while a form is dirty."
       :columns="1"
     >
       <ShowcaseDemo
@@ -378,6 +378,18 @@ const LOCALES = [
           </span>
           <span class="text-muted flex items-center gap-2 text-xs">
             saved <DmsSaveStatus state="saved" />
+          </span>
+        </div>
+      </ShowcaseDemo>
+      <ShowcaseDemo
+        label="DmsInstantSaveBadge — the page-header pill of every instant-save page (useInstantSaveHeader), never next to a save bar · state='idle' · 'saving' · 'saved' · live: follows the Weekly digest switch"
+      >
+        <div class="flex flex-wrap items-center gap-6">
+          <DmsInstantSaveBadge />
+          <DmsInstantSaveBadge state="saving" />
+          <DmsInstantSaveBadge state="saved" />
+          <span class="text-muted flex items-center gap-2 text-xs">
+            live <DmsInstantSaveBadge :state="digestState" />
           </span>
         </div>
       </ShowcaseDemo>

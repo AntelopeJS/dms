@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../../composables/notification/useNotificationPreferences";
+import {
+  combineSaveStates,
+  useInstantSaveHeader,
+} from "../../../../../composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
-import { MATRIX_GRID_CLASS } from "./notificationDisplay";
+import {
+  MATRIX_CONTAINER_CLASS,
+  MATRIX_GRID_CLASS,
+} from "./notificationDisplay";
 
 const PREFERENCES_SKELETON_ROWS = 4;
 
@@ -30,6 +37,16 @@ const visibleCategories = computed(() =>
 const enabledCountOf = (category: NotificationCategory) =>
   subjectsOf(category.id).filter(isEnabled).length;
 
+// Each switch saves on its own: the page header carries the shared
+// "Saved instantly" pill, which flashes while a row saves.
+useInstantSaveHeader(() =>
+  combineSaveStates(
+    visibleCategories.value.flatMap((category) =>
+      subjectsOf(category.id).map(rowState),
+    ),
+  ),
+);
+
 /** Names the direction the failed switch went back to, as v2 words it. */
 const failureMessage = computed(() => {
   const changes = Object.values(failedChanges.value ?? {});
@@ -50,6 +67,7 @@ onMounted(load);
     :description="t('page.settings.notifications.preferences_description')"
   >
     <div
+      :class="MATRIX_CONTAINER_CLASS"
       role="table"
       :aria-label="t('page.settings.notifications.preferences_title')"
     >

@@ -117,7 +117,7 @@ const cardStyle = computed(() => ({
 <template>
   <DmsCard
     :padded="false"
-    class="px-6 py-[22px] sm:px-[26px]"
+    class="px-4 py-[22px] sm:px-[26px]"
     :style="cardStyle"
   >
     <div
@@ -162,7 +162,7 @@ const cardStyle = computed(() => ({
 
       <div
         v-if="metrics.length"
-        class="grid flex-1 grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
+        class="grid flex-1 grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-[repeat(auto-fit,minmax(96px,1fr))] lg:grid-cols-4"
       >
         <div
           v-for="(m, index) in metrics"
@@ -187,7 +187,7 @@ const cardStyle = computed(() => ({
               {{ m.unit }}
             </span>
           </p>
-          <p v-if="m.sub" class="text-dimmed mt-1 truncate text-[11.5px]">
+          <p v-if="m.sub" class="text-dimmed mt-1 text-[11.5px]">
             {{ m.sub }}
           </p>
         </div>
