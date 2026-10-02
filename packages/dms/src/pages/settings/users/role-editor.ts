@@ -79,9 +79,13 @@ export interface RoleSummarySource {
   now: Date;
 }
 
-/** Map the registered permission tree to the roles editor nodes. */
+/**
+ * Map the registered permission tree to the roles editor nodes; `categoryIds`
+ * leaves out the headings over nothing (see `mapPermissionTree`).
+ */
 export function mapRoleEditorTree(
   permissionTree: Record<string, PermissionTree>,
+  categoryIds?: ReadonlySet<string>,
 ): RoleEditorPermissionNode[] {
   return mapPermissionTree<RoleEditorPermissionNode>(
     permissionTree,
@@ -93,6 +97,7 @@ export function mapRoleEditorTree(
       dependencies: permission.dependencies,
       children,
     }),
+    categoryIds,
   );
 }
 

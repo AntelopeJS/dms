@@ -8,7 +8,10 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
-import { GetMenuOrder } from "../../../implementations/dms/page";
+import {
+  GetCategoryPermissionIds,
+  GetMenuOrder,
+} from "../../../implementations/dms/page";
 import type {
   RoleDeleteInput,
   RoleEditorInput,
@@ -50,7 +53,7 @@ export async function loadRoleEditorTree(): Promise<
   RoleEditorPermissionNode[]
 > {
   return orderRoleEditorTree(
-    mapRoleEditorTree(await GetPermissions()),
+    mapRoleEditorTree(await GetPermissions(), GetCategoryPermissionIds()),
     GetMenuOrder(),
   );
 }

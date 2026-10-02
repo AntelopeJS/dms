@@ -356,6 +356,19 @@ export function GetMenuOrder(): Map<string, number> {
   return positions;
 }
 
+/**
+ * Permission ids of the registered categories (`Category`, `RootCategory`):
+ * the headings and groups of the menu, as opposed to its pages. A permission
+ * editor uses them to leave out a heading with nothing below it to grant.
+ */
+export function GetCategoryPermissionIds(): Set<string> {
+  return new Set(
+    Object.values(categoriesByFullId).map((category) =>
+      resolvePagePermissionId(category.permission, category.fullId),
+    ),
+  );
+}
+
 // Deleting the node outright would take its whole subtree with it: a category
 // unregistering dropped every page other modules had registered under it from
 // the sidebar, while those pages stayed in the registry and kept serving. Drop

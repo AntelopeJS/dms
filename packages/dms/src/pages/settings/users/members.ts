@@ -28,6 +28,7 @@ import { TableView } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import type { RowActionConfirmDescriptor } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
+import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
 import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
@@ -401,7 +402,11 @@ export class MembersSettingsController extends PageController(
     @AuthUserWithPermission(membersTableAddAction) _user: User,
   ): Promise<InviteRoleOptions> {
     const roles = await GetModel(RoleModel, getRequestTenantId(ctx)).getAll();
-    return buildInviteRoleOptions(roles, await GetPermissions());
+    return buildInviteRoleOptions(
+      roles,
+      await GetPermissions(),
+      GetCategoryPermissionIds(),
+    );
   }
 
   @Post("/invite")

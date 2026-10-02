@@ -35,6 +35,7 @@ import {
 import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
+  GetCategoryPermissionIds,
   type PermissionPreviewGrants,
   type PermissionPreviewPage,
   type PreviewPageLossCheck,
@@ -311,7 +312,10 @@ export class RolesSettingsController extends PageController("roles", {
   /** Tree of the `PermissionsType` field in the role pickers' add form. */
   @Get("permissions-tree")
   async getPermissionsTree(): Promise<FormComponents.PermissionsTreeNode[]> {
-    return mapPermissionTreeToPermissionNodes(await GetPermissions());
+    return mapPermissionTreeToPermissionNodes(
+      await GetPermissions(),
+      GetCategoryPermissionIds(),
+    );
   }
 
   /**

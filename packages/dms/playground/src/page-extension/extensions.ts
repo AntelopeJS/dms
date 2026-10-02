@@ -2,11 +2,12 @@
 
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
 import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
+import { internalsSection } from "../sections";
 
 // The target is named by its page id, the same string the roles screen shows as
-// its permission: "pages" (the root category) + "internals" (the section) +
-// the page's own id.
-const TARGET_PAGE_ID = "pages.internals.page-extension";
+// its permission: "library" (the root category) + "internals" (the section) +
+// the page's own id, i.e. "library.internals.page-extension".
+const TARGET_PAGE_ID = `${internalsSection.fullId}.page-extension`;
 
 /**
  * Stands in for the first extending module (dms-saas): a banner above the
