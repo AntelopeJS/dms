@@ -4,6 +4,8 @@ import {
   SECURITY_ENDPOINT,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
+import SecurityEditPanel from "./SecurityEditPanel.vue";
+import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 
@@ -16,6 +18,7 @@ const PASSWORD_URL = `${SECURITY_ENDPOINT}/password`;
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const FORM_ID = "security-password-form";
+const CURRENT_FIELD_ID = "security-current-password";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -47,6 +50,19 @@ const canSubmit = computed(
 );
 
 const changedAt = computed(() => overview.value?.passwordChangedAt ?? null);
+const currentError = computed(() =>
+  isCurrentInvalid.value
+    ? t("page.settings.security.errors.invalid_current_password")
+    : undefined,
+);
+const mismatchError = computed(() =>
+  isMismatch.value ? t("page.settings.security.password.mismatch") : undefined,
+);
+
+// The "incorrect" mark goes away as soon as the password is edited.
+watch(currentPassword, () => {
+  isCurrentInvalid.value = false;
+});
 
 function resetForm(): void {
   currentPassword.value = "";
@@ -54,11 +70,6 @@ function resetForm(): void {
   confirmPassword.value = "";
   signOutOthers.value = true;
   isCurrentInvalid.value = false;
-}
-
-function cancel(): void {
-  resetForm();
-  isEditing.value = false;
 }
 
 function announceSuccess(response: PasswordChangeResponse): void {
@@ -89,10 +100,17 @@ async function submit(): Promise<void> {
       },
     });
     announceSuccess(response);
-    cancel();
+    isEditing.value = false;
     await refresh();
   } catch (error) {
-    isCurrentInvalid.value = errorCode(error) === INVALID_CURRENT_PASSWORD;
+    // A wrong current password is shown under its field; anything else
+    // (rate limit, server error) goes to a toast.
+    if (errorCode(error) === INVALID_CURRENT_PASSWORD) {
+      isCurrentInvalid.value = true;
+      await nextTick();
+      document.getElementById(CURRENT_FIELD_ID)?.focus();
+      return;
+    }
     toast.add({
       title: errorMessage(error, "page.settings.security.password.error"),
       color: "error",
@@ -110,7 +128,21 @@ async function submit(): Promise<void> {
     title="$page.settings.security.password_title"
     description="$page.settings.security.password_description"
   >
-    <DmsFieldRow>
+    <SecurityEditPanel
+      v-model:open="isEditing"
+      :form-id="FORM_ID"
+      :trigger-label="
+        hasPassword
+          ? t('page.settings.security.password.change')
+          : t('page.settings.security.password.set')
+      "
+      :editing-label="t('page.settings.security.password.editing')"
+      :submit-label="t('page.settings.security.password.submit')"
+      :can-submit="canSubmit"
+      :loading="isSaving"
+      @open="resetForm"
+      @submit="submit"
+    >
       <template #label>
         <DmsListRow bare icon="i-ph-password">
           {{ t("page.settings.security.password.label") }}
@@ -142,86 +174,60 @@ async function submit(): Promise<void> {
           </template>
         </DmsListRow>
       </template>
-      <span v-if="isEditing" class="text-muted text-xs">
-        {{ t("page.settings.security.password.editing") }}
-      </span>
-      <UButton
-        v-else
-        color="neutral"
-        variant="outline"
-        size="sm"
-        icon="i-ph-pencil-simple"
-        :label="
-          hasPassword
-            ? t('page.settings.security.password.change')
-            : t('page.settings.security.password.set')
-        "
-        @click="isEditing = true"
-      />
-    </DmsFieldRow>
 
-    <form
-      v-if="isEditing"
-      :id="FORM_ID"
-      class="border-muted grid grid-cols-2 gap-x-5 gap-y-4 border-t p-[18px] max-sm:grid-cols-1"
-      @submit.prevent="submit"
-    >
-      <div
+      <SecurityPanelField
         v-if="hasPassword"
-        class="col-span-full grid max-w-[calc(50%-10px)] gap-1.5 max-sm:max-w-none"
+        :field-id="CURRENT_FIELD_ID"
+        :label="t('page.settings.security.password.current')"
+        :error="currentError"
+        alone
       >
-        <label
-          for="security-current-password"
-          class="text-highlighted text-[13px] font-medium"
-        >
-          {{ t("page.settings.security.password.current") }}
-        </label>
-        <SecurityPasswordInput
-          id="security-current-password"
-          v-model="currentPassword"
-          autocomplete="current-password"
-          :invalid="isCurrentInvalid"
-        />
-        <DmsLink
-          :to="FORGOT_PASSWORD_PATH"
-          class="text-primary w-fit text-xs font-medium hover:underline hover:underline-offset-3"
-        >
-          {{ t("page.settings.security.password.forgot") }}
-        </DmsLink>
-      </div>
-      <div class="grid content-start gap-1.5">
-        <label
-          for="security-new-password"
-          class="text-highlighted text-[13px] font-medium"
-        >
-          {{ t("page.settings.security.password.new") }}
-        </label>
+        <template #default="{ describedby, invalid }">
+          <SecurityPasswordInput
+            :id="CURRENT_FIELD_ID"
+            v-model="currentPassword"
+            autocomplete="current-password"
+            :invalid="invalid"
+            :aria-describedby="describedby"
+          />
+        </template>
+        <template #after>
+          <DmsLink
+            :to="FORGOT_PASSWORD_PATH"
+            class="text-primary w-fit text-xs font-medium hover:underline hover:underline-offset-3"
+          >
+            {{ t("page.settings.security.password.forgot") }}
+          </DmsLink>
+        </template>
+      </SecurityPanelField>
+      <SecurityPanelField
+        field-id="security-new-password"
+        :label="t('page.settings.security.password.new')"
+      >
         <SecurityPasswordInput
           id="security-new-password"
           v-model="newPassword"
           autocomplete="new-password"
         />
-      </div>
-      <div class="grid content-start gap-1.5">
-        <label
-          for="security-confirm-password"
-          class="text-highlighted text-[13px] font-medium"
-        >
-          {{ t("page.settings.security.password.confirm") }}
-        </label>
-        <SecurityPasswordInput
-          id="security-confirm-password"
-          v-model="confirmPassword"
-          autocomplete="new-password"
-          :placeholder="
-            t('page.settings.security.password.confirm_placeholder')
-          "
-          :invalid="isMismatch"
-        />
-        <span v-if="isMismatch" class="text-error text-xs">
-          {{ t("page.settings.security.password.mismatch") }}
-        </span>
-      </div>
+      </SecurityPanelField>
+      <SecurityPanelField
+        field-id="security-confirm-password"
+        :label="t('page.settings.security.password.confirm')"
+        :error="mismatchError"
+      >
+        <template #default="{ describedby, invalid }">
+          <SecurityPasswordInput
+            id="security-confirm-password"
+            v-model="confirmPassword"
+            autocomplete="new-password"
+            :placeholder="
+              t('page.settings.security.password.confirm_placeholder')
+            "
+            :invalid="invalid"
+            :aria-describedby="describedby"
+          />
+        </template>
+      </SecurityPanelField>
       <PasswordRules
         class="col-span-full"
         variant="summary"
@@ -231,7 +237,8 @@ async function submit(): Promise<void> {
           {{ t("page.settings.security.password.rules_head", { met, total }) }}
         </template>
       </PasswordRules>
-      <div class="col-span-full flex flex-wrap items-center gap-2.5">
+
+      <template #footer>
         <UCheckbox
           v-if="otherSessions > 0"
           v-model="signOutOthers"
@@ -244,21 +251,7 @@ async function submit(): Promise<void> {
             )
           "
         />
-        <div class="ms-auto flex items-center gap-2">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :label="t('page.settings.security.cancel')"
-            @click="cancel"
-          />
-          <UButton
-            type="submit"
-            :loading="isSaving"
-            :disabled="!canSubmit"
-            :label="t('page.settings.security.password.submit')"
-          />
-        </div>
-      </div>
-    </form>
+      </template>
+    </SecurityEditPanel>
   </DmsSection>
 </template>
