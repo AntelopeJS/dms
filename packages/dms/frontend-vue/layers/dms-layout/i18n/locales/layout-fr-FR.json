@@ -150,6 +150,7 @@
           "description": "Saisissez l'adresse e-mail de la personne à inviter et cliquez sur 'Envoyer l'invitation' pour lui accorder l'accès.",
           "submit": "Envoyer l'invitation",
           "success": "Invitation envoyée avec succès",
+          "email_failed": "Invitation créée, mais l'e-mail n'a pas pu être envoyé. Renvoyez-la depuis la liste des invitations en attente une fois l'envoi des e-mails rétabli.",
           "already_member": "Cet utilisateur est déjà enregistré",
           "field": {
             "email": "Adresse e-mail",
@@ -216,6 +217,7 @@
         "action": {
           "resend": "Renvoyer",
           "resend_success": "Invitation renvoyée avec succès",
+          "resend_email_failed": "Invitation renouvelée, mais l'e-mail n'a pas pu être envoyé. Réessayez une fois l'envoi des e-mails rétabli.",
           "resend_confirm_title": "Renvoyer l'invitation",
           "resend_confirm_description": "Un nouveau lien d'invitation sera généré et envoyé à l'utilisateur. L'ancien lien sera invalidé.",
           "cancel": "Annuler l'invitation",

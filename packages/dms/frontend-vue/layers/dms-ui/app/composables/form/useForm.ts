@@ -7,6 +7,7 @@ import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
+import { resolveResponseToast } from "../../utils/responseWarning";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 
 interface FormResetTarget {
@@ -492,14 +493,20 @@ export const useForm = (props: FormProps) => {
     ),
   );
 
-  const showSubmitSuccessToast = () => {
-    toast.add({
-      title: processI18n("$dms.form.success_title"),
-      description: processI18n(
-        props.successMessage || "$dms.form.success_message",
+  const showSubmitSuccessToast = (response: FormSubmitResponse | undefined) => {
+    toast.add(
+      resolveResponseToast(
+        response,
+        {
+          title: processI18n("$dms.form.success_title"),
+          description: processI18n(
+            props.successMessage || "$dms.form.success_message",
+          ),
+          color: Color.success,
+        },
+        { processI18n, processApiMessage },
       ),
-      color: Color.success,
-    });
+    );
   };
 
   const resolveSubmitErrorDescription = (error: EventError) => {
@@ -520,7 +527,7 @@ export const useForm = (props: FormProps) => {
     response: FormSubmitResponse | undefined,
     plainData: FormData,
   ) => {
-    showSubmitSuccessToast();
+    showSubmitSuccessToast(response);
     props.onSuccessCallback?.(response, plainData);
     initialValues.value = snapshotFormState(state.value);
     if (props.redirectOnSuccess) {

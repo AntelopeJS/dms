@@ -45,7 +45,10 @@ import {
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
-import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import {
+  type InviteEmailOutcome,
+  inviteEmailOutcome,
+} from "./invite-email-outcome";
 import { inviteEditRoute, inviteGetRoute } from "./invite-extension-routes";
 import {
   inviteLanguageSelectItems,
@@ -58,6 +61,51 @@ import {
 } from "./members";
 
 const INVITES_PERMISSION_ID = "settings.user.invites";
+
+export const INVITE_RESEND_EMAIL_FAILED_WARNING =
+  "$page.settings.invites.action.resend_email_failed";
+
+/**
+ * Reissues a pending invitation with a fresh token and emails the new link,
+ * waiting for the email so the inviter learns when it did not leave. The
+ * reissued invitation is kept either way.
+ */
+export async function resendPendingInvite(
+  tenantId: string,
+  inviteId: string,
+  inviterName?: string,
+): Promise<InviteEmailOutcome> {
+  const existingInvite = await loadInviteForAction(tenantId, inviteId);
+  assert(existingInvite, 404, "$page.settings.invites.error.not_found");
+
+  const { token } = await createUserInviteToken({
+    tenantId,
+    replacesInvite: existingInvite,
+    email: existingInvite.email,
+    firstname: existingInvite.firstname,
+    lastname: existingInvite.lastname,
+    language: existingInvite.language,
+    roleIds: existingInvite.roles_ids,
+    asTenantOwner: existingInvite.asTenantOwner,
+    skipEmailValidation: existingInvite.skipEmailValidation,
+    // Resending re-creates the row, so the module payloads have to be
+    // carried over or the invitee would join without them — and the
+    // displaced row must not read as an invitation that was retired.
+    extensions: existingInvite.extensions ?? undefined,
+    replacementReason: "resent",
+  });
+
+  const emailDelivery = await internal.deliverTenantInviteEmail({
+    tenantId,
+    email: existingInvite.email,
+    token,
+    firstname: existingInvite.firstname,
+    lastname: existingInvite.lastname,
+    language: existingInvite.language,
+    inviterName,
+  });
+  return inviteEmailOutcome(emailDelivery, INVITE_RESEND_EMAIL_FAILED_WARNING);
+}
 
 @RegisterDataController()
 export class inviteSettingDataAPI extends DataController(
@@ -279,44 +327,12 @@ export class InvitesSettingsController extends PageController("invites", {
   });
 
   @Post("/:id/resend")
-  async resendInvite(
+  resendInvite(
     @Parameter("id", "param") id: string,
     @Context() ctx: RequestContext,
     @AuthUser() user: User,
-  ) {
-    const tenantId = getRequestTenantId(ctx);
-    const existingInvite = await loadInviteForAction(tenantId, id);
-    assert(existingInvite, 404, "$page.settings.invites.error.not_found");
-
-    const { token } = await createUserInviteToken({
-      tenantId,
-      replacesInvite: existingInvite,
-      email: existingInvite.email,
-      firstname: existingInvite.firstname,
-      lastname: existingInvite.lastname,
-      language: existingInvite.language,
-      roleIds: existingInvite.roles_ids,
-      asTenantOwner: existingInvite.asTenantOwner,
-      skipEmailValidation: existingInvite.skipEmailValidation,
-      // Resending re-creates the row, so the module payloads have to be
-      // carried over or the invitee would join without them — and the
-      // displaced row must not read as an invitation that was retired.
-      extensions: existingInvite.extensions ?? undefined,
-      replacementReason: "resent",
-    });
-
-    fireAndForget(
-      internal.sendTenantInviteEmail({
-        tenantId,
-        email: existingInvite.email,
-        token,
-        firstname: existingInvite.firstname,
-        lastname: existingInvite.lastname,
-        language: existingInvite.language,
-        inviterName: user.name,
-      }),
-      `invite email to "${existingInvite.email}"`,
-    );
+  ): Promise<InviteEmailOutcome> {
+    return resendPendingInvite(getRequestTenantId(ctx), id, user.name);
   }
 
   @Delete("/:id/cancel")

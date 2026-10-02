@@ -18,7 +18,10 @@ import {
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
 import { internal } from "@antelopejs/interface-dms/invite-extensions";
-import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
+import {
+  type InviteUserToTenantResult,
+  inviteUserToTenant,
+} from "@antelopejs/interface-dms/invites";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
@@ -31,6 +34,10 @@ import { ButtonVariant } from "@antelopejs/interface-dms/base/types";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { userCategory } from "./category";
+import {
+  type InviteEmailOutcome,
+  inviteEmailOutcome,
+} from "./invite-email-outcome";
 import {
   type InviteFormDefaults,
   memberInviteForm,
@@ -45,6 +52,33 @@ const MEMBERS_PAGE_PATH = "/settings/user/members";
 export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
 
 export const MEMBER_INVITE_BUTTON_ID = "invite";
+
+/**
+ * Shown by the frontend in place of the success message: the invitation
+ * exists, and the invites page it lands on offers to resend it.
+ */
+export const INVITE_EMAIL_FAILED_WARNING =
+  "$page.settings.members.invite.email_failed";
+
+/** Without an email outcome when an existing user was added: none is sent. */
+export interface MemberInviteResponse extends Partial<InviteEmailOutcome> {
+  redirectPath: string;
+}
+
+/**
+ * An existing user is added straight away (no pending invite), so the admin
+ * is sent to the members list rather than the empty invites list.
+ */
+export function memberInviteResponse(
+  result: InviteUserToTenantResult,
+): MemberInviteResponse {
+  if (result.kind === "added") return { redirectPath: MEMBERS_PAGE_PATH };
+  if (!result.emailDelivery) return { redirectPath: INVITES_PAGE_PATH };
+  return {
+    redirectPath: INVITES_PAGE_PATH,
+    ...inviteEmailOutcome(result.emailDelivery, INVITE_EMAIL_FAILED_WARNING),
+  };
+}
 
 type OwnerChange = "promote" | "demote" | null;
 
@@ -237,7 +271,7 @@ export class MembersSettingsController extends PageController("members", {
     @AuthUserWithPermission(membersTableAddAction) user: User,
     @Model(UserModel) userModel: UserModel,
     @JSONBody() body: unknown,
-  ) {
+  ): Promise<MemberInviteResponse> {
     const tenantId = getRequestTenantId(ctx);
     const {
       email,
@@ -266,15 +300,11 @@ export class MembersSettingsController extends PageController("members", {
       asTenantOwner,
       skipEmailValidation,
       sendEmail: true,
+      awaitEmailDelivery: true,
       inviterName: user.name,
       extensions,
     });
-    // An existing user is added straight away (no pending invite), so send the
-    // admin to the members list rather than the empty invites list.
-    return {
-      redirectPath:
-        result.kind === "added" ? MEMBERS_PAGE_PATH : INVITES_PAGE_PATH,
-    };
+    return memberInviteResponse(result);
   }
 
   @Post("/:id/validate-email")
