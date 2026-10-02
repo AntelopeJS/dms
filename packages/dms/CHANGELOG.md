@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.4...v0.5.5)
+
+### 🩹 Fixes
+
+- **layout:** Hold the in-flight modules listing fetch on the DMS app ([#121](https://github.com/AntelopeJS/dms/pull/121))
+
+### ❤️ Contributors
+
+- Alessandro Aloisio
+
 ## v0.5.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.3...v0.5.4)
