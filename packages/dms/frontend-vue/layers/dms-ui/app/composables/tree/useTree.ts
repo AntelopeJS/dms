@@ -155,7 +155,7 @@ export async function useTree<T = unknown>(props: TreeProps) {
     );
     const parentPath = node.hierarchicalPath || node.value || "";
     return wrapItemsWithEvents(
-      processTreeNodesI18n(children, processI18n),
+      processTreeNodesI18n(wrapItemsWithTrailingIcon(children), processI18n),
       parentPath,
     );
   }
