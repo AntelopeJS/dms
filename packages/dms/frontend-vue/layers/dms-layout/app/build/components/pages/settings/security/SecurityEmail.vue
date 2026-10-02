@@ -4,11 +4,18 @@ import {
   SECURITY_ENDPOINT,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
+import SecurityEditPanel from "./SecurityEditPanel.vue";
+import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 
 const EMAIL_URL = `${SECURITY_ENDPOINT}/email`;
+const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
+const EMAIL_ALREADY_USED = "error.email_already_used";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FORM_ID = "security-email-form";
+const EMAIL_FIELD_ID = "security-new-email";
+const CURRENT_FIELD_ID = "security-email-current-password";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -17,34 +24,86 @@ const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
 const { errorMessage, errorCode } = useSecurityFormat();
 
-const isOpen = ref(false);
+const isEditing = ref(false);
 const isSaving = ref(false);
 const newEmail = ref("");
 const currentPassword = ref("");
+const isEmailTouched = ref(false);
+const isEmailTaken = ref(false);
 const isCurrentInvalid = ref(false);
 
 const email = computed(() => overview.value?.email ?? "");
 const isValidated = computed(() => overview.value?.isValidated ?? false);
 const hasPassword = computed(() => overview.value?.hasPassword ?? true);
 const trimmedEmail = computed(() => newEmail.value.trim());
-const canSubmit = computed(
+const isWellFormed = computed(() => EMAIL_PATTERN.test(trimmedEmail.value));
+const isUnchanged = computed(
   () =>
-    EMAIL_PATTERN.test(trimmedEmail.value) &&
-    trimmedEmail.value.toLowerCase() !== email.value &&
-    !!currentPassword.value,
+    !!trimmedEmail.value &&
+    trimmedEmail.value.toLowerCase() === email.value.toLowerCase(),
+);
+const canSubmit = computed(
+  () => isWellFormed.value && !isUnchanged.value && !!currentPassword.value,
 );
 
-function open(): void {
+// The format is only checked once the field is left, so typing an address
+// doesn't flash an error at every keystroke. Nothing shows while the panel
+// collapses after a save, when the field already holds the saved address.
+const emailError = computed(() => {
+  if (!isEditing.value) return undefined;
+  if (isEmailTouched.value && trimmedEmail.value && !isWellFormed.value) {
+    return t("page.settings.security.email.invalid");
+  }
+  if (isUnchanged.value) {
+    return t("page.settings.security.errors.email_unchanged");
+  }
+  if (isEmailTaken.value) {
+    return t("page.settings.security.errors.email_already_used");
+  }
+  return undefined;
+});
+const currentError = computed(() =>
+  isCurrentInvalid.value
+    ? t("page.settings.security.errors.invalid_current_password")
+    : undefined,
+);
+
+// A server-side mark goes away as soon as its field is edited.
+watch(newEmail, () => {
+  isEmailTaken.value = false;
+});
+watch(currentPassword, () => {
+  isCurrentInvalid.value = false;
+});
+
+function resetForm(): void {
   newEmail.value = "";
   currentPassword.value = "";
+  isEmailTouched.value = false;
+  isEmailTaken.value = false;
   isCurrentInvalid.value = false;
-  isOpen.value = true;
+}
+
+/** Shows a field-level API error under its field and focuses it. */
+async function flagField(code: string | undefined): Promise<boolean> {
+  if (code === INVALID_CURRENT_PASSWORD) isCurrentInvalid.value = true;
+  else if (code === EMAIL_ALREADY_USED) isEmailTaken.value = true;
+  else return false;
+  await nextTick();
+  document
+    .getElementById(
+      code === INVALID_CURRENT_PASSWORD ? CURRENT_FIELD_ID : EMAIL_FIELD_ID,
+    )
+    ?.focus();
+  return true;
 }
 
 async function submit(): Promise<void> {
+  isEmailTouched.value = true;
   if (!canSubmit.value) return;
   isSaving.value = true;
   isCurrentInvalid.value = false;
+  isEmailTaken.value = false;
   try {
     await $authFetch(EMAIL_URL, {
       method: "POST",
@@ -53,14 +112,14 @@ async function submit(): Promise<void> {
         currentPassword: currentPassword.value,
       },
     });
-    isOpen.value = false;
+    isEditing.value = false;
     toast.add({
       title: t("page.settings.security.email.updated"),
       color: "success",
     });
     await Promise.all([refresh(), refreshSession()]);
   } catch (error) {
-    isCurrentInvalid.value = errorCode(error) === INVALID_CURRENT_PASSWORD;
+    if (await flagField(errorCode(error))) return;
     toast.add({
       title: errorMessage(error, "page.settings.security.email.error"),
       color: "error",
@@ -78,7 +137,19 @@ async function submit(): Promise<void> {
     title="$page.settings.security.email_title"
     description="$page.settings.security.email_description"
   >
-    <DmsFieldRow>
+    <SecurityEditPanel
+      v-model:open="isEditing"
+      :form-id="FORM_ID"
+      :trigger-label="t('page.settings.security.email.change')"
+      :trigger-disabled="!hasPassword"
+      :disabled-reason="t('page.settings.security.email.needs_password')"
+      :editing-label="t('page.settings.security.email.editing')"
+      :submit-label="t('page.settings.security.email.submit')"
+      :can-submit="canSubmit"
+      :loading="isSaving"
+      @open="resetForm"
+      @submit="submit"
+    >
       <template #label>
         <DmsListRow bare icon="i-ph-envelope-simple">
           <USkeleton v-if="!email" class="h-4 w-40" />
@@ -100,101 +171,73 @@ async function submit(): Promise<void> {
           </template>
         </DmsListRow>
       </template>
-      <UTooltip
-        :text="t('page.settings.security.email.needs_password')"
-        :disabled="hasPassword"
-      >
-        <UButton
-          color="neutral"
-          variant="outline"
-          size="sm"
-          icon="i-ph-pencil-simple"
-          :label="t('page.settings.security.email.change')"
-          :disabled="!hasPassword"
-          @click="open"
-        />
-      </UTooltip>
-    </DmsFieldRow>
 
-    <UModal
-      v-model:open="isOpen"
-      :title="t('page.settings.security.email.modal_title')"
-    >
-      <template #description>
+      <SecurityPanelField
+        :field-id="EMAIL_FIELD_ID"
+        :label="t('page.settings.security.email.new')"
+        :error="emailError"
+      >
+        <template #default="{ describedby, invalid }">
+          <UInput
+            :id="EMAIL_FIELD_ID"
+            v-model="newEmail"
+            type="email"
+            autocomplete="email"
+            icon="i-ph-envelope-simple"
+            class="w-full"
+            :color="invalid ? 'error' : undefined"
+            :highlight="invalid"
+            :aria-invalid="invalid || undefined"
+            :aria-describedby="describedby"
+            @blur="isEmailTouched = true"
+          />
+        </template>
+      </SecurityPanelField>
+      <SecurityPanelField
+        :field-id="CURRENT_FIELD_ID"
+        :label="t('page.settings.security.password.current')"
+        :error="currentError"
+      >
+        <template #default="{ describedby, invalid }">
+          <SecurityPasswordInput
+            :id="CURRENT_FIELD_ID"
+            v-model="currentPassword"
+            autocomplete="current-password"
+            :invalid="invalid"
+            :aria-describedby="describedby"
+          />
+        </template>
+        <template #after>
+          <DmsLink
+            :to="FORGOT_PASSWORD_PATH"
+            class="text-primary w-fit text-xs font-medium hover:underline hover:underline-offset-3"
+          >
+            {{ t("page.settings.security.password.forgot") }}
+          </DmsLink>
+        </template>
+      </SecurityPanelField>
+      <div
+        class="text-muted col-span-full flex items-start gap-2 rounded-md border border-(--dms-accent-line) bg-(--dms-accent-tint) px-3 py-2.5 text-[12.5px] leading-normal"
+      >
+        <UIcon
+          name="i-ph-info"
+          class="mt-px size-[15px] shrink-0 text-(--dms-accent)"
+        />
         <i18n-t
-          keypath="page.settings.security.email.modal_description"
+          keypath="page.settings.security.email.note"
           scope="global"
           tag="span"
         >
           <template #email>
-            <b class="text-highlighted font-semibold">{{ email }}</b>
+            <b class="text-highlighted font-semibold">
+              {{
+                trimmedEmail ||
+                t("page.settings.security.email.new_placeholder")
+              }}
+            </b>
           </template>
         </i18n-t>
-      </template>
-      <template #body>
-        <form
-          id="security-email-form"
-          class="grid gap-4"
-          @submit.prevent="submit"
-        >
-          <UFormField :label="t('page.settings.security.email.new')">
-            <UInput
-              v-model="newEmail"
-              type="email"
-              autocomplete="email"
-              icon="i-ph-envelope-simple"
-              class="w-full"
-            />
-          </UFormField>
-          <UFormField :label="t('page.settings.security.password.current')">
-            <SecurityPasswordInput
-              v-model="currentPassword"
-              autocomplete="current-password"
-              :invalid="isCurrentInvalid"
-            />
-          </UFormField>
-          <div
-            class="text-muted flex items-start gap-2 rounded-md border border-(--dms-accent-line) bg-(--dms-accent-tint) px-3 py-2.5 text-[12.5px] leading-normal"
-          >
-            <UIcon
-              name="i-ph-info"
-              class="mt-px size-[15px] shrink-0 text-(--dms-accent)"
-            />
-            <i18n-t
-              keypath="page.settings.security.email.modal_note"
-              scope="global"
-              tag="span"
-            >
-              <template #email>
-                <b class="text-highlighted font-semibold">
-                  {{
-                    trimmedEmail ||
-                    t("page.settings.security.email.new_placeholder")
-                  }}
-                </b>
-              </template>
-            </i18n-t>
-          </div>
-        </form>
-      </template>
-      <template #footer>
-        <div class="flex w-full justify-end gap-2">
-          <UButton
-            color="neutral"
-            variant="outline"
-            :label="t('page.settings.security.cancel')"
-            @click="isOpen = false"
-          />
-          <UButton
-            type="submit"
-            form="security-email-form"
-            icon="i-ph-check"
-            :loading="isSaving"
-            :disabled="!canSubmit"
-            :label="t('page.settings.security.email.submit')"
-          />
-        </div>
-      </template>
-    </UModal>
+      </div>
+    </SecurityEditPanel>
   </DmsSection>
 </template>

@@ -26,6 +26,7 @@ const isVisible = ref(false);
     :placeholder="props.placeholder"
     :color="props.invalid ? 'error' : undefined"
     :highlight="props.invalid"
+    :aria-invalid="props.invalid || undefined"
     icon="i-ph-lock-simple"
     class="w-full"
     :ui="{ trailing: 'pe-1' }"
