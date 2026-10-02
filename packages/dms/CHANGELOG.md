@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.5.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.3...v0.5.4)
+
+### 🩹 Fixes
+
+- **invites:** Tell the inviter when the invitation e-mail was not sent ([#122](https://github.com/AntelopeJS/dms/pull/122))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.3.5 ([dcc9afe](https://github.com/AntelopeJS/dms/commit/dcc9afe))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.2...v0.5.3)
