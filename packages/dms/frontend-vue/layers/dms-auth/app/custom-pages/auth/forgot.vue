@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../composables/useAuthFormError";
 
 const { $authFetch } = useAuthFetch();
 const dmsApp = useDmsApp();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const isLoading = ref(false);
 
@@ -37,7 +42,11 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       }),
     );
   } catch (error: unknown) {
-    showFormError(error, "page.forgot.error_title");
+    // A refused address shows under its field; anything else above the form.
+    await showError(error, "page.forgot.error_title", {
+      fields: ["email"],
+      form,
+    });
   } finally {
     isLoading.value = false;
   }
@@ -51,6 +60,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     :description="$t('page.forgot.description_forget')"
   >
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-[22px] grid gap-4"

@@ -8,6 +8,7 @@ import DmsStatStrip, {
   type StatStripItem,
 } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
 import type { DmsTone } from "#dms-ui/app/utils/tone";
+import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import ModuleCategoryChips from "../build/components/pages/modules/ModuleCategoryChips.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
@@ -36,6 +37,7 @@ const SKELETON_PLACEHOLDER_COUNT = 6;
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
+const { keyLabel } = useKeyboardPlatform();
 const isOwner = useIsOwner();
 const homepage = useHomepage();
 const siteLayout = useSiteLayout();
@@ -450,8 +452,8 @@ const summaryCards = computed<StatStripItem[]>(() =>
             >
               <template #shortcut>
                 <span class="inline-flex gap-0.5 align-middle">
-                  <UKbd value="meta" size="sm" />
-                  <UKbd value="K" size="sm" />
+                  <UKbd :value="keyLabel('meta')" size="sm" />
+                  <UKbd :value="keyLabel('k')" size="sm" />
                 </span>
               </template>
             </i18n-t>

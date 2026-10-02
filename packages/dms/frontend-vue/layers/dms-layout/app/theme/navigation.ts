@@ -34,7 +34,8 @@ const stepperTheme = {
     orientation: {
       horizontal: {
         root: "gap-5",
-        header: "items-center gap-2.5",
+        // A row too long for a phone wraps its steps instead of overflowing.
+        header: "flex-wrap items-center gap-x-2.5 gap-y-3",
         item: "flex w-auto items-center gap-2 text-start whitespace-nowrap",
         container: "contents",
         separator: "static order-last h-px w-7 shrink-0",
@@ -169,7 +170,8 @@ const PAGER_EDGE =
 
 const paginationTheme = {
   slots: {
-    list: "gap-1",
+    // A long pager (edges + siblings) wraps on a phone instead of overflowing.
+    list: "flex-wrap gap-1",
     item: "font-mono font-medium tabular-nums not-data-[selected=true]:text-toned data-[selected=true]:font-[650] disabled:opacity-40",
     // Mono numbers run a step under the button text (12.5px at md).
     label: "min-w-5 text-[0.96em]",

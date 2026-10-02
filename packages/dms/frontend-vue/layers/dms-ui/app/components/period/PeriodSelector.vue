@@ -119,6 +119,10 @@ const POPOVER_ALIGN: Record<
   NonNullable<Props["align"]>,
   "start" | "center" | "end"
 > = { left: "start", center: "center", right: "end" };
+// Never wider than the screen, and never taller than the room left beside
+// the trigger (a short phone, a landscape tablet): the popover scrolls.
+const POPOVER_CONTENT_CLASS =
+  "w-auto max-w-[calc(100vw-2rem)] max-h-(--reka-popover-content-available-height) overflow-x-hidden overflow-y-auto overscroll-contain p-0";
 
 function presetLabel(preset: PeriodPreset): string {
   return (
@@ -391,7 +395,7 @@ function onSegmentedClick(event: MouseEvent) {
         sideOffset: 6,
         collisionPadding: 16,
       }"
-      :ui="{ content: 'w-auto max-w-[calc(100vw-2rem)] overflow-hidden p-0' }"
+      :ui="{ content: POPOVER_CONTENT_CLASS }"
       @update:open="setOpen"
     >
       <template v-if="!isSegmented" #default>
@@ -416,7 +420,7 @@ function onSegmentedClick(event: MouseEvent) {
 
       <template v-else #anchor>
         <span
-          class="inline-flex"
+          class="inline-flex max-w-full min-w-0"
           :class="triggerOrder"
           @click="onSegmentedClick"
         >
@@ -504,7 +508,11 @@ function onSegmentedClick(event: MouseEvent) {
 
           <!-- Dates, comparison, calendar (design .ps-pop__main) -->
           <div class="grid min-w-0 gap-3.5 px-4 pt-3.5">
-            <div class="grid grid-cols-2 gap-2 md:grid-cols-[1fr_1fr_1.25fr]">
+            <!-- Start and end side by side from 22rem: a 320px phone has no
+                 room for two date fields on one line. -->
+            <div
+              class="grid grid-cols-1 gap-2 min-[22rem]:grid-cols-2 md:grid-cols-[1fr_1fr_1.25fr]"
+            >
               <label class="grid gap-1">
                 <span :class="FIELD_LABEL_CLASS">
                   {{ $t("dms.period.popover.start", "Start") }}
@@ -536,7 +544,7 @@ function onSegmentedClick(event: MouseEvent) {
               </label>
               <label
                 v-if="canCompare"
-                class="col-span-2 grid gap-1 md:col-span-1"
+                class="grid gap-1 min-[22rem]:col-span-2 md:col-span-1"
               >
                 <span :class="FIELD_LABEL_CLASS">
                   {{ $t("dms.period.popover.compare_to", "Compare to") }}

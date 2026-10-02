@@ -49,7 +49,7 @@ interface ListRowProps {
   current?: boolean;
   /** Hover band (clickable rows). Implied by `to`. */
   interactive?: boolean;
-  /** Single-line title and meta, cut with an ellipsis. */
+  /** Single-line title and meta, cut with an ellipsis (they wrap on phones). */
   truncate?: boolean;
   /** Mono text after the title column (a time, a count). */
   trailing?: string;
@@ -120,7 +120,9 @@ const theme = tv({
     body: "min-w-0 flex-1",
     title: "flex items-center gap-2",
     description: "text-muted mt-0.5 text-[12.5px]",
-    meta: "flex flex-wrap items-center gap-x-2 gap-y-1 [&>span+span]:before:text-dimmed [&>span+span]:before:me-2 [&>span+span]:before:content-['·']",
+    // The "·" closes each entry followed by another (rather than opening it),
+    // so a wrapped line never starts with a separator.
+    meta: "flex flex-wrap items-center gap-x-2 gap-y-1 [&>span:has(+span)]:after:text-dimmed [&>span:has(+span)]:after:ms-2 [&>span:has(+span)]:after:content-['·']",
     trailing: "flex shrink-0 items-center gap-2",
     trailingText:
       "text-dimmed text-right font-mono text-[11.5px] font-medium whitespace-nowrap",
@@ -129,9 +131,14 @@ const theme = tv({
   },
   variants: {
     size: {
+      // A wrapping flex row rather than a grid: the trailing column (a
+      // chevron, a time, a button) stays beside the lead while the lead keeps
+      // at least 11rem, and only then drops under it, end-aligned (a phone,
+      // wide actions).
       md: {
-        root: "grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-2 px-[18px] py-3.5 max-sm:grid-cols-1",
-        lead: "items-center",
+        root: "flex flex-wrap items-center gap-x-5 gap-y-2 px-[18px] py-3.5",
+        lead: "flex-[1_1_11rem] items-center",
+        trailing: "ms-auto",
         title: "text-highlighted flex-wrap text-sm font-semibold",
         meta: "text-muted mt-[3px] text-[12.5px] font-normal",
       },
@@ -170,14 +177,16 @@ const theme = tv({
         root: "bg-linear-90 from-(--dms-accent-tint) to-transparent to-60% shadow-[inset_2px_0_0_var(--dms-accent)]",
       },
     },
+    // One line on wide screens; a phone has no hover to reveal the cut
+    // end, so the title and meta wrap there instead.
     truncate: {
       true: {
-        title: "truncate",
-        meta: "flex-nowrap overflow-hidden whitespace-nowrap",
+        title: "truncate max-sm:whitespace-normal",
+        meta: "flex-nowrap overflow-hidden whitespace-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
       },
     },
     bare: {
-      true: { root: "flex items-center gap-3 border-0 p-0" },
+      true: { root: "flex flex-nowrap items-center gap-3 border-0 p-0" },
     },
   },
   compoundVariants: [
@@ -259,7 +268,11 @@ const unreadText = computed(
         />
       </slot>
       <div :class="ui.body()">
-        <div v-if="props.title || slots.default" :class="ui.title()">
+        <div
+          v-if="props.title || slots.default"
+          :class="ui.title()"
+          :title="props.truncate ? props.title : undefined"
+        >
           <slot>{{ props.title }}</slot>
         </div>
         <p v-if="hasDescription" :class="ui.description()">

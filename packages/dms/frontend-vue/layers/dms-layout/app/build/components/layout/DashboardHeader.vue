@@ -5,6 +5,8 @@ import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 
 const HOME_ICON = "i-ph-house-light";
+/** Breadcrumb slot of the folded middle crumbs on small screens. */
+const MOBILE_ELLIPSIS_SLOT = "ellipsis";
 /** v2 toolbar buttons: muted until hovered or open. */
 const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
@@ -123,10 +125,12 @@ const mobileBreadcrumb = computed(
       return breadcrumb.value;
     }
 
+    // The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
+    // deep page still fits a phone without losing the way back up.
     return [
-      { icon: HOME_ICON, to: "/" },
+      breadcrumb.value[0]!,
       {
-        icon: "i-ph-dots-three-light",
+        slot: MOBILE_ELLIPSIS_SLOT,
         children: breadcrumb.value.slice(1, -1).map((x) => ({
           label: x.label,
           to: x.to,
@@ -247,11 +251,27 @@ const mobileBreadcrumb = computed(
       </template>
     </UDashboardNavbar>
 
-    <div class="border-default border-b px-6 py-2 md:hidden">
+    <!-- Same side padding as the navbar above, so the home icon lines up
+         with its buttons. -->
+    <div class="border-default border-b px-3 py-2 sm:px-4 md:hidden">
       <UBreadcrumb
         :items="mobileBreadcrumb"
         :ui="{ linkLabel: 'first-letter:uppercase' }"
-      />
+      >
+        <template #ellipsis="{ item }">
+          <UDropdownMenu :items="item.children" :content="{ align: 'start' }">
+            <UButton
+              icon="i-ph-dots-three-light"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              class="-my-1"
+              :class="TOOLBAR_BUTTON_CLASS"
+              :aria-label="t('header.show_path')"
+            />
+          </UDropdownMenu>
+        </template>
+      </UBreadcrumb>
     </div>
   </div>
 </template>

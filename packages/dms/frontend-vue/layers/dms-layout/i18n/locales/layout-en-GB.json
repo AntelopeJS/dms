@@ -9,7 +9,8 @@
     "expand_sidebar": "Expand sidebar",
     "collapse_sidebar": "Collapse sidebar",
     "add_favorite": "Add to favorites",
-    "remove_favorite": "Remove from favorites"
+    "remove_favorite": "Remove from favorites",
+    "show_path": "Show the parent pages"
   },
   "menu": {
     "favorites": "Favorites",
@@ -102,8 +103,8 @@
         "component_store": "Discover available components"
       },
       "region": {
-        "instant": "Saved instantly",
         "save_error": "Your preference couldn't be saved. Try again.",
+        "invalid_time_zone": "This time zone isn’t recognised. Pick one from the list.",
         "auto": "Automatic",
         "language_block_title": "Language",
         "language_block_description": "Your preferred language for the dashboard display. Saved as soon as you pick one.",
@@ -255,6 +256,8 @@
           "partial_title": "Invitations sent: {sent}",
           "partial_description": "{count} address was skipped: already a member or refused. | {count} addresses were skipped: already members or refused.",
           "remove_email": "Remove {email}",
+          "email_invalid": "“{email}” isn’t a valid email address.",
+          "email_duplicate": "{email} is already in the list. | {email} are already in the list.",
           "roles_owner_hint": "Owners have every permission: the roles are ignored.",
           "roles_hint_empty": "Pick at least one role.",
           "roles_hint": "{roles}: {count} of {total} permissions.",
@@ -532,7 +535,6 @@
         "scale_large_hint": "Spacious · big screens",
         "css_variables": "CSS variables",
         "css_variables_description": "List of all UI CSS properties used in the design system",
-        "instant": "Changes apply instantly on this device",
         "system_hint": "Matches your OS setting",
         "light_hint": "Bright surfaces",
         "dark_hint": "Easy on the eyes",
@@ -835,5 +837,8 @@
     "page": {
       "eyebrow": "Error {code}"
     }
+  },
+  "widgets_dock": {
+    "show": "Show the widgets"
   }
 }

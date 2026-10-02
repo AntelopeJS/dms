@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../components/AuthNewPasswordField.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
 
 const MIN_NAME_LENGTH = 2;
@@ -13,7 +17,8 @@ const { locale, locales, setLocale } = useI18n();
 const config = useDmsRuntimeConfig();
 const homepage = useHomepage();
 const dmsApp = useDmsApp();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
 const queryToken = computed(() => route.query.token as string);
@@ -69,7 +74,13 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ),
     );
   } catch (error: unknown) {
-    showFormError(error, "page.signup.error_title");
+    // A refused value (an address already used) shows under its field;
+    // anything else above the form.
+    await showError(error, "page.signup.error_title", {
+      fields: ["name", "email", "password"],
+      codes: { "error.email_already_used": "email" },
+      form,
+    });
   } finally {
     isLoading.value = false;
   }
@@ -102,6 +113,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     <DmsOAuthButtons />
 
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-5 grid gap-4"

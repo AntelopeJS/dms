@@ -504,7 +504,7 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
                       variant="ghost"
                       size="xs"
                       square
-                      class="-my-1 ms-auto -me-1.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                      class="-my-1 ms-auto -me-1.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                       :aria-label="t('dms.button.delete')"
                       @click.stop="emit('card-delete', element)"
                     />

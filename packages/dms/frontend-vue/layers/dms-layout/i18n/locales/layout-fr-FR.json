@@ -9,7 +9,8 @@
     "expand_sidebar": "Déplier le menu latéral",
     "collapse_sidebar": "Replier le menu latéral",
     "add_favorite": "Ajouter aux favoris",
-    "remove_favorite": "Retirer des favoris"
+    "remove_favorite": "Retirer des favoris",
+    "show_path": "Afficher les pages parentes"
   },
   "menu": {
     "favorites": "Favoris",
@@ -102,8 +103,8 @@
         "component_store": "Découvrez les composants disponibles"
       },
       "region": {
-        "instant": "Enregistré aussitôt",
         "save_error": "Votre préférence n'a pas pu être enregistrée. Réessayez.",
+        "invalid_time_zone": "Ce fuseau horaire n’est pas reconnu. Choisissez-en un dans la liste.",
         "auto": "Automatique",
         "language_block_title": "Langue",
         "language_block_description": "Votre langue préférée pour l'affichage du tableau de bord. Enregistrée dès que vous la choisissez.",
@@ -259,6 +260,8 @@
           "partial_title": "Invitations envoyées : {sent}",
           "partial_description": "{count} adresse ignorée : déjà membre ou refusée. | {count} adresses ignorées : déjà membres ou refusées.",
           "remove_email": "Retirer {email}",
+          "email_invalid": "« {email} » n’est pas une adresse e-mail valide.",
+          "email_duplicate": "{email} est déjà dans la liste. | {email} sont déjà dans la liste.",
           "roles_owner_hint": "Les propriétaires ont toutes les permissions : les rôles sont ignorés.",
           "roles_hint_empty": "Choisissez au moins un rôle.",
           "roles_hint": "{roles} : {count} permissions sur {total}.",
@@ -536,7 +539,6 @@
         "scale_large_hint": "Spacieux · grands écrans",
         "css_variables": "Variables CSS",
         "css_variables_description": "Liste de toutes les variables CSS utilisées dans le design system",
-        "instant": "Les changements s'appliquent immédiatement sur cet appareil",
         "system_hint": "Suit le réglage de votre système",
         "light_hint": "Surfaces claires",
         "dark_hint": "Repose les yeux",
@@ -839,5 +841,8 @@
     "page": {
       "eyebrow": "Erreur {code}"
     }
+  },
+  "widgets_dock": {
+    "show": "Afficher les widgets"
   }
 }

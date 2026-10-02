@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
 
 const route = useDmsRoute();
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const token = computed(() => (route.query.token as string) || "");
 
@@ -53,7 +58,12 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
     await usePostLoginRedirect();
   } catch (error: unknown) {
-    showFormError(error, "page.backup.error_title");
+    // A wrong code shows under the field; an expired sign-in above the form.
+    await showError(error, "page.backup.error_title", {
+      fields: ["code"],
+      codes: { "error.invalid_backup_code": "code" },
+      form,
+    });
   } finally {
     isLoading.value = false;
   }
@@ -67,6 +77,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     :description="$t('page.backup.description')"
   >
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-[22px] grid gap-4"

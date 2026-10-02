@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { useId, useTemplateRef } from "vue";
+import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
+import { PIN_PHONE_UI } from "./security-pin";
+
 type CodeModalTone = "accent" | "error" | "warning";
 
 interface SecurityCodeModalProps {
@@ -32,8 +38,14 @@ const CONFIRM_COLORS: Record<CodeModalTone, "primary" | "error" | "warning"> = {
 };
 
 const isOpen = defineModel<boolean>("open", { default: false });
+/** A code the API refused, shown under the cells; typing clears it. */
+const error = defineModel<string | undefined>("error");
 const { t } = useI18n();
 const digits = ref<string[]>([]);
+const codeField = useTemplateRef<HTMLElement>("codeField");
+const errorId = fieldErrorId(`security-code-${useId()}`);
+
+useCodeFieldError(digits, error, codeField);
 
 const code = computed(() => digits.value.join(""));
 const isComplete = computed(() => code.value.length === CODE_LENGTH);
@@ -74,7 +86,7 @@ function confirm(): void {
     <template #body>
       <form class="grid gap-4" @submit.prevent="confirm">
         <p class="text-muted text-sm">{{ props.description }}</p>
-        <div class="grid gap-2">
+        <div ref="codeField" class="grid gap-2">
           <span class="text-highlighted text-[13px] font-medium">
             {{ props.codeLabel }}
           </span>
@@ -83,9 +95,15 @@ function confirm(): void {
             :length="CODE_LENGTH"
             otp
             type="number"
+            :ui="PIN_PHONE_UI"
             :aria-label="props.codeLabel"
+            :color="error ? 'error' : undefined"
+            :highlight="!!error"
+            :aria-invalid="!!error || undefined"
+            :aria-describedby="error ? errorId : undefined"
             @complete="confirm"
           />
+          <DmsFieldError :id="errorId" :message="error" />
           <UButton
             v-if="props.canSendEmailCode"
             variant="link"
@@ -98,8 +116,11 @@ function confirm(): void {
       </form>
     </template>
     <template #footer>
-      <div class="flex w-full items-center justify-end gap-2">
-        <span class="text-dimmed me-auto flex items-center gap-1.5 text-xs">
+      <!-- Phones: no Esc hint (no keyboard) and the buttons may wrap. -->
+      <div class="flex w-full flex-wrap items-center justify-end gap-2">
+        <span
+          class="text-dimmed me-auto flex items-center gap-1.5 text-xs max-sm:hidden"
+        >
           <UKbd value="Esc" size="sm" />
           {{ t("page.settings.security.esc_to_cancel") }}
         </span>

@@ -98,15 +98,16 @@ onMounted(measureScroll);
     <template v-if="viewAllLink" #actions>
       <DmsLink
         :to="viewAllLink"
-        class="text-primary inline-flex items-center gap-1 text-[12.5px] font-[550]"
+        class="text-primary inline-flex shrink-0 items-center gap-1 text-[12.5px] font-[550] whitespace-nowrap"
       >
         {{ t("page.settings.overview.activity.view_all") }}
         <UIcon name="i-ph-arrow-right" class="size-3.5" />
       </DmsLink>
     </template>
 
-    <!-- The list never sets the height of the card row. Side by side (lg,
-         the breakpoint of the settings overview grid) the grid stretches
+    <!-- The list never sets the height of the card row. Side by side (the
+         settings column's @2xl container width, the breakpoint of the
+         settings overview grid) the grid stretches
          this card to the row height, which "Your account" alone sets: the
          card is a flex column, the body fills what the head leaves, and the
          scroller is taken out of the flow (absolute, inset 0), so it adds
@@ -114,14 +115,14 @@ onMounted(measureScroll);
          to match: the scroller stays in the flow, capped to about three
          rows, the height derived from the feed row metrics below. -->
     <div
-      class="relative min-h-0 lg:h-full"
+      class="relative min-h-0 @2xl/settings:h-full"
       data-activity-body
       :style="ROW_HEIGHT_STYLE"
     >
       <div
         ref="scroller"
         data-activity-scroll
-        class="[scrollbar-width:thin] [scrollbar-color:var(--ui-border-accented)_transparent] overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ui-primary) max-lg:max-h-[calc(3*var(--dms-activity-row-h)+0.5rem)] lg:absolute lg:inset-0"
+        class="[scrollbar-width:thin] [scrollbar-color:var(--ui-border-accented)_transparent] overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ui-primary) @max-2xl/settings:max-h-[calc(3*var(--dms-activity-row-h)+0.5rem)] @2xl/settings:absolute @2xl/settings:inset-0"
         :class="
           hasMoreBelow &&
           '[mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]'
@@ -135,8 +136,11 @@ onMounted(measureScroll);
       >
         <div
           ref="content"
-          class="lg:min-h-full"
-          :class="isEmpty && 'lg:flex lg:flex-col lg:justify-center'"
+          class="@2xl/settings:min-h-full"
+          :class="
+            isEmpty &&
+            '@2xl/settings:flex @2xl/settings:flex-col @2xl/settings:justify-center'
+          "
         >
           <div v-if="isLoading" class="py-1" aria-busy="true">
             <div

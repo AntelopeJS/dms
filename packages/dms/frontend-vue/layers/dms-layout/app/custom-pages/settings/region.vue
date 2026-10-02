@@ -10,7 +10,10 @@ import {
   localeWeekStart,
   regionalDateTimeFormat,
 } from "#dms-core/app/utils/regional";
-import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+import {
+  combineSaveStates,
+  useInstantSaveHeader,
+} from "../../composables/layout/useInstantSaveHeader";
 import {
   buildTimeZoneOptions,
   listTimeZones,
@@ -21,6 +24,7 @@ import {
   type RegionSettingsValues,
   useRegionSettings,
 } from "../../composables/settings/region/useRegionSettings";
+import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 
 interface FormatSample {
   labelKey: string;
@@ -49,12 +53,18 @@ const WEEKDAY_SAMPLES: Record<number, Date> = {
   [SATURDAY]: new Date(Date.UTC(2026, 0, 3, 12)),
 };
 const WEEK_STARTS = [MONDAY, SUNDAY, SATURDAY];
+// Phones: a segmented row of four outgrows the card, so the choices become
+// a two-column grid of full-height (32px) segments.
+const SEGMENTED_PHONE_CLASS =
+  "max-sm:grid max-sm:h-auto max-sm:w-full max-sm:grid-cols-2 max-sm:[&>button]:h-8 max-sm:[&>button]:justify-center";
 
 const { locale, t } = useI18n();
 const { uniqueLocales } = useUniqueLocales();
 const { preferences, detectedTimeZone, timeZone } =
   useUserRegionalPreferences();
-const { states, save } = useRegionSettings();
+const { states, errors, save } = useRegionSettings();
+const LANGUAGE_ERROR_ID = "region-language-error";
+const TIME_ZONE_ERROR_ID = "region-time-zone-error";
 
 // Frozen at mount: the preview shows formats, not a ticking clock.
 const previewDate = new Date();
@@ -182,21 +192,9 @@ const samples = computed<FormatSample[]>(() => {
   ];
 });
 
-// Every control on this page saves as soon as it is picked, which the v2
-// header states once instead of per control.
-usePageHeaderActions(() =>
-  h(
-    "span",
-    {
-      class:
-        "inline-flex h-7 items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-[11px] text-xs font-[550] text-success",
-    },
-    [
-      h(UIcon, { name: "i-ph-lightning", class: "size-3.5" }),
-      t("page.settings.region.instant"),
-    ],
-  ),
-);
+// Every control on this page saves as soon as it is picked: the shared
+// header pill states it once and flashes while a control saves.
+useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
 </script>
 
 <template>
@@ -211,11 +209,15 @@ usePageHeaderActions(() =>
       >
         <DmsSaveStatus :state="states.language ?? 'idle'" />
         <USelect
-          class="w-[260px] max-sm:w-full"
+          class="w-[260px] max-w-full"
           icon="i-ph-translate"
           :items="languageOptions"
           :model-value="locale"
           :aria-label="t('page.settings.region.language_title')"
+          :aria-invalid="!!errors.language || undefined"
+          :aria-describedby="errors.language ? LANGUAGE_ERROR_ID : undefined"
+          :color="errors.language ? 'error' : undefined"
+          :highlight="!!errors.language"
           @update:model-value="saveLanguage"
         >
           <template #trailing>
@@ -227,6 +229,11 @@ usePageHeaderActions(() =>
             <UIcon name="i-ph-caret-up-down" class="text-dimmed size-4" />
           </template>
         </USelect>
+        <DmsFieldError
+          :id="LANGUAGE_ERROR_ID"
+          class="basis-full justify-end max-sm:justify-start"
+          :message="errors.language"
+        />
       </DmsFieldRow>
     </DmsSection>
 
@@ -259,7 +266,7 @@ usePageHeaderActions(() =>
           @click="saveTimeZone(AUTO)"
         />
         <USelectMenu
-          class="w-[300px] max-sm:w-full"
+          class="w-[300px] max-w-full"
           icon="i-ph-globe-hemisphere-west"
           :items="timeZoneOptions"
           :model-value="selectedTimeZone"
@@ -271,6 +278,10 @@ usePageHeaderActions(() =>
           }"
           :virtualize="{ estimateSize: 32 }"
           :aria-label="t('page.settings.region.time_zone_title')"
+          :aria-invalid="!!errors.timeZone || undefined"
+          :aria-describedby="errors.timeZone ? TIME_ZONE_ERROR_ID : undefined"
+          :color="errors.timeZone ? 'error' : undefined"
+          :highlight="!!errors.timeZone"
           @update:model-value="saveTimeZone"
         >
           <template #item-trailing="{ item }">
@@ -279,6 +290,11 @@ usePageHeaderActions(() =>
             </span>
           </template>
         </USelectMenu>
+        <DmsFieldError
+          :id="TIME_ZONE_ERROR_ID"
+          class="basis-full justify-end max-sm:justify-start"
+          :message="errors.timeZone"
+        />
       </DmsFieldRow>
 
       <DmsFieldRow
@@ -291,6 +307,7 @@ usePageHeaderActions(() =>
       >
         <DmsSaveStatus :state="states.weekStart ?? 'idle'" />
         <DmsSegmented
+          :class="SEGMENTED_PHONE_CLASS"
           :items="weekStartOptions"
           :model-value="choiceValue('weekStart')"
           :aria-label="t('page.settings.region.week_start_title')"
@@ -308,6 +325,7 @@ usePageHeaderActions(() =>
       >
         <DmsSaveStatus :state="states.timeFormat ?? 'idle'" />
         <DmsSegmented
+          :class="SEGMENTED_PHONE_CLASS"
           :items="timeFormatOptions"
           :model-value="choiceValue('timeFormat')"
           :aria-label="t('page.settings.region.time_format_title')"
@@ -325,6 +343,7 @@ usePageHeaderActions(() =>
       >
         <DmsSaveStatus :state="states.dateFormat ?? 'idle'" />
         <DmsSegmented
+          :class="SEGMENTED_PHONE_CLASS"
           :items="dateFormatOptions"
           :model-value="choiceValue('dateFormat')"
           :aria-label="t('page.settings.region.date_format_title')"
@@ -341,11 +360,16 @@ usePageHeaderActions(() =>
         })
       "
     >
-      <div class="grid grid-cols-5 bg-(--dms-bg-muted) max-md:grid-cols-2">
+      <!-- Cells as wide as their sample, packed and stretched row by row:
+           five fixed columns overlapped the longer samples (a full date and
+           time) at every width. The hairlines are each cell's top-left
+           shadow, clipped by the card on its outer edges, so they follow
+           however the cells wrap. -->
+      <div class="flex flex-wrap bg-(--dms-bg-muted)">
         <div
           v-for="sample in samples"
           :key="sample.labelKey"
-          class="border-muted min-w-0 border-s px-[18px] py-3 first:border-s-0 max-md:border-t max-md:nth-[-n+2]:border-t-0 max-md:nth-[odd]:border-s-0"
+          class="min-w-0 flex-auto px-[18px] py-3 shadow-[-1px_-1px_0_var(--ui-border-muted)]"
         >
           <DmsEyebrow
             as="span"
@@ -354,7 +378,7 @@ usePageHeaderActions(() =>
             :label="t(sample.labelKey)"
           />
           <b
-            class="text-highlighted font-mono text-[13px] font-semibold whitespace-nowrap"
+            class="text-highlighted font-mono text-[13px] font-semibold wrap-break-word"
           >
             {{ sample.value }}
           </b>

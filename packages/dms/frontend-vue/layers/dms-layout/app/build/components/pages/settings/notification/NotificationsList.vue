@@ -19,6 +19,8 @@ interface InboxTab {
 }
 
 const UNDO_TOAST_DURATION_MS = 6000;
+// The toolbar actions keep their label for screen readers only under `sm`.
+const PHONE_ICON_ONLY_UI = { label: "max-sm:sr-only" } as const;
 
 const { t, locale } = useI18n();
 const toast = useToast();
@@ -245,12 +247,16 @@ onMounted(async () => {
           </span>
         </button>
       </nav>
-      <div class="ms-auto flex items-center gap-1.5">
+      <!-- Phones: icon-only actions (the label stays the accessible name and
+           the tooltip) so they share the row with the tabs. -->
+      <div class="ms-auto flex shrink-0 items-center gap-1.5">
         <UButton
           color="neutral"
           variant="ghost"
           size="sm"
           icon="i-ph-checks"
+          :ui="PHONE_ICON_ONLY_UI"
+          :title="t('page.settings.notifications.mark_all_read')"
           :label="t('page.settings.notifications.mark_all_read')"
           :disabled="inboxCounts.unread === 0"
           :loading="isMarkingAllRead"
@@ -262,6 +268,8 @@ onMounted(async () => {
           variant="ghost"
           size="sm"
           icon="i-ph-trash"
+          :ui="PHONE_ICON_ONLY_UI"
+          :title="t('page.settings.notifications.delete_all')"
           :label="t('page.settings.notifications.delete_all')"
           @click="confirmDeleteAll"
         />

@@ -262,8 +262,8 @@
       "image": {
         "add": "Add",
         "drop_hint": "or drop here",
-        "gallery_hint": "Drag & drop · paste ⌘V · drag to reorder",
-        "single_prompt": "Drop an image, paste (⌘V) or browse",
+        "gallery_hint": "Drag & drop · paste {shortcut} · drag to reorder",
+        "single_prompt": "Drop an image, paste ({shortcut}) or browse",
         "single_hint": "Single image",
         "formats_any": "Any image format",
         "upload_failed": "Upload failed",
@@ -547,7 +547,9 @@
       "discard": "Discard",
       "save": "Save changes",
       "saving": "Saving",
-      "saved": "Saved"
+      "saved": "Saved",
+      "instant": "Saved instantly",
+      "instant_hint": "Changes on this page are saved as soon as you make them"
     },
     "blocks": {
       "empty": "Nothing to show yet",

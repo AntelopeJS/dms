@@ -4,6 +4,7 @@ import type { FormFieldValue } from "../../composables/form/types/value";
 import type { FieldGroup } from "../../composables/form/types/field";
 import {
   cloneFormValue,
+  type FormServerFieldError,
   formShowsActions,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
@@ -15,6 +16,8 @@ import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loadi
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
 import { DMS_SECTION_SURFACE_KEY } from "../section/context";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
+import type { ZodErrorMap } from "zod";
+import { validationIssueMessage } from "#dms-core/app/composables/useFieldErrors";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -41,7 +44,57 @@ const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
 const FormWrapper =
   inFormContainer || inSection ? "div" : resolveComponent("DmsCard");
 
-const { processI18n } = useTranslation();
+const { processI18n, processApiMessage } = useTranslation();
+
+// Server errors stay on their field until its value changes (UForm only
+// re-validates a field once it was left, and its schema knows nothing of
+// them): the value each one was raised against.
+const serverErrorValues = new Map<string, string>();
+
+/** The control of a field, by its id, inside this form only. */
+function fieldControl(name: string | undefined): HTMLElement | null {
+  const element = form.value?.$el as HTMLElement | undefined;
+  if (!name || !element?.querySelector) return null;
+  return element.querySelector<HTMLElement>(`[id="${CSS.escape(name)}"]`);
+}
+
+const FOCUSABLE =
+  "input:not([type='hidden']):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+/** Focuses a field's control, or its first focusable part (a pill group). */
+async function focusField(name: string | undefined): Promise<void> {
+  await nextTick();
+  const control = fieldControl(name);
+  const target = control?.matches(FOCUSABLE)
+    ? control
+    : control?.querySelector<HTMLElement>(FOCUSABLE);
+  target?.focus();
+}
+
+/**
+ * A refused submit: its field errors go under the fields, the first focused.
+ *
+ * @returns Whether any landed on a field this form renders
+ */
+function showFieldErrors(errors: FormServerFieldError[]): boolean {
+  if (!form.value) return false;
+  form.value.setErrors(errors);
+  const shown = errors.filter(
+    (error) => form.value?.getErrors(error.name).length,
+  );
+  serverErrorValues.clear();
+  for (const error of shown) {
+    serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
+  }
+  void focusField(shown[0]?.name);
+  return shown.length > 0;
+}
+
+/** A submit the client-side validation stopped: focus the first bad field. */
+function onValidationError(event: { errors: Array<{ name?: string }> }): void {
+  void focusField(event.errors[0]?.name);
+}
+
 const {
   loading,
   state,
@@ -58,9 +111,51 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
-} = useForm(props);
+} = useForm(props, { showFieldErrors });
+
+watch(
+  state,
+  (current) => {
+    for (const [name, value] of serverErrorValues) {
+      if (JSON.stringify(current[name]) === value) continue;
+      serverErrorValues.delete(name);
+      form.value?.clear(name);
+    }
+  },
+  { deep: true },
+);
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
+
+// zod words its own messages in English ("String must contain at least 1
+// character(s)"): the issues a schema leaves unworded get the dashboard's.
+const issueErrorMap: ZodErrorMap = (issue) => ({
+  message: processApiMessage(validationIssueMessage(issue)),
+});
+
+/** The validation schema, as a Standard Schema validating with that map. */
+const localizedSchema = computed(() => {
+  const schema = validationSchema.value;
+  return {
+    "~standard": {
+      version: 1 as const,
+      vendor: "dms",
+      validate: async (value: unknown) => {
+        const result = await schema.safeParseAsync(value, {
+          errorMap: issueErrorMap,
+        });
+        return result.success
+          ? { value: result.data }
+          : {
+              issues: result.error.issues.map(({ message, path }) => ({
+                message,
+                path,
+              })),
+            };
+      },
+    },
+  };
+});
 
 const { addGuard } = useLeaveGuard();
 const { confirm } = useConfirm();
@@ -251,8 +346,11 @@ const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
   description: "text-muted text-[12.5px] leading-normal",
 };
 
+// Grouped controls sit side by side once the form is wide enough for its
+// label column (the same 560px container step), whatever the viewport: a
+// narrow modal or drawer form stacks them.
 const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
-  horizontal: "flex flex-col gap-2.5 sm:flex-row",
+  horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
   vertical: "flex flex-col gap-2.5",
 };
 
@@ -472,9 +570,10 @@ onUnmounted(async () => {
       :id="formElementId"
       ref="form"
       :state
-      :schema="validationSchema"
+      :schema="localizedSchema"
       :disabled="allFields.every((field) => field.disabled)"
       @submit="onSubmit"
+      @error="onValidationError"
     >
       <header v-if="props.title" :class="surfaceClasses.head">
         <h2

@@ -57,9 +57,16 @@ const { processI18n } = useTranslation();
 const theme = tv({
   slots: {
     root: "group grid min-h-[42px] cursor-pointer items-center gap-2.5 rounded-[7px] px-2 py-[5px] hover:bg-elevated",
-    name: "flex flex-wrap items-center gap-2 text-[13px] text-default",
+    // A long identifier-like label (PlaygroundCodeBlock) at the deepest
+    // level on a phone breaks (its text span is min-w-0) instead of
+    // overflowing the card.
+    name: "flex flex-wrap items-center gap-2 text-[13px] text-default wrap-break-word",
     description: "mt-px text-xs text-muted",
-    id: "font-mono text-[10.5px] font-medium text-dimmed opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-sm:hidden",
+    // The hover id and the bar read the editor's width (@container/editor):
+    // no id under 576px, no bar under 448px. The id is capped (full in its
+    // title): the auto column grew to a deep node's whole dotted id, which
+    // crushed the label and pushed the row past the card.
+    id: "max-w-40 min-w-0 truncate font-mono text-[10.5px] font-medium text-dimmed opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 @max-xl/editor:hidden",
     count:
       "flex shrink-0 items-center gap-2 font-mono text-[11px] font-semibold text-dimmed",
     chip: "inline-flex h-[18px] items-center gap-1 rounded px-1.5 font-mono text-[10.5px] font-medium whitespace-nowrap",
@@ -145,7 +152,7 @@ function onRowClick(): void {
     </span>
     <div class="min-w-0">
       <div :class="ui.name()">
-        <span>
+        <span class="min-w-0">
           <template v-for="(segment, position) in segments" :key="position">
             <mark
               v-if="segment.isMatch"
@@ -186,12 +193,12 @@ function onRowClick(): void {
       </div>
     </div>
     <span class="flex min-w-0 items-center gap-3">
-      <span :class="ui.id()">{{ props.node.id }}</span>
+      <span :class="ui.id()" :title="props.node.id">{{ props.node.id }}</span>
       <span v-if="props.count" :class="ui.count()">
         <DmsMeter
           as="span"
           size="xs"
-          class="w-10 shrink-0"
+          class="w-10 shrink-0 @max-md/editor:hidden"
           :value="props.count.selected"
           :max="props.count.total"
         />

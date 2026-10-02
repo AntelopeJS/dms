@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 
 interface SecurityPanelFieldProps {
   /** Id of the control the label points to. */
@@ -28,7 +30,7 @@ const props = withDefaults(defineProps<SecurityPanelFieldProps>(), {
 });
 defineSlots<SecurityPanelFieldSlots>();
 
-const errorId = computed(() => `${props.fieldId}-error`);
+const errorId = computed(() => fieldErrorId(props.fieldId));
 </script>
 
 <template>
@@ -48,9 +50,7 @@ const errorId = computed(() => `${props.fieldId}-error`);
       :describedby="props.error ? errorId : undefined"
       :invalid="!!props.error"
     />
-    <span v-if="props.error" :id="errorId" class="text-error text-xs">
-      {{ props.error }}
-    </span>
+    <DmsFieldError :id="errorId" :message="props.error" />
     <slot name="after" />
   </div>
 </template>

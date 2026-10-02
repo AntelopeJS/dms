@@ -87,7 +87,9 @@ async function onLocaleChange(code: unknown) {
 </script>
 
 <template>
-  <!-- v2 .au-foot: one quiet 12.5px row, the locale switcher pushed right. -->
+  <!-- v2 .au-foot: one quiet 12.5px row, the locale switcher pushed right.
+       On phones the links get a taller invisible hit area and the star
+       button grows to 32px, so each stays easy to tap. -->
   <footer
     class="border-default text-dimmed flex flex-wrap items-center gap-x-[18px] gap-y-1.5 border-t px-5 py-3 text-[12.5px] max-sm:justify-center"
   >
@@ -98,14 +100,14 @@ async function onLocaleChange(code: unknown) {
         :href="link.to"
         target="_blank"
         rel="noopener noreferrer"
-        class="hover:text-highlighted transition-colors"
+        class="hover:text-highlighted transition-colors max-sm:relative max-sm:after:absolute max-sm:after:-inset-x-1 max-sm:after:-inset-y-1.5 max-sm:after:content-['']"
       >
         {{ t(link.label) }}
       </a>
       <DmsLink
         v-else
         :to="link.to"
-        class="hover:text-highlighted transition-colors"
+        class="hover:text-highlighted transition-colors max-sm:relative max-sm:after:absolute max-sm:after:-inset-x-1 max-sm:after:-inset-y-1.5 max-sm:after:content-['']"
       >
         {{ t(link.label) }}
       </DmsLink>
@@ -118,7 +120,7 @@ async function onLocaleChange(code: unknown) {
       rel="noopener noreferrer"
       :aria-label="t('empty_layout.footer.github_star_label')"
       :title="t('empty_layout.footer.github_star_label')"
-      class="border-default text-muted hover:text-highlighted hover:border-accented hover:bg-elevated inline-flex h-6 items-stretch overflow-hidden rounded-md border transition-colors"
+      class="border-default text-muted hover:text-highlighted hover:border-accented hover:bg-elevated inline-flex h-6 items-stretch overflow-hidden rounded-md border transition-colors max-sm:h-8"
     >
       <span class="flex items-center gap-1.5 px-2 font-medium">
         <UIcon name="i-ph-github-logo" class="size-3.5" :aria-hidden="true" />

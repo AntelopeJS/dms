@@ -81,3 +81,6 @@ export const ROLES_API_PATH = "/settings/user/roles";
 /** Bounds mirrored from the backend validation schema. */
 export const ROLE_NAME_MAX_LENGTH = 80;
 export const ROLE_DESCRIPTION_MAX_LENGTH = 240;
+
+/** A field of the role editor's head an error can land on. */
+export type RoleEditorField = "name" | "description";

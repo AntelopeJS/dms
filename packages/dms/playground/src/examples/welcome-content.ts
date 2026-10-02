@@ -171,9 +171,9 @@ export const USAGE_STEPS: WelcomeStep[] = [
       "Every page is a class under packages/dms/playground/src/<area>/: /table-view/table-view-users, for example, is table-view/users/page.ts.",
   },
   {
-    label: "Jump anywhere with ⌘K",
+    label: "Jump anywhere with the command palette",
     description:
-      "Ctrl+K on Windows and Linux opens the command palette: search pages, actions and settings, or switch the theme.",
+      "Ctrl K (⌘K on macOS) opens the command palette: search pages, actions and settings, or switch the theme.",
   },
   {
     label: "Switch theme and language",

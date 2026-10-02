@@ -21,19 +21,32 @@ const props = withDefaults(defineProps<TabProps>(), {
 
 const tabCount = computed(() => props.items.length);
 
-// The panel lines up with the list: below it, or beside a vertical one.
+// The panel lines up with the list: below it, or beside a vertical one. A
+// phone has no room for a 192px column beside the panel: the vertical list
+// goes on top, full width.
 const PANEL_CLASSES: Record<AxeOrientation, string> = {
   [AxeOrientation.horizontal]: "pt-4",
-  [AxeOrientation.vertical]: "pl-5",
+  [AxeOrientation.vertical]: "pl-5 max-sm:pt-4 max-sm:pl-0",
 };
 
 const LIST_CLASSES: Record<AxeOrientation, string> = {
   [AxeOrientation.horizontal]: "",
-  [AxeOrientation.vertical]: "w-48 shrink-0",
+  [AxeOrientation.vertical]: "w-48 shrink-0 max-sm:w-full",
+};
+
+const ROOT_CLASSES: Record<AxeOrientation, string> = {
+  [AxeOrientation.horizontal]: "",
+  [AxeOrientation.vertical]: "max-sm:flex-col max-sm:items-stretch",
 };
 
 const panelClass = computed(() => PANEL_CLASSES[props.orientation]);
-const tabsUi = computed(() => ({ list: LIST_CLASSES[props.orientation] }));
+const tabsUi = computed(() => ({
+  root: ROOT_CLASSES[props.orientation],
+  list: LIST_CLASSES[props.orientation],
+  // The panel may shrink below its content's width (a wide table scrolls
+  // inside it instead of pushing the page sideways).
+  content: "min-w-0",
+}));
 
 const {
   activeTab,

@@ -8,6 +8,7 @@ import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
+import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
 interface PasswordChangeResponse {
   passwordChangedAt: string;
@@ -24,7 +25,7 @@ const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
 const { overview, refresh } = useSecurityOverview();
-const { formatDate, daysSince, errorMessage, errorCode } = useSecurityFormat();
+const { formatDate, daysSince, errorMessage } = useSecurityFormat();
 const { passwordSchema } = usePasswordStrength(ref(""));
 
 const isEditing = ref(false);
@@ -105,7 +106,12 @@ async function submit(): Promise<void> {
   } catch (error) {
     // A wrong current password is shown under its field; anything else
     // (rate limit, server error) goes to a toast.
-    if (errorCode(error) === INVALID_CURRENT_PASSWORD) {
+    const isCurrentRefused =
+      resolveFieldErrors(error, {
+        fields: ["currentPassword"],
+        codes: { [INVALID_CURRENT_PASSWORD]: "currentPassword" },
+      }).fields.length > 0;
+    if (isCurrentRefused) {
       isCurrentInvalid.value = true;
       await nextTick();
       document.getElementById(CURRENT_FIELD_ID)?.focus();

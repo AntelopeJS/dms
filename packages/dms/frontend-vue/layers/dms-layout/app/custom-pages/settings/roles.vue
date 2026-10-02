@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Ref } from "vue";
+import { useTemplateRef, type Ref } from "vue";
 import UButton from "@nuxt/ui/components/Button.vue";
 import UFormField from "@nuxt/ui/components/FormField.vue";
 import USelect from "@nuxt/ui/components/Select.vue";
@@ -9,6 +9,7 @@ import RolesList from "../../build/components/pages/settings/roles/RolesList.vue
 import {
   NEW_ROLE_ENTRY_ID,
   OWNER_ENTRY_ID,
+  type RoleEditorField,
   type RoleSummary,
 } from "../../build/components/pages/settings/roles/role-types";
 import {
@@ -21,11 +22,29 @@ import {
   type PermissionPreviewInput,
   usePermissionPreview,
 } from "#dms-core/app/composables/auth/usePermissionPreview";
+import {
+  resolveFieldErrors,
+  useFieldErrors,
+} from "#dms-core/app/composables/useFieldErrors";
+import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
+
+interface RoleEditorHandle {
+  inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
+}
+
+interface SelectHandle {
+  triggerRef?: HTMLElement;
+}
+
+const NAME_REQUIRED = "$page.settings.roles.error.name_required";
+const NAME_TAKEN = "$page.settings.roles.error.name_taken";
+const INVALID_REASSIGN = "$page.settings.roles.error.invalid_reassign";
 
 const api = useRolesApi();
 const { t } = useI18n();
 const toast = useToast();
 const { confirm } = useConfirm();
+const { processApiMessage } = useTranslation();
 
 const { data, refresh } = await useDmsAsyncData<RolesPageData | null>(
   "settings-roles-editor",
@@ -41,6 +60,24 @@ const { data, refresh } = await useDmsAsyncData<RolesPageData | null>(
 
 const editor = useRoleEditor(data);
 const isSaving = ref(false);
+const roleEditor = useTemplateRef<RoleEditorHandle>("roleEditor");
+// A refused name or description shows under its field, never as a toast.
+const fieldErrors = useFieldErrors<RoleEditorField>({
+  fields: {
+    name: () => roleEditor.value?.inputOf("name"),
+    description: () => roleEditor.value?.inputOf("description"),
+  },
+  codes: { [NAME_REQUIRED]: "name", [NAME_TAKEN]: "name" },
+});
+
+watch(
+  () => editor.draft.value.name,
+  () => fieldErrors.clear("name"),
+);
+watch(
+  () => editor.draft.value.description,
+  () => fieldErrors.clear("description"),
+);
 // Reka selects refuse an empty value, so "keep nobody" needs its own id.
 const NO_REASSIGN = "__none__";
 
@@ -81,11 +118,12 @@ watch(previewInput, (input) => {
   if (previewId.value) preview.update(previewId.value, input);
 });
 // Another role in the editor is another preview: the open tab keeps the last
-// state of the role it was opened for.
+// state of the role it was opened for. Its errors went with the old draft.
 watch(
   () => editor.selectedId.value,
   () => {
     previewId.value = null;
+    fieldErrors.clear();
   },
 );
 
@@ -124,23 +162,34 @@ async function runMutation(
 }
 
 async function save(): Promise<void> {
+  if (!editor.draft.value.name.trim()) {
+    await fieldErrors.setError("name", processApiMessage(NAME_REQUIRED));
+    return;
+  }
   isSaving.value = true;
+  fieldErrors.clear();
   const roleId = editor.draft.value.id;
-  await runMutation(
-    async () => {
-      if (roleId) {
-        await api.updateRole(roleId, editor.payload.value);
-        await reloadAndSelect(roleId);
-        return;
-      }
+  try {
+    if (roleId) {
+      await api.updateRole(roleId, editor.payload.value);
+      await reloadAndSelect(roleId);
+    } else {
       const created = await api.createRole(editor.payload.value);
       await reloadAndSelect(created.id);
-    },
-    roleId
-      ? "page.settings.roles.editor.saved"
-      : "page.settings.roles.editor.created",
-  );
-  isSaving.value = false;
+    }
+    toast.add({
+      title: t(
+        roleId
+          ? "page.settings.roles.editor.saved"
+          : "page.settings.roles.editor.created",
+      ),
+      color: "success",
+    });
+  } catch (error) {
+    if (!(await fieldErrors.applyApiError(error))) useApiError(error);
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 function discard(): void {
@@ -161,11 +210,17 @@ async function duplicate(): Promise<void> {
   }, "page.settings.roles.editor.duplicated");
 }
 
-/** Deletes the role; resolves `false` (error toasted) to keep the dialog open. */
+/**
+ * Deletes the role; resolves `false` to keep the dialog open: a refused
+ * target role shows under its select, anything else is a toast.
+ */
 async function deleteRole(
   role: RoleSummary,
   reassignTo: string | undefined,
+  reassignError: Ref<string | undefined>,
+  reassignSelect: Ref<SelectHandle | null>,
 ): Promise<boolean> {
+  reassignError.value = undefined;
   try {
     const force = role.memberCount + role.inviteCount > 0;
     await api.deleteRole(role._id, { force, reassignTo });
@@ -177,13 +232,28 @@ async function deleteRole(
     });
     return true;
   } catch (error) {
+    const [refused] = resolveFieldErrors(error, {
+      fields: role.memberCount + role.inviteCount > 0 ? ["reassignTo"] : [],
+      codes: { [INVALID_REASSIGN]: "reassignTo" },
+    }).fields;
+    if (refused) {
+      reassignError.value = processApiMessage(refused.message);
+      await nextTick();
+      reassignSelect.value?.triggerRef?.focus();
+      return false;
+    }
     useApiError(error);
     return false;
   }
 }
 
 /** v2 delete confirm: members of a role in use can move to another role. */
-function reassignField(role: RoleSummary, reassignTo: Ref<string>) {
+function reassignField(
+  role: RoleSummary,
+  reassignTo: Ref<string>,
+  reassignError: Ref<string | undefined>,
+  reassignSelect: Ref<SelectHandle | null>,
+) {
   const items = [
     {
       label: t("page.settings.roles.editor.reassign_none"),
@@ -196,16 +266,33 @@ function reassignField(role: RoleSummary, reassignTo: Ref<string>) {
   return () =>
     h(
       UFormField,
-      { label: t("page.settings.roles.editor.reassign_label") },
-      () =>
-        h(USelect, {
-          modelValue: reassignTo.value,
-          items,
-          class: "w-full",
-          "onUpdate:modelValue": (value: string) => {
-            reassignTo.value = value;
-          },
-        }),
+      {
+        label: t("page.settings.roles.editor.reassign_label"),
+        error: reassignError.value,
+      },
+      {
+        default: () =>
+          h(USelect, {
+            ref: reassignSelect,
+            modelValue: reassignTo.value,
+            items,
+            class: "w-full",
+            "onUpdate:modelValue": (value: string) => {
+              reassignTo.value = value;
+              reassignError.value = undefined;
+            },
+          }),
+        error: ({ error }: { error?: string | boolean }) =>
+          error
+            ? [
+                h(UIcon, {
+                  name: "i-ph-warning-circle",
+                  class: "size-3.5 shrink-0",
+                }),
+                String(error),
+              ]
+            : [],
+      },
     );
 }
 
@@ -214,6 +301,8 @@ async function requestDelete(): Promise<void> {
   if (!role) return;
   const holders = role.memberCount + role.inviteCount;
   const reassignTo = ref(NO_REASSIGN);
+  const reassignError = ref<string>();
+  const reassignSelect = ref<SelectHandle | null>(null);
   await confirm({
     title: t("page.settings.roles.editor.delete_title", { name: role.name }),
     description:
@@ -224,11 +313,16 @@ async function requestDelete(): Promise<void> {
     confirmColor: "error",
     confirmLabel: t("page.settings.roles.editor.delete_confirm"),
     cancelLabel: t("page.settings.roles.editor.cancel"),
-    body: holders > 0 ? reassignField(role, reassignTo) : undefined,
+    body:
+      holders > 0
+        ? reassignField(role, reassignTo, reassignError, reassignSelect)
+        : undefined,
     onConfirm: () =>
       deleteRole(
         role,
         reassignTo.value === NO_REASSIGN ? undefined : reassignTo.value,
+        reassignError,
+        reassignSelect,
       ),
   });
 }
@@ -265,6 +359,7 @@ usePageHeaderActions(() =>
       />
       <RoleEditor
         v-else
+        ref="roleEditor"
         v-model:name="editor.draft.value.name"
         v-model:description="editor.draft.value.description"
         :is-new="editor.isNew.value"
@@ -284,6 +379,8 @@ usePageHeaderActions(() =>
         :saving="isSaving"
         :changes="editor.changes.value"
         :can-preview="canPreview"
+        :name-error="fieldErrors.errors.name"
+        :description-error="fieldErrors.errors.description"
         @toggle="editor.toggle"
         @save="save"
         @discard="discard"

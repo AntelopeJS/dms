@@ -10,7 +10,7 @@ const login = vi.fn();
 const complete = vi.fn();
 const redirect = vi.fn();
 const emit = vi.fn();
-const showFormError = vi.fn();
+const showError = vi.fn();
 const replaceLocation = vi.fn();
 const platform = { name: "Acme back office", language: "fr" };
 const data = {
@@ -55,9 +55,10 @@ beforeEach(() => {
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: register }));
   vi.stubGlobal("useAuthFormError", () => ({
     formError: ref(null),
-    showFormError,
+    showError,
     clearFormError: vi.fn(),
   }));
+  vi.stubGlobal("useTemplateRef", () => ref(null));
   vi.stubGlobal("$fetch", login);
   vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
   vi.stubGlobal("useDmsApp", () => ({
@@ -95,7 +96,7 @@ it("registers with the platform details, signs in, then moves to the Ready step"
     email: data.email,
   });
   expect(redirect).not.toHaveBeenCalled();
-  expect(showFormError).not.toHaveBeenCalled();
+  expect(showError).not.toHaveBeenCalled();
 });
 
 it("shows the error in the card and stays on the step when registration fails", async () => {
@@ -104,7 +105,7 @@ it("shows the error in the card and stays on the step when registration fails", 
   expect(complete).not.toHaveBeenCalled();
   expect(login).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
-  expect(showFormError).toHaveBeenCalledOnce();
+  expect(showError).toHaveBeenCalledOnce();
   expect(replaceLocation).not.toHaveBeenCalled();
 });
 

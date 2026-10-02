@@ -15,8 +15,11 @@ const props = withDefaults(defineProps<StepMetaProps>(), {
 </script>
 
 <template>
-  <!-- v2 .ob-meta: "Step 2 of 3 · Administrator" with a mono aside. -->
-  <div class="mb-[18px] flex items-center justify-between gap-3">
+  <!-- v2 .ob-meta: "Step 2 of 3 · Administrator" with a mono aside. On a
+       phone the aside wraps under the eyebrow instead of being cut short. -->
+  <div
+    class="mb-[18px] flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
+  >
     <DmsEyebrow
       as="span"
       tone="accent"
@@ -30,7 +33,7 @@ const props = withDefaults(defineProps<StepMetaProps>(), {
     />
     <span
       v-if="props.aside"
-      class="text-dimmed truncate font-mono text-[11px] font-medium"
+      class="text-dimmed font-mono text-[11px] font-medium whitespace-nowrap"
     >
       {{ props.aside }}
     </span>

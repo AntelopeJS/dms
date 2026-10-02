@@ -249,9 +249,10 @@ import {
   shallowRef,
   useId,
   useSlots,
+  useTemplateRef,
   watchEffect,
 } from "vue";
-import { provideLocal } from "@vueuse/core";
+import { provideLocal, useElementSize } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 
@@ -338,7 +339,11 @@ const theme = tv({
     // the content column.
     expandedCell:
       "border-b border-default bg-(--dms-bg-muted) p-0 whitespace-normal in-[tr:last-child]:border-b-0",
-    expandedBody: "pt-4 pb-[18px] pe-[18px] ps-[68px]",
+    // The band sticks to the visible part of a horizontally scrolled table
+    // (its width is the scroll area's, --dms-table-viewport), so the detail
+    // never hides past the card edge. Phones drop the content-column indent.
+    expandedBody:
+      "sticky start-0 w-[var(--dms-table-viewport,auto)] pt-4 pb-[18px] pe-[18px] ps-[18px] sm:ps-[68px]",
 
     headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase last:pe-2.5`,
     headCellInternal: "flex w-full items-center justify-between gap-1",
@@ -350,7 +355,7 @@ const theme = tv({
     rowCell: `${FIRST_ROW_CELL_GUTTER} border-b-muted border-b h-11 px-3.5 py-0 text-[13px] last:pe-2.5 in-[tr:last-child]:border-b-0 group-data-[expanded=true]:border-b-transparent`,
     rowInternal: "",
     rowContainer: "relative",
-    rowSpan: "line-clamp-1",
+    rowSpan: "line-clamp-1 text-ellipsis",
 
     // The row checkbox and the row actions (the … menu and every other icon
     // of the last column) stay visible but faded, and come to full strength
@@ -360,7 +365,7 @@ const theme = tv({
     rowAction:
       "flex items-center justify-end gap-1 opacity-40 transition-opacity group-hover:opacity-100 group-data-[selected=true]:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100",
 
-    columnActiveSortIcon: "size-3 text-primary",
+    columnActiveSortIcon: "size-3 shrink-0 text-primary",
 
     skeletonTd: "absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-md",
   },
@@ -569,11 +574,27 @@ const onTableScroll = (event: Event) => {
   if (!props.stickyHeader) return;
   isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
 };
-const tableRootStyle = computed(() =>
-  props.stickyHeader && props.maxHeight
-    ? { maxHeight: props.maxHeight }
-    : undefined,
-);
+// Expanded detail bands are as wide as the visible scroll area.
+const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
+const { width: tableViewportWidth } = useElementSize(tableRootRef);
+const tableRootStyle = computed(() => ({
+  maxHeight:
+    props.stickyHeader && props.maxHeight ? props.maxHeight : undefined,
+  "--dms-table-viewport":
+    isExpandable && tableViewportWidth.value > 0
+      ? `${tableViewportWidth.value}px`
+      : undefined,
+}));
+
+// A clipped cell value reads in full in a native tooltip.
+const syncClippedTitle = (event: MouseEvent) => {
+  const cell = event.currentTarget as HTMLElement;
+  if (cell.scrollWidth > cell.clientWidth) {
+    cell.title = cell.textContent?.trim() ?? "";
+  } else {
+    cell.removeAttribute("title");
+  }
+};
 const paginationState = defineModel<PaginationState>("pagination", {
   default: (): PaginationState => ({
     pageIndex: DEFAULT_PAGE_INDEX,
@@ -597,11 +618,32 @@ const SELECTION_RAIL_BG = "bg-primary";
 
 const hasPresenceRail = computed(() => props.presenceByRow !== undefined);
 
+// Pinned columns stick only while they cover at most 60% of the visible scroll
+// area: on a phone, labelled row actions or a wide pinned set would otherwise
+// hide every column scrolling under them. The wider side lets go first.
+const PINNED_MAX_VIEWPORT_SHARE = 0.6;
+const stickyPinnedSides = computed(() => {
+  const budget = tableViewportWidth.value * PINNED_MAX_VIEWPORT_SHARE;
+  const left = table.getLeftTotalSize();
+  const right = table.getRightTotalSize();
+  if (!budget || left + right <= budget) return { left: true, right: true };
+  const keepLeft = left < right && left <= budget;
+  const keepRight = left >= right && right <= budget;
+  return { left: keepLeft, right: keepRight };
+});
+
+const getStickyPin = (column: { getIsPinned: () => unknown }) => {
+  const pinned = column.getIsPinned();
+  if (pinned === "left" && stickyPinnedSides.value.left) return "left";
+  if (pinned === "right" && stickyPinnedSides.value.right) return "right";
+  return undefined;
+};
+
 const getPinnedLeftOffset = (column: {
   getIsPinned: () => unknown;
   getStart: (pos: "left") => number;
 }) => {
-  if (column.getIsPinned() !== "left") return undefined;
+  if (getStickyPin(column) !== "left") return undefined;
   const base = column.getStart("left");
   const rail = hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0;
   return `${base + rail}px`;
@@ -611,13 +653,31 @@ const getPinnedRightOffset = (column: {
   getIsPinned: () => unknown;
   getAfter: (pos: "right") => number;
 }) => {
-  if (column.getIsPinned() !== "right") return undefined;
+  if (getStickyPin(column) !== "right") return undefined;
   return `${column.getAfter("right")}px`;
 };
 
-const getPinnedVariant = (column: { getIsPinned: () => unknown }) => {
-  const pinned = column.getIsPinned();
-  return pinned === "left" || pinned === "right" ? pinned : undefined;
+const getPinnedVariant = getStickyPin;
+
+// A scrolling column is never wider than the room the sticky columns leave
+// (a 300px identity column on a phone): its content truncates in view
+// instead of running under the pinned actions.
+const MIN_SCROLLING_COLUMN_WIDTH = 120;
+const scrollingColumnMaxWidth = computed(() => {
+  const viewport = tableViewportWidth.value;
+  if (!viewport) return Infinity;
+  const sides = stickyPinnedSides.value;
+  const sticky =
+    (sides.left ? table.getLeftTotalSize() : 0) +
+    (sides.right ? table.getRightTotalSize() : 0) +
+    (hasPresenceRail.value ? PRESENCE_RAIL_WIDTH : 0);
+  return Math.max(viewport - sticky, MIN_SCROLLING_COLUMN_WIDTH);
+});
+
+const getHeaderWidth = (header: Header<T, unknown>): string => {
+  const size = header.getSize();
+  if (getStickyPin(header.column)) return `${size}px`;
+  return `${Math.min(size, scrollingColumnMaxWidth.value)}px`;
 };
 
 const isUsingDefaultSort = computed(() => {
@@ -869,7 +929,9 @@ defineShortcuts({
           inline
         />
         <h2 v-else-if="resolvedChrome.caption" :class="uiTable.caption()">
-          <span :class="uiTable.captionLabel()">{{ caption }}</span>
+          <span :class="uiTable.captionLabel()" @mouseenter="syncClippedTitle">
+            {{ caption }}
+          </span>
           <span v-if="rowCount > 0" :class="uiTable.captionCount()">
             {{ captionCountLabel }}
           </span>
@@ -947,6 +1009,7 @@ defineShortcuts({
 
     <slot name="body" :table="table">
       <section
+        ref="tableRoot"
         :class="uiTable.tableRoot()"
         :style="tableRootStyle"
         @scroll.passive="onTableScroll"
@@ -989,7 +1052,7 @@ defineShortcuts({
                     })
                   "
                   :style="{
-                    width: header.getSize() + 'px',
+                    width: getHeaderWidth(header),
                     left: getPinnedLeftOffset(header.column),
                     right: getPinnedRightOffset(header.column),
                   }"
@@ -1086,6 +1149,7 @@ defineShortcuts({
                                   ).cellWrap,
                                 })
                               "
+                              @mouseenter="syncClippedTitle"
                             >
                               <FlexRender
                                 :render="cell.column.columnDef.cell"

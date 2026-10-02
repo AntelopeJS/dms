@@ -15,8 +15,11 @@ const theme = tv({
     base: "flex min-h-11 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-(--dms-accent-line) bg-linear-to-r from-(--dms-accent-tint-strong) to-(--dms-accent-tint) to-60% py-1.5 ps-[18px] pe-3.5 text-[13px]",
     count: "inline-flex items-center gap-2.5 font-semibold text-highlighted",
     countNumber: "font-mono tabular-nums text-primary",
-    actions: "ms-auto flex flex-wrap items-center gap-1.5",
-    clear: "text-muted hover:text-highlighted",
+    // Phones keep the count and the clear button on the first line, the
+    // actions wrapping on a line of their own below.
+    actions:
+      "ms-auto flex flex-wrap items-center gap-1.5 max-sm:order-last max-sm:empty:hidden max-sm:ms-0 max-sm:w-full",
+    clear: "text-muted hover:text-highlighted max-sm:ms-auto sm:-ms-1",
   },
   variants: {
     archived: {
@@ -175,16 +178,16 @@ const uiTableRowSelection = computed(() =>
         size="sm"
         @click="emitForSelection('delete')"
       />
-      <UButton
-        :icon="appConfig.ui.icons.close"
-        :aria-label="t('dms.table.clear_selection')"
-        color="neutral"
-        variant="ghost"
-        size="sm"
-        square
-        :class="uiTableRowSelection.clear()"
-        @click="clearSelection"
-      />
     </div>
+    <UButton
+      :icon="appConfig.ui.icons.close"
+      :aria-label="t('dms.table.clear_selection')"
+      color="neutral"
+      variant="ghost"
+      size="sm"
+      square
+      :class="uiTableRowSelection.clear()"
+      @click="clearSelection"
+    />
   </section>
 </template>

@@ -395,6 +395,16 @@
     "showing_entries": "Affiché {shown} sur {total}"
   },
   "dms": {
+    "field_errors": {
+      "required": "Ce champ est obligatoire.",
+      "invalid": "Cette valeur n’est pas valide.",
+      "invalid_email": "Saisissez une adresse e-mail valide.",
+      "too_long": "Cette valeur est trop longue.",
+      "too_short": "Cette valeur est trop courte.",
+      "too_small": "Cette valeur est trop petite.",
+      "too_large": "Cette valeur est trop grande.",
+      "with_values": "{message} : {values}"
+    },
     "confirm": {
       "unsaved_changes_title": "Modifications non sauvegardées",
       "unsaved_changes_description": "Vous avez des modifications non sauvegardées. Êtes-vous sûr de vouloir quitter ? Vos modifications seront perdues.",

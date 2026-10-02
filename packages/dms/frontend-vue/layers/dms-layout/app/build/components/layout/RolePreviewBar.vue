@@ -72,8 +72,10 @@ onBeforeUnmount(() => clearTimeout(blockedTimer));
     role="region"
     :aria-label="t('page.settings.roles.preview.region_label')"
   >
-    <UIcon name="i-ph-eye" class="text-primary size-4 shrink-0" />
+    <!-- The eye sits inside the sentence so a narrow screen wraps the words,
+         not the icon away from them. -->
     <span class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+      <UIcon name="i-ph-eye" class="text-primary me-1 size-4 shrink-0" />
       <span>{{ t("page.settings.roles.preview.previewing") }}</span>
       <USelectMenu
         v-model="selectedSlug"

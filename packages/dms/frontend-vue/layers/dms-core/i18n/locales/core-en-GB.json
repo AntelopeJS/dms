@@ -395,6 +395,16 @@
     "showing_entries": "Showing {shown} of {total}"
   },
   "dms": {
+    "field_errors": {
+      "required": "This field is required.",
+      "invalid": "This value isn’t valid.",
+      "invalid_email": "Enter a valid email address.",
+      "too_long": "This value is too long.",
+      "too_short": "This value is too short.",
+      "too_small": "This value is too small.",
+      "too_large": "This value is too large.",
+      "with_values": "{message}: {values}"
+    },
     "confirm": {
       "unsaved_changes_title": "Unsaved changes",
       "unsaved_changes_description": "You have unsaved changes. Are you sure you want to leave? Your changes will be lost.",

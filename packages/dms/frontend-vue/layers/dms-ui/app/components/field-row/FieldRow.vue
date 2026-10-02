@@ -43,28 +43,37 @@ const props = withDefaults(defineProps<FieldRowProps>(), {
 const slots = defineSlots<FieldRowSlots>();
 
 // v2 .st-row: 16px/18px padding, hairline between rows of the same card.
+// The root is a size container: the layout follows the row's own width (a
+// settings column is ~450px at 1024), not the viewport.
 const theme = tv({
   slots: {
-    root: "grid gap-x-6 gap-y-2 border-t border-muted px-[18px] py-4 first:border-t-0",
+    root: "@container border-t border-muted first:border-t-0",
+    body: "grid gap-x-6 gap-y-2 px-[18px] py-4",
     label:
       "flex flex-wrap items-center gap-2 text-[13px] font-semibold text-highlighted",
     required: "text-error",
     description: "mt-0.5 text-[12.5px] leading-normal text-muted",
+    text: "",
     control: "min-w-0",
   },
   variants: {
     layout: {
+      // A wrapping flex row: a switch or a short control stays at the end of
+      // the label on a phone; a control too wide to leave the label 11rem
+      // drops under it, end-aligned.
       inline: {
-        root: "grid-cols-[minmax(0,1fr)_auto] items-center max-sm:grid-cols-1",
-        control:
-          "flex flex-wrap items-center justify-end gap-2 max-sm:justify-start",
+        body: "flex flex-wrap items-center",
+        text: "min-w-0 flex-[1_1_11rem]",
+        control: "ms-auto flex flex-wrap items-center justify-end gap-2",
       },
+      // The 240px label column needs a 42rem row; narrower, the label sits
+      // above the control.
       form: {
-        root: "items-start md:grid-cols-[minmax(0,240px)_minmax(0,1fr)]",
+        body: "items-start @2xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)]",
         control: "grid gap-3",
       },
       stack: {
-        root: "grid-cols-1",
+        body: "grid-cols-1",
         control: "grid gap-3",
       },
     },
@@ -82,20 +91,25 @@ const { processI18n } = useTranslation();
 
 <template>
   <div :class="ui.root()">
-    <div v-if="props.label || props.description || slots.label">
-      <div v-if="props.label || slots.label" :class="ui.label()">
-        <slot name="label">{{ processI18n(props.label ?? "") }}</slot>
-        <span v-if="props.required" :class="ui.required()" aria-hidden="true">
-          *
-        </span>
-        <slot name="label-extra" />
+    <div :class="ui.body()">
+      <div
+        v-if="props.label || props.description || slots.label"
+        :class="ui.text()"
+      >
+        <div v-if="props.label || slots.label" :class="ui.label()">
+          <slot name="label">{{ processI18n(props.label ?? "") }}</slot>
+          <span v-if="props.required" :class="ui.required()" aria-hidden="true">
+            *
+          </span>
+          <slot name="label-extra" />
+        </div>
+        <p v-if="props.description" :class="ui.description()">
+          {{ processI18n(props.description) }}
+        </p>
       </div>
-      <p v-if="props.description" :class="ui.description()">
-        {{ processI18n(props.description) }}
-      </p>
-    </div>
-    <div :class="ui.control()">
-      <slot />
+      <div :class="ui.control()">
+        <slot />
+      </div>
     </div>
   </div>
 </template>

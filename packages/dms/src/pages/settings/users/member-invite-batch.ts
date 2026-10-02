@@ -37,6 +37,8 @@ export interface InviteBatchSender {
 const HTTP_CONFLICT = 409;
 const HTTP_INTERNAL_ERROR = 500;
 const INVITE_FAILED_MESSAGE = "$page.settings.members.invite.failed";
+const ALREADY_MEMBER_MESSAGE = "$page.settings.members.invite.already_member";
+const INVITE_EMAILS_FIELD = "emails";
 
 function failureMessage(error: unknown): string {
   if (!(error instanceof HTTPResult)) return INVITE_FAILED_MESSAGE;
@@ -156,14 +158,29 @@ export function inviteNotice(
 }
 
 /**
+ * A refusal of the invite form's `emails` field, naming the addresses it
+ * refuses: the form shows it under the field and marks those addresses.
+ */
+export interface InviteEmailsFailure {
+  message: string;
+  field: typeof INVITE_EMAILS_FIELD;
+  values: string[];
+}
+
+/**
  * The error a request answers with when none of its addresses went through:
- * the one of its first refused address, else "already a member".
+ * the one of its first refused address, else "already a member", tied to the
+ * addresses field.
  */
 export function batchFailure(results: InviteEmailResult[]): HTTPResult {
   const failed = results.find((result) => result.outcome === "failed");
   if (failed?.message) return new HTTPResult(HTTP_CONFLICT, failed.message);
-  return new HTTPResult(
-    HTTP_CONFLICT,
-    "$page.settings.members.invite.already_member",
-  );
+  const body: InviteEmailsFailure = {
+    message: ALREADY_MEMBER_MESSAGE,
+    field: INVITE_EMAILS_FIELD,
+    values: results
+      .filter((result) => result.outcome === "already_member")
+      .map((result) => result.email),
+  };
+  return new HTTPResult(HTTP_CONFLICT, body);
 }

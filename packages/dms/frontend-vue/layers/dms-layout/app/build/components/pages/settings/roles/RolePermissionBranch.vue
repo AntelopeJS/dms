@@ -26,7 +26,8 @@ function isExpanded(node: RolePermissionNode): boolean {
 <template>
   <!-- One level of the nested permission tree. A node with children is a
        collapsible row, closed until opened; its children are rendered only
-       while it is open, behind an indentation guide. -->
+       while it is open, behind an indentation guide (halved on phones, where
+       eight levels of 24px left the deepest rows no room). -->
   <template v-for="node in props.nodes" :key="node.id">
     <div
       v-if="hasChildren(node)"
@@ -55,7 +56,7 @@ function isExpanded(node: RolePermissionNode): boolean {
         v-if="isExpanded(node)"
         :id="childrenElementId(node.id)"
         role="group"
-        class="border-default ms-[17px] border-s ps-1.5"
+        class="border-default ms-[17px] border-s ps-1.5 @max-md/editor:ms-[9px] @max-md/editor:ps-0.5"
       >
         <RolePermissionBranch
           :nodes="node.children ?? []"

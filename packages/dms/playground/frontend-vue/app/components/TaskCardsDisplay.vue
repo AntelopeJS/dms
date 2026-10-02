@@ -122,7 +122,7 @@ const openItem = (item: Record<string, unknown>) => {
   <div>
     <div
       v-if="context.loading && context.items.length === 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
       <USkeleton
         v-for="n in SKELETON_CARD_COUNT"
@@ -138,12 +138,12 @@ const openItem = (item: Record<string, unknown>) => {
 
     <div
       v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
       <article
         v-for="item in context.items"
         :key="rowId(item)"
-        class="group border-default hover:border-primary/35 relative rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
+        class="group border-default hover:border-primary/35 @container relative rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
         :class="{
           'border-primary ring-primary ring-1': context.selection.isSelected(
             rowId(item),
@@ -164,7 +164,10 @@ const openItem = (item: Record<string, unknown>) => {
             {{ initials(item) }}
           </span>
           <div class="min-w-0 flex-1">
-            <div class="text-highlighted truncate text-[13px] font-semibold">
+            <div
+              class="text-highlighted truncate text-[13px] font-semibold"
+              :title="title(item)"
+            >
               {{ title(item) }}
             </div>
             <div class="text-dimmed truncate font-mono text-[11px]">
@@ -178,7 +181,7 @@ const openItem = (item: Record<string, unknown>) => {
             variant="ghost"
             size="xs"
             square
-            class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+            class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100"
             @click.stop="context.actions.delete([rowId(item)])"
           />
           <UCheckbox
@@ -192,7 +195,11 @@ const openItem = (item: Record<string, unknown>) => {
           />
         </header>
 
-        <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5">
+        <!-- A phone-narrow card stacks its fields: two columns would clip
+          every value. -->
+        <dl
+          class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+        >
           <div v-for="col in fieldColumns" :key="col.id" class="min-w-0">
             <dt
               class="text-dimmed truncate font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"

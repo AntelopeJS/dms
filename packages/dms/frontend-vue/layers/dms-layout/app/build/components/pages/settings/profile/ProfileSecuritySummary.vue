@@ -33,13 +33,15 @@ onMounted(refresh);
   >
     <!-- v2 .cs-moved: points to where email, password, two-factor and
          sessions now live, with what needs attention there. -->
-    <div class="flex items-center gap-3.5 px-[18px] py-3.5 max-sm:flex-wrap">
+    <!-- Phones: the text keeps its place beside the icon, the button drops
+         to a line of its own. -->
+    <div class="flex flex-wrap items-center gap-3.5 px-[18px] py-3.5">
       <DmsIconWell
         :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
         :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
         size="sm"
       />
-      <div class="text-muted min-w-0 text-sm">
+      <div class="text-muted min-w-0 flex-1 basis-40 text-sm">
         <template v-if="overview">
           <b class="text-highlighted font-semibold">
             {{

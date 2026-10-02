@@ -189,12 +189,12 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
 </script>
 
 <template>
-  <div class="grid gap-10 pb-10">
+  <div class="grid grid-cols-1 gap-10 pb-10">
     <!-- Stepper -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">Stepper</h2>
-      <div class="grid gap-6 md:grid-cols-2">
-        <div class="grid content-start gap-4">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div class="grid grid-cols-1 content-start gap-4">
           <span
             class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
           >
@@ -232,7 +232,7 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
           </span>
           <UStepper :items="onboardingItems(1)" :model-value="1" size="xs" />
         </div>
-        <div class="grid content-start gap-4">
+        <div class="grid grid-cols-1 content-start gap-4">
           <span
             class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
           >
@@ -259,10 +259,10 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
     </section>
 
     <!-- Pagination -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">Pagination</h2>
       <div
-        class="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-x-4 gap-y-5"
+        class="grid grid-cols-1 items-center gap-x-4 gap-y-2 sm:grid-cols-[90px_minmax(0,1fr)] sm:gap-y-5"
       >
         <span
           class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
@@ -307,86 +307,91 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
     </section>
 
     <!-- Input variants -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">
         Field variants · outline · soft · ghost
       </h2>
-      <div class="grid grid-cols-[110px_repeat(3,minmax(0,1fr))] gap-3">
-        <span />
-        <span
-          v-for="variant in ['outline', 'soft', 'ghost']"
-          :key="variant"
-          class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
-          >{{ variant }}</span
+      <!-- Three variants side by side need ~560px: phones scroll them. -->
+      <div class="max-sm:-mx-1 max-sm:overflow-x-auto max-sm:px-1 max-sm:pb-1">
+        <div
+          class="grid grid-cols-[110px_repeat(3,minmax(0,1fr))] gap-3 max-sm:min-w-[560px]"
         >
-        <span class="text-muted self-center text-[12.5px]">UInput</span>
-        <UInput
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`input-${variant}`"
-          v-model="text"
-          :variant="variant"
-          icon="i-ph-magnifying-glass"
-          placeholder="Search customers…"
-        />
-        <span class="text-muted self-center text-[12.5px]">UTextarea</span>
-        <UTextarea
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`textarea-${variant}`"
-          v-model="notes"
-          :variant="variant"
-          :rows="2"
-          placeholder="Internal note…"
-        />
-        <span class="text-muted self-center text-[12.5px]">UInputNumber</span>
-        <UInputNumber
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`number-${variant}`"
-          v-model="quantity"
-          :variant="variant"
-          orientation="vertical"
-        />
-        <span class="text-muted self-center text-[12.5px]">UInputTags</span>
-        <UInputTags
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`tags-${variant}`"
-          v-model="tags"
-          :variant="variant"
-          placeholder="Add a tag…"
-        />
-        <span class="text-muted self-center text-[12.5px]">USelect</span>
-        <USelect
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`select-${variant}`"
-          v-model="status"
-          :items="statusItems"
-          :variant="variant"
-        />
-        <span class="text-muted self-center text-[12.5px]">USelectMenu</span>
-        <USelectMenu
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`selectmenu-${variant}`"
-          v-model="company"
-          :items="companies"
-          :variant="variant"
-          placeholder="Select a company"
-        />
-        <span class="text-muted self-center text-[12.5px]">UInputMenu</span>
-        <UInputMenu
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`inputmenu-${variant}`"
-          v-model="company"
-          :items="companies"
-          :variant="variant"
-          placeholder="Type a company…"
-        />
-        <span class="text-muted self-center text-[12.5px]">UInputDate</span>
-        <UInputDate
-          v-for="variant in ['outline', 'soft', 'ghost'] as const"
-          :key="`date-${variant}`"
-          :variant="variant"
-        />
+          <span />
+          <span
+            v-for="variant in ['outline', 'soft', 'ghost']"
+            :key="variant"
+            class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+            >{{ variant }}</span
+          >
+          <span class="text-muted self-center text-[12.5px]">UInput</span>
+          <UInput
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`input-${variant}`"
+            v-model="text"
+            :variant="variant"
+            icon="i-ph-magnifying-glass"
+            placeholder="Search customers…"
+          />
+          <span class="text-muted self-center text-[12.5px]">UTextarea</span>
+          <UTextarea
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`textarea-${variant}`"
+            v-model="notes"
+            :variant="variant"
+            :rows="2"
+            placeholder="Internal note…"
+          />
+          <span class="text-muted self-center text-[12.5px]">UInputNumber</span>
+          <UInputNumber
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`number-${variant}`"
+            v-model="quantity"
+            :variant="variant"
+            orientation="vertical"
+          />
+          <span class="text-muted self-center text-[12.5px]">UInputTags</span>
+          <UInputTags
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`tags-${variant}`"
+            v-model="tags"
+            :variant="variant"
+            placeholder="Add a tag…"
+          />
+          <span class="text-muted self-center text-[12.5px]">USelect</span>
+          <USelect
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`select-${variant}`"
+            v-model="status"
+            :items="statusItems"
+            :variant="variant"
+          />
+          <span class="text-muted self-center text-[12.5px]">USelectMenu</span>
+          <USelectMenu
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`selectmenu-${variant}`"
+            v-model="company"
+            :items="companies"
+            :variant="variant"
+            placeholder="Select a company"
+          />
+          <span class="text-muted self-center text-[12.5px]">UInputMenu</span>
+          <UInputMenu
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`inputmenu-${variant}`"
+            v-model="company"
+            :items="companies"
+            :variant="variant"
+            placeholder="Type a company…"
+          />
+          <span class="text-muted self-center text-[12.5px]">UInputDate</span>
+          <UInputDate
+            v-for="variant in ['outline', 'soft', 'ghost'] as const"
+            :key="`date-${variant}`"
+            :variant="variant"
+          />
+        </div>
       </div>
-      <div class="grid gap-3">
+      <div class="grid grid-cols-1 gap-3">
         <span
           class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
         >
@@ -413,7 +418,7 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
     </section>
 
     <!-- Choice cards and switch -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">
         Checkbox &amp; radio cards · switch states
       </h2>
@@ -478,14 +483,14 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
           </span>
         </template>
       </URadioGroup>
-      <div class="grid gap-6 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <URadioGroup
           v-model="shipping"
           :items="shippingItems"
           variant="card"
           legend="Shipping · vertical cards"
         />
-        <div class="grid content-start gap-3.5">
+        <div class="grid grid-cols-1 content-start gap-3.5">
           <USwitch v-model="switchOff" label="Off" />
           <USwitch v-model="switchOn" label="On" />
           <USwitch
@@ -503,17 +508,19 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
     </section>
 
     <!-- Horizontal navigation -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">
         Horizontal navigation
       </h2>
       <div
-        class="flex h-12 items-center rounded-(--dms-radius-card) border border-default bg-(--dms-bg-muted) px-3"
+        class="flex h-12 items-center rounded-(--dms-radius-card) max-sm:overflow-x-auto max-sm:overflow-y-hidden border border-default bg-(--dms-bg-muted) px-3"
       >
         <span class="text-highlighted me-3.5 text-sm font-[650]">Acme</span>
         <UNavigationMenu :items="portalItems" orientation="horizontal" />
       </div>
-      <div class="border-default border-b">
+      <div
+        class="border-default border-b max-sm:overflow-x-auto max-sm:overflow-y-hidden"
+      >
         <UNavigationMenu
           :items="recordItems"
           orientation="horizontal"
@@ -523,17 +530,17 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
     </section>
 
     <!-- Data display -->
-    <section class="grid gap-4">
+    <section class="grid grid-cols-1 gap-4">
       <h2 class="text-highlighted text-[15px] font-[650]">
         Tree · chip · separator · link · empty · table
       </h2>
-      <div class="grid gap-6 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div
           class="rounded-lg border border-accented bg-(--dms-bg-field) p-1.5"
         >
           <UTree v-model="treeSelected" :items="treeItems" />
         </div>
-        <div class="grid content-start gap-5">
+        <div class="grid grid-cols-1 content-start gap-5">
           <div class="flex items-center gap-5">
             <UChip>
               <UButton
@@ -557,7 +564,7 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
           </p>
         </div>
       </div>
-      <div class="grid gap-6 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <UEmpty
           icon="i-ph-tray"
           title="No orders yet"
@@ -571,7 +578,7 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
           variant="naked"
         />
       </div>
-      <div class="dms-card overflow-hidden">
+      <div class="dms-card overflow-x-auto">
         <UTable v-model:row-selection="rowSelection" :data="tableData" />
       </div>
     </section>

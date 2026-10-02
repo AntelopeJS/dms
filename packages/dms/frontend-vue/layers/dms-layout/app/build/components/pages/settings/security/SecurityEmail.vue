@@ -7,6 +7,7 @@ import {
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
+import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
 const EMAIL_URL = `${SECURITY_ENDPOINT}/email`;
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
@@ -16,13 +17,18 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FORM_ID = "security-email-form";
 const EMAIL_FIELD_ID = "security-new-email";
 const CURRENT_FIELD_ID = "security-email-current-password";
+// API refusals that belong to a field of the panel.
+const FIELD_CODES = {
+  [INVALID_CURRENT_PASSWORD]: "currentPassword",
+  [EMAIL_ALREADY_USED]: "email",
+} as const;
 
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
 const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
-const { errorMessage, errorCode } = useSecurityFormat();
+const { errorMessage } = useSecurityFormat();
 
 const isEditing = ref(false);
 const isSaving = ref(false);
@@ -85,14 +91,22 @@ function resetForm(): void {
 }
 
 /** Shows a field-level API error under its field and focuses it. */
-async function flagField(code: string | undefined): Promise<boolean> {
-  if (code === INVALID_CURRENT_PASSWORD) isCurrentInvalid.value = true;
-  else if (code === EMAIL_ALREADY_USED) isEmailTaken.value = true;
-  else return false;
+async function flagField(error: unknown): Promise<boolean> {
+  const [refused] = resolveFieldErrors(error, {
+    fields: ["email", "currentPassword"],
+    codes: FIELD_CODES,
+  }).fields;
+  if (refused?.message === INVALID_CURRENT_PASSWORD) {
+    isCurrentInvalid.value = true;
+  } else if (refused?.message === EMAIL_ALREADY_USED) {
+    isEmailTaken.value = true;
+  } else {
+    return false;
+  }
   await nextTick();
   document
     .getElementById(
-      code === INVALID_CURRENT_PASSWORD ? CURRENT_FIELD_ID : EMAIL_FIELD_ID,
+      refused.field === "currentPassword" ? CURRENT_FIELD_ID : EMAIL_FIELD_ID,
     )
     ?.focus();
   return true;
@@ -119,7 +133,7 @@ async function submit(): Promise<void> {
     });
     await Promise.all([refresh(), refreshSession()]);
   } catch (error) {
-    if (await flagField(errorCode(error))) return;
+    if (await flagField(error)) return;
     toast.add({
       title: errorMessage(error, "page.settings.security.email.error"),
       color: "error",

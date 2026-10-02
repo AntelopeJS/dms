@@ -110,6 +110,11 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useFormField", () => ({ emitFormChange: vi.fn() }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
+  );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
 });
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type { FunctionalComponent } from "vue";
+import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
-import type {
-  ConfirmBodyRender,
-  ConfirmColor,
-  ConfirmImpact,
+import {
+  type ConfirmBodyRender,
+  type ConfirmColor,
+  type ConfirmImpact,
+  ConfirmTextError,
 } from "../../composables/confirm/types";
 
 interface ConfirmModalProps {
@@ -72,6 +73,15 @@ const isOpen = ref(true);
 const typedText = ref("");
 const isPending = ref(false);
 const errorMessage = ref<string>();
+// The server refused the typed text: shown under the typed field.
+const typedError = ref<string>();
+const typedInput = useTemplateRef<{ inputRef?: HTMLInputElement }>(
+  "typedInput",
+);
+
+watch(typedText, () => {
+  typedError.value = undefined;
+});
 
 const headerIcon = computed(() =>
   props.icon === false
@@ -106,13 +116,24 @@ function close(value: boolean) {
 async function runConfirm(action: () => Promise<void | boolean>) {
   isPending.value = true;
   errorMessage.value = undefined;
+  typedError.value = undefined;
   try {
     const result = await action();
     if (result !== false) close(true);
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : String(error);
+    if (error instanceof ConfirmTextError && props.confirmText) {
+      typedError.value = error.message;
+    } else {
+      errorMessage.value =
+        error instanceof Error ? error.message : String(error);
+    }
   } finally {
     isPending.value = false;
+  }
+  // The field is disabled while pending: focus it once enabled again.
+  if (typedError.value) {
+    await nextTick();
+    typedInput.value?.inputRef?.focus();
   }
 }
 
@@ -194,7 +215,7 @@ function handleCancel() {
         <BodyRender v-if="props.body" />
         <slot name="body" />
 
-        <UFormField v-if="confirmText">
+        <UFormField v-if="confirmText" :error="typedError">
           <template #label>
             <i18n-t keypath="dms.confirm.type_to_confirm" tag="span">
               <template #text>
@@ -205,6 +226,7 @@ function handleCancel() {
             </i18n-t>
           </template>
           <UInput
+            ref="typedInput"
             v-model="typedText"
             class="w-full font-mono"
             autocomplete="off"
@@ -213,6 +235,12 @@ function handleCancel() {
             :ui="{ trailingIcon: 'text-success' }"
             @keydown.enter="handleConfirm"
           />
+          <template #error="{ error }">
+            <template v-if="error">
+              <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
+              {{ error }}
+            </template>
+          </template>
         </UFormField>
 
         <UAlert

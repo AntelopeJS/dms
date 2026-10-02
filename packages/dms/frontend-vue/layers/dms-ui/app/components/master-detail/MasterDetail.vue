@@ -23,7 +23,9 @@ defineSlots<{
 </script>
 
 <template>
-  <div class="grid items-start gap-5 lg:grid-cols-[380px_1fr]">
+  <div
+    class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]"
+  >
     <!-- List pane -->
     <div class="dms-card p-2">
       <p

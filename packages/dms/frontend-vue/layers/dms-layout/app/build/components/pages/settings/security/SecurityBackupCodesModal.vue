@@ -84,8 +84,10 @@ function acknowledge(): void {
     </template>
     <template #body>
       <div class="grid gap-3.5">
+        <!-- Two columns, one when a code no longer fits half the list
+             (phones). -->
         <ol
-          class="border-default grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border bg-(--dms-bg-muted) px-4 py-3.5"
+          class="border-default grid grid-cols-[repeat(auto-fill,minmax(max(8.5rem,calc(50%-1rem)),1fr))] gap-x-4 gap-y-1.5 rounded-md border bg-(--dms-bg-muted) px-4 py-3.5"
         >
           <li
             v-for="(code, index) in displayCodes"
@@ -133,7 +135,7 @@ function acknowledge(): void {
       </div>
     </template>
     <template #footer>
-      <div class="flex w-full items-center justify-end gap-2">
+      <div class="flex w-full flex-wrap items-center justify-end gap-2">
         <span
           v-if="isCopied || isDownloaded"
           class="text-success me-auto flex items-center gap-1.5 text-xs font-medium"

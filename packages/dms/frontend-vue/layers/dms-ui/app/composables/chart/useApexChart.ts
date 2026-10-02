@@ -331,10 +331,11 @@ function buildXAxis(
     labels: {
       style: axisLabelStyle(theme.dimmed, theme),
       datetimeUTC: false,
-      ...(settings?.rotate !== undefined ? { rotate: settings.rotate } : {}),
-      ...(settings?.hideOverlappingLabels !== undefined
-        ? { hideOverlappingLabels: settings.hideOverlappingLabels }
-        : {}),
+      // Labels that no longer fit (a phone, a narrow card) are thinned out
+      // instead of being rotated into an unreadable pile; an explicit
+      // setting still wins.
+      rotate: settings?.rotate ?? 0,
+      hideOverlappingLabels: settings?.hideOverlappingLabels ?? true,
       ...(input.xaxisType === "datetime" &&
       settings?.datetimeFormat !== undefined
         ? { format: settings.datetimeFormat }

@@ -23,7 +23,9 @@ const theme = tv({
     icon: "size-4 shrink-0 text-muted",
     text: "min-w-0 flex-1",
     label: "text-[13px] font-semibold text-highlighted",
-    hint: "truncate text-[12px] text-muted",
+    // Wraps rather than truncates: three tiles in the narrow lg settings
+    // column cut every hint to a word.
+    hint: "text-[12px] leading-snug text-pretty text-muted",
     radio:
       "grid size-4 shrink-0 place-items-center rounded-full ring-1 ring-inset ring-(--ui-border-accented)",
     radioDot: "size-1.5 rounded-full bg-(--dms-accent-on-fill)",

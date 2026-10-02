@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import AuthPasswordInput from "../../components/AuthPasswordInput.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
 
@@ -13,7 +17,8 @@ const homepage = useHomepage();
 const dmsApp = useDmsApp();
 const { metaTitle } = useSystemState();
 const { links: extraLinks } = useAuthLinks("login");
-const { formError, showFormError, clearFormError } = useAuthFormError();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 useOAuthErrorToast();
 
@@ -96,7 +101,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       usePostLoginRedirect(redirectUrl || homepage),
     );
   } catch (error: unknown) {
-    showFormError(error, "page.auth.error_title");
+    // Wrong credentials name no field: they stay above the form.
+    await showError(error, "page.auth.error_title", {
+      fields: ["email", "password"],
+      form,
+    });
     isLoading.value = false;
   }
 }
@@ -121,6 +130,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     <DmsOAuthButtons />
 
     <UForm
+      ref="form"
       :schema="schema"
       :state="state"
       class="mt-5 grid gap-4"

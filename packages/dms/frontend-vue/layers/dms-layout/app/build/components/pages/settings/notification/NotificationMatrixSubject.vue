@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { NotificationSubject } from "../../../../../composables/notification/useNotificationCatalog";
 import type { PreferenceRowState } from "../../../../../composables/notification/useNotificationPreferences";
-import { MATRIX_GRID_CLASS } from "./notificationDisplay";
+import {
+  MATRIX_GRID_CLASS,
+  MATRIX_SUBJECT_INDENT_CLASS,
+} from "./notificationDisplay";
 
 interface NotificationMatrixSubjectProps {
   subject: NotificationSubject;
@@ -30,7 +33,7 @@ const onToggle = (value: boolean) => {
     class="border-muted min-h-[50px] border-t py-2"
     role="row"
   >
-    <div class="min-w-0 pl-[42px] max-sm:pl-0" role="rowheader">
+    <div class="min-w-0" :class="MATRIX_SUBJECT_INDENT_CLASS" role="rowheader">
       <div
         class="flex flex-wrap items-center gap-2 text-[13px] font-[550]"
         :class="props.enabled ? 'text-highlighted' : 'text-muted'"

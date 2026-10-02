@@ -11,11 +11,27 @@ import PageHeaderActionBar, {
 import SettingsShell from "../build/components/pages/settings/shell/SettingsShell.vue";
 import { isSettingsFullId } from "../composables/settings/useSettingsNavigation";
 import { providePageHeaderActions } from "../composables/layout/usePageHeaderActions";
+import { useAppWidgets } from "../composables/useAppWidgets";
 
 // Sidebar sizes are in px (the v2 240px sidebar). The storage key changed with
 // the unit, so a width saved in % is not read back as px.
 const DASHBOARD_STORAGE_KEY = "dms-dashboard";
 const DASHBOARD_SIZE_UNIT = "px";
+// The v2 page bottom padding (48px, 64px from `lg`) sits on the page region,
+// not on the panel body: the scroll area's own padding would lift every
+// sticky footer (save bars) that far off the bottom of the screen.
+const REGION_PADDING_CLASS = "pb-12 lg:pb-16";
+// The widgets dock (shown from `sm`, folded behind one launcher chip below
+// `xl`) floats over the bottom-left corner of the body. The region's bottom
+// padding grows to the height the dock shows, so the end of a page can always
+// scroll out from under the chips.
+const DOCK_CLEARANCE_CLASS =
+  "pb-12 sm:pb-[max(3rem,var(--dms-dock-clearance-folded,0px))] lg:pb-[max(4rem,var(--dms-dock-clearance-folded,0px))] xl:pb-[max(4rem,var(--dms-dock-clearance,0px))]";
+// One 40px chip plus its 8px gap per widget, the 10px inset and a 12px margin.
+const DOCK_CHIP_REM = 3;
+const DOCK_EDGE_REM = 1.375;
+const dockHeight = (chips: number): string =>
+  `${chips * DOCK_CHIP_REM + DOCK_EDGE_REM}rem`;
 
 interface Props {
   fullWidth?: boolean;
@@ -40,8 +56,27 @@ const props = withDefaults(defineProps<Props>(), {
 
 providePageFillHeight(toRef(props, "fillHeight"));
 
-const regionClass = computed(() =>
-  props.fillHeight ? PAGE_FILL_HEIGHT_CLASSES.region : undefined,
+const { widgets: appWidgets } = useAppWidgets();
+// A fill-height page has nothing to scroll past the dock: no clearance.
+const hasDockClearance = computed(
+  () => appWidgets.value.length > 0 && !props.fillHeight,
+);
+const regionClass = computed(() => {
+  if (props.fillHeight) {
+    return [PAGE_FILL_HEIGHT_CLASSES.region, REGION_PADDING_CLASS];
+  }
+  return hasDockClearance.value ? DOCK_CLEARANCE_CLASS : REGION_PADDING_CLASS;
+});
+// Bound as attributes so a page without widgets renders no empty `style`.
+const regionAttrs = computed(() =>
+  hasDockClearance.value
+    ? {
+        style: {
+          "--dms-dock-clearance": dockHeight(appWidgets.value.length),
+          "--dms-dock-clearance-folded": dockHeight(1),
+        },
+      }
+    : {},
 );
 
 // Every settings page — core, module or project — gets the settings shell:
@@ -82,6 +117,7 @@ const hasHeaderActions = computed(
           data-dms-page-content
           :full-width="props.fullWidth"
           :class="regionClass"
+          v-bind="regionAttrs"
         >
           <SettingsShell v-if="isSettingsPage">
             <PageHeader
@@ -92,7 +128,9 @@ const hasHeaderActions = computed(
               class="pb-5"
             >
               <template v-if="hasHeaderActions" #actions>
-                <div class="ms-auto flex flex-wrap items-center gap-2">
+                <div
+                  class="flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto"
+                >
                   <PageHeaderActionBar :actions="props.headerActions" />
                   <component :is="pageHeaderActions" v-if="pageHeaderActions" />
                 </div>
@@ -109,7 +147,9 @@ const hasHeaderActions = computed(
               class="pb-6"
             >
               <template v-if="hasHeaderActions" #actions>
-                <div class="ms-auto flex flex-wrap items-center gap-2">
+                <div
+                  class="flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto"
+                >
                   <PageHeaderActionBar :actions="props.headerActions" />
                   <component :is="pageHeaderActions" v-if="pageHeaderActions" />
                 </div>

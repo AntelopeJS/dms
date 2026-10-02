@@ -37,7 +37,7 @@ const iconWellTone = computed(() =>
       <DmsIconWell :icon="props.category.icon" :tone="iconWellTone" size="xs" />
       <div class="min-w-0">
         <div
-          class="text-highlighted flex items-center gap-2 text-[13px] font-[650]"
+          class="text-highlighted flex flex-wrap items-center gap-2 text-[13px] font-[650]"
         >
           {{ label }}
           <span

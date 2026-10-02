@@ -47,10 +47,14 @@ export default {
     dashboardPanel: {
       slots: {
         root: "dms-canvas",
-        // v2 page padding (28px top, 64px bottom; 20/48 on small screens); the
-        // container inside sets the horizontal gutter. The scrollbar gutter is
-        // reserved so centred content doesn't shift between short and long pages.
-        body: "flex flex-col gap-4 sm:gap-6 flex-1 overflow-y-auto [scrollbar-gutter:stable] p-0 sm:p-0 pt-5 pb-12 lg:pt-7 lg:pb-16",
+        // v2 page top padding (28px; 20px on small screens); the container
+        // inside sets the horizontal gutter and the bottom padding, which kept
+        // here would also lift every sticky footer (save bars) off the bottom.
+        // The scrollbar gutter is reserved so centred content doesn't shift
+        // between short and long pages. `sm:p-0` drops Nuxt UI's `sm:p-6`; the
+        // `sm:pt-5` repeats the small-screen top padding so it is not cancelled
+        // between 640 and 1023px.
+        body: "flex flex-col gap-4 sm:gap-6 flex-1 overflow-y-auto [scrollbar-gutter:stable] p-0 sm:p-0 pt-5 sm:pt-5 lg:pt-7",
       },
     },
     dashboardNavbar: {

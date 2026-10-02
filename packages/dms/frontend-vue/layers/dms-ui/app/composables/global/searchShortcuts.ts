@@ -15,6 +15,12 @@ export const NAV_SEARCH_SHORTCUT = "/";
  */
 export const PAGE_SEARCH_SHORTCUTS = ["meta_/", "meta_shift_/"] as const;
 
+/**
+ * The page search keys as hint chips, by `defineShortcuts` key name: print
+ * them with `keyboardKeyLabel` ("⌘" "/" on macOS, "Ctrl" "/" elsewhere).
+ */
+export const PAGE_SEARCH_HINT_KEYS = ["meta", "/"] as const;
+
 /** `aria-keyshortcuts` of an input focused by the page search keys. */
 export function pageSearchAriaKeyshortcuts(macOS: boolean): string {
   return macOS ? "Meta+/" : "Control+/";

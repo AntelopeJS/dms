@@ -65,19 +65,22 @@ const barStyle = computed(() => ({
       {{ rankLabel }}
     </span>
     <template v-if="hasAnyIcon">
+      <!-- The icon column only exists on a card 22rem wide or more
+           (TopListCard container query). -->
       <UAvatar
         v-if="item.avatar"
         :src="item.avatar.src"
         :alt="item.avatar.alt"
         size="sm"
+        class="hidden @[22rem]:inline-flex"
       />
       <span
         v-else-if="item.icon"
-        class="text-muted grid size-[26px] place-items-center rounded-[7px] bg-(--ui-bg-elevated)"
+        class="text-muted hidden size-[26px] place-items-center rounded-[7px] bg-(--ui-bg-elevated) @[22rem]:grid"
       >
         <UIcon :name="item.icon" class="size-[15px]" :aria-hidden="true" />
       </span>
-      <span v-else aria-hidden="true" />
+      <span v-else class="hidden @[22rem]:block" aria-hidden="true" />
     </template>
     <div class="min-w-0">
       <p
@@ -100,7 +103,8 @@ const barStyle = computed(() => ({
     >
       {{ formattedValue }}
     </span>
-    <div v-if="showSparkline" class="h-6 w-16">
+    <!-- Sparkline column from 28rem of card width (container query). -->
+    <div v-if="showSparkline" class="hidden h-6 w-16 @[28rem]:block">
       <DmsSparkline
         v-if="hasSparklineData"
         :values="item.sparkline ?? []"

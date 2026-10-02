@@ -5,6 +5,8 @@ const CSS_LOAD_DELAY_MS = 100;
 const COPIED_RESET_MS = 1500;
 const UI_VARIABLE_PREFIX = "--ui-";
 const SKELETON_ROW_COUNT = 6;
+const ROW_CLASS =
+  "border-muted grid h-10 grid-cols-[22px_minmax(0,1.2fr)_minmax(0,1fr)_90px] items-center gap-3 ps-[18px] pe-3 text-sm transition-colors not-first:border-t max-sm:h-auto max-sm:grid-cols-[22px_minmax(0,1fr)_auto] max-sm:gap-y-0.5 max-sm:py-2";
 const EXPORT_FILE_NAME = "dms-ui-variables.css";
 const OTHER_CATEGORY = "other";
 const ALL_CATEGORIES = "all";
@@ -215,9 +217,11 @@ onBeforeUnmount(() => {
         :aria-label="t('page.settings.appearance.css_vars.filter_placeholder')"
         class="w-full sm:w-60"
       />
+      <!-- Phones: the six categories wrap onto a second line. -->
       <DmsSegmented
         v-if="cssVariables.length"
         v-model="category"
+        class="max-sm:h-auto max-sm:flex-wrap max-sm:[&>button]:h-6"
         :items="categoryItems"
         size="xs"
         :aria-label="t('page.settings.appearance.css_vars.category_label')"
@@ -241,24 +245,27 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else class="max-h-[440px] overflow-y-auto">
-      <!-- v2 .cs-var: swatch, name, value, copy. -->
+      <!-- v2 .cs-var: swatch, name, value, copy. Phones: the value goes
+           under the name and the copy button keeps only its icon. -->
       <div
         v-for="variable in shown"
         :key="variable.name"
-        class="border-muted grid h-10 grid-cols-[22px_minmax(0,1.2fr)_minmax(0,1fr)_90px] items-center gap-3 ps-[18px] pe-3 text-sm transition-colors not-first:border-t"
-        :class="copiedName === variable.name && 'bg-(--dms-success-tint)'"
+        :class="[
+          ROW_CLASS,
+          copiedName === variable.name && 'bg-(--dms-success-tint)',
+        ]"
       >
         <span
           v-if="variable.category === 'radius'"
-          class="border-muted size-[18px] border-[1.5px] border-r-0 border-b-0"
+          class="border-muted size-[18px] border-[1.5px] border-r-0 border-b-0 max-sm:row-span-2"
           :style="swatchStyle(variable)"
         />
         <span
           v-else-if="variable.category !== 'other'"
-          class="size-[18px] rounded-[5px] shadow-[inset_0_0_0_1px_var(--ui-border-accented)]"
+          class="size-[18px] rounded-[5px] shadow-[inset_0_0_0_1px_var(--ui-border-accented)] max-sm:row-span-2"
           :style="swatchStyle(variable)"
         />
-        <span v-else />
+        <span v-else class="max-sm:row-span-2" />
         <code
           class="text-highlighted truncate font-mono text-xs font-[550]"
           :title="variable.name"
@@ -266,7 +273,7 @@ onBeforeUnmount(() => {
           {{ variable.name }}
         </code>
         <span
-          class="text-muted truncate font-mono text-xs font-medium"
+          class="text-muted truncate font-mono text-xs font-medium max-sm:col-start-2 max-sm:row-start-2"
           :title="variable.value"
         >
           {{ variable.value }}
@@ -281,7 +288,8 @@ onBeforeUnmount(() => {
           :color="copiedName === variable.name ? 'success' : 'neutral'"
           variant="ghost"
           size="xs"
-          class="justify-self-end"
+          class="justify-self-end max-sm:row-span-2"
+          :ui="{ label: 'max-sm:hidden' }"
           :aria-label="`${t('page.settings.appearance.css_vars.copy')} ${variable.name}`"
           @click="copyName(variable.name)"
         />

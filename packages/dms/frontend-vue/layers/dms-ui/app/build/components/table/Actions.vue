@@ -26,29 +26,32 @@ const theme = tv({
     // Always-open search field of a reduced chrome (v2 settings lists).
     searchField: "w-[240px] max-sm:w-full",
     // A quick filter: a secondary button naming the picked value.
-    quickFilter: "",
+    quickFilter: "max-sm:h-8",
     // v2 toolbar icon triggers: muted until hovered, lit while their panel
     // is open or their configuration differs from the default.
-    trigger: "text-muted hover:bg-elevated hover:text-highlighted",
+    // Phones get 32px touch targets (28px from sm up).
+    trigger:
+      "text-muted hover:bg-elevated hover:text-highlighted max-sm:size-8",
     triggerIndicatorHost: "relative inline-flex",
     triggerIndicator:
       "pointer-events-none absolute top-1 right-1 size-1.5 rounded-full bg-(--dms-accent-fill) ring-2 ring-(--ui-bg)",
-    separator: "mx-1 h-[18px] w-px bg-(--ui-border)",
+    // Phones wrap the toolbar: a separator would dangle at a line end.
+    separator: "mx-1 h-[18px] w-px bg-(--ui-border) max-sm:hidden",
     // v2 display switch: an icon-only segmented control (table, kanban,
     // cards…) on the band color, the active display raised onto the card.
     displaySwitch:
-      "inline-flex h-7 items-center gap-0.5 rounded-md border border-default bg-(--dms-bg-muted) p-0.5",
+      "inline-flex h-7 items-center gap-0.5 rounded-md border border-default bg-(--dms-bg-muted) p-0.5 max-sm:h-8",
     displaySwitchItem:
       "inline-flex h-full items-center rounded-[6px] px-[7px] text-muted transition-colors hover:text-highlighted [&>svg]:size-[15px]",
     groupBy:
-      "inline-flex h-7 items-center gap-1.5 rounded-full border border-accented px-[11px] font-mono text-xs text-muted hover:text-highlighted",
+      "inline-flex h-7 items-center gap-1.5 rounded-full border border-accented px-[11px] font-mono text-xs text-muted hover:text-highlighted max-sm:h-8",
     groupByValue: "font-semibold text-default",
     // Archive mode toggle: a secondary button that turns amber while the
     // table lists archived rows.
-    archiveToggle: "",
+    archiveToggle: "max-sm:h-8",
 
     add: "hidden sm:flex",
-    addMobile: "sm:hidden",
+    addMobile: "size-8 sm:hidden",
   },
   variants: {
     searchActive: {

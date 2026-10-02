@@ -75,11 +75,22 @@ export const formatNotificationTime = (
 };
 
 /**
- * v2 .cs-matrix grid: subject, in-app, email, state. Below 640px only the
- * subject and in-app columns remain.
+ * The matrix lays out from its own width (`@container/matrix` on the table),
+ * not the viewport's: the settings column at 1024px is narrower than a phone
+ * in landscape, and four fixed columns left the subject about 50px there.
+ */
+export const MATRIX_CONTAINER_CLASS = "@container/matrix";
+
+/**
+ * v2 .cs-matrix grid: subject, in-app, email, state. Under 672px of matrix
+ * the state column goes; under 448px (phones) only the subject and in-app
+ * columns remain.
  */
 export const MATRIX_GRID_CLASS =
-  "grid grid-cols-[minmax(0,1fr)_80px_96px_168px] items-center gap-x-3 px-[18px] max-sm:grid-cols-[minmax(0,1fr)_60px] max-sm:[&>:nth-child(n+3)]:hidden";
+  "grid grid-cols-[minmax(0,1fr)_80px_96px_168px] items-center gap-x-3 px-[18px] @max-2xl/matrix:grid-cols-[minmax(0,1fr)_80px_96px] @max-2xl/matrix:[&>:nth-child(4)]:hidden @max-md/matrix:grid-cols-[minmax(0,1fr)_60px] @max-md/matrix:[&>:nth-child(n+3)]:hidden";
+
+/** The subject's indent under its category, dropped where only two columns remain. */
+export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[42px] @max-md/matrix:pl-0";
 
 /** v2 .cs-mod: the mono module / source tag. */
 export const SOURCE_TAG_CLASS =

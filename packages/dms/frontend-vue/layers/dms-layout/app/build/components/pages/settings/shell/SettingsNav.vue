@@ -123,6 +123,23 @@ const activePath = computed(() =>
 );
 const isActive = (to: string): boolean => activePath.value === to;
 
+// Under lg the nav is a horizontal strip wider than the screen: the active
+// item is centred in it on load and on every page change, so a page late in
+// the list (Roles, Member invitations) is not highlighted out of sight.
+const navRoot = useTemplateRef<HTMLElement>("navRoot");
+function revealActiveItem(): void {
+  const root = navRoot.value;
+  if (!root || root.scrollWidth <= root.clientWidth) return;
+  const item = root.querySelector<HTMLElement>('[aria-current="page"]');
+  if (!item) return;
+  const itemBox = item.getBoundingClientRect();
+  const rootBox = root.getBoundingClientRect();
+  root.scrollLeft +=
+    itemBox.left - rootBox.left - (root.clientWidth - itemBox.width) / 2;
+}
+onMounted(revealActiveItem);
+watch(() => route.path, revealActiveItem, { flush: "post" });
+
 // A count a page published for its entry (a table view tab with `badge`)
 // stands in when the page set no trail of its own.
 const { badges: navBadges } = useNavBadges();
@@ -153,7 +170,7 @@ const previewStateLabel = (
 </script>
 
 <template>
-  <nav :class="ui.root()" :aria-label="t('page.settings.title')">
+  <nav ref="navRoot" :class="ui.root()" :aria-label="t('page.settings.title')">
     <h2 :class="ui.title()">{{ t("page.settings.title") }}</h2>
 
     <UInput

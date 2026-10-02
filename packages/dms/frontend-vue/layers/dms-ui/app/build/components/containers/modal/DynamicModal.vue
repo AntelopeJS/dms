@@ -75,7 +75,7 @@ const resolvedSize = computed(() => {
 // A divided head: the body below is a form, not a continuation of the title.
 const modalUi = computed(() => ({
   content: SIZE_CONTENT[resolvedSize.value],
-  header: "border-b border-default pb-4",
+  header: "border-b border-default pb-4 shrink-0",
 }));
 
 const { executeGuards, clearGuards } = useLeaveGuard();

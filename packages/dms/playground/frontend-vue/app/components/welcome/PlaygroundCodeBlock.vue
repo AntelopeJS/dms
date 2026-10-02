@@ -91,7 +91,11 @@ const tokens = computed(() =>
         class="text-muted size-4"
         aria-hidden="true"
       />
-      <span class="text-muted min-w-0 flex-1 truncate font-mono text-xs">
+      <!-- A phone cuts the path short: the title keeps it readable. -->
+      <span
+        class="text-muted min-w-0 flex-1 truncate font-mono text-xs"
+        :title="props.filename"
+      >
         {{ props.filename }}
       </span>
       <DmsCopyButton :value="props.code" />

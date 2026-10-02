@@ -43,14 +43,14 @@ const label = computed(() =>
     <span class="min-w-0 truncate">{{ label }}</span>
     <span
       v-if="props.permissionId"
-      class="ms-auto truncate font-medium tracking-normal normal-case opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 max-sm:hidden"
+      class="ms-auto truncate font-medium tracking-normal normal-case opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 @max-xl/editor:hidden"
     >
       {{ props.permissionId }}
     </span>
     <span
       :class="[
         'shrink-0 tracking-normal',
-        props.permissionId ? 'max-sm:ms-auto' : 'ms-auto',
+        props.permissionId ? '@max-xl/editor:ms-auto' : 'ms-auto',
       ]"
     >
       {{ props.count.selected }}/{{ props.count.total }}
