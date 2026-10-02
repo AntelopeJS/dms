@@ -27,4 +27,5 @@ export * from "./table-view";
 export * from "./tenant-export-archive";
 export * from "./top-list-card";
 export * from "./tree";
+export * from "./tree-source";
 export * from "./types";
