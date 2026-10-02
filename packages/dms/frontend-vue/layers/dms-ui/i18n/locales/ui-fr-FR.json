@@ -384,6 +384,14 @@
         "meta_k": {
           "description": "Ouvrir la palette de commandes"
         },
+        "slash": {
+          "description": "Aller à la recherche de navigation",
+          "condition": "La recherche du menu des paramètres sur les pages de paramètres, celle des modules sur Modules"
+        },
+        "meta_slash": {
+          "description": "Aller à la recherche propre à la page",
+          "condition": "Pages de paramètres qui ont leur propre recherche, comme celle-ci"
+        },
         "escape": {
           "description": "Fermer les dialogues, les menus et la palette"
         }

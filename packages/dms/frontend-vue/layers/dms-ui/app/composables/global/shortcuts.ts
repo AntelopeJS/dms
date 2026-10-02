@@ -1,3 +1,8 @@
+import {
+  GLOBAL_META_SLASH_METADATA,
+  GLOBAL_SLASH_METADATA,
+} from "./searchShortcuts";
+
 const GLOBAL_COMPONENT = "$dms.components.global";
 
 /** Opens the command palette from anywhere in the dashboard. */
@@ -20,5 +25,7 @@ export const GLOBAL_ESCAPE_METADATA: ShortcutMetadata = {
  */
 export const GLOBAL_SHORTCUTS_METADATA = [
   GLOBAL_META_K_METADATA,
+  GLOBAL_SLASH_METADATA,
+  GLOBAL_META_SLASH_METADATA,
   GLOBAL_ESCAPE_METADATA,
 ];
