@@ -159,6 +159,7 @@
     "form": {
       "success_title": "Succès",
       "success_message": "Les données ont été enregistrées avec succès",
+      "warning_title": "Terminé, avec un avertissement",
       "error_title": "Erreur",
       "error_unknown": "Une erreur inconnue s'est produite",
       "error_no_target": "Ce formulaire ne sait pas quel élément enregistrer. Ouvrez-le depuis un lien qui en désigne un.",

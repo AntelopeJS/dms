@@ -36,6 +36,13 @@ export interface InviteUserToTenantOptions {
   skipEmailValidation?: boolean;
   /** Opt-in: dispatch `sendAdminInviteEmail` after the invite row is created. */
   sendEmail?: boolean;
+  /**
+   * With `sendEmail`, wait for the email instead of sending it in the
+   * background, and report its outcome as the result's `emailDelivery`. The
+   * invitation is kept either way, so the caller can tell the inviter to
+   * resend it when the email did not leave.
+   */
+  awaitEmailDelivery?: boolean;
   /** Who sends the invitation, named in its email. */
   inviterName?: string;
   /** Module payloads collected in the invite modal, keyed by extension key. */
@@ -61,6 +68,9 @@ async function tenantName(tenantId: string): Promise<string | undefined> {
   const tenant = await GetModel(TenantModel).get(tenantId);
   return tenant?.name || undefined;
 }
+
+/** Whether a tenant invitation's email left. */
+export type InviteEmailDelivery = "sent" | "failed";
 
 /**
  * @internal
@@ -96,11 +106,42 @@ export namespace internal {
       },
     );
   }
+
+  /**
+   * {@link sendTenantInviteEmail}, reporting the outcome instead of throwing.
+   * The failure is logged with its details; the caller only learns that the
+   * email did not leave, which is what it may show the inviter.
+   */
+  export async function deliverTenantInviteEmail(
+    invite: TenantInviteEmail,
+  ): Promise<InviteEmailDelivery> {
+    try {
+      await sendTenantInviteEmail(invite);
+      return "sent";
+    } catch (error) {
+      Logging.Error(
+        `[DMS] invite email to "${invite.email}" could not be sent:`,
+        error,
+      );
+      return "failed";
+    }
+  }
+}
+
+export interface InvitedUserResult {
+  kind: "invited";
+  inviteId: string;
+  token: string;
+  /**
+   * Outcome of the invitation email. Set only when the call passed both
+   * `sendEmail` and `awaitEmailDelivery`.
+   */
+  emailDelivery?: InviteEmailDelivery;
 }
 
 export type InviteUserToTenantResult =
   | { kind: "added"; userId: string }
-  | { kind: "invited"; inviteId: string; token: string };
+  | InvitedUserResult;
 
 /**
  * Invite a user (existing or not) to a tenant.
@@ -110,7 +151,9 @@ export type InviteUserToTenantResult =
  *   delivered on the spot: there is no invitation for them to wait on, and the
  *   admin filled their fields in the same modal either way.
  * - Otherwise a `user_invites` row is created and (when `sendEmail` is true)
- *   `sendAdminInviteEmail` is dispatched.
+ *   `sendAdminInviteEmail` is dispatched: in the background by default, or
+ *   awaited with `awaitEmailDelivery`, its outcome then reported as
+ *   `emailDelivery`. A failed email never undoes the invitation.
  *
  * The caller is responsible for any pre-checks specific to its context
  * (e.g. "already a member" → 409 for the DMS users route). This helper is
@@ -122,13 +165,19 @@ export async function inviteUserToTenant(
   const result = await runTenantLifecycleOperation(options.tenantId, () =>
     inviteAdmittedUser(options),
   );
-  if (options.sendEmail && result.kind === "invited") {
+  if (!options.sendEmail || result.kind !== "invited") return result;
+  const invite = { ...options, token: result.token };
+  if (!options.awaitEmailDelivery) {
     fireAndForget(
-      internal.sendTenantInviteEmail({ ...options, token: result.token }),
+      internal.sendTenantInviteEmail(invite),
       `invite email to "${options.email}"`,
     );
+    return result;
   }
-  return result;
+  return {
+    ...result,
+    emailDelivery: await internal.deliverTenantInviteEmail(invite),
+  };
 }
 
 async function inviteAdmittedUser(

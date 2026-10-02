@@ -18,6 +18,7 @@ import DmsForm from "../../../components/form/Form.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import { TableViewEvents } from "../../../composables/table-view/types";
+import { resolveResponseToast } from "../../../utils/responseWarning";
 
 const DEFAULT_ROW_ID_KEY = "_id";
 const DEFAULT_MODAL_SIZE = "xl";
@@ -592,13 +593,16 @@ export const useTableRowActions = <T extends Data>(
     }
 
     try {
-      await config.api(url, {
+      const response = await config.api(url, {
         method: target.method || HttpMethod.post,
       });
-      toast.add({
-        color: Color.success,
-        title: processI18n(target.successMessage),
-      });
+      toast.add(
+        resolveResponseToast(
+          response,
+          { color: Color.success, title: processI18n(target.successMessage) },
+          { processI18n, processApiMessage },
+        ),
+      );
       config.refreshCallback?.();
     } catch (error: unknown) {
       handleApiError(error, t("dms.form.error_unknown"));

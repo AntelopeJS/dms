@@ -146,6 +146,7 @@
           "description": "Enter the email address of the person to invite and click 'Send invitation' to grant them access.",
           "submit": "Send invitation",
           "success": "Invitation sent successfully",
+          "email_failed": "Invitation created, but the email could not be sent. Resend it from the pending invitations list once email sending works again.",
           "field": {
             "email": "Email address",
             "firstname": "First name",
@@ -212,6 +213,7 @@
         "action": {
           "resend": "Resend",
           "resend_success": "Invitation resent successfully",
+          "resend_email_failed": "Invitation renewed, but the email could not be sent. Try again once email sending works again.",
           "resend_confirm_title": "Resend invitation",
           "resend_confirm_description": "This will generate a new invitation link and send it to the user. The previous link will be invalidated.",
           "cancel": "Cancel invite",

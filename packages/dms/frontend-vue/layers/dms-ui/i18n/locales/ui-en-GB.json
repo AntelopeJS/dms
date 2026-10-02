@@ -159,6 +159,7 @@
     "form": {
       "success_title": "Success",
       "success_message": "Data has been successfully saved",
+      "warning_title": "Done, with a warning",
       "error_title": "Error",
       "error_unknown": "An unknown error occurred",
       "error_no_target": "This form does not know which item to save. Open it from a link that names one.",
