@@ -25,8 +25,9 @@ const props = withDefaults(defineProps<VStackProps>(), {
       alignItems: alignmentMap[props.alignment],
       justifyContent: distributionMap[props.distribution],
       gap: props.spacing,
+      '--dms-stack-gap': props.spacing,
     }"
-    class="w-full"
+    class="dms-vstack w-full"
   >
     <slot />
   </div>
