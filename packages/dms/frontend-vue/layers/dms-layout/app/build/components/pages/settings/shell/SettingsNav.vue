@@ -3,6 +3,10 @@ import { tv } from "tailwind-variants";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
 import {
+  NAV_SEARCH_SHORTCUT,
+  buildNavSearchShortcuts,
+} from "#dms-ui/app/composables/global/searchShortcuts";
+import {
   findActiveSettingsPath,
   useSettingsNavigation,
   type SettingsNavGroup,
@@ -86,9 +90,11 @@ useSettingsNavIndicators(navPageIds);
 const query = ref("");
 const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>("search");
 
-defineShortcuts({
-  "/": () => searchInput.value?.inputRef?.focus(),
-});
+// "/" belongs to this search on every settings page; a page with a search of
+// its own focuses it with ⌘ / or Ctrl / instead, never "/".
+defineShortcuts(
+  buildNavSearchShortcuts(() => searchInput.value?.inputRef?.focus()),
+);
 
 const matchesQuery = (page: SettingsNavPage, needle: string): boolean =>
   [page.label, page.description].some((text) =>
@@ -157,9 +163,10 @@ const previewStateLabel = (
       :icon="SEARCH_ICON"
       size="sm"
       :class="ui.search()"
+      :aria-keyshortcuts="NAV_SEARCH_SHORTCUT"
     >
       <template #trailing>
-        <UKbd value="/" size="sm" />
+        <UKbd :value="NAV_SEARCH_SHORTCUT" size="sm" />
       </template>
     </UInput>
 

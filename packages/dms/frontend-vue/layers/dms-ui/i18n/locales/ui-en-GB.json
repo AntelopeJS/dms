@@ -384,6 +384,14 @@
         "meta_k": {
           "description": "Open command palette"
         },
+        "slash": {
+          "description": "Focus the navigation search",
+          "condition": "The settings menu search on settings pages, the module search on Modules"
+        },
+        "meta_slash": {
+          "description": "Focus the page's own search",
+          "condition": "Settings pages with a search of their own, such as this one"
+        },
         "escape": {
           "description": "Close dialogs, menus and the palette"
         }
