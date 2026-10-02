@@ -1,9 +1,14 @@
+import { GLOBAL_SHORTCUTS_METADATA } from "../composables/global/shortcuts";
 import { TAB_SHORTCUTS_METADATA } from "../composables/tab/shortcuts";
 import { TABLE_VIEW_SHORTCUTS_METADATA } from "../composables/table-view/shortcuts";
 import { TREE_SHORTCUTS_METADATA } from "../composables/tree/shortcuts";
 import type { ComponentShortcuts } from "../types/shortcuts";
 
 export default [
+  {
+    component: "Global",
+    shortcuts: GLOBAL_SHORTCUTS_METADATA,
+  },
   {
     component: "Tab",
     shortcuts: TAB_SHORTCUTS_METADATA,

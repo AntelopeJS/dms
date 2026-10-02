@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from "vue";
+import DmsEmptyState from "../empty-state/EmptyState.vue";
 import { useApexChart } from "../../composables/chart/useApexChart";
 import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
@@ -77,9 +78,17 @@ interface Props extends DefaultComponentProps {
 }
 
 const DEFAULT_CHART_HEIGHT = "320px";
+// Loading placeholder: ghost columns at plot height, so the card keeps its
+// final geometry instead of flashing a flat block (heights in %).
+const GHOST_BAR_HEIGHTS = [38, 52, 46, 64, 58, 72, 66, 80, 74, 88, 70, 92];
+const EMPTY_ICON = "i-ph-chart-line-up";
+const PERCENT_UNIT = "%";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
+  // Declared like the server schema: Vue casts a missing boolean to false.
+  showGrid: true,
+  roundedCorners: true,
   showTooltip: true,
   showLegend: true,
   smooth: true,
@@ -274,13 +283,19 @@ const heightInPx = computed(() => props.height);
        DmsChartCard inherit its frame instead. -->
   <div
     class="dms-chart"
-    :class="nestedContext ? undefined : 'dms-card p-5 sm:p-6'"
+    :class="nestedContext ? undefined : 'dms-card p-3.5 sm:pr-[18px]'"
   >
-    <div v-if="!nestedContext && (title || description)" class="mb-3">
-      <h3 v-if="title" class="text-highlighted text-lg font-semibold">
+    <div
+      v-if="!nestedContext && (title || description)"
+      class="mb-2.5 px-1 pt-0.5"
+    >
+      <h3
+        v-if="title"
+        class="text-highlighted text-sm leading-[1.3] font-semibold tracking-[-0.01em]"
+      >
         {{ processI18n(title) }}
       </h3>
-      <p v-if="description" class="text-dimmed text-sm">
+      <p v-if="description" class="text-dimmed mt-px text-[12.5px]">
         {{ processI18n(description) }}
       </p>
     </div>
@@ -295,20 +310,30 @@ const heightInPx = computed(() => props.height);
       />
       <div
         v-else-if="isLoading"
-        class="bg-elevated/30 flex items-center justify-center rounded-md"
+        class="flex items-end gap-2.5 border-b border-(--dms-chart-grid) px-1.5"
         :style="{ height: heightInPx }"
+        aria-busy="true"
       >
-        <USkeleton class="h-full w-full" />
+        <USkeleton
+          v-for="(barHeight, index) in GHOST_BAR_HEIGHTS"
+          :key="index"
+          class="flex-1 rounded-t-[4px] rounded-b-none bg-(--dms-skeleton)"
+          :style="{ height: `${barHeight}${PERCENT_UNIT}` }"
+        />
       </div>
-      <div
+      <DmsEmptyState
         v-else
-        class="text-dimmed flex items-center justify-center text-sm"
+        :icon="EMPTY_ICON"
+        :title="$t('dms.chart.no_data')"
+        size="sm"
+        class="border-default place-content-center rounded-lg border border-dashed"
         :style="{ height: heightInPx }"
-      >
-        {{ $t("dms.chart.no_data") }}
-      </div>
+      />
       <template #fallback>
-        <USkeleton class="w-full" :style="{ height: heightInPx }" />
+        <USkeleton
+          class="w-full bg-(--dms-skeleton)"
+          :style="{ height: heightInPx }"
+        />
       </template>
     </DmsClientOnly>
   </div>

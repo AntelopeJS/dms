@@ -171,7 +171,7 @@ describe("chart color tokens", () => {
     vi.mocked(document.createElement).mockReturnValueOnce({
       getContext: () => context,
     } as unknown as HTMLCanvasElement);
-    expect(resolveChartColor("primary-500")).toBe("rgba(92, 76, 200, 1)");
+    expect(resolveChartColor("primary-500")).toBe("rgb(92, 76, 200)");
     expect(context.fillStyle).toBe(computedColor);
   });
 });

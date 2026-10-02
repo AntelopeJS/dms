@@ -9,6 +9,8 @@ import {
 } from "./category";
 
 const DEMO_PROJECT_IDS = ["invoicer", "resto-lucca", "sleepy-api"];
+// The first project shows a count badge instead of its status dot.
+const DEMO_BADGES: Record<string, string> = { invoicer: "3" };
 const STATUS_CYCLE: MenuItemStatus[] = [
   "success",
   "warning",
@@ -39,6 +41,7 @@ function buildDemoProjects(): DynamicMenuItem[] {
     icon: "i-ph-cube",
     order: index,
     status: statusOf(index),
+    badge: DEMO_BADGES[id],
   }));
 }
 

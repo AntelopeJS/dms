@@ -1,25 +1,23 @@
-// The helpers the TableView factory chains together: form redirection, custom
-// button permissions, controller rules, kanban column eligibility and display
-// serialization, and the filter-tab route check.
+// The helpers the TableView factory chains together: action and display
+// serialization, the actions it declares, and its page-mode form pages (their
+// slugs, URLs, redirection and filter defaults).
 //
-// Split out of factory.ts.
+// Split out of factory.ts. The declaration checks live in `./validation`, the
+// filter tabs in `./tabs`, the per-request filtering in `./request-filter` and
+// the write's table key in `./table-view-key`.
 
-import type { ControllerClass } from "@antelopejs/interface-api";
-import { Logging } from "@antelopejs/interface-core/logging";
-import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
-import {
-  ComponentBuilder,
-  type ComponentFilterContext,
-  resolveButtonPermissionId,
-} from "../../component";
-import { HasPermission } from "../../permissions";
-import { getDataTypeId } from "../data-types";
+import { ComponentBuilder } from "../../component";
 import { type FormBuilder, FormEvents } from "../form-types";
+import type {
+  ActionTarget,
+  ActionTargetSerialized,
+} from "../types/action-target";
 import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
+import { VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
 import {
   type FormContainerPages,
@@ -30,7 +28,11 @@ import {
   type RouteParamFilters,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
+  type TableViewExpandableOptions,
+  type TableViewExpandableSerialized,
   type TableViewFormPageUrls,
+  type TableViewRowActionOptions,
+  type TableViewRowActionOptionsSerialized,
 } from "./options";
 
 export type FormPageKind = keyof TableViewFormPageUrls;
@@ -71,144 +73,162 @@ export function applyFormRedirect<T>(
   );
 }
 
-export function applyPermissionToAction(
-  hasPermission: boolean,
-  actionConfig: boolean | RowActionConfig | undefined,
-): boolean | RowActionConfig | undefined {
-  if (!hasPermission) {
-    return false;
+/**
+ * An action target as the options carry it: a component target is serialized,
+ * every other kind is plain data already.
+ */
+export function serializeActionTarget(
+  target: ActionTarget,
+): ActionTargetSerialized {
+  if (
+    target.type === "page" ||
+    target.type === "external" ||
+    target.type === "api" ||
+    target.type === "exportJob"
+  ) {
+    return target;
   }
-  return typeof actionConfig === "undefined" ? true : actionConfig;
+  return {
+    ...target,
+    component: target.component.serializeSync(),
+  };
 }
 
-// A declared permission that cannot be resolved to an id (e.g. an action on a
-// page that never registered) fails closed.
-async function isCustomButtonGranted(
-  permissions: Set<string>,
-  declared: CustomButton | undefined,
-  componentPermissionId: string,
-): Promise<boolean> {
-  if (declared?.permission === undefined) return true;
-  const permissionId = resolveButtonPermissionId(
-    declared.permission,
-    componentPermissionId,
+/**
+ * Custom buttons as the options carry them: their permission and availability
+ * stay server-side, applied per request.
+ */
+export function serializeCustomButtons(
+  buttons: CustomButton[] | undefined,
+): CustomButtonSerialized[] | undefined {
+  return buttons?.map(
+    ({ permission: _permission, availability: _availability, ...btn }) => ({
+      ...btn,
+      target: serializeActionTarget(btn.target),
+    }),
   );
-  return !!permissionId && (await HasPermission(permissions, permissionId));
 }
 
-// A resolver that throws leaves the button enabled: the operation behind it
-// still refuses on its own, and failing the layout would take the page down.
-async function applyCustomButtonAvailability(
-  declared: CustomButton | undefined,
-  serialized: CustomButtonSerialized,
-  context: ComponentFilterContext,
-): Promise<CustomButtonSerialized> {
-  if (!declared?.availability) return serialized;
-  try {
-    const unavailability = await declared.availability(context);
-    if (!unavailability) return serialized;
-    return {
-      ...serialized,
-      disabled: true,
-      disabledReason: unavailability.reason,
-    };
-  } catch (error) {
-    Logging.Error(
-      `[dms] availability of button "${serialized.id ?? serialized.label}" could not be resolved:`,
-      error,
-    );
-    return serialized;
+export function serializeRowActions<T extends Record<string, unknown>>(
+  rowActions: TableViewRowActionOptions<T>,
+): TableViewRowActionOptionsSerialized {
+  return {
+    delete: rowActions.delete as boolean | RowActionConfig | undefined,
+    archive: rowActions.archive as boolean | RowActionConfig | undefined,
+    restore: rowActions.restore as boolean | RowActionConfig | undefined,
+    duplicate: rowActions.duplicate as boolean | RowActionConfig | undefined,
+    details: rowActions.details as boolean | RowActionConfig | undefined,
+    edit: rowActions.edit as boolean | RowActionConfig | undefined,
+    copyLink: rowActions.copyLink as boolean | RowActionConfig | undefined,
+    add: rowActions.add as boolean | RowActionConfig | undefined,
+    hasSelection: rowActions.hasSelection,
+    custom: rowActions.custom?.map((action) => ({
+      label: action.label,
+      icon: action.icon,
+      rule: action.rule as RowActionRule | undefined,
+      target: serializeActionTarget(action.target),
+      isVisible: action.isVisible,
+      isDefault: action.isDefault,
+      color: action.color,
+      variant: action.variant,
+      showLabel: action.showLabel,
+    })),
+  };
+}
+
+/** What a table view can do, which decides the actions it declares. */
+export interface TableViewCapabilities {
+  hasNewForm: boolean;
+  hasEditForm: boolean;
+  hasViewForm: boolean;
+  hasDeleteEndpoint: boolean;
+  archiveMode: boolean;
+  isExportEnabled: boolean;
+}
+
+/**
+ * Declare the actions of a table view after the list and select ones every
+ * table has: one per form, delete, the archive trio and export, each only
+ * when the table view can perform it.
+ */
+export function registerTableViewActions<T>(
+  builder: ComponentBuilder<T>,
+  capabilities: TableViewCapabilities,
+): void {
+  if (capabilities.hasNewForm) {
+    builder.action("add", {
+      title: "$dms.table.action_add",
+      icon: "i-ph-plus",
+    });
+  }
+  if (capabilities.hasEditForm) {
+    builder.action("edit", {
+      title: "$dms.table.action_edit",
+      icon: "i-ph-pencil",
+    });
+  }
+  if (capabilities.hasViewForm) {
+    builder.action(VIEW_ACTION, {
+      title: "$dms.table.action_view",
+      icon: "i-ph-eye",
+    });
+  }
+  if (capabilities.hasDeleteEndpoint) {
+    builder.action("delete", {
+      title: "$dms.table.action_delete",
+      icon: "i-ph-trash",
+    });
+  }
+  if (capabilities.archiveMode) {
+    builder.action("archive", {
+      title: "$dms.table.action_archive",
+      icon: "i-ph-archive",
+    });
+    builder.action("restore", {
+      title: "$dms.table.action_restore",
+      icon: "i-ph-arrow-counter-clockwise",
+    });
+    builder.action("viewArchived", {
+      title: "$dms.table.action_view_archived",
+      icon: "i-ph-eye-closed",
+    });
+  }
+  if (capabilities.isExportEnabled) {
+    builder.action("export", {
+      title: "$dms.table.action_export",
+      icon: "i-ph-download-simple",
+    });
   }
 }
 
 /**
- * The custom buttons served to one request: those whose permission the caller
- * lacks are stripped, and those whose `availability` refuses the request are
- * disabled with its reason.
+ * The detail band of expandable rows, with its fields normalized to objects
+ * and its component serialized. Every field must name a declared column: its
+ * value renders through that column's data type.
  */
-export async function resolveCustomButtons(
-  permissions: Set<string>,
-  declaredButtons: CustomButton[] | undefined,
-  serializedButtons: CustomButtonSerialized[] | undefined,
-  componentPermissionId: string,
-  context: ComponentFilterContext,
-): Promise<CustomButtonSerialized[] | undefined> {
-  if (!declaredButtons || !serializedButtons) {
-    return serializedButtons;
-  }
-  const kept: CustomButtonSerialized[] = [];
-  for (const [index, serialized] of serializedButtons.entries()) {
-    const declared = declaredButtons[index];
-    if (
-      !(await isCustomButtonGranted(
-        permissions,
-        declared,
-        componentPermissionId,
-      ))
-    ) {
-      continue;
-    }
-    kept.push(
-      await applyCustomButtonAvailability(declared, serialized, context),
-    );
-  }
-  return kept;
-}
-
-// Row action rules are registered once per controller but enforced server-side
-// for every table view on that controller; expose them to pages that did not
-// declare their own rule so their UI matches what the server will accept.
-export function mergeControllerRule(
-  actionConfig: boolean | RowActionConfig | undefined,
-  rule: RowActionRule | undefined,
-): boolean | RowActionConfig | undefined {
-  if (!rule || !actionConfig) {
-    return actionConfig;
-  }
-  if (actionConfig === true) {
-    return { isEnabled: true, rule };
-  }
-  if (!actionConfig.rule) {
-    return { ...actionConfig, rule };
-  }
-  return actionConfig;
-}
-
-interface KanbanGroupColumnType {
-  options?: { multiple?: boolean };
-}
-
-const KANBAN_GROUP_TYPE_ELIGIBILITY: Record<
-  string,
-  (type: KanbanGroupColumnType) => boolean
-> = {
-  select: (type) => !type.options?.multiple,
-  boolean: () => true,
-  status: () => true,
-};
-
-export function validateKanbanField(
+export function serializeExpandable(
   controllerName: string,
   meta: TableViewMeta,
-  groupByField: string,
-): void {
-  const groupColumn = meta.columns[groupByField];
-  if (!groupColumn) {
-    throw new Error(
-      `TableView kanban groupByField on ${controllerName} references unknown column "${groupByField}"`,
-    );
+  expandable: TableViewExpandableOptions | undefined,
+): TableViewExpandableSerialized | undefined {
+  if (!expandable) return undefined;
+  const fields = expandable.fields?.map((field) =>
+    typeof field === "string" ? { key: field } : field,
+  );
+  for (const { key } of fields ?? []) {
+    if (!meta.columns[key]) {
+      throw new Error(
+        `TableView expandable fields on ${controllerName} references unknown column "${key}"`,
+      );
+    }
   }
-  const typeId = getDataTypeId(groupColumn.type);
-  const isEligible =
-    typeId !== undefined &&
-    KANBAN_GROUP_TYPE_ELIGIBILITY[typeId]?.(
-      groupColumn.type as KanbanGroupColumnType,
-    );
-  if (!isEligible) {
-    throw new Error(
-      `TableView kanban groupByField "${groupByField}" on ${controllerName} must be a non-multiple SelectType, a BooleanType or a StatusType column (got "${typeId}")`,
-    );
-  }
+  return {
+    fields,
+    fieldsLabel: expandable.fieldsLabel,
+    component: expandable.component?.serializeSync(),
+    defaultExpanded: expandable.defaultExpanded,
+    single: expandable.single,
+  };
 }
 
 /**
@@ -285,9 +305,6 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
 export const FORM_PAGE_KINDS = Object.keys(
   FORM_PAGE_DEFINITIONS,
 ) as FormPageKind[];
-
-/** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
-export const ROW_SCOPED_FORM_PAGE_KINDS: FormPageKind[] = ["edit", "view"];
 
 /** Append a form page slug to the slug of the page carrying the table view. */
 export function joinPageSlug(pageSlug: string, slug: string): string {
@@ -494,42 +511,4 @@ export function applyFormPageSubmitDefaults(
 ): void {
   const submitDefaults = buildFilterSubmitDefaults(filters, frame);
   if (submitDefaults) form.mergeOptions({ submitDefaults });
-}
-
-const COUNT_BATCH_PATH = "count/batch";
-const COUNT_BATCH_METHOD = "post";
-const EDGE_SLASHES = /^\/+|\/+$/g;
-
-const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
-
-// Matched on the mounted path and method rather than on the route object: a
-// module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
-function servesCountBatch(
-  endpoints: Record<string, DataControllerCallbackWithOptions>,
-): boolean {
-  return Object.entries(endpoints).some(
-    ([key, entry]) =>
-      (entry.endpoint ?? key).replace(EDGE_SLASHES, "") === COUNT_BATCH_PATH &&
-      entry.callback.method.toLowerCase() === COUNT_BATCH_METHOD,
-  );
-}
-
-/**
- * Warn, once per controller, when a table view declares filter tabs but its
- * controller mounts no `POST count/batch` route: every tab counter request
- * would fail. The fix belongs in the controller (mount
- * `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
- */
-export function warnIfTabsLackCountBatch(
-  controller: ControllerClass,
-  location: string,
-  hasTabs: boolean,
-  endpoints: Record<string, DataControllerCallbackWithOptions>,
-): void {
-  if (!hasTabs || controllersWarnedForTabCounts.has(controller)) return;
-  if (servesCountBatch(endpoints)) return;
-  controllersWarnedForTabCounts.add(controller);
-  Logging.Warn(
-    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: tab counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
-  );
 }

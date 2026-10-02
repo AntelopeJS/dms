@@ -13,6 +13,8 @@ export interface KanbanDisplayBridge {
   groupByField: Ref<string>;
   editAction?: boolean | RowActionConfig;
   deleteAction?: boolean | RowActionConfig;
+  /** The table view's key, sent with the board's writes (row rules). */
+  tableViewKey?: string;
 }
 
 export const KANBAN_DISPLAY_BRIDGE_KEY: InjectionKey<KanbanDisplayBridge> =

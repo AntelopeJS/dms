@@ -45,15 +45,22 @@
       "add_filter": "Add a filter",
       "between_separator": "and",
       "link_copied": "Link copied!",
-      "delete_rows": "{count} items deleted",
+      "delete_rows": "{count} item deleted | {count} items deleted",
       "delete_error": "Failed to delete items",
-      "delete_confirm_title": "Confirm deletion",
-      "delete_confirm_description": "Are you sure you want to delete {count} item(s)? This action cannot be undone.",
-      "delete_confirm_button": "Delete",
-      "archive_rows": "{count} items archived",
+      "delete_confirm_title": "Delete this item? | Delete {count} items?",
+      "delete_confirm_description": "The selected item will be deleted. This action cannot be undone. | The {count} selected items will be deleted. This action cannot be undone.",
+      "delete_confirm_button": "Delete | Delete {count} items",
+      "delete_permanently_confirm_title": "Permanently delete this archived item? | Permanently delete {count} archived items?",
+      "delete_permanently_confirm_description": "The selected item will be removed for good: it cannot be restored. | The {count} selected items will be removed for good: they cannot be restored.",
+      "delete_permanently_confirm_button": "Delete permanently | Delete {count} permanently",
+      "archive_confirm_title": "Archive this item? | Archive {count} items?",
+      "archive_confirm_description": "The selected item will be hidden from the list until it is restored. | The {count} selected items will be hidden from the list until they are restored.",
+      "archive_confirm_button": "Archive | Archive {count} items",
+      "archive_rows": "{count} item archived | {count} items archived",
       "archive_error": "Failed to archive items",
-      "restore_rows": "{count} items restored",
+      "restore_rows": "{count} item restored | {count} items restored",
       "restore_error": "Failed to restore items",
+      "bulk_skipped": "{count} selected item was skipped: its row rules do not allow this action, or it was already done. | {count} selected items were skipped: their row rules do not allow this action, or it was already done.",
       "duplicate_rows": "{count} items duplicated",
       "duplicate_error": "Failed to duplicate items",
       "compare_mode": {
@@ -90,6 +97,20 @@
       "action_view_archived": "View archived items",
       "show_active": "Show active items",
       "show_archived": "Show archived items",
+      "archived": "Archived",
+      "archive_toggle": "Archive",
+      "archived_count": "{count} archived",
+      "archive_strip_title": "Viewing archived items.",
+      "archive_strip_description": "They are hidden from the regular list until restored.",
+      "archived_empty_title": "No archived items",
+      "archived_empty_message": "Items you archive show up here.",
+      "delete_permanently": "Delete permanently",
+      "row_selection_count": "{count} of {total} selected",
+      "row_selection_count_only": "{count} selected",
+      "select_page": "Select the whole page",
+      "clear_selection": "Clear selection",
+      "expand_row": "Expand row",
+      "collapse_row": "Collapse row",
       "tabs": {
         "all": "All"
       },
@@ -107,11 +128,21 @@
       "kanban": {
         "group_by": "Group by",
         "load_more": "Load more",
+        "load_more_count": "Load {count} more",
+        "locked": "Locked",
         "move_error": "Failed to move the card",
         "no_columns": "No eligible column to group by",
         "move_success": "Card moved to “{column}”"
       },
-      "view_mode_title": "View mode"
+      "view_mode_title": "View mode",
+      "view_mode_cards": "Cards",
+      "quick_filter": {
+        "all": "All"
+      },
+      "cell": {
+        "now": "Now",
+        "by": "{date} · by {name}"
+      }
     },
     "table_form": {
       "edit_title": "Edit item",
@@ -171,6 +202,7 @@
       "error_missing_fields": "Missing required fields",
       "error_fill_all_fields": "Please fill in all required fields",
       "required_legend": "Required fields",
+      "unsaved_changes": "Unsaved changes",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
       "select_date": "Select date",
@@ -346,6 +378,22 @@
           "description": "Navigate to tab with defined shortcut",
           "condition": "Dynamically generated from item.shortcut property"
         }
+      },
+      "global": {
+        "meta_k": {
+          "description": "Open command palette"
+        },
+        "slash": {
+          "description": "Focus the navigation search",
+          "condition": "The settings menu search on settings pages, the module search on Modules"
+        },
+        "meta_slash": {
+          "description": "Focus the page's own search",
+          "condition": "Settings pages with a search of their own, such as this one"
+        },
+        "escape": {
+          "description": "Close dialogs, menus and the palette"
+        }
       }
     },
     "notifications": {
@@ -374,7 +422,8 @@
         "module_one_updates": "Threat reports",
         "module_one_updates_desc": "Updates on security threats and vulnerabilities",
         "module_two_notifications": "Shipment updates",
-        "module_two_notifications_desc": "Updates on shipping and inventory"
+        "module_two_notifications_desc": "Updates on shipping and inventory",
+        "updates_badge": "Developer mode"
       },
       "preferences": {
         "success": "Notification preferences updated",
@@ -461,6 +510,49 @@
       "concurrent_edit_banner_description": "Another user saved changes while you were editing. Saving now will overwrite their changes.",
       "concurrent_edit_banner_discard": "Discard and refresh",
       "concurrent_edit_banner_keep": "Keep editing"
+    },
+    "check_list": {
+      "state": {
+        "ok": "met",
+        "warn": "warning",
+        "error": "not met",
+        "pending": "not met yet",
+        "info": "note"
+      }
+    },
+    "password_rules": {
+      "head": "{met} of {total} met",
+      "verdict": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "almost": "Almost there",
+        "strong": "Strong"
+      }
+    },
+    "list_row": {
+      "unread": "Unread"
+    },
+    "activity_feed": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "view_all": "View all",
+      "empty_title": "No activity yet",
+      "error_title": "Activity could not be loaded",
+      "error_description": "Check your connection, then try again.",
+      "retry": "Try again"
+    },
+    "save_bar": {
+      "unsaved": "Unsaved changes",
+      "discard": "Discard",
+      "save": "Save changes",
+      "saving": "Saving",
+      "saved": "Saved"
+    },
+    "blocks": {
+      "empty": "Nothing to show yet",
+      "load_error": "Couldn't load this block",
+      "load_error_hint": "Check your connection, then try again.",
+      "retry": "Try again"
     }
   }
 }

@@ -10,6 +10,7 @@ import { parseUserAgent } from "./user-agent";
 
 const MESSAGES_PREFIX = "$dms.notifications.messages";
 const PROFILE_LINK = "/settings/user/profile";
+const SECURITY_LINK = "/settings/user/security";
 const ADMINS_LINK = "/settings/user/admins";
 
 interface NotificationTemplate {
@@ -24,43 +25,43 @@ const templates = {
     icon: "i-ph-sign-in",
     subject: SecuritySubject,
     messageId: "new_login",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   newLoginUnknownDevice: {
     icon: "i-ph-sign-in",
     subject: SecuritySubject,
     messageId: "new_login_unknown_device",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   passwordChanged: {
     icon: "i-ph-key",
     subject: SecuritySubject,
     messageId: "password_changed",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   loginMethodAdded: {
     icon: "i-ph-plugs-connected",
     subject: SecuritySubject,
     messageId: "login_method_added",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   passwordReset: {
     icon: "i-ph-key",
     subject: SecuritySubject,
     messageId: "password_reset",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   emailChanged: {
     icon: "i-ph-envelope-simple",
     subject: SecuritySubject,
     messageId: "email_changed",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   backupCodesRegenerated: {
     icon: "i-ph-arrows-clockwise",
     subject: SecuritySubject,
     messageId: "backup_codes_regenerated",
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   },
   welcome: {
     icon: "i-ph-hand-waving",
@@ -94,7 +95,7 @@ function twoFactorTemplate(
     icon: TWO_FACTOR_ICONS[state],
     subject: SecuritySubject,
     messageId: `two_factor_${state}_${safeMethod}`,
-    linkTo: PROFILE_LINK,
+    linkTo: SECURITY_LINK,
   };
 }
 

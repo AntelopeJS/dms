@@ -13,6 +13,15 @@ import type { DefaultDataTypes } from "../../../base/data-types/default-types";
 
 export const USERS_TABLE_NAME = "users";
 
+/** First day of the week: 0 Sunday, 1 Monday, 6 Saturday. */
+export type UserWeekStart = 0 | 1 | 6;
+
+/** `h23`: 24-hour clock (14:05); `h12`: 12-hour clock (2:05 PM). */
+export type UserTimeFormat = "h23" | "h12";
+
+/** `numeric`: 01/10/2026; `text`: the month as a word (1 Oct 2026). */
+export type UserDateFormat = "numeric" | "text";
+
 @RegisterTable(USERS_TABLE_NAME, CORE_SCHEMA_NAME)
 export class User extends Table.with(HashModifier) {
   /* 📅 Meta */
@@ -51,10 +60,35 @@ export class User extends Table.with(HashModifier) {
   @Field("string")
   declare language: string;
 
+  /* 🌍 Regional preferences — unset or null follows the browser and the language */
+
+  /** IANA time zone dates and times are shown in (`Europe/Brussels`). */
+  @Field("string")
+  declare timeZone?: string | null;
+
+  /** First day of the week in calendars and date pickers. */
+  @Field("number")
+  declare weekStart?: UserWeekStart | null;
+
+  /** Clock used for times. */
+  @Field("string")
+  declare timeFormat?: UserTimeFormat | null;
+
+  /** How full dates are written. */
+  @Field("string")
+  declare dateFormat?: UserDateFormat | null;
+
   /* 🔑 Authentication data */
   @Hashed()
   @Field("string")
   declare password: string | null;
+
+  /**
+   * When the password was last set by the user (change or recovery); null
+   * for accounts that never changed it since this field exists.
+   */
+  @Field("date")
+  declare passwordChangedAt: Date | null;
 
   /* ⚙️ Extra Meta */
 
@@ -103,6 +137,14 @@ export class User extends Table.with(HashModifier) {
   @Field("boolean")
   declare owner: boolean;
 
+  /**
+   * Last time the user was seen using the dashboard with a valid access token.
+   * Written at most once per `USER_ACTIVITY_WRITE_INTERVAL_MS`, so it is
+   * accurate to that interval; `null` until the first authenticated request.
+   */
+  @Field("date")
+  declare lastActiveAt: Date | null;
+
   @Field(["string"])
   declare twoFactorMethods: string[];
 
@@ -114,6 +156,17 @@ export class User extends Table.with(HashModifier) {
 
   @Field(["string"])
   declare twoFactorBackupCodes: string[];
+
+  /** When the current set of backup codes was generated. */
+  @Field("date")
+  declare twoFactorBackupCodesGeneratedAt: Date | null;
+
+  /**
+   * When the user confirmed they kept the current backup codes (downloaded,
+   * copied or acknowledged); null until then.
+   */
+  @Field("date")
+  declare twoFactorBackupCodesSavedAt: Date | null;
 
   @Field("string")
   declare twoFactorEmailCode: string | null;

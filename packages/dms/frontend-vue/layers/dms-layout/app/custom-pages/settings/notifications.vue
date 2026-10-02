@@ -4,12 +4,8 @@ import NotificationsList from "../../build/components/pages/settings/notificatio
 </script>
 
 <template>
-  <div class="space-y-5 pb-16">
-    <DmsCard as="section">
-      <NotificationPreferencesForm />
-    </DmsCard>
-    <DmsCard as="section">
-      <NotificationsList />
-    </DmsCard>
+  <div class="pb-16">
+    <NotificationPreferencesForm />
+    <NotificationsList />
   </div>
 </template>

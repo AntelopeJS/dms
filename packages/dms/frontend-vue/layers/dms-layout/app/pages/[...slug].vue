@@ -486,6 +486,7 @@ if (import.meta.env.DEV) {
         :page-id="pagelayoutMetadata?.fullId ?? ''"
         :component-id="component.id"
         :route-params="routeParams"
+        :layout-path="component.id"
       />
     </div>
   </TransitionGroup>

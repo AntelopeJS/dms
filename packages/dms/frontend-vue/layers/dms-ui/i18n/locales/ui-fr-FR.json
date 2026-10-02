@@ -45,15 +45,22 @@
       "add_filter": "Ajouter un filtre",
       "between_separator": "et",
       "link_copied": "Lien copié !",
-      "delete_rows": "{count} éléments supprimés",
+      "delete_rows": "{count} élément supprimé | {count} éléments supprimés",
       "delete_error": "Échec de la suppression des éléments",
-      "delete_confirm_title": "Confirmer la suppression",
-      "delete_confirm_description": "Êtes-vous sûr de vouloir supprimer {count} élément(s) ? Cette action est irréversible.",
-      "delete_confirm_button": "Supprimer",
-      "archive_rows": "{count} éléments archivés",
+      "delete_confirm_title": "Supprimer cet élément ? | Supprimer {count} éléments ?",
+      "delete_confirm_description": "L'élément sélectionné sera supprimé. Cette action est irréversible. | Les {count} éléments sélectionnés seront supprimés. Cette action est irréversible.",
+      "delete_confirm_button": "Supprimer | Supprimer {count} éléments",
+      "delete_permanently_confirm_title": "Supprimer définitivement cet élément archivé ? | Supprimer définitivement {count} éléments archivés ?",
+      "delete_permanently_confirm_description": "L'élément sélectionné sera supprimé pour de bon : il ne pourra pas être restauré. | Les {count} éléments sélectionnés seront supprimés pour de bon : ils ne pourront pas être restaurés.",
+      "delete_permanently_confirm_button": "Supprimer définitivement | Supprimer {count} définitivement",
+      "archive_confirm_title": "Archiver cet élément ? | Archiver {count} éléments ?",
+      "archive_confirm_description": "L'élément sélectionné sera masqué de la liste jusqu'à sa restauration. | Les {count} éléments sélectionnés seront masqués de la liste jusqu'à leur restauration.",
+      "archive_confirm_button": "Archiver | Archiver {count} éléments",
+      "archive_rows": "{count} élément archivé | {count} éléments archivés",
       "archive_error": "Échec de l'archivage des éléments",
-      "restore_rows": "{count} éléments restaurés",
+      "restore_rows": "{count} élément restauré | {count} éléments restaurés",
       "restore_error": "Échec de la restauration des éléments",
+      "bulk_skipped": "{count} élément sélectionné a été ignoré : ses règles n'autorisent pas cette action, ou elle était déjà faite. | {count} éléments sélectionnés ont été ignorés : leurs règles n'autorisent pas cette action, ou elle était déjà faite.",
       "duplicate_rows": "{count} éléments dupliqués",
       "duplicate_error": "Échec de la duplication des éléments",
       "compare_mode": {
@@ -90,6 +97,20 @@
       "action_view_archived": "Voir les éléments archivés",
       "show_active": "Voir les éléments actifs",
       "show_archived": "Voir les éléments archivés",
+      "archived": "Archivés",
+      "archive_toggle": "Archives",
+      "archived_count": "{count} archivés",
+      "archive_strip_title": "Éléments archivés.",
+      "archive_strip_description": "Ils restent masqués de la liste habituelle jusqu’à leur restauration.",
+      "archived_empty_title": "Aucun élément archivé",
+      "archived_empty_message": "Les éléments que vous archivez apparaissent ici.",
+      "delete_permanently": "Supprimer définitivement",
+      "row_selection_count": "{count} sur {total} sélectionnés",
+      "row_selection_count_only": "{count} sélectionné | {count} sélectionnés",
+      "select_page": "Sélectionner toute la page",
+      "clear_selection": "Effacer la sélection",
+      "expand_row": "Déplier la ligne",
+      "collapse_row": "Replier la ligne",
       "tabs": {
         "all": "Tous"
       },
@@ -107,11 +128,21 @@
       "kanban": {
         "group_by": "Grouper par",
         "load_more": "Charger plus",
+        "load_more_count": "Charger {count} de plus",
+        "locked": "Verrouillé",
         "move_error": "Impossible de déplacer la carte",
         "no_columns": "Aucune colonne éligible pour le groupage",
         "move_success": "Carte déplacée vers « {column} »"
       },
-      "view_mode_title": "Mode d'affichage"
+      "view_mode_title": "Mode d'affichage",
+      "view_mode_cards": "Cartes",
+      "quick_filter": {
+        "all": "Tous"
+      },
+      "cell": {
+        "now": "Maintenant",
+        "by": "{date} · par {name}"
+      }
     },
     "table_form": {
       "edit_title": "Modifier l'élément",
@@ -171,6 +202,7 @@
       "error_missing_fields": "Champs requis manquants",
       "error_fill_all_fields": "Veuillez remplir tous les champs requis",
       "required_legend": "Champs requis",
+      "unsaved_changes": "Modifications non enregistrées",
       "error_not_submitted": "Le formulaire n'a pas été soumis",
       "fetch_error_title": "Échec de la récupération des données",
       "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
@@ -347,6 +379,22 @@
           "description": "Naviguer vers l'onglet avec le raccourci défini",
           "condition": "Généré dynamiquement depuis la propriété item.shortcut"
         }
+      },
+      "global": {
+        "meta_k": {
+          "description": "Ouvrir la palette de commandes"
+        },
+        "slash": {
+          "description": "Aller à la recherche de navigation",
+          "condition": "La recherche du menu des paramètres sur les pages de paramètres, celle des modules sur Modules"
+        },
+        "meta_slash": {
+          "description": "Aller à la recherche propre à la page",
+          "condition": "Pages de paramètres qui ont leur propre recherche, comme celle-ci"
+        },
+        "escape": {
+          "description": "Fermer les dialogues, les menus et la palette"
+        }
       }
     },
     "notifications": {
@@ -375,7 +423,8 @@
         "module_one_updates": "Rapports de menaces",
         "module_one_updates_desc": "Mises à jour sur les menaces et vulnérabilités de sécurité",
         "module_two_notifications": "Suivi des expéditions",
-        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire"
+        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire",
+        "updates_badge": "Mode développeur"
       },
       "preferences": {
         "success": "Préférences de notification mises à jour",
@@ -462,6 +511,49 @@
       "concurrent_edit_banner_description": "Un autre utilisateur a enregistré des modifications pendant votre édition. Enregistrer maintenant écrasera ses modifications.",
       "concurrent_edit_banner_discard": "Annuler et actualiser",
       "concurrent_edit_banner_keep": "Continuer l'édition"
+    },
+    "check_list": {
+      "state": {
+        "ok": "respectée",
+        "warn": "avertissement",
+        "error": "non respectée",
+        "pending": "pas encore respectée",
+        "info": "note"
+      }
+    },
+    "password_rules": {
+      "head": "{met} sur {total} respectées",
+      "verdict": {
+        "weak": "Faible",
+        "fair": "Moyen",
+        "almost": "Presque",
+        "strong": "Robuste"
+      }
+    },
+    "list_row": {
+      "unread": "Non lu"
+    },
+    "activity_feed": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "view_all": "Tout voir",
+      "empty_title": "Aucune activité pour l'instant",
+      "error_title": "Impossible de charger l'activité",
+      "error_description": "Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    },
+    "save_bar": {
+      "unsaved": "Modifications non enregistrées",
+      "discard": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement",
+      "saved": "Enregistré"
+    },
+    "blocks": {
+      "empty": "Rien à afficher pour l'instant",
+      "load_error": "Impossible de charger ce bloc",
+      "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
     }
   }
 }

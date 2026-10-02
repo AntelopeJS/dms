@@ -12,7 +12,8 @@ export class PageTableViewGrouped extends PageController(
     icon: "i-ph-squares-four",
     category: tableViewCategory,
     order: 50,
-    description: "TableView with grouped form fields",
+    description:
+      "Form fields grouped into titled sections inside the add / edit form",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

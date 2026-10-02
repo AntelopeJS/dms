@@ -4,7 +4,8 @@
 // It receives the single normalized `context` prop every display gets. It
 // leaves `selfManagedData` unset in the page config (the default), so it
 // consumes the shared list query and inherits search/filters/sorting/pagination
-// for free.
+// for free. It renders inside the table card, so the shared footer
+// (`DmsPagination`) and empty state (`DmsEmpty`) plug straight in.
 //
 // The context type is mirrored locally so this example stays decoupled from the
 // dms package's internal type paths (same approach as KanbanTaskCard.vue).
@@ -13,7 +14,7 @@ interface ColumnMeta {
   header: string;
   accessorKey: string;
   listable?: boolean;
-  type?: { id: string };
+  type?: { id: string; inputComponent?: { options?: unknown } };
 }
 
 interface DisplayContext {
@@ -25,12 +26,6 @@ interface DisplayContext {
   selection: {
     isSelected: (id: string) => boolean;
     toggle: (id: string, value?: boolean) => void;
-  };
-  pagination: {
-    pageIndex: number;
-    pageSize: number;
-    total: number;
-    setPage: (index: number) => void;
   };
   actions: {
     canAdd: boolean;
@@ -44,7 +39,14 @@ interface DisplayContext {
 
 const props = defineProps<{ context: DisplayContext }>();
 
+const MAX_CARD_FIELDS = 4;
+const SKELETON_CARD_COUNT = 6;
+const INITIALS_LENGTH = 2;
+const EMPTY_VALUE = "—";
+
 const { locale } = useI18n();
+const { processI18n } = useTranslation();
+const { getDataType } = useDataTypes();
 
 const getValue = (item: Record<string, unknown>, path: string): unknown =>
   path
@@ -67,87 +69,107 @@ const title = (item: Record<string, unknown>): string => {
     : rowId(item);
 };
 
+const initials = (item: Record<string, unknown>): string =>
+  title(item)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, INITIALS_LENGTH)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+
 const fieldColumns = computed(() =>
   props.context.columns
     .filter(
       (col) =>
-        col.listable !== false && col.accessorKey !== props.context.labelKey,
+        col.listable !== false &&
+        col.accessorKey !== props.context.labelKey &&
+        col.accessorKey !== props.context.rowIdKey,
     )
-    .slice(0, 4),
+    .slice(0, MAX_CARD_FIELDS),
 );
 
-const formatValue = (item: Record<string, unknown>, col: ColumnMeta): string => {
-  const value = getValue(item, col.accessorKey);
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean") return value ? "✓" : "✗";
-  if (col.type?.id === "date") {
-    const date = new Date(value as string);
-    if (!Number.isNaN(date.getTime())) return date.toLocaleDateString(locale.value);
+// Values go through the column's data type formatter, like table cells do
+// (status pills, links, dates, amounts).
+const FieldValue = (fieldProps: {
+  column: ColumnMeta;
+  item: Record<string, unknown>;
+}) => {
+  const value = getValue(fieldProps.item, fieldProps.column.accessorKey);
+  if (value === null || value === undefined || value === "") {
+    return h("span", { class: "text-dimmed" }, EMPTY_VALUE);
   }
-  return String(value);
+  const typeId = fieldProps.column.type?.id;
+  const formatter = typeId ? getDataType(typeId)?.formatter : undefined;
+  const rendered = formatter
+    ? formatter.default(
+        value,
+        locale.value,
+        fieldProps.column.type?.inputComponent?.options,
+      )
+    : value;
+  if (typeof rendered === "string" || typeof rendered === "number") {
+    return h("span", { class: "truncate" }, String(rendered));
+  }
+  return rendered as ReturnType<typeof h>;
 };
 
-const pageCount = computed(() =>
-  Math.max(
-    1,
-    Math.ceil(props.context.pagination.total / props.context.pagination.pageSize),
-  ),
-);
-const currentPage = computed({
-  get: () => props.context.pagination.pageIndex + 1,
-  set: (page: number) => props.context.pagination.setPage(page - 1),
-});
+const openItem = (item: Record<string, unknown>) => {
+  if (props.context.actions.canEdit) props.context.actions.edit(item);
+};
 </script>
 
 <template>
-  <div class="mt-4">
+  <div>
     <div
-      v-if="context.loading"
-      class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      v-if="context.loading && context.items.length === 0"
+      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
-      <USkeleton v-for="n in 6" :key="n" class="h-32 w-full" />
+      <USkeleton
+        v-for="n in SKELETON_CARD_COUNT"
+        :key="n"
+        class="h-36 w-full rounded-[10px]"
+      />
     </div>
 
-    <div
+    <DmsEmpty
       v-else-if="context.items.length === 0"
-      class="text-muted py-10 text-center text-sm"
-    >
-      No items
-      <div v-if="context.actions.canAdd" class="mt-2">
-        <UButton
-          size="sm"
-          icon="i-ph-plus"
-          label="New"
-          @click="context.actions.add()"
-        />
-      </div>
-    </div>
+      :can-add-row="context.actions.canAdd"
+    />
 
     <div
       v-else
-      class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      class="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
-      <div
+      <article
         v-for="item in context.items"
         :key="rowId(item)"
-        class="border-default bg-(--dms-surface-card) hover:border-primary group relative rounded-lg border p-4 transition-colors"
+        class="group border-default hover:border-primary/35 relative rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
         :class="{
-          'border-primary': context.selection.isSelected(rowId(item)),
+          'border-primary ring-primary ring-1': context.selection.isSelected(
+            rowId(item),
+          ),
           'cursor-pointer': context.actions.canEdit,
         }"
-        @click="context.actions.canEdit && context.actions.edit(item)"
+        @click="openItem(item)"
       >
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <UCheckbox
-              :model-value="context.selection.isSelected(rowId(item))"
-              @click.stop
-              @update:model-value="
-                (value: unknown) =>
-                  context.selection.toggle(rowId(item), Boolean(value))
-              "
-            />
-            <p class="truncate text-sm font-semibold">{{ title(item) }}</p>
+        <header class="flex items-center gap-2.5">
+          <span
+            class="grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
+            :class="
+              context.selection.isSelected(rowId(item))
+                ? 'bg-primary/15 text-primary'
+                : 'bg-accented text-default'
+            "
+          >
+            {{ initials(item) }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <div class="text-highlighted truncate text-[13px] font-semibold">
+              {{ title(item) }}
+            </div>
+            <div class="text-dimmed truncate font-mono text-[11px]">
+              #{{ rowId(item) }}
+            </div>
           </div>
           <UButton
             v-if="context.actions.canDelete"
@@ -159,27 +181,32 @@ const currentPage = computed({
             class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
             @click.stop="context.actions.delete([rowId(item)])"
           />
-        </div>
+          <UCheckbox
+            :model-value="context.selection.isSelected(rowId(item))"
+            :aria-label="title(item)"
+            @click.stop
+            @update:model-value="
+              (value: unknown) =>
+                context.selection.toggle(rowId(item), Boolean(value))
+            "
+          />
+        </header>
 
-        <dl class="mt-3 space-y-1">
-          <div
-            v-for="col in fieldColumns"
-            :key="col.id"
-            class="flex justify-between gap-2 text-xs"
-          >
-            <dt class="text-muted shrink-0 truncate">{{ col.header }}</dt>
-            <dd class="truncate">{{ formatValue(item, col) }}</dd>
+        <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5">
+          <div v-for="col in fieldColumns" :key="col.id" class="min-w-0">
+            <dt
+              class="text-dimmed truncate font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+            >
+              {{ processI18n(col.header) }}
+            </dt>
+            <dd class="text-default mt-0.5 flex min-w-0">
+              <FieldValue :column="col" :item="item" />
+            </dd>
           </div>
         </dl>
-      </div>
+      </article>
     </div>
 
-    <div v-if="pageCount > 1" class="mt-4 flex justify-center">
-      <UPagination
-        v-model:page="currentPage"
-        :total="context.pagination.total"
-        :items-per-page="context.pagination.pageSize"
-      />
-    </div>
+    <DmsPagination />
   </div>
 </template>

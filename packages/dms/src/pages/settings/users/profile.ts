@@ -8,7 +8,7 @@ import {
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assert, assertValidation } from "@antelopejs/interface-api-util";
+import { assert } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { SaveComponentFiles } from "@antelopejs/interface-dms/attachments";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -17,52 +17,88 @@ import {
   PageController,
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
-import { sanitizeUser, send2FAEmail } from "@antelopejs/interface-dms/auth";
+import { sanitizeUser } from "@antelopejs/interface-dms/auth";
 import {
+  normalizeEmail,
   SessionModel,
   type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import {
-  Form,
-  FormPageLayout,
-  formSchema,
-} from "@antelopejs/interface-dms/base";
+import { FormPageLayout, formSchema } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { HttpMethod } from "@antelopejs/interface-dms/base/types";
-import { generateUrl, verifyTOTP } from "2fa";
-import randomstring from "randomstring";
 import * as z from "zod";
-import { TWO_FACTOR_RATE_LIMIT_MS } from "../../../routes/auth/constants";
+import type { AccountActivityEvent } from "./account-activity";
+import { loadAccountActivity } from "./account-activity-store";
 import {
-  notifyBackupCodesRegenerated,
-  notifyEmailChanged,
-  notifyPasswordChanged,
-  notifyTwoFactorDisabled,
-  notifyTwoFactorEnabled,
-} from "../../../utils/account-notifications";
-import { generateAuthKey } from "../../../utils/auth-key";
-import { authSchema } from "../../../validation/auth.schema";
+  listSessions,
+  revokeAllSessions,
+  revokeSession,
+} from "./account-credentials";
+import { type AccountExport, AccountExportThrottle } from "./account-data";
+import {
+  type AccountDeletionImpact,
+  type AccountDeletionResult,
+  loadAccountExport,
+  loadDeletionImpact,
+  requestAccountDeletion,
+  requireStoredUser,
+} from "./account-data-store";
 import { userCategory } from "./category";
 import {
-  assertEmailAvailable,
   AVATAR_ATTACHMENT_FIELD,
   AVATAR_DIMENSION_PX,
   AVATAR_MAX_UPLOAD_BYTES,
   AVATAR_MIMETYPES,
   AVATAR_STORAGE_PATH,
   avatarAttachmentFields,
-  DMS_ISSUER,
   extractSessionId,
-  formatSession,
-  generateBackupCodes,
-  generateTotpSecret,
   HTTP_BAD_REQUEST,
-  type SessionResponse,
   type UpdateProfileInput,
-  verifyUserCode,
 } from "./profile-helpers";
+import {
+  confirmTotpSetup,
+  disableTwoFactorMethod,
+  enableEmailMethod,
+  getTwoFactorStatus,
+  regenerateBackupCodes,
+  requestTwoFactorEmailCode,
+  startTotpSetup,
+} from "./two-factor-operations";
+
+const PROFILE_URL = "/settings/user/profile";
+const IMAGE_FIELD_TYPE = "image";
+const HTTP_TOO_MANY_REQUESTS = 429;
+const ACCOUNT_EXPORT_WINDOW_MS = 10_000;
+
+const accountExportThrottle = new AccountExportThrottle(
+  ACCOUNT_EXPORT_WINDOW_MS,
+);
+
+const avatarType = new DefaultDataTypes.ImageType({
+  path: AVATAR_STORAGE_PATH,
+  attachmentField: AVATAR_ATTACHMENT_FIELD,
+  constraints: {
+    allowedMimetypes: AVATAR_MIMETYPES,
+    maxSize: AVATAR_MAX_UPLOAD_BYTES,
+  },
+  resize: {
+    maxWidth: AVATAR_DIMENSION_PX,
+    maxHeight: AVATAR_DIMENSION_PX,
+    fit: "cover",
+  },
+});
+
+/**
+ * The personal information the profile saves. Email is accepted only when it
+ * is the current one, and password never: both change on the Security page,
+ * behind the current password.
+ */
+const profileFields = [
+  { id: "avatar", type: avatarType },
+  { id: "name", type: new DefaultDataTypes.StringType(), required: true },
+  { id: "email", type: new DefaultDataTypes.EmailType() },
+];
 
 @RegisterPage()
 export class ProfileSettingsController extends PageController(
@@ -76,76 +112,36 @@ export class ProfileSettingsController extends PageController(
   },
   FormPageLayout(),
 ) {
-  static profileComponent = Form({
-    title: "$page.settings.profile.title",
-    description: "$page.settings.profile.description",
-    fields: [
-      {
+  // The avatar field travels as a serialized image field: page registration
+  // finds it there and stamps the upload token bound to this component.
+  static profileComponent = CustomComponent("DmsProfilePersonalInfo")
+    .options({
+      endpoint: PROFILE_URL,
+      avatarField: {
         id: "avatar",
-        label: "$page.settings.profile.avatar",
-        description: "$page.settings.profile.avatar_description",
-        type: new DefaultDataTypes.ImageType({
-          path: AVATAR_STORAGE_PATH,
-          attachmentField: AVATAR_ATTACHMENT_FIELD,
-          constraints: {
-            allowedMimetypes: AVATAR_MIMETYPES,
-            maxSize: AVATAR_MAX_UPLOAD_BYTES,
-          },
-          resize: {
-            maxWidth: AVATAR_DIMENSION_PX,
-            maxHeight: AVATAR_DIMENSION_PX,
-            fit: "cover",
-          },
-        }),
+        type: IMAGE_FIELD_TYPE,
+        component: avatarType.inputComponent(),
       },
-      {
-        id: "name",
-        label: "$page.settings.profile.name",
-        type: new DefaultDataTypes.StringType(),
-        required: true,
-      },
-      {
-        id: "email",
-        label: "$page.settings.profile.email",
-        type: new DefaultDataTypes.EmailType(),
-        required: true,
-      },
-      {
-        id: "password",
-        label: "$page.settings.profile.password",
-        type: new DefaultDataTypes.PasswordType({
-          placeholder: "$page.settings.profile.password_placeholder",
-          confirmPassword: true,
-          confirmPlaceholder:
-            "$page.settings.profile.password_confirm_placeholder",
-          minLength: 8,
-        }),
-      },
-    ],
-    fetchUrl: "/settings/user/profile",
-    submitUrl: "/settings/user/profile",
-    submitUrlMethod: HttpMethod.post,
-  });
+    })
+    .meta({
+      name: "$page.settings.profile.title",
+      icon: "i-ph-identification-card",
+    });
 
-  static updateProfileSchema = formSchema(
-    ProfileSettingsController.profileComponent,
-  ).extend({
+  static updateProfileSchema = formSchema(profileFields).extend({
     language: z.string().optional(),
   });
 
-  static languageComponent = CustomComponent("DmsProfileLanguage").meta({
-    name: "$page.settings.profile.language_title",
-    icon: "i-ph-translate",
-  });
-
-  static twoFactorComponent = CustomComponent("DmsProfileTwoFactor").meta({
-    name: "$page.settings.two_factor.title",
+  static securityComponent = CustomComponent("DmsProfileSecuritySummary").meta({
+    name: "$page.settings.profile.security_title",
     icon: "i-ph-shield-check",
   });
 
-  static sessionsComponent = CustomComponent("DmsProfileSessions").meta({
-    name: "$page.settings.sessions.title",
-    icon: "i-ph-devices",
+  // Its own permission: a workspace can keep managed accounts from exporting
+  // or deleting themselves by not granting it.
+  static accountDataComponent = CustomComponent("DmsProfileAccountData").meta({
+    name: "$page.settings.profile.data.title",
+    icon: "i-ph-database",
   });
 
   @AuthUserWithPermission(ProfileSettingsController.profileComponent)
@@ -168,7 +164,11 @@ export class ProfileSettingsController extends PageController(
       "Invalid profile",
     );
     const submitted = body as Record<string, unknown>;
-    const previousEmail = this.user.email;
+    assert(
+      !submitted.password,
+      HTTP_BAD_REQUEST,
+      "error.password_change_requires_current_password",
+    );
     const persistedUser = await SaveComponentFiles(
       {
         context,
@@ -190,270 +190,151 @@ export class ProfileSettingsController extends PageController(
         };
       },
     );
-    if (persistedUser.email !== previousEmail) {
-      void notifyEmailChanged(persistedUser._id, persistedUser.email);
-    }
-    if (submitted.password) void notifyPasswordChanged(persistedUser._id);
     return sanitizeUser(persistedUser);
+  }
+
+  private async parseProfile(body: unknown): Promise<UpdateProfileInput> {
+    const parsed =
+      await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
+    if (parsed.success) return parsed.data as UpdateProfileInput;
+    // One issue, not the whole ZodError: stringifying it dumps the raw issue
+    // array, which a toast would render verbatim. The field is kept in front
+    // of the message because zod's messages do not name their field.
+    const [issue] = parsed.error.issues;
+    const field = issue?.path.join(".");
+    throw new HTTPResult(
+      HTTP_BAD_REQUEST,
+      issue ? (field ? `${field}: ${issue.message}` : issue.message) : "",
+    );
   }
 
   private async writeProfile(
     body: unknown,
     userModel: UserModel,
   ): Promise<void> {
-    const parsed =
-      await ProfileSettingsController.updateProfileSchema.safeParseAsync(body);
-    if (!parsed.success) {
-      // One issue, not the whole ZodError: stringifying it dumps the raw issue
-      // array, which the form toast renders verbatim at the user. The field is
-      // kept in front of the message — these are zod's own messages, so they
-      // do not name the field they came from, and this schema validates five.
-      const [issue] = parsed.error.issues;
-      const field = issue?.path.join(".");
-      throw new HTTPResult(
-        HTTP_BAD_REQUEST,
-        issue ? (field ? `${field}: ${issue.message}` : issue.message) : "",
-      );
-    }
-    const { name, email, password, language, avatar } =
-      parsed.data as UpdateProfileInput;
-
-    const availableEmail = await assertEmailAvailable(
-      userModel,
-      email,
-      this.user._id,
+    const { name, email, language, avatar } = await this.parseProfile(body);
+    // Older clients resend the current email with every save; anything else
+    // is an email change, which needs the current password.
+    assert(
+      !email || normalizeEmail(email) === this.user.email,
+      HTTP_BAD_REQUEST,
+      "error.email_change_requires_current_password",
     );
-
     this.user.name = name;
-    this.user.email = availableEmail;
-
-    if (password) {
-      this.user.password = password;
-    }
-
-    if (language) {
-      this.user.language = language;
-    }
-
-    if (avatar !== undefined) {
-      this.user.avatar = avatar;
-    }
-
+    if (language) this.user.language = language;
+    if (avatar !== undefined) this.user.avatar = avatar;
     await userModel.update(this.user);
+  }
+
+  /**
+   * The latest events of the signed-in user's own account (sign-ins,
+   * credential and two-factor changes, workspaces joined, invitations sent),
+   * newest first, for the settings overview.
+   */
+  @Get("/activity")
+  getAccountActivity(
+    @Parameter("authorization", "header") authorization: string,
+  ): Promise<AccountActivityEvent[]> {
+    return loadAccountActivity(this.user, extractSessionId(authorization));
+  }
+
+  /** Everything the DMS keeps about the signed-in user, as a JSON file. */
+  @Get("/account-export")
+  async exportAccount(
+    @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
+    user: User,
+  ): Promise<AccountExport> {
+    assert(
+      accountExportThrottle.tryAcquire(user._id, Date.now()),
+      HTTP_TOO_MANY_REQUESTS,
+      "$page.settings.profile.data.export_throttled",
+    );
+    return loadAccountExport(await requireStoredUser(user));
+  }
+
+  /** What deleting the account would remove, and who must own what first. */
+  @Get("/account-deletion")
+  async getAccountDeletion(
+    @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
+    user: User,
+  ): Promise<AccountDeletionImpact> {
+    return loadDeletionImpact(await requireStoredUser(user));
+  }
+
+  @Post("/account-deletion")
+  async deleteAccount(
+    @AuthUserWithPermission(ProfileSettingsController.accountDataComponent)
+    user: User,
+    @JSONBody() body: unknown,
+  ): Promise<AccountDeletionResult> {
+    return requestAccountDeletion(user, body);
   }
 
   @Get("/two-factor")
   getTwoFactorStatus() {
-    return {
-      methods: this.user.twoFactorMethods || [],
-      hasBackupCodes: (this.user.twoFactorBackupCodes || []).length > 0,
-    };
+    return getTwoFactorStatus(this.user);
   }
 
   @Post("/two-factor/enable-totp")
-  async enableTotp(@Model(UserModel) userModel: UserModel) {
-    const secret = await generateTotpSecret();
-    const otpAuthUrl = generateUrl(DMS_ISSUER, this.user.email, secret);
-
-    this.user.twoFactorPendingSecret = secret;
-    await userModel.update(this.user);
-
-    return { secret, otpAuthUrl };
+  enableTotp(@Model(UserModel) userModel: UserModel) {
+    return startTotpSetup(this.user, userModel);
   }
 
   @Post("/two-factor/confirm-totp")
-  async confirmTotp(
+  confirmTotp(
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    const { code } = assertValidation(body, (value) =>
-      authSchema.confirmTotp.parse(value),
-    );
-
-    assert(this.user.twoFactorPendingSecret, 400, "error.totp_not_setup");
-    assert(
-      verifyTOTP(this.user.twoFactorPendingSecret, code),
-      401,
-      "error.invalid_2fa_code",
-    );
-
-    this.user.twoFactorSecret = this.user.twoFactorPendingSecret;
-    this.user.twoFactorPendingSecret = null;
-
-    const methods = this.user.twoFactorMethods || [];
-    if (!methods.includes("totp")) {
-      methods.push("totp");
-    }
-    this.user.twoFactorMethods = methods;
-
-    const isFirstMethod = methods.length === 1;
-    let backupCodes: string[] | undefined;
-
-    if (isFirstMethod || (this.user.twoFactorBackupCodes || []).length === 0) {
-      const codes = generateBackupCodes();
-      this.user.twoFactorBackupCodes = codes.hashed;
-      backupCodes = codes.plaintext;
-    }
-
-    await userModel.update(this.user);
-
-    void notifyTwoFactorEnabled(this.user._id, "totp");
-
-    return { success: true, backupCodes };
+    return confirmTotpSetup(this.user, body, userModel);
   }
 
   @Post("/two-factor/enable-email")
-  async enableEmail(@Model(UserModel) userModel: UserModel) {
-    const methods = this.user.twoFactorMethods || [];
-    if (!methods.includes("email")) {
-      methods.push("email");
-    }
-    this.user.twoFactorMethods = methods;
-
-    const isFirstMethod = methods.length === 1;
-    let backupCodes: string[] | undefined;
-
-    if (isFirstMethod || (this.user.twoFactorBackupCodes || []).length === 0) {
-      const codes = generateBackupCodes();
-      this.user.twoFactorBackupCodes = codes.hashed;
-      backupCodes = codes.plaintext;
-    }
-
-    await userModel.update(this.user);
-
-    void notifyTwoFactorEnabled(this.user._id, "email");
-
-    return { success: true, backupCodes };
+  enableEmail(@Model(UserModel) userModel: UserModel) {
+    return enableEmailMethod(this.user, userModel);
   }
 
   @Post("/two-factor/disable")
-  async disableTwoFactor(
+  disableTwoFactor(
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    const { method, code } = assertValidation(body, (value) =>
-      authSchema.disableTwoFactor.parse(value),
-    );
-
-    const verifyMethod = method === "totp" ? "totp" : "email";
-    assert(
-      verifyUserCode(this.user, code, verifyMethod as "totp" | "email"),
-      401,
-      "error.invalid_2fa_code",
-    );
-
-    const methods = (this.user.twoFactorMethods || []).filter(
-      (m) => m !== method,
-    );
-    this.user.twoFactorMethods = methods;
-
-    if (method === "totp") {
-      this.user.twoFactorSecret = null;
-    }
-
-    if (methods.length === 0) {
-      this.user.twoFactorBackupCodes = [];
-      this.user.twoFactorEmailCode = null;
-      this.user.twoFactorEmailCodeRequestedAt = null;
-    }
-
-    await userModel.update(this.user);
-
-    void notifyTwoFactorDisabled(this.user._id, method);
-
-    return { success: true };
+    return disableTwoFactorMethod(this.user, body, userModel);
   }
 
   @Post("/two-factor/regenerate-backup")
-  async regenerateBackupCodes(
+  regenerateBackupCodes(
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    const { code } = assertValidation(body, (value) =>
-      authSchema.regenerateBackup.parse(value),
-    );
-
-    assert(
-      (this.user.twoFactorMethods || []).length > 0,
-      400,
-      "error.2fa_not_enabled",
-    );
-
-    const isValidTotp =
-      this.user.twoFactorMethods.includes("totp") &&
-      verifyUserCode(this.user, code, "totp");
-    const isValidEmail =
-      this.user.twoFactorMethods.includes("email") &&
-      verifyUserCode(this.user, code, "email");
-    assert(isValidTotp || isValidEmail, 401, "error.invalid_2fa_code");
-
-    const codes = generateBackupCodes();
-    this.user.twoFactorBackupCodes = codes.hashed;
-    await userModel.update(this.user);
-
-    void notifyBackupCodesRegenerated(this.user._id);
-
-    return { backupCodes: codes.plaintext };
+    return regenerateBackupCodes(this.user, body, userModel);
   }
 
   @Post("/two-factor/request-email-code")
-  async requestTwoFactorEmailCode(@Model(UserModel) userModel: UserModel) {
-    assert(
-      this.user.twoFactorMethods?.includes("email"),
-      400,
-      "error.2fa_email_not_enabled",
-    );
-
-    const isRateLimited =
-      this.user.twoFactorEmailCodeRequestedAt &&
-      Date.now() - new Date(this.user.twoFactorEmailCodeRequestedAt).getTime() <
-        TWO_FACTOR_RATE_LIMIT_MS;
-    assert(!isRateLimited, 429, "error.rate_limited");
-
-    const code = randomstring.generate({ length: 6, charset: "numeric" });
-    this.user.twoFactorEmailCode = code;
-    this.user.twoFactorEmailCodeRequestedAt = new Date();
-    await userModel.update(this.user);
-
-    await send2FAEmail(this.user, code);
-
-    return { success: true };
+  requestTwoFactorEmailCode(@Model(UserModel) userModel: UserModel) {
+    return requestTwoFactorEmailCode(this.user, userModel);
   }
 
   @Get("/sessions")
-  async getSessions(
+  getSessions(
     @Model(SessionModel) sessionModel: SessionModel,
     @Parameter("authorization", "header") authorization: string,
-  ): Promise<SessionResponse[]> {
-    const currentSessionId = extractSessionId(authorization);
-    const sessions = await sessionModel.getByUserId(this.user._id);
-
-    return sessions.map((session) => formatSession(session, currentSessionId));
+  ) {
+    return listSessions(this.user, { sessionModel, authorization });
   }
 
   @Delete("/sessions/:id")
-  async revokeSession(
+  revokeSession(
     @Parameter("id", "param") id: string,
     @Model(SessionModel) sessionModel: SessionModel,
   ) {
-    const session = await sessionModel.get(id);
-    assert(session, 404, "error.session_not_found");
-    assert(session.userId === String(this.user._id), 403, "error.unauthorized");
-
-    await sessionModel.delete(id);
-    return { success: true };
+    return revokeSession(this.user, id, sessionModel);
   }
 
   @Delete("/sessions")
-  async revokeAllSessions(
+  revokeAllSessions(
     @Model(SessionModel) sessionModel: SessionModel,
     @Model(UserModel) userModel: UserModel,
   ) {
-    await sessionModel.deleteByUserId(this.user._id);
-
-    this.user.authKey = generateAuthKey();
-    await userModel.update(this.user);
-
-    return { success: true };
+    return revokeAllSessions(this.user, sessionModel, userModel);
   }
 }

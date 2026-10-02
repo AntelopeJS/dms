@@ -1,4 +1,4 @@
-import type { ModelRef } from "vue";
+import type { ModelRef, Ref } from "vue";
 import type {
   Data,
   TableEmits,
@@ -73,6 +73,14 @@ interface UseTableProps<T> {
     paginationState: ModelRef<PaginationState>;
   };
   ui: ComputedRef<TableStyleSlots>;
+  /** Adds the expander column (the table renders an `expanded` slot). */
+  expandable?: boolean;
+  /** DOM id of a row's detail band, for the caret's aria-controls. */
+  expandedRowDomId?: (rowId: string) => string;
+  /** True while the table lists archived rows (archive mode toggle on). */
+  showArchived?: Ref<boolean>;
+  /** Column header menus and resizing. Defaults to true. */
+  columnMenus?: boolean;
 }
 
 export const useTable = <T extends Data>(props: UseTableProps<T>) => {
@@ -95,6 +103,10 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     formPages: props.tableProps.formPages,
     routeParams: props.tableProps.routeParams,
     onCustomRowAction: props.tableProps.onCustomRowAction,
+    expandable: props.expandable,
+    expandedRowDomId: props.expandedRowDomId,
+    showArchived: props.showArchived,
+    columnMenus: props.columnMenus,
   });
 
   states.columnOrderState.value = columns.value
@@ -140,6 +152,8 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     getPaginationRowModel: getPaginationRowModel(),
 
     columnResizeMode: "onChange" as const,
+    // A reduced chrome keeps its columns as laid out.
+    enableColumnResizing: props.columnMenus !== false,
     ...(props.tableProps.sizingOptions || {}),
 
     state: stateGetters,

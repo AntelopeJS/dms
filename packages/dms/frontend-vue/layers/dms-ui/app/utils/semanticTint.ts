@@ -17,5 +17,5 @@ export const SOFT_TINT: Record<SemanticColor, string> = {
   warning: "bg-warning/10 text-warning",
   info: "bg-info/10 text-info",
   primary: "bg-primary/10 text-primary",
-  neutral: "bg-elevated text-muted",
+  neutral: "bg-(--dms-neutral-tint) text-muted",
 };

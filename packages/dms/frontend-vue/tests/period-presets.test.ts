@@ -82,6 +82,18 @@ describe("previous-period comparison", () => {
     expect(range.from.getTime() - compare!.to.getTime()).toBe(1);
   });
 
+  it("keeps whole-day comparisons on midnight across a DST change", () => {
+    // October 2026 holds the European DST change (Oct 25); the previous
+    // 31 days must still start at local midnight.
+    const range = {
+      from: new Date(2026, 9, 1),
+      to: new Date(new Date(2026, 10, 1).getTime() - 1),
+    };
+    const compare = resolveComparisonRange("previous-period", range, null);
+    expect(compare!.from).toEqual(new Date(2026, 7, 31));
+    expect(compare!.to.getTime()).toBe(range.from.getTime() - 1);
+  });
+
   it("keeps previous-year on the same calendar dates", () => {
     const range = resolvePresetRange("last-30-days", NOW, FALLBACK);
     const compare = resolveComparisonRange("previous-year", range, null);

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
+import { useSettingsNavTrails } from "../../../composables/settings/useSettingsNavTrails";
 import { settleWidgetRequest } from "./widgetRequest";
 
 const MAX_DISPLAYED_COUNT = 99;
+const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
 const { t, locale } = useI18n();
 const { loggedIn } = useUserSession();
@@ -16,6 +18,7 @@ const {
   fetchNotifications,
   markAllAsRead,
 } = useNotifications();
+const { setTrail, clearTrail } = useSettingsNavTrails();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
 const hasBeenOpened = ref(false);
@@ -24,6 +27,30 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   sentinel,
   () => fetchNotifications(),
   hasMore,
+);
+
+const displayedCount = computed(() =>
+  unreadCount.value > MAX_DISPLAYED_COUNT
+    ? `${MAX_DISPLAYED_COUNT}+`
+    : String(unreadCount.value),
+);
+
+// The bell is on every page, so it keeps the unread badge of the
+// Notifications entry in the settings navigation current.
+watch(
+  unreadCount,
+  (count) => {
+    if (count === 0) {
+      clearTrail(NOTIFICATIONS_SETTINGS_PAGE);
+      return;
+    }
+    setTrail({
+      fullId: NOTIFICATIONS_SETTINGS_PAGE,
+      badge: displayedCount.value,
+      label: t("page.settings.notifications.unread_badge", { count }, count),
+    });
+  },
+  { immediate: true },
 );
 
 const refreshUnreadCount = () =>
@@ -121,24 +148,26 @@ const goToNotifications = () => {
     :ui="{ content: 'w-[460px]' }"
     :popper="{ placement: 'bottom-end' }"
   >
-    <UButton
-      icon="i-ph-bell-light"
-      variant="ghost"
-      color="neutral"
-      class="relative"
-      :ui="{ leadingIcon: 'size-[18px]' }"
+    <UTooltip
+      :text="$t('notification.dropdown.title')"
+      :content="{ side: 'bottom', sideOffset: 6 }"
     >
-      <span
-        v-if="unreadCount > 0"
-        class="bg-error absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-(--ui-bg)"
+      <UButton
+        icon="i-ph-bell-light"
+        :aria-label="$t('notification.dropdown.title')"
+        variant="ghost"
+        color="neutral"
+        class="text-muted hover:text-highlighted data-[state=open]:text-highlighted relative"
+        :ui="{ leadingIcon: 'size-[18px]' }"
       >
-        {{
-          unreadCount > MAX_DISPLAYED_COUNT
-            ? `${MAX_DISPLAYED_COUNT}+`
-            : unreadCount
-        }}
-      </span>
-    </UButton>
+        <span
+          v-if="unreadCount > 0"
+          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted)"
+        >
+          {{ displayedCount }}
+        </span>
+      </UButton>
+    </UTooltip>
 
     <template #content>
       <div class="p-4">
@@ -159,7 +188,7 @@ const goToNotifications = () => {
 
         <div
           v-else
-          class="-mr-2 -ml-2 max-h-96 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="-mr-2 -ml-2 max-h-96 [scrollbar-width:none] overflow-y-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <NotificationCard
             v-for="notification in notifications"
@@ -187,13 +216,18 @@ const goToNotifications = () => {
 
             <template #title>
               <div class="text-highlighted mb-0.5 text-xs font-medium">
-                {{ processI18n(notification.title, notification.params) }}
+                {{ processI18n(notification.title ?? "", notification.params) }}
               </div>
             </template>
 
             <template #description>
               <div class="text-dimmed line-clamp-2 text-xs">
-                {{ processI18n(notification.description, notification.params) }}
+                {{
+                  processI18n(
+                    notification.description ?? "",
+                    notification.params,
+                  )
+                }}
               </div>
               <div class="text-muted mt-1 text-[10px]">
                 {{ formatRelativeTime(notification.createdAt, t, locale) }}

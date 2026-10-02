@@ -19,6 +19,11 @@ export interface FormProps extends FormComponentProps {
   submitLabel?: string;
   /** Whether the buttons show; left out, once there is somewhere to submit to. */
   showActions?: boolean;
+  /**
+   * Sticky save bar, shown while there are unsaved changes, in place of the
+   * footer buttons.
+   */
+  saveBar?: boolean;
   successMessage?: string;
   errorMessage?: string;
   schema?: Record<string, unknown>;

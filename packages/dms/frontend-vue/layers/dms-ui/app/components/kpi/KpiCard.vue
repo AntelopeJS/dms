@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import DmsIconWell from "../icon-well/IconWell.vue";
+import DmsEyebrow from "../section-header/Eyebrow.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import {
   ABSENT_VALUE_PARTS,
@@ -15,7 +17,7 @@ import type { DefaultComponentProps } from "../../../../dms-core/app/types/compo
 
 interface Props extends DefaultComponentProps {
   title: string;
-  /** "stat" = compact DMS v2 look: mono uppercase label, bare small icon. */
+  /** "stat" = compact horizontal row: icon well, label + value, delta. */
   variant?: "default" | "stat";
   description?: string;
   icon?: string;
@@ -35,7 +37,10 @@ interface Props extends DefaultComponentProps {
   staticSparkline?: number[];
 }
 
-const DEFAULT_FALLBACK_ICON = "i-lucide-bar-chart-3";
+const DEFAULT_FALLBACK_ICON = "i-ph-chart-bar";
+// v2 KPI sparklines are cyan when the trend is good, not green.
+const POSITIVE_SPARKLINE_ACCENT = "primary";
+const SKELETON_CLASS = "bg-(--dms-skeleton)";
 
 const props = withDefaults(defineProps<Props>(), {
   variant: "default",
@@ -46,7 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   currencyCode: "EUR",
 });
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const { processI18n } = useTranslation();
 useComponentEvent(props.componentId);
 const { state: watchState } = useWatch(
@@ -64,7 +69,7 @@ const staticData = computed<KpiCardResponse | null>(() => {
   };
 });
 
-const { data, isLoading } = useChartFetch<KpiCardResponse>({
+const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   periodScope: props.periodScope,
@@ -88,81 +93,188 @@ const formattedParts = computed(() =>
       ),
 );
 
+const isFirstLoad = computed(() => isLoading.value && data.value === null);
+// v2 error state: a failed first load shows a message and a retry button in
+// place of the value; a failed refetch keeps the last value.
+const hasError = computed(
+  () => !isLoading.value && data.value === null && Boolean(error.value),
+);
+// A refetch keeps the stale value on screen, faded, instead of a skeleton.
+const isRefreshing = computed(() => isLoading.value && data.value !== null);
 const showTrend = computed(() => props.showDelta && delta.value !== null);
+const hasSparkline = computed(
+  () => props.showSparkline && sparkline.value.length > 0,
+);
+const footnote = computed(() => {
+  const text = props.compareLabel || props.description;
+  return text ? processI18n(text) : "";
+});
 
 const resolvedSparklineAccent = computed(() =>
-  resolveSparklineAccent(props.sparklineAccent, {
-    delta: delta.value,
-    sparkline: sparkline.value,
-    invert: props.invert,
-  }),
+  resolveSparklineAccent(
+    props.sparklineAccent,
+    { delta: delta.value, sparkline: sparkline.value, invert: props.invert },
+    POSITIVE_SPARKLINE_ACCENT,
+  ),
 );
 
 const resolvedIcon = computed(() => props.icon || DEFAULT_FALLBACK_ICON);
-
 const isStat = computed(() => props.variant === "stat");
-const labelClass = computed(() =>
-  isStat.value
-    ? "text-dimmed truncate font-mono text-[10px] font-medium uppercase tracking-widest"
-    : "text-muted truncate text-sm",
-);
-const iconWrapClass = computed(() =>
-  isStat.value
-    ? "text-dimmed flex shrink-0 items-center justify-center"
-    : "bg-elevated dark:bg-accented text-toned flex shrink-0 items-center justify-center rounded-lg p-2",
-);
 </script>
 
 <template>
-  <DmsCard :padded="false" class="p-4 sm:p-5">
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0 flex-1">
-        <p :class="labelClass">{{ processI18n(title) }}</p>
-        <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
-          <USkeleton v-if="isLoading && data === null" class="h-8 w-24" />
-          <span v-else class="inline-flex items-baseline gap-x-1">
-            <span
-              v-if="formattedParts.unit && formattedParts.unitIsPrefix"
-              class="text-muted text-base font-medium"
-            >
-              {{ formattedParts.unit }}
-            </span>
-            <span>{{ formattedParts.value }}</span>
-            <span
-              v-if="formattedParts.unit && !formattedParts.unitIsPrefix"
-              class="text-muted text-base font-medium"
-            >
-              {{ formattedParts.unit }}
-            </span>
-          </span>
-        </div>
-        <div
-          v-if="showTrend || compareLabel || description"
-          class="mt-2 flex min-w-0 items-center gap-x-2"
+  <DmsCard
+    v-if="isStat"
+    :padded="false"
+    class="flex items-center gap-3.5 px-4 py-3.5"
+    :aria-busy="isFirstLoad"
+  >
+    <USkeleton
+      v-if="isFirstLoad"
+      class="size-10 shrink-0 rounded-[10px]"
+      :class="SKELETON_CLASS"
+    />
+    <DmsIconWell v-else :icon="resolvedIcon" size="xl" />
+    <div class="grid min-w-0 flex-1 gap-[3px]">
+      <DmsEyebrow tone="muted" truncate :label="processI18n(title)" />
+      <USkeleton
+        v-if="isFirstLoad"
+        class="h-[22px] w-24"
+        :class="SKELETON_CLASS"
+      />
+      <p
+        v-else
+        class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"
+        :class="isRefreshing && 'opacity-55'"
+      >
+        <span
+          v-if="formattedParts.unit && formattedParts.unitIsPrefix"
+          class="text-muted mr-0.5 text-[0.6em] font-medium"
         >
-          <DmsTrendBadge v-if="showTrend" :delta="delta" :invert="invert" />
-          <span v-if="compareLabel" class="text-muted truncate text-xs">
-            {{ processI18n(compareLabel) }}
-          </span>
-          <span v-else-if="description" class="text-muted truncate text-xs">
-            {{ processI18n(description) }}
-          </span>
-        </div>
-      </div>
-      <div :class="iconWrapClass">
-        <UIcon
-          :name="resolvedIcon"
-          :class="isStat ? 'size-4' : 'size-5'"
-          :aria-hidden="true"
+          {{ formattedParts.unit }}
+        </span>
+        <span>{{ formattedParts.value }}</span>
+        <span
+          v-if="formattedParts.unit && !formattedParts.unitIsPrefix"
+          class="text-muted ml-0.5 text-[0.6em] font-medium"
+        >
+          {{ formattedParts.unit }}
+        </span>
+      </p>
+    </div>
+    <div
+      v-if="showTrend || hasSparkline"
+      class="ml-auto grid shrink-0 justify-items-end gap-1"
+    >
+      <DmsTrendBadge
+        v-if="showTrend"
+        :delta="delta"
+        :invert="invert"
+        variant="text"
+      />
+      <div v-if="hasSparkline" class="h-6 w-16">
+        <DmsSparkline
+          :values="sparkline"
+          :accent="resolvedSparklineAccent"
+          :aria-label="processI18n(title)"
         />
       </div>
     </div>
-    <div v-if="showSparkline && sparkline.length > 0" class="mt-4 h-10">
-      <DmsSparkline
-        :values="sparkline"
-        :accent="resolvedSparklineAccent"
-        :aria-label="processI18n(title)"
+  </DmsCard>
+
+  <DmsCard
+    v-else
+    :padded="false"
+    class="flex min-h-[132px] flex-col gap-1.5 px-4 py-4 sm:px-[18px]"
+    :aria-busy="isFirstLoad"
+  >
+    <div class="flex min-w-0 items-center gap-2">
+      <UIcon
+        :name="resolvedIcon"
+        class="text-dimmed size-[15px] shrink-0"
+        :aria-hidden="true"
       />
+      <DmsEyebrow tone="muted" truncate :label="processI18n(title)" />
+    </div>
+    <USkeleton
+      v-if="isFirstLoad"
+      class="mt-1 h-[30px] w-32"
+      :class="SKELETON_CLASS"
+    />
+    <div
+      v-else-if="hasError"
+      class="mt-auto flex items-center justify-between gap-2"
+      role="alert"
+    >
+      <p class="text-error flex min-w-0 items-center gap-1.5 text-[12.5px]">
+        <UIcon name="i-ph-warning-circle" class="size-4 shrink-0" />
+        <span class="truncate">{{ t("dms.table.load_error_title") }}</span>
+      </p>
+      <UButton
+        :label="t('dms.table.load_error_retry')"
+        icon="i-ph-arrows-clockwise"
+        color="neutral"
+        variant="outline"
+        size="xs"
+        @click="refresh()"
+      />
+    </div>
+    <p
+      v-else
+      class="text-highlighted mt-1 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"
+      :class="isRefreshing && 'opacity-55'"
+    >
+      <span
+        v-if="formattedParts.unit && formattedParts.unitIsPrefix"
+        class="text-muted mr-0.5 text-[0.6em] font-medium tracking-[-0.01em]"
+      >
+        {{ formattedParts.unit }}
+      </span>
+      <span>{{ formattedParts.value }}</span>
+      <span
+        v-if="formattedParts.unit && !formattedParts.unitIsPrefix"
+        class="text-muted ml-0.5 text-[0.6em] font-medium tracking-[-0.01em]"
+      >
+        {{ formattedParts.unit }}
+      </span>
+    </p>
+    <div v-if="isFirstLoad" class="mt-auto flex items-end gap-2">
+      <div class="grid gap-[7px]">
+        <USkeleton class="h-3 w-[58px]" :class="SKELETON_CLASS" />
+        <USkeleton class="h-2.5 w-28" :class="SKELETON_CLASS" />
+      </div>
+      <USkeleton
+        v-if="showSparkline"
+        class="ml-auto h-[30px] w-24"
+        :class="SKELETON_CLASS"
+      />
+    </div>
+    <div
+      v-else-if="!hasError && (showTrend || footnote || hasSparkline)"
+      class="mt-auto flex items-end gap-2"
+    >
+      <div class="min-w-0">
+        <DmsTrendBadge
+          v-if="showTrend"
+          :delta="delta"
+          :invert="invert"
+          variant="text"
+        />
+        <p v-if="footnote" class="text-dimmed truncate text-xs">
+          {{ footnote }}
+        </p>
+      </div>
+      <div
+        v-if="hasSparkline"
+        class="ml-auto h-[34px] w-24 shrink-0 transition-opacity"
+        :class="isRefreshing && 'opacity-55'"
+      >
+        <DmsSparkline
+          :values="sparkline"
+          :accent="resolvedSparklineAccent"
+          :aria-label="processI18n(title)"
+        />
+      </div>
     </div>
   </DmsCard>
 </template>

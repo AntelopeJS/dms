@@ -19,7 +19,10 @@ import {
   type RouteParamFilter,
   TABLE_DISPLAY_ID,
   TABLE_VIEW_COMPONENT_NAME,
+  type TableViewChromeOptions,
   type TableViewDisplayOption,
+  type TableViewExpandableOptions,
+  type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewRowActionOptions,
   type TableViewTab,
@@ -105,11 +108,63 @@ const tabFilterSchema = z.object({
 const tabSchema = z.object({
   id: z.string(),
   label: z.string(),
-  filters: z.array(tabFilterSchema),
+  filters: z.array(tabFilterSchema).optional(),
   icon: ui(z.string().optional(), { widget: "icon" }),
   textColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
   iconColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
+  // A page controller target is a live class: editors set a path.
+  to: ui(opaqueOption<TableViewTab["to"]>().optional(), {
+    label: "Link to",
+    widget: "url",
+  }),
+  permission: ui(z.string().optional(), {
+    label: "Permission",
+    widget: "permission",
+  }),
+  countFrom: ui(opaqueOption<TableViewTab["countFrom"]>().optional(), {
+    label: "Count from",
+    hidden: true,
+  }),
+  badge: ui(z.boolean().optional(), {
+    label: "Navigation badge",
+    widget: "switch",
+  }),
 }) satisfies BlockOptionsFor<TableViewTab>;
+
+const chromeTogglesSchema = z.object({
+  preset: ui(z.enum(["full", "minimal"]).optional(), {
+    label: "Preset",
+    widget: "segmented",
+  }),
+  caption: ui(z.boolean().optional(), { label: "Caption", widget: "switch" }),
+  search: ui(z.union([z.boolean(), z.literal("field")]).optional(), {
+    label: "Search",
+  }),
+  filters: ui(z.boolean().optional(), { label: "Filters", widget: "switch" }),
+  sorting: ui(z.boolean().optional(), { label: "Sort menu", widget: "switch" }),
+  refresh: ui(z.boolean().optional(), { label: "Refresh", widget: "switch" }),
+  menu: ui(z.boolean().optional(), { label: "Table menu", widget: "switch" }),
+  columnMenus: ui(z.boolean().optional(), {
+    label: "Column menus",
+    widget: "switch",
+  }),
+  pageSize: ui(z.boolean().optional(), {
+    label: "Page size picker",
+    widget: "switch",
+  }),
+}) satisfies BlockOptionsFor<TableViewChromeOptions>;
+
+const quickFilterSchema = z.object({
+  field: ui(z.string(), {
+    label: "Field",
+    widget: "field",
+    fieldAspect: "filterable",
+  }),
+  label: z.string().optional(),
+  icon: ui(z.string().optional(), { widget: "icon" }),
+  allLabel: z.string().optional(),
+  mode: z.string().optional(),
+}) satisfies BlockOptionsFor<TableViewQuickFilter>;
 
 const formContainerPageConfigSchema = z.object({
   urlSlug: z.string().optional(),
@@ -184,9 +239,41 @@ const displaySchema = z.object({
       search: z.boolean().optional(),
       sorting: z.boolean().optional(),
       tabs: z.boolean().optional(),
+      header: z.boolean().optional(),
     })
     .optional(),
 }) satisfies BlockOptionsFor<TableViewDisplayOption>;
+
+const expandableFieldSchema = z.union([
+  ui(z.string(), {
+    widget: "field",
+    // Read straight off the listed row: an unlisted field shows an empty value.
+    fieldAspect: "listable",
+  }),
+  z.object({
+    key: ui(z.string(), { widget: "field", fieldAspect: "listable" }),
+    label: z.string().optional(),
+  }),
+]);
+
+const expandableSchema = z.object({
+  fields: ui(z.array(expandableFieldSchema).optional(), {
+    label: "Detail fields",
+  }),
+  fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
+  component: ui(
+    opaqueOption<TableViewExpandableOptions["component"]>().optional(),
+    { label: "Detail component", hidden: true },
+  ),
+  defaultExpanded: ui(z.enum(["none", "first", "all"]).default("none"), {
+    label: "Open on arrival",
+    widget: "segmented",
+  }),
+  single: ui(z.boolean().optional(), {
+    label: "One row at a time",
+    widget: "switch",
+  }),
+}) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
 /** The options `TableView` accepts, after its controller argument. */
 export const TableViewSchema = z.object({
@@ -195,6 +282,63 @@ export const TableViewSchema = z.object({
     order: 1,
     group: "content",
   }),
+  density: ui(z.enum(["default", "compact"]).optional(), {
+    label: "Density",
+    group: "appearance",
+    widget: "segmented",
+  }),
+  stickyHeader: ui(z.boolean().optional(), {
+    label: "Sticky header",
+    group: "appearance",
+    widget: "switch",
+  }),
+  maxHeight: ui(
+    z.string().optional().describe("Scroll area height, e.g. 60vh."),
+    { label: "Max height", group: "appearance" },
+  ),
+  expandable: ui(
+    expandableSchema
+      .optional()
+      .describe("A caret column opens a detail band under each row."),
+    { label: "Expandable rows", group: "features" },
+  ),
+  chrome: ui(
+    z
+      .union([z.enum(["full", "minimal"]), chromeTogglesSchema])
+      .optional()
+      .describe("Controls drawn around the rows."),
+    { label: "Chrome", group: "appearance" },
+  ),
+  searchPlaceholder: ui(z.string().optional(), {
+    label: "Search placeholder",
+    group: "content",
+  }),
+  quickFilters: ui(z.array(quickFilterSchema).optional(), {
+    label: "Quick filters",
+    group: "features",
+  }),
+  hiddenColumns: ui(z.array(z.string()).optional(), {
+    label: "Hidden columns",
+    group: "appearance",
+    widget: "field",
+    fieldAspect: "listable",
+  }),
+  pageSize: ui(z.number().int().min(1).max(50).optional(), {
+    label: "Rows per page",
+    group: "appearance",
+    widget: "number",
+    min: 1,
+    max: 50,
+  }),
+  footer: ui(
+    z
+      .object({
+        countLabel: z.string().optional(),
+        hint: z.string().optional(),
+      })
+      .optional(),
+    { label: "Footer texts", group: "content" },
+  ),
   rowIdKey: ui(z.string().default(DEFAULT_ROW_ID_FIELD), {
     label: "Row id field",
     group: "advanced",

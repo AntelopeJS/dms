@@ -72,7 +72,7 @@ function loadImage(): ImageHarness {
     .split('<script setup lang="ts">')[1]!
     .split("</script>")[0]!;
   const source = script
-    .replace(/^import[\s\S]*?from "[^"]+";\n/gm, "")
+    .replace(/^import[\s\S]*?from "[^"]+";\r?\n/gm, "")
     .replaceAll("import.meta.env.SSR", "false")
     .replace(/^export type /gm, "type ");
   const { outputText } = transpileModule(source, {});

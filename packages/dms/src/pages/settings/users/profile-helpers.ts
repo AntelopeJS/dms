@@ -26,7 +26,7 @@ import { generateKey, verifyTOTP } from "2fa";
 import { decode } from "jsonwebtoken";
 import randomstring from "randomstring";
 import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "../../../routes/auth/constants";
-const BACKUP_CODE_COUNT = 10;
+export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 8;
 const TOTP_KEY_LENGTH = 20;
 export const DMS_ISSUER = "AntelopeJS DMS";
@@ -82,8 +82,8 @@ export function deleteReplacedAvatar(
 
 export interface UpdateProfileInput {
   name: string;
-  email: string;
-  password?: string | null;
+  /** Accepted only when it is the current email: see the profile page. */
+  email?: string | null;
   language?: string | null;
   avatar?: AvatarValue;
 }

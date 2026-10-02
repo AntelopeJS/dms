@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FormProps } from "../../composables/form/types";
 import type { FormFieldValue } from "../../composables/form/types/value";
+import type { FieldGroup } from "../../composables/form/types/field";
 import {
   cloneFormValue,
   formShowsActions,
@@ -12,6 +13,8 @@ import {
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
+import { DMS_SECTION_SURFACE_KEY } from "../section/context";
+import DmsSaveBar from "../save-bar/SaveBar.vue";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -32,7 +35,11 @@ const form = useTemplateRef("form");
 // Inside a DynamicModal/DynamicDrawer the container already provides the
 // surface, so skip the DmsCard wrapper to avoid a nested, detached card.
 const inFormContainer = inject("dmsFormContainer", false);
-const FormWrapper = inFormContainer ? "div" : resolveComponent("DmsCard");
+// Inside a framed DmsSection the section card is the surface: the fields
+// become its rows (v2 .st-row) instead of a card nested in a card.
+const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
+const FormWrapper =
+  inFormContainer || inSection ? "div" : resolveComponent("DmsCard");
 
 const { processI18n } = useTranslation();
 const {
@@ -177,11 +184,121 @@ if (props.fetchUrl) {
   }
 }
 
-const sectionClass = computed(() =>
-  props.fieldsOrientation === "vertical"
-    ? "flex flex-col gap-2"
-    : "grid grid-cols-1 gap-2 sm:grid-cols-[min(50%,--spacing(80))_auto]",
-);
+type FormOrientation = "horizontal" | "vertical";
+type FormSurface = "card" | "container" | "section";
+
+interface FormLayoutClasses {
+  rows: string;
+  row: string;
+  meta: string;
+  description: string;
+}
+
+interface FormSurfaceClasses {
+  head: string;
+  body: string;
+  legend: string;
+  foot: string;
+}
+
+// v2 record form (mockup form.html): horizontal rows put the label column
+// (minmax(180px, 38%)) beside the control, split by hairlines, and collapse
+// to one column under 560px of form width; vertical rows stack them.
+const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
+  horizontal: {
+    rows: "@container flex flex-col divide-y divide-muted py-1",
+    row: "grid gap-2 py-4 @min-[560px]:grid-cols-[minmax(180px,38%)_minmax(0,1fr)] @min-[560px]:gap-6",
+    meta: "grid content-start gap-px @min-[560px]:pt-1.5",
+    description: "text-muted max-w-[34ch] text-[12.5px]",
+  },
+  vertical: {
+    rows: "flex flex-col gap-4 py-5",
+    row: "grid gap-1.5",
+    meta: "grid gap-px",
+    description: "text-dimmed text-xs",
+  },
+};
+
+// A card form draws its own head band and sticky footer band; inside a
+// modal or drawer the container is the surface and already pads the body.
+const FORM_SURFACE_CLASSES: Record<FormSurface, FormSurfaceClasses> = {
+  card: {
+    head: "border-default border-b px-5 py-4.5",
+    body: "px-5",
+    legend: "pb-4",
+    foot: "border-default sticky bottom-0 z-10 border-t bg-(--dms-bg-muted)/90 px-5 py-3 backdrop-blur-sm",
+  },
+  container: {
+    head: "border-default border-b pb-4",
+    body: "",
+    legend: "pb-2",
+    foot: "border-default mt-2 border-t pt-4",
+  },
+  // The rows carry the 18px inset so their hairlines run edge to edge.
+  section: {
+    head: "border-default border-b px-[18px] py-4",
+    body: "",
+    legend: "px-[18px] pb-4",
+    foot: "border-default sticky bottom-0 z-10 border-t bg-(--dms-bg-muted)/90 px-[18px] py-3 backdrop-blur-sm",
+  },
+};
+
+// v2 .st-row.is-form: a 240px label column, 18px row inset.
+const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
+  rows: "@container flex flex-col divide-y divide-muted",
+  row: "grid gap-2 px-[18px] py-4 @min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)] @min-[560px]:gap-6",
+  meta: "grid content-start gap-px @min-[560px]:pt-1.5",
+  description: "text-muted text-[12.5px] leading-normal",
+};
+
+const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
+  horizontal: "flex flex-col gap-2.5 sm:flex-row",
+  vertical: "flex flex-col gap-2.5",
+};
+
+const layoutClasses = computed(() => {
+  const orientation =
+    props.fieldsOrientation === "vertical" ? "vertical" : "horizontal";
+  return inSection && orientation === "horizontal"
+    ? SECTION_LAYOUT_CLASSES
+    : FORM_LAYOUT_CLASSES[orientation];
+});
+const surface: FormSurface = inFormContainer
+  ? "container"
+  : inSection
+    ? "section"
+    : "card";
+const surfaceClasses = FORM_SURFACE_CLASSES[surface];
+// Clip, not hidden: the card rounds the footer band without becoming the
+// scroll container the sticky footer would stick to.
+const wrapperProps =
+  inFormContainer || inSection ? {} : { padded: false, class: "overflow-clip" };
+
+// The save bar names what changed: the fields whose value moved off the one the
+// form loaded (or last saved — a successful submit snapshots it).
+const formElementId = `dms-form-${props.componentId}`;
+const isBlankValue = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  value === "" ||
+  (Array.isArray(value) && value.length === 0);
+const changedFieldLabels = computed<string[]>(() => {
+  if (!props.saveBar) return [];
+  return toValue(allFields)
+    .filter((field) => {
+      const current = state.value[field.id];
+      const initial = initialValues.value?.[field.id];
+      if (isBlankValue(current) && isBlankValue(initial)) return false;
+      return JSON.stringify(current) !== JSON.stringify(initial);
+    })
+    .map((field) => field.label || field.id);
+});
+
+function groupFieldsClass(group: FieldGroup): string {
+  return GROUP_FIELDS_CLASSES[
+    group.orientation === "vertical" ? "vertical" : "horizontal"
+  ];
+}
 
 function resolveFieldComponent(field: FormField) {
   if (!field.component.componentName) {
@@ -350,138 +467,138 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <component :is="FormWrapper">
+  <component :is="FormWrapper" v-bind="wrapperProps">
     <UForm
+      :id="formElementId"
       ref="form"
       :state
       :schema="validationSchema"
       :disabled="allFields.every((field) => field.disabled)"
       @submit="onSubmit"
     >
-      <UAlert
-        v-if="showConcurrentEditBanner"
-        color="warning"
-        icon="i-ph-warning"
-        :title="$t('dms.realtime.concurrent_edit_banner_title')"
-        :description="$t('dms.realtime.concurrent_edit_banner_description')"
-        :actions="[
-          {
-            label: $t('dms.realtime.concurrent_edit_banner_discard'),
-            color: 'warning',
-            onClick: handleDiscardAndRefresh,
-          },
-          {
-            label: $t('dms.realtime.concurrent_edit_banner_keep'),
-            variant: 'outline',
-            color: 'neutral',
-            onClick: handleKeepEditing,
-          },
-        ]"
-        class="mb-4"
-      />
+      <header v-if="props.title" :class="surfaceClasses.head">
+        <h2
+          class="text-highlighted text-[17px]/[1.3] font-[650] tracking-[-0.02em]"
+        >
+          {{ processI18n(props.title) }}
+        </h2>
+        <p v-if="props.description" class="text-muted mt-0.5 text-[13px]">
+          {{ processI18n(props.description) }}
+        </p>
+      </header>
 
-      <template v-if="props.title">
-        <section class="space-y-1">
-          <h2 class="text-highlighted text-2xl font-semibold sm:text-xl">
-            {{ processI18n(props.title) }}
-          </h2>
+      <div :class="surfaceClasses.body">
+        <UAlert
+          v-if="showConcurrentEditBanner"
+          color="warning"
+          icon="i-ph-warning"
+          :title="$t('dms.realtime.concurrent_edit_banner_title')"
+          :description="$t('dms.realtime.concurrent_edit_banner_description')"
+          :actions="[
+            {
+              label: $t('dms.realtime.concurrent_edit_banner_discard'),
+              color: 'warning',
+              onClick: handleDiscardAndRefresh,
+            },
+            {
+              label: $t('dms.realtime.concurrent_edit_banner_keep'),
+              variant: 'outline',
+              color: 'neutral',
+              onClick: handleKeepEditing,
+            },
+          ]"
+          class="mt-4"
+        />
 
-          <p v-if="props.description" class="text-dimmed text-base sm:text-sm">
-            {{ processI18n(props.description) }}
-          </p>
-        </section>
-
-        <USeparator class="my-6" />
-      </template>
-
-      <div class="space-y-6">
-        <template v-for="(item, index) in fields" :key="`field-${index}`">
-          <template v-if="isFieldGroup(item)">
-            <section v-if="isGroupVisible(item)" :class="sectionClass">
-              <div>
-                <label
-                  class="text-default block text-base font-semibold sm:text-sm"
-                >
-                  {{ processI18n(item.label || "") }}
-                  <span
-                    v-if="isGroupRequired(item)"
-                    class="text-error ms-0.5"
-                    aria-hidden="true"
-                  >
-                    *
-                  </span>
-                </label>
-                <p v-if="item.description" class="text-dimmed text-xs">
-                  {{ processI18n(item.description || "") }}
-                </p>
-              </div>
-
-              <div
-                :class="[
-                  'flex gap-2',
-                  item.orientation === 'vertical'
-                    ? 'flex-col'
-                    : 'flex-col sm:flex-row',
-                ]"
-              >
-                <template v-for="field in item.fields" :key="field.id">
-                  <template v-if="!isFieldHidden(field)">
-                    <DmsLocalizedField
-                      v-if="field.component.componentName && field.localized"
-                      v-model="
-                        state[field.id] as Record<string, string> | undefined
-                      "
-                      :field
-                      :initial-values="initialValues"
-                      :loading
-                      :component-id="props.componentId"
-                      :page-id="props.pageId"
-                      class="flex-1"
-                    />
-
-                    <UFormField
-                      v-else-if="
-                        field.component.componentName && !field.localized
-                      "
-                      :name="field.id"
-                      class="flex-1"
+        <div :class="layoutClasses.rows">
+          <template v-for="(item, index) in fields" :key="`field-${index}`">
+            <template v-if="isFieldGroup(item)">
+              <section v-if="isGroupVisible(item)" :class="layoutClasses.row">
+                <div :class="layoutClasses.meta">
+                  <span class="text-highlighted text-[13px] font-[550]">
+                    {{ processI18n(item.label || "") }}
+                    <span
+                      v-if="isGroupRequired(item)"
+                      class="text-error ms-0.5"
+                      aria-hidden="true"
                     >
-                      <DmsDisplay
-                        v-if="shouldShowDisplay(field)"
-                        :model-value="state[field.id]"
-                        :type="field.type"
+                      *
+                    </span>
+                  </span>
+                  <p v-if="item.description" :class="layoutClasses.description">
+                    {{ processI18n(item.description || "") }}
+                  </p>
+                </div>
+
+                <div :class="groupFieldsClass(item)">
+                  <template v-for="field in item.fields" :key="field.id">
+                    <template v-if="!isFieldHidden(field)">
+                      <DmsLocalizedField
+                        v-if="field.component.componentName && field.localized"
+                        v-model="
+                          state[field.id] as Record<string, string> | undefined
+                        "
+                        :field
+                        :initial-values="initialValues"
                         :loading
-                        class="w-full"
-                        v-bind="field.component.options || {}"
-                      />
-                      <Component
-                        :is="resolveFieldComponent(field)"
-                        v-else
-                        :id="field.id"
-                        v-model="state[field.id]"
-                        :initial-value="initialValues?.[field.id]"
-                        :loading
-                        :disabled="isFieldDisabled(field)"
                         :component-id="props.componentId"
                         :page-id="props.pageId"
-                        :route-params="props.routeParams"
-                        class="w-full"
-                        :class="{ 'opacity-75': isFieldDisabled(field) }"
-                        v-bind="field.component.options || {}"
+                        class="min-w-0 flex-1"
                       />
-                    </UFormField>
-                  </template>
-                </template>
-              </div>
-            </section>
-          </template>
 
-          <template v-else-if="!isFieldHidden(item)">
-            <section :class="sectionClass">
-              <div>
+                      <UFormField
+                        v-else-if="
+                          field.component.componentName && !field.localized
+                        "
+                        :name="field.id"
+                        class="min-w-0 flex-1"
+                      >
+                        <DmsDisplay
+                          v-if="shouldShowDisplay(field)"
+                          :model-value="state[field.id]"
+                          :type="field.type"
+                          :loading
+                          class="w-full"
+                          v-bind="field.component.options || {}"
+                        />
+                        <Component
+                          :is="resolveFieldComponent(field)"
+                          v-else
+                          :id="field.id"
+                          v-model="state[field.id]"
+                          :initial-value="initialValues?.[field.id]"
+                          :loading
+                          :disabled="isFieldDisabled(field)"
+                          :component-id="props.componentId"
+                          :page-id="props.pageId"
+                          :route-params="props.routeParams"
+                          class="w-full"
+                          v-bind="field.component.options || {}"
+                        />
+                        <template #error="{ error }">
+                          <template v-if="error">
+                            <UIcon
+                              name="i-ph-warning-circle"
+                              class="size-3.5 shrink-0"
+                            />
+                            {{ error }}
+                          </template>
+                        </template>
+                      </UFormField>
+                    </template>
+                  </template>
+                </div>
+              </section>
+            </template>
+
+            <section
+              v-else-if="!isFieldHidden(item)"
+              :class="layoutClasses.row"
+            >
+              <div :class="layoutClasses.meta">
                 <label
                   :for="item.id"
-                  class="text-default block text-base font-semibold sm:text-sm"
+                  class="text-highlighted text-[13px] font-[550]"
                 >
                   {{ processI18n(item.label || "") }}
                   <span
@@ -492,7 +609,7 @@ onUnmounted(async () => {
                     *
                   </span>
                 </label>
-                <p v-if="item.description" class="text-dimmed text-xs">
+                <p v-if="item.description" :class="layoutClasses.description">
                   {{ processI18n(item.description || "") }}
                 </p>
               </div>
@@ -505,11 +622,13 @@ onUnmounted(async () => {
                 :loading
                 :component-id="props.componentId"
                 :page-id="props.pageId"
+                class="min-w-0"
               />
 
               <UFormField
                 v-else-if="item.component.componentName && !item.localized"
                 :name="item.id"
+                class="min-w-0"
               >
                 <DmsDisplay
                   v-if="shouldShowDisplay(item)"
@@ -531,29 +650,58 @@ onUnmounted(async () => {
                   :page-id="props.pageId"
                   :route-params="props.routeParams"
                   class="w-full"
-                  :class="{ 'opacity-75': isFieldDisabled(item) }"
                   v-bind="item.component.options || {}"
                 />
+                <template #error="{ error }">
+                  <template v-if="error">
+                    <UIcon
+                      name="i-ph-warning-circle"
+                      class="size-3.5 shrink-0"
+                    />
+                    {{ error }}
+                  </template>
+                </template>
               </UFormField>
             </section>
           </template>
+        </div>
 
-          <USeparator
-            v-if="
-              props.fieldsOrientation !== 'horizontal' &&
-              (isFieldGroup(item) ? isGroupVisible(item) : !isFieldHidden(item))
-            "
-          />
-        </template>
+        <p
+          v-if="hasRequiredFields"
+          class="text-dimmed text-xs"
+          :class="surfaceClasses.legend"
+        >
+          <span class="text-error" aria-hidden="true">*</span>
+          {{ $t("dms.form.required_legend") }}
+        </p>
       </div>
 
-      <p v-if="hasRequiredFields" class="text-dimmed mt-6 text-xs">
-        <span class="text-error" aria-hidden="true">*</span>
-        {{ $t("dms.form.required_legend") }}
-      </p>
-
-      <template v-if="showActions">
-        <section class="mt-6 flex justify-end gap-2">
+      <DmsSaveBar
+        v-if="props.saveBar"
+        :dirty="changedFieldLabels.length > 0"
+        :saving="loading || isAnyFieldLoading"
+        :changes="changedFieldLabels"
+        :form="formElementId"
+        :save-label="props.submitLabel"
+        :class="inFormContainer ? 'mb-0' : 'mx-3 mb-3'"
+        @discard="reset(form)"
+      />
+      <footer
+        v-else-if="showActions"
+        class="flex items-center gap-2"
+        :class="surfaceClasses.foot"
+      >
+        <span
+          v-if="isDirty"
+          class="text-muted inline-flex items-center gap-2 text-[12.5px]"
+        >
+          <span
+            class="bg-warning ring-warning/15 size-[7px] rounded-full ring-3"
+            aria-hidden="true"
+          />
+          {{ $t("dms.form.unsaved_changes") }}
+        </span>
+        <div class="ms-auto flex gap-2">
           <UButton
             :label="$t('dms.button.reset')"
             :loading="loading || isAnyFieldLoading"
@@ -569,8 +717,8 @@ onUnmounted(async () => {
             type="submit"
             size="lg"
           />
-        </section>
-      </template>
+        </div>
+      </footer>
     </UForm>
   </component>
 </template>

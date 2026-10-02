@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { resolveComponent } from "vue";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
@@ -9,31 +10,70 @@ export interface TableTabItem {
   icon?: string;
   textColor?: string;
   iconColor?: string;
+  /** Link tab: the page it opens; never the active tab. */
+  to?: string;
+  /**
+   * "Preview as role" only: the previewed role could not open the linked
+   * page, so the tab is drawn hatched and locked.
+   */
+  previewLocked?: boolean;
+  /**
+   * "Preview as role" only: the previewed role opens the linked page without
+   * some of its blocks or actions, so the tab is drawn with the orange hatch
+   * and lock. Ignored on a locked tab.
+   */
+  previewPartial?: boolean;
 }
 
 interface Props {
   tabs: TableTabItem[];
+  /**
+   * Drawn inside the table's header band (no caption): no rule or gutter of
+   * its own, full band height, the underline on the band's bottom rule.
+   */
+  inline?: boolean;
+  /** Accessible name of the tab strip. */
+  label?: string;
 }
 
 const props = defineProps<Props>();
 const activeId = defineModel<string>({ required: true });
 
+// v2 link tabs: a 2px accent underline sits on the row's bottom rule.
 const theme = tv({
   slots: {
-    root: "flex flex-wrap items-center gap-1 pt-3",
-    tab: "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] transition-colors",
-    label: "font-semibold",
+    root: "no-scrollbar flex gap-5 overflow-x-auto border-b border-default px-[18px]",
+    tab: "relative inline-flex h-[38px] shrink-0 items-center gap-1.5 px-0.5 text-[13px] transition-colors [&>svg]:size-3.5",
+    label: "",
     count:
-      "rounded-full px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-dimmed bg-elevated dark:bg-accented",
+      "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
   },
   variants: {
     active: {
       true: {
-        tab: "bg-primary/10 text-primary",
-        count: "text-primary bg-primary/15 dark:bg-primary/15",
+        tab: "font-semibold text-highlighted after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-t-[2px] after:bg-primary",
+        count: "bg-primary/10 text-primary",
       },
       false: {
-        tab: "text-muted hover:text-default hover:bg-elevated dark:hover:bg-accented",
+        tab: "font-medium text-muted hover:text-highlighted",
+      },
+    },
+    inline: {
+      true: {
+        root: "me-auto shrink-0 self-stretch border-b-0 px-0",
+        tab: "h-11",
+      },
+    },
+    // Same hatch as the sidebar's locked entries.
+    previewLocked: {
+      true: {
+        tab: "px-1.5 text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
+      },
+    },
+    // Same hatch as the sidebar's partially locked entries.
+    previewPartial: {
+      true: {
+        tab: "px-1.5 bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
       },
     },
   },
@@ -48,27 +88,53 @@ const uiVariant = tv({
   ...(appConfig.ui?.tableTabs || {}),
 });
 
-const ui = computed(() => uiVariant());
+const ui = computed(() => uiVariant({ inline: props.inline }));
 
-const onTabClick = (id: string) => {
-  activeId.value = id;
+const DmsLink = resolveComponent("DmsLink");
+
+const isActive = (tab: TableTabItem): boolean =>
+  !tab.to && tab.id === activeId.value;
+
+// Beside link tabs, the active tab stands for the page itself.
+const currentValue = computed(() =>
+  props.tabs.some((tab) => tab.to) ? "page" : "true",
+);
+
+const onTabClick = (tab: TableTabItem) => {
+  if (tab.to) return;
+  activeId.value = tab.id;
 };
+
+const { locale } = useI18n();
+const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 </script>
 
 <template>
-  <nav v-if="props.tabs.length > 0" :class="ui.root()">
-    <button
+  <nav
+    v-if="props.tabs.length > 0"
+    :class="ui.root()"
+    :aria-label="props.label"
+  >
+    <component
+      :is="tab.to ? DmsLink : 'button'"
       v-for="tab in props.tabs"
       :key="tab.id"
-      type="button"
-      :class="ui.tab({ active: tab.id === activeId })"
-      @click="onTabClick(tab.id)"
+      v-bind="tab.to ? { to: tab.to } : { type: 'button' }"
+      :class="
+        ui.tab({
+          active: isActive(tab),
+          previewLocked: !!tab.previewLocked,
+          previewPartial: !tab.previewLocked && !!tab.previewPartial,
+        })
+      "
+      :aria-current="isActive(tab) ? currentValue : undefined"
+      @click="onTabClick(tab)"
     >
       <UIcon
         v-if="tab.icon"
         :name="tab.icon"
         :style="
-          tab.iconColor && tab.id !== activeId
+          tab.iconColor && !isActive(tab)
             ? { color: `var(--ui-${tab.iconColor})` }
             : undefined
         "
@@ -76,7 +142,7 @@ const onTabClick = (id: string) => {
       <span
         :class="ui.label()"
         :style="
-          tab.textColor && tab.id !== activeId
+          tab.textColor && !isActive(tab)
             ? { color: `var(--ui-${tab.textColor})` }
             : undefined
         "
@@ -85,10 +151,20 @@ const onTabClick = (id: string) => {
       </span>
       <span
         v-if="tab.count !== undefined"
-        :class="ui.count({ active: tab.id === activeId })"
+        :class="ui.count({ active: isActive(tab) })"
       >
-        {{ tab.count }}
+        {{ countFormat.format(tab.count) }}
       </span>
-    </button>
+      <UIcon
+        v-if="tab.previewLocked"
+        name="i-ph-lock-simple"
+        class="text-error"
+      />
+      <UIcon
+        v-else-if="tab.previewPartial"
+        name="i-ph-lock-simple"
+        class="text-warning"
+      />
+    </component>
   </nav>
 </template>

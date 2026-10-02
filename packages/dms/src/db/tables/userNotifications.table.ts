@@ -9,6 +9,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { User } from "@antelopejs/interface-dms/auth/db/tables/users.table";
+import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 
 export const userNotificationsTableName = "user_notifications";
 
@@ -40,6 +41,10 @@ export class UserNotification extends Table {
 
   @Field("any")
   declare params: Record<string, string | number> | null;
+
+  /** Icon well colour set by the sender; null lets the list derive it from the read state. */
+  @Field("string")
+  declare tone: NotificationTone | null;
 
   @Index()
   @Field("boolean")

@@ -1,4 +1,5 @@
-const POSITIVE_ACCENT = "success";
+/** Default accent of a good trend; KPI cards pass "primary" (v2 cyan). */
+export const POSITIVE_ACCENT = "success";
 const NEGATIVE_ACCENT = "error";
 const NEUTRAL_ACCENT = "neutral";
 const AUTO_ACCENT = "auto";
@@ -20,8 +21,7 @@ function trendFromSparkline(values: number[]): SparklineTrend {
   return "neutral";
 }
 
-const TREND_TO_ACCENT: Record<SparklineTrend, string> = {
-  positive: POSITIVE_ACCENT,
+const TREND_TO_ACCENT: Record<Exclude<SparklineTrend, "positive">, string> = {
   negative: NEGATIVE_ACCENT,
   neutral: NEUTRAL_ACCENT,
 };
@@ -45,12 +45,15 @@ function detectTrend(input: AutoAccentInput): SparklineTrend {
   return trendFromSparkline(input.sparkline);
 }
 
+/** Resolve "auto" from the delta (or the series slope), honouring `invert`. */
 export function resolveSparklineAccent(
   accent: string,
   input: AutoAccentInput,
+  positiveAccent: string = POSITIVE_ACCENT,
 ): string {
   if (accent !== AUTO_ACCENT) return accent;
   const trend = detectTrend(input);
   const finalTrend = input.invert ? INVERTED_TREND[trend] : trend;
+  if (finalTrend === "positive") return positiveAccent;
   return TREND_TO_ACCENT[finalTrend];
 }

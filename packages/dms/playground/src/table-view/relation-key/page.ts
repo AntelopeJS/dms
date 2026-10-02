@@ -11,7 +11,7 @@ export class PageTableViewRelationKey extends PageController(
     displayName: "Relation · Key (repro)",
     icon: "i-ph-link",
     category: tableViewCategory,
-    order: 90,
+    order: 120,
     description:
       "Repro: relation on _id (resolves) vs relation on a non-_id key that is not @Select() (stays empty)",
   },

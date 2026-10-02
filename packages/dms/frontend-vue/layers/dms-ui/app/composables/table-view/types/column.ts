@@ -36,4 +36,16 @@ export interface TableViewColumn {
   enableColumnFilter?: boolean;
   /** Wrap grid cell content without a line limit; omitted keeps the theme default. */
   cellWrap?: boolean;
+  /** Default grid column width in px (TanStack `size`). */
+  size?: number;
+  /**
+   * Data type the grid draws this column's cells with, instead of `type`
+   * (which keeps driving forms and filters).
+   */
+  display?: {
+    type: string;
+    options?: Record<string, unknown>;
+    /** Grid header in place of `header`. */
+    label?: string;
+  };
 }

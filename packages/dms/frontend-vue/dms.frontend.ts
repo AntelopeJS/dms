@@ -10,9 +10,11 @@ import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
+import accessibilityPlugin from "./layers/dms-layout/app/plugins/accessibility";
 import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
 import languageSyncPlugin from "./layers/dms-layout/app/plugins/language-sync";
+import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
@@ -147,7 +149,9 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   }
   sdk.registerPlugin(colorModePlugin);
   sdk.registerPlugin(interfaceScalePlugin);
+  sdk.registerPlugin(accessibilityPlugin);
   sdk.registerPlugin(languageSyncPlugin);
+  sdk.registerPlugin(regionalPreferencesPlugin);
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);

@@ -19,3 +19,18 @@ export class MembersQuotaExtension {
     .meta({ name: "Seat quota", icon: "i-ph-users-three" })
     .before("table");
 }
+
+/**
+ * The same seat-quota slot on the invitations page, so both workspace member
+ * pages carry it, as dms-saas does.
+ */
+@RegisterPageExtension("settings.user.members.invites")
+export class InvitesQuotaExtension {
+  static seatQuota = Placeholder({
+    label:
+      "seatQuota — injected into the DMS invitations page by the playground",
+    height: "80px",
+  })
+    .meta({ name: "Seat quota", icon: "i-ph-users-three" })
+    .before("table");
+}

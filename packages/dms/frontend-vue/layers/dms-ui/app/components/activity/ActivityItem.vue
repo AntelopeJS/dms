@@ -1,64 +1,82 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { SOFT_TINT, type SemanticColor } from "../../utils/semanticTint";
+import DmsListRow from "../list-row/ListRow.vue";
+import type { DmsTone } from "../../utils/tone";
 
-// DMS activity / feed / history row (design .feed-row + .watch-row): an
-// optional tinted icon bubble, a title (+ optional subtitle) and trailing meta.
-// Compose a divided list of these for "Recent requests", "Recent queries",
-// activity feeds, history panels… The title/subtitle/trailing accept slots so
-// callers can inline badges or rich markup.
-const props = withDefaults(
-  defineProps<{
-    icon?: string;
-    iconColor?: SemanticColor;
-    title?: string;
-    subtitle?: string;
-    trailing?: string;
-    /** Render title/subtitle in mono (for paths, queries…). */
-    mono?: boolean;
-  }>(),
-  {
-    iconColor: "neutral",
-    mono: false,
-  },
-);
+// DMS activity / feed / history row (v2 .activity): the feed preset of
+// DmsListRow — a 30px tinted well, a one-line title, a dimmed subtitle and a
+// mono trailing time. Stack these in DmsActivityFeed or a card for activity
+// feeds, "Recent requests", history panels… The title, subtitle and trailing
+// accept slots so callers can inline badges or rich markup.
+interface Props {
+  icon?: string;
+  /** Well tone (v2 .activity.is-*). */
+  iconColor?: DmsTone;
+  title?: string;
+  subtitle?: string;
+  /** Trailing meta, usually the time. */
+  trailing?: string;
+  /** Render title/subtitle in mono (for paths, queries…). */
+  mono?: boolean;
+  /** Accent dot after the trailing meta. */
+  unread?: boolean;
+  /** Makes the whole row a link. */
+  to?: string;
+  /** Hover band; on by default. */
+  interactive?: boolean;
+}
 
-const bubbleClass = computed(() => SOFT_TINT[props.iconColor]);
+interface Slots {
+  default?: () => unknown;
+  subtitle?: () => unknown;
+  trailing?: () => unknown;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  icon: undefined,
+  iconColor: "neutral",
+  title: undefined,
+  subtitle: undefined,
+  trailing: undefined,
+  mono: false,
+  unread: false,
+  to: undefined,
+  interactive: true,
+});
+const slots = defineSlots<Slots>();
+
+const meta = computed(() => (props.subtitle ? [props.subtitle] : undefined));
+const hasTitle = computed(() => !!props.title || !!slots.default);
 </script>
 
 <template>
-  <div
-    class="hover:bg-elevated/40 flex items-center gap-3 px-4 py-3 transition-colors"
+  <DmsListRow
+    size="sm"
+    icon-size="xs"
+    marker="trailing"
+    truncate
+    :icon="props.icon"
+    :tone="props.iconColor"
+    :meta="meta"
+    :mono="props.mono"
+    :unread="props.unread || undefined"
+    :trailing="props.trailing"
+    :to="props.to"
+    :interactive="props.interactive"
   >
-    <div
-      v-if="icon"
-      :class="bubbleClass"
-      class="grid size-[26px] shrink-0 place-items-center rounded-full"
-    >
-      <UIcon :name="icon" class="size-3.5" :aria-hidden="true" />
-    </div>
-
-    <div class="min-w-0 flex-1">
-      <div
-        :class="mono ? 'font-mono text-[12.5px]' : 'text-[13px]'"
-        class="text-toned flex items-center gap-2 truncate"
+    <template v-if="hasTitle" #default>
+      <span
+        class="min-w-0 truncate"
+        :class="props.mono && 'text-toned font-mono text-[12.5px]'"
       >
-        <slot>{{ title }}</slot>
-      </div>
-      <div
-        v-if="subtitle || $slots.subtitle"
-        :class="mono ? 'font-mono' : ''"
-        class="text-dimmed mt-1 truncate text-[11px]"
-      >
-        <slot name="subtitle">{{ subtitle }}</slot>
-      </div>
-    </div>
-
-    <div
-      v-if="trailing || $slots.trailing"
-      class="text-dimmed shrink-0 text-right font-mono text-[11px]"
-    >
-      <slot name="trailing">{{ trailing }}</slot>
-    </div>
-  </div>
+        <slot>{{ props.title }}</slot>
+      </span>
+    </template>
+    <template v-if="slots.subtitle" #meta>
+      <slot name="subtitle" />
+    </template>
+    <template v-if="slots.trailing" #trailing>
+      <slot name="trailing" />
+    </template>
+  </DmsListRow>
 </template>

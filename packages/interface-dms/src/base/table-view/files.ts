@@ -30,7 +30,11 @@ export const withFilePromotion = (
       params,
       args,
       mode,
-      componentIds: writingComponents.flatMap(GetComponentPermissionIds),
+      componentIds: [
+        ...new Set(
+          writingComponents.flatMap((c) => GetComponentPermissionIds(c)),
+        ),
+      ],
     });
   },
   args: baseRoute.args,

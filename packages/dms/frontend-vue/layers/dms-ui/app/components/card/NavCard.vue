@@ -1,45 +1,104 @@
 <script setup lang="ts">
-// Navigation tile (design .settings-card): an icon pill + title + description
-// rendered as a clickable card linking elsewhere (settings menu, etc.).
+import { computed, useAttrs } from "vue";
+import { tv } from "tailwind-variants";
+import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
+import DmsStatusPill from "../status-pill/StatusPill.vue";
+import DmsAutoLink from "../link/AutoLink.vue";
+import type { DmsTone } from "../../utils/tone";
+
+// Navigation tile (v2 .navcard): an icon well + title + description rendered
+// as a clickable card linking elsewhere (settings overview, a module's home),
+// optionally closed by the target's live state (v2 .sx-state, pinned to the
+// bottom so the states of a row line up) or a mono readout (v2
+// .module-tile__viz). A tag follows the title (v2 .sx-mod).
 //
-// Built on a bare <DmsLink> rather than <ULink> on purpose: ULink's theme
+// Built on a bare <DmsAutoLink> rather than <ULink> on purpose: ULink's theme
 // injects its own `rounded-md` which would override the .dms-card radius.
-// DmsLink is unstyled, so the shared .dms-card surface (rounded-xl) applies.
-interface Props {
+// The link is unstyled, so the shared .dms-card surface applies. Classes
+// passed by the caller are merged (tailwind-merge), so `gap-2.5` replaces the
+// default gap instead of competing with it.
+interface NavCardProps {
+  /** Route, `#anchor` or URL. */
   to: string;
   icon: string;
   title: string;
   description?: string;
+  /** Tone of the icon well. */
+  iconTone?: IconWellTone;
+  /** Live state of the target, in mono under the description ("3 unread"). */
+  state?: string;
+  /** Tone of the state line (`neutral` = dimmed). */
+  stateTone?: DmsTone;
+  /** Small uppercase mono tag after the title (module tag: "SAAS"). */
+  badge?: string;
+  /** Mono readout lines under the description (module tile). */
+  readout?: string[];
 }
 
-defineProps<Props>();
+defineOptions({ inheritAttrs: false });
+
+const props = withDefaults(defineProps<NavCardProps>(), {
+  description: undefined,
+  iconTone: "accent",
+  state: undefined,
+  stateTone: "neutral",
+  badge: undefined,
+  readout: undefined,
+});
+const attrs = useAttrs();
+
+const theme = tv({
+  slots: {
+    root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
+    title: "text-highlighted min-w-0 truncate text-sm font-[650]",
+    badge:
+      "bg-elevated shrink-0 text-dimmed rounded-[4px] px-1.5 font-mono text-[9.5px] font-semibold tracking-[0.08em] uppercase",
+    arrow:
+      "text-dimmed group-hover:text-primary ms-auto size-4 shrink-0 -translate-x-[3px] opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100",
+    description: "text-muted text-[13px] leading-normal",
+    readout:
+      "text-muted grid gap-0.5 font-mono text-[11.5px] leading-[1.55] font-medium",
+  },
+});
+
+const ui = theme();
+const rootClass = computed(() => ui.root({ class: attrs.class as string }));
+const passthrough = computed(() => {
+  const { class: _class, ...rest } = attrs;
+  return rest;
+});
 </script>
 
 <template>
-  <DmsLink
-    :to="to"
-    class="dms-card dms-card--interactive text-muted hover:text-default group flex flex-col gap-3 p-5 text-left"
-  >
+  <DmsAutoLink :to="props.to" :class="rootClass" v-bind="passthrough">
     <div class="flex items-center gap-3">
-      <div
-        class="bg-primary/10 ring-primary/20 group-hover:bg-primary/15 flex size-10 shrink-0 items-center justify-center rounded-lg ring transition-colors"
-      >
-        <UIcon :name="icon" class="text-primary size-5" :aria-hidden="true" />
-      </div>
-
-      <h3 class="text-highlighted min-w-0 truncate text-base font-semibold">
-        {{ title }}
-      </h3>
-
-      <UIcon
-        name="i-ph-caret-right"
-        class="text-dimmed ml-auto size-4 shrink-0 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
-        :aria-hidden="true"
-      />
+      <DmsIconWell :icon="props.icon" :tone="props.iconTone" />
+      <h3 :class="ui.title()">{{ props.title }}</h3>
+      <span v-if="props.badge" :class="ui.badge()">{{ props.badge }}</span>
+      <UIcon name="i-ph-arrow-right" :class="ui.arrow()" :aria-hidden="true" />
     </div>
 
-    <p v-if="description" class="text-dimmed text-sm leading-relaxed">
-      {{ description }}
+    <p v-if="props.description" :class="ui.description()">
+      {{ props.description }}
     </p>
-  </DmsLink>
+
+    <div v-if="props.readout?.length" :class="ui.readout()">
+      <span
+        v-for="(line, index) in props.readout"
+        :key="index"
+        class="truncate"
+      >
+        {{ line }}
+      </span>
+    </div>
+
+    <DmsStatusPill
+      v-if="props.state"
+      variant="text"
+      dot="none"
+      :tone="props.stateTone"
+      :label="props.state"
+      class="mt-auto self-start"
+    />
+  </DmsAutoLink>
 </template>

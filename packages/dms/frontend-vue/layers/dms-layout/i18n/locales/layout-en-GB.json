@@ -2,6 +2,15 @@
   "navigation": {
     "goToHomepage": "Go to homepage"
   },
+  "header": {
+    "home": "Home",
+    "open_sidebar": "Open sidebar",
+    "close_sidebar": "Close sidebar",
+    "expand_sidebar": "Expand sidebar",
+    "collapse_sidebar": "Collapse sidebar",
+    "add_favorite": "Add to favorites",
+    "remove_favorite": "Remove from favorites"
+  },
   "menu": {
     "favorites": "Favorites",
     "modules": "Modules",
@@ -20,6 +29,7 @@
     "roles": "Roles",
     "general": "General",
     "appearance": "Appearance",
+    "region": "Language & region",
     "preset_store": "Preset Store",
     "module_store": "Module Store",
     "component_store": "Component Store",
@@ -27,17 +37,12 @@
       "pages": "Pages",
       "modules": "Modules",
       "settings": "Settings"
-    }
+    },
+    "security": "Security"
   },
   "footer": {
     "french": "French",
     "english": "English"
-  },
-  "builder": {
-    "button": "Builder",
-    "title": "Builder — no-code editor",
-    "description": "A fully no-code way to configure your DMS — pages, tables, forms and logic — without writing a single line of code.",
-    "soon": "Coming soon"
   },
   "quickActions": {
     "title": "Quick actions",
@@ -60,6 +65,11 @@
       "copyUrl": "Copy current page URL",
       "urlCopied": "URL copied to clipboard",
       "copyFailed": "Copy failed"
+    },
+    "footer": {
+      "navigate": "Navigate",
+      "open": "Open",
+      "close": "Close"
     }
   },
   "notification": {
@@ -80,34 +90,94 @@
       "intro": "Manage and customize your application settings.",
       "description": {
         "notifications": "Configure your notification preferences to stay optimally informed",
-        "shortcuts": "Explore the different DMS shortcuts to improve your productivity",
-        "members": "Manage members and their permissions",
-        "invites": "Review, resend or cancel pending user invitations",
-        "roles": "Manage permissions and user groups for optimal access control",
+        "shortcuts": "Move faster without the mouse. Shortcuts work where their context says — they never fire while you type in a field.",
+        "members": "People with access to this workspace, their roles, and invitations waiting for an answer.",
+        "invites": "Invitations waiting for an answer: resend them, share their link or revoke them.",
+        "roles": "What each role can see and do. A member with several roles gets every permission from all of them.",
         "general": "Modify your platform's general information",
-        "appearance": "Customize and adapt your dashboard appearance according to your preferences for a more intuitive and pleasant experience",
+        "appearance": "Theme and density for this browser. Other devices keep their own choice.",
+        "region": "The language the dashboard speaks to you in, your time zone and how dates and times are written. Follows you on every device.",
         "preset_store": "Discover available presets",
         "module_store": "Discover available modules",
         "component_store": "Discover available components"
       },
+      "region": {
+        "instant": "Saved instantly",
+        "save_error": "Your preference couldn't be saved. Try again.",
+        "auto": "Automatic",
+        "language_block_title": "Language",
+        "language_block_description": "Your preferred language for the dashboard display. Saved as soon as you pick one.",
+        "language_title": "Application language",
+        "language_description": "Menus, labels and emails from the platform. Content you create isn't translated.",
+        "time_block_title": "Time & date",
+        "time_block_description": "How dates and times appear across tables, notifications and activity. Stored on your account, so every device follows them.",
+        "time_zone_title": "Time zone",
+        "time_zone_description": "Dates and times across the dashboard are shown in this time zone.",
+        "time_zone_detected": "Automatic follows this browser, currently in {zone}.",
+        "time_zone_auto": "Automatic ({zone})",
+        "time_zone_search": "Search a city or region…",
+        "time_zone_use_detected": "Use {zone}",
+        "week_start_title": "First day of the week",
+        "week_start_description": "Calendars and date pickers start their weeks on this day. Automatic follows the language: {auto}.",
+        "time_format_title": "Time format",
+        "time_format_description": "Automatic follows the language: {auto}.",
+        "time_24": "24-hour",
+        "time_12": "12-hour",
+        "date_format_title": "Date format",
+        "date_format_description": "How full dates are written. {auto}",
+        "date_auto_hint": "Automatic lets each screen pick what reads best.",
+        "preview_title": "Preview",
+        "preview_description": "How dates, times and numbers appear with these settings, in {zone}.",
+        "format_date": "Date",
+        "format_datetime": "Date & time",
+        "format_time": "Time",
+        "format_number": "Number",
+        "format_currency": "Currency"
+      },
       "notifications": {
-        "preferences_title": "Configuration",
-        "preferences_description": "Customize your notification preferences",
-        "system_label": "System",
-        "system_description": "System updates, New connection, Admin invitation accepted,...",
-        "module_label": "Module",
-        "module_description": "Allow modules to send you notifications",
-        "list_title": "Your notifications list",
-        "list_description": "View all recent notifications from your account to stay informed",
-        "no_notifications": "No notifications to display",
-        "mark_all_read": "All read",
-        "delete_all": "Delete all",
-        "confirm_mark_all_read_title": "Mark all as read?",
-        "confirm_mark_all_read_description": "This action will mark all notifications as read. This cannot be undone.",
-        "confirm_delete_all_title": "Delete all notifications?",
-        "confirm_delete_all_description": "This action will permanently delete all your notifications. This cannot be undone.",
-        "mark_all_read_success": "All notifications marked as read",
-        "delete_all_success": "All notifications deleted"
+        "description": "Choose what reaches you, and catch up on what happened across your workspaces.",
+        "preferences_title": "Preferences",
+        "preferences_description": "Customize your notification preferences. Each switch saves on its own — nothing else changes while it does.",
+        "column_subject": "Subject",
+        "column_in_app": "In-app",
+        "column_email": "Email",
+        "column_state": "Save state",
+        "soon": "Soon",
+        "category_switch": "All {name} notifications",
+        "category_count": "{count} of {total} on",
+        "locked_hint": "Required for account safety",
+        "email_hint": "Only in-app notifications are available today. Email delivery is on the way.",
+        "save_failed_on": "Couldn’t save — the switch was turned back on.",
+        "save_failed_off": "Couldn’t save — the switch was turned back off.",
+        "save_failed_many": "Couldn’t save — the switches were turned back.",
+        "retry": "Retry",
+        "inbox_title": "Inbox",
+        "inbox_description": "View all recent notifications from your account to stay informed.",
+        "filter_label": "Filter notifications",
+        "tab_all": "All",
+        "tab_unread": "Unread",
+        "mark_all_read": "Mark all as read",
+        "delete_all": "Delete all…",
+        "day_today": "Today",
+        "day_week": "Earlier this week",
+        "day_older": "Older",
+        "unread": "Unread",
+        "mark_read": "Mark read",
+        "mark_unread": "Mark unread",
+        "delete": "Delete",
+        "delete_one": "Delete notification",
+        "empty_title": "You’re all caught up",
+        "empty_description": "New notifications land here. Choose what you receive in Preferences above.",
+        "loading_more": "Loading older notifications · {count} more",
+        "load_more": "Load older notifications · {count} more",
+        "mark_all_read_toast": "{count} notification marked as read | {count} notifications marked as read",
+        "undo": "Undo",
+        "delete_all_title": "Delete {count} notification? | Delete all {count} notifications?",
+        "delete_all_description": "Your inbox will be emptied. This can’t be undone. Your preferences don’t change.",
+        "delete_all_description_unread": "Your inbox will be emptied, including {count} unread notification. This can’t be undone. Your preferences don’t change. | Your inbox will be emptied, including {count} unread notifications. This can’t be undone. Your preferences don’t change.",
+        "delete_all_confirm": "Delete {count} notification | Delete {count} notifications",
+        "cancel": "Cancel",
+        "unread_badge": "{count} unread notification | {count} unread notifications"
       },
       "general": {
         "title": "General Settings",
@@ -122,10 +192,13 @@
           "email": "Email",
           "roles": "Roles",
           "tenant_owner": "Owner",
-          "joined_at": "Joined at",
+          "joined_at": "Joined",
           "created_at": "Created at",
           "updated_at": "Updated at",
-          "connected": "Connected"
+          "connected": "Connected",
+          "member": "Member",
+          "last_active": "Last active",
+          "two_factor": "Two-factor"
         },
         "placeholder": {
           "name": "Enter full name",
@@ -138,48 +211,123 @@
           "joined_at": "When the user joined",
           "created_at": "When the user account was created",
           "updated_at": "Last modification time",
-          "connected": "User connection status"
+          "connected": "User connection status",
+          "last_active": "Last time the member used the dashboard"
         },
         "invite": {
-          "button": "Invite",
-          "title": "Invite a user",
-          "description": "Enter the email address of the person to invite and click 'Send invitation' to grant them access.",
-          "submit": "Send invitation",
-          "success": "Invitation sent successfully",
+          "button": "Invite members",
+          "title": "Invite members",
+          "description": "They’ll get an email with a link to join. It stays valid for 7 days.",
+          "submit": "Send invitations",
+          "success": "Invitations sent",
           "field": {
             "email": "Email address",
             "firstname": "First name",
             "lastname": "Last name",
-            "name_description": "Required when email validation is skipped, optional otherwise",
-            "roles": "Role(s)",
+            "name_description": "Optional. They can change it when they join.",
+            "roles": "Roles",
             "roles_description": "Roles to assign to the invited user",
-            "language": "Language",
-            "tenant_owner": "Owner",
-            "tenant_owner_description": "Grant full access without permission restrictions",
+            "language": "Invitation language",
+            "tenant_owner": "Make workspace owner",
+            "tenant_owner_description": "Owners have every permission, including billing, roles and removing members. Roles above are ignored. A workspace can have several owners.",
             "skip_email_validation": "Skip email validation",
-            "skip_email_validation_description": "If enabled, the invited user will not need to verify their email address and their first and last name must be provided"
+            "skip_email_validation_description": "If enabled, the invited user will not need to verify their email address and their first and last name must be provided",
+            "emails": "Email addresses",
+            "emails_description": "Paste a list to invite several people with the same roles.",
+            "language_description": "The language of the email and of their account.",
+            "name": "Name"
           },
           "placeholder": {
             "email": "user{'@'}example.com",
             "firstname": "First name",
             "lastname": "Last name",
-            "roles": "Select one or more roles"
+            "roles": "Select one or more roles",
+            "emails": "Add addresses, separated with a comma",
+            "emails_more": "Add another, separated with a comma",
+            "name": "Nicolas Petit"
           },
           "roles_required": "At least one role is required when the user is not an owner",
           "firstname_required": "First name is required when email validation is skipped",
           "lastname_required": "Last name is required when email validation is skipped",
-          "already_member": "This user is already registered"
+          "already_member": "Already a member of this workspace",
+          "header_button": "Invite members",
+          "partial_title": "Invitations sent: {sent}",
+          "partial_description": "{count} address was skipped: already a member or refused. | {count} addresses were skipped: already members or refused.",
+          "remove_email": "Remove {email}",
+          "roles_owner_hint": "Owners have every permission: the roles are ignored.",
+          "roles_hint_empty": "Pick at least one role.",
+          "roles_hint": "{roles}: {count} of {total} permissions.",
+          "compare_roles": "Compare roles",
+          "no_roles": "No role yet. Create one in Roles & permissions.",
+          "emails_required": "Add at least one email address",
+          "emails_too_many": "Invite at most 50 people at a time",
+          "skip_validation_single_email": "Email validation can only be skipped for one person at a time",
+          "failed": "The invitation could not be sent"
         },
         "action": {
-          "validate_email": "Validate email",
+          "validate_email": "Mark as verified",
           "validate_email_success": "Email validated successfully",
-          "validate_email_confirm_title": "Validate email",
-          "validate_email_confirm_description": "Are you sure you want to manually validate this user's email address?"
+          "validate_email_confirm_title": "Mark {name}’s email as verified?",
+          "validate_email_confirm_description": "They won’t need to confirm their address. Only do this if you know it belongs to them.",
+          "change_roles": "Change roles",
+          "resend_verification": "Resend verification email",
+          "resend_verification_success": "Verification email sent",
+          "validate_email_menu": "Mark email as verified…",
+          "make_owner_menu": "Make owner…",
+          "make_owner": "Make owner",
+          "make_owner_confirm_title": "Make {name} an owner?",
+          "make_owner_confirm_description": "Owners have every permission, including billing, roles and removing members.",
+          "make_owner_success": "Owner role given",
+          "remove_owner_menu": "Remove owner role…",
+          "remove_owner": "Remove owner role",
+          "remove_owner_confirm_title": "Remove {name}’s owner role?",
+          "remove_owner_confirm_description": "They keep their roles and lose the permissions only owners have.",
+          "remove_owner_success": "Owner role removed",
+          "remove": "Remove from workspace…"
         },
         "error": {
           "user_not_found": "User not found",
           "last_owner": "Cannot remove the last owner. At least one owner must remain.",
           "last_owner_delete": "Cannot delete all owners. At least one owner must remain."
+        },
+        "tabs": {
+          "members": "Members",
+          "invites": "Invitations"
+        },
+        "filter": {
+          "all_roles": "All roles",
+          "role": "Role"
+        },
+        "search_members": "Search members",
+        "owner": "Owner",
+        "no_role": "No role",
+        "you": "You",
+        "email_not_verified": "Email not verified",
+        "active_now": "Active now",
+        "never_signed_in": "Never signed in",
+        "two_factor_on": "On",
+        "two_factor_off": "Off",
+        "footer_count": "No members | {count} member | {count} members",
+        "last_active_hint": "“Last active” is the last time they used the dashboard.",
+        "confirm": {
+          "close": "Close"
+        },
+        "remove": {
+          "title_other": "Remove {name} from the workspace?",
+          "title_self": "Leave the workspace?",
+          "description_other": "They’re signed out of the workspace right away and lose access to its data. Their account and other workspaces aren’t affected.",
+          "description_self": "You lose access to this workspace right away. Your account and other workspaces aren’t affected.",
+          "impact_roles": "Roles removed",
+          "impact_records": "Records they created stay",
+          "confirm": "Remove member",
+          "success": "Member removed",
+          "last_owner_self_title": "You’re the only owner",
+          "last_owner_other_title": "{name} is the only owner",
+          "last_owner_description": "At least one owner must remain. Make another member owner first, then remove this one or their owner role."
+        },
+        "two_factor": {
+          "totp": "Authenticator app",
+          "email": "Email code"
         }
       },
       "invites": {
@@ -196,7 +344,9 @@
           "skip_email_validation": "Skip email validation",
           "status": "Status",
           "created_at": "Sent at",
-          "expires_at": "Expires at"
+          "expires_at": "Expires at",
+          "sent": "Sent",
+          "expires": "Expires"
         },
         "placeholder": {
           "email": "email{'@'}example.com",
@@ -212,17 +362,33 @@
         "action": {
           "resend": "Resend",
           "resend_success": "Invitation resent successfully",
-          "resend_confirm_title": "Resend invitation",
-          "resend_confirm_description": "This will generate a new invitation link and send it to the user. The previous link will be invalidated.",
+          "resend_confirm_title": "Resend the invitation to {email}?",
+          "resend_confirm_description": "A new link is emailed and the previous one stops working.",
           "cancel": "Cancel invite",
           "cancel_success": "Invitation cancelled successfully",
           "cancel_confirm_title": "Cancel invitation",
-          "cancel_confirm_description": "Are you sure you want to cancel this invitation? The invite link will no longer work."
+          "cancel_confirm_description": "Are you sure you want to cancel this invitation? The invite link will no longer work.",
+          "copy_link": "Copy link",
+          "copy_link_success": "Invitation link copied",
+          "edit": "Edit invitation",
+          "revoke": "Revoke",
+          "revoke_confirm_title": "Revoke the invitation to {email}?",
+          "revoke_confirm_description": "The link stops working right away. You can invite them again later.",
+          "revoke_success": "Invitation revoked",
+          "remove": "Remove",
+          "remove_confirm_title": "Remove the expired invitation to {email}?",
+          "remove_confirm_description": "It leaves the list. You can invite them again later.",
+          "remove_success": "Invitation removed"
         },
         "error": {
           "not_found": "Invitation not found",
-          "resolved": "This invitation has already been accepted or cancelled"
-        }
+          "resolved": "This invitation has already been accepted or cancelled",
+          "expired": "This invitation has expired"
+        },
+        "search": "Search invitations",
+        "sent_by": "{date} · by {name}",
+        "footer_count": "No invitations | {count} invitation | {count} invitations",
+        "expiry_hint": "Invitations expire 7 days after they’re sent."
       },
       "roles": {
         "table": {
@@ -242,6 +408,110 @@
           "permissions": "Permissions assigned to this role",
           "created_at": "When the role was created",
           "updated_at": "Last modification time"
+        },
+        "editor": {
+          "new_role": "New role",
+          "list_title": "Roles",
+          "list_members": "Members",
+          "search_roles": "Search roles",
+          "no_role_match": "No role matches this search.",
+          "owner": "Owner",
+          "owner_summary": "All {total} · locked",
+          "permission_summary": "{count} of {total} permissions",
+          "invites": "{count} invite | {count} invites",
+          "untitled": "Untitled role",
+          "unsaved": "Not saved yet",
+          "foot_prefix": "Assign roles from",
+          "foot_link": "Members",
+          "members_count": "no member | {count} member | {count} members",
+          "more_actions": "More role actions",
+          "duplicate": "Duplicate role",
+          "delete": "Delete role",
+          "copy_name": "{name} (copy)",
+          "field_name": "Role name",
+          "field_description": "Description",
+          "optional": "Optional",
+          "placeholder_name": "e.g. Support",
+          "placeholder_description": "What members with this role do",
+          "search_permissions": "Search permissions, e.g. “export”",
+          "expand_level": "Expand one level",
+          "expand_level_hint": "Expand one level: opens the shallowest level of the tree that is not fully open",
+          "collapse_level": "Collapse one level",
+          "collapse_level_hint": "Collapse one level: closes the deepest level of the tree that has an open row",
+          "depth": "level {level}/{total}",
+          "depth_hint": "{level} of {total} levels fully open",
+          "expand": "Expand",
+          "collapse": "Collapse",
+          "of_selected": "of {total} selected",
+          "matches": "match | matches",
+          "in_areas": "in {count} area | in {count} areas",
+          "tree_label": "Permissions",
+          "change_added": "Added",
+          "change_removed": "Removed",
+          "requires": "Requires {name}",
+          "auto_added": "{name} added automatically",
+          "auto_added_many": "{count} added automatically",
+          "not_grantable": "You don’t hold this permission, so you can’t grant it.",
+          "search_empty": "No permission matches “{query}”.",
+          "no_permissions": "No permission is registered yet.",
+          "changed_name": "name",
+          "changed_description": "description",
+          "changed_added": "{count} permission added | {count} permissions added",
+          "changed_removed": "{count} permission removed | {count} permissions removed",
+          "applies_to": "applies to {names} on their next page load",
+          "applies_to_count": "applies to {count} members on their next page load",
+          "owner_title": "Owners have every permission",
+          "owner_description": "Including billing, roles and removing members. This role can’t be edited or deleted. Make someone owner from Members.",
+          "open_members": "Open Members",
+          "discard_title": "Discard your changes?",
+          "discard_description": "The changes to this role haven’t been saved.",
+          "discard_confirm": "Discard",
+          "keep_editing": "Keep editing",
+          "delete_title": "Delete {name}?",
+          "delete_unused": "Nobody holds this role. Deleting it can’t be undone.",
+          "delete_in_use": "{count} member or pending invite still holds this role and will lose its permissions, unless you move them to another role. | {count} members or pending invites still hold this role and will lose its permissions, unless you move them to another role.",
+          "reassign_label": "Move them to",
+          "reassign_none": "No role",
+          "delete_confirm": "Delete role",
+          "cancel": "Cancel",
+          "saved": "Role saved",
+          "created": "Role created",
+          "duplicated": "Role duplicated",
+          "deleted": "Role deleted"
+        },
+        "preview": {
+          "button": "Preview as {role}",
+          "region_label": "Role preview",
+          "previewing": "Previewing",
+          "as": "as",
+          "this_page": "this page",
+          "search_pages": "Search pages…",
+          "pick_page": "Page to preview",
+          "unsaved_included": "unsaved changes included",
+          "page_hidden": "Page hidden for {role}",
+          "out_of_scope": "{count} permission outside your own access is not shown | {count} permissions outside your own access are not shown",
+          "blocked_notice": "Read-only preview: nothing was changed",
+          "blocked_request": "This is a read-only preview. Exit it to make changes.",
+          "failed": "The preview could not be updated",
+          "loading": "Updating the preview",
+          "exit": "Exit preview",
+          "veil_hidden": "Hidden for {role}",
+          "veil_readonly": "Read only",
+          "veil_limited": "Limited",
+          "veil_withheld": "Withheld for this role: {actions}",
+          "menu_hidden": "Hidden for {role}",
+          "menu_partial": "Partial access for {role}: some blocks or actions are hidden",
+          "veil_partial": "Partial access",
+          "page_partial": "Partial access for {role}"
+        },
+        "error": {
+          "not_found": "This role no longer exists.",
+          "name_required": "Give the role a name.",
+          "name_taken": "Another role already has this name.",
+          "ungrantable": "You can’t grant permissions you don’t hold yourself.",
+          "in_use": "Members or pending invites still hold this role.",
+          "invalid_reassign": "Pick another role to move its members to.",
+          "not_created": "The role could not be created."
         }
       },
       "appearance": {
@@ -258,20 +528,280 @@
         "scale_small_hint": "Compact · more data",
         "scale_normal_hint": "Default",
         "scale_large_hint": "Spacious · big screens",
-        "css_variables": "CSS Variables",
-        "css_variables_description": "List of all UI CSS properties used in the design system"
+        "css_variables": "CSS variables",
+        "css_variables_description": "List of all UI CSS properties used in the design system",
+        "instant": "Changes apply instantly on this device",
+        "system_hint": "Matches your OS setting",
+        "light_hint": "Bright surfaces",
+        "dark_hint": "Easy on the eyes",
+        "sidebar_title": "Sidebar",
+        "sidebar_description": "You can also collapse it any time with the button next to the breadcrumb.",
+        "sidebar_start_collapsed": "Start with the sidebar collapsed",
+        "sidebar_start_collapsed_hint": "Shows icons only, with labels on hover. Handy on small laptop screens.",
+        "developer_title": "Developer",
+        "developer_description": "Design tokens used by the interface, for building modules that match it.",
+        "css_vars": {
+          "count": "{count} variables",
+          "filter_placeholder": "Filter variables",
+          "category_label": "Variable group",
+          "theme_hint": "Values for the current theme",
+          "copy": "Copy",
+          "copied": "Copied",
+          "showing": "Showing {shown} of {total}",
+          "export": "Export as CSS",
+          "no_results": "No variable matches this filter.",
+          "categories": {
+            "all": "All",
+            "colors": "Colors",
+            "text": "Text",
+            "background": "Background",
+            "border": "Border",
+            "radius": "Radius",
+            "shadow": "Shadow",
+            "other": "Other"
+          }
+        },
+        "accessibility": {
+          "title": "Accessibility",
+          "description": "Calmer, crisper and easier-to-scan screens on this device. Density above scales the text.",
+          "reduce_motion": "Reduce motion",
+          "reduce_motion_hint": "Turns off animations and transitions, live pulses and chart animations. Automatic follows your operating system's setting.",
+          "motion_auto": "Automatic",
+          "motion_on": "On",
+          "motion_off": "Off",
+          "increase_contrast": "Increase contrast",
+          "increase_contrast_hint": "Darker secondary text and stronger borders, in light and dark themes.",
+          "underline_links": "Always underline links",
+          "underline_links_hint": "Underlines links in content and tables, so they don't rely on color alone. Menus and buttons stay as they are."
+        }
       },
       "shortcuts": {
         "title": "Keyboard Shortcuts",
-        "intro": "Available keyboard shortcuts for components"
+        "intro": "Available keyboard shortcuts for components",
+        "search_placeholder": "Search shortcuts, e.g. “refresh” or “palette”",
+        "detected": "Detected {os} · {count} shortcuts in {groups} groups",
+        "os_mac": "macOS",
+        "os_other": "Windows & Linux",
+        "layout_label": "Keyboard layout",
+        "no_results": "No shortcut matches your search.",
+        "groups": {
+          "global": {
+            "title": "Global",
+            "description": "Work anywhere in the dashboard."
+          },
+          "tableview": {
+            "title": "Tables",
+            "description": "Any list page when the table has focus."
+          },
+          "tree": {
+            "title": "Trees",
+            "description": "Folders, categories and permission trees."
+          },
+          "tab": {
+            "title": "Tabs",
+            "description": "Pages split into tabs."
+          }
+        }
+      },
+      "shell": {
+        "search_placeholder": "Search settings",
+        "all_settings": "All settings",
+        "account": "Account",
+        "workspace": "Workspace",
+        "no_results": "No settings match your search.",
+        "member_invitations": "Member invitations",
+        "pending_invitations": "No pending invitations | {count} pending invitation | {count} pending invitations"
+      },
+      "overview": {
+        "your_account": "Your account",
+        "edit_profile": "Edit profile",
+        "owner": "Owner",
+        "two_factor": "Two-factor",
+        "two_factor_on": "On · {methods}",
+        "two_factor_off": "Off",
+        "backup_codes": "Backup codes",
+        "backup_codes_ready": "Generated",
+        "backup_codes_missing": "Not generated",
+        "language": "Language",
+        "account_description": "Only you can see and change these.",
+        "workspace_description": "Shared by every member of the workspace.",
+        "other_description": "Settings added by modules and projects.",
+        "activity": {
+          "title": "Recent account activity",
+          "view_all": "View all",
+          "empty_title": "No recent activity",
+          "empty_description": "Sign-ins and changes to your account will show here.",
+          "this_device": "This device",
+          "device": "{browser} on {os}",
+          "device_single": "{device}",
+          "as_owner": "As owner",
+          "invited_by": "Invited by {name}",
+          "method": {
+            "totp": "Authenticator app",
+            "email": "Email code"
+          },
+          "event": {
+            "signed_in": "New sign-in",
+            "signed_in_on": "Signed in on {device}",
+            "password_changed": "Password changed",
+            "password_reset": "Password reset",
+            "email_changed": "Sign-in email changed",
+            "two_factor_enabled": "Two-factor authentication turned on",
+            "two_factor_disabled": "Two-factor authentication turned off",
+            "backup_codes_generated": "New backup codes generated",
+            "login_method_added": "{provider} sign-in linked",
+            "login_method_added_unnamed": "Sign-in method linked",
+            "account_created": "Account created",
+            "workspace_joined": "Joined {workspace}",
+            "workspace_joined_unnamed": "Joined a workspace",
+            "invite_sent": "Invited {email}",
+            "invite_sent_unnamed": "Invitation sent",
+            "collaborator_joined": "{name} joined the workspace",
+            "collaborator_joined_unnamed": "A collaborator joined the workspace"
+          }
+        }
       }
     }
   },
   "modules": {
     "title": "Modules",
-    "intro": "Browse the modules available on this platform.",
-    "empty": "No modules are accessible to you yet.",
-    "open": "Open module"
+    "intro": "Everything installed on this platform and what each module is doing right now.",
+    "open": "Open",
+    "owner_badge": "Platform owners",
+    "refresh": "Refresh",
+    "empty": {
+      "title": "No module is installed yet",
+      "description": "Modules are added to the project with the AntelopeJS CLI, then appear here after a restart."
+    },
+    "summary": {
+      "installed": "Installed",
+      "updates": "Updates available",
+      "attention": "Need attention",
+      "beta": "In beta"
+    },
+    "installed": {
+      "title": "Installed",
+      "description": "Status and a live readout for each module. Open a module to pick up where you left off."
+    },
+    "store": {
+      "title": "Module store",
+      "description": "Official AntelopeJS modules not installed on this platform.",
+      "soon": "Coming soon",
+      "banner": {
+        "title": "Coming soon",
+        "description": "Browse and install official modules from the AntelopeJS catalog directly from your dashboard."
+      },
+      "search_placeholder": "Search the store",
+      "category_label": "Store category",
+      "available_soon": "Available soon",
+      "install": "Install",
+      "install_soon": "Coming soon",
+      "command_label": "Install command",
+      "no_result": {
+        "title": "No module in the store matches “{query}”",
+        "title_filtered": "No module in the store matches these filters"
+      },
+      "all_installed": {
+        "title": "Every official module is installed",
+        "description": "New modules from the AntelopeJS catalog will show up here."
+      },
+      "category": {
+        "ai": "AI",
+        "business": "Business",
+        "content": "Content",
+        "data": "Data",
+        "developer": "Developer",
+        "growth": "Growth",
+        "operations": "Operations"
+      },
+      "catalog": {
+        "ai": {
+          "title": "AI assistant",
+          "description": "A coding agent that inspects your modules and edits the project, for development."
+        },
+        "api": {
+          "title": "API",
+          "description": "Route catalog, request logs and traffic statistics for your API."
+        },
+        "automation": {
+          "title": "Automation",
+          "description": "Visual procedures built from triggers, actions and data nodes."
+        },
+        "builder": {
+          "title": "Builder",
+          "description": "Edits the project’s pages, tables and forms, writing only code that compiles."
+        },
+        "cicd": {
+          "title": "Publishing",
+          "description": "Versions, environments and deploys of your project through git."
+        },
+        "database": {
+          "title": "Database",
+          "description": "Schemas, data browser, schema diagram and an AQL query workspace."
+        },
+        "lang": {
+          "title": "Translations",
+          "description": "Locales, translation coverage and a key-by-locale translation matrix."
+        },
+        "mailing": {
+          "title": "Mailing",
+          "description": "Email templates with a block editor, send log and delivery metrics."
+        },
+        "marketing": {
+          "title": "Marketing",
+          "description": "Cookieless traffic analytics, conversion funnels with A/B splits and click heatmaps."
+        },
+        "media": {
+          "title": "Media",
+          "description": "Asset library with folders, per-folder permissions and image derivatives."
+        },
+        "saas": {
+          "title": "SaaS",
+          "description": "Plans, workspaces, billing with Stripe and customer lifecycle."
+        }
+      }
+    },
+    "sort": {
+      "label": "Sort",
+      "recent": "Recently used",
+      "name": "A–Z"
+    },
+    "search": {
+      "placeholder": "Search modules"
+    },
+    "category": {
+      "label": "Category",
+      "all": "All"
+    },
+    "category_other": "Other",
+    "status": {
+      "live": "Live",
+      "beta": "Beta",
+      "update": "Update",
+      "attention": "Attention"
+    },
+    "update_available": "update available",
+    "no_result": {
+      "title": "No installed module matches “{query}”",
+      "title_filtered": "No installed module matches these filters",
+      "lives_in": "“{page}” lives in the {module} module.",
+      "lives_in_section": "“{page}” lives in the {module} module, under {section}.",
+      "palette": "The command palette ({shortcut}) searches every page of every module.",
+      "clear": "Clear search",
+      "open_page": "Open {module} › {page}"
+    },
+    "error": {
+      "title": "Modules couldn’t be loaded",
+      "description": "The request to {endpoint} failed ({reason}). Installed modules keep working; only this list is affected.",
+      "reason_status": "HTTP {status}",
+      "reason_network": "no response",
+      "retry": "Try again"
+    },
+    "forbidden": {
+      "title": "Only platform owners manage modules",
+      "description": "Modules are installed, opened and granted by the owners of this platform. Ask one of them if you need a module.",
+      "back": "Back to workspace"
+    }
   },
   "emails": {
     "admin_invite": {
@@ -287,6 +817,21 @@
       "expires_label": "This invitation expires in",
       "expires_in": "{days} days",
       "footer": "If you didn't expect this invitation, you can safely ignore this email."
+    }
+  },
+  "empty_layout": {
+    "theme_toggle": "Toggle theme",
+    "footer": {
+      "documentation": "Documentation",
+      "website": "Website",
+      "language": "Language",
+      "github_star": "Star",
+      "github_star_label": "Star AntelopeJS DMS on GitHub"
+    }
+  },
+  "error": {
+    "page": {
+      "eyebrow": "Error {code}"
     }
   }
 }

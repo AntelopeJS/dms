@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import type {
   ColumnSizingState,
+  ExpandedState,
   PaginationState,
   RowSelectionState,
   SortingState,
@@ -17,7 +18,12 @@ import {
 } from "../../types/quick-actions";
 import type {
   KanbanConfig,
+  TableViewChromeOptions,
+  TableViewChromePreset,
   TableViewConfig,
+  TableViewExpandableConfig,
+  TableViewFooter,
+  TableViewQuickFilter,
   TableViewListResponse,
   TableViewDisplayContext,
   TableViewDisplayConfig,
@@ -37,8 +43,28 @@ import {
   buildTableQuery,
 } from "../../build/composables/table-view/utils/tableQuery";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
+import {
+  defaultExpandedRows,
+  type ExpandedRowMap,
+  keepListedRows,
+  nextExpandedRows,
+} from "../../build/composables/table-view/utils/expandedRows";
+import { resolveTableChrome } from "../../build/composables/table-view/utils/chrome";
+import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
+import {
+  type QuickFilterItem,
+  quickFilterFilters,
+  quickFilterMode,
+  relationQuickFilterItems,
+  relationQuickFilterSource,
+  type ResolvedQuickFilter,
+  staticQuickFilterItems,
+} from "../../build/composables/table-view/utils/quickFilters";
+import { useNavBadges } from "../../composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 
 import UTable from "../../build/components/table/Table.vue";
+import ExpandedRowDetail from "./ExpandedRowDetail.vue";
 import type { TableViewSwitcherItem } from "../../build/components/table/Table.vue";
 import {
   defineAsyncComponent,
@@ -72,7 +98,29 @@ interface RealtimePresenceActor {
 
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
-interface TableViewProps<T extends Data> extends TableViewConfig<T> {}
+// The backend options of a table view, declared here as well so the
+// component's runtime props never depend on resolving the imported config.
+interface TableViewProps<T extends Data> extends TableViewConfig<T> {
+  /** Expandable rows: caret column + detail band (backend `expandable`). */
+  expandable?: TableViewExpandableConfig;
+  /** Controls drawn around the rows: a preset or per-control toggles. */
+  chrome?: TableViewChromePreset | TableViewChromeOptions;
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
+  /** One-click dropdown filters of the toolbar. */
+  quickFilters?: TableViewQuickFilter[];
+  /** Columns hidden from the grid by default (still listed). */
+  hiddenColumns?: string[];
+  /** Rows per page while the user picked none. */
+  pageSize?: number;
+  /** Footer texts: row count and hint. */
+  footer?: TableViewFooter;
+  /**
+   * The table view's key (backend `tableViewKey`): its writes carry it, so
+   * the server applies this table's permission and row rules.
+   */
+  tableViewKey?: string;
+}
 
 const props = defineProps<TableViewProps<T>>();
 
@@ -133,9 +181,21 @@ const persistedDisplay = getPreference<string>(
   getTablePreferenceKey("viewMode"),
   defaultDisplay,
 );
+// A default display that draws its whole interface (no table chrome, hence no
+// switcher) is the only way into the page: a saved choice cannot override it.
+const isDefaultDisplayStandalone =
+  resolvedDisplay(defaultDisplay)?.capabilities?.header === false;
 const activeDisplayId = ref<string>(
-  offeredDisplayIds.has(persistedDisplay) ? persistedDisplay : TABLE_DISPLAY_ID,
+  isDefaultDisplayStandalone
+    ? defaultDisplay
+    : offeredDisplayIds.has(persistedDisplay)
+      ? persistedDisplay
+      : TABLE_DISPLAY_ID,
 );
+
+/** A display the backend config renders by itself, with no client plugin. */
+const isConfigRenderedDisplay = (id: string): boolean =>
+  !!resolvedDisplay(id)?.component;
 
 const availableDisplays = computed<TableViewSwitcherItem[]>(() =>
   registeredDisplays.value
@@ -183,10 +243,12 @@ const resolveDisplayComponentRef = (
 const activeDisplayComponent = computed<Component | string | undefined>(() => {
   const id = activeDisplayId.value;
   if (id === TABLE_DISPLAY_ID || !offeredDisplayIds.has(id)) return undefined;
-  const registered = getById(id)?.component;
-  if (registered) return resolveDisplayComponentRef(registered);
+  // The instance's own component wins over the registered one: the server
+  // renders it, so the client must hydrate the same tree.
   const fromConfig = resolvedDisplay(id)?.component;
   if (fromConfig) return resolveDisplayComponentRef(fromConfig);
+  const registered = getById(id)?.component;
+  if (registered) return resolveDisplayComponentRef(registered);
   return STATIC_DISPLAY_COMPONENTS[id];
 });
 
@@ -205,7 +267,12 @@ if (
   kanbanGroupBy.value = kanbanOptions.groupByField;
 }
 
-const DEFAULT_PAGINATION: PaginationState = { pageIndex: 0, pageSize: 10 };
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGINATION: PaginationState = {
+  pageIndex: 0,
+  pageSize: props.pageSize ?? DEFAULT_PAGE_SIZE,
+};
+const resolvedChrome = resolveTableChrome(props.chrome);
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
 const pagination = ref<PaginationState>(
@@ -289,29 +356,38 @@ interface ResolvedTab {
   icon?: string;
   textColor?: string;
   iconColor?: string;
+  /** Link tab: the page it opens. */
+  to?: string;
+  toPage?: string;
+  countFrom?: string;
+  badge?: boolean;
 }
+
+// A configured "all" tab stands in for the implicit one, at its own place.
+const hasConfiguredAllTab = (tabs ?? []).some((tab) => tab.id === ALL_TAB_ID);
 
 const resolvedTabs = computed<ResolvedTab[]>(() => {
   // Tabs are a transverse-but-table-shaped concept; displays that opt out of the
   // `tabs` capability (e.g. kanban) hide them and have their own grouping.
   if (!activeCapabilities.value.tabs) return [];
   if (!tabs || tabs.length === 0) return [];
+  const implicitAll: ResolvedTab[] = hasConfiguredAllTab
+    ? []
+    : [{ id: ALL_TAB_ID, label: t("dms.table.tabs.all"), filters: [] }];
   return [
-    {
-      id: ALL_TAB_ID,
-      label: t("dms.table.tabs.all"),
-      filters: [] as TableFilter[],
-      icon: undefined,
-      textColor: undefined,
-      iconColor: undefined,
-    },
+    ...implicitAll,
     ...tabs.map((tab) => ({
       id: tab.id,
       label: processI18n(tab.label),
-      filters: tab.filters.map((f) => ({ ...f })),
+      // A link tab filters nothing: it opens another page.
+      filters: tab.to ? [] : (tab.filters ?? []).map((f) => ({ ...f })),
       icon: tab.icon,
       textColor: tab.textColor,
       iconColor: tab.iconColor,
+      to: tab.to,
+      toPage: tab.toPage,
+      countFrom: tab.countFrom,
+      badge: tab.badge,
     })),
   ];
 });
@@ -323,7 +399,7 @@ const activeTabFilters = computed<TableFilter[]>(() => {
 
 watch(resolvedTabs, (next) => {
   if (next.length === 0) return;
-  if (!next.some((tab) => tab.id === activeTabId.value)) {
+  if (!next.some((tab) => !tab.to && tab.id === activeTabId.value)) {
     activeTabId.value = ALL_TAB_ID;
   }
 });
@@ -357,10 +433,77 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
     }));
 });
 
+// Quick filters: dropdowns of the toolbar over a column's values (a select's
+// items, a boolean, the rows a relation points to). Not persisted, not in the
+// filters row, and left out of the tab counters.
+const quickFilterValues = ref<Record<string, string | undefined>>({});
+const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
+const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
+  const column = allColumns.find(
+    (candidate) => candidate.accessorKey === filter.field,
+  );
+  return {
+    filter,
+    column,
+    mode: quickFilterMode(column, filter.mode),
+    items: staticQuickFilterItems(column, processI18n),
+    source: relationQuickFilterSource(column),
+  };
+});
+
+const RELATION_QUICK_FILTER_LIMIT = 200;
+
+const loadRelationQuickFilters = async () => {
+  await Promise.all(
+    quickFilterDefinitions
+      .filter((definition) => !definition.items && definition.source)
+      .map(async ({ filter, source }) => {
+        try {
+          const response = await $authFetch<
+            TableViewListResponse<Record<string, unknown>>
+          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          relationQuickFilterValues.value = {
+            ...relationQuickFilterValues.value,
+            [filter.field]: relationQuickFilterItems(response.results, source!),
+          };
+        } catch {
+          // A picker the caller may not read just stays out of the toolbar.
+        }
+      }),
+  );
+};
+
+// A quick filter with nothing to pick is left out of the toolbar.
+const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
+  quickFilterDefinitions
+    .map(({ filter, column, mode, items }) => ({
+      field: filter.field,
+      label: processI18n(filter.label ?? column?.header ?? filter.field),
+      icon: filter.icon ?? "i-ph-funnel",
+      allLabel: filter.allLabel
+        ? processI18n(filter.allLabel)
+        : t("dms.table.quick_filter.all"),
+      mode,
+      items: items ?? relationQuickFilterValues.value[filter.field] ?? [],
+    }))
+    .filter((filter) => filter.items.length > 0),
+);
+
+const quickFilterHiddenFilters = computed<TableFilter[]>(() =>
+  quickFilterFilters(
+    quickFilterDefinitions.map(({ filter, mode }) => ({
+      field: filter.field,
+      mode,
+    })),
+    quickFilterValues.value,
+  ),
+);
+
 const hiddenFilters = computed<TableFilter[]>(() => [
   ...queryParamHiddenFilters.value,
   ...routeParamHiddenFilters.value,
   ...activeTabFilters.value,
+  ...quickFilterHiddenFilters.value,
 ]);
 
 const queryParamDefaults = computed<Record<string, unknown> | undefined>(() => {
@@ -497,22 +640,24 @@ watch(
 );
 
 const tabCountsQuery = computed(() =>
-  resolvedTabs.value.map((tab) => ({
-    id: tab.id,
-    query: buildTableQuery({
-      pagination: { pageIndex: 0, pageSize: 0 },
-      sorting: [],
-      columnFilters: [],
-      hiddenFilters: [...queryParamHiddenFilters.value, ...tab.filters],
-    }),
-  })),
+  resolvedTabs.value
+    .filter((tab) => !tab.to)
+    .map((tab) => ({
+      id: tab.id,
+      query: buildTableQuery({
+        pagination: { pageIndex: 0, pageSize: 0 },
+        sorting: [],
+        columnFilters: [],
+        hiddenFilters: [...queryParamHiddenFilters.value, ...tab.filters],
+      }),
+    })),
 );
 
 const { data: tabCountsData, refresh: refreshTabCounts } =
   await useDmsAsyncData<Record<string, number>>(
     `table-view-${componentId}-${pageId}-tab-counts`,
     async () => {
-      if (resolvedTabs.value.length === 0) return {};
+      if (tabCountsQuery.value.length === 0) return {};
       return await $authFetch<Record<string, number>>(
         location + "/count/batch",
         {
@@ -560,25 +705,86 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   groupByField: kanbanGroupBy,
   editAction: tableProps.value.rowActions?.edit,
   deleteAction: tableProps.value.rowActions?.delete,
+  tableViewKey: props.tableViewKey,
 });
+
+// A link tab counts the rows of the list it opens; a list the caller may not
+// read shows no counter.
+const linkTabCounts = ref<Record<string, number>>({});
+const LINK_TAB_COUNT_QUERY = { limit: 1, offset: 0 };
+
+const refreshLinkTabCounts = async () => {
+  const linked = resolvedTabs.value.filter((tab) => tab.to && tab.countFrom);
+  if (linked.length === 0) return;
+  const entries = await Promise.all(
+    linked.map(async (tab) => {
+      try {
+        const response = await $authFetch<TableViewListResponse<unknown>>(
+          `${tab.countFrom}/list`,
+          { query: LINK_TAB_COUNT_QUERY },
+        );
+        return [tab.id, response.total] as const;
+      } catch {
+        return undefined;
+      }
+    }),
+  );
+  linkTabCounts.value = Object.fromEntries(
+    entries.filter((entry) => entry !== undefined),
+  );
+};
 
 const refreshAll = async () => {
   await Promise.all([
     refresh(),
     refreshTabCounts(),
+    refreshLinkTabCounts(),
     activeDisplayRef.value?.refresh?.(),
   ]);
+};
+
+// "Preview as role": a link tab to a page the previewed role could not open
+// is drawn locked, one to a page it opens partially is drawn partially
+// locked. Never outside a preview (`entryState` is null then).
+const permissionPreview = usePermissionPreview();
+const previewSiteLayout = useSiteLayout();
+const linkTabPreviewState = (tab: ResolvedTab) => {
+  if (!tab.to || !permissionPreview.isActive.value) return null;
+  const fullId =
+    tab.toPage ??
+    previewSiteLayout.findMatchingRoute(stripQueryAndHash(tab.to))?.metadata
+      .fullId;
+  return permissionPreview.entryState(fullId);
 };
 
 const tabsWithCount = computed(() =>
   resolvedTabs.value.map((tab) => ({
     id: tab.id,
     label: tab.label,
-    count: tabCountsData.value?.[tab.id],
+    count: tab.to ? linkTabCounts.value[tab.id] : tabCountsData.value?.[tab.id],
     icon: tab.icon,
     textColor: tab.textColor,
     iconColor: tab.iconColor,
+    to: tab.to,
+    previewLocked: linkTabPreviewState(tab) === "hidden",
+    previewPartial: linkTabPreviewState(tab) === "partial",
   })),
+);
+
+// A tab declared with `badge` publishes its counter for the navigation entry
+// of the page it stands for: the linked page, or this one.
+const { setNavBadge } = useNavBadges();
+watch(
+  tabsWithCount,
+  (next) => {
+    for (const tab of next) {
+      const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
+      if (!source?.badge || tab.count === undefined) continue;
+      const fullId = source.to ? source.toPage : pageId;
+      if (fullId) setNavBadge(fullId, String(tab.count));
+    }
+  },
+  { immediate: true },
 );
 
 const { exportTable } = useTableViewExport({ componentId });
@@ -607,25 +813,24 @@ const {
   componentId: componentId!,
   pageId: pageId!,
   queryParamFilters,
+  tableViewKey: props.tableViewKey,
+});
+
+// Archive mode: the toolbar carries an "Archived" toggle for callers allowed
+// to see archived rows.
+const canToggleArchived = computed(
+  () => !!archiveMode && tableProps.value.rowActions?.showArchived === true,
+);
+
+// A selection made among active rows means nothing among archived ones, and
+// the page reached in one list rarely exists in the other: start over.
+watch(showArchived, () => {
+  rowSelect.value = {};
+  pagination.value = { ...pagination.value, pageIndex: 0 };
 });
 
 const customNavItems = computed(() => {
   const items = [];
-
-  const hasViewArchivedPermission =
-    tableProps.value.rowActions?.showArchived === true;
-
-  if (archiveMode && hasViewArchivedPermission) {
-    items.push({
-      label: showArchived.value
-        ? t("dms.table.show_active")
-        : t("dms.table.show_archived"),
-      icon: showArchived.value ? "i-ph-folder-open" : "i-ph-archive",
-      onSelect: () => {
-        showArchived.value = !showArchived.value;
-      },
-    });
-  }
 
   if (enableTableExport) {
     items.push({
@@ -638,14 +843,39 @@ const customNavItems = computed(() => {
   return items;
 });
 
-const deleteRows = (ids: string[]) =>
-  deleteRowsAction(ids, tableProps.value.rowActions?.delete);
+// Deleted, archived and restored rows leave the listed set: a selection kept
+// on them would offer bulk actions on rows no longer shown. A cancelled
+// confirmation (or a failed request) keeps the selection as it was.
+const deselectRows = (ids: string[]) => {
+  const removed = new Set(ids);
+  rowSelect.value = Object.fromEntries(
+    Object.entries(rowSelect.value).filter(([id]) => !removed.has(id)),
+  );
+};
 
-const archiveRows = (ids: string[]) =>
-  archiveRowsAction(ids, tableProps.value.rowActions?.archive);
+// From the archive, a delete is a permanent one: its confirmation says so.
+const deleteRows = async (ids: string[]) => {
+  const done = await deleteRowsAction(
+    ids,
+    tableProps.value.rowActions?.delete,
+    {
+      permanently: !!archiveMode && showArchived.value,
+    },
+  );
+  if (done) deselectRows(ids);
+};
 
-const restoreRows = (ids: string[]) =>
-  restoreRowsAction(ids, tableProps.value.rowActions?.restore);
+const archiveRows = async (ids: string[]) => {
+  if (await archiveRowsAction(ids, tableProps.value.rowActions?.archive)) {
+    deselectRows(ids);
+  }
+};
+
+const restoreRows = async (ids: string[]) => {
+  if (await restoreRowsAction(ids, tableProps.value.rowActions?.restore)) {
+    deselectRows(ids);
+  }
+};
 
 const handleExportTable = () =>
   exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
@@ -702,6 +932,8 @@ const realtimeEventHandlers: Record<
 > = {
   [REALTIME_EVENT_TYPE.DELETED]: (ids) => {
     removeRowsLocal(ids);
+    // Rows gone elsewhere leave the selection too, or it would count them.
+    deselectRows(ids);
     return refreshAll();
   },
   [REALTIME_EVENT_TYPE.CREATED]: () => refreshAll(),
@@ -820,6 +1052,48 @@ const presenceByRowFiltered = computed<RealtimePresenceMap>(() => {
   return result;
 });
 
+// Expandable rows: which rows are open. A newly listed set (page, filter,
+// search, sort, tab, archive view) starts from `defaultExpanded`; a refresh of
+// the same set keeps what the user opened, minus rows no longer listed.
+const expandableConfig = props.expandable;
+const expanded = ref<ExpandedRowMap>({});
+
+const rowIdsOf = (rows: T[] | undefined): string[] =>
+  (rows ?? []).map((row) => getRowId(row)).filter((id): id is string => !!id);
+
+const expandedModel = computed<ExpandedState>({
+  get: () => expanded.value,
+  set: (next) => {
+    expanded.value = nextExpandedRows(
+      expanded.value,
+      next,
+      rowIdsOf(shownResults.value),
+      expandableConfig?.single,
+    );
+  },
+});
+
+let expandedQueryKey: string | undefined;
+if (expandableConfig) {
+  watch(
+    shownResults,
+    (rows) => {
+      const queryKey = JSON.stringify([queryRequest.value, archiveQuery.value]);
+      if (queryKey === expandedQueryKey) {
+        expanded.value = keepListedRows(expanded.value, rowIdsOf(rows));
+        return;
+      }
+      expandedQueryKey = queryKey;
+      expanded.value = defaultExpandedRows(
+        rowIdsOf(rows),
+        expandableConfig.defaultExpanded,
+        expandableConfig.single,
+      );
+    },
+    { immediate: true },
+  );
+}
+
 const { warnBeforeEdit } = usePresenceEditWarning();
 
 const handleRowEdit = async (item: T) => {
@@ -833,9 +1107,7 @@ const handleRowEdit = async (item: T) => {
 
 const EMPTY_ITEMS: T[] = [];
 
-const selectedIds = computed(() =>
-  Object.keys(rowSelect.value).filter((key) => rowSelect.value[key]),
-);
+const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 
 const isRowActionEnabled = (
   config: boolean | RowActionConfig | undefined,
@@ -1087,7 +1359,7 @@ if (componentId) {
     TableViewEvents.ROW_SELECT,
     componentId,
     (selection) => ({
-      selectedIds: Object.keys(selection).filter((key) => selection[key]),
+      selectedIds: selectedRowIds(selection),
     }),
   );
 }
@@ -1101,12 +1373,26 @@ const checkUrlParameter = () => {
   }
 };
 
+// A new quick filter value lists its first page.
+watch(
+  quickFilterValues,
+  () => {
+    if (pagination.value.pageIndex !== 0) {
+      pagination.value = { ...pagination.value, pageIndex: 0 };
+    }
+  },
+  { deep: true },
+);
+
 onMounted(() => {
   checkUrlParameter();
+  void loadRelationQuickFilters();
+  void refreshLinkTabCounts();
   // The registry is client-only; once hydrated, degrade to the table display if
   // the active id is no longer available (e.g. kanban with no eligible column).
   if (
     activeDisplayId.value !== TABLE_DISPLAY_ID &&
+    !isConfigRenderedDisplay(activeDisplayId.value) &&
     !availableDisplays.value.some((d) => d.id === activeDisplayId.value)
   ) {
     activeDisplayId.value = TABLE_DISPLAY_ID;
@@ -1128,6 +1414,14 @@ onMounted(() => {
     v-model:active-tab="activeTabId"
     v-model:active-display="activeDisplayId"
     v-model:kanban-group-by="kanbanGroupBy"
+    v-model:show-archived="showArchived"
+    v-model:expanded="expandedModel"
+    v-model:quick-filter-values="quickFilterValues"
+    :chrome="resolvedChrome"
+    :search-placeholder="props.searchPlaceholder"
+    :quick-filters="resolvedQuickFilters"
+    :footer="props.footer"
+    :archive-toggle="canToggleArchived"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"
@@ -1142,7 +1436,7 @@ onMounted(() => {
     :columns="listableColumns"
     :custom-nav-items="customNavItems"
     :custom-buttons="customButtons"
-    :enable-export="enableTableExport"
+    :can-export="enableTableExport"
     :on-custom-button="handleCustomButton"
     :on-custom-row-action="handleCustomRowAction"
     :presence-by-row="presenceByRowFiltered"
@@ -1156,6 +1450,14 @@ onMounted(() => {
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >
+    <template v-if="expandableConfig" #expanded="{ row }">
+      <ExpandedRowDetail
+        :row="row.original"
+        :row-id="row.id"
+        :columns="props.columns"
+        :config="expandableConfig"
+      />
+    </template>
     <template
       v-if="activeDisplayComponent && !activeDisplayBlockedByError"
       #body="{ table }"

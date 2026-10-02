@@ -30,12 +30,12 @@ const handleTextInput = (value: string | number) => {
 <template>
   <div class="flex items-center gap-2">
     <label
-      class="border-default relative inline-flex size-9 shrink-0 cursor-pointer overflow-hidden rounded-md border"
-      :class="{ 'cursor-not-allowed opacity-60': props.disabled }"
+      class="border-accented has-focus-visible:border-primary relative inline-flex size-8 shrink-0 cursor-pointer overflow-hidden rounded-md border bg-(--dms-bg-field) p-0.5 shadow-(--shadow-xs) has-focus-visible:outline-3 has-focus-visible:outline-(--dms-accent-tint-strong)"
+      :class="{ 'cursor-not-allowed opacity-50': props.disabled }"
     >
       <span
         aria-hidden="true"
-        class="size-full"
+        class="size-full rounded-[5px]"
         :style="{ backgroundColor: swatchValue }"
       />
       <input
@@ -51,6 +51,7 @@ const handleTextInput = (value: string | number) => {
       :placeholder="props.placeholder ?? '#000000'"
       :disabled="props.disabled"
       class="flex-1"
+      :ui="{ base: 'font-mono' }"
       @update:model-value="handleTextInput"
     />
   </div>

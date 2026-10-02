@@ -91,4 +91,45 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
 
     expect(mapPermissionTreeToPermissionNodes(tree)).to.deep.equal([]);
   });
+
+  describe("categories", () => {
+    // The built-in Pages root in a project filing its pages under a root of
+    // its own: only the public sign-in pages are left below it.
+    const publicOnly = {
+      pages: registered("pages", {
+        login: registered("pages.login", {}, { defaultGranted: true }),
+      }),
+      library: registered("library", { form: registered("library.form") }),
+    };
+
+    it("leaves out a category whose permissions below are all hidden", () => {
+      expect(
+        mapPermissionTreeToPermissionNodes(
+          publicOnly,
+          new Set(["pages", "library"]),
+        ).map((node) => node.id),
+      ).to.deep.equal(["library"]);
+    });
+
+    it("keeps a page whose components are all hidden", () => {
+      expect(
+        mapPermissionTreeToPermissionNodes(publicOnly).map((node) => node.id),
+      ).to.deep.equal(["pages", "library"]);
+    });
+
+    it("keeps a category with nothing registered below it", () => {
+      const tree = { projects: registered("projects") };
+
+      expect(
+        mapPermissionTreeToPermissionNodes(tree, new Set(["projects"])),
+      ).to.deep.equal([
+        {
+          id: "projects",
+          label: "projects",
+          icon: undefined,
+          children: undefined,
+        },
+      ]);
+    });
+  });
 });

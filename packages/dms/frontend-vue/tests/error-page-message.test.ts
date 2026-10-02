@@ -10,6 +10,20 @@ import {
   type App,
 } from "vue";
 import ErrorPage from "../layers/dms-layout/app/error.vue";
+
+// The stage around the card needs the full app runtime (i18n locales, color
+// mode cookie); this test is about the card.
+vi.mock("../layers/dms-layout/app/custom-layouts/EmptyLayout.vue", async () => {
+  const { defineComponent, h } = await import("vue");
+  return {
+    default: defineComponent({
+      setup:
+        (_, { slots }) =>
+        () =>
+          h("div", slots.default?.()),
+    }),
+  };
+});
 import {
   HTTP_FORBIDDEN,
   HTTP_NOT_FOUND,
@@ -55,6 +69,7 @@ function mountError(statusCode: number) {
   app.component("DmsAppLogo", Passthrough);
   app.component("DmsCard", Passthrough);
   app.component("Icon", Passthrough);
+  app.component("UIcon", Passthrough);
   app.component("UButton", Passthrough);
   app.mount(host);
   return host.textContent ?? "";

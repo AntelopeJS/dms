@@ -35,7 +35,9 @@ const rowStyle = computed(() => {
 </script>
 
 <template>
-  <div :style="rowStyle" class="dms-grid-row">
+  <!-- min-w-0: a cell holds its track, so long content truncates instead of
+       widening the cell past a narrow screen. -->
+  <div :style="rowStyle" class="dms-grid-row *:min-w-0">
     <slot />
   </div>
 </template>

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-// Keyboard combo (design .kcombo): Nuxt UI <UKbd> caps joined by dimmed "+"
-// separators. The .kkey look (mono, inset surface, thicker bottom edge) is
-// applied via the size="lg" variant in app.config (ui.kbd), not here.
+// v2 .kbd-combo: the keys of a combination side by side, without separators.
 interface Props {
   keys: string[];
 }
@@ -10,10 +8,7 @@ defineProps<Props>();
 </script>
 
 <template>
-  <div class="inline-flex items-center gap-1.5">
-    <template v-for="(key, index) in keys" :key="index">
-      <span v-if="index > 0" class="text-dimmed text-[11px]">+</span>
-      <UKbd size="lg" :value="key" />
-    </template>
+  <div class="inline-flex shrink-0 items-center gap-[3px]">
+    <UKbd v-for="(key, index) in keys" :key="index" :value="key" />
   </div>
 </template>

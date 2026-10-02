@@ -4,17 +4,16 @@ import type { ClassNameValue } from "tailwind-merge";
 
 const theme = tv({
   slots: {
-    root: "flex gap-4 items-start",
+    root: "flex gap-3.5 items-start",
     badge:
-      "rounded-lg bg-primary/10 shrink-0 ring ring-primary/20 flex items-center justify-center size-12",
+      "mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9",
     icon: "text-primary",
 
     content: "flex-1 min-w-0",
-    // Design .page-head h1: 22px display, approximated with Tailwind's
-    // leading-tight (1.25) and tracking-tight (-0.025em).
+    // v2 .page-header__title: 24px, weight 650, line-height 1.2, -0.03em.
     title:
-      "text-highlighted text-[22px] font-semibold leading-tight tracking-tight",
-    description: "text-muted text-sm mt-1",
+      "text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]",
+    description: "text-muted text-sm mt-1 max-w-[68ch]",
   },
 });
 
@@ -42,7 +41,7 @@ const { processI18n } = useTranslation();
       <UIcon
         :name="props.icon"
         :class="themeStyles.icon({ class: props.ui?.icon })"
-        size="1.375rem"
+        size="1.1875rem"
       />
     </div>
 

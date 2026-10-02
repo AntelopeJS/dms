@@ -56,6 +56,12 @@ export interface CustomButton {
    * caller lacks the permission for is stripped before this runs.
    */
   availability?: CustomButtonAvailability;
+  /**
+   * Leaves the button out of the toolbar: it is still served (permission and
+   * availability apply) and pressed through its `id`, by a quick action or a
+   * page header action (`DefaultLayout({ headerActions: [{ button } ] })`).
+   */
+  hidden?: boolean;
 }
 
 export interface CustomButtonSerialized extends Omit<

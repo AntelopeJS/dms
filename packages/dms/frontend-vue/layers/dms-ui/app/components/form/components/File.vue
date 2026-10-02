@@ -361,9 +361,7 @@ onScopeDispose(() => {
       :disabled="disabled || isUploading"
     >
       <template v-if="maxSizeFormatted" #description>
-        <span class="text-muted text-sm">
-          {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
-        </span>
+        {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
       </template>
     </UFileUpload>
 
@@ -371,7 +369,7 @@ onScopeDispose(() => {
       <div
         v-for="item in uploadingFiles"
         :key="item.id"
-        class="bg-elevated flex flex-col gap-1.5 rounded-md p-2"
+        class="border-default bg-default flex flex-col gap-1.5 rounded-md border p-2 ps-2.5"
       >
         <div class="flex items-center gap-2">
           <UIcon
@@ -397,10 +395,10 @@ onScopeDispose(() => {
         </div>
         <span
           v-if="!item.error"
-          class="bg-accented h-1 w-full overflow-hidden rounded-full"
+          class="bg-accented h-[3px] w-full overflow-hidden rounded-full"
         >
           <span
-            class="bg-primary block h-full rounded-full transition-[width] duration-200"
+            class="block h-full rounded-full bg-(--dms-accent-fill) transition-[width] duration-200"
             :style="{ width: `${item.progress}%` }"
           />
         </span>
@@ -411,7 +409,7 @@ onScopeDispose(() => {
       <div
         v-for="key in uploadedKeys"
         :key="key"
-        class="bg-elevated flex items-center gap-2 rounded-md p-2"
+        class="border-default bg-default flex items-center gap-2.5 rounded-md border p-2 ps-2.5"
       >
         <template v-if="getMetadata(key)">
           <img
@@ -433,7 +431,7 @@ onScopeDispose(() => {
           <ULink
             :to="getMetadata(key)!.url"
             target="_blank"
-            class="decoration-dimmed/40 hover:decoration-muted flex-1 truncate text-sm underline"
+            class="decoration-dimmed/40 hover:decoration-muted text-muted hover:text-default flex-1 truncate text-sm font-normal underline"
             @click.prevent="openFile(key)"
           >
             {{ getMetadata(key)!.filename }}

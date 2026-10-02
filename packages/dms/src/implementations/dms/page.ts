@@ -24,10 +24,15 @@ import {
   GetPageLayoutBySlug,
   isInsideModule,
   MODULE_URL_PREFIX,
+  type ModuleCatalogContext,
   type ModuleInfo,
+  type ModuleReadoutLine,
+  type ModuleReadoutTone,
+  type ModuleStatus,
   type PageExtensionInfo,
   type PageInfo,
   type PageLayout,
+  type PageLayoutHandler,
   PageMetadata,
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
@@ -78,6 +83,19 @@ import {
 import { fillRouteParams } from "./route-params";
 import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
+import {
+  aggregatePreviewMenu,
+  collectCustomButtonIds,
+  findHeaderActionsHiddenByPreview,
+  findQuickActionsHiddenByPreview,
+  type HeaderActionAccess,
+  previewCacheKey,
+  PreviewLossCache,
+  type PreviewMenuNode,
+  type PreviewMenuStates,
+  readHeaderActions,
+  type ServedQuickActions,
+} from "./permission-preview";
 
 export {
   AddFrontendModule,
@@ -308,6 +326,49 @@ function updateChildrenOrders(node: SiteLayoutTree) {
   }
 }
 
+/**
+ * Position of every registered menu entry in the main menu: depth first, in
+ * the order the sidebar lists them (`childrenOrders`, sorted by
+ * `compareMenuChildren`). Keyed by the permission id guarding the entry, and
+ * by its full id when that differs, so a permission editor can list its
+ * pages and categories the way the menu does.
+ */
+export function GetMenuOrder(): Map<string, number> {
+  const positions = new Map<string, number>();
+  let position = 0;
+  const visit = (node: SiteLayoutTree): void => {
+    for (const key of node.childrenOrders) {
+      const child = node.children[key];
+      if (!child) continue;
+      if (!isContainerWithoutEntry(child)) {
+        const permissionId = resolvePagePermissionId(
+          child.permission,
+          child.fullId,
+        );
+        if (!positions.has(permissionId)) positions.set(permissionId, position);
+        if (!positions.has(child.fullId)) positions.set(child.fullId, position);
+        position += 1;
+      }
+      visit(child);
+    }
+  };
+  visit(navigationTree);
+  return positions;
+}
+
+/**
+ * Permission ids of the registered categories (`Category`, `RootCategory`):
+ * the headings and groups of the menu, as opposed to its pages. A permission
+ * editor uses them to leave out a heading with nothing below it to grant.
+ */
+export function GetCategoryPermissionIds(): Set<string> {
+  return new Set(
+    Object.values(categoriesByFullId).map((category) =>
+      resolvePagePermissionId(category.permission, category.fullId),
+    ),
+  );
+}
+
 // Deleting the node outright would take its whole subtree with it: a category
 // unregistering dropped every page other modules had registered under it from
 // the sidebar, while those pages stayed in the registry and kept serving. Drop
@@ -370,6 +431,12 @@ const dynamicMenuProviders: DynamicMenuProviderInfo[] = [];
 // the entries die with the request; it exists only to name, at merge time, the
 // provider whose entry was dropped — the one that has to hear about it.
 const nodeProviders = new WeakMap<object, DynamicMenuProviderInfo>();
+// The page a dynamic node leads to, for the same reason: a role preview reads
+// what that page loses to tell whether the entry is partially locked.
+const nodeTargets = new WeakMap<object, PageInfo>();
+// Bumped by every structural change, so a role preview never answers for a
+// page registered, changed or gone since from what it read before.
+let previewStructureVersion = 0;
 
 const HTTP_FORBIDDEN = 403;
 const WILDCARD_PERMISSION = "*";
@@ -390,6 +457,7 @@ const ERROR_UNAUTHORIZED = "error.unauthorized";
  * cannot change.
  */
 function notifyStructureChanged(): void {
+  previewStructureVersion++;
   scheduleBroadcast();
   schedulePublishMenuChanged(undefined);
 }
@@ -697,20 +765,34 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
-  ): Promise<Array<ModuleInfo & { hasAccess: boolean; landingSlug: string }>> {
+  ): Promise<ModuleCatalogEntry[]> {
+    const tenantId = getRequestTenantId(requestContext);
     const accessContext = await buildAccessContext(
       user,
       memberModel,
       roleModel,
-      getRequestTenantId(requestContext),
+      tenantId,
     );
     assert(accessContext.gated.isOwner, HTTP_FORBIDDEN, ERROR_UNAUTHORIZED);
 
-    return Object.values(moduleRegistry).map((info) => ({
-      ...info,
-      hasAccess: true,
-      landingSlug: resolveModuleLandingSlug(info),
-    }));
+    const catalogContext: ModuleCatalogContext = { user, tenantId };
+    return Promise.all(
+      Object.values(moduleRegistry).map(async (info) => {
+        const [status, readout] = await Promise.all([
+          runModuleStatusHook(info, catalogContext),
+          runModuleReadoutHook(info, catalogContext),
+        ]);
+        return {
+          ...presentModuleInfo(info),
+          // Same rule as the site layout's module map, so the catalog and
+          // the sidebar never disagree on what a caller can open.
+          hasAccess: await computeModuleAccess(info.id, accessContext),
+          landingSlug: resolveModuleLandingSlug(info),
+          status,
+          readout,
+        };
+      }),
+    );
   }
 
   @Get("/pagelayout")
@@ -882,6 +964,498 @@ export async function buildPagePayload(
     buildSiteLayoutPayload(user, memberModel, roleModel, tenantId),
   ]);
   return { route: shared.siteLayout.pages[registeredSlug], shared, layout };
+}
+
+/** The page a permission preview runs on, read with the viewer's own access. */
+export interface PermissionPreviewPage {
+  fullId: string;
+  displayName: string;
+  /** Root of the ids its components are filtered by. */
+  pagePermissionId: string;
+  /** False for public and auth-only pages, whose components are never filtered. */
+  filtersComponents: boolean;
+  /** Whether the previewed set could open the page. */
+  hiddenInPreview: boolean;
+  /** The components as the viewer is served them. */
+  components: PageLayout["components"];
+  /** Header actions the viewer is shown and the set would not be. */
+  hiddenHeaderActions: string[];
+}
+
+/** The two permission sets a preview compares. */
+export interface PermissionPreviewGrants {
+  /** The viewer's effective permissions. */
+  real: Set<string>;
+  /** The previewed set. */
+  preview: Set<string>;
+}
+
+/**
+ * Whether the previewed set loses anything on a page it can open: a block, an
+ * action of one, or a header action. It must decide from the page and the two
+ * sets alone — its answers are cached per viewer and set.
+ */
+export type PreviewPageLossCheck = (
+  page: PermissionPreviewPage,
+  grants: PermissionPreviewGrants,
+) => Promise<boolean>;
+
+/** What a permission preview changes about the menu and one page. */
+export interface PermissionPreviewAccess {
+  /**
+   * Menu entries the viewer reaches and the set would not: registered pages
+   * and categories (labels included) and dynamic entries, by `fullId` — and
+   * the groups whose every entry the set is refused.
+   */
+  hiddenEntries: string[];
+  /**
+   * Menu entries the set opens without all the viewer has there: a page
+   * losing a block or an action (`pageLoses`), a dynamic entry whose page
+   * does, a group holding a refused or partial entry.
+   */
+  partialEntries: string[];
+  /** Quick actions (`category:id`) the viewer is served and the set is not. */
+  hiddenQuickActions: string[];
+  page: PermissionPreviewPage | null;
+}
+
+// The previewed set read the way `buildAccessContext` reads a real one. The
+// viewer's tenant gate still applies: a preview never reopens what the gate
+// closed for the viewer.
+function buildPreviewAccessContext(
+  previewPermissions: Set<string>,
+  real: RequestAccessContext,
+): RequestAccessContext {
+  const preview: AccessContext = {
+    permissions: previewPermissions,
+    isOwner: previewPermissions.has(WILDCARD_PERMISSION),
+    isAuthenticated: true,
+  };
+  if (!real.gateDenied) {
+    return {
+      gated: preview,
+      ungated: preview,
+      client: preview,
+      gateDenied: false,
+      entryAccess: new Map(),
+    };
+  }
+  return buildDeniedAccessContext(preview);
+}
+
+// Every category counts, labels and URL-transparent ones included: the menu
+// draws them all, and a branch the set cannot reach must read as locked too.
+async function findRegisteredEntriesHiddenByPreview(
+  real: RequestAccessContext,
+  preview: RequestAccessContext,
+): Promise<string[]> {
+  const entries = [
+    ...Object.values(pagesBySlug),
+    ...Object.values(categoriesByFullId),
+  ];
+  const hidden: string[] = [];
+  for (const entry of entries) {
+    if (!(await computeEntryAccess(entry, real))) continue;
+    if (!(await computeEntryAccess(entry, preview))) hidden.push(entry.fullId);
+  }
+  return hidden;
+}
+
+// Dynamic entries resolve per user: the providers run for the viewer under
+// both sets, and an entry the viewer is served but the previewed set is not —
+// its category, its target page or its own permission refused — is hidden.
+function findDynamicEntriesHiddenByPreview(
+  served: DynamicChildren,
+  previewed: DynamicChildren,
+): string[] {
+  const kept = new Set(
+    [...previewed.values()].flat().map((node) => node.fullId),
+  );
+  return [...served.values()]
+    .flat()
+    .map((node) => node.fullId)
+    .filter((fullId) => !kept.has(fullId));
+}
+
+/** Who previews, with which permission set, and on which page. */
+export interface PermissionPreviewRequest {
+  /** Path of the previewed page; the menu alone when omitted. */
+  path?: string;
+  user: User;
+  memberModel: TenantMemberModel;
+  roleModel: RoleModel;
+  tenantId: string;
+  previewPermissions: Set<string>;
+  /**
+   * Decides, for each page of the menu the set can open, whether it loses
+   * something there; those entries are then partial. Without it, no page
+   * layout is read for the menu and only groups can be partial.
+   */
+  pageLoses?: PreviewPageLossCheck;
+}
+
+// The page layout exactly as a member holding the previewed set is served it:
+// the page's own resolver, fed a member whose only role grants the set. Read
+// for its header actions and custom buttons, never sent to the browser.
+function previewMemberModels(previewPermissions: Set<string>): {
+  memberModel: TenantMemberModel;
+  roleModel: RoleModel;
+} {
+  const roleIds = [PREVIEW_ROLE_ID];
+  const roles = [
+    { _id: PREVIEW_ROLE_ID, permissions: [...previewPermissions] },
+  ];
+  // Partial doubles: the layout resolver only reads a member's role ids and
+  // those roles' permissions, so these two methods are all it reaches.
+  // oxlint-disable anti-slop/no-chained-type-assertions
+  return {
+    memberModel: {
+      getByUser: async () => ({ roleIds }),
+    } as unknown as TenantMemberModel,
+    roleModel: { getBy: async () => roles } as unknown as RoleModel,
+  };
+  // oxlint-enable anti-slop/no-chained-type-assertions
+}
+
+// The viewer's own models, each answer read once however many page layouts
+// the preview resolves: every resolver asks for the same member and roles.
+function memoizeViewerModels(
+  memberModel: TenantMemberModel,
+  roleModel: RoleModel,
+): { memberModel: TenantMemberModel; roleModel: RoleModel } {
+  const answers = new Map<string, Promise<unknown>>();
+  const remember = (
+    key: string,
+    read: () => PromiseLike<unknown>,
+  ): Promise<unknown> => {
+    const known = answers.get(key);
+    if (known) return known;
+    const pending = Promise.resolve(read());
+    answers.set(key, pending);
+    return pending;
+  };
+  // Partial doubles, like `previewMemberModels`: the layout resolver reaches
+  // these two methods only.
+  // oxlint-disable anti-slop/no-chained-type-assertions
+  return {
+    memberModel: {
+      getByUser: (userId: string) =>
+        remember(`member:${userId}`, () => memberModel.getByUser(userId)),
+    } as unknown as TenantMemberModel,
+    roleModel: {
+      getBy: (...args: Parameters<RoleModel["getBy"]>) =>
+        remember(`roles:${JSON.stringify(args)}`, () =>
+          roleModel.getBy(...args),
+        ),
+    } as unknown as RoleModel,
+  };
+  // oxlint-enable anti-slop/no-chained-type-assertions
+}
+
+const PREVIEW_ROLE_ID = "dms-permission-preview";
+
+async function findPreviewHeaderActions(
+  handler: PageLayoutHandler,
+  layout: PageLayout,
+  request: PermissionPreviewRequest,
+  quickActions: { real: ServedQuickActions; preview: ServedQuickActions },
+): Promise<string[]> {
+  const viewerActions = readHeaderActions(layout.layout);
+  if (viewerActions.length === 0) return [];
+  const { memberModel, roleModel } = previewMemberModels(
+    request.previewPermissions,
+  );
+  // Never an owner: the previewed set is the role's, without the wildcard.
+  // The viewer stays the prototype, so everything else reads through.
+  const previewUser: User = Object.assign(Object.create(request.user), {
+    owner: false,
+  });
+  const previewLayout = await handler(
+    previewUser,
+    memberModel,
+    roleModel,
+    request.tenantId,
+  );
+  const viewer: HeaderActionAccess = {
+    headerActions: viewerActions,
+    quickActions: quickActions.real,
+    buttonIds: collectCustomButtonIds(layout.components),
+  };
+  const preview: HeaderActionAccess = {
+    headerActions: readHeaderActions(previewLayout.layout),
+    quickActions: quickActions.preview,
+    buttonIds: collectCustomButtonIds(previewLayout.components),
+  };
+  return findHeaderActionsHiddenByPreview(viewer, preview);
+}
+
+// A page the viewer opens, read with the viewer's own access: its layout is
+// the one the viewer is served, and it never leaves the server.
+async function readPreviewPage(
+  route: PageInfo,
+  handler: PageLayoutHandler,
+  request: PermissionPreviewRequest,
+  hiddenInPreview: boolean,
+  quickActions: { real: ServedQuickActions; preview: ServedQuickActions },
+): Promise<PermissionPreviewPage> {
+  const { user, memberModel, roleModel, tenantId } = request;
+  const layout = await handler(user, memberModel, roleModel, tenantId);
+  return {
+    fullId: route.fullId,
+    displayName: route.displayName,
+    pagePermissionId: resolvePagePermissionId(route.permission, route.fullId),
+    filtersComponents:
+      route.publicAccess !== true &&
+      route.authOnly !== true &&
+      route.noComponentPermissions !== true,
+    hiddenInPreview,
+    components: layout.components,
+    // A page the set cannot open takes its whole header with it.
+    hiddenHeaderActions: hiddenInPreview
+      ? readHeaderActions(layout.layout).map((action) => action.id)
+      : await findPreviewHeaderActions(handler, layout, request, quickActions),
+  };
+}
+
+async function resolvePreviewPage(
+  path: string,
+  request: PermissionPreviewRequest,
+  contexts: { real: RequestAccessContext; preview: RequestAccessContext },
+  quickActions: { real: ServedQuickActions; preview: ServedQuickActions },
+): Promise<PermissionPreviewPage | null> {
+  const normalizedSlug = `/${path.replace(/^\/+|\/+$/g, "")}`;
+  const registeredSlug = resolveRegisteredPageSlug(normalizedSlug);
+  const route = registeredSlug ? pagesBySlug[registeredSlug] : undefined;
+  const handler = registeredSlug
+    ? GetPageLayoutBySlug(registeredSlug)
+    : undefined;
+  if (!route || !handler) return null;
+  // A page the viewer cannot open has nothing to preview: its layout is never
+  // read, so the preview cannot serve what the viewer is refused.
+  if (!(await computeEntryAccess(route, contexts.real))) return null;
+  const hiddenInPreview = !(await computeEntryAccess(route, contexts.preview));
+  return readPreviewPage(
+    route,
+    handler,
+    request,
+    hiddenInPreview,
+    quickActions,
+  );
+}
+
+// Answers of `pageLoses`, per check: a preview tab asks again on every page
+// it moves to and on every edit, and each ask would otherwise resolve the
+// layout of every page. Short-lived, so data-driven filters catch up.
+const PREVIEW_LOSS_TTL_MS = 30_000;
+const PREVIEW_LOSS_MAX_SCOPES = 16;
+const previewLossCaches = new WeakMap<PreviewPageLossCheck, PreviewLossCache>();
+
+function previewLossCacheFor(check: PreviewPageLossCheck): PreviewLossCache {
+  let cache = previewLossCaches.get(check);
+  if (!cache) {
+    cache = new PreviewLossCache(PREVIEW_LOSS_TTL_MS, PREVIEW_LOSS_MAX_SCOPES);
+    previewLossCaches.set(check, cache);
+  }
+  return cache;
+}
+
+interface PreviewMenuReading {
+  request: PermissionPreviewRequest;
+  contexts: { real: RequestAccessContext; preview: RequestAccessContext };
+  quickActions: { real: ServedQuickActions; preview: ServedQuickActions };
+  served: DynamicChildren;
+  denied: Set<string>;
+}
+
+// The menu as the viewer is served it, reduced to what the aggregation reads.
+// An entry the viewer cannot reach is transparent: what it holds still
+// counts, at its level.
+function collectPreviewMenuNodes(
+  node: SiteLayoutTree,
+  pageIds: ReadonlySet<string>,
+): PreviewMenuNode[] {
+  return Object.values(node.children).flatMap((child) => {
+    const children = collectPreviewMenuNodes(child, pageIds);
+    if (!child.hasAccess) return children;
+    return [
+      {
+        fullId: child.fullId,
+        opensPage: pageIds.has(child.fullId) || nodeTargets.has(child),
+        children,
+      },
+    ];
+  });
+}
+
+function flattenPreviewMenuNodes(nodes: PreviewMenuNode[]): PreviewMenuNode[] {
+  return nodes.flatMap((node) => [
+    node,
+    ...flattenPreviewMenuNodes(node.children),
+  ]);
+}
+
+// Each page the set opens is read as the viewer is served it and handed to
+// the check — once per scope, then answered from the cache. A page whose
+// layout cannot be read counts as kept: the preview never guesses a loss.
+async function findPagesLosingInPreview(
+  pages: PageInfo[],
+  reading: PreviewMenuReading,
+  check: PreviewPageLossCheck,
+): Promise<Set<string>> {
+  const { request, contexts, quickActions } = reading;
+  const grants: PermissionPreviewGrants = {
+    real: contexts.real.ungated.permissions,
+    preview: request.previewPermissions,
+  };
+  const answers = previewLossCacheFor(check).pagesFor(
+    previewCacheKey({
+      tenantId: request.tenantId,
+      userId: request.user._id,
+      structureVersion: previewStructureVersion,
+      real: grants.real,
+      preview: grants.preview,
+    }),
+  );
+  const viewerRequest: PermissionPreviewRequest = {
+    ...request,
+    ...memoizeViewerModels(request.memberModel, request.roleModel),
+  };
+  const results = await Promise.all(
+    pages.map(async (route) => {
+      let answer = answers.get(route.fullId);
+      if (!answer) {
+        const handler = GetPageLayoutBySlug(route.fullSlug);
+        answer = handler
+          ? readPreviewPage(route, handler, viewerRequest, false, quickActions)
+              .then((page) => check(page, grants))
+              .catch(() => false)
+          : Promise.resolve(false);
+        answers.set(route.fullId, answer);
+      }
+      return [route.fullId, await answer] as const;
+    }),
+  );
+  return new Set(
+    results.filter(([, loses]) => loses).map(([fullId]) => fullId),
+  );
+}
+
+// Pages drawn in the menu, and the pages dynamic entries lead to (often kept
+// out of the menu themselves) — never one the set is refused.
+function listPreviewLossTargets(
+  nodes: PreviewMenuNode[],
+  reading: PreviewMenuReading,
+  pagesByFullId: Map<string, PageInfo>,
+): { pages: PageInfo[]; entryTargets: Map<string, string> } {
+  const { served, denied } = reading;
+  const pages = new Map<string, PageInfo>();
+  const entryTargets = new Map<string, string>();
+  for (const node of flattenPreviewMenuNodes(nodes)) {
+    const page = pagesByFullId.get(node.fullId);
+    if (page && !denied.has(page.fullId)) pages.set(page.fullId, page);
+  }
+  for (const node of [...served.values()].flat()) {
+    const target = nodeTargets.get(node);
+    if (!target || denied.has(node.fullId) || denied.has(target.fullId)) {
+      continue;
+    }
+    pages.set(target.fullId, target);
+    entryTargets.set(node.fullId, target.fullId);
+  }
+  return { pages: [...pages.values()], entryTargets };
+}
+
+// The menu entries the set opens without all the viewer has there, and the
+// groups it can open none of.
+async function aggregatePreviewMenuStates(
+  reading: PreviewMenuReading,
+): Promise<PreviewMenuStates> {
+  const { request, contexts, served, denied } = reading;
+  const tree = await addAccessToTree(
+    navigationTree,
+    contexts.real,
+    true,
+    served,
+  );
+  const pagesByFullId = new Map(
+    Object.values(pagesBySlug).map((page) => [page.fullId, page]),
+  );
+  const nodes = collectPreviewMenuNodes(tree, new Set(pagesByFullId.keys()));
+  const losesInside = new Set<string>();
+  if (request.pageLoses) {
+    const { pages, entryTargets } = listPreviewLossTargets(
+      nodes,
+      reading,
+      pagesByFullId,
+    );
+    const losing = await findPagesLosingInPreview(
+      pages,
+      reading,
+      request.pageLoses,
+    );
+    for (const fullId of losing) losesInside.add(fullId);
+    for (const [entry, target] of entryTargets) {
+      if (losing.has(target)) losesInside.add(entry);
+    }
+  }
+  return aggregatePreviewMenu(nodes, denied, losesInside);
+}
+
+/**
+ * Read the menu and a page as a permission set would see them, without ever
+ * leaving the viewer's own access: only entries the viewer reaches are
+ * compared, and the page layouts are the ones the viewer is served — read on
+ * the server, never sent. Nothing about the session changes — this is how the
+ * roles editor previews a role.
+ *
+ * Dynamic menu entries are compared by running their providers for the viewer
+ * under both sets.
+ */
+export async function resolvePermissionPreviewAccess(
+  request: PermissionPreviewRequest,
+): Promise<PermissionPreviewAccess> {
+  const { path, user, memberModel, roleModel, tenantId } = request;
+  const real = await buildAccessContext(user, memberModel, roleModel, tenantId);
+  const preview = buildPreviewAccessContext(request.previewPermissions, real);
+  const contexts = { real, preview };
+  const [realQuickActions, previewQuickActions, served, previewed] =
+    await Promise.all([
+      getQuickActionsForUser((target) =>
+        resolveQuickActionTarget(target, real),
+      ),
+      getQuickActionsForUser((target) =>
+        resolveQuickActionTarget(target, preview),
+      ),
+      resolveDynamicChildren(user, tenantId, real),
+      resolveDynamicChildren(user, tenantId, preview),
+    ]);
+  const quickActions = { real: realQuickActions, preview: previewQuickActions };
+  const [registeredHidden, page] = await Promise.all([
+    findRegisteredEntriesHiddenByPreview(real, preview),
+    path
+      ? resolvePreviewPage(path, request, contexts, quickActions)
+      : Promise.resolve(null),
+  ]);
+  const denied = new Set([
+    ...registeredHidden,
+    ...findDynamicEntriesHiddenByPreview(served, previewed),
+  ]);
+  const states = await aggregatePreviewMenuStates({
+    request,
+    contexts,
+    quickActions,
+    served,
+    denied,
+  });
+  return {
+    hiddenEntries: states.hidden,
+    partialEntries: states.partial,
+    hiddenQuickActions: findQuickActionsHiddenByPreview(
+      realQuickActions,
+      previewQuickActions,
+    ),
+    page,
+  };
 }
 
 interface NavigationEntry extends Partial<
@@ -1487,6 +2061,7 @@ async function buildDynamicNodes(
     }
     const node = buildDynamicNode(categoryFullId, item, target, link);
     nodeProviders.set(node, provider);
+    nodeTargets.set(node, target);
     nodes.push(node);
   }
   return nodes;
@@ -1755,11 +2330,117 @@ async function buildModuleAccessMap(
     const hasAccess = await computeModuleAccess(moduleId, context);
     // Modules are owner-only surfaces: without this, every member learned the
     // name and purpose of everything installed on the deployment.
+    const presented = presentModuleInfo(info);
     result[moduleId] = hasAccess
-      ? { ...info, hasAccess }
-      : { ...info, title: "", description: "", icon: "", hasAccess };
+      ? { ...presented, hasAccess }
+      : {
+          ...presented,
+          title: "",
+          description: "",
+          icon: "",
+          version: undefined,
+          category: undefined,
+          hasAccess,
+        };
   }
   return result;
+}
+
+/** A module's catalog tile: its static info plus what its hooks reported. */
+type ModuleCatalogEntry = Omit<ModuleInfo, "status" | "readout"> & {
+  hasAccess: boolean;
+  landingSlug: string;
+  status: ModuleStatus;
+  readout: ModuleReadoutLine[];
+};
+
+const DEFAULT_MODULE_STATUS: ModuleStatus = "live";
+const MODULE_STATUSES = new Set<string>([
+  "live",
+  "beta",
+  "update",
+  "attention",
+]);
+const MODULE_READOUT_TONES = new Set<string>([
+  "ok",
+  "info",
+  "warning",
+  "error",
+]);
+// A tile has room for a couple of lines; more would push the title off it.
+const MODULE_READOUT_MAX_LINES = 3;
+
+/**
+ * The module's info without its catalog hooks: functions have no place in a
+ * response payload.
+ */
+function presentModuleInfo(
+  info: ModuleInfo,
+): Omit<ModuleInfo, "status" | "readout"> {
+  const { status: _status, readout: _readout, ...presented } = info;
+  return presented;
+}
+
+async function runModuleStatusHook(
+  info: ModuleInfo,
+  context: ModuleCatalogContext,
+): Promise<ModuleStatus> {
+  if (!info.status) return DEFAULT_MODULE_STATUS;
+  try {
+    const status = await withResolverTimeout(
+      Promise.resolve(info.status(context)),
+      `status of module "${info.id}"`,
+    );
+    if (typeof status === "string" && MODULE_STATUSES.has(status)) {
+      return status;
+    }
+    warnOnceFor(
+      info,
+      "status-invalid",
+      `[dms] module "${info.id}" status() returned ${JSON.stringify(status)}; expected one of ${[...MODULE_STATUSES].join(", ")}.`,
+    );
+  } catch (error) {
+    warnOnceFor(
+      info,
+      "status-failed",
+      `[dms] module "${info.id}" status() failed: ${String(error)}`,
+    );
+  }
+  return DEFAULT_MODULE_STATUS;
+}
+
+async function runModuleReadoutHook(
+  info: ModuleInfo,
+  context: ModuleCatalogContext,
+): Promise<ModuleReadoutLine[]> {
+  if (!info.readout) return [];
+  try {
+    const lines = await withResolverTimeout(
+      Promise.resolve(info.readout(context)),
+      `readout of module "${info.id}"`,
+    );
+    if (!Array.isArray(lines)) return [];
+    return lines
+      .filter(
+        (line): line is ModuleReadoutLine =>
+          !!line && typeof line.text === "string" && line.text.length > 0,
+      )
+      .slice(0, MODULE_READOUT_MAX_LINES)
+      .map((line) => ({
+        text: line.text,
+        tone:
+          line.tone && MODULE_READOUT_TONES.has(line.tone)
+            ? line.tone
+            : ("info" as ModuleReadoutTone),
+      }));
+  } catch (error) {
+    warnOnceFor(
+      info,
+      "readout-failed",
+      `[dms] module "${info.id}" readout() failed: ${String(error)}`,
+    );
+    return [];
+  }
 }
 
 async function computeModuleAccess(

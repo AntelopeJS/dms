@@ -14,12 +14,18 @@ import { RoleModel, TenantMemberModel } from "../../db";
 import {
   GetEffectiveUserPermissions,
   HasAnyPermission,
+  HasPermission,
 } from "../../permissions";
 import { getRequestTenantId } from "../../request-tenant";
 import { AssertTenantAccess } from "../../tenant-access";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
+import type { ComponentBuilder } from "../../component";
 import { TableViewMeta } from "./meta";
+import {
+  TABLE_VIEW_QUERY_KEY,
+  type TableViewOptionsSerialized,
+} from "./options";
 
 /**
  * The read actions of a table view, named once so the route that checks one,
@@ -54,12 +60,59 @@ function isGateBypassableAction(
   return permissionIds.length > 0 && GATE_BYPASSABLE_ACTIONS.includes(actionId);
 }
 
+type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
+
+/** The table view a request names (`?tableView=`), if any. */
+// @internal
+export function getRequestTableKey(
+  ctx: RequestContext | undefined,
+): string | undefined {
+  return ctx?.url?.searchParams?.get(TABLE_VIEW_QUERY_KEY) || undefined;
+}
+
+/**
+ * The mounted table view a request names for `actionId`. A key that names
+ * none (unknown, or a table view without the action) is refused: falling back
+ * to the other table views would let a request pick whose permission and row
+ * rules apply to it.
+ */
+// @internal
+export function namedTableView(
+  meta: TableViewMeta,
+  tableKey: string,
+  actionId: string,
+): TableViewBuilder {
+  const builder = meta.tableViewFor(tableKey, actionId);
+  throwHttpAssert(
+    builder,
+    403,
+    `Forbidden: table view ${tableKey} has no ${actionId} action`,
+  );
+  return builder;
+}
+
+/**
+ * The permission ids guarding `actionId` for a request: the named table
+ * view's alone, else the one of every table view mounting the controller.
+ */
+// @internal
+export function actionPermissionIds(
+  meta: TableViewMeta,
+  actionId: string,
+  tableKey: string | undefined,
+): string[] {
+  if (tableKey === undefined) return meta.actionPermissionIds(actionId);
+  const named = namedTableView(meta, tableKey, actionId);
+  return [named.getAction(actionId)!.permissionId!];
+}
+
 // @internal
 export async function authorizeAction(
   thisObj: unknown,
   actionId: string,
   user: User,
   tenantId: string,
+  tableKey?: string,
 ): Promise<Set<string> | undefined> {
   const meta = GetMetadata(
     (thisObj as { constructor: ControllerClass }).constructor,
@@ -69,7 +122,15 @@ export async function authorizeAction(
   // gate applies even when the action carries no permission id. Table views
   // flagged `bypassTenantAccessGate` opt out so they stay reachable on
   // recovery surfaces.
-  const permissionIds = meta.actionPermissionIds(actionId);
+  //
+  // Several table views may share the controller (one per page mounting it):
+  // the action is guarded by the permission of each of them, never by the one
+  // built last alone, which refused every other table's callers.
+  //
+  // A request naming its table view is held to that table's permission alone:
+  // its row rules are the ones applied to it, so a permission on another table
+  // must not reach them.
+  const permissionIds = actionPermissionIds(meta, actionId, tableKey);
   // The opt-out only rides along with a stamped, read-only action. The flag
   // latches controller-wide, so anything else — an unstamped action on a
   // component no page mounted, or a write — would be served from every page
@@ -110,6 +171,54 @@ export async function authorizeAction(
   );
 }
 
+const actingTableViewsByRequest = new WeakMap<
+  RequestContext,
+  { actionId: string; tableViews: TableViewBuilder[] }
+>();
+
+/**
+ * The table views a request acts through for `actionId`, whose row rules
+ * apply to it: the one it names (`?tableView=`); else every mounted table
+ * view whose action the caller holds, each granting exactly what its own page
+ * grants; else, when no page mounted the controller, every table view built
+ * over it.
+ */
+// @internal
+export async function resolveActingTableViews(
+  meta: TableViewMeta,
+  actionId: string,
+  tableKey: string | undefined,
+  permissions: Set<string> | undefined,
+): Promise<TableViewBuilder[]> {
+  if (tableKey !== undefined) {
+    return [namedTableView(meta, tableKey, actionId)];
+  }
+  const mounted = meta.componentBuilders.filter(
+    (builder) => !!builder.getAction(actionId)?.permissionId,
+  );
+  if (mounted.length === 0) return [...meta.componentBuilders];
+  if (!permissions) return mounted;
+  const held: TableViewBuilder[] = [];
+  for (const builder of mounted) {
+    const permissionId = builder.getAction(actionId)!.permissionId!;
+    if (await HasPermission(permissions, permissionId)) held.push(builder);
+  }
+  return held;
+}
+
+/**
+ * The table views `withActionCheck` resolved for this request and action, or
+ * undefined when the route was reached without it.
+ */
+// @internal
+export function actingTableViewsOf(
+  ctx: RequestContext,
+  actionId: string,
+): TableViewBuilder[] | undefined {
+  const entry = actingTableViewsByRequest.get(ctx);
+  return entry?.actionId === actionId ? entry.tableViews : undefined;
+}
+
 export function withActionCheck<T extends DataControllerCallback>(
   actionId: string,
   baseRoute: T,
@@ -120,7 +229,29 @@ export function withActionCheck<T extends DataControllerCallback>(
     func: async function (this: unknown, ...allArgs: unknown[]) {
       const user = allArgs.pop() as User;
       const ctx = allArgs[0] as RequestContext;
-      await authorizeAction(this, actionId, user, getRequestTenantId(ctx));
+      const tableKey = getRequestTableKey(ctx);
+      const permissions = await authorizeAction(
+        this,
+        actionId,
+        user,
+        getRequestTenantId(ctx),
+        tableKey,
+      );
+      if (ctx && typeof ctx === "object") {
+        const meta = GetMetadata(
+          (this as { constructor: ControllerClass }).constructor,
+          TableViewMeta,
+        );
+        actingTableViewsByRequest.set(ctx, {
+          actionId,
+          tableViews: await resolveActingTableViews(
+            meta,
+            actionId,
+            tableKey,
+            permissions,
+          ),
+        });
+      }
       return (baseRoute.func as (...a: unknown[]) => unknown).apply(
         this,
         allArgs,
