@@ -338,6 +338,17 @@ export interface TableViewOptionsSerialized extends Omit<
   tableViewKey?: string;
 }
 
+/** Heading texts of one of the forms a table view opens. */
+export interface TableViewFormText {
+  /** Title of the page, drawer or modal. `$`-prefixed: an i18n key. */
+  title?: string;
+  /** Line under the title. `$`-prefixed: an i18n key. */
+  description?: string;
+}
+
+/** The forms a table view opens: add (`new`), edit and details (`view`). */
+export type TableViewFormKind = "new" | "edit" | "view";
+
 export interface FormContainerPageConfig {
   urlSlug?: string;
   displayName?: string;
@@ -470,9 +481,21 @@ export interface TableViewOptions<
    */
   rowIdKey?: string;
   /**
-   * The key of the field to use as label for identifying items in container titles
+   * The key of the field naming a row: it follows the title of the drawer or
+   * modal that edits or shows the row ("Edit task · Write the docs"), and
+   * ends the breadcrumb of its edit and details pages.
    */
   labelKey?: string;
+  /**
+   * Titles and descriptions of the add, edit and details forms, whatever
+   * container opens them: "New task", "Edit task", "Task details". A
+   * page-mode `formContainer.pages` entry's `displayName` and `description`
+   * win over them for its page. Left out, the forms read "New entry",
+   * "Edit entry" and "Entry details", the drawer and modal naming the
+   * caption in their description.
+   * @example { new: { title: "$tasks.form.new_title", description: "$tasks.form.new_description" } }
+   */
+  formTexts?: Partial<Record<TableViewFormKind, TableViewFormText>>;
   rowActions?: TableViewRowActionOptions<T>;
   customButtons?: CustomButton[];
   formContainer?: FormContainer;

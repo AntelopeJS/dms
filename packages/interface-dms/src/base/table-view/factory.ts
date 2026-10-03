@@ -39,6 +39,7 @@ import {
   formRouteKey,
   joinPageSlug,
   registerTableViewActions,
+  resolveFormPageTexts,
   serializeCustomButtons,
   serializeExpandable,
   serializeRowActions,
@@ -205,6 +206,7 @@ export function TableView<T extends ControllerClass>(
       enableTableExport: isExportEnabled,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
+      formTexts: options.formTexts,
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
       defaultSort: options.defaultSort,
@@ -299,16 +301,16 @@ export function TableView<T extends ControllerClass>(
           fullSlug,
         });
 
+        const texts = resolveFormPageTexts(kind, options, customPages);
+
         const FormController = class extends parentPage.target {};
         const formMeta = new PageMetadata(FormController as ControllerClass);
         formMeta.SetInfo(
           id,
           fullSlug,
           {
-            displayName:
-              customPages?.[kind]?.displayName || definition.displayName,
-            description:
-              customPages?.[kind]?.description || definition.description,
+            displayName: texts.title,
+            description: texts.description,
             category: parentInfo,
             urlSlug,
             hidden: true,
@@ -328,6 +330,14 @@ export function TableView<T extends ControllerClass>(
             });
           }
         }
+        // The edit and details pages end their breadcrumb with the row's
+        // label once the form has loaded it.
+        if (kind !== "new" && options.labelKey) {
+          form.mergeOptions({ recordLabelKey: options.labelKey });
+        }
+        // A record's form page: Cancel leads back to the list while there
+        // is nothing to save, as in a drawer or a modal.
+        form.mergeOptions({ cancellable: true });
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,

@@ -330,7 +330,7 @@ describe("useNotifications with an inbox filter", () => {
   it("lists and counts the filtered feed, and keeps the bell on the whole feed", async () => {
     authFetch.mockImplementation(async (url: string) => {
       if (url.includes("/list")) return [notification({})];
-      if (url.includes("/unread-count")) return { count: 12 };
+      if (url.endsWith("/counts")) return { all: 40, unread: 12, unseen: 5 };
       return { all: 3, unread: 1 };
     });
     const state = await load();
@@ -348,8 +348,10 @@ describe("useNotifications with an inbox filter", () => {
     expect(urls).toContain(
       "/settings/user/notifications/counts?q=firefox&category=system",
     );
+    expect(urls).toContain("/settings/user/notifications/counts");
     expect(state.inboxCounts.value).toEqual({ all: 3, unread: 1 });
     expect(state.unreadCount.value).toBe(12);
+    expect(state.unseenCount.value).toBe(5);
   });
 
   it("counts a live notification everywhere but lists it only when it matches", async () => {
@@ -408,6 +410,62 @@ describe("useNotifications with an inbox filter", () => {
       "/settings/user/notifications/mark-all-read?category=system",
     );
     expect(state.inboxItems.value.map((n) => n.isRead)).toEqual([true, false]);
+  });
+
+  it("loads the bell's unseen count with the unread one, in one request", async () => {
+    authFetch.mockResolvedValue({ all: 9, unread: 4, unseen: 2 });
+    const state = await load();
+    await state.fetchBellCounts();
+    expect(authFetch).toHaveBeenCalledWith(
+      "/settings/user/notifications/counts",
+    );
+    expect(state.unreadCount.value).toBe(4);
+    expect(state.unseenCount.value).toBe(2);
+  });
+
+  it("takes the unseen count from the inbox totals when not narrowed", async () => {
+    authFetch.mockResolvedValue({ all: 9, unread: 4, unseen: 3 });
+    const state = await load();
+    await state.fetchCounts();
+    expect(authFetch).toHaveBeenCalledTimes(1);
+    expect(state.inboxCounts.value).toEqual({ all: 9, unread: 4 });
+    expect(state.unseenCount.value).toBe(3);
+  });
+
+  it("marks everything seen without touching the read state", async () => {
+    authFetch.mockResolvedValue({ success: true });
+    const state = await load();
+    state.unreadCount.value = 4;
+    state.unseenCount.value = 2;
+    state.notifications.value = [notification({ _id: "a" })];
+
+    await state.markAllSeen();
+
+    expect(authFetch).toHaveBeenCalledWith(
+      "/settings/user/notifications/seen",
+      { method: "PUT" },
+    );
+    expect(state.unseenCount.value).toBe(0);
+    expect(state.unreadCount.value).toBe(4);
+    expect(state.notifications.value[0]?.isRead).toBe(false);
+  });
+
+  it("counts a live notification as unseen again after the bell opened", async () => {
+    authFetch.mockResolvedValue({ success: true });
+    const state = await load();
+    state.unseenCount.value = 3;
+    await state.markAllSeen();
+    state.handleIncomingNotification(notification({ _id: "late" }));
+    expect(state.unseenCount.value).toBe(1);
+  });
+
+  it("resets the badge when another tab opens the bell", async () => {
+    const state = await load();
+    state.unseenCount.value = 2;
+    state.unreadCount.value = 2;
+    state.handleRemoteSeen();
+    expect(state.unseenCount.value).toBe(0);
+    expect(state.unreadCount.value).toBe(2);
   });
 
   it("keeps the unscoped bulk actions on the whole feed", async () => {

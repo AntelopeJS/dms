@@ -234,3 +234,15 @@ export function applyFeedFilter<Q extends FilterableFeed<Q>>(
   }
   return query;
 }
+
+/**
+ * Narrows a feed (the unread rows of one user) to what the header bell
+ * counts as new: the rows created after the user last opened it. Without a
+ * date, the bell has never opened and every one of them counts.
+ */
+export function applyUnseenFilter<Q extends FilterableFeed<Q>>(
+  feed: Q,
+  seenAt?: Date,
+): Q {
+  return seenAt ? feed.filter((row) => row.key("createdAt").gt(seenAt)) : feed;
+}

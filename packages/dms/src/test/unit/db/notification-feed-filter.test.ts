@@ -4,6 +4,7 @@ import {
   FEED_SEARCH_MAX_KEYS,
   FEED_SEARCH_MAX_LENGTH,
   applyFeedFilter,
+  applyUnseenFilter,
   paramValuePattern,
   escapeRegex,
   isFilteredFeed,
@@ -206,6 +207,24 @@ describe("[unit] db/notification-feed-filter", () => {
       const feed = new RecordingFeed();
       applyFeedFilter(feed, { search: { text: "alice", keys: [] } });
       expect(stagesOf(feed.predicates[0]!)).to.not.contain("^[$](?:");
+    });
+  });
+
+  describe("applyUnseenFilter", () => {
+    it("keeps every row when the bell never opened", () => {
+      const feed = new RecordingFeed();
+      applyUnseenFilter(feed, undefined);
+      expect(feed.predicates).to.have.length(0);
+    });
+
+    it("keeps the rows created after the bell last opened", () => {
+      const feed = new RecordingFeed();
+      const seenAt = new Date("2026-10-03T10:00:00.000Z");
+      applyUnseenFilter(feed, seenAt);
+      expect(feed.predicates).to.have.length(1);
+      const stages = stagesOf(feed.predicates[0]!);
+      expect(stages).to.contain('"createdAt"').and.to.contain('"cmp_gt"');
+      expect(stages).to.contain("2026-10-03T10:00:00.000Z");
     });
   });
 });

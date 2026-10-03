@@ -172,8 +172,10 @@ const isStat = computed(() => props.variant === "stat");
         </span>
       </p>
     </div>
+    <!-- With no change to show (no comparison period), the trend's line
+         keeps its place: toggling a comparison never resizes the card. -->
     <div
-      v-if="showTrend || hasSparkline"
+      v-if="showDelta || hasSparkline"
       class="ml-auto grid shrink-0 justify-items-end gap-1"
     >
       <DmsTrendBadge
@@ -182,6 +184,7 @@ const isStat = computed(() => props.variant === "stat");
         :invert="invert"
         variant="text"
       />
+      <span v-else-if="showDelta" class="h-4" aria-hidden="true" />
       <div v-if="hasSparkline" class="h-6 w-16">
         <DmsSparkline
           :values="sparkline"
@@ -274,17 +277,22 @@ const isStat = computed(() => props.variant === "stat");
         :class="SKELETON_CLASS"
       />
     </div>
+    <!-- The trend's line holds its place, as in the skeleton, while there is
+         no change to show (no comparison period): no "0%" stand-in, and
+         toggling a comparison never moves the footnote. -->
     <div
-      v-else-if="!hasError && (showTrend || footnote || hasSparkline)"
+      v-else-if="!hasError && (showDelta || footnote || hasSparkline)"
       class="mt-auto flex items-end gap-2"
     >
       <div class="min-w-0">
-        <DmsTrendBadge
-          v-if="showTrend"
-          :delta="delta"
-          :invert="invert"
-          variant="text"
-        />
+        <div v-if="showDelta" class="flex h-6 items-center">
+          <DmsTrendBadge
+            v-if="showTrend"
+            :delta="delta"
+            :invert="invert"
+            variant="text"
+          />
+        </div>
         <p
           v-if="footnote"
           class="text-dimmed truncate text-xs max-sm:whitespace-normal"

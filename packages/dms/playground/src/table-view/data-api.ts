@@ -30,6 +30,7 @@ import {
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { Task, TaskModel, User, UserModel } from "./database";
 import { TASK_STATUSES, type TaskStatusValue } from "./status";
+import { demoAddTexts } from "./form-texts";
 
 @RegisterDataController()
 export class userDataAPI extends DataController(
@@ -224,6 +225,7 @@ export class taskDataAPI extends DataController(
     type: new DefaultDataTypes.RelationType({
       placeholder: "Enter assignees",
       dataApiController: userDataAPI,
+      ...demoAddTexts("user"),
       keyMapping: {
         label: "name",
         value: "_id",

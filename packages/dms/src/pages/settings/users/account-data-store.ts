@@ -57,7 +57,8 @@ export interface AccountDeletionImpact {
   blockers: DeletionBlocker[];
 }
 
-async function roleNamesOf(
+/** Names of the roles `roleIds` stand for in `tenantId`. */
+export async function roleNamesOf(
   tenantId: string,
   roleIds: string[],
 ): Promise<string[]> {

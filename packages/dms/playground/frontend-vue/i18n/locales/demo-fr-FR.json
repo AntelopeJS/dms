@@ -1,5 +1,87 @@
 {
   "demo": {
+    "forms": {
+      "task": {
+        "new_title": "Nouvelle tâche",
+        "new_description": "Nommez-la, fixez son statut et sa priorité, puis assignez des personnes.",
+        "edit_title": "Modifier la tâche",
+        "edit_description": "Changez son statut, sa priorité, son échéance ou ses assignés.",
+        "view_title": "Détails de la tâche",
+        "view_description": "Tous les champs de la tâche, en lecture seule."
+      },
+      "user": {
+        "new_title": "Nouvel utilisateur",
+        "new_description": "Son nom, son adresse e-mail et son avatar.",
+        "edit_title": "Modifier l’utilisateur",
+        "edit_description": "Changez son nom, son adresse e-mail ou son avatar.",
+        "view_title": "Détails de l’utilisateur",
+        "view_description": "Nom, adresse e-mail et avatar, en lecture seule."
+      },
+      "order": {
+        "new_title": "Nouvelle commande",
+        "new_description": "Client, articles, livraison et paiement.",
+        "edit_title": "Modifier la commande",
+        "edit_description": "Changez son statut, son adresse de livraison, son transporteur ou son paiement.",
+        "view_title": "Détails de la commande",
+        "view_description": "Client, articles, livraison et paiement, en lecture seule."
+      },
+      "invoice": {
+        "new_title": "Nouvelle facture",
+        "new_description": "Une référence et un montant.",
+        "edit_title": "Modifier la facture",
+        "edit_description": "Changez sa référence ou son montant.",
+        "view_title": "Détails de la facture",
+        "view_description": "Référence et montant, en lecture seule."
+      },
+      "contact": {
+        "new_title": "Nouveau contact",
+        "new_description": "Identité, coordonnées, réseaux sociaux et adresse, une section chacun.",
+        "edit_title": "Modifier le contact",
+        "edit_description": "Changez son identité, ses coordonnées, ses réseaux sociaux ou son adresse.",
+        "view_title": "Détails du contact",
+        "view_description": "Toutes les sections du contact, en lecture seule."
+      },
+      "category": {
+        "new_title": "Nouvelle catégorie",
+        "new_description": "Son nom et, pour l’imbriquer, une catégorie parente.",
+        "edit_title": "Modifier la catégorie",
+        "edit_description": "Renommez-la, déplacez-la sous un autre parent ou marquez-la inactive.",
+        "view_title": "Détails de la catégorie",
+        "view_description": "Nom, parent et statut, en lecture seule."
+      },
+      "product": {
+        "new_title": "Nouveau produit",
+        "new_description": "Son nom, sa catégorie et les catégories finales auxquelles il appartient.",
+        "edit_title": "Modifier le produit",
+        "edit_description": "Renommez-le ou changez ses catégories.",
+        "view_title": "Détails du produit",
+        "view_description": "Nom et catégories, en lecture seule."
+      },
+      "assignment": {
+        "new_title": "Nouvelle affectation",
+        "new_description": "Un département et un membre, chacun choisi par id et par clé.",
+        "edit_title": "Modifier l’affectation",
+        "edit_description": "Changez ses départements ou ses membres.",
+        "view_title": "Détails de l’affectation",
+        "view_description": "Départements et membres, en lecture seule."
+      },
+      "member_assignment": {
+        "new_title": "Nouvelle affectation",
+        "new_description": "Un libellé, un membre de l’espace de travail et un membre de démo.",
+        "edit_title": "Modifier l’affectation",
+        "edit_description": "Changez son libellé ou les membres qu’elle relie.",
+        "view_title": "Détails de l’affectation",
+        "view_description": "Libellé et membres, en lecture seule."
+      },
+      "department": {
+        "new_title": "Nouveau département",
+        "new_description": "Son code et son nom."
+      },
+      "member": {
+        "new_title": "Nouveau membre",
+        "new_description": "Le nom et l’identifiant utilisateur du membre de démo."
+      }
+    },
     "widgets": {
       "status": {
         "label": "Statut système",

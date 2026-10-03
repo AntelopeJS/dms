@@ -17,7 +17,7 @@
     "modules": "Modules",
     "back": "Back",
     "switch_account": "Switch account",
-    "user_settings": "User Settings",
+    "user_settings": "User settings",
     "store": "Store",
     "profile": "Profile",
     "sessions": "Sessions",
@@ -88,7 +88,7 @@
     },
     "settings": {
       "title": "Settings",
-      "intro": "Manage and customize your application settings.",
+      "intro": "Your profile, security and preferences, and the people and roles of this workspace.",
       "description": {
         "notifications": "Configure your notification preferences to stay optimally informed",
         "shortcuts": "Move faster without the mouse. Shortcuts work where their context says — they never fire while you type in a field.",
@@ -203,6 +203,15 @@
       "members": {
         "table": {
           "caption": "Members list"
+        },
+        "form": {
+          "new_title": "New member",
+          "new_description": "The roles and owner status they join with.",
+          "edit_title": "Change roles",
+          "edit_description": "Their roles decide what they can see and do. Several roles add up.",
+          "view_title": "Member details",
+          "view_description": "Their roles, owner status and activity, read-only.",
+          "roles_hint_none": "No role: they keep only what every member can do."
         },
         "column": {
           "name": "Full name",
@@ -353,6 +362,14 @@
       "invites": {
         "table": {
           "caption": "Pending invites"
+        },
+        "form": {
+          "new_title": "New invitation",
+          "new_description": "Who to invite, with which roles and language.",
+          "edit_title": "Edit invitation",
+          "edit_description": "The name, roles and language the invitee gets on accepting.",
+          "view_title": "Invitation details",
+          "view_description": "Who it is for, its roles and when it expires, read-only."
         },
         "column": {
           "email": "Email",

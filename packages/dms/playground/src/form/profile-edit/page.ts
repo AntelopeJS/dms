@@ -20,7 +20,8 @@ export class PageFormProfileEdit extends PageController(
     icon: "i-ph-user-circle",
     category: pageCategory,
     order: 40,
-    description: "Comprehensive profile form testing all input types",
+    description:
+      "A long profile form: files and images, identity, address, preferences and links",
   },
   FormPageLayout(),
 ) {

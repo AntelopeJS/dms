@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { contactDataAPI } from "./data-api";
+import { demoFormTexts } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewGrouped extends PageController(
@@ -20,6 +21,7 @@ export class PageTableViewGrouped extends PageController(
   static table = TableView(contactDataAPI, {
     caption: "Contacts - Grouped Fields",
     labelKey: "firstName",
+    formTexts: demoFormTexts("contact"),
     rowActions: {
       add: true,
       delete: true,

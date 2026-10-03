@@ -40,6 +40,14 @@ export interface NotificationCounts {
   unread: number;
 }
 
+/**
+ * The whole feed's totals, with what the header bell counts: the unread
+ * notifications that arrived since it was last opened.
+ */
+interface FeedCounts extends NotificationCounts {
+  unseen?: number;
+}
+
 /** A category / subject pair the user has notifications in. */
 export interface NotificationFacetSubject {
   categoryId: string;
@@ -94,17 +102,27 @@ const storedKeysOf = (notification: UserNotification) =>
     .map((value) => value.slice(KEY_PREFIX.length));
 
 /**
- * Shared notification state: the header bell (unread count, popover feed)
+ * Shared notification state: the header bell (unseen count, popover feed)
  * and the settings inbox (its own filtered feed and tab totals) read and
- * update the same rows, so a change made in one shows in the other. The
- * bell always counts the whole feed; the inbox totals follow its search and
- * category.
+ * update the same rows, so a change made in one shows in the other.
+ *
+ * Seen and read are two states. The bell's badge (`unseenCount`) counts the
+ * unread notifications that arrived since the bell last opened, and opening
+ * it resets the badge (`markAllSeen`). A notification becomes read only when
+ * it is opened or marked read; `unreadCount` (the whole feed's unread total)
+ * feeds the Notifications entry of the settings navigation and its overview
+ * card. Both always count the whole feed; the inbox totals follow its search
+ * and category.
  */
 export const useNotifications = () => {
   const { $authFetch } = useAuthFetch();
   const { sendComponentEvent } = useComponentEvent();
   const unreadCount = useDmsState<number>(
     "notifications-unread-count",
+    () => 0,
+  );
+  const unseenCount = useDmsState<number>(
+    "notifications-unseen-count",
     () => 0,
   );
   const unreadPreview = useDmsState<UserNotification[]>(
@@ -186,35 +204,48 @@ export const useNotifications = () => {
     );
   };
 
-  const fetchUnreadCount = async () => {
-    const data = await $authFetch<{ count: number }>(
-      `${API_BASE}/unread-count`,
-    );
-    if (data) {
-      unreadCount.value = data.count;
-    }
+  /** Takes the whole feed's unread and unseen totals. */
+  const applyFeedCounts = (counts: FeedCounts) => {
+    unreadCount.value = counts.unread;
+    if (typeof counts.unseen === "number") unseenCount.value = counts.unseen;
+  };
+
+  /** Loads the bell's unseen count and the whole feed's unread count. */
+  const fetchBellCounts = async () => {
+    const counts = await $authFetch<FeedCounts>(`${API_BASE}/counts`);
+    if (counts) applyFeedCounts(counts);
   };
 
   /**
    * Refreshes the inbox tab totals (for its search and category) and the
-   * bell count, which one request serves while the inbox is not narrowed.
+   * whole feed's unread and unseen counts, which one request serves while
+   * the inbox is not narrowed.
    */
   const fetchCounts = async () => {
     const filter = inboxFilter.value;
     const isNarrowed = isNarrowedInbox(filter);
-    const [counts, bell] = await Promise.all([
-      $authFetch<NotificationCounts>(
+    const [counts, feed] = await Promise.all([
+      $authFetch<FeedCounts>(
         withQuery(`${API_BASE}/counts`, inboxApiParams(filter, false)),
       ),
-      isNarrowed
-        ? $authFetch<{ count: number }>(`${API_BASE}/unread-count`)
-        : undefined,
+      isNarrowed ? $authFetch<FeedCounts>(`${API_BASE}/counts`) : undefined,
     ]);
-    if (bell) unreadCount.value = bell.count;
+    if (feed) applyFeedCounts(feed);
     if (!counts) return;
-    if (!isNarrowed) unreadCount.value = counts.unread;
+    if (!isNarrowed) applyFeedCounts(counts);
     // A filter changed meanwhile asks for its own totals.
-    if (filter === inboxFilter.value) inboxCounts.value = counts;
+    if (filter === inboxFilter.value) {
+      inboxCounts.value = { all: counts.all, unread: counts.unread };
+    }
+  };
+
+  /**
+   * The bell was opened: its badge resets, and counts again what arrives
+   * later. The notifications stay unread.
+   */
+  const markAllSeen = async () => {
+    unseenCount.value = 0;
+    await $authFetch(`${API_BASE}/seen`, { method: "PUT" });
   };
 
   /** Loads the message keys and subjects the inbox search and filters offer. */
@@ -399,6 +430,7 @@ export const useNotifications = () => {
 
     for (const list of lists) list.value = [];
     unreadCount.value = 0;
+    unseenCount.value = 0;
     inboxCounts.value = { all: 0, unread: 0 };
     hasMore.value = false;
     inboxHasMore.value = false;
@@ -426,10 +458,15 @@ export const useNotifications = () => {
     emitCount();
   };
 
+  /** The bell was opened in another tab: this one's badge resets too. */
+  const handleRemoteSeen = () => {
+    unseenCount.value = 0;
+  };
+
   /**
-   * A notification pushed in real time. The bell always counts it; the
-   * inbox counts it when it matches the search and category, and lists it
-   * when it matches the read state too.
+   * A notification pushed in real time. The bell always counts it as new
+   * (unseen) and unread; the inbox counts it when it matches the search and
+   * category, and lists it when it matches the read state too.
    */
   const handleIncomingNotification = (incoming: UserNotification) => {
     const isAlreadyKnown = [notifications, inboxItems].some((list) =>
@@ -438,7 +475,10 @@ export const useNotifications = () => {
     if (isAlreadyKnown) return;
     notifications.value = [incoming, ...notifications.value];
     unreadPreview.value = [incoming, ...unreadPreview.value];
-    unreadCount.value += 1;
+    if (!incoming.isRead) {
+      unreadCount.value += 1;
+      unseenCount.value += 1;
+    }
     const filter = inboxFilter.value;
     if (matchesInboxFilter(incoming, filter, false)) {
       inboxCounts.value = {
@@ -460,6 +500,7 @@ export const useNotifications = () => {
 
   return {
     unreadCount,
+    unseenCount,
     unreadPreview,
     notifications,
     hasMore,
@@ -468,7 +509,7 @@ export const useNotifications = () => {
     inboxHasMore,
     inboxCounts,
     inboxFacets,
-    fetchUnreadCount,
+    fetchBellCounts,
     fetchCounts,
     fetchUnreadPreview,
     fetchNotifications,
@@ -478,6 +519,7 @@ export const useNotifications = () => {
     resetInboxFilter,
     markAsRead,
     markAsUnread,
+    markAllSeen,
     deleteNotification,
     markAllAsRead,
     undoMarkAllAsRead,
@@ -486,5 +528,6 @@ export const useNotifications = () => {
     handleRemoteRead,
     handleRemoteUnread,
     handleRemoteAllRead,
+    handleRemoteSeen,
   };
 };

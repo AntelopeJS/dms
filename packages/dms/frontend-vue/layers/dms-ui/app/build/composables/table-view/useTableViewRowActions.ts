@@ -34,6 +34,11 @@ import {
   type ConfirmOptions,
   type ConfirmPartialOutcome,
 } from "../../../composables/confirm/types";
+import {
+  resolveFormContainerTexts,
+  type TableViewFormKind,
+  type TableViewFormTexts,
+} from "./utils/formTexts";
 
 const DEFAULT_ROW_ID_KEY = "_id";
 const DEFAULT_MODAL_SIZE = "xl";
@@ -50,6 +55,8 @@ interface TableRowActionsConfig {
   location: string;
   caption?: string;
   labelKey?: string;
+  /** Titles and descriptions of the add, edit and details forms. */
+  formTexts?: TableViewFormTexts;
   rowIdKey?: string;
   refreshCallback?: () => void;
   formComponents: {
@@ -90,7 +97,7 @@ export const useTableRowActions = <T extends Data>(
   config: TableRowActionsConfig,
 ) => {
   const toast = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { confirm } = useConfirm();
   const { processI18n, processApiMessage } = useTranslation();
   const { open: openModal } = useModal();
@@ -133,30 +140,29 @@ export const useTableRowActions = <T extends Data>(
     });
   };
 
-  const buildContainerTitle = (
-    action: TableRowAction,
-    item: T | undefined,
-    titleKey: string,
-  ): string => {
-    const titleParts: string[] = [];
+  /** The form a row action opens: a duplicate opens the add form. */
+  const formKindOf = (action: TableRowAction): TableViewFormKind => {
+    if (action === TableRowAction.edit) return "edit";
+    if (action === TableRowAction.view) return "view";
+    return "new";
+  };
 
-    if (
-      item &&
-      config.labelKey &&
-      (action === TableRowAction.edit || action === TableRowAction.view)
-    ) {
-      const label = item[config.labelKey];
-      if (label) {
-        titleParts.push(String(label));
-      }
-    }
-
-    if (config.caption) {
-      titleParts.push(processI18n(config.caption));
-    }
-
-    titleParts.push(t(titleKey));
-    return titleParts.join(" - ");
+  const buildContainerTexts = (action: TableRowAction, item: T | undefined) => {
+    const kind = formKindOf(action);
+    return resolveFormContainerTexts(
+      {
+        kind,
+        formTexts: config.formTexts,
+        caption: config.caption,
+        recordLabel:
+          item && config.labelKey && kind !== "new"
+            ? get(item, config.labelKey)
+            : undefined,
+        locale: locale.value,
+      },
+      processI18n,
+      t,
+    );
   };
 
   const buildContainerIds = (action: TableRowAction, itemId?: string) => {
@@ -194,7 +200,7 @@ export const useTableRowActions = <T extends Data>(
 
   const openModalContainer = (
     title: string,
-    descriptionKey: string,
+    description: string,
     containerId: string,
     componentIdSuffix: string,
     pageIdSuffix: string,
@@ -210,7 +216,7 @@ export const useTableRowActions = <T extends Data>(
 
     const modal = openModal({
       title,
-      description: t(descriptionKey),
+      description,
       size,
       containerId,
       component: DmsForm,
@@ -232,7 +238,7 @@ export const useTableRowActions = <T extends Data>(
 
   const openDrawerContainer = (
     title: string,
-    descriptionKey: string,
+    description: string,
     containerId: string,
     componentIdSuffix: string,
     pageIdSuffix: string,
@@ -242,7 +248,7 @@ export const useTableRowActions = <T extends Data>(
   ) => {
     const drawer = openDrawer({
       title,
-      description: t(descriptionKey),
+      description,
       containerId,
       component: DmsForm,
       componentOptions: {
@@ -274,14 +280,13 @@ export const useTableRowActions = <T extends Data>(
     action: TableRowAction;
     item?: T;
     itemId?: string;
-    titleKey: string;
-    descriptionKey: string;
     fetchUrl?: string;
     submitDefaults?: Record<string, unknown>;
   }
 
   interface ResolvedFormContainer {
     title: string;
+    description: string;
     containerId: string;
     componentIdSuffix: string;
     pageIdSuffix: string;
@@ -298,7 +303,6 @@ export const useTableRowActions = <T extends Data>(
     action: TableRowAction,
     item: T | undefined,
     itemId: string | undefined,
-    titleKey: string,
     formComponent: ComponentInfo<FormProps>,
   ): ResolvedFormContainer => {
     const { containerId, componentIdSuffix, pageIdSuffix } = buildContainerIds(
@@ -306,7 +310,7 @@ export const useTableRowActions = <T extends Data>(
       itemId,
     );
     return {
-      title: buildContainerTitle(action, item, titleKey),
+      ...buildContainerTexts(action, item),
       containerId,
       componentIdSuffix,
       pageIdSuffix,
@@ -319,12 +323,12 @@ export const useTableRowActions = <T extends Data>(
     resolved: ResolvedFormContainer,
     containerConfig: FormContainerConfig,
   ) => {
-    const { descriptionKey, fetchUrl, submitDefaults } = containerConfig;
+    const { fetchUrl, submitDefaults } = containerConfig;
 
     const handler = containerHandlers[containerType];
     return handler?.(
       resolved.title,
-      descriptionKey,
+      resolved.description,
       resolved.containerId,
       resolved.componentIdSuffix,
       resolved.pageIdSuffix,
@@ -344,7 +348,6 @@ export const useTableRowActions = <T extends Data>(
       containerConfig.action,
       containerConfig.item,
       containerConfig.itemId,
-      containerConfig.titleKey,
       formComponent,
     );
 
@@ -367,8 +370,6 @@ export const useTableRowActions = <T extends Data>(
       action: TableRowAction.view,
       item,
       itemId,
-      titleKey: "dms.table.view_item",
-      descriptionKey: "dms.table.view_item_description",
       fetchUrl: `${config.location}/get?id=${itemId}&action=details`,
     });
   };
@@ -394,8 +395,6 @@ export const useTableRowActions = <T extends Data>(
       action: TableRowAction.edit,
       item,
       itemId,
-      titleKey: "dms.table.edit_item",
-      descriptionKey: "dms.table.edit_item_description",
       submitDefaults,
     });
   };
@@ -413,8 +412,6 @@ export const useTableRowActions = <T extends Data>(
 
     return createFormContainer({
       action: TableRowAction.new,
-      titleKey: "dms.table.new_item",
-      descriptionKey: "dms.table.new_item_description",
       submitDefaults,
     });
   };
@@ -432,8 +429,6 @@ export const useTableRowActions = <T extends Data>(
     return createFormContainer({
       action: TableRowAction.duplicate,
       itemId,
-      titleKey: "dms.table.new_item",
-      descriptionKey: "dms.table.new_item_description",
       fetchUrl: `${config.location}/get?id=${itemId}&action=duplicate`,
     });
   };

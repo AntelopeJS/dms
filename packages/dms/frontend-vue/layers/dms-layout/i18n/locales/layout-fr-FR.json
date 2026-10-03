@@ -88,7 +88,7 @@
     },
     "settings": {
       "title": "Paramètres",
-      "intro": "Gérez et personnalisez les paramètres de votre application.",
+      "intro": "Votre profil, votre sécurité et vos préférences, ainsi que les personnes et les rôles de cet espace.",
       "description": {
         "notifications": "Configurez vos préférences de notifications pour rester informé de manière optimale",
         "shortcuts": "Allez plus vite sans la souris. Les raccourcis agissent selon leur contexte — jamais pendant la saisie dans un champ.",
@@ -203,6 +203,15 @@
       "members": {
         "table": {
           "caption": "Liste des membres"
+        },
+        "form": {
+          "new_title": "Nouveau membre",
+          "new_description": "Les rôles et le statut de propriétaire avec lesquels il rejoint l’espace.",
+          "edit_title": "Modifier les rôles",
+          "edit_description": "Ses rôles décident de ce qu’il peut voir et faire. Plusieurs rôles se cumulent.",
+          "view_title": "Détails du membre",
+          "view_description": "Ses rôles, son statut de propriétaire et son activité, en lecture seule.",
+          "roles_hint_none": "Aucun rôle : il garde seulement ce que tout membre peut faire."
         },
         "column": {
           "name": "Nom et prénom",
@@ -357,6 +366,14 @@
       "invites": {
         "table": {
           "caption": "Invitations en attente"
+        },
+        "form": {
+          "new_title": "Nouvelle invitation",
+          "new_description": "Qui inviter, avec quels rôles et dans quelle langue.",
+          "edit_title": "Modifier l’invitation",
+          "edit_description": "Le nom, les rôles et la langue que la personne invitée reçoit en acceptant.",
+          "view_title": "Détails de l’invitation",
+          "view_description": "À qui elle s’adresse, ses rôles et son expiration, en lecture seule."
         },
         "column": {
           "email": "E-mail",

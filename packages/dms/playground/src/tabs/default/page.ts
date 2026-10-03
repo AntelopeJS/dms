@@ -13,7 +13,7 @@ export class PageTabsBasic extends PageController("tabs-basic", {
   icon: "i-ph-squares-four",
   category: pageCategory,
   order: 0,
-  description: "Basic tabs test with Tree components",
+  description: "The plainest tabs: each tab holds a tree",
 }) {
   static tabs = Tab({
     items: [

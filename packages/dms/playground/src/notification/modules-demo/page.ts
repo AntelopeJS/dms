@@ -56,7 +56,8 @@ export class PageModulesDemo extends PageController(
     icon: "i-ph-puzzle-piece",
     category: notificationCategory,
     order: 10,
-    description: "Demonstrate notification categories from external modules",
+    description:
+      "Send notifications under the categories other modules declare",
   },
   FormPageLayout(),
 ) {

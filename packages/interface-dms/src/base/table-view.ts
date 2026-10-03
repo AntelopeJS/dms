@@ -75,6 +75,8 @@ export {
   type TableViewExpandableSerialized,
   type TableViewExpandedDefault,
   type TableViewFooterOptions,
+  type TableViewFormKind,
+  type TableViewFormText,
   type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewOptionsSerialized,

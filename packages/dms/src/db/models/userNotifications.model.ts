@@ -9,6 +9,7 @@ import { runInBatches } from "../../utils/run-in-batches";
 import { UserNotification, userNotificationsTableName } from "../tables";
 import {
   applyFeedFilter,
+  applyUnseenFilter,
   type NotificationFeedFilter,
 } from "./notification-feed-filter";
 
@@ -38,8 +39,10 @@ export interface NewUserNotification {
   duplicateId?: string;
 }
 
-/** Fields a sender may rewrite on a notification already delivered. */
+/** Fields a sender (or the stored-data upgrade) may rewrite on a notification already delivered. */
 export interface NotificationRewrite {
+  /** A worded variant of the same message's title. */
+  title?: string;
   params?: Record<string, string | number>;
   description?: string;
   tone?: NotificationTone;
@@ -59,6 +62,8 @@ export interface UserNotificationFacets {
 export interface UserNotificationCounts {
   all: number;
   unread: number;
+  /** Unread notifications that arrived since the bell last opened (whole feed only). */
+  unseen?: number;
 }
 
 /** Maps a delivery onto the row to store for one recipient. */
@@ -329,6 +334,14 @@ export class UserNotificationsModel extends BasicDataModel(
 
   async countUnread(userId: string): Promise<number> {
     return this.unreadFeed(userId).count().run();
+  }
+
+  /**
+   * What the header bell counts: the unread notifications created after
+   * `seenAt`, when the user last opened it (all of them without a date).
+   */
+  async countUnseen(userId: string, seenAt?: Date): Promise<number> {
+    return applyUnseenFilter(this.unreadFeed(userId), seenAt).count().run();
   }
 
   async markAsRead(id: string): Promise<void> {

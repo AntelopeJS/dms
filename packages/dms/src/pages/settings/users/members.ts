@@ -26,7 +26,10 @@ import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/ten
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import type { RowActionConfirmDescriptor } from "@antelopejs/interface-dms/base/table-view";
+import type {
+  RowActionConfirmDescriptor,
+  TableViewOptions,
+} from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
 import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
@@ -100,6 +103,28 @@ export const MEMBER_LISTS_CHROME = "minimal";
 export const MEMBER_LISTS_PAGE_SIZE = 25;
 export const MEMBERS_TAB_ICON = "i-ph-users";
 export const INVITES_TAB_ICON = "i-ph-envelope-simple";
+
+/**
+ * Titles and descriptions of the forms a member list opens: "Change roles",
+ * "Edit invitation"… from `page.settings.<list>.form`.
+ */
+export const memberListFormTexts = (
+  list: "members" | "invites",
+): TableViewOptions["formTexts"] => {
+  const key = `$page.settings.${list}.form`;
+  return {
+    new: { title: `${key}.new_title`, description: `${key}.new_description` },
+    edit: {
+      title: `${key}.edit_title`,
+      description: `${key}.edit_description`,
+    },
+    view: {
+      title: `${key}.view_title`,
+      description: `${key}.view_description`,
+    },
+  };
+};
+
 export const ROLE_QUICK_FILTER = {
   label: "$page.settings.members.filter.role",
   allLabel: "$page.settings.members.filter.all_roles",
@@ -171,6 +196,10 @@ const memberApiTarget = (action: string) =>
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",
   labelKey: "name",
+  formTexts: memberListFormTexts("members"),
+  // "Change roles" opens over the list: the member's name in the title, the
+  // roles as the invite form's pills (see the `roleIds` column).
+  formContainer: { type: "modal", size: "md" },
   chrome: MEMBER_LISTS_CHROME,
   searchPlaceholder: "$page.settings.members.search_members",
   quickFilters: [{ field: "roleIds", ...ROLE_QUICK_FILTER }],
@@ -370,6 +399,16 @@ export function memberInviteResponse(
   return response;
 }
 
+/** The tenant's roles as the role pickers offer them. */
+async function loadRoleOptions(tenantId: string): Promise<InviteRoleOptions> {
+  const roles = await GetModel(RoleModel, tenantId).getAll();
+  return buildInviteRoleOptions(
+    roles,
+    await GetPermissions(),
+    GetCategoryPermissionIds(),
+  );
+}
+
 /** The page header's "Invite members", pressing the table's invite button. */
 export const MEMBER_INVITE_HEADER_ACTION = {
   id: MEMBER_INVITE_BUTTON_ID,
@@ -401,16 +440,23 @@ export class MembersSettingsController extends PageController(
   }
 
   @Get("/invite/roles")
-  async inviteRoles(
+  inviteRoles(
     @Context() ctx: RequestContext,
     @AuthUserWithPermission(membersTableAddAction) _user: User,
   ): Promise<InviteRoleOptions> {
-    const roles = await GetModel(RoleModel, getRequestTenantId(ctx)).getAll();
-    return buildInviteRoleOptions(
-      roles,
-      await GetPermissions(),
-      GetCategoryPermissionIds(),
-    );
+    return loadRoleOptions(getRequestTenantId(ctx));
+  }
+
+  /**
+   * The roles the "Change roles" form offers: the members data API's
+   * `roleIds` column reads them from `/settings/user/members/role-options`.
+   */
+  @Get("/role-options")
+  memberRoleOptions(
+    @Context() ctx: RequestContext,
+    @AuthUserWithPermission(membersTableEditAction) _user: User,
+  ): Promise<InviteRoleOptions> {
+    return loadRoleOptions(getRequestTenantId(ctx));
   }
 
   @Post("/invite")

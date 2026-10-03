@@ -3,6 +3,12 @@ import {
   SECURITY_PAGE_PATH,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
+import ProfilePreferencesSummary from "./ProfilePreferencesSummary.vue";
+import ProfileSummaryRow from "./ProfileSummaryRow.vue";
+
+// Two roots: the renderer's attributes (component and page ids) stay on
+// the security section, as they did when it was the only root.
+defineOptions({ inheritAttrs: false });
 
 const { t } = useI18n();
 const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
@@ -23,70 +29,63 @@ const facts = computed(() => {
   return t("page.settings.profile.security_facts", { twoFactor, sessions });
 });
 
+// The skeleton's shape: the all-set sentence with two sessions.
+const placeholder = computed(
+  () =>
+    `${t("page.settings.profile.security_all_good")} — ${t(
+      "page.settings.profile.security_facts",
+      {
+        twoFactor: t("page.settings.profile.security_two_factor_on"),
+        sessions: t("page.settings.profile.security_sessions", { count: 2 }, 2),
+      },
+    )}`,
+);
+
 onMounted(refresh);
 </script>
 
 <template>
   <DmsSection
+    v-bind="$attrs"
     title="$page.settings.profile.security_title"
     description="$page.settings.profile.security_description"
   >
-    <!-- v2 .cs-moved: points to where email, password, two-factor and
-         sessions now live, with what needs attention there. -->
-    <!-- Phones: the text keeps its place beside the icon, the button drops
-         to a line of its own. -->
-    <div class="flex flex-wrap items-center gap-3.5 px-[18px] py-3.5">
-      <USkeleton
-        v-if="!overview && !isUnavailable"
-        aria-hidden="true"
-        class="size-8 shrink-0 rounded-[9px]"
-      />
-      <DmsIconWell
-        v-else
-        :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
-        :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
-        size="sm"
-      />
-      <div class="text-muted min-w-0 flex-1 basis-40 text-sm">
-        <template v-if="overview">
-          <b class="text-highlighted font-semibold">
-            {{
-              needsAttention
-                ? t(
-                    "page.settings.profile.security_attention",
-                    { count: attention.length },
-                    attention.length,
-                  )
-                : t("page.settings.profile.security_all_good")
-            }}
-          </b>
-          <template v-if="needsAttention">
-            — {{ t(`page.settings.security.attention.${attention[0]}`) }}.
-          </template>
-          <template v-else>{{ " — " }}</template>
-          {{ facts }}
+    <!-- Points to where email, password, two-factor and sessions now live,
+         with what needs attention there. -->
+    <ProfileSummaryRow
+      :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
+      :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
+      :loading="!overview && !isUnavailable"
+      :placeholder="placeholder"
+      :to="SECURITY_PAGE_PATH"
+      :action-label="t('page.settings.profile.security_open')"
+    >
+      <template v-if="overview">
+        <b class="text-highlighted font-semibold">
+          {{
+            needsAttention
+              ? t(
+                  "page.settings.profile.security_attention",
+                  { count: attention.length },
+                  attention.length,
+                )
+              : t("page.settings.profile.security_all_good")
+          }}
+        </b>
+        <template v-if="needsAttention">
+          — {{ t(`page.settings.security.attention.${attention[0]}`) }}.
         </template>
-        <template v-else-if="isUnavailable">
-          {{ t("page.settings.profile.security_description") }}
-        </template>
-        <!-- Two lines of the text's line box: the summary runs to two
-             lines but on wide cards. -->
-        <div v-else aria-hidden="true">
-          <USkeleton class="inline-block h-3 w-full max-w-md align-middle" />
-          <USkeleton
-            class="inline-block h-3 w-2/3 align-middle @4xl/settings:hidden"
-          />
-        </div>
-      </div>
-      <UButton
-        class="ms-auto shrink-0"
-        color="neutral"
-        variant="outline"
-        size="sm"
-        trailing-icon="i-ph-arrow-right"
-        :to="SECURITY_PAGE_PATH"
-        :label="t('page.settings.profile.security_open')"
-      />
-    </div>
+        <template v-else>{{ " — " }}</template>
+        {{ facts }}
+      </template>
+      <template v-else>
+        {{ t("page.settings.profile.security_description") }}
+      </template>
+    </ProfileSummaryRow>
   </DmsSection>
+  <!-- Mounted here, under this component's permission, rather than as a
+       component of its own: a new permission id would hide it from every
+       role that predates it, and each row is already gated by the page it
+       leads to. -->
+  <ProfilePreferencesSummary />
 </template>

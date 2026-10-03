@@ -33,6 +33,10 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
   };
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
+  /** Title of the drawer the "add" entry opens; defaults to "New entry". */
+  addTitle?: string;
+  /** Line under that title. */
+  addDescription?: string;
 }
 
 const props = withDefaults(defineProps<RelationProps>(), {
@@ -50,6 +54,8 @@ const forwardedProps = computed(() => {
     modelValue: _____,
     addForm: ______,
     addPermissionIds: _______,
+    addTitle: ________,
+    addDescription: _________,
     ...rest
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
@@ -93,6 +99,7 @@ const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
 const { $authFetch } = useAuthFetch();
 const toast = useToast();
 const { t } = useI18n();
+const { processI18n } = useTranslation();
 const { hasPermission, isLoaded, fetchPermissions } = usePermissions();
 const { open: openDrawer } = useDrawer();
 const { clearGuards } = useLeaveGuard();
@@ -320,8 +327,12 @@ function openAddDrawer() {
   const formOptions = addFormOptions.value;
   if (!formOptions) return;
   const drawer = openDrawer({
-    title: t("dms.table.new_item"),
-    description: t("dms.table.new_item_description"),
+    title: props.addTitle
+      ? processI18n(props.addTitle)
+      : t("dms.table.new_item"),
+    description: props.addDescription
+      ? processI18n(props.addDescription)
+      : t("dms.table.new_item_description"),
     direction: "bottom",
     containerId: addContainerId,
     component: DmsForm,

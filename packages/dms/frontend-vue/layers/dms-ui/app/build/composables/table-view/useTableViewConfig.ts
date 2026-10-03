@@ -151,6 +151,7 @@ export const useTableViewConfig = <T extends Data>(
     location: config.location,
     caption: config.caption,
     labelKey: config.labelKey,
+    formTexts: config.formTexts,
     enableTableExport: config.enableTableExport,
     archiveMode: config.archiveMode,
     defaultFilters: config.defaultFilters,

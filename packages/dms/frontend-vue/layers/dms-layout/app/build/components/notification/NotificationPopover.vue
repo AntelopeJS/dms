@@ -16,16 +16,17 @@ const { loggedIn } = useUserSession();
 const { processI18n } = useTranslation();
 const {
   unreadCount,
+  unseenCount,
   notifications,
   hasMore,
-  fetchUnreadCount,
+  fetchBellCounts,
   fetchNotifications,
-  markAllAsRead,
+  markAsRead,
+  markAllSeen,
 } = useNotifications();
 const { setTrail, clearTrail, settleIndicator } = useSettingsNavTrails();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
-const hasBeenOpened = ref(false);
 // Each opening reloads the list from its first page: until it answers, the
 // popover shows placeholder rows, never "No notifications".
 const isListLoading = ref(false);
@@ -43,14 +44,16 @@ const iconWellTone = (notification: UserNotification) => {
   return tone === "neutral" ? "muted" : tone;
 };
 
-const displayedCount = computed(() =>
-  unreadCount.value > MAX_DISPLAYED_COUNT
-    ? `${MAX_DISPLAYED_COUNT}+`
-    : String(unreadCount.value),
-);
+const formatCount = (count: number) =>
+  count > MAX_DISPLAYED_COUNT ? `${MAX_DISPLAYED_COUNT}+` : String(count);
+
+// The bell's badge counts what arrived since it was last opened (unseen);
+// opening it resets the badge but leaves the notifications unread.
+const displayedCount = computed(() => formatCount(unseenCount.value));
 
 // The bell is on every page, so it keeps the unread badge of the
-// Notifications entry in the settings navigation current.
+// Notifications entry in the settings navigation (and its overview card)
+// current: that one counts what is still unread, seen or not.
 watch(
   unreadCount,
   (count) => {
@@ -60,21 +63,22 @@ watch(
     }
     setTrail({
       fullId: NOTIFICATIONS_SETTINGS_PAGE,
-      badge: displayedCount.value,
+      badge: formatCount(count),
       label: t("page.settings.notifications.unread_badge", { count }, count),
     });
   },
   { immediate: true },
 );
 
-const refreshUnreadCount = () =>
-  settleWidgetRequest(fetchUnreadCount, () => {
+const refreshCounts = () =>
+  settleWidgetRequest(fetchBellCounts, () => {
     unreadCount.value = 0;
+    unseenCount.value = 0;
   });
 
 const handleNotificationEvent = async () => {
   if (!isOpen.value) {
-    await refreshUnreadCount();
+    await refreshCounts();
   }
 };
 
@@ -84,27 +88,20 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
   if (submitUrl && submitUrl.includes("/api/notification/")) {
     if (!isOpen.value) {
-      await refreshUnreadCount();
+      await refreshCounts();
     }
   }
 };
 
-const markNotificationsAsRead = async () => {
-  if (hasBeenOpened.value) {
-    await settleWidgetRequest(markAllAsRead);
-    hasBeenOpened.value = false;
-  }
-};
-
-const handleBeforeUnload = () => {
-  if (hasBeenOpened.value) {
-    navigator.sendBeacon("/api/settings/user/notifications/mark-all-read");
-  }
+// Seeing is not reading: the notifications stay unread until opened or
+// marked read, in the popover or the inbox.
+const markSeen = async () => {
+  if (unseenCount.value > 0) await settleWidgetRequest(markAllSeen);
 };
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  await refreshUnreadCount();
+  await refreshCounts();
   settleIndicator(NOTIFICATIONS_SETTINGS_PAGE);
 
   window.addEventListener(
@@ -115,7 +112,6 @@ onMounted(async () => {
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
   );
-  window.addEventListener("beforeunload", handleBeforeUnload);
 });
 
 onUnmounted(() => {
@@ -129,25 +125,30 @@ onUnmounted(() => {
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
   );
-  window.removeEventListener("beforeunload", handleBeforeUnload);
 });
 
 watch(isOpen, async (isNowOpen) => {
   if (isNowOpen) {
-    hasBeenOpened.value = true;
     isListLoading.value = true;
-    await settleWidgetRequest(() => fetchNotifications(true));
+    await Promise.all([
+      markSeen(),
+      settleWidgetRequest(() => fetchNotifications(true)),
+    ]);
     isListLoading.value = false;
     await nextTick();
     setupObserver();
   } else {
     disconnectObserver();
-    await markNotificationsAsRead();
+    // What arrived while the list was open showed at its top: seen too.
+    await markSeen();
   }
 });
 
 const handleNotificationClick = async (notification: UserNotification) => {
   isOpen.value = false;
+  if (!notification.isRead) {
+    await settleWidgetRequest(() => markAsRead(notification._id));
+  }
   if (notification.linkTo) {
     await navigateDms(notification.linkTo);
   }
@@ -180,7 +181,7 @@ const goToNotifications = () => {
         <!-- Floats over the button's corner (nothing moves) and fades in
              (starting style) once the count, fetched after mount, is back. -->
         <span
-          v-if="unreadCount > 0"
+          v-if="unseenCount > 0"
           class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted) transition-opacity duration-200 starting:opacity-0"
         >
           {{ displayedCount }}

@@ -713,6 +713,13 @@ export namespace DefaultDataTypes {
          * join.
          */
         filterOnly?: boolean;
+        /**
+         * Title of the drawer the picker's "add" entry opens, e.g. "New
+         * user". `$`-prefixed: an i18n key. Defaults to "New entry".
+         */
+        addTitle?: string;
+        /** Line under that title. `$`-prefixed: an i18n key. */
+        addDescription?: string;
       },
     ) {
       super(
@@ -749,6 +756,8 @@ export namespace DefaultDataTypes {
         keyMapping: this.options.keyMapping,
         addForm: addOptions?.addForm,
         addPermissionIds: addOptions?.addPermissionIds,
+        addTitle: this.options.addTitle,
+        addDescription: this.options.addDescription,
       });
     }
 

@@ -12,7 +12,8 @@ export class PageFormSimple extends PageController(
     icon: "i-ph-note-pencil",
     category: pageCategory,
     order: 0,
-    description: "Simple form showcasing all field types",
+    description:
+      "Text, email, number, checkbox, select, date and colour fields in one plain form",
     setupId: "dms:demo:form-lifecycle",
   },
   FormPageLayout(),

@@ -306,6 +306,20 @@ export class PageTableViewUsers extends PageController(
   static table = TableView(userDataAPI, {
     caption: "Users",
     labelKey: "name",
+    formTexts: {
+      new: {
+        title: "$demo.forms.user.new_title",
+        description: "$demo.forms.user.new_description",
+      },
+      edit: {
+        title: "$demo.forms.user.edit_title",
+        description: "$demo.forms.user.edit_description",
+      },
+      view: {
+        title: "$demo.forms.user.view_title",
+        description: "$demo.forms.user.view_description",
+      },
+    },
     rowActions: {
       add: true,
       edit: true,

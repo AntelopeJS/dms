@@ -1,5 +1,6 @@
 import { onMounted, watch, type Ref } from "vue";
 import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
+import { useTableDataChanges } from "#dms-ui/app/composables/table-view/useTableDataChanges";
 import { useSecurityOverview } from "./security/useSecurityOverview";
 import { INVITES_PAGE_ID } from "./useSettingsNavigation";
 import { useSettingsNavTrails } from "./useSettingsNavTrails";
@@ -7,11 +8,14 @@ import { useSettingsNavTrails } from "./useSettingsNavTrails";
 const MEMBERS_PAGE_ID = "settings.user.members";
 const ROLES_PAGE_ID = "settings.user.roles";
 const SECURITY_PAGE_ID = "settings.user.security";
-const MEMBERS_COUNT_ENDPOINT = "/api/tables/members/count/batch";
+// Data API locations of the members and invitations lists.
+const MEMBERS_LOCATION = "/api/tables/members";
+const INVITES_LOCATION = "/api/tables/admin-invites";
+const MEMBERS_COUNT_ENDPOINT = `${MEMBERS_LOCATION}/count/batch`;
 const ROLES_OVERVIEW_ENDPOINT = "/settings/user/roles/overview";
 const MEMBERS_COUNT_QUERY_ID = "all";
 // The source the Members table's Invitations tab counts from.
-const INVITES_LIST_ENDPOINT = "/api/tables/admin-invites/list";
+const INVITES_LIST_ENDPOINT = `${INVITES_LOCATION}/list`;
 const INVITES_COUNT_QUERY = { limit: 1, offset: 0 };
 
 interface RolesOverviewSummary {
@@ -36,6 +40,7 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
   const security = useSecurityOverview();
   const { t } = useI18n();
   const route = useDmsRoute();
+  const { tableDataVersion } = useTableDataChanges();
 
   async function loadMembersCount(): Promise<void> {
     const counts = await $authFetch<Record<string, number>>(
@@ -92,19 +97,30 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
     }
   }
 
+  /** Reads a loaded count again; the entry keeps its last one on failure. */
+  function reload(pageId: string): void {
+    if (!loaded.has(pageId) || !visiblePageIds.value.has(pageId)) return;
+    loaders[pageId]?.().catch(() => {
+      /* the entry keeps its last indicator */
+    });
+  }
+
   onMounted(() => {
     loadVisible();
     watch(visiblePageIds, loadVisible);
-    // Invitations are sent, resent and revoked from pages that publish no
-    // count of them: read it again on each move between settings pages.
+    // The members and invitations lists change each other: an invitation
+    // sent, resent, edited, revoked or accepted, a member removed. Whenever
+    // either list reads its rows again after a change, both counts follow,
+    // without waiting for a move to another page.
+    watch(tableDataVersion([MEMBERS_LOCATION, INVITES_LOCATION]), () => {
+      reload(MEMBERS_PAGE_ID);
+      reload(INVITES_PAGE_ID);
+    });
+    // Changes made elsewhere (another session) show on the next move
+    // between settings pages.
     watch(
       () => route.path,
-      () => {
-        if (!visiblePageIds.value.has(INVITES_PAGE_ID)) return;
-        loadInvitesCount().catch(() => {
-          /* the entry keeps its last indicator */
-        });
-      },
+      () => reload(INVITES_PAGE_ID),
     );
   });
 }

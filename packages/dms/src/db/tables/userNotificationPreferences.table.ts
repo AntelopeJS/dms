@@ -26,6 +26,13 @@ export class UserNotificationPreferences extends Table {
   @Field("any")
   declare preferences: Record<string, boolean>;
 
+  /**
+   * When the user last opened the header bell. Its badge counts the unread
+   * notifications created since; unset until the bell first opens.
+   */
+  @Field("date")
+  declare notificationsSeenAt?: Date | null;
+
   @CreationTime()
   @Index()
   @Field("date")

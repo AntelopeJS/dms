@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { demoFormTexts } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewCustomRowActions extends PageController(
@@ -19,6 +20,7 @@ export class PageTableViewCustomRowActions extends PageController(
   static table = TableView(taskDataAPI, {
     caption: "Tasks - Custom Row Actions",
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
     defaultSort: { field: "due_date", desc: true },
     rowActions: {
       add: true,
