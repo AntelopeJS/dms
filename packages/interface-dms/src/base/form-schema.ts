@@ -268,6 +268,10 @@ export namespace FormComponents {
      * any one of them grants.
      */
     addPermissionIds?: string[];
+    /** Title of the drawer the "add" entry opens. `$`-prefixed: an i18n key. */
+    addTitle?: string;
+    /** Line under that title. `$`-prefixed: an i18n key. */
+    addDescription?: string;
   }
 
   export interface CascaderRelationKeyMapping {

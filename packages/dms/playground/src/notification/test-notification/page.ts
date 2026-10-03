@@ -21,6 +21,7 @@ export class PageNotificationTest extends PageController(
     title: "Send Custom Notification",
     description: "Fill in the form and submit to send yourself a notification",
     submitUrl: "/api/notification/send",
+    submitLabel: "Send notification",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     // Each submit sends a new notification: the fields empty once it is
@@ -69,6 +70,7 @@ export class PageNotificationTest extends PageController(
     title: "DMS Update Notification",
     description: "Send a system notification about a DMS update",
     submitUrl: "/api/notification/send-dms-update",
+    submitLabel: "Send DMS update",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     fields: [
@@ -85,6 +87,7 @@ export class PageNotificationTest extends PageController(
     title: "Hosting Promo Notification",
     description: "Send a promotional notification about hosting offers",
     submitUrl: "/api/notification/send-hosting-promo",
+    submitLabel: "Send hosting promo",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     fields: [

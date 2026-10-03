@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { relAssignDataAPI } from "./data-api";
+import { demoFormTexts } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewRelationKey extends PageController(
@@ -20,6 +21,7 @@ export class PageTableViewRelationKey extends PageController(
   static table = TableView(relAssignDataAPI, {
     caption: "Assignments — relation by _id vs by code",
     labelKey: "_id",
+    formTexts: demoFormTexts("assignment"),
     rowActions: {
       add: true,
       copyLink: false,

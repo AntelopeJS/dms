@@ -4,6 +4,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { gateDemoInvoiceAPI } from "./data-api";
+import { demoFormTexts } from "../form-texts";
 
 // Recovery-surface demo: suspend the tenant with
 // POST /playground/gate-demo/toggle, then reload. This page stays reachable
@@ -26,11 +27,13 @@ export class PageTableViewGateBypass extends PageController(
   static invoices = TableView(gateDemoInvoiceAPI, {
     caption: "Invoices (bypasses the gate)",
     labelKey: "name",
+    formTexts: demoFormTexts("invoice"),
     bypassTenantAccessGate: true,
   });
 
   static tasks = TableView(taskDataAPI, {
     caption: "Tasks (still gated)",
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
   });
 }

@@ -26,6 +26,7 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import { FormPageLayout, formSchema } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import * as z from "zod";
 import type { AccountActivityEvent } from "./account-activity";
@@ -45,6 +46,7 @@ import {
   requireStoredUser,
 } from "./account-data-store";
 import { userCategory } from "./category";
+import { loadProfileAccess, type ProfileAccess } from "./profile-access";
 import {
   AVATAR_ATTACHMENT_FIELD,
   AVATAR_DIMENSION_PX,
@@ -132,6 +134,9 @@ export class ProfileSettingsController extends PageController(
     language: z.string().optional(),
   });
 
+  // Also mounts the "Preferences & access" summaries, which take no permission
+  // of their own: each row shows only when its target page opens for the
+  // user, so a new id would only hide them from roles that predate it.
   static securityComponent = CustomComponent("DmsProfileSecuritySummary").meta({
     name: "$page.settings.profile.security_title",
     icon: "i-ph-shield-check",
@@ -236,6 +241,15 @@ export class ProfileSettingsController extends PageController(
     @Parameter("authorization", "header") authorization: string,
   ): Promise<AccountActivityEvent[]> {
     return loadAccountActivity(this.user, extractSessionId(authorization));
+  }
+
+  /**
+   * The roles the signed-in user holds in the current workspace and whether
+   * they own it, for the "Your access" summary.
+   */
+  @Get("/access")
+  getAccess(@Context() context: RequestContext): Promise<ProfileAccess> {
+    return loadProfileAccess(this.user, getRequestTenantId(context));
   }
 
   /** Everything the DMS keeps about the signed-in user, as a JSON file. */

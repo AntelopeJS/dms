@@ -5,6 +5,7 @@ import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
 import { userDataAPI } from "../../table-view/data-api";
 import { cascaderCategoryDataAPI } from "../../table-view/cascader-mode/data-api";
+import { demoAddTexts } from "../../table-view/form-texts";
 
 const PRIORITY_ITEMS = [
   { label: "Low", value: "low" },
@@ -254,6 +255,7 @@ export class PageFormRequired extends PageController(
         type: new DefaultDataTypes.RelationType({
           dataApiController: userDataAPI,
           placeholder: "Pick a user…",
+          ...demoAddTexts("user"),
           keyMapping: { label: "name", value: "_id", avatar: "avatar" },
         }),
         required: true,

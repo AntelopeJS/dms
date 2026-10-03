@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import {
   needsAccountEmail,
+  splitLegacyDevice,
   type StoredNotification,
   upgradeLegacyNotification,
 } from "../../../utils/legacy-notifications";
@@ -22,8 +23,67 @@ describe("[unit] utils/legacy-notifications", () => {
       origin: " (127.0.0.1)",
     });
     expect(upgradeLegacyNotification(row)).to.deep.equal({
-      params: { device: "Chrome on Windows", ip: "127.0.0.1" },
+      title: `${PREFIX}.new_login.title_browser_os`,
+      params: { browser: "Chrome", os: "Windows", ip: "127.0.0.1" },
       description: `${PREFIX}.new_login.description`,
+    });
+  });
+
+  it("splits an old alert's English device into the browser and the system", () => {
+    const row = stored("new_login", {
+      device: "Firefox on Windows",
+      ip: "127.0.0.1",
+    });
+    expect(upgradeLegacyNotification(row)).to.deep.equal({
+      title: `${PREFIX}.new_login.title_browser_os`,
+      params: { browser: "Firefox", os: "Windows", ip: "127.0.0.1" },
+      description: `${PREFIX}.new_login.description`,
+    });
+    const withoutIp = stored(
+      "new_login",
+      { device: "Mobile Safari on iOS" },
+      `${PREFIX}.new_login.description_no_ip`,
+    );
+    expect(upgradeLegacyNotification(withoutIp)).to.deep.equal({
+      title: `${PREFIX}.new_login.title_browser_os`,
+      params: { browser: "Mobile Safari", os: "iOS" },
+      description: `${PREFIX}.new_login.description_no_ip`,
+    });
+  });
+
+  it("keeps the device of an old alert that named one part only", () => {
+    const row = stored("new_login", { device: "Windows", ip: "1.2.3.4" });
+    expect(upgradeLegacyNotification(row)).to.equal(undefined);
+  });
+
+  it("is idempotent: a split alert is current", () => {
+    const row = stored("new_login", {
+      device: "Chrome on Windows",
+      ip: "127.0.0.1",
+    });
+    const patch = upgradeLegacyNotification(row);
+    expect(upgradeLegacyNotification({ ...row, ...patch })).to.equal(undefined);
+  });
+
+  describe("splitLegacyDevice", () => {
+    it("reads one connector between two names", () => {
+      expect(splitLegacyDevice("Chrome on Windows")).to.deep.equal({
+        browser: "Chrome",
+        os: "Windows",
+      });
+      expect(splitLegacyDevice("Samsung Internet on Android")).to.deep.equal({
+        browser: "Samsung Internet",
+        os: "Android",
+      });
+    });
+
+    it("refuses what it cannot split reliably", () => {
+      expect(splitLegacyDevice("Chrome")).to.equal(undefined);
+      expect(splitLegacyDevice("A on B on C")).to.equal(undefined);
+      expect(splitLegacyDevice(" on Windows")).to.equal(undefined);
+      expect(splitLegacyDevice("Chrome on ")).to.equal(undefined);
+      expect(splitLegacyDevice(undefined)).to.equal(undefined);
+      expect(splitLegacyDevice(42)).to.equal(undefined);
     });
   });
 

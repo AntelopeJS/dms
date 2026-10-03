@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { demoFormTexts } from "../form-texts";
 
 const SCROLL_HEIGHT = "420px";
 
@@ -30,6 +31,7 @@ export class PageTableViewDensity extends PageController(
   static compact = TableView(taskDataAPI, {
     caption: 'Compact · density "compact" · sticky header · 420px',
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
     density: "compact",
     stickyHeader: true,
     maxHeight: SCROLL_HEIGHT,
@@ -39,6 +41,7 @@ export class PageTableViewDensity extends PageController(
   static comfortable = TableView(taskDataAPI, {
     caption: "Default density · sticky header · 420px",
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
     stickyHeader: true,
     maxHeight: SCROLL_HEIGHT,
     rowActions: ROW_ACTIONS,

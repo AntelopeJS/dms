@@ -22,6 +22,7 @@ import {
   type TableViewChromeOptions,
   type TableViewDisplayOption,
   type TableViewExpandableOptions,
+  type TableViewFormText,
   type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewRowActionOptions,
@@ -172,6 +173,11 @@ const formContainerPageConfigSchema = z.object({
   description: z.string().optional(),
   customPage: z.boolean().optional(),
 });
+
+const formTextSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+}) satisfies BlockOptionsFor<TableViewFormText>;
 
 const formContainerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("drawer") }),
@@ -356,6 +362,17 @@ export const TableViewSchema = z.object({
       widget: "field",
       fieldAspect: "listable",
     },
+  ),
+  formTexts: ui(
+    z
+      .object({
+        new: formTextSchema.optional(),
+        edit: formTextSchema.optional(),
+        view: formTextSchema.optional(),
+      })
+      .optional()
+      .describe("Titles and descriptions of the add, edit and details forms."),
+    { label: "Form titles", group: "content" },
   ),
   rowActions: ui(rowActionsSchema.optional(), {
     label: "Features",

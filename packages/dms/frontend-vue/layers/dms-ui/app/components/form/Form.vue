@@ -26,6 +26,12 @@ import { DMS_CONTAINER_KEY } from "../../composables/containers/context";
 import { sameFormValue } from "../../composables/unsaved-changes/formValue";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
+import {
+  actionFormShowsButtons,
+  formFooterKind,
+} from "../../composables/form/formFooter";
+import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
+import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -338,6 +344,23 @@ const isDirty = computed(() => canSave.value && changedFields.value.length > 0);
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
+// A table view's form (drawer, modal, form page) offers Cancel while clean;
+// a form placed on a page to do something shows no buttons until a value
+// changes, then Reset and its own submit label.
+const isActionForm =
+  formFooterKind({
+    inContainer: inFormContainer || !!container,
+    cancellable: props.cancellable,
+  }) === "action";
+const hasChangeableFields = computed(() =>
+  toValue(allFields).some(
+    (field) => !isFieldDisabled(field) && !isFieldHidden(field),
+  ),
+);
+const showsActionButtons = computed(() =>
+  actionFormShowsButtons(isDirty.value, hasChangeableFields.value),
+);
+
 const router = useDmsRouter();
 const route = useDmsRoute();
 const findPage = inFormContainer
@@ -446,6 +469,19 @@ if (props.fetchUrl) {
 
 // Loaded (or filled with its defaults): this is what the form starts from.
 markFormClean();
+
+// A form page about one row names it at the end of the breadcrumb. Set once
+// mounted: the header renders before the page, the server-rendered one too.
+if (props.recordLabelKey && !inFormContainer) {
+  const { setLabel } = usePageRecordLabel();
+  const recordLabelKey = props.recordLabelKey;
+  onMounted(() => {
+    setLabel(
+      route.path,
+      formatRecordLabel(initialValues.value[recordLabelKey], locale.value),
+    );
+  });
+}
 
 type FormOrientation = "horizontal" | "vertical";
 type FormSurface = "card" | "container" | "section";
@@ -947,7 +983,7 @@ onUnmounted(async () => {
 
       <!-- A page form's bar (v2 save bar, or the footer band) holds its place
         while hidden, so its showing up never moves anything. -->
-      <!-- Wherever the form is, its footer always shows: Cancel while there
+      <!-- A table view's form always shows its footer: Cancel while there
         is nothing to save (closing the drawer or modal, or back to the
         previous page), "Unsaved changes" with Discard and Save once there is.
         Same height in both states: only the content changes. -->
@@ -958,11 +994,40 @@ onUnmounted(async () => {
         :changes="changedFieldLabels"
         :form="formElementId"
         :save-label="props.submitLabel"
-        cancellable
+        :cancellable="!isActionForm"
         class="mx-3 mb-3"
         @discard="discardChanges"
         @cancel="cancelForm"
       />
+      <!-- An action form (send, invite, run) has nothing to cancel: its
+        buttons show once a value changes, Reset and its own submit label,
+        and keep their place while hidden. -->
+      <footer
+        v-else-if="canSave && isActionForm"
+        class="flex items-center justify-end gap-2 transition-[opacity,translate,visibility] duration-200 ease-out"
+        :class="[
+          surfaceClasses.foot,
+          !showsActionButtons && 'invisible translate-y-1 opacity-0',
+        ]"
+        :inert="!showsActionButtons || undefined"
+        :aria-hidden="!showsActionButtons || undefined"
+      >
+        <UButton
+          v-if="hasChangeableFields"
+          :label="$t('dms.button.reset')"
+          :disabled="loading || isAnyFieldLoading"
+          variant="outline"
+          color="neutral"
+          size="lg"
+          @click="discardChanges"
+        />
+        <UButton
+          :label="submitButtonLabel"
+          :loading="loading || isAnyFieldLoading"
+          type="submit"
+          size="lg"
+        />
+      </footer>
       <footer
         v-else-if="canSave"
         class="flex items-center gap-2"

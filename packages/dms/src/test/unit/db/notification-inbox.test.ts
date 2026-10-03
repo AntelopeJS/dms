@@ -83,4 +83,22 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     expect((await model.get(foreignId))?.isRead).to.equal(true);
     expect((await model.get(readId))?.isRead).to.equal(true);
   });
+
+  it("counts as unseen the unread rows created after the bell opened", async () => {
+    const before = await seed(USER_ID, "before");
+    const readBefore = await seed(USER_ID, "read before");
+    await model.markAsRead(readBefore);
+    expect(await model.countUnseen(USER_ID)).to.equal(1);
+
+    const seenAt = new Date();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const after = await seed(USER_ID, "after");
+    expect(await model.countUnseen(USER_ID, seenAt)).to.equal(1);
+
+    // Seeing is not reading: both stay unread.
+    expect(await model.countUnread(USER_ID)).to.equal(2);
+    await model.markAsRead(after);
+    expect(await model.countUnseen(USER_ID, seenAt)).to.equal(0);
+    expect((await model.get(before))?.isRead).to.equal(false);
+  });
 });

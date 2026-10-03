@@ -110,6 +110,27 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     return stored?.preferences ?? changes;
   }
 
+  /** When the user last opened the header bell, or undefined if never. */
+  async getNotificationsSeenAt(userId: string): Promise<Date | undefined> {
+    const seenAt = (await this.getByUserId(userId))?.notificationsSeenAt;
+    return seenAt ? new Date(seenAt) : undefined;
+  }
+
+  /**
+   * Records that the user opened the header bell now: its badge then counts
+   * only what arrives later. The read state of the notifications is left
+   * alone. Returns the date stored.
+   */
+  async markNotificationsSeen(userId: string): Promise<Date> {
+    await this.getOrCreatePreferences(userId);
+    const seenAt = new Date();
+    await this.table
+      .getAll(userId, "userId")
+      .update({ notificationsSeenAt: seenAt })
+      .run();
+    return seenAt;
+  }
+
   async getOrCreatePreferences(
     userId: string,
   ): Promise<UserNotificationPreferences> {

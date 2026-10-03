@@ -11,14 +11,21 @@ import { backupCodeUsedTone, rolesChangedTone } from "./notification-tones";
  * 2: version 1 wrote the new descriptions through an update, which stored
  * null; the steps now derive the description from the params every time.
  * 3: the notifications the tone grid recoloured take their new tone.
+ * 4: an old sign-in alert's English "Chrome on Windows" splits into the
+ * browser and system params the worded title reads, so each language
+ * places its own connector between them.
  */
-export const NOTIFICATIONS_DATA_VERSION = 3;
+export const NOTIFICATIONS_DATA_VERSION = 4;
 
 const MESSAGE_PREFIX = "$dms.notifications.messages.";
 const MESSAGE_ID = /^\$dms\.notifications\.messages\.([a-z0-9_]+)\.title/;
 // The old sign-in alerts appended the IP to the device as " (ip)".
 const LEGACY_ORIGIN = /^\s*\(([^)]*)\)\s*$/;
 const SIGN_IN_MESSAGES = new Set(["new_login", "new_login_unknown_device"]);
+// The old sign-in alerts joined the browser and the system with " on ".
+const LEGACY_DEVICE_CONNECTOR = " on ";
+const LEGACY_SIGN_IN_TITLE = `${MESSAGE_PREFIX}new_login.title`;
+const SIGN_IN_BROWSER_OS_TITLE = `${MESSAGE_PREFIX}new_login.title_browser_os`;
 const PASSWORD_RESET_MESSAGE = "password_reset";
 const BACKUP_CODES_MESSAGE = "backup_codes_regenerated";
 const BACKUP_COUNT_VARIANTS: Readonly<Record<number, string>> = {
@@ -38,6 +45,7 @@ export interface StoredNotification {
 
 /** What to write back to bring a stored notification to the current texts. */
 export interface NotificationPatch {
+  title?: string;
   description?: string;
   params?: NotificationParams;
   tone?: NotificationTone;
@@ -80,7 +88,25 @@ function changed(
 ): NotificationPatch | undefined {
   const keepsDescription =
     patch.description === undefined || patch.description === row.description;
-  return keepsDescription && patch.params === undefined ? undefined : patch;
+  const keepsTitle = patch.title === undefined || patch.title === row.title;
+  return keepsDescription && keepsTitle && patch.params === undefined
+    ? undefined
+    : patch;
+}
+
+/**
+ * The browser and the system an old alert's "Chrome on Windows" named, or
+ * undefined when the text holds no single connector between two names: an
+ * alert that knew only one of them keeps it as its device.
+ */
+export function splitLegacyDevice(
+  device: unknown,
+): { browser: string; os: string } | undefined {
+  if (typeof device !== "string") return undefined;
+  const parts = device.split(LEGACY_DEVICE_CONNECTOR);
+  if (parts.length !== 2) return undefined;
+  const [browser, os] = parts.map((part) => part.trim());
+  return browser && os ? { browser, os } : undefined;
 }
 
 function upgradeSignIn(
@@ -99,6 +125,15 @@ function upgradeSignIn(
   };
   // Only a legacy row has params to rewrite; a current one keeps its own.
   if (origin !== undefined) patch.params = params;
+  const parts =
+    row.title === LEGACY_SIGN_IN_TITLE
+      ? splitLegacyDevice(params.device)
+      : undefined;
+  if (parts) {
+    const { device: _device, ...others } = params;
+    patch.title = SIGN_IN_BROWSER_OS_TITLE;
+    patch.params = { ...others, ...parts };
+  }
   return changed(row, patch);
 }
 

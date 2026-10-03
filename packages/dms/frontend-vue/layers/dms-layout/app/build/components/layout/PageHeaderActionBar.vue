@@ -7,6 +7,7 @@ import {
   QUICK_ACTION_QUERY_KEY,
 } from "#dms-ui/app/types/quick-actions";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { runMountedQuickAction } from "#dms-ui/app/utils/quickActionTargets";
 import { dispatchQuickActionTarget } from "../../../composables/page/useQuickActions";
 
 /**
@@ -76,9 +77,13 @@ const pageButtons = computed<PageButtonEntry[]>(() => {
   );
 });
 
-// Pressed the way a quick action presses it: the table view watches these
-// query keys and opens what the button opens.
+// Pressed in place by the table view of this page, so what the button opens
+// shows on the click. Only a table view not mounted (yet) gets it the way a
+// quick action does: through query keys its watcher reads, at the cost of
+// two server visits.
 function pressPageButton(componentId: string, buttonId: string) {
+  const intent = { kind: "button", button: buttonId } as const;
+  if (runMountedQuickAction(route.path, componentId, intent)) return;
   void router.replace({
     query: {
       ...route.query,

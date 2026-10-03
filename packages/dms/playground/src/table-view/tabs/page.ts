@@ -4,6 +4,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { TASK_STATUSES } from "../status";
+import { demoFormTexts } from "../form-texts";
 
 const statusTabs = TASK_STATUSES.map((status) => ({
   id: status.value,
@@ -32,6 +33,7 @@ export class PageTableViewTabs extends PageController(
   static table = TableView(taskDataAPI, {
     caption: "Tasks - Tabs",
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
     rowActions: {
       add: true,
       copyLink: true,

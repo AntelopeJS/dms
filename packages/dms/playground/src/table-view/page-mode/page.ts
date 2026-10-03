@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { demoFormTexts } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewPage extends PageController(
@@ -20,6 +21,7 @@ export class PageTableViewPage extends PageController(
   static table = TableView(taskDataAPI, {
     caption: "Tasks - Page Mode (Auto URLs)",
     labelKey: "name",
+    formTexts: demoFormTexts("task"),
     rowActions: {
       add: true,
       copyLink: true,

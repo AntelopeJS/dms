@@ -16,18 +16,24 @@ interface Point {
   y: number;
 }
 
-interface ChartCardPayload {
+/**
+ * A figure and, only while a comparison period is selected, the one before it
+ * and the share it moved: without one the card shows no change at all, not a
+ * 0% stand-in (see `ComparedFigure` in interface-dms).
+ */
+interface ComparedPayload {
+  delta?: number;
+  previousValue?: number;
+}
+
+interface ChartCardPayload extends ComparedPayload {
   value: number;
-  delta: number;
-  previousValue: number;
   series: Array<{ name: string; data: Point[] }>;
   comparisonSeries?: Array<{ name: string; data: Point[] }>;
 }
 
-interface KpiCardPayload {
+interface KpiCardPayload extends ComparedPayload {
   value: number;
-  delta: number;
-  previousValue: number;
   sparkline: number[];
 }
 
@@ -344,6 +350,16 @@ function deltaPercent(current: number, previous: number): number {
   return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
+function isComparing(comparison: string | undefined): boolean {
+  return !!comparison && comparison !== "none";
+}
+
+/** The previous figure and the change, or nothing when not comparing. */
+function comparedTo(current: number, previous?: number): ComparedPayload {
+  if (previous === undefined) return {};
+  return { previousValue: previous, delta: deltaPercent(current, previous) };
+}
+
 export class DashboardApiController extends Controller("/api/dashboard") {
   private resolveSeed(preset?: string, from?: string): number {
     const presetSeed = PRESET_SEED_OFFSETS[preset ?? "this-month"] ?? 0;
@@ -359,18 +375,16 @@ export class DashboardApiController extends Controller("/api/dashboard") {
   ): ChartCardPayload {
     const seed = this.resolveSeed(preset, from);
     const current = buildDailySeries("Période", seed, 5500, 9500);
-    const comparisonSeries =
-      comparison && comparison !== "none"
-        ? [buildDailySeries("Comparaison", seed + 11, 5000, 11000)]
-        : undefined;
+    const comparisonSeries = isComparing(comparison)
+      ? [buildDailySeries("Comparaison", seed + 11, 5000, 11000)]
+      : undefined;
     const currentTotal = totalOf(current);
-    const previousTotal = comparisonSeries
-      ? totalOf(comparisonSeries[0])
-      : currentTotal;
     return {
       value: currentTotal,
-      previousValue: previousTotal,
-      delta: deltaPercent(currentTotal, previousTotal),
+      ...comparedTo(
+        currentTotal,
+        comparisonSeries ? totalOf(comparisonSeries[0]) : undefined,
+      ),
       series: [current],
       comparisonSeries,
     };
@@ -394,16 +408,10 @@ export class DashboardApiController extends Controller("/api/dashboard") {
       Math.round(50 + deterministicRandom(seed, index) * 200),
     );
     const current = sparkline.reduce((acc, value) => acc + value, 0);
-    const previous =
-      comparison && comparison !== "none"
-        ? Math.round(current * (0.8 + deterministicRandom(seed, 99) * 0.4))
-        : current;
-    return {
-      value: current,
-      previousValue: previous,
-      delta: deltaPercent(current, previous),
-      sparkline,
-    };
+    const previous = isComparing(comparison)
+      ? Math.round(current * (0.8 + deterministicRandom(seed, 99) * 0.4))
+      : undefined;
+    return { value: current, ...comparedTo(current, previous), sparkline };
   }
 
   @Get("series")

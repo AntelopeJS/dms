@@ -96,6 +96,15 @@ export interface FormProps extends BaseComponentProps {
    * a `Section`.
    */
   saveBar?: boolean;
+  /**
+   * With nothing to save, offers Cancel (back to the previous page) instead of
+   * hiding the buttons, and words them as a record edit: "Unsaved changes",
+   * Discard, Save. Table views set it on their form pages; a form in a drawer
+   * or a modal always behaves so. Left out, a form placed on a page (an action
+   * form: send, invite, run) shows no buttons until a value changes, then
+   * Reset and its `submitLabel`.
+   */
+  cancellable?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token
@@ -128,6 +137,12 @@ export interface FormProps extends BaseComponentProps {
    * picked up. See `interfaces/dms/component-slots`.
    */
   slotId?: string;
+  /**
+   * Field of the loaded row that names it. On a page, the breadcrumb ends
+   * with its value ("… › Tasks › Write the docs") once the form has loaded.
+   * Table views set it on their edit and details pages from `labelKey`.
+   */
+  recordLabelKey?: string;
 }
 
 export interface FormPropsSerialized extends Omit<FormProps, "fields"> {

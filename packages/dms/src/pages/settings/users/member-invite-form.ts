@@ -67,7 +67,7 @@ export const memberInviteForm = Form({
       }),
       // Pills with each role's permission count instead of a relation picker:
       // the inviter compares roles while choosing them.
-      inputComponent: CustomComponent("DmsInviteRolePicker")
+      inputComponent: CustomComponent("DmsMemberRolePicker")
         .options({ rolesUrl: INVITE_ROLES_URL, rolesPageUrl: ROLES_PAGE_PATH })
         .serializeSync(),
       required: true,

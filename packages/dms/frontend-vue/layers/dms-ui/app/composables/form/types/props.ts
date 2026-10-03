@@ -24,6 +24,13 @@ export interface FormProps extends FormComponentProps {
    * footer buttons.
    */
   saveBar?: boolean;
+  /**
+   * Cancel while there is nothing to save, and the record wording once there
+   * is ("Unsaved changes", Discard, Save): a table view's form page. Implied
+   * in a drawer or a modal. Left out on a page, the form is an action form:
+   * no buttons until a value changes, then Reset and its submit label.
+   */
+  cancellable?: boolean;
   successMessage?: string;
   errorMessage?: string;
   schema?: Record<string, unknown>;
@@ -35,4 +42,6 @@ export interface FormProps extends FormComponentProps {
   redirectOnSuccess?: string;
   /** After a successful submit, puts every field back to the value it opened with. */
   resetOnSuccess?: boolean;
+  /** Field of the loaded row a page form names in the breadcrumb. */
+  recordLabelKey?: string;
 }

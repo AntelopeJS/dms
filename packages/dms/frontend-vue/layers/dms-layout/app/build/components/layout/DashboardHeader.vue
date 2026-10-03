@@ -3,6 +3,7 @@ import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import NotificationPopover from "../notification/NotificationPopover.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
+import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
@@ -10,6 +11,13 @@ const MOBILE_ELLIPSIS_SLOT = "ellipsis";
 /** v2 toolbar buttons: muted until hovered or open. */
 const TOOLBAR_BUTTON_CLASS =
   "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
+/** The crumb naming a row keeps the row's own case (crumbs capitalize). */
+const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
+// Nuxt UI types an item's `ui` as every breadcrumb slot at once; only the
+// label is restyled here.
+const RECORD_CRUMB_UI = {
+  linkLabel: RECORD_CRUMB_LABEL_CLASS,
+} as NonNullable<BreadcrumbItem["ui"]>;
 /** v2: every icon-only toolbar button names itself in a tooltip below it. */
 const TOOLTIP_CONTENT = { side: "bottom", sideOffset: 6 } as const;
 
@@ -41,6 +49,8 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
+// The row an edit or details page is about names its last crumb.
+const { label: recordLabel } = usePageRecordLabel();
 
 const currentPageInfo = computed((): FavoritePage | null => {
   const matchedRoute = siteLayout.findMatchingRoute(route.path);
@@ -93,7 +103,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
 
   const paths = route.path.split("/").filter((path) => path);
 
-  return base.concat(
+  const crumbs = base.concat(
     paths
       .map((path, index): BreadcrumbItem | null => {
         const to = `/${paths.slice(0, index + 1).join("/")}`;
@@ -117,6 +127,17 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
       })
       .filter((item) => item !== null),
   );
+
+  // Written as the row has it: an email address keeps its lowercase.
+  const last = crumbs.at(-1);
+  if (recordLabel.value && last && crumbs.length > 1) {
+    crumbs[crumbs.length - 1] = {
+      ...last,
+      label: recordLabel.value,
+      ui: RECORD_CRUMB_UI,
+    };
+  }
+  return crumbs;
 });
 
 const mobileBreadcrumb = computed(

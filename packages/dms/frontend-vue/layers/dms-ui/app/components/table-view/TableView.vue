@@ -16,6 +16,7 @@ import {
   type QuickActionIntent,
   readQuickActionIntent,
 } from "../../types/quick-actions";
+import { registerQuickActionTarget } from "../../utils/quickActionTargets";
 import type {
   KanbanConfig,
   TableViewChromeOptions,
@@ -82,7 +83,9 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
+import type { TableViewFormTexts } from "../../build/composables/table-view/utils/formTexts";
 import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
+import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_PRESENCE_TOPIC_PREFIX = "tableview:presence:";
@@ -125,6 +128,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pageSize?: number;
   /** Footer texts: row count and hint. */
   footer?: TableViewFooter;
+  /** Titles and descriptions of the add, edit and details forms. */
+  formTexts?: TableViewFormTexts;
   /**
    * The table view's key (backend `tableViewKey`): its writes carry it, so
    * the server applies this table's permission and row rules.
@@ -142,6 +147,7 @@ const {
   location,
   caption,
   labelKey,
+  formTexts,
   enableTableExport,
   archiveMode,
   defaultFilters,
@@ -850,7 +856,12 @@ const refreshLinkTabCounts = async () => {
   linkTabCountsLoaded.value = true;
 };
 
+// Each re-read follows a change of the rows (a save, an action, a realtime
+// event) or a refresh: what summarises them elsewhere (a navigation count)
+// is told to read its figure again.
+const { notifyTableDataChanged } = useTableDataChanges();
 const refreshAll = async () => {
+  notifyTableDataChanged(location);
   await Promise.all([
     refresh(),
     refreshTabCounts(),
@@ -926,6 +937,7 @@ const {
   location,
   caption,
   labelKey,
+  formTexts,
   rowIdKey: props.rowIdKey,
   refreshCallback: refreshAll,
   formComponents,
@@ -1375,6 +1387,14 @@ const quickActionHandlers: {
   button: (intent) => pressCustomButton(intent.button),
 };
 
+function runQuickActionIntent(intent: QuickActionIntent) {
+  // Keyed by the intent's own discriminant, so the handler always matches.
+  const handler = quickActionHandlers[intent.kind] as (
+    value: QuickActionIntent,
+  ) => void;
+  handler(intent);
+}
+
 // Watched key by key rather than through the parsed intent: a fresh intent
 // object on every unrelated query change would press the button twice.
 watch(
@@ -1383,18 +1403,35 @@ watch(
     QUICK_ACTION_COMPONENT_KEY,
     QUICK_ACTION_BUTTON_KEY,
   ].map((key) => () => route.query[key]),
-  async () => {
+  () => {
     const intent = readQuickActionIntent(route.query, componentId);
     if (!intent) return;
-    await clearQuickActionQuery();
-    // Keyed by the intent's own discriminant, so the handler always matches.
-    const handler = quickActionHandlers[intent.kind] as (
-      value: QuickActionIntent,
-    ) => void;
-    handler(intent);
+    // A server render only drops the query (a redirect): it opens nothing.
+    if (import.meta.env.SSR) {
+      void clearQuickActionQuery();
+      return;
+    }
+    // Run first, then drop the query: dropping it is a server visit, and a
+    // visit cut short by a navigation still settles, so awaiting it first
+    // opened the form over the page navigated to.
+    runQuickActionIntent(intent);
+    void clearQuickActionQuery();
   },
   { immediate: true },
 );
+
+// A header button of this page presses this table view's buttons in place
+// (see `runMountedQuickAction`): the modal opens on the click.
+let unregisterQuickActionTarget: (() => void) | undefined;
+onMounted(() => {
+  if (!componentId) return;
+  unregisterQuickActionTarget = registerQuickActionTarget({
+    path: route.path,
+    componentId,
+    run: runQuickActionIntent,
+  });
+});
+onBeforeUnmount(() => unregisterQuickActionTarget?.());
 
 defineShortcuts(
   buildTableViewShortcuts({

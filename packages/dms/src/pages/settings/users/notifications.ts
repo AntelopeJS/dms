@@ -21,6 +21,7 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import {
+  type UserNotificationCounts,
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../../db";
@@ -37,6 +38,7 @@ import {
   isSubjectLocked,
   publishAllNotificationsRead,
   publishNotificationsRead,
+  publishNotificationsSeen,
   publishNotificationsUnread,
 } from "../../../implementations/dms-notifications";
 import {
@@ -214,17 +216,56 @@ export class NotificationsApiController extends Controller(
   /**
    * Totals of the All and Unread inbox tabs, for the feed the search,
    * category and subject narrow (the read state does not change them).
+   * For the whole feed, `unseen` adds what the header bell counts: the
+   * unread notifications that arrived since it was last opened.
    */
   @Get("/counts")
   async getCounts(
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-  ) {
+    @Model(UserNotificationPreferencesModel)
+    preferencesModel: UserNotificationPreferencesModel,
+  ): Promise<UserNotificationCounts> {
     const filter = readFeedFilter(context);
-    return isNarrowedFeed(filter)
-      ? await notificationsModel.countFilteredFeed(this.user._id, filter)
-      : await notificationsModel.countFeed(this.user._id);
+    if (isNarrowedFeed(filter)) {
+      return await notificationsModel.countFilteredFeed(this.user._id, filter);
+    }
+    const seenAt = await preferencesModel.getNotificationsSeenAt(this.user._id);
+    const [counts, unseen] = await Promise.all([
+      notificationsModel.countFeed(this.user._id),
+      notificationsModel.countUnseen(this.user._id, seenAt),
+    ]);
+    return { ...counts, unseen };
+  }
+
+  /** What the header bell counts on its own: see {@link getCounts}. */
+  @Get("/unseen-count")
+  async getUnseenCount(
+    @Model(UserNotificationsModel)
+    notificationsModel: UserNotificationsModel,
+    @Model(UserNotificationPreferencesModel)
+    preferencesModel: UserNotificationPreferencesModel,
+  ) {
+    const seenAt = await preferencesModel.getNotificationsSeenAt(this.user._id);
+    const count = await notificationsModel.countUnseen(this.user._id, seenAt);
+    return { count };
+  }
+
+  /**
+   * The user opened the header bell: its badge resets, and counts again
+   * what arrives later. Seeing is not reading: the notifications stay
+   * unread until opened or marked read.
+   */
+  @Put("/seen")
+  async markSeen(
+    @Model(UserNotificationPreferencesModel)
+    preferencesModel: UserNotificationPreferencesModel,
+  ) {
+    const seenAt = await preferencesModel.markNotificationsSeen(this.user._id);
+    await publishNotificationsSeen(this.user._id, seenAt);
+
+    return { success: true, seenAt };
   }
 
   /**

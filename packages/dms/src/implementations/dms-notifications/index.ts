@@ -37,6 +37,7 @@ const NOTIFICATION_NEW_EVENT = "notification:new";
 const NOTIFICATION_READ_EVENT = "notification:read";
 const NOTIFICATION_ALL_READ_EVENT = "notification:all-read";
 const NOTIFICATION_UNREAD_EVENT = "notification:unread";
+const NOTIFICATION_SEEN_EVENT = "notification:seen";
 const NOTIFICATION_SEND_BATCH_SIZE = 20;
 const NOTIFICATION_RECIPIENT_PAGE_SIZE = 500;
 
@@ -122,6 +123,16 @@ export async function publishAllNotificationsRead(
   userId: string,
 ): Promise<void> {
   await publishNotificationEvent(userId, NOTIFICATION_ALL_READ_EVENT);
+}
+
+/** Tells the user's open tabs the bell was opened: their badges reset. */
+export async function publishNotificationsSeen(
+  userId: string,
+  seenAt: Date,
+): Promise<void> {
+  await publishNotificationEvent(userId, NOTIFICATION_SEEN_EVENT, {
+    seenAt: seenAt.toISOString(),
+  });
 }
 
 export namespace internal {

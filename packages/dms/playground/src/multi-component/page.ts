@@ -17,7 +17,7 @@ export class PageMultiComponent extends PageController("multi-component", {
   icon: "i-ph-layout",
   category: multiComponentCategory,
   order: 0,
-  description: "Complex page with Tree, Forms, Charts in a grid layout",
+  description: "Two trees, two forms and two charts sharing one grid layout",
 }) {
   static mainGrid = (() => {
     const fileTree = Tree({

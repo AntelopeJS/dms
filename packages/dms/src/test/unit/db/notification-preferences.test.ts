@@ -46,3 +46,30 @@ describe("[unit] notification preferences — per-subject merge", () => {
     expect(stored.preferences["system:security"]).to.equal(true);
   });
 });
+
+describe("[unit] notification preferences — bell seen date", () => {
+  const model = GetModel(UserNotificationPreferencesModel);
+  const SEEN_USER_ID = "notification-preferences-seen-user";
+
+  after(async () => {
+    await model.table.getAll(SEEN_USER_ID, "userId").delete().run();
+  });
+
+  it("has no seen date until the bell opens, then keeps the latest", async () => {
+    expect(await model.getNotificationsSeenAt(SEEN_USER_ID)).to.equal(
+      undefined,
+    );
+    const first = await model.markNotificationsSeen(SEEN_USER_ID);
+    expect(
+      (await model.getNotificationsSeenAt(SEEN_USER_ID))?.getTime(),
+    ).to.equal(first.getTime());
+
+    const preferences = await model.mergePreferences(SEEN_USER_ID, {
+      "system:account": false,
+    });
+    expect(preferences["system:account"]).to.equal(false);
+    expect(
+      (await model.getNotificationsSeenAt(SEEN_USER_ID))?.getTime(),
+    ).to.equal(first.getTime());
+  });
+});

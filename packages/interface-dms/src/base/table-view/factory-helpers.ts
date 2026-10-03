@@ -31,6 +31,8 @@ import {
   type TableViewExpandableOptions,
   type TableViewExpandableSerialized,
   type TableViewFormPageUrls,
+  type TableViewFormText,
+  type TableViewOptions,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
 } from "./options";
@@ -301,6 +303,26 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
     submitsFilterDefaults: false,
   },
 };
+
+/**
+ * Title and description of a page-mode form sub-page: the page's own
+ * `formContainer.pages` entry, else the table view's `formTexts`, else the
+ * generic "New entry" / "Edit entry" / "Entry details" texts.
+ */
+export function resolveFormPageTexts(
+  kind: FormPageKind,
+  options: Pick<TableViewOptions, "formTexts">,
+  customPages?: FormContainerPages,
+): Required<TableViewFormText> {
+  const definition = FORM_PAGE_DEFINITIONS[kind];
+  const page = customPages?.[kind];
+  const texts = options.formTexts?.[kind];
+  return {
+    title: page?.displayName || texts?.title || definition.displayName,
+    description:
+      page?.description || texts?.description || definition.description,
+  };
+}
 
 export const FORM_PAGE_KINDS = Object.keys(
   FORM_PAGE_DEFINITIONS,
