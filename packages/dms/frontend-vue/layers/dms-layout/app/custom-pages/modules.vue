@@ -34,6 +34,7 @@ import {
 } from "../utils/module-store-catalog";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
+const MODULES_LISTING_DATA_KEY = "modules-page-listing";
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
@@ -43,6 +44,36 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const modulesListing = useModulesListing();
 const moduleHistory = useModuleHistory();
+
+// Before the first await: the header renders these in the server pass.
+usePageHeaderActions(() => {
+  if (isForbidden.value) return null;
+  return [
+    h(
+      "span",
+      {
+        class:
+          "inline-flex h-7 items-center gap-1.5 rounded-full border border-(--ui-border-accented) px-[11px] font-mono text-[11px] font-semibold text-toned max-sm:hidden",
+      },
+      [
+        h(UIcon, { name: "i-ph-shield-check", class: "size-3.5" }),
+        t("modules.owner_badge"),
+      ],
+    ),
+    h(UButton, {
+      label: t("modules.refresh"),
+      icon: "i-ph-arrows-clockwise",
+      color: "neutral",
+      variant: "outline",
+      // Icon-only on phones, where the header row has no room for a label.
+      ui: { label: "max-sm:sr-only" },
+      "aria-label": t("modules.refresh"),
+      loading: modulesListing.isLoading.value,
+      disabled: modulesListing.modules.value === undefined && !failure.value,
+      onClick: retry,
+    }),
+  ];
+});
 
 if (!siteLayout.siteLayout.value) {
   await siteLayout.loadSiteLayout();
@@ -59,9 +90,23 @@ if (!isOwner.value) {
 }
 
 // Whatever is cached from an earlier visit shows at once; stale live figures
-// are then refreshed in the background on mount.
+// are then refreshed in the background on mount. The hydration reuses the
+// listing the server rendered: fetched again before hydrating, its live
+// readouts (an uptime a minute on) would no longer match the markup.
 if (isOwner.value) {
-  await modulesListing.loadModulesListing();
+  const { data: renderedListing } = await useDmsAsyncData<
+    ModuleCatalogEntry[] | null
+  >(MODULES_LISTING_DATA_KEY, async () => {
+    await modulesListing.loadModulesListing();
+    return modulesListing.modules.value ?? null;
+  });
+  if (modulesListing.modules.value === undefined) {
+    if (renderedListing.value) {
+      modulesListing.modules.value = renderedListing.value;
+    } else {
+      await modulesListing.loadModulesListing();
+    }
+  }
 }
 
 onMounted(() => {
@@ -229,35 +274,6 @@ const failureReason = computed(() =>
     ? t("modules.error.reason_status", { status: failure.value.status })
     : t("modules.error.reason_network"),
 );
-
-usePageHeaderActions(() => {
-  if (isForbidden.value) return null;
-  return [
-    h(
-      "span",
-      {
-        class:
-          "inline-flex h-7 items-center gap-1.5 rounded-full border border-(--ui-border-accented) px-[11px] font-mono text-[11px] font-semibold text-toned max-sm:hidden",
-      },
-      [
-        h(UIcon, { name: "i-ph-shield-check", class: "size-3.5" }),
-        t("modules.owner_badge"),
-      ],
-    ),
-    h(UButton, {
-      label: t("modules.refresh"),
-      icon: "i-ph-arrows-clockwise",
-      color: "neutral",
-      variant: "outline",
-      // Icon-only on phones, where the header row has no room for a label.
-      ui: { label: "max-sm:sr-only" },
-      "aria-label": t("modules.refresh"),
-      loading: modulesListing.isLoading.value,
-      disabled: modulesListing.modules.value === undefined && !failure.value,
-      onClick: retry,
-    }),
-  ];
-});
 
 const skeletonItems = Array.from(
   { length: SKELETON_PLACEHOLDER_COUNT },

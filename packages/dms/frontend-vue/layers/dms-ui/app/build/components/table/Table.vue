@@ -222,6 +222,8 @@ export interface TableSharedData<T> {
   resetFilters: () => void;
   deleteSorting: (index: number) => void;
   rowCount: number;
+  /** No row listed yet while the first page loads: footers draw placeholders. */
+  firstPageLoading: boolean;
   displays: TableViewSwitcherItem[];
   hasDisplaySwitcher: boolean;
   activeDisplayState: ModelRef<string>;
@@ -312,6 +314,7 @@ const theme = tv({
       "me-auto flex min-w-0 items-center gap-2.5 text-[15px] leading-[1.2] font-[650] tracking-[-0.015em] text-highlighted",
     captionLabel: "truncate",
     captionCount: "font-mono text-xs font-medium tabular-nums text-dimmed",
+    captionCountPlaceholder: "h-3 w-6 rounded-[4px]",
 
     tableRoot: "relative overflow-x-auto whitespace-nowrap",
     tableBase: "inline-block min-w-full align-middle",
@@ -353,7 +356,7 @@ const theme = tv({
 
     row: `group ${ROW_SELECTED_BG} ${ROW_EXPANDED_BG}`,
     rowCell: `${FIRST_ROW_CELL_GUTTER} border-b-muted border-b h-11 px-3.5 py-0 text-[13px] last:pe-2.5 in-[tr:last-child]:border-b-0 group-data-[expanded=true]:border-b-transparent`,
-    rowInternal: "",
+    rowInternal: "transition-opacity duration-150",
     rowContainer: "relative",
     rowSpan: "line-clamp-1 text-ellipsis",
 
@@ -366,8 +369,6 @@ const theme = tv({
       "flex items-center justify-end gap-1 opacity-40 transition-opacity group-hover:opacity-100 group-data-[selected=true]:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100",
 
     columnActiveSortIcon: "size-3 shrink-0 text-primary",
-
-    skeletonTd: "absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-md",
   },
   variants: {
     cellWrap: {
@@ -427,10 +428,12 @@ const theme = tv({
         rowAction: "opacity-100",
       },
     },
+    // A re-fetch keeps the rows on show, faded once it lasts (the delay
+    // spares quick ones a flicker), under the header band's loading bar.
     loading: {
       true: {
         row: "cursor-wait hover:bg-transparent",
-        rowInternal: "opacity-0",
+        rowInternal: "opacity-60 delay-200",
       },
     },
     rowClickable: {
@@ -562,8 +565,9 @@ const isShowingArchived = computed(
   () => !!props.archiveToggle && showArchivedState.value,
 );
 
-const SKELETON_ROW_COUNT = 5;
-const SKELETON_ROW_FADE = 0.14;
+// As many placeholder rows as the page will list (capped), fading out.
+const SKELETON_MAX_ROW_COUNT = 10;
+const SKELETON_TOTAL_FADE = 0.7;
 const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
   SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
@@ -601,6 +605,20 @@ const paginationState = defineModel<PaginationState>("pagination", {
     pageSize: DEFAULT_PAGE_SIZE,
   }),
 });
+
+// The first page is on its way: skeleton rows (and placeholders for the
+// counts) hold the list's place instead of its empty state.
+const isFirstPageLoading = computed(
+  () => !!props.loading && !props.data?.length,
+);
+const skeletonRowCount = computed(() =>
+  Math.min(
+    paginationState.value.pageSize || DEFAULT_PAGE_SIZE,
+    SKELETON_MAX_ROW_COUNT,
+  ),
+);
+const skeletonRowOpacity = (rowIndex: number): number =>
+  1 - ((rowIndex - 1) * SKELETON_TOTAL_FADE) / skeletonRowCount.value;
 
 const onResize = (
   event: MouseEvent | TouchEvent,
@@ -839,6 +857,7 @@ watchEffect(() => {
     resetFilters,
     deleteSorting,
     rowCount: rowCount.value,
+    firstPageLoading: isFirstPageLoading.value,
     displays: props.displays || [],
     hasDisplaySwitcher: (props.displays?.length ?? 0) > 1,
     activeDisplayState,
@@ -932,7 +951,12 @@ defineShortcuts({
           <span :class="uiTable.captionLabel()" @mouseenter="syncClippedTitle">
             {{ caption }}
           </span>
-          <span v-if="rowCount > 0" :class="uiTable.captionCount()">
+          <USkeleton
+            v-if="isFirstPageLoading"
+            aria-hidden="true"
+            :class="uiTable.captionCountPlaceholder()"
+          />
+          <span v-else-if="rowCount > 0" :class="uiTable.captionCount()">
             {{ captionCountLabel }}
           </span>
         </h2>
@@ -1014,7 +1038,11 @@ defineShortcuts({
         :style="tableRootStyle"
         @scroll.passive="onTableScroll"
       >
-        <div v-if="loading" aria-hidden="true" :class="uiTable.loadingBar()">
+        <div
+          v-if="loading && !isFirstPageLoading"
+          aria-hidden="true"
+          :class="uiTable.loadingBar()"
+        >
           <span :class="uiTable.loadingBarIndicator()" />
         </div>
 
@@ -1158,11 +1186,6 @@ defineShortcuts({
                             </div>
                           </slot>
                         </div>
-
-                        <USkeleton
-                          v-show="loading"
-                          :class="uiTable.skeletonTd()"
-                        />
                       </div>
                     </td>
                   </tr>
@@ -1184,11 +1207,11 @@ defineShortcuts({
                 flashing the empty state. -->
               <template v-else-if="loading">
                 <tr
-                  v-for="rowIndex in SKELETON_ROW_COUNT"
+                  v-for="rowIndex in skeletonRowCount"
                   :key="`skeleton-${rowIndex}`"
                   aria-hidden="true"
                   :class="uiTable.skeletonRow()"
-                  :style="{ opacity: 1 - (rowIndex - 1) * SKELETON_ROW_FADE }"
+                  :style="{ opacity: skeletonRowOpacity(rowIndex) }"
                 >
                   <td
                     v-if="hasPresenceRail"

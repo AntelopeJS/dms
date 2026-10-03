@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { gridColumnsTemplate } from "../layers/dms-ui/app/components/grid/columns";
+import {
+  GRID_TRACKS_VAR,
+  gridColumnsTemplate,
+  gridResponsiveStyles,
+  gridScopeId,
+} from "../layers/dms-ui/app/components/grid/columns";
 
 const GAP = "1rem";
 const MIN = "240px";
@@ -101,5 +106,67 @@ describe("grid components", () => {
 
   it("keeps rows spanning the full grid width", () => {
     expect(sourceOf("GridRow.vue")).toContain('gridColumn: "1 / -1"');
+  });
+});
+
+describe("grid responsive styles", () => {
+  const scope = gridScopeId("grid-child-row1");
+
+  it("hides spacers only below the width every column needs", () => {
+    const css = gridResponsiveStyles(scope, 5, GAP, MIN);
+    const spacerRule = css
+      .split("\n")
+      .find((rule) => rule.includes(".dms-spacer"));
+    expect(spacerRule).toContain(
+      `@container ${scope} (width < calc(5 * 240px + 4 * 1rem))`,
+    );
+    expect(spacerRule).toContain(`[data-dms-grid="${scope}"] > .dms-spacer`);
+    expect(spacerRule).toContain(
+      `[data-dms-grid="${scope}"] > :has(> .dms-spacer)`,
+    );
+    expect(css.match(/\.dms-spacer, /g)).toHaveLength(1);
+  });
+
+  it("hands the cells each narrower track count, narrowest last", () => {
+    const rules = gridResponsiveStyles(scope, 4, GAP, MIN).split("\n");
+    expect(rules).toHaveLength(3);
+    expect(rules[0]).toContain("(width < calc(4 * 240px + 3 * 1rem))");
+    expect(rules[0]).toContain(`${GRID_TRACKS_VAR}: 3;`);
+    expect(rules[1]).toContain("(width < calc(3 * 240px + 2 * 1rem))");
+    expect(rules[1]).toContain(`${GRID_TRACKS_VAR}: 2;`);
+    expect(rules[2]).toContain("(width < calc(2 * 240px + 1 * 1rem))");
+    expect(rules[2]).toContain(`${GRID_TRACKS_VAR}: 1;`);
+  });
+
+  it("agrees with the template on where a track drops", () => {
+    // 5 columns of 240px with 16px gaps need 1264px: one pixel less reflows.
+    const template = gridColumnsTemplate(5, GAP, MIN);
+    expect(resolveColumnCount(template, 1264, 16)).toBe(5);
+    expect(resolveColumnCount(template, 1263, 16)).toBe(4);
+    expect(resolveColumnCount(template, 1007, 16)).toBe(3);
+    expect(resolveColumnCount(template, 1008, 16)).toBe(4);
+  });
+
+  it("gives a single-column grid no rules", () => {
+    expect(gridResponsiveStyles(scope, 1, GAP, MIN)).toBe("");
+    expect(gridResponsiveStyles(scope, 0, GAP, MIN)).toBe("");
+  });
+
+  it("builds a valid container name from any id", () => {
+    expect(gridScopeId("v-0-1")).toBe("dms-grid-v-0-1");
+    expect(gridScopeId("a.b:c d")).toBe("dms-grid-a_b_c_d");
+  });
+});
+
+describe("grid components emit their rules as CSS", () => {
+  it("make the grid and its rows size containers with no measuring script", () => {
+    for (const file of ["Grid.vue", "GridRow.vue"]) {
+      const source = sourceOf(file);
+      expect(source).toContain('containerType: "inline-size"');
+      expect(source).toContain("gridResponsiveStyles(");
+      expect(source).toContain("<GridResponsiveStyle");
+      expect(source).not.toContain("ResizeObserver");
+      expect(source).not.toContain("data-dms-grid-reflowed");
+    }
   });
 });

@@ -208,16 +208,21 @@ useInstantSaveHeader();
             </span>
             <span class="text-muted block text-[12.5px]">
               {{ t("page.settings.appearance.css_variables_description") }}
-              <template v-if="cssVariableCount !== null">
-                ·
-                <span class="font-mono tabular-nums">
-                  {{
-                    t("page.settings.appearance.css_vars.count", {
-                      count: cssVariableCount,
-                    })
-                  }}
-                </span>
-              </template>
+              ·
+              <!-- The variables are read after mount: a placeholder holds
+                   the count's place until then. -->
+              <USkeleton
+                v-if="cssVariableCount === null"
+                aria-hidden="true"
+                class="inline-block h-2.5 w-20 align-middle"
+              />
+              <span v-else class="font-mono tabular-nums">
+                {{
+                  t("page.settings.appearance.css_vars.count", {
+                    count: cssVariableCount,
+                  })
+                }}
+              </span>
             </span>
           </span>
           <UIcon

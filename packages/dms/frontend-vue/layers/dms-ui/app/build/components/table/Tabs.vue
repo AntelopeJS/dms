@@ -8,6 +8,8 @@ export interface TableTabItem {
   id: string;
   label: string;
   count?: number;
+  /** The count is still loading: a placeholder holds its place. */
+  countPending?: boolean;
   icon?: string;
   textColor?: string;
   iconColor?: string;
@@ -48,6 +50,7 @@ const theme = tv({
     label: "",
     count:
       "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
+    countPlaceholder: "h-[17px] w-[18px] rounded-[4px]",
   },
   variants: {
     active: {
@@ -176,8 +179,13 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
       >
         {{ tab.label }}
       </span>
+      <USkeleton
+        v-if="tab.countPending"
+        aria-hidden="true"
+        :class="ui.countPlaceholder()"
+      />
       <span
-        v-if="tab.count !== undefined"
+        v-else-if="tab.count !== undefined"
         :class="ui.count({ active: isActive(tab) })"
       >
         {{ countFormat.format(tab.count) }}

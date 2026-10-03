@@ -53,6 +53,13 @@ export const PERMISSION_PREVIEW_STORAGE_PREFIX = "dms-role-preview:";
 export const PERMISSION_PREVIEW_TAB_KEY = "dms-role-preview-id";
 /** Sessions older than this are dropped the next time a preview starts. */
 export const PERMISSION_PREVIEW_TTL_MS = 86_400_000;
+/**
+ * Attribute the pre-paint script puts on `<html>` while a reloaded preview
+ * tab has not applied its preview yet: the page content gives way to its
+ * skeleton and the preview bar's place is held, so the full page never shows
+ * before its veils.
+ */
+export const PERMISSION_PREVIEW_PENDING_ATTRIBUTE = "data-dms-role-preview";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 

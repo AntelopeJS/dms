@@ -2,6 +2,11 @@
 import { computed } from "vue";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
+// Imported rather than resolved from the registry: a registered component is
+// a lazy chunk of its own, fetched only when the data first shows it, so the
+// trend would pop in a beat after the value.
+import DmsTrendBadge from "../chart/internal/TrendBadge.vue";
+import DmsSparkline from "../chart/internal/Sparkline.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import {
   ABSENT_VALUE_PARTS,
@@ -206,9 +211,10 @@ const isStat = computed(() => props.variant === "stat");
         :label="processI18n(title)"
       />
     </div>
+    <!-- The value's placeholder takes its 33px line. -->
     <USkeleton
       v-if="isFirstLoad"
-      class="mt-1 h-[30px] w-32"
+      class="mt-1 h-[33px] w-32"
       :class="SKELETON_CLASS"
     />
     <div
@@ -248,14 +254,23 @@ const isStat = computed(() => props.variant === "stat");
         {{ formattedParts.unit }}
       </span>
     </p>
-    <div v-if="isFirstLoad" class="mt-auto flex items-end gap-2">
-      <div class="grid gap-[7px]">
-        <USkeleton class="h-3 w-[58px]" :class="SKELETON_CLASS" />
-        <USkeleton class="h-2.5 w-28" :class="SKELETON_CLASS" />
+    <!-- The trend (a 24px line) and the footnote (16px) as the loaded card
+         lays them out; the footnote is a prop, so it is known up front. -->
+    <div
+      v-if="isFirstLoad && (showDelta || footnote || showSparkline)"
+      class="mt-auto flex items-end gap-2"
+    >
+      <div class="grid">
+        <div v-if="showDelta" class="flex h-6 items-center">
+          <USkeleton class="h-3 w-[58px]" :class="SKELETON_CLASS" />
+        </div>
+        <div v-if="footnote" class="flex h-4 items-center">
+          <USkeleton class="h-2.5 w-28" :class="SKELETON_CLASS" />
+        </div>
       </div>
       <USkeleton
         v-if="showSparkline"
-        class="ml-auto h-[30px] w-24"
+        class="ml-auto h-[34px] w-24"
         :class="SKELETON_CLASS"
       />
     </div>

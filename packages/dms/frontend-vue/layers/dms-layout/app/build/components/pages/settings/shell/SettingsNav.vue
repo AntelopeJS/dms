@@ -38,6 +38,7 @@ const theme = tv({
     itemLabel: "min-w-0 truncate",
     trailBadge:
       "ms-auto hidden rounded-full bg-elevated px-1.5 font-mono text-[10.5px] font-semibold tabular-nums text-muted lg:inline",
+    trailPlaceholder: "ms-auto hidden h-4 w-5 shrink-0 rounded-full lg:block",
     trailDot: "ms-auto hidden size-[7px] shrink-0 rounded-full lg:block",
     trailTag:
       "ms-auto hidden font-mono text-[9.5px] font-semibold tracking-[0.08em] text-dimmed uppercase lg:inline",
@@ -78,7 +79,7 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 const route = useDmsRoute();
 const { groups } = useSettingsNavigation();
-const { trails } = useSettingsNavTrails();
+const { trails, isIndicatorPending } = useSettingsNavTrails();
 
 // Counts and the security dot load with the nav, not on each page's visit.
 const navPageIds = computed(
@@ -257,6 +258,11 @@ const previewStateLabel = (
         <span v-else-if="trailOf(page)?.tag" :class="ui.trailTag()">
           {{ trailOf(page)?.tag }}
         </span>
+        <USkeleton
+          v-else-if="isIndicatorPending(page.fullId)"
+          aria-hidden="true"
+          :class="ui.trailPlaceholder()"
+        />
       </DmsLink>
     </div>
 

@@ -33,4 +33,6 @@ export interface FormProps extends FormComponentProps {
   submitDefaults?: Record<string, unknown>;
   containerId?: string;
   redirectOnSuccess?: string;
+  /** After a successful submit, puts every field back to the value it opened with. */
+  resetOnSuccess?: boolean;
 }

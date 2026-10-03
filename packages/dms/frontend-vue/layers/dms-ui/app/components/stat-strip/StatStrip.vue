@@ -144,11 +144,16 @@ function detailClass(item: StatStripItem): string {
           :key="index"
           :class="JOINED_CELL"
         >
-          <USkeleton class="size-8 rounded-[9px]" />
-          <div class="grid flex-1 gap-1.5">
-            <USkeleton class="h-2.5 w-16" />
-            <USkeleton class="h-3.5 w-24" />
-            <USkeleton class="h-3 w-20" />
+          <!-- Each line keeps the loaded line's box (eyebrow 11px, value
+               19px, detail 16px), so the strip keeps its height. -->
+          <USkeleton
+            class="size-8 shrink-0 rounded-[9px]"
+            :class="CARD_SKELETON"
+          />
+          <div class="grid flex-1 gap-0.5">
+            <USkeleton class="my-px h-[9px] w-16" :class="CARD_SKELETON" />
+            <USkeleton class="my-[2.5px] h-3.5 w-24" :class="CARD_SKELETON" />
+            <USkeleton class="my-0.5 h-3 w-20" :class="CARD_SKELETON" />
           </div>
         </div>
       </template>
@@ -206,9 +211,13 @@ function detailClass(item: StatStripItem): string {
             class="size-10 shrink-0 rounded-[10px]"
             :class="CARD_SKELETON"
           />
-          <div class="grid flex-1 gap-1.5">
-            <USkeleton class="h-2.5 w-20" :class="CARD_SKELETON" />
-            <USkeleton class="h-[22px] w-10" :class="CARD_SKELETON" />
+          <!-- The loaded card's three lines at their boxes (eyebrow 13px,
+               value 24px, detail 16px): a stat card carries a detail line as
+               a rule, and the card keeps its height when it lands. -->
+          <div class="grid flex-1 gap-[3px]">
+            <USkeleton class="my-[1.5px] h-2.5 w-20" :class="CARD_SKELETON" />
+            <USkeleton class="my-px h-[22px] w-10" :class="CARD_SKELETON" />
+            <USkeleton class="my-0.5 h-3 w-24" :class="CARD_SKELETON" />
           </div>
         </div>
       </template>

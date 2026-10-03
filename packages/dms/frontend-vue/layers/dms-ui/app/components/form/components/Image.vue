@@ -605,15 +605,11 @@ onBeforeUnmount(() => {
 
     <div v-if="multiple" class="flex flex-col gap-3">
       <!-- A phone-narrow field still gets two tiles a row instead of one
-        full-width square. -->
+        full-width square. A class, not a multi-line style attribute: the
+        server and the browser serialise such an attribute differently, which
+        Vue reports as a hydration mismatch. -->
       <div
-        class="grid gap-3"
-        style="
-          grid-template-columns: repeat(
-            auto-fill,
-            minmax(min(8.25rem, calc(50% - 0.375rem)), 1fr)
-          );
-        "
+        class="grid grid-cols-[repeat(auto-fill,minmax(min(8.25rem,calc(50%-0.375rem)),1fr))] gap-3"
       >
         <div
           v-for="item in items"

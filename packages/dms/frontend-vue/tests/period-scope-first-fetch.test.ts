@@ -9,6 +9,7 @@
  */
 import {
   computed,
+  createApp,
   createSSRApp,
   defineAsyncComponent,
   defineComponent,
@@ -44,7 +45,7 @@ const { usePeriod } = await import(
 const { registerPeriodScope } = await import(
   "../layers/dms-core/app/composables/period/usePeriodScope"
 );
-const { useChartFetch } = await import(
+const { useChartFetch, PENDING_SCOPE_TIMEOUT_MS } = await import(
   "../layers/dms-ui/app/composables/chart/useChartFetch"
 );
 const KpiCard = (
@@ -52,7 +53,9 @@ const KpiCard = (
 ).default;
 
 const SCOPE = "demo";
-const GRACE_MS = 250;
+// usePeriodScope warns about a missing scope after this long; a card must not
+// give up on its scope that early (a selector chunk can land later).
+const MISSING_SCOPE_WARN_MS = 250;
 // useChartFetch debounces every refresh past the first by 180ms; settle past
 // that, or a duplicate first fetch lands after the assertions and goes unseen.
 const SETTLE_MS = 300;
@@ -261,16 +264,98 @@ describe("period-scoped cards on first paint", () => {
     expect(html).not.toContain("<span>0</span>");
   });
 
-  it("stops loading when no selector ever registers the scope", async () => {
-    const Orphan = defineComponent({
+  it("keeps loading while a late selector may still register the scope", async () => {
+    const Late = defineComponent({
       setup: () => () =>
-        h(Card, { url: "/api/metrics/kpi/orphan", scope: "never-registered" }),
+        h(Card, { url: "/api/metrics/kpi/late", scope: "late-scope" }),
     });
-    const { container } = await ssrThenHydrate(Orphan);
-    await new Promise((resolve) => setTimeout(resolve, GRACE_MS + 50));
+    const { container } = await ssrThenHydrate(Late);
+    await new Promise((resolve) =>
+      setTimeout(resolve, MISSING_SCOPE_WARN_MS + 50),
+    );
     await nextTick();
 
     expect(requests).toHaveLength(0);
-    expect(container.querySelector(".card")?.textContent).toBe("false");
+    expect(container.querySelector(".card")?.textContent).toBe("true");
+  });
+
+  it("stops loading when no selector ever registers the scope", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const Orphan = defineComponent({
+        setup: () => () =>
+          h(Card, {
+            url: "/api/metrics/kpi/orphan",
+            scope: "never-registered",
+          }),
+      });
+      const { container } = await ssrThenHydrate(Orphan);
+      vi.advanceTimersByTime(PENDING_SCOPE_TIMEOUT_MS + 50);
+      await nextTick();
+
+      expect(requests).toHaveLength(0);
+      expect(container.querySelector(".card")?.textContent).toBe("false");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("chart fetch loading state", () => {
+  it("stays loading when an aborted request settles after a newer one started", async () => {
+    const pending: Array<{
+      url: string;
+      resolve: (value: unknown) => void;
+      reject: (error: unknown) => void;
+    }> = [];
+    vi.stubGlobal("useAuthFetch", () => ({
+      $authFetch: (url: string, opts: { signal: AbortSignal }) =>
+        new Promise((resolve, reject) => {
+          pending.push({ url, resolve, reject });
+          opts.signal.addEventListener("abort", () =>
+            reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          );
+        }),
+    }));
+    const watched = ref(0);
+    let loading: { value: boolean } | undefined;
+    let refresh: (() => Promise<void>) | undefined;
+    const Probe = defineComponent({
+      setup() {
+        const fetch = useChartFetch<{ value: number }>({
+          fetchUrl: "/api/metrics/kpi/race",
+          watchSource: () => watched.value,
+        });
+        loading = fetch.isLoading;
+        refresh = fetch.refresh;
+        return () => h("div");
+      },
+    });
+    const app = createApp(Probe);
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await nextTick();
+    expect(pending).toHaveLength(1);
+
+    // A second request supersedes the first, whose abort settles meanwhile.
+    void refresh?.();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(pending).toHaveLength(2);
+    expect(loading?.value).toBe(true);
+
+    pending[1]!.resolve({ value: 2 });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(loading?.value).toBe(false);
+
+    // New inputs: loading from the change on, through the debounce.
+    watched.value = 1;
+    await nextTick();
+    expect(loading?.value).toBe(true);
+    vi.stubGlobal("useAuthFetch", () => ({
+      $authFetch: async (url: string) => {
+        requests.push(url);
+        return { value: 1 };
+      },
+    }));
   });
 });

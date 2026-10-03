@@ -13,13 +13,15 @@ import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-le
 import accessibilityPlugin from "./layers/dms-layout/app/plugins/accessibility";
 import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
+import fontPreloadPlugin from "./layers/dms-layout/app/plugins/font-preload";
+import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/permission-preview-prepaint";
 import languageSyncPlugin from "./layers/dms-layout/app/plugins/language-sync";
 import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
-import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays.client";
+import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
 import "./layers/dms-layout/app/assets/css/main.css";
 import type {} from "./layers/dms-core/shared/types/runtime-config";
 import type {} from "./layers/dms-core/shared/types/app-config";
@@ -148,6 +150,8 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
     }, clientOnly);
   }
   sdk.registerPlugin(colorModePlugin);
+  sdk.registerPlugin(permissionPreviewPrepaintPlugin);
+  sdk.registerPlugin(fontPreloadPlugin);
   sdk.registerPlugin(interfaceScalePlugin);
   sdk.registerPlugin(accessibilityPlugin);
   sdk.registerPlugin(languageSyncPlugin);
@@ -155,7 +159,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
-  sdk.registerPlugin(tableViewDisplaysPlugin, clientOnly);
+  sdk.registerPlugin(tableViewDisplaysPlugin);
   registerDeferredPlugins(sdk);
 }
 

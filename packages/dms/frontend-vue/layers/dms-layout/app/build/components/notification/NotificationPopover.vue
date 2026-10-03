@@ -7,6 +7,8 @@ import type { UserNotification } from "../../../composables/notification/useNoti
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
 
 const MAX_DISPLAYED_COUNT = 99;
+// Placeholder rows while the list loads: enough to fill the list's height.
+const SKELETON_ROW_COUNT = 4;
 const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
 const { t, locale } = useI18n();
@@ -20,10 +22,13 @@ const {
   fetchNotifications,
   markAllAsRead,
 } = useNotifications();
-const { setTrail, clearTrail } = useSettingsNavTrails();
+const { setTrail, clearTrail, settleIndicator } = useSettingsNavTrails();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
 const hasBeenOpened = ref(false);
+// Each opening reloads the list from its first page: until it answers, the
+// popover shows placeholder rows, never "No notifications".
+const isListLoading = ref(false);
 
 const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   sentinel,
@@ -100,6 +105,7 @@ const handleBeforeUnload = () => {
 onMounted(async () => {
   if (!loggedIn.value) return;
   await refreshUnreadCount();
+  settleIndicator(NOTIFICATIONS_SETTINGS_PAGE);
 
   window.addEventListener(
     NotificationEvents.NOTIFICATION_RECEIVED,
@@ -129,7 +135,9 @@ onUnmounted(() => {
 watch(isOpen, async (isNowOpen) => {
   if (isNowOpen) {
     hasBeenOpened.value = true;
+    isListLoading.value = true;
     await settleWidgetRequest(() => fetchNotifications(true));
+    isListLoading.value = false;
     await nextTick();
     setupObserver();
   } else {
@@ -169,9 +177,11 @@ const goToNotifications = () => {
         class="text-muted hover:text-highlighted data-[state=open]:text-highlighted relative"
         :ui="{ leadingIcon: 'size-[18px]' }"
       >
+        <!-- Floats over the button's corner (nothing moves) and fades in
+             (starting style) once the count, fetched after mount, is back. -->
         <span
           v-if="unreadCount > 0"
-          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted)"
+          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted) transition-opacity duration-200 starting:opacity-0"
         >
           {{ displayedCount }}
         </span>
@@ -189,7 +199,35 @@ const goToNotifications = () => {
         <USeparator class="-mx-4 mt-2 w-[calc(100%+2rem)]" />
 
         <div
-          v-if="notifications.length === 0"
+          v-if="isListLoading && notifications.length === 0"
+          aria-hidden="true"
+          class="-mr-2 -ml-2 max-h-96 overflow-hidden"
+        >
+          <div
+            v-for="n in SKELETON_ROW_COUNT"
+            :key="n"
+            class="flex items-start gap-3 p-4"
+          >
+            <USkeleton class="size-10 shrink-0 rounded-[10px]" />
+            <div class="min-w-0 flex-1">
+              <div class="mb-0.5 text-xs">
+                <USkeleton class="inline-block h-2.5 w-2/5 align-middle" />
+              </div>
+              <div class="text-xs">
+                <USkeleton class="inline-block h-2 w-11/12 align-middle" />
+              </div>
+              <div class="text-xs">
+                <USkeleton class="inline-block h-2 w-3/5 align-middle" />
+              </div>
+              <div class="mt-1 text-[10px]">
+                <USkeleton class="inline-block h-2 w-14 align-middle" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-else-if="notifications.length === 0"
           class="text-dimmed py-6 text-center text-sm"
         >
           {{ $t("notification.dropdown.no_notifications") }}
@@ -242,16 +280,18 @@ const goToNotifications = () => {
             </template>
           </NotificationCard>
 
-          <div
-            v-if="hasMore"
-            ref="sentinel"
-            class="flex h-4 items-center justify-center"
-          >
-            <UIcon
+          <div v-if="hasMore" ref="sentinel" class="min-h-4">
+            <div
               v-if="isLoadingMore"
-              name="i-ph-spinner"
-              class="size-4 animate-spin"
-            />
+              aria-hidden="true"
+              class="flex items-start gap-3 p-4"
+            >
+              <USkeleton class="size-10 shrink-0 rounded-[10px]" />
+              <div class="min-w-0 flex-1 space-y-2 pt-1">
+                <USkeleton class="h-2.5 w-2/5" />
+                <USkeleton class="h-2 w-4/5" />
+              </div>
+            </div>
           </div>
         </div>
 

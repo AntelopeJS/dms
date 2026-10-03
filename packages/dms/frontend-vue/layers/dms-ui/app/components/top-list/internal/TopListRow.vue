@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { TopListItem } from "../../../composables/chart/types";
+// Imported rather than resolved from the registry: a registered component is
+// a lazy chunk of its own, fetched only when the data first shows it, so the
+// trend would pop in a beat after the row.
+import DmsTrendBadge from "../../chart/internal/TrendBadge.vue";
+import DmsSparkline from "../../chart/internal/Sparkline.vue";
 
 interface Props {
   item: TopListItem;

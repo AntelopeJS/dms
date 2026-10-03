@@ -22,10 +22,32 @@ export interface SettingsNavTrail {
   label?: string;
 }
 
+/**
+ * Settings pages whose indicator the dashboard loads by itself after mount,
+ * and whether it is a trail (with a label the overview card shows: pending
+ * invitations, the security dot, the unread count) or a bare nav count
+ * (members, roles). Until it has loaded, their entries and cards hold a
+ * placeholder in its place. Static, so the server and the hydrating browser
+ * agree.
+ */
+const LOADED_INDICATORS: Record<string, "trail" | "count"> = {
+  "settings.user.members": "count",
+  "settings.user.members.invites": "trail",
+  "settings.user.roles": "count",
+  "settings.user.security": "trail",
+  "settings.user.notifications": "trail",
+};
+
 interface UseSettingsNavTrailsReturn {
   trails: Readonly<Ref<Record<string, SettingsNavTrail>>>;
   setTrail: (trail: SettingsNavTrail) => void;
   clearTrail: (fullId: string) => void;
+  /** Says a page's indicator has loaded (or failed): its placeholder goes. */
+  settleIndicator: (fullId: string) => void;
+  /** Whether a page's indicator is still loading. */
+  isIndicatorPending: (fullId: string) => boolean;
+  /** Whether a page's labelled trail (an overview card's state) is loading. */
+  isTrailPending: (fullId: string) => boolean;
 }
 
 /**
@@ -48,5 +70,27 @@ export const useSettingsNavTrails = (): UseSettingsNavTrailsReturn => {
     trails.value = rest;
   }
 
-  return { trails, setTrail, clearTrail };
+  const settled = useDmsState<Record<string, boolean>>(
+    "dms-settings-nav-indicators-settled",
+    () => ({}),
+  );
+
+  function settleIndicator(fullId: string): void {
+    if (settled.value[fullId]) return;
+    settled.value = { ...settled.value, [fullId]: true };
+  }
+
+  const isIndicatorPending = (fullId: string): boolean =>
+    fullId in LOADED_INDICATORS && !settled.value[fullId];
+  const isTrailPending = (fullId: string): boolean =>
+    LOADED_INDICATORS[fullId] === "trail" && !settled.value[fullId];
+
+  return {
+    trails,
+    setTrail,
+    clearTrail,
+    settleIndicator,
+    isIndicatorPending,
+    isTrailPending,
+  };
 };

@@ -409,6 +409,7 @@ function onSegmentedClick(event: MouseEvent) {
           :ui="{ trailingIcon: 'text-dimmed -me-0.5' }"
         >
           <span
+            data-allow-mismatch="text"
             :class="
               isCustomActive && 'font-mono text-[0.92em] tracking-[0.01em]'
             "
@@ -422,6 +423,7 @@ function onSegmentedClick(event: MouseEvent) {
         <span
           class="inline-flex max-w-full min-w-0"
           :class="triggerOrder"
+          data-allow-mismatch="text"
           @click="onSegmentedClick"
         >
           <DmsSegmented
@@ -638,8 +640,12 @@ function onSegmentedClick(event: MouseEvent) {
       </UButton>
     </UDropdownMenu>
 
+    <!-- The range is computed from the current time in the reader's zone:
+         a render that straddles a minute, or a server in another zone, may
+         print other bounds than the browser, which then corrects them. -->
     <span
       v-if="showRangeLabel"
+      data-allow-mismatch="text"
       class="text-dimmed hidden font-mono text-[11.5px] font-medium whitespace-nowrap tabular-nums sm:inline"
       :class="rangeLabelOrder"
     >

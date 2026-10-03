@@ -12,11 +12,14 @@ import {
   buildKanbanColumns,
   type KanbanColumnDef,
 } from "../../composables/table-view/kanban";
+import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
 const DEFAULT_ROW_ID_KEY = "_id";
 const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
+// Placeholder cards per column while the board's first pages load.
+const SKELETON_CARD_COUNT = 3;
 
 interface BoardCellState {
   items: T[];
@@ -118,7 +121,7 @@ const boardColumnsKey = computed(() =>
 // `refresh` is assigned below and only called once setup has completed.
 defineExpose({ refresh: () => refresh() });
 
-const { data, status, refresh } = await useDmsAsyncData(
+const { data, status, refresh } = await useServerRenderedAsyncData(
   `kanban-${props.componentId}-${props.pageId}-${instanceId}`,
   async () => {
     const pages = await Promise.all(
@@ -129,6 +132,12 @@ const { data, status, refresh } = await useDmsAsyncData(
     );
   },
   { watch: [boardColumnsKey, () => props.baseQuery, pageSize] },
+);
+
+// Nothing fetched yet (a client navigation paints first): the columns hold
+// placeholder cards and counts rather than an empty board.
+const isBoardLoading = computed(
+  () => data.value === null && status.value !== "error",
 );
 
 watch(
@@ -428,7 +437,13 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
           <span class="text-highlighted truncate text-[13px] font-semibold">
             {{ col.label }}
           </span>
+          <USkeleton
+            v-if="isBoardLoading && !cells[col.value]"
+            aria-hidden="true"
+            class="ms-auto h-[16.5px] w-5 shrink-0 rounded-[5px]"
+          />
           <span
+            v-else
             class="bg-elevated text-muted ms-auto shrink-0 rounded-[5px] px-1.5 font-mono text-[11px] font-semibold tabular-nums"
           >
             {{ cells[col.value]?.total ?? 0 }}
@@ -439,10 +454,31 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
           class="flex flex-col overflow-y-auto p-2"
           :style="{ maxHeight: columnMaxHeight ?? DEFAULT_COLUMN_MAX_HEIGHT }"
         >
-          <USkeleton
-            v-if="status === 'pending' && !cells[col.value]"
-            class="h-[78px] w-full rounded-md"
-          />
+          <div
+            v-if="isBoardLoading && !cells[col.value]"
+            aria-hidden="true"
+            class="flex min-h-16 flex-col gap-2"
+          >
+            <div
+              v-for="n in SKELETON_CARD_COUNT"
+              :key="n"
+              class="border-default grid gap-2 rounded-lg border bg-(--dms-surface-card) px-3 pt-2.5 pb-[11px] shadow-xs"
+            >
+              <div class="-mb-0.5 flex min-h-5 items-center">
+                <USkeleton class="h-2.5 w-10" />
+              </div>
+              <div class="flex h-[17px] items-center">
+                <USkeleton class="h-3 w-3/4" />
+              </div>
+              <div
+                v-for="fieldColumn in cardColumns"
+                :key="fieldColumn.id"
+                class="-mt-0.5 flex h-[18px] items-center"
+              >
+                <USkeleton class="h-2.5 w-1/2" />
+              </div>
+            </div>
+          </div>
 
           <Draggable
             v-else

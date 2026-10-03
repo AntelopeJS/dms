@@ -91,10 +91,73 @@ describe("[unit] utils/legacy-notifications", () => {
 
   it("ignores other notifications", () => {
     expect(
-      upgradeLegacyNotification(stored("welcome", { name: "Ada" })),
+      upgradeLegacyNotification(
+        stored("collaborator_joined", { name: "Ada", email: "a@b.c" }),
+      ),
     ).to.equal(undefined);
     expect(
       upgradeLegacyNotification({ title: "Plain title", params: null }),
+    ).to.equal(undefined);
+  });
+
+  it("recolours the notifications the tone grid changed", () => {
+    const toneOf = (row: StoredNotification) =>
+      upgradeLegacyNotification(row)?.tone;
+    expect(
+      toneOf({ ...stored("failed_sign_ins", { count: 5 }), tone: "warning" }),
+    ).to.equal("error");
+    expect(
+      toneOf({ ...stored("password_changed", null), tone: "neutral" }),
+    ).to.equal("warning");
+    expect(
+      toneOf({ ...stored("login_method_added", null), tone: "neutral" }),
+    ).to.equal("warning");
+    expect(toneOf(stored("welcome", { name: "Ada" }))).to.equal("success");
+    expect(toneOf(stored("invite_accepted", { name: "Ada" }))).to.equal(
+      "success",
+    );
+    expect(toneOf(stored("invite_expired", { email: "a@b.c" }))).to.equal(
+      "accent",
+    );
+    expect(toneOf(stored("module_updates", { count: 2 }))).to.equal("accent");
+    expect(
+      toneOf(stored("role_permissions_changed", { role: "Editor" })),
+    ).to.equal("accent");
+  });
+
+  it("colours a backup code alert after the codes left", () => {
+    const used = (left: number): StoredNotification => ({
+      ...stored("backup_code_used", { left }),
+      tone: "warning",
+    });
+    expect(upgradeLegacyNotification(used(5))).to.equal(undefined);
+    expect(upgradeLegacyNotification(used(2))).to.deep.equal({ tone: "error" });
+    expect(upgradeLegacyNotification(used(0))).to.deep.equal({ tone: "error" });
+  });
+
+  it("warns a member left without any role, and only them", () => {
+    const none: StoredNotification = {
+      title: `${PREFIX}.roles_changed.title_none`,
+      description: `${PREFIX}.roles_changed.description`,
+      params: { roles: "", actor: "Ada" },
+      tone: "neutral",
+    };
+    expect(upgradeLegacyNotification(none)).to.deep.equal({ tone: "warning" });
+    expect(
+      upgradeLegacyNotification({
+        ...none,
+        title: `${PREFIX}.roles_changed.title_one`,
+        params: { roles: "Editor", actor: "Ada" },
+      }),
+    ).to.equal(undefined);
+  });
+
+  it("leaves a row already in its current tone alone", () => {
+    expect(
+      upgradeLegacyNotification({
+        ...stored("welcome", { name: "Ada" }),
+        tone: "success",
+      }),
     ).to.equal(undefined);
   });
 });

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, reactive, watchEffect } from "vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
+// Imported rather than resolved from the registry: a registered component is
+// a lazy chunk of its own, fetched only when the data first shows it, so the
+// trend would pop in a beat after the value.
+import DmsTrendBadge from "./internal/TrendBadge.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import {
   ABSENT_VALUE_TEXT,
@@ -149,6 +153,11 @@ const comparisonLegendLabel = computed(() =>
     : t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison"),
 );
 
+const isFirstLoad = computed(() => isLoading.value && data.value === null);
+// New inputs (a period applied) are on their way: the figures on screen still
+// belong to the previous ones, so they dim like the KPI values do.
+const isRefreshing = computed(() => isLoading.value && data.value !== null);
+
 const showTrend = computed(() => props.showDelta && delta.value !== null);
 const hasMeta = computed(
   () => showTrend.value || !!previousFormatted.value || !!props.description,
@@ -169,12 +178,31 @@ const hasMeta = computed(
           class="text-highlighted mt-2 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
         >
           <USkeleton
-            v-if="isLoading && data === null"
-            class="h-[30px] w-36 bg-(--dms-skeleton)"
+            v-if="isFirstLoad"
+            class="h-[33px] w-36 bg-(--dms-skeleton)"
           />
-          <span v-else>{{ formatted }}</span>
+          <span
+            v-else
+            class="transition-opacity"
+            :class="isRefreshing && 'opacity-55'"
+          >
+            {{ formatted }}
+          </span>
         </div>
-        <div v-if="hasMeta" class="mt-1.5 flex flex-wrap items-center gap-2">
+        <!-- The trend line arrives with the data: its row is held meanwhile. -->
+        <div
+          v-if="isFirstLoad && showDelta"
+          class="mt-1.5 flex h-5 items-center gap-2"
+          aria-hidden="true"
+        >
+          <USkeleton class="h-4 w-14 rounded-full bg-(--dms-skeleton)" />
+          <USkeleton class="h-3 w-20 bg-(--dms-skeleton)" />
+        </div>
+        <div
+          v-else-if="hasMeta"
+          class="mt-1.5 flex flex-wrap items-center gap-2 transition-opacity"
+          :class="isRefreshing && 'opacity-55'"
+        >
           <DmsTrendBadge v-if="showTrend" :delta="delta" />
           <span v-if="previousFormatted" class="text-dimmed text-xs">
             vs {{ previousFormatted }}

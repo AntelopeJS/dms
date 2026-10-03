@@ -300,8 +300,14 @@ async function markSaved(): Promise<void> {
     title="$page.settings.two_factor.title"
     description="$page.settings.two_factor.description"
   >
-    <template v-if="status" #badge>
+    <template #badge>
+      <USkeleton
+        v-if="!status"
+        aria-hidden="true"
+        class="h-5 w-12 rounded-full"
+      />
       <span
+        v-else
         class="inline-flex h-5 items-center gap-1.5 rounded-full border px-2 text-[11px] font-semibold"
         :class="
           isOn
@@ -318,12 +324,21 @@ async function markSaved(): Promise<void> {
       </span>
     </template>
 
-    <template v-if="!status">
-      <div class="grid gap-3 px-[18px] py-4">
-        <USkeleton class="h-10 w-full" />
-        <USkeleton class="h-10 w-full" />
-      </div>
-    </template>
+    <!-- One row built like the loaded ones (a title and its meta line). -->
+    <DmsFieldRow v-if="!status" aria-hidden="true">
+      <template #label>
+        <DmsListRow bare>
+          <span class="flex h-[1lh]">
+            <USkeleton class="my-auto h-3 w-36" />
+          </span>
+          <template #meta>
+            <span class="flex h-[1lh]">
+              <USkeleton class="my-auto h-2.5 w-64 max-w-full" />
+            </span>
+          </template>
+        </DmsListRow>
+      </template>
+    </DmsFieldRow>
 
     <template v-else>
       <DmsFieldRow v-for="method in enabledMethods" :key="method.key">
@@ -425,7 +440,11 @@ async function markSaved(): Promise<void> {
       </DmsFieldRow>
     </template>
 
-    <template v-if="status" #footer>
+    <template v-if="!status" #footer>
+      <USkeleton aria-hidden="true" class="h-3 w-56" />
+      <USkeleton aria-hidden="true" class="ms-auto h-7 w-36" />
+    </template>
+    <template v-else #footer>
       <span class="flex items-center gap-1.5 text-xs">
         <UIcon name="i-ph-info" class="text-dimmed size-3.5" />
         {{ t("page.settings.security.two_factor.keep_two") }}

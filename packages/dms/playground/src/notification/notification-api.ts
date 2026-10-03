@@ -13,6 +13,8 @@ import {
 import { z } from "zod";
 
 const HTTP_BAD_REQUEST = 400;
+/** The demo texts, in the playground's locale files (`demo.notifications`). */
+export const DEMO_MESSAGES = "$demo.notifications";
 const JSON_TYPE = "application/json";
 
 /**
@@ -58,12 +60,11 @@ export class NotificationAPIController extends Controller("/api/notification") {
   async sendDmsUpdate(@AuthRawUser() user: User) {
     const notification = Notification()
       .icon("i-ph-arrow-circle-up")
-      .title("Mise à jour disponible")
-      .description(
-        "Une nouvelle version du DMS AntelopeJS est disponible. Cliquez pour voir les nouveautés.",
-      )
-      .linkTo("/settings/dashboard/general")
+      .title(`${DEMO_MESSAGES}.dms_update.title`)
+      .description(`${DEMO_MESSAGES}.dms_update.description`)
+      .linkTo("/modules")
       .subject(GeneralSubject)
+      .tone("accent")
       .build();
 
     await notification.toUser(user._id);
@@ -75,12 +76,11 @@ export class NotificationAPIController extends Controller("/api/notification") {
   async sendHostingPromo(@AuthRawUser() user: User) {
     const notification = Notification()
       .icon("i-ph-tag")
-      .title("Offre spéciale hébergement")
-      .description(
-        "-30% sur tous les hébergements AntelopeJS jusqu'à la fin du mois !",
-      )
+      .title(`${DEMO_MESSAGES}.hosting_promo.title`)
+      .description(`${DEMO_MESSAGES}.hosting_promo.description`)
       .linkTo("https://antelopejs.com/hosting")
       .subject(GeneralSubject)
+      .tone("accent")
       .build();
 
     await notification.toUser(user._id);

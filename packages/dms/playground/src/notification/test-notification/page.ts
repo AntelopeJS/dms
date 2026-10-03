@@ -22,6 +22,10 @@ export class PageNotificationTest extends PageController(
     description: "Fill in the form and submit to send yourself a notification",
     submitUrl: "/api/notification/send",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
+    // Each submit sends a new notification: the fields empty once it is
+    // sent, so a second Enter does not send the same one again.
+    resetOnSuccess: true,
     fieldsOrientation: "horizontal",
     fields: [
       {
@@ -66,6 +70,7 @@ export class PageNotificationTest extends PageController(
     description: "Send a system notification about a DMS update",
     submitUrl: "/api/notification/send-dms-update",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "title",
@@ -81,6 +86,7 @@ export class PageNotificationTest extends PageController(
     description: "Send a promotional notification about hosting offers",
     submitUrl: "/api/notification/send-hosting-promo",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "title",

@@ -21,6 +21,7 @@ interface DisplayContext {
   items: Record<string, unknown>[];
   columns: ColumnMeta[];
   loading: boolean;
+  pagination: { pageSize: number };
   labelKey?: string;
   rowIdKey: string;
   selection: {
@@ -40,7 +41,6 @@ interface DisplayContext {
 const props = defineProps<{ context: DisplayContext }>();
 
 const MAX_CARD_FIELDS = 4;
-const SKELETON_CARD_COUNT = 6;
 const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
@@ -120,16 +120,14 @@ const openItem = (item: Record<string, unknown>) => {
 
 <template>
   <div>
-    <div
+    <!-- First page on its way: the shared card grid placeholder, its field
+         labels sized like this card's. -->
+    <DmsCardGridSkeleton
       v-if="context.loading && context.items.length === 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
-    >
-      <USkeleton
-        v-for="n in SKELETON_CARD_COUNT"
-        :key="n"
-        class="h-36 w-full rounded-[10px]"
-      />
-    </div>
+      :count="context.pagination.pageSize"
+      :fields="fieldColumns.length"
+      label-class="text-[10.5px]"
+    />
 
     <DmsEmpty
       v-else-if="context.items.length === 0"

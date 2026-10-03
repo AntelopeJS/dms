@@ -5,10 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import uiFr from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
-import {
-  providePageHeaderActions,
-  type PageHeaderActionsRender,
-} from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
+import { providePageHeaderActions } from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
 
 type Messages = Record<string, unknown>;
 
@@ -100,7 +97,7 @@ describe("useInstantSaveHeader", () => {
     const { useInstantSaveHeader } = await import(
       "../layers/dms-layout/app/composables/layout/useInstantSaveHeader"
     );
-    let actions: { value: PageHeaderActionsRender | null } | undefined;
+    let actions: ReturnType<typeof providePageHeaderActions> | undefined;
     const Page = defineComponent({
       setup() {
         useInstantSaveHeader(() => "saved");
@@ -110,7 +107,8 @@ describe("useInstantSaveHeader", () => {
     const Layout = defineComponent({
       setup() {
         actions = providePageHeaderActions();
-        return () => h("div", [h("header", actions?.value?.()), h(Page)]);
+        return () =>
+          h("div", [h("header", actions?.actions.value?.()), h(Page)]);
       },
     });
     await mount(Layout);

@@ -44,6 +44,26 @@ watch(
   { immediate: true },
 );
 
+// The values the inputs show. Until the form hands a per-locale object back
+// (the watcher above fills it in, but the server render and the hydration
+// pass run before that answer), every locale reads empty, so the inputs are
+// in the markup from the first paint instead of popping in at hydration.
+const EMPTY_TEXT = "";
+const localeValues = computed<Record<string, string>>(() =>
+  fieldValue.value && typeof fieldValue.value === "object"
+    ? fieldValue.value
+    : {},
+);
+
+function setLocaleValue(code: string, value: string): void {
+  const current = fieldValue.value;
+  if (current && typeof current === "object") {
+    current[code] = value;
+    return;
+  }
+  fieldValue.value = { ...withAllLocales({}), [code]: value };
+}
+
 const toggleTranslations = () => {
   isExpanded.value = !isExpanded.value;
 };
@@ -62,8 +82,8 @@ const showDisplay = computed(
         :data-field="`${field.id}.${locale}`"
       >
         <DmsDisplay
-          v-if="showDisplay && fieldValue"
-          :model-value="fieldValue[locale]"
+          v-if="showDisplay"
+          :model-value="localeValues[locale]"
           :type="field.type"
           :loading
           class="w-full"
@@ -74,9 +94,9 @@ const showDisplay = computed(
             resolveDmsComponent(field.component.componentName) ||
             field.component.componentName
           "
-          v-else-if="field.component.componentName && fieldValue"
+          v-else-if="field.component.componentName"
           :id="field.id"
-          v-model="fieldValue[locale]"
+          :model-value="localeValues[locale] ?? EMPTY_TEXT"
           :initial-value="
             (
               initialValues?.[field.id] as Record<string, unknown> | undefined
@@ -89,6 +109,7 @@ const showDisplay = computed(
           class="w-full"
           :class="{ 'opacity-75': field.disabled }"
           v-bind="field.component.options || {}"
+          @update:model-value="setLocaleValue(locale, $event)"
         />
       </UFormField>
       <div class="mt-1 flex justify-end">
@@ -126,8 +147,8 @@ const showDisplay = computed(
                   :data-field="`${field.id}.${lang.code}`"
                 >
                   <DmsDisplay
-                    v-if="showDisplay && fieldValue"
-                    :model-value="fieldValue[lang.code]"
+                    v-if="showDisplay"
+                    :model-value="localeValues[lang.code]"
                     :type="field.type"
                     :loading
                     class="w-full"
@@ -138,9 +159,9 @@ const showDisplay = computed(
                       resolveDmsComponent(field.component.componentName) ||
                       field.component.componentName
                     "
-                    v-else-if="field.component.componentName && fieldValue"
+                    v-else-if="field.component.componentName"
                     :id="`${field.id}_${lang.code}`"
-                    v-model="fieldValue[lang.code]"
+                    :model-value="localeValues[lang.code] ?? EMPTY_TEXT"
                     :loading
                     :disabled="field.disabled"
                     :component-id="props.componentId"
@@ -148,6 +169,7 @@ const showDisplay = computed(
                     class="w-full"
                     :class="{ 'opacity-75': field.disabled }"
                     v-bind="field.component.options || {}"
+                    @update:model-value="setLocaleValue(lang.code, $event)"
                   />
                 </UFormField>
               </div>

@@ -15,8 +15,10 @@ import { satisfies, validRange } from "semver";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const NPM_VIEW_TIMEOUT_MS = 30_000;
-const UPDATES_SUBJECT_ID = "updates";
+export const UPDATES_SUBJECT_ID = "updates";
 const UPDATES_ICON = "i-ph-arrow-circle-up";
+/** An update is a useful action, never an urgent one. */
+const UPDATES_TONE = "accent";
 const MESSAGE_PREFIX = "$dms.notifications.messages.module_updates";
 const MODULE_LIST_SEPARATOR = ", ";
 const PACKAGE_SOURCE_TYPE = "package";
@@ -151,6 +153,7 @@ export async function notifyOutdatedModules(
     .title(`${MESSAGE_PREFIX}.${modules.length === 1 ? "title_one" : "title"}`)
     .description(`${MESSAGE_PREFIX}.description`)
     .subject(ensureUpdatesSubject())
+    .tone(UPDATES_TONE)
     .params({ count: modules.length, modules: moduleList })
     .build()
     .toUsersIdempotently(userIds, eventId);

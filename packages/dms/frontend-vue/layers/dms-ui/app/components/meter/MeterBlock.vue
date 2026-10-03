@@ -88,15 +88,40 @@ const figures = computed(() => {
 });
 
 const showSkeleton = computed(() => isLoading.value && !data.value);
+// The placeholder is the meter's own shape: the label line (the label is
+// configuration, shown as is), the bar at its size, the legend line.
+const SKELETON_TRACK_HEIGHTS: Record<string, string> = {
+  xs: "h-1",
+  sm: "h-1.5",
+  md: "h-2",
+};
+const skeletonTrackClass = computed(
+  () => SKELETON_TRACK_HEIGHTS[props.size] ?? SKELETON_TRACK_HEIGHTS.sm,
+);
+const skeletonHasLegend = computed(
+  () => props.legend || !!(props.linkLabel && props.linkTo),
+);
 // Resolved once: the frame does not change after the page is laid out.
 const Wrapper = props.framed ? resolveComponent("DmsCard") : "div";
 </script>
 
 <template>
   <component :is="Wrapper">
-    <div v-if="showSkeleton" class="grid gap-2" aria-busy="true">
-      <USkeleton class="h-3 w-1/3 bg-(--dms-skeleton)" />
-      <USkeleton class="h-1.5 w-full bg-(--dms-skeleton)" />
+    <div v-if="showSkeleton" class="grid min-w-0 gap-1.5" aria-busy="true">
+      <span class="flex h-5 min-w-0 items-center gap-2 text-[13px]">
+        <span v-if="props.label" class="text-toned">
+          {{ translate(props.label) }}
+        </span>
+        <USkeleton v-else class="h-3 w-1/3 bg-(--dms-skeleton)" />
+        <USkeleton class="ms-auto h-3 w-12 bg-(--dms-skeleton)" />
+      </span>
+      <USkeleton
+        class="w-full rounded-full bg-(--dms-skeleton)"
+        :class="skeletonTrackClass"
+      />
+      <span v-if="skeletonHasLegend" class="flex h-4 items-center">
+        <USkeleton class="h-2.5 w-40 bg-(--dms-skeleton)" />
+      </span>
     </div>
     <DmsMeter
       v-else

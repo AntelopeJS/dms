@@ -29,6 +29,8 @@ interface NavCardProps {
   state?: string;
   /** Tone of the state line (`neutral` = dimmed). */
   stateTone?: DmsTone;
+  /** The state is still loading: a placeholder holds its line. */
+  statePending?: boolean;
   /** Small uppercase mono tag after the title (module tag: "SAAS"). */
   badge?: string;
   /** Mono readout lines under the description (module tile). */
@@ -92,8 +94,13 @@ const passthrough = computed(() => {
       </span>
     </div>
 
+    <USkeleton
+      v-if="props.statePending && !props.state"
+      aria-hidden="true"
+      class="mt-auto h-[18px] w-28 self-start"
+    />
     <DmsStatusPill
-      v-if="props.state"
+      v-else-if="props.state"
       variant="text"
       dot="none"
       :tone="props.stateTone"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { withoutTrailingSlash } from "ufo";
+import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
 
 defineOptions({ inheritAttrs: false });
 
@@ -129,6 +130,10 @@ function validatePage(
 defineDmsPageMeta({
   auth: true,
 });
+
+// Before the first await: the blocks below may put actions in the page
+// header, which waits for them until they have rendered.
+const PageContentRendered = holdPageHeaderActions();
 
 const route = useDmsRoute();
 const siteLayout = useSiteLayout();
@@ -490,4 +495,5 @@ if (import.meta.env.DEV) {
       />
     </div>
   </TransitionGroup>
+  <PageContentRendered />
 </template>

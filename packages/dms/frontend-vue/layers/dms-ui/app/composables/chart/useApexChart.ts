@@ -60,6 +60,25 @@ function parseHeight(height?: string): number {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : DEFAULT_HEIGHT;
 }
 
+/**
+ * Blank band Apex keeps under an axis chart (`chart.parentHeightOffset`, its
+ * own default): the drawn chart stands this much taller than its `height`.
+ * Circular charts get no band.
+ */
+export const AXIS_CHART_BOTTOM_OFFSET = 15;
+
+/**
+ * Height of the box a drawn chart occupies, as a CSS length: what a chart
+ * reserves from the first paint, so its skeleton and the drawn chart line up.
+ */
+export function chartFrameHeight(
+  height: string | undefined,
+  circular: boolean,
+): string {
+  const offset = circular ? 0 : AXIS_CHART_BOTTOM_OFFSET;
+  return `${parseHeight(height) + offset}px`;
+}
+
 interface CircularLabels {
   series: number[];
   labels: string[];
@@ -412,6 +431,7 @@ function buildChartConfig(
   const chartConfig: Record<string, unknown> = {
     type: resolveApexType(input),
     height: heightPx,
+    parentHeightOffset: AXIS_CHART_BOTTOM_OFFSET,
     toolbar: { show: false },
     zoom: { enabled: false },
     stacked: input.stacked ?? false,

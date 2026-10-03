@@ -31,12 +31,18 @@ export interface NewUserNotification {
   tone?: NotificationTone;
   /** Fixed row id, set only by an idempotent delivery, which the row records. */
   id?: string;
+  /**
+   * Fixed row id the duplicate guard derives from the content and the time.
+   * Unlike `id`, the row stays an ordinary notification: deleting it removes it.
+   */
+  duplicateId?: string;
 }
 
 /** Fields a sender may rewrite on a notification already delivered. */
 export interface NotificationRewrite {
   params?: Record<string, string | number>;
   description?: string;
+  tone?: NotificationTone;
 }
 
 const REPLACE_ROW = { conflict: "replace" } as const;
@@ -464,6 +470,25 @@ export class UserNotificationsModel extends BasicDataModel(
     await this.table.getAll(userId, "userId").delete().run();
   }
 
+  /**
+   * Inserts a delivery under the duplicate guard's id, returning undefined
+   * when an identical copy holds that id already. The database refuses the
+   * second insert, so two instances sending together store one row.
+   */
+  async createUnlessDuplicate(
+    notification: NewUserNotification,
+    duplicateId: string,
+  ): Promise<UserNotification | undefined> {
+    try {
+      return await this.create({ ...notification, duplicateId });
+    } catch (error) {
+      // A failed acknowledgement can follow a committed insert, as for createIdempotently.
+      const existing = await this.table.get(duplicateId).run();
+      if (!existing) throw error;
+      return undefined;
+    }
+  }
+
   /** Atomically inserts a delivery, returning undefined when the same event already exists. */
   async createIdempotently(
     userId: string,
@@ -500,6 +525,7 @@ export class UserNotificationsModel extends BasicDataModel(
     params,
     tone,
     id,
+    duplicateId,
   }: NewUserNotification): Promise<UserNotification> {
     const notification: Partial<UserNotification> = {
       userId,
@@ -521,6 +547,8 @@ export class UserNotificationsModel extends BasicDataModel(
     if (id !== undefined) {
       notification._id = id;
       notification.isIdempotent = true;
+    } else if (duplicateId !== undefined) {
+      notification._id = duplicateId;
     }
 
     const [createdId] = await this.table.insert(notification).run();
