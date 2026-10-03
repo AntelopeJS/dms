@@ -65,6 +65,7 @@ export class PageModulesDemo extends PageController(
     description: "Simulate a security alert notification",
     submitUrl: "/api/notification/module-one",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",
@@ -80,6 +81,7 @@ export class PageModulesDemo extends PageController(
     description: "Simulate a logistics notification",
     submitUrl: "/api/notification/module-two",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",
@@ -96,6 +98,7 @@ export class PageModulesDemo extends PageController(
       "Send a shared notification to all users - when one reads it, all see it as read",
     submitUrl: "/api/notification/broadcast-all",
     submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",

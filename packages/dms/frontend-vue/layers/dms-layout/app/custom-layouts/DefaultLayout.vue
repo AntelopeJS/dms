@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import { defineComponent } from "vue";
 import Container from "../build/components/layout/Container.vue";
 import PageHeader from "../build/components/layout/PageHeader.vue";
 import DashboardSidebar from "../build/components/layout/DashboardSidebar.vue";
 import DashboardHeader from "../build/components/layout/DashboardHeader.vue";
 import DashboardBanners from "../build/components/layout/DashboardBanners.vue";
 import RolePreviewBar from "../build/components/layout/RolePreviewBar.vue";
-import PageHeaderActionBar, {
-  type LayoutHeaderAction,
-} from "../build/components/layout/PageHeaderActionBar.vue";
+import PageHeaderActionsOutlet from "../build/components/layout/PageHeaderActionsOutlet.vue";
+import PageSkeleton from "../build/components/layout/PageSkeleton.vue";
+import type { LayoutHeaderAction } from "../build/components/layout/PageHeaderActionBar.vue";
 import SettingsShell from "../build/components/pages/settings/shell/SettingsShell.vue";
 import { isSettingsFullId } from "../composables/settings/useSettingsNavigation";
 import { providePageHeaderActions } from "../composables/layout/usePageHeaderActions";
@@ -90,10 +91,28 @@ const isSettingsPage = computed(() =>
   ),
 );
 
+// The header renders before the page in the slot: its actions come through
+// an outlet that waits for the page's setup (see usePageHeaderActions), and
+// a marker after the slot says the page has rendered.
 const pageHeaderActions = providePageHeaderActions();
-const hasHeaderActions = computed(
-  () => !!pageHeaderActions.value || props.headerActions.length > 0,
-);
+const PageRendered = defineComponent({
+  name: "DmsPageRendered",
+  setup() {
+    pageHeaderActions.markSlotRendered();
+    return () => null;
+  },
+});
+
+// After a client navigation the page shows nothing until its chunk (and its
+// setup) resolves: the skeleton fills the body meanwhile. Pure CSS, keyed on
+// the page wrapper being empty (a pending Suspense leaves only a comment), so
+// the navigation is never held and the old page never kept.
+const PAGE_SKELETON_CLASS =
+  "hidden [[data-dms-page-slot]:empty+&]:block [html[data-dms-role-preview=pending]_&]:block";
+// A reloaded "preview as role" tab holds its page back (pre-paint script, see
+// the permission-preview-prepaint plugin) until the preview veils it.
+const PAGE_SLOT_CLASS =
+  "contents [html[data-dms-role-preview=pending]_&]:hidden";
 </script>
 
 <template>
@@ -127,16 +146,16 @@ const hasHeaderActions = computed(
               :description="props.description"
               class="pb-5"
             >
-              <template v-if="hasHeaderActions" #actions>
-                <div
-                  class="flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto"
-                >
-                  <PageHeaderActionBar :actions="props.headerActions" />
-                  <component :is="pageHeaderActions" v-if="pageHeaderActions" />
-                </div>
+              <template #actions>
+                <PageHeaderActionsOutlet :actions="props.headerActions" />
               </template>
             </PageHeader>
-            <slot />
+            <div data-dms-page-slot :class="PAGE_SLOT_CLASS"><slot /></div>
+            <PageSkeleton
+              :with-title="!props.title || props.hideHeader"
+              :class="PAGE_SKELETON_CLASS"
+            />
+            <PageRendered />
           </SettingsShell>
           <template v-else>
             <PageHeader
@@ -146,16 +165,16 @@ const hasHeaderActions = computed(
               :description="props.description"
               class="pb-6"
             >
-              <template v-if="hasHeaderActions" #actions>
-                <div
-                  class="flex w-full flex-wrap items-center gap-2 md:ms-auto md:w-auto"
-                >
-                  <PageHeaderActionBar :actions="props.headerActions" />
-                  <component :is="pageHeaderActions" v-if="pageHeaderActions" />
-                </div>
+              <template #actions>
+                <PageHeaderActionsOutlet :actions="props.headerActions" />
               </template>
             </PageHeader>
-            <slot />
+            <div data-dms-page-slot :class="PAGE_SLOT_CLASS"><slot /></div>
+            <PageSkeleton
+              :with-title="!props.title || props.hideHeader"
+              :class="PAGE_SKELETON_CLASS"
+            />
+            <PageRendered />
           </template>
         </Container>
       </template>

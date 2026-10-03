@@ -1,3 +1,4 @@
+import { markRaw } from "vue";
 import type {
   TableViewDisplay,
   TableViewDisplayCapabilities,
@@ -7,7 +8,10 @@ const TABLE_VIEW_DISPLAYS_STATE_KEY = "dms:table-view-displays";
 const DEFAULT_ORDER = 100;
 
 function useDisplayState() {
-  return useDmsState<TableViewDisplay[]>(TABLE_VIEW_DISPLAYS_STATE_KEY, () => []);
+  return useDmsState<TableViewDisplay[]>(
+    TABLE_VIEW_DISPLAYS_STATE_KEY,
+    () => [],
+  );
 }
 
 function displayOrder(display: TableViewDisplay): number {
@@ -16,14 +20,19 @@ function displayOrder(display: TableViewDisplay): number {
 
 /**
  * Register (or replace, by id) a table view display. Keyed DMS app state lets any
- * module register without a build-time dependency on this layer. Call from a
- * `.client.ts` plugin: displays carry callables (component, isAvailable) that are
- * stripped from the SSR payload, so the registry is client-only. Data behaviour
- * and chrome (selfManagedData/capabilities) are config-driven for SSR safety; the
- * registry powers the client-side switcher and component resolution.
+ * module register without a build-time dependency on this layer. Register from a
+ * universal plugin so the server render draws the switcher too (a `.client`
+ * plugin works, but its display only joins the switcher after hydration). Data
+ * behaviour and chrome (selfManagedData/capabilities) are config-driven; the
+ * registry powers the switcher and component resolution.
  */
-export function registerTableViewDisplay(display: TableViewDisplay): void {
+export function registerTableViewDisplay(entry: TableViewDisplay): void {
   const displays = useDisplayState();
+  // The registry is reactive state: a component stored in it would be made
+  // reactive too (Vue warns, and pays for it on every render).
+  const display = entry.component
+    ? { ...entry, component: markRaw(entry.component) }
+    : entry;
   const existingIndex = displays.value.findIndex(
     (entry) => entry.id === display.id,
   );

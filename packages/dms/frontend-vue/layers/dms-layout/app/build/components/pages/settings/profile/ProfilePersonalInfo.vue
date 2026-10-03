@@ -158,8 +158,16 @@ async function save(): Promise<void> {
   }
 }
 
+// The verification state comes with the profile, fetched after mount: a
+// skeleton holds the badge's place until then.
+const isProfileLoaded = ref(false);
+
 onMounted(async () => {
-  await applyProfile(await $authFetch<ProfileResponse>(props.endpoint));
+  try {
+    await applyProfile(await $authFetch<ProfileResponse>(props.endpoint));
+  } finally {
+    isProfileLoaded.value = true;
+  }
 });
 </script>
 
@@ -278,8 +286,13 @@ onMounted(async () => {
             <span class="min-w-0 flex-1 truncate" :title="saved.email">
               {{ saved.email }}
             </span>
+            <USkeleton
+              v-if="!isProfileLoaded"
+              aria-hidden="true"
+              class="h-5 w-[74px] shrink-0 rounded-md"
+            />
             <UBadge
-              v-if="saved.isValidated !== undefined"
+              v-else-if="saved.isValidated !== undefined"
               :color="saved.isValidated ? 'success' : 'warning'"
               variant="subtle"
               size="sm"

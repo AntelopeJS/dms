@@ -8,10 +8,8 @@ import {
   type NotificationDelivery,
   type NotificationTemplate,
 } from "./notification-emitter";
+import { backupCodeUsedTone, LOW_BACKUP_CODES } from "./notification-tones";
 import type { SignInDevice } from "./sign-in-devices";
-
-/** At or below this many backup codes left, the alert asks for new ones. */
-export const LOW_BACKUP_CODES = 2;
 
 function securityTemplate(
   messageId: string,
@@ -34,11 +32,11 @@ const templates = {
     "i-ph-sign-in",
     "warning",
   ),
-  passwordChanged: securityTemplate("password_changed", "i-ph-key", "neutral"),
+  passwordChanged: securityTemplate("password_changed", "i-ph-key", "warning"),
   loginMethodAdded: securityTemplate(
     "login_method_added",
     "i-ph-plugs-connected",
-    "neutral",
+    "warning",
   ),
   passwordReset: securityTemplate("password_reset", "i-ph-key", "warning"),
   emailChanged: securityTemplate(
@@ -59,14 +57,14 @@ const templates = {
   failedSignIns: securityTemplate(
     "failed_sign_ins",
     "i-ph-warning-octagon",
-    "warning",
+    "error",
   ),
   welcome: {
     icon: "i-ph-hand-waving",
     subject: AccountSubject,
     messageId: "welcome",
     linkTo: NOTIFICATION_LINKS.security,
-    tone: "neutral",
+    tone: "success",
   },
 } satisfies Record<string, NotificationTemplate>;
 
@@ -193,10 +191,11 @@ export function notifyBackupCodeUsed(
   userId: string,
   left: number,
 ): Promise<void> {
-  return emitNotification(userId, templates.backupCodeUsed, {
-    ...backupCodeUsedWording(left),
-    params: { left },
-  });
+  return emitNotification(
+    userId,
+    { ...templates.backupCodeUsed, tone: backupCodeUsedTone(left) },
+    { ...backupCodeUsedWording(left), params: { left } },
+  );
 }
 
 /** Details of a burst of wrong passwords. */

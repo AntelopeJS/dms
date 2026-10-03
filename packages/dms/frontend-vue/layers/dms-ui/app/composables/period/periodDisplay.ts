@@ -89,6 +89,17 @@ function hasTimeBounds(range: PeriodRange): boolean {
 
 type FormatOptions = Intl.DateTimeFormatOptions;
 
+// Node's ICU and Chrome's disagree on the spaces of a range: Node joins with
+// thin spaces (U+2009 around the dash, U+202F before AM/PM) where Chrome
+// prints plain ones. One spelling on both sides keeps the server-rendered
+// label from mismatching at hydration.
+const ICU_SPACES = /[\u2009\u202f]/g;
+const PLAIN_SPACE = " ";
+
+function normalizeSpaces(text: string): string {
+  return text.replace(ICU_SPACES, PLAIN_SPACE);
+}
+
 const DAY_FORMAT: FormatOptions = { month: "short", day: "numeric" };
 const TIME_FORMAT: FormatOptions = { hour: "2-digit", minute: "2-digit" };
 
@@ -103,9 +114,9 @@ function formatRangeWith(
     keepLocalZone: true,
   });
   if (range.to.getTime() < range.from.getTime()) {
-    return formatter.format(range.from);
+    return normalizeSpaces(formatter.format(range.from));
   }
-  return formatter.formatRange(range.from, range.to);
+  return normalizeSpaces(formatter.formatRange(range.from, range.to));
 }
 
 /**

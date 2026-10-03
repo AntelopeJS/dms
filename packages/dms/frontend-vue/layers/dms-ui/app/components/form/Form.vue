@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FormProps } from "../../composables/form/types";
+import type { FormProps } from "../../composables/form/types/props";
 import type { FormFieldValue } from "../../composables/form/types/value";
 import type { FieldGroup } from "../../composables/form/types/field";
 import {
@@ -37,6 +37,7 @@ const REALTIME_EVENT_UPDATED = "updated";
 // them.
 const props = withDefaults(defineProps<FormProps>(), {
   showActions: undefined,
+  resetOnSuccess: false,
 });
 const form = useTemplateRef("form");
 

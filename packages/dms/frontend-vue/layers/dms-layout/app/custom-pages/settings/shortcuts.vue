@@ -20,7 +20,6 @@ interface ShortcutGroupView {
   shortcuts: ShortcutMetadata[];
 }
 
-const SKELETON_SECTION_COUNT = 3;
 const I18N_PREFIX = "$";
 const KEYBOARD_I18N_PREFIX = "$keyboard.";
 const GROUP_I18N = "page.settings.shortcuts.groups";
@@ -137,89 +136,78 @@ const searchHintKeys = computed(() =>
 );
 </script>
 
+<!-- Rendered on the server too: the list is static, and the platform comes
+     from the cookie both sides read, so only the key labels can change once
+     the browser has detected its own layout. -->
 <template>
-  <DmsClientOnly>
-    <div>
-      <div class="mb-7 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <UInput
-          id="shortcuts-search"
-          ref="search"
-          v-model="query"
-          :placeholder="t('page.settings.shortcuts.search_placeholder')"
-          icon="i-ph-magnifying-glass"
-          class="w-full max-w-[420px]"
-          :aria-keyshortcuts="pageSearchAriaKeyshortcuts(isMac)"
-        >
-          <!-- No key hint on phones: it covered the placeholder there. -->
-          <template #trailing>
-            <span class="flex items-center gap-0.5 max-sm:hidden">
-              <UKbd
-                v-for="key in searchHintKeys"
-                :key="key"
-                :value="key"
-                size="sm"
-              />
-            </span>
-          </template>
-        </UInput>
-        <span class="text-muted inline-flex items-center gap-1.5 text-xs">
-          <UIcon name="i-ph-info" class="size-3.5 shrink-0" />
-          {{
-            t("page.settings.shortcuts.detected", {
-              os: detectedLabel,
-              count: shortcutCount,
-              groups: shortcuts.length,
-            })
-          }}
-        </span>
-      </div>
-
-      <DmsSection
-        v-for="group in groups"
-        :key="group.key"
-        :title="group.title"
-        :description="group.description"
+  <div>
+    <div class="mb-7 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <UInput
+        id="shortcuts-search"
+        ref="search"
+        v-model="query"
+        :placeholder="t('page.settings.shortcuts.search_placeholder')"
+        icon="i-ph-magnifying-glass"
+        class="w-full max-w-[420px]"
+        :aria-keyshortcuts="pageSearchAriaKeyshortcuts(isMac)"
       >
-        <template #badge>
-          <span
-            class="bg-elevated text-dimmed rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold"
-          >
-            {{ group.shortcuts.length }}
+        <!-- No key hint on phones: it covered the placeholder there. -->
+        <template #trailing>
+          <span class="flex items-center gap-0.5 max-sm:hidden">
+            <UKbd
+              v-for="key in searchHintKeys"
+              :key="key"
+              :value="key"
+              size="sm"
+            />
           </span>
         </template>
-
-        <div
-          v-for="(shortcut, index) in group.shortcuts"
-          :key="`${group.key}-${index}`"
-          class="border-muted flex items-center gap-4 border-t px-[18px] py-3 first:border-t-0"
-        >
-          <div class="min-w-0 flex-1">
-            <div class="text-highlighted text-[13px] font-medium">
-              {{ translate(shortcut.descriptionKey) }}
-            </div>
-            <div
-              v-if="shortcut.condition"
-              class="text-muted mt-0.5 text-[12px]"
-            >
-              {{ translate(shortcut.condition.descriptionKey) }}
-            </div>
-          </div>
-          <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
-        </div>
-      </DmsSection>
-
-      <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
-        {{ t("page.settings.shortcuts.no_results") }}
-      </p>
+      </UInput>
+      <span class="text-muted inline-flex items-center gap-1.5 text-xs">
+        <UIcon name="i-ph-info" class="size-3.5 shrink-0" />
+        {{
+          t("page.settings.shortcuts.detected", {
+            os: detectedLabel,
+            count: shortcutCount,
+            groups: shortcuts.length,
+          })
+        }}
+      </span>
     </div>
 
-    <template #fallback>
-      <div class="space-y-7">
-        <div v-for="i in SKELETON_SECTION_COUNT" :key="i" class="space-y-2.5">
-          <USkeleton class="h-5 w-32" />
-          <USkeleton class="h-32 w-full rounded-(--dms-radius-card)" />
+    <DmsSection
+      v-for="group in groups"
+      :key="group.key"
+      :title="group.title"
+      :description="group.description"
+    >
+      <template #badge>
+        <span
+          class="bg-elevated text-dimmed rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold"
+        >
+          {{ group.shortcuts.length }}
+        </span>
+      </template>
+
+      <div
+        v-for="(shortcut, index) in group.shortcuts"
+        :key="`${group.key}-${index}`"
+        class="border-muted flex items-center gap-4 border-t px-[18px] py-3 first:border-t-0"
+      >
+        <div class="min-w-0 flex-1">
+          <div class="text-highlighted text-[13px] font-medium">
+            {{ translate(shortcut.descriptionKey) }}
+          </div>
+          <div v-if="shortcut.condition" class="text-muted mt-0.5 text-[12px]">
+            {{ translate(shortcut.condition.descriptionKey) }}
+          </div>
         </div>
+        <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
       </div>
-    </template>
-  </DmsClientOnly>
+    </DmsSection>
+
+    <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
+      {{ t("page.settings.shortcuts.no_results") }}
+    </p>
+  </div>
 </template>

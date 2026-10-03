@@ -191,6 +191,17 @@ export const FormSchema = z.object({
       group: "behavior",
     },
   ),
+  resetOnSuccess: ui(
+    z
+      .boolean()
+      .optional()
+      .describe("Empty the fields once the form is sent, ready for the next."),
+    {
+      label: "Clear after submit",
+      group: "behavior",
+      widget: "switch",
+    },
+  ),
   submitDefaults: ui(z.record(z.unknown()).optional(), {
     label: "Payload defaults",
     group: "advanced",

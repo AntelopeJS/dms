@@ -73,6 +73,7 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
+import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_PRESENCE_TOPIC_PREFIX = "tableview:presence:";
@@ -438,6 +439,8 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
 // filters row, and left out of the tab counters.
 const quickFilterValues = ref<Record<string, string | undefined>>({});
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
+// Relation values load after mount: until then their buttons hold their place.
+const relationQuickFiltersLoaded = ref(false);
 const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
   const column = allColumns.find(
     (candidate) => candidate.accessorKey === filter.field,
@@ -454,7 +457,7 @@ const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
 const RELATION_QUICK_FILTER_LIMIT = 200;
 
 const loadRelationQuickFilters = async () => {
-  await Promise.all(
+  await Promise.allSettled(
     quickFilterDefinitions
       .filter((definition) => !definition.items && definition.source)
       .map(async ({ filter, source }) => {
@@ -471,12 +474,14 @@ const loadRelationQuickFilters = async () => {
         }
       }),
   );
+  relationQuickFiltersLoaded.value = true;
 };
 
-// A quick filter with nothing to pick is left out of the toolbar.
+// A quick filter with nothing to pick is left out of the toolbar; one whose
+// relation values are still loading shows disabled, holding its place.
 const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
   quickFilterDefinitions
-    .map(({ filter, column, mode, items }) => ({
+    .map(({ filter, column, mode, items, source }) => ({
       field: filter.field,
       label: processI18n(filter.label ?? column?.header ?? filter.field),
       icon: filter.icon ?? "i-ph-funnel",
@@ -485,8 +490,9 @@ const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
         : t("dms.table.quick_filter.all"),
       mode,
       items: items ?? relationQuickFilterValues.value[filter.field] ?? [],
+      pending: !items && !!source && !relationQuickFiltersLoaded.value,
     }))
-    .filter((filter) => filter.items.length > 0),
+    .filter((filter) => filter.items.length > 0 || filter.pending),
 );
 
 const quickFilterHiddenFilters = computed<TableFilter[]>(() =>
@@ -572,7 +578,7 @@ const tableDataKey = buildTableDataKey({
   isSelfManaged: isActiveDisplaySelfManaged.value,
 });
 
-const { data, status, error, refresh } = await useDmsAsyncData(
+const { data, status, error, refresh } = await useServerRenderedAsyncData(
   tableDataKey,
   (): Promise<TableViewListResponse<T>> => {
     // Self-managed displays (e.g. kanban) fetch their own data; skip the
@@ -585,6 +591,13 @@ const { data, status, error, refresh } = await useDmsAsyncData(
     });
   },
   { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
+);
+
+// Nothing listed yet (a client navigation paints before the first page
+// arrives): the table draws its skeleton, never the empty state.
+const isFirstPageLoading = computed(() => data.value === null && !error.value);
+const isListLoading = computed(
+  () => status.value === "pending" || isFirstPageLoading.value,
 );
 
 // A refused or failed list query must show as an error, never as an empty
@@ -653,8 +666,10 @@ const tabCountsQuery = computed(() =>
     })),
 );
 
+// No default: `null` until the counts arrive, so the tabs draw placeholders
+// instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useDmsAsyncData<Record<string, number>>(
+  await useServerRenderedAsyncData<Record<string, number>>(
     `table-view-${componentId}-${pageId}-tab-counts`,
     async () => {
       if (tabCountsQuery.value.length === 0) return {};
@@ -671,7 +686,7 @@ const { data: tabCountsData, refresh: refreshTabCounts } =
         },
       );
     },
-    { watch: [tabCountsQuery, archiveQuery], default: () => ({}) },
+    { watch: [tabCountsQuery, archiveQuery] },
   );
 
 interface ActiveDisplayExposed {
@@ -711,11 +726,16 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
 // A link tab counts the rows of the list it opens; a list the caller may not
 // read shows no counter.
 const linkTabCounts = ref<Record<string, number>>({});
+// The link counters load after mount: until then their tabs hold a placeholder.
+const linkTabCountsLoaded = ref(false);
 const LINK_TAB_COUNT_QUERY = { limit: 1, offset: 0 };
 
 const refreshLinkTabCounts = async () => {
   const linked = resolvedTabs.value.filter((tab) => tab.to && tab.countFrom);
-  if (linked.length === 0) return;
+  if (linked.length === 0) {
+    linkTabCountsLoaded.value = true;
+    return;
+  }
   const entries = await Promise.all(
     linked.map(async (tab) => {
       try {
@@ -732,6 +752,7 @@ const refreshLinkTabCounts = async () => {
   linkTabCounts.value = Object.fromEntries(
     entries.filter((entry) => entry !== undefined),
   );
+  linkTabCountsLoaded.value = true;
 };
 
 const refreshAll = async () => {
@@ -757,11 +778,17 @@ const linkTabPreviewState = (tab: ResolvedTab) => {
   return permissionPreview.entryState(fullId);
 };
 
+const isTabCountPending = (tab: ResolvedTab): boolean => {
+  if (!tab.to) return tabCountsData.value == null;
+  return !!tab.countFrom && !linkTabCountsLoaded.value;
+};
+
 const tabsWithCount = computed(() =>
   resolvedTabs.value.map((tab) => ({
     id: tab.id,
     label: tab.label,
     count: tab.to ? linkTabCounts.value[tab.id] : tabCountsData.value?.[tab.id],
+    countPending: isTabCountPending(tab),
     icon: tab.icon,
     textColor: tab.textColor,
     iconColor: tab.iconColor,
@@ -1192,7 +1219,7 @@ const displayContext = computed(
   (): TableViewDisplayContext<T> => ({
     items: shownResults.value ?? EMPTY_ITEMS,
     columns: props.columns,
-    loading: status.value === "pending",
+    loading: isListLoading.value,
     selection: { ids: selectedIds.value, ...displaySelection },
     pagination: {
       pageIndex: pagination.value.pageIndex,
@@ -1427,7 +1454,7 @@ onMounted(() => {
     :kanban-group-by-options="kanbanGroupByOptions"
     :tabs="tabsWithCount"
     :initial-column-visibility="initialVisibility"
-    :loading="status === 'pending'"
+    :loading="isListLoading"
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"

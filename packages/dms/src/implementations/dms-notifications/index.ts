@@ -15,9 +15,15 @@ import {
   UserNotificationsModel,
   buildNewUserNotification,
 } from "../../db/models/userNotifications.model";
+import type { UserNotification } from "../../db/tables/userNotifications.table";
 import { getRealtimeBroker } from "../../realtime/current";
 import { buildUserNotificationTopic } from "../../realtime/registry";
 import { runInBatches } from "../../utils/run-in-batches";
+import {
+  DUPLICATE_WINDOW_MS,
+  duplicateIds,
+  isWithinDuplicateWindow,
+} from "./delivery-dedupe";
 import { hasNotificationTitle } from "./delivery-guard";
 import {
   categoryRegistry,
@@ -80,6 +86,36 @@ function isDeliverable(data: NotificationData, recipient: string): boolean {
     `[DMS] Notification without a title not delivered (subject "${data.subject?.id}", recipient ${recipient})`,
   );
   return false;
+}
+
+/**
+ * Stores a delivery unless the same notification (recipient, title,
+ * description, params and link) reached this user within the duplicate
+ * window: in the window before, or in this one, where the database refuses
+ * the second row.
+ */
+async function storeUnlessDuplicate(
+  userId: string,
+  data: NotificationData,
+  groupId?: string,
+): Promise<UserNotification | undefined> {
+  const notificationsModel = GetModel(UserNotificationsModel);
+  const now = new Date();
+  const ids = duplicateIds(userId, data, now);
+  const previous = await notificationsModel.get(ids.previous);
+  const created =
+    previous && isWithinDuplicateWindow(previous.createdAt, now)
+      ? undefined
+      : await notificationsModel.createUnlessDuplicate(
+          buildNewUserNotification(userId, data, groupId),
+          ids.current,
+        );
+  if (!created) {
+    Logging.Debug(
+      `[DMS] Notification "${data.title}" to "${userId}" skipped: the same one was sent less than ${DUPLICATE_WINDOW_MS / 1000}s ago`,
+    );
+  }
+  return created;
 }
 
 export async function publishAllNotificationsRead(
@@ -173,18 +209,17 @@ export namespace internal {
       return;
     }
 
-    const notificationsModel = GetModel(UserNotificationsModel);
+    // A keyed delivery is stored once per key already; any other is kept
+    // from repeating itself within the duplicate window.
     const created =
       idempotencyKey !== undefined
-        ? await notificationsModel.createIdempotently(
+        ? await GetModel(UserNotificationsModel).createIdempotently(
             userId,
             data,
             idempotencyKey,
             groupId,
           )
-        : await notificationsModel.create(
-            buildNewUserNotification(userId, data, groupId),
-          );
+        : await storeUnlessDuplicate(userId, data, groupId);
 
     if (!created) return;
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {

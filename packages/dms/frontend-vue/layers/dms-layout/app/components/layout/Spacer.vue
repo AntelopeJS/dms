@@ -47,9 +47,7 @@ const props = withDefaults(defineProps<SpacerProps>(), {
 /* In a grid, a spacer holds a cell to line the next ones up with the columns.
    Once the grid has fewer tracks than its widest row (a phone keeps one),
    there is no column to line up with: the empty cell would only take a row of
-   its own, and a second gap. The grid flags that state (Grid / GridRow). */
-[data-dms-grid-reflowed] > .dms-spacer,
-[data-dms-grid-reflowed] > :has(> .dms-spacer) {
-  display: none;
-}
+   its own, and a second gap, so it hides. That rule is a container query each
+   Grid / GridRow emits for its own column count (gridResponsiveStyles), so
+   the server render already lays the grid out as the browser will. */
 </style>

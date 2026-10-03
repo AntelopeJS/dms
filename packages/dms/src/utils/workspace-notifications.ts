@@ -12,6 +12,7 @@ import {
   AccountSubject,
   CollaborationSubject,
 } from "@antelopejs/interface-dms/notifications";
+import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationsModel } from "../db/models/userNotifications.model";
 import {
   emitNotification,
@@ -24,8 +25,15 @@ import {
   ownersToNotifyOfJoin,
   recipientsExcept,
 } from "./notification-rules";
+import { rolesChangedTone } from "./notification-tones";
 
 const MESSAGES_PREFIX = "$dms.notifications.messages";
+
+/** What a workspace template sets besides its message, icon and link. */
+interface TemplateOptions {
+  subject?: NotificationTemplate["subject"];
+  tone?: NotificationTone;
+}
 const ROLE_NAME_SEPARATOR = ", ";
 /** How far back an editing session's row is looked for; sessions slide, but not for days. */
 const EDITING_SESSION_LOOKBACK_MS = 24 * 60 * 60 * 1000;
@@ -34,9 +42,9 @@ function workspaceTemplate(
   messageId: string,
   icon: string,
   linkTo: string,
-  subject = CollaborationSubject,
+  { subject = CollaborationSubject, tone = "neutral" }: TemplateOptions = {},
 ): NotificationTemplate {
-  return { icon, subject, messageId, linkTo, tone: "neutral" };
+  return { icon, subject, messageId, linkTo, tone };
 }
 
 const templates = {
@@ -49,11 +57,13 @@ const templates = {
     "invite_accepted",
     "i-ph-user-check",
     NOTIFICATION_LINKS.members,
+    { tone: "success" },
   ),
   inviteExpired: workspaceTemplate(
     "invite_expired",
     "i-ph-clock-countdown",
     NOTIFICATION_LINKS.invites,
+    { tone: "accent" },
   ),
   memberRemoved: workspaceTemplate(
     "member_removed",
@@ -64,28 +74,26 @@ const templates = {
     "role_permissions_changed",
     "i-ph-key",
     NOTIFICATION_LINKS.roles,
+    { tone: "accent" },
   ),
   rolesChanged: workspaceTemplate(
     "roles_changed",
     "i-ph-identification-badge",
     NOTIFICATION_LINKS.settings,
-    AccountSubject,
+    { subject: AccountSubject },
   ),
   ownershipGranted: workspaceTemplate(
     "ownership_granted",
     "i-ph-crown",
     NOTIFICATION_LINKS.members,
-    AccountSubject,
+    { subject: AccountSubject },
   ),
-  ownershipRemoved: {
-    ...workspaceTemplate(
-      "ownership_removed",
-      "i-ph-crown-simple",
-      NOTIFICATION_LINKS.settings,
-      AccountSubject,
-    ),
-    tone: "warning",
-  },
+  ownershipRemoved: workspaceTemplate(
+    "ownership_removed",
+    "i-ph-crown-simple",
+    NOTIFICATION_LINKS.settings,
+    { subject: AccountSubject, tone: "warning" },
+  ),
 } satisfies Record<string, NotificationTemplate>;
 
 /** Who did something, as the notifications about it name them. */
@@ -286,7 +294,11 @@ export async function notifyRolesChanged({
   actor,
 }: MemberRolesChange): Promise<void> {
   const names = await roleNamesInOrder(tenantId, roleIds);
-  await emitNotification(userId, templates.rolesChanged, {
+  const template = {
+    ...templates.rolesChanged,
+    tone: rolesChangedTone(names.length),
+  };
+  await emitNotification(userId, template, {
     titleKey: ROLE_COUNT_TITLE_KEYS[names.length] ?? "title",
     params: { roles: names.join(ROLE_NAME_SEPARATOR), actor: actor.name },
   });

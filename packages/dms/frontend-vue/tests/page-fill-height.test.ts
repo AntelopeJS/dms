@@ -52,6 +52,19 @@ interface PageLayoutFixture {
 const route = reactive({ path: "/tools/explorer", query: {} });
 const pageLayout = ref<PageLayoutFixture | null>(null);
 
+// The page skeleton the layout keeps after the page (shown by CSS only while
+// the page is pending after a client navigation, once a short delay passes).
+const PAGE_SKELETON_MARKUP =
+  '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [[data-dms-page-slot]:empty+&amp;]:block [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
+  '<div class="dms-card space-y-4 p-[18px]"><USkeleton class="h-3.5 w-40 bg-(--dms-skeleton)"></USkeleton><!--[-->' +
+  ["72%", "58%", "66%", "44%"]
+    .map(
+      (width) =>
+        `<USkeleton class="h-2.5 bg-(--dms-skeleton)" style="width:${width};"></USkeleton>`,
+    )
+    .join("") +
+  "<!--]--></div></div>";
+
 // The markup `DefaultLayout` and `pages/[...slug].vue` render for a
 // two-component page outside the settings area, with the stubs below.
 const FLOW_PAGE_MARKUP =
@@ -62,12 +75,15 @@ const FLOW_PAGE_MARKUP =
   '<section class="flex flex-wrap gap-x-3.5 gap-y-4 items-start pb-6">' +
   '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
   '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
-  '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--]--></section><!--[-->' +
+  '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
+  '<div data-dms-page-slot class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
   '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
   '<div class="">' +
-  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>';
+  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--></div>' +
+  PAGE_SKELETON_MARKUP +
+  "<!----><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {

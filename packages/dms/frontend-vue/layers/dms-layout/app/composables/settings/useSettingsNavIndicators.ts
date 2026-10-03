@@ -32,7 +32,7 @@ interface ListTotal {
 export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
   const { $authFetch } = useAuthFetch();
   const { setNavBadge } = useNavBadges();
-  const { setTrail } = useSettingsNavTrails();
+  const { setTrail, settleIndicator } = useSettingsNavTrails();
   const security = useSecurityOverview();
   const { t } = useI18n();
   const route = useDmsRoute();
@@ -84,9 +84,11 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
     for (const [pageId, load] of Object.entries(loaders)) {
       if (loaded.has(pageId) || !visiblePageIds.value.has(pageId)) continue;
       loaded.add(pageId);
-      load().catch(() => {
-        /* the entry simply shows no indicator */
-      });
+      load()
+        .catch(() => {
+          /* the entry simply shows no indicator */
+        })
+        .finally(() => settleIndicator(pageId));
     }
   }
 

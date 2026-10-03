@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 import { childLayoutPath } from "#dms-core/app/utils/permission-preview";
+import {
+  GRID_DECLARED_COLUMNS,
+  type GridDeclaredColumns,
+} from "./grid/constants";
 
 interface Props {
   component: ResolvedComponentInfo;
@@ -64,6 +68,20 @@ function getColSpanStyle(
 const columnCount = computed(() =>
   calculateColumnCount(props.component.children),
 );
+
+// A Grid drawn here lines its rows up on the widest of them: declared from
+// the layout, so it is known before any row sets up (see GridDeclaredColumns).
+provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
+  componentId: props.componentId,
+  columns: computed(() =>
+    Math.max(
+      0,
+      ...(props.component.children ?? []).map((row) =>
+        calculateColumnCount(row.children),
+      ),
+    ),
+  ),
+});
 </script>
 
 <template>

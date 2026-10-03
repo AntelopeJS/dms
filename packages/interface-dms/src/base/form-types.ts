@@ -106,6 +106,13 @@ export interface FormProps extends BaseComponentProps {
    */
   redirectOnSuccess?: string;
   /**
+   * Empties the form after a successful submit: every field goes back to the
+   * value it opened with (its `defaultValue`, or what `fetchUrl` loaded). Suits
+   * a form that sends something new each time (a message, an invitation), where
+   * the values left behind invite an accidental second submit.
+   */
+  resetOnSuccess?: boolean;
+  /**
    * Default values merged into the submit payload (sent even when the field is
    * absent from the form). String values support the same token substitution
    * as `submitUrl` (`{{params.X}}`, `{{query.X}}`), resolved against the form's

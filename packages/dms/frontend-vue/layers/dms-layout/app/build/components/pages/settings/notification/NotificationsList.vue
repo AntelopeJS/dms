@@ -430,17 +430,17 @@ onBeforeUnmount(resetInboxFilter);
 
     <template v-if="isLoaded && inboxHasMore && inboxItems.length > 0" #footer>
       <div ref="sentinel" class="flex w-full justify-center">
-        <span
+        <!-- The next page on its way: a placeholder the size of the button. -->
+        <USkeleton
           v-if="isLoadingMore"
-          class="text-muted inline-flex items-center gap-1.5 font-mono text-[11.5px] font-medium"
-        >
-          <UIcon name="i-ph-circle-notch" class="size-3 animate-spin" />
-          {{
-            t("page.settings.notifications.loading_more", {
+          :aria-label="
+            t('page.settings.notifications.loading_more', {
               count: remainingCount,
             })
-          }}
-        </span>
+          "
+          role="status"
+          class="h-6 w-40"
+        />
         <UButton
           v-else
           color="neutral"

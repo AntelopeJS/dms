@@ -2,6 +2,7 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import TablePagination from "../../build/components/table/Pagination.vue";
 import TableEmpty from "../../build/components/table/Empty.vue";
+import CardGridSkeleton from "./CardGridSkeleton.vue";
 import type { TableViewColumn } from "../../composables/table-view/types/column";
 import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
 
@@ -12,7 +13,6 @@ interface CardsDisplayProps {
 const props = defineProps<CardsDisplayProps>();
 
 const MAX_CARD_FIELDS = 4;
-const SKELETON_CARD_COUNT = 6;
 const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
@@ -83,16 +83,11 @@ const openItem = (item: T) => {
   <div>
     <!-- v2 cards display: an auto-fill grid inside the table card, sharing
          its selection and its pagination footer. -->
-    <div
+    <CardGridSkeleton
       v-if="props.context.loading && props.context.items.length === 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
-    >
-      <USkeleton
-        v-for="n in SKELETON_CARD_COUNT"
-        :key="n"
-        class="h-36 w-full rounded-[10px]"
-      />
-    </div>
+      :count="props.context.pagination.pageSize"
+      :fields="fieldColumns.length"
+    />
 
     <TableEmpty
       v-else-if="props.context.items.length === 0"

@@ -47,6 +47,19 @@ const toast = useToast();
 const { confirm } = useConfirm();
 const { processApiMessage } = useTranslation();
 
+// Before the first await: the header renders it in the server pass. The
+// render runs once the setup is done, so it may read what is declared below.
+usePageHeaderActions(() =>
+  h(UButton, {
+    label: t("page.settings.roles.editor.new_role"),
+    icon: "i-ph-plus",
+    color: "neutral",
+    variant: "outline",
+    disabled: !capabilities.value?.canAdd,
+    onClick: () => selectEntry(NEW_ROLE_ENTRY_ID),
+  }),
+);
+
 const { data, refresh } = await useDmsAsyncData<RolesPageData | null>(
   "settings-roles-editor",
   async () => {
@@ -331,17 +344,6 @@ async function requestDelete(): Promise<void> {
       ),
   });
 }
-
-usePageHeaderActions(() =>
-  h(UButton, {
-    label: t("page.settings.roles.editor.new_role"),
-    icon: "i-ph-plus",
-    color: "neutral",
-    variant: "outline",
-    disabled: !capabilities.value?.canAdd,
-    onClick: () => selectEntry(NEW_ROLE_ENTRY_ID),
-  }),
-);
 </script>
 
 <template>

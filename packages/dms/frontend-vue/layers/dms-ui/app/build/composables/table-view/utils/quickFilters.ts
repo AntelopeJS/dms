@@ -15,6 +15,8 @@ export interface ResolvedQuickFilter {
   allLabel: string;
   mode: string;
   items: QuickFilterItem[];
+  /** Its values are still loading: the button holds its place, disabled. */
+  pending?: boolean;
 }
 
 /** Where a relation quick filter reads its values from. */

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import {
+  computed,
   defineAsyncComponent,
+  markRaw,
   onMounted,
   ref,
   shallowRef,
+  toRaw,
   watch,
   type Component,
 } from "vue";
@@ -16,6 +19,11 @@ interface Props {
   series: unknown;
 }
 
+interface Emits {
+  /** Apex has drawn the chart: the caller's placeholder can go. */
+  (event: "drawn"): void;
+}
+
 interface ApexChartInstance {
   updateOptions: (
     options: Record<string, unknown>,
@@ -26,6 +34,7 @@ interface ApexChartInstance {
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const REDRAW_PATHS = false;
 const ANIMATE = true;
@@ -33,6 +42,8 @@ const UPDATE_SYNCED_CHARTS = false;
 
 const { locale } = useI18n();
 
+// ApexCharts stays a lazy chunk: the caller (Chart) keeps the chart's frame
+// and a skeleton until this host reports the chart drawn.
 const ApexChart = defineAsyncComponent(async () => {
   const [mod] = await Promise.all([
     import("vue3-apexcharts"),
@@ -48,15 +59,52 @@ onMounted(() => {
 
 const chartRef = ref<ApexChartInstance | null>(null);
 
+/**
+ * A plain, non-reactive copy of a value handed to Apex. Apex writes into the
+ * series and options it is given, and the wrapper deep-watches its `series`
+ * prop: a reactive series (fetched data, a card's reactive context) turns
+ * each of Apex's own writes into another update, until Vue gives up with
+ * "Maximum recursive updates". A copy Apex may scribble on, marked raw so the
+ * deep watcher only reacts to a new series, breaks that loop. Functions
+ * (formatters, event handlers) and dates are kept as they are.
+ */
+function toApexInput<T>(value: T): T {
+  const raw = toRaw(value) as unknown;
+  if (Array.isArray(raw)) return raw.map((entry) => toApexInput(entry)) as T;
+  if (raw && typeof raw === "object" && !(raw instanceof Date)) {
+    const copy: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(raw)) {
+      copy[key] = toApexInput(entry);
+    }
+    return copy as T;
+  }
+  return raw as T;
+}
+
+function rawApexInput<T extends object>(value: T): T {
+  return markRaw(toApexInput(value));
+}
+
+const apexSeries = computed(() =>
+  rawApexInput((props.series ?? []) as unknown[]),
+);
+
 // The wrapper's reactive options update JSON-clones away formatter callbacks.
-const pinnedOptions = shallowRef<Record<string, unknown>>({ ...props.options });
+const pinnedOptions = shallowRef<Record<string, unknown>>(
+  rawApexInput(props.options),
+);
 
 function pushOptionsWithoutGroupBroadcast(
   instance: ApexChartInstance,
   next: Record<string, unknown>,
 ): void {
   void instance
-    .updateOptions(next, REDRAW_PATHS, ANIMATE, UPDATE_SYNCED_CHARTS)
+    .updateOptions(
+      rawApexInput(next),
+      REDRAW_PATHS,
+      ANIMATE,
+      UPDATE_SYNCED_CHARTS,
+    )
     .catch(() => undefined);
 }
 
@@ -65,12 +113,16 @@ watch(
   (next) => {
     const instance = chartRef.value;
     if (!instance) {
-      pinnedOptions.value = { ...next };
+      pinnedOptions.value = rawApexInput(next);
       return;
     }
     pushOptionsWithoutGroupBroadcast(instance, next);
   },
 );
+
+function onDrawn() {
+  emit("drawn");
+}
 </script>
 
 <template>
@@ -80,7 +132,9 @@ watch(
       :type="apexType"
       :height="height"
       :options="pinnedOptions"
-      :series="series"
+      :series="apexSeries"
+      @mounted="onDrawn"
+      @updated="onDrawn"
     />
   </div>
 </template>

@@ -14,9 +14,10 @@ const CardsDisplay = defineAsyncComponent(
   () => import("../components/table-view/CardsDisplay.vue"),
 );
 
-// Registers the presentation of the built-in displays (client-only: displays
-// carry callables stripped from the SSR payload). Data behaviour and chrome
-// (selfManagedData/capabilities) are config-driven for SSR safety.
+// Registers the presentation of the built-in displays on the server as well:
+// the switcher then renders in the server pass, so hydration finds it there
+// instead of inserting it (and shifting the toolbar) afterwards. Data
+// behaviour and chrome (selfManagedData/capabilities) stay config-driven.
 export default defineDmsPlugin(() => {
   registerTableViewDisplay({
     id: TABLE_DISPLAY_ID,

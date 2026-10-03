@@ -31,6 +31,10 @@ const theme = tv({
     hintIcon: "size-3.5 shrink-0 text-dimmed",
     // Phones wrap the hint onto a second line rather than cut it.
     hintText: "truncate max-sm:whitespace-normal",
+    // First page on its way: the band keeps its height with placeholders.
+    placeholderCount: "h-3 w-20 rounded-[4px]",
+    placeholderPager: "ms-auto h-3 w-24 rounded-[4px]",
+    placeholderRoot: "min-h-[49px]",
   },
 });
 
@@ -46,6 +50,9 @@ const { t, locale } = useI18n();
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
 
 const rowCount = computed(() => tableSharedData.value?.rowCount ?? 0);
+const firstPageLoading = computed(
+  () => !!tableSharedData.value?.firstPageLoading,
+);
 
 const pageSize = computed({
   get: () =>
@@ -96,8 +103,16 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
 </script>
 
 <template>
+  <div
+    v-if="firstPageLoading"
+    aria-hidden="true"
+    :class="[uiTablePagination.root(), uiTablePagination.placeholderRoot()]"
+  >
+    <USkeleton :class="uiTablePagination.placeholderCount()" />
+    <USkeleton :class="uiTablePagination.placeholderPager()" />
+  </div>
   <nav
-    v-if="rowCount"
+    v-else-if="rowCount"
     :class="uiTablePagination.root()"
     :aria-label="t('dms.pagination.label')"
   >

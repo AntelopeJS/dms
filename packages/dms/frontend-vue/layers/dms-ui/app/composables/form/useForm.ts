@@ -665,6 +665,19 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
+  /** Puts every field back to the value it opened with. */
+  const restoreInitialValues = (): void => {
+    const restored = computeResetState(state.value, initialValues.value);
+    Object.assign(
+      state.value,
+      processBeforeStateMappers(
+        restored as FormData,
+        props.fields,
+        getDataType,
+      ),
+    );
+  };
+
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
     plainData: FormData,
@@ -672,7 +685,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     showSubmitSuccessToast(response);
     showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
-    initialValues.value = snapshotFormState(state.value);
+    // A form sending something new each time starts over from the values it
+    // opened with; any other keeps what it saved as its new starting point.
+    if (props.resetOnSuccess) restoreInitialValues();
+    else initialValues.value = snapshotFormState(state.value);
     if (props.redirectOnSuccess) {
       const target = replaceUrlVariables(
         props.redirectOnSuccess,
@@ -745,15 +761,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
   const reset = (form: FormResetTarget | null): void => {
     form?.clear?.();
-    const restored = computeResetState(state.value, initialValues.value);
-    Object.assign(
-      state.value,
-      processBeforeStateMappers(
-        restored as FormData,
-        props.fields,
-        getDataType,
-      ),
-    );
+    restoreInitialValues();
     sendComponentEvent(FormEvents.RESET, props.componentId, {});
   };
 

@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { computed, inject } from "vue";
+import { computed, inject, ref, watch } from "vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
-import { useApexChart } from "../../composables/chart/useApexChart";
+import DmsChartSkeleton from "./internal/ChartSkeleton.vue";
+import {
+  chartFrameHeight,
+  useApexChart,
+} from "../../composables/chart/useApexChart";
 import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
@@ -78,11 +82,7 @@ interface Props extends DefaultComponentProps {
 }
 
 const DEFAULT_CHART_HEIGHT = "320px";
-// Loading placeholder: ghost columns at plot height, so the card keeps its
-// final geometry instead of flashing a flat block (heights in %).
-const GHOST_BAR_HEIGHTS = [38, 52, 46, 64, 58, 72, 66, 80, 74, 88, 70, 92];
 const EMPTY_ICON = "i-ph-chart-line-up";
-const PERCENT_UNIT = "%";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
@@ -276,6 +276,29 @@ const apex = useApexChart(() => ({
 }));
 
 const heightInPx = computed(() => props.height);
+// Every state (placeholder, drawn chart, empty state) takes the box the drawn
+// chart occupies, so nothing moves when the data or the chart arrives.
+const frameHeight = computed(() =>
+  chartFrameHeight(props.height, isCircular.value),
+);
+
+const hasData = computed(
+  () => finalSeries.value.length > 0 || finalDonutData.value.length > 0,
+);
+// A nested chart plots its card's data, so it waits on the card's request.
+const isAwaitingData = computed(() =>
+  nestedContext ? nestedContext.isLoading : isLoading.value,
+);
+// New inputs (a period applied) are on their way: the chart on screen still
+// shows the previous ones, so it dims like the KPI values do.
+const isRefreshing = computed(() => hasData.value && isAwaitingData.value);
+
+// The host (a lazy chunk) and Apex (another one) take a moment to draw: the
+// frame keeps the chart's box and its skeleton until the host says it drew.
+const isDrawn = ref(false);
+watch(hasData, (present) => {
+  if (!present) isDrawn.value = false;
+});
 </script>
 
 <template>
@@ -301,39 +324,43 @@ const heightInPx = computed(() => props.height);
     </div>
 
     <DmsClientOnly>
-      <DmsApexChartHost
-        v-if="finalSeries.length > 0 || finalDonutData.length > 0"
-        :apex-type="apex.apexType.value"
-        :height="heightInPx"
-        :options="apex.options.value"
-        :series="apex.series.value"
-      />
       <div
-        v-else-if="isLoading"
-        class="flex items-end gap-2.5 border-b border-(--dms-chart-grid) px-1.5"
-        :style="{ height: heightInPx }"
-        aria-busy="true"
+        v-if="hasData"
+        class="relative transition-opacity"
+        :class="isRefreshing && 'opacity-55'"
+        :style="{ minHeight: frameHeight }"
+        :aria-busy="isRefreshing || !isDrawn || undefined"
       >
-        <USkeleton
-          v-for="(barHeight, index) in GHOST_BAR_HEIGHTS"
-          :key="index"
-          class="flex-1 rounded-t-[4px] rounded-b-none bg-(--dms-skeleton)"
-          :style="{ height: `${barHeight}${PERCENT_UNIT}` }"
+        <DmsApexChartHost
+          :class="!isDrawn && 'invisible'"
+          :apex-type="apex.apexType.value"
+          :height="heightInPx"
+          :options="apex.options.value"
+          :series="apex.series.value"
+          @drawn="isDrawn = true"
+        />
+        <DmsChartSkeleton
+          v-if="!isDrawn"
+          class="absolute inset-x-0 top-0"
+          :height="frameHeight"
+          :circular="isCircular"
         />
       </div>
+      <DmsChartSkeleton
+        v-else-if="isAwaitingData"
+        :height="frameHeight"
+        :circular="isCircular"
+      />
       <DmsEmptyState
         v-else
         :icon="EMPTY_ICON"
         :title="$t('dms.chart.no_data')"
         size="sm"
         class="border-default place-content-center rounded-lg border border-dashed"
-        :style="{ height: heightInPx }"
+        :style="{ height: frameHeight }"
       />
       <template #fallback>
-        <USkeleton
-          class="w-full bg-(--dms-skeleton)"
-          :style="{ height: heightInPx }"
-        />
+        <DmsChartSkeleton :height="frameHeight" :circular="isCircular" />
       </template>
     </DmsClientOnly>
   </div>

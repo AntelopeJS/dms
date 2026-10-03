@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useMounted } from "@vueuse/core";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
+// Imported rather than resolved from the registry: a registered component is
+// a lazy chunk of its own, and a list whose rows only arrive with its data
+// would draw an empty card for the moment that chunk takes.
+import DmsTopListRow from "./internal/TopListRow.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
@@ -41,7 +46,10 @@ interface Props extends DefaultComponentProps {
 
 const DEFAULT_MAX_HEIGHT = "24rem";
 const DEFAULT_HIGHLIGHT_TOP_N = 3;
-const SKELETON_ROW_COUNT = 5;
+// A top list is a "top N" (10 most of the time): enough placeholder rows to
+// fill the card to its max height, which clips them exactly where it clips
+// the loaded list, so the card does not grow when the rows land.
+const SKELETON_ROW_COUNT = 10;
 const PERCENT = 100;
 const PRESET_LABEL_KEY_PREFIX = "dms.period.presets";
 const EMPTY_LABEL_FALLBACK_KEY = "dms.top_list.empty";
@@ -165,12 +173,21 @@ function sparklineAccentFor(item: TopListItem): string {
 }
 
 const scopeState = usePeriodScope(props.periodScope);
+// The scope registers in the browser only, so the server cannot print the
+// preset: the badge slot is drawn on both sides from the start (a skeleton
+// until mounted), and the label follows once the scope is known.
+const isMounted = useMounted();
 const badgeLabel = computed<string | null>(() => {
-  if (!props.periodScope) return null;
+  if (!props.periodScope || !isMounted.value) return null;
   const state = scopeState.value;
   if (!state) return null;
   return t(`${PRESET_LABEL_KEY_PREFIX}.${state.preset}`, state.preset);
 });
+
+const isFirstLoad = computed(() => isLoading.value && data.value === null);
+// New inputs (a period applied) are on their way: the rows on screen still
+// belong to the previous ones, so they dim like the KPI values do.
+const isRefreshing = computed(() => isLoading.value && data.value !== null);
 
 const emptyLabelDisplay = computed(() =>
   props.emptyLabel
@@ -223,10 +240,15 @@ const gridStyle = computed(() => ({
       :title="processI18n(title)"
       :description="description ? processI18n(description) : undefined"
     >
-      <template v-if="badgeLabel" #trailing>
-        <UBadge :color="badgeColor" variant="soft" size="sm">
+      <template v-if="periodScope" #trailing>
+        <UBadge v-if="badgeLabel" :color="badgeColor" variant="soft" size="sm">
           {{ badgeLabel }}
         </UBadge>
+        <USkeleton
+          v-else
+          class="h-5 w-16 rounded-[5px] bg-(--dms-skeleton)"
+          aria-hidden="true"
+        />
       </template>
     </DmsSectionHeader>
 
@@ -241,7 +263,9 @@ const gridStyle = computed(() => ({
     >
       <ul
         v-if="items.length > 0"
-        class="grid [grid-template-columns:var(--dms-top-list-cols-narrow)] gap-x-2 divide-y divide-(--ui-border-muted) py-1 @[22rem]:[grid-template-columns:var(--dms-top-list-cols-mid)] @[22rem]:gap-x-3 @[28rem]:[grid-template-columns:var(--dms-top-list-cols)]"
+        :aria-busy="isRefreshing || undefined"
+        :class="isRefreshing && 'opacity-55'"
+        class="grid [grid-template-columns:var(--dms-top-list-cols-narrow)] gap-x-2 divide-y divide-(--ui-border-muted) py-1 transition-opacity @[22rem]:[grid-template-columns:var(--dms-top-list-cols-mid)] @[22rem]:gap-x-3 @[28rem]:[grid-template-columns:var(--dms-top-list-cols)]"
         :style="gridStyle"
       >
         <DmsTopListRow
@@ -263,14 +287,18 @@ const gridStyle = computed(() => ({
       </ul>
 
       <DmsEmptyState
-        v-else-if="!isLoading"
+        v-else-if="!isFirstLoad"
         :icon="EMPTY_ICON"
         :title="emptyLabelDisplay"
         size="sm"
         class="min-h-48 place-content-center"
       />
 
-      <div v-else class="divide-y divide-(--ui-border-muted)" aria-busy="true">
+      <div
+        v-else
+        class="divide-y divide-(--ui-border-muted) py-1"
+        aria-busy="true"
+      >
         <div
           v-for="row in SKELETON_ROW_COUNT"
           :key="row"
@@ -285,6 +313,10 @@ const gridStyle = computed(() => ({
             <USkeleton class="h-2.5 w-1/4 bg-(--dms-skeleton)" />
           </div>
           <USkeleton class="h-3 w-14 bg-(--dms-skeleton)" />
+          <USkeleton
+            v-if="showDelta"
+            class="h-3 w-[46px] bg-(--dms-skeleton)"
+          />
         </div>
       </div>
     </div>

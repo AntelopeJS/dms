@@ -143,10 +143,12 @@ onMounted(measureScroll);
           "
         >
           <div v-if="isLoading" class="py-1" aria-busy="true">
+            <!-- Each placeholder row is a feed row tall, so the list keeps
+                 its height when the events land. -->
             <div
               v-for="row in SKELETON_ROWS"
               :key="row"
-              class="flex items-start gap-3 px-[18px] py-2.5"
+              class="flex h-(--dms-activity-row-h) items-start gap-3 px-[18px] py-2.5"
             >
               <USkeleton
                 class="size-[30px] shrink-0 rounded-lg bg-(--dms-skeleton)"

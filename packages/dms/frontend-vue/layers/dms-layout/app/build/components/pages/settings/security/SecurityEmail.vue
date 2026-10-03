@@ -188,7 +188,11 @@ async function submit(): Promise<void> {
     >
       <template #label>
         <DmsListRow bare icon="i-ph-envelope-simple">
-          <USkeleton v-if="!email" class="h-4 w-40" />
+          <!-- A badge's height (the address line carries one) holds the
+               line while the address loads. -->
+          <span v-if="!email" aria-hidden="true" class="flex h-5">
+            <USkeleton class="my-auto h-3.5 w-40" />
+          </span>
           <span v-else class="break-all">{{ email }}</span>
           <UBadge
             v-if="email"

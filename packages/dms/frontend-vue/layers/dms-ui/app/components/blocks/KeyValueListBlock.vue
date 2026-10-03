@@ -36,7 +36,9 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
   emptyLabel: undefined,
-  skeletonCount: 3,
+  // A fetched list's length is unknown until it lands: draw the rows a record
+  // card usually lists (customer, ids, status, amounts, dates), not a stub.
+  skeletonCount: 5,
 });
 
 const TRANSLATED_TYPES = new Set([undefined, "text", "status", "link"]);

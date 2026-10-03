@@ -20,6 +20,29 @@
         "title": "Widget module démo",
         "description": "Visible uniquement dans le module démo"
       }
+    },
+    "notifications": {
+      "sent": "Notification envoyée. Ouvrez la cloche pour la voir.",
+      "dms_update": {
+        "title": "Une nouvelle version du DMS AntelopeJS est disponible",
+        "description": "Consultez les nouveautés sur la page Modules avant de mettre à jour."
+      },
+      "hosting_promo": {
+        "title": "-30 % sur l'hébergement AntelopeJS jusqu'à la fin du mois",
+        "description": "Comparez les offres sur antelopejs.com et choisissez la vôtre."
+      },
+      "security_alert": {
+        "title": "Tentative de connexion suspecte depuis {ip}",
+        "description": "Ce n'était pas vous ? Changez votre mot de passe dans Sécurité."
+      },
+      "shipment": {
+        "title": "Le colis {package} a été expédié",
+        "description": "Livraison prévue sous 3 jours ouvrés : assurez-vous que quelqu'un puisse le réceptionner."
+      },
+      "maintenance": {
+        "title": "Maintenance dimanche de 2 h à 2 h 30",
+        "description": "Le tableau de bord sera indisponible pendant ce temps : enregistrez votre travail avant."
+      }
     }
   }
 }

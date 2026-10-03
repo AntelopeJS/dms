@@ -17,6 +17,11 @@ export interface UseChartFetchOptions<T> {
 
 export interface UseChartFetchReturn<T> {
   data: Ref<T | null>;
+  /**
+   * A response for the current inputs is still to come: from the first paint
+   * until the first answer, and again from the moment the inputs change
+   * (period, watched state, realtime event) until the new answer lands.
+   */
   isLoading: Ref<boolean>;
   error: Ref<unknown>;
   refresh: () => Promise<void>;
@@ -24,9 +29,12 @@ export interface UseChartFetchReturn<T> {
 
 const DEBOUNCE_FRAME_MS = 180;
 const DEFAULT_HTTP_METHOD = "GET";
-// Matches usePeriodScope's own grace period before it warns about a missing
-// scope: past it, a card whose scope never registered stops claiming to load.
-const PENDING_SCOPE_GRACE_MS = 250;
+// How long a card waits for its period scope to register before it stops
+// claiming to load. The selector registers the scope from its own lazily
+// loaded chunk, which on a slow network lands seconds after the card mounts:
+// a short grace would drop the card to its empty state ("No data") while the
+// scope is merely late. Only a scope no selector ever registers reaches it.
+export const PENDING_SCOPE_TIMEOUT_MS = 10_000;
 
 function buildFinalUrl(
   url: string | undefined,
@@ -65,18 +73,28 @@ async function runFetch<T>(
   const url = buildFinalUrl(options.fetchUrl, scopeState, options.periodScope);
   if (!url) return;
   if (runner.activeAbort) runner.activeAbort.abort();
-  runner.activeAbort = new AbortController();
+  const controller = new AbortController();
+  runner.activeAbort = controller;
   isLoading.value = true;
   error.value = null;
   try {
-    data.value = await authFetch<T>(url, {
+    const response = await authFetch<T>(url, {
       method: options.fetchUrlMethod || DEFAULT_HTTP_METHOD,
-      signal: runner.activeAbort.signal,
+      signal: controller.signal,
     });
+    if (runner.activeAbort !== controller) return;
+    data.value = response;
   } catch (err) {
+    if (runner.activeAbort !== controller) return;
     if ((err as { name?: string })?.name !== "AbortError") error.value = err;
   } finally {
-    isLoading.value = false;
+    // A request a newer one superseded leaves the loading flag to that one:
+    // clearing it here would show the empty state while the newer answer is
+    // still on its way.
+    if (runner.activeAbort === controller) {
+      runner.activeAbort = null;
+      isLoading.value = false;
+    }
   }
 }
 
@@ -136,6 +154,7 @@ export function useChartFetch<T>(
 
   const refresh = async () => {
     if (runner.pendingTimer) clearTimeout(runner.pendingTimer);
+    runner.pendingTimer = null;
     await performFetch();
   };
 
@@ -143,8 +162,15 @@ export function useChartFetch<T>(
     `${scopeState.value?.key ?? ""}|${JSON.stringify(options.watchSource?.() ?? null)}`;
 
   const fetchScheduledInputs = () => {
+    runner.pendingTimer = null;
     runner.lastInputs = currentInputs();
     void performFetch();
+  };
+
+  // A debounced refresh the inputs took back (a period changed and changed
+  // back) leaves nothing to wait for unless a request is still running.
+  const settleCancelledRefresh = (hadPending: boolean) => {
+    if (hadPending && !runner.activeAbort) isLoading.value = false;
   };
 
   // A period scope registers during the PeriodSelector's setup, which lands
@@ -152,36 +178,49 @@ export function useChartFetch<T>(
   // first. Either way both the watcher and onMounted end up looking at the
   // same freshly registered scope and each ask for a refresh; keying on the
   // inputs the last fetch was started for collapses that into one request.
-  const scheduleRefresh = () => {
+  const scheduleRefreshWith = (announcePending: boolean) => {
+    const hadPending = runner.pendingTimer !== null;
     if (runner.pendingTimer) clearTimeout(runner.pendingTimer);
-    if (options.periodScope && !scopeState.value) return;
+    runner.pendingTimer = null;
+    if (options.periodScope && !scopeState.value) {
+      settleCancelledRefresh(hadPending);
+      return;
+    }
     const inputs = currentInputs();
-    if (inputs === runner.lastInputs) return;
+    if (inputs === runner.lastInputs) {
+      settleCancelledRefresh(hadPending);
+      return;
+    }
     if (!runner.hasFetchedOnce) {
       runner.hasFetchedOnce = true;
       fetchScheduledInputs();
       return;
     }
+    // The values on screen belong to the previous inputs from now on: say so
+    // through the debounce as well, not only once the request leaves.
+    if (announcePending) isLoading.value = true;
     runner.pendingTimer = setTimeout(fetchScheduledInputs, DEBOUNCE_FRAME_MS);
   };
+  const scheduleRefresh = () => scheduleRefreshWith(true);
 
   // A realtime event means the data behind unchanged inputs moved, so it has
-  // to bypass the deduplication above.
+  // to bypass the deduplication above. The inputs did not change, so the
+  // values on screen stay current until the new answer replaces them.
   const refreshFromRealtime = () => {
     runner.lastInputs = null;
-    scheduleRefresh();
+    scheduleRefreshWith(false);
   };
 
   const fetchOnMount = () => {
     scheduleRefresh();
     if (runner.hasFetchedOnce) return;
-    // The scope has not registered yet, and may never. Give it the grace
-    // period usePeriodScope itself allows before it warns, then drop the
-    // loading state so a misconfigured scope shows its empty value rather
-    // than a skeleton that never resolves.
+    // The scope has not registered yet, and may never. Keep the skeleton
+    // while its selector may still be loading, then drop the loading state
+    // so a misconfigured scope shows its empty value rather than a skeleton
+    // that never resolves.
     setTimeout(() => {
       if (!runner.hasFetchedOnce) isLoading.value = false;
-    }, PENDING_SCOPE_GRACE_MS);
+    }, PENDING_SCOPE_TIMEOUT_MS);
   };
 
   if (options.fetchUrl) {

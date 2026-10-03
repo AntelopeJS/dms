@@ -29,6 +29,9 @@ interface CachedStars {
 }
 
 const githubStars = ref<number | null>(null);
+// The count is fetched after mount: a placeholder holds its place until then,
+// and the segment only goes away if no count could be read.
+const githubStarsSettled = ref(false);
 const formattedGithubStars = computed(() =>
   githubStars.value === null
     ? ""
@@ -59,7 +62,7 @@ function writeCachedStars(count: number): void {
 
 // Starring itself happens on GitHub (it needs the visitor's GitHub session);
 // the button shows the live count and opens the repository.
-onMounted(async () => {
+async function loadGithubStars(): Promise<void> {
   const cached = readCachedStars();
   if (cached && Date.now() - cached.fetchedAt < GITHUB_STARS_CACHE_TTL_MS) {
     githubStars.value = cached.count;
@@ -79,6 +82,11 @@ onMounted(async () => {
   } catch {
     /* offline or rate-limited: the button shows without a count */
   }
+}
+
+onMounted(async () => {
+  await loadGithubStars();
+  githubStarsSettled.value = true;
 });
 
 async function onLocaleChange(code: unknown) {
@@ -128,10 +136,15 @@ async function onLocaleChange(code: unknown) {
         {{ t("empty_layout.footer.github_star") }}
       </span>
       <span
-        v-if="githubStars !== null"
+        v-if="githubStars !== null || !githubStarsSettled"
         class="border-default flex items-center border-s px-2 font-mono tabular-nums"
       >
-        {{ formattedGithubStars }}
+        <USkeleton
+          v-if="githubStars === null"
+          aria-hidden="true"
+          class="h-2.5 w-6"
+        />
+        <template v-else>{{ formattedGithubStars }}</template>
       </span>
     </a>
 

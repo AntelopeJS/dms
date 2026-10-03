@@ -36,7 +36,13 @@ onMounted(refresh);
     <!-- Phones: the text keeps its place beside the icon, the button drops
          to a line of its own. -->
     <div class="flex flex-wrap items-center gap-3.5 px-[18px] py-3.5">
+      <USkeleton
+        v-if="!overview && !isUnavailable"
+        aria-hidden="true"
+        class="size-8 shrink-0 rounded-[9px]"
+      />
       <DmsIconWell
+        v-else
         :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
         :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
         size="sm"
@@ -63,7 +69,14 @@ onMounted(refresh);
         <template v-else-if="isUnavailable">
           {{ t("page.settings.profile.security_description") }}
         </template>
-        <USkeleton v-else class="h-4 w-80 max-w-full" />
+        <!-- Two lines of the text's line box: the summary runs to two
+             lines but on wide cards. -->
+        <div v-else aria-hidden="true">
+          <USkeleton class="inline-block h-3 w-full max-w-md align-middle" />
+          <USkeleton
+            class="inline-block h-3 w-2/3 align-middle @4xl/settings:hidden"
+          />
+        </div>
       </div>
       <UButton
         class="ms-auto shrink-0"

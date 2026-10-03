@@ -29,7 +29,7 @@ const GROUP_DESCRIPTIONS: Record<string, string> = {
 const OTHER_GROUP_DESCRIPTION = "$page.settings.overview.other_description";
 
 const { groups } = useSettingsNavigation();
-const { trails } = useSettingsNavTrails();
+const { trails, isTrailPending } = useSettingsNavTrails();
 const { processI18n } = useTranslation();
 const { t } = useI18n();
 
@@ -95,6 +95,7 @@ const previewVeilDetail = (fullId: string): string | undefined =>
             :badge="trails[page.fullId]?.tag"
             :state="trails[page.fullId]?.label ?? trails[page.fullId]?.badge"
             :state-tone="trails[page.fullId]?.status ?? 'neutral'"
+            :state-pending="isTrailPending(page.fullId)"
           />
         </DmsPermissionVeil>
       </div>

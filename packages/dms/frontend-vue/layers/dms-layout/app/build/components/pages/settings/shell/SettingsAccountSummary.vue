@@ -15,12 +15,17 @@ const isOwner = useIsOwner();
 const { $authFetch } = useAuthFetch();
 
 const twoFactor = ref<TwoFactorStatus | null>(null);
+// Fetched after mount: until it answers, its two rows show skeletons rather
+// than an "off" / "missing" that may be false.
+const isTwoFactorLoaded = ref(false);
 
 onMounted(async () => {
   try {
     twoFactor.value = await $authFetch<TwoFactorStatus>(TWO_FACTOR_ENDPOINT);
   } catch {
     twoFactor.value = null;
+  } finally {
+    isTwoFactorLoaded.value = true;
   }
 });
 
@@ -46,6 +51,7 @@ const accountItems = computed<KeyValueItem[]>(() => [
     id: "two-factor",
     label: t("page.settings.overview.two_factor"),
     value: twoFactorLabel.value,
+    loading: !isTwoFactorLoaded.value,
   },
   {
     id: "backup-codes",
@@ -54,6 +60,7 @@ const accountItems = computed<KeyValueItem[]>(() => [
       ? t("page.settings.overview.backup_codes_ready")
       : t("page.settings.overview.backup_codes_missing"),
     tone: twoFactor.value?.hasBackupCodes ? undefined : "warning",
+    loading: !isTwoFactorLoaded.value,
   },
   {
     id: "language",

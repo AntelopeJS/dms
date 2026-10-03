@@ -253,9 +253,10 @@ const filtersRowOpen = computed(
 
 const hasCustomSort = computed(() => !!tableSharedData?.hasCustomSort.value);
 
-// The offered displays and the group-by options arrive after hydration (the
-// display registry is client-only), so they are read from the live shared ref
-// rather than from the snapshot `useTableContext` returns.
+// The offered displays and the group-by options can change after setup (a
+// display registered from a `.client` plugin joins after hydration), so they
+// are read from the live shared ref rather than from the snapshot
+// `useTableContext` returns.
 const sharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const displays = computed(() => sharedDataRef?.value?.displays ?? []);
@@ -337,6 +338,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
         :icon="filter.icon"
         :label="quickFilterLabel(filter)"
         :aria-label="filter.label"
+        :disabled="filter.pending"
         :class="
           uiTableActions.quickFilter({
             quickFilterOn: !!quickFilterValues[filter.field],

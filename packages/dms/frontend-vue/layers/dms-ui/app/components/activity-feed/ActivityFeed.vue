@@ -58,6 +58,8 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
 });
 
 const SKELETON_ROWS = 3;
+// A day separator every few placeholder rows, the rhythm of a recent feed.
+const SKELETON_ROWS_PER_DAY = 3;
 const SKELETON_TITLE_WIDTHS = ["w-3/5", "w-1/2", "w-2/5"];
 
 type ActivityFeedResponse = ActivityFeedItem[] | { items?: ActivityFeedItem[] };
@@ -102,6 +104,23 @@ const metaOf = (item: ActivityFeedItem): string | undefined =>
     : undefined;
 
 const isFirstLoad = computed(() => isLoading.value && !entries.value.length);
+
+// The placeholder takes the feed's loaded shape: as many rows as it will show
+// (`maxItems`), under day separators when the entries are grouped by day.
+const skeletonDays = computed<number[][]>(() => {
+  const count = props.maxItems ?? SKELETON_ROWS;
+  const perDay = props.groupByDay ? SKELETON_ROWS_PER_DAY : count;
+  const days: number[][] = [];
+  for (let start = 0; start < count; start += perDay) {
+    days.push(
+      Array.from(
+        { length: Math.min(perDay, count - start) },
+        (_, offset) => start + offset,
+      ),
+    );
+  }
+  return days;
+});
 const hasError = computed(() => !!error.value && !entries.value.length);
 const viewAllText = computed(() =>
   props.viewAllLabel
@@ -134,21 +153,35 @@ const wrapperProps = computed(() =>
       />
     </template>
 
+    <!-- Rows at the loaded rows' boxes (a 18px title line over a 16px meta
+         line beside the 30px well), split by the same hairlines. -->
     <div v-if="isFirstLoad" class="py-1" aria-busy="true">
-      <div
-        v-for="row in SKELETON_ROWS"
-        :key="row"
-        class="flex items-start gap-3 px-[18px] py-2.5"
-      >
-        <USkeleton
-          class="size-[30px] shrink-0 rounded-lg bg-(--dms-skeleton)"
-        />
-        <div class="grid flex-1 gap-1.5 pt-0.5">
-          <USkeleton
-            class="h-3 bg-(--dms-skeleton)"
-            :class="SKELETON_TITLE_WIDTHS[row - 1]"
-          />
-          <USkeleton class="h-2.5 w-1/3 bg-(--dms-skeleton)" />
+      <div v-for="(day, dayIndex) in skeletonDays" :key="dayIndex">
+        <div
+          v-if="props.groupByDay"
+          class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
+        >
+          <USkeleton class="my-[1.5px] h-2.5 w-24 bg-(--dms-skeleton)" />
+        </div>
+        <div class="divide-y divide-(--ui-border-muted)">
+          <div
+            v-for="row in day"
+            :key="row"
+            class="flex items-start gap-3 px-[18px] py-2.5"
+          >
+            <USkeleton
+              class="size-[30px] shrink-0 rounded-lg bg-(--dms-skeleton)"
+            />
+            <div class="grid flex-1 gap-px">
+              <USkeleton
+                class="my-[3px] h-3 bg-(--dms-skeleton)"
+                :class="
+                  SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]
+                "
+              />
+              <USkeleton class="my-[3px] h-2.5 w-1/3 bg-(--dms-skeleton)" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
