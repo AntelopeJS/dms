@@ -173,8 +173,10 @@
     --ui-text-highlighted: #0b1114;
     --ui-text: #2a333b;
     --ui-text-toned: #3a4550;
-    --ui-text-muted: #5b6671;
-    --ui-text-dimmed: #8a949d;
+    /* Secondary text clears WCAG AA on every surface (cards, bands, canvas):
+       muted ≥ 7:1, dimmed ≥ 4.5:1, a step apart so the hierarchy holds. */
+    --ui-text-muted: #49525b;
+    --ui-text-dimmed: #666d74;
 
     /* Elevation (v2 --shadow-*, light) */
     --shadow-xs: 0 1px 0 rgb(11 17 20 / 0.04);
@@ -292,8 +294,9 @@
     --ui-text-highlighted: #eef3f6;
     --ui-text: #c7d0d8;
     --ui-text-toned: #a3aeb8;
-    --ui-text-muted: #7c8894;
-    --ui-text-dimmed: #5b6670;
+    /* Same AA scale as light: muted ≥ 7:1, dimmed ≥ 4.5:1 on every surface. */
+    --ui-text-muted: #9ea7b0;
+    --ui-text-dimmed: #7d868e;
 
     /* Elevation softer in dark; most depth comes from borders. */
     --shadow-xs: 0 1px 0 rgb(0 0 0 / 0.4);

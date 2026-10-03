@@ -68,7 +68,7 @@ export class PageFormRequired extends PageController(
   static form = Form({
     title: "Required fields",
     description:
-      "Submit it empty: every control shows its error. The username admin is taken (server-side error).",
+      "Type in any field, then validate: every other control shows its error. The username admin is taken (server-side error).",
     submitUrl: "/api/form-required/submit",
     submitLabel: "Validate",
     successMessage: "Every field is valid. Nothing was saved.",

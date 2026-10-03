@@ -39,12 +39,6 @@ export const useTableStates = (states: TableStates) => {
     );
   };
 
-  const resetFilters = () => {
-    states.columnFiltersState.value = states.columnFiltersState.value.map(
-      (filter) => ({ ...filter, value: filter.initialValue }),
-    );
-  };
-
   const deleteSorting = (index: number) => {
     states.sortingState.value = states.sortingState.value.filter(
       (_, i) => i !== index,
@@ -105,7 +99,6 @@ export const useTableStates = (states: TableStates) => {
   return {
     updateStateValue,
     deleteFilter,
-    resetFilters,
     deleteSorting,
     stateHandlers,
     stateGetters,

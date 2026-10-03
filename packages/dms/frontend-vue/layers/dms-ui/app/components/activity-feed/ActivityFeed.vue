@@ -30,6 +30,12 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   groupByDay?: boolean;
   /** Shows at most this many entries. */
   maxItems?: number;
+  /**
+   * Placeholder rows while `fetchUrl` loads: the length the source usually
+   * answers, never more than `maxItems`. Optional. Defaults to `maxItems`,
+   * or 3.
+   */
+  skeletonCount?: number;
   /** "View all" link in the card head. */
   viewAllTo?: string;
   viewAllLabel?: string;
@@ -49,6 +55,7 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   fetchUrlMethod: undefined,
   groupByDay: true,
   maxItems: undefined,
+  skeletonCount: undefined,
   viewAllTo: undefined,
   viewAllLabel: undefined,
   emptyTitle: undefined,
@@ -106,9 +113,11 @@ const metaOf = (item: ActivityFeedItem): string | undefined =>
 const isFirstLoad = computed(() => isLoading.value && !entries.value.length);
 
 // The placeholder takes the feed's loaded shape: as many rows as it will show
-// (`maxItems`), under day separators when the entries are grouped by day.
+// (`skeletonCount`, else `maxItems`; never more than `maxItems`), under day
+// separators when the entries are grouped by day.
 const skeletonDays = computed<number[][]>(() => {
-  const count = props.maxItems ?? SKELETON_ROWS;
+  const wanted = props.skeletonCount ?? props.maxItems ?? SKELETON_ROWS;
+  const count = props.maxItems ? Math.min(wanted, props.maxItems) : wanted;
   const perDay = props.groupByDay ? SKELETON_ROWS_PER_DAY : count;
   const days: number[][] = [];
   for (let start = 0; start < count; start += perDay) {

@@ -41,7 +41,9 @@
       "filter_accessor": "Colonnes à filtrer",
       "filter_comparator": "Mode de comparaison",
       "filter_value": "Saisir une valeur",
-      "delete_filters": "Supprimer les filtres",
+      "clear_filters": "Effacer les filtres",
+      "clear_search": "Effacer la recherche",
+      "clear_filters_and_search": "Effacer les filtres et la recherche",
       "add_filter": "Ajouter un filtre",
       "between_separator": "et",
       "link_copied": "Lien copié !",
@@ -142,7 +144,18 @@
       "cell": {
         "now": "Maintenant",
         "by": "{date} · par {name}"
-      }
+      },
+      "bulk_refused": {
+        "delete": "Cet élément n’a pas pu être supprimé. | Ces {count} éléments n’ont pas pu être supprimés.",
+        "archive": "Cet élément n’a pas pu être archivé. | Ces {count} éléments n’ont pas pu être archivés.",
+        "restore": "Cet élément n’a pas pu être restauré. | Ces {count} éléments n’ont pas pu être restaurés."
+      },
+      "bulk_partial": {
+        "delete": "{failed} élément sur {total} n’a pas pu être supprimé. | {failed} éléments sur {total} n’ont pas pu être supprimés.",
+        "archive": "{failed} élément sur {total} n’a pas pu être archivé. | {failed} éléments sur {total} n’ont pas pu être archivés.",
+        "restore": "{failed} élément sur {total} n’a pas pu être restauré. | {failed} éléments sur {total} n’ont pas pu être restaurés."
+      },
+      "bulk_refused_reason": "Ses règles n’autorisent pas cette action, ou elle a déjà été effectuée. | Leurs règles n’autorisent pas cette action, ou elle a déjà été effectuée."
     },
     "table_form": {
       "edit_title": "Modifier l'élément",
@@ -162,7 +175,27 @@
       "last_page": "Dernière page"
     },
     "sort": {
-      "no_sorting": "Aucun tri n'est appliqué"
+      "no_sorting": "Aucun tri n'est appliqué",
+      "reset_title": "Tri désactivé",
+      "reset_description": "Cette liste ne peut plus être triée par {column}.",
+      "default_sort": "Tri par défaut",
+      "sorted_by": "Trié par :",
+      "default_suffix": "par défaut",
+      "reset_default": "Revenir au tri par défaut",
+      "direction": {
+        "number": {
+          "asc": "du plus petit au plus grand",
+          "desc": "du plus grand au plus petit"
+        },
+        "date": {
+          "asc": "du plus ancien au plus récent",
+          "desc": "du plus récent au plus ancien"
+        },
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        }
+      }
     },
     "button": {
       "copy": "Copier",
@@ -592,6 +625,12 @@
       "error_description": "Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer"
     },
+    "leave_guard": {
+      "title": "Abandonner les modifications non enregistrées ?",
+      "description": "Vous perdrez vos modifications si vous quittez sans enregistrer.",
+      "keep_editing": "Continuer l’édition",
+      "discard": "Abandonner les modifications"
+    },
     "save_bar": {
       "unsaved": "Modifications non enregistrées",
       "discard": "Annuler",
@@ -606,6 +645,10 @@
       "load_error": "Impossible de charger ce bloc",
       "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer"
+    },
+    "action_error": {
+      "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",
+      "generic": "Une erreur est survenue et l’action n’a pas pu aboutir. Réessayez."
     }
   }
 }

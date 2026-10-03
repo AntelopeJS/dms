@@ -3,6 +3,7 @@ import type {
   ColumnMeta,
   ColumnPinningPosition,
   SortDirection,
+  Table,
 } from "@tanstack/vue-table";
 import type {
   Data,
@@ -39,23 +40,36 @@ import {
 } from "../table-view/useTableViewConfig";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import {
+  type DefaultSortConfig,
+  type HeaderSortCue,
+  headerSortCue,
+  isDefaultSorting,
+} from "../table-view/utils/sortableColumns";
 
 const SORT_DIRECTION_ICON: Record<SortDirection, string> = {
   asc: "i-ph-arrow-up",
   desc: "i-ph-arrow-down",
 };
 
-// v2 sortable header: the label is the sort button; its arrow stays hidden
-// until the header is hovered, and turns accent once the column is sorted.
+// v2 sortable header: the label is the sort button. Its sort icon is always
+// drawn (touch has no hover), in the same 12px box whatever its state, so the
+// header never shifts: a neutral ↕ until sorted, the default sort's arrow in
+// neutral grey, the user's sort arrow in accent with an emphasised title.
+// A column that cannot be sorted shows its title alone.
 const SORTABLE_LABEL_CLASS =
-  "-mx-1.5 inline-flex min-w-0 items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
+  "group/sort -mx-1.5 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded-[5px] px-1.5 py-[3px] uppercase transition-colors hover:bg-elevated hover:text-default";
 // A label wider than its column ends in an ellipsis and reads in full in its
 // tooltip.
 const HEADER_LABEL_CLASS = "truncate";
-const SORTABLE_LABEL_ACTIVE_CLASS = "text-primary hover:text-primary";
-const SORT_HINT_ICON = "i-ph-arrow-down";
-const SORT_HINT_CLASS =
-  "size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-60";
+// The header font is monospaced: the bolder title keeps its width.
+const SORTABLE_LABEL_ACTIVE_CLASS = "font-bold text-highlighted";
+const SORT_IDLE_ICON = "i-ph-caret-up-down";
+const SORT_ICON_BOX_CLASS = "inline-flex size-3 shrink-0";
+const SORT_IDLE_ICON_CLASS =
+  "size-3 shrink-0 text-dimmed transition-colors group-hover/sort:text-highlighted";
+const SORT_DEFAULT_ICON_CLASS =
+  "size-3 shrink-0 text-muted transition-colors group-hover/sort:text-highlighted";
 
 const ACTIONS_COLUMN_BASE_SIZE = 55;
 const ACTIONS_COLUMN_BUTTON_SIZE = 36;
@@ -143,6 +157,8 @@ interface ColumnConfig<T> {
   showArchived?: Ref<boolean>;
   /** Column header menus (sort, hide, pin). Defaults to true. */
   columnMenus?: boolean;
+  /** The table's default sort: its column shows a neutral arrow. */
+  defaultSort?: DefaultSortConfig;
 }
 
 interface ExtendedColumnMeta<T> extends ColumnMeta<T, unknown> {
@@ -175,10 +191,18 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       renderColumnValue(col, row.original as Record<string, unknown>);
 
   const buildHeaderRenderer = (label: string) => {
-    return ({ column }: { column: Column<T> }) => {
+    return ({ column, table }: { column: Column<T>; table: Table<T> }) => {
       const isPinned = column.getIsPinned();
       const isSorted = column.getIsSorted();
-      return createColumnHeader(column, label, isPinned, isSorted);
+      const cue = headerSortCue({
+        canSort: column.getCanSort(),
+        sorted: isSorted,
+        isDefaultSorting: isDefaultSorting(
+          table.getState().sorting,
+          config.defaultSort,
+        ),
+      });
+      return createColumnHeader(column, label, isPinned, isSorted, cue);
     };
   };
 
@@ -742,10 +766,47 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     (column.columnDef.meta as ExtendedColumnMeta<T> | undefined)?.align ===
     "right";
 
+  // Same cycle as the toolbar sort menu: ascending, descending, then off. The
+  // list route sorts on one column, so a new column replaces the current sort.
+  const cycleSorting = (column: Column<T>, isSorted: false | SortDirection) => {
+    if (isSorted === "desc") {
+      column.clearSorting();
+      return;
+    }
+    column.toggleSorting(isSorted === "asc", false);
+  };
+
+  const renderSortIcon = (
+    cue: HeaderSortCue,
+    isSorted: false | SortDirection,
+    Icon: ReturnType<typeof resolveComponent>,
+  ) => {
+    if (cue === "active" && isSorted) {
+      return h(Icon, {
+        name: SORT_DIRECTION_ICON[isSorted],
+        class: config.ui.value.columnActiveSortIcon(),
+      });
+    }
+    if (cue === "default" && isSorted) {
+      return h(
+        "span",
+        { class: SORT_ICON_BOX_CLASS, title: t("dms.sort.default_sort") },
+        [
+          h(Icon, {
+            name: SORT_DIRECTION_ICON[isSorted],
+            class: SORT_DEFAULT_ICON_CLASS,
+          }),
+        ],
+      );
+    }
+    return h(Icon, { name: SORT_IDLE_ICON, class: SORT_IDLE_ICON_CLASS });
+  };
+
   const renderSortableLabel = (
     column: Column<T>,
     label: string,
     isSorted: false | SortDirection,
+    cue: HeaderSortCue,
     Icon: ReturnType<typeof resolveComponent>,
   ) => {
     const labelNode = h(
@@ -753,25 +814,24 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       { class: HEADER_LABEL_CLASS, title: label },
       label,
     );
-    if (!column.getCanSort()) return labelNode;
-    const icon = isSorted
-      ? h(Icon, {
-          name: SORT_DIRECTION_ICON[isSorted],
-          class: config.ui.value.columnActiveSortIcon(),
-        })
-      : h(Icon, { name: SORT_HINT_ICON, class: SORT_HINT_CLASS });
+    if (cue === "none") return labelNode;
     return h(
       "button",
       {
         type: "button",
         class: [
           SORTABLE_LABEL_CLASS,
-          isSorted && SORTABLE_LABEL_ACTIVE_CLASS,
+          cue === "active" && SORTABLE_LABEL_ACTIVE_CLASS,
           isRightAligned(column) && RIGHT_ALIGNED_LABEL_CLASS,
         ],
-        onClick: () => column.toggleSorting(isSorted === "asc"),
+        onClick: () => cycleSorting(column, isSorted),
       },
-      [labelNode, icon],
+      [
+        labelNode,
+        renderSortIcon(cue, isSorted, Icon),
+        cue === "default" &&
+          h("span", { class: "sr-only" }, t("dms.sort.default_sort")),
+      ],
     );
   };
 
@@ -780,6 +840,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     label: string,
     isPinned: ColumnPinningPosition,
     isSorted: false | SortDirection,
+    cue: HeaderSortCue,
   ) => {
     const Icon = resolveComponent("Icon");
 
@@ -793,7 +854,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
             isRightAligned(column) && RIGHT_ALIGNED_HEADER_CLASS,
           ],
         },
-        [renderSortableLabel(column, label, isSorted, Icon)],
+        [renderSortableLabel(column, label, isSorted, cue, Icon)],
       );
     }
 
@@ -817,7 +878,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
         ],
       },
       [
-        renderSortableLabel(column, label, isSorted, Icon),
+        renderSortableLabel(column, label, isSorted, cue, Icon),
         h(
           DropdownMenu as Component,
           {

@@ -5,6 +5,7 @@ import type { ModalSize } from "../../../../types/modal";
 import type { ContainerColor } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
+import { DMS_CONTAINER_KEY } from "../../../../composables/containers/context";
 
 interface DynamicModalProps {
   title: string;
@@ -76,6 +77,9 @@ const resolvedSize = computed(() => {
 const modalUi = computed(() => ({
   content: SIZE_CONTENT[resolvedSize.value],
   header: "border-b border-default pb-4 shrink-0",
+  // The body's bottom and side padding: a form's sticky footer sits flush
+  // with the modal's edges (see Form.vue).
+  body: "[--dms-form-foot-pb:1.25rem] [--dms-form-foot-px:1.25rem]",
 }));
 
 const { executeGuards, clearGuards } = useLeaveGuard();
@@ -101,6 +105,22 @@ async function tryClose() {
   await closePromise;
   closePromise = null;
 }
+
+// A form in the body closes through the guards (its Cancel button) and
+// registers its own under this id, whatever component wraps it.
+provide(DMS_CONTAINER_KEY, { id: props.containerId, close: tryClose });
+
+// Another page (Back, a link): the modal belongs to the one left. Its
+// unsaved changes were already confirmed by the navigation guard.
+const route = useDmsRoute();
+watch(
+  () => route.path,
+  () => {
+    clearGuards(props.containerId);
+    isOpen.value = false;
+    emit("close");
+  },
+);
 
 function handleSuccess(result?: unknown) {
   clearGuards(props.containerId);

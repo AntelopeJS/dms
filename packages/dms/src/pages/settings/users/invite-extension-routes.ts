@@ -1,9 +1,6 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
-import {
-  type DataControllerCallback,
-  DefaultRoutes,
-} from "@antelopejs/interface-data-api";
+import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
@@ -90,7 +87,7 @@ export async function editPendingInvite(
 }
 
 const editInviteWithExtensions: DataControllerCallback = {
-  ...DefaultRoutes.Edit,
+  ...TableViewRoutes.PartialEdit,
   func: function (
     this: unknown,
     ctx: RequestContext,
@@ -101,7 +98,7 @@ const editInviteWithExtensions: DataControllerCallback = {
       getRequestTenantId(ctx),
       String(params.id),
       parseEditBody(body),
-      () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
+      () => TableViewRoutes.PartialEdit.func.call(this, ctx, params, body),
     );
   },
 };

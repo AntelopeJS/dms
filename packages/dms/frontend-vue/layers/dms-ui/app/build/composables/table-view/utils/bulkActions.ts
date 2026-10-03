@@ -1,4 +1,7 @@
-import type { ConfirmColor } from "../../../../composables/confirm/types";
+import type {
+  ConfirmColor,
+  ConfirmNotice,
+} from "../../../../composables/confirm/types";
 
 /**
  * Query key naming the table view a write comes from: the server applies that
@@ -124,4 +127,37 @@ export function bulkActionOutcome(
   const processed =
     count === undefined ? requested : Math.min(Math.max(count, 0), requested);
   return { processed, skipped: requested - processed };
+}
+
+/** The bulk routes whose outcome counts the rows they reached. */
+export type BulkActionKind = "delete" | "archive" | "restore";
+
+/**
+ * What a bulk action says when rows were left out (a row rule refused them,
+ * or they were already gone): how many of the selection, and why. Undefined
+ * when every row went through. The server gives no reason per row, so the
+ * reason is the one rows are skipped for.
+ */
+export function bulkActionShortfall(
+  action: BulkActionKind,
+  outcome: BulkActionOutcome,
+  t: PluralTranslate,
+): ConfirmNotice | undefined {
+  const { processed, skipped } = outcome;
+  if (skipped === 0) return undefined;
+  return {
+    title:
+      processed === 0
+        ? t(`dms.table.bulk_refused.${action}`, { count: skipped }, skipped)
+        : t(
+            `dms.table.bulk_partial.${action}`,
+            { failed: skipped, total: processed + skipped },
+            skipped,
+          ),
+    description: t(
+      "dms.table.bulk_refused_reason",
+      { count: skipped },
+      skipped,
+    ),
+  };
 }

@@ -17,6 +17,20 @@ const refresh = vi.fn(async () => {});
 const authFetch = vi.fn();
 const addToast = vi.fn();
 
+// The leave guard needs the app (router, confirm dialog): the dirty state only.
+vi.mock(
+  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
+  async () => {
+    const { computed, toValue } = await import("vue");
+    return {
+      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
+        isDirty: computed(() => !!toValue(options.dirty)),
+        confirmLeave: async () => true,
+      }),
+    };
+  },
+);
+
 vi.mock(
   "../layers/dms-layout/app/composables/settings/security/useSecurityOverview",
   () => ({

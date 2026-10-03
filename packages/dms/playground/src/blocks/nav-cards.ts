@@ -108,5 +108,7 @@ export class PageBlocksNavCards extends PageController("blocks-nav-cards", {
     title: "Workspace (live)",
     description: "Cards and their states come from /api/blocks/shortcuts.",
     fetchUrl: "/api/blocks/shortcuts",
+    // The route answers 3 cards: the skeleton draws as many, on every width.
+    skeletonCount: 3,
   });
 }

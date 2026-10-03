@@ -52,6 +52,14 @@ export interface ActivityFeedProps extends BaseComponentProps {
   groupByDay?: boolean;
   /** Shows at most this many entries. */
   maxItems?: number;
+  /**
+   * How many placeholder rows the feed draws while `fetchUrl` loads: the
+   * number of entries the route usually answers, so the card keeps its height
+   * when they land. Never more than `maxItems`.
+   *
+   * Optional. Defaults to `maxItems`, or 3.
+   */
+  skeletonCount?: number;
   /** "View all" link in the card head. */
   viewAllTo?: string;
   viewAllLabel?: string;
@@ -150,6 +158,21 @@ export const ActivityFeedSchema = z.object({
     widget: "number",
     min: 1,
   }),
+  skeletonCount: ui(
+    z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe("Placeholder rows drawn while the data source loads."),
+    {
+      label: "Loading placeholders",
+      group: "data",
+      widget: "number",
+      min: 1,
+      advanced: true,
+    },
+  ),
   viewAllTo: ui(z.string().optional(), {
     label: "View all link",
     group: "content",

@@ -39,6 +39,20 @@ const passthrough = defineComponent({
       h("div", slots.default?.()),
 });
 
+// The leave guard needs the app (router, confirm dialog): the dirty state only.
+vi.mock(
+  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
+  async () => {
+    const { computed, toValue } = await import("vue");
+    return {
+      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
+        isDirty: computed(() => !!toValue(options.dirty)),
+        confirmLeave: async () => true,
+      }),
+    };
+  },
+);
+
 vi.mock("@nuxt/ui/components/Button.vue", () => ({ default: passthrough }));
 vi.mock("@nuxt/ui/components/FormField.vue", () => ({ default: passthrough }));
 vi.mock("@nuxt/ui/components/Select.vue", () => ({ default: passthrough }));

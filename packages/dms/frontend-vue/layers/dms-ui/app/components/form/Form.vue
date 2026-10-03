@@ -19,10 +19,13 @@ import DmsSaveBar from "../save-bar/SaveBar.vue";
 import type { ZodErrorMap } from "zod";
 import {
   formIssueMessage,
-  isBlankValue,
   REQUIRED_MESSAGE,
 } from "#dms-core/app/composables/useFormValidation";
 import { validateFormState } from "../../composables/form/formValidation";
+import { DMS_CONTAINER_KEY } from "../../composables/containers/context";
+import { sameFormValue } from "../../composables/unsaved-changes/formValue";
+import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
+import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -171,7 +174,7 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
-} = useForm(props, { showFieldErrors });
+} = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
 watch(
   state,
@@ -246,22 +249,12 @@ watch(
   { deep: true, immediate: true },
 );
 
-const { addGuard } = useLeaveGuard();
-const { confirm } = useConfirm();
 const { t, locale, locales } = useI18n();
 
 const submitButtonLabel = computed(() =>
   props.submitLabel
     ? processI18n(props.submitLabel)
     : t("dms.button.save_changes"),
-);
-
-const isDirty = ref(false);
-watch(
-  () => form.value?.dirty,
-  (dirty) => {
-    if (dirty !== undefined) isDirty.value = dirty;
-  },
 );
 
 watch(disabledFields, (newDisabled, oldDisabled) => {
@@ -284,25 +277,101 @@ watch(hiddenFields, (newHidden, oldHidden) => {
   }
 });
 
-async function unsavedChangesGuard() {
-  if (submitSucceeded.value || !isDirty.value) {
-    return true;
-  }
+// The drawer or modal this form sits in, even when a component of the
+// caller's wraps it (only the container's root gets `containerId`).
+const container = inject(DMS_CONTAINER_KEY, undefined);
+const containerId = props.containerId ?? container?.id;
 
-  return await confirm({
-    title: t("dms.confirm.unsaved_changes_title"),
-    description: t("dms.confirm.unsaved_changes_description"),
-    confirmLabel: t("dms.confirm.discard"),
-    cancelLabel: t("dms.confirm.stay"),
-    confirmColor: "error",
-  });
+/** The value of every field, by id: what "unsaved changes" compares. */
+function fieldValues(): Record<string, unknown> {
+  return Object.fromEntries(
+    toValue(allFields).map((field) => [field.id, state.value[field.id]]),
+  );
 }
 
-if (props.containerId) {
-  addGuard(props.containerId, unsavedChangesGuard);
-} else {
-  const { registerGuard } = usePageLeaveGuard();
-  registerGuard(unsavedChangesGuard);
+// Dirty while a field's value differs from the one the form loaded or last
+// saved; putting the original value back makes it clean again.
+const formDirty = useFormDirty(fieldValues);
+// Until the user acts on the form, a control settling its value (a picker
+// mapping what was loaded, an editor normalising its markup) sets the
+// starting point instead of reading as a change.
+let isTouched = false;
+watch(
+  fieldValues,
+  () => {
+    if (!isTouched) formDirty.markClean();
+  },
+  { deep: true },
+);
+const TOUCH_EVENTS = ["pointerdown", "keydown", "input", "paste", "drop"];
+function markTouched(): void {
+  isTouched = true;
+}
+onMounted(() => {
+  const element = form.value?.$el as HTMLElement | undefined;
+  for (const type of TOUCH_EVENTS) {
+    element?.addEventListener?.(type, markTouched, { capture: true });
+  }
+});
+
+/** The current values become the saved ones: nothing left unsaved. */
+function markFormClean(): void {
+  isTouched = false;
+  formDirty.markClean();
+}
+
+/** Discard: every field back to the value it opened with. */
+function discardChanges(): void {
+  reset(form.value);
+  markFormClean();
+}
+
+const changedFields = computed(() =>
+  toValue(allFields).filter(
+    (field) =>
+      !sameFormValue(state.value[field.id], formDirty.baseline.value[field.id]),
+  ),
+);
+// Only a form someone can save has unsaved changes to speak of.
+const canSave = computed(() => showActions.value || !!props.saveBar);
+const isDirty = computed(() => canSave.value && changedFields.value.length > 0);
+
+useUnsavedChanges({ dirty: isDirty, containerId, element: form });
+
+const router = useDmsRouter();
+const route = useDmsRoute();
+const findPage = inFormContainer
+  ? undefined
+  : useSiteLayout().findMatchingRoute;
+
+/** The closest page above the current one (a form page's list). */
+function parentPagePath(): string {
+  const segments = route.path.split("/").filter(Boolean);
+  while (segments.length > 1) {
+    segments.pop();
+    const path = `/${segments.join("/")}`;
+    if (findPage?.(path)) return path;
+  }
+  return "/";
+}
+
+/**
+ * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
+ * form for the page the user came from (its list, when opened from one), or
+ * the page above it when the form was opened directly.
+ */
+function cancelForm(): void {
+  if (container) {
+    void container.close();
+    return;
+  }
+  const navigation = (window as { navigation?: { canGoBack?: boolean } })
+    .navigation;
+  if (navigation?.canGoBack ?? window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  void router.push(parentPagePath());
 }
 
 const validators = new Set<FormValidator>();
@@ -375,6 +444,9 @@ if (props.fetchUrl) {
   }
 }
 
+// Loaded (or filled with its defaults): this is what the form starts from.
+markFormClean();
+
 type FormOrientation = "horizontal" | "vertical";
 type FormSurface = "card" | "container" | "section";
 
@@ -412,6 +484,10 @@ const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
 
 // A card form draws its own head band and sticky footer band; inside a
 // modal or drawer the container is the surface and already pads the body.
+// The footer sticks to the bottom of the scroll area while the form runs
+// past it, and sits under the fields when it fits. In a container it
+// reaches over the scroll area's padding (`--dms-form-foot-*`, set by the
+// drawer and the modal) to sit flush with its edges.
 const FORM_SURFACE_CLASSES: Record<FormSurface, FormSurfaceClasses> = {
   card: {
     head: "border-default border-b px-5 py-4.5",
@@ -423,7 +499,7 @@ const FORM_SURFACE_CLASSES: Record<FormSurface, FormSurfaceClasses> = {
     head: "border-default border-b pb-4",
     body: "",
     legend: "pb-2",
-    foot: "border-default mt-2 border-t pt-4",
+    foot: "border-default bg-default sticky bottom-[calc(var(--dms-form-foot-pb,0px)*-1)] z-10 mt-2 -mx-[var(--dms-form-foot-px,0px)] -mb-[var(--dms-form-foot-pb,0px)] border-t px-[var(--dms-form-foot-px,0px)] pt-3 pb-[var(--dms-form-foot-pb,12px)]",
   },
   // The rows carry the 18px inset so their hairlines run edge to edge.
   section: {
@@ -471,17 +547,11 @@ const wrapperProps =
 // The save bar names what changed: the fields whose value moved off the one the
 // form loaded (or last saved — a successful submit snapshots it).
 const formElementId = `dms-form-${props.componentId}`;
-const changedFieldLabels = computed<string[]>(() => {
-  if (!props.saveBar) return [];
-  return toValue(allFields)
-    .filter((field) => {
-      const current = state.value[field.id];
-      const initial = initialValues.value?.[field.id];
-      if (isBlankValue(current) && isBlankValue(initial)) return false;
-      return JSON.stringify(current) !== JSON.stringify(initial);
-    })
-    .map((field) => field.label || field.id);
-});
+const changedFieldLabels = computed<string[]>(() =>
+  props.saveBar
+    ? changedFields.value.map((field) => field.label || field.id)
+    : [],
+);
 
 function groupFieldsClass(group: FieldGroup): string {
   return GROUP_FIELDS_CLASSES[
@@ -630,6 +700,8 @@ const handleDiscardAndRefresh = async () => {
   if (fresh && Object.keys(fresh).length > 0) {
     Object.assign(state.value, fresh);
   }
+  // The refreshed row is the new starting point: nothing unsaved.
+  markFormClean();
   showConcurrentEditBanner.value = false;
 };
 
@@ -873,48 +945,66 @@ onUnmounted(async () => {
         </p>
       </div>
 
+      <!-- A page form's bar (v2 save bar, or the footer band) holds its place
+        while hidden, so its showing up never moves anything. -->
+      <!-- Wherever the form is, its footer always shows: Cancel while there
+        is nothing to save (closing the drawer or modal, or back to the
+        previous page), "Unsaved changes" with Discard and Save once there is.
+        Same height in both states: only the content changes. -->
       <DmsSaveBar
-        v-if="props.saveBar"
-        :dirty="changedFieldLabels.length > 0"
+        v-if="props.saveBar && !inFormContainer"
+        :dirty="isDirty"
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
         :save-label="props.submitLabel"
-        :class="inFormContainer ? 'mb-0' : 'mx-3 mb-3'"
-        @discard="reset(form)"
+        cancellable
+        class="mx-3 mb-3"
+        @discard="discardChanges"
+        @cancel="cancelForm"
       />
       <footer
-        v-else-if="showActions"
+        v-else-if="canSave"
         class="flex items-center gap-2"
         :class="surfaceClasses.foot"
       >
-        <span
-          v-if="isDirty"
-          class="text-muted inline-flex items-center gap-2 text-[12.5px]"
-        >
+        <template v-if="isDirty">
           <span
-            class="bg-warning ring-warning/15 size-[7px] rounded-full ring-3"
-            aria-hidden="true"
-          />
-          {{ $t("dms.form.unsaved_changes") }}
-        </span>
-        <div class="ms-auto flex gap-2">
-          <UButton
-            :label="$t('dms.button.reset')"
-            :loading="loading || isAnyFieldLoading"
-            variant="outline"
-            color="neutral"
-            type="reset"
-            size="lg"
-            @click="reset(form)"
-          />
-          <UButton
-            :label="submitButtonLabel"
-            :loading="loading || isAnyFieldLoading"
-            type="submit"
-            size="lg"
-          />
-        </div>
+            class="text-muted inline-flex min-w-0 items-center gap-2 text-[12.5px]"
+            role="status"
+          >
+            <span
+              class="bg-warning ring-warning/15 size-[7px] shrink-0 rounded-full ring-3"
+              aria-hidden="true"
+            />
+            <span class="truncate">{{ $t("dms.save_bar.unsaved") }}</span>
+          </span>
+          <div class="ms-auto flex shrink-0 gap-2">
+            <UButton
+              :label="$t('dms.save_bar.discard')"
+              :disabled="loading || isAnyFieldLoading"
+              variant="outline"
+              color="neutral"
+              size="lg"
+              @click="discardChanges"
+            />
+            <UButton
+              :label="submitButtonLabel"
+              :loading="loading || isAnyFieldLoading"
+              type="submit"
+              size="lg"
+            />
+          </div>
+        </template>
+        <UButton
+          v-else
+          :label="$t('dms.button.cancel')"
+          variant="outline"
+          color="neutral"
+          size="lg"
+          class="ms-auto"
+          @click="cancelForm"
+        />
       </footer>
     </UForm>
   </component>

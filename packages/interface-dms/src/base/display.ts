@@ -89,6 +89,17 @@ export interface BlockItemsSource {
   fetchUrlMethod?: EnumOption<HttpMethod>;
   /** Title of the empty state, when there is nothing to show. */
   emptyLabel?: string;
+  /**
+   * How many placeholder rows, cells or cards the block draws while
+   * `fetchUrl` loads. The block cannot know the length of a list it has not
+   * read yet: set it to the length the route usually answers, so the block
+   * keeps its height when the items land. A count, not a height, so it holds
+   * at every width.
+   *
+   * Optional. Defaults to `columns`, or 4 (StatStrip); 5 (KeyValueList);
+   * `columns`, or 3 (NavCardGrid).
+   */
+  skeletonCount?: number;
 }
 
 export const blockItemsSourceOptions = () => ({
@@ -109,5 +120,20 @@ export const blockItemsSourceOptions = () => ({
   emptyLabel: ui(
     z.string().optional().describe("Shown when there is nothing to list."),
     { label: "Empty message", group: "content" },
+  ),
+  skeletonCount: ui(
+    z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe("Placeholder items drawn while the data source loads."),
+    {
+      label: "Loading placeholders",
+      group: "data",
+      widget: "number",
+      min: 1,
+      advanced: true,
+    },
   ),
 });

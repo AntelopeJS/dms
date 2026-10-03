@@ -100,6 +100,8 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
   static live = StatStrip({
     layout: "cards",
     fetchUrl: "/api/blocks/stats",
+    // The route answers 4 figures: the skeleton draws as many cells.
+    skeletonCount: 4,
   });
 
   static failing = StatStrip({

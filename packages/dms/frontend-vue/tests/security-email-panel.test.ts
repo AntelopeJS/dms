@@ -21,6 +21,20 @@ const refreshSession = vi.fn(async () => {});
 const authFetch = vi.fn();
 const addToast = vi.fn();
 
+// The leave guard needs the app (router, confirm dialog): the dirty state only.
+vi.mock(
+  "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges",
+  async () => {
+    const { computed, toValue } = await import("vue");
+    return {
+      useUnsavedChanges: (options: { dirty: () => boolean }) => ({
+        isDirty: computed(() => !!toValue(options.dirty)),
+        confirmLeave: async () => true,
+      }),
+    };
+  },
+);
+
 vi.mock(
   "../layers/dms-layout/app/composables/settings/security/useSecurityOverview",
   () => ({
@@ -230,8 +244,8 @@ it("validates the address inline once the field is left", async () => {
 it("flags every empty field on submit, focuses the first and sends nothing", async () => {
   await mountEmail();
   await openPanel();
-  // The submit stays enabled: the check runs on submit.
-  expect(submitButton()?.disabled).toBe(false);
+  // Nothing typed, nothing to submit: only Cancel shows.
+  expect(submitButton()).toBeFalsy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();
 
   form()!.dispatchEvent(new Event("submit"));
@@ -248,6 +262,7 @@ it("flags every empty field on submit, focuses the first and sends nothing", asy
 
   // Each message goes away once its field is filled.
   await type(emailInput(), "new@example.com");
+  expect(submitButton()).toBeTruthy();
   expect(host.querySelector("#security-new-email-error")).toBeNull();
   form()!.dispatchEvent(new Event("submit"));
   await flush();

@@ -385,6 +385,28 @@ export async function fetchRowForGuard(
   return row;
 }
 
+// A rule names table fields, computed ones included (an invitation's `status`
+// is a getter over `expiresAt`): read each row the way the list reads it
+// before evaluating the rule, so the server and the screen judge the same
+// values. The raw columns stay underneath for fields the read leaves out.
+async function readRuleRow(
+  controller: any,
+  controllerMetadata: DataAPIMeta,
+  model: ReturnType<typeof Query.GetModel>,
+  row: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  try {
+    const read = await Query.ReadProperties(
+      controller,
+      controllerMetadata,
+      (model.constructor as any).fromDatabase(row),
+    );
+    return { ...row, ...(read as Record<string, unknown>) };
+  } catch {
+    return row;
+  }
+}
+
 export async function validateRowsAgainstRule(
   controller: any,
   ids: string[],
@@ -405,7 +427,12 @@ export async function validateRowsAgainstRule(
   const rejectedIds: string[] = [];
 
   for (const row of rows) {
-    const rowData = row as Record<string, unknown>;
+    const rowData = await readRuleRow(
+      controller,
+      controllerMetadata,
+      model,
+      row as Record<string, unknown>,
+    );
     const rowId = String(rowData[idField]);
 
     if (evaluateRowActionRule(rule, rowData)) {

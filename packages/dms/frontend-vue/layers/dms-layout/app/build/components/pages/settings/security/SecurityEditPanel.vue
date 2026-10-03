@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
+import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 
 interface SecurityEditPanelProps {
   /** Id of the form; the trigger and the panel ids derive from it. */
@@ -19,6 +20,12 @@ interface SecurityEditPanelProps {
   triggerDisabled?: boolean;
   /** Tooltip explaining why the trigger is disabled. */
   disabledReason?: string;
+  /**
+   * Whether the fields hold something not submitted yet: the submit button
+   * and "Unsaved changes" show only then, and closing the panel (Cancel,
+   * Escape) or leaving the page asks first.
+   */
+  dirty?: boolean;
 }
 
 interface SecurityEditPanelSlots {
@@ -34,6 +41,7 @@ const props = withDefaults(defineProps<SecurityEditPanelProps>(), {
   loading: false,
   triggerDisabled: false,
   disabledReason: undefined,
+  dirty: false,
 });
 defineSlots<SecurityEditPanelSlots>();
 
@@ -71,7 +79,12 @@ watch(
   { flush: "post" },
 );
 
-function cancel(): void {
+const { isDirty, confirmLeave } = useUnsavedChanges({
+  dirty: () => isOpen.value && props.dirty,
+});
+
+async function cancel(): Promise<void> {
+  if (!(await confirmLeave())) return;
   isOpen.value = false;
 }
 
@@ -129,6 +142,17 @@ watch(isOpen, async (value, previous) => {
         <slot />
         <div class="col-span-full flex flex-wrap items-center gap-2.5">
           <slot name="footer" />
+          <span
+            v-if="isDirty"
+            class="text-muted inline-flex items-center gap-2 text-[12.5px]"
+            role="status"
+          >
+            <span
+              class="bg-warning ring-warning/15 size-[7px] shrink-0 rounded-full ring-3"
+              aria-hidden="true"
+            />
+            {{ t("dms.save_bar.unsaved") }}
+          </span>
           <div class="ms-auto flex items-center gap-2">
             <UButton
               color="neutral"
@@ -137,6 +161,7 @@ watch(isOpen, async (value, previous) => {
               @click="cancel"
             />
             <UButton
+              v-if="isDirty"
               type="submit"
               :loading="props.loading"
               :label="props.submitLabel"

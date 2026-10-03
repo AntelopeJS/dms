@@ -42,6 +42,11 @@ interface Props extends DefaultComponentProps {
   maxHeight?: string;
   staticItems?: TopListItem[];
   emptyLabel?: string;
+  /**
+   * Placeholder rows while `fetchUrl` loads: the "top N" it answers.
+   * Optional. Defaults to 10, enough to fill the default `maxHeight`.
+   */
+  skeletonCount?: number;
 }
 
 const DEFAULT_MAX_HEIGHT = "24rem";
@@ -84,6 +89,7 @@ const props = withDefaults(defineProps<Props>(), {
   valueFormat: "number",
   currencyCode: "EUR",
   maxHeight: DEFAULT_MAX_HEIGHT,
+  skeletonCount: SKELETON_ROW_COUNT,
 });
 
 const { locale, t } = useI18n();
@@ -300,7 +306,7 @@ const gridStyle = computed(() => ({
         aria-busy="true"
       >
         <div
-          v-for="row in SKELETON_ROW_COUNT"
+          v-for="row in props.skeletonCount"
           :key="row"
           class="flex h-14 items-center gap-3 px-[18px]"
         >

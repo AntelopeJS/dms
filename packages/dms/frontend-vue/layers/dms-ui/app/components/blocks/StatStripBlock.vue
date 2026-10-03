@@ -21,7 +21,10 @@ interface StatStripBlockProps extends DefaultComponentProps {
   fetchUrlMethod?: string;
   /** Title of the empty state. */
   emptyLabel?: string;
-  /** Placeholder cells while the first fetch runs. */
+  /**
+   * Placeholder cells while the first fetch runs: the length `fetchUrl`
+   * usually answers. Optional. Defaults to `columns`, or 4.
+   */
   skeletonCount?: number;
 }
 
@@ -33,8 +36,10 @@ const props = withDefaults(defineProps<StatStripBlockProps>(), {
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
   emptyLabel: undefined,
-  skeletonCount: 4,
+  skeletonCount: undefined,
 });
+
+const DEFAULT_SKELETON_COUNT = 4;
 
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
@@ -77,7 +82,9 @@ const resolvedItems = computed<StatStripItem[]>(() =>
     :layout="props.layout"
     :columns="props.columns"
     :loading="isPending"
-    :skeleton-count="props.columns ?? props.skeletonCount"
+    :skeleton-count="
+      props.skeletonCount ?? props.columns ?? DEFAULT_SKELETON_COUNT
+    "
     :label="props.label ? processI18n(props.label) : undefined"
   />
 </template>

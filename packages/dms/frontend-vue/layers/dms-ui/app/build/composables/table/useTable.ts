@@ -107,6 +107,7 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     expandedRowDomId: props.expandedRowDomId,
     showArchived: props.showArchived,
     columnMenus: props.columnMenus,
+    defaultSort: props.tableProps.defaultSort,
   });
 
   states.columnOrderState.value = columns.value
@@ -117,13 +118,8 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     applyAlwaysPinned(states.columnPinningState, columns.value),
   );
 
-  const {
-    deleteFilter,
-    resetFilters,
-    deleteSorting,
-    stateHandlers,
-    stateGetters,
-  } = useTableStates(states);
+  const { deleteFilter, deleteSorting, stateHandlers, stateGetters } =
+    useTableStates(states);
 
   const isManualFiltering =
     props.tableProps.columnFiltersOptions?.manualFiltering;
@@ -191,7 +187,6 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     columns,
     labeledColumns,
     deleteFilter,
-    resetFilters,
     deleteSorting,
   };
 };

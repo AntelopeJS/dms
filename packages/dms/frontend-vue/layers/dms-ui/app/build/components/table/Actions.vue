@@ -119,7 +119,7 @@ const hasIconControls = computed(
   () =>
     (showSearch.value && !isSearchField.value) ||
     (capabilities.value.filters && chrome.value.filters) ||
-    (capabilities.value.sorting && chrome.value.sorting) ||
+    showSortControl.value ||
     chrome.value.refresh ||
     chrome.value.menu,
 );
@@ -128,6 +128,18 @@ const tableSharedData = useTableContext<T>();
 
 // Chrome capabilities of the active display; gates the transverse controls.
 const capabilities = computed(() => tableSharedData.activeCapabilities.value);
+
+// The sort menu lists the columns the list route can sort on; with none, the
+// button would open an empty menu.
+const hasSortableColumns = computed(() =>
+  tableSharedData.labeledColumns.value.some((col) => col.column.getCanSort()),
+);
+const showSortControl = computed(
+  () =>
+    capabilities.value.sorting &&
+    chrome.value.sorting &&
+    hasSortableColumns.value,
+);
 
 const appConfig = useDmsAppConfig() as DmsAppConfig & {
   ui: { tableActions: Partial<typeof theme> };
@@ -151,6 +163,12 @@ watch(
     }
   },
 );
+
+// A "clear all" action emptied the search: fold it back to its icon, as
+// leaving an empty field does.
+tableSharedData.onFiltersCleared(() => {
+  if (!searchAreaFocused.value) searchActive.value = false;
+});
 
 watch(searchAreaFocused, (isFocused) => {
   if (isFocused || !searchActive.value) return;
@@ -408,10 +426,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
         />
       </span>
 
-      <UPopover
-        v-if="capabilities.sorting && chrome.sorting"
-        v-model:open="sortOpen"
-      >
+      <UPopover v-if="showSortControl" v-model:open="sortOpen">
         <span
           id="sorting-trigger"
           :class="uiTableActions.triggerIndicatorHost()"

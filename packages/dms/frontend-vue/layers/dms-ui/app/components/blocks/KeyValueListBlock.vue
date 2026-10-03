@@ -23,6 +23,10 @@ interface KeyValueListBlockProps extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   emptyLabel?: string;
+  /**
+   * Placeholder rows while `fetchUrl` loads: the length it usually answers.
+   * Optional. Defaults to 5.
+   */
   skeletonCount?: number;
 }
 
