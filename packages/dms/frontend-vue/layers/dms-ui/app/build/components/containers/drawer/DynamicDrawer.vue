@@ -7,6 +7,7 @@ import type {
 } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
+import { DMS_CONTAINER_KEY } from "../../../../composables/containers/context";
 
 interface DynamicDrawerProps {
   title: string;
@@ -63,6 +64,22 @@ async function tryClose() {
   closePromise = null;
 }
 
+// A form in the body closes through the guards (its Cancel button) and
+// registers its own under this id, whatever component wraps it.
+provide(DMS_CONTAINER_KEY, { id: props.containerId, close: tryClose });
+
+// Another page (Back, a link): the drawer belongs to the one left. Its
+// unsaved changes were already confirmed by the navigation guard.
+const route = useDmsRoute();
+watch(
+  () => route.path,
+  () => {
+    clearGuards(props.containerId);
+    isOpen.value = false;
+    emit("close");
+  },
+);
+
 function handleSuccess(result?: unknown) {
   clearGuards(props.containerId);
   isOpen.value = false;
@@ -87,6 +104,9 @@ function onContentResolve() {
     :dismissible="false"
     :ui="{
       header: 'border-b border-default flex shrink-0 items-center gap-4 pb-4',
+      // The scroll area's bottom padding: a form's sticky footer sits flush
+      // with the drawer's edge (see Form.vue).
+      container: '[--dms-form-foot-pb:1rem]',
     }"
     @close:prevent="tryClose"
   >

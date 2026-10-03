@@ -163,6 +163,26 @@ export const extractBulkArgIds: IdExtractor = (args) => {
 const isRealtimeEnabled = (target: unknown): boolean =>
   getTableViewMetaFor(target).options.realtime !== false;
 
+// The counts the bulk routes answer with: delete sends the number of deleted
+// rows (or `{ deleted }`), archive and restore `{ archivedCount }` and
+// `{ restoredCount }`.
+const CHANGED_COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"];
+
+/**
+ * Whether a write reports changing no row: its row rules refused every id,
+ * or none existed. Broadcasting its ids would have every session watching
+ * the table (the caller included) drop rows that are still there.
+ */
+// @internal
+export const reportsNoChange = (result: unknown): boolean => {
+  if (typeof result === "number") return result === 0;
+  if (!result || typeof result !== "object") return false;
+  const counts = CHANGED_COUNT_KEYS.map(
+    (key) => (result as Record<string, unknown>)[key],
+  ).filter((value): value is number => typeof value === "number");
+  return counts.length > 0 && counts.every((count) => count === 0);
+};
+
 interface MutationConfig {
   eventType: RealtimeMutationEventType;
   extractIds: IdExtractor;
@@ -190,6 +210,9 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
       const idKey = meta.options.rowIdKey || "_id";
       const ids = config.extractIds(allArgs, result, idKey);
       if (ids.length === 0 && config.eventType !== "created") return result;
+      if (config.eventType !== "created" && reportsNoChange(result)) {
+        return result;
+      }
       await dispatchRealtimeMutation({
         controllerLocation: getControllerLocation(this),
         rowIdKey: idKey,

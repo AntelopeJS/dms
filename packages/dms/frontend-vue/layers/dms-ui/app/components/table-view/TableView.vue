@@ -50,6 +50,15 @@ import {
   nextExpandedRows,
 } from "../../build/composables/table-view/utils/expandedRows";
 import { resolveTableChrome } from "../../build/composables/table-view/utils/chrome";
+import {
+  isSameSorting,
+  isUnsortableFieldError,
+  defaultSortingState,
+  resolveDefaultSortConfig,
+  sanitizeSorting,
+  sortableColumnIds,
+  sortValueKind,
+} from "../../build/composables/table-view/utils/sortableColumns";
 import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
 import {
   type QuickFilterItem,
@@ -283,13 +292,54 @@ const pagination = ref<PaginationState>(
   ),
 );
 const rowSelect = ref<RowSelectionState>({});
-const defaultSortState: SortingState = defaultSort
-  ? [{ id: defaultSort.field, desc: defaultSort.desc ?? false }]
-  : [];
+// A column's grid header, for the sort messages.
+const columnLabel = (id: string): string => {
+  const column = allColumns.find((c) => (c.id ?? c.accessorKey) === id);
+  return column ? processI18n(column.display?.label ?? column.header) : id;
+};
+
+// The list route sorts on one `@Sortable()` column and refuses any other key
+// with a 400 that would leave the table on its error panel: every sort it is
+// sent (default, saved, pasted, picked) is checked against the columns first.
+const declaredSortableIds = sortableColumnIds(allColumns);
+// Columns the route refused although declared sortable (see the recovery
+// below): a backend change since the page loaded.
+const refusedSortIds = ref<string[]>([]);
+const sortableIds = computed(
+  () =>
+    new Set(
+      [...declaredSortableIds].filter(
+        (id) => !refusedSortIds.value.includes(id),
+      ),
+    ),
+);
+// The declared default sort when the route accepts it; without one, the
+// sortable creation date, newest first, rather than the database's natural
+// order (see `resolveDefaultSortConfig`).
+const tableDefaultSort = resolveDefaultSortConfig(
+  defaultSort,
+  declaredSortableIds,
+  import.meta.env.DEV ? (message) => console.warn(message) : undefined,
+);
+const defaultSortState: SortingState = defaultSortingState(tableDefaultSort);
+// The toolbar sort menu names the default sort even when its field is not a
+// displayed column.
+const defaultSortLabel = tableDefaultSort
+  ? columnLabel(tableDefaultSort.field)
+  : undefined;
+const defaultSortKind = tableDefaultSort
+  ? sortValueKind(
+      allColumns.find((c) => (c.id ?? c.accessorKey) === tableDefaultSort.field)
+        ?.type?.id,
+    )
+  : undefined;
 const sorting = ref<SortingState>(
-  getPreference<SortingState>(
-    getTablePreferenceKey("sorting"),
-    defaultSortState,
+  sanitizeSorting(
+    getPreference<SortingState>(
+      getTablePreferenceKey("sorting"),
+      defaultSortState,
+    ),
+    declaredSortableIds,
   ),
 );
 
@@ -547,7 +597,10 @@ const effectiveGlobalFilter = computed(() =>
   activeCapabilities.value.search ? globalFilterDebounced.value : undefined,
 );
 const effectiveSorting = computed<SortingState>(() =>
-  activeCapabilities.value.sorting ? sorting.value : defaultSortState,
+  sanitizeSorting(
+    activeCapabilities.value.sorting ? sorting.value : defaultSortState,
+    sortableIds.value,
+  ),
 );
 
 const queryRequest = computed(() =>
@@ -631,6 +684,48 @@ const shownResults = computed(() => shownData.value?.results);
 // selection toolbar would keep offering delete/archive/export on them.
 watch(listLoadError, (message) => {
   if (message) rowSelect.value = {};
+});
+
+// Whatever sets the sort (a header, the sort menu, a pasted table config), the
+// route only ever receives a sort it accepts. A new order lists from page 1:
+// the page reached in the previous order shows unrelated rows in the new one.
+// Synchronous, so the list is queried once, with both changes.
+watch(
+  sorting,
+  (next, previous) => {
+    const sanitized = sanitizeSorting(next, sortableIds.value);
+    if (!isSameSorting(sanitized, next)) {
+      sorting.value = sanitized;
+      return;
+    }
+    const before = sanitizeSorting(previous, sortableIds.value);
+    if (!isSameSorting(sanitized, before) && pagination.value.pageIndex !== 0) {
+      pagination.value = { ...pagination.value, pageIndex: 0 };
+    }
+  },
+  { deep: true, flush: "sync" },
+);
+
+const toast = useToast();
+
+// The route refused the sort key anyway: a column whose `@Sortable()` was
+// removed since the page loaded. Stop sorting on it (the next query drops it)
+// and list again, with a warning, rather than leaving the table on its error
+// panel.
+watch(error, (failure) => {
+  if (!failure || !isUnsortableFieldError(failure)) return;
+  const refused = effectiveSorting.value[0]?.id;
+  if (!refused) return;
+  refusedSortIds.value = [...refusedSortIds.value, refused];
+  sorting.value = sanitizeSorting(sorting.value, sortableIds.value);
+  toast.add({
+    title: t("dms.sort.reset_title"),
+    description: t("dms.sort.reset_description", {
+      column: columnLabel(refused),
+    }),
+    color: Color.warning,
+    icon: "i-ph-warning",
+  });
 });
 
 // A non-self-managed display consumes the shared query, and nothing
@@ -1459,6 +1554,9 @@ onMounted(() => {
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
     :sorting-options="{ manualSorting: true }"
+    :default-sort="tableDefaultSort"
+    :default-sort-label="defaultSortLabel"
+    :default-sort-kind="defaultSortKind"
     :global-filter-options="{ enableGlobalFilter: false }"
     :columns="listableColumns"
     :custom-nav-items="customNavItems"

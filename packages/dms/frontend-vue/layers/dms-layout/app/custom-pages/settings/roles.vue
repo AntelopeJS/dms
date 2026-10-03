@@ -28,6 +28,7 @@ import {
 } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
+import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
@@ -145,16 +146,11 @@ watch(
   },
 );
 
-async function confirmDiscard(): Promise<boolean> {
-  if (!editor.isDirty.value) return true;
-  return confirm({
-    title: t("page.settings.roles.editor.discard_title"),
-    description: t("page.settings.roles.editor.discard_description"),
-    confirmLabel: t("page.settings.roles.editor.discard_confirm"),
-    cancelLabel: t("page.settings.roles.editor.keep_editing"),
-    confirmColor: "error",
-  });
-}
+// The draft of a role holds unsaved changes: leaving the page, or picking
+// another role, asks first (the dashboard's one warning dialog).
+const { confirmLeave: confirmDiscard } = useUnsavedChanges({
+  dirty: () => editor.isDirty.value && !isReadonly.value,
+});
 
 async function selectEntry(id: string): Promise<void> {
   if (id === editor.selectedId.value) return;

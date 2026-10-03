@@ -8,6 +8,7 @@ import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
+import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import {
   PASSWORD_RULES_MESSAGE,
@@ -45,6 +46,23 @@ const isCurrentInvalid = ref(false);
 // Errors show once the field was left or the form submitted, and go away
 // as soon as the value is fixed.
 const isSubmitted = ref(false);
+// Something typed (or the sign-out choice changed) and not submitted yet.
+const { dirty: isDirty } = useFormDirty(
+  () => ({
+    currentPassword: currentPassword.value,
+    newPassword: newPassword.value,
+    confirmPassword: confirmPassword.value,
+    signOutOthers: signOutOthers.value,
+  }),
+  {
+    initial: () => ({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      signOutOthers: true,
+    }),
+  },
+);
 const isNewTouched = ref(false);
 const isConfirmTouched = ref(false);
 
@@ -181,6 +199,7 @@ async function submit(): Promise<void> {
       :editing-label="t('page.settings.security.password.editing')"
       :submit-label="t('page.settings.security.password.submit')"
       :loading="isSaving"
+      :dirty="isDirty"
       @open="resetForm"
       @submit="submit"
     >

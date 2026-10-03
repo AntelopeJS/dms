@@ -29,6 +29,8 @@ export class PageBlocksActivity extends PageController("blocks-activity", {
         ActivityFeed({
           title: "Activity",
           fetchUrl: "/api/blocks-feed/activity",
+          // The route answers 11 entries: the skeleton draws as many rows.
+          skeletonCount: 11,
           viewAllTo: "/settings/user/notifications",
         }),
       )

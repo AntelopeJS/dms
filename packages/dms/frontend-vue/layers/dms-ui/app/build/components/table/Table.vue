@@ -22,6 +22,10 @@ import type {
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useTable } from "../../composables/table/useTable";
 import type { LabeledColumn } from "../../composables/table/useTableColumns";
+import {
+  defaultSortingState,
+  type SortValueKind,
+} from "../../composables/table-view/utils/sortableColumns";
 import type {
   CustomButton,
   TableViewDisplayCapabilities,
@@ -36,6 +40,8 @@ import type { TableTabItem } from "./Tabs.vue";
 import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
 import type { ResolvedTableChrome } from "../../composables/table-view/utils/chrome";
 import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
+import type { ClearableTableFilters } from "../../composables/table/utils/clearTableFilters";
+import type { EventHookOn } from "@vueuse/core";
 
 export interface Data {
   [key: string]: unknown;
@@ -110,6 +116,13 @@ export interface TableProps<T> {
   formPages?: FormPageUrls;
   routeParams?: Record<string, string>;
   defaultSort?: { field: string; desc?: boolean };
+  /**
+   * Name of the default sort's column in the toolbar sort menu: the field may
+   * not be a displayed column. Defaults to the column's label.
+   */
+  defaultSortLabel?: string;
+  /** How the default sort's values compare, for its direction label. */
+  defaultSortKind?: SortValueKind;
   initialColumnVisibility?: VisibilityState;
   presenceByRow?: TableRowPresenceMap;
   canExport?: boolean;
@@ -217,9 +230,29 @@ export interface TableSharedData<T> {
   labeledColumns: ComputedRef<LabeledColumn<T>[]>;
   customNavItems: NavItem[];
   hasCustomSort: ComputedRef<boolean>;
+  /** The table's default sort, if it has one. */
+  defaultSort?: { field: string; desc?: boolean };
+  /** Name of the default sort's column (see `TableProps.defaultSortLabel`). */
+  defaultSortLabel?: string;
+  /** How the default sort's values compare (see `TableProps.defaultSortKind`). */
+  defaultSortKind?: SortValueKind;
+  /** The list is sorted by its default sort: the user sorted nothing. */
+  isUsingDefaultSort: ComputedRef<boolean>;
+  /** Goes back to the default sort (none without one). */
+  resetSorting: () => void;
   hasCustomColumns: ComputedRef<boolean>;
   deleteFilter: (index: number) => void;
+  /**
+   * Clears everything that narrows the rows — filter chips, the toolbar
+   * search, quick filters — and goes back to the first page.
+   */
   resetFilters: () => void;
+  /** What `resetFilters` would clear (nothing: no clear action to offer). */
+  clearableFilters: ComputedRef<ClearableTableFilters>;
+  /** A search, a filter chip or a quick filter narrows the rows. */
+  isFiltered: ComputedRef<boolean>;
+  /** Runs after `resetFilters` (e.g. the toolbar folds its search). */
+  onFiltersCleared: EventHookOn;
   deleteSorting: (index: number) => void;
   rowCount: number;
   /** No row listed yet while the first page loads: footers draw placeholders. */
@@ -254,7 +287,7 @@ import {
   useTemplateRef,
   watchEffect,
 } from "vue";
-import { provideLocal, useElementSize } from "@vueuse/core";
+import { createEventHook, provideLocal, useElementSize } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 
@@ -266,6 +299,12 @@ import TableRowSelection from "./RowSelection.vue";
 import TableTabs from "./Tabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
 import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
+import {
+  clearTableFilters,
+  clearableTableFilters,
+  isTableNarrowed,
+  type TableNarrowingState,
+} from "../../composables/table/utils/clearTableFilters";
 import {
   DEFAULT_PAGE_INDEX,
   DEFAULT_PAGE_SIZE,
@@ -698,6 +737,18 @@ const getHeaderWidth = (header: Header<T, unknown>): string => {
   return `${Math.min(size, scrollingColumnMaxWidth.value)}px`;
 };
 
+// Only a header the list can be sorted on states its order to assistive
+// technologies; the others carry no `aria-sort` at all.
+const headerAriaSort = (
+  column: Header<T, unknown>["column"],
+): "ascending" | "descending" | "none" | undefined => {
+  if (!column.getCanSort()) return undefined;
+  const sorted = column.getIsSorted();
+  if (sorted === "asc") return "ascending";
+  if (sorted === "desc") return "descending";
+  return "none";
+};
+
 const isUsingDefaultSort = computed(() => {
   if (!props.defaultSort) return false;
   if (sortingState.value.length !== 1) return false;
@@ -722,28 +773,27 @@ const uiTable = computed(() =>
   }),
 );
 
-const { table, labeledColumns, deleteFilter, resetFilters, deleteSorting } =
-  useTable<T>({
-    tableProps: props,
-    emits,
-    states: {
-      globalFilterState,
-      columnFiltersState,
-      columnOrderState,
-      columnVisibilityState,
-      columnPinningState,
-      columnSizingState,
-      rowSelectionState,
-      sortingState,
-      expandedState,
-      paginationState,
-    },
-    ui: uiTable,
-    expandable: isExpandable,
-    expandedRowDomId,
-    showArchived: props.archiveToggle ? isShowingArchived : undefined,
-    columnMenus: (props.chrome ?? FULL_TABLE_CHROME).columnMenus,
-  });
+const { table, labeledColumns, deleteFilter, deleteSorting } = useTable<T>({
+  tableProps: props,
+  emits,
+  states: {
+    globalFilterState,
+    columnFiltersState,
+    columnOrderState,
+    columnVisibilityState,
+    columnPinningState,
+    columnSizingState,
+    rowSelectionState,
+    sortingState,
+    expandedState,
+    paginationState,
+  },
+  ui: uiTable,
+  expandable: isExpandable,
+  expandedRowDomId,
+  showArchived: props.archiveToggle ? isShowingArchived : undefined,
+  columnMenus: (props.chrome ?? FULL_TABLE_CHROME).columnMenus,
+});
 
 const rowCount = computed(() => props.paginationOptions?.rowCount ?? 0);
 
@@ -789,6 +839,22 @@ const resolvedCapabilities = computed<Required<TableViewDisplayCapabilities>>(
   () => props.activeCapabilities ?? DEFAULT_CAPABILITIES,
 );
 
+// The single "clear all" of the table: every clear action goes through it.
+const narrowingState: TableNarrowingState = {
+  columnFilters: columnFiltersState,
+  globalFilter: globalFilterState,
+  quickFilterValues: quickFilterValuesState,
+  pagination: paginationState,
+  searchApplies: computed(() => resolvedCapabilities.value.search),
+};
+const filtersCleared = createEventHook();
+const resetFilters = () => {
+  clearTableFilters(narrowingState);
+  void filtersCleared.trigger();
+};
+const clearableFilters = computed(() => clearableTableFilters(narrowingState));
+const isFiltered = computed(() => isTableNarrowed(narrowingState));
+
 const baselineColumnOrder = [...columnOrderState.value];
 const baselineColumnPinning = JSON.parse(
   JSON.stringify(columnPinningState.value),
@@ -800,6 +866,10 @@ const hasCustomSort = computed(() => {
   if (sorting.length === 0) return true;
   return !isUsingDefaultSort.value;
 });
+
+const resetSorting = () => {
+  sortingState.value = defaultSortingState(props.defaultSort);
+};
 
 const areArraysEqual = (a: unknown[], b: unknown[]): boolean => {
   if (a.length !== b.length) return false;
@@ -852,9 +922,17 @@ watchEffect(() => {
     labeledColumns,
     customNavItems: props.customNavItems || [],
     hasCustomSort,
+    defaultSort: props.defaultSort,
+    defaultSortLabel: props.defaultSortLabel,
+    defaultSortKind: props.defaultSortKind,
+    isUsingDefaultSort,
+    resetSorting,
     hasCustomColumns,
     deleteFilter,
     resetFilters,
+    clearableFilters,
+    isFiltered,
+    onFiltersCleared: filtersCleared.on,
     deleteSorting,
     rowCount: rowCount.value,
     firstPageLoading: isFirstPageLoading.value,
@@ -1073,6 +1151,7 @@ defineShortcuts({
                   v-for="header in headerGroup.headers"
                   :key="header.id"
                   :colspan="header.colSpan"
+                  :aria-sort="headerAriaSort(header.column)"
                   :data-pinned="header.column.getIsPinned()"
                   :class="
                     uiTable.headCell({

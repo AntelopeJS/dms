@@ -47,6 +47,20 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     }
   });
 
+  it("lets a fetched block say how many placeholders to draw, unset by default", () => {
+    for (const type of [
+      "StatStrip",
+      "KeyValueList",
+      "NavCardGrid",
+      "ActivityFeed",
+      "TopListCard",
+    ]) {
+      const option = declared(type).config.skeletonCount;
+      expect(option?.optional, type).to.equal(true);
+      expect(declared(type).defaults.skeletonCount, type).to.equal(undefined);
+    }
+  });
+
   it("says what a block falls back on when an option is unset", () => {
     expect(declared("StatStrip").defaults.layout).to.equal("joined");
     expect(declared("KeyValueList").defaults.card).to.equal(true);

@@ -9,6 +9,7 @@ import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
+import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 
 const EMAIL_URL = `${SECURITY_ENDPOINT}/email`;
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
@@ -41,6 +42,11 @@ const isEmailTaken = ref(false);
 const isCurrentInvalid = ref(false);
 // Set on submit: the empty fields say they are required.
 const isSubmitted = ref(false);
+// An address or a password typed and not submitted yet.
+const { dirty: isDirty } = useFormDirty(
+  () => ({ email: newEmail.value.trim(), password: currentPassword.value }),
+  { initial: () => ({ email: "", password: "" }) },
+);
 
 const email = computed(() => overview.value?.email ?? "");
 const isValidated = computed(() => overview.value?.isValidated ?? false);
@@ -183,6 +189,7 @@ async function submit(): Promise<void> {
       :editing-label="t('page.settings.security.email.editing')"
       :submit-label="t('page.settings.security.email.submit')"
       :loading="isSaving"
+      :dirty="isDirty"
       @open="resetForm"
       @submit="submit"
     >

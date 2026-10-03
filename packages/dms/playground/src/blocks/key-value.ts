@@ -62,7 +62,12 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
       )
       .child(
         "live",
-        KeyValueList({ title: "Live facts", fetchUrl: "/api/blocks/facts" }),
+        KeyValueList({
+          title: "Live facts",
+          fetchUrl: "/api/blocks/facts",
+          // The route answers 5 rows: the skeleton draws as many.
+          skeletonCount: 5,
+        }),
       ),
   );
 

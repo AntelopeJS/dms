@@ -21,7 +21,7 @@ interface TableDataKeyConfig {
 
 const NO_VALUE_COMPARE_MODES = new Set(["is_empty", "is_not_empty"]);
 
-const isFilterEffective = (filter: TableFilter): boolean => {
+export const isFilterEffective = (filter: TableFilter): boolean => {
   if (NO_VALUE_COMPARE_MODES.has(filter.mode)) return true;
   const value = filter.value;
   if (value === undefined || value === null) return false;

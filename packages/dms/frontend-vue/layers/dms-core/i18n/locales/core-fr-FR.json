@@ -408,15 +408,13 @@
       "password_rules": "Le mot de passe ne respecte pas toutes les règles."
     },
     "confirm": {
-      "unsaved_changes_title": "Modifications non sauvegardées",
-      "unsaved_changes_description": "Vous avez des modifications non sauvegardées. Êtes-vous sûr de vouloir quitter ? Vos modifications seront perdues.",
-      "discard": "Abandonner",
-      "stay": "Rester",
       "confirm": "Confirmer",
       "cancel": "Annuler",
       "esc_hint": "pour annuler",
       "type_to_confirm": "Saisissez {text} pour confirmer",
-      "type_mismatch": "Le texte ne correspond pas. Saisissez exactement {text}."
+      "type_mismatch": "Le texte ne correspond pas. Saisissez exactement {text}.",
+      "close": "Fermer",
+      "esc_close_hint": "pour fermer"
     },
     "date": {
       "undefined": "Inconnue"

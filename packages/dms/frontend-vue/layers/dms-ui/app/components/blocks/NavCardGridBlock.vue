@@ -34,6 +34,10 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   emptyLabel?: string;
+  /**
+   * Placeholder cards while `fetchUrl` loads: the length it usually answers.
+   * Optional. Defaults to `columns` (one row), or 3.
+   */
   skeletonCount?: number;
 }
 

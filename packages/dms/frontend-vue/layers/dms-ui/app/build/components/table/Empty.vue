@@ -6,6 +6,7 @@ import DmsEmptyState, {
 } from "../../../components/empty-state/EmptyState.vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
+import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 
 // The table's empty body: the generic v2 empty state (hatched, 44px well),
 // worded and equipped for why the table is empty — load error, filters
@@ -30,12 +31,13 @@ const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
-const isFiltered = computed(() => {
-  const hasGlobalFilter = !!tableSharedData.value?.globalFilterState?.value;
-  const hasColumnFilters =
-    (tableSharedData.value?.columnFiltersState?.value?.length ?? 0) > 0;
-  return hasGlobalFilter || hasColumnFilters;
-});
+// A search, a filter chip or a quick filter narrows the rows.
+const isFiltered = computed(() => !!tableSharedData.value?.isFiltered?.value);
+// What the clear action would clear; nothing (only default filters left at
+// their value) offers no action.
+const clearable = computed(
+  () => tableSharedData.value?.clearableFilters?.value,
+);
 
 interface EmptyStateContent {
   title: string;
@@ -98,9 +100,11 @@ const actions = computed(() => {
     ];
   }
   if (isFiltered.value) {
+    const parts = clearable.value;
+    if (!parts?.filters && !parts?.search) return undefined;
     return [
       {
-        label: t("dms.table.delete_filters"),
+        label: t(clearTableFiltersLabelKey(parts)),
         icon: "i-ph-x",
         color: "neutral" as const,
         variant: "outline" as const,

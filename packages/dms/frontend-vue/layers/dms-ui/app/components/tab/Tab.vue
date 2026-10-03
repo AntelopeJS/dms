@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TabProps } from "../../composables/tab/types";
 import { TabVariant } from "../../composables/tab/types/props";
+import { confirmLeave } from "../../composables/unsaved-changes/registry";
 
 const { processI18n } = useTranslation();
 
@@ -60,6 +61,20 @@ const {
 
 useTabShortcuts({ items: props.items, goToTab });
 
+// A hidden panel is unmounted (unless asked otherwise): a form in it holding
+// unsaved changes would lose them, so switching away asks first.
+const root = useTemplateRef<HTMLElement>("root");
+
+async function selectTab(value: string | number): Promise<void> {
+  const next = String(value);
+  if (next === activeTab.value) return;
+  if (props.unmountOnHide) {
+    const panel = root.value?.querySelector('[role="tabpanel"]');
+    if (panel && !(await confirmLeave({ within: panel }))) return;
+  }
+  activeTab.value = next;
+}
+
 const tabItems = computed(() => {
   return props.items.map((item, index) => {
     const baseItem = {
@@ -90,9 +105,9 @@ defineExpose({
 </script>
 
 <template>
-  <div class="dms-tab h-full w-full">
+  <div ref="root" class="dms-tab h-full w-full">
     <UTabs
-      v-model="activeTab"
+      :model-value="activeTab"
       :items="tabItems"
       :color="props.color as ColorValue"
       :size="props.size"
@@ -100,6 +115,7 @@ defineExpose({
       :orientation="props.orientation"
       :unmount-on-hide="props.unmountOnHide"
       :ui="tabsUi"
+      @update:model-value="selectTab"
     >
       <template v-for="item in props.items" :key="item.slot" #[item.slot]>
         <div class="space-y-6" :class="panelClass">

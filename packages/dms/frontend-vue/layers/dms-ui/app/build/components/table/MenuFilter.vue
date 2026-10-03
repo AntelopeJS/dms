@@ -13,6 +13,7 @@ import type { ShallowRef } from "vue";
 import defu from "defu";
 import type { SelectItem } from "@nuxt/ui";
 import { formatFilterValue as formatFilterValueUtil } from "../../composables/table/utils/formatFilterValue";
+import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 
 const theme = tv({
   slots: {
@@ -129,6 +130,13 @@ const currentInputComponent = computed(() => {
 
 const filters = computed(
   () => tableSharedData.value?.columnFiltersState.value || [],
+);
+
+// The "clear all" action: offered while something narrows the rows, named
+// after what it clears (filters, search or both).
+const clearable = computed(() => tableSharedData.value?.clearableFilters.value);
+const canClear = computed(
+  () => !!clearable.value?.filters || !!clearable.value?.search,
 );
 
 const formState = ref<"idle" | "new" | "edit">("idle");
@@ -356,15 +364,15 @@ const formatFilterValue = (filter: TableFilter): string => {
         @click="formState = 'new'"
       />
       <UButton
-        v-if="filters.length"
+        v-if="canClear && clearable"
         icon="i-ph-trash"
         :ui="{ base: uiTableMenuFilter.actionButton() }"
-        :label="t('dms.table.delete_filters')"
+        :label="t(clearTableFiltersLabelKey(clearable))"
         color="neutral"
         variant="ghost"
         size="sm"
         block
-        @click="tableSharedData?.resetFilters"
+        @click="tableSharedData?.resetFilters()"
       />
     </div>
   </div>

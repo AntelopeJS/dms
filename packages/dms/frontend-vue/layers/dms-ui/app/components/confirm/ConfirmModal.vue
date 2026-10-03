@@ -3,17 +3,27 @@ import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import {
+  ConfirmActionError,
   type ConfirmBodyRender,
   type ConfirmColor,
+  type ConfirmInitialFocus,
   type ConfirmImpact,
+  type ConfirmNotice,
+  type ConfirmPartialOutcome,
   ConfirmTextError,
 } from "../../composables/confirm/types";
+import { resolveActionError } from "../../composables/confirm/actionError";
 
 interface ConfirmModalProps {
   title: string;
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /**
+   * The button focused on open; left out, the dialog's first focusable
+   * element (its close button) as before.
+   */
+  initialFocus?: ConfirmInitialFocus;
   confirmColor?: ConfirmColor;
   /** Leading icon of the confirm button. */
   confirmIcon?: string;
@@ -34,9 +44,11 @@ interface ConfirmModalProps {
   validate?: () => boolean | Promise<boolean>;
   /**
    * Awaited on confirm: the modal stays open, loading, until it settles.
-   * Resolving `false` keeps it open (the handler reported the problem).
+   * A rejection is shown in an error alert, the modal open for a retry;
+   * resolving `false` keeps it open (the handler reported the problem);
+   * a partial outcome turns it into an acknowledgement of what went through.
    */
-  onConfirm?: () => Promise<void | boolean>;
+  onConfirm?: () => Promise<void | boolean | ConfirmPartialOutcome>;
 }
 
 interface ConfirmModalSlots {
@@ -51,6 +63,7 @@ interface ConfirmModalEmits {
 const props = withDefaults(defineProps<ConfirmModalProps>(), {
   confirmLabel: undefined,
   cancelLabel: undefined,
+  initialFocus: undefined,
   confirmColor: "primary",
   confirmIcon: undefined,
   hideConfirm: false,
@@ -79,7 +92,11 @@ const DEFAULT_ICONS: Record<ConfirmColor, string> = {
 const isOpen = ref(true);
 const typedText = ref("");
 const isPending = ref(false);
-const errorMessage = ref<string>();
+// The failure (or partial outcome) of the last confirm, above the buttons.
+const notice = ref<ConfirmNotice & { tone: "error" | "warning" }>();
+// The action went part of the way: nothing left to confirm, closing it
+// acknowledges what was done.
+const isSettled = ref(false);
 // The typed text is missing or wrong (checked on confirm), or the server
 // refused it: shown under the typed field.
 const typedError = ref<string>();
@@ -103,7 +120,7 @@ const hasBody = computed(
     !!props.body ||
     !!slots.body ||
     !!props.confirmText ||
-    !!errorMessage.value,
+    !!notice.value,
 );
 
 // Without a body the header carries the bottom spacing above the footer.
@@ -111,6 +128,24 @@ const modalUi = computed(() => ({
   content: "sm:max-w-[420px]",
   header: hasBody.value ? "" : "pb-5",
 }));
+
+// Focus a footer button on open instead of the first focusable element.
+const modalContent = computed(() =>
+  props.initialFocus
+    ? {
+        onOpenAutoFocus: (event: Event) => {
+          const button = (
+            event.target as HTMLElement | null
+          )?.querySelector<HTMLElement>(
+            `[data-confirm-action="${props.initialFocus}"]`,
+          );
+          if (!button) return;
+          event.preventDefault();
+          button.focus();
+        },
+      }
+    : undefined,
+);
 
 const isTypedMatch = computed(
   () => !props.confirmText || typedText.value.trim() === props.confirmText,
@@ -121,19 +156,37 @@ function close(value: boolean) {
   emit("close", value);
 }
 
-async function runConfirm(action: () => Promise<void | boolean>) {
+const isPartialOutcome = (value: unknown): value is ConfirmPartialOutcome =>
+  typeof value === "object" && value !== null && "partial" in value;
+
+// Worded for users: the server's message when it is meant for them, else a
+// translated fallback (never an ofetch line, JSON or a stack trace).
+function errorNotice(error: unknown): ConfirmNotice {
+  if (error instanceof ConfirmActionError) {
+    return { title: error.message, description: error.description };
+  }
+  return { title: resolveActionError(error, t) };
+}
+
+async function runConfirm(
+  action: () => Promise<void | boolean | ConfirmPartialOutcome>,
+) {
   isPending.value = true;
-  errorMessage.value = undefined;
+  notice.value = undefined;
   typedError.value = undefined;
   try {
     const result = await action();
-    if (result !== false) close(true);
+    if (isPartialOutcome(result)) {
+      notice.value = { ...result.partial, tone: "warning" };
+      isSettled.value = true;
+    } else if (result !== false) {
+      close(true);
+    }
   } catch (error) {
     if (error instanceof ConfirmTextError && props.confirmText) {
       typedError.value = error.message;
     } else {
-      errorMessage.value =
-        error instanceof Error ? error.message : String(error);
+      notice.value = { ...errorNotice(error), tone: "error" };
     }
   } finally {
     isPending.value = false;
@@ -159,7 +212,7 @@ function checkTypedText(): boolean {
 }
 
 async function handleConfirm() {
-  if (props.hideConfirm || isPending.value) return;
+  if (props.hideConfirm || isSettled.value || isPending.value) return;
   // Every field is checked at once; the body ones come first on the page,
   // so the typed field takes the focus only when they passed.
   const isBodyValid = props.validate ? await props.validate() : true;
@@ -172,7 +225,7 @@ async function handleConfirm() {
 
 function handleCancel() {
   if (isPending.value) return;
-  close(false);
+  close(isSettled.value);
 }
 </script>
 
@@ -183,6 +236,7 @@ function handleCancel() {
     :description="props.description"
     :dismissible="!isPending"
     :ui="modalUi"
+    :content="modalContent"
     @update:open="(open: boolean) => !open && handleCancel()"
   >
     <template #header>
@@ -270,11 +324,18 @@ function handleCancel() {
           </template>
         </UFormField>
 
+        <!-- What went wrong (or the partial summary), then its reason. -->
         <UAlert
-          v-if="errorMessage"
-          color="error"
-          icon="i-ph-warning-circle"
-          :description="errorMessage"
+          v-if="notice"
+          role="alert"
+          :color="notice.tone"
+          variant="subtle"
+          :icon="
+            notice.tone === 'error' ? 'i-ph-warning-circle' : 'i-ph-warning'
+          "
+          :title="notice.title"
+          :description="notice.description"
+          data-confirm-notice
         />
       </div>
     </template>
@@ -285,21 +346,31 @@ function handleCancel() {
           class="text-dimmed me-auto hidden items-center gap-1.5 text-xs sm:flex"
         >
           <UKbd value="Esc" size="sm" />
-          {{ $t("dms.confirm.esc_hint") }}
+          {{
+            $t(
+              isSettled ? "dms.confirm.esc_close_hint" : "dms.confirm.esc_hint",
+            )
+          }}
         </span>
         <UButton
-          :label="props.cancelLabel || $t('dms.confirm.cancel')"
+          :label="
+            isSettled
+              ? $t('dms.confirm.close')
+              : props.cancelLabel || $t('dms.confirm.cancel')
+          "
           variant="outline"
           color="neutral"
           :disabled="isPending"
+          data-confirm-action="cancel"
           @click="handleCancel"
         />
         <UButton
-          v-if="!props.hideConfirm"
+          v-if="!props.hideConfirm && !isSettled"
           :label="props.confirmLabel || $t('dms.confirm.confirm')"
           :icon="props.confirmIcon"
           :color="props.confirmColor"
           :loading="isPending"
+          data-confirm-action="confirm"
           @click="handleConfirm"
         />
       </div>

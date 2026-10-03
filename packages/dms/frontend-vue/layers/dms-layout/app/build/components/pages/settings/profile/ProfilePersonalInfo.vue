@@ -8,6 +8,7 @@ import ProfileAvatar from "./ProfileAvatar.vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
+import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
 
 interface AvatarValue {
   key: string;
@@ -72,6 +73,8 @@ const isAvatarChanged = computed(
   () => (avatar.value?.key ?? null) !== (saved.value.avatar?.key ?? null),
 );
 const isDirty = computed(() => isNameChanged.value || isAvatarChanged.value);
+// Leaving with a new name or picture not saved asks first.
+useUnsavedChanges({ dirty: isDirty });
 const changes = computed(() =>
   [
     isAvatarChanged.value ? "$page.settings.profile.avatar" : "",

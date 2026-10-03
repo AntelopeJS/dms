@@ -11,6 +11,7 @@ import type {
 } from "./Table.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
+import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 
 // v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
 // a chip opens its value editor in a popover.
@@ -125,6 +126,14 @@ const deleteFilter = (index: number) => {
   tableSharedData?.value?.deleteFilter(index);
 };
 
+// The "clear all" action: offered while something narrows the rows, named
+// after what it clears (filters, search or both).
+const clearable = computed(
+  () => tableSharedData?.value?.clearableFilters.value,
+);
+const canClear = computed(
+  () => !!clearable.value?.filters || !!clearable.value?.search,
+);
 const reset = () => {
   tableSharedData?.value?.resetFilters();
 };
@@ -253,9 +262,9 @@ const chipTitle = (filter: TableFilter): string =>
       </li>
     </ul>
 
-    <div v-if="filters.length" :class="ui.actions()">
+    <div v-if="canClear && clearable" :class="ui.actions()">
       <UButton
-        :label="t('dms.button.reset')"
+        :label="t(clearTableFiltersLabelKey(clearable))"
         :icon="appConfig.ui.icons.close"
         color="neutral"
         variant="ghost"

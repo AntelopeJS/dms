@@ -41,7 +41,9 @@
       "filter_accessor": "Columns to filter",
       "filter_comparator": "Comparison mode",
       "filter_value": "Enter a value",
-      "delete_filters": "Delete filters",
+      "clear_filters": "Clear filters",
+      "clear_search": "Clear search",
+      "clear_filters_and_search": "Clear filters and search",
       "add_filter": "Add a filter",
       "between_separator": "and",
       "link_copied": "Link copied!",
@@ -142,7 +144,18 @@
       "cell": {
         "now": "Now",
         "by": "{date} · by {name}"
-      }
+      },
+      "bulk_refused": {
+        "delete": "This item couldn’t be deleted. | These {count} items couldn’t be deleted.",
+        "archive": "This item couldn’t be archived. | These {count} items couldn’t be archived.",
+        "restore": "This item couldn’t be restored. | These {count} items couldn’t be restored."
+      },
+      "bulk_partial": {
+        "delete": "{failed} of {total} items couldn’t be deleted.",
+        "archive": "{failed} of {total} items couldn’t be archived.",
+        "restore": "{failed} of {total} items couldn’t be restored."
+      },
+      "bulk_refused_reason": "Its rules don’t allow this action, or it was already done. | Their rules don’t allow this action, or it was already done."
     },
     "table_form": {
       "edit_title": "Edit item",
@@ -162,7 +175,27 @@
       "last_page": "Last page"
     },
     "sort": {
-      "no_sorting": "No sorting applied"
+      "no_sorting": "No sorting applied",
+      "reset_title": "Sorting turned off",
+      "reset_description": "This list can no longer be sorted by {column}.",
+      "default_sort": "Default sort",
+      "sorted_by": "Sorted by:",
+      "default_suffix": "default",
+      "reset_default": "Reset to default sort",
+      "direction": {
+        "number": {
+          "asc": "lowest → highest",
+          "desc": "highest → lowest"
+        },
+        "date": {
+          "asc": "oldest → newest",
+          "desc": "newest → oldest"
+        },
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        }
+      }
     },
     "button": {
       "copy": "Copy",
@@ -592,6 +625,12 @@
       "error_description": "Check your connection, then try again.",
       "retry": "Try again"
     },
+    "leave_guard": {
+      "title": "Discard unsaved changes?",
+      "description": "You’ll lose your changes if you leave without saving.",
+      "keep_editing": "Keep editing",
+      "discard": "Discard changes"
+    },
     "save_bar": {
       "unsaved": "Unsaved changes",
       "discard": "Discard",
@@ -606,6 +645,10 @@
       "load_error": "Couldn't load this block",
       "load_error_hint": "Check your connection, then try again.",
       "retry": "Try again"
+    },
+    "action_error": {
+      "forbidden": "You don’t have permission to do this.",
+      "generic": "Something went wrong and the action couldn’t be completed. Try again."
     }
   }
 }

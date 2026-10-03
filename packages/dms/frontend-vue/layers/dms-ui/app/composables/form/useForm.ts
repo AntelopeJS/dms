@@ -42,6 +42,12 @@ export interface UseFormOptions {
    * landed on a rendered field; the toast shows otherwise.
    */
   showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
+  /**
+   * Called once a submit succeeded and the values are the saved ones (or
+   * back to the opening ones with `resetOnSuccess`), before any redirect:
+   * the form has nothing unsaved from there on.
+   */
+  onSaved?: () => void;
 }
 
 interface FormResetTarget {
@@ -689,6 +695,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     // opened with; any other keeps what it saved as its new starting point.
     if (props.resetOnSuccess) restoreInitialValues();
     else initialValues.value = snapshotFormState(state.value);
+    options.onSaved?.();
     if (props.redirectOnSuccess) {
       const target = replaceUrlVariables(
         props.redirectOnSuccess,
