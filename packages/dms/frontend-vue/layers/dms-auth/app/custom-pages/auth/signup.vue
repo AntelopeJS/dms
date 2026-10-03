@@ -10,6 +10,11 @@ import {
   useAuthFormError,
 } from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const MIN_NAME_LENGTH = 2;
 
@@ -41,18 +46,19 @@ if (invitationLanguage && invitationLanguage.code !== locale.value) {
 }
 
 const isLoading = ref(false);
-const isPasswordValid = ref(false);
 
-const schema = z.object({
+const fields = z.object({
   email: z.string().email(),
   name: z.string().trim().min(MIN_NAME_LENGTH),
   password: passwordSchema,
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({
   email: queryEmail.value,
   name: queryName.value,
 });
+useLiveFormErrors(form, state);
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   try {
@@ -116,8 +122,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ref="form"
       :schema="schema"
       :state="state"
+      novalidate
       class="mt-5 grid gap-4"
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 
@@ -143,14 +151,12 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
       <AuthNewPasswordField
         v-model="state.password"
-        v-model:valid="isPasswordValid"
         :label="$t('form.password.label')"
       />
 
       <UButton
         :label="$t('page.signup.submit')"
         :loading="isLoading"
-        :disabled="!isPasswordValid"
         type="submit"
         size="lg"
         class="justify-center"

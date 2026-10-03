@@ -73,16 +73,27 @@ export async function requireMember(
   return member;
 }
 
+/** A membership after an owner flag change, and how the flag moved. */
+export interface OwnershipChangeResult {
+  member: TenantMember;
+  change: OwnerChange;
+}
+
 /** Give or take the owner role of a member. */
 export async function setMemberOwnership(
   tenantId: string,
   memberId: string,
   isTenantOwner: boolean,
-): Promise<void> {
+): Promise<OwnershipChangeResult> {
   const member = await requireMember(tenantId, memberId);
+  const change = detectOwnerChange(
+    { isTenantOwner: member.isTenantOwner === true },
+    isTenantOwner,
+  );
   await prepareOwnerChange(tenantId, member, isTenantOwner);
   member.isTenantOwner = isTenantOwner;
   await GetModel(TenantMemberModel, tenantId).update(member);
+  return { member, change };
 }
 
 /** What removing a member takes away, for the confirmation to spell out. */

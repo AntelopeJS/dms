@@ -408,12 +408,13 @@
       },
       "subjects": {
         "general": "Général",
+        "general_desc": "Messages importants de la plateforme et des administrateurs de votre espace. Toujours activé, pour ne rien manquer d'essentiel",
         "security": "Alertes de sécurité",
         "security_desc": "Connexions, mot de passe, e-mail et double authentification de votre compte",
         "account": "Compte",
-        "account_desc": "Mises à jour importantes concernant votre compte",
+        "account_desc": "Vos rôles, vos droits de propriétaire et les autres changements importants de votre compte",
         "collaboration": "Collaboration",
-        "collaboration_desc": "Invitations et arrivée de nouveaux collaborateurs sur la plateforme",
+        "collaboration_desc": "Invitations, arrivées et départs de membres, et modifications des permissions des rôles",
         "automation": "Automatisation",
         "automation_desc": "Notifications envoyées par les procédures d'automatisation",
         "updates": "Mises à jour des modules",
@@ -435,60 +436,109 @@
       },
       "messages": {
         "new_login": {
-          "title": "Nouvelle connexion à votre compte",
-          "description": "Une nouvelle connexion à votre compte a été détectée depuis {device}{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+          "title": "Nouvelle connexion depuis {device}",
+          "description": "Depuis l'IP {ip}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "title_browser_os": "Nouvelle connexion depuis {browser} sous {os}",
+          "description_no_ip": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "new_login_unknown_device": {
-          "title": "Nouvelle connexion à votre compte",
-          "description": "Une nouvelle connexion à votre compte a été détectée{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+          "title": "Connexion depuis un appareil non reconnu",
+          "description": "Depuis l'IP {ip}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "description_no_ip": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "password_changed": {
-          "title": "Votre mot de passe a été modifié",
-          "description": "Le mot de passe de votre compte vient d'être modifié. Si vous n'êtes pas à l'origine de ce changement, réinitialisez votre mot de passe et contactez un administrateur."
+          "title": "Mot de passe modifié",
+          "description": "Ce n'était pas vous ? Utilisez « Mot de passe oublié » sur la page de connexion, puis vérifiez vos sessions actives dans Sécurité."
         },
         "login_method_added": {
-          "title": "Nouvelle méthode de connexion ajoutée",
-          "description": "La connexion via {provider} vient d'être liée à votre compte. Si vous n'êtes pas à l'origine de ce liage, changez votre mot de passe immédiatement."
+          "title": "Connexion {provider} liée",
+          "description": "Vous pouvez désormais vous connecter avec {provider}. Ce n'était pas vous ? Changez votre mot de passe et vérifiez vos méthodes de connexion dans Sécurité."
         },
         "password_reset": {
-          "title": "Votre mot de passe a été réinitialisé",
-          "description": "Votre mot de passe a été réinitialisé via la procédure de récupération. Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement un administrateur."
+          "title": "Mot de passe réinitialisé par lien e-mail",
+          "description": "Le lien a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
         },
         "email_changed": {
-          "title": "Votre adresse e-mail a été modifiée",
-          "description": "L'adresse e-mail de votre compte a été remplacée par {email}. Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement un administrateur."
+          "title": "E-mail de connexion changé pour {email}",
+          "description": "Vous vous connectez désormais avec cette adresse ; l'ancienne ne fonctionne plus. Ce n'était pas vous ? Demandez à un propriétaire de l'espace de bloquer le compte."
         },
         "two_factor_enabled_totp": {
           "title": "Double authentification activée",
-          "description": "La double authentification via une application d'authentification est désormais active sur votre compte."
+          "description": "Chaque connexion demande désormais un code de votre application d'authentification. Gardez vos codes de secours en lieu sûr."
         },
         "two_factor_enabled_email": {
           "title": "Double authentification activée",
-          "description": "La double authentification par e-mail est désormais active sur votre compte."
+          "description": "Chaque connexion demande désormais un code envoyé par e-mail. Gardez vos codes de secours en lieu sûr."
         },
         "two_factor_disabled_totp": {
           "title": "Double authentification désactivée",
-          "description": "La double authentification via une application d'authentification a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+          "description": "La connexion ne demande plus de code. Ce n'était pas vous ? Réactivez-la dans Sécurité et changez votre mot de passe."
         },
         "two_factor_disabled_email": {
           "title": "Double authentification désactivée",
-          "description": "La double authentification par e-mail a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+          "description": "La connexion ne demande plus de code. Ce n'était pas vous ? Réactivez-la dans Sécurité et changez votre mot de passe."
         },
         "backup_codes_regenerated": {
-          "title": "Vos codes de secours ont été régénérés",
-          "description": "Un nouveau jeu de codes de secours pour la double authentification a été généré. Vos anciens codes de secours ne fonctionnent plus."
+          "title": "Nouveaux codes de secours générés",
+          "description": "Vos {count} anciens codes ne fonctionnent plus. Conservez les nouveaux ailleurs que sur votre téléphone.",
+          "description_one": "Votre ancien code ne fonctionne plus. Conservez les nouveaux ailleurs que sur votre téléphone.",
+          "description_none": "Vos anciens codes ne fonctionnent plus. Conservez les nouveaux ailleurs que sur votre téléphone."
         },
         "welcome": {
-          "title": "Bienvenue",
-          "description": "Bienvenue, {name} ! Votre compte est prêt. Prenez un moment pour vérifier votre profil et vos paramètres de sécurité."
+          "title": "Bienvenue, {name}",
+          "description": "Votre compte est prêt. Prenez deux minutes pour le protéger : activez la double authentification dans Sécurité.",
+          "title_anonymous": "Bienvenue"
         },
         "collaborator_joined": {
-          "title": "Un nouveau collaborateur a rejoint la plateforme",
-          "description": "{name} ({email}) a accepté son invitation et a rejoint la plateforme."
+          "title": "{name} a rejoint l'espace",
+          "description": "{email} a accepté l'invitation. Attribuez-lui les bons rôles dans Membres."
         },
         "module_updates": {
-          "title": "Mises à jour de modules disponibles",
-          "description": "Nouvelles versions disponibles : {modules}. Mettez à jour les versions dans antelope.config.ts ou lancez « ajs project modules update » pour les appliquer."
+          "title": "Mises à jour disponibles pour {count} modules",
+          "description": "Nouvelles versions disponibles : {modules}. Mettez à jour les versions dans antelope.config.ts ou lancez « ajs project modules update » pour les appliquer.",
+          "title_one": "Mise à jour disponible pour {count} module"
+        },
+        "backup_code_used": {
+          "title": "Un code de secours a servi à vous connecter — il en reste {left}",
+          "title_none": "Votre dernier code de secours a servi à vous connecter",
+          "description": "Si c'était vous, rien à faire. Ce n'était pas vous ? Changez votre mot de passe et générez de nouveaux codes de secours dans Sécurité.",
+          "description_low": "Il vous en reste peu : générez dès maintenant de nouveaux codes de secours dans Sécurité. Ce n'était pas vous ? Changez aussi votre mot de passe.",
+          "description_none": "Il ne vous reste aucun code de secours : générez-en de nouveaux dans Sécurité dès maintenant pour ne pas risquer de perdre l'accès. Ce n'était pas vous ? Changez aussi votre mot de passe."
+        },
+        "failed_sign_ins": {
+          "title": "{count} tentatives de connexion échouées sur votre compte",
+          "description": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe et activez la double authentification dans Sécurité.",
+          "description_two_factor": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes ; la double authentification a tout de même barré la route. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe dans Sécurité."
+        },
+        "roles_changed": {
+          "title": "Vos rôles sont désormais : {roles}",
+          "title_one": "Votre rôle est désormais : {roles}",
+          "title_none": "Vous n'avez plus aucun rôle",
+          "description": "{actor} a modifié vos rôles, et vos accès avec. Voyez ce que vous pouvez ouvrir désormais dans Paramètres."
+        },
+        "ownership_granted": {
+          "title": "Vous êtes désormais propriétaire de l'espace",
+          "description": "{actor} vous a donné le rôle de propriétaire : vous avez toutes les permissions et pouvez gérer les membres, les invitations et les rôles. Commencez par Membres."
+        },
+        "ownership_removed": {
+          "title": "Vous n'êtes plus propriétaire de l'espace",
+          "description": "{actor} vous a retiré les droits de propriétaire. Vous ne gardez que les permissions de vos rôles : voyez ce que vous pouvez ouvrir désormais dans Paramètres."
+        },
+        "invite_accepted": {
+          "title": "{name} a accepté votre invitation",
+          "description": "{email} fait désormais partie de l'espace. Vérifiez ses rôles dans Membres."
+        },
+        "invite_expired": {
+          "title": "Votre invitation à {email} a expiré",
+          "description": "Personne ne l'a acceptée à temps. Toujours d'actualité ? Envoyez-en une nouvelle depuis Invitations."
+        },
+        "member_removed": {
+          "title": "{actor} a retiré {name} de l'espace",
+          "description": "{email} ne peut plus ouvrir cet espace ; ses données restent en place. Vérifiez qui a accès dans Membres."
+        },
+        "role_permissions_changed": {
+          "title": "{actor} a modifié les permissions de « {role} »",
+          "description": "Les membres qui ont ce rôle ont reçu les nouveaux accès immédiatement. Vérifiez le rôle dans Rôles."
         }
       }
     },

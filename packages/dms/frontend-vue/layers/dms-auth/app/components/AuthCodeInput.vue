@@ -26,9 +26,18 @@ const { t } = useI18n();
 const root = useTemplateRef<HTMLElement>("root");
 const errorId = fieldErrorId(`auth-code-${useId()}`);
 
-/** Puts the caret in the first cell (after a refused code). */
+/**
+ * Puts the caret in the first empty cell (after a refused or partial code).
+ * The form disables the cells while it submits: the focus waits a task for
+ * them to be enabled again.
+ */
 function focus(): void {
-  root.value?.querySelector<HTMLInputElement>("input")?.focus();
+  setTimeout(() => {
+    const cells = [
+      ...(root.value?.querySelectorAll<HTMLInputElement>("input") ?? []),
+    ];
+    (cells.find((cell) => !cell.value) ?? cells[0])?.focus();
+  });
 }
 
 defineExpose({ focus });
@@ -56,6 +65,7 @@ defineExpose({ focus });
         :color="props.error ? 'error' : undefined"
         :highlight="!!props.error"
         :aria-invalid="!!props.error || undefined"
+        :aria-describedby="props.error ? errorId : undefined"
         :ui="{
           base: '[&:nth-child(3)]:me-3 max-sm:[&:nth-child(3)]:me-2 max-[22.5rem]:w-9',
         }"

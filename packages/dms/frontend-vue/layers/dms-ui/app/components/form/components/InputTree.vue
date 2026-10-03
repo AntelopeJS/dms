@@ -3,6 +3,7 @@ import type { DefaultComponentProps } from "../../../../../dms-core/app/types/co
 import Tree from "../../tree/Tree.vue";
 import type { TreeNode } from "../../../composables/tree/types";
 import { TreeSelectionBehavior } from "../../../composables/tree/types/props";
+import { FIELD_RING_INVALID_CLASS } from "../../../utils/fieldTrigger";
 interface InputTreeProps extends DefaultComponentProps {
   items?: TreeNode[];
   fetchUrl?: string;
@@ -44,6 +45,16 @@ const findNodeByValue = (
   return undefined;
 };
 
+function selectionValue(
+  value: TreeNode | TreeNode[] | undefined,
+): string | string[] | undefined {
+  if (!value) return props.multiple ? [] : undefined;
+  if (Array.isArray(value)) {
+    return value.map((item) => item.value).filter(Boolean) as string[];
+  }
+  return value.value;
+}
+
 const selectedNodes = computed({
   get: () => {
     if (!props.modelValue || availableItems.value.length === 0) {
@@ -59,21 +70,16 @@ const selectedNodes = computed({
     return findNodeByValue(availableItems.value, props.modelValue as string);
   },
   set: (value: TreeNode | TreeNode[] | undefined) => {
-    if (!value) {
-      emit("update:modelValue", props.multiple ? [] : undefined);
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      emit(
-        "update:modelValue",
-        value.map((item) => item.value).filter(Boolean) as string[],
-      );
-    } else {
-      emit("update:modelValue", value.value);
-    }
+    emit("update:modelValue", selectionValue(value));
+    // After the update: the field re-validates its new value.
+    emitFormChange();
   },
 });
+
+// The field state UFormField hands its control: the tree card is ringed when
+// the field is invalid, and each pick re-validates it.
+const { color: fieldColor, ariaAttrs, emitFormChange } = useFormField();
+const invalid = computed(() => fieldColor.value === "error");
 
 function handleTreeItemsLoaded(items: TreeNode[]) {
   availableItems.value = items;
@@ -81,7 +87,12 @@ function handleTreeItemsLoaded(items: TreeNode[]) {
 </script>
 
 <template>
-  <div @click.prevent.capture>
+  <div
+    role="group"
+    v-bind="ariaAttrs"
+    :class="invalid && FIELD_RING_INVALID_CLASS"
+    @click.prevent.capture
+  >
     <Tree
       :model-value="selectedNodes"
       :static-nodes="props.items"

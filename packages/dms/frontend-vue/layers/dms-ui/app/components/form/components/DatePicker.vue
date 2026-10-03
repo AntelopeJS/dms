@@ -13,8 +13,10 @@ import {
   type CalendarDate,
 } from "@internationalized/date";
 import { reactivePick } from "@vueuse/core";
+import { useFormField } from "@nuxt/ui/composables/useFormField";
 import {
   FIELD_TRIGGER_CLASS,
+  FIELD_TRIGGER_INVALID_CLASS,
   FIELD_TRIGGER_UI,
 } from "../../../utils/fieldTrigger";
 
@@ -42,7 +44,19 @@ type DateValue =
   | null
   | undefined;
 
-type DatePickerProps = Omit<CalendarProps<R, M>, "modelValue">;
+interface DatePickerProps extends Omit<CalendarProps<R, M>, "modelValue"> {
+  /** Id of the trigger, the control a field label points to. */
+  id?: string;
+  /** Earliest day that can be picked (ISO date). */
+  minDate?: string;
+  /** Latest day that can be picked (ISO date). */
+  maxDate?: string;
+  /**
+   * `error` marks the field invalid, as UFormField does for the controls it
+   * wraps; any other colour tints the calendar.
+   */
+  color?: CalendarProps<R, M>["color"] | "error";
+}
 
 const props = defineProps<DatePickerProps>();
 const emits = defineEmits<{
@@ -107,6 +121,14 @@ function isDateRangeValue(
 }
 
 function convertModelValue(value: DateValue): DateValue {
+  // A range may also arrive as `[start, end]`, the list shape the date type
+  // still accepts.
+  if (props.range && Array.isArray(value)) {
+    return convertDateRangeValue({
+      start: value[0] as string | undefined,
+      end: value[1] as string | undefined,
+    });
+  }
   if (isString(value)) {
     return convertIsoStringToCalendarDate(value);
   }
@@ -119,15 +141,54 @@ function convertModelValue(value: DateValue): DateValue {
   return value;
 }
 
-const convertedProps = computed(() => ({
-  ...props,
-  modelValue: convertModelValue(modelValue.value as DateValue),
-}));
+// The field state UFormField hands its control: the error border and aria
+// attributes go on the trigger, picks and closes re-validate the field.
+const {
+  color: fieldColor,
+  ariaAttrs,
+  emitFormBlur,
+  emitFormChange,
+} = useFormField(
+  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
+  // `color` and `disabled` from these.
+  props as Parameters<typeof useFormField>[0],
+);
+const invalid = computed(() => fieldColor.value === "error");
+
+function toBoundDate(value: string | undefined): CalendarDate | undefined {
+  return value ? convertIsoStringToCalendarDate(value) : undefined;
+}
+
+const convertedProps = computed(() => {
+  const {
+    id: _id,
+    minDate: _minDate,
+    maxDate: _maxDate,
+    color,
+    ...calendarProps
+  } = props as DatePickerProps;
+  return {
+    ...calendarProps,
+    color: color === "error" ? undefined : color,
+    modelValue: convertModelValue(modelValue.value as DateValue),
+  };
+});
+
+// Bound on the calendar itself: forwarding only passes props this component
+// was given, and the bounds arrive as `minDate` / `maxDate`.
+const minValue = computed(() => props.minValue ?? toBoundDate(props.minDate));
+const maxValue = computed(() => props.maxValue ?? toBoundDate(props.maxDate));
 
 type EmitEvent = string;
 type EmitValue = unknown;
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
+  forwardEmit(event, value);
+  // After the update: the field re-validates its new value.
+  if (event === "update:modelValue") emitFormChange();
+};
+
+function forwardEmit(event: EmitEvent, value: EmitValue): void {
   if (event === "update:modelValue" && value) {
     if (Array.isArray(value)) {
       const isoStrings = (value as CalendarDate[]).map((date) =>
@@ -154,7 +215,7 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }
-};
+}
 
 const forwarded = useForwardPropsEmits(
   convertedProps as unknown as ComputedRef<CalendarProps<R, M>>,
@@ -175,6 +236,13 @@ function formatDateLabel(value: unknown): string | undefined {
 // formatDate cannot read as a single date.
 const label = computed(() => {
   const value: unknown = modelValue.value;
+  if (props.range && Array.isArray(value)) {
+    return (
+      [formatDateLabel(value[0]), formatDateLabel(value[1])]
+        .filter(Boolean)
+        .join(" – ") || undefined
+    );
+  }
   if (Array.isArray(value)) {
     return value.map(formatDateLabel).filter(Boolean).join(", ") || undefined;
   }
@@ -190,25 +258,36 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UPopover>
+  <UPopover @update:open="(open: boolean) => !open && emitFormBlur()">
     <UButton
+      :id="props.id"
       :label="label ?? t('dms.form.select_date')"
       :ui="{
         ...FIELD_TRIGGER_UI,
         label: label ? 'truncate text-highlighted' : 'truncate text-dimmed',
       }"
-      v-bind="buttonProps"
+      v-bind="{
+        ...buttonProps,
+        'aria-invalid': invalid || undefined,
+        ...ariaAttrs,
+      }"
       variant="outline"
       color="neutral"
       icon="i-ph-calendar-blank"
       trailing-icon="i-ph-caret-down"
       block
-      :class="['justify-start', FIELD_TRIGGER_CLASS]"
+      :class="[
+        'justify-start',
+        FIELD_TRIGGER_CLASS,
+        invalid && FIELD_TRIGGER_INVALID_CLASS,
+      ]"
     />
 
     <template #content>
       <UCalendar
         v-bind="forwarded"
+        :min-value="minValue"
+        :max-value="maxValue"
         :week-starts-on="props.weekStartsOn ?? weekStartsOn"
         class="p-2.5"
       />

@@ -34,8 +34,17 @@ export interface ConfirmOptions {
    * reactively: state it reads can be refs owned by the caller.
    */
   body?: ConfirmBodyRender;
-  /** Text the user must type (exactly, trimmed) before confirming. */
+  /**
+   * Text the user must type (exactly, trimmed) to confirm. Confirming with
+   * the field empty or different flags it (required / mismatch) instead.
+   */
   confirmText?: string;
+  /**
+   * Checks the `body` fields on confirm, before `onConfirm`: returns `false`
+   * after flagging the empty or wrong ones (and focusing the first), which
+   * keeps the modal open.
+   */
+  validate?: () => boolean | Promise<boolean>;
   /**
    * Awaited on confirm: the modal shows a loading confirm button, blocks
    * dismissal, and resolves `true` only once it succeeds; a rejection is

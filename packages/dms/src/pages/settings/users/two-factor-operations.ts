@@ -249,9 +249,10 @@ export async function regenerateBackupCodes(
     HTTP_UNAUTHORIZED,
     "error.invalid_2fa_code",
   );
+  const previousCount = user.twoFactorBackupCodes?.length ?? 0;
   const backupCodes = issueBackupCodes(user);
   await userModel.update(user);
-  void notifyBackupCodesRegenerated(user._id);
+  void notifyBackupCodesRegenerated(user._id, previousCount);
   return { backupCodes };
 }
 

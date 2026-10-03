@@ -30,6 +30,9 @@ export class SystemState extends Table {
   /** Language chosen during onboarding for the administrator account. */
   @Field("string") declare default_language?: string;
 
+  /** Version the stored notifications were last upgraded to (see `upgradeStoredNotifications`). */
+  @Field("number") declare notifications_version?: number;
+
   @Index() @Field("date") declare createdAt: Date;
   @Index() @Field("date") declare updatedAt: Date;
 }

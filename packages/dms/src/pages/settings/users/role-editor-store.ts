@@ -12,6 +12,7 @@ import {
   GetCategoryPermissionIds,
   GetMenuOrder,
 } from "../../../implementations/dms/page";
+import { haveSameMembers } from "../../../utils/notification-rules";
 import type {
   RoleDeleteInput,
   RoleEditorInput,
@@ -139,19 +140,32 @@ export async function createRole(
   return insertRole(actor.tenantId, input);
 }
 
+/** What saving a role changed. */
+export interface RoleUpdateResult {
+  name: string;
+  /** The permissions differ from the stored ones, not only the name or description. */
+  permissionsChanged: boolean;
+}
+
 /** Rename a role, change its description and its permissions. */
 export async function updateRole(
   actor: RoleEditorActor,
   roleId: string,
   input: RoleEditorInput,
-): Promise<void> {
+): Promise<RoleUpdateResult> {
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, input.name, roleId);
+  const permissions = [...new Set(input.permissions)];
+  const permissionsChanged = !haveSameMembers(
+    role.permissions ?? [],
+    permissions,
+  );
   role.name = input.name;
   role.description = input.description;
-  role.permissions = [...new Set(input.permissions)];
+  role.permissions = permissions;
   role.updatedAt = new Date();
   await GetModel(RoleModel, actor.tenantId).update(role);
+  return { name: role.name, permissionsChanged };
 }
 
 /** Copy a role under a new name; returns the id of the copy. */

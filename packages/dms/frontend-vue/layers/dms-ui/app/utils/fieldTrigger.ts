@@ -21,3 +21,26 @@ export const FIELD_TRIGGER_UI = {
 
 /** Icon closing a field trigger, as on v2 select triggers. */
 export const FIELD_TRIGGER_ICON = "i-ph-caret-up-down";
+
+/**
+ * An invalid trigger, as UFormField marks the inputs it wraps (color "error"
+ * plus highlight): the error border, kept on hover and focus, with the error
+ * halo. Applied after FIELD_TRIGGER_CLASS, it wins the merge.
+ */
+export const FIELD_TRIGGER_INVALID_CLASS =
+  "ring-error hover:ring-error focus-visible:ring-error focus-visible:outline-(--dms-error-tint)";
+
+/**
+ * The same on a bordered surface standing in for a field (rich-text editor,
+ * colour swatch, upload tile): the error border and focus halo. A plain
+ * element merges no classes, so it takes these instead of its own border
+ * colour, focus border and outline colour, never on top of them.
+ */
+export const FIELD_SURFACE_INVALID_CLASS =
+  "border-error hover:border-error focus-within:border-error has-focus-visible:border-error outline-(--dms-error-tint)";
+
+/**
+ * A field whose control has no border of its own (a tree, an inline
+ * calendar): an error ring around it.
+ */
+export const FIELD_RING_INVALID_CLASS = "rounded-lg ring-1 ring-error";

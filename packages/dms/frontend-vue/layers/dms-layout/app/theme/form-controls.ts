@@ -534,17 +534,20 @@ const inputDateTheme = {
 
 /**
  * v2 field chrome: 13px/550 label in ink, 12.5px muted description and help,
- * the "Optional" hint in mono and a 12.5px error line. Form.vue fills the
- * error slot with the warning icon; the slot renders even without an error,
- * hence empty:hidden.
+ * the "Optional" hint in mono and a 12.5px error line led by the warning
+ * icon. Form.vue fills the error slot with that icon itself (the slot then
+ * renders even without an error, hence empty:hidden); any other field gets
+ * it drawn before its text, so every field error reads the same.
  */
+const FIELD_ERROR_ICON =
+  "before:size-3.5 before:shrink-0 before:bg-current before:content-[''] before:[mask:var(--dms-icon-warning-circle)_center/contain_no-repeat] has-[svg]:before:hidden";
+
 const formFieldTheme = {
   slots: {
     label: "text-[13px] font-[550] text-highlighted",
     description: "text-[12.5px] text-muted",
     hint: "font-mono text-[11px] font-medium text-dimmed",
-    error:
-      "mt-1.5 flex items-center gap-1.5 text-[12.5px] text-error empty:hidden",
+    error: `mt-1.5 flex items-center gap-1.5 text-[12.5px] text-error empty:hidden ${FIELD_ERROR_ICON}`,
     help: "mt-1.5 text-[12.5px] text-muted",
   },
   variants: { orientation: { vertical: { container: "mt-1.5" } } },

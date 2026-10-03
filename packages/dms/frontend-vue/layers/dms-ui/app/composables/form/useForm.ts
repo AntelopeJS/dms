@@ -23,6 +23,7 @@ import {
   apiErrorText,
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
+import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {
@@ -229,25 +230,58 @@ function processBeforeStateMappers(
   return result;
 }
 
-function collectSubmitData(
-  event: FormSubmitEvent<FormData>,
-  allFields: FormField[],
-  submitDefaults: unknown,
+/**
+ * The value a cleared field is submitted as: `[]` for a field holding a list
+ * (a multiple select, tree, relation, date or file), `null` for any other.
+ * The stored value tells which, whatever the control emitted on clearing.
+ */
+export function clearedFieldValue(initial: unknown): FormFieldValue {
+  return Array.isArray(initial) ? [] : null;
+}
+
+/** What `collectSubmitData` needs to know of the form besides its values. */
+export interface SubmitDataContext {
+  /** The values the form loaded (or last saved, or its field defaults). */
+  initialValues?: Record<string, unknown>;
+  /** Values the form always submits under its fields' (resolved tokens). */
+  submitDefaults?: Record<string, unknown>;
+  /** Fields a watch action disabled. */
+  disabled?: Set<string>;
+}
+
+/**
+ * The body a submit sends.
+ *
+ * Every field holding a value is sent. A field left `undefined` (a control
+ * cleared: a deselected select, an emptied colour, a removed tree pick) is
+ * sent too, as its empty value (`clearedFieldValue`), when it started with a
+ * value: an endpoint merging the body into the stored row would otherwise
+ * keep the value the user removed. A field that started empty and is still
+ * empty is not sent, so a create form sends no `null` for the fields nobody
+ * touched, nor an edit form for values the row never had. A disabled field
+ * is never cleared: the user cannot have emptied it.
+ */
+export function collectSubmitData(
+  data: Record<string, unknown>,
+  fields: ReadonlyArray<Pick<FormField, "id" | "type" | "disabled">>,
+  context: SubmitDataContext = {},
 ): FormData {
   const fieldData: FormData = {};
 
-  for (const field of allFields) {
-    const rawValue = event.data[field.id];
-    if (rawValue !== undefined) {
-      const unwrappedValue = unref(rawValue);
-      if (unwrappedValue !== undefined) {
-        fieldData[field.id] = unwrappedValue;
-      }
+  for (const field of fields) {
+    const value = unref(data[field.id]) as FormFieldValue | undefined;
+    if (value !== undefined) {
+      fieldData[field.id] = value;
+      continue;
     }
+    if (field.disabled || context.disabled?.has(field.id)) continue;
+    const initial = context.initialValues?.[field.id];
+    if (isBlankValue(initial, field.type)) continue;
+    fieldData[field.id] = clearedFieldValue(initial);
   }
 
   return {
-    ...(submitDefaults as FormData),
+    ...(context.submitDefaults as FormData | undefined),
     ...fieldData,
   };
 }
@@ -659,11 +693,11 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       return;
     }
     const submitUrl = target.url;
-    const plainData = collectSubmitData(
-      event,
-      allFields.value,
-      effectiveSubmitDefaults.value,
-    );
+    const plainData = collectSubmitData(event.data, allFields.value, {
+      initialValues: initialValues.value,
+      submitDefaults: effectiveSubmitDefaults.value,
+      disabled: disabledFields.value,
+    });
 
     loading.value = true;
     try {

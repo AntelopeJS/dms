@@ -7,6 +7,7 @@ import { SECURITY_PAGE_PATH } from "../../../../../composables/settings/security
 import ProfileAvatar from "./ProfileAvatar.vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
+import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 
 interface AvatarValue {
   key: string;
@@ -42,6 +43,7 @@ const EMAIL_ANCHOR = "#email";
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
+const { processApiMessage } = useTranslation();
 const { user, refresh: refreshSession } = useCurrentUser();
 const { upload, resolveUrl } = useProfileAvatar(
   () => props.avatarField?.component?.options ?? {},
@@ -134,10 +136,7 @@ async function discard(): Promise<void> {
 
 async function save(): Promise<void> {
   if (!name.value.trim()) {
-    await fieldErrors.setError(
-      "name",
-      t("page.settings.profile.name_required"),
-    );
+    await fieldErrors.setError("name", processApiMessage(REQUIRED_MESSAGE));
     return;
   }
   if (!canSave.value) return;

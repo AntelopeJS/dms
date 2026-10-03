@@ -29,5 +29,5 @@ export async function resetPassword(
 
   await userModel.update(user);
 
-  void notifyPasswordReset(user._id);
+  void notifyPasswordReset(user._id, user.email);
 }

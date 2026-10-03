@@ -7,7 +7,7 @@ import {
   sanitizeUser,
 } from "@antelopejs/interface-dms/auth";
 import type { SessionModel, User } from "@antelopejs/interface-dms/auth/db";
-import { notifyNewLogin } from "../../utils/account-notifications";
+import { recordSignIn } from "../../utils/sign-in-monitor";
 import { pickInitialTenantId } from "./pick-tenant";
 import type {
   AuthResponse,
@@ -103,7 +103,7 @@ export async function resolveLoginOutcome(
     };
   }
 
-  void notifyNewLogin(user._id, userAgent, ip);
+  await recordSignIn(user, userAgent, ip);
 
   return issueAuthResponse(sessionModel, tenantId, user, userAgent, ip);
 }

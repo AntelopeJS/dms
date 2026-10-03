@@ -132,8 +132,7 @@
         "format_date": "Date",
         "format_datetime": "Date et heure",
         "format_time": "Heure",
-        "format_number": "Nombre",
-        "format_currency": "Devise"
+        "format_number": "Nombre"
       },
       "notifications": {
         "description": "Choisissez ce qui vous parvient et rattrapez ce qui s’est passé dans vos espaces de travail.",
@@ -178,7 +177,24 @@
         "delete_all_description_unread": "Votre boîte de réception sera vidée, y compris {count} notification non lue. Cette action est irréversible. Vos préférences ne changent pas. | Votre boîte de réception sera vidée, y compris {count} notifications non lues. Cette action est irréversible. Vos préférences ne changent pas.",
         "delete_all_confirm": "Supprimer {count} notification | Supprimer {count} notifications",
         "cancel": "Annuler",
-        "unread_badge": "{count} notification non lue | {count} notifications non lues"
+        "unread_badge": "{count} notification non lue | {count} notifications non lues",
+        "search_placeholder": "Rechercher dans les notifications",
+        "search_clear": "Effacer la recherche",
+        "category_label": "Filtrer par catégorie",
+        "category_all": "Toutes les catégories",
+        "status_label": "État de lecture",
+        "tab_read": "Lues",
+        "result_count": "{count} notification | {count} notifications",
+        "result_matching": "{count} résultat | {count} résultats",
+        "clear_filters": "Effacer les filtres",
+        "mark_matching_read": "Marquer {count} comme lue | Marquer {count} comme lues",
+        "delete_matching": "Supprimer {count}…",
+        "delete_matching_title": "Supprimer {count} notification correspondante ? | Supprimer les {count} notifications correspondantes ?",
+        "delete_matching_description": "Seules les notifications qui correspondent à votre recherche et à vos filtres sont supprimées ; les autres restent. Cette action est irréversible.",
+        "no_match_title": "Aucune notification ne correspond à ces filtres",
+        "no_match_title_query": "Aucune notification ne correspond à « {query} »",
+        "no_match_description": "La recherche porte sur les titres, les descriptions et les noms. Essayez un autre mot ou une autre catégorie, ou effacez les filtres.",
+        "search_short": "Rechercher…"
       },
       "general": {
         "title": "Paramètres généraux",

@@ -403,7 +403,9 @@
       "too_short": "Cette valeur est trop courte.",
       "too_small": "Cette valeur est trop petite.",
       "too_large": "Cette valeur est trop grande.",
-      "with_values": "{message} : {values}"
+      "with_values": "{message} : {values}",
+      "code_incomplete": "Saisissez tous les chiffres du code.",
+      "password_rules": "Le mot de passe ne respecte pas toutes les règles."
     },
     "confirm": {
       "unsaved_changes_title": "Modifications non sauvegardées",
@@ -413,7 +415,8 @@
       "confirm": "Confirmer",
       "cancel": "Annuler",
       "esc_hint": "pour annuler",
-      "type_to_confirm": "Saisissez {text} pour confirmer"
+      "type_to_confirm": "Saisissez {text} pour confirmer",
+      "type_mismatch": "Le texte ne correspond pas. Saisissez exactement {text}."
     },
     "date": {
       "undefined": "Inconnue"

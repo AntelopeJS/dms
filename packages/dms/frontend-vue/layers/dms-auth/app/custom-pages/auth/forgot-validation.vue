@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
-import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
@@ -8,8 +7,10 @@ import AuthCodeInput from "../../components/AuthCodeInput.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import AuthResendCode from "../../components/AuthResendCode.vue";
 import { useAuthFormError } from "../../composables/useAuthFormError";
+import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
+const { processApiMessage } = useTranslation();
 const { t } = useI18n();
 const toast = useToast();
 const dmsApp = useDmsApp();
@@ -39,15 +40,10 @@ const form = useTemplateRef("form");
 const codeInput = useTemplateRef<{ focus: () => void }>("codeInput");
 const codeError = ref<string>();
 
-const schema = z.object({
-  pin: z.string().array().length(PIN_LENGTH),
-});
-type Schema = z.output<typeof schema>;
-const state = reactive<Partial<Schema>>({});
-
-const isCodeComplete = computed(
-  () => (state.pin ?? []).join("").length === PIN_LENGTH,
-);
+interface CodeState {
+  pin?: string[];
+}
+const state = reactive<CodeState>({});
 
 // Typing a new code clears the refusal of the previous one.
 watch(
@@ -63,12 +59,19 @@ onMounted(() => {
   startCooldown();
 });
 
-async function onSubmit(event: FormSubmitEvent<Schema>) {
+async function onSubmit(event: FormSubmitEvent<CodeState>) {
+  // An empty or partial code is flagged under the cells, not sent.
+  const missing = codeEntryError(event.data.pin, PIN_LENGTH);
+  if (missing) {
+    codeError.value = processApiMessage(missing);
+    codeInput.value?.focus();
+    return;
+  }
   try {
     isLoading.value = true;
     clearFormError();
     codeError.value = undefined;
-    const token = event.data.pin.join("");
+    const token = (event.data.pin ?? []).join("");
 
     await $authFetch("/api/auth/validate-forgot-password-token", {
       method: "POST",
@@ -151,8 +154,8 @@ async function requestForgotPassword() {
 
     <UForm
       ref="form"
-      :schema="schema"
       :state="state"
+      novalidate
       class="mt-[22px] grid gap-4"
       @submit="onSubmit"
     >
@@ -170,7 +173,6 @@ async function requestForgotPassword() {
 
       <UButton
         :loading="isLoading"
-        :disabled="!isCodeComplete"
         :label="$t('page.forgot.reset_button')"
         type="submit"
         size="lg"

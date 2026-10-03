@@ -10,6 +10,8 @@ interface NotificationMatrixCategoryProps {
   category: NotificationCategory;
   /** Subjects of the category that are on, out of `total`. */
   enabledCount: number;
+  /** State of the master switch: one of the subjects it can change is on. */
+  on: boolean;
   total: number;
   /** Every subject is locked: the master switch has nothing to change. */
   disabled: boolean;
@@ -57,7 +59,7 @@ const iconWellTone = computed(() =>
     </div>
     <div class="flex items-center justify-center" role="cell">
       <USwitch
-        :model-value="props.enabledCount > 0"
+        :model-value="props.on"
         :disabled="props.disabled"
         :aria-label="
           t('page.settings.notifications.category_switch', { name: label })

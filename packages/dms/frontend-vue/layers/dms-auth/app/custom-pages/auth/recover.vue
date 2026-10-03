@@ -10,6 +10,11 @@ import {
   type AuthFormHandle,
   useAuthFormError,
 } from "../../composables/useAuthFormError";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
 const dmsApp = useDmsApp();
@@ -26,16 +31,17 @@ if (!route.query.token || !route.query.email) {
 }
 
 const isLoading = ref(false);
-const isPasswordValid = ref(false);
 
-const schema = z.object({
+const fields = z.object({
   password: passwordSchema,
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 
 const state = reactive<Partial<Schema>>({
   password: undefined,
 });
+useLiveFormErrors(form, state);
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
@@ -73,21 +79,21 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       ref="form"
       :schema="schema"
       :state="state"
+      novalidate
       class="mt-[22px] grid gap-4"
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 
       <AuthNewPasswordField
         v-model="state.password"
-        v-model:valid="isPasswordValid"
         :label="$t('page.recover.new_password')"
       />
 
       <UButton
         :label="$t('page.recover.submit')"
         :loading="isLoading"
-        :disabled="!isPasswordValid"
         type="submit"
         size="lg"
         class="justify-center"

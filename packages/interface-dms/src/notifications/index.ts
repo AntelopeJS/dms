@@ -45,6 +45,7 @@ export const SystemCategory = NotificationCategory("system", {
 export const GeneralSubject = NotificationSubject("general", {
   category: SystemCategory,
   labelKey: "dms.notifications.subjects.general",
+  descriptionKey: "dms.notifications.subjects.general_desc",
   togglePermission: "forbidden",
 });
 

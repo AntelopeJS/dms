@@ -1,10 +1,12 @@
 import {
+  Context,
   Controller,
   Delete,
   Get,
   JSONBody,
   Parameter,
   Put,
+  type RequestContext,
   Route,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
@@ -22,6 +24,12 @@ import {
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../../db";
+import {
+  isFilteredFeed,
+  isNarrowedFeed,
+  type NotificationFeedFilter,
+  parseNotificationFeedQuery,
+} from "../../../db/models/notification-feed-filter";
 import {
   findSubjectByPreferenceKey,
   getRegisteredCategories,
@@ -41,7 +49,6 @@ import { userCategory } from "./category";
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const UNREAD_PREVIEW_SIZE = 3;
-const UNREAD_FILTER = "unread";
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
@@ -65,6 +72,26 @@ function parsePageSize(value?: string): number {
 
 function parseOffset(value?: string): number {
   return Math.max(Number(value) || 0, 0);
+}
+
+/**
+ * The inbox filter of a request: `q` (the search), `keys` (comma-separated
+ * message keys whose translation matches it), `category`, `subject` and
+ * `filter` (`unread` or `read`), all optional. Malformed or over-long
+ * values are refused.
+ */
+function readFeedFilter(context: RequestContext): NotificationFeedFilter {
+  const read = (name: string) =>
+    context.url.searchParams.get(name) ?? undefined;
+  const filter = parseNotificationFeedQuery({
+    q: read("q"),
+    keys: read("keys"),
+    category: read("category"),
+    subject: read("subject"),
+    filter: read("filter"),
+  });
+  assert(filter, HTTP_BAD_REQUEST, "error.request_refused");
+  return filter;
 }
 
 /** Refuses keys that name no registered subject, and turning a locked subject off. */
@@ -164,30 +191,53 @@ export class NotificationsApiController extends Controller(
     return { categories, subjects };
   }
 
-  /** One page of the feed, newest first; `filter=unread` keeps unread rows only. */
+  /**
+   * One page of the feed, newest first, narrowed by the inbox filter (see
+   * {@link readFeedFilter}); without one it lists the whole feed.
+   */
   @Get("/list")
   async getNotifications(
+    @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
     @Parameter("limit", "query") limitParam?: string,
     @Parameter("offset", "query") offsetParam?: string,
-    @Parameter("filter", "query") filterParam?: string,
   ) {
-    return await notificationsModel.getByUserId(
+    return await notificationsModel.getFeedPage(
       this.user._id,
+      readFeedFilter(context),
       parsePageSize(limitParam),
       parseOffset(offsetParam),
-      filterParam === UNREAD_FILTER,
     );
   }
 
-  /** Totals of the All and Unread inbox tabs. */
+  /**
+   * Totals of the All and Unread inbox tabs, for the feed the search,
+   * category and subject narrow (the read state does not change them).
+   */
   @Get("/counts")
   async getCounts(
+    @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
   ) {
-    return await notificationsModel.countFeed(this.user._id);
+    const filter = readFeedFilter(context);
+    return isNarrowedFeed(filter)
+      ? await notificationsModel.countFilteredFeed(this.user._id, filter)
+      : await notificationsModel.countFeed(this.user._id);
+  }
+
+  /**
+   * What the inbox search and filters work from: the message keys stored in
+   * the user's feed (the client matches their translation) and the category
+   * / subject pairs it holds.
+   */
+  @Get("/facets")
+  async getFacets(
+    @Model(UserNotificationsModel)
+    notificationsModel: UserNotificationsModel,
+  ) {
+    return await notificationsModel.getFeedFacets(this.user._id);
   }
 
   @Get("/unread-count")
@@ -271,24 +321,36 @@ export class NotificationsApiController extends Controller(
     return { success: true };
   }
 
-  /** Returns the ids it marked read, which `PUT /mark-unread` takes to undo it. */
+  /**
+   * Marks the whole feed read, or only what the inbox filter keeps. Returns
+   * the ids it marked read, which `PUT /mark-unread` takes to undo it.
+   */
   @Put("/mark-all-read")
   async markAllAsRead(
+    @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
   ) {
-    const ids = await notificationsModel.markAllAsRead(this.user._id);
-    await publishAllNotificationsRead(this.user._id);
+    const filter = readFeedFilter(context);
+    const ids = await notificationsModel.markAllAsRead(this.user._id, filter);
+    // A filtered pass names its rows: "all read" would clear the others too.
+    if (isFilteredFeed(filter)) {
+      await publishNotificationsRead(this.user._id, ids);
+    } else {
+      await publishAllNotificationsRead(this.user._id);
+    }
 
     return { success: true, ids };
   }
 
+  /** Deletes the whole feed, or only what the inbox filter keeps. */
   @Delete("/delete-all")
   async deleteAll(
+    @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
   ) {
-    await notificationsModel.deleteAll(this.user._id);
+    await notificationsModel.deleteAll(this.user._id, readFeedFilter(context));
 
     return { success: true };
   }

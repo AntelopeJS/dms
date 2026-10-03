@@ -18,6 +18,7 @@ import {
 import { getRealtimeBroker } from "../../realtime/current";
 import { buildUserNotificationTopic } from "../../realtime/registry";
 import { runInBatches } from "../../utils/run-in-batches";
+import { hasNotificationTitle } from "./delivery-guard";
 import {
   categoryRegistry,
   isSubjectRegistered,
@@ -70,6 +71,15 @@ export async function publishNotificationsUnread(
   ids: string[],
 ): Promise<void> {
   await publishNotificationEvent(userId, NOTIFICATION_UNREAD_EVENT, { ids });
+}
+
+/** Refuses a notification without a title, which would store an empty row. */
+function isDeliverable(data: NotificationData, recipient: string): boolean {
+  if (hasNotificationTitle(data)) return true;
+  Logging.Error(
+    `[DMS] Notification without a title not delivered (subject "${data.subject?.id}", recipient ${recipient})`,
+  );
+  return false;
 }
 
 export async function publishAllNotificationsRead(
@@ -151,6 +161,8 @@ export namespace internal {
     groupId?: string,
     idempotencyKey?: string,
   ): Promise<void> {
+    if (!isDeliverable(data, `"${userId}"`)) return;
+
     const isAllowed = await canSendNotification(
       userId,
       data.subject.category.id,
@@ -186,6 +198,7 @@ export namespace internal {
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
   ): Promise<void> {
+    if (!isDeliverable(data, `list of ${userIds.length}`)) return;
     const groupId = buildGroupId(readScope, idempotencyKey);
     await sendToUsersWithGroupId(userIds, data, groupId, idempotencyKey);
   }
@@ -209,7 +222,7 @@ export namespace internal {
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
   ): Promise<void> {
-    if (roleIds.length === 0) {
+    if (roleIds.length === 0 || !isDeliverable(data, "roles")) {
       return;
     }
 
@@ -247,6 +260,7 @@ export namespace internal {
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
   ): Promise<void> {
+    if (!isDeliverable(data, "everyone")) return;
     const userModel = GetModel(UserModel);
     const groupId = buildGroupId(readScope, idempotencyKey);
     let offset = 0;

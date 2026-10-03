@@ -226,9 +226,7 @@ it("refuses an empty name inline before calling the API", async () => {
   await save();
 
   expect(api.updateRole).not.toHaveBeenCalled();
-  expect(nameError()?.textContent).toBe(
-    "t($page.settings.roles.error.name_required)",
-  );
+  expect(nameError()?.textContent).toBe("t($dms.field_errors.required)");
   expect(addToast).not.toHaveBeenCalled();
 });
 

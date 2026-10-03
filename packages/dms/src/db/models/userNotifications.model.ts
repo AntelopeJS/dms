@@ -7,6 +7,10 @@ import type {
 } from "@antelopejs/interface-dms/notifications/types";
 import { runInBatches } from "../../utils/run-in-batches";
 import { UserNotification, userNotificationsTableName } from "../tables";
+import {
+  applyFeedFilter,
+  type NotificationFeedFilter,
+} from "./notification-feed-filter";
 
 const SHARED_GROUP_UPDATE_BATCH_SIZE = 10;
 
@@ -27,6 +31,22 @@ export interface NewUserNotification {
   tone?: NotificationTone;
   /** Fixed row id, set only by an idempotent delivery, which the row records. */
   id?: string;
+}
+
+/** Fields a sender may rewrite on a notification already delivered. */
+export interface NotificationRewrite {
+  params?: Record<string, string | number>;
+  description?: string;
+}
+
+const REPLACE_ROW = { conflict: "replace" } as const;
+
+/** What a user's visible feed holds, for the inbox search and filters. */
+export interface UserNotificationFacets {
+  /** Message keys (without `$`) of the stored titles and descriptions. */
+  messageKeys: string[];
+  /** The category / subject pairs with at least one notification. */
+  subjects: { categoryId: string; subjectId: string }[];
 }
 
 /** Read and unread totals of a user's visible feed. */
@@ -163,6 +183,66 @@ export class UserNotificationsModel extends BasicDataModel(
     return { all, unread };
   }
 
+  /**
+   * One page of the inbox, newest first, narrowed by `filter` (read state,
+   * category, subject, search). Every query starts from the user index.
+   */
+  async getFeedPage(
+    userId: string,
+    filter: NotificationFeedFilter,
+    limit: number,
+    offset: number,
+  ): Promise<UserNotification[]> {
+    const rows = await applyFeedFilter(this.visibleFeed(userId), filter)
+      .orderBy("createdAt", "desc")
+      .slice(offset, limit)
+      .run();
+    return rows
+      .map((row) => UserNotificationsModel.fromDatabase(row))
+      .filter((row): row is UserNotification => row !== undefined);
+  }
+
+  /** The All and Unread totals of the feed `filter` narrows, its read state aside. */
+  async countFilteredFeed(
+    userId: string,
+    filter: NotificationFeedFilter,
+  ): Promise<UserNotificationCounts> {
+    const narrowed: NotificationFeedFilter = {
+      ...filter,
+      readState: undefined,
+    };
+    const [all, unread] = await Promise.all([
+      applyFeedFilter(this.visibleFeed(userId), narrowed).count().run(),
+      applyFeedFilter(this.unreadFeed(userId), narrowed).count().run(),
+    ]);
+    return { all, unread };
+  }
+
+  /** The message keys and category / subject pairs of the user's visible feed. */
+  async getFeedFacets(userId: string): Promise<UserNotificationFacets> {
+    const [titles, descriptions, categoryIds] = await Promise.all([
+      this.visibleFeed(userId).distinct("title").run(),
+      this.visibleFeed(userId).distinct("description").run(),
+      this.visibleFeed(userId).distinct("categoryId").run(),
+    ]);
+    const subjects = await Promise.all(
+      categoryIds.filter(Boolean).map(async (categoryId) => {
+        const subjectIds = await this.visibleFeed(userId)
+          .filter((row) => row.key("categoryId").eq(categoryId))
+          .distinct("subjectId")
+          .run();
+        return subjectIds
+          .filter(Boolean)
+          .map((subjectId) => ({ categoryId, subjectId }));
+      }),
+    );
+    const messageKeys = [...new Set([...titles, ...descriptions])]
+      .filter((value) => typeof value === "string" && value.startsWith("$"))
+      .map((value) => value.slice(1))
+      .sort();
+    return { messageKeys, subjects: subjects.flat() };
+  }
+
   async getUnreadByUserId(
     userId: string,
     limit?: number,
@@ -196,6 +276,49 @@ export class UserNotificationsModel extends BasicDataModel(
           .map((r) => UserNotificationsModel.fromDatabase(r))
           .filter((n): n is UserNotification => n !== undefined),
       );
+  }
+
+  /**
+   * The user's visible notifications with this title created after `since`
+   * whose params hold every value of `match`, newest first. Lets a sender
+   * fold a new event into the row an earlier one of the same kind left.
+   */
+  async findMatching(
+    userId: string,
+    title: string,
+    match: Record<string, string | number>,
+    since: Date,
+  ): Promise<UserNotification[]> {
+    // The title is compared here rather than in the query: a message key
+    // starts with `$`, which the database reads as a field reference.
+    const rows = await this.visibleFeed(userId)
+      .filter((row) => row.key("createdAt").gt(since))
+      .run();
+    return rows
+      .map((row) => UserNotificationsModel.fromDatabase(row))
+      .filter((row): row is UserNotification => row?.title === title)
+      .filter((row) =>
+        Object.entries(match).every(
+          ([key, value]) => row.params?.[key] === value,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+  }
+
+  /**
+   * Writes new params or a new description back, leaving the read state
+   * and the dates alone. The whole row is replaced: an update reads a
+   * string starting with `$`, as every message key does, as a field
+   * reference.
+   */
+  async rewrite(
+    row: UserNotification,
+    changes: NotificationRewrite,
+  ): Promise<void> {
+    await this.table.insert(Object.assign({}, row, changes), REPLACE_ROW).run();
   }
 
   async countUnread(userId: string): Promise<number> {
@@ -268,9 +391,18 @@ export class UserNotificationsModel extends BasicDataModel(
     return reopened;
   }
 
-  /** Marks every unread notification of a user read and returns their ids, so the change can be undone. */
-  async markAllAsRead(userId: string): Promise<string[]> {
-    const notifications = await this.unreadFeed(userId).run();
+  /**
+   * Marks every unread notification of a user read, or only those `filter`
+   * keeps, and returns their ids, so the change can be undone.
+   */
+  async markAllAsRead(
+    userId: string,
+    filter: NotificationFeedFilter = {},
+  ): Promise<string[]> {
+    const notifications = await applyFeedFilter(
+      this.unreadFeed(userId),
+      filter,
+    ).run();
 
     if (notifications.length === 0) {
       return [];
@@ -284,7 +416,7 @@ export class UserNotificationsModel extends BasicDataModel(
       ),
     ];
 
-    await this.unreadFeed(userId)
+    await applyFeedFilter(this.unreadFeed(userId), filter)
       .update({
         isRead: true,
         updatedAt: new Date(),
@@ -308,14 +440,16 @@ export class UserNotificationsModel extends BasicDataModel(
     return this.table.get(id).update({ isDismissed: true }).run();
   }
 
-  async deleteAll(userId: string): Promise<void> {
-    await this.table
-      .getAll(userId, "userId")
+  /** Deletes every notification of a user, or only those `filter` keeps. */
+  async deleteAll(
+    userId: string,
+    filter: NotificationFeedFilter = {},
+  ): Promise<void> {
+    await applyFeedFilter(this.table.getAll(userId, "userId"), filter)
       .filter((row) => row.key("isIdempotent").eq(true))
       .update({ isDismissed: true })
       .run();
-    await this.table
-      .getAll(userId, "userId")
+    await applyFeedFilter(this.table.getAll(userId, "userId"), filter)
       .filter((row) => row.key("isIdempotent").ne(true))
       .delete()
       .run();

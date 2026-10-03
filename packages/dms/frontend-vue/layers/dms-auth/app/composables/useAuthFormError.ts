@@ -14,7 +14,8 @@ export interface AuthFormError {
 /** What an auth page's `UForm` exposes that a field error needs. */
 export interface AuthFormHandle {
   setErrors: (errors: Array<{ name: string; message: string }>) => void;
-  getErrors: () => Array<{ id?: string; name?: string }>;
+  getErrors: (name?: string) => Array<{ id?: string; name?: string }>;
+  validate: (options: { name: string; silent: boolean }) => Promise<unknown>;
 }
 
 /** Where an auth page shows the errors that belong to one of its fields. */

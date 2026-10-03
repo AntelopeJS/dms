@@ -119,6 +119,10 @@
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
 
+    /* Phosphor warning-circle as a mask: the field error line draws it in
+       its own (error) ink, so it needs no dark variant. */
+    --dms-icon-warning-circle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24m0 192a88 88 0 1 1 88-88a88.1 88.1 0 0 1-88 88m-8-80V80a8 8 0 0 1 16 0v56a8 8 0 0 1-16 0m20 36a12 12 0 1 1-12-12a12 12 0 0 1 12 12'/%3E%3C/svg%3E");
+
     /* Accent for text, icons and lines. The light theme needs the deep dms-700
      to stay readable on white; solid fills keep the bright dms-400 through
      --dms-accent-fill instead, with dark ink on top, in both themes. */

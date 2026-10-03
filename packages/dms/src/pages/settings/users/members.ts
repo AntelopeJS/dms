@@ -58,6 +58,11 @@ import {
   buildInviteRoleOptions,
   type InviteRoleOptions,
 } from "./member-role-options";
+import {
+  rememberMemberEdit,
+  rememberMemberRemovals,
+} from "./member-change-notifications";
+import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
 
 RegisterDataController()(memberSettingDataAPI);
 
@@ -147,6 +152,7 @@ async function guardMemberRemoval(tenantId: string, ids: string[]) {
     tenantId,
     userIds: excludedUserIds,
   });
+  rememberMemberRemovals(tenantId, tenantTargets);
 }
 
 const memberApiTarget = (action: string) =>
@@ -308,11 +314,9 @@ export const membersTable = TableView(memberSettingDataAPI, {
       // oxlint-disable-next-line anti-slop/no-chained-type-assertions
       const currentRow = current as unknown as TenantMember;
       const { isTenantOwner } = body as { isTenantOwner?: boolean };
-      await prepareOwnerChange(
-        getRequestTenantId(ctx),
-        currentRow,
-        isTenantOwner,
-      );
+      const tenantId = getRequestTenantId(ctx);
+      await prepareOwnerChange(tenantId, currentRow, isTenantOwner);
+      rememberMemberEdit(tenantId, currentRow);
     },
     delete: async (ctx, { ids }) => {
       await guardMemberRemoval(getRequestTenantId(ctx), ids);
@@ -439,13 +443,23 @@ export class MembersSettingsController extends PageController(
   async changeOwnership(
     @Context() ctx: RequestContext,
     @Parameter("id", "param") memberId: string,
-    @AuthUserWithPermission(membersTableEditAction) _user: User,
+    @AuthUserWithPermission(membersTableEditAction) user: User,
     @JSONBody() body: unknown,
   ): Promise<void> {
     const { isTenantOwner } = assertValidation(body, (v) =>
       memberOwnershipSchema.parse(v),
     );
-    await setMemberOwnership(getRequestTenantId(ctx), memberId, isTenantOwner);
+    const { member, change } = await setMemberOwnership(
+      getRequestTenantId(ctx),
+      memberId,
+      isTenantOwner,
+    );
+    if (change !== null && member.userId !== user._id) {
+      void notifyOwnershipChanged(member.userId, isTenantOwner, {
+        id: user._id,
+        name: user.name || user.email,
+      });
+    }
   }
 
   @Post("/:id/resend-verification")

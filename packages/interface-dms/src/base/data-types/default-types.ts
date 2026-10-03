@@ -338,6 +338,37 @@ export namespace DefaultDataTypes {
     }
 
     getValidation() {
+      if (this.options.range) {
+        // The date picker holds a range as `{ start, end }`; a list of two
+        // dates is the older shape, still accepted. Each date gets its own
+        // schema: one shared instance would serialize as a JSON Schema `$ref`,
+        // which the form rebuilds as "anything".
+        return z.union([
+          z.array(this.singleDateValidation()),
+          z
+            .object({
+              start: this.singleDateValidation(),
+              end: this.singleDateValidation(),
+            })
+            .refine((range) => range.start <= range.end, {
+              message: "The range must end on or after its start",
+              path: ["end"],
+            }),
+        ]);
+      }
+
+      if (this.options.multiple) {
+        return z.array(this.singleDateValidation());
+      }
+
+      return this.singleDateValidation();
+    }
+
+    private singleDateValidation(): z.ZodType<
+      Date,
+      z.ZodTypeDef,
+      string | Date
+    > {
       let singleDateSchema: z.ZodType<Date, z.ZodTypeDef, string | Date> = z
         .union([
           z
@@ -361,10 +392,6 @@ export namespace DefaultDataTypes {
         singleDateSchema = singleDateSchema.refine((date) => date <= maxDate, {
           message: `Date must be before ${maxDate.toISOString()}`,
         });
-      }
-
-      if (this.options.range || this.options.multiple) {
-        return z.array(singleDateSchema);
       }
 
       return singleDateSchema;

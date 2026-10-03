@@ -192,13 +192,17 @@ function remove(email: string) {
           <UIcon name="i-ph-x" class="size-3" />
         </button>
       </span>
+      <!-- Text with an e-mail keyboard, not type="email": the browser's own
+           check would stop the form with its bubble before the DMS shows
+           its inline error. -->
       <input
         :id="props.id"
         ref="input"
         v-model="draft"
-        type="email"
-        multiple
+        type="text"
+        inputmode="email"
         autocomplete="off"
+        spellcheck="false"
         :disabled="props.disabled || isFull"
         :placeholder="
           emails.length > 0

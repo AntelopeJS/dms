@@ -10,6 +10,11 @@ import {
   useAuthFormError,
 } from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
 const { formError, clearFormError, showError } = useAuthFormError();
@@ -33,15 +38,17 @@ const backToLoginTarget = computed(() => ({
 const isLoading = ref(false);
 
 // Codes are issued in uppercase and compared by hash: normalise what was typed.
-const schema = z.object({
+const fields = z.object({
   code: z
     .string()
     .trim()
     .min(1)
     .transform((code) => code.toUpperCase()),
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({ code: undefined });
+useLiveFormErrors(form, state);
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   isLoading.value = true;
@@ -80,8 +87,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ref="form"
       :schema="schema"
       :state="state"
+      novalidate
       class="mt-[22px] grid gap-4"
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 

@@ -13,6 +13,12 @@ const props = withDefaults(defineProps<PermissionsTreeProps>(), {
 });
 
 const selectedIds = defineModel<string[]>({ default: () => [] });
+
+// The field state UFormField hands its control: taken here so the checkboxes
+// of the tree do not each turn red, shown as one error border on the panel.
+const { color: fieldColor, ariaAttrs, emitFormChange } = useFormField();
+const invalid = computed(() => fieldColor.value === "error");
+watch(selectedIds, () => emitFormChange());
 const expandedNodes = ref<Set<string>>(new Set());
 
 const { $authFetch } = useAuthFetch();
@@ -118,7 +124,12 @@ const handleCheckChange = (node: PermissionNode, checked: boolean) => {
 </script>
 
 <template>
-  <div class="border-default bg-default space-y-1 rounded-lg border p-2">
+  <div
+    class="bg-default space-y-1 rounded-lg border p-2"
+    :class="invalid ? 'border-error' : 'border-default'"
+    role="group"
+    v-bind="ariaAttrs"
+  >
     <PermissionsTreeNode
       v-for="item in permissionTree"
       :key="item.id"

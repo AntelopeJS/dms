@@ -9,6 +9,7 @@ import {
   ConfirmTextError,
 } from "#dms-ui/app/composables/confirm/types";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
+import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useSecurityFormat } from "../security/useSecurityFormat";
 
 const PROFILE_ENDPOINT = "/settings/user/profile";
@@ -265,6 +266,21 @@ export function useAccountData() {
     }
   }
 
+  /** The password is required: an empty one is flagged, not sent. */
+  function passwordCheck(
+    password: Ref<string>,
+    error: Ref<string | undefined>,
+    input: Ref<PasswordInputHandle | null>,
+  ) {
+    return async (): Promise<boolean> => {
+      if (password.value) return true;
+      error.value = processApiMessage(REQUIRED_MESSAGE);
+      await nextTick();
+      input.value?.inputRef?.focus();
+      return false;
+    };
+  }
+
   async function confirmDeletion(impact: AccountDeletionImpact): Promise<void> {
     const password = ref("");
     const passwordError = ref<string>();
@@ -281,6 +297,9 @@ export function useAccountData() {
         ? passwordField(password, passwordError, passwordInput)
         : undefined,
       confirmText: impact.email,
+      validate: impact.hasPassword
+        ? passwordCheck(password, passwordError, passwordInput)
+        : undefined,
       onConfirm: () =>
         submitDeletion(impact, password.value, passwordError, passwordInput),
     });

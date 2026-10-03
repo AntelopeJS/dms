@@ -51,11 +51,19 @@ const emit = defineEmits<{
 const { $authFetch } = useAuthFetch();
 const { t } = useI18n();
 
-const { emitFormChange } = useFormField();
+// The field state UFormField hands its control, passed on to the drop zone
+// (this component takes it, so UFileUpload would not see it).
+const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
 // Files refused by the field's constraints, named under the drop zone: an
 // error of this field, not a toast.
 const rejections = ref<string[]>([]);
 const rejectionId = fieldErrorId(`file-${useId()}`);
+// A refused file speaks for itself; otherwise the field's own error does.
+const dropZoneAria = computed(() =>
+  rejections.value.length
+    ? { "aria-invalid": true, "aria-describedby": rejectionId }
+    : (ariaAttrs.value ?? {}),
+);
 
 const { uploadWithProgress } = useUploadWithProgress();
 
@@ -363,8 +371,9 @@ onScopeDispose(() => {
       :multiple="multiple"
       :accept="acceptString"
       :disabled="disabled || isUploading"
-      :aria-invalid="rejections.length > 0 || undefined"
-      :aria-describedby="rejections.length ? rejectionId : undefined"
+      :color="color"
+      :highlight="highlight"
+      v-bind="dropZoneAria"
     >
       <template v-if="maxSizeFormatted" #description>
         {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}

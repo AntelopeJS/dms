@@ -3,6 +3,8 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
 import { useSettingsNavTrails } from "../../../composables/settings/useSettingsNavTrails";
 import { settleWidgetRequest } from "./widgetRequest";
+import type { UserNotification } from "../../../composables/notification/useNotifications";
+import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
 
 const MAX_DISPLAYED_COUNT = 99;
 const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
@@ -28,6 +30,13 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   () => fetchNotifications(),
   hasMore,
 );
+
+// The sender's tone (a warning, a success) colours the icon well, as in the
+// inbox; untoned notifications keep the accent until read.
+const iconWellTone = (notification: UserNotification) => {
+  const tone = resolveNotificationTone(notification);
+  return tone === "neutral" ? "muted" : tone;
+};
 
 const displayedCount = computed(() =>
   unreadCount.value > MAX_DISPLAYED_COUNT
@@ -198,20 +207,11 @@ const goToNotifications = () => {
             @click="handleNotificationClick(notification)"
           >
             <template #icon>
-              <div
-                :class="[
-                  'flex size-10 items-center justify-center rounded-lg',
-                  notification.isRead ? 'bg-accented' : 'bg-primary/10',
-                ]"
-              >
-                <UIcon
-                  :name="notification.icon"
-                  :class="[
-                    'size-5',
-                    notification.isRead ? 'text-muted' : 'text-primary',
-                  ]"
-                />
-              </div>
+              <DmsIconWell
+                :icon="notification.icon"
+                :tone="iconWellTone(notification)"
+                size="xl"
+              />
             </template>
 
             <template #title>
