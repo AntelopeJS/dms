@@ -51,6 +51,8 @@ beforeEach(() => {
   vi.stubGlobal("defineProps", () => ({ platform }));
   vi.stubGlobal("defineEmits", () => emit);
   vi.stubGlobal("passwordSchema", z.string());
+  vi.stubGlobal("useLocalizedSchema", (schema: unknown) => schema);
+  vi.stubGlobal("useLiveFormErrors", () => undefined);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: register }));
   vi.stubGlobal("useAuthFormError", () => ({

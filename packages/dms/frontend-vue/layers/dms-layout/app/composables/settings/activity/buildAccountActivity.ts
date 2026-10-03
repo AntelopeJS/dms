@@ -202,10 +202,12 @@ function titleOf(event: AccountActivityEvent): ActivityText {
         ? text("event.signed_in_on", { device })
         : text("event.signed_in");
     }
-    case "sign_in":
-      return event.device
-        ? text("event.signed_in_on", { device: event.device })
+    case "sign_in": {
+      const device = event.device ?? sessionDevice(event);
+      return device
+        ? text("event.signed_in_on", { device })
         : text("event.signed_in");
+    }
     case "login_method_added":
       return event.provider
         ? text("event.login_method_added", { provider: event.provider })

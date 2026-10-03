@@ -144,6 +144,9 @@ beforeEach(() => {
   vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useCurrentUser", () => ({ refresh: refreshSession }));
+  vi.stubGlobal("useTranslation", () => ({
+    processApiMessage: (message: string) => message,
+  }));
   overview.value = {
     email: "admin@example.com",
     isValidated: true,
@@ -198,10 +201,9 @@ it("closes on Cancel and Escape, returns focus and resets the form", async () =>
   expect(document.activeElement).toBe(trigger());
 });
 
-it("validates the address inline and gates the submit button", async () => {
+it("validates the address inline once the field is left", async () => {
   await mountEmail();
   await openPanel();
-  expect(submitButton()?.disabled).toBe(true);
 
   await type(emailInput(), "not-an-email");
   // Not flagged while typing, only once the field is left.
@@ -223,9 +225,37 @@ it("validates the address inline and gates the submit button", async () => {
 
   await type(emailInput(), "new@example.com");
   expect(host.querySelector("#security-new-email-error")).toBeNull();
-  expect(submitButton()?.disabled).toBe(true);
-  await type(passwordInput(), "secret");
+});
+
+it("flags every empty field on submit, focuses the first and sends nothing", async () => {
+  await mountEmail();
+  await openPanel();
+  // The submit stays enabled: the check runs on submit.
   expect(submitButton()?.disabled).toBe(false);
+  expect(host.querySelector("#security-new-email-error")).toBeNull();
+
+  form()!.dispatchEvent(new Event("submit"));
+  await flush();
+  expect(authFetch).not.toHaveBeenCalled();
+  expect(host.querySelector("#security-new-email-error")?.textContent).toBe(
+    "$dms.field_errors.required",
+  );
+  expect(
+    host.querySelector("#security-email-current-password-error")?.textContent,
+  ).toBe("$dms.field_errors.required");
+  expect(emailInput()?.getAttribute("aria-invalid")).toBe("true");
+  expect(document.activeElement).toBe(emailInput());
+
+  // Each message goes away once its field is filled.
+  await type(emailInput(), "new@example.com");
+  expect(host.querySelector("#security-new-email-error")).toBeNull();
+  form()!.dispatchEvent(new Event("submit"));
+  await flush();
+  expect(document.activeElement).toBe(passwordInput());
+  await type(passwordInput(), "secret");
+  expect(
+    host.querySelector("#security-email-current-password-error"),
+  ).toBeNull();
 });
 
 it("posts the new address with the current password, then collapses", async () => {

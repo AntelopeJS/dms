@@ -17,7 +17,9 @@ export const ACTIVITY_DEDUPE_WINDOW_MS = 2 * 60 * 1000;
 
 /** Notification subjects about the account itself. */
 const ACCOUNT_SUBJECTS = new Set(["security", "account", "collaboration"]);
-const MESSAGE_ID = /^\$?dms\.notifications\.messages\.([a-z0-9_]+)\.title$/;
+// A message may pick a worded variant of its title (`title_one`, `title_browser_os`).
+const MESSAGE_ID =
+  /^\$?dms\.notifications\.messages\.([a-z0-9_]+)\.title(?:_[a-z0-9_]+)?$/;
 const TWO_FACTOR_MESSAGE = /^two_factor_(enabled|disabled)_(totp|email)$/;
 // "Chrome on Windows (203.0.113.7)": the origin param wraps the IP.
 const ORIGIN_IP = /^\s*\(([^)]*)\)\s*$/;
@@ -47,11 +49,11 @@ export interface AccountActivityEvent {
   id: string;
   type: AccountActivityType;
   date: Date;
-  /** Session: browser and OS as the sign-in recorded them. */
+  /** Session or sign-in alert: browser and OS as the sign-in recorded them. */
   browser?: string;
   os?: string;
   deviceType?: string;
-  /** Sign-in alert: "Chrome on Windows", as the alert phrased it. */
+  /** Sign-in alert naming the browser or the system alone, or an older alert's "Chrome on Windows". */
   device?: string;
   ip?: string;
   location?: string;
@@ -143,12 +145,17 @@ export function notificationToEvent(
   switch (messageId) {
     case "new_login":
     case "new_login_unknown_device": {
+      // Alerts sent before the IP had its own param carried it as " (ip)".
       const origin = textParam(params, "origin") ?? "";
-      const ip = ORIGIN_IP.exec(origin)?.[1]?.trim() || undefined;
+      const ip =
+        textParam(params, "ip") ??
+        (ORIGIN_IP.exec(origin)?.[1]?.trim() || undefined);
       return {
         type: "sign_in",
         date,
         device: textParam(params, "device"),
+        browser: textParam(params, "browser"),
+        os: textParam(params, "os"),
         ip,
       };
     }

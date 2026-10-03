@@ -15,6 +15,11 @@ import type {
   OnboardingPlatform,
 } from "../../../composables/onboarding/steps";
 import StepMeta from "../StepMeta.vue";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 interface RegisterStepProps {
   platform: OnboardingPlatform;
@@ -28,7 +33,6 @@ interface RegisterStepEmits {
 const props = defineProps<RegisterStepProps>();
 const emit = defineEmits<RegisterStepEmits>();
 
-const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 const dmsApp = useDmsApp();
 const { formError, clearFormError, showError } = useAuthFormError();
@@ -39,15 +43,10 @@ const MAX_NAME_PART_LENGTH = 100;
 
 const isLoading = ref(false);
 const isRegistered = ref(false);
-const isPasswordValid = ref(false);
 
-const namePart = z
-  .string()
-  .trim()
-  .min(1, { message: t("page.onboarding.administrator.name_required") })
-  .max(MAX_NAME_PART_LENGTH);
+const namePart = z.string().trim().min(1).max(MAX_NAME_PART_LENGTH);
 
-const schema = z
+const fields = z
   .object({
     firstName: namePart,
     lastName: namePart,
@@ -61,7 +60,8 @@ const schema = z
     password: data.password,
   }));
 
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 
 const state = reactive<Partial<Schema>>({
   firstName: undefined,
@@ -69,6 +69,7 @@ const state = reactive<Partial<Schema>>({
   email: undefined,
   password: undefined,
 });
+useLiveFormErrors(form, state);
 
 async function registerAdmin(data: Schema) {
   await $authFetch("/api/onboarding/register", {
@@ -134,7 +135,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       :schema="schema"
       :state="state"
       class="mt-[22px] grid gap-4"
+      novalidate
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 
@@ -179,14 +182,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
       <AuthNewPasswordField
         v-model="state.password"
-        v-model:valid="isPasswordValid"
         :label="$t('form.password.label')"
       />
 
       <UButton
         :label="$t('page.onboarding.administrator.submit')"
         :loading="isLoading"
-        :disabled="!isPasswordValid || isRegistered"
+        :disabled="isRegistered"
         type="submit"
         size="lg"
         class="justify-center"

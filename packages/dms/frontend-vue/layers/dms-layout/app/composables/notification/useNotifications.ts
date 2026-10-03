@@ -1,4 +1,11 @@
 import { NotificationEvents } from "./types/events";
+import {
+  type InboxApiFilter,
+  type InboxReadState,
+  inboxApiParams,
+  isNarrowedInbox,
+  matchesInboxFilter,
+} from "./inboxFilters";
 
 /** Icon well colour a sender may set on a notification. */
 export type NotificationTone =
@@ -24,13 +31,26 @@ export interface UserNotification {
   updatedAt: string;
 }
 
-/** Tabs of the settings inbox. */
-export type NotificationInboxFilter = "all" | "unread";
+/** Read-state tabs of the settings inbox. */
+export type NotificationInboxFilter = InboxReadState;
 
 /** Totals behind the All and Unread inbox tabs. */
 export interface NotificationCounts {
   all: number;
   unread: number;
+}
+
+/** A category / subject pair the user has notifications in. */
+export interface NotificationFacetSubject {
+  categoryId: string;
+  subjectId: string;
+}
+
+/** What the user's feed holds, for the inbox search and filters. */
+export interface NotificationFacets {
+  /** Stored message keys (without `$`), matched against their translation. */
+  messageKeys: string[];
+  subjects: NotificationFacetSubject[];
 }
 
 interface MarkAllReadResponse {
@@ -41,20 +61,44 @@ interface MarkAllReadResponse {
 const API_BASE = "/settings/user/notifications";
 const NOTIFICATION_COMPONENT_ID = "global-notifications";
 const NOTIFICATIONS_PAGE_SIZE = 20;
+const KEY_PREFIX = "$";
 
-const buildListUrl = (offset: number, filter: NotificationInboxFilter) => {
-  const query = new URLSearchParams({
-    limit: String(NOTIFICATIONS_PAGE_SIZE),
-    offset: String(offset),
-  });
-  if (filter === "unread") query.set("filter", "unread");
+/** The whole feed: what the header bell lists, and the inbox without filters. */
+export const UNFILTERED_INBOX: Readonly<InboxApiFilter> = Object.freeze({
+  q: "",
+  keys: [],
+  category: "",
+  subject: "",
+  status: "all",
+});
+
+const withQuery = (path: string, params: URLSearchParams) => {
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+};
+
+const buildListUrl = (offset: number, filter: InboxApiFilter) => {
+  const query = inboxApiParams(filter, true);
+  query.set("limit", String(NOTIFICATIONS_PAGE_SIZE));
+  query.set("offset", String(offset));
   return `${API_BASE}/list?${query.toString()}`;
 };
+
+/** The bulk actions' params: none acts on the whole feed. */
+const bulkParams = (filter?: InboxApiFilter) =>
+  filter ? inboxApiParams(filter, true) : new URLSearchParams();
+
+const storedKeysOf = (notification: UserNotification) =>
+  [notification.title, notification.description]
+    .filter((value) => value?.startsWith(KEY_PREFIX))
+    .map((value) => value.slice(KEY_PREFIX.length));
 
 /**
  * Shared notification state: the header bell (unread count, popover feed)
  * and the settings inbox (its own filtered feed and tab totals) read and
- * update the same rows, so a change made in one shows in the other.
+ * update the same rows, so a change made in one shows in the other. The
+ * bell always counts the whole feed; the inbox totals follow its search and
+ * category.
  */
 export const useNotifications = () => {
   const { $authFetch } = useAuthFetch();
@@ -73,9 +117,18 @@ export const useNotifications = () => {
   );
   const offset = useDmsState<number>("notifications-offset", () => 0);
   const hasMore = useDmsState<boolean>("notifications-has-more", () => true);
-  const inboxFilter = useDmsState<NotificationInboxFilter>(
-    "notifications-inbox-filter",
-    () => "all",
+  const inboxFilter = useDmsState<InboxApiFilter>(
+    "notifications-inbox-api-filter",
+    () => ({ ...UNFILTERED_INBOX }),
+  );
+  // Bumped by every inbox reset: a page answered for an older filter is dropped.
+  const inboxGeneration = useDmsState<number>(
+    "notifications-inbox-generation",
+    () => 0,
+  );
+  const inboxFacets = useDmsState<NotificationFacets>(
+    "notifications-inbox-facets",
+    () => ({ messageKeys: [], subjects: [] }),
   );
   const inboxItems = useDmsState<UserNotification[]>(
     "notifications-inbox-items",
@@ -142,12 +195,60 @@ export const useNotifications = () => {
     }
   };
 
-  /** Refreshes the inbox tab totals, and the bell count with them. */
+  /**
+   * Refreshes the inbox tab totals (for its search and category) and the
+   * bell count, which one request serves while the inbox is not narrowed.
+   */
   const fetchCounts = async () => {
-    const data = await $authFetch<NotificationCounts>(`${API_BASE}/counts`);
-    if (!data) return;
-    inboxCounts.value = data;
-    unreadCount.value = data.unread;
+    const filter = inboxFilter.value;
+    const isNarrowed = isNarrowedInbox(filter);
+    const [counts, bell] = await Promise.all([
+      $authFetch<NotificationCounts>(
+        withQuery(`${API_BASE}/counts`, inboxApiParams(filter, false)),
+      ),
+      isNarrowed
+        ? $authFetch<{ count: number }>(`${API_BASE}/unread-count`)
+        : undefined,
+    ]);
+    if (bell) unreadCount.value = bell.count;
+    if (!counts) return;
+    if (!isNarrowed) unreadCount.value = counts.unread;
+    // A filter changed meanwhile asks for its own totals.
+    if (filter === inboxFilter.value) inboxCounts.value = counts;
+  };
+
+  /** Loads the message keys and subjects the inbox search and filters offer. */
+  const fetchInboxFacets = async () => {
+    const data = await $authFetch<NotificationFacets>(`${API_BASE}/facets`);
+    if (data) inboxFacets.value = data;
+  };
+
+  /** Adds what a new notification brings to the facets. */
+  const noteFacets = (incoming: UserNotification) => {
+    const { messageKeys, subjects } = inboxFacets.value;
+    const newKeys = storedKeysOf(incoming).filter(
+      (key) => !messageKeys.includes(key),
+    );
+    const isNewSubject =
+      !!incoming.subjectId &&
+      !subjects.some(
+        (subject) =>
+          subject.categoryId === incoming.categoryId &&
+          subject.subjectId === incoming.subjectId,
+      );
+    if (newKeys.length === 0 && !isNewSubject) return;
+    inboxFacets.value = {
+      messageKeys: [...messageKeys, ...newKeys],
+      subjects: isNewSubject
+        ? [
+            ...subjects,
+            {
+              categoryId: incoming.categoryId,
+              subjectId: incoming.subjectId ?? "",
+            },
+          ]
+        : subjects,
+    };
   };
 
   const fetchUnreadPreview = async () => {
@@ -167,7 +268,7 @@ export const useNotifications = () => {
     }
 
     const data = await $authFetch<UserNotification[]>(
-      buildListUrl(offset.value, "all"),
+      buildListUrl(offset.value, UNFILTERED_INBOX),
     );
 
     if (data) {
@@ -180,15 +281,17 @@ export const useNotifications = () => {
   /** Loads the next page of the settings inbox, or its first one on `reset`. */
   const fetchInbox = async (reset = false) => {
     if (reset) {
+      inboxGeneration.value += 1;
       inboxItems.value = [];
       inboxHasMore.value = true;
     }
+    const generation = inboxGeneration.value;
 
     const data = await $authFetch<UserNotification[]>(
       buildListUrl(inboxItems.value.length, inboxFilter.value),
     );
 
-    if (data) {
+    if (data && generation === inboxGeneration.value) {
       const known = new Set(inboxItems.value.map((n) => n._id));
       const fresh = data.filter((n) => !known.has(n._id));
       inboxItems.value = [...inboxItems.value, ...fresh];
@@ -196,9 +299,15 @@ export const useNotifications = () => {
     }
   };
 
-  const setInboxFilter = async (filter: NotificationInboxFilter) => {
-    inboxFilter.value = filter;
+  /** Applies a search, category and read state, and reloads the inbox. */
+  const setInboxFilter = async (filter: InboxApiFilter) => {
+    inboxFilter.value = { ...filter, keys: [...filter.keys] };
     await Promise.all([fetchInbox(true), fetchCounts()]);
+  };
+
+  /** Drops the inbox filter (the inbox left the page), without reloading. */
+  const resetInboxFilter = () => {
+    inboxFilter.value = { ...UNFILTERED_INBOX };
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -234,16 +343,26 @@ export const useNotifications = () => {
     );
   };
 
-  /** Marks everything read and returns the ids it changed, for an undo. */
-  const markAllAsRead = async (): Promise<string[]> => {
+  /**
+   * Marks everything read, or only what `filter` keeps, and returns the ids
+   * it changed, for an undo.
+   */
+  const markAllAsRead = async (filter?: InboxApiFilter): Promise<string[]> => {
+    const params = bulkParams(filter);
     const response = await $authFetch<MarkAllReadResponse>(
-      `${API_BASE}/mark-all-read`,
+      withQuery(`${API_BASE}/mark-all-read`, params),
       { method: "PUT" },
     );
-    setAllRead();
+    const ids = response?.ids ?? [];
+    if (params.toString() !== "") {
+      setReadState(ids, true);
+      unreadPreview.value = unreadPreview.value.filter((n) => !n.isRead);
+    } else {
+      setAllRead();
+    }
     await fetchCounts();
     emitCount();
-    return response?.ids ?? [];
+    return ids;
   };
 
   /** Reopens the notifications a "mark all as read" changed. */
@@ -258,10 +377,25 @@ export const useNotifications = () => {
     emitCount();
   };
 
-  const deleteAll = async () => {
-    await $authFetch(`${API_BASE}/delete-all`, {
+  /** Deletes everything, or only what `filter` keeps. */
+  const deleteAll = async (filter?: InboxApiFilter) => {
+    const params = bulkParams(filter);
+    await $authFetch(withQuery(`${API_BASE}/delete-all`, params), {
       method: "DELETE",
     });
+
+    if (filter && params.toString() !== "") {
+      // The rows it removed are the ones the filter matches, the way the
+      // server matched them.
+      for (const list of lists) {
+        list.value = list.value.filter(
+          (n) => !matchesInboxFilter(n, filter, true),
+        );
+      }
+      await Promise.all([fetchInbox(true), fetchCounts()]);
+      emitCount();
+      return;
+    }
 
     for (const list of lists) list.value = [];
     unreadCount.value = 0;
@@ -292,19 +426,30 @@ export const useNotifications = () => {
     emitCount();
   };
 
+  /**
+   * A notification pushed in real time. The bell always counts it; the
+   * inbox counts it when it matches the search and category, and lists it
+   * when it matches the read state too.
+   */
   const handleIncomingNotification = (incoming: UserNotification) => {
-    const isAlreadyKnown = notifications.value.some(
-      (n) => n._id === incoming._id,
+    const isAlreadyKnown = [notifications, inboxItems].some((list) =>
+      list.value.some((n) => n._id === incoming._id),
     );
     if (isAlreadyKnown) return;
     notifications.value = [incoming, ...notifications.value];
     unreadPreview.value = [incoming, ...unreadPreview.value];
-    inboxItems.value = [incoming, ...inboxItems.value];
     unreadCount.value += 1;
-    inboxCounts.value = {
-      all: inboxCounts.value.all + 1,
-      unread: inboxCounts.value.unread + 1,
-    };
+    const filter = inboxFilter.value;
+    if (matchesInboxFilter(incoming, filter, false)) {
+      inboxCounts.value = {
+        all: inboxCounts.value.all + 1,
+        unread: inboxCounts.value.unread + (incoming.isRead ? 0 : 1),
+      };
+      if (matchesInboxFilter(incoming, filter, true)) {
+        inboxItems.value = [incoming, ...inboxItems.value];
+      }
+    }
+    noteFacets(incoming);
     sendComponentEvent(
       NotificationEvents.NOTIFICATION_RECEIVED,
       NOTIFICATION_COMPONENT_ID,
@@ -322,12 +467,15 @@ export const useNotifications = () => {
     inboxItems,
     inboxHasMore,
     inboxCounts,
+    inboxFacets,
     fetchUnreadCount,
     fetchCounts,
     fetchUnreadPreview,
     fetchNotifications,
     fetchInbox,
+    fetchInboxFacets,
     setInboxFilter,
+    resetInboxFilter,
     markAsRead,
     markAsUnread,
     deleteNotification,

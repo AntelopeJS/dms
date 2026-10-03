@@ -2,6 +2,7 @@
 import { useId, useTemplateRef } from "vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
 import { PIN_PHONE_UI } from "./security-pin";
 
@@ -41,14 +42,14 @@ const isOpen = defineModel<boolean>("open", { default: false });
 /** A code the API refused, shown under the cells; typing clears it. */
 const error = defineModel<string | undefined>("error");
 const { t } = useI18n();
+const { processApiMessage } = useTranslation();
 const digits = ref<string[]>([]);
 const codeField = useTemplateRef<HTMLElement>("codeField");
 const errorId = fieldErrorId(`security-code-${useId()}`);
 
-useCodeFieldError(digits, error, codeField);
+const { flag } = useCodeFieldError(digits, error, codeField);
 
 const code = computed(() => digits.value.join(""));
-const isComplete = computed(() => code.value.length === CODE_LENGTH);
 
 // The code submits once per entry: "complete" and the button can both fire
 // before "loading" reaches this component, and a second call would replace
@@ -64,7 +65,13 @@ watch(code, () => {
 });
 
 function confirm(): void {
-  if (!isComplete.value || props.loading) return;
+  if (props.loading) return;
+  // An empty or partial code is flagged under the cells, not sent.
+  const missing = codeEntryError(digits.value, CODE_LENGTH);
+  if (missing) {
+    flag(processApiMessage(missing));
+    return;
+  }
   if (submittedCode.value === code.value) return;
   submittedCode.value = code.value;
   emit("confirm", code.value);
@@ -133,7 +140,6 @@ function confirm(): void {
         <UButton
           :color="CONFIRM_COLORS[props.tone]"
           :loading="props.loading"
-          :disabled="!isComplete"
           :label="props.confirmLabel"
           @click="confirm"
         />

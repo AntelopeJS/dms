@@ -2,14 +2,14 @@
 import type { InputProps } from "@nuxt/ui/components/Input.vue";
 
 interface InputTimeProps extends Omit<InputProps, "modelValue" | "type"> {
-  modelValue?: number;
+  modelValue?: number | null;
   min?: number;
   max?: number;
 }
 
 const props = defineProps<InputTimeProps>();
 const emits = defineEmits<{
-  "update:modelValue": [value: number];
+  "update:modelValue": [value: number | null];
 }>();
 
 const displayValue = ref("");
@@ -43,7 +43,8 @@ const handleBlur = () => {
       emits("update:modelValue", parsed);
     }
   } else {
-    emits("update:modelValue", 0);
+    // A cleared time is no time, not midnight: a required one stays missing.
+    emits("update:modelValue", null);
   }
   updateDisplayValue();
 };

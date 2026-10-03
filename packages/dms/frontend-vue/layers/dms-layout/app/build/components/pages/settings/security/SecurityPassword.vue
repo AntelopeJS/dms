@@ -9,6 +9,10 @@ import SecurityPanelField from "./SecurityPanelField.vue";
 import SecurityPasswordInput from "./SecurityPasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
+import {
+  PASSWORD_RULES_MESSAGE,
+  REQUIRED_MESSAGE,
+} from "#dms-core/app/composables/useFormValidation";
 
 interface PasswordChangeResponse {
   passwordChangedAt: string;
@@ -20,10 +24,13 @@ const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const FORM_ID = "security-password-form";
 const CURRENT_FIELD_ID = "security-current-password";
+const NEW_FIELD_ID = "security-new-password";
+const CONFIRM_FIELD_ID = "security-confirm-password";
 
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
+const { processApiMessage } = useTranslation();
 const { overview, refresh } = useSecurityOverview();
 const { formatDate, daysSince, errorMessage } = useSecurityFormat();
 const { passwordSchema } = usePasswordStrength(ref(""));
@@ -35,30 +42,40 @@ const newPassword = ref("");
 const confirmPassword = ref("");
 const signOutOthers = ref(true);
 const isCurrentInvalid = ref(false);
+// Errors show once the field was left or the form submitted, and go away
+// as soon as the value is fixed.
+const isSubmitted = ref(false);
+const isNewTouched = ref(false);
+const isConfirmTouched = ref(false);
 
 const hasPassword = computed(() => overview.value?.hasPassword ?? true);
 const otherSessions = computed(() =>
   Math.max(0, (overview.value?.activeSessions ?? 1) - 1),
 );
-const isMismatch = computed(
-  () => !!confirmPassword.value && confirmPassword.value !== newPassword.value,
-);
-const canSubmit = computed(
-  () =>
-    (!hasPassword.value || !!currentPassword.value) &&
-    passwordSchema.safeParse(newPassword.value).success &&
-    confirmPassword.value === newPassword.value,
-);
 
 const changedAt = computed(() => overview.value?.passwordChangedAt ?? null);
-const currentError = computed(() =>
-  isCurrentInvalid.value
-    ? t("page.settings.security.errors.invalid_current_password")
-    : undefined,
-);
-const mismatchError = computed(() =>
-  isMismatch.value ? t("page.settings.security.password.mismatch") : undefined,
-);
+const currentError = computed(() => {
+  if (isCurrentInvalid.value) {
+    return t("page.settings.security.errors.invalid_current_password");
+  }
+  return isSubmitted.value && hasPassword.value && !currentPassword.value
+    ? processApiMessage(REQUIRED_MESSAGE)
+    : undefined;
+});
+const newError = computed(() => {
+  if (!isSubmitted.value && !isNewTouched.value) return undefined;
+  if (!newPassword.value) return processApiMessage(REQUIRED_MESSAGE);
+  return passwordSchema.safeParse(newPassword.value).success
+    ? undefined
+    : processApiMessage(PASSWORD_RULES_MESSAGE);
+});
+const confirmError = computed(() => {
+  if (!isSubmitted.value && !isConfirmTouched.value) return undefined;
+  if (!confirmPassword.value) return processApiMessage(REQUIRED_MESSAGE);
+  return confirmPassword.value === newPassword.value
+    ? undefined
+    : t("page.settings.security.password.mismatch");
+});
 
 // The "incorrect" mark goes away as soon as the password is edited.
 watch(currentPassword, () => {
@@ -71,6 +88,22 @@ function resetForm(): void {
   confirmPassword.value = "";
   signOutOthers.value = true;
   isCurrentInvalid.value = false;
+  isSubmitted.value = false;
+  isNewTouched.value = false;
+  isConfirmTouched.value = false;
+}
+
+/** Focuses the first field in error, in page order. */
+async function focusFirstError(): Promise<boolean> {
+  const fieldId = [
+    [currentError.value, CURRENT_FIELD_ID],
+    [newError.value, NEW_FIELD_ID],
+    [confirmError.value, CONFIRM_FIELD_ID],
+  ].find(([message]) => !!message)?.[1];
+  if (!fieldId) return false;
+  await nextTick();
+  document.getElementById(fieldId)?.focus();
+  return true;
 }
 
 function announceSuccess(response: PasswordChangeResponse): void {
@@ -88,7 +121,10 @@ function announceSuccess(response: PasswordChangeResponse): void {
 }
 
 async function submit(): Promise<void> {
-  if (!canSubmit.value) return;
+  if (isSaving.value) return;
+  isSubmitted.value = true;
+  isCurrentInvalid.value = false;
+  if (await focusFirstError()) return;
   isSaving.value = true;
   isCurrentInvalid.value = false;
   try {
@@ -144,7 +180,6 @@ async function submit(): Promise<void> {
       "
       :editing-label="t('page.settings.security.password.editing')"
       :submit-label="t('page.settings.security.password.submit')"
-      :can-submit="canSubmit"
       :loading="isSaving"
       @open="resetForm"
       @submit="submit"
@@ -207,24 +242,31 @@ async function submit(): Promise<void> {
         </template>
       </SecurityPanelField>
       <SecurityPanelField
-        field-id="security-new-password"
+        :field-id="NEW_FIELD_ID"
         :label="t('page.settings.security.password.new')"
-      >
-        <SecurityPasswordInput
-          id="security-new-password"
-          v-model="newPassword"
-          autocomplete="new-password"
-        />
-      </SecurityPanelField>
-      <SecurityPanelField
-        field-id="security-confirm-password"
-        :label="t('page.settings.security.password.confirm')"
-        :error="mismatchError"
+        :error="newError"
       >
         <template #default="{ describedby, invalid }">
           <SecurityPasswordInput
-            id="security-confirm-password"
+            :id="NEW_FIELD_ID"
+            v-model="newPassword"
+            autocomplete="new-password"
+            :invalid="invalid"
+            :aria-describedby="describedby"
+            @blur="isNewTouched = true"
+          />
+        </template>
+      </SecurityPanelField>
+      <SecurityPanelField
+        :field-id="CONFIRM_FIELD_ID"
+        :label="t('page.settings.security.password.confirm')"
+        :error="confirmError"
+      >
+        <template #default="{ describedby, invalid }">
+          <SecurityPasswordInput
+            :id="CONFIRM_FIELD_ID"
             v-model="confirmPassword"
+            @blur="isConfirmTouched = true"
             autocomplete="new-password"
             :placeholder="
               t('page.settings.security.password.confirm_placeholder')

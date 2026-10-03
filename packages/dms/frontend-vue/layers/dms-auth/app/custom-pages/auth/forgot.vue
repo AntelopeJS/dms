@@ -9,6 +9,11 @@ import {
   type AuthFormHandle,
   useAuthFormError,
 } from "../../composables/useAuthFormError";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const { $authFetch } = useAuthFetch();
 const dmsApp = useDmsApp();
@@ -17,11 +22,13 @@ const form = useTemplateRef<AuthFormHandle>("form");
 
 const isLoading = ref(false);
 
-const schema = z.object({
+const fields = z.object({
   email: z.string().trim().email(),
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({});
+useLiveFormErrors(form, state);
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
@@ -63,8 +70,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       ref="form"
       :schema="schema"
       :state="state"
+      novalidate
       class="mt-[22px] grid gap-4"
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 

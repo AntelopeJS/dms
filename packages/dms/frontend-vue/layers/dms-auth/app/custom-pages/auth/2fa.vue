@@ -6,12 +6,14 @@ import AuthCodeInput from "../../components/AuthCodeInput.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import { useAuthFormError } from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 
 type TwoFactorMethod = "totp" | "email";
 
 const { t } = useI18n();
 const toast = useToast();
 const route = useDmsRoute();
+const { processApiMessage } = useTranslation();
 const { formError, showFormError, clearFormError, showError } =
   useAuthFormError();
 
@@ -51,7 +53,6 @@ watch(pin, (digits) => {
 
 const hasTotp = computed(() => availableMethods.value.includes("totp"));
 const hasEmail = computed(() => availableMethods.value.includes("email"));
-const isCodeComplete = computed(() => pin.value.join("").length === PIN_LENGTH);
 const isCodeVisible = computed(
   () => activeMethod.value === "totp" || isEmailSent.value,
 );
@@ -92,8 +93,14 @@ async function requestEmailCode() {
 }
 
 async function verify() {
+  // An empty or partial code is flagged under the cells, not sent.
+  const missing = codeEntryError(pin.value, PIN_LENGTH);
+  if (missing) {
+    codeError.value = processApiMessage(missing);
+    codeInput.value?.focus();
+    return;
+  }
   const code = pin.value.join("");
-  if (code.length !== PIN_LENGTH) return;
 
   isLoading.value = true;
   clearFormError();
@@ -162,7 +169,6 @@ function switchMethod(method: TwoFactorMethod) {
         />
         <UButton
           :loading="isLoading"
-          :disabled="!isCodeComplete"
           :label="$t('page.2fa.verify')"
           type="submit"
           size="lg"

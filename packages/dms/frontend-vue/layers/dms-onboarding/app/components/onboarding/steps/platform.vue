@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { SelectItem } from "@nuxt/ui";
 import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
 import type { OnboardingPlatform } from "../../../composables/onboarding/steps";
 import StepMeta from "../StepMeta.vue";
+import {
+  focusFirstFormError,
+  type LiveFormHandle,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 interface PlatformStepEmits {
   next: [];
@@ -22,10 +29,15 @@ const languageItems = computed<SelectItem[]>(() =>
   uniqueLocales.value.map((lang) => ({ label: lang.name, value: lang.code })),
 );
 
-const schema = z.object({
-  name: z.string().trim().min(1).max(MAX_PLATFORM_NAME_LENGTH),
-  language: z.string().min(1),
-});
+const schema = useLocalizedSchema(
+  z.object({
+    name: z.string().trim().min(1).max(MAX_PLATFORM_NAME_LENGTH),
+    language: z.string().min(1),
+  }),
+);
+
+const form = useTemplateRef<LiveFormHandle>("form");
+useLiveFormErrors(form, platform.value);
 
 // Read in the browser: the server render does not know the public address.
 const host = ref("");
@@ -59,10 +71,13 @@ const detectedLabel = computed(() =>
     </template>
 
     <UForm
+      ref="form"
       :schema="schema"
       :state="platform"
       class="mt-[22px] grid gap-4"
+      novalidate
       @submit="emit('next')"
+      @error="focusFirstFormError($event.errors)"
     >
       <UFormField
         :label="$t('form.platform.label')"

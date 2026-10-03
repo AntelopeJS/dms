@@ -17,7 +17,12 @@ import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-
 import { DMS_SECTION_SURFACE_KEY } from "../section/context";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
 import type { ZodErrorMap } from "zod";
-import { validationIssueMessage } from "#dms-core/app/composables/useFieldErrors";
+import {
+  formIssueMessage,
+  isBlankValue,
+  REQUIRED_MESSAGE,
+} from "#dms-core/app/composables/useFormValidation";
+import { validateFormState } from "../../composables/form/formValidation";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -58,17 +63,71 @@ function fieldControl(name: string | undefined): HTMLElement | null {
   return element.querySelector<HTMLElement>(`[id="${CSS.escape(name)}"]`);
 }
 
-const FOCUSABLE =
-  "input:not([type='hidden']):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex='-1'])";
+const REGEXP_SPECIALS = /[.*+?^${}()|[\]\\]/g;
 
-/** Focuses a field's control, or its first focusable part (a pill group). */
-async function focusField(name: string | undefined): Promise<void> {
+/**
+ * The errors of a field: its own and those of its parts (an address's
+ * street, a gallery's image), which zod names `<id>.<part>`.
+ */
+function fieldErrorPattern(id: string): RegExp {
+  return new RegExp(`^${id.replace(REGEXP_SPECIALS, "\\$&")}(\\.|$)`);
+}
+
+/** The names a field's errors go under: one per language when localized. */
+function errorNames(field: FormField): string[] {
+  if (!field.localized) return [field.id];
+  return locales.value.map((lang) => `${field.id}.${lang.code}`);
+}
+
+const FOCUSABLE =
+  "input:not([type='hidden']):not([disabled]):not([tabindex='-1']), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
+
+/** The row of a field (its `UFormField`), by the name it validates under. */
+function fieldRow(name: string | undefined): HTMLElement | null {
+  const element = form.value?.$el as HTMLElement | undefined;
+  if (!name || !element?.querySelector) return null;
+  return element.querySelector<HTMLElement>(
+    `[data-field="${CSS.escape(name)}"]`,
+  );
+}
+
+/**
+ * Resolves once UForm is done with a submit: while it validates, it disables
+ * every control, and a disabled control cannot take focus.
+ */
+async function formSettled(): Promise<void> {
   await nextTick();
+  if (!form.value?.loading) return;
+  await new Promise<void>((resolve) => {
+    const stop = watch(
+      () => form.value?.loading,
+      (busy) => {
+        if (busy) return;
+        stop();
+        resolve();
+      },
+    );
+  });
+  await nextTick();
+}
+
+/**
+ * Focuses a field's control, or its first focusable part (a pill group, a
+ * picker trigger); a field with nothing to focus is scrolled into view.
+ */
+async function focusField(name: string | undefined): Promise<void> {
+  await formSettled();
   const control = fieldControl(name);
+  const row = fieldRow(name);
   const target = control?.matches(FOCUSABLE)
     ? control
-    : control?.querySelector<HTMLElement>(FOCUSABLE);
-  target?.focus();
+    : (control?.querySelector<HTMLElement>(FOCUSABLE) ??
+      row?.querySelector<HTMLElement>(FOCUSABLE));
+  if (target) {
+    target.focus();
+    return;
+  }
+  row?.scrollIntoView({ block: "center" });
 }
 
 /**
@@ -129,37 +188,66 @@ const showActions = computed(() => formShowsActions(props, toValue(allFields)));
 
 // zod words its own messages in English ("String must contain at least 1
 // character(s)"): the issues a schema leaves unworded get the dashboard's.
-const issueErrorMap: ZodErrorMap = (issue) => ({
-  message: processApiMessage(validationIssueMessage(issue)),
+// A part left blank (an address's country) is missing, whatever its type
+// would say of a short or absent value: worded as the hand-built forms do.
+const issueErrorMap: ZodErrorMap = (issue, context) => ({
+  message: processApiMessage(formIssueMessage(issue, context.data)),
 });
 
-/** The validation schema, as a Standard Schema validating with that map. */
+/**
+ * The validation schema, as a Standard Schema validating with that map: a
+ * required field left empty, whatever its type, gets the one "required"
+ * message (see `validateFormState`).
+ */
 const localizedSchema = computed(() => {
   const schema = validationSchema.value;
+  const validationFields = toValue(allFields).map((field) => ({
+    id: field.id,
+    type: field.type,
+    localized: field.localized,
+    required: isFieldRequired(field),
+  }));
   return {
     "~standard": {
       version: 1 as const,
       vendor: "dms",
-      validate: async (value: unknown) => {
-        const result = await schema.safeParseAsync(value, {
-          errorMap: issueErrorMap,
-        });
-        return result.success
-          ? { value: result.data }
-          : {
-              issues: result.error.issues.map(({ message, path }) => ({
-                message,
-                path,
-              })),
-            };
-      },
+      validate: (value: unknown) =>
+        validateFormState(schema, value as Record<string, unknown>, {
+          fields: validationFields,
+          requiredMessage: processApiMessage(REQUIRED_MESSAGE),
+          locale: locale.value,
+          parseParams: { errorMap: issueErrorMap },
+        }),
     },
   };
 });
 
+/**
+ * A control that tells UForm nothing (a picker, a tree, a rich-text editor)
+ * still gets its error refreshed as its value changes: once a field shows an
+ * error, each change re-validates it, so the message clears once fixed.
+ */
+const fieldValueSnapshots = new Map<string, string>();
+watch(
+  state,
+  (current) => {
+    for (const field of toValue(allFields)) {
+      const snapshot = JSON.stringify(current[field.id]) ?? "";
+      const previous = fieldValueSnapshots.get(field.id);
+      fieldValueSnapshots.set(field.id, snapshot);
+      if (previous === undefined || previous === snapshot) continue;
+      if (!form.value || serverErrorValues.has(field.id)) continue;
+      const pattern = fieldErrorPattern(field.id);
+      if (!form.value.getErrors(pattern).length) continue;
+      void form.value.validate({ name: errorNames(field), silent: true });
+    }
+  },
+  { deep: true, immediate: true },
+);
+
 const { addGuard } = useLeaveGuard();
 const { confirm } = useConfirm();
-const { t } = useI18n();
+const { t, locale, locales } = useI18n();
 
 const submitButtonLabel = computed(() =>
   props.submitLabel
@@ -260,7 +348,7 @@ allFields.value.forEach((field) => {
 });
 
 if (props.fetchUrl) {
-  const { data: fetchedFormData } = await useDmsAsyncData(
+  const formLoad = await useDmsAsyncData(
     `form-${props.componentId}-${props.pageId}`,
     async () => ({
       values: await fetchData(),
@@ -268,7 +356,14 @@ if (props.fetchUrl) {
     }),
   );
 
-  const payload = fetchedFormData.value;
+  // A drawer or modal reopened on the same row reads its values from this
+  // cached load: once the form saved, they are out of date (a cleared field
+  // would show its old value again), so the next opening fetches the row.
+  watch(submitSucceeded, (saved) => {
+    if (saved) formLoad.status.value = "idle";
+  });
+
+  const payload = formLoad.data.value;
   if (payload) {
     if (payload.values && Object.keys(payload.values).length > 0) {
       Object.assign(state.value, payload.values);
@@ -375,11 +470,6 @@ const wrapperProps =
 // The save bar names what changed: the fields whose value moved off the one the
 // form loaded (or last saved — a successful submit snapshots it).
 const formElementId = `dms-form-${props.componentId}`;
-const isBlankValue = (value: unknown): boolean =>
-  value === undefined ||
-  value === null ||
-  value === "" ||
-  (Array.isArray(value) && value.length === 0);
 const changedFieldLabels = computed<string[]>(() => {
   if (!props.saveBar) return [];
   return toValue(allFields)
@@ -566,8 +656,11 @@ onUnmounted(async () => {
 
 <template>
   <component :is="FormWrapper" v-bind="wrapperProps">
+    <!-- novalidate: the form words every error itself, under its field; no
+      browser bubble from a native required or type="email" control. -->
     <UForm
       :id="formElementId"
+      novalidate
       ref="form"
       :state
       :schema="localizedSchema"
@@ -650,6 +743,8 @@ onUnmounted(async () => {
                           field.component.componentName && !field.localized
                         "
                         :name="field.id"
+                        :error-pattern="fieldErrorPattern(field.id)"
+                        :data-field="field.id"
                         class="min-w-0 flex-1"
                       >
                         <DmsDisplay
@@ -727,6 +822,8 @@ onUnmounted(async () => {
               <UFormField
                 v-else-if="item.component.componentName && !item.localized"
                 :name="item.id"
+                :error-pattern="fieldErrorPattern(item.id)"
+                :data-field="item.id"
                 class="min-w-0"
               >
                 <DmsDisplay

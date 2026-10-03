@@ -8,10 +8,11 @@ interface SecurityEditPanelProps {
   triggerLabel: string;
   /** Muted hint shown in place of the button while the panel is open. */
   editingLabel: string;
-  /** Label of the submit button. */
+  /**
+   * Label of the submit button. It stays enabled: the parent checks the
+   * fields on submit and flags the empty or wrong ones under them.
+   */
   submitLabel: string;
-  /** Enables the submit button. */
-  canSubmit: boolean;
   /** Spinner on the submit button while the request runs. */
   loading?: boolean;
   /** Disables the trigger button. */
@@ -120,6 +121,7 @@ watch(isOpen, async (value, previous) => {
         :id="props.formId"
         ref="form"
         :aria-label="props.editingLabel"
+        novalidate
         class="border-muted grid grid-cols-2 gap-x-5 gap-y-4 border-t p-[18px] max-sm:grid-cols-1"
         @submit.prevent="emit('submit')"
         @keydown.esc.stop.prevent="cancel"
@@ -137,7 +139,6 @@ watch(isOpen, async (value, previous) => {
             <UButton
               type="submit"
               :loading="props.loading"
-              :disabled="!props.canSubmit"
               :label="props.submitLabel"
             />
           </div>

@@ -12,7 +12,8 @@ import type {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { verifyTOTP } from "2fa";
-import { notifyNewLogin } from "../../utils/account-notifications";
+import { notifyBackupCodeUsed } from "../../utils/account-notifications";
+import { recordSignIn } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "./constants";
 import type { AuthResponse } from "./types";
@@ -93,6 +94,10 @@ export async function verify2FA(
   const verifier = verifyMethods[method as VerifyMethod];
   assert(verifier, 400, "error.invalid_2fa_method");
   await verifier({ user, code, userModel });
+  if (method === "backup") {
+    void notifyBackupCodeUsed(user._id, user.twoFactorBackupCodes?.length ?? 0);
+  }
+  await recordSignIn(user, userAgent, ip);
 
   const sessionId = await createSession(sessionModel, user._id, userAgent, ip);
 
@@ -104,8 +109,6 @@ export async function verify2FA(
   );
 
   await sessionModel.replaceRefreshToken(sessionId, refreshTokenData.token);
-
-  void notifyNewLogin(user._id, userAgent, ip);
 
   return {
     token_type: "Bearer",

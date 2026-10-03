@@ -10,6 +10,11 @@ import {
   useAuthFormError,
 } from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
 
 const route = useDmsRoute();
@@ -26,13 +31,15 @@ const isLoading = ref(false);
 
 const cameFromAccounts = computed(() => isFromAccountsList(route.query));
 
-const schema = z.object({
+const fields = z.object({
   email: z.string().email(),
   password: z.string().nonempty(),
   keep_login: z.boolean().optional(),
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({});
+useLiveFormErrors(form, state);
 
 function isTwoFactorRequired(
   response: unknown,
@@ -133,8 +140,10 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ref="form"
       :schema="schema"
       :state="state"
+      novalidate
       class="mt-5 grid gap-4"
       @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
 

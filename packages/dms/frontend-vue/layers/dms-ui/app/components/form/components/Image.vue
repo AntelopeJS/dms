@@ -69,7 +69,10 @@ const emit = defineEmits<{
 }>();
 
 const { $authFetch } = useAuthFetch();
-const { emitFormChange } = useFormField();
+// The field state UFormField hands its control: the drop zone shows the
+// field's error border and carries its aria attributes.
+const { emitFormChange, color: fieldColor, ariaAttrs } = useFormField();
+const invalid = computed(() => fieldColor.value === "error");
 const { t } = useI18n();
 const { formatShortcut } = useKeyboardPlatform();
 /** The paste key the hints mention: "⌘V" on macOS, "Ctrl V" elsewhere. */
@@ -96,6 +99,17 @@ const detailAltInputId = `${fieldId}-alt-detail`;
 const items = ref<GalleryItem[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDraggingOver = ref(false);
+
+// One border state at a time: a plain element merges no classes, so two
+// border colours would be settled by stylesheet order, not by intent.
+const dropZoneClass = computed(() => {
+  if (isDraggingOver.value) {
+    return "border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]";
+  }
+  return invalid.value
+    ? "border-error hover:border-error"
+    : "border-(--dms-border-top) hover:border-primary";
+});
 const dragItemId = ref<string | null>(null);
 const dragOverItemId = ref<string | null>(null);
 const detailItemId = ref<string | null>(null);
@@ -583,6 +597,7 @@ onBeforeUnmount(() => {
       :accept="acceptString"
       :multiple="multiple"
       class="sr-only"
+      tabindex="-1"
       :aria-invalid="rejections.length > 0 || undefined"
       :aria-describedby="rejections.length ? rejectionId : undefined"
       @change="onFileInputChange"
@@ -730,11 +745,9 @@ onBeforeUnmount(() => {
         <button
           v-if="!isFull && !disabled"
           type="button"
-          class="text-muted hover:border-primary hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
-          :class="{
-            'border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]':
-              isDraggingOver,
-          }"
+          class="text-muted hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
+          :class="dropZoneClass"
+          v-bind="ariaAttrs"
           @click="openFilePicker"
           @dragover.prevent="isDraggingOver = true"
           @dragleave="isDraggingOver = false"
@@ -761,11 +774,9 @@ onBeforeUnmount(() => {
       <button
         v-if="!singleItem"
         type="button"
-        class="text-muted hover:border-primary hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-(--dms-border-top) bg-(--dms-bg-field) px-4 py-3 text-center transition-colors hover:bg-(--dms-accent-tint)"
-        :class="{
-          'border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]':
-            isDraggingOver,
-        }"
+        class="text-muted hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-(--dms-bg-field) px-4 py-3 text-center transition-colors hover:bg-(--dms-accent-tint)"
+        :class="dropZoneClass"
+        v-bind="ariaAttrs"
         :disabled="disabled"
         @click="openFilePicker"
         @dragover.prevent="isDraggingOver = true"

@@ -132,8 +132,7 @@
         "format_date": "Date",
         "format_datetime": "Date & time",
         "format_time": "Time",
-        "format_number": "Number",
-        "format_currency": "Currency"
+        "format_number": "Number"
       },
       "notifications": {
         "description": "Choose what reaches you, and catch up on what happened across your workspaces.",
@@ -178,7 +177,24 @@
         "delete_all_description_unread": "Your inbox will be emptied, including {count} unread notification. This can’t be undone. Your preferences don’t change. | Your inbox will be emptied, including {count} unread notifications. This can’t be undone. Your preferences don’t change.",
         "delete_all_confirm": "Delete {count} notification | Delete {count} notifications",
         "cancel": "Cancel",
-        "unread_badge": "{count} unread notification | {count} unread notifications"
+        "unread_badge": "{count} unread notification | {count} unread notifications",
+        "search_placeholder": "Search notifications",
+        "search_clear": "Clear search",
+        "category_label": "Filter by category",
+        "category_all": "All categories",
+        "status_label": "Read state",
+        "tab_read": "Read",
+        "result_count": "{count} notification | {count} notifications",
+        "result_matching": "{count} result | {count} results",
+        "clear_filters": "Clear filters",
+        "mark_matching_read": "Mark {count} as read",
+        "delete_matching": "Delete {count}…",
+        "delete_matching_title": "Delete {count} matching notification? | Delete {count} matching notifications?",
+        "delete_matching_description": "Only the notifications that match your search and filters are deleted; the others stay. This can’t be undone.",
+        "no_match_title": "No notifications match these filters",
+        "no_match_title_query": "No notifications match “{query}”",
+        "no_match_description": "Search looks through titles, descriptions and names. Try another word or category, or clear the filters.",
+        "search_short": "Search…"
       },
       "general": {
         "title": "General Settings",

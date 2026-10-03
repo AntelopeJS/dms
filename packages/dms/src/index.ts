@@ -34,7 +34,11 @@ import {
   getFrontendConfig,
   getHtmlRenderConfig,
 } from "./config";
-import { registerDmsCrons } from "./crons";
+import {
+  CLEANUP_USER_INVITES_CRON_NAME,
+  registerDmsCrons,
+  runCleanupUserInvites,
+} from "./crons";
 import { runSweepStaleExports } from "./crons/sweep-stale-exports";
 import {
   startModuleUpdateWatcher,
@@ -42,6 +46,7 @@ import {
 } from "./dev/module-update-notifications";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
+import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
 import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
@@ -62,6 +67,7 @@ import {
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { ensureDefaultTenantExists } from "./utils";
+import { upgradeStoredNotifications } from "./utils/notification-upgrade";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
 
 export * from "./config";
@@ -78,11 +84,16 @@ export async function construct(config: Config): Promise<void> {
 
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
+    // Stale texts on old notifications must not keep the DMS from starting.
+    await upgradeStoredNotifications().catch((error: unknown) => {
+      Logging.Error("[DMS] Stored notifications upgrade failed:", error);
+    });
     return undefined;
   });
 
   registerTenantDeletedCleanup();
   registerInviteExtensionCleanup();
+  registerWorkspaceNotifications();
 
   await implementInterfaces();
   await registerDmsFrontend();
@@ -254,6 +265,11 @@ export async function start(): Promise<void> {
   await SettleHook(Hook.DATABASE_INITIALIZED);
   await runSweepStaleExports();
   cronTasks = registerDmsCrons();
+  // Invitations that expired while no process ran are settled now, not at
+  // the next 3 a.m. run: their inviters hear about it the same day.
+  void runCleanupUserInvites().catch((error: unknown) => {
+    Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
+  });
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();

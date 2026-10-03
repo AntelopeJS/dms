@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
-import {
-  formatDate,
-  formatNumber,
-  formatPrice,
-} from "#dms-core/app/utils/formatter";
+import { formatDate, formatNumber } from "#dms-core/app/utils/formatter";
 import {
   localeWeekStart,
   regionalDateTimeFormat,
@@ -41,7 +37,6 @@ type ChoiceField = "weekStart" | "timeFormat" | "dateFormat";
 // The segmented controls and the zone picker hold "auto" for null.
 const AUTO = "auto";
 const PREVIEW_NUMBER = 12480.5;
-const PREVIEW_AMOUNT = 1127;
 const PREVIEW_FRACTION_DIGITS = 2;
 const SUNDAY = 0;
 const MONDAY = 1;
@@ -184,10 +179,6 @@ const samples = computed<FormatSample[]>(() => {
           minimumFractionDigits: PREVIEW_FRACTION_DIGITS,
         }),
       ),
-    },
-    {
-      labelKey: "page.settings.region.format_currency",
-      value: String(formatPrice(PREVIEW_AMOUNT, tag)),
     },
   ];
 });
@@ -361,7 +352,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
       "
     >
       <!-- Cells as wide as their sample, packed and stretched row by row:
-           five fixed columns overlapped the longer samples (a full date and
+           fixed columns overlapped the longer samples (a full date and
            time) at every width. The hairlines are each cell's top-left
            shadow, clipped by the card on its outer edges, so they follow
            however the cells wrap. -->

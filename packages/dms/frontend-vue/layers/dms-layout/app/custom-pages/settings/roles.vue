@@ -26,6 +26,7 @@ import {
   resolveFieldErrors,
   useFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
+import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 
 interface RoleEditorHandle {
@@ -67,7 +68,11 @@ const fieldErrors = useFieldErrors<RoleEditorField>({
     name: () => roleEditor.value?.inputOf("name"),
     description: () => roleEditor.value?.inputOf("description"),
   },
-  codes: { [NAME_REQUIRED]: "name", [NAME_TAKEN]: "name" },
+  // An empty name reads like every other required field.
+  codes: {
+    [NAME_REQUIRED]: { field: "name", message: REQUIRED_MESSAGE },
+    [NAME_TAKEN]: "name",
+  },
 });
 
 watch(
@@ -163,7 +168,7 @@ async function runMutation(
 
 async function save(): Promise<void> {
   if (!editor.draft.value.name.trim()) {
-    await fieldErrors.setError("name", processApiMessage(NAME_REQUIRED));
+    await fieldErrors.setError("name", processApiMessage(REQUIRED_MESSAGE));
     return;
   }
   isSaving.value = true;

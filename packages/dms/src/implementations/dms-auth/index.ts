@@ -581,8 +581,6 @@ export async function sendAdminInviteEmail(
   Logging.Info(`[DMS-AUTH] Invite email sent to "${email}"`);
 }
 
-export {
-  notifyCollaboratorJoined as NotifyCollaboratorJoined,
-  notifyWelcome as NotifyWelcome,
-} from "../../utils/account-notifications";
+export { notifyWelcome as NotifyWelcome } from "../../utils/account-notifications";
+export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../utils/workspace-notifications";
 export { parseUserAgent as ParseUserAgent } from "../../utils/user-agent";

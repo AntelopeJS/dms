@@ -58,6 +58,21 @@ watch(isDesktop, (desktop) => {
   if (desktop) sidebarOpen.value = false;
 });
 
+// Going to a page closes the drawer, wherever the navigation came from (a
+// menu link, the user menu, the palette).
+watch(
+  () => route.path,
+  () => closeMobileSidebar(),
+);
+
+// A link to the page already shown changes no route: close on the click.
+function closeOnLinkClick(event: MouseEvent): void {
+  if (!sidebarOpen.value) return;
+  if ((event.target as Element | null)?.closest("a[href]")) {
+    closeMobileSidebar();
+  }
+}
+
 // The drawer always shows the full menu, even when the desktop sidebar was
 // collapsed to its rail.
 const isRail = (collapsed: boolean): boolean => collapsed && !sidebarOpen.value;
@@ -307,6 +322,7 @@ const footerItems = computed((): NavigationMenuItem[] => {
       'fixed inset-y-0 start-0 z-50 flex w-[280px] max-w-[85vw] shadow-xl':
         sidebarOpen,
     }"
+    @click="closeOnLinkClick"
   >
     <template #header="{ collapsed: sidebarRail }">
       <DmsLink

@@ -121,6 +121,23 @@ describe("account activity", () => {
     });
     expect(
       notificationToEvent(
+        notification(
+          "new_login",
+          "2026-09-30T10:00:00Z",
+          { browser: "Firefox", os: "Linux", ip: "198.51.100.4" },
+          {
+            title: "$dms.notifications.messages.new_login.title_browser_os",
+          },
+        ),
+      ),
+    ).to.deep.include({
+      type: "sign_in",
+      browser: "Firefox",
+      os: "Linux",
+      ip: "198.51.100.4",
+    });
+    expect(
+      notificationToEvent(
         notification("two_factor_disabled_email", "2026-09-30T10:00:00Z"),
       ),
     ).to.deep.include({ type: "two_factor_disabled", method: "email" });

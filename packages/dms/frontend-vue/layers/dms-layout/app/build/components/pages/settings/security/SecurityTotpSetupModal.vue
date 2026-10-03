@@ -2,6 +2,7 @@
 import { useTemplateRef } from "vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
 import type { TotpSetup } from "../../../../../composables/settings/security/useSecurityOverview";
 import { PIN_PHONE_UI } from "./security-pin";
@@ -28,15 +29,15 @@ const isOpen = defineModel<boolean>("open", { default: false });
 /** A code the API refused, shown under the cells; typing clears it. */
 const error = defineModel<string | undefined>("error");
 const { t } = useI18n();
+const { processApiMessage } = useTranslation();
 const digits = ref<string[]>([]);
 const codeField = useTemplateRef<HTMLElement>("codeField");
 const ERROR_ID = fieldErrorId("security-totp-code");
 
-useCodeFieldError(digits, error, codeField);
+const { flag } = useCodeFieldError(digits, error, codeField);
 const isKeyCopied = ref(false);
 
 const code = computed(() => digits.value.join(""));
-const isComplete = computed(() => code.value.length === CODE_LENGTH);
 const groupedKey = computed(
   () => props.setup?.manualKey.match(KEY_GROUP)?.join(" ") ?? "",
 );
@@ -62,7 +63,13 @@ async function copyKey(): Promise<void> {
 }
 
 function confirm(): void {
-  if (!isComplete.value || props.loading) return;
+  if (props.loading) return;
+  // An empty or partial code is flagged under the cells, not sent.
+  const missing = codeEntryError(digits.value, CODE_LENGTH);
+  if (missing) {
+    flag(processApiMessage(missing));
+    return;
+  }
   if (submittedCode.value === code.value) return;
   submittedCode.value = code.value;
   emit("confirm", code.value);
@@ -187,7 +194,6 @@ function confirm(): void {
         />
         <UButton
           :loading="props.loading"
-          :disabled="!isComplete"
           :label="t('page.settings.security.totp.submit')"
           @click="confirm"
         />

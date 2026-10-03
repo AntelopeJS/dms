@@ -79,12 +79,6 @@ const onToggle = (value: boolean) => {
     </div>
     <div class="flex justify-end" role="cell">
       <DmsSaveStatus v-if="props.state !== 'idle'" :state="props.state" />
-      <span
-        v-else-if="isLocked"
-        class="text-dimmed font-mono text-[11px] font-medium whitespace-nowrap"
-      >
-        {{ t("page.settings.notifications.locked_hint") }}
-      </span>
     </div>
   </div>
 </template>

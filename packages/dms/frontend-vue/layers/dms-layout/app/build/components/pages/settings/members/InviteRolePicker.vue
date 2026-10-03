@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { useFormField } from "@nuxt/ui/composables/useFormField";
+import { inject } from "vue";
+import {
+  formFieldInjectionKey,
+  useFormField,
+} from "@nuxt/ui/composables/useFormField";
 
 interface RoleOption {
   _id: string;
@@ -25,8 +29,10 @@ const model = defineModel<string[] | null | undefined>();
 const { t } = useI18n();
 const { $authFetch } = useAuthFetch();
 // The wrapping UFormField's error ("pick at least one role") marks the group
-// invalid and describes it.
+// invalid, describes it and rings the pills in the error ink.
 const { ariaAttrs } = useFormField();
+const formField = inject(formFieldInjectionKey, undefined);
+const hasFieldError = computed(() => !!formField?.value?.error);
 
 const options = ref<RoleOptionsResponse>({ roles: [], totalPermissions: 0 });
 const isLoading = ref(true);
@@ -88,7 +94,9 @@ function toggle(roleId: string) {
         :class="[
           selectedIds.has(role._id)
             ? 'border-primary bg-primary/10 text-primary'
-            : 'border-accented text-toned hover:bg-elevated',
+            : hasFieldError
+              ? 'border-error text-toned hover:bg-elevated'
+              : 'border-accented text-toned hover:bg-elevated',
           props.disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
         ]"
         @click="toggle(role._id)"

@@ -55,36 +55,42 @@ const showDisplay = computed(
 
 <template>
   <div class="w-full space-y-2">
-    <UFormField :name="`${field.id}.${locale}`" class="relative">
-      <DmsDisplay
-        v-if="showDisplay && fieldValue"
-        :model-value="fieldValue[locale]"
-        :type="field.type"
-        :loading
-        class="w-full"
-        v-bind="field.component.options || {}"
-      />
-      <Component
-        :is="
-          resolveDmsComponent(field.component.componentName) ||
-          field.component.componentName
-        "
-        v-else-if="field.component.componentName && fieldValue"
-        :id="field.id"
-        v-model="fieldValue[locale]"
-        :initial-value="
-          (initialValues?.[field.id] as Record<string, unknown> | undefined)?.[
-            locale
-          ]
-        "
-        :loading
-        :disabled="field.disabled"
-        :component-id="props.componentId"
-        :page-id="props.pageId"
-        class="w-full"
-        :class="{ 'opacity-75': field.disabled }"
-        v-bind="field.component.options || {}"
-      />
+    <!-- The error sits right under the control, above the toggle. -->
+    <div class="relative">
+      <UFormField
+        :name="`${field.id}.${locale}`"
+        :data-field="`${field.id}.${locale}`"
+      >
+        <DmsDisplay
+          v-if="showDisplay && fieldValue"
+          :model-value="fieldValue[locale]"
+          :type="field.type"
+          :loading
+          class="w-full"
+          v-bind="field.component.options || {}"
+        />
+        <Component
+          :is="
+            resolveDmsComponent(field.component.componentName) ||
+            field.component.componentName
+          "
+          v-else-if="field.component.componentName && fieldValue"
+          :id="field.id"
+          v-model="fieldValue[locale]"
+          :initial-value="
+            (
+              initialValues?.[field.id] as Record<string, unknown> | undefined
+            )?.[locale]
+          "
+          :loading
+          :disabled="field.disabled"
+          :component-id="props.componentId"
+          :page-id="props.pageId"
+          class="w-full"
+          :class="{ 'opacity-75': field.disabled }"
+          v-bind="field.component.options || {}"
+        />
+      </UFormField>
       <div class="mt-1 flex justify-end">
         <UButton
           :label="$t('dms.form.localized.toggle_translations')"
@@ -97,7 +103,7 @@ const showDisplay = computed(
           @click="toggleTranslations"
         />
       </div>
-    </UFormField>
+    </div>
 
     <UCollapsible v-model:open="isExpanded" :ui="{ content: 'p-0.5' }">
       <template #content>
@@ -115,7 +121,10 @@ const showDisplay = computed(
               </div>
 
               <div class="flex-1">
-                <UFormField :name="`${field.id}.${lang.code}`">
+                <UFormField
+                  :name="`${field.id}.${lang.code}`"
+                  :data-field="`${field.id}.${lang.code}`"
+                >
                   <DmsDisplay
                     v-if="showDisplay && fieldValue"
                     :model-value="fieldValue[lang.code]"

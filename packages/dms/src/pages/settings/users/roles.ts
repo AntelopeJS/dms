@@ -41,6 +41,7 @@ import {
   type PreviewPageLossCheck,
   resolvePermissionPreviewAccess,
 } from "../../../implementations/dms/page";
+import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
 import {
   roleDeleteSchema,
   roleDuplicateSchema,
@@ -374,7 +375,16 @@ export class RolesSettingsController extends PageController("roles", {
     @JSONBody() body: unknown,
   ): Promise<void> {
     const input = assertValidation(body, (v) => roleEditorSchema.parse(v));
-    await updateRole(await resolveActor(ctx, user), roleId, input);
+    const actor = await resolveActor(ctx, user);
+    const { name, permissionsChanged } = await updateRole(actor, roleId, input);
+    if (permissionsChanged) {
+      void notifyRolePermissionsChanged({
+        tenantId: actor.tenantId,
+        roleId,
+        roleName: name,
+        actor: { id: user._id, name: user.name || user.email },
+      });
+    }
   }
 
   @Post(":id/duplicate")

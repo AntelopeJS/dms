@@ -31,6 +31,7 @@ export class PageNotificationTest extends PageController(
         type: new DefaultDataTypes.StringType({
           placeholder: "Enter notification title...",
         }),
+        required: true,
       },
       {
         id: "description",
@@ -39,6 +40,7 @@ export class PageNotificationTest extends PageController(
         type: new DefaultDataTypes.StringType({
           placeholder: "Enter notification description...",
         }),
+        required: true,
       },
       {
         id: "icon",

@@ -3,6 +3,10 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
+import {
+  clearFailedPasswords,
+  recordFailedPassword,
+} from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { type LoginOutcome, resolveLoginOutcome } from "./session-response";
 
@@ -22,11 +26,11 @@ export async function login(
   const user = await userModel.getByEmail(email.toLowerCase());
 
   assert(user, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
-  assert(
-    user.testHash("password", password),
-    HTTP_UNAUTHORIZED,
-    INVALID_CREDENTIALS_MESSAGE,
-  );
+  const isPasswordValid = user.testHash("password", password);
+  void (isPasswordValid
+    ? clearFailedPasswords(user._id)
+    : recordFailedPassword(user));
+  assert(isPasswordValid, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
 
   return resolveLoginOutcome(sessionModel, user, userAgent, ip);
 }

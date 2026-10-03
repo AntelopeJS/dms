@@ -25,8 +25,13 @@ interface ConfirmModalProps {
   impact?: ConfirmImpact[];
   /** Extra body content as a render function (see the `body` slot). */
   body?: ConfirmBodyRender;
-  /** Text the user must type (exactly, trimmed) before confirming. */
+  /**
+   * Text the user must type (exactly, trimmed): confirming with the field
+   * empty or different flags it under the field instead.
+   */
   confirmText?: string;
+  /** Checks the body fields first; `false` keeps the modal open. */
+  validate?: () => boolean | Promise<boolean>;
   /**
    * Awaited on confirm: the modal stays open, loading, until it settles.
    * Resolving `false` keeps it open (the handler reported the problem).
@@ -53,11 +58,13 @@ const props = withDefaults(defineProps<ConfirmModalProps>(), {
   impact: () => [],
   body: undefined,
   confirmText: undefined,
+  validate: undefined,
   onConfirm: undefined,
 });
 
 const emit = defineEmits<ConfirmModalEmits>();
 const slots = defineSlots<ConfirmModalSlots>();
+const { t } = useI18n();
 
 // Renders the `body` option of useConfirm(); its own render effect keeps it
 // reactive to the caller's refs.
@@ -73,7 +80,8 @@ const isOpen = ref(true);
 const typedText = ref("");
 const isPending = ref(false);
 const errorMessage = ref<string>();
-// The server refused the typed text: shown under the typed field.
+// The typed text is missing or wrong (checked on confirm), or the server
+// refused it: shown under the typed field.
 const typedError = ref<string>();
 const typedInput = useTemplateRef<{ inputRef?: HTMLInputElement }>(
   "typedInput",
@@ -137,8 +145,27 @@ async function runConfirm(action: () => Promise<void | boolean>) {
   }
 }
 
-function handleConfirm() {
-  if (props.hideConfirm || !isTypedMatch.value || isPending.value) return;
+/** Flags the typed field when it is empty or does not match. */
+function checkTypedText(): boolean {
+  if (!props.confirmText) return true;
+  if (!typedText.value.trim()) {
+    typedError.value = t("dms.field_errors.required");
+  } else if (!isTypedMatch.value) {
+    typedError.value = t("dms.confirm.type_mismatch", {
+      text: props.confirmText,
+    });
+  }
+  return !typedError.value;
+}
+
+async function handleConfirm() {
+  if (props.hideConfirm || isPending.value) return;
+  // Every field is checked at once; the body ones come first on the page,
+  // so the typed field takes the focus only when they passed.
+  const isBodyValid = props.validate ? await props.validate() : true;
+  const isTypedValid = checkTypedText();
+  if (!isTypedValid && isBodyValid) typedInput.value?.inputRef?.focus();
+  if (!isBodyValid || !isTypedValid) return;
   if (props.onConfirm) return runConfirm(props.onConfirm);
   close(true);
 }
@@ -273,7 +300,6 @@ function handleCancel() {
           :icon="props.confirmIcon"
           :color="props.confirmColor"
           :loading="isPending"
-          :disabled="!isTypedMatch"
           @click="handleConfirm"
         />
       </div>

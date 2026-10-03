@@ -22,6 +22,8 @@ import {
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
 import { DeleteFile } from "@antelopejs/interface-file-storage";
 import {
+  SignInAttemptsModel,
+  UserKnownDevicesModel,
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../../db";
@@ -210,7 +212,8 @@ async function announceDeletion(user: User): Promise<void> {
 
 /**
  * Deletes the account and every row keyed on it: memberships, notifications
- * and their preferences, sign-in links of providers, sessions — which signs
+ * and their preferences, known devices and failed sign-ins, sign-in links of
+ * providers, sessions — which signs
  * the user out everywhere — and the user row, with its two-factor data. The
  * invitations the user sent stay valid: they belong to the workspace.
  * The caller has checked the password, the confirmation and the blockers.
@@ -222,6 +225,8 @@ export async function deleteAccount(
   await leaveTenants(user._id, memberships);
   await GetModel(UserNotificationsModel).purgeUser(user._id);
   await GetModel(UserNotificationPreferencesModel).purgeUser(user._id);
+  await GetModel(UserKnownDevicesModel).purgeUser(user._id);
+  await GetModel(SignInAttemptsModel).purgeUser(user._id);
   await GetModel(UserExternalIdentityModel).deleteByUserId(user._id);
   await GetModel(SessionModel).deleteByUserId(user._id);
   await GetModel(UserModel).delete(user._id);

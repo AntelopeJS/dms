@@ -1,39 +1,51 @@
 <script setup lang="ts">
+import { refDebounced } from "@vueuse/core";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import { useNotificationCatalog } from "../../../../../composables/notification/useNotificationCatalog";
 import type {
-  NotificationInboxFilter,
-  UserNotification,
-} from "../../../../../composables/notification/useNotifications";
+  InboxApiFilter,
+  InboxFilters,
+} from "../../../../../composables/notification/inboxFilters";
+import {
+  DEFAULT_INBOX_FILTERS,
+  buildInboxUrl,
+  cleanSearch,
+  fromCategoryValue,
+  hasActiveInboxFilters,
+  matchMessageKeys,
+  readInboxFilters,
+  toCategoryValue,
+} from "../../../../../composables/notification/inboxFilters";
+import type { UserNotification } from "../../../../../composables/notification/useNotifications";
 import NotificationInboxItem from "./NotificationInboxItem.vue";
+import NotificationInboxToolbar, {
+  type InboxCategoryItem,
+} from "./NotificationInboxToolbar.vue";
 import {
   type NotificationSourceTag,
   formatNotificationTime,
   groupNotificationsByDay,
 } from "./notificationDisplay";
 
-interface InboxTab {
-  id: NotificationInboxFilter;
-  label: string;
-  count: number;
-}
-
 const UNDO_TOAST_DURATION_MS = 6000;
-// The toolbar actions keep their label for screen readers only under `sm`.
-const PHONE_ICON_ONLY_UI = { label: "max-sm:sr-only" } as const;
+const SEARCH_DEBOUNCE_MS = 300;
+const PLURAL_SAMPLE = 2;
+const SUBJECT_ITEM_CLASS = "ps-8";
 
 const { t, locale } = useI18n();
 const toast = useToast();
 const { confirm } = useConfirm();
+const route = useDmsRoute();
 const catalog = useNotificationCatalog();
 const {
-  inboxFilter,
   inboxItems,
   inboxHasMore,
   inboxCounts,
+  inboxFacets,
   fetchInbox,
-  fetchCounts,
+  fetchInboxFacets,
   setInboxFilter,
+  resetInboxFilter,
   markAsRead,
   markAsUnread,
   deleteNotification,
@@ -46,33 +58,117 @@ const sentinel = ref<HTMLElement | null>(null);
 const isLoaded = ref(false);
 const isMarkingAllRead = ref(false);
 
+// The filters live in the URL query, so a reload or a shared link keeps them.
+const initialFilters = readInboxFilters(route.query);
+const searchText = ref(initialFilters.q);
+const debouncedSearch = refDebounced(searchText, SEARCH_DEBOUNCE_MS);
+const filters = reactive<InboxFilters>({ ...initialFilters });
+
 const { isLoadingMore, setupObserver } = useInfiniteScroll(
   sentinel,
   () => fetchInbox(),
   inboxHasMore,
 );
 
-const tabs = computed<InboxTab[]>(() => [
-  {
-    id: "all",
-    label: t("page.settings.notifications.tab_all"),
-    count: inboxCounts.value.all,
-  },
-  {
-    id: "unread",
-    label: t("page.settings.notifications.tab_unread"),
-    count: inboxCounts.value.unread,
-  },
-]);
+/** A message key as it reads in the active locale, placeholders left empty. */
+const translateKey = (key: string) => [t(key, {}), t(key, {}, PLURAL_SAMPLE)];
+
+const matchingKeys = computed(() =>
+  // Read the locale so a language switch matches the new texts.
+  locale.value && filters.q
+    ? matchMessageKeys(inboxFacets.value.messageKeys, translateKey, filters.q)
+    : [],
+);
+
+const apiFilter = computed<InboxApiFilter>(() => ({
+  q: filters.q,
+  keys: matchingKeys.value,
+  category: filters.category,
+  subject: filters.subject,
+  status: filters.status,
+}));
+
+const isFiltered = computed(() => hasActiveInboxFilters(filters));
+
+const categoryValue = computed({
+  get: () => toCategoryValue(filters.category, filters.subject),
+  set: (value: string) => Object.assign(filters, fromCategoryValue(value)),
+});
+
+const hasSubjectFacet = (categoryId: string, subjectId: string) =>
+  inboxFacets.value.subjects.some(
+    (facet) => facet.categoryId === categoryId && facet.subjectId === subjectId,
+  );
+
+/**
+ * "All categories", then the categories the user has notifications in,
+ * labelled as in the preferences above. A category's subjects follow it when
+ * it holds more than one; the selected one always shows.
+ */
+const categoryItems = computed<InboxCategoryItem[][]>(() => {
+  const groups = catalog.categories.value
+    .map((category) => {
+      const subjects = catalog
+        .subjectsOf(category.id)
+        .filter(
+          (subject) =>
+            hasSubjectFacet(category.id, subject.id) ||
+            (filters.category === category.id &&
+              filters.subject === subject.id),
+        );
+      const isPresent = subjects.length > 0 || filters.category === category.id;
+      const listed =
+        subjects.length > 1 || filters.subject ? subjects : ([] as never[]);
+      return isPresent
+        ? [
+            {
+              label: t(category.labelKey),
+              value: category.id,
+              icon: category.icon,
+            },
+            ...listed.map((subject) => ({
+              label: t(subject.labelKey),
+              value: toCategoryValue(category.id, subject.id),
+              class: SUBJECT_ITEM_CLASS,
+            })),
+          ]
+        : [];
+    })
+    .filter((group) => group.length > 0);
+  return [
+    [
+      {
+        label: t("page.settings.notifications.category_all"),
+        value: toCategoryValue("", ""),
+        icon: "i-ph-squares-four",
+      },
+    ],
+    ...groups,
+  ];
+});
+
+const shownCount = computed(() => {
+  const { all, unread } = inboxCounts.value;
+  if (filters.status === "unread") return unread;
+  if (filters.status === "read") return Math.max(all - unread, 0);
+  return all;
+});
+const markableCount = computed(() =>
+  filters.status === "read" ? 0 : inboxCounts.value.unread,
+);
 
 const groups = computed(() => groupNotificationsByDay(inboxItems.value));
-const remainingCount = computed(() => {
-  const total =
-    inboxFilter.value === "unread"
-      ? inboxCounts.value.unread
-      : inboxCounts.value.all;
-  return Math.max(total - inboxItems.value.length, 0);
-});
+const remainingCount = computed(() =>
+  Math.max(shownCount.value - inboxItems.value.length, 0),
+);
+
+const noMatchTitle = computed(() =>
+  filters.q
+    ? t("page.settings.notifications.no_match_title_query", {
+        query: filters.q,
+      })
+    : t("page.settings.notifications.no_match_title"),
+);
 
 const timeOf = (notification: UserNotification) =>
   formatNotificationTime(notification.createdAt, locale.value, (date) =>
@@ -116,8 +212,13 @@ const toggleRead = (notification: UserNotification) =>
       : markAsRead(notification._id),
   );
 
-const selectTab = (filter: NotificationInboxFilter) =>
-  runSafely(() => setInboxFilter(filter));
+const clearFilters = () => {
+  searchText.value = "";
+  Object.assign(filters, DEFAULT_INBOX_FILTERS);
+};
+
+/** The bulk actions act on what the filters show, or on everything. */
+const bulkFilter = () => (isFiltered.value ? apiFilter.value : undefined);
 
 const offerUndo = (ids: string[]) => {
   toast.add({
@@ -144,7 +245,7 @@ const offerUndo = (ids: string[]) => {
 const handleMarkAllAsRead = async () => {
   isMarkingAllRead.value = true;
   try {
-    const ids = await markAllAsRead();
+    const ids = await markAllAsRead(bulkFilter());
     if (ids.length > 0) offerUndo(ids);
   } catch {
     notifyFailure();
@@ -153,11 +254,20 @@ const handleMarkAllAsRead = async () => {
   }
 };
 
-// v2 .modal.confirm; a failure is toasted and the dialog stays open.
-const confirmDeleteAll = () => {
-  const total = inboxCounts.value.all;
-  const unread = inboxCounts.value.unread;
-  return confirm({
+const deleteAllText = () => {
+  const total = shownCount.value;
+  const unread = markableCount.value;
+  if (isFiltered.value) {
+    return {
+      title: t(
+        "page.settings.notifications.delete_matching_title",
+        { count: total },
+        total,
+      ),
+      description: t("page.settings.notifications.delete_matching_description"),
+    };
+  }
+  return {
     title: t(
       "page.settings.notifications.delete_all_title",
       { count: total },
@@ -171,6 +281,14 @@ const confirmDeleteAll = () => {
             unread,
           )
         : t("page.settings.notifications.delete_all_description"),
+  };
+};
+
+// v2 .modal.confirm; a failure is toasted and the dialog stays open.
+const confirmDeleteAll = () => {
+  const total = shownCount.value;
+  return confirm({
+    ...deleteAllText(),
     icon: "i-ph-trash",
     confirmColor: "error",
     confirmLabel: t(
@@ -181,7 +299,8 @@ const confirmDeleteAll = () => {
     cancelLabel: t("page.settings.notifications.cancel"),
     onConfirm: async () => {
       try {
-        await deleteAll();
+        await deleteAll(bulkFilter());
+        void runSafely(fetchInboxFacets);
         return true;
       } catch {
         notifyFailure();
@@ -191,6 +310,28 @@ const confirmDeleteAll = () => {
   });
 };
 
+/** Keeps the filters in the URL without a server round trip. */
+const syncUrl = (next: InboxFilters) => {
+  const { pathname, search, hash } = window.location;
+  const url = buildInboxUrl(window.location, next);
+  if (url !== `${pathname}${search}${hash}`)
+    window.history.replaceState(window.history.state, "", url);
+};
+
+// Once the inbox has loaded, a filter change (typing, a select, new keys
+// after a language switch) reloads it; the same filter twice does not.
+watch(
+  () => JSON.stringify(apiFilter.value),
+  () => {
+    if (isLoaded.value) void runSafely(() => setInboxFilter(apiFilter.value));
+  },
+);
+watch(filters, syncUrl, { deep: true });
+
+watch(debouncedSearch, (text) => {
+  filters.q = cleanSearch(text);
+});
+
 watch(sentinel, (element) => {
   if (element) setupObserver();
 });
@@ -198,13 +339,16 @@ watch(sentinel, (element) => {
 onMounted(async () => {
   await runSafely(() =>
     Promise.all([
-      fetchInbox(true),
-      fetchCounts(),
+      fetchInboxFacets(),
       catalog.isLoaded.value ? undefined : catalog.loadCatalog(),
     ]),
   );
+  await runSafely(() => setInboxFilter(apiFilter.value));
   isLoaded.value = true;
 });
+
+// The bell's counts stop following the inbox filter once it is gone.
+onBeforeUnmount(resetInboxFilter);
 </script>
 
 <template>
@@ -212,76 +356,29 @@ onMounted(async () => {
     :title="t('page.settings.notifications.inbox_title')"
     :description="t('page.settings.notifications.inbox_description')"
   >
-    <div
-      class="border-default flex items-center gap-2.5 border-b pr-3.5 pl-[18px]"
-    >
-      <nav
-        class="flex gap-[18px]"
-        role="tablist"
-        :aria-label="t('page.settings.notifications.filter_label')"
-      >
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          role="tab"
-          :aria-selected="inboxFilter === tab.id"
-          class="relative inline-flex h-[38px] items-center gap-1.5 px-0.5 text-[13px] transition-colors"
-          :class="
-            inboxFilter === tab.id
-              ? 'text-highlighted after:bg-primary font-semibold after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-t-[2px]'
-              : 'text-muted hover:text-highlighted font-medium'
-          "
-          @click="selectTab(tab.id)"
-        >
-          {{ tab.label }}
-          <span
-            class="rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums"
-            :class="
-              inboxFilter === tab.id
-                ? 'text-primary bg-(--dms-accent-tint)'
-                : 'bg-elevated text-dimmed'
-            "
-          >
-            {{ tab.count }}
-          </span>
-        </button>
-      </nav>
-      <!-- Phones: icon-only actions (the label stays the accessible name and
-           the tooltip) so they share the row with the tabs. -->
-      <div class="ms-auto flex shrink-0 items-center gap-1.5">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          size="sm"
-          icon="i-ph-checks"
-          :ui="PHONE_ICON_ONLY_UI"
-          :title="t('page.settings.notifications.mark_all_read')"
-          :label="t('page.settings.notifications.mark_all_read')"
-          :disabled="inboxCounts.unread === 0"
-          :loading="isMarkingAllRead"
-          @click="handleMarkAllAsRead"
-        />
-        <UButton
-          v-if="inboxCounts.all > 0"
-          color="error"
-          variant="ghost"
-          size="sm"
-          icon="i-ph-trash"
-          :ui="PHONE_ICON_ONLY_UI"
-          :title="t('page.settings.notifications.delete_all')"
-          :label="t('page.settings.notifications.delete_all')"
-          @click="confirmDeleteAll"
-        />
-      </div>
-    </div>
+    <NotificationInboxToolbar
+      v-model:search="searchText"
+      v-model:category="categoryValue"
+      v-model:status="filters.status"
+      :counts="inboxCounts"
+      :category-items="categoryItems"
+      :is-filtered="isFiltered"
+      :shown-count="shownCount"
+      :unread-count="markableCount"
+      :is-marking-all-read="isMarkingAllRead"
+      :hide-summary="isLoaded && inboxItems.length === 0"
+      :loading="!isLoaded"
+      @mark-all-read="handleMarkAllAsRead"
+      @delete-all="confirmDeleteAll"
+      @clear-filters="clearFilters"
+    />
 
     <div v-if="!isLoaded" class="space-y-4 px-[18px] py-5">
       <div v-for="row in 3" :key="row" class="flex items-start gap-3">
         <USkeleton class="size-[34px] rounded-[9px]" />
         <div class="flex-1 space-y-1.5">
-          <USkeleton class="h-3 w-56" />
-          <USkeleton class="h-2.5 w-80" />
+          <USkeleton class="h-3 w-56 max-w-full" />
+          <USkeleton class="h-2.5 w-80 max-w-full" />
         </div>
       </div>
     </div>
@@ -306,6 +403,23 @@ onMounted(async () => {
         />
       </section>
     </template>
+
+    <DmsEmptyState
+      v-else-if="isFiltered"
+      variant="no-result"
+      :title="noMatchTitle"
+      :description="t('page.settings.notifications.no_match_description')"
+      :actions="[
+        {
+          label: t('page.settings.notifications.clear_filters'),
+          icon: 'i-ph-x',
+          color: 'neutral',
+          variant: 'outline',
+          size: 'sm',
+          onClick: clearFilters,
+        },
+      ]"
+    />
 
     <DmsEmptyState
       v-else

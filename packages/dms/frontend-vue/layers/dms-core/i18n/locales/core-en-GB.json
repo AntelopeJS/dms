@@ -403,7 +403,9 @@
       "too_short": "This value is too short.",
       "too_small": "This value is too small.",
       "too_large": "This value is too large.",
-      "with_values": "{message}: {values}"
+      "with_values": "{message}: {values}",
+      "code_incomplete": "Enter every digit of the code.",
+      "password_rules": "The password doesn’t meet every rule."
     },
     "confirm": {
       "unsaved_changes_title": "Unsaved changes",
@@ -413,7 +415,8 @@
       "confirm": "Confirm",
       "cancel": "Cancel",
       "esc_hint": "to cancel",
-      "type_to_confirm": "Type {text} to confirm"
+      "type_to_confirm": "Type {text} to confirm",
+      "type_mismatch": "The text doesn’t match. Type {text} exactly."
     },
     "date": {
       "undefined": "Unknown"

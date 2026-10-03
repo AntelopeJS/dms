@@ -148,7 +148,7 @@ export async function notifyOutdatedModules(
   }
   await Notification()
     .icon(UPDATES_ICON)
-    .title(`${MESSAGE_PREFIX}.title`)
+    .title(`${MESSAGE_PREFIX}.${modules.length === 1 ? "title_one" : "title"}`)
     .description(`${MESSAGE_PREFIX}.description`)
     .subject(ensureUpdatesSubject())
     .params({ count: modules.length, modules: moduleList })
