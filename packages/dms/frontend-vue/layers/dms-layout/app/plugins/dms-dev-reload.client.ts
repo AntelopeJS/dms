@@ -1,4 +1,3 @@
-const RELOAD_EVENT_NAME = "reload";
 const RELOAD_ENDPOINT_PATH = "/dms/dev/reload";
 
 function resolveBackendBase(): string | null {
@@ -23,23 +22,18 @@ export default defineDmsPlugin(() => {
 
   const endpoint = `${backendBase}${RELOAD_ENDPOINT_PATH}`;
   const { coordinator } = useDevReloadHolder();
-  const source = new EventSource(endpoint);
-
-  source.addEventListener("error", () => {
-    console.warn(
-      "[dms-dev-reload] SSE connection lost, waiting for backend...",
-    );
-  });
-
-  source.addEventListener(RELOAD_EVENT_NAME, () => {
-    void coordinator.requestRefresh().catch((err: unknown) => {
-      console.error("[dms-dev-reload] Reload handler failed:", err);
-    });
+  const stream = openDevReloadStream({
+    endpoint,
+    onReload: () => {
+      void coordinator.requestRefresh().catch((err: unknown) => {
+        console.error("[dms-dev-reload] Reload handler failed:", err);
+      });
+    },
   });
 
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
-      source.close();
+      stream.close();
     });
   }
 });
