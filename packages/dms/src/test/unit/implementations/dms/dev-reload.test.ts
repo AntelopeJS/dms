@@ -2,6 +2,7 @@ import { PassThrough } from "node:stream";
 import { expect } from "chai";
 import {
   cancelScheduledBroadcast,
+  closeDevReloadStreams,
   DevReloadController,
   scheduleBroadcast,
   setSlugProvider,
@@ -18,6 +19,13 @@ function connect(): PassThrough {
 
 function read(stream: PassThrough): string {
   return String(stream.read() ?? "");
+}
+
+function ended(stream: PassThrough): Promise<void> {
+  return new Promise((resolve) => {
+    stream.once("end", resolve);
+    stream.resume();
+  });
 }
 
 function settle(): Promise<void> {
@@ -81,5 +89,55 @@ describe("[unit] implementations/dms/dev-reload", () => {
     await settle();
 
     expect(read(stream)).to.equal("");
+  });
+
+  describe("closeDevReloadStreams", () => {
+    it("ends every open stream", async () => {
+      const other = connect();
+
+      closeDevReloadStreams();
+
+      // Resolving at all is the assertion: a stream left open never ends.
+      await Promise.all([ended(stream), ended(other)]);
+      expect(stream.writableEnded).to.equal(true);
+      expect(other.writableEnded).to.equal(true);
+    });
+
+    it("drops the broadcast scheduled before the streams closed", async () => {
+      setSlugProvider(() => ["/form/form-simple"]);
+      scheduleBroadcast();
+
+      closeDevReloadStreams();
+      await settle();
+
+      expect(read(stream)).to.equal("");
+    });
+
+    it("keeps no ended stream to write to", async () => {
+      closeDevReloadStreams();
+      const errors: Error[] = [];
+      stream.on("error", (error: Error) => errors.push(error));
+
+      setSlugProvider(() => ["/form/form-simple"]);
+      scheduleBroadcast();
+      await settle();
+
+      expect(errors).to.deep.equal([]);
+    });
+
+    it("serves the streams that connect once the module is back", async () => {
+      closeDevReloadStreams();
+      const reconnected = connect();
+      read(reconnected);
+
+      setSlugProvider(() => ["/form/form-simple"]);
+      scheduleBroadcast();
+      await settle();
+
+      expect(read(reconnected)).to.equal(
+        'event: reload\ndata: {"type":"resync"}\n\n',
+      );
+      reconnected.end();
+    });
   });
 });
