@@ -1,5 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { jobRunDataAPI } from "./data-api";
@@ -15,7 +16,7 @@ export class PageTableViewViews extends PageController(
     category: tableViewCategory,
     order: 36,
     description:
-      'TableView views: a strip of module views (counted, tokens {{user.id}} and {{now-7d}} resolved by the server), users\' own saved views, a "Timeline" view opening the grouped display by day, and the metric cell displays (status pill, progress, sparkline, duration, bytes, mono). The second table offers its views from a menu, grouped by status. Open a view from the URL: ?runs.view=failing',
+      'TableView views: a strip of module views (counted, tokens {{user.id}} and {{now-7d}} resolved by the server), users\' own saved views, a "Timeline" view opening the grouped display by day, and the metric cell displays (status pill, progress, sparkline, duration, bytes, mono). Select runs for the bulk "Re-run" (or "Select all N matching"), read the footer figures computed by the server (summed output, failing count) and the status legend, search for nothing to see the filtered empty state, and click a run: its drawer steps through the runs with J / K and keeps ?record= in the URL. The second table offers its views from a menu, grouped by status. Open a view from the URL: ?runs.view=failing',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -84,12 +85,60 @@ export class PageTableViewViews extends PageController(
         },
       ],
     },
+    footer: {
+      countLabel: "$demo.job_runs.count",
+      summary: [
+        { label: "Output", field: "outputBytes", op: "sum" },
+        {
+          label: "Failing",
+          op: "count",
+          where: { field: "status", equals: "failing" },
+        },
+      ],
+      legend: "status",
+    },
+    emptyStates: {
+      filtered: {
+        title: "$demo.job_runs.empty_filtered_title",
+        description: "$demo.job_runs.empty_filtered_description",
+        icon: "i-ph-magnifying-glass",
+        actions: [
+          { label: "$demo.job_runs.empty_docs", to: "https://antelopejs.com" },
+        ],
+      },
+    },
     rowActions: {
       add: true,
       edit: true,
       delete: true,
       hasSelection: true,
       custom: [
+        {
+          label: "Run details",
+          icon: "i-ph-sidebar-simple",
+          isDefault: true,
+          deepLink: true,
+          target: {
+            type: "drawer",
+            component: CustomComponent("RunDetailsDrawer"),
+            title: "Run details",
+          },
+        },
+        {
+          label: "Re-run",
+          icon: "i-ph-arrow-clockwise",
+          bulk: { allMatching: true },
+          confirm: {
+            title: "$demo.job_runs.rerun_title",
+            description: "$demo.job_runs.rerun_description",
+            confirmLabel: "$demo.job_runs.rerun_confirm",
+          },
+          target: {
+            type: "api",
+            url: "/api/playground/job-runs/rerun",
+            successMessage: "$demo.job_runs.rerun_done",
+          },
+        },
         {
           label: "Assign to me",
           icon: "i-ph-user-plus",

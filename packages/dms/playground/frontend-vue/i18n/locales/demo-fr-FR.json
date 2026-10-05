@@ -125,6 +125,16 @@
         "title": "Maintenance dimanche de 2 h à 2 h 30",
         "description": "Le tableau de bord sera indisponible pendant ce temps : enregistrez votre travail avant."
       }
+    },
+    "job_runs": {
+      "count": "{count} exécution | {count} exécutions",
+      "rerun_title": "Relancer {count} exécution ? | Relancer {count} exécutions ?",
+      "rerun_description": "Elles repartent de leur première étape.",
+      "rerun_confirm": "Relancer",
+      "rerun_done": "{count} exécution relancée | {count} exécutions relancées",
+      "empty_filtered_title": "Aucune exécution ne correspond à « {search} »",
+      "empty_filtered_description": "Essayez un autre nom de procédure, ou effacez les filtres.",
+      "empty_docs": "Ouvrir la documentation automation"
     }
   }
 }

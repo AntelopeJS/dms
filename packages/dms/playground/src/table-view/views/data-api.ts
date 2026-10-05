@@ -1,4 +1,10 @@
-import { Controller, Parameter, Post } from "@antelopejs/interface-api";
+import {
+  Context,
+  Controller,
+  Parameter,
+  Post,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -21,16 +27,17 @@ import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import {
   Column,
   DefaultDisplays,
+  resolveBulkRowIds,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { JobRun, JobRunModel, type JobRunStatus } from "./database";
 
 export const JOB_RUN_STATUSES = [
-  { value: "healthy", label: "Healthy" },
-  { value: "running", label: "Running" },
-  { value: "degraded", label: "Degraded" },
-  { value: "failing", label: "Failing" },
-  { value: "paused", label: "Paused" },
+  { value: "healthy", label: "Healthy", textColor: "success" },
+  { value: "running", label: "Running", textColor: "info" },
+  { value: "degraded", label: "Degraded", textColor: "warning" },
+  { value: "failing", label: "Failing", textColor: "error" },
+  { value: "paused", label: "Paused", textColor: "neutral" },
 ];
 
 const HIDDEN_IN_FORMS = ReadonlyBehaviorType.hidden;
@@ -60,6 +67,7 @@ export class jobRunDataAPI extends DataController(
   @Column({
     name: "Procedure",
     type: new DefaultDataTypes.StringType({ placeholder: "Sync invoices" }),
+    filterable: true,
     size: 240,
   })
   @Mandatory("new", "edit")
@@ -71,6 +79,7 @@ export class jobRunDataAPI extends DataController(
   @Column({
     name: "Run",
     type: new DefaultDataTypes.StringType(),
+    filterable: true,
     display: new DefaultDisplays.MonoDisplay({ copy: true }),
     size: 150,
   })
@@ -193,6 +202,24 @@ export class jobRunDataAPI extends DataController(
   @Mandatory("new", "edit")
   @Access(AccessMode.ReadWrite)
   declare startedAt: Date;
+
+  /**
+   * Restarts the selected runs, or every run the table's filters match after
+   * "Select all N matching": the bulk route finds its rows itself.
+   */
+  @Post("rerun")
+  async rerun(
+    @Context() ctx: RequestContext,
+    @AuthUser() user: User,
+  ): Promise<{ count: number }> {
+    const ids = await resolveBulkRowIds(this, ctx, user);
+    await Promise.all(
+      ids.map((id) =>
+        this.model.update(id, { status: "running", lastError: undefined }),
+      ),
+    );
+    return { count: ids.length };
+  }
 
   /** Makes the caller the run's owner, for the "Mine" view's `{{user.id}}`. */
   @Post("assign-to-me")

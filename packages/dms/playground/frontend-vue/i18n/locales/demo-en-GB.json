@@ -125,6 +125,16 @@
         "title": "Maintenance on Sunday from 2:00 to 2:30 a.m.",
         "description": "The dashboard will be unavailable meanwhile: save your work before then."
       }
+    },
+    "job_runs": {
+      "count": "{count} run | {count} runs",
+      "rerun_title": "Re-run {count} run? | Re-run {count} runs?",
+      "rerun_description": "They start again from their first step.",
+      "rerun_confirm": "Re-run",
+      "rerun_done": "{count} run restarted | {count} runs restarted",
+      "empty_filtered_title": "No run matches “{search}”",
+      "empty_filtered_description": "Try another procedure name, or clear the filters.",
+      "empty_docs": "Open the automation docs"
     }
   }
 }
