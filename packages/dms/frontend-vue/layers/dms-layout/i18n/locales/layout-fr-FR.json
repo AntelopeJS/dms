@@ -194,7 +194,9 @@
         "no_match_title": "Aucune notification ne correspond à ces filtres",
         "no_match_title_query": "Aucune notification ne correspond à « {query} »",
         "no_match_description": "La recherche porte sur les titres, les descriptions et les noms. Essayez un autre mot ou une autre catégorie, ou effacez les filtres.",
-        "search_short": "Rechercher…"
+        "search_short": "Rechercher…",
+        "mark_all_read_done": "Toutes les notifications sont marquées comme lues",
+        "delete_all_done": "Votre boîte de réception est vide"
       },
       "general": {
         "title": "Paramètres généraux",

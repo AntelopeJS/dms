@@ -351,6 +351,11 @@ export interface TableSharedData<T> {
   defaultPageSize?: number;
   /** See `TableProps.accumulation`. */
   accumulation?: TableAccumulation;
+  /**
+   * See `TableProps.emptyStates`: a custom display's empty body says them
+   * too.
+   */
+  emptyStates?: TableViewEmptyStatesConfig;
 }
 </script>
 
@@ -1142,6 +1147,7 @@ watchEffect(() => {
     footer: props.footer,
     defaultPageSize: props.defaultPageSize,
     accumulation: props.accumulation,
+    emptyStates: props.emptyStates,
   };
 });
 

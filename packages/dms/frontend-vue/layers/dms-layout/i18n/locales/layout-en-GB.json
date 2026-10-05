@@ -194,7 +194,9 @@
         "no_match_title": "No notifications match these filters",
         "no_match_title_query": "No notifications match “{query}”",
         "no_match_description": "Search looks through titles, descriptions and names. Try another word or category, or clear the filters.",
-        "search_short": "Search…"
+        "search_short": "Search…",
+        "mark_all_read_done": "Every notification is marked as read",
+        "delete_all_done": "Your inbox is empty"
       },
       "general": {
         "title": "General Settings",

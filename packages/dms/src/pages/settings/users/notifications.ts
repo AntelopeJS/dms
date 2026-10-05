@@ -18,6 +18,14 @@ import {
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { ButtonVariant } from "@antelopejs/interface-dms/base/types/button";
+import { Section } from "@antelopejs/interface-dms/base/section";
+import {
+  type ConfirmDialogSerialized,
+  serializeConfirmDialog,
+  TableView,
+} from "@antelopejs/interface-dms/base/table-view";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import {
@@ -29,6 +37,7 @@ import {
   isFilteredFeed,
   isNarrowedFeed,
   type NotificationFeedFilter,
+  type NotificationReadState,
   parseNotificationFeedQuery,
 } from "../../../db/models/notification-feed-filter";
 import {
@@ -74,6 +83,105 @@ function parsePageSize(value?: string): number {
 
 function parseOffset(value?: string): number {
   return Math.max(Number(value) || 0, 0);
+}
+
+// The inbox table's read-state tab filters on `isRead`: `filter_isRead=is:false`.
+const INBOX_READ_FILTER_KEY = "filter_isRead";
+const INBOX_READ_STATES: Record<string, NotificationReadState> = {
+  "is:false": "unread",
+  "is:true": "read",
+};
+
+/** The rows a read state lists, out of the feed's totals. */
+const INBOX_TOTALS: Record<
+  NotificationReadState | "all",
+  (counts: UserNotificationCounts) => number
+> = {
+  all: (counts) => counts.all,
+  unread: (counts) => counts.unread,
+  read: (counts) => Math.max(counts.all - counts.unread, 0),
+};
+
+const INBOX_PAGE_SIZE = 20;
+const NOTIFICATION_TEXTS = "$page.settings.notifications";
+
+/**
+ * The inbox of the notifications page: a read-only table over the user's own
+ * feed, served by `GET /settings/user/notifications/inbox`. Its rows are drawn
+ * by the `dms:inbox` display, grouped by day; All / Unread are its tabs.
+ */
+export function notificationInboxTable() {
+  return TableView.fromSource({
+    fetchUrl: "/settings/user/notifications/inbox",
+    capabilities: { paginate: true, filter: true, sort: true, search: true },
+    columns: {
+      title: { name: "Title", type: new DefaultDataTypes.StringType() },
+      isRead: {
+        name: `${NOTIFICATION_TEXTS}.status_label`,
+        type: new DefaultDataTypes.BooleanType(),
+        filterable: true,
+      },
+      createdAt: { name: "Date", type: new DefaultDataTypes.DateType() },
+    },
+    layout: "compact",
+    pagination: "infinite",
+    pageSize: INBOX_PAGE_SIZE,
+    displays: [
+      {
+        id: "dms:inbox",
+        component: CustomComponent("DmsNotificationInboxDisplay"),
+        capabilities: { search: false, sorting: false, filters: false },
+      },
+    ],
+    defaultDisplay: "dms:inbox",
+    tabs: [
+      { id: "all", label: `${NOTIFICATION_TEXTS}.tab_all` },
+      {
+        id: "unread",
+        label: `${NOTIFICATION_TEXTS}.tab_unread`,
+        filter: { accessorKey: "isRead", mode: "is", value: "false" },
+      },
+    ],
+    customButtons: [
+      {
+        id: "mark-all-read",
+        label: `${NOTIFICATION_TEXTS}.mark_all_read`,
+        icon: "i-ph-checks",
+        variant: ButtonVariant.ghost,
+        target: {
+          type: "api",
+          method: "PUT",
+          url: "/settings/user/notifications/mark-all-read",
+          successMessage: `${NOTIFICATION_TEXTS}.mark_all_read_done`,
+        },
+      },
+      {
+        id: "delete-all",
+        label: `${NOTIFICATION_TEXTS}.delete_all`,
+        icon: "i-ph-trash",
+        variant: ButtonVariant.ghost,
+        confirm: { from: "/settings/user/notifications/delete-all/confirm" },
+        target: {
+          type: "api",
+          method: "DELETE",
+          url: "/settings/user/notifications/delete-all",
+          successMessage: `${NOTIFICATION_TEXTS}.delete_all_done`,
+        },
+      },
+    ],
+    emptyStates: {
+      firstRun: {
+        title: `${NOTIFICATION_TEXTS}.empty_title`,
+        description: `${NOTIFICATION_TEXTS}.empty_description`,
+        icon: "i-ph-bell-simple",
+      },
+      filtered: {
+        title: `${NOTIFICATION_TEXTS}.empty_title`,
+        description: `${NOTIFICATION_TEXTS}.empty_description`,
+        icon: "i-ph-check-circle",
+      },
+    },
+  });
 }
 
 /**
@@ -127,6 +235,12 @@ export class NotificationsSettingsController extends PageController(
     name: "$menu.notifications",
     icon: "i-ph-bell",
   });
+
+  static inbox = Section({
+    title: `${NOTIFICATION_TEXTS}.inbox_title`,
+    description: `${NOTIFICATION_TEXTS}.inbox_description`,
+    bare: true,
+  }).child("table", notificationInboxTable());
 
   @AuthUserWithPermission(
     NotificationsSettingsController.notificationsComponent,
@@ -237,6 +351,52 @@ export class NotificationsApiController extends Controller(
       notificationsModel.countUnseen(this.user._id, seenAt),
     ]);
     return { ...counts, unseen };
+  }
+
+  /**
+   * One page of the inbox table (`notificationInboxTable`), newest first:
+   * the rows and how many its read-state tab lists.
+   */
+  @Get("/inbox")
+  async getInbox(
+    @Context() context: RequestContext,
+    @Model(UserNotificationsModel)
+    notificationsModel: UserNotificationsModel,
+    @Parameter("limit", "query") limitParam?: string,
+    @Parameter("offset", "query") offsetParam?: string,
+  ) {
+    const readState =
+      INBOX_READ_STATES[
+        context.url.searchParams.get(INBOX_READ_FILTER_KEY) ?? ""
+      ];
+    const [results, counts] = await Promise.all([
+      notificationsModel.getFeedPage(
+        this.user._id,
+        readState ? { readState } : {},
+        parsePageSize(limitParam),
+        parseOffset(offsetParam),
+      ),
+      notificationsModel.countFeed(this.user._id),
+    ]);
+    return { results, total: INBOX_TOTALS[readState ?? "all"](counts) };
+  }
+
+  /** The dialog "Delete all" asks in, counting what it deletes. */
+  @Get("/delete-all/confirm")
+  async getDeleteAllConfirm(
+    @Model(UserNotificationsModel)
+    notificationsModel: UserNotificationsModel,
+  ): Promise<ConfirmDialogSerialized> {
+    const { all } = await notificationsModel.countFeed(this.user._id);
+    return serializeConfirmDialog({
+      title: `${NOTIFICATION_TEXTS}.delete_all_title`,
+      description: `${NOTIFICATION_TEXTS}.delete_all_description`,
+      params: { count: all },
+      icon: "i-ph-trash",
+      color: "error",
+      confirmLabel: `${NOTIFICATION_TEXTS}.delete_all_confirm`,
+      cancelLabel: `${NOTIFICATION_TEXTS}.cancel`,
+    });
   }
 
   /** What the header bell counts on its own: see {@link getCounts}. */

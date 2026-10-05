@@ -262,6 +262,21 @@ describe("empty body", () => {
       "dms.table.load_error_title",
     );
   });
+  it("says the table's words in a custom display's empty body too", () => {
+    const { container } = mount(
+      TableEmpty,
+      {},
+      {
+        isFiltered: computed(() => false),
+        clearableFilters: computed(() => ({})),
+        globalFilterState: ref(""),
+        emptyStates: { firstRun: { title: "$inbox.caught_up" } },
+      },
+    );
+    expect(container.querySelector("h3")?.textContent).toBe(
+      'inbox.caught_up{"search":""}',
+    );
+  });
 });
 
 describe("footer figures", () => {

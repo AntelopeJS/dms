@@ -59,7 +59,9 @@ const kind = computed<TableViewEmptyStateKind | undefined>(() => {
   return "firstRun";
 });
 const declared = computed<TableViewEmptyStateConfig | undefined>(() =>
-  kind.value ? props.emptyStates?.[kind.value] : undefined,
+  kind.value
+    ? (props.emptyStates ?? tableSharedData.value?.emptyStates)?.[kind.value]
+    : undefined,
 );
 const search = computed(
   () => tableSharedData.value?.globalFilterState.value ?? "",

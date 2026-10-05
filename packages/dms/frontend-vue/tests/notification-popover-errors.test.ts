@@ -26,7 +26,6 @@ interface NotificationsStub {
   fetchNotifications: ReturnType<typeof vi.fn>;
   markAsRead: ReturnType<typeof vi.fn>;
   markAllSeen: ReturnType<typeof vi.fn>;
-  markAllAsRead: ReturnType<typeof vi.fn>;
 }
 
 const UNREAD_NOTIFICATION = {
@@ -166,7 +165,6 @@ beforeEach(() => {
     markAllSeen: vi.fn(async () => {
       notifications.unseenCount.value = 0;
     }),
-    markAllAsRead: vi.fn(),
   };
   vi.spyOn(console, "warn").mockImplementation(() => {});
   installRuntime();
@@ -215,7 +213,6 @@ it("marks the notifications seen on open, and never read on close", async () => 
 
   await closePopover();
   window.dispatchEvent(new Event("beforeunload"));
-  expect(notifications.markAllAsRead).not.toHaveBeenCalled();
   expect(notifications.markAsRead).not.toHaveBeenCalled();
   expect(sendBeacon).not.toHaveBeenCalled();
   expect(notifications.unreadCount.value).toBe(UNREAD_COUNT);
