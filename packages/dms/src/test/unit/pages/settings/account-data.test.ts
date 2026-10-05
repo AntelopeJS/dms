@@ -14,6 +14,7 @@ import {
   findDeletionBlockers,
   isDeletionConfirmed,
 } from "../../../../pages/settings/users/account-data";
+import { selfDeletionPayload } from "../../../../pages/settings/users/account-data-store";
 
 const USER_ID = "account-data-user";
 const PASSWORD_HASH = "$2b$10$secret-password-hash";
@@ -265,6 +266,24 @@ describe("[unit] account data — deletion guards", () => {
     const user = storedUser();
     expect(isDeletionConfirmed(user, " Camille@ACME.dev ")).to.equal(true);
     expect(isDeletionConfirmed(user, "camille@acme.io")).to.equal(false);
+  });
+});
+
+describe("[unit] account data — deletion hook", () => {
+  it("names the user, their e-mail, the workspaces they left and why", () => {
+    const user = { _id: USER_ID, email: "ada@example.com" } as User;
+
+    expect(
+      selfDeletionPayload(user, [
+        membership({ tenantId: "acme" }),
+        membership({ tenantId: "beta" }),
+      ]),
+    ).to.deep.equal({
+      userId: USER_ID,
+      email: "ada@example.com",
+      tenantIds: ["acme", "beta"],
+      reason: "self",
+    });
   });
 });
 

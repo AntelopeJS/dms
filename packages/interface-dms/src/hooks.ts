@@ -59,10 +59,12 @@ export enum Hook {
   MEMBER_REMOVED = "member:removed",
   USER_REGISTERED = "user:registered",
   /**
-   * A user deleted their own account. Fired once the DMS has removed what it
-   * keeps about them (memberships, sessions, notifications, sign-in links and
-   * the user row); a module keeping per-user rows of its own deletes them
-   * here. A failing handler is logged and does not bring the account back.
+   * A user was deleted, by any path — today, deleting one's own account
+   * (`reason: "self"`). Fired once the DMS has removed what it keeps about
+   * them (memberships, sessions, notifications, sign-in links and the user
+   * row); a module keeping per-user or per-tenant rows of its own deletes
+   * them here, `tenantIds` naming the workspaces the user belonged to. A
+   * failing handler is logged and does not bring the account back.
    */
   USER_DELETED = "user:deleted",
 }
@@ -152,9 +154,16 @@ export interface MemberRemovedHookPayload {
   userIds: string[];
 }
 
+/** Why a user was deleted: `self`, the user deleted their own account. */
+export type UserDeletionReason = "self";
+
+/** What `Hook.USER_DELETED` hands its handlers. */
 export interface UserDeletedHookPayload {
   userId: string;
   email: string;
+  /** The workspaces the user was a member of, left before the deletion. */
+  tenantIds: string[];
+  reason: UserDeletionReason;
 }
 
 export interface UserRegisteredHookPayload {

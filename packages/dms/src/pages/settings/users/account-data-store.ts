@@ -19,7 +19,11 @@ import {
   type UserInvite,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
-import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
+import {
+  ExecuteHooks,
+  Hook,
+  type UserDeletedHookPayload,
+} from "@antelopejs/interface-dms/hooks";
 import { DeleteFile } from "@antelopejs/interface-file-storage";
 import {
   SignInAttemptsModel,
@@ -200,12 +204,28 @@ async function leaveTenants(
   }
 }
 
-async function announceDeletion(user: User): Promise<void> {
+/** What `Hook.USER_DELETED` hands its handlers for a user deleting itself. */
+export function selfDeletionPayload(
+  user: User,
+  memberships: AccountMembershipSource[],
+): UserDeletedHookPayload {
+  return {
+    userId: user._id,
+    email: user.email,
+    tenantIds: memberships.map(({ tenantId }) => tenantId),
+    reason: "self",
+  };
+}
+
+async function announceDeletion(
+  user: User,
+  memberships: AccountMembershipSource[],
+): Promise<void> {
   try {
-    await ExecuteHooks(Hook.USER_DELETED, {
-      userId: user._id,
-      email: user.email,
-    });
+    await ExecuteHooks(
+      Hook.USER_DELETED,
+      selfDeletionPayload(user, memberships),
+    );
   } catch (error) {
     Logging.Error("[DMS] USER_DELETED hook failed:", error);
   }
@@ -218,6 +238,9 @@ async function announceDeletion(user: User): Promise<void> {
  * the user out everywhere — and the user row, with its two-factor data. The
  * invitations the user sent stay valid: they belong to the workspace.
  * The caller has checked the password, the confirmation and the blockers.
+ *
+ * The one way the DMS deletes a user: any other path deleting one goes
+ * through here, so `Hook.USER_DELETED` fires for every deletion.
  */
 export async function deleteAccount(
   user: User,
@@ -234,7 +257,7 @@ export async function deleteAccount(
   if (user.avatar?.key) {
     void DeleteFile(user.avatar.key).catch(() => undefined);
   }
-  await announceDeletion(user);
+  await announceDeletion(user, memberships);
 }
 
 const HTTP_BAD_REQUEST = 400;
