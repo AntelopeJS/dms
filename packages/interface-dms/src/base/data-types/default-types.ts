@@ -221,6 +221,15 @@ export namespace DefaultDataTypes {
     }
   }
 
+  /** Before or after an instant: `less_than` / `greater_than` on a date. */
+  const INSTANT_COMPARISONS: Record<
+    string,
+    (stored: ValueProxy<Date>, instant: Date) => ValueProxyOrValue<boolean>
+  > = {
+    greater_than: (stored, instant) => stored.gt(instant),
+    less_than: (stored, instant) => stored.lt(instant),
+  };
+
   @RegisterDataType("date")
   export class DateType extends DataType {
     constructor(public readonly options: DateTypeOptions = {}) {
@@ -265,7 +274,21 @@ export namespace DefaultDataTypes {
       if (mode === "is_between") {
         return this.dayRangeFilter(proxy, value);
       }
+      const compareInstant = INSTANT_COMPARISONS[mode];
+      if (compareInstant) {
+        return compareInstant(proxy as ValueProxy<Date>, this.instant(value));
+      }
       return super.filter(context, proxy, key, value, mode, row);
+    }
+
+    // A stored date is a date: comparing it with the instant's milliseconds,
+    // as the generic number comparison does, matches every row or none.
+    private instant(value: string): Date {
+      const parsed = parseValue(value);
+      if (!(parsed instanceof Date)) {
+        throw new Error(`Date filter expects a date value. Got: ${value}`);
+      }
+      return parsed;
     }
 
     private startOfUtcDay(date: Date): Date {
