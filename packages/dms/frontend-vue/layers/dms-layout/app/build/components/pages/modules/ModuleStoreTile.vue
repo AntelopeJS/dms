@@ -66,7 +66,7 @@ const command = computed(() => moduleInstallCommand(props.entry));
     <div
       class="text-dimmed -mx-4 mt-0.5 flex items-center gap-2 border-t border-(--ui-border-muted) py-[7px] ps-4 pe-3 font-mono text-[11px] font-medium"
     >
-      <span class="truncate">{{ processI18n(props.entry.category) }}</span>
+      <span class="truncate">{{ processI18n(props.entry.catalogCategory) }}</span>
       <!-- aria-disabled rather than disabled: the button stays focusable and
            hoverable so its "Coming soon" tooltip can explain why. -->
       <span class="ms-auto shrink-0 font-sans">

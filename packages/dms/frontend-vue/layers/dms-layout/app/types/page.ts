@@ -45,7 +45,7 @@ export interface ModuleInfo {
   icon: string;
   landingPage?: string;
   version?: string;
-  category?: string;
+  catalogCategory?: string;
   defaultCategory?: {
     displayName?: string;
     icon?: string;

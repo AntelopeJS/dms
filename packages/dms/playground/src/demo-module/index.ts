@@ -7,7 +7,7 @@ export const demoModule = RegisterModule({
   icon: "i-ph-cube",
   // Modules catalog: version, category, state pill and live readout.
   version: "1.4.0",
-  category: "Content",
+  catalogCategory: "Content",
   status: () => "live",
   readout: () => [
     { tone: "success", text: "2 pages · 1 form" },

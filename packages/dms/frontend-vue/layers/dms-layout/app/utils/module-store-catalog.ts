@@ -20,7 +20,7 @@ export interface ModuleStoreEntry {
   /** Iconify name, the icon the module registers once installed. */
   icon: string;
   /** Store category, a `$i18n.key`. */
-  category: string;
+  catalogCategory: string;
 }
 
 const CATEGORY = {
@@ -37,7 +37,7 @@ function storeEntry(
   id: string,
   packageName: string,
   icon: string,
-  category: string,
+  catalogCategory: string,
 ): ModuleStoreEntry {
   return {
     id,
@@ -45,7 +45,7 @@ function storeEntry(
     title: `$modules.store.catalog.${id}.title`,
     description: `$modules.store.catalog.${id}.description`,
     icon,
-    category,
+    catalogCategory,
   };
 }
 

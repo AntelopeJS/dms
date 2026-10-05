@@ -2382,7 +2382,7 @@ async function buildModuleAccessMap(
           description: "",
           icon: "",
           version: undefined,
-          category: undefined,
+          catalogCategory: undefined,
           hasAccess,
         };
   }

@@ -124,7 +124,7 @@ export interface ModuleInfo {
    * May be an i18n key prefixed with `$`. Modules without one are grouped
    * under a generic "Other" category.
    */
-  category?: string;
+  catalogCategory?: string;
   /**
    * Reports the module's current state on the catalog. Called on each catalog
    * load; a hook that throws or does not answer in time is ignored and the

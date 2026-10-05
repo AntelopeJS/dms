@@ -8,7 +8,7 @@ export const plainModule = RegisterModule({
   description: "A module without a default category to show the Pages fallback",
   icon: "i-ph-cube-transparent",
   version: "0.9.2",
-  category: "Developer",
+  catalogCategory: "Developer",
   status: () => "beta",
   readout: () => [
     { tone: "success", text: "1 page · Pages fallback" },

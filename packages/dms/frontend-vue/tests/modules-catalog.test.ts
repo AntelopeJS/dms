@@ -32,9 +32,9 @@ function entry(
 }
 
 const modules = [
-  entry("media", { category: "Content", status: "live" }),
-  entry("database", { category: "Data", status: "update" }),
-  entry("automation", { category: "Operations", status: "attention" }),
+  entry("media", { catalogCategory: "Content", status: "live" }),
+  entry("database", { catalogCategory: "Data", status: "update" }),
+  entry("automation", { catalogCategory: "Operations", status: "attention" }),
   entry("ai", { status: "beta" }),
   entry("legacy"),
 ];

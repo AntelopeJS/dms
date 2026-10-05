@@ -29,7 +29,7 @@ export interface ModuleCategoryOption {
  */
 export type FilterableModule = Pick<
   ModuleCatalogEntry,
-  "id" | "title" | "description" | "category"
+  "id" | "title" | "description" | "catalogCategory"
 >;
 
 /** A page inside a module whose name matches a search the catalog missed. */
@@ -46,9 +46,9 @@ export function moduleStatus(entry: ModuleCatalogEntry): ModuleStatus {
 }
 
 export function moduleCategory(
-  entry: Pick<ModuleCatalogEntry, "category">,
+  entry: Pick<ModuleCatalogEntry, "catalogCategory">,
 ): string {
-  const category = entry.category?.trim();
+  const category = entry.catalogCategory?.trim();
   return category ? category : MODULE_CATEGORY_OTHER;
 }
 

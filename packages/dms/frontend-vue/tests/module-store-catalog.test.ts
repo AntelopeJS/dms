@@ -43,16 +43,19 @@ function storeEntry(
     title: id[0].toUpperCase() + id.slice(1),
     description: `${id} description`,
     icon: "i-ph-cube",
-    category: "Data",
+    catalogCategory: "Data",
     ...overrides,
   };
 }
 
 const catalog = [
-  storeEntry("media", { category: "Content", description: "Asset library" }),
+  storeEntry("media", {
+    catalogCategory: "Content",
+    description: "Asset library",
+  }),
   storeEntry("database"),
-  storeEntry("lang", { title: "Translations", category: "Content" }),
-  storeEntry("ai", { category: "AI" }),
+  storeEntry("lang", { title: "Translations", catalogCategory: "Content" }),
+  storeEntry("ai", { catalogCategory: "AI" }),
 ];
 
 describe("module store catalog", () => {
@@ -135,7 +138,11 @@ describe("official module list", () => {
   it("translates every name, description and category in both locales", () => {
     for (const messages of [en, fr]) {
       for (const entry of MODULE_STORE_CATALOG) {
-        for (const key of [entry.title, entry.description, entry.category]) {
+        for (const key of [
+          entry.title,
+          entry.description,
+          entry.catalogCategory,
+        ]) {
           expect(key.startsWith("$")).toBe(true);
           expect(typeof lookup(messages, key.slice(1)), key).toBe("string");
         }
