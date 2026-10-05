@@ -89,19 +89,19 @@ describe("cards display with a custom card", () => {
   const received: TableViewCardProps[] = [];
 
   const TaskCard = defineComponent({
-    props: [
-      "row",
-      "rowId",
-      "columns",
-      "labelKey",
-      "actions",
-      "selected",
-      "select",
-      "open",
-    ],
+    props: {
+      row: Object,
+      rowId: String,
+      columns: Array,
+      labelKey: String,
+      actions: Object,
+      selected: Boolean,
+      select: Function,
+      open: Function,
+    },
     setup: (props) => () => {
       received.push({ ...props } as unknown as TableViewCardProps);
-      return h("button", { onClick: () => props.open() }, props.rowId);
+      return h("button", { onClick: () => props.open?.() }, props.rowId);
     },
   });
 
