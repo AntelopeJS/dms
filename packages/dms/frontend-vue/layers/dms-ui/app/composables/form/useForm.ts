@@ -8,6 +8,7 @@ import type { FormData, FormFieldValue } from "./types/value";
 import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../utils/responseWarning";
+import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
 
 /** A toast a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
@@ -129,30 +130,6 @@ function createBaseValidationSchema(
   } catch {
     return z.object({});
   }
-}
-
-function processFieldI18n(
-  field: FormField,
-  processI18n: (key: string) => string,
-): FormField {
-  const opts = field.component.options as ComponentOptionsData | undefined;
-  if (!opts) return field;
-
-  const placeholder = isString(opts.placeholder)
-    ? processI18n(opts.placeholder)
-    : undefined;
-
-  const items = Array.isArray(opts.items)
-    ? (opts.items as { label?: string }[]).map((item) => ({
-        ...item,
-        label: isString(item.label) ? processI18n(item.label) : item.label,
-      }))
-    : opts.items;
-
-  return {
-    ...field,
-    component: { ...field.component, options: { ...opts, placeholder, items } },
-  };
 }
 
 // `{{params.id}}` takes the bare name, which on a route repeating a placeholder

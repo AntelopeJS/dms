@@ -1,6 +1,7 @@
 import type { ConfirmDialog } from "#dms-core/app/types/confirm-dialog";
 import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 import type { ConfirmOptions } from "../../../composables/confirm/types";
+import { processFieldI18n } from "../../utils/fieldOptionsI18n";
 
 /** `t` as vue-i18n gives it: named parameters, then the plural count. */
 export type ConfirmTranslate = (
@@ -49,10 +50,15 @@ export function resolveConfirmDialog(
       label: text(entry.label) ?? "",
       count: typeof entry.count === "string" ? text(entry.count) : entry.count,
     })),
-    fields: dialog.fields?.map((field) => ({
-      ...field,
-      label: text(field.label),
-      description: text(field.description),
-    })),
+    fields: dialog.fields?.map((field) =>
+      processFieldI18n(
+        {
+          ...field,
+          label: text(field.label),
+          description: text(field.description),
+        },
+        (key) => resolveConfirmText(key, params, t),
+      ),
+    ),
   };
 }

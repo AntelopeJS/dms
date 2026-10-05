@@ -71,7 +71,13 @@ describe("confirmation dialog texts", () => {
             id: "reassignTo",
             label: "$roles.move_to",
             type: "select",
-            component: { componentName: "dms-select" },
+            component: {
+              componentName: "dms-select",
+              options: {
+                placeholder: "$roles.move_to",
+                items: [{ value: "r2", label: "Readers" }],
+              },
+            },
           },
         ],
       },
@@ -81,6 +87,11 @@ describe("confirmation dialog texts", () => {
     expect(options.title).toBe("Delete Editors?");
     expect(options.description).toBe("2 members hold it");
     expect(options.fields?.[0]?.label).toBe("Move them to");
+    // The input's placeholder and item labels read as in a form.
+    expect(options.fields?.[0]?.component.options).toMatchObject({
+      placeholder: "Move them to",
+      items: [{ value: "r2", label: "Readers" }],
+    });
   });
 });
 
