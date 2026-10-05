@@ -21,6 +21,7 @@ import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Column,
+  DefaultDisplays,
   TableView,
   type TableViewExpandableOptions,
   type TableViewOptionsSerialized,
@@ -59,7 +60,7 @@ class OrderAPI extends DataController(
     name: "Order",
     type: new DefaultDataTypes.StringType(),
     size: 220,
-    display: { type: "identity", label: "Ref", options: { icon: "i-ph-x" } },
+    display: new DefaultDisplays.IdentityDisplay({ icon: "i-ph-x" }),
   })
   @Access(AccessMode.ReadOnly)
   declare number: string;
@@ -153,7 +154,6 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(number?.size).to.equal(220);
     expect(number?.display).to.deep.equal({
       type: "identity",
-      label: "Ref",
       options: { icon: "i-ph-x" },
     });
   });

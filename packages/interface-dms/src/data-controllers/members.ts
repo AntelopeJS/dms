@@ -17,7 +17,13 @@ import { User } from "../auth/db";
 import { CustomComponent } from "../base/custom";
 import { DefaultDataTypes } from "../base/data-types/default-types";
 import { Searchable } from "../base/searchable";
-import { Column, Exported, Select, TableViewRoutes } from "../base/table-view";
+import {
+  Column,
+  DefaultDisplays,
+  Exported,
+  Select,
+  TableViewRoutes,
+} from "../base/table-view";
 import { ReadonlyBehaviorType } from "../base/types";
 import { getRequestTenantId } from "../request-tenant";
 import { runTenantLifecycleOperation } from "../tenant-lifecycle";
@@ -73,31 +79,27 @@ export class memberSettingDataAPI extends DataController(
   @Searchable()
   @Exported()
   @Column({
-    name: "$page.settings.members.column.name",
+    name: "$page.settings.members.column.member",
     type: new DefaultDataTypes.StringType({
       placeholder: "$page.settings.members.placeholder.name",
     }),
     filterable: true,
     size: 300,
     // Avatar, name, a "You" tag, the unverified-email badge and the address.
-    display: {
-      type: "identity",
-      label: "$page.settings.members.column.member",
-      options: {
-        avatarField: "avatar",
-        subtitleField: "email",
-        selfField: "userId",
-        selfLabel: "$page.settings.members.you",
-        badges: [
-          {
-            field: "isValidated",
-            equals: false,
-            label: "$page.settings.members.email_not_verified",
-            color: "warning",
-          },
-        ],
-      },
-    },
+    display: new DefaultDisplays.IdentityDisplay({
+      avatarField: "avatar",
+      subtitleField: "email",
+      selfField: "userId",
+      selfLabel: "$page.settings.members.you",
+      badges: [
+        {
+          field: "isValidated",
+          equals: false,
+          label: "$page.settings.members.email_not_verified",
+          color: "warning",
+        },
+      ],
+    }),
   })
   @Sortable({ noIndex: true })
   @Joined({ table: User, localKey: "userId", remoteField: "name" })
@@ -154,17 +156,14 @@ export class memberSettingDataAPI extends DataController(
     filterable: true,
     size: 180,
     // An owner holds every permission: one crown pill replaces the roles.
-    display: {
-      type: "pills",
-      options: {
-        exclusive: {
-          field: "isTenantOwner",
-          label: "$page.settings.members.owner",
-          icon: "i-ph-crown",
-        },
-        emptyLabel: "$page.settings.members.no_role",
+    display: new DefaultDisplays.PillsDisplay({
+      exclusive: {
+        field: "isTenantOwner",
+        label: "$page.settings.members.owner",
+        icon: "i-ph-crown",
       },
-    },
+      emptyLabel: "$page.settings.members.no_role",
+    }),
   })
   @Access(AccessMode.ReadWrite)
   declare roleIds: string[];
@@ -193,15 +192,12 @@ export class memberSettingDataAPI extends DataController(
     description: "$page.settings.members.description.last_active",
     readonlyBehavior: SYSTEM_MANAGED_FIELD,
     size: 140,
-    display: {
-      type: "relative_date",
-      options: {
-        nowWithinMs: ACTIVE_NOW_MS,
-        nowLabel: "$page.settings.members.active_now",
-        emptyLabel: "$page.settings.members.never_signed_in",
-        emptyTone: "warning",
-      },
-    },
+    display: new DefaultDisplays.RelativeDateDisplay({
+      nowWithinMs: ACTIVE_NOW_MS,
+      nowLabel: "$page.settings.members.active_now",
+      emptyLabel: "$page.settings.members.never_signed_in",
+      emptyTone: "warning",
+    }),
   })
   @Sortable({ noIndex: true })
   @Joined({ table: User, localKey: "userId", remoteField: "lastActiveAt" })
@@ -223,15 +219,12 @@ export class memberSettingDataAPI extends DataController(
     }),
     readonlyBehavior: SYSTEM_MANAGED_FIELD,
     size: 110,
-    display: {
-      type: "indicator",
-      options: {
-        onLabel: "$page.settings.members.two_factor_on",
-        offLabel: "$page.settings.members.two_factor_off",
-        onIcon: "i-ph-shield-check",
-        offIcon: "i-ph-shield",
-      },
-    },
+    display: new DefaultDisplays.IndicatorDisplay({
+      onLabel: "$page.settings.members.two_factor_on",
+      offLabel: "$page.settings.members.two_factor_off",
+      onIcon: "i-ph-shield-check",
+      offIcon: "i-ph-shield",
+    }),
   })
   @Access(AccessMode.ReadOnly)
   @Joined({ table: User, localKey: "userId", remoteField: "twoFactorMethods" })

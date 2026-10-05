@@ -39,6 +39,7 @@ import { getClientBaseUrl } from "../../../config";
 import { buildAdminInviteSignupLink } from "../../../utils/admin-invite-email";
 import {
   Column,
+  DefaultDisplays,
   Exported,
   Searchable,
   TableView,
@@ -114,7 +115,9 @@ export class inviteSettingDataAPI extends DataController(
     }),
     filterable: true,
     size: 170,
-    display: { type: "identity", options: { icon: "i-ph-envelope-simple" } },
+    display: new DefaultDisplays.IdentityDisplay({
+      icon: "i-ph-envelope-simple",
+    }),
   })
   @Sortable()
   @Access(AccessMode.ReadOnly)
@@ -154,17 +157,14 @@ export class inviteSettingDataAPI extends DataController(
     }),
     filterable: true,
     size: 150,
-    display: {
-      type: "pills",
-      options: {
-        exclusive: {
-          field: "asTenantOwner",
-          label: "$page.settings.members.owner",
-          icon: "i-ph-crown",
-        },
-        emptyLabel: "$page.settings.members.no_role",
+    display: new DefaultDisplays.PillsDisplay({
+      exclusive: {
+        field: "asTenantOwner",
+        label: "$page.settings.members.owner",
+        icon: "i-ph-crown",
       },
-    },
+      emptyLabel: "$page.settings.members.no_role",
+    }),
   })
   @Access(AccessMode.ReadWrite)
   declare roles_ids: string[];
@@ -203,7 +203,7 @@ export class inviteSettingDataAPI extends DataController(
   @Exported()
   @Sortable()
   @Column({
-    name: "$page.settings.invites.column.created_at",
+    name: "$page.settings.invites.column.sent",
     type: new DefaultDataTypes.DateType(),
     readonlyBehavior: {
       edit: ReadonlyBehaviorType.disabled,
@@ -211,16 +211,12 @@ export class inviteSettingDataAPI extends DataController(
       new: ReadonlyBehaviorType.hidden,
     },
     size: 120,
-    display: {
-      type: "relative_date",
-      label: "$page.settings.invites.column.sent",
-      options: {
-        style: "day",
-        tone: "dimmed",
-        byField: "invitedByName",
-        byLabel: "$page.settings.invites.sent_by",
-      },
-    },
+    display: new DefaultDisplays.RelativeDateDisplay({
+      style: "day",
+      tone: "dimmed",
+      byField: "invitedByName",
+      byLabel: "$page.settings.invites.sent_by",
+    }),
   })
   @Access(AccessMode.ReadOnly)
   declare createdAt: Date;
@@ -228,7 +224,7 @@ export class inviteSettingDataAPI extends DataController(
   @Listable()
   @Exported()
   @Column({
-    name: "$page.settings.invites.column.expires_at",
+    name: "$page.settings.invites.column.expires",
     type: new DefaultDataTypes.DateType(),
     readonlyBehavior: {
       edit: ReadonlyBehaviorType.disabled,
@@ -237,15 +233,11 @@ export class inviteSettingDataAPI extends DataController(
     },
     size: 100,
     // "In 5 days", amber within a day, the bare date once expired.
-    display: {
-      type: "relative_date",
-      label: "$page.settings.invites.column.expires",
-      options: {
-        soonWithinMs: DAY_MS,
-        pastStyle: "day",
-        pastTone: "dimmed",
-      },
-    },
+    display: new DefaultDisplays.RelativeDateDisplay({
+      soonWithinMs: DAY_MS,
+      pastStyle: "day",
+      pastTone: "dimmed",
+    }),
   })
   @Access(AccessMode.ReadOnly)
   declare expiresAt: Date;

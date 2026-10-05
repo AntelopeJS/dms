@@ -94,12 +94,7 @@ export const useTableViewConfig = <T extends Data>(
   const listableColumns = computed(() =>
     allColumns.value
       .filter((col) => col.listable)
-      .map((col) => ({
-        ...col,
-        // A column's `display` may name its grid header ("Member" for a
-        // name drawn with its avatar and address).
-        header: processI18n(col.display?.label ?? col.header),
-      })),
+      .map((col) => ({ ...col, header: processI18n(col.header) })),
   );
 
   // Config-derived (SSR-safe; the registry is client-only): the implicit `table`

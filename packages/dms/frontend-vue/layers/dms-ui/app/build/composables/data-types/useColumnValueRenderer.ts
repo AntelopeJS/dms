@@ -9,8 +9,6 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 export interface ColumnDisplay {
   type: string;
   options?: Record<string, unknown>;
-  /** Grid header in place of the column's own (`$`: i18n key). */
-  label?: string;
 }
 
 /** What a column must carry for its values to be rendered. */

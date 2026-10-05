@@ -38,6 +38,7 @@ export {
   startExport,
   validateRowsAgainstRule,
 } from "./table-view/data-functions";
+export * from "./table-view/column-display";
 export { TableView } from "./table-view/factory";
 export { WritingTableViewConflictError } from "./table-view/writer";
 export {
@@ -47,7 +48,6 @@ export {
 export {
   ArchiveField,
   Column,
-  type ColumnDisplay,
   ColumnGroup,
   type ColumnGroupConfig,
   type ColumnOptions,

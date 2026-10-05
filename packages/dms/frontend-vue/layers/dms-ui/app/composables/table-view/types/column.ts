@@ -16,6 +16,13 @@ export interface ReadonlyBehavior {
   view?: ReadonlyBehaviorMode;
 }
 
+/** The display a column's cells are drawn with (backend `ColumnDisplay`). */
+export interface TableViewColumnDisplay {
+  /** Id of the frontend data type drawing the cells. */
+  type: string;
+  options?: Record<string, unknown>;
+}
+
 export interface TableViewColumn {
   id: string;
   header: string;
@@ -42,10 +49,5 @@ export interface TableViewColumn {
    * Data type the grid draws this column's cells with, instead of `type`
    * (which keeps driving forms and filters).
    */
-  display?: {
-    type: string;
-    options?: Record<string, unknown>;
-    /** Grid header in place of `header`. */
-    label?: string;
-  };
+  display?: TableViewColumnDisplay;
 }

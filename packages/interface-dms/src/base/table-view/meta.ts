@@ -18,6 +18,7 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/type-check";
+import { type ColumnDisplay, serializeColumnDisplay } from "./column-display";
 // Through the barrel, not core: the default data types register themselves by
 // decorator, and this value import is what evaluates them. serializeType below
 // reads the registry they fill, so importing the definitions alone would leave
@@ -99,26 +100,13 @@ export interface ColumnOptions {
    */
   size?: number;
   /**
-   * How table cells (and expanded-row fields) draw the value: the id of a
-   * data type registered on the frontend and its options. The column keeps
-   * `type` for its forms, filters, validation and exports. The frontend
-   * formatter also receives the row, so a display can compose sibling fields.
-   * @example { type: "identity", options: { subtitleField: "email" } }
+   * How table cells (and expanded-row fields) draw the value: a registered
+   * {@link ColumnDisplay} and its typed options. The column keeps `type` for
+   * its forms, filters, validation and exports. The frontend formatter also
+   * receives the row, so a display can compose sibling fields.
+   * @example new DefaultDisplays.IdentityDisplay({ subtitleField: "email" })
    */
-  display?: ColumnDisplay;
-}
-
-/** A frontend data type a column renders its cells with. */
-export interface ColumnDisplay {
-  /** Id of the data type registered on the frontend (`registerDataType`). */
-  type: string;
-  /** Options handed to its formatter. */
-  options?: Record<string, unknown>;
-  /**
-   * Column header in the grid, in place of `name` (which forms, filters and
-   * exports keep). `$`-prefixed: an i18n key.
-   */
-  label?: string;
+  display?: ColumnDisplay<object>;
 }
 
 /**
@@ -436,7 +424,7 @@ export class TableViewMeta {
             enableColumnFilter: !!options.filterable,
             cellWrap: options.cellWrap,
             size: options.size,
-            display: options.display,
+            display: serializeColumnDisplay(options.display),
             defaultValue: options.defaultValue,
             accessMode: meta.mode,
             readonlyBehavior:

@@ -300,7 +300,7 @@ const rowSelect = ref<RowSelectionState>({});
 // A column's grid header, for the sort messages.
 const columnLabel = (id: string): string => {
   const column = allColumns.find((c) => (c.id ?? c.accessorKey) === id);
-  return column ? processI18n(column.display?.label ?? column.header) : id;
+  return column ? processI18n(column.header) : id;
 };
 
 // The list route sorts on one `@Sortable()` column and refuses any other key
