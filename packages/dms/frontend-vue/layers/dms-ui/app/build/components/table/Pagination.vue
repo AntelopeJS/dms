@@ -5,13 +5,8 @@ import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
-import {
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
-} from "../../composables/table/constants";
-
-/** Page sizes offered in the footer; the current size is always kept. */
-const PAGE_SIZE_OPTIONS = [10, 25, MAX_PAGE_SIZE];
+import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
+import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
 
 // v2 footer band: count and page size on the left, pager on the right.
 const theme = tv({
@@ -65,7 +60,7 @@ const pageSize = computed({
 });
 
 const pageSizeItems = computed(() =>
-  [...new Set([...PAGE_SIZE_OPTIONS, pageSize.value])].sort((a, b) => a - b),
+  pageSizeOptions(tableSharedData.value?.defaultPageSize, pageSize.value),
 );
 
 const pageCount = computed(() =>

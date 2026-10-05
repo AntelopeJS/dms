@@ -54,6 +54,7 @@ import {
   assertRowScopedFormSlugs,
   validateDefaultDisplay,
   validateKanbanOptions,
+  validatePageSize,
   validateQuickFilters,
 } from "./validation";
 import { fireAndForget } from "../../utils/fire-and-forget";
@@ -114,6 +115,7 @@ export function TableView<T extends ControllerClass>(
   validateKanbanOptions(controller.name, meta, options.kanban);
   validateDefaultDisplay(controller.name, options);
   validateQuickFilters(controller.name, meta, options.quickFilters);
+  validatePageSize(controller.name, options.pageSize);
 
   const serializedExpandable = serializeExpandable(
     controller.name,

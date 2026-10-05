@@ -14,6 +14,7 @@ import type { ModalSize } from "../types/size";
 import {
   DEFAULT_ROW_ID_FIELD,
   type FormContainer,
+  MAX_TABLE_PAGE_SIZE,
   type KanbanOptions,
   type QueryParamFilter,
   type RouteParamFilter,
@@ -323,13 +324,16 @@ export const TableViewSchema = z.object({
     label: "Quick filters",
     group: "features",
   }),
-  pageSize: ui(z.number().int().min(1).max(50).optional(), {
-    label: "Rows per page",
-    group: "appearance",
-    widget: "number",
-    min: 1,
-    max: 50,
-  }),
+  pageSize: ui(
+    z.number().int().min(1).max(MAX_TABLE_PAGE_SIZE).optional(),
+    {
+      label: "Rows per page",
+      group: "appearance",
+      widget: "number",
+      min: 1,
+      max: MAX_TABLE_PAGE_SIZE,
+    },
+  ),
   footer: ui(
     z
       .object({

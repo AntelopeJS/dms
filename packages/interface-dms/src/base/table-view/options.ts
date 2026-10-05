@@ -19,6 +19,9 @@ export const TABLE_VIEW_COMPONENT_NAME = "dms-table-view";
 
 export const DEFAULT_ROW_ID_FIELD = "_id";
 
+/** The most rows a table lists per page, whoever picks the size. */
+export const MAX_TABLE_PAGE_SIZE = 50;
+
 export interface TableViewRowActionOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -452,7 +455,11 @@ export interface TableViewOptions<
   searchPlaceholder?: string;
   /** One-click dropdown filters drawn in the toolbar. */
   quickFilters?: TableViewQuickFilter[];
-  /** Rows per page while the user has picked none. Defaults to 10. */
+  /**
+   * Rows per page while the user has picked none, from 1 to 50 (registration
+   * throws otherwise). Defaults to 10. A size other than the standard 10, 25
+   * and 50 joins them in this table's page size picker.
+   */
   pageSize?: number;
   /** Texts of the footer band: the row count and a hint. */
   footer?: TableViewFooterOptions;

@@ -1571,6 +1571,7 @@ onMounted(() => {
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
     :footer="props.footer"
+    :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"

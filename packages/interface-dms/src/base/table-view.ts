@@ -58,6 +58,7 @@ export {
 } from "./table-view/meta";
 export {
   DEFAULT_ROW_ID_FIELD,
+  MAX_TABLE_PAGE_SIZE,
   type FormContainer,
   type FormContainerPageConfig,
   KANBAN_DISPLAY_ID,

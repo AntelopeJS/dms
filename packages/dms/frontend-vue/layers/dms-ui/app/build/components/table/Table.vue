@@ -160,6 +160,11 @@ export interface TableProps<T> {
   /** Footer texts: the row count (i18n key receiving `{ count }`) and a hint. */
   footer?: TableFooterTexts;
   /**
+   * The table's own rows per page, offered in the footer picker next to the
+   * standard sizes.
+   */
+  defaultPageSize?: number;
+  /**
    * Caps the rows in a scroll area of their own (any CSS length), under a
    * header band that stays in view.
    */
@@ -265,6 +270,8 @@ export interface TableSharedData<T> {
   showArchivedState: ModelRef<boolean>;
   chrome: ComputedRef<ResolvedTableChrome>;
   footer?: TableFooterTexts;
+  /** See `TableProps.defaultPageSize`. */
+  defaultPageSize?: number;
 }
 </script>
 
@@ -944,6 +951,7 @@ watchEffect(() => {
     showArchivedState,
     chrome: resolvedChrome,
     footer: props.footer,
+    defaultPageSize: props.defaultPageSize,
   };
 });
 

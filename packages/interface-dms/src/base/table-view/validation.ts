@@ -10,10 +10,28 @@ import {
   type FormContainerPages,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
+  MAX_TABLE_PAGE_SIZE,
   TABLE_DISPLAY_ID,
   type TableViewDisplayOption,
   type TableViewQuickFilter,
 } from "./options";
+
+/** `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}. */
+export function validatePageSize(
+  controllerName: string,
+  pageSize: number | undefined,
+): void {
+  if (pageSize === undefined) return;
+  if (
+    !Number.isInteger(pageSize) ||
+    pageSize < 1 ||
+    pageSize > MAX_TABLE_PAGE_SIZE
+  ) {
+    throw new Error(
+      `TableView pageSize on ${controllerName} must be a whole number from 1 to ${MAX_TABLE_PAGE_SIZE} (got ${pageSize})`,
+    );
+  }
+}
 
 /** Throws when a table view option names a column the controller lacks. */
 export function assertKnownColumns(

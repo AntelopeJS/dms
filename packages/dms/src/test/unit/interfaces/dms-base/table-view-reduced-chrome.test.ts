@@ -138,6 +138,20 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
+  it("refuses a page size over 50 or not a whole number of rows", () => {
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, pageSize: 51 }),
+    ).to.throw(/pageSize .* from 1 to 50 \(got 51\)/);
+    expect(() => TableView(OrderAPI, { realtime: false, pageSize: 0 })).to.throw(
+      /pageSize/,
+    );
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, pageSize: 12.5 }),
+    ).to.throw(/pageSize/);
+    expect(optionsOf(TableView(OrderAPI, { realtime: false, pageSize: 50 })))
+      .to.include({ pageSize: 50 });
+  });
+
   it("refuses a quick filter the controller lacks", () => {
     expect(() =>
       TableView(OrderAPI, {
