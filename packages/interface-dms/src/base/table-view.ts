@@ -106,6 +106,7 @@ export {
   type TableViewQuickFilterMode,
   type TableViewOptions,
   type TableViewOptionsSerialized,
+  type TableViewPaginationMode,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
   type TableViewTab,

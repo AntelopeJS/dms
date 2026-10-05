@@ -2,6 +2,7 @@ import type { Component } from "vue";
 import type { Table } from "@tanstack/vue-table";
 import type { TableViewColumn } from "./column";
 import type { CustomRowAction } from "../../../types/row-action";
+import type { TableViewPaginationMode } from "./config";
 
 /** The built-in grid display id. */
 export const TABLE_DISPLAY_ID = "table";
@@ -62,6 +63,14 @@ export interface TableViewDisplayPagination {
   total: number;
   setPage: (index: number) => void;
   setPageSize: (size: number) => void;
+  /**
+   * How the rows beyond the first page are reached: with `loadMore` and
+   * `infinite`, `items` holds every row loaded so far and `loadMore()`
+   * appends the next page while `hasMore`.
+   */
+  mode: TableViewPaginationMode;
+  hasMore: boolean;
+  loadMore: () => void;
 }
 
 /**

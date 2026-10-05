@@ -203,6 +203,7 @@ export function TableView<T extends ControllerClass>(
       searchPlaceholder: options.searchPlaceholder,
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,
+      pagination: options.pagination,
       footer: serializeFooter(controller.name, meta, options.footer),
       emptyStates: serializeEmptyStates(options.emptyStates),
       displays: serializeTableViewDisplays(options),

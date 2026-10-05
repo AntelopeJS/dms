@@ -75,6 +75,12 @@ export interface TableViewFooterSummaryConfig {
   format?: Intl.NumberFormatOptions;
 }
 
+/**
+ * How the rows beyond the first page are reached (backend `pagination`): a
+ * pager, a "Load more" button, or more rows as the list's end shows.
+ */
+export type TableViewPaginationMode = "pages" | "loadMore" | "infinite";
+
 /** Texts and figures of the footer band (backend `footer`). */
 export interface TableViewFooter {
   /** i18n key (`$`) receiving `{ count }`, pluralized on it. */
@@ -262,6 +268,8 @@ export interface TableViewConfig<T extends Data>
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
+  /** How the rows beyond the first page are reached. */
+  pagination?: TableViewPaginationMode;
   /**
    * Row density while the user picked none in the ⋯ menu: `compact` gives
    * 36px rows under a 32px header band.

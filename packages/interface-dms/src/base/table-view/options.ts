@@ -317,6 +317,13 @@ export interface TableViewQuickFilter {
   mode?: TableViewQuickFilterMode;
 }
 
+/**
+ * How the rows beyond the first page are reached: a pager (`pages`), a
+ * "Load more" button appending the next page (`loadMore`), or the next page
+ * appended as the end of the list scrolls into view (`infinite`, a feed).
+ */
+export type TableViewPaginationMode = "pages" | "loadMore" | "infinite";
+
 /** What a footer summary computes over the rows the table lists. */
 export type TableViewSummaryOperation = "sum" | "count";
 
@@ -799,6 +806,11 @@ export interface TableViewOptions<
    * and 50 joins them in this table's page size picker.
    */
   pageSize?: number;
+  /**
+   * How the rows beyond the first page are reached. Defaults to `pages`.
+   * See {@link TableViewPaginationMode}.
+   */
+  pagination?: TableViewPaginationMode;
   /**
    * The footer band: the row count and a hint, figures computed over the
    * listed rows (`summary`) and a legend of a select column's items.

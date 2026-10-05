@@ -206,7 +206,9 @@
       "first_page": "Première page",
       "previous_page": "Page précédente",
       "next_page": "Page suivante",
-      "last_page": "Dernière page"
+      "last_page": "Dernière page",
+      "shown_of": "{shown} sur {count}",
+      "load_more": "Afficher plus"
     },
     "sort": {
       "no_sorting": "Aucun tri n'est appliqué",

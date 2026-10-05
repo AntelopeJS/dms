@@ -29,6 +29,7 @@ import type {
   TableViewViewsConfig,
   TableViewGroupedConfig,
   TableViewEmptyStatesConfig,
+  TableViewPaginationMode,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
@@ -80,7 +81,10 @@ import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissi
 
 import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "./ExpandedRowDetail.vue";
-import type { TableViewSwitcherItem } from "../../build/components/table/Table.vue";
+import type {
+  TableAccumulation,
+  TableViewSwitcherItem,
+} from "../../build/components/table/Table.vue";
 import {
   defineAsyncComponent,
   type Component,
@@ -91,6 +95,7 @@ import { useTableViewConfig } from "../../build/composables/table-view/useTableV
 import { useTableViews } from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
+import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
 import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
 import TableViews, {
@@ -134,6 +139,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
+  /** How the rows beyond the first page are reached. */
+  pagination?: TableViewPaginationMode;
   /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
   /** What the empty body says, per reason it is empty. */
@@ -316,7 +323,7 @@ const resolvedChrome = resolveTableChrome(props.layout, {
 });
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
-const pagination = ref<PaginationState>(
+const paginationState = ref<PaginationState>(
   getPreference<PaginationState>(
     getTablePreferenceKey("pagination"),
     DEFAULT_PAGINATION,
@@ -471,7 +478,7 @@ const {
     columnOrder,
     display: activeDisplayId,
     density,
-    pagination,
+    pagination: paginationState,
   },
   preferenceKey: getTablePreferenceKey,
   urlScope,
@@ -688,9 +695,24 @@ const effectiveSorting = computed<SortingState>(() => {
   );
 });
 
+// A feed grows by pages (`loadMore`, `infinite`) rather than paging.
+const paginationMode = props.pagination ?? "pages";
+const { isAccumulating, requestedPagination, loadNextPage } =
+  useAccumulatedPages({
+    mode: paginationMode,
+    pagination: paginationState,
+    resetOn: [
+      effectiveSorting,
+      effectiveColumnFilters,
+      hiddenFilters,
+      effectiveGlobalFilter,
+      showArchived,
+    ],
+  });
+
 const queryRequest = computed(() =>
   buildTableQuery({
-    pagination: pagination.value,
+    pagination: requestedPagination.value,
     sorting: effectiveSorting.value,
     columnFilters: effectiveColumnFilters.value,
     hiddenFilters: hiddenFilters.value,
@@ -784,8 +806,11 @@ watch(
       return;
     }
     const before = sanitizeSorting(previous, sortableIds.value);
-    if (!isSameSorting(sanitized, before) && pagination.value.pageIndex !== 0) {
-      pagination.value = { ...pagination.value, pageIndex: 0 };
+    if (
+      !isSameSorting(sanitized, before) &&
+      paginationState.value.pageIndex !== 0
+    ) {
+      paginationState.value = { ...paginationState.value, pageIndex: 0 };
     }
   },
   { deep: true, flush: "sync" },
@@ -822,12 +847,15 @@ const activeDisplayBlockedByError = computed(
 );
 
 watch(
-  [() => data.value?.total, () => pagination.value.pageSize],
+  [() => data.value?.total, () => paginationState.value.pageSize],
   ([total, pageSize]) => {
     if (total === undefined || total === null || pageSize <= 0) return;
     const maxPageIndex = Math.max(0, Math.ceil(total / pageSize) - 1);
-    if (pagination.value.pageIndex > maxPageIndex) {
-      pagination.value = { ...pagination.value, pageIndex: maxPageIndex };
+    if (paginationState.value.pageIndex > maxPageIndex) {
+      paginationState.value = {
+        ...paginationState.value,
+        pageIndex: maxPageIndex,
+      };
     }
   },
 );
@@ -928,6 +956,24 @@ const { footer: resolvedFooter, refreshSummaries } = await useTableFooter({
   query: baseQuery,
   dataKey: `table-view-${componentId}-${pageId}`,
 });
+
+const hasMoreRows = computed(
+  () => (data.value?.total ?? 0) > (shownResults.value?.length ?? 0),
+);
+const loadMoreRows = () => {
+  if (hasMoreRows.value && !isListLoading.value) loadNextPage();
+};
+const accumulation = computed<TableAccumulation | undefined>(() =>
+  isAccumulating
+    ? {
+        mode: paginationMode as TableAccumulation["mode"],
+        shown: shownResults.value?.length ?? 0,
+        hasMore: hasMoreRows.value,
+        loading: isListLoading.value,
+        load: loadMoreRows,
+      }
+    : undefined,
+);
 
 const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
   grouped: groupedOptions,
@@ -1117,7 +1163,7 @@ const canToggleArchived = computed(
 // the page reached in one list rarely exists in the other: start over.
 watch(showArchived, () => {
   rowSelect.value = {};
-  pagination.value = { ...pagination.value, pageIndex: 0 };
+  paginationState.value = { ...paginationState.value, pageIndex: 0 };
 });
 
 const customNavItems = computed(() => {
@@ -1493,10 +1539,14 @@ const displaySelection = {
 
 const displayPagination = {
   setPage: (index: number) => {
-    pagination.value = { ...pagination.value, pageIndex: index };
+    paginationState.value = { ...paginationState.value, pageIndex: index };
   },
   setPageSize: (size: number) => {
-    pagination.value = { ...pagination.value, pageSize: size, pageIndex: 0 };
+    paginationState.value = {
+      ...paginationState.value,
+      pageSize: size,
+      pageIndex: 0,
+    };
   },
 };
 
@@ -1547,10 +1597,13 @@ const displayContext = computed(
     loading: isListLoading.value,
     selection: { ids: selectedIds.value, ...displaySelection },
     pagination: {
-      pageIndex: pagination.value.pageIndex,
-      pageSize: pagination.value.pageSize,
+      pageIndex: paginationState.value.pageIndex,
+      pageSize: paginationState.value.pageSize,
       total: data.value?.total ?? 0,
       ...displayPagination,
+      mode: paginationMode,
+      hasMore: hasMoreRows.value,
+      loadMore: loadMoreRows,
     },
     actions: {
       canAdd: isActionEnabled(tableProps.value.rowActions?.add),
@@ -1665,7 +1718,7 @@ defineShortcuts(
 
 const tableStatePreferences = {
   sorting,
-  pagination,
+  pagination: paginationState,
   columnFilters: columnFilters,
   columnVisibility,
   filtersOpen: filtersRowOpen,
@@ -1772,7 +1825,7 @@ onMounted(() => {
 <template>
   <UTable
     v-bind="tableProps"
-    v-model:pagination="pagination"
+    v-model:pagination="paginationState"
     v-model:global-filter="globalFilter"
     v-model:sorting="sorting"
     v-model:row-selection="rowSelect"
@@ -1789,6 +1842,7 @@ onMounted(() => {
     v-model:density="density"
     :chrome="resolvedChrome"
     :grouping="grouping"
+    :accumulation="accumulation"
     :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"

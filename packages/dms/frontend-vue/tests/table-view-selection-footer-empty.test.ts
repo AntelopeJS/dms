@@ -301,4 +301,38 @@ describe("footer figures", () => {
     expect(dots.some((name) => name.includes("text-success"))).toBe(true);
     expect(dots.some((name) => name.includes("text-muted"))).toBe(true);
   });
+
+  it("shows how far a list growing by pages got, and loads the next page", () => {
+    const load = vi.fn();
+    const { container } = mount(
+      TablePagination,
+      {},
+      {
+        rowCount: 28,
+        firstPageLoading: false,
+        paginationState: ref({ pageIndex: 0, pageSize: 10 }),
+        chrome: computed(() => ({ pageSize: true })),
+        table: {
+          getCanPreviousPage: () => false,
+          getCanNextPage: () => true,
+        },
+        accumulation: {
+          mode: "loadMore",
+          shown: 20,
+          hasMore: true,
+          loading: false,
+          load,
+        },
+      },
+    );
+    expect(
+      container.querySelector('[data-keypath="dms.pagination.shown_of"]'),
+    ).not.toBeNull();
+    expect(container.querySelector("select")).toBeNull();
+    const more = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "dms.pagination.load_more",
+    );
+    more!.click();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
 });

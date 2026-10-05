@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="T extends Data">
-import { injectLocal } from "@vueuse/core";
+import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import type { ShallowRef } from "vue";
+import { useTemplateRef, type ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
 import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
@@ -97,6 +97,17 @@ const legend = computed(() => tableSharedData.value?.footer?.legend ?? []);
 const legendDotClass = (color?: string) =>
   toneTextClass(color) || "text-dimmed";
 
+// A list growing by pages (loadMore, infinite) shows how far it got and
+// how to go on, instead of the pager.
+const accumulation = computed(() => tableSharedData.value?.accumulation);
+const sentinel = useTemplateRef<HTMLElement>("sentinel");
+useIntersectionObserver(sentinel, ([entry]) => {
+  const growing = accumulation.value;
+  if (entry?.isIntersecting && growing?.hasMore && !growing.loading) {
+    growing.load();
+  }
+});
+
 const hint = computed(() => {
   const text = tableSharedData.value?.footer?.hint;
   return text ? processI18n(text) : undefined;
@@ -127,7 +138,25 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
     :class="uiTablePagination.root()"
     :aria-label="t('dms.pagination.label')"
   >
-    <span v-if="countLabelKey" :class="uiTablePagination.info()">
+    <i18n-t
+      v-if="accumulation"
+      keypath="dms.pagination.shown_of"
+      scope="global"
+      tag="span"
+      :class="uiTablePagination.info()"
+    >
+      <template #shown>
+        <span :class="uiTablePagination.count()">
+          {{ numberFormat.format(accumulation.shown) }}
+        </span>
+      </template>
+      <template #count>
+        <span :class="uiTablePagination.count()">
+          {{ numberFormat.format(rowCount) }}
+        </span>
+      </template>
+    </i18n-t>
+    <span v-else-if="countLabelKey" :class="uiTablePagination.info()">
       {{ t(countLabelKey, { count: rowCount }, rowCount) }}
     </span>
     <i18n-t
@@ -177,8 +206,33 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </span>
     </span>
 
+    <template v-if="accumulation">
+      <UButton
+        v-if="accumulation.mode === 'loadMore' && accumulation.hasMore"
+        :label="t('dms.pagination.load_more')"
+        :loading="accumulation.loading"
+        icon="i-ph-arrow-down"
+        color="neutral"
+        variant="outline"
+        size="xs"
+        :class="uiTablePagination.actions()"
+        @click="accumulation.load()"
+      />
+      <div
+        v-else-if="accumulation.mode === 'infinite' && accumulation.hasMore"
+        ref="sentinel"
+        :class="uiTablePagination.actions()"
+      >
+        <UIcon
+          v-if="accumulation.loading"
+          name="i-ph-spinner"
+          class="text-dimmed size-4 animate-spin"
+        />
+      </div>
+    </template>
+
     <span
-      v-if="showPageSize"
+      v-if="showPageSize && !accumulation"
       aria-hidden="true"
       :class="uiTablePagination.separator()"
     />
@@ -190,7 +244,10 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </span>
     </span>
 
-    <label v-if="showPageSize" :class="uiTablePagination.pageSize()">
+    <label
+      v-if="showPageSize && !accumulation"
+      :class="uiTablePagination.pageSize()"
+    >
       {{ t("dms.table.page_size_title") }}
       <USelect
         v-model="pageSize"
@@ -201,7 +258,7 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
     </label>
 
     <div
-      v-if="showPager"
+      v-if="showPager && !accumulation"
       :class="uiTablePagination.actions({ class: hint ? 'ms-0' : undefined })"
     >
       <i18n-t

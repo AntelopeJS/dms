@@ -67,6 +67,20 @@ export interface TableRowGrouping<T = Data> {
   collapsible?: boolean;
 }
 
+/**
+ * A list growing by pages instead of paging (`loadMore`, `infinite`): what
+ * the footer shows instead of its pager.
+ */
+export interface TableAccumulation {
+  mode: "loadMore" | "infinite";
+  /** Rows listed so far. */
+  shown: number;
+  hasMore: boolean;
+  loading: boolean;
+  /** Appends the next page. */
+  load: () => void;
+}
+
 /** Where a table draws its views (see `TableProps.viewsPlacement`). */
 export type TableViewsPlacement = "band" | "header";
 
@@ -195,6 +209,8 @@ export interface TableProps<T> {
   viewsPlacement?: TableViewsPlacement;
   /** Splits the rows into groups under header rows. */
   grouping?: TableRowGrouping<T>;
+  /** The list grows by pages instead of paging. */
+  accumulation?: TableAccumulation;
   /** Custom actions the selection bar offers (backend `bulk`). */
   bulkActions?: CustomRowAction[];
   /** What the empty body says, per reason it is empty. */
@@ -323,6 +339,8 @@ export interface TableSharedData<T> {
   footer?: TableFooterTexts;
   /** See `TableProps.defaultPageSize`. */
   defaultPageSize?: number;
+  /** See `TableProps.accumulation`. */
+  accumulation?: TableAccumulation;
 }
 </script>
 
@@ -1084,6 +1102,7 @@ watchEffect(() => {
     chrome: resolvedChrome,
     footer: props.footer,
     defaultPageSize: props.defaultPageSize,
+    accumulation: props.accumulation,
   };
 });
 
