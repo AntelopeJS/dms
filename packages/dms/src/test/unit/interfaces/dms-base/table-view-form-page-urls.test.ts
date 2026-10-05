@@ -40,6 +40,7 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
+import { derivedController } from "../../../helpers/derived-controller";
 
 const TABLE = "form-page-url-documents";
 const LOCATION = "/api/form-page-urls";
@@ -70,12 +71,16 @@ class DocumentAPI extends DataController(
   declare name: string;
 }
 
+// One controller per writing TableView, each derived from DocumentAPI.
+const documentAPI = (suffix: string) =>
+  derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
+
 const defaultTable = TableView(DocumentAPI, {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const customTable = TableView(DocumentAPI, {
+const customTable = TableView(documentAPI("custom"), {
   formContainer: {
     type: "page",
     pages: {
@@ -87,7 +92,7 @@ const customTable = TableView(DocumentAPI, {
   realtime: false,
 });
 
-const absoluteTable = TableView(DocumentAPI, {
+const absoluteTable = TableView(documentAPI("absolute"), {
   formContainer: {
     type: "page",
     pages: {
@@ -99,40 +104,43 @@ const absoluteTable = TableView(DocumentAPI, {
   realtime: false,
 });
 
-const drawerTable = TableView(DocumentAPI, {
+const drawerTable = TableView(documentAPI("drawer"), {
   formContainer: { type: "drawer" },
   realtime: false,
 });
 
-const nestedTable = TableView(DocumentAPI, {
+const nestedTable = TableView(documentAPI("nested"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const firstSiblingTable = TableView(DocumentAPI, {
+const firstSiblingTable = TableView(documentAPI("first-sibling"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const secondSiblingTable = TableView(DocumentAPI, {
+const secondSiblingTable = TableView(documentAPI("second-sibling"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const detailTable = TableView(DocumentAPI, {
+const detailTable = TableView(documentAPI("detail"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const customPermissionTable = TableView(DocumentAPI, {
+const customPermissionTable = TableView(documentAPI("custom-permission"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const customPermissionDrawerTable = TableView(DocumentAPI, {
-  formContainer: { type: "drawer" },
-  realtime: false,
-});
+const customPermissionDrawerTable = TableView(
+  documentAPI("custom-permission-drawer"),
+  {
+    formContainer: { type: "drawer" },
+    realtime: false,
+  },
+);
 
 @RegisterPage()
 class DefaultPage extends RootPageController("fpu-default", {
@@ -334,11 +342,11 @@ describe("[unit] interfaces/dms-base — serialized form page URLs", () => {
   // the teardown suite takes a component that fails to serialize.
   it("fails the registration of two table views claiming one form URL", async () => {
     const clashingPages = { new: { urlSlug: "clash" } };
-    const first = TableView(DocumentAPI, {
+    const first = TableView(documentAPI("clash-first"), {
       formContainer: { type: "page", pages: clashingPages },
       realtime: false,
     });
-    const second = TableView(DocumentAPI, {
+    const second = TableView(documentAPI("clash-second"), {
       formContainer: { type: "page", pages: clashingPages },
       realtime: false,
     });

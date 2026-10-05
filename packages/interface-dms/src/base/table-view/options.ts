@@ -19,13 +19,6 @@ export const TABLE_VIEW_COMPONENT_NAME = "dms-table-view";
 
 export const DEFAULT_ROW_ID_FIELD = "_id";
 
-/**
- * Query key naming the table view a write comes from (its `tableViewKey`):
- * the row rules of that table, and its permission, apply to the request.
- * Several table views share a controller's routes; their rules do not.
- */
-export const TABLE_VIEW_QUERY_KEY = "tableView";
-
 export interface TableViewRowActionOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -330,12 +323,6 @@ export interface TableViewOptionsSerialized extends Omit<
    */
   formPages?: TableViewFormPageUrls;
   expandable?: TableViewExpandableSerialized;
-  /**
-   * The table view's component permission id, sent back with its writes
-   * (`?tableView=`, see {@link TABLE_VIEW_QUERY_KEY}) so they are checked
-   * against this table's permission and row rules. Set per request.
-   */
-  tableViewKey?: string;
 }
 
 /** Heading texts of one of the forms a table view opens. */

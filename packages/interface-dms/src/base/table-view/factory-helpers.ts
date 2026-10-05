@@ -4,7 +4,7 @@
 //
 // Split out of factory.ts. The declaration checks live in `./validation`, the
 // filter tabs in `./tabs`, the per-request filtering in `./request-filter` and
-// the write's table key in `./table-view-key`.
+// the one writing TableView of a controller in `./writer`.
 
 import { ComponentBuilder } from "../../component";
 import { type FormBuilder, FormEvents } from "../form-types";
@@ -17,7 +17,7 @@ import type {
   CustomButtonSerialized,
 } from "../types/custom-button";
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
-import { VIEW_ACTION } from "./auth";
+import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
 import {
   type FormContainerPages,
@@ -149,14 +149,26 @@ export interface TableViewCapabilities {
 }
 
 /**
- * Declare the actions of a table view after the list and select ones every
- * table has: one per form, delete, the archive trio and export, each only
- * when the table view can perform it.
+ * Declare the actions of a table view: list and select, which every table
+ * has, then one per form, delete, the archive trio and export, each only when
+ * the table view can perform it. A component standing in for a TableView over
+ * the same data routes (a custom editor) declares its actions here too, so
+ * the routes and the roles carry the same permission ids.
  */
 export function registerTableViewActions<T>(
   builder: ComponentBuilder<T>,
   capabilities: TableViewCapabilities,
 ): void {
+  builder.action(LIST_ACTION, {
+    title: "$dms.table.action_list",
+    icon: "i-ph-list",
+  });
+  builder.action(SELECT_ACTION, {
+    title: "$dms.table.action_select",
+    icon: "i-ph-magnifying-glass",
+    description: "$dms.table.action_select_description",
+    defaultGranted: true,
+  });
   if (capabilities.hasNewForm) {
     builder.action("add", {
       title: "$dms.table.action_add",

@@ -16,7 +16,8 @@
  * - `factory` — the `TableView()` builder that ties it all together, with
  *   `factory-helpers` (serialization, actions, form pages), `validation`
  *   (declaration checks), `tabs` (filter tabs), `request-filter` (what one
- *   request is served) and `table-view-key` (the table a write comes from)
+ *   request is served) and `writer` (the one TableView writing through a
+ *   controller)
  * - `resource-form` — the forms over a resource, shared by `TableView()` and
  *   the `ResourceForm()` block
  *
@@ -38,6 +39,7 @@ export {
   validateRowsAgainstRule,
 } from "./table-view/data-functions";
 export { TableView } from "./table-view/factory";
+export { WritingTableViewConflictError } from "./table-view/writer";
 export {
   TableViewEvents,
   TableViewFunctions,
@@ -51,6 +53,7 @@ export {
   type ColumnOptions,
   Exported,
   Select,
+  type TableViewAccess,
   TableViewMeta,
 } from "./table-view/meta";
 export {

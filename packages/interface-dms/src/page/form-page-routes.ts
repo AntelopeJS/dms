@@ -6,6 +6,7 @@
 // — so a page would boot with one of its two forms quietly gone. Claims are
 // checked here instead, and a collision is fatal.
 
+import { PageDeclarationConflictError } from "./declaration-conflict";
 import { pageLayoutHandlers, pageMetadataByFullId } from "./registry";
 
 /** One page-mode form sub-page a table view is about to register. */
@@ -23,14 +24,9 @@ export interface FormPageRouteClaim {
 /**
  * Two page-mode table views registering the same form sub-page. Fatal: it is a
  * declaration the page cannot honour, not a component that merely fails to
- * contribute, so it is rethrown out of the hooks that isolate component errors.
+ * contribute.
  */
-export class FormPageRouteConflictError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "FormPageRouteConflictError";
-  }
-}
+export class FormPageRouteConflictError extends PageDeclarationConflictError {}
 
 const claimsByFullId = new Map<string, FormPageRouteClaim>();
 const claimsBySlug = new Map<string, FormPageRouteClaim>();

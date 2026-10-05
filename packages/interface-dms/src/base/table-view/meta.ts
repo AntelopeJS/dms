@@ -122,16 +122,11 @@ export interface ColumnDisplay {
 }
 
 /**
- * What one table view enforces on the rows its write actions reach: its own
- * row rules (archive-mode defaults included) and how it identifies a row.
- * Kept per table view: the data routes are shared by every table view over
- * the controller, the rules of one of them are not.
+ * Whether a TableView built over a controller writes through its data routes
+ * (`write`: at least one of add, duplicate, edit, delete, archive or restore
+ * is enabled) or only reads them (`read`).
  */
-export interface TableViewRowScope {
-  rowActions?: TableViewRowActionOptions<any>;
-  idField: string;
-  strictMode: boolean;
-}
+export type TableViewAccess = "read" | "write";
 
 /** A data type of the same class whose options can change on their own. */
 function copyDataType(type: DataType): DataType {
@@ -140,6 +135,15 @@ function copyDataType(type: DataType): DataType {
     options: type.options && { ...type.options },
   });
 }
+
+// The actions of a table view that change rows through the data routes.
+const WRITE_ACTION_IDS = new Set([
+  "add",
+  "edit",
+  "delete",
+  "archive",
+  "restore",
+]);
 
 export class TableViewMeta {
   public static key = Symbol();
@@ -151,9 +155,9 @@ export class TableViewMeta {
   public readonly groups: Record<string, ColumnGroupConfig> = {};
   public archiveField?: string;
   /**
-   * Row rules applied controller-wide, on top of each table view's own: set
-   * only by an explicit `setControllerRowActionRules`. `TableView()` keeps a
-   * table's rules to that table (see `setRowScope`).
+   * Row rules the data routes enforce on every write: those of the writing
+   * TableView over the controller (archive-mode defaults included), unless
+   * set explicitly with `setControllerRowActionRules`.
    */
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
@@ -162,6 +166,9 @@ export class TableViewMeta {
   // ResourceForm on the same controller, and the one it replaced must not stay
   // reachable from here.
   private readonly componentBuilderRefs = new WeakRefList<
+    ComponentBuilder<TableViewOptionsSerialized>
+  >();
+  private readonly readOnlyBuilders = new WeakSet<
     ComponentBuilder<TableViewOptionsSerialized>
   >();
   private readonly resourceFormRefs = new WeakRefList<FormBuilder>();
@@ -187,36 +194,35 @@ export class TableViewMeta {
 
   /**
    * Every live TableView built on this controller, in build order. Several
-   * pages may mount their own TableView over the same data routes: an action
-   * is guarded by the permission of each table view mounting it (see
-   * `actionPermissionIds`).
+   * pages may mount their own TableView over the same data routes, only one
+   * of which writes (see `writingComponentBuilders`).
    */
   public get componentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
     return this.componentBuilderRefs.live();
   }
 
-  /** Records a TableView built on this controller (once per builder). */
-  public addComponentBuilder(
-    builder: ComponentBuilder<TableViewOptionsSerialized>,
-  ): void {
-    this.componentBuilderRefs.add(builder);
-  }
-
-  /** The live table view built last over this controller. */
-  public get componentBuilder():
-    | ComponentBuilder<TableViewOptionsSerialized>
-    | undefined {
-    return this.componentBuilders.at(-1);
+  /**
+   * The live TableViews of `componentBuilders` that write through the data
+   * routes. A page mounts one at most: `TableView()` refuses a second one.
+   */
+  public get writingComponentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
+    return this.componentBuilders.filter(
+      (builder) => !this.readOnlyBuilders.has(builder),
+    );
   }
 
   /**
-   * Records a table view built over this controller, like
-   * `addComponentBuilder`: it joins the others, never replaces them.
+   * Records a TableView built on this controller (once per builder). A
+   * component standing in for one -- a custom editor carrying the table's
+   * actions -- is recorded the same way, as a writer by default.
    */
-  public set componentBuilder(
-    builder: ComponentBuilder<TableViewOptionsSerialized> | undefined,
-  ) {
-    if (builder) this.addComponentBuilder(builder);
+  public addComponentBuilder(
+    builder: ComponentBuilder<TableViewOptionsSerialized>,
+    access: TableViewAccess = "write",
+  ): void {
+    this.componentBuilderRefs.add(builder);
+    if (access === "read") this.readOnlyBuilders.add(builder);
+    else this.readOnlyBuilders.delete(builder);
   }
 
   /**
@@ -234,61 +240,32 @@ export class TableViewMeta {
 
   /**
    * Every live component that submits to this controller's write routes: its
-   * TableViews and its `new` / `edit` forms (ResourceForm blocks, and the
-   * forms a page-mode TableView mounts on its form sub-pages). A file one of
-   * them staged is one those routes may save.
+   * writing TableView and its `new` / `edit` forms (ResourceForm blocks, and
+   * the forms a page-mode TableView mounts on its form sub-pages). A file one
+   * of them staged is one those routes may save.
    */
   public get writingComponents(): Component[] {
-    return [...this.componentBuilders, ...this.resourceFormBuilders];
+    return [...this.writingComponentBuilders, ...this.resourceFormBuilders];
   }
 
   /**
    * The permission id `actionId` carries on each TableView of this controller
-   * that a page mounts, without duplicates. The data routes are shared by all
-   * of them, so holding any one of these ids is what authorizes the action.
-   * Empty when no mounted table view declares the action.
+   * that a page mounts, without duplicates: holding any one of them is what
+   * authorizes the action on the data routes. A write action is guarded by
+   * the writing TableView alone, so a read-only TableView sharing the
+   * controller grants reads only. Empty when no mounted table view declares
+   * the action.
    */
   public actionPermissionIds(actionId: string): string[] {
-    const ids = this.componentBuilders
+    const writers = this.writingComponentBuilders;
+    const builders =
+      WRITE_ACTION_IDS.has(actionId) && writers.length > 0
+        ? writers
+        : this.componentBuilders;
+    const ids = builders
       .map((builder) => builder.getAction(actionId)?.permissionId)
       .filter((id): id is string => !!id);
     return [...new Set(ids)];
-  }
-
-  /**
-   * The mounted table view a request names by its component permission id
-   * (`tableKey`), provided it declares `actionId`. Undefined for an unknown
-   * key, an unstamped table view or one without the action.
-   */
-  public tableViewFor(
-    tableKey: string,
-    actionId: string,
-  ): ComponentBuilder<TableViewOptionsSerialized> | undefined {
-    const permissionId = `${tableKey}.${actionId}`;
-    return this.componentBuilders.find(
-      (builder) => builder.getAction(actionId)?.permissionId === permissionId,
-    );
-  }
-
-  // Weak, like the builders: a hot-reloaded table view's rules go with it.
-  private readonly rowScopes = new WeakMap<
-    ComponentBuilder<TableViewOptionsSerialized>,
-    TableViewRowScope
-  >();
-
-  /** Records the row rules a table view built over this controller enforces. */
-  public setRowScope(
-    builder: ComponentBuilder<TableViewOptionsSerialized>,
-    scope: TableViewRowScope,
-  ): void {
-    this.rowScopes.set(builder, scope);
-  }
-
-  /** The row rules of one table view, as `setRowScope` recorded them. */
-  public rowScopeOf(
-    builder: ComponentBuilder<TableViewOptionsSerialized>,
-  ): TableViewRowScope | undefined {
-    return this.rowScopes.get(builder);
   }
 
   public setControllerRowActionRules(rules: TableViewRowActionOptions<any>) {

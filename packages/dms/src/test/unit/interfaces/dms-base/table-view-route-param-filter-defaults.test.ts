@@ -40,6 +40,7 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
+import { derivedController } from "../../../helpers/derived-controller";
 
 const TABLE = "route-param-filter-documents";
 const LOCATION = "/api/route-param-filter-defaults";
@@ -75,6 +76,10 @@ class DocumentAPI extends DataController(
 const ROUTE_FILTER = { id: { field: "_instance" } };
 const QUERY_FILTER = { status: { field: "status" } };
 
+// One controller per writing TableView, each derived from DocumentAPI.
+const documentAPI = (suffix: string) =>
+  derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
+
 const detailTable = TableView(DocumentAPI, {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
@@ -82,30 +87,30 @@ const detailTable = TableView(DocumentAPI, {
   realtime: false,
 });
 
-const namedParamTable = TableView(DocumentAPI, {
+const namedParamTable = TableView(documentAPI("named-param"), {
   formContainer: { type: "page" },
   routeParamFilters: { workspace: { field: "_instance" } },
   realtime: false,
 });
 
-const deepTable = TableView(DocumentAPI, {
+const deepTable = TableView(documentAPI("deep"), {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,
 });
 
-const topLevelTable = TableView(DocumentAPI, {
+const topLevelTable = TableView(documentAPI("top-level"), {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,
 });
 
-const unfilteredTable = TableView(DocumentAPI, {
+const unfilteredTable = TableView(documentAPI("unfiltered"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const drawerTable = TableView(DocumentAPI, {
+const drawerTable = TableView(documentAPI("drawer"), {
   formContainer: { type: "drawer" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,
@@ -205,10 +210,7 @@ describe("[unit] interfaces/dms-base — route param filter form defaults", () =
       status: "{{query.status}}",
       _instance: "{{params.id:1}}",
     });
-    // The write names its table view, whose row rules apply to it.
-    expect(edit?.submitUrl).to.equal(
-      `${LOCATION}/edit?id={{params.id}}&tableView=rpf-detail.rows`,
-    );
+    expect(edit?.submitUrl).to.equal(`${LOCATION}/edit?id={{params.id}}`);
   });
 
   // `/rpf-detail/:id/rows/new` carries one `:id`, which has no numbered key.

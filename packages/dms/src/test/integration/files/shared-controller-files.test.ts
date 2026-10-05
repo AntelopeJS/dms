@@ -16,10 +16,14 @@ import { resetDatabase } from "../../helpers/db";
 const CONTENT = Buffer.from("shared-controller file");
 const METADATA = "/api/files/metadata";
 const LOCATION = "/api/native-attachments";
-// Both pages mount a TableView on the same data controller; the secondary one
-// is built last, which is the registration the controller used to remember.
+// Both pages mount a TableView on the same data controller: the first one
+// writes, the secondary one, built last, only reads.
 const FIRST_TABLE_SLUG = "/nativefiles";
 const LAST_TABLE_SLUG = "/nativefiles-secondary";
+const READ_ONLY_TABLE: TableClaims = {
+  pageId: "nativefiles-secondary",
+  componentId: "nativefiles-secondary.content",
+};
 const PROFILE_SLUG = "/settings/user/profile";
 const RELATION_INPUT = `${LOCATION}/form/relation`;
 
@@ -58,21 +62,30 @@ async function tableClaims(
   return { pageId: claims.pageId, componentId: claims.componentId };
 }
 
-describe("[integration] native files on a data controller shared by several TableViews", () => {
+describe("[integration] native files on a data controller shared by a writing and a read-only TableView", () => {
   beforeEach(resetDatabase);
 
-  for (const slug of [FIRST_TABLE_SLUG, LAST_TABLE_SLUG]) {
-    it(`promotes a file staged from the TableView on ${slug}`, async () => {
-      const client = await ownerClient();
-      const key = await stageFrom(client, slug);
-      const saved = await client.post(`${LOCATION}/new`, { file: key });
-      expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
-      const promoted = await client.get(METADATA, {
-        params: { resourceKey: stripStagingPrefix(key) },
-      });
-      expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
+  it("promotes a file staged from the writing TableView", async () => {
+    const client = await ownerClient();
+    const key = await stageFrom(client, FIRST_TABLE_SLUG);
+    const saved = await client.post(`${LOCATION}/new`, { file: key });
+    expect(saved.status, JSON.stringify(saved.data)).to.equal(200);
+    const promoted = await client.get(METADATA, {
+      params: { resourceKey: stripStagingPrefix(key) },
     });
-  }
+    expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
+  });
+
+  it("serves the read-only TableView no form to stage a file from", async () => {
+    const client = await ownerClient();
+    const layout = await client.get("/dms/pagelayout", {
+      params: { slug: LAST_TABLE_SLUG },
+    });
+    expect(layout.status, JSON.stringify(layout.data)).to.equal(200);
+    const { formComponents } = layout.data.components.content.options;
+    expect(formComponents.new).to.equal(undefined);
+    expect(formComponents.edit).to.equal(undefined);
+  });
 
   it("still denies a file staged by a component that is no TableView of the controller", async () => {
     const client = await ownerClient();
@@ -100,7 +113,7 @@ describe("[integration] native files on a data controller shared by several Tabl
     ).to.equal(200);
   });
 
-  it("lets a user granted add on the first TableView only create a row with an image", async () => {
+  it("lets a user granted add on the writing TableView create a row with an image", async () => {
     const owner = await ownerClient();
     const firstTable = await tableClaims(owner, FIRST_TABLE_SLUG);
     const roles = GetModel(RoleModel, DEFAULT_TENANT_ID);
@@ -134,17 +147,17 @@ describe("[integration] native files on a data controller shared by several Tabl
     expect(promoted.status, JSON.stringify(promoted.data)).to.equal(200);
   });
 
-  it("refuses a user granted add on none of the controller's TableViews", async () => {
+  it("refuses a user granted add on the read-only TableView only", async () => {
     const owner = await ownerClient();
     const firstTable = await tableClaims(owner, FIRST_TABLE_SLUG);
-    const lastTable = await tableClaims(owner, LAST_TABLE_SLUG);
     const [viewer] = await GetModel(RoleModel, DEFAULT_TENANT_ID).insert({
       name: "Table viewer",
       permissions: [
         firstTable.pageId,
         firstTable.componentId,
-        lastTable.pageId,
-        lastTable.componentId,
+        READ_ONLY_TABLE.pageId,
+        READ_ONLY_TABLE.componentId,
+        `${READ_ONLY_TABLE.componentId}.add`,
       ],
     });
     const user = await registerUser({ roles_ids: [viewer] });
@@ -155,15 +168,13 @@ describe("[integration] native files on a data controller shared by several Tabl
     expect(refused.status).to.equal(403);
   });
 
-  it("offers a relation's inline add to the add grant of every TableView", async () => {
+  it("offers a relation's inline add to the add grant of the writing TableView", async () => {
     const owner = await ownerClient();
     const firstTable = await tableClaims(owner, FIRST_TABLE_SLUG);
-    const lastTable = await tableClaims(owner, LAST_TABLE_SLUG);
     const relation = await owner.get(RELATION_INPUT);
     expect(relation.status, JSON.stringify(relation.data)).to.equal(200);
-    expect(relation.data.options.addPermissionIds).to.have.members([
+    expect(relation.data.options.addPermissionIds).to.deep.equal([
       `${firstTable.componentId}.add`,
-      `${lastTable.componentId}.add`,
     ]);
   });
 });

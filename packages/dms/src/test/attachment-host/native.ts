@@ -132,11 +132,17 @@ export class NativeFilePage extends RootPageController("nativefiles", {
   static content = form;
 }
 
-// Evaluated after `form`, so it is the last TableView built on the controller:
-// files staged from the first one must still save through the shared routes.
+// Evaluated after `form`, so it is the last TableView built on the controller.
+// It only reads: the controller has one writing TableView, `form`.
 const secondaryTable = TableView(NativeDocumentController, {
   rowIdKey: "id",
-  rowActions: { add: true, edit: true, details: true },
+  rowActions: {
+    add: false,
+    duplicate: false,
+    edit: false,
+    delete: false,
+    details: true,
+  },
 });
 
 @RegisterPage()

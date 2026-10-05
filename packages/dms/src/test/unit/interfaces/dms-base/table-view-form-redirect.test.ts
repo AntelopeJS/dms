@@ -33,6 +33,7 @@ import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { derivedController } from "../../../helpers/derived-controller";
 import {
   FormEvents,
   type FormPropsSerialized,
@@ -75,8 +76,12 @@ class DocumentAPI extends DataController(
 
 const QUERY_FILTER = { status: { field: "status" } };
 
-const pageTable = () =>
-  TableView(DocumentAPI, {
+// One controller per writing TableView, each derived from DocumentAPI.
+const documentAPI = (suffix: string) =>
+  derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
+
+const pageTable = (suffix: string) =>
+  TableView(documentAPI(suffix), {
     formContainer: { type: "page" },
     queryParamFilters: QUERY_FILTER,
     realtime: false,
@@ -87,7 +92,7 @@ class DetailPage extends RootPageController("frd-detail", {
   displayName: "Detail of a workspace",
   urlSlug: "frd-detail/:id",
 }) {
-  static rows = pageTable();
+  static rows = pageTable("detail");
 }
 
 @RegisterPage()
@@ -95,7 +100,7 @@ class NamedParamPage extends RootPageController("frd-named", {
   displayName: "Detail with a placeholder of its own name",
   urlSlug: "frd-named/:workspace",
 }) {
-  static rows = pageTable();
+  static rows = pageTable("named-param");
 }
 
 @RegisterPage()
@@ -103,7 +108,7 @@ class MixedParamPage extends RootPageController("frd-mixed", {
   displayName: "Detail with two distinct placeholders",
   urlSlug: "frd-mixed/:project/members/:id",
 }) {
-  static rows = pageTable();
+  static rows = pageTable("mixed-param");
 }
 
 @RegisterPage()
@@ -111,14 +116,14 @@ class DeepPage extends RootPageController("frd-deep", {
   displayName: "Page repeating its own placeholder",
   urlSlug: "frd-deep/:id/sub/:id",
 }) {
-  static rows = pageTable();
+  static rows = pageTable("deep");
 }
 
 @RegisterPage()
 class TopLevelPage extends RootPageController("frd-top", {
   displayName: "Page without a route parameter",
 }) {
-  static rows = pageTable();
+  static rows = pageTable("top-level");
 }
 
 @RegisterPage()

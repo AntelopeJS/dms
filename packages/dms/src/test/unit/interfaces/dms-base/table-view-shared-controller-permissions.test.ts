@@ -47,17 +47,16 @@ function metaWith(
 ): TableViewMeta {
   class SomeController {}
   const meta = GetMetadata(SomeController, TableViewMeta);
-  for (const builder of builders) meta.componentBuilder = builder;
+  for (const builder of builders) meta.addComponentBuilder(builder);
   return meta;
 }
 
 describe("[unit] interfaces/dms-base/table-view — controllers shared by several tables", () => {
-  it("keeps every table view built over a controller, the last one as componentBuilder", () => {
+  it("keeps every table view built over a controller", () => {
     const meta = GetMetadata(SharedAPI, TableViewMeta);
     const first = TableView(SharedAPI, { realtime: false });
     const second = TableView(SharedAPI, { realtime: false });
     expect(meta.componentBuilders).to.include.members([first, second]);
-    expect(meta.componentBuilder).to.equal(second);
   });
 
   it("guards an action with the permission of each mounted table view", () => {
@@ -81,6 +80,35 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
       "pages.a.table.list",
     ]);
     expect(meta.actionPermissionIds("delete")).to.deep.equal([]);
+  });
+
+  it("guards a write with the writing table view's permission alone", () => {
+    const reader = stampedBuilder({
+      list: "pages.b.table.list",
+      add: "pages.b.table.add",
+    });
+    const meta = metaWith(
+      stampedBuilder({ list: "pages.a.table.list", add: "pages.a.table.add" }),
+    );
+    meta.addComponentBuilder(reader, "read");
+    expect(meta.actionPermissionIds("add")).to.deep.equal([
+      "pages.a.table.add",
+    ]);
+    expect(meta.actionPermissionIds("list")).to.deep.equal([
+      "pages.a.table.list",
+      "pages.b.table.list",
+    ]);
+  });
+
+  it("keeps the write routes of a controller no table view writes through behind the read-only ones' ids", () => {
+    const meta = metaWith();
+    meta.addComponentBuilder(
+      stampedBuilder({ delete: "pages.b.table.delete" }),
+      "read",
+    );
+    expect(meta.actionPermissionIds("delete")).to.deep.equal([
+      "pages.b.table.delete",
+    ]);
   });
 
   it("counts a builder assigned twice once", () => {

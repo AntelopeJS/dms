@@ -19,9 +19,9 @@ export const withFilePromotion = (
     if (!hasFileColumns(getTableViewMetaFor(this).columns)) {
       return baseRoute.func.call(this, context, params, ...args);
     }
-    // Every TableView and new/edit form mounted on this controller saves
-    // through this route, so a file staged from any of them is one it may
-    // promote.
+    // The writing TableView and every new/edit form mounted on this
+    // controller save through this route, so a file staged from any of them is
+    // one it may promote.
     const { writingComponents } = getTableViewMetaFor(this);
     return internal.SaveTableViewAttachments({
       controller: this,

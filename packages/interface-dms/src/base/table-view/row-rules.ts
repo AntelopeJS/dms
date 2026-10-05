@@ -6,15 +6,10 @@ import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
-import type { ComponentBuilder } from "../../component";
 import type { RowActionRule } from "../types/row-action";
-import { actingTableViewsOf, getRequestTableKey } from "./auth";
 import { validateRowsAgainstRule } from "./data-functions";
-import { TableViewMeta, type TableViewRowScope } from "./meta";
-import type {
-  TableViewOptionsSerialized,
-  TableViewRowActionOptions,
-} from "./options";
+import { TableViewMeta } from "./meta";
+import type { TableViewRowActionOptions } from "./options";
 import { DEFAULT_ROW_ID_FIELD } from "./options";
 
 type ValidatedActionName = "delete" | "edit" | "archive" | "restore";
@@ -74,80 +69,20 @@ interface ValidationContext {
   idField: string;
 }
 
-type TableViewBuilder = ComponentBuilder<TableViewOptionsSerialized>;
-
-// Reached without `withActionCheck` (a route composed by hand): the table view
-// the request names, else every table view built over the controller.
-const fallbackTableViews = (
-  meta: TableViewMeta,
-  ctx: RequestContext,
-  actionName: ValidatedActionName,
-): TableViewBuilder[] => {
-  const tableKey = getRequestTableKey(ctx);
-  if (tableKey === undefined) return [...meta.componentBuilders];
-  const named = meta.tableViewFor(tableKey, actionName);
-  throwHttpAssert(
-    named,
-    403,
-    `Forbidden: table view ${tableKey} has no ${actionName} action`,
-  );
-  return [named];
-};
-
-/**
- * The rule a request's rows must satisfy: the controller-wide rule if one was
- * set, and the rule of the table view the request acts through. Acting
- * through several (a request naming none), a row passes when one of them
- * allows it: each is a table the caller may use. Undefined: nothing to check.
- */
-// @internal
-export const combineRowRules = (
-  controllerRule: RowActionRule | undefined,
-  tableRules: (RowActionRule | undefined)[],
-): RowActionRule | undefined => {
-  const tableRule =
-    tableRules.length === 0 || tableRules.some((rule) => !rule)
-      ? undefined
-      : tableRules.length === 1
-        ? tableRules[0]
-        : { or: tableRules as RowActionRule[] };
-  if (controllerRule && tableRule) return { and: [controllerRule, tableRule] };
-  return controllerRule ?? tableRule;
-};
-
+// The writing TableView's rules and options are the controller's: it is the
+// only one the write routes serve.
 const getValidationContext = (
   controller: unknown,
-  ctx: RequestContext,
   actionName: ValidatedActionName,
 ): ValidationContext => {
   const meta = GetMetadata(
     (controller as { constructor: ControllerClass }).constructor,
     TableViewMeta,
   );
-  const tableViews =
-    actingTableViewsOf(ctx, actionName) ??
-    fallbackTableViews(meta, ctx, actionName);
-  const fallbackScope: TableViewRowScope = {
-    idField: meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
-    strictMode: meta.options.strictRuleValidation ?? false,
-  };
-  const scopes = tableViews.map(
-    (builder) => meta.rowScopeOf(builder) ?? fallbackScope,
-  );
   return {
-    rule: combineRowRules(
-      extractRuleFromConfig(meta.controllerRowActionRules, actionName),
-      scopes.map((scope) =>
-        extractRuleFromConfig(scope.rowActions, actionName),
-      ),
-    ),
-    // Strict only when every table acted through is: a lenient one is a way
-    // the caller may already take.
-    strictMode:
-      scopes.length > 0
-        ? scopes.every((scope) => scope.strictMode)
-        : fallbackScope.strictMode,
-    idField: (scopes[0] ?? fallbackScope).idField,
+    rule: extractRuleFromConfig(meta.controllerRowActionRules, actionName),
+    strictMode: meta.options.strictRuleValidation ?? false,
+    idField: meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD,
   };
 };
 
@@ -189,7 +124,7 @@ export const createValidatedRoute = (
       params: unknown,
       ...args: unknown[]
     ) {
-      const validationCtx = getValidationContext(this, ctx, actionName);
+      const validationCtx = getValidationContext(this, actionName);
       const { rule } = validationCtx;
 
       if (!rule) {

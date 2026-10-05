@@ -9,10 +9,8 @@ import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
-import { LIST_ACTION, SELECT_ACTION } from "./auth";
-import { TableViewMeta } from "./meta";
+import { type TableViewAccess, TableViewMeta } from "./meta";
 import {
-  DEFAULT_ROW_ID_FIELD,
   TABLE_VIEW_COMPONENT_NAME,
   type TableViewOptions,
   type TableViewOptionsSerialized,
@@ -51,7 +49,7 @@ import {
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
 } from "./tabs";
-import { appendTableViewKey, withTableViewKeyOnSubmit } from "./table-view-key";
+import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
   assertKnownColumns,
   assertRowScopedFormSlugs,
@@ -66,7 +64,6 @@ export function TableView<T extends ControllerClass>(
   options: TableViewOptions<InstanceType<T>> = {},
 ): ComponentBuilder<TableViewOptionsSerialized> {
   const meta = GetMetadata(controller, TableViewMeta);
-  meta.setOptions(options);
 
   if (options.guards && !meta.controllerGuards) {
     meta.setControllerGuards(options.guards);
@@ -131,19 +128,16 @@ export function TableView<T extends ControllerClass>(
     options.expandable,
   );
 
-  const filterSubmitDefaults = buildFilterSubmitDefaults(options);
-
-  const newForm = resourceForm(controller, "new", {
-    submitDefaults: filterSubmitDefaults,
-    slotId: options.formSlots?.new,
-  });
-  const editForm = resourceForm(controller, "edit", {
-    submitDefaults: filterSubmitDefaults,
-    slotId: options.formSlots?.edit,
-  });
-  const viewForm = resourceForm(controller, "view", {
-    slotId: options.formSlots?.view,
-  });
+  const capabilities = {
+    hasNewForm: meta.getFormFields("new").length > 0,
+    hasEditForm: meta.getFormFields("edit").length > 0,
+    hasDeleteEndpoint: !!endpoints.delete,
+    archiveMode: !!options.archiveMode,
+  };
+  const access = tableViewAccess(options.rowActions, capabilities);
+  const isWriting = access === "write";
+  const forms = buildTableViewForms(controller, options, access);
+  const { new: newForm, edit: editForm, view: viewForm } = forms;
 
   const declaredCustomButtons = options.customButtons;
   const serializedCustomButtons = serializeCustomButtons(declaredCustomButtons);
@@ -167,33 +161,16 @@ export function TableView<T extends ControllerClass>(
     if (id) builder.button(id, { permission });
   }
 
-  builder.action(LIST_ACTION, {
-    title: "$dms.table.action_list",
-    icon: "i-ph-list",
-  });
-  builder.action(SELECT_ACTION, {
-    title: "$dms.table.action_select",
-    icon: "i-ph-magnifying-glass",
-    description: "$dms.table.action_select_description",
-    defaultGranted: true,
-  });
+  // Declared from what the controller offers, a read-only TableView's write
+  // actions included: they keep guarding the write routes of a controller no
+  // TableView writes through.
   registerTableViewActions(builder, {
-    hasNewForm: !!newForm,
-    hasEditForm: !!editForm,
+    ...capabilities,
     hasViewForm: !!viewForm,
-    hasDeleteEndpoint: !!endpoints.delete,
-    archiveMode: !!options.archiveMode,
     isExportEnabled,
   });
 
-  meta.addComponentBuilder(builder);
-  // This table's rules, archive-mode defaults included, enforced on the
-  // writes that come from it — never on another table sharing the controller.
-  meta.setRowScope(builder, {
-    rowActions: options.rowActions,
-    idField: options.rowIdKey || DEFAULT_ROW_ID_FIELD,
-    strictMode: options.strictRuleValidation ?? false,
-  });
+  recordTableView(meta, builder, access, options);
 
   builder
     .options({
@@ -247,6 +224,13 @@ export function TableView<T extends ControllerClass>(
 
       const tableViewPermissionId = GetPermissionId(builder);
 
+      if (tableViewPermissionId && isWriting) {
+        claimWritingTableView(meta, controller.name, {
+          owner: tableViewPermissionId,
+          page: parentPage,
+        });
+      }
+
       if (options.realtime !== false) {
         registerTableViewPageTopics(parentInfo.fullId, config.location);
       }
@@ -276,12 +260,6 @@ export function TableView<T extends ControllerClass>(
       });
 
       assertRowScopedFormSlugs(customPages);
-
-      const forms: Record<FormPageKind, FormBuilder | undefined> = {
-        new: newForm,
-        edit: editForm,
-        view: viewForm,
-      };
 
       const registerFormPage = (kind: FormPageKind) => {
         const form = forms[kind];
@@ -323,14 +301,6 @@ export function TableView<T extends ControllerClass>(
         if (definition.submitsFilterDefaults) {
           applyFormPageSubmitDefaults(form, options, frame);
         }
-        if (kind === "edit") {
-          const submitUrl = form.serializeSync().options?.submitUrl;
-          if (submitUrl) {
-            form.mergeOptions({
-              submitUrl: appendTableViewKey(submitUrl, tableViewPermissionId),
-            });
-          }
-        }
         // The edit and details pages end their breadcrumb with the row's
         // label once the form has loaded it.
         if (kind !== "new" && options.labelKey) {
@@ -363,14 +333,9 @@ export function TableView<T extends ControllerClass>(
     .onFilter(async (permissions, options, permissionId, context) => {
       const grants = await resolveTableViewGrants(permissions, permissionId);
 
-      // Writes name the table they come from, so its permission and row
-      // rules — not another table's over the same controller — apply.
-      const tableViewKey = GetPermissionId(builder) ?? permissionId;
       const adaptedFormComponents = {
         new: grants.add ? options.formComponents.new : undefined,
-        edit: grants.edit
-          ? withTableViewKeyOnSubmit(options.formComponents.edit, tableViewKey)
-          : undefined,
+        edit: grants.edit ? options.formComponents.edit : undefined,
         view: grants.view ? options.formComponents.view : undefined,
       };
 
@@ -403,7 +368,6 @@ export function TableView<T extends ControllerClass>(
 
       return {
         ...options,
-        tableViewKey,
         // The export routes refuse a caller without the action: its toolbar
         // entry is left out too, like the add/edit/delete buttons.
         enableTableExport: options.enableTableExport && grants.export,
@@ -415,6 +379,55 @@ export function TableView<T extends ControllerClass>(
     });
 
   return builder;
+}
+
+/**
+ * The forms a table view opens. A read-only one opens no form that submits:
+ * its files are none the write routes should accept, and it has no form page
+ * to register.
+ */
+function buildTableViewForms<T extends ControllerClass>(
+  controller: T,
+  options: TableViewOptions<InstanceType<T>>,
+  access: TableViewAccess,
+): Record<FormPageKind, FormBuilder | undefined> {
+  const viewForm = resourceForm(controller, "view", {
+    slotId: options.formSlots?.view,
+  });
+  if (access === "read")
+    return { new: undefined, edit: undefined, view: viewForm };
+  const submitDefaults = buildFilterSubmitDefaults(options);
+  return {
+    new: resourceForm(controller, "new", {
+      submitDefaults,
+      slotId: options.formSlots?.new,
+    }),
+    edit: resourceForm(controller, "edit", {
+      submitDefaults,
+      slotId: options.formSlots?.edit,
+    }),
+    view: viewForm,
+  };
+}
+
+/**
+ * Record a table view on its controller. The writing one's options and rules,
+ * archive-mode defaults included, are the ones the data routes apply to every
+ * write; a read-only one's options stand in only while none writes.
+ */
+function recordTableView<T extends ControllerClass>(
+  meta: TableViewMeta,
+  builder: ComponentBuilder<TableViewOptionsSerialized>,
+  access: TableViewAccess,
+  options: TableViewOptions<InstanceType<T>>,
+): void {
+  meta.addComponentBuilder(builder, access);
+  if (access === "write") {
+    meta.setControllerRowActionRules(options.rowActions ?? {});
+  } else if (meta.writingComponentBuilders.length > 0) {
+    return;
+  }
+  meta.setOptions(options);
 }
 
 declare module "../types/watch" {

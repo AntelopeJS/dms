@@ -67,9 +67,9 @@ export function applyPermissionToAction(
   return typeof actionConfig === "undefined" ? true : actionConfig;
 }
 
-// Row action rules are registered once per controller but enforced server-side
-// for every table view on that controller; expose them to pages that did not
-// declare their own rule so their UI matches what the server will accept.
+// Row action rules are registered once per controller -- the writing table
+// view's -- and enforced server-side on every write; expose them where a table
+// view did not declare its own rule so its UI matches what the server accepts.
 export function mergeControllerRule(
   actionConfig: boolean | RowActionConfig | undefined,
   rule: RowActionRule | undefined,
@@ -101,7 +101,7 @@ export interface RowActionsAdaptation {
   grants: TableViewGrants;
   /** The custom row actions already filtered for the request. */
   custom: CustomRowActionSerialized[] | undefined;
-  /** Controller-wide rules, set explicitly, applied on top. */
+  /** The rules the data routes enforce (see `controllerRowActionRules`). */
   controllerRules: TableViewRowActionOptions | undefined;
 }
 
@@ -137,8 +137,8 @@ export function adaptRowActions({
     custom,
   };
 
-  // The table's own rules are already in its options; a controller-wide
-  // rule (set explicitly) applies on top, as the routes enforce it.
+  // The table's own rules are already in its options; the controller's rule
+  // applies where it declared none, as the routes enforce it.
   if (controllerRules) {
     for (const actionName of CONTROLLER_RULED_ACTIONS) {
       adapted[actionName] = mergeControllerRule(
