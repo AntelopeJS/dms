@@ -6,7 +6,10 @@
 
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
+import {
+  AccessMode,
+  DataAPIMeta,
+} from "@antelopejs/interface-data-api/metadata";
 import { getDataTypeId } from "../data-types";
 import { TableViewMeta } from "./meta";
 import {
@@ -245,6 +248,39 @@ export function validateGroupedOptions(
   }
 }
 
+const NUMBER_TYPE_ID = "number";
+
+/**
+ * A hand-ordered table writes its position column through the edit route:
+ * the column must be a writable, sortable number, and the edit action on.
+ */
+export function validateReorder<T extends Record<string, unknown>>(
+  controllerName: string,
+  meta: TableViewMeta,
+  options: TableViewOptions<T>,
+): void {
+  const field = options.reorder?.field;
+  if (!field) return;
+  const where = `TableView reorder field "${field}" on ${controllerName}`;
+  const column = meta.columns[field];
+  if (!column || getDataTypeId(column.type) !== NUMBER_TYPE_ID) {
+    throw new Error(`${where} must be a NumberType column`);
+  }
+  const fieldMeta = GetMetadata(meta.target as ControllerClass, DataAPIMeta)
+    .fields[field];
+  if (fieldMeta?.sortable === undefined) {
+    throw new Error(
+      `${where} must be @Sortable(): the rows are listed sorted on it`,
+    );
+  }
+  if (fieldMeta.mode === AccessMode.ReadOnly) {
+    throw new Error(`${where} must be writable: moving a row edits it`);
+  }
+  if (options.rowActions?.edit === false) {
+    throw new Error(`${where} needs the edit action: moving a row edits it`);
+  }
+}
+
 function assertViewFilters(
   where: string,
   meta: TableViewMeta,
@@ -357,6 +393,7 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
   validateDisplayIds(controllerName, options.displays);
   validateDefaultDisplay(controllerName, options);
   validateViews(controllerName, meta, options);
+  validateReorder(controllerName, meta, options);
   validateQuickFilters(controllerName, meta, options.quickFilters);
   validatePageSize(controllerName, options.pageSize);
   assertTabTargets(controllerName, options.tabs);

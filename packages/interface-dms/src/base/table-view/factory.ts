@@ -205,6 +205,7 @@ export function TableView<T extends ControllerClass>(
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,
       pagination: options.pagination,
+      reorder: options.reorder,
       footer: serializeFooter(controller.name, meta, options.footer),
       emptyStates: serializeEmptyStates(options.emptyStates),
       displays: serializeTableViewDisplays(options),

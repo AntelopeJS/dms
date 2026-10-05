@@ -189,7 +189,13 @@
         "week_of": "Week of {date}"
       },
       "all_matching_selected": "All {count} row selected | All {count} rows selected",
-      "select_all_matching": "Select all {count} matching"
+      "select_all_matching": "Select all {count} matching",
+      "reorder": {
+        "column": "Order",
+        "move": "Drag to reorder, or use the arrow keys",
+        "disabled": "Clear the search, filters and tab to reorder",
+        "error": "The new order could not be saved"
+      }
     },
     "table_form": {
       "edit_title": "Edit entry",

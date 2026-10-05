@@ -189,7 +189,13 @@
         "week_of": "Semaine du {date}"
       },
       "all_matching_selected": "La {count} ligne sélectionnée | Les {count} lignes sélectionnées",
-      "select_all_matching": "Sélectionner les {count} correspondantes"
+      "select_all_matching": "Sélectionner les {count} correspondantes",
+      "reorder": {
+        "column": "Ordre",
+        "move": "Glisser pour réordonner, ou utiliser les flèches",
+        "disabled": "Effacez la recherche, les filtres et l’onglet pour réordonner",
+        "error": "Le nouvel ordre n’a pas pu être enregistré"
+      }
     },
     "table_form": {
       "edit_title": "Modifier l’entrée",

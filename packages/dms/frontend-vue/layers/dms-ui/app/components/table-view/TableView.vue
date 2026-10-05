@@ -31,6 +31,7 @@ import type {
   TableViewEmptyStatesConfig,
   TableViewPaginationMode,
   TableViewSourceConfig,
+  TableViewReorderConfig,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
@@ -46,6 +47,7 @@ import { useTableRowActions } from "../../build/composables/table-view/useTableV
 import {
   buildTableDataKey,
   buildTableQuery,
+  isFilterEffective,
 } from "../../build/composables/table-view/utils/tableQuery";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
 import {
@@ -98,6 +100,7 @@ import { useGroupedRows } from "../../build/composables/table-view/useGroupedRow
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
+import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
 import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
 import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
 import TableViews, {
@@ -145,6 +148,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pagination?: TableViewPaginationMode;
   /** A `TableView.fromSource` table's route, instead of a data controller. */
   source?: TableViewSourceConfig;
+  /** Rows ordered by hand on a number column (backend `reorder`). */
+  reorder?: TableViewReorderConfig;
   /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
   /** What the empty body says, per reason it is empty. */
@@ -251,11 +256,14 @@ const availableDisplays = computed<TableViewSwitcherItem[]>(() =>
 
 // SSR-safe: capabilities + self-managed flag come from config, not the
 // client-only registry, so the chrome and list-query decision match across SSR.
-const activeCapabilities = computed(() =>
-  resolveDisplayCapabilities(
+// A hand-ordered table is listed by its position: no sort to pick.
+const reorderConfig = props.reorder;
+const activeCapabilities = computed(() => {
+  const capabilities = resolveDisplayCapabilities(
     resolvedDisplay(activeDisplayId.value)?.capabilities,
-  ),
-);
+  );
+  return reorderConfig ? { ...capabilities, sorting: false } : capabilities;
+});
 
 const isActiveDisplaySelfManaged = computed(
   () => !!resolvedDisplay(activeDisplayId.value)?.selfManagedData,
@@ -695,6 +703,7 @@ const isGroupedDisplay = computed(
   () => activeDisplayId.value === GROUPED_DISPLAY_ID && !!groupedOptions,
 );
 const effectiveSorting = computed<SortingState>(() => {
+  if (reorderConfig) return [{ id: reorderConfig.field, desc: false }];
   const picked = activeCapabilities.value.sorting
     ? sorting.value
     : defaultSortState;
@@ -977,6 +986,31 @@ const accumulation = computed<TableAccumulation | undefined>(() =>
       }
     : undefined,
 );
+
+// Rows ordered by hand: moving is off while anything narrows the rows.
+const { reorderState } = useTableReorder<T>({
+  reorder: reorderConfig,
+  data,
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  location,
+  api: $authFetch,
+  canEdit: computed(() => isActionEnabled(tableProps.value.rowActions?.edit)),
+  isNarrowed: computed(
+    () =>
+      effectiveColumnFilters.value.some(isFilterEffective) ||
+      !!effectiveGlobalFilter.value ||
+      activeTabFilters.value.length > 0,
+  ),
+  isGrid: computed(() => activeDisplayId.value === TABLE_DISPLAY_ID),
+  refresh: () => refresh(),
+  onError: (failure) =>
+    toast.add({
+      title: t("dms.table.reorder.error"),
+      description: resolveApiErrorMessage(failure),
+      color: Color.error,
+      icon: "i-ph-warning-circle",
+    }),
+});
 
 const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
   grouped: groupedOptions,
@@ -1845,6 +1879,7 @@ onMounted(() => {
     :chrome="resolvedChrome"
     :grouping="grouping"
     :accumulation="accumulation"
+    :reorder="reorderState"
     :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"

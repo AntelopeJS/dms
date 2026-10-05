@@ -191,6 +191,11 @@ export interface TableViewGroupedConfig {
   count?: boolean;
 }
 
+/** Rows ordered by hand on a number column (backend `reorder`). */
+export interface TableViewReorderConfig {
+  field: string;
+}
+
 /** What a source route handles itself (backend `capabilities`). */
 export interface TableViewSourceCapabilities {
   search?: boolean;
@@ -245,7 +250,7 @@ export interface TableViewDisplayConfig {
 export interface TableViewConfig<T extends Data>
   extends Omit<
     TableProps<T>,
-    "columns" | "displays" | "chrome" | "quickFilters" | "footer"
+    "columns" | "displays" | "chrome" | "quickFilters" | "footer" | "reorder"
   > {
   location: string;
   enableTableExport?: boolean;
@@ -286,6 +291,8 @@ export interface TableViewConfig<T extends Data>
   pagination?: TableViewPaginationMode;
   /** A `TableView.fromSource` table's route, instead of a data controller. */
   source?: TableViewSourceConfig;
+  /** Rows ordered by hand on a number column. */
+  reorder?: TableViewReorderConfig;
   /**
    * Row density while the user picked none in the ⋯ menu: `compact` gives
    * 36px rows under a 32px header band.

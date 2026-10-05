@@ -81,6 +81,14 @@ export interface TableAccumulation {
   load: () => void;
 }
 
+/** Rows ordered by hand (backend `reorder`): a handle moves a row. */
+export interface TableReorder {
+  /** Off while a search, a filter or a tab narrows the rows. */
+  enabled: boolean;
+  /** Moves the row at `from` to `to`, within the page. */
+  move: (from: number, to: number) => void;
+}
+
 /** Where a table draws its views (see `TableProps.viewsPlacement`). */
 export type TableViewsPlacement = "band" | "header";
 
@@ -211,6 +219,8 @@ export interface TableProps<T> {
   grouping?: TableRowGrouping<T>;
   /** The list grows by pages instead of paging. */
   accumulation?: TableAccumulation;
+  /** Rows ordered by hand: a drag handle in front of each row. */
+  reorder?: TableReorder;
   /** Custom actions the selection bar offers (backend `bulk`). */
   bulkActions?: CustomRowAction[];
   /** What the empty body says, per reason it is empty. */
@@ -497,6 +507,13 @@ const theme = tv({
       "inline-flex min-w-0 items-center gap-2 hover:text-highlighted",
     groupCount:
       "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
+
+    // The move handle of a hand-ordered table, in a narrow first column.
+    handleHeadCell: `${HEADER_MATCH_BG} border-b-default w-8 border-b p-0`,
+    handleCell:
+      "border-b-muted w-8 border-b ps-2 pe-0 in-[tr:last-child]:border-b-0",
+    handle:
+      "inline-flex size-6 cursor-grab items-center justify-center rounded text-dimmed hover:text-highlighted focus-visible:outline-2 focus-visible:outline-(--dms-accent-line) disabled:cursor-not-allowed disabled:opacity-40 [&>svg]:size-4",
   },
   variants: {
     cellWrap: {
@@ -766,6 +783,28 @@ const PRESENCE_RAIL_ACTIVE_BG = "bg-secondary";
 const SELECTION_RAIL_BG = "bg-primary";
 
 const hasPresenceRail = computed(() => props.presenceByRow !== undefined);
+// Cells drawn in front of the columns: the presence rail, the move handle.
+const leadingCellCount = computed(
+  () => (hasPresenceRail.value ? 1 : 0) + (props.reorder ? 1 : 0),
+);
+
+// Moving rows: the row dragged by its handle, dropped on another row; the
+// arrow keys on a handle move its row by one.
+const draggedRowIndex = ref<number | undefined>();
+const dropRow = (index: number) => {
+  const from = draggedRowIndex.value;
+  draggedRowIndex.value = undefined;
+  if (from !== undefined && props.reorder?.enabled) {
+    props.reorder.move(from, index);
+  }
+};
+const stepRow = (index: number, step: number) => {
+  const target = index + step;
+  const count = table.getRowModel().rows.length;
+  if (props.reorder?.enabled && target >= 0 && target < count) {
+    props.reorder.move(index, target);
+  }
+};
 
 // Pinned columns stick only while they cover at most 60% of the visible scroll
 // area: on a phone, labelled row actions or a wide pinned set would otherwise
@@ -1312,6 +1351,11 @@ defineShortcuts({
                   }"
                 />
                 <th
+                  v-if="reorder"
+                  :class="uiTable.handleHeadCell()"
+                  :aria-label="t('dms.table.reorder.column')"
+                />
+                <th
                   v-for="header in headerGroup.headers"
                   :key="header.id"
                   :colspan="header.colSpan"
@@ -1362,9 +1406,7 @@ defineShortcuts({
                 >
                   <tr v-if="kind === 'group' && grouping">
                     <td
-                      :colspan="
-                        row.getVisibleCells().length + (hasPresenceRail ? 1 : 0)
-                      "
+                      :colspan="row.getVisibleCells().length + leadingCellCount"
                       :class="uiTable.groupCell()"
                     >
                       <div :class="uiTable.groupHeader()">
@@ -1421,6 +1463,8 @@ defineShortcuts({
                       @dblclick="handleRowDoubleClick(row.original)"
                       @mouseenter="handleRowHover(row)"
                       @mouseleave="handleRowLeave"
+                      @dragover="reorder?.enabled && $event.preventDefault()"
+                      @drop="dropRow(row.index)"
                     >
                       <td
                         v-if="hasPresenceRail"
@@ -1435,6 +1479,26 @@ defineShortcuts({
                           minWidth: PRESENCE_RAIL_WIDTH_PX,
                         }"
                       />
+                      <td v-if="reorder" :class="uiTable.handleCell()">
+                        <button
+                          type="button"
+                          :draggable="reorder.enabled"
+                          :disabled="!reorder.enabled"
+                          :aria-label="t('dms.table.reorder.move')"
+                          :title="
+                            reorder.enabled
+                              ? t('dms.table.reorder.move')
+                              : t('dms.table.reorder.disabled')
+                          "
+                          :class="uiTable.handle()"
+                          @dragstart="draggedRowIndex = row.index"
+                          @dragend="draggedRowIndex = undefined"
+                          @keydown.up.prevent="stepRow(row.index, -1)"
+                          @keydown.down.prevent="stepRow(row.index, 1)"
+                        >
+                          <UIcon name="i-ph-dots-six-vertical" />
+                        </button>
+                      </td>
                       <td
                         v-for="cell in row.getVisibleCells()"
                         :key="cell.id"
@@ -1483,8 +1547,7 @@ defineShortcuts({
                     >
                       <td
                         :colspan="
-                          row.getVisibleCells().length +
-                          (hasPresenceRail ? 1 : 0)
+                          row.getVisibleCells().length + leadingCellCount
                         "
                         :class="uiTable.expandedCell()"
                       >
@@ -1510,6 +1573,7 @@ defineShortcuts({
                     v-if="hasPresenceRail"
                     class="border-b-muted border-b p-0 in-[tr:last-child]:border-b-0"
                   />
+                  <td v-if="reorder" :class="uiTable.handleCell()" />
                   <td
                     v-for="(
                       column, columnIndex
@@ -1528,8 +1592,7 @@ defineShortcuts({
               <tr v-else>
                 <td
                   :colspan="
-                    table.getVisibleLeafColumns().length +
-                    (hasPresenceRail ? 1 : 0)
+                    table.getVisibleLeafColumns().length + leadingCellCount
                   "
                   class="p-0"
                 >

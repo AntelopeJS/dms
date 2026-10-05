@@ -325,6 +325,18 @@ export interface TableViewQuickFilter {
  */
 export type TableViewPaginationMode = "pages" | "loadMore" | "infinite";
 
+/**
+ * Rows the user orders by hand: a drag handle (or the arrow keys on it)
+ * moves a row, and the rows it moved get a new value of `field`.
+ */
+export interface TableViewReorderOptions {
+  /**
+   * The number column holding a row's position, `@Sortable()` and
+   * writable: the rows are listed sorted on it.
+   */
+  field: string;
+}
+
 /** What a footer summary computes over the rows the table lists. */
 export type TableViewSummaryOperation = "sum" | "count";
 
@@ -892,6 +904,14 @@ export interface TableViewOptions<
    * switch between the table and a kanban board from the toolbar.
    */
   kanban?: KanbanOptions;
+  /**
+   * Lets the user order the rows by hand: the rows are listed sorted on
+   * `field`, a drag handle moves a row within its page, and only the rows
+   * whose position changed are saved (a partial edit of `field`). Moving is
+   * off while a search, a filter or a tab narrows the rows. Needs the
+   * `edit` action.
+   */
+  reorder?: TableViewReorderOptions;
   /**
    * Offers the `grouped` display: the grid's columns with a header row per
    * group of rows. A view may open in it (`display: "grouped"`).

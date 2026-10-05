@@ -107,6 +107,7 @@ export {
   type TableViewOptions,
   type TableViewOptionsSerialized,
   type TableViewPaginationMode,
+  type TableViewReorderOptions,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
   type TableViewTab,
