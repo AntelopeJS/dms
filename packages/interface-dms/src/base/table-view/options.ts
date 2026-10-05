@@ -231,6 +231,11 @@ export interface TableViewDisplayCapabilities {
   header?: boolean;
 }
 
+/**
+ * A display a table view offers besides its grid: a built-in one by its id
+ * (`"cards"`), or a module's, named `<module>:<id>` (`"saas:plan-cards"`) and
+ * registered on the frontend with `registerTableViewDisplay`.
+ */
 export interface TableViewDisplayOption {
   id: string;
   options?: Record<string, unknown>;
@@ -405,8 +410,14 @@ export interface RouteParamFilter {
 
 export type RouteParamFilters = Record<string, RouteParamFilter>;
 
+/** Id of the built-in grid display. */
 export const TABLE_DISPLAY_ID = "table";
+/** Id of the built-in kanban display. */
 export const KANBAN_DISPLAY_ID = "kanban";
+/** Id of the built-in card grid display. */
+export const CARDS_DISPLAY_ID = "cards";
+/** Id kept for the built-in grouped display. */
+export const GROUPED_DISPLAY_ID = "grouped";
 
 export interface KanbanOptions {
   /**

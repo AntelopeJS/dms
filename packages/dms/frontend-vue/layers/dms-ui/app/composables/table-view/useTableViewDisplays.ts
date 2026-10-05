@@ -1,54 +1,59 @@
-import { markRaw } from "vue";
-import type {
-  TableViewDisplay,
-  TableViewDisplayCapabilities,
+import {
+  storeTableViewDisplay,
+  useTableViewDisplayState,
+} from "../../build/composables/table-view/displayRegistry";
+import {
+  RESERVED_TABLE_VIEW_DISPLAY_IDS,
+  type TableViewDisplay,
+  type TableViewDisplayCapabilities,
 } from "./types/display";
 
-const TABLE_VIEW_DISPLAYS_STATE_KEY = "dms:table-view-displays";
 const DEFAULT_ORDER = 100;
-
-function useDisplayState() {
-  return useDmsState<TableViewDisplay[]>(
-    TABLE_VIEW_DISPLAYS_STATE_KEY,
-    () => [],
-  );
-}
+// `<module>:<id>`: the module's name, then the display's own id.
+const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
 
 function displayOrder(display: TableViewDisplay): number {
   return display.order ?? DEFAULT_ORDER;
 }
 
 /**
- * Register (or replace, by id) a table view display. Keyed DMS app state lets any
- * module register without a build-time dependency on this layer. Register from a
- * universal plugin so the server render draws the switcher too (a `.client`
- * plugin works, but its display only joins the switcher after hydration). Data
- * behaviour and chrome (selfManagedData/capabilities) are config-driven; the
- * registry powers the switcher and component resolution.
+ * Register a table view display a module contributes. Keyed DMS app state lets
+ * any module register without a build-time dependency on this layer. Register
+ * from a universal plugin so the server render draws the switcher too (a
+ * `.client` plugin works, but its display only joins the switcher after
+ * hydration). Data behaviour and chrome (selfManagedData/capabilities) are
+ * config-driven; the registry powers the switcher and component resolution.
+ *
+ * The id is `<module>:<id>` (`"saas:plan-cards"`): the built-in ids
+ * (`table`, `kanban`, `cards`, `grouped`) are reserved, and an id is
+ * registered once — this throws for a reserved id, an unprefixed one, or one
+ * another registration already claimed.
  */
 export function registerTableViewDisplay(entry: TableViewDisplay): void {
-  const displays = useDisplayState();
-  // The registry is reactive state: a component stored in it would be made
-  // reactive too (Vue warns, and pays for it on every render).
-  const display = entry.component
-    ? { ...entry, component: markRaw(entry.component) }
-    : entry;
-  const existingIndex = displays.value.findIndex(
-    (entry) => entry.id === display.id,
-  );
+  assertModuleDisplayId(entry.id);
+  storeTableViewDisplay(entry);
+}
 
-  if (existingIndex === -1) {
-    displays.value = [...displays.value, display];
-    return;
+function assertModuleDisplayId(id: string): void {
+  if ((RESERVED_TABLE_VIEW_DISPLAY_IDS as readonly string[]).includes(id)) {
+    throw new Error(
+      `[DMS] Table view display "${id}" is a built-in display: register a module display under its own id, "<module>:${id}"`,
+    );
   }
-
-  const next = [...displays.value];
-  next[existingIndex] = display;
-  displays.value = next;
+  if (!MODULE_DISPLAY_ID.test(id)) {
+    throw new Error(
+      `[DMS] Table view display "${id}" must be named "<module>:<id>", e.g. "saas:plan-cards"`,
+    );
+  }
+  if (useTableViewDisplayState().value.some((display) => display.id === id)) {
+    throw new Error(
+      `[DMS] Table view display "${id}" is already registered: one registration per id`,
+    );
+  }
 }
 
 export function useTableViewDisplays() {
-  const displays = useDisplayState();
+  const displays = useTableViewDisplayState();
   const all = computed<TableViewDisplay[]>(() =>
     [...displays.value].sort((a, b) => displayOrder(a) - displayOrder(b)),
   );

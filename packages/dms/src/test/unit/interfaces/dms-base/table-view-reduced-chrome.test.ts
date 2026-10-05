@@ -166,6 +166,32 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     );
   });
 
+  it("offers built-in displays by id and module displays as <module>:<id>", () => {
+    const component = CustomComponent("PlanCards");
+    const options = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        displays: [{ id: "cards" }, { id: "saas:plan-cards", component }],
+      }),
+    );
+    expect(options.displays?.map((display) => display.id)).to.deep.equal([
+      "cards",
+      "saas:plan-cards",
+    ]);
+    expect(() =>
+      TableView(OrderAPI, {
+        realtime: false,
+        displays: [{ id: "cards", component }],
+      }),
+    ).to.throw(/built-in display "cards" a component/);
+    expect(() =>
+      TableView(OrderAPI, {
+        realtime: false,
+        displays: [{ id: "plan-cards", component }],
+      }),
+    ).to.throw(/"<module>:<id>"/);
+  });
+
   it("refuses a page size over 50 or not a whole number of rows", () => {
     expect(() =>
       TableView(OrderAPI, { realtime: false, pageSize: 51 }),

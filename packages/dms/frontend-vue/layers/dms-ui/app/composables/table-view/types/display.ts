@@ -9,6 +9,19 @@ export const TABLE_DISPLAY_ID = "table";
 export const KANBAN_DISPLAY_ID = "kanban";
 /** The built-in cards display id. */
 export const CARDS_DISPLAY_ID = "cards";
+/** The built-in grouped display id. */
+export const GROUPED_DISPLAY_ID = "grouped";
+
+/**
+ * Display ids the DMS keeps for its built-in displays: a module registers its
+ * own under `<module>:<id>`.
+ */
+export const RESERVED_TABLE_VIEW_DISPLAY_IDS = [
+  TABLE_DISPLAY_ID,
+  KANBAN_DISPLAY_ID,
+  CARDS_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
+] as const;
 
 /**
  * A row "actor" currently editing an item (realtime presence). Keyed by row id
@@ -143,13 +156,17 @@ export interface TableViewDisplayAvailabilityContext {
 }
 
 /**
- * A registered display ("table", "kanban", or a project/module-contributed one).
- * Registered from a `.client.ts` plugin via `registerTableViewDisplay`. Holds
+ * A registered display: a built-in one ("table", "kanban", "cards") or one a
+ * module contributes under `<module>:<id>`, registered from a universal plugin
+ * via `registerTableViewDisplay`. Holds
  * presentation only; data behaviour (selfManagedData) and chrome (capabilities)
  * live on the backend config (SSR source of truth) — see TableViewDisplayConfig.
  */
 export interface TableViewDisplay {
-  /** Stable id; matches `displays[].id` / `defaultDisplay` and the persisted preference. */
+  /**
+   * Stable id; matches `displays[].id` / `defaultDisplay` and the persisted
+   * preference. A module's display is `<module>:<id>`.
+   */
   id: string;
   /** i18n key or literal label shown in the view switcher. */
   label: string;

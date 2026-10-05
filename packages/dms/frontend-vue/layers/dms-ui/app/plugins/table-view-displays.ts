@@ -1,4 +1,5 @@
 import { defineAsyncComponent } from "vue";
+import { storeTableViewDisplay } from "../build/composables/table-view/displayRegistry";
 import { isEligibleKanbanColumn } from "../composables/table-view/kanban";
 import {
   CARDS_DISPLAY_ID,
@@ -19,14 +20,14 @@ const CardsDisplay = defineAsyncComponent(
 // instead of inserting it (and shifting the toolbar) afterwards. Data
 // behaviour and chrome (selfManagedData/capabilities) stay config-driven.
 export default defineDmsPlugin(() => {
-  registerTableViewDisplay({
+  storeTableViewDisplay({
     id: TABLE_DISPLAY_ID,
     label: "dms.table.view_mode_table",
     icon: "i-ph-rows",
     order: 10,
   });
 
-  registerTableViewDisplay({
+  storeTableViewDisplay({
     id: KANBAN_DISPLAY_ID,
     label: "dms.table.view_mode_kanban",
     icon: "i-ph-kanban",
@@ -35,7 +36,7 @@ export default defineDmsPlugin(() => {
     isAvailable: (ctx) => ctx.columns.some(isEligibleKanbanColumn),
   });
 
-  registerTableViewDisplay({
+  storeTableViewDisplay({
     id: CARDS_DISPLAY_ID,
     label: "dms.table.view_mode_cards",
     icon: "i-ph-cards",

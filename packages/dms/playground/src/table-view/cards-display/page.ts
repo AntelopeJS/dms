@@ -13,6 +13,8 @@ import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
 import { demoFormTexts } from "../form-texts";
 
+const TASK_CARDS_DISPLAY_ID = "playground:task-cards";
+
 @RegisterDataController()
 class cardsTaskDataAPI extends DataController(
   Task,
@@ -48,10 +50,15 @@ export class PageTableViewCardsDisplay extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    // The display *type* (label, icon, capabilities, component) is registered on
-    // the client in playground/frontend-vue/app/plugins/table-view-cards-display.client.ts.
-    // Here we opt this table view into it and provide the SSR-renderable component.
-    displays: [{ id: "cards", component: CustomComponent("TaskCardsDisplay") }],
-    defaultDisplay: "cards",
+    // The display *type* (label, icon, component) is registered by
+    // playground/frontend-vue/app/plugins/table-view-cards-display.ts. Here we
+    // opt this table view into it and provide the SSR-renderable component.
+    displays: [
+      {
+        id: TASK_CARDS_DISPLAY_ID,
+        component: CustomComponent("TaskCardsDisplay"),
+      },
+    ],
+    defaultDisplay: TASK_CARDS_DISPLAY_ID,
   });
 }

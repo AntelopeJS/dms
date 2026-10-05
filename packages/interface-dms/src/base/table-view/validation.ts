@@ -8,6 +8,8 @@ import { getDataTypeId } from "../data-types";
 import { TableViewMeta } from "./meta";
 import {
   type FormContainerPages,
+  CARDS_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   MAX_TABLE_PAGE_SIZE,
@@ -122,6 +124,42 @@ export function validateKanbanOptions(
     if (!meta.columns[field]) {
       throw new Error(
         `TableView kanban cardFields on ${controllerName} references unknown column "${field}"`,
+      );
+    }
+  }
+}
+
+/** Display ids the DMS keeps for its built-in displays. */
+const RESERVED_DISPLAY_IDS: readonly string[] = [
+  TABLE_DISPLAY_ID,
+  KANBAN_DISPLAY_ID,
+  CARDS_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
+];
+// `<module>:<id>`: the module's name, then the display's own id.
+const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
+
+/**
+ * A display a table view offers is a built-in one, named by its reserved id
+ * and drawn by the DMS (no `component` of its own), or a module's, named
+ * `<module>:<id>`.
+ */
+export function validateDisplayIds(
+  controllerName: string,
+  displays: TableViewDisplayOption[] | undefined,
+): void {
+  for (const { id, component } of displays ?? []) {
+    if (RESERVED_DISPLAY_IDS.includes(id)) {
+      if (component) {
+        throw new Error(
+          `TableView on ${controllerName} gives the built-in display "${id}" a component: a module display takes an id of its own, "<module>:${id}"`,
+        );
+      }
+      continue;
+    }
+    if (!MODULE_DISPLAY_ID.test(id)) {
+      throw new Error(
+        `TableView on ${controllerName} offers display "${id}": a module display is named "<module>:<id>", e.g. "saas:plan-cards"`,
       );
     }
   }

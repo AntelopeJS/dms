@@ -55,6 +55,7 @@ import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
   assertRowScopedFormSlugs,
   validateDefaultDisplay,
+  validateDisplayIds,
   validateKanbanOptions,
   validatePageSize,
   validateQuickFilters,
@@ -115,6 +116,7 @@ export function TableView<T extends ControllerClass>(
   }
 
   validateKanbanOptions(controller.name, meta, options.kanban);
+  validateDisplayIds(controller.name, options.displays);
   validateDefaultDisplay(controller.name, options);
   validateQuickFilters(controller.name, meta, options.quickFilters);
   validatePageSize(controller.name, options.pageSize);
