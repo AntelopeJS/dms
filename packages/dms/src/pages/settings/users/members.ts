@@ -27,8 +27,9 @@ import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import type {
+  FormContainerPages,
+  FormContainerPageTexts,
   RowActionConfirmDescriptor,
-  TableViewOptions,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
@@ -109,18 +110,21 @@ export const INVITES_TAB_ICON = "i-ph-envelope-simple";
  * Titles and descriptions of the forms a member list opens: "Change roles",
  * "Edit invitation"… from `page.settings.<list>.form`.
  */
-export const memberListFormTexts = (
+export const memberListFormPages = (
   list: "members" | "invites",
-): TableViewOptions["formTexts"] => {
+): FormContainerPages<FormContainerPageTexts> => {
   const key = `$page.settings.${list}.form`;
   return {
-    new: { title: `${key}.new_title`, description: `${key}.new_description` },
+    new: {
+      displayName: `${key}.new_title`,
+      description: `${key}.new_description`,
+    },
     edit: {
-      title: `${key}.edit_title`,
+      displayName: `${key}.edit_title`,
       description: `${key}.edit_description`,
     },
-    view: {
-      title: `${key}.view_title`,
+    details: {
+      displayName: `${key}.view_title`,
       description: `${key}.view_description`,
     },
   };
@@ -197,10 +201,13 @@ const memberApiTarget = (action: string) =>
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",
   labelKey: "name",
-  formTexts: memberListFormTexts("members"),
   // "Change roles" opens over the list: the member's name in the title, the
   // roles as the invite form's pills (see the `roleIds` column).
-  formContainer: { type: "modal", size: "md" },
+  formContainer: {
+    type: "modal",
+    size: "md",
+    pages: memberListFormPages("members"),
+  },
   layout: MEMBER_LISTS_LAYOUT,
   searchPlaceholder: "$page.settings.members.search_members",
   quickFilters: [{ field: "roleIds", ...ROLE_QUICK_FILTER }],

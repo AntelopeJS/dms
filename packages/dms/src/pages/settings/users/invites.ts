@@ -64,7 +64,7 @@ import {
   MEMBER_INVITE_BUTTON_ID,
   MEMBER_INVITE_HEADER_ACTION,
   MEMBER_LISTS_LAYOUT,
-  memberListFormTexts,
+  memberListFormPages,
   MEMBER_LISTS_PAGE_SIZE,
   MEMBERS_TAB_ICON,
   MembersSettingsController,
@@ -308,7 +308,7 @@ export class InvitesSettingsController extends PageController(
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
-    formTexts: memberListFormTexts("invites"),
+    formContainer: { type: "page", pages: memberListFormPages("invites") },
     layout: MEMBER_LISTS_LAYOUT,
     searchPlaceholder: "$page.settings.invites.search",
     quickFilters: [{ field: "roles_ids", ...ROLE_QUICK_FILTER }],

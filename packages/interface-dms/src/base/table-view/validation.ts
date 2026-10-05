@@ -189,7 +189,7 @@ export function validateDefaultDisplay(
 }
 
 /** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
-const ROW_SCOPED_FORM_PAGE_KINDS = ["edit", "view"] as const;
+const ROW_SCOPED_FORM_PAGE_KINDS = ["edit", "details"] as const;
 
 /** A declared slug for a row-scoped form page must carry the row's `:id`. */
 export function assertRowScopedFormSlugs(

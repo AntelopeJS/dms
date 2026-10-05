@@ -22,7 +22,9 @@ import { TableViewMeta } from "./meta";
 import { assertKnownColumns } from "./validation";
 import {
   CARDS_DISPLAY_ID,
+  type FormContainerPageConfig,
   type FormContainerPages,
+  type FormContainerPageTexts,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
@@ -35,8 +37,6 @@ import {
   type TableViewExpandableOptions,
   type TableViewExpandableSerialized,
   type TableViewFormPageUrls,
-  type TableViewFormText,
-  type TableViewOptions,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
 } from "./options";
@@ -361,23 +361,34 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
   },
 };
 
+/** The `formContainer.pages` key of each form kind. */
+export const FORM_PAGE_CONFIG_KEYS: Record<
+  FormPageKind,
+  keyof FormContainerPages
+> = { new: "new", edit: "edit", view: "details" };
+
+/** The `formContainer.pages` entry of a form kind. */
+export function formPageConfig(
+  kind: FormPageKind,
+  pages: FormContainerPages | undefined,
+): FormContainerPageConfig | undefined {
+  return pages?.[FORM_PAGE_CONFIG_KEYS[kind]];
+}
+
 /**
- * Title and description of a page-mode form sub-page: the page's own
- * `formContainer.pages` entry, else the table view's `formTexts`, else the
- * generic "New entry" / "Edit entry" / "Entry details" texts.
+ * Title and description of a page-mode form sub-page: its
+ * `formContainer.pages` entry, else the generic "New entry" / "Edit entry" /
+ * "Entry details" texts.
  */
 export function resolveFormPageTexts(
   kind: FormPageKind,
-  options: Pick<TableViewOptions, "formTexts">,
-  customPages?: FormContainerPages,
-): Required<TableViewFormText> {
+  pages?: FormContainerPages,
+): Required<FormContainerPageTexts> {
   const definition = FORM_PAGE_DEFINITIONS[kind];
-  const page = customPages?.[kind];
-  const texts = options.formTexts?.[kind];
+  const page = formPageConfig(kind, pages);
   return {
-    title: page?.displayName || texts?.title || definition.displayName,
-    description:
-      page?.description || texts?.description || definition.description,
+    displayName: page?.displayName || definition.displayName,
+    description: page?.description || definition.description,
   };
 }
 
@@ -455,7 +466,7 @@ export function formPageSlug(
   pages?: FormContainerPages,
 ): string {
   return (
-    pages?.[kind]?.urlSlug ||
+    formPageConfig(kind, pages)?.urlSlug ||
     `${routeKey}/${FORM_PAGE_DEFINITIONS[kind].defaultSlug}`
   );
 }

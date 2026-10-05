@@ -15,7 +15,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { internalsSection } from "../sections";
 import { taskDataAPI } from "../table-view/data-api";
 import { Task, TaskModel } from "../table-view/database";
-import { demoFormTexts } from "../table-view/form-texts";
+import { demoFormPages } from "../table-view/form-texts";
 
 @RegisterDataController()
 class pageExtensionTaskDataAPI extends DataController(
@@ -48,9 +48,12 @@ export class PageExtensionTargetPage extends PageController("page-extension", {
     TableView(pageExtensionTaskDataAPI, {
       caption: "Nested tasks — targeted through content.tasks",
       labelKey: "name",
-      formTexts: demoFormTexts("task"),
       rowActions: { add: true, edit: true },
-      formContainer: { type: "modal", size: "xl" },
+      formContainer: {
+        type: "modal",
+        size: "xl",
+        pages: demoFormPages("task"),
+      },
     }),
   );
 }

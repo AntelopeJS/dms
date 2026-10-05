@@ -10,7 +10,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 @RegisterDataController()
 class modalTaskDataAPI extends DataController(
@@ -38,7 +38,6 @@ export class PageTableViewModal extends PageController(
   static table = TableView(modalTaskDataAPI, {
     caption: "Tasks - Modal Mode",
     labelKey: "name",
-    formTexts: demoFormTexts("task"),
     rowActions: {
       add: true,
       copyLink: true,
@@ -48,6 +47,6 @@ export class PageTableViewModal extends PageController(
       edit: true,
       hasSelection: true,
     },
-    formContainer: { type: "modal", size: "xl" },
+    formContainer: { type: "modal", size: "xl", pages: demoFormPages("task") },
   });
 }

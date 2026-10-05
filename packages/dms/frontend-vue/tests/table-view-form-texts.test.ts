@@ -34,14 +34,14 @@ function texts(source: FormContainerTextSource, locale: "en" | "fr" = "en") {
 }
 
 describe("TableView form container texts", () => {
-  it("uses the table's own texts and follows the title with the row label", () => {
+  it("uses the formContainer page texts and follows the title with the row label", () => {
     expect(
       texts({
         kind: "edit",
         caption: "$tasks.caption",
-        formTexts: {
+        pages: {
           edit: {
-            title: "$tasks.edit_title",
+            displayName: "$tasks.edit_title",
             description: "$tasks.edit_description",
           },
         },
@@ -60,6 +60,16 @@ describe("TableView form container texts", () => {
       description: "Added to Tasks once saved.",
     });
     expect(JSON.stringify(fallback)).not.toMatch(/item/i);
+  });
+
+  it("titles the details form from the pages' `details` entry", () => {
+    expect(
+      texts({
+        kind: "view",
+        pages: { details: { displayName: "Task details" } },
+        recordLabel: "Write the docs",
+      }).title,
+    ).toBe("Task details · Write the docs");
   });
 
   it("speaks French in the fallback too", () => {
@@ -82,7 +92,7 @@ describe("TableView form container texts", () => {
     expect(
       texts({
         kind: "edit",
-        formTexts: { edit: { title: "Edit task" } },
+        pages: { edit: { displayName: "Edit task" } },
         caption: "Tasks",
       }),
     ).toEqual({

@@ -81,7 +81,6 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
-import type { TableViewFormTexts } from "../../build/composables/table-view/utils/formTexts";
 import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
@@ -122,8 +121,6 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pageSize?: number;
   /** Footer texts: row count and hint. */
   footer?: TableViewFooter;
-  /** Titles and descriptions of the add, edit and details forms. */
-  formTexts?: TableViewFormTexts;
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -136,7 +133,6 @@ const {
   location,
   caption,
   labelKey,
-  formTexts,
   enableTableExport,
   archiveMode,
   defaultFilters,
@@ -927,7 +923,6 @@ const {
   location,
   caption,
   labelKey,
-  formTexts,
   rowIdKey: props.rowIdKey,
   refreshCallback: refreshAll,
   formComponents,

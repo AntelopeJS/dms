@@ -3,7 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { relDmsAssignDataAPI } from "./data-api";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewRelationDmsMember extends PageController(
@@ -21,7 +21,7 @@ export class PageTableViewRelationDmsMember extends PageController(
   static table = TableView(relDmsAssignDataAPI, {
     caption: "Assignments → real DMS member (tenant-scoped)",
     labelKey: "label",
-    formTexts: demoFormTexts("member_assignment"),
+    formContainer: { type: "page", pages: demoFormPages("member_assignment") },
     rowActions: {
       add: true,
       copyLink: false,

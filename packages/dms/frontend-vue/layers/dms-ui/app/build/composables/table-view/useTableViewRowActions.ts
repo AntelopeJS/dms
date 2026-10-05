@@ -37,7 +37,6 @@ import {
 import {
   resolveFormContainerTexts,
   type TableViewFormKind,
-  type TableViewFormTexts,
 } from "./utils/formTexts";
 
 const DEFAULT_ROW_ID_KEY = "_id";
@@ -55,8 +54,6 @@ interface TableRowActionsConfig {
   location: string;
   caption?: string;
   labelKey?: string;
-  /** Titles and descriptions of the add, edit and details forms. */
-  formTexts?: TableViewFormTexts;
   rowIdKey?: string;
   refreshCallback?: () => void;
   formComponents: {
@@ -147,7 +144,7 @@ export const useTableRowActions = <T extends Data>(
     return resolveFormContainerTexts(
       {
         kind,
-        formTexts: config.formTexts,
+        pages: config.formContainer?.pages,
         caption: config.caption,
         recordLabel:
           item && config.labelKey && kind !== "new"

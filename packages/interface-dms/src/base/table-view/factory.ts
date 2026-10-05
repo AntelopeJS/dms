@@ -33,6 +33,7 @@ import {
   buildFormRedirectUrl,
   FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
+  formPageConfig,
   type FormPageKind,
   formPageSlug,
   formRouteKey,
@@ -190,7 +191,6 @@ export function TableView<T extends ControllerClass>(
       enableTableExport: isExportEnabled,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
-      formTexts: options.formTexts,
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
       defaultSort: options.defaultSort,
@@ -272,7 +272,7 @@ export function TableView<T extends ControllerClass>(
 
       const registerFormPage = (kind: FormPageKind) => {
         const form = forms[kind];
-        if (!form || customPages?.[kind]?.customPage) return;
+        if (!form || formPageConfig(kind, customPages)?.customPage) return;
 
         const definition = FORM_PAGE_DEFINITIONS[kind];
         const urlSlug = formPageSlug(kind, routeKey, customPages);
@@ -289,7 +289,7 @@ export function TableView<T extends ControllerClass>(
           fullSlug,
         });
 
-        const texts = resolveFormPageTexts(kind, options, customPages);
+        const texts = resolveFormPageTexts(kind, customPages);
 
         const FormController = class extends parentPage.target {};
         const formMeta = new PageMetadata(FormController as ControllerClass);
@@ -297,7 +297,7 @@ export function TableView<T extends ControllerClass>(
           id,
           fullSlug,
           {
-            displayName: texts.title,
+            displayName: texts.displayName,
             description: texts.description,
             category: parentInfo,
             urlSlug,

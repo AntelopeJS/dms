@@ -1,42 +1,39 @@
 import { expect } from "chai";
 import { resolveFormPageTexts } from "@antelopejs/interface-dms/base/table-view/factory-helpers";
 
-const TASK_TEXTS = {
-  new: { title: "$tasks.form.new_title" },
+const TASK_PAGES = {
+  new: { displayName: "$tasks.form.new_title" },
   edit: {
-    title: "$tasks.form.edit_title",
+    displayName: "$tasks.form.edit_title",
     description: "$tasks.form.edit_description",
   },
+  details: { displayName: "$tasks.form.view_title" },
 };
 
 describe("TableView form page texts", () => {
-  it("titles each page with the table's own texts", () => {
-    expect(resolveFormPageTexts("edit", { formTexts: TASK_TEXTS })).to.eql({
-      title: "$tasks.form.edit_title",
+  it("titles each page with its formContainer.pages entry", () => {
+    expect(resolveFormPageTexts("edit", TASK_PAGES)).to.eql({
+      displayName: "$tasks.form.edit_title",
       description: "$tasks.form.edit_description",
     });
   });
 
-  it("lets a page-mode page entry win over the table's texts", () => {
-    expect(
-      resolveFormPageTexts(
-        "edit",
-        { formTexts: TASK_TEXTS },
-        { edit: { displayName: "Rename", description: "Its new name." } },
-      ),
-    ).to.eql({ title: "Rename", description: "Its new name." });
+  it("reads the details page from the `details` entry", () => {
+    expect(resolveFormPageTexts("view", TASK_PAGES).displayName).to.equal(
+      "$tasks.form.view_title",
+    );
   });
 
   it("completes partial texts with the generic entry texts", () => {
-    expect(resolveFormPageTexts("new", { formTexts: TASK_TEXTS })).to.eql({
-      title: "$tasks.form.new_title",
+    expect(resolveFormPageTexts("new", TASK_PAGES)).to.eql({
+      displayName: "$tasks.form.new_title",
       description: "$dms.table.new_item_description",
     });
   });
 
   it("falls back to the generic texts of each kind", () => {
-    expect(resolveFormPageTexts("view", {})).to.eql({
-      title: "$dms.table.view_item",
+    expect(resolveFormPageTexts("view")).to.eql({
+      displayName: "$dms.table.view_item",
       description: "$dms.table.view_item_description",
     });
   });

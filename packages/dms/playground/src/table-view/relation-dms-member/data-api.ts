@@ -21,7 +21,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { relMemberDataAPI } from "../relation-key/data-api";
 import { RelDmsAssign, RelDmsAssignModel } from "./database";
-import { demoAddTexts } from "../form-texts";
+import { demoAddForm } from "../form-texts";
 
 @RegisterDataController()
 export class relDmsAssignDataAPI extends DataController(
@@ -68,7 +68,7 @@ export class relDmsAssignDataAPI extends DataController(
     name: "Synthetic Member",
     type: new DefaultDataTypes.RelationType({
       dataApiController: relMemberDataAPI,
-      ...demoAddTexts("member"),
+      addForm: demoAddForm("member"),
       keyMapping: { label: "name", value: "_id" },
     }),
   })

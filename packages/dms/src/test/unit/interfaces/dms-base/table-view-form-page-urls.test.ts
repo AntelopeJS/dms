@@ -86,7 +86,7 @@ const customTable = TableView(documentAPI("custom"), {
     pages: {
       new: { urlSlug: "create" },
       edit: { urlSlug: ":id/modify" },
-      view: { urlSlug: ":id", customPage: true },
+      details: { urlSlug: ":id", customPage: true },
     },
   },
   realtime: false,
@@ -98,7 +98,7 @@ const absoluteTable = TableView(documentAPI("absolute"), {
     pages: {
       new: { urlSlug: "/modules/automation/builder", customPage: true },
       edit: { urlSlug: BUILDER_URL, customPage: true },
-      view: { urlSlug: BUILDER_URL, customPage: true },
+      details: { urlSlug: BUILDER_URL, customPage: true },
     },
   },
   realtime: false,

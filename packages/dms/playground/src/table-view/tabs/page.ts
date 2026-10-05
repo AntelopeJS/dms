@@ -11,7 +11,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
 import { TASK_STATUSES } from "../status";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 const statusTabs = TASK_STATUSES.map((status) => ({
   id: status.value,
@@ -48,7 +48,7 @@ export class PageTableViewTabs extends PageController(
   static table = TableView(tabsTaskDataAPI, {
     caption: "Tasks - Tabs",
     labelKey: "name",
-    formTexts: demoFormTexts("task"),
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       copyLink: true,

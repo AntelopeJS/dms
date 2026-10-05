@@ -24,7 +24,6 @@ import {
   type TableViewDisplayOption,
   type TableViewExpandableComponent,
   type TableViewExpandableOptions,
-  type TableViewFormText,
   type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewRowActionOptions,
@@ -160,26 +159,34 @@ const formContainerPageConfigSchema = z.object({
   customPage: z.boolean().optional(),
 });
 
-const formTextSchema = z.object({
-  title: z.string().optional(),
+const formContainerPageTextsSchema = z.object({
+  displayName: z.string().optional(),
   description: z.string().optional(),
-}) satisfies BlockOptionsFor<TableViewFormText>;
+});
+
+const formContainerPagesSchema = <Page extends z.ZodTypeAny>(page: Page) =>
+  z
+    .object({
+      new: page.optional(),
+      edit: page.optional(),
+      details: page.optional(),
+    })
+    .optional()
+    .describe("Titles of the add, edit and details forms.");
 
 const formContainerSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("drawer") }),
+  z.object({
+    type: z.literal("drawer"),
+    pages: formContainerPagesSchema(formContainerPageTextsSchema),
+  }),
   z.object({
     type: z.literal("modal"),
     size: narrowString<ModalSize>().optional(),
+    pages: formContainerPagesSchema(formContainerPageTextsSchema),
   }),
   z.object({
     type: z.literal("page"),
-    pages: z
-      .object({
-        new: formContainerPageConfigSchema.optional(),
-        edit: formContainerPageConfigSchema.optional(),
-        view: formContainerPageConfigSchema.optional(),
-      })
-      .optional(),
+    pages: formContainerPagesSchema(formContainerPageConfigSchema),
   }),
 ]) satisfies BlockOptionsFor<FormContainer>;
 
@@ -318,9 +325,7 @@ export const TableViewSchema = z.object({
     z
       .enum(["full", "compact"])
       .optional()
-      .describe(
-        "Full dashboard grid, or the compact list of a settings page.",
-      ),
+      .describe("Full dashboard grid, or the compact list of a settings page."),
     { label: "Layout", group: "appearance", widget: "segmented" },
   ),
   searchPlaceholder: ui(z.string().optional(), {
@@ -331,16 +336,13 @@ export const TableViewSchema = z.object({
     label: "Quick filters",
     group: "features",
   }),
-  pageSize: ui(
-    z.number().int().min(1).max(MAX_TABLE_PAGE_SIZE).optional(),
-    {
-      label: "Rows per page",
-      group: "appearance",
-      widget: "number",
-      min: 1,
-      max: MAX_TABLE_PAGE_SIZE,
-    },
-  ),
+  pageSize: ui(z.number().int().min(1).max(MAX_TABLE_PAGE_SIZE).optional(), {
+    label: "Rows per page",
+    group: "appearance",
+    widget: "number",
+    min: 1,
+    max: MAX_TABLE_PAGE_SIZE,
+  }),
   footer: ui(
     z
       .object({
@@ -367,17 +369,6 @@ export const TableViewSchema = z.object({
       widget: "field",
       fieldAspect: "listable",
     },
-  ),
-  formTexts: ui(
-    z
-      .object({
-        new: formTextSchema.optional(),
-        edit: formTextSchema.optional(),
-        view: formTextSchema.optional(),
-      })
-      .optional()
-      .describe("Titles and descriptions of the add, edit and details forms."),
-    { label: "Form titles", group: "content" },
   ),
   rowActions: ui(rowActionsSchema.optional(), {
     label: "Features",

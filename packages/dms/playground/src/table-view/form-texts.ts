@@ -1,4 +1,7 @@
-import type { TableViewOptions } from "@antelopejs/interface-dms/base/table-view";
+import type {
+  FormContainerPages,
+  FormContainerPageTexts,
+} from "@antelopejs/interface-dms/base/table-view";
 
 /** The kinds of rows the demo tables hold, as named in the demo locales. */
 export type DemoEntity =
@@ -13,34 +16,37 @@ export type DemoEntity =
   | "member_assignment";
 
 /**
- * The `formTexts` of a demo table over `entity`: "New task", "Edit task",
- * "Task details" and their descriptions, from `demo.forms.<entity>`.
+ * The `formContainer.pages` texts of a demo table over `entity`: "New task",
+ * "Edit task", "Task details" and their descriptions, from
+ * `demo.forms.<entity>`. Valid in a drawer, a modal or a page.
  */
-export function demoFormTexts(
+export function demoFormPages(
   entity: DemoEntity,
-): NonNullable<TableViewOptions["formTexts"]> {
+): FormContainerPages<FormContainerPageTexts> {
   const key = `$demo.forms.${entity}`;
   return {
-    new: { title: `${key}.new_title`, description: `${key}.new_description` },
+    new: {
+      displayName: `${key}.new_title`,
+      description: `${key}.new_description`,
+    },
     edit: {
-      title: `${key}.edit_title`,
+      displayName: `${key}.edit_title`,
       description: `${key}.edit_description`,
     },
-    view: {
-      title: `${key}.view_title`,
+    details: {
+      displayName: `${key}.view_title`,
       description: `${key}.view_description`,
     },
   };
 }
 
 /** The title and description of a relation picker's "add" drawer. */
-export function demoAddTexts(entity: DemoEntity | "department" | "member"): {
-  addTitle: string;
-  addDescription: string;
-} {
+export function demoAddForm(
+  entity: DemoEntity | "department" | "member",
+): FormContainerPageTexts {
   const key = `$demo.forms.${entity}`;
   return {
-    addTitle: `${key}.new_title`,
-    addDescription: `${key}.new_description`,
+    displayName: `${key}.new_title`,
+    description: `${key}.new_description`,
   };
 }

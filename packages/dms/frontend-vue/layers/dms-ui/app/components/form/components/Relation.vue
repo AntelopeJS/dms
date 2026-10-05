@@ -21,6 +21,12 @@ import type { FormProps } from "../../../composables/form/types";
 const SEARCH_DEBOUNCE_MS = 200;
 const ADD_NEW_VALUE = "__dms_relation_add_new__";
 
+/** Title and description of the drawer a relation picker's "add" opens. */
+interface RelationAddFormTexts {
+  displayName?: string;
+  description?: string;
+}
+
 interface RelationProps extends SelectMenuProps<T, "value", M> {
   searchUrl: string;
   initialValue?: unknown;
@@ -33,10 +39,11 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
   };
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
-  /** Title of the drawer the "add" entry opens; defaults to "New entry". */
-  addTitle?: string;
-  /** Line under that title. */
-  addDescription?: string;
+  /**
+   * Title and description of the drawer the "add" entry opens; default to
+   * "New entry".
+   */
+  addFormTexts?: RelationAddFormTexts;
 }
 
 const props = withDefaults(defineProps<RelationProps>(), {
@@ -54,8 +61,7 @@ const forwardedProps = computed(() => {
     modelValue: _____,
     addForm: ______,
     addPermissionIds: _______,
-    addTitle: ________,
-    addDescription: _________,
+    addFormTexts: ________,
     ...rest
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
@@ -327,11 +333,11 @@ function openAddDrawer() {
   const formOptions = addFormOptions.value;
   if (!formOptions) return;
   const drawer = openDrawer({
-    title: props.addTitle
-      ? processI18n(props.addTitle)
+    title: props.addFormTexts?.displayName
+      ? processI18n(props.addFormTexts.displayName)
       : t("dms.table.new_item"),
-    description: props.addDescription
-      ? processI18n(props.addDescription)
+    description: props.addFormTexts?.description
+      ? processI18n(props.addFormTexts.description)
       : t("dms.table.new_item_description"),
     direction: "bottom",
     containerId: addContainerId,

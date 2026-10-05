@@ -11,7 +11,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 @RegisterDataController()
 class kanbanCardTaskDataAPI extends DataController(
@@ -39,7 +39,7 @@ export class PageTableViewKanbanCustomCard extends PageController(
   static table = TableView(kanbanCardTaskDataAPI, {
     caption: "Tasks - Kanban (Custom Card)",
     labelKey: "name",
-    formTexts: demoFormTexts("task"),
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       copyLink: true,

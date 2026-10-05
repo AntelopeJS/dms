@@ -2,7 +2,6 @@ import type {
   FormContainer,
   FormPageUrls,
 } from "../../../build/composables/table-view/useTableViewConfig";
-import type { TableViewFormTexts } from "../../../build/composables/table-view/utils/formTexts";
 import type { TableViewColumn } from "./column";
 import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
@@ -142,8 +141,6 @@ export interface TableViewConfig<T extends Data>
   defaultFilters?: TableFilter[];
   columns: TableViewColumn[];
   labelKey?: string;
-  /** Titles and descriptions of the add, edit and details forms. */
-  formTexts?: TableViewFormTexts;
   customButtons?: CustomButton[];
   formComponents: {
     new?: ComponentInfo<FormProps>;

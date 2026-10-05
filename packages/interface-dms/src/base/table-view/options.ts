@@ -376,21 +376,21 @@ export interface TableViewOptionsSerialized extends Omit<
   expandable?: TableViewExpandableSerialized;
 }
 
-/** Heading texts of one of the forms a table view opens. */
-export interface TableViewFormText {
+/**
+ * Heading texts of one of the forms a table view opens, whatever container
+ * opens it: the page, drawer or modal title and the line under it. Left out,
+ * the forms read "New entry", "Edit entry" and "Entry details".
+ */
+export interface FormContainerPageTexts {
   /** Title of the page, drawer or modal. `$`-prefixed: an i18n key. */
-  title?: string;
+  displayName?: string;
   /** Line under the title. `$`-prefixed: an i18n key. */
   description?: string;
 }
 
-/** The forms a table view opens: add (`new`), edit and details (`view`). */
-export type TableViewFormKind = "new" | "edit" | "view";
-
-export interface FormContainerPageConfig {
+/** One form of a page-mode table view: its texts, and the page it opens on. */
+export interface FormContainerPageConfig extends FormContainerPageTexts {
   urlSlug?: string;
-  displayName?: string;
-  description?: string;
   /**
    * When true, the DMS will not auto-create a form page for this action.
    * Use this when you have a manually registered page (via CustomComponent) at the same URL.
@@ -399,15 +399,27 @@ export interface FormContainerPageConfig {
   customPage?: boolean;
 }
 
-export interface FormContainerPages {
-  new?: FormContainerPageConfig;
-  edit?: FormContainerPageConfig;
-  view?: FormContainerPageConfig;
+/** The forms a table view opens: add (`new`), edit and `details`. */
+export interface FormContainerPages<
+  Page extends FormContainerPageTexts = FormContainerPageConfig,
+> {
+  new?: Page;
+  edit?: Page;
+  details?: Page;
 }
 
+/**
+ * Where the add, edit and details forms of a table view open, and their
+ * titles: `pages` names them in every container ("New task", "Edit task",
+ * "Task details"); a page-mode entry also sets the page's URL.
+ */
 export type FormContainer =
-  | { type: "drawer" }
-  | { type: "modal"; size?: ModalSize }
+  | { type: "drawer"; pages?: FormContainerPages<FormContainerPageTexts> }
+  | {
+      type: "modal";
+      size?: ModalSize;
+      pages?: FormContainerPages<FormContainerPageTexts>;
+    }
   | {
       type: "page";
       pages?: FormContainerPages;
@@ -528,18 +540,13 @@ export interface TableViewOptions<
    * ends the breadcrumb of its edit and details pages.
    */
   labelKey?: string;
-  /**
-   * Titles and descriptions of the add, edit and details forms, whatever
-   * container opens them: "New task", "Edit task", "Task details". A
-   * page-mode `formContainer.pages` entry's `displayName` and `description`
-   * win over them for its page. Left out, the forms read "New entry",
-   * "Edit entry" and "Entry details", the drawer and modal naming the
-   * caption in their description.
-   * @example { new: { title: "$tasks.form.new_title", description: "$tasks.form.new_description" } }
-   */
-  formTexts?: Partial<Record<TableViewFormKind, TableViewFormText>>;
   rowActions?: TableViewRowActionOptions<T>;
   customButtons?: CustomButton[];
+  /**
+   * Where the add, edit and details forms open (a page by default) and their
+   * titles, in any container.
+   * @example { type: "drawer", pages: { new: { displayName: "$tasks.form.new_title" } } }
+   */
   formContainer?: FormContainer;
   /**
    * Enable archive mode: replaces delete action with archive/restore

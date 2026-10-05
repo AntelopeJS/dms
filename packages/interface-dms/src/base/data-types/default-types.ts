@@ -32,6 +32,7 @@ import { Form, FormComponents } from "../form-schema";
 // neither side dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { TableViewMeta } from "../table-view/meta";
+import type { FormContainerPageTexts } from "../table-view/options";
 import type { TreeNode } from "../tree";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
@@ -714,12 +715,11 @@ export namespace DefaultDataTypes {
          */
         filterOnly?: boolean;
         /**
-         * Title of the drawer the picker's "add" entry opens, e.g. "New
-         * user". `$`-prefixed: an i18n key. Defaults to "New entry".
+         * Title and description of the drawer the picker's "add" entry
+         * opens, e.g. "New user". `$`-prefixed: i18n keys. Default to "New
+         * entry".
          */
-        addTitle?: string;
-        /** Line under that title. `$`-prefixed: an i18n key. */
-        addDescription?: string;
+        addForm?: FormContainerPageTexts;
       },
     ) {
       super(
@@ -756,8 +756,7 @@ export namespace DefaultDataTypes {
         keyMapping: this.options.keyMapping,
         addForm: addOptions?.addForm,
         addPermissionIds: addOptions?.addPermissionIds,
-        addTitle: this.options.addTitle,
-        addDescription: this.options.addDescription,
+        addFormTexts: this.options.addForm,
       });
     }
 

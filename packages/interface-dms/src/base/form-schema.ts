@@ -8,6 +8,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
+import type { FormContainerPageTexts } from "./table-view/options";
 import type { TreeNode } from "./tree";
 import type { AxeOrientation, EnumOption } from "./types";
 import { FORM_COMPONENT_NAME } from "./form-block-schema";
@@ -268,10 +269,11 @@ export namespace FormComponents {
      * any one of them grants.
      */
     addPermissionIds?: string[];
-    /** Title of the drawer the "add" entry opens. `$`-prefixed: an i18n key. */
-    addTitle?: string;
-    /** Line under that title. `$`-prefixed: an i18n key. */
-    addDescription?: string;
+    /**
+     * Title and description of the drawer the "add" entry opens.
+     * `$`-prefixed: i18n keys.
+     */
+    addFormTexts?: FormContainerPageTexts;
   }
 
   export interface CascaderRelationKeyMapping {

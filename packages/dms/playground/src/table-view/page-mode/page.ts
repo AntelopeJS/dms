@@ -10,7 +10,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 @RegisterDataController()
 class pageModeTaskDataAPI extends DataController(
@@ -38,7 +38,6 @@ export class PageTableViewPage extends PageController(
   static table = TableView(pageModeTaskDataAPI, {
     caption: "Tasks - Page Mode (Auto URLs)",
     labelKey: "name",
-    formTexts: demoFormTexts("task"),
     rowActions: {
       add: true,
       copyLink: true,
@@ -48,7 +47,7 @@ export class PageTableViewPage extends PageController(
       edit: true,
       hasSelection: true,
     },
-    formContainer: { type: "page" },
+    formContainer: { type: "page", pages: demoFormPages("task") },
     // Offers the built-in cards display next to the grid (display switch in
     // the toolbar).
     displays: [{ id: "cards" }],

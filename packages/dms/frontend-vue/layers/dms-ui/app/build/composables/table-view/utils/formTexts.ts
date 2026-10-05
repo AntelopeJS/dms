@@ -1,15 +1,25 @@
 /** The forms a table view opens: add (`new`), edit and details (`view`). */
 export type TableViewFormKind = "new" | "edit" | "view";
 
-/** Heading texts of one form, as the backend `formTexts` option gives them. */
+/** Heading texts of one form (a backend `formContainer.pages` entry). */
 export interface TableViewFormText {
-  title?: string;
+  displayName?: string;
   description?: string;
 }
 
-export type TableViewFormTexts = Partial<
-  Record<TableViewFormKind, TableViewFormText>
->;
+/** The backend `formContainer.pages`: the texts of each form. */
+export interface TableViewFormPages {
+  new?: TableViewFormText;
+  edit?: TableViewFormText;
+  details?: TableViewFormText;
+}
+
+/** The `formContainer.pages` key of each form kind. */
+const FORM_PAGE_KEYS: Record<TableViewFormKind, keyof TableViewFormPages> = {
+  new: "new",
+  edit: "edit",
+  view: "details",
+};
 
 /** Separates the form title from the label of the row it is about. */
 export const RECORD_LABEL_SEPARATOR = " · ";
@@ -41,7 +51,8 @@ const FALLBACK_KEYS: Record<TableViewFormKind, FallbackKeys> = {
 
 export interface FormContainerTextSource {
   kind: TableViewFormKind;
-  formTexts?: TableViewFormTexts;
+  /** The table view's `formContainer.pages`. */
+  pages?: TableViewFormPages;
   /** The table's caption, `$`-prefixed when an i18n key. */
   caption?: string;
   /** The row's label (its `labelKey` value), for the edit and details forms. */
@@ -57,9 +68,9 @@ export interface FormContainerTexts {
 
 /**
  * Title and description of the drawer or modal a table view opens a form in:
- * the table's `formTexts`, else "New entry" / "Edit entry" / "Entry details"
- * with a description naming the caption. The row's label follows the title
- * ("Edit task · Write the docs").
+ * the table's `formContainer.pages` entry, else "New entry" / "Edit entry" /
+ * "Entry details" with a description naming the caption. The row's label
+ * follows the title ("Edit task · Write the docs").
  */
 export function resolveFormContainerTexts(
   source: FormContainerTextSource,
@@ -67,10 +78,10 @@ export function resolveFormContainerTexts(
   t: (key: string, params?: Record<string, unknown>) => string,
 ): FormContainerTexts {
   const keys = FALLBACK_KEYS[source.kind];
-  const texts = source.formTexts?.[source.kind];
+  const texts = source.pages?.[FORM_PAGE_KEYS[source.kind]];
   const caption = source.caption ? resolve(source.caption) : "";
 
-  const title = texts?.title ? resolve(texts.title) : t(keys.title);
+  const title = texts?.displayName ? resolve(texts.displayName) : t(keys.title);
   const label = formatRecordLabel(source.recordLabel, source.locale);
   let description: string;
   if (texts?.description) {

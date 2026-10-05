@@ -9,6 +9,7 @@ import {
 } from "../../../composables/table-view/types";
 import type { FormContainerType } from "./types";
 import { buildInitialColumnVisibility } from "./utils/columnVisibility";
+import type { TableViewFormPages } from "./utils/formTexts";
 
 const BUILTIN_DISPLAYS: Record<
   string,
@@ -37,10 +38,12 @@ const withBuiltinDefaults = (
 };
 
 // The per-page slugs the table view declares are resolved server-side and
-// arrive as `formPages`; the frontend never reads them.
+// arrive as `formPages`; the frontend reads only the texts of `pages`.
 export interface FormContainer {
   type: FormContainerType;
   size?: ModalSize;
+  /** Titles and descriptions of the add, edit and details forms. */
+  pages?: TableViewFormPages;
 }
 
 /**
@@ -146,7 +149,6 @@ export const useTableViewConfig = <T extends Data>(
     location: config.location,
     caption: config.caption,
     labelKey: config.labelKey,
-    formTexts: config.formTexts,
     enableTableExport: config.enableTableExport,
     archiveMode: config.archiveMode,
     defaultFilters: config.defaultFilters,

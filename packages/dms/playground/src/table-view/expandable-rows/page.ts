@@ -11,7 +11,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { ORDER_STATUSES, orderDataAPI } from "./data-api";
 import { Order, OrderModel } from "./database";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 const DETAIL_FIELDS = [
   { key: "shippingAddress", label: "Ship to" },
@@ -52,7 +52,7 @@ export class PageTableViewExpandableRows extends PageController(
   static fields = TableView(orderDataAPI, {
     caption: "Orders · detail fields",
     labelKey: "number",
-    formTexts: demoFormTexts("order"),
+    formContainer: { type: "page", pages: demoFormPages("order") },
     defaultSort: { field: "placedAt", desc: true },
     expandable: {
       fields: DETAIL_FIELDS,
@@ -71,7 +71,7 @@ export class PageTableViewExpandableRows extends PageController(
   static component = TableView(componentOrderDataAPI, {
     caption: "Orders · detail component, one row at a time",
     labelKey: "number",
-    formTexts: demoFormTexts("order"),
+    formContainer: { type: "page", pages: demoFormPages("order") },
     density: "compact",
     maxHeight: "560px",
     defaultSort: { field: "placedAt", desc: true },

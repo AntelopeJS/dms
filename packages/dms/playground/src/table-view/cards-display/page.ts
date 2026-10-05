@@ -11,7 +11,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task, TaskModel } from "../database";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 const TASK_CARDS_DISPLAY_ID = "playground:task-cards";
 
@@ -41,7 +41,7 @@ export class PageTableViewCardsDisplay extends PageController(
   static table = TableView(cardsTaskDataAPI, {
     caption: "Tasks - Cards (Custom Display)",
     labelKey: "name",
-    formTexts: demoFormTexts("task"),
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       delete: { isVisible: true },

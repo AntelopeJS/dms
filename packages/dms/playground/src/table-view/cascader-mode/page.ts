@@ -3,7 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { cascaderCategoryDataAPI, cascaderProductDataAPI } from "./data-api";
-import { demoFormTexts } from "../form-texts";
+import { demoFormPages } from "../form-texts";
 
 @RegisterPage()
 export class PageCascaderCategories extends PageController(
@@ -20,7 +20,6 @@ export class PageCascaderCategories extends PageController(
   static table = TableView(cascaderCategoryDataAPI, {
     caption: "Product categories (self-referencing tree)",
     labelKey: "name",
-    formTexts: demoFormTexts("category"),
     rowActions: {
       add: true,
       delete: true,
@@ -28,7 +27,7 @@ export class PageCascaderCategories extends PageController(
       details: true,
       hasSelection: true,
     },
-    formContainer: { type: "drawer" },
+    formContainer: { type: "drawer", pages: demoFormPages("category") },
   });
 }
 
@@ -47,7 +46,6 @@ export class PageCascaderProducts extends PageController(
   static table = TableView(cascaderProductDataAPI, {
     caption: "Products (CascaderRelationType single + multiple/leafOnly)",
     labelKey: "name",
-    formTexts: demoFormTexts("product"),
     rowActions: {
       add: true,
       delete: true,
@@ -55,6 +53,6 @@ export class PageCascaderProducts extends PageController(
       details: true,
       hasSelection: true,
     },
-    formContainer: { type: "drawer" },
+    formContainer: { type: "drawer", pages: demoFormPages("product") },
   });
 }
