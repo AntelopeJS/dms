@@ -64,6 +64,8 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/notifications`, `/notifications/types` | Categories, subjects, the notification builder and its dispatch targets | [Notifications](./4.notifications/1.introduction.md) |
 | `/html-render` | `RegisterHtmlTemplate`, `GenerateHtml` and the template reference types | [HTML Render](./5.html-render/1.introduction.md) |
 
+Beyond these entry points, every file under the package's `src` is importable through its `./*` export (`@antelopejs/interface-dms/base/form-types`), so moving or renaming one is a breaking change, like removing an export.
+
 Symbols under an `internal` namespace are the wiring between the interface and its implementation, and are not part of the contract.
 
 ## How to Read a Domain
