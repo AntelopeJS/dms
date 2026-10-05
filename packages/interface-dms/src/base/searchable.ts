@@ -8,6 +8,11 @@ export class SearchableMeta {
 
   public readonly searchableFields: Record<string, string> = {};
 
+  /** A controller derived from this one searches the same fields. */
+  public inherit(parent: SearchableMeta): void {
+    Object.assign(this.searchableFields, parent.searchableFields);
+  }
+
   public setSearchableField(key: string, compareMode: string) {
     this.searchableFields[key] = compareMode;
   }

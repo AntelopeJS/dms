@@ -133,6 +133,14 @@ export interface TableViewRowScope {
   strictMode: boolean;
 }
 
+/** A data type of the same class whose options can change on their own. */
+function copyDataType(type: DataType): DataType {
+  const copy = Object.create(Object.getPrototypeOf(type) as object) as DataType;
+  return Object.assign(copy, type, {
+    options: type.options && { ...type.options },
+  });
+}
+
 export class TableViewMeta {
   public static key = Symbol();
 
@@ -157,6 +165,25 @@ export class TableViewMeta {
     ComponentBuilder<TableViewOptionsSerialized>
   >();
   private readonly resourceFormRefs = new WeakRefList<FormBuilder>();
+
+  /**
+   * A controller derived from this one (`DataController(Table, {},
+   * Controller("/b", Parent))`) starts with its columns, groups, options and
+   * archive field. The TableViews and forms built over the parent stay the
+   * parent's: the derived controller serves its own.
+   */
+  public inherit(parent: TableViewMeta): void {
+    // Each column gets its own copy of its type: a file column's type carries
+    // the attachment field of the controller it saves through, stamped when a
+    // form over that controller is built, and the two controllers save
+    // through different routes.
+    for (const [key, column] of Object.entries(parent.columns)) {
+      this.columns[key] = { ...column, type: copyDataType(column.type) };
+    }
+    Object.assign(this.groups, parent.groups);
+    this.options = { ...parent.options };
+    this.archiveField = parent.archiveField;
+  }
 
   /**
    * Every live TableView built on this controller, in build order. Several
