@@ -65,6 +65,7 @@ export {
   type FormContainerPageConfig,
   type FormContainerPages,
   type FormContainerPageTexts,
+  type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
@@ -96,6 +97,7 @@ export {
   type TableViewTab,
   type TableViewTabFilter,
   type TableViewTabSerialized,
+  type TableViewGroupBy,
 } from "./table-view/options";
 export {
   internal,

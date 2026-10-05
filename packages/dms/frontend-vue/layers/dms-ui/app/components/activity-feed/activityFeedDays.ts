@@ -45,7 +45,11 @@ const YEAR_KEY_LENGTH = 4;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
 
-function nameDay(
+/**
+ * How a calendar day reads next to today: "Today", "Yesterday", a weekday
+ * within the week, else the short date — with the short date beside a name.
+ */
+export function nameCalendarDay(
   date: Date,
   now: Date,
   locale: string,
@@ -94,7 +98,7 @@ export function groupActivityByDay(
       day =
         key === UNDATED_KEY || !date
           ? { key, items: [] }
-          : { key, ...nameDay(date, now, locale, labels), items: [] };
+          : { key, ...nameCalendarDay(date, now, locale, labels), items: [] };
       days.set(key, day);
     }
     day.items.push(item);

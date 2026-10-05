@@ -12,7 +12,11 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
 import { GetPermissionId, PageMetadata } from "../../page";
 import { HasPermission } from "../../permissions";
-import type { TableViewTab, TableViewTabSerialized } from "./options";
+import type {
+  TableViewOptions,
+  TableViewTab,
+  TableViewTabSerialized,
+} from "./options";
 
 function dataApiLocation(countFrom: ControllerClass | string): string {
   return typeof countFrom === "string"
@@ -80,6 +84,16 @@ export async function resolveTableViewTabs(
   return kept;
 }
 
+/**
+ * Whether a table view shows counters the `count/batch` route serves: filter
+ * tabs or counted groups.
+ */
+export function declaresCounters(
+  options: Pick<TableViewOptions, "tabs" | "grouped">,
+): boolean {
+  return (options.tabs?.length ?? 0) > 0 || !!options.grouped?.count;
+}
+
 const COUNT_BATCH_PATH = "count/batch";
 const COUNT_BATCH_METHOD = "post";
 const EDGE_SLASHES = /^\/+|\/+$/g;
@@ -99,21 +113,21 @@ function servesCountBatch(
 }
 
 /**
- * Warn, once per controller, when a table view declares filter tabs but its
- * controller mounts no `POST count/batch` route: every tab counter request
- * would fail. The fix belongs in the controller (mount
- * `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
+ * Warn, once per controller, when a table view declares filter tabs or counted
+ * groups but its controller mounts no `POST count/batch`
+ * route: every counter request would fail. The fix belongs in the controller
+ * (mount `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
  */
 export function warnIfTabsLackCountBatch(
   controller: ControllerClass,
   location: string,
-  hasTabs: boolean,
+  hasCounters: boolean,
   endpoints: Record<string, DataControllerCallbackWithOptions>,
 ): void {
-  if (!hasTabs || controllersWarnedForTabCounts.has(controller)) return;
+  if (!hasCounters || controllersWarnedForTabCounts.has(controller)) return;
   if (servesCountBatch(endpoints)) return;
   controllersWarnedForTabCounts.add(controller);
   Logging.Warn(
-    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: tab counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
+    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
   );
 }

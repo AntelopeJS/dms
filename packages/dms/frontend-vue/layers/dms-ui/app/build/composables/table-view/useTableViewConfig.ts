@@ -6,6 +6,7 @@ import type {
 import {
   TABLE_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
 } from "../../../composables/table-view/types";
 import type { FormContainerType } from "./types";
 import { buildInitialColumnVisibility } from "./utils/columnVisibility";
@@ -17,6 +18,10 @@ const BUILTIN_DISPLAYS: Record<
 > = {
   [TABLE_DISPLAY_ID]: { capabilities: { columnManagement: true } },
   [KANBAN_DISPLAY_ID]: { selfManagedData: true, capabilities: { tabs: false } },
+  // The grid's columns, listed sorted on the grouped column.
+  [GROUPED_DISPLAY_ID]: {
+    capabilities: { columnManagement: true, sorting: false },
+  },
 };
 
 const withBuiltinDefaults = (

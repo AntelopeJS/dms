@@ -164,7 +164,14 @@
         "archive": "{failed} élément sur {total} n’a pas pu être archivé. | {failed} éléments sur {total} n’ont pas pu être archivés.",
         "restore": "{failed} élément sur {total} n’a pas pu être restauré. | {failed} éléments sur {total} n’ont pas pu être restaurés."
       },
-      "bulk_refused_reason": "Ses règles n’autorisent pas cette action, ou elle a déjà été effectuée. | Leurs règles n’autorisent pas cette action, ou elle a déjà été effectuée."
+      "bulk_refused_reason": "Ses règles n’autorisent pas cette action, ou elle a déjà été effectuée. | Leurs règles n’autorisent pas cette action, ou elle a déjà été effectuée.",
+      "view_mode_grouped": "Groupé",
+      "grouped": {
+        "none": "Sans valeur",
+        "today": "Aujourd'hui",
+        "yesterday": "Hier",
+        "week_of": "Semaine du {date}"
+      }
     },
     "table_form": {
       "edit_title": "Modifier l’entrée",

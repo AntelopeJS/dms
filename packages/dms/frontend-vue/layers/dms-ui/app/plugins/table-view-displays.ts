@@ -3,6 +3,7 @@ import { storeTableViewDisplay } from "../build/composables/table-view/displayRe
 import { isEligibleKanbanColumn } from "../composables/table-view/kanban";
 import {
   CARDS_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
   TABLE_DISPLAY_ID,
 } from "../composables/table-view/types";
@@ -25,6 +26,14 @@ export default defineDmsPlugin(() => {
     label: "dms.table.view_mode_table",
     icon: "i-ph-rows",
     order: 10,
+  });
+
+  // The grid itself, its rows under group headers: no component of its own.
+  storeTableViewDisplay({
+    id: GROUPED_DISPLAY_ID,
+    label: "dms.table.view_mode_grouped",
+    icon: "i-ph-rows-plus-bottom",
+    order: 15,
   });
 
   storeTableViewDisplay({

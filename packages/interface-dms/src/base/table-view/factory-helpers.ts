@@ -30,6 +30,8 @@ import {
   type FormContainerPageConfig,
   type FormContainerPages,
   type FormContainerPageTexts,
+  GROUPED_DISPLAY_ID,
+  type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
@@ -279,6 +281,7 @@ export function serializeExpandable(
 export interface TableViewDisplaySources {
   displays?: TableViewDisplayOption[];
   kanban?: KanbanOptions;
+  grouped?: GroupedOptions;
   card?: TableViewCardOptions;
 }
 
@@ -297,10 +300,10 @@ function serializeCard({
 }
 
 /**
- * The `kanban` option is transported to the frontend as a `displays` entry
- * (`{ id: "kanban", options }`), not as a dedicated field; the kanban display
- * reads its options from `context.options` like any other display. The `card`
- * joins the options of both card displays, kanban and cards.
+ * The `kanban` and `grouped` options are transported to the frontend as
+ * `displays` entries (`{ id: "kanban", options }`), not as dedicated fields;
+ * those displays read their options from `context.options` like any other.
+ * The `card` joins the options of both card displays, kanban and cards.
  */
 export function serializeTableViewDisplays(
   sources: TableViewDisplaySources,
@@ -329,6 +332,13 @@ export function serializeTableViewDisplays(
       // cannot be one assertion; the display registry reads it by key.
       // oxlint-disable-next-line anti-slop/no-chained-type-assertions
       options: kanbanOptions as unknown as Record<string, unknown>,
+    });
+  }
+  const { grouped } = sources;
+  if (grouped && !serialized.some((entry) => entry.id === GROUPED_DISPLAY_ID)) {
+    serialized.push({
+      id: GROUPED_DISPLAY_ID,
+      options: { ...grouped },
     });
   }
   return serialized.length > 0 ? serialized : undefined;

@@ -460,7 +460,7 @@ export const TABLE_DISPLAY_ID = "table";
 export const KANBAN_DISPLAY_ID = "kanban";
 /** Id of the built-in card grid display. */
 export const CARDS_DISPLAY_ID = "cards";
-/** Id kept for the built-in grouped display. */
+/** Id of the built-in grouped display (see `grouped`). */
 export const GROUPED_DISPLAY_ID = "grouped";
 
 export interface KanbanOptions {
@@ -493,6 +493,32 @@ export interface KanbanOptions {
    * per column follows the user-adjustable table page size preference.
    */
   columnMaxHeight?: string;
+}
+
+/** How the `grouped` display cuts the rows into groups. */
+export type TableViewGroupBy = "value" | "day" | "week";
+
+/**
+ * The `grouped` display: the table's own columns, with a header row before
+ * each group of rows sharing a value of `groupByField` (a status, a day of a
+ * date). The rows are listed sorted on that column and paged as usual, and a
+ * page starting inside a group repeats its header on top. No aggregates.
+ */
+export interface GroupedOptions {
+  /**
+   * Column the rows are grouped on. It must be a `@Sortable()` column: the
+   * list sorts on it so a group's rows follow each other.
+   */
+  groupByField: string;
+  /**
+   * `value` (the default): one group per value; `day` or `week`: one group
+   * per calendar day or week of a date column.
+   */
+  by?: TableViewGroupBy;
+  /** A click on a group header folds its rows. */
+  collapsible?: boolean;
+  /** Group headers show how many rows the group holds. */
+  count?: boolean;
 }
 
 export interface TableViewOptions<
@@ -602,6 +628,12 @@ export interface TableViewOptions<
    * switch between the table and a kanban board from the toolbar.
    */
   kanban?: KanbanOptions;
+  /**
+   * Offers the `grouped` display: the grid's columns with a header row per
+   * group of rows. A view may open in it (`display: "grouped"`).
+   * @example { groupByField: "createdAt", by: "day", count: true }
+   */
+  grouped?: GroupedOptions;
   /**
    * The card the `kanban` and `cards` displays draw for each row: the columns
    * it shows, or a component drawing it whole.

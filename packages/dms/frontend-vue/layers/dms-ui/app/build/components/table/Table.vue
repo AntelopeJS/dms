@@ -42,12 +42,29 @@ import type { ResolvedTableChrome } from "../../composables/table-view/utils/chr
 import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
 import type { ClearableTableFilters } from "../../composables/table/utils/clearTableFilters";
 import type { EventHookOn } from "@vueuse/core";
+import type { VNodeChild } from "vue";
 
 export interface Data {
   [key: string]: unknown;
 }
 
 export type TableDensity = "default" | "compact";
+
+/**
+ * Rows split into groups under header rows, the `grouped` display: the rows
+ * arrive sorted on the grouped column, and a page starting inside a group
+ * repeats its header.
+ */
+export interface TableRowGrouping<T = Data> {
+  /** Key of the group a row belongs to. */
+  keyOf: (row: T) => string;
+  /** Content of a group's header row, read off its first row. */
+  header: (key: string, row: T) => VNodeChild;
+  /** Number of rows the group holds, once counted. */
+  countOf?: (key: string) => number | undefined;
+  /** A click on the header folds the group's rows. */
+  collapsible?: boolean;
+}
 
 export type TableColumn<T> = ColumnDef<T> & {
   type?: DataTypeConfig;
@@ -167,6 +184,8 @@ export interface TableProps<T> {
    * header band that stays in view.
    */
   maxHeight?: string;
+  /** Splits the rows into groups under header rows. */
+  grouping?: TableRowGrouping<T>;
 
   data?: T[] | null;
   columns?: TableColumn<T>[];
@@ -416,6 +435,16 @@ const theme = tv({
       "flex items-center justify-end gap-1 opacity-40 transition-opacity group-hover:opacity-100 group-data-[selected=true]:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100",
 
     columnActiveSortIcon: "size-3 shrink-0 text-primary",
+
+    // Group header of the grouped display, on the band color, kept in view
+    // over a horizontally scrolled table like a detail band.
+    groupCell: `${HEADER_MATCH_BG} border-b border-default p-0`,
+    groupHeader:
+      "sticky start-0 flex h-9 w-[var(--dms-table-viewport,auto)] items-center gap-2 ps-[18px] pe-3.5 text-[12.5px] text-muted",
+    groupToggle:
+      "inline-flex min-w-0 items-center gap-2 hover:text-highlighted",
+    groupCount:
+      "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
   },
   variants: {
     cellWrap: {
@@ -631,7 +660,7 @@ const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableRootStyle = computed(() => ({
   maxHeight: props.maxHeight,
   "--dms-table-viewport":
-    isExpandable && tableViewportWidth.value > 0
+    (isExpandable || !!props.grouping) && tableViewportWidth.value > 0
       ? `${tableViewportWidth.value}px`
       : undefined,
 }));
@@ -803,6 +832,45 @@ const { table, labeledColumns, deleteFilter, deleteSorting } = useTable<T>({
 });
 
 const rowCount = computed(() => props.paginationOptions?.rowCount ?? 0);
+
+type TableRow = ReturnType<typeof table.getRowModel>["rows"][number];
+
+/** A line of the table body: a row, or the header of the group it opens. */
+interface BodyEntry {
+  kind: "row" | "group";
+  id: string;
+  /** The row, or the first row of the group a header opens. */
+  row: TableRow;
+  /** Group key, on a group header. */
+  key?: string;
+}
+
+const GROUP_ENTRY_PREFIX = "group:";
+const collapsedGroups = ref<string[]>([]);
+const toggleGroup = (key: string) => {
+  collapsedGroups.value = collapsedGroups.value.includes(key)
+    ? collapsedGroups.value.filter((collapsed) => collapsed !== key)
+    : [...collapsedGroups.value, key];
+};
+
+const bodyEntries = computed<BodyEntry[]>(() => {
+  const rows = table.getRowModel().rows;
+  const grouping = props.grouping;
+  if (!grouping) return rows.map((row) => ({ kind: "row", id: row.id, row }));
+  const entries: BodyEntry[] = [];
+  let currentKey: string | undefined;
+  for (const row of rows) {
+    const key = grouping.keyOf(row.original);
+    if (key !== currentKey) {
+      currentKey = key;
+      entries.push({ kind: "group", id: GROUP_ENTRY_PREFIX + key, row, key });
+    }
+    if (!collapsedGroups.value.includes(key)) {
+      entries.push({ kind: "row", id: row.id, row });
+    }
+  }
+  return entries;
+});
 
 const { t, locale } = useI18n();
 
@@ -1206,94 +1274,144 @@ defineShortcuts({
 
             <tbody>
               <template v-if="table.getRowModel().rows?.length">
-                <template v-for="row in table.getRowModel().rows" :key="row.id">
-                  <tr
-                    :data-selected="row.getIsSelected()"
-                    :data-expanded="row.getIsExpanded()"
-                    :data-presence="!!getRowPresence(row.original)"
-                    :title="
-                      getRowPresence(row.original)
-                        ? presenceTooltipText(getRowPresence(row.original)!)
-                        : undefined
-                    "
-                    :class="
-                      uiTable.row({
-                        loading,
-                        rowClickable: isRowClickable(row.original),
-                        presence: !!getRowPresence(row.original),
-                      })
-                    "
-                    @dblclick="handleRowDoubleClick(row.original)"
-                    @mouseenter="handleRowHover(row)"
-                    @mouseleave="handleRowLeave"
-                  >
-                    <td
-                      v-if="hasPresenceRail"
-                      :class="[
-                        'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
-                        row.getIsSelected() && !getRowPresence(row.original)
-                          ? SELECTION_RAIL_BG
-                          : presenceRailBackground(row.original),
-                      ]"
-                      :style="{
-                        width: PRESENCE_RAIL_WIDTH_PX,
-                        minWidth: PRESENCE_RAIL_WIDTH_PX,
-                      }"
-                    />
-                    <td
-                      v-for="cell in row.getVisibleCells()"
-                      :key="cell.id"
-                      :data-pinned="cell.column.getIsPinned()"
-                      :class="
-                        uiTable.rowCell({
-                          pinned: getPinnedVariant(cell.column),
-                          loading,
-                          rowClickable: isRowClickable(row.original),
-                        })
-                      "
-                      :style="{
-                        left: getPinnedLeftOffset(cell.column),
-                        right: getPinnedRightOffset(cell.column),
-                      }"
-                    >
-                      <div :class="uiTable.rowContainer()">
-                        <div :class="uiTable.rowInternal({ loading })">
-                          <slot
-                            :name="`${cell.column.id}-cell`"
-                            v-bind="cell.getContext()"
-                          >
-                            <div
-                              :class="
-                                uiTable.rowSpan({
-                                  cellWrap: (
-                                    cell.column.columnDef as TableColumn<T>
-                                  ).cellWrap,
-                                })
-                              "
-                              @mouseenter="syncClippedTitle"
-                            >
-                              <FlexRender
-                                :render="cell.column.columnDef.cell"
-                                :props="cell.getContext()"
-                              />
-                            </div>
-                          </slot>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr v-if="row.getIsExpanded()" :id="expandedRowDomId(row.id)">
+                <template
+                  v-for="{ kind, id, row, key } in bodyEntries"
+                  :key="id"
+                >
+                  <tr v-if="kind === 'group' && grouping">
                     <td
                       :colspan="
                         row.getVisibleCells().length + (hasPresenceRail ? 1 : 0)
                       "
-                      :class="uiTable.expandedCell()"
+                      :class="uiTable.groupCell()"
                     >
-                      <div :class="uiTable.expandedBody()">
-                        <slot name="expanded" :row="row" />
+                      <div :class="uiTable.groupHeader()">
+                        <component
+                          :is="grouping.collapsible ? 'button' : 'span'"
+                          :type="grouping.collapsible ? 'button' : undefined"
+                          :aria-expanded="
+                            grouping.collapsible
+                              ? !collapsedGroups.includes(key!)
+                              : undefined
+                          "
+                          :class="uiTable.groupToggle()"
+                          @click="grouping.collapsible && toggleGroup(key!)"
+                        >
+                          <UIcon
+                            v-if="grouping.collapsible"
+                            :name="
+                              collapsedGroups.includes(key!)
+                                ? 'i-ph-caret-right'
+                                : 'i-ph-caret-down'
+                            "
+                            class="size-3"
+                          />
+                          <component
+                            :is="() => grouping!.header(key!, row.original)"
+                          />
+                        </component>
+                        <span
+                          v-if="grouping.countOf?.(key!) !== undefined"
+                          :class="uiTable.groupCount()"
+                        >
+                          {{ grouping.countOf(key!) }}
+                        </span>
                       </div>
                     </td>
                   </tr>
+                  <template v-else>
+                    <tr
+                      :data-selected="row.getIsSelected()"
+                      :data-expanded="row.getIsExpanded()"
+                      :data-presence="!!getRowPresence(row.original)"
+                      :title="
+                        getRowPresence(row.original)
+                          ? presenceTooltipText(getRowPresence(row.original)!)
+                          : undefined
+                      "
+                      :class="
+                        uiTable.row({
+                          loading,
+                          rowClickable: isRowClickable(row.original),
+                          presence: !!getRowPresence(row.original),
+                        })
+                      "
+                      @dblclick="handleRowDoubleClick(row.original)"
+                      @mouseenter="handleRowHover(row)"
+                      @mouseleave="handleRowLeave"
+                    >
+                      <td
+                        v-if="hasPresenceRail"
+                        :class="[
+                          'border-b-muted sticky left-0 z-30 border-b p-0 in-[tr:last-child]:border-b-0',
+                          row.getIsSelected() && !getRowPresence(row.original)
+                            ? SELECTION_RAIL_BG
+                            : presenceRailBackground(row.original),
+                        ]"
+                        :style="{
+                          width: PRESENCE_RAIL_WIDTH_PX,
+                          minWidth: PRESENCE_RAIL_WIDTH_PX,
+                        }"
+                      />
+                      <td
+                        v-for="cell in row.getVisibleCells()"
+                        :key="cell.id"
+                        :data-pinned="cell.column.getIsPinned()"
+                        :class="
+                          uiTable.rowCell({
+                            pinned: getPinnedVariant(cell.column),
+                            loading,
+                            rowClickable: isRowClickable(row.original),
+                          })
+                        "
+                        :style="{
+                          left: getPinnedLeftOffset(cell.column),
+                          right: getPinnedRightOffset(cell.column),
+                        }"
+                      >
+                        <div :class="uiTable.rowContainer()">
+                          <div :class="uiTable.rowInternal({ loading })">
+                            <slot
+                              :name="`${cell.column.id}-cell`"
+                              v-bind="cell.getContext()"
+                            >
+                              <div
+                                :class="
+                                  uiTable.rowSpan({
+                                    cellWrap: (
+                                      cell.column.columnDef as TableColumn<T>
+                                    ).cellWrap,
+                                  })
+                                "
+                                @mouseenter="syncClippedTitle"
+                              >
+                                <FlexRender
+                                  :render="cell.column.columnDef.cell"
+                                  :props="cell.getContext()"
+                                />
+                              </div>
+                            </slot>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr
+                      v-if="row.getIsExpanded()"
+                      :id="expandedRowDomId(row.id)"
+                    >
+                      <td
+                        :colspan="
+                          row.getVisibleCells().length +
+                          (hasPresenceRail ? 1 : 0)
+                        "
+                        :class="uiTable.expandedCell()"
+                      >
+                        <div :class="uiTable.expandedBody()">
+                          <slot name="expanded" :row="row" />
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
                 </template>
               </template>
               <!-- First load: skeleton rows keep the column rhythm instead of

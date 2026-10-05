@@ -26,10 +26,12 @@ import type {
   TableViewListResponse,
   TableViewDisplayContext,
   TableViewDisplayConfig,
+  TableViewGroupedConfig,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
   TableViewEvents,
 } from "../../composables/table-view/types";
 import {
@@ -81,6 +83,8 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
+import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
+import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
 import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
@@ -174,6 +178,9 @@ const optionsForDisplay = (id: string): Record<string, unknown> | undefined =>
   resolvedDisplay(id)?.options;
 const kanbanOptions = optionsForDisplay(KANBAN_DISPLAY_ID) as
   | KanbanConfig
+  | undefined;
+const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
+  | TableViewGroupedConfig
   | undefined;
 
 // Stored under the legacy "viewMode" key (free migration of "table"/"kanban");
@@ -589,12 +596,20 @@ const effectiveColumnFilters = computed<TableFilter[]>(() =>
 const effectiveGlobalFilter = computed(() =>
   activeCapabilities.value.search ? globalFilterDebounced.value : undefined,
 );
-const effectiveSorting = computed<SortingState>(() =>
-  sanitizeSorting(
-    activeCapabilities.value.sorting ? sorting.value : defaultSortState,
-    sortableIds.value,
-  ),
+const isGroupedDisplay = computed(
+  () => activeDisplayId.value === GROUPED_DISPLAY_ID && !!groupedOptions,
 );
+const effectiveSorting = computed<SortingState>(() => {
+  const picked = activeCapabilities.value.sorting
+    ? sorting.value
+    : defaultSortState;
+  return sanitizeSorting(
+    isGroupedDisplay.value && groupedOptions
+      ? groupedSorting(picked, groupedOptions)
+      : picked,
+    sortableIds.value,
+  );
+});
 
 const queryRequest = computed(() =>
   buildTableQuery({
@@ -802,6 +817,28 @@ const baseQuery = computed<Record<string, unknown>>(() => {
   return { ...query, ...archiveQuery.value };
 });
 
+const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
+  grouped: groupedOptions,
+  isActive: isGroupedDisplay,
+  columns: props.columns,
+  rows: shownResults,
+  countQuery: (filter) => ({
+    ...buildTableQuery({
+      pagination: { pageIndex: 0, pageSize: 0 },
+      sorting: [],
+      columnFilters: [...effectiveColumnFilters.value, filter],
+      hiddenFilters: hiddenFilters.value,
+      globalFilter: effectiveGlobalFilter.value,
+    }),
+    ...archiveQuery.value,
+  }),
+  countBatch: (queries) =>
+    $authFetch<Record<string, number>>(location + "/count/batch", {
+      method: "POST",
+      body: { queries },
+    }),
+});
+
 // Only what the (unchanged) KanbanBoard needs beyond the generic context: the
 // two-way group-by ref and the raw action configs for per-row rule evaluation.
 provide(KANBAN_DISPLAY_BRIDGE_KEY, {
@@ -852,6 +889,7 @@ const refreshAll = async () => {
     refresh(),
     refreshTabCounts(),
     refreshLinkTabCounts(),
+    refreshGroupCounts(),
     activeDisplayRef.value?.refresh?.(),
   ]);
 };
@@ -1586,6 +1624,7 @@ onMounted(() => {
     v-model:expanded="expandedModel"
     v-model:density="density"
     :chrome="resolvedChrome"
+    :grouping="grouping"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
     :footer="props.footer"

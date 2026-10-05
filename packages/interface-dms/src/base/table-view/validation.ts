@@ -4,12 +4,16 @@
 //
 // Split out of factory-helpers.ts.
 
+import type { ControllerClass } from "@antelopejs/interface-api";
+import { GetMetadata } from "@antelopejs/interface-core";
+import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { getDataTypeId } from "../data-types";
 import { TableViewMeta } from "./meta";
 import {
   type FormContainerPages,
   CARDS_DISPLAY_ID,
   GROUPED_DISPLAY_ID,
+  type GroupedOptions,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   MAX_TABLE_PAGE_SIZE,
@@ -167,25 +171,74 @@ export function validateDisplayIds(
   }
 }
 
-/** The default display must be the table, the kanban or a declared display. */
-export function validateDefaultDisplay(
-  controllerName: string,
-  options: {
-    defaultDisplay?: string;
-    kanban?: KanbanOptions;
-    displays?: TableViewDisplayOption[];
-  },
-): void {
-  const { defaultDisplay, kanban, displays } = options;
-  if (!defaultDisplay) return;
-  const knownDisplayIds = new Set<string>([
+/** What a table view's displays are declared from. */
+interface DisplayDeclarations {
+  kanban?: KanbanOptions;
+  grouped?: GroupedOptions;
+  displays?: TableViewDisplayOption[];
+}
+
+/** The ids of the displays a table view offers. */
+export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
+  const { kanban, grouped, displays } = options;
+  return new Set<string>([
     TABLE_DISPLAY_ID,
     ...(kanban ? [KANBAN_DISPLAY_ID] : []),
+    ...(grouped ? [GROUPED_DISPLAY_ID] : []),
     ...(displays?.map((display) => display.id) ?? []),
   ]);
-  if (!knownDisplayIds.has(defaultDisplay)) {
+}
+
+/** The default display must be one the table view offers. */
+export function validateDefaultDisplay(
+  controllerName: string,
+  options: DisplayDeclarations & { defaultDisplay?: string },
+): void {
+  const { defaultDisplay } = options;
+  if (!defaultDisplay) return;
+  if (!offeredDisplayIds(options).has(defaultDisplay)) {
     throw new Error(
       `TableView on ${controllerName} defaults to display "${defaultDisplay}" which is not declared in displays`,
+    );
+  }
+}
+
+function isSortableColumn(meta: TableViewMeta, key: string): boolean {
+  const fields = GetMetadata(
+    meta.target as ControllerClass,
+    DataAPIMeta,
+  ).fields;
+  return fields[key]?.sortable !== undefined;
+}
+
+const DAY_GROUPING_TYPE_ID = "date";
+
+/**
+ * The grouped display sorts on its column, which must therefore be a sortable
+ * column, and a date one to be grouped by day or week.
+ */
+export function validateGroupedOptions(
+  controllerName: string,
+  meta: TableViewMeta,
+  grouped: GroupedOptions | undefined,
+): void {
+  if (!grouped) return;
+  const { groupByField, by } = grouped;
+  const column = meta.columns[groupByField];
+  if (!column) {
+    throw new Error(
+      `TableView grouped groupByField on ${controllerName} references unknown column "${groupByField}"`,
+    );
+  }
+  if (!isSortableColumn(meta, groupByField)) {
+    throw new Error(
+      `TableView grouped groupByField "${groupByField}" on ${controllerName} must be @Sortable(): the rows are listed sorted on it`,
+    );
+  }
+  const typeId = getDataTypeId(column.type);
+  if (by && by !== "value" && typeId !== DAY_GROUPING_TYPE_ID) {
+    throw new Error(
+      `TableView grouped on ${controllerName} groups "${groupByField}" by ${by}, which needs a DateType column (got "${typeId}")`,
     );
   }
 }
@@ -238,6 +291,7 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
     "card fields",
     options.card?.fields ?? [],
   );
+  validateGroupedOptions(controllerName, meta, options.grouped);
   validateDisplayIds(controllerName, options.displays);
   validateDefaultDisplay(controllerName, options);
   validateQuickFilters(controllerName, meta, options.quickFilters);

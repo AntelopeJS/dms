@@ -47,6 +47,7 @@ import {
   TableViewFunctions,
 } from "./factory-helpers";
 import {
+  declaresCounters,
   resolveTableViewTabs,
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
@@ -88,7 +89,7 @@ export function TableView<T extends ControllerClass>(
   warnIfTabsLackCountBatch(
     controller,
     config.location,
-    (options.tabs?.length ?? 0) > 0,
+    declaresCounters(options),
     endpoints,
   );
 

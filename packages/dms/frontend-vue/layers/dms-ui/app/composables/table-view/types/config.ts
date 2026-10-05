@@ -93,6 +93,17 @@ export interface TableViewExpandableConfig {
   single?: boolean;
 }
 
+/** How the `grouped` display cuts the rows (backend `TableViewGroupBy`). */
+export type TableViewGroupBy = "value" | "day" | "week";
+
+/** The `grouped` display's options (backend `grouped`). */
+export interface TableViewGroupedConfig {
+  groupByField: string;
+  by?: TableViewGroupBy;
+  collapsible?: boolean;
+  count?: boolean;
+}
+
 export interface TableViewListResponse<T> {
   results: T[];
   total: number;

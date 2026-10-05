@@ -164,7 +164,14 @@
         "archive": "{failed} of {total} items couldn’t be archived.",
         "restore": "{failed} of {total} items couldn’t be restored."
       },
-      "bulk_refused_reason": "Its rules don’t allow this action, or it was already done. | Their rules don’t allow this action, or it was already done."
+      "bulk_refused_reason": "Its rules don’t allow this action, or it was already done. | Their rules don’t allow this action, or it was already done.",
+      "view_mode_grouped": "Grouped",
+      "grouped": {
+        "none": "No value",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "week_of": "Week of {date}"
+      }
     },
     "table_form": {
       "edit_title": "Edit entry",
