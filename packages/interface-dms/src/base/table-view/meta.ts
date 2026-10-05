@@ -42,6 +42,7 @@ import {
 } from "../types";
 import type { TableViewGuards } from "../types/guards";
 import type {
+  TableViewFooterSummary,
   TableViewOptions,
   TableViewOptionsSerialized,
   TableViewRowActionOptions,
@@ -123,6 +124,9 @@ function copyDataType(type: DataType): DataType {
     options: type.options && { ...type.options },
   });
 }
+
+// A footer summary's id: its index among the controller's summaries.
+const FOOTER_SUMMARY_ID = /^\d+$/;
 
 // The actions of a table view that change rows through the data routes.
 const WRITE_ACTION_IDS = new Set([
@@ -444,6 +448,28 @@ export class TableViewMeta {
 
   public setGroup(id: string, config: ColumnGroupConfig) {
     this.groups[id] = config;
+  }
+
+  // Footer summaries every table view over the controller declared, by id:
+  // the `summary` route computes the ones a request names, and never a
+  // figure a table did not declare.
+  private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
+
+  /** Records footer summaries; the ids the `summary` route knows them by. */
+  public registerFooterSummaries<T extends Record<string, unknown>>(
+    summaries: TableViewFooterSummary<T>[],
+  ): string[] {
+    return summaries.map((summary) => {
+      this.footerSummaries.push(summary as TableViewFooterSummary<any>);
+      return String(this.footerSummaries.length - 1);
+    });
+  }
+
+  /** A footer summary by the id `registerFooterSummaries` gave it. */
+  public footerSummary(id: string): TableViewFooterSummary<any> | undefined {
+    return FOOTER_SUMMARY_ID.test(id)
+      ? this.footerSummaries[Number(id)]
+      : undefined;
   }
 
   public setOptions(options: TableViewOptions<any>) {

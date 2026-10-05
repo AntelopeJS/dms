@@ -1,4 +1,5 @@
 import {
+  type ControllerClass,
   Context,
   JSONBody,
   MultiParameter,
@@ -6,6 +7,7 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
+import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
   type DataControllerCallbackWithOptions,
@@ -33,6 +35,7 @@ import {
   type RowBulkOperationParams,
   restoreRows,
   startExport,
+  summarizeWithSearch,
 } from "./data-functions";
 import { withFilePromotion } from "./files";
 import { createGuardedRoute, guardedGetRoute } from "./guards";
@@ -45,6 +48,8 @@ import {
   withPresenceAcquire,
   withRealtimeMutation,
 } from "./realtime";
+import { TableViewMeta } from "./meta";
+import type { TableViewFooterSummary } from "./options";
 import { createValidatedRoute } from "./row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
@@ -156,6 +161,59 @@ function createCountRoute(actionId: string): DataControllerCallback {
   };
 }
 
+/** The footer summaries a request names, refusing an id never declared. */
+function requestedSummaries(
+  thisObj: unknown,
+  ids: string[],
+): Record<string, TableViewFooterSummary> {
+  const meta = GetMetadata(
+    (thisObj as { constructor: ControllerClass }).constructor,
+    TableViewMeta,
+  );
+  const summaries: Record<string, TableViewFooterSummary> = {};
+  for (const id of ids) {
+    const summary = meta.footerSummary(id);
+    assert(summary, 400, `Unknown footer summary "${id}".`);
+    summaries[id] = summary;
+  }
+  return summaries;
+}
+
+function createSummaryRoute(actionId: string): DataControllerCallback {
+  return {
+    func: async function (
+      this: unknown,
+      ctx: RequestContext,
+      listParams: Parameters.ListParameters,
+      ids: string[],
+      user: User,
+    ) {
+      const summaries = requestedSummaries(this, ids);
+      const permissions = await authorizeAction(
+        this,
+        actionId,
+        user,
+        getRequestTenantId(ctx),
+      );
+      return summarizeWithSearch(
+        this as DataControllerCallback,
+        ctx,
+        listParams,
+        summaries,
+        user,
+        permissions,
+      );
+    },
+    args: [
+      Context(),
+      Parameters.List(),
+      MultiParameter("ids", "query"),
+      AuthUser(),
+    ],
+    method: "get" as const,
+  };
+}
+
 function createBatchCountRoute(actionId: string): DataControllerCallback {
   return {
     func: async function (
@@ -236,6 +294,17 @@ export namespace TableViewRoutes {
     createBatchCountRoute(LIST_ACTION),
     {},
     "/count/batch",
+  );
+  /**
+   * `GET <location>/summary?ids=<id>`: the footer summaries a table view
+   * declared (`footer.summary`), computed over every row its filters and
+   * search list. Mount it as `summary: TableViewRoutes.Summary`; a table view
+   * declaring summaries without it gets a registration warning.
+   */
+  export const Summary = DefaultRoutes.WithOptions(
+    createSummaryRoute(LIST_ACTION),
+    {},
+    "/summary",
   );
   export const New = withRealtimeMutation(
     { eventType: "created", extractIds: extractFromResult },
@@ -369,6 +438,7 @@ export namespace TableViewRoutes {
     select: Select,
     count: Count,
     countBatch: CountBatch,
+    summary: Summary,
     new: New,
     edit: Edit,
     delete: Delete,

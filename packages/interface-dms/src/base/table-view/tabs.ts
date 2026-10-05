@@ -106,13 +106,15 @@ const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
 
 // Matched on the mounted path and method rather than on the route object: a
 // module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
-function servesCountBatch(
+export function servesRoute(
   endpoints: Record<string, DataControllerCallbackWithOptions>,
+  path: string,
+  method: string,
 ): boolean {
   return Object.entries(endpoints).some(
     ([key, entry]) =>
-      (entry.endpoint ?? key).replace(EDGE_SLASHES, "") === COUNT_BATCH_PATH &&
-      entry.callback.method.toLowerCase() === COUNT_BATCH_METHOD,
+      (entry.endpoint ?? key).replace(EDGE_SLASHES, "") === path &&
+      entry.callback.method.toLowerCase() === method,
   );
 }
 
@@ -129,7 +131,7 @@ export function warnIfTabsLackCountBatch(
   endpoints: Record<string, DataControllerCallbackWithOptions>,
 ): void {
   if (!hasCounters || controllersWarnedForTabCounts.has(controller)) return;
-  if (servesCountBatch(endpoints)) return;
+  if (servesRoute(endpoints, COUNT_BATCH_PATH, COUNT_BATCH_METHOD)) return;
   controllersWarnedForTabCounts.add(controller);
   Logging.Warn(
     `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,

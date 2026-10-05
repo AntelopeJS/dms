@@ -63,12 +63,27 @@ export type TableViewQuickFilterMode =
   | "exclude"
   | "array_contains_string";
 
-/** Texts of the footer band (backend `footer`). */
+/** A figure of the footer band (backend `footer.summary`). */
+export interface TableViewFooterSummaryConfig {
+  /** Id the `summary` route computes it under. */
+  id: string;
+  label: string;
+  field?: string;
+  op: "sum" | "count";
+  /** `Intl.NumberFormat` options; left out, a sum reads like its cells. */
+  format?: Intl.NumberFormatOptions;
+}
+
+/** Texts and figures of the footer band (backend `footer`). */
 export interface TableViewFooter {
   /** i18n key (`$`) receiving `{ count }`, pluralized on it. */
   countLabel?: string;
   hint?: string;
+  summary?: TableViewFooterSummaryConfig[];
+  /** A select column whose items the footer lists as a legend. */
+  legend?: string;
 }
+
 
 /** A field of the expanded row's detail band. */
 export interface TableViewExpandableField {
@@ -192,7 +207,7 @@ export interface TableViewDisplayConfig {
 export interface TableViewConfig<T extends Data>
   extends Omit<
     TableProps<T>,
-    "columns" | "displays" | "chrome" | "quickFilters"
+    "columns" | "displays" | "chrome" | "quickFilters" | "footer"
   > {
   location: string;
   enableTableExport?: boolean;

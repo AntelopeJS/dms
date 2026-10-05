@@ -228,6 +228,24 @@ export interface TableFooterTexts {
   countLabel?: string;
   /** Hint at the right of the count. */
   hint?: string;
+  /** Figures computed over the listed rows, after the count. */
+  summaries?: TableFooterSummary[];
+  /** A legend of a select column's values. */
+  legend?: TableFooterLegendItem[];
+}
+
+/** A figure of the footer band, its value drawn (absent while it loads). */
+export interface TableFooterSummary {
+  id: string;
+  label: string;
+  value?: VNodeChild;
+}
+
+/** An entry of the footer legend: a value and its color. */
+export interface TableFooterLegendItem {
+  label: string;
+  /** Tone of its dot. */
+  color?: string;
 }
 
 export interface TableEmits<T> {

@@ -518,6 +518,7 @@ export async function restoreRows(
 
 export const listWithSearch = listWithSearchFunc;
 export const countWithSearch = countWithSearchFunc;
+export { summarizeWithSearch } from "./footer-summary";
 
 export namespace internal {
   export const PublishMutation = publishTableViewMutation;

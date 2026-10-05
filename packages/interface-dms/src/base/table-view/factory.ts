@@ -53,6 +53,7 @@ import {
   warnIfTabsLackCountBatch,
 } from "./tabs";
 import { resolveTableViewViews, serializeTableViewViews } from "./views";
+import { serializeFooter, warnIfSummaryLacksRoute } from "./footer";
 import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
   assertRowScopedFormSlugs,
@@ -91,6 +92,13 @@ export function TableView<T extends ControllerClass>(
     controller,
     config.location,
     declaresCounters(options),
+    endpoints,
+  );
+
+  warnIfSummaryLacksRoute(
+    controller,
+    config.location,
+    options.footer,
     endpoints,
   );
 
@@ -191,7 +199,7 @@ export function TableView<T extends ControllerClass>(
       searchPlaceholder: options.searchPlaceholder,
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,
-      footer: options.footer,
+      footer: serializeFooter(controller.name, meta, options.footer),
       displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
       formComponents: {

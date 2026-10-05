@@ -7,6 +7,7 @@ import type { ShallowRef } from "vue";
 import type { TableSharedData, Data } from "./Table.vue";
 import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
 import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
+import { toneTextClass } from "../../../utils/tone";
 
 // v2 footer band: count and page size on the left, pager on the right.
 const theme = tv({
@@ -30,6 +31,14 @@ const theme = tv({
     placeholderCount: "h-3 w-20 rounded-[4px]",
     placeholderPager: "ms-auto h-3 w-24 rounded-[4px]",
     placeholderRoot: "min-h-[49px]",
+    // Figures computed over the listed rows, after the count.
+    summary: "inline-flex items-center gap-1.5 whitespace-nowrap",
+    summarySeparator: "text-dimmed",
+    summaryValue: "font-mono font-semibold tabular-nums text-default",
+    summaryPlaceholder: "h-3 w-10 rounded-[4px]",
+    legend: "flex flex-wrap items-center gap-x-3 gap-y-1",
+    legendItem: "inline-flex items-center gap-1.5",
+    legendDot: "size-2 shrink-0 rounded-full bg-current",
   },
 });
 
@@ -81,6 +90,13 @@ const countLabelKey = computed(() => {
   const key = tableSharedData.value?.footer?.countLabel;
   return key?.startsWith("$") ? key.slice(1) : key;
 });
+const summaries = computed(
+  () => tableSharedData.value?.footer?.summaries ?? [],
+);
+const legend = computed(() => tableSharedData.value?.footer?.legend ?? []);
+const legendDotClass = (color?: string) =>
+  toneTextClass(color) || "text-dimmed";
+
 const hint = computed(() => {
   const text = tableSharedData.value?.footer?.hint;
   return text ? processI18n(text) : undefined;
@@ -127,6 +143,39 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
         </span>
       </template>
     </i18n-t>
+
+    <span
+      v-for="summary in summaries"
+      :key="summary.id"
+      :class="uiTablePagination.summary()"
+    >
+      <span aria-hidden="true" :class="uiTablePagination.summarySeparator()">
+        ·
+      </span>
+      {{ summary.label }}
+      <USkeleton
+        v-if="summary.value === undefined"
+        aria-hidden="true"
+        :class="uiTablePagination.summaryPlaceholder()"
+      />
+      <span v-else :class="uiTablePagination.summaryValue()">
+        <component :is="() => summary.value" />
+      </span>
+    </span>
+
+    <span v-if="legend.length" :class="uiTablePagination.legend()">
+      <span
+        v-for="item in legend"
+        :key="item.label"
+        :class="uiTablePagination.legendItem()"
+      >
+        <span
+          aria-hidden="true"
+          :class="[uiTablePagination.legendDot(), legendDotClass(item.color)]"
+        />
+        {{ item.label }}
+      </span>
+    </span>
 
     <span
       v-if="showPageSize"

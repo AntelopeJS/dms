@@ -86,6 +86,7 @@ import {
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
 import { useTableViews } from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
+import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
 import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
 import TableViews, {
@@ -129,7 +130,7 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
-  /** Footer texts: row count and hint. */
+  /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
   /** Named states of the table (backend `views`). */
   views?: TableViewViewsConfig;
@@ -914,6 +915,14 @@ const baseQuery = computed<Record<string, unknown>>(() => {
   return { ...query, ...archiveQuery.value };
 });
 
+const { footer: resolvedFooter, refreshSummaries } = await useTableFooter({
+  footer: props.footer,
+  columns: props.columns,
+  location,
+  query: baseQuery,
+  dataKey: `table-view-${componentId}-${pageId}`,
+});
+
 const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
   grouped: groupedOptions,
   isActive: isGroupedDisplay,
@@ -987,6 +996,7 @@ const refreshAll = async () => {
     refreshTabCounts(),
     refreshLinkTabCounts(),
     refreshGroupCounts(),
+    refreshSummaries(),
     activeDisplayRef.value?.refresh?.(),
   ]);
 };
@@ -1727,7 +1737,7 @@ onMounted(() => {
     :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
-    :footer="props.footer"
+    :footer="resolvedFooter"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"
