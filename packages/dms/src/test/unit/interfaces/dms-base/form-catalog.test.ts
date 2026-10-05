@@ -29,14 +29,21 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
     expect(field?.properties?.defaultValue?.ui?.typedBy).to.equal("type");
   });
 
-  it("is placed showing its buttons, a setting of the advanced view", () => {
+  it("offers how it saves and what it edits, and hides the former flags", () => {
     const config = ListBlockTypes().find(
       (block) => block.type === "Form",
     )?.config;
-    expect(config?.showActions?.ui).to.include({
-      initial: true,
-      advanced: true,
-    });
+    expect(config?.saveMode?.enum).to.deep.equal([
+      "bar",
+      "footer",
+      "none",
+      "instant",
+    ]);
+    expect(config?.kind?.enum).to.deep.equal(["record", "action"]);
+    expect(config?.labelKey?.ui).to.include({ advanced: true });
+    for (const alias of ["showActions", "saveBar", "cancellable"]) {
+      expect(config?.[alias]?.ui, alias).to.include({ hidden: true });
+    }
   });
 
   it("leaves its addresses and methods to the advanced view", () => {

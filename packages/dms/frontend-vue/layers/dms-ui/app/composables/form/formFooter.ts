@@ -1,24 +1,23 @@
 /**
- * The two ways a form's footer behaves.
+ * What a form edits, which decides its buttons (interface-dms `FormKind`).
  *
- * - `record`: a table view's form, in a drawer, a modal or on its form page.
- *   Cancel while there is nothing to save, then "Unsaved changes" with
- *   Discard and Save.
- * - `action`: a form placed on a page to do something (send a notification,
+ * - `record` (default): a record, a settings page, a table view's form. It
+ *   keeps its values once saved; Cancel while there is nothing to save when
+ *   it has somewhere to go back to, then "Unsaved changes" with Discard and
+ *   Save.
+ * - `action`: a form that does something each time (send a notification,
  *   invite someone, run a job). No buttons while it is untouched — pre-filled
- *   or not —, then Reset and the form's own submit label.
+ *   or not —, then Reset and the form's own submit label; it empties after a
+ *   successful submit.
  */
-export type FormFooterKind = "record" | "action";
+export type FormKind = "record" | "action";
 
-export interface FormFooterContext {
-  /** The form sits in a drawer or a modal. */
-  inContainer: boolean;
-  /** The form asks for Cancel (a table view's form page). */
-  cancellable?: boolean;
-}
+/** How a form offers to save (interface-dms `FormSaveMode`). */
+export type FormSaveMode = "bar" | "footer" | "none" | "instant";
 
-export function formFooterKind(context: FormFooterContext): FormFooterKind {
-  return context.inContainer || context.cancellable ? "record" : "action";
+/** The way a form saves: `instant` saves like `bar` until it ships. */
+export function formSaveMode(mode: FormSaveMode | undefined): FormSaveMode {
+  return mode === undefined || mode === "instant" ? "bar" : mode;
 }
 
 /**

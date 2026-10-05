@@ -28,7 +28,7 @@ import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
 import {
   actionFormShowsButtons,
-  formFooterKind,
+  formSaveMode,
 } from "../../composables/form/formFooter";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
@@ -41,13 +41,7 @@ const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_GET_SEGMENT = "/get";
 const REALTIME_EVENT_UPDATED = "updated";
 
-// `showActions` left out has to read as left out: Vue casts an absent boolean
-// prop to `false`, which would hide the buttons of every form not asking for
-// them.
-const props = withDefaults(defineProps<FormProps>(), {
-  showActions: undefined,
-  resetOnSuccess: false,
-});
+const props = defineProps<FormProps>();
 const form = useTemplateRef("form");
 
 // Inside a DynamicModal/DynamicDrawer the container already provides the
@@ -195,6 +189,7 @@ watch(
 );
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
+const saveMode = formSaveMode(props.saveMode);
 
 // zod words its own messages in English ("String must contain at least 1
 // character(s)"): the issues a schema leaves unworded get the dashboard's.
@@ -339,19 +334,18 @@ const changedFields = computed(() =>
   ),
 );
 // Only a form someone can save has unsaved changes to speak of.
-const canSave = computed(() => showActions.value || !!props.saveBar);
+const canSave = showActions;
 const isDirty = computed(() => canSave.value && changedFields.value.length > 0);
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
-// A table view's form (drawer, modal, form page) offers Cancel while clean;
-// a form placed on a page to do something shows no buttons until a value
-// changes, then Reset and its own submit label.
-const isActionForm =
-  formFooterKind({
-    inContainer: inFormContainer || !!container,
-    cancellable: props.cancellable,
-  }) === "action";
+// A record form offers Cancel while clean when it has somewhere to go back
+// to: its drawer or modal, or `backTo` on a page. An action form (send,
+// invite, run) shows its buttons in its footer once a value changes: Reset
+// and its own submit label.
+const isActionForm = props.kind === "action";
+const canCancel = inFormContainer || !!container || !!props.backTo;
+const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
 const hasChangeableFields = computed(() =>
   toValue(allFields).some(
     (field) => !isFieldDisabled(field) && !isFieldHidden(field),
@@ -363,25 +357,10 @@ const showsActionButtons = computed(() =>
 
 const router = useDmsRouter();
 const route = useDmsRoute();
-const findPage = inFormContainer
-  ? undefined
-  : useSiteLayout().findMatchingRoute;
-
-/** The closest page above the current one (a form page's list). */
-function parentPagePath(): string {
-  const segments = route.path.split("/").filter(Boolean);
-  while (segments.length > 1) {
-    segments.pop();
-    const path = `/${segments.join("/")}`;
-    if (findPage?.(path)) return path;
-  }
-  return "/";
-}
-
 /**
  * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
  * form for the page the user came from (its list, when opened from one), or
- * the page above it when the form was opened directly.
+ * its `backTo` when the form was opened directly.
  */
 function cancelForm(): void {
   if (container) {
@@ -394,7 +373,7 @@ function cancelForm(): void {
     window.history.back();
     return;
   }
-  void router.push(parentPagePath());
+  if (props.backTo) void router.push(props.backTo);
 }
 
 const validators = new Set<FormValidator>();
@@ -473,13 +452,13 @@ markFormClean();
 
 // A form page about one row names it at the end of the breadcrumb. Set once
 // mounted: the header renders before the page, the server-rendered one too.
-if (props.recordLabelKey && !inFormContainer) {
+if (props.labelKey && !inFormContainer) {
   const { setLabel } = usePageRecordLabel();
-  const recordLabelKey = props.recordLabelKey;
+  const labelKey = props.labelKey;
   onMounted(() => {
     setLabel(
       route.path,
-      formatRecordLabel(initialValues.value[recordLabelKey], locale.value),
+      formatRecordLabel(initialValues.value[labelKey], locale.value),
     );
   });
 }
@@ -585,7 +564,7 @@ const wrapperProps =
 // form loaded (or last saved — a successful submit snapshots it).
 const formElementId = `dms-form-${props.componentId}`;
 const changedFieldLabels = computed<string[]>(() =>
-  props.saveBar
+  usesSaveBar
     ? changedFields.value.map((field) => field.label || field.id)
     : [],
 );
@@ -989,13 +968,13 @@ onUnmounted(async () => {
         previous page), "Unsaved changes" with Discard and Save once there is.
         Same height in both states: only the content changes. -->
       <DmsSaveBar
-        v-if="props.saveBar && !inFormContainer"
+        v-if="canSave && usesSaveBar"
         :dirty="isDirty"
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
         :save-label="props.submitLabel"
-        :cancellable="!isActionForm"
+        :cancellable="canCancel"
         class="mx-3 mb-3"
         @discard="discardChanges"
         @cancel="cancelForm"
@@ -1032,7 +1011,8 @@ onUnmounted(async () => {
       <footer
         v-else-if="canSave"
         class="flex items-center gap-2"
-        :class="surfaceClasses.foot"
+        :class="[surfaceClasses.foot, !isDirty && !canCancel && 'invisible']"
+        :inert="(!isDirty && !canCancel) || undefined"
       >
         <template v-if="isDirty">
           <span
@@ -1063,7 +1043,7 @@ onUnmounted(async () => {
           </div>
         </template>
         <UButton
-          v-else
+          v-else-if="canCancel"
           :label="$t('dms.button.cancel')"
           variant="outline"
           color="neutral"

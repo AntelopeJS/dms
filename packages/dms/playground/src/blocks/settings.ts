@@ -104,7 +104,6 @@ export class PageBlocksSettings extends PageController(
     Form({
       fetchUrl: "/api/blocks-feed/workspace",
       submitUrl: "/api/blocks-feed/workspace",
-      saveBar: true,
       fields: [
         {
           id: "name",

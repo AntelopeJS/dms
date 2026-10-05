@@ -26,7 +26,7 @@ export class PageNotificationTest extends PageController(
     successMessage: "$demo.notifications.sent",
     // Each submit sends a new notification: the fields empty once it is
     // sent, so a second Enter does not send the same one again.
-    resetOnSuccess: true,
+    kind: "action",
     fieldsOrientation: "horizontal",
     fields: [
       {
@@ -71,6 +71,7 @@ export class PageNotificationTest extends PageController(
     description: "Send a system notification about a DMS update",
     submitUrl: "/api/notification/send-dms-update",
     submitLabel: "Send DMS update",
+    kind: "action",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     fields: [
@@ -88,6 +89,7 @@ export class PageNotificationTest extends PageController(
     description: "Send a promotional notification about hosting offers",
     submitUrl: "/api/notification/send-hosting-promo",
     submitLabel: "Send hosting promo",
+    kind: "action",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     fields: [

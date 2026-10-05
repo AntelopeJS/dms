@@ -69,6 +69,17 @@ export function isFieldGroupSerialized(
   return "fields" in item && Array.isArray(item.fields);
 }
 
+/** How a form offers to save: see `FormProps.saveMode`. */
+export const FORM_SAVE_MODES = ["bar", "footer", "none", "instant"] as const;
+
+export type FormSaveMode = (typeof FORM_SAVE_MODES)[number];
+
+/** What a form edits: see `FormProps.kind`. */
+export const FORM_KINDS = ["record", "action"] as const;
+
+export type FormKind = (typeof FORM_KINDS)[number];
+
+/** The options `Form` takes. */
 export interface FormProps extends BaseComponentProps {
   title?: string;
   description?: string;
@@ -85,24 +96,42 @@ export interface FormProps extends BaseComponentProps {
    */
   submitLabel?: string;
   /**
-   * Whether the reset and submit buttons show. Left out, they show once the
-   * form has somewhere to submit to and something to fill in.
+   * How the form offers to save. `bar` (the default): a sticky bar that shows
+   * while there are unsaved changes, names them and offers Discard and Save.
+   * `footer`: the buttons in the form's footer. `none`: no buttons, the form
+   * is read or saved by something else. `instant` reserves the save-as-you-go
+   * of a later release and saves like `bar` for now. In a drawer or a modal,
+   * `bar` and `footer` both use the container's footer.
+   */
+  saveMode?: FormSaveMode;
+  /**
+   * What the form edits. `record` (the default): a record, a settings page,
+   * a table view's form; it keeps its values once saved, and offers Cancel
+   * while clean when it has somewhere to go back to (`backTo`, or the drawer
+   * or modal it sits in). `action`: a form that does something each time it
+   * is sent — send a message, invite someone, run a job; its buttons are
+   * Reset and its `submitLabel`, shown once a value changes, and it empties
+   * after a successful submit.
+   */
+  kind?: FormKind;
+  /**
+   * Where Cancel leads a `record` form placed on a page; without it the form
+   * offers no Cancel. Table views set it on their form pages, to the list.
+   */
+  backTo?: string;
+  /**
+   * @deprecated Use `saveMode`: `false` is `"none"`, `true` is `"footer"`.
+   * Read in 0.4 with a warning.
    */
   showActions?: boolean;
   /**
-   * Replaces the footer buttons with the sticky save bar (v2 .st-savebar): it
-   * shows only while the form holds unsaved changes, names the changed fields
-   * and offers Discard and Save. Suits a settings-like page, e.g. a form inside
-   * a `Section`.
+   * @deprecated Use `saveMode`: `true` is `"bar"`, `false` is `"footer"`.
+   * Read in 0.4 with a warning.
    */
   saveBar?: boolean;
   /**
-   * With nothing to save, offers Cancel (back to the previous page) instead of
-   * hiding the buttons, and words them as a record edit: "Unsaved changes",
-   * Discard, Save. Table views set it on their form pages; a form in a drawer
-   * or a modal always behaves so. Left out, a form placed on a page (an action
-   * form: send, invite, run) shows no buttons until a value changes, then
-   * Reset and its `submitLabel`.
+   * @deprecated Use `kind`: `true` is `"record"`, `false` is `"action"`.
+   * Read in 0.4 with a warning.
    */
   cancellable?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
@@ -114,13 +143,6 @@ export interface FormProps extends BaseComponentProps {
    * created entity (e.g. `/items/{{response.id}}/edit`).
    */
   redirectOnSuccess?: string;
-  /**
-   * Empties the form after a successful submit: every field goes back to the
-   * value it opened with (its `defaultValue`, or what `fetchUrl` loaded). Suits
-   * a form that sends something new each time (a message, an invitation), where
-   * the values left behind invite an accidental second submit.
-   */
-  resetOnSuccess?: boolean;
   /**
    * Default values merged into the submit payload (sent even when the field is
    * absent from the form). String values support the same token substitution
@@ -140,9 +162,10 @@ export interface FormProps extends BaseComponentProps {
   /**
    * Field of the loaded row that names it. On a page, the breadcrumb ends
    * with its value ("… › Tasks › Write the docs") once the form has loaded.
-   * Table views set it on their edit and details pages from `labelKey`.
+   * Table views set it on their edit and details pages from their own
+   * `labelKey`.
    */
-  recordLabelKey?: string;
+  labelKey?: string;
 }
 
 export interface FormPropsSerialized extends Omit<FormProps, "fields"> {

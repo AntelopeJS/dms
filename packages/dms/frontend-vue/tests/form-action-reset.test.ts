@@ -16,14 +16,14 @@ const FIELDS = [
   },
 ];
 
-function setupForm(resetOnSuccess?: boolean) {
+function setupForm(kind?: "record" | "action") {
   return scope.run(() =>
     useForm({
       componentId: "form-1",
       pageId: "page-1",
       fields: FIELDS,
       submitUrl: "/api/messages/send",
-      resetOnSuccess,
+      kind,
     } as never),
   )!;
 }
@@ -75,9 +75,9 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-describe("DMS form resetOnSuccess", () => {
-  it("empties the form once sent, back to the values it opened with", async () => {
-    const form = setupForm(true);
+describe("DMS form reset after a submit", () => {
+  it("empties an action form once sent, back to the values it opened with", async () => {
+    const form = setupForm("action");
     await fillAndSubmit(form);
     expect(addToast).toHaveBeenCalledWith(
       expect.objectContaining({ color: "success" }),
@@ -87,7 +87,7 @@ describe("DMS form resetOnSuccess", () => {
     expect(form.initialValues.value).toEqual({ channel: "general" });
   });
 
-  it("keeps the saved values as the new starting point otherwise", async () => {
+  it("keeps a record's saved values as the new starting point", async () => {
     const form = setupForm();
     await fillAndSubmit(form);
     expect(form.state.value.title).toBe("Hello");
@@ -99,7 +99,7 @@ describe("DMS form resetOnSuccess", () => {
 
   it("keeps what the user typed when the submit fails", async () => {
     authFetch.mockRejectedValue({ statusCode: 500, data: "boom" });
-    const form = setupForm(true);
+    const form = setupForm("action");
     await fillAndSubmit(form);
     expect(form.state.value.title).toBe("Hello");
   });

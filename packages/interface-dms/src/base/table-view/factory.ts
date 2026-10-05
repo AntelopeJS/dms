@@ -315,11 +315,11 @@ export function TableView<T extends ControllerClass>(
         // The edit and details pages end their breadcrumb with the row's
         // label once the form has loaded it.
         if (kind !== "new" && options.labelKey) {
-          form.mergeOptions({ recordLabelKey: options.labelKey });
+          form.mergeOptions({ labelKey: options.labelKey });
         }
         // A record's form page: Cancel leads back to the list while there
         // is nothing to save, as in a drawer or a modal.
-        form.mergeOptions({ cancellable: true });
+        form.mergeOptions({ backTo: `/${parentInfo.fullSlug}` });
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,

@@ -13,15 +13,14 @@ describe("formShowsActions", () => {
     ).toBe(false);
   });
 
-  it("shows them when asked, before there is an address or a field", () => {
-    expect(formShowsActions({ showActions: true }, [])).toBe(true);
-  });
-
-  it("hides them when asked, whatever the form could submit", () => {
+  it("hides them with saveMode none, whatever the form could submit", () => {
     expect(
-      formShowsActions({ showActions: false, submitUrl: "/api/order/new" }, [
+      formShowsActions({ saveMode: "none", submitUrl: "/api/order/new" }, [{}]),
+    ).toBe(false);
+    expect(
+      formShowsActions({ saveMode: "footer", submitUrl: "/api/order/new" }, [
         {},
       ]),
-    ).toBe(false);
+    ).toBe(true);
   });
 });

@@ -1,22 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   actionFormShowsButtons,
-  formFooterKind,
+  formSaveMode,
 } from "../layers/dms-ui/app/composables/form/formFooter";
 
-describe("formFooterKind", () => {
-  it("keeps a table view's forms as record forms: drawer, modal, form page", () => {
-    expect(formFooterKind({ inContainer: true })).toBe("record");
-    expect(formFooterKind({ inContainer: false, cancellable: true })).toBe(
-      "record",
-    );
+describe("formSaveMode", () => {
+  it("saves with the bar by default, and for an instant form until it ships", () => {
+    expect(formSaveMode(undefined)).toBe("bar");
+    expect(formSaveMode("instant")).toBe("bar");
   });
 
-  it("makes a form placed on a page an action form", () => {
-    expect(formFooterKind({ inContainer: false })).toBe("action");
-    expect(formFooterKind({ inContainer: false, cancellable: false })).toBe(
-      "action",
-    );
+  it("keeps the footer and no buttons as asked", () => {
+    expect(formSaveMode("footer")).toBe("footer");
+    expect(formSaveMode("none")).toBe("none");
   });
 });
 

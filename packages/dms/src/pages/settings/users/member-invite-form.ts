@@ -47,6 +47,7 @@ function whenFieldIs(fieldId: string, value: boolean) {
 }
 
 export const memberInviteForm = Form({
+  kind: "action",
   fields: [
     {
       id: "emails",

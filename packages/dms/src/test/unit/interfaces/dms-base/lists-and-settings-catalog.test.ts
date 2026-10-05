@@ -64,6 +64,6 @@ describe("[unit] interfaces/dms-base — list and settings blocks in the catalog
   });
 
   it("offers the sticky save bar on a form", () => {
-    expect(declared("Form").config.saveBar?.type).to.equal("boolean");
+    expect(declared("Form").config.saveMode?.enum).to.include("bar");
   });
 });

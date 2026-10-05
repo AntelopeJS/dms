@@ -8,7 +8,13 @@ import {
   ui,
 } from "./block-registry";
 import type { DataType } from "./data-types/core";
-import type { FieldGroup, FormField, FormProps } from "./form-types";
+import {
+  FORM_KINDS,
+  FORM_SAVE_MODES,
+  type FieldGroup,
+  type FormField,
+  type FormProps,
+} from "./form-types";
 import type { DefaultValue } from "./types";
 import { HttpMethod } from "./types/http";
 
@@ -155,30 +161,68 @@ export const FormSchema = z.object({
     label: "Submit button label",
     group: "content",
   }),
-  showActions: ui(
+  saveMode: ui(
     z
-      .boolean()
+      .enum(FORM_SAVE_MODES)
       .optional()
       .describe(
-        "Show the reset and submit buttons, before the form has somewhere to submit to too.",
+        "How the form offers to save: a sticky bar while there are changes, footer buttons, or none.",
       ),
     {
-      label: "Show the buttons",
+      label: "Save buttons",
       group: "appearance",
-      widget: "switch",
-      initial: true,
+      widget: "select",
+      valueLabels: {
+        bar: "Save bar",
+        footer: "Footer buttons",
+        none: "None",
+        instant: "Instant",
+      },
+    },
+  ),
+  kind: ui(
+    z
+      .enum(FORM_KINDS)
+      .optional()
+      .describe(
+        "A record keeps its values once saved; an action (send, invite, run) empties after a submit.",
+      ),
+    {
+      label: "Form kind",
+      group: "behavior",
+      widget: "segmented",
+      valueLabels: { record: "Record", action: "Action" },
+    },
+  ),
+  backTo: ui(
+    z.string().optional().describe("Where Cancel leads a record form."),
+    {
+      label: "Cancel leads to",
+      group: "behavior",
+      widget: "url",
       advanced: true,
     },
   ),
-  saveBar: ui(
+  labelKey: ui(
     z
-      .boolean()
+      .string()
       .optional()
-      .describe(
-        "A sticky bar with Discard and Save, shown while there are unsaved changes, in place of the footer buttons.",
-      ),
-    { label: "Sticky save bar", group: "appearance", widget: "switch" },
+      .describe("Field of the loaded record that ends the page's breadcrumb."),
+    { label: "Record label field", group: "data", advanced: true },
   ),
+  // Deprecated aliases of `saveMode` and `kind`: read, no longer offered.
+  showActions: ui(z.boolean().optional(), {
+    label: "Show the buttons",
+    hidden: true,
+  }),
+  saveBar: ui(z.boolean().optional(), {
+    label: "Sticky save bar",
+    hidden: true,
+  }),
+  cancellable: ui(z.boolean().optional(), {
+    label: "Cancellable",
+    hidden: true,
+  }),
   fieldsOrientation: ui(z.enum(FIELD_ORIENTATIONS).optional(), {
     label: "Field orientation",
     group: "layout",
@@ -189,17 +233,6 @@ export const FormSchema = z.object({
     {
       label: "Redirect on success",
       group: "behavior",
-    },
-  ),
-  resetOnSuccess: ui(
-    z
-      .boolean()
-      .optional()
-      .describe("Empty the fields once the form is sent, ready for the next."),
-    {
-      label: "Clear after submit",
-      group: "behavior",
-      widget: "switch",
     },
   ),
   submitDefaults: ui(z.record(z.unknown()).optional(), {

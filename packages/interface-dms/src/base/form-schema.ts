@@ -11,6 +11,7 @@ import type { DefaultDataTypes } from "./data-types/default-types";
 import type { FormContainerPageTexts } from "./table-view/options";
 import type { TreeNode } from "./tree";
 import type { AxeOrientation, EnumOption } from "./types";
+import { resolveFormFooterAliases } from "./form-footer";
 import { FORM_COMPONENT_NAME } from "./form-block-schema";
 export * from "./form-block-schema";
 import {
@@ -144,7 +145,8 @@ export function serializeFormFields(
  * call `Form()`. A page under construction has to compile — it is typechecked
  * on every edit — so a block with nothing set yet has to be a legal call.
  */
-export const Form = (options?: FormProps): FormBuilder => {
+export const Form = (declared?: FormProps): FormBuilder => {
+  const options = declared && resolveFormFooterAliases(declared);
   const fields = options?.fields ?? [];
   const schema = buildFormSchema(fields);
   const serializedFields = serializeFormFields(fields);

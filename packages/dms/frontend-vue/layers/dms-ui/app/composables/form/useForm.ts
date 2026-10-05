@@ -46,7 +46,7 @@ export interface UseFormOptions {
   showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
   /**
    * Called once a submit succeeded and the values are the saved ones (or
-   * back to the opening ones with `resetOnSuccess`), before any redirect:
+   * back to the opening ones for an `action` form), before any redirect:
    * the form has nothing unsaved from there on.
    */
   onSaved?: () => void;
@@ -72,19 +72,17 @@ export function cloneFormValue(
 }
 
 /**
- * Whether a form shows its reset and submit buttons.
- *
- * Asked for, they show whatever else holds — a form placed in the builder shows
- * them before it has somewhere to submit to. Left to the form, they show once
- * it has an address and a field someone can fill in.
+ * Whether a form offers to save: once it has an address and a field someone
+ * can fill in, unless its `saveMode` is `none`.
  */
 export function formShowsActions(
-  options: { showActions?: boolean; submitUrl?: string },
+  options: Pick<FormProps, "saveMode" | "submitUrl">,
   fields: ReadonlyArray<{ disabled?: boolean }>,
 ): boolean {
   return (
-    options.showActions ??
-    (!!options.submitUrl && !fields.every((field) => field.disabled))
+    options.saveMode !== "none" &&
+    !!options.submitUrl &&
+    !fields.every((field) => field.disabled)
   );
 }
 
@@ -684,7 +682,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     props.onSuccessCallback?.(response, plainData);
     // A form sending something new each time starts over from the values it
     // opened with; any other keeps what it saved as its new starting point.
-    if (props.resetOnSuccess) restoreInitialValues();
+    if (props.kind === "action") restoreInitialValues();
     else initialValues.value = snapshotFormState(state.value);
     options.onSaved?.();
     if (props.redirectOnSuccess) {

@@ -58,7 +58,7 @@ const FIELD_ROW_ICON = "i-ph-text-columns";
  * ```typescript
  * Section({ title: "Workspace", description: "How the workspace appears." })
  *   .child("name", FieldRow({ label: "Name", layout: "form" }).child("v", …))
- *   .child("form", Form({ fields, submitUrl, saveBar: true }))
+ *   .child("form", Form({ fields, submitUrl }))
  * ```
  */
 export function Section(
