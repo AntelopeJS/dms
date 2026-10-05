@@ -19,6 +19,7 @@ import type {
 import type { RowActionConfig, RowActionRule } from "../types/row-action";
 import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
+import { assertKnownColumns } from "./validation";
 import {
   type FormContainerPages,
   KANBAN_DISPLAY_ID,
@@ -217,8 +218,10 @@ export function registerTableViewActions<T>(
 
 /**
  * The detail band of expandable rows, with its fields normalized to objects
- * and its component serialized. Every field must name a declared column: its
- * value renders through that column's data type.
+ * or its component serialized. The band shows one or the other: an option
+ * giving both, or neither (an editor's schema can), is refused. Every field
+ * must name a declared column: its value renders through that column's data
+ * type.
  */
 export function serializeExpandable(
   controllerName: string,
@@ -226,23 +229,33 @@ export function serializeExpandable(
   expandable: TableViewExpandableOptions | undefined,
 ): TableViewExpandableSerialized | undefined {
   if (!expandable) return undefined;
-  const fields = expandable.fields?.map((field) =>
-    typeof field === "string" ? { key: field } : field,
-  );
-  for (const { key } of fields ?? []) {
-    if (!meta.columns[key]) {
-      throw new Error(
-        `TableView expandable fields on ${controllerName} references unknown column "${key}"`,
-      );
-    }
-  }
-  return {
-    fields,
-    fieldsLabel: expandable.fieldsLabel,
-    component: expandable.component?.serializeSync(),
+  const behavior = {
     defaultExpanded: expandable.defaultExpanded,
     single: expandable.single,
   };
+  if (expandable.component && expandable.fields) {
+    throw new Error(
+      `TableView expandable on ${controllerName} gives both fields and a component: the component replaces the field list, give one or the other`,
+    );
+  }
+  if (expandable.component) {
+    return { ...behavior, component: expandable.component.serializeSync() };
+  }
+  if (!expandable.fields) {
+    throw new Error(
+      `TableView expandable on ${controllerName} gives neither fields nor a component to show in the band`,
+    );
+  }
+  const fields = expandable.fields.map((field) =>
+    typeof field === "string" ? { key: field } : field,
+  );
+  assertKnownColumns(
+    controllerName,
+    meta,
+    "expandable fields",
+    fields.map(({ key }) => key),
+  );
+  return { ...behavior, fields, fieldsLabel: expandable.fieldsLabel };
 }
 
 /**

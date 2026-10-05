@@ -21,6 +21,7 @@ import {
   TABLE_DISPLAY_ID,
   TABLE_VIEW_COMPONENT_NAME,
   type TableViewDisplayOption,
+  type TableViewExpandableComponent,
   type TableViewExpandableOptions,
   type TableViewFormText,
   type TableViewQuickFilter,
@@ -241,15 +242,7 @@ const expandableFieldSchema = z.union([
   }),
 ]);
 
-const expandableSchema = z.object({
-  fields: ui(z.array(expandableFieldSchema).optional(), {
-    label: "Detail fields",
-  }),
-  fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
-  component: ui(
-    opaqueOption<TableViewExpandableOptions["component"]>().optional(),
-    { label: "Detail component", hidden: true },
-  ),
+const expandableBehaviorShape = {
   defaultExpanded: ui(z.enum(["none", "first", "all"]).default("none"), {
     label: "Open on arrival",
     widget: "segmented",
@@ -258,7 +251,23 @@ const expandableSchema = z.object({
     label: "One row at a time",
     widget: "switch",
   }),
-}) satisfies BlockOptionsFor<TableViewExpandableOptions>;
+};
+
+// The band lists fields or renders a component, never both: one shape each.
+const expandableSchema = z.union([
+  z.object({
+    fields: ui(z.array(expandableFieldSchema), { label: "Detail fields" }),
+    fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
+    ...expandableBehaviorShape,
+  }),
+  z.object({
+    component: ui(opaqueOption<TableViewExpandableComponent["component"]>(), {
+      label: "Detail component",
+      hidden: true,
+    }),
+    ...expandableBehaviorShape,
+  }),
+]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
 /** The options `TableView` accepts, after its controller argument. */
 export const TableViewSchema = z.object({

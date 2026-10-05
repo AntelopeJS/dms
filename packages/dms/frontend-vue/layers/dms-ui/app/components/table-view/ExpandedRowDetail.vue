@@ -12,9 +12,9 @@ import type {
 } from "../../composables/table-view/types";
 
 /**
- * Detail band of an expanded TableView row: the configured `fields` as a
- * label/value list (each value drawn by its column's data type, like a cell)
- * and/or the configured `component`, side by side on wide screens.
+ * Detail band of an expanded TableView row: the configured `component`, which
+ * draws the whole band, or else the configured `fields` as a label/value list
+ * (each value drawn by its column's data type, like a cell).
  */
 interface ExpandedRowDetailProps {
   /** The listed row the band details. */
@@ -68,10 +68,6 @@ const detailComponent = computed<Component | string | undefined>(() => {
   return resolveDmsComponent(name) || name;
 });
 
-const hasBoth = computed(
-  () => !!detailComponent.value && fields.value.length > 0,
-);
-
 function renderField(key: string | undefined): VNodeChild {
   const column = key ? columnByKey.value.get(key) : undefined;
   if (!column) return EMPTY_VALUE;
@@ -86,37 +82,32 @@ const FieldValue = (fieldProps: { item: KeyValueItem }) =>
 </script>
 
 <template>
-  <div
-    :class="
-      hasBoth
-        ? 'grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
-        : 'grid gap-4'
-    "
+  <component
+    :is="detailComponent"
+    v-if="detailComponent"
+    v-bind="props.config.component?.options ?? {}"
+    :row="props.row"
+    :row-id="props.rowId"
+    :columns="props.columns"
+  />
+  <section
+    v-else-if="fields.length > 0"
+    class="grid min-w-0 content-start gap-2"
   >
-    <component
-      :is="detailComponent"
-      v-if="detailComponent"
-      v-bind="props.config.component?.options ?? {}"
-      :row="props.row"
-      :row-id="props.rowId"
-      :columns="props.columns"
+    <DmsEyebrow
+      v-if="props.config.fieldsLabel"
+      :label="processI18n(props.config.fieldsLabel)"
     />
-    <section v-if="fields.length > 0" class="grid min-w-0 content-start gap-2">
-      <DmsEyebrow
-        v-if="props.config.fieldsLabel"
-        :label="processI18n(props.config.fieldsLabel)"
-      />
-      <DmsKeyValueList
-        :items="fields.map((field) => field.item)"
-        :columns="hasBoth ? 1 : 2"
-        dense
-      >
-        <template #value="{ item }">
-          <span class="text-highlighted min-w-0 truncate">
-            <FieldValue :item="item" />
-          </span>
-        </template>
-      </DmsKeyValueList>
-    </section>
-  </div>
+    <DmsKeyValueList
+      :items="fields.map((field) => field.item)"
+      :columns="2"
+      dense
+    >
+      <template #value="{ item }">
+        <span class="text-highlighted min-w-0 truncate">
+          <FieldValue :item="item" />
+        </span>
+      </template>
+    </DmsKeyValueList>
+  </section>
 </template>

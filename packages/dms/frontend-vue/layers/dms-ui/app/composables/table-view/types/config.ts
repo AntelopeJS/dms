@@ -80,8 +80,8 @@ export interface TableViewExpandableField {
 
 /**
  * Expandable rows (backend `expandable` option): a caret column opens a
- * detail band under the row, listing `fields` and/or rendering `component`
- * (which receives `row`, `columns` and `rowId`).
+ * detail band under the row, listing `fields` or rendering `component` (which
+ * receives `row`, `columns` and `rowId` and replaces the field list).
  */
 export interface TableViewExpandableConfig {
   fields?: TableViewExpandableField[];

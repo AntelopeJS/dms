@@ -45,7 +45,7 @@ export class PageTableViewExpandableRows extends PageController(
     category: tableViewCategory,
     order: 34,
     description:
-      'The expandable option of TableView: a caret column opens a detail band under each order. The first table lists detail fields (defaultExpanded "first", next to row selection and row actions); the second renders the OrderLinesDetail component beside the fields, one row at a time, under status tabs, compact density and a sticky header',
+      'The expandable option of TableView: a caret column opens a detail band under each order. The first table lists detail fields (defaultExpanded "first", next to row selection and row actions); the second hands the whole band to the OrderLinesDetail component, one row at a time, under status tabs, compact density and a 560px scroll area',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -78,8 +78,6 @@ export class PageTableViewExpandableRows extends PageController(
     tabs: statusTabs,
     expandable: {
       component: CustomComponent("OrderLinesDetail"),
-      fields: DETAIL_FIELDS,
-      fieldsLabel: "Shipping & payment",
       single: true,
     },
     rowActions: {

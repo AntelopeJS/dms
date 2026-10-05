@@ -22,9 +22,11 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import {
   Column,
   TableView,
+  type TableViewExpandableOptions,
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/request-filter";
 import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/tabs";
@@ -210,7 +212,6 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(options.expandable).to.deep.equal({
       fields: [{ key: "carrier" }, { key: "status", label: "State" }],
       fieldsLabel: undefined,
-      component: undefined,
       defaultExpanded: "first",
       single: true,
     });
@@ -220,6 +221,33 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         expandable: { fields: ["missing"] },
       }),
     ).to.throw(/expandable fields .* unknown column "missing"/);
+  });
+
+  it("hands the band to a component alone, refusing both or neither", () => {
+    const component = CustomComponent("OrderLines");
+    const options = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        expandable: { component, single: true },
+      }),
+    );
+    expect(options.expandable).to.deep.equal({
+      defaultExpanded: undefined,
+      single: true,
+      component: component.serializeSync(),
+    });
+    // What the types refuse, a schema-built option can still carry.
+    const both = {
+      component,
+      fields: ["carrier"],
+    } as unknown as TableViewExpandableOptions;
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, expandable: both }),
+    ).to.throw(/both fields and a component/);
+    const neither = { single: true } as unknown as TableViewExpandableOptions;
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, expandable: neither }),
+    ).to.throw(/neither fields nor a component/);
   });
 
   it("serializes link tabs: a path, the count location, no filters", () => {
