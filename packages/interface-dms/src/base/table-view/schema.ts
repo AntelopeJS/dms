@@ -323,12 +323,6 @@ export const TableViewSchema = z.object({
     label: "Quick filters",
     group: "features",
   }),
-  hiddenColumns: ui(z.array(z.string()).optional(), {
-    label: "Hidden columns",
-    group: "appearance",
-    widget: "field",
-    fieldAspect: "listable",
-  }),
   pageSize: ui(z.number().int().min(1).max(50).optional(), {
     label: "Rows per page",
     group: "appearance",

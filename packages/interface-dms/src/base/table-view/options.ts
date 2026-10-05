@@ -265,7 +265,7 @@ export interface TableViewExpandableOptions {
   /**
    * Columns listed in the band, each value rendered with its column's data
    * type. A column must be listable to carry a value; hide it from the grid
-   * with `isVisible: false` (or `hiddenColumns`) to show it only here.
+   * with `isVisible: false` on its `@Column` to show it only here.
    */
   fields?: Array<string | TableViewExpandableField>;
   /** Eyebrow above the field list. `$`-prefixed: an i18n key. */
@@ -452,12 +452,6 @@ export interface TableViewOptions<
   searchPlaceholder?: string;
   /** One-click dropdown filters drawn in the toolbar. */
   quickFilters?: TableViewQuickFilter[];
-  /**
-   * Columns hidden from the grid by default, though still listed: a value a
-   * cell, a detail band or a form reads, without a column of its own. The
-   * column manager can show them again.
-   */
-  hiddenColumns?: string[];
   /** Rows per page while the user has picked none. Defaults to 10. */
   pageSize?: number;
   /** Texts of the footer band: the row count and a hint. */

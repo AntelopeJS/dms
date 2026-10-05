@@ -51,7 +51,6 @@ import {
 } from "./tabs";
 import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
-  assertKnownColumns,
   assertRowScopedFormSlugs,
   validateDefaultDisplay,
   validateKanbanOptions,
@@ -114,12 +113,6 @@ export function TableView<T extends ControllerClass>(
 
   validateKanbanOptions(controller.name, meta, options.kanban);
   validateDefaultDisplay(controller.name, options);
-  assertKnownColumns(
-    controller.name,
-    meta,
-    "hiddenColumns",
-    options.hiddenColumns ?? [],
-  );
   validateQuickFilters(controller.name, meta, options.quickFilters);
 
   const serializedExpandable = serializeExpandable(
@@ -195,7 +188,6 @@ export function TableView<T extends ControllerClass>(
       chrome: options.chrome,
       searchPlaceholder: options.searchPlaceholder,
       quickFilters: options.quickFilters,
-      hiddenColumns: options.hiddenColumns,
       pageSize: options.pageSize,
       footer: options.footer,
       displays: serializeTableViewDisplays(options.displays, options.kanban),

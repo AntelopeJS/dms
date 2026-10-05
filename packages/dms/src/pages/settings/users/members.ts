@@ -204,8 +204,6 @@ export const membersTable = TableView(memberSettingDataAPI, {
   chrome: MEMBER_LISTS_CHROME,
   searchPlaceholder: "$page.settings.members.search_members",
   quickFilters: [{ field: "roleIds", ...ROLE_QUICK_FILTER }],
-  // Drawn inside the member cell (address) and the roles cell (crown pill).
-  hiddenColumns: ["email", "isTenantOwner"],
   pageSize: MEMBER_LISTS_PAGE_SIZE,
   defaultSort: { field: "name" },
   footer: {

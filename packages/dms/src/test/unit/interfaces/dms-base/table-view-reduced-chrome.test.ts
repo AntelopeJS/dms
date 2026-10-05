@@ -71,7 +71,11 @@ class OrderAPI extends DataController(
   declare status: string;
 
   @Listable()
-  @Column({ name: "Carrier", type: new DefaultDataTypes.StringType() })
+  @Column({
+    name: "Carrier",
+    type: new DefaultDataTypes.StringType(),
+    isVisible: false,
+  })
   @Access(AccessMode.ReadOnly)
   declare carrier: string;
 }
@@ -106,14 +110,20 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
-  it("passes the chrome, search, quick filter, hidden columns, page size and footer through", () => {
+  it("hides a column declared isVisible: false from the grid only", () => {
+    const carrier = columnsOf(TableView(OrderAPI, { realtime: false })).find(
+      (column) => column.id === "carrier",
+    ) as { isVisible?: boolean; listable?: boolean } | undefined;
+    expect(carrier).to.include({ isVisible: false });
+  });
+
+  it("passes the chrome, search, quick filter, page size and footer through", () => {
     const options = optionsOf(
       TableView(OrderAPI, {
         realtime: false,
         chrome: { preset: "minimal", caption: true },
         searchPlaceholder: "$orders.search",
         quickFilters: [{ field: "status" }],
-        hiddenColumns: ["carrier"],
         pageSize: 25,
         footer: { countLabel: "$orders.count", hint: "$orders.hint" },
       }),
@@ -121,7 +131,6 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(options.chrome).to.deep.equal({ preset: "minimal", caption: true });
     expect(options.searchPlaceholder).to.equal("$orders.search");
     expect(options.quickFilters).to.deep.equal([{ field: "status" }]);
-    expect(options.hiddenColumns).to.deep.equal(["carrier"]);
     expect(options.pageSize).to.equal(25);
     expect(options.footer).to.deep.equal({
       countLabel: "$orders.count",
@@ -129,10 +138,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
-  it("refuses a hidden column or a quick filter the controller lacks", () => {
-    expect(() =>
-      TableView(OrderAPI, { realtime: false, hiddenColumns: ["nope"] }),
-    ).to.throw(/hiddenColumns .* unknown column "nope"/);
+  it("refuses a quick filter the controller lacks", () => {
     expect(() =>
       TableView(OrderAPI, {
         realtime: false,

@@ -123,6 +123,8 @@ export class memberSettingDataAPI extends DataController(
       placeholder: "$page.settings.members.placeholder.email",
     }),
     filterable: true,
+    // Drawn under the name, in the member cell.
+    isVisible: false,
   })
   @Sortable({ noIndex: true })
   @Joined({ table: User, localKey: "userId", remoteField: "email" })
@@ -173,6 +175,8 @@ export class memberSettingDataAPI extends DataController(
     name: "$page.settings.members.column.tenant_owner",
     type: new DefaultDataTypes.BooleanType(),
     description: "$page.settings.members.description.tenant_owner",
+    // Drawn as the crown pill of the roles cell.
+    isVisible: false,
   })
   @Access(AccessMode.ReadWrite)
   declare isTenantOwner: boolean;

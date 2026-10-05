@@ -122,8 +122,6 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   searchPlaceholder?: string;
   /** One-click dropdown filters of the toolbar. */
   quickFilters?: TableViewQuickFilter[];
-  /** Columns hidden from the grid by default (still listed). */
-  hiddenColumns?: string[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
   /** Footer texts: row count and hint. */

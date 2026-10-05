@@ -113,10 +113,7 @@ export const useTableViewConfig = <T extends Data>(
 
   const defaultDisplay = config.defaultDisplay ?? TABLE_DISPLAY_ID;
 
-  const initialVisibility = buildInitialColumnVisibility(
-    config.columns ?? [],
-    config.hiddenColumns,
-  );
+  const initialVisibility = buildInitialColumnVisibility(config.columns ?? []);
 
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),

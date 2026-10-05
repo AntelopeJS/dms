@@ -170,8 +170,6 @@ export interface TableViewConfig<T extends Data>
   chrome?: TableViewChromePreset | TableViewChromeOptions;
   searchPlaceholder?: string;
   quickFilters?: TableViewQuickFilter[];
-  /** Columns hidden from the grid by default (still listed). */
-  hiddenColumns?: string[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
   footer?: TableViewFooter;

@@ -174,6 +174,8 @@ export class inviteSettingDataAPI extends DataController(
   @Column({
     name: "$page.settings.invites.column.owner",
     type: new DefaultDataTypes.BooleanType(),
+    // Drawn as the crown pill of the roles cell.
+    isVisible: false,
   })
   @Access(AccessMode.ReadWrite)
   declare asTenantOwner: boolean;
@@ -310,8 +312,6 @@ export class InvitesSettingsController extends PageController(
     chrome: MEMBER_LISTS_CHROME,
     searchPlaceholder: "$page.settings.invites.search",
     quickFilters: [{ field: "roles_ids", ...ROLE_QUICK_FILTER }],
-    // Drawn as the crown pill of the roles cell.
-    hiddenColumns: ["asTenantOwner"],
     pageSize: MEMBER_LISTS_PAGE_SIZE,
     defaultSort: { field: "createdAt", desc: true },
     footer: {
