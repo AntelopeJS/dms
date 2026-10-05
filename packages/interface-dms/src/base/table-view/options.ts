@@ -89,21 +89,27 @@ export interface TableViewRowActionOptionsSerialized {
   custom?: CustomRowActionSerialized[];
 }
 
+/** The filter a tab applies on one column. */
 export interface TableViewTabFilter {
+  /** Filterable column the tab filters on. */
   accessorKey: string;
+  /** Value compared; a list of values is joined with commas. */
   value?: string;
+  /** Compare mode, e.g. `"is"`. */
   mode: string;
 }
 
+/**
+ * A tab above the table: it filters the rows on one column (`filter`), or
+ * opens another page (`to`) — never both, which registration refuses. A tab
+ * with neither, given the id `"all"`, stands in for the implicit "all" tab, at
+ * its own position, with its own label and icon.
+ */
 export interface TableViewTab {
   id: string;
   label: string;
-  /**
-   * Hidden filters the tab applies. A link tab (`to`) applies none. A tab
-   * with the id `"all"` stands in for the implicit "all" tab, at its own
-   * position, with its own label and icon.
-   */
-  filters?: TableViewTabFilter[];
+  /** Hidden filter the tab applies, on a single column. */
+  filter?: TableViewTabFilter;
   icon?: string;
   textColor?: ColorValue;
   iconColor?: ColorValue;
@@ -133,9 +139,8 @@ export interface TableViewTab {
 /** A tab as it reaches the client: link targets resolved to paths. */
 export interface TableViewTabSerialized extends Omit<
   TableViewTab,
-  "to" | "countFrom" | "permission" | "filters"
+  "to" | "countFrom" | "permission"
 > {
-  filters: TableViewTabFilter[];
   /** Path the link tab opens. */
   to?: string;
   /** Full id of the page a link tab opens, when it is a registered page. */
@@ -529,9 +534,9 @@ export interface TableViewOptions<
    */
   strictRuleValidation?: boolean;
   /**
-   * Tabs displayed above the table. Each tab applies a set of hidden filters.
-   * The implicit "all" tab (no filters) is shown automatically when at least
-   * one tab is configured here.
+   * Tabs displayed above the table. Each tab filters the rows on one column,
+   * or links to another page. The implicit "all" tab (no filter) is shown
+   * automatically when at least one tab is configured here.
    *
    * Each tab shows a row counter, fetched in one request: filter tabs with
    * counters require the controller to mount

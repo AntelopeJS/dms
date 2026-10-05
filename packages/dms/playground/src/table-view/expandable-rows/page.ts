@@ -23,7 +23,7 @@ const DETAIL_FIELDS = [
 const statusTabs = ORDER_STATUSES.map((status) => ({
   id: status.value,
   label: status.label,
-  filters: [{ accessorKey: "status", value: status.value, mode: "is" }],
+  filter: { accessorKey: "status", value: status.value, mode: "is" },
 }));
 
 @RegisterDataController()

@@ -19,9 +19,7 @@ const statusTabs = TASK_STATUSES.map((status) => ({
   icon: status.icon,
   iconColor: status.iconColor,
   textColor: status.textColor,
-  filters: [
-    { accessorKey: "status", value: status.value, mode: "is" as const },
-  ],
+  filter: { accessorKey: "status", value: status.value, mode: "is" },
 }));
 
 @RegisterDataController()
@@ -73,7 +71,7 @@ export class PageTableViewTabs extends PageController(
         icon: "i-ph-fire",
         iconColor: "error",
         textColor: "error",
-        filters: [{ accessorKey: "priority", value: "high", mode: "is" }],
+        filter: { accessorKey: "priority", value: "high", mode: "is" },
       },
     ],
   });

@@ -439,7 +439,7 @@ const resolvedTabs = computed<ResolvedTab[]>(() => {
       id: tab.id,
       label: processI18n(tab.label),
       // A link tab filters nothing: it opens another page.
-      filters: tab.to ? [] : (tab.filters ?? []).map((f) => ({ ...f })),
+      filters: tab.filter && !tab.to ? [{ ...tab.filter }] : [],
       icon: tab.icon,
       textColor: tab.textColor,
       iconColor: tab.iconColor,

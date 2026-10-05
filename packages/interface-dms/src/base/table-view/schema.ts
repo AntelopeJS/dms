@@ -110,7 +110,12 @@ const tabFilterSchema = z.object({
 const tabSchema = z.object({
   id: z.string(),
   label: z.string(),
-  filters: z.array(tabFilterSchema).optional(),
+  filter: ui(
+    tabFilterSchema
+      .optional()
+      .describe("Filter on one column. A tab with a link filters nothing."),
+    { label: "Filter" },
+  ),
   icon: ui(z.string().optional(), { widget: "icon" }),
   textColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
   iconColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),

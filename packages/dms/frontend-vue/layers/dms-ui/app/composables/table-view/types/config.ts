@@ -26,7 +26,8 @@ export type RouteParamFilters = Record<string, RouteParamFilter>;
 export interface TableViewTab {
   id: string;
   label: string;
-  filters: TableFilter[];
+  /** Filter the tab applies, on one column (a link tab has none). */
+  filter?: TableFilter;
   icon?: string;
   textColor?: string;
   iconColor?: string;

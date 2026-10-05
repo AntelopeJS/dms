@@ -46,6 +46,7 @@ import {
   TableViewFunctions,
 } from "./factory-helpers";
 import {
+  assertTabTargets,
   resolveTableViewTabs,
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
@@ -117,6 +118,7 @@ export function TableView<T extends ControllerClass>(
   validateDefaultDisplay(controller.name, options);
   validateQuickFilters(controller.name, meta, options.quickFilters);
   validatePageSize(controller.name, options.pageSize);
+  assertTabTargets(controller.name, options.tabs);
 
   const serializedExpandable = serializeExpandable(
     controller.name,

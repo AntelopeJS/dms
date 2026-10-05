@@ -263,27 +263,51 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
             permission: "orders.lines",
             countFrom: LineAPI,
             badge: true,
-            filters: [{ accessorKey: "status", value: "x", mode: "is" }],
+          },
+          {
+            id: "open",
+            label: "Open",
+            filter: { accessorKey: "status", value: "open", mode: "is" },
           },
         ],
       }),
     );
     expect(options.tabs).to.deep.equal([
-      { id: "all", label: "Orders", filters: [] },
+      { id: "all", label: "Orders" },
       {
         id: "lines",
         label: "Lines",
         badge: true,
-        filters: [],
         to: "/orders/lines",
         countFrom: LINES_LOCATION,
+      },
+      {
+        id: "open",
+        label: "Open",
+        filter: { accessorKey: "status", value: "open", mode: "is" },
       },
     ]);
   });
 
+  it("refuses a tab that both filters and links", () => {
+    expect(() =>
+      TableView(OrderAPI, {
+        realtime: false,
+        tabs: [
+          {
+            id: "lines",
+            label: "Lines",
+            to: "/orders/lines",
+            filter: { accessorKey: "status", value: "x", mode: "is" },
+          },
+        ],
+      }),
+    ).to.throw(/tab "lines" .* both a filter and a link/);
+  });
+
   it("keeps a link tab without a permission and every tab of a table without links", async () => {
     const declared = [{ id: "a", label: "A", to: "/a" }];
-    const serialized = [{ id: "a", label: "A", filters: [], to: "/a" }];
+    const serialized = [{ id: "a", label: "A", to: "/a" }];
     expect(
       await resolveTableViewTabs(new Set(), declared, serialized),
     ).to.deep.equal(serialized);
