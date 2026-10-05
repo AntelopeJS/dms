@@ -519,7 +519,7 @@ interface ResolvedTab {
   to?: string;
   toPage?: string;
   countFrom?: string;
-  badge?: boolean;
+  navBadge?: boolean;
 }
 
 // A configured "all" tab stands in for the implicit one, at its own place.
@@ -546,7 +546,7 @@ const resolvedTabs = computed<ResolvedTab[]>(() => {
       to: tab.to,
       toPage: tab.toPage,
       countFrom: tab.countFrom,
-      badge: tab.badge,
+      navBadge: tab.navBadge,
     })),
   ];
 });
@@ -1120,17 +1120,18 @@ const tabsWithCount = computed(() =>
   })),
 );
 
-// A tab declared with `badge` publishes its counter for the navigation entry
-// of the page it stands for: the linked page, or this one.
+// A tab declared with `navBadge` keeps the navigation badge the server
+// counted for the page it stands for (the linked page, or this one) up to
+// date with its own counter; an empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
 watch(
   tabsWithCount,
   (next) => {
     for (const tab of next) {
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
-      if (!source?.badge || tab.count === undefined) continue;
+      if (!source?.navBadge || tab.count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
-      if (fullId) setNavBadge(fullId, String(tab.count));
+      if (fullId) setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "");
     }
   },
   { immediate: true },

@@ -37,6 +37,7 @@ import {
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
 import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/tone";
+import { isPermissionGated } from "@antelopejs/interface-dms/permission-gate";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
@@ -82,6 +83,11 @@ import {
   type LayoutBannerSerialized,
 } from "./layout-banners";
 import { fillRouteParams } from "./route-params";
+import {
+  resolveMenuNavBadges,
+  withNavBadge,
+  withTreeNavBadges,
+} from "./nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
 import {
@@ -756,6 +762,7 @@ export class DMSController extends Controller("/dms") {
       memberModel,
       roleModel,
       getRequestTenantId(requestContext),
+      requestContext,
     );
   }
 
@@ -832,6 +839,7 @@ export class DMSController extends Controller("/dms") {
       roleModel,
       getRequestTenantId(requestContext),
       this.sharedPage !== OMIT_SHARED_PAGE_QUERY_VALUE,
+      requestContext,
     );
     await assertPageSessionAccepted(payload, !!user, this.authorization);
     return payload;
@@ -925,6 +933,7 @@ type SharedPagePayloadArguments = [
 type PageResponsePayloadArguments = [
   ...SharedPagePayloadArguments,
   includeShared: boolean,
+  requestContext?: RequestContext,
 ];
 
 export function buildPagePayload(
@@ -936,8 +945,15 @@ export function buildPagePayload(
 export async function buildPagePayload(
   ...arguments_: SharedPagePayloadArguments | PageResponsePayloadArguments
 ): Promise<PageResponsePayload> {
-  const [slug, user, memberModel, roleModel, tenantId, includeShared = true] =
-    arguments_;
+  const [
+    slug,
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+    includeShared = true,
+    requestContext,
+  ] = arguments_;
   const normalizedSlug = `/${slug.replace(/^\/+|\/+$/g, "")}`;
   const registeredSlug = resolveRegisteredPageSlug(normalizedSlug);
   assert(registeredSlug, 404, "error.page_not_found");
@@ -961,7 +977,13 @@ export async function buildPagePayload(
   }
   const [layout, shared] = await Promise.all([
     handler(user, memberModel, roleModel, tenantId),
-    buildSiteLayoutPayload(user, memberModel, roleModel, tenantId),
+    buildSiteLayoutPayload(
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      requestContext,
+    ),
   ]);
   return { route: shared.siteLayout.pages[registeredSlug], shared, layout };
 }
@@ -1625,6 +1647,7 @@ export async function buildSiteLayoutPayload(
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
+  requestContext?: RequestContext,
 ): Promise<SiteLayoutPayload> {
   const accessContext = await buildAccessContext(
     user,
@@ -1644,13 +1667,31 @@ export async function buildSiteLayoutPayload(
     accessContext,
   );
 
+  const siteLayout = await annotateSiteLayoutAccess(accessContext, banners);
+  const navBadges = await resolveMenuNavBadges(
+    requestContext,
+    user,
+    Object.values(siteLayout.pages),
+  );
+
   return {
-    siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
-    siteLayoutTree: await addAccessToTree(
-      navigationTree,
-      accessContext,
-      true,
-      dynamicChildren,
+    siteLayout: {
+      ...siteLayout,
+      pages: Object.fromEntries(
+        Object.entries(siteLayout.pages).map(([slug, page]) => [
+          slug,
+          withNavBadge(page, navBadges),
+        ]),
+      ),
+    },
+    siteLayoutTree: withTreeNavBadges(
+      await addAccessToTree(
+        navigationTree,
+        accessContext,
+        true,
+        dynamicChildren,
+      ),
+      navBadges,
     ),
     quickActions: await getQuickActionsForUser((target) =>
       resolveQuickActionTarget(target, accessContext),
@@ -2264,8 +2305,12 @@ async function holdsButtonPermission(
   component: Component,
   button: ComponentButton,
 ): Promise<boolean> {
-  if (button.permission === undefined) return true;
-  const permissionId = component.resolveButtonPermissionId(button.permission);
+  if (!isPermissionGated(button)) return true;
+  const permissionId =
+    button.permissionId ??
+    (button.permission === undefined
+      ? undefined
+      : component.resolveButtonPermissionId(button.permission));
   return (
     permissionId !== undefined &&
     (await holdsPagePermission(page, permissionId))

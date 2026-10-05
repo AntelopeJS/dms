@@ -52,6 +52,7 @@ import {
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
 } from "./tabs";
+import { declareTabNavBadges } from "./nav-badges";
 import { resolveTableViewViews, serializeTableViewViews } from "./views";
 import {
   serializeEmptyStates,
@@ -164,9 +165,10 @@ export function TableView<T extends ControllerClass>(
   // The table view embeds its new/edit/view forms synchronously into its own
   // options, so it is the async host that claims their upload tokens.
   builder.transformOptions(StampUploadFieldTokens);
-  for (const { id, permission } of declaredCustomButtons ?? []) {
-    if (id) builder.button(id, { permission });
+  for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
+    if (id) builder.button(id, { permission, permissionId });
   }
+  declareTabNavBadges(builder, options.tabs, controller);
 
   // Declared from what the controller offers, a read-only TableView's write
   // actions included: they keep guarding the write routes of a controller no
@@ -373,12 +375,14 @@ export function TableView<T extends ControllerClass>(
         permissions,
         declaredTabs,
         options.tabs,
+        permissionId,
       );
 
       const adaptedViews = await resolveTableViewViews(
         permissions,
         declaredViews,
         options.views,
+        permissionId,
       );
 
       return {

@@ -62,6 +62,8 @@ export interface SettingsNavPage {
   description: string;
   icon: string;
   to: string;
+  /** Badge the server counted or declared for the page's entry. */
+  badge?: string;
 }
 
 export interface SettingsNavGroup {
@@ -103,6 +105,7 @@ const toNavPage = (node: SettingsPageNode): SettingsNavPage => ({
   description: node.description || "",
   icon: node.icon || DEFAULT_SETTINGS_ICON,
   to: node.fullSlug,
+  badge: node.badge,
 });
 
 /** Nav group a settings page belongs to; category id for non-core pages. */

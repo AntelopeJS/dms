@@ -1,8 +1,9 @@
 /**
- * Counts a page publishes for its navigation entry, by page full id
- * (`settings.user.members` → `"7"`). A table view publishes the counter of a
- * tab declared with `badge: true`; navigation surfaces (the settings nav)
- * draw it after the entry's label.
+ * Fresh counts a page publishes for its navigation entry, by page full id
+ * (`settings.user.members` → `"7"`, `""` for none). The server counts a table
+ * view tab declared with `navBadge: true` when the menu loads; the table
+ * publishes its own counter here once shown, which navigation surfaces draw
+ * over the server's badge.
  *
  * Shared state, so a count published on one page stays shown on the others.
  */

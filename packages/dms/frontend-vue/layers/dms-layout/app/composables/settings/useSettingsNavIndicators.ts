@@ -5,15 +5,12 @@ import { useSecurityOverview } from "./security/useSecurityOverview";
 import { INVITES_PAGE_ID } from "./useSettingsNavigation";
 import { useSettingsNavTrails } from "./useSettingsNavTrails";
 
-const MEMBERS_PAGE_ID = "settings.user.members";
 const ROLES_PAGE_ID = "settings.user.roles";
 const SECURITY_PAGE_ID = "settings.user.security";
 // Data API locations of the members and invitations lists.
 const MEMBERS_LOCATION = "/api/tables/members";
 const INVITES_LOCATION = "/api/tables/admin-invites";
-const MEMBERS_COUNT_ENDPOINT = `${MEMBERS_LOCATION}/count/batch`;
 const ROLES_OVERVIEW_ENDPOINT = "/settings/user/roles/overview";
-const MEMBERS_COUNT_QUERY_ID = "all";
 // The source the Members table's Invitations tab counts from.
 const INVITES_LIST_ENDPOINT = `${INVITES_LOCATION}/list`;
 const INVITES_COUNT_QUERY = { limit: 1, offset: 0 };
@@ -27,7 +24,7 @@ interface ListTotal {
 }
 
 /**
- * Loads the indicators of the settings navigation — member and role counts,
+ * Loads the indicators of the settings navigation — the role count,
  * the security attention dot — as soon as the navigation shows, so they
  * don't wait for a visit to each page. Only pages the viewer can open (the
  * ones listed in the nav) are asked, so no request ends in a 403; a failed
@@ -41,18 +38,6 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
   const { t } = useI18n();
   const route = useDmsRoute();
   const { tableDataVersion } = useTableDataChanges();
-
-  async function loadMembersCount(): Promise<void> {
-    const counts = await $authFetch<Record<string, number>>(
-      MEMBERS_COUNT_ENDPOINT,
-      {
-        method: "POST",
-        body: { queries: [{ id: MEMBERS_COUNT_QUERY_ID, query: {} }] },
-      },
-    );
-    const count = counts?.[MEMBERS_COUNT_QUERY_ID];
-    if (typeof count === "number") setNavBadge(MEMBERS_PAGE_ID, String(count));
-  }
 
   async function loadRolesCount(): Promise<void> {
     const overview = await $authFetch<RolesOverviewSummary>(
@@ -78,7 +63,6 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
   }
 
   const loaders: Record<string, () => Promise<void>> = {
-    [MEMBERS_PAGE_ID]: loadMembersCount,
     [ROLES_PAGE_ID]: loadRolesCount,
     [INVITES_PAGE_ID]: loadInvitesCount,
     [SECURITY_PAGE_ID]: () => security.refresh(),
@@ -110,10 +94,10 @@ export function useSettingsNavIndicators(visiblePageIds: Ref<Set<string>>) {
     watch(visiblePageIds, loadVisible);
     // The members and invitations lists change each other: an invitation
     // sent, resent, edited, revoked or accepted, a member removed. Whenever
-    // either list reads its rows again after a change, both counts follow,
-    // without waiting for a move to another page.
+    // either list reads its rows again after a change, the invitations count
+    // follows, without waiting for a move to another page. (The members
+    // count is the server's navigation badge, kept fresh by those tables.)
     watch(tableDataVersion([MEMBERS_LOCATION, INVITES_LOCATION]), () => {
-      reload(MEMBERS_PAGE_ID);
       reload(INVITES_PAGE_ID);
     });
     // Changes made elsewhere (another session) show on the next move

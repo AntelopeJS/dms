@@ -368,9 +368,9 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
             id: "lines",
             label: "Lines",
             to: "/orders/lines",
-            permission: "orders.lines",
+            permissionId: "orders.lines",
             countFrom: LineAPI,
-            badge: true,
+            navBadge: true,
           },
           {
             id: "open",
@@ -385,7 +385,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       {
         id: "lines",
         label: "Lines",
-        badge: true,
+        navBadge: true,
         to: "/orders/lines",
         countFrom: LINES_LOCATION,
       },
@@ -417,11 +417,36 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     const declared = [{ id: "a", label: "A", to: "/a" }];
     const serialized = [{ id: "a", label: "A", to: "/a" }];
     expect(
-      await resolveTableViewTabs(new Set(), declared, serialized),
+      await resolveTableViewTabs(new Set(), declared, serialized, "pages.t"),
     ).to.deep.equal(serialized);
     expect(
-      await resolveTableViewTabs(new Set(), undefined, undefined),
+      await resolveTableViewTabs(new Set(), undefined, undefined, "pages.t"),
     ).to.equal(undefined);
+  });
+
+  it("gates a tab on an action of its table, or on an absolute permission id", async () => {
+    const declared = [
+      { id: "mine", label: "Mine", permission: "list" },
+      { id: "audit", label: "Audit", permissionId: "audit.read" },
+      { id: "all", label: "All" },
+    ];
+    const serialized = declared.map(({ id, label }) => ({ id, label }));
+    const served = async (held: string[]) =>
+      (
+        await resolveTableViewTabs(
+          new Set(held),
+          declared,
+          serialized,
+          "pages.t.table",
+        )
+      )?.map((tab) => tab.id);
+
+    expect(await served([])).to.deep.equal(["all"]);
+    expect(await served(["pages.t.table.list", "audit.read"])).to.deep.equal([
+      "mine",
+      "audit",
+      "all",
+    ]);
   });
 
   it("serializes the look of custom row actions and keeps those without a permission", async () => {

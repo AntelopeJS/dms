@@ -316,7 +316,7 @@ export class InvitesSettingsController extends PageController(
         icon: MEMBERS_TAB_ICON,
         to: MembersSettingsController,
         countFrom: memberSettingDataAPI,
-        badge: true,
+        navBadge: true,
       },
       {
         id: "all",

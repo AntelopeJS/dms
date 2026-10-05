@@ -1,5 +1,9 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
-import type { Component, ComponentInfoSerialized } from "../../component";
+import type {
+  ButtonPermission,
+  Component,
+  ComponentInfoSerialized,
+} from "../../component";
 import type { FormPropsSerialized } from "../form-types";
 import type { BlockLinkAction } from "../display";
 import type { Tone } from "../types/tone";
@@ -178,12 +182,20 @@ export interface TableViewView extends TableViewViewState {
    * `countBatch` route like the tab counters.
    */
   count?: boolean;
-  /** Permission id a caller must hold to be served the view. */
-  permission?: string;
+  /**
+   * Gate the view: one of the table's actions by name (e.g. `"export"`), or
+   * an `Action` of any component.
+   */
+  permission?: ButtonPermission;
+  /** Absolute permission id the view requires; wins over `permission`. */
+  permissionId?: string;
 }
 
 /** A view as it reaches the client. */
-export type TableViewViewSerialized = Omit<TableViewView, "permission">;
+export type TableViewViewSerialized = Omit<
+  TableViewView,
+  "permission" | "permissionId"
+>;
 
 /**
  * Where the views are drawn: a tab strip above the table (`tabs`), a row of
@@ -240,10 +252,13 @@ export interface TableViewTab {
    */
   to?: ControllerClass | string;
   /**
-   * Permission id a caller must hold to be served a link tab given as a
-   * path. A page controller target uses that page's own permission.
+   * Gate the tab, a filter tab or a link tab: one of the table's actions by
+   * name (e.g. `"list"`), or an `Action` of any component. A link tab to a
+   * page controller follows that page's own permission without it.
    */
-  permission?: string;
+  permission?: ButtonPermission;
+  /** Absolute permission id the tab requires; wins over `permission`. */
+  permissionId?: string;
   /**
    * Data controller (or data API location, e.g. `"/api/tables/invites"`)
    * whose row total a link tab shows as its counter.
@@ -251,15 +266,19 @@ export interface TableViewTab {
   countFrom?: ControllerClass | string;
   /**
    * Publishes the tab's counter as the navigation badge of the page it
-   * stands for: the linked page, or this table's page for a filter tab.
+   * stands for, in the main navigation and the settings one: this table's
+   * page for a filter tab, the linked page for a link tab (which then needs a
+   * page controller `to` and a data controller `countFrom`). Counted on the
+   * server when the menu loads, with the caller's own `list` permission; a
+   * count of zero shows no badge.
    */
-  badge?: boolean;
+  navBadge?: boolean;
 }
 
 /** A tab as it reaches the client: link targets resolved to paths. */
 export interface TableViewTabSerialized extends Omit<
   TableViewTab,
-  "to" | "countFrom" | "permission"
+  "to" | "countFrom" | "permission" | "permissionId"
 > {
   /** Path the link tab opens. */
   to?: string;

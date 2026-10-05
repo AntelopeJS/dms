@@ -1,3 +1,7 @@
+import type {
+  ControllerClass,
+  RequestContext,
+} from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { User } from "./auth/db";
 import type {
@@ -70,8 +74,26 @@ export type ButtonPermission = string | Action;
  */
 export interface ComponentButton {
   id: string;
-  /** Absent when everyone who reaches the component may press the button. */
+  /**
+   * One of the component's actions by name, or an `Action`. Absent, with
+   * `permissionId`, when everyone who reaches the component may press it.
+   */
   permission?: ButtonPermission;
+  /** Absolute permission id the button requires; wins over `permission`. */
+  permissionId?: string;
+}
+
+/**
+ * A count a component publishes as the navigation badge of a page, read when
+ * the menu loads: a table view's tab declared with `navBadge`.
+ *
+ * @internal
+ */
+export interface NavBadgeSource {
+  /** The page the badge goes to; the component's own page when absent. */
+  page?: ControllerClass;
+  /** The count for the caller of `ctx`; it throws when the caller may not read it. */
+  count: (ctx: RequestContext, user: User) => Promise<number>;
 }
 
 /**
@@ -244,7 +266,13 @@ export class Component<T = unknown> {
   protected _onFilter?: ComponentFilter<any>;
   protected _actions: Record<string, Action> = {};
   protected _buttons: Record<string, ComponentButton> = {};
+  protected _navBadges: NavBadgeSource[] = [];
   protected _placement?: ComponentPlacement;
+
+  /** @internal The counts the component publishes as navigation badges. */
+  get navBadgeSources(): readonly NavBadgeSource[] {
+    return this._navBadges;
+  }
 
   get actions(): Record<string, Action> {
     return this._actions;
@@ -642,6 +670,12 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
       );
     }
     this._buttons[id] = { id, ...info };
+    return this;
+  }
+
+  /** @internal Publishes a count as the navigation badge of a page. */
+  navBadge(source: NavBadgeSource): this {
+    this._navBadges.push(source);
     return this;
   }
 

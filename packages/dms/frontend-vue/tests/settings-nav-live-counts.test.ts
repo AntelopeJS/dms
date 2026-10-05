@@ -16,7 +16,7 @@ const INVITES = "settings.user.members.invites";
 
 let states: Map<string, Ref<unknown>>;
 let route: { path: string };
-let counts: { members: number; invites: number };
+let counts: { invites: number };
 let authFetch: ReturnType<typeof vi.fn>;
 let app: App | undefined;
 
@@ -41,10 +41,9 @@ const calls = (endpoint: string) =>
 beforeEach(() => {
   states = new Map();
   route = reactive({ path: "/settings/user/members/invites" });
-  counts = { members: 7, invites: 4 };
+  counts = { invites: 4 };
   authFetch = vi.fn(async (url: string) => {
     if (url.endsWith("/admin-invites/list")) return { total: counts.invites };
-    if (url.endsWith("/members/count/batch")) return { all: counts.members };
     return {};
   });
   vi.stubGlobal("useDmsState", <T>(key: string, init: () => T): Ref<T> => {
@@ -100,40 +99,34 @@ describe("settings nav counts", () => {
     expect(trails.value[INVITES]?.badge).toBe("5");
   });
 
-  it("follow a member removed, or an invitation accepted, on either list", async () => {
+  it("follow an invitation accepted from the members list", async () => {
     mountNav([MEMBERS, INVITES]);
     await flush();
-    const { badges } = useNavBadges();
-    expect(badges.value[MEMBERS]).toBe("7");
 
-    counts.members = 6;
+    counts.invites = 3;
     useTableDataChanges().notifyTableDataChanged("/api/tables/members");
     await flush();
-    expect(badges.value[MEMBERS]).toBe("6");
-
-    // Accepted: one invitation fewer, one member more.
-    counts.members = 7;
-    counts.invites = 3;
-    useTableDataChanges().notifyTableDataChanged("/api/tables/admin-invites");
-    await flush();
-    expect(badges.value[MEMBERS]).toBe("7");
     expect(useSettingsNavTrails().trails.value[INVITES]?.badge).toBe("3");
+  });
+
+  it("leave the members count to the server's navigation badge", async () => {
+    mountNav([MEMBERS, INVITES]);
+    await flush();
+
+    useTableDataChanges().notifyTableDataChanged("/api/tables/members");
+    await flush();
+    expect(calls("/api/tables/members/count/batch")).toBe(0);
+    expect(useNavBadges().badges.value[MEMBERS]).toBe(undefined);
   });
 
   it("ask nothing again for another table's changes, nor for hidden entries", async () => {
     mountNav([MEMBERS]);
     await flush();
-    const invitesCalls = calls("/api/tables/admin-invites/list");
-    const membersCalls = calls("/api/tables/members/count/batch");
-    expect(invitesCalls).toBe(0);
+    expect(calls("/api/tables/admin-invites/list")).toBe(0);
 
     useTableDataChanges().notifyTableDataChanged("/api/tables/roles");
-    await flush();
-    expect(calls("/api/tables/members/count/batch")).toBe(membersCalls);
-
     useTableDataChanges().notifyTableDataChanged("/api/tables/admin-invites");
     await flush();
     expect(calls("/api/tables/admin-invites/list")).toBe(0);
-    expect(calls("/api/tables/members/count/batch")).toBe(membersCalls + 1);
   });
 });

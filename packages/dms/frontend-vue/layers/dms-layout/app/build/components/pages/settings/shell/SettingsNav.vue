@@ -141,15 +141,16 @@ function revealActiveItem(): void {
 onMounted(revealActiveItem);
 watch(() => route.path, revealActiveItem, { flush: "post" });
 
-// A count a page published for its entry (a table view tab with `badge`)
-// stands in when the page set no trail of its own.
+// The page's badge (a table view tab with `navBadge`, counted by the server,
+// then kept fresh by the table) stands in when the page set no trail of its
+// own.
 const { badges: navBadges } = useNavBadges();
 
 const trailOf = (page: SettingsNavPage): SettingsNavTrail | undefined => {
   const trail = trails.value[page.fullId];
   if (trail) return trail;
-  const badge = navBadges.value[page.fullId];
-  return badge === undefined ? undefined : { fullId: page.fullId, badge };
+  const badge = navBadges.value[page.fullId] ?? page.badge;
+  return badge ? { fullId: page.fullId, badge } : undefined;
 };
 
 // "Preview as role": a settings page the role could not open stays listed,

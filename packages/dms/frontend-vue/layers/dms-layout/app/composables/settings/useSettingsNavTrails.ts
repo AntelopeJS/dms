@@ -31,7 +31,6 @@ export interface SettingsNavTrail {
  * agree.
  */
 const LOADED_INDICATORS: Record<string, "trail" | "count"> = {
-  "settings.user.members": "count",
   "settings.user.members.invites": "trail",
   "settings.user.roles": "count",
   "settings.user.security": "trail",

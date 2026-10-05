@@ -124,7 +124,11 @@ const tabSchema = z.object({
     label: "Link to",
     widget: "url",
   }),
-  permission: ui(z.string().optional(), {
+  permission: ui(
+    z.string().optional().describe("An action of this table, by name."),
+    { label: "Action", advanced: true },
+  ),
+  permissionId: ui(z.string().optional(), {
     label: "Permission",
     widget: "permission",
   }),
@@ -132,7 +136,7 @@ const tabSchema = z.object({
     label: "Count from",
     hidden: true,
   }),
-  badge: ui(z.boolean().optional(), {
+  navBadge: ui(z.boolean().optional(), {
     label: "Navigation badge",
     widget: "switch",
   }),

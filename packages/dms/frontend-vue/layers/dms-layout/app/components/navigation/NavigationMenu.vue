@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
+import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 import {
   applyPreviewEntryStates,
@@ -171,24 +172,35 @@ function drawPreviewEntry(
   };
 }
 
+// The count a table view published for the page (`navBadge`) is fresher than
+// the one the server counted when the menu loaded; `""` stands for none.
+const { badges: navBadges } = useNavBadges();
+
+function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
+  const live =
+    item.fullId === undefined ? undefined : navBadges.value[item.fullId];
+  if (live === undefined) return item.badge;
+  return live || undefined;
+}
+
 // A status dot lands in the trailing slot, which a parent entry already uses for
 // its accordion chevron — so it is rendered on leaf entries only, and a badge
 // takes precedence over it.
 function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   const variant = VARIANT_CLASSES[item.variant ?? "default"];
   const hasChildren = (item.children?.length ?? 0) > 0;
+  const badge = resolveMenuBadge(badgeOf(item));
   const statusClass =
-    item.status && !hasChildren && !item.badge
+    item.status && !hasChildren && !badge
       ? MENU_STATUS_TEXT_CLASSES[item.status]
       : undefined;
   const ui = buildItemUi(item, variant, statusClass);
-  const badge = resolveMenuBadge(item.badge);
 
   return {
     ...item,
     ...(variant.link ? { class: [item.class, variant.link] } : {}),
     ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
-    ...(badge !== undefined ? { badge } : {}),
+    badge,
     ...(ui ? { ui } : {}),
     children: item.children?.map(decorateMenuItem),
   };

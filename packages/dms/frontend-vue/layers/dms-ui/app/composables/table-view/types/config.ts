@@ -37,8 +37,8 @@ export interface TableViewTab {
   toPage?: string;
   /** Data API location whose row total a link tab shows. */
   countFrom?: string;
-  /** Publish the tab's counter as the nav badge of the page it stands for. */
-  badge?: boolean;
+  /** Keeps the nav badge of the page it stands for up to date. */
+  navBadge?: boolean;
 }
 
 /**
