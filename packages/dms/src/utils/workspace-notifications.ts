@@ -352,26 +352,42 @@ async function continueEditingSession(
   return true;
 }
 
-/** Tells the other owners, once per role, editor and editing session. */
+async function notifyRoleOwner(
+  ownerId: string,
+  edit: RolePermissionsEdit,
+  now: Date,
+): Promise<void> {
+  if (await continueEditingSession(ownerId, edit, now)) return;
+  await emitNotification(ownerId, templates.rolePermissionsChanged, {
+    params: {
+      role: edit.roleName,
+      actor: edit.actor.name,
+      roleId: edit.roleId,
+      actorId: edit.actor.id,
+      editedAt: now.getTime(),
+    },
+  });
+}
+
+/**
+ * Tells the other owners, once per role, editor and editing session. Never
+ * rejects: the roles editor fires it after answering, so a failure left
+ * unhandled would take the whole process down.
+ */
 export async function notifyRolePermissionsChanged(
   edit: RolePermissionsEdit,
 ): Promise<void> {
-  const recipients = recipientsExcept(await tenantOwnerIds(edit.tenantId), [
-    edit.actor.id,
-  ]);
-  const now = new Date();
-  await Promise.all(
-    recipients.map(async (ownerId) => {
-      if (await continueEditingSession(ownerId, edit, now)) return;
-      await emitNotification(ownerId, templates.rolePermissionsChanged, {
-        params: {
-          role: edit.roleName,
-          actor: edit.actor.name,
-          roleId: edit.roleId,
-          actorId: edit.actor.id,
-          editedAt: now.getTime(),
-        },
-      });
-    }),
-  );
+  try {
+    const recipients = recipientsExcept(await tenantOwnerIds(edit.tenantId), [
+      edit.actor.id,
+    ]);
+    const now = new Date();
+    await Promise.all(
+      recipients.map((ownerId) => notifyRoleOwner(ownerId, edit, now)),
+    );
+  } catch (error) {
+    Logging.Error(
+      `[DMS] Could not tell the owners of "${edit.tenantId}" that role "${edit.roleId}" changed: ${String(error)}`,
+    );
+  }
 }
