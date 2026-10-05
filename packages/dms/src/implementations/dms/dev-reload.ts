@@ -71,6 +71,22 @@ export function cancelScheduledBroadcast(): void {
   broadcastTimer = null;
 }
 
+/**
+ * Ends every open reload stream. A browser tab holds its stream open for as
+ * long as it lives, so a module that stops without ending them keeps the HTTP
+ * server waiting on those connections until the core's stop timeout runs out.
+ * Ended cleanly, the browser's EventSource retries on its own and reconnects
+ * once the backend is back.
+ */
+export function closeDevReloadStreams(): void {
+  cancelScheduledBroadcast();
+  const streams = [...clients];
+  clients.clear();
+  for (const stream of streams) {
+    stream.end();
+  }
+}
+
 function registerClient(stream: PassThrough): void {
   clients.add(stream);
   writeToClient(stream, SSE_HELLO_PAYLOAD);

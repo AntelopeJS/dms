@@ -42,7 +42,10 @@ import {
 } from "./dev/module-update-notifications";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
-import { cancelScheduledBroadcast } from "./implementations/dms/dev-reload";
+import {
+  cancelScheduledBroadcast,
+  closeDevReloadStreams,
+} from "./implementations/dms/dev-reload";
 import { publishDevBootstrapCredential } from "./implementations/dms/dev-handshake";
 import { initFrontendBootstrapSecret } from "./implementations/dms/frontend-bootstrap";
 import { cancelPendingMenuNotifications } from "./implementations/dms/page";
@@ -241,6 +244,7 @@ function cancelDeferredNotifications(): void {
 
 export function destroy(): void {
   cancelDeferredNotifications();
+  closeDevReloadStreams();
 }
 
 export async function start(): Promise<void> {
@@ -273,5 +277,6 @@ export async function stop(): Promise<void> {
     cronTasks = [];
     await stopRealtime();
     cancelDeferredNotifications();
+    closeDevReloadStreams();
   }
 }
