@@ -431,7 +431,11 @@ export interface TableViewOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   caption?: string;
-  /** Row density: "compact" gives 36px rows under a 32px header. */
+  /**
+   * Row density the table opens with: "compact" gives 36px rows under a 32px
+   * header. The user picks another from the "Density" entry of the ⋯ table
+   * menu, kept with the rest of the table's state.
+   */
   density?: "default" | "compact";
   /**
    * Caps the rows in a scroll area of their own (any CSS length, e.g.

@@ -172,5 +172,10 @@ export interface TableViewConfig<T extends Data>
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
   pageSize?: number;
+  /**
+   * Row density while the user picked none in the ⋯ menu: `compact` gives
+   * 36px rows under a 32px header band.
+   */
+  density?: "default" | "compact";
   footer?: TableViewFooter;
 }

@@ -60,6 +60,17 @@ const navItems = computed((): NavItem[] => {
       hasSubMenu: true,
       onSelect: () => emits("navigate", "page"),
     },
+    // Row height is the grid's: other displays draw no rows.
+    ...(capabilities?.columnManagement
+      ? [
+          {
+            label: t("dms.table.density_title"),
+            icon: "i-ph-arrows-in-line-vertical",
+            hasSubMenu: true,
+            onSelect: () => emits("navigate", "density"),
+          },
+        ]
+      : []),
     ...(tableSharedData?.value?.hasDisplaySwitcher
       ? [
           {

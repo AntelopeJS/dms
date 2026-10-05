@@ -143,8 +143,6 @@ export interface TableProps<T> {
    * amber strip and swaps the row and bulk actions to restore.
    */
   archiveToggle?: boolean;
-  /** Row height: `compact` gives 36px rows under a 32px header band. */
-  density?: TableDensity;
   /**
    * Controls drawn around the rows (the resolved backend `chrome`). Defaults
    * to the full chrome.
@@ -268,6 +266,8 @@ export interface TableSharedData<T> {
   kanbanGroupByState: ModelRef<string>;
   kanbanGroupByOptions: KanbanGroupByOption[];
   showArchivedState: ModelRef<boolean>;
+  /** Row height: `compact` gives 36px rows under a 32px header band. */
+  densityState: ModelRef<TableDensity>;
   chrome: ComputedRef<ResolvedTableChrome>;
   footer?: TableFooterTexts;
   /** See `TableProps.defaultPageSize`. */
@@ -592,6 +592,9 @@ const expandedState = defineModel<ExpandedState>("expanded", {
 const showArchivedState = defineModel<boolean>("showArchived", {
   default: false,
 });
+const densityState = defineModel<TableDensity>("density", {
+  default: "default",
+});
 const quickFilterValuesState = defineModel<Record<string, string | undefined>>(
   "quickFilterValues",
   { default: (): Record<string, string | undefined> => ({}) },
@@ -772,7 +775,7 @@ const uiTableRoot = tv({
 });
 const uiTable = computed(() =>
   uiTableRoot({
-    density: props.density ?? "default",
+    density: densityState.value,
     scrollArea: hasScrollArea.value,
     scrolled: isScrolled.value,
     archived: isShowingArchived.value,
@@ -949,6 +952,7 @@ watchEffect(() => {
     kanbanGroupByState,
     kanbanGroupByOptions: props.kanbanGroupByOptions || [],
     showArchivedState,
+    densityState,
     chrome: resolvedChrome,
     footer: props.footer,
     defaultPageSize: props.defaultPageSize,

@@ -276,6 +276,16 @@ if (
   kanbanGroupBy.value = kanbanOptions.groupByField;
 }
 
+const DEFAULT_DENSITY = "default";
+// The module's density is the default; the user's pick in the ⋯ menu is kept
+// with the rest of the table's state.
+const density = ref<"default" | "compact">(
+  getPreference(
+    getTablePreferenceKey("density"),
+    props.density ?? DEFAULT_DENSITY,
+  ),
+);
+
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_PAGINATION: PaginationState = {
   pageIndex: 0,
@@ -1445,6 +1455,7 @@ const tableStatePreferences = {
   activeTab: activeTabId,
   viewMode: activeDisplayId,
   kanbanGroupBy,
+  density,
 } as const;
 
 Object.entries(tableStatePreferences).forEach(([key, ref]) => {
@@ -1567,6 +1578,7 @@ onMounted(() => {
     v-model:show-archived="showArchived"
     v-model:expanded="expandedModel"
     v-model:quick-filter-values="quickFilterValues"
+    v-model:density="density"
     :chrome="resolvedChrome"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
