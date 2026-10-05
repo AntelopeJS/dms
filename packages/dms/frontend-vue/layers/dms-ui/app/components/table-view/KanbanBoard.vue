@@ -12,6 +12,8 @@ import {
   type KanbanColumnDef,
 } from "../../composables/table-view/kanban";
 import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
+import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
+import { buildCardProps } from "../../build/composables/table-view/utils/card";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -35,6 +37,14 @@ interface KanbanBoardProps {
   rowIdKey?: string;
   cardFields?: string[];
   cardComponent?: ComponentInfo;
+  /**
+   * What a custom card is handed besides its row: the table's actions and
+   * selection (see `TableViewCardProps`).
+   */
+  cardContext?: Pick<
+    TableViewDisplayContext<T>,
+    "columns" | "labelKey" | "rowIdKey" | "actions" | "selection"
+  >;
   draggable?: boolean;
   /** Items fetched per column, shared with the table page size preference */
   columnPageSize?: number;
@@ -340,6 +350,16 @@ const onColumnChange = async (
   }
 };
 
+// A custom card gets the props a card of the cards display gets, plus the
+// value of the column it sits in; `item` stays for the cards written against
+// the deprecated `kanban.cardComponent`.
+const customCardProps = (item: T, groupValue: string) => ({
+  ...props.cardComponent?.options,
+  ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
+  item,
+  groupValue,
+});
+
 const customCardComponent = computed(() => {
   const componentName = props.cardComponent?.componentName;
   if (!componentName) return undefined;
@@ -489,10 +509,8 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
                 <component
                   :is="customCardComponent"
                   v-if="customCardComponent"
-                  :item="element"
                   :columns="columns"
-                  :group-value="col.value"
-                  v-bind="cardComponent?.options ?? {}"
+                  v-bind="customCardProps(element, col.value)"
                   @edit="emit('card-click', element)"
                   @delete="emit('card-delete', element)"
                 />

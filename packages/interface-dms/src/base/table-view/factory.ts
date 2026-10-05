@@ -53,6 +53,7 @@ import {
 } from "./tabs";
 import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
+  assertKnownColumns,
   assertRowScopedFormSlugs,
   validateDefaultDisplay,
   validateDisplayIds,
@@ -116,6 +117,12 @@ export function TableView<T extends ControllerClass>(
   }
 
   validateKanbanOptions(controller.name, meta, options.kanban);
+  assertKnownColumns(
+    controller.name,
+    meta,
+    "card fields",
+    options.card?.fields ?? [],
+  );
   validateDisplayIds(controller.name, options.displays);
   validateDefaultDisplay(controller.name, options);
   validateQuickFilters(controller.name, meta, options.quickFilters);
@@ -201,7 +208,7 @@ export function TableView<T extends ControllerClass>(
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,
       footer: options.footer,
-      displays: serializeTableViewDisplays(options.displays, options.kanban),
+      displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
       formComponents: {
         new: newForm ? newForm.serializeSync() : undefined,

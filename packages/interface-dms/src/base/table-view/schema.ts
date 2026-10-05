@@ -18,6 +18,7 @@ import {
   type KanbanOptions,
   type QueryParamFilter,
   type RouteParamFilter,
+  type TableViewCardOptions,
   TABLE_DISPLAY_ID,
   TABLE_VIEW_COMPONENT_NAME,
   type TableViewDisplayOption,
@@ -197,12 +198,10 @@ const kanbanSchema = z.object({
     // drag, which goes stale rather than wrong when the field is not listed.
     { label: "Group by", widget: "field", fieldAspect: "filterable" },
   ),
+  // Deprecated aliases of the table's `card`: read, no longer offered.
   cardFields: ui(z.array(z.string()).optional(), {
     label: "Card fields",
-    widget: "field",
-    // Resolved against the table's listable columns; an unlisted field renders
-    // as nothing at all rather than reporting anything.
-    fieldAspect: "listable",
+    hidden: true,
   }),
   cardComponent: ui(opaqueOption<KanbanOptions["cardComponent"]>().optional(), {
     label: "Card component",
@@ -214,6 +213,20 @@ const kanbanSchema = z.object({
   }),
   columnMaxHeight: z.string().default(DEFAULT_KANBAN_COLUMN_MAX_HEIGHT),
 }) satisfies BlockOptionsFor<KanbanOptions>;
+
+const cardSchema = z.object({
+  fields: ui(z.array(z.string()).optional(), {
+    label: "Card fields",
+    widget: "field",
+    // Resolved against the table's listable columns; an unlisted field renders
+    // as nothing at all rather than reporting anything.
+    fieldAspect: "listable",
+  }),
+  component: ui(opaqueOption<TableViewCardOptions["component"]>().optional(), {
+    label: "Card component",
+    hidden: true,
+  }),
+}) satisfies BlockOptionsFor<TableViewCardOptions>;
 
 const displaySchema = z.object({
   id: z.string(),
@@ -431,6 +444,10 @@ export const TableViewSchema = z.object({
     widget: "switch",
   }),
   kanban: ui(kanbanSchema.optional(), { label: "Kanban", group: "advanced" }),
+  card: ui(cardSchema.optional(), {
+    label: "Cards",
+    group: "advanced",
+  }),
   displays: ui(z.array(displaySchema).optional(), {
     label: "Displays",
     group: "advanced",

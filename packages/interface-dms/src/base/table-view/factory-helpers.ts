@@ -21,12 +21,15 @@ import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
 import { assertKnownColumns } from "./validation";
 import {
+  CARDS_DISPLAY_ID,
   type FormContainerPages,
   KANBAN_DISPLAY_ID,
   type KanbanOptions,
   type KanbanOptionsSerialized,
   type QueryParamFilters,
   type RouteParamFilters,
+  type TableViewCardOptions,
+  type TableViewCardOptionsSerialized,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,
   type TableViewExpandableOptions,
@@ -258,25 +261,54 @@ export function serializeExpandable(
   return { ...behavior, fields, fieldsLabel: expandable.fieldsLabel };
 }
 
+/** What `TableView()` serializes its displays from. */
+export interface TableViewDisplaySources {
+  displays?: TableViewDisplayOption[];
+  kanban?: KanbanOptions;
+  card?: TableViewCardOptions;
+}
+
+/**
+ * The card both card displays draw: the table view's `card`, else the kanban's
+ * deprecated `cardFields`/`cardComponent` aliases.
+ */
+function serializeCard({
+  card,
+  kanban,
+}: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
+  const fields = card?.fields ?? kanban?.cardFields;
+  const component = card?.component ?? kanban?.cardComponent;
+  if (!fields && !component) return undefined;
+  return { fields, component: component?.serializeSync() };
+}
+
 /**
  * The `kanban` option is transported to the frontend as a `displays` entry
  * (`{ id: "kanban", options }`), not as a dedicated field; the kanban display
- * reads its options from `context.options` like any other display.
+ * reads its options from `context.options` like any other display. The `card`
+ * joins the options of both card displays, kanban and cards.
  */
 export function serializeTableViewDisplays(
-  displays: TableViewDisplayOption[] | undefined,
-  kanban: KanbanOptions | undefined,
+  sources: TableViewDisplaySources,
 ): TableViewDisplayOptionSerialized[] | undefined {
+  const { displays, kanban } = sources;
+  const card = serializeCard(sources);
   const serialized: TableViewDisplayOptionSerialized[] =
     displays?.map((display) => ({
       ...display,
+      options:
+        card && display.id === CARDS_DISPLAY_ID
+          ? { ...display.options, card }
+          : display.options,
       component: display.component?.serializeSync(),
     })) ?? [];
   if (kanban && !serialized.some((entry) => entry.id === KANBAN_DISPLAY_ID)) {
-    const kanbanOptions: KanbanOptionsSerialized = {
-      ...kanban,
-      cardComponent: kanban.cardComponent?.serializeSync(),
-    };
+    const {
+      cardFields: _cardFields,
+      cardComponent: _cardComponent,
+      ...board
+    } = kanban;
+    const kanbanOptions: KanbanOptionsSerialized = { ...board, card };
     serialized.push({
       id: KANBAN_DISPLAY_ID,
       // The serialised options and a bare dictionary do not overlap, so this

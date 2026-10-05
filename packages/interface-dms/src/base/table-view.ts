@@ -71,6 +71,8 @@ export {
   type RouteParamFilter,
   type RouteParamFilters,
   TABLE_DISPLAY_ID,
+  type TableViewCardOptions,
+  type TableViewCardOptionsSerialized,
   type TableViewDisplayCapabilities,
   type TableViewDisplayOption,
   type TableViewDisplayOptionSerialized,

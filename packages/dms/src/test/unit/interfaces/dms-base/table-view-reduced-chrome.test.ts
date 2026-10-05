@@ -105,6 +105,36 @@ class SearchableOrderAPI extends DataController(
   declare number: string;
 }
 
+const STATUS_LOCATION = "/api/reduced-chrome-status";
+
+@RegisterDataController()
+class StatusOrderAPI extends DataController(
+  Order,
+  { list: TableViewRoutes.List },
+  Controller(STATUS_LOCATION),
+) {
+  @Listable()
+  @Column({ name: "Order", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadOnly)
+  declare number: string;
+
+  @Listable()
+  @Column({
+    name: "Status",
+    type: new DefaultDataTypes.SelectType({
+      items: [{ value: "open", label: "Open" }],
+    }),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadOnly)
+  declare status: string;
+
+  @Listable()
+  @Column({ name: "Carrier", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadOnly)
+  declare carrier: string;
+}
+
 const optionsOf = (table: ReturnType<typeof TableView>) =>
   table.serializeSync().options as TableViewOptionsSerialized;
 
@@ -190,6 +220,57 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         displays: [{ id: "plan-cards", component }],
       }),
     ).to.throw(/"<module>:<id>"/);
+  });
+
+  it("hands one card to the kanban and the cards displays", () => {
+    const component = CustomComponent("OrderCard");
+    const options = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        kanban: { groupByField: "status", draggable: false },
+        card: { fields: ["carrier"], component },
+        displays: [{ id: "cards", options: { dense: true } }],
+      }),
+    );
+    const card = { fields: ["carrier"], component: component.serializeSync() };
+    const byId = Object.fromEntries(
+      (options.displays ?? []).map((display) => [display.id, display.options]),
+    );
+    expect(byId.cards).to.deep.equal({ dense: true, card });
+    expect(byId.kanban).to.deep.equal({
+      groupByField: "status",
+      draggable: false,
+      card,
+    });
+  });
+
+  it("reads the kanban's deprecated card aliases, the table's card first", () => {
+    const legacy = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        kanban: { groupByField: "status", cardFields: ["carrier"] },
+      }),
+    );
+    expect(legacy.displays?.[0]?.options).to.deep.equal({
+      groupByField: "status",
+      card: { fields: ["carrier"], component: undefined },
+    });
+    const both = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        kanban: { groupByField: "status", cardFields: ["carrier"] },
+        card: { fields: ["number"] },
+      }),
+    );
+    expect(
+      (both.displays?.[0]?.options as { card?: unknown } | undefined)?.card,
+    ).to.deep.equal({ fields: ["number"], component: undefined });
+  });
+
+  it("refuses a card field the controller lacks", () => {
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, card: { fields: ["nope"] } }),
+    ).to.throw(/card fields .* unknown column "nope"/);
   });
 
   it("refuses a page size over 50 or not a whole number of rows", () => {

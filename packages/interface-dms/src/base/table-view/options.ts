@@ -210,11 +210,39 @@ export interface TableViewFooterOptions {
   hint?: string;
 }
 
+/**
+ * The card the `kanban` and `cards` displays draw for each row. Left out,
+ * a card shows the row's label and a few of its columns.
+ */
+export interface TableViewCardOptions {
+  /**
+   * Columns shown on the card below its title (`labelKey`), each value
+   * rendered with its column's data type, like a cell.
+   */
+  fields?: string[];
+  /**
+   * Frontend component drawing the whole card, resolved by name from the
+   * global registry; its directory must be declared globally. Both displays
+   * hand it the same props: `row`, `rowId`, `columns`, `labelKey`, `actions`
+   * (the table's row actions), `selected` and `select(value?)` (the row's
+   * selection), and `open()` (what a click on the row does). The kanban adds
+   * `groupValue`, the value of the column the card sits in.
+   */
+  component?: Component;
+}
+
+/** The card of the `kanban` and `cards` displays as it reaches the client. */
+export interface TableViewCardOptionsSerialized {
+  fields?: string[];
+  component?: ComponentInfoSerialized;
+}
+
+/** The kanban options as its display entry carries them. */
 export interface KanbanOptionsSerialized extends Omit<
   KanbanOptions,
-  "cardComponent"
+  "card" | "cardFields" | "cardComponent"
 > {
-  cardComponent?: ComponentInfoSerialized;
+  card?: TableViewCardOptionsSerialized;
 }
 
 export interface TableViewDisplayCapabilities {
@@ -429,15 +457,13 @@ export interface KanbanOptions {
    */
   groupByField: string;
   /**
-   * Fields displayed on the default card below the title (labelKey). Each
-   * value is rendered according to its column DataType, like a table cell.
+   * @deprecated Use the table view's `card.fields`; this alias goes in 0.5.
    */
   cardFields?: string[];
   /**
-   * Custom card component resolved by name on the frontend from the global
-   * frontend registry; its directory must be declared globally. It
-   * receives `item`, `columns` and `groupValue` props and can emit
-   * `edit`/`delete`.
+   * @deprecated Use the table view's `card.component`, which receives the
+   * card props (`row`, `actions`, `selected`, `open()`…); this alias goes in
+   * 0.5.
    */
   cardComponent?: Component;
   /**
@@ -565,6 +591,13 @@ export interface TableViewOptions<
    * switch between the table and a kanban board from the toolbar.
    */
   kanban?: KanbanOptions;
+  /**
+   * The card the `kanban` and `cards` displays draw for each row: the columns
+   * it shows, or a component drawing it whole.
+   * @example { fields: ["email", "due_date"] }
+   * @example { component: CustomComponent("TaskCard") }
+   */
+  card?: TableViewCardOptions;
   /**
    * Additional displays this table view offers beyond the implicit built-in
    * `table` (and `kanban` when the `kanban` option is set). Each `component` is

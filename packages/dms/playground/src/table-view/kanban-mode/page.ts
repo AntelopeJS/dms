@@ -48,10 +48,8 @@ export class PageTableViewKanban extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    kanban: {
-      groupByField: "status",
-      cardFields: ["email", "due_date", "price", "completion_percentage"],
-    },
+    kanban: { groupByField: "status" },
+    card: { fields: ["email", "due_date", "price", "completion_percentage"] },
     defaultDisplay: "kanban",
   });
 }

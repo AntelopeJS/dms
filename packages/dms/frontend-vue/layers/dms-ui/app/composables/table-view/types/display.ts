@@ -81,7 +81,43 @@ export interface TableViewDisplayActions<T> {
   delete: (ids: string[]) => void;
   duplicate: (id: string) => void;
   details: (item: T) => void;
+  /** What a click on the row does in the grid: its default action. */
+  open: (item: T) => void;
   custom: (action: CustomRowAction) => void;
+}
+
+/**
+ * The card the `kanban` and `cards` displays draw (backend `card` option):
+ * the columns it shows, or a component drawing it whole.
+ */
+export interface TableViewCardConfig {
+  fields?: string[];
+  component?: ComponentInfo;
+}
+
+/**
+ * The props a custom card component receives, the same in the `kanban` and
+ * `cards` displays.
+ */
+export interface TableViewCardProps<T = Record<string, unknown>> {
+  /** The row the card stands for. */
+  row: T;
+  /** Its id (its `rowIdKey` value). */
+  rowId: string;
+  /** Column metadata of the table view (types, labels). */
+  columns: TableViewColumn[];
+  /** Field naming the row, if configured. */
+  labelKey?: string;
+  /** The table's row actions and their per-row predicates. */
+  actions: TableViewDisplayActions<T>;
+  /** The row is selected. */
+  selected: boolean;
+  /** Selects the row, or unselects it (`false`); toggles without a value. */
+  select: (value?: boolean) => void;
+  /** Does what a click on the row does in the grid. */
+  open: () => void;
+  /** Kanban only: the value of the column the card sits in. */
+  groupValue?: string;
 }
 
 /**

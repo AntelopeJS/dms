@@ -68,6 +68,7 @@ import {
   staticQuickFilterItems,
 } from "../../build/composables/table-view/utils/quickFilters";
 import { useNavBadges } from "../../composables/navigation/useNavBadges";
+import { resolveRowClickAction } from "../../utils/rowClickAction";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 
 import UTable from "../../build/components/table/Table.vue";
@@ -1290,12 +1291,32 @@ const displayPagination = {
   },
 };
 
+// A display opens an item the way a click opens a row of the grid: its
+// default custom action, else edit, else details.
+const builtInRowClicks: Record<"edit" | "details", (item: T) => unknown> = {
+  edit: handleRowEdit,
+  details: handleRowClick,
+};
+const openDisplayItem = (item: T) => {
+  const action = resolveRowClickAction(
+    tableProps.value.rowActions,
+    item as Record<string, unknown>,
+  );
+  if (!action) return;
+  if (typeof action === "string") {
+    void builtInRowClicks[action](item);
+    return;
+  }
+  handleCustomRowAction(action, item);
+};
+
 const displayRowActions = {
   add: handleRowAdd,
   edit: handleRowEdit,
   delete: deleteRows,
   duplicate: handleRowDuplicate,
   details: handleRowClick,
+  open: openDisplayItem,
   custom: handleCustomRowAction,
   canEditRow: (item: T) =>
     isRowActionEnabled(tableProps.value.rowActions?.edit, item),

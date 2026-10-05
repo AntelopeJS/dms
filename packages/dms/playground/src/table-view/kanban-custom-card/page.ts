@@ -49,10 +49,11 @@ export class PageTableViewKanbanCustomCard extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    kanban: {
-      groupByField: "status",
-      cardComponent: CustomComponent("KanbanTaskCard"),
-    },
+    kanban: { groupByField: "status" },
+    // One card for both card displays: the board and the card grid hand it
+    // the same props.
+    card: { component: CustomComponent("KanbanTaskCard") },
+    displays: [{ id: "cards" }],
     defaultDisplay: "kanban",
   });
 }
