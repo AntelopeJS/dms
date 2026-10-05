@@ -1,9 +1,16 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
+import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { ORDER_STATUSES, orderDataAPI } from "./data-api";
+import { Order, OrderModel } from "./database";
 import { demoFormTexts } from "../form-texts";
 
 const DETAIL_FIELDS = [
@@ -18,6 +25,16 @@ const statusTabs = ORDER_STATUSES.map((status) => ({
   label: status.label,
   filters: [{ accessorKey: "status", value: status.value, mode: "is" }],
 }));
+
+@RegisterDataController()
+class componentOrderDataAPI extends DataController(
+  Order,
+  {},
+  Controller("/api/playground/orders-component", orderDataAPI),
+) {
+  @ModelReference()
+  declare model: OrderModel;
+}
 
 @RegisterPage()
 export class PageTableViewExpandableRows extends PageController(
@@ -51,7 +68,7 @@ export class PageTableViewExpandableRows extends PageController(
     },
   });
 
-  static component = TableView(orderDataAPI, {
+  static component = TableView(componentOrderDataAPI, {
     caption: "Orders · detail component, one row at a time",
     labelKey: "number",
     formTexts: demoFormTexts("order"),

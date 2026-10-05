@@ -1,9 +1,26 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
+import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task, TaskModel } from "../database";
 import { demoFormTexts } from "../form-texts";
+
+@RegisterDataController()
+class archiveTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/archive-mode", taskDataAPI),
+) {
+  @ModelReference()
+  declare model: TaskModel;
+}
 
 @RegisterPage()
 export class PageTableViewArchive extends PageController(
@@ -18,7 +35,7 @@ export class PageTableViewArchive extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(archiveTaskDataAPI, {
     caption: "Tasks - Archive Mode",
     labelKey: "name",
     formTexts: demoFormTexts("task"),
