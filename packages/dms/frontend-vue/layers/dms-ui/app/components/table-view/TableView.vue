@@ -19,8 +19,6 @@ import {
 import { registerQuickActionTarget } from "../../utils/quickActionTargets";
 import type {
   KanbanConfig,
-  TableViewChromeOptions,
-  TableViewChromePreset,
   TableViewConfig,
   TableViewExpandableConfig,
   TableViewFooter,
@@ -116,8 +114,6 @@ type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
-  /** Controls drawn around the rows: a preset or per-control toggles. */
-  chrome?: TableViewChromePreset | TableViewChromeOptions;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /** One-click dropdown filters of the toolbar. */
@@ -291,7 +287,11 @@ const DEFAULT_PAGINATION: PaginationState = {
   pageIndex: 0,
   pageSize: props.pageSize ?? DEFAULT_PAGE_SIZE,
 };
-const resolvedChrome = resolveTableChrome(props.chrome);
+const resolvedChrome = resolveTableChrome(props.layout, {
+  hasCaption: !!caption,
+  isSearchable: !!props.searchable,
+  isFilterable: allColumns.some((column) => column.enableColumnFilter),
+});
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
 const pagination = ref<PaginationState>(

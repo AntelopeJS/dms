@@ -144,41 +144,22 @@ export interface TableViewTabSerialized extends Omit<
   countFrom?: string;
 }
 
-/** Ready-made chrome sets; see {@link TableViewChromeOptions}. */
-export type TableViewChromePreset = "full" | "minimal";
-
 /**
- * Which controls the table draws around its rows. Every toggle defaults to
- * the preset's value: `"full"` (the default) turns them all on with a
- * toggle search; `"minimal"` keeps an open search field, the tabs, quick
- * filters, custom buttons, sortable headers and a footer without the page
- * size picker — the reduced list of a settings page.
+ * How much a table draws around its rows.
+ *
+ * - `"full"`: the dashboard grid — caption and count, a search button,
+ *   filters, sort, refresh, the ⋯ table menu, column header menus and a
+ *   footer with the page size picker.
+ * - `"compact"`: the list of a settings page — tabs, an always-open search
+ *   field, quick filters and custom buttons; no caption, filters row, sort
+ *   menu, refresh, ⋯ menu, column menus nor page size picker.
+ *
+ * Either way a control shows only when it means something: the search when
+ * the controller has `@Searchable` fields, the filters when a column is
+ * `filterable`, the caption when `caption` is set, the export entry when the
+ * caller may export.
  */
-export interface TableViewChromeOptions {
-  preset?: TableViewChromePreset;
-  /**
-   * Caption heading and row count. Without it, the tabs move up into the
-   * header band, left of the controls.
-   */
-  caption?: boolean;
-  /**
-   * Search: `true` a button that opens a field, `"field"` an always-open
-   * field, `false` none. Needs `@Searchable` fields.
-   */
-  search?: boolean | "field";
-  /** Filter button and filters row. */
-  filters?: boolean;
-  /** Sort popover button. Sortable column headers stay clickable. */
-  sorting?: boolean;
-  /** Refresh button. */
-  refresh?: boolean;
-  /** The ⋯ table menu: columns, density, export, import, page size. */
-  menu?: boolean;
-  /** Column header menus (sort, hide, pin) and column resizing. */
-  columnMenus?: boolean;
-  /** Rows-per-page picker in the footer. */
-  pageSize?: boolean;
-}
+export type TableViewLayout = "full" | "compact";
 
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
@@ -307,6 +288,8 @@ export interface TableViewOptionsSerialized extends Omit<
   | "tabs"
 > {
   enableTableExport: boolean;
+  /** Whether the controller declares `@Searchable` fields to search in. */
+  searchable: boolean;
   customButtons?: CustomButtonSerialized[];
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;
   rowActions?: TableViewRowActionOptionsSerialized;
@@ -449,12 +432,10 @@ export interface TableViewOptions<
    */
   expandable?: TableViewExpandableOptions;
   /**
-   * Controls drawn around the rows: a preset (`"full"`, the default, or
-   * `"minimal"`) or per-control toggles over a preset.
-   * @example "minimal"
-   * @example { preset: "minimal", caption: true }
+   * How much the table draws around its rows: `"full"` (the default) or the
+   * `"compact"` list of a settings page. See {@link TableViewLayout}.
    */
-  chrome?: TableViewChromePreset | TableViewChromeOptions;
+  layout?: TableViewLayout;
   /** Placeholder of the search field. `$`-prefixed: an i18n key. */
   searchPlaceholder?: string;
   /** One-click dropdown filters drawn in the toolbar. */

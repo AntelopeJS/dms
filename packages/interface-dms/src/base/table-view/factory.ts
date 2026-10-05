@@ -9,6 +9,7 @@ import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
+import { SearchableMeta } from "../searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import {
   TABLE_VIEW_COMPONENT_NAME,
@@ -187,7 +188,11 @@ export function TableView<T extends ControllerClass>(
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
       tabs: serializeTableViewTabs(options.tabs),
-      chrome: options.chrome,
+      layout: options.layout,
+      searchable:
+        Object.keys(
+          GetMetadata(controller, SearchableMeta).getSearchableFields(),
+        ).length > 0,
       searchPlaceholder: options.searchPlaceholder,
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,

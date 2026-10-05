@@ -40,21 +40,11 @@ export interface TableViewTab {
   badge?: boolean;
 }
 
-/** Ready-made chrome sets of a table view. */
-export type TableViewChromePreset = "full" | "minimal";
-
-/** Per-control chrome toggles (backend `chrome` option). */
-export interface TableViewChromeOptions {
-  preset?: TableViewChromePreset;
-  caption?: boolean;
-  search?: boolean | "field";
-  filters?: boolean;
-  sorting?: boolean;
-  refresh?: boolean;
-  menu?: boolean;
-  columnMenus?: boolean;
-  pageSize?: boolean;
-}
+/**
+ * How much a table draws around its rows (backend `layout`): the full
+ * dashboard grid, or the compact list of a settings page.
+ */
+export type TableViewLayout = "full" | "compact";
 
 /** A one-click dropdown filter of the toolbar (backend `quickFilters`). */
 export interface TableViewQuickFilter {
@@ -166,8 +156,10 @@ export interface TableViewConfig<T extends Data>
   defaultDisplay?: string;
   /** Expandable rows: caret column + detail band. */
   expandable?: TableViewExpandableConfig;
-  /** Controls drawn around the rows. */
-  chrome?: TableViewChromePreset | TableViewChromeOptions;
+  /** How much the table draws around its rows. */
+  layout?: TableViewLayout;
+  /** The controller declares `@Searchable` fields. */
+  searchable?: boolean;
   searchPlaceholder?: string;
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */

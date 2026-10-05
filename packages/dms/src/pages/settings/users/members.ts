@@ -100,7 +100,7 @@ export const INVITES_PERMISSION_ID = "settings.user.invites";
  * an open search field and a role filter, sortable headers, the row menu and a
  * footer with the count.
  */
-export const MEMBER_LISTS_CHROME = "minimal";
+export const MEMBER_LISTS_LAYOUT = "compact";
 export const MEMBER_LISTS_PAGE_SIZE = 25;
 export const MEMBERS_TAB_ICON = "i-ph-users";
 export const INVITES_TAB_ICON = "i-ph-envelope-simple";
@@ -201,7 +201,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
   // "Change roles" opens over the list: the member's name in the title, the
   // roles as the invite form's pills (see the `roleIds` column).
   formContainer: { type: "modal", size: "md" },
-  chrome: MEMBER_LISTS_CHROME,
+  layout: MEMBER_LISTS_LAYOUT,
   searchPlaceholder: "$page.settings.members.search_members",
   quickFilters: [{ field: "roleIds", ...ROLE_QUICK_FILTER }],
   pageSize: MEMBER_LISTS_PAGE_SIZE,

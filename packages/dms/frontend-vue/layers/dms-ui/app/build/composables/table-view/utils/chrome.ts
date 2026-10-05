@@ -1,7 +1,4 @@
-import type {
-  TableViewChromeOptions,
-  TableViewChromePreset,
-} from "../../../../composables/table-view/types/config";
+import type { TableViewLayout } from "../../../../composables/table-view/types/config";
 
 /** Every chrome control of a table view, resolved. */
 export interface ResolvedTableChrome {
@@ -16,7 +13,17 @@ export interface ResolvedTableChrome {
   pageSize: boolean;
 }
 
-const CHROME_PRESETS: Record<TableViewChromePreset, ResolvedTableChrome> = {
+/** What a table has to offer, which decides the controls worth drawing. */
+export interface TableChromeContext {
+  /** The table names itself (`caption`). */
+  hasCaption: boolean;
+  /** The controller declares `@Searchable` fields. */
+  isSearchable: boolean;
+  /** A column is `filterable`. */
+  isFilterable: boolean;
+}
+
+const LAYOUT_CHROME: Record<TableViewLayout, ResolvedTableChrome> = {
   full: {
     caption: true,
     search: "toggle",
@@ -27,9 +34,9 @@ const CHROME_PRESETS: Record<TableViewChromePreset, ResolvedTableChrome> = {
     columnMenus: true,
     pageSize: true,
   },
-  // The reduced list of a settings page: tabs, an open search field, quick
-  // filters, sortable headers, the row menu and a short footer.
-  minimal: {
+  // The list of a settings page: tabs, an open search field, quick filters,
+  // sortable headers, the row menu and a short footer.
+  compact: {
     caption: false,
     search: "field",
     filters: false,
@@ -41,38 +48,23 @@ const CHROME_PRESETS: Record<TableViewChromePreset, ResolvedTableChrome> = {
   },
 };
 
-/** The full chrome: what a table draws when nothing is configured. */
-export const FULL_TABLE_CHROME: ResolvedTableChrome = CHROME_PRESETS.full;
-
-const resolveSearch = (
-  search: TableViewChromeOptions["search"],
-  fallback: ResolvedTableChrome["search"],
-): ResolvedTableChrome["search"] => {
-  if (search === undefined) return fallback;
-  if (search === "field") return "field";
-  return search ? "toggle" : "none";
-};
+/** The full chrome: what a standalone table draws when nothing is configured. */
+export const FULL_TABLE_CHROME: ResolvedTableChrome = LAYOUT_CHROME.full;
 
 /**
- * The backend `chrome` option as one flag per control: a preset name, or
- * toggles laid over a preset (`"full"` when none is named).
+ * The controls a table draws: those of its `layout`, less the ones it has
+ * nothing to offer through (no caption to show, no field to search in, no
+ * column to filter on).
  */
 export function resolveTableChrome(
-  chrome: TableViewChromePreset | TableViewChromeOptions | undefined,
+  layout: TableViewLayout | undefined,
+  context: TableChromeContext,
 ): ResolvedTableChrome {
-  if (!chrome) return FULL_TABLE_CHROME;
-  if (typeof chrome === "string") {
-    return CHROME_PRESETS[chrome] ?? FULL_TABLE_CHROME;
-  }
-  const base = CHROME_PRESETS[chrome.preset ?? "full"] ?? FULL_TABLE_CHROME;
+  const base = LAYOUT_CHROME[layout ?? "full"] ?? FULL_TABLE_CHROME;
   return {
-    caption: chrome.caption ?? base.caption,
-    search: resolveSearch(chrome.search, base.search),
-    filters: chrome.filters ?? base.filters,
-    sorting: chrome.sorting ?? base.sorting,
-    refresh: chrome.refresh ?? base.refresh,
-    menu: chrome.menu ?? base.menu,
-    columnMenus: chrome.columnMenus ?? base.columnMenus,
-    pageSize: chrome.pageSize ?? base.pageSize,
+    ...base,
+    caption: base.caption && context.hasCaption,
+    search: context.isSearchable ? base.search : "none",
+    filters: base.filters && context.isFilterable,
   };
 }

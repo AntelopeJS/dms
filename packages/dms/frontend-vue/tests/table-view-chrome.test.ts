@@ -24,14 +24,22 @@ const column = (
     type: { id, inputComponent: { componentName: "x", options } },
   }) as unknown as TableViewColumn;
 
-describe("TableView chrome", () => {
+describe("TableView layout", () => {
+  const everything = {
+    hasCaption: true,
+    isSearchable: true,
+    isFilterable: true,
+  };
+
   it("draws the full chrome by default", () => {
-    expect(resolveTableChrome(undefined)).toEqual(FULL_TABLE_CHROME);
-    expect(resolveTableChrome("full").search).toBe("toggle");
+    expect(resolveTableChrome(undefined, everything)).toEqual(
+      FULL_TABLE_CHROME,
+    );
+    expect(resolveTableChrome("full", everything).search).toBe("toggle");
   });
 
-  it("reduces the minimal preset to an open search field", () => {
-    expect(resolveTableChrome("minimal")).toEqual({
+  it("reduces the compact layout to an open search field", () => {
+    expect(resolveTableChrome("compact", everything)).toEqual({
       caption: false,
       search: "field",
       filters: false,
@@ -43,16 +51,20 @@ describe("TableView chrome", () => {
     });
   });
 
-  it("lays toggles over a preset", () => {
-    const chrome = resolveTableChrome({
-      preset: "minimal",
-      caption: true,
-      search: false,
+  it("draws a control only when the table has something to offer through it", () => {
+    const bare = resolveTableChrome("full", {
+      hasCaption: false,
+      isSearchable: false,
+      isFilterable: false,
     });
-    expect(chrome.caption).toBe(true);
-    expect(chrome.search).toBe("none");
-    expect(chrome.menu).toBe(false);
-    expect(resolveTableChrome({ menu: false }).filters).toBe(true);
+    expect(bare.caption).toBe(false);
+    expect(bare.search).toBe("none");
+    expect(bare.filters).toBe(false);
+    expect(bare.menu).toBe(true);
+    expect(
+      resolveTableChrome("compact", { ...everything, isSearchable: false })
+        .search,
+    ).toBe("none");
   });
 });
 

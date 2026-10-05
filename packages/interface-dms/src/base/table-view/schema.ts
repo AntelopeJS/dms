@@ -20,7 +20,6 @@ import {
   type RouteParamFilter,
   TABLE_DISPLAY_ID,
   TABLE_VIEW_COMPONENT_NAME,
-  type TableViewChromeOptions,
   type TableViewDisplayOption,
   type TableViewExpandableOptions,
   type TableViewFormText,
@@ -132,29 +131,6 @@ const tabSchema = z.object({
     widget: "switch",
   }),
 }) satisfies BlockOptionsFor<TableViewTab>;
-
-const chromeTogglesSchema = z.object({
-  preset: ui(z.enum(["full", "minimal"]).optional(), {
-    label: "Preset",
-    widget: "segmented",
-  }),
-  caption: ui(z.boolean().optional(), { label: "Caption", widget: "switch" }),
-  search: ui(z.union([z.boolean(), z.literal("field")]).optional(), {
-    label: "Search",
-  }),
-  filters: ui(z.boolean().optional(), { label: "Filters", widget: "switch" }),
-  sorting: ui(z.boolean().optional(), { label: "Sort menu", widget: "switch" }),
-  refresh: ui(z.boolean().optional(), { label: "Refresh", widget: "switch" }),
-  menu: ui(z.boolean().optional(), { label: "Table menu", widget: "switch" }),
-  columnMenus: ui(z.boolean().optional(), {
-    label: "Column menus",
-    widget: "switch",
-  }),
-  pageSize: ui(z.boolean().optional(), {
-    label: "Page size picker",
-    widget: "switch",
-  }),
-}) satisfies BlockOptionsFor<TableViewChromeOptions>;
 
 const quickFilterSchema = z.object({
   field: ui(z.string(), {
@@ -309,12 +285,14 @@ export const TableViewSchema = z.object({
       .describe("A caret column opens a detail band under each row."),
     { label: "Expandable rows", group: "features" },
   ),
-  chrome: ui(
+  layout: ui(
     z
-      .union([z.enum(["full", "minimal"]), chromeTogglesSchema])
+      .enum(["full", "compact"])
       .optional()
-      .describe("Controls drawn around the rows."),
-    { label: "Chrome", group: "appearance" },
+      .describe(
+        "Full dashboard grid, or the compact list of a settings page.",
+      ),
+    { label: "Layout", group: "appearance", widget: "segmented" },
   ),
   searchPlaceholder: ui(z.string().optional(), {
     label: "Search placeholder",

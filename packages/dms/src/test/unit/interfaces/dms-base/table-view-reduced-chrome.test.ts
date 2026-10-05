@@ -25,6 +25,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/request-filter";
 import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/tabs";
 
@@ -87,6 +88,21 @@ class LineAPI extends DataController(
   Controller(LINES_LOCATION),
 ) {}
 
+const SEARCHABLE_LOCATION = "/api/reduced-chrome-searchable";
+
+@RegisterDataController()
+class SearchableOrderAPI extends DataController(
+  Order,
+  { list: TableViewRoutes.List },
+  Controller(SEARCHABLE_LOCATION),
+) {
+  @Listable()
+  @Searchable()
+  @Column({ name: "Order", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadOnly)
+  declare number: string;
+}
+
 const optionsOf = (table: ReturnType<typeof TableView>) =>
   table.serializeSync().options as TableViewOptionsSerialized;
 
@@ -117,18 +133,19 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(carrier).to.include({ isVisible: false });
   });
 
-  it("passes the chrome, search, quick filter, page size and footer through", () => {
+  it("passes the layout, search, quick filter, page size and footer through", () => {
     const options = optionsOf(
       TableView(OrderAPI, {
         realtime: false,
-        chrome: { preset: "minimal", caption: true },
+        layout: "compact",
         searchPlaceholder: "$orders.search",
         quickFilters: [{ field: "status" }],
         pageSize: 25,
         footer: { countLabel: "$orders.count", hint: "$orders.hint" },
       }),
     );
-    expect(options.chrome).to.deep.equal({ preset: "minimal", caption: true });
+    expect(options.layout).to.equal("compact");
+    expect(options.searchable).to.equal(false);
     expect(options.searchPlaceholder).to.equal("$orders.search");
     expect(options.quickFilters).to.deep.equal([{ field: "status" }]);
     expect(options.pageSize).to.equal(25);
@@ -136,6 +153,15 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       countLabel: "$orders.count",
       hint: "$orders.hint",
     });
+  });
+
+  it("tells the client whether the controller has fields to search in", () => {
+    expect(
+      optionsOf(TableView(SearchableOrderAPI, { realtime: false })).searchable,
+    ).to.equal(true);
+    expect(optionsOf(TableView(OrderAPI, { realtime: false })).searchable).to.equal(
+      false,
+    );
   });
 
   it("refuses a page size over 50 or not a whole number of rows", () => {
