@@ -147,7 +147,8 @@ describe("[unit] interfaces/dms-base — table view views", () => {
       defaultView: "audit",
       items: [
         { id: "all", label: "All" },
-        { id: "audit", label: "Audit", permission: "tickets.audit" },
+        { id: "audit", label: "Audit", permission: "audit" },
+        { id: "ledger", label: "Ledger", permissionId: "ledger.read" },
       ],
     };
     const serialized = {
@@ -155,23 +156,27 @@ describe("[unit] interfaces/dms-base — table view views", () => {
       items: [
         { id: "all", label: "All" },
         { id: "audit", label: "Audit" },
+        { id: "ledger", label: "Ledger" },
       ],
     };
     const refused = await resolveTableViewViews(
       new Set(),
       declared,
       serialized,
+      "tickets",
     );
     expect(refused?.items.map((view) => view.id)).to.deep.equal(["all"]);
     expect(refused?.defaultView).to.equal(undefined);
     const granted = await resolveTableViewViews(
-      new Set(["tickets.audit"]),
+      new Set(["tickets.audit", "ledger.read"]),
       declared,
       serialized,
+      "tickets",
     );
     expect(granted?.items.map((view) => view.id)).to.deep.equal([
       "all",
       "audit",
+      "ledger",
     ]);
     expect(granted?.defaultView).to.equal("audit");
   });

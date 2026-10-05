@@ -96,6 +96,7 @@ export function serializeCustomButtons(
   return buttons?.map(
     ({
       permission: _permission,
+      permissionId: _permissionId,
       availability: _availability,
       confirm,
       ...btn

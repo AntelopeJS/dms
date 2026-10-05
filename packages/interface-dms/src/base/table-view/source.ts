@@ -215,8 +215,8 @@ export function tableViewFromSource(
     title: "$dms.table.action_list",
     icon: "i-ph-list",
   });
-  for (const { id, permission } of declaredCustomButtons ?? []) {
-    if (id) builder.button(id, { permission });
+  for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
+    if (id) builder.button(id, { permission, permissionId });
   }
   // The column metadata a data controller would give its table views.
   const config = {
@@ -269,6 +269,11 @@ export function tableViewFromSource(
         permissionId,
         context,
       ),
-      tabs: await resolveTableViewTabs(permissions, declaredTabs, served.tabs),
+      tabs: await resolveTableViewTabs(
+        permissions,
+        declaredTabs,
+        served.tabs,
+        permissionId,
+      ),
     }));
 }

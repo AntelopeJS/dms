@@ -5,18 +5,17 @@
 // Split out of factory-helpers.ts.
 
 import { applyButtonAvailability } from "../button-availability";
+import type { ComponentFilterContext } from "../../component";
 import {
-  type ButtonPermission,
-  type ComponentFilterContext,
-  resolveButtonPermissionId,
-} from "../../component";
+  holdsPermissionGate,
+  type PermissionGate,
+} from "../../permission-gate";
 import { HasPermission } from "../../permissions";
 import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
 import type {
-  CustomRowAction,
   CustomRowActionSerialized,
   RowActionConfigSerialized,
   RowActionRule,
@@ -157,21 +156,6 @@ export function adaptRowActions({
   return adapted;
 }
 
-// A declared permission that cannot be resolved to an id (e.g. an action on a
-// page that never registered) fails closed.
-async function isCustomButtonGranted(
-  permissions: Set<string>,
-  declared: { permission?: ButtonPermission } | undefined,
-  componentPermissionId: string,
-): Promise<boolean> {
-  if (declared?.permission === undefined) return true;
-  const permissionId = resolveButtonPermissionId(
-    declared.permission,
-    componentPermissionId,
-  );
-  return !!permissionId && (await HasPermission(permissions, permissionId));
-}
-
 /**
  * The custom buttons served to one request: those whose permission the caller
  * lacks are stripped, and those whose `availability` refuses the request are
@@ -191,11 +175,7 @@ export async function resolveCustomButtons(
   for (const [index, serialized] of serializedButtons.entries()) {
     const declared = declaredButtons[index];
     if (
-      !(await isCustomButtonGranted(
-        permissions,
-        declared,
-        componentPermissionId,
-      ))
+      !(await holdsPermissionGate(permissions, declared, componentPermissionId))
     ) {
       continue;
     }
@@ -216,7 +196,7 @@ export async function resolveCustomButtons(
  */
 export async function resolveCustomRowActions(
   permissions: Set<string>,
-  declaredActions: Array<Pick<CustomRowAction, "permission">> | undefined,
+  declaredActions: PermissionGate[] | undefined,
   serializedActions: CustomRowActionSerialized[] | undefined,
   componentPermissionId: string,
 ): Promise<CustomRowActionSerialized[] | undefined> {
@@ -224,7 +204,7 @@ export async function resolveCustomRowActions(
   const kept: CustomRowActionSerialized[] = [];
   for (const [index, serialized] of serializedActions.entries()) {
     if (
-      await isCustomButtonGranted(
+      await holdsPermissionGate(
         permissions,
         declaredActions[index],
         componentPermissionId,

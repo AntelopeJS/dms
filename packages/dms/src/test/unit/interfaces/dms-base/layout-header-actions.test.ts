@@ -89,22 +89,40 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
   const layout = DefaultLayout({
     headerActions: [
       link("open"),
-      link("audit", "billing.audit"),
-      link("export", "billing.export"),
+      link("audit", "audit"),
+      link("export", "export"),
+      { ...link("ledger"), permissionId: "pages.ledger.view" },
     ],
   });
 
-  it("leaves out the buttons whose permission the caller lacks", async () => {
+  it("leaves out the buttons whose permission the caller lacks, an action of the page by name", async () => {
     const filtered = await filterLayoutHeaderActions(
       layout,
-      async () => new Set(["billing.export"]),
+      async () => new Set(["pages.billing.export", "pages.ledger.view"]),
       CONTEXT,
+      "pages.billing",
     );
 
     expect(
       actionsOf(filtered!.options).map((action) => action.id),
-    ).to.deep.equal(["open", "export"]);
+    ).to.deep.equal(["open", "export", "ledger"]);
     expect(actionsOf(filtered!.options)[1]).to.not.have.property("permission");
+    expect(actionsOf(filtered!.options)[2]).to.not.have.property(
+      "permissionId",
+    );
+  });
+
+  it("refuses a button naming an action when the page has no permission id", async () => {
+    const filtered = await filterLayoutHeaderActions(
+      layout,
+      async () => new Set(["pages.billing.export"]),
+      CONTEXT,
+      undefined,
+    );
+
+    expect(
+      actionsOf(filtered!.options).map((action) => action.id),
+    ).to.deep.equal(["open"]);
   });
 
   it("disables a button its availability refuses, with the reason", async () => {
@@ -123,6 +141,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         limited,
         async () => new Set(),
         CONTEXT,
+        "pages.billing",
       ))!.options,
     );
 
@@ -144,14 +163,20 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
         return new Set<string>();
       },
       CONTEXT,
+      "pages.billing",
     );
 
     expect(loaded).to.equal(false);
   });
 
   it("does not touch the layout it was given", async () => {
-    await filterLayoutHeaderActions(layout, async () => new Set(), CONTEXT);
-    expect(actionsOf(layout.options)).to.have.length(3);
+    await filterLayoutHeaderActions(
+      layout,
+      async () => new Set(),
+      CONTEXT,
+      "pages.billing",
+    );
+    expect(actionsOf(layout.options)).to.have.length(4);
   });
 });
 

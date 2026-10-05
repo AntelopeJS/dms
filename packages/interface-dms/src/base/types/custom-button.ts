@@ -46,13 +46,15 @@ export interface CustomButton {
   /** Asked before the button's target runs: a fixed dialog, or `{ from }`. */
   confirm?: ActionConfirm;
   /**
-   * Gate the button behind a permission. A string names one of the owning
-   * table's actions (e.g. `"add"`) — in a page header (`DefaultLayout({
-   * headerActions })`), a permission id; an `Action` references any
-   * component's action (e.g. another table's `add`). The button is stripped
-   * from the served options when the caller lacks the permission.
+   * Gate the button behind a permission: one of the owning table's actions by
+   * name (e.g. `"add"`) — in a page header (`DefaultLayout({ headerActions
+   * })`), an action of the page, relative to its permission id — or an
+   * `Action` of any component (e.g. another table's `add`). The button is
+   * stripped from the served options when the caller lacks the permission.
    */
   permission?: ButtonPermission;
+  /** Absolute permission id the button requires; wins over `permission`. */
+  permissionId?: string;
   /**
    * Disables the button for a request it answers with a reason. A button the
    * caller lacks the permission for is stripped before this runs.
@@ -68,7 +70,7 @@ export interface CustomButton {
 
 export interface CustomButtonSerialized extends Omit<
   CustomButton,
-  "target" | "permission" | "availability" | "confirm"
+  "target" | "permission" | "permissionId" | "availability" | "confirm"
 > {
   target: ActionTargetSerialized;
   confirm?: ActionConfirmSerialized;

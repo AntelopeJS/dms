@@ -11,6 +11,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
 import { GetPermissionId, PageMetadata } from "../../page";
+import { holdsPermissionGate } from "../../permission-gate";
 import { HasPermission } from "../../permissions";
 import type {
   TableViewOptions,
@@ -32,27 +33,37 @@ function dataApiLocation(countFrom: ControllerClass | string): string {
 export function serializeTableViewTabs(
   tabs: TableViewTab[] | undefined,
 ): TableViewTabSerialized[] | undefined {
-  return tabs?.map(({ to, countFrom, permission: _permission, ...tab }) => {
-    const serialized: TableViewTabSerialized = { ...tab };
-    if (typeof to === "string") serialized.to = to;
-    if (countFrom) serialized.countFrom = dataApiLocation(countFrom);
-    return serialized;
-  });
+  return tabs?.map(
+    ({
+      to,
+      countFrom,
+      permission: _permission,
+      permissionId: _permissionId,
+      ...tab
+    }) => {
+      const serialized: TableViewTabSerialized = { ...tab };
+      if (typeof to === "string") serialized.to = to;
+      if (countFrom) serialized.countFrom = dataApiLocation(countFrom);
+      return serialized;
+    },
+  );
 }
 
 const withLeadingSlash = (path: string): string =>
   path.startsWith("/") ? path : `/${path}`;
 
 /**
- * The tabs served to one request: a link tab is kept only for a caller its
- * target admits — the page's own permission, or the declared `permission` —
- * and a page target is resolved to its path and full id. A page that never
+ * The tabs served to one request: a tab is kept only for a caller its gate
+ * admits — a link tab to a page, that page's own permission; any other tab,
+ * its `permission` (relative to the table view) or `permissionId` — and a
+ * page target is resolved to its path and full id. A page that never
  * registered drops its tab.
  */
 export async function resolveTableViewTabs(
   permissions: Set<string>,
   declaredTabs: TableViewTab[] | undefined,
   serializedTabs: TableViewTabSerialized[] | undefined,
+  componentPermissionId: string,
 ): Promise<TableViewTabSerialized[] | undefined> {
   if (!declaredTabs || !serializedTabs) return serializedTabs;
   const kept: TableViewTabSerialized[] = [];
@@ -74,12 +85,10 @@ export async function resolveTableViewTabs(
       continue;
     }
     if (
-      declared?.permission &&
-      !(await HasPermission(permissions, declared.permission))
+      await holdsPermissionGate(permissions, declared, componentPermissionId)
     ) {
-      continue;
+      kept.push(tab);
     }
-    kept.push(tab);
   }
   return kept;
 }

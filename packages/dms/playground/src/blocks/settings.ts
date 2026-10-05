@@ -48,7 +48,7 @@ export class PageBlocksSettings extends PageController(
         label: "Audit log",
         icon: "i-ph-scroll",
         target: { type: "page", url: "/settings/user/roles" },
-        permission: "playground.never-granted",
+        permissionId: "playground.never-granted",
       },
     ],
   }),

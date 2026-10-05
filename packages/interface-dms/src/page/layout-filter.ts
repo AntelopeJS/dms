@@ -12,6 +12,7 @@ import type {
   ComponentFilterContext,
   ComponentInfoSerialized,
 } from "../component";
+import { holdsPermissionGate, isPermissionGated } from "../permission-gate";
 import { HasPermission } from "../permissions";
 import type { ComponentTreeNode } from "./component-tree";
 
@@ -165,24 +166,21 @@ export async function filterComponents(
   return filtered;
 }
 
-/** A header button's permission, as a permission id: a string is one. */
-function headerButtonPermissionId(
-  button: PageHeaderButtonDeclared,
-): string | undefined {
-  const { permission } = button;
-  return typeof permission === "string" ? permission : permission?.permissionId;
-}
-
 async function serveHeaderButton(
   button: PageHeaderButtonDeclared,
   permissions: () => Promise<Set<string>>,
+  pagePermissionId: string | undefined,
   context: ComponentFilterContext,
 ): Promise<PageHeaderButtonSerialized | undefined> {
-  const { permission: _permission, availability, ...served } = button;
-  const permissionId = headerButtonPermissionId(button);
+  const {
+    permission: _permission,
+    permissionId: _permissionId,
+    availability,
+    ...served
+  } = button;
   if (
-    permissionId &&
-    !(await HasPermission(await permissions(), permissionId))
+    isPermissionGated(button) &&
+    !(await holdsPermissionGate(await permissions(), button, pagePermissionId))
   ) {
     return undefined;
   }
@@ -191,14 +189,16 @@ async function serveHeaderButton(
 
 /**
  * The page layout (the frame around the components) as one caller may see it:
- * the header buttons declaring a `permission` the caller lacks are left out,
- * those whose `availability` refuses the request are disabled with its reason.
+ * the header buttons whose gate the caller fails are left out — a `permission`
+ * names an action of the page, relative to `pagePermissionId` — and those
+ * whose `availability` refuses the request are disabled with its reason.
  * `loadPermissions` is only called when a button declares a permission.
  */
 export async function filterLayoutHeaderActions<T>(
   layout: ComponentInfo<T> | undefined,
   loadPermissions: () => Promise<Set<string>>,
   context: ComponentFilterContext,
+  pagePermissionId: string | undefined,
 ): Promise<ComponentInfo<T> | undefined> {
   const options = layout?.options as
     | { headerActions?: PageHeaderButtonDeclared[] }
@@ -208,7 +208,9 @@ export async function filterLayoutHeaderActions<T>(
   let loaded: Promise<Set<string>> | undefined;
   const permissions = () => (loaded ??= loadPermissions());
   const served = await Promise.all(
-    buttons.map((button) => serveHeaderButton(button, permissions, context)),
+    buttons.map((button) =>
+      serveHeaderButton(button, permissions, pagePermissionId, context),
+    ),
   );
   return {
     ...layout,

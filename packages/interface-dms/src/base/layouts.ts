@@ -36,6 +36,7 @@ export interface PageHeaderButtonSerialized extends Omit<
  */
 export interface PageHeaderButtonDeclared extends PageHeaderButtonSerialized {
   permission?: ButtonPermission;
+  permissionId?: string;
   availability?: CustomButtonAvailability;
 }
 
@@ -61,8 +62,9 @@ export interface DefaultLayoutOptions {
    * Buttons right of the page title, in order: the same buttons as a table's
    * toolbar — a link (`page` or `external` target), a quick action
    * (`quickAction`), a drawer, a modal, an API call or an export, with their
-   * confirmation and availability. A string `permission` is a permission id.
-   * A table view's own buttons join them with `placement: "header"`.
+   * confirmation and availability. A string `permission` names an action of
+   * the page, relative to its permission id; `permissionId` is an absolute
+   * one. A table view's own buttons join them with `placement: "header"`.
    */
   headerActions?: CustomButton[];
 }

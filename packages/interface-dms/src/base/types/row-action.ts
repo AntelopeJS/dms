@@ -143,8 +143,13 @@ export interface CustomRowAction<
    * Gate the action behind a permission, like a custom button: a string
    * names one of the table's actions (e.g. `"edit"`), an `Action` any
    * component's. The action is stripped for a caller without it.
+   *
+   * It only hides the action: the route its target calls must check the
+   * permission itself.
    */
   permission?: ButtonPermission;
+  /** Absolute permission id the action requires; wins over `permission`. */
+  permissionId?: string;
   /** Color of the action: an inline button, or a menu entry. */
   color?: ButtonColor;
   /** Variant of an inline (`isVisible`) button. Defaults to `ghost`. */

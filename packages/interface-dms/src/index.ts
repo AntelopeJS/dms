@@ -172,6 +172,7 @@ export {
   SubscribeMessage,
   UnsubscribeMessage,
 } from "./realtime";
+export * from "./permission-gate";
 export * from "./request-tenant";
 export {
   AssertTenantAccess,

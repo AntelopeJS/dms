@@ -5,7 +5,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { PageMetadata } from "../../page";
-import { HasPermission } from "../../permissions";
+import { holdsPermissionGate } from "../../permission-gate";
 import type {
   TableViewViewSerialized,
   TableViewViewsOptions,
@@ -66,7 +66,11 @@ export function serializeTableViewViews(
   return {
     ...views,
     items: views.items.map(
-      ({ permission: _permission, ...view }): TableViewViewSerialized => view,
+      ({
+        permission: _permission,
+        permissionId: _permissionId,
+        ...view
+      }): TableViewViewSerialized => view,
     ),
   };
 }
@@ -79,15 +83,15 @@ export async function resolveTableViewViews(
   permissions: Set<string>,
   declared: TableViewViewsOptions | undefined,
   serialized: TableViewViewsSerialized | undefined,
+  componentPermissionId: string,
 ): Promise<TableViewViewsSerialized | undefined> {
   if (!declared || !serialized) return serialized;
   const items: TableViewViewSerialized[] = [];
   for (const [index, view] of serialized.items.entries()) {
-    const permission = declared.items[index]?.permission;
-    if (permission && !(await HasPermission(permissions, permission))) {
-      continue;
+    const gate = declared.items[index];
+    if (await holdsPermissionGate(permissions, gate, componentPermissionId)) {
+      items.push(view);
     }
-    items.push(view);
   }
   const hasDefault = items.some((view) => view.id === serialized.defaultView);
   return {
