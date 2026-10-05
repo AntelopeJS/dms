@@ -12,12 +12,12 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import { TableView } from "@antelopejs/interface-dms/base";
 import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import {
   TableViewMeta,
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
+import { registerTableViewActions } from "@antelopejs/interface-dms/base/table-view/factory-helpers";
 import {
   type Action,
   ComponentBuilder,
@@ -87,46 +87,36 @@ export interface CreatedRole {
   id: string;
 }
 
-// Built for its data routes, never mounted: the roles page renders the
-// two-pane editor below instead of a table.
-const rolesTable = TableView(roleSettingDataAPI, {
-  caption: "$page.settings.roles.table.caption",
-  rowActions: {
-    add: true,
-    copyLink: true,
-    delete: { isEnabled: true, isVisible: true },
-    details: true,
-    duplicate: true,
-    edit: { isEnabled: true, isVisible: true },
-    hasSelection: true,
-  },
-  formContainer: { type: "page" },
-  guards: {
-    delete: async (ctx, { ids }) => {
-      const tenantId = getRequestTenantId(ctx);
-      for (const id of ids) await assertRoleUnused(tenantId, id);
-    },
-  },
-});
-
 /**
- * The roles editor, mounted as the page's `table` with the table's actions so
- * the grantable ids stay `settings.user.roles.table.{list,add,edit,…}`: roles
+ * The roles editor, mounted as the page's `table` and standing in for a
+ * TableView over `roleSettingDataAPI`: it declares a table's actions, so the
+ * grantable ids stay `settings.user.roles.table.{list,add,edit,…}` and roles
  * saved before the editor keep granting the same rights.
  */
 export const rolesEditor = new ComponentBuilder<TableViewOptionsSerialized>(
   ROLES_EDITOR_COMPONENT_NAME,
 ).meta({ name: "$page.settings.roles.table.caption", icon: "i-ph-key" });
 
-for (const action of Object.values(rolesTable.actions)) {
-  rolesEditor.action(action.id, action.definition);
-}
+registerTableViewActions(rolesEditor, {
+  hasNewForm: true,
+  hasEditForm: true,
+  hasViewForm: true,
+  hasDeleteEndpoint: true,
+  archiveMode: false,
+  isExportEnabled: true,
+});
 
 // The data routes (`/api/tables/roles`, behind the member and invite role
-// pickers) authorize against the component carrying their actions. The table
-// is not mounted, so they would resolve no permission and serve any member;
-// pointing them at the mounted editor keeps them guarded by the same ids.
-GetMetadata(roleSettingDataAPI, TableViewMeta).addComponentBuilder(rolesEditor);
+// pickers) authorize against the component writing through them: the editor,
+// so they are guarded by the same ids.
+const rolesMeta = GetMetadata(roleSettingDataAPI, TableViewMeta);
+rolesMeta.addComponentBuilder(rolesEditor);
+rolesMeta.setControllerGuards({
+  delete: async (ctx, { ids }) => {
+    const tenantId = getRequestTenantId(ctx);
+    for (const id of ids) await assertRoleUnused(tenantId, id);
+  },
+});
 
 function requireEditorAction(id: string): Action {
   const action = rolesEditor.getAction(id);
