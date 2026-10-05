@@ -60,4 +60,6 @@ export interface RowActionConfig<
    * `{ count }` (`$`: i18n key).
    */
   successMessage?: string;
+  /** Add: drawn in the page header instead of the toolbar. */
+  placement?: "toolbar" | "header";
 }

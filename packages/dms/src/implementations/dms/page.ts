@@ -85,7 +85,6 @@ import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
 import {
   aggregatePreviewMenu,
-  collectCustomButtonIds,
   findHeaderActionsHiddenByPreview,
   findQuickActionsHiddenByPreview,
   type HeaderActionAccess,
@@ -1179,12 +1178,10 @@ async function findPreviewHeaderActions(
   const viewer: HeaderActionAccess = {
     headerActions: viewerActions,
     quickActions: quickActions.real,
-    buttonIds: collectCustomButtonIds(layout.components),
   };
   const preview: HeaderActionAccess = {
     headerActions: readHeaderActions(previewLayout.layout),
     quickActions: quickActions.preview,
-    buttonIds: collectCustomButtonIds(previewLayout.components),
   };
   return findHeaderActionsHiddenByPreview(viewer, preview);
 }

@@ -1,4 +1,10 @@
-import type { PageHeaderActionSerialized } from "../base/layouts";
+import { applyButtonAvailability } from "../base/button-availability";
+import type {
+  PageHeaderButtonDeclared,
+  PageHeaderButtonSerialized,
+} from "../base/layouts";
+import type { CustomButtonSerialized } from "../base/types/custom-button";
+import type { RowActionConfigSerialized } from "../base/types/row-action";
 import type { WatchAction } from "../base/types/watch";
 import type {
   ComponentInfo,
@@ -159,35 +165,124 @@ export async function filterComponents(
   return filtered;
 }
 
+/** A header button's permission, as a permission id: a string is one. */
+function headerButtonPermissionId(
+  button: PageHeaderButtonDeclared,
+): string | undefined {
+  const { permission } = button;
+  return typeof permission === "string" ? permission : permission?.permissionId;
+}
+
+async function serveHeaderButton(
+  button: PageHeaderButtonDeclared,
+  permissions: () => Promise<Set<string>>,
+  context: ComponentFilterContext,
+): Promise<PageHeaderButtonSerialized | undefined> {
+  const { permission: _permission, availability, ...served } = button;
+  const permissionId = headerButtonPermissionId(button);
+  if (
+    permissionId &&
+    !(await HasPermission(await permissions(), permissionId))
+  ) {
+    return undefined;
+  }
+  return applyButtonAvailability(availability, served, context);
+}
+
 /**
  * The page layout (the frame around the components) as one caller may see it:
- * the header actions declaring a `permission` the caller lacks are left out.
- * `loadPermissions` is only called when an action declares one.
+ * the header buttons declaring a `permission` the caller lacks are left out,
+ * those whose `availability` refuses the request are disabled with its reason.
+ * `loadPermissions` is only called when a button declares a permission.
  */
 export async function filterLayoutHeaderActions<T>(
   layout: ComponentInfo<T> | undefined,
   loadPermissions: () => Promise<Set<string>>,
+  context: ComponentFilterContext,
 ): Promise<ComponentInfo<T> | undefined> {
   const options = layout?.options as
-    | { headerActions?: PageHeaderActionSerialized[] }
+    | { headerActions?: PageHeaderButtonDeclared[] }
     | undefined;
-  const actions = options?.headerActions;
-  if (!layout || !actions?.some((action) => action.permission)) {
-    return layout;
-  }
-  const permissions = await loadPermissions();
-  const granted = await Promise.all(
-    actions.map((action) =>
-      action.permission
-        ? HasPermission(permissions, action.permission)
-        : Promise.resolve(true),
-    ),
+  const buttons = options?.headerActions;
+  if (!layout || !buttons) return layout;
+  let loaded: Promise<Set<string>> | undefined;
+  const permissions = () => (loaded ??= loadPermissions());
+  const served = await Promise.all(
+    buttons.map((button) => serveHeaderButton(button, permissions, context)),
   );
   return {
     ...layout,
     options: {
       ...options,
-      headerActions: actions.filter((_, index) => granted[index]),
+      headerActions: served.filter((button) => button !== undefined),
+    } as T,
+  };
+}
+
+/** What a component's options carry of the buttons it may place in the header. */
+interface HeaderPlacingOptions {
+  customButtons?: CustomButtonSerialized[];
+  rowActions?: { add?: boolean | RowActionConfigSerialized };
+}
+
+const HEADER_PLACEMENT = "header";
+const ADD_BUTTON_LABEL = "$dms.table.new_row";
+const ADD_BUTTON_ICON = "i-ph-plus";
+const ADD_BUTTON_COLOR = "primary";
+
+/** The header buttons one component of the page places there. */
+function componentHeaderButtons(
+  componentId: string,
+  component: ComponentInfoSerialized,
+): PageHeaderButtonSerialized[] {
+  const options = (component.options ?? {}) as HeaderPlacingOptions;
+  const buttons: PageHeaderButtonSerialized[] = (options.customButtons ?? [])
+    .filter((button) => button.placement === HEADER_PLACEMENT)
+    .map(
+      ({ id, target: _target, placement: _placement, ...button }, index) => ({
+        ...button,
+        id: `${componentId}:${id ?? index}`,
+        componentId,
+        buttonId: id,
+      }),
+    );
+  const add = options.rowActions?.add;
+  if (typeof add === "object" && add.placement === HEADER_PLACEMENT) {
+    if (add.isEnabled === false) return buttons;
+    buttons.push({
+      id: `${componentId}:add`,
+      label: add.label ?? ADD_BUTTON_LABEL,
+      icon: add.icon ?? ADD_BUTTON_ICON,
+      color: ADD_BUTTON_COLOR,
+      componentId,
+    });
+  }
+  return buttons;
+}
+
+/**
+ * The layout with, after its own header buttons, those the components of the
+ * page place in the header (`placement: "header"`): served as the components
+ * were, so a button whose permission the caller lacks is already gone, and a
+ * disabled one keeps its reason. The component still runs them: the header
+ * names it.
+ */
+export function withComponentHeaderButtons<T>(
+  layout: ComponentInfo<T> | undefined,
+  components: Record<string, ComponentInfoSerialized>,
+): ComponentInfo<T> | undefined {
+  const placed = Object.entries(components).flatMap(([id, component]) =>
+    componentHeaderButtons(id, component),
+  );
+  if (!layout || placed.length === 0) return layout;
+  const options = (layout.options ?? {}) as {
+    headerActions?: PageHeaderButtonSerialized[];
+  };
+  return {
+    ...layout,
+    options: {
+      ...options,
+      headerActions: [...(options.headerActions ?? []), ...placed],
     } as T,
   };
 }

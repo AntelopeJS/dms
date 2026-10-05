@@ -320,6 +320,8 @@ import {
 // rail/pinned cells blend in instead of showing a contrasting block.
 const PANEL_MATCH_BG = "bg-(--dms-surface-card)";
 
+const HEADER_PLACEMENT = "header";
+
 // Header cells sit on the v2 band color; sticky header cells need the same
 // opaque background as the non-sticky ones.
 const HEADER_MATCH_BG = "bg-(--dms-bg-muted)";
@@ -823,10 +825,17 @@ const resolvedChrome = computed<ResolvedTableChrome>(
 const tabsInline = computed(
   () => hasTabs.value && !resolvedChrome.value.caption,
 );
-// A hidden custom button stays pressable by id (quick action, header action).
+// A button placed in the page header is drawn there, not in the toolbar; it
+// stays pressable by id (header button, quick action).
 const toolbarButtons = computed(() =>
-  (props.customButtons ?? []).filter((button) => !button.hidden),
+  (props.customButtons ?? []).filter(
+    (button) => button.placement !== HEADER_PLACEMENT,
+  ),
 );
+const canAddFromToolbar = computed(() => {
+  const add = normalizeActionConfig(props.rowActions?.add);
+  return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
+});
 
 // The bulk bar shows whenever selected rows have something to go to.
 const hasBulkActions = computed(
@@ -1051,7 +1060,7 @@ defineShortcuts({
           v-model:sorting="sortingState"
           v-model:show-archived="showArchivedState"
           :table
-          :can-add-row="normalizeActionConfig(rowActions?.add).isEnabled"
+          :can-add-row="canAddFromToolbar"
           :archive-toggle="archiveToggle"
           :custom-buttons="toolbarButtons"
           :on-custom-button="onCustomButton"

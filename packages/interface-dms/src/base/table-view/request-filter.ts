@@ -4,7 +4,7 @@
 //
 // Split out of factory-helpers.ts.
 
-import { Logging } from "@antelopejs/interface-core/logging";
+import { applyButtonAvailability } from "../button-availability";
 import {
   type ButtonPermission,
   type ComponentFilterContext,
@@ -172,31 +172,6 @@ async function isCustomButtonGranted(
   return !!permissionId && (await HasPermission(permissions, permissionId));
 }
 
-// A resolver that throws leaves the button enabled: the operation behind it
-// still refuses on its own, and failing the layout would take the page down.
-async function applyCustomButtonAvailability(
-  declared: CustomButton | undefined,
-  serialized: CustomButtonSerialized,
-  context: ComponentFilterContext,
-): Promise<CustomButtonSerialized> {
-  if (!declared?.availability) return serialized;
-  try {
-    const unavailability = await declared.availability(context);
-    if (!unavailability) return serialized;
-    return {
-      ...serialized,
-      disabled: true,
-      disabledReason: unavailability.reason,
-    };
-  } catch (error) {
-    Logging.Error(
-      `[dms] availability of button "${serialized.id ?? serialized.label}" could not be resolved:`,
-      error,
-    );
-    return serialized;
-  }
-}
-
 /**
  * The custom buttons served to one request: those whose permission the caller
  * lacks are stripped, and those whose `availability` refuses the request are
@@ -225,7 +200,11 @@ export async function resolveCustomButtons(
       continue;
     }
     kept.push(
-      await applyCustomButtonAvailability(declared, serialized, context),
+      await applyButtonAvailability(
+        declared?.availability,
+        serialized,
+        context,
+      ),
     );
   }
   return kept;

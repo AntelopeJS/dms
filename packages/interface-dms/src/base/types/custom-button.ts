@@ -13,6 +13,9 @@ export type ButtonColor =
   | "info"
   | "neutral";
 
+/** Where a table's button is drawn: its toolbar, or its page's header. */
+export type ButtonPlacement = "toolbar" | "header";
+
 /** Why a button cannot be pressed right now. */
 export interface CustomButtonUnavailability {
   /**
@@ -49,9 +52,10 @@ export interface CustomButton {
   confirm?: ActionConfirm;
   /**
    * Gate the button behind a permission. A string names one of the owning
-   * table's actions (e.g. `"add"`); an `Action` references any component's
-   * action (e.g. another table's `add`). The button is stripped from the
-   * serialized options when the caller lacks the permission.
+   * table's actions (e.g. `"add"`) — in a page header (`DefaultLayout({
+   * headerActions })`), a permission id; an `Action` references any
+   * component's action (e.g. another table's `add`). The button is stripped
+   * from the served options when the caller lacks the permission.
    */
   permission?: ButtonPermission;
   /**
@@ -60,11 +64,11 @@ export interface CustomButton {
    */
   availability?: CustomButtonAvailability;
   /**
-   * Leaves the button out of the toolbar: it is still served (permission and
-   * availability apply) and pressed through its `id`, by a quick action or a
-   * page header action (`DefaultLayout({ headerActions: [{ button } ] })`).
+   * Where the button is drawn: in the table's toolbar (the default), or in
+   * the header of the page carrying the table, which the server adds it to —
+   * the table still runs it. Either way a quick action can press it by `id`.
    */
-  hidden?: boolean;
+  placement?: ButtonPlacement;
 }
 
 export interface CustomButtonSerialized extends Omit<

@@ -3,11 +3,7 @@
 // layouts and quick actions are resolved by the caller (page.ts).
 
 import { createHash } from "node:crypto";
-import type { PageHeaderActionSerialized } from "@antelopejs/interface-dms/base/layouts";
-import type {
-  ChildSerialized,
-  ComponentInfoSerialized,
-} from "@antelopejs/interface-dms/component";
+import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/layouts";
 
 /** The quick actions served to one permission set, keyed `category:id`. */
 export interface ServedQuickActions {
@@ -17,9 +13,9 @@ export interface ServedQuickActions {
 /** Header actions of a served page layout (`DefaultLayout({ headerActions })`). */
 export function readHeaderActions(
   layout: { options?: unknown } | undefined,
-): PageHeaderActionSerialized[] {
+): PageHeaderButtonSerialized[] {
   const options = layout?.options as
-    | { headerActions?: PageHeaderActionSerialized[] }
+    | { headerActions?: PageHeaderButtonSerialized[] }
     | undefined;
   return options?.headerActions ?? [];
 }
@@ -31,59 +27,32 @@ function servesQuickAction(served: ServedQuickActions, key: string): boolean {
   );
 }
 
-function collectFromComponent(
-  component: ComponentInfoSerialized | undefined,
-  ids: Set<string>,
-): void {
-  const options = component?.options as
-    | { customButtons?: Array<{ id?: string }> }
-    | undefined;
-  for (const button of options?.customButtons ?? []) {
-    if (button.id) ids.add(button.id);
-  }
-  for (const child of (component?.children ?? []) as ChildSerialized[]) {
-    collectFromComponent(child.component, ids);
-  }
-}
-
-/** Ids of the custom buttons a served layout's components carry, at any depth. */
-export function collectCustomButtonIds(
-  components: Record<string, ComponentInfoSerialized>,
-): Set<string> {
-  const ids = new Set<string>();
-  for (const component of Object.values(components)) {
-    collectFromComponent(component, ids);
-  }
-  return ids;
-}
-
 /** What one permission set is served on a page, for its header actions. */
 export interface HeaderActionAccess {
-  headerActions: PageHeaderActionSerialized[];
+  headerActions: PageHeaderButtonSerialized[];
   quickActions: ServedQuickActions;
-  buttonIds: Set<string>;
 }
 
 function headerActionShown(
-  action: PageHeaderActionSerialized,
+  action: PageHeaderButtonSerialized,
   access: HeaderActionAccess,
 ): boolean {
   if (!access.headerActions.some((served) => served.id === action.id)) {
     return false;
   }
-  // The browser leaves out an action whose quick action or button the user
-  // was not served (PageHeaderActionBar.vue): the same rule decides here.
-  if (action.button) return access.buttonIds.has(action.button);
-  if (action.quickAction) {
-    return servesQuickAction(access.quickActions, action.quickAction);
+  // The browser leaves out a button whose quick action the user was not
+  // served (PageHeaderActionBar.vue): the same rule decides here. A
+  // component's button is served with the component, already filtered.
+  if (action.target?.type === "quickAction") {
+    return servesQuickAction(access.quickActions, action.target.id);
   }
   return true;
 }
 
 /**
  * Ids of the header actions the viewer is shown and the previewed set would
- * not be: left out by their `permission`, or pressing a quick action or a
- * custom button the set is not served.
+ * not be: left out by their `permission` (a component's button, by the
+ * component's), or running a quick action the set is not served.
  */
 export function findHeaderActionsHiddenByPreview(
   viewer: HeaderActionAccess,

@@ -1,17 +1,33 @@
 import { expect } from "chai";
-import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import {
-  collectCustomButtonIds,
   findHeaderActionsHiddenByPreview,
   findQuickActionsHiddenByPreview,
   type HeaderActionAccess,
   readHeaderActions,
 } from "../../../../implementations/dms/permission-preview";
 
-const DOCS = { id: "docs", label: "Docs", to: "https://example.com" };
-const NEW_TASK = { id: "new-task", quickAction: "playground:new-task" };
-const AUDIT = { id: "audit", to: "/audit", permission: "audit.read" };
-const INVITE = { id: "invite", button: "invite" };
+const DOCS = {
+  id: "docs",
+  label: "Docs",
+  target: { type: "external" as const, url: "https://example.com" },
+};
+const NEW_TASK = {
+  id: "new-task",
+  label: "New task",
+  target: { type: "quickAction" as const, id: "playground:new-task" },
+};
+const AUDIT = {
+  id: "audit",
+  label: "Audit",
+  target: { type: "page" as const, url: "/audit" },
+};
+// A table view's button placed in the header, served with the table.
+const INVITE = {
+  id: "table:invite",
+  label: "Invite",
+  componentId: "table",
+  buttonId: "invite",
+};
 
 const ALL_QUICK_ACTIONS = {
   actions: { "playground:new-task": { id: "new-task" } },
@@ -21,7 +37,6 @@ function access(overrides: Partial<HeaderActionAccess>): HeaderActionAccess {
   return {
     headerActions: [DOCS, NEW_TASK, AUDIT, INVITE],
     quickActions: ALL_QUICK_ACTIONS,
-    buttonIds: new Set(["invite"]),
     ...overrides,
   };
 }
@@ -33,28 +48,6 @@ describe("[unit] implementations/dms/permission-preview — header and quick act
     ).to.deep.equal([DOCS]);
     expect(readHeaderActions({ options: {} })).to.deep.equal([]);
     expect(readHeaderActions(undefined)).to.deep.equal([]);
-  });
-
-  it("collects custom button ids at any depth", () => {
-    const components = {
-      table: {
-        componentName: "dms-table-view",
-        options: { customButtons: [{ id: "invite" }, { label: "no id" }] },
-        children: [
-          {
-            id: "nested",
-            component: {
-              componentName: "dms-table-view",
-              options: { customButtons: [{ id: "export-all" }] },
-            },
-          },
-        ],
-      },
-    } as unknown as Record<string, ComponentInfoSerialized>;
-    expect([...collectCustomButtonIds(components)]).to.deep.equal([
-      "invite",
-      "export-all",
-    ]);
   });
 
   it("changes nothing when the set is served what the viewer is", () => {
@@ -76,10 +69,10 @@ describe("[unit] implementations/dms/permission-preview — header and quick act
     );
   });
 
-  it("hides an action pressing a custom button the set is not served", () => {
-    const preview = access({ buttonIds: new Set() });
+  it("hides a component's button the set is not served with the component", () => {
+    const preview = access({ headerActions: [DOCS, NEW_TASK, AUDIT] });
     expect(findHeaderActionsHiddenByPreview(access({}), preview)).to.deep.equal(
-      ["invite"],
+      ["table:invite"],
     );
   });
 

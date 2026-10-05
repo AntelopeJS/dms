@@ -15,6 +15,11 @@ import {
   runMountedQuickAction,
 } from "../layers/dms-ui/app/utils/quickActionTargets";
 
+const handleCustomButton = vi.fn();
+vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
+  useActionTargets: () => ({ handleCustomButton }),
+}));
+
 vi.mock("#dms-core/app/composables/auth/usePermissionPreview", () => ({
   usePermissionPreview: () => ({
     isHeaderActionHidden: () => false,
@@ -26,21 +31,26 @@ const MEMBERS_PATH = "/settings/user/members";
 const TABLE_ID = "table";
 const INVITE = "invite";
 
-// The members page as the backend serves it: a header action pressing the
-// table view's hidden "invite" custom button, which opens the invite modal.
+// The members page as the backend serves it: the table view's "invite"
+// button, placed in the header, which opens the invite modal.
 const INVITE_HEADER_ACTION = {
-  id: INVITE,
-  button: INVITE,
+  id: `${TABLE_ID}:${INVITE}`,
+  componentId: TABLE_ID,
+  buttonId: INVITE,
   label: "Invite members",
   color: "primary" as const,
 };
 
 const ButtonStub = defineComponent({
-  props: { label: String, disabled: Boolean, onClick: Function },
+  props: { label: String, disabled: Boolean, onClick: Function, to: String },
   setup: (props) => () =>
     h(
       "button",
-      { disabled: props.disabled, onClick: () => props.onClick?.() },
+      {
+        disabled: props.disabled,
+        "data-to": props.to,
+        onClick: () => props.onClick?.(),
+      },
       props.label,
     ),
 });
@@ -51,6 +61,8 @@ const routerReplace = vi.fn(() => Promise.resolve());
 
 beforeEach(() => {
   routerReplace.mockClear();
+  handleCustomButton.mockClear();
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
@@ -82,12 +94,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountHeaderBar() {
+async function mountHeaderBar(actions: unknown[] = [INVITE_HEADER_ACTION]) {
   const { default: PageHeaderActionBar } = await import(
     "../layers/dms-layout/app/build/components/layout/PageHeaderActionBar.vue"
   );
   app = createApp({
-    render: () => h(PageHeaderActionBar, { actions: [INVITE_HEADER_ACTION] }),
+    render: () => h(PageHeaderActionBar, { actions }),
   });
   app.component("UButton", ButtonStub);
   app.component(
@@ -139,6 +151,57 @@ describe("a header action pressing a table view button", () => {
         quickActionButton: INVITE,
       },
     });
+  });
+});
+
+describe("header buttons", () => {
+  it("presses a table view's add placed in the header", async () => {
+    const run = vi.fn();
+    const unregister = registerQuickActionTarget({
+      path: MEMBERS_PATH,
+      componentId: TABLE_ID,
+      run,
+    });
+    try {
+      const button = await mountHeaderBar([
+        { id: `${TABLE_ID}:add`, componentId: TABLE_ID, label: "New" },
+      ]);
+      button.click();
+      expect(run).toHaveBeenCalledWith({ kind: "add" });
+    } finally {
+      unregister();
+    }
+  });
+
+  it("runs a declared button's target as a toolbar button", async () => {
+    const purge = {
+      id: "purge",
+      label: "Purge",
+      target: { type: "api", url: "/api/purge", successMessage: "Done" },
+      confirm: { title: "Purge?" },
+    };
+    const button = await mountHeaderBar([purge]);
+    button.click();
+    expect(handleCustomButton).toHaveBeenCalledWith(purge);
+  });
+
+  it("draws a page target as a link", async () => {
+    const button = await mountHeaderBar([
+      { id: "docs", label: "Docs", target: { type: "page", url: "/docs" } },
+    ]);
+    expect(button.dataset.to).toBe("/docs");
+  });
+
+  it("leaves out a quick action the user is not served", async () => {
+    await expect(
+      mountHeaderBar([
+        {
+          id: "new",
+          label: "",
+          target: { type: "quickAction", id: "billing:new-invoice" },
+        },
+      ]),
+    ).rejects.toThrow(/did not render/);
   });
 });
 

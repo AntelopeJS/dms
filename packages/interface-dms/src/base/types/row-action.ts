@@ -2,7 +2,7 @@ import type { ButtonPermission } from "../../component";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
 import type { ButtonVariant } from "./button";
 import type { ActionConfirm, ActionConfirmSerialized } from "./confirm-dialog";
-import type { ButtonColor } from "./custom-button";
+import type { ButtonColor, ButtonPlacement } from "./custom-button";
 import type { AnyFieldRule, FieldRule } from "./row-action-operators";
 
 export type FieldEqualsRule<
@@ -75,6 +75,18 @@ export interface RowActionConfigSerialized extends Omit<
 > {
   confirm?: ActionConfirmSerialized;
   successMessage?: string;
+  placement?: ButtonPlacement;
+}
+
+/** The built-in add action: where its button is drawn, besides the rest. */
+export interface AddRowActionConfig<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> extends RowActionConfig<T> {
+  /**
+   * The table's toolbar (the default), or the header of its page, which the
+   * server adds the button to.
+   */
+  placement?: ButtonPlacement;
 }
 
 /**

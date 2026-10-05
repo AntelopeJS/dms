@@ -8,16 +8,14 @@
 
 import { ComponentBuilder } from "../../component";
 import { type FormBuilder, FormEvents } from "../form-types";
-import type {
-  ActionTarget,
-  ActionTargetSerialized,
-} from "../types/action-target";
+import { serializeActionTarget } from "../types/action-target";
 import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
 import { serializeActionConfirm } from "../confirm-dialog";
 import type {
+  AddRowActionConfig,
   BulkRowActionConfig,
   RowActionConfigSerialized,
   RowActionRule,
@@ -85,27 +83,6 @@ export function applyFormRedirect<T>(
 }
 
 /**
- * An action target as the options carry it: a component target is serialized,
- * every other kind is plain data already.
- */
-export function serializeActionTarget(
-  target: ActionTarget,
-): ActionTargetSerialized {
-  if (
-    target.type === "page" ||
-    target.type === "external" ||
-    target.type === "api" ||
-    target.type === "exportJob"
-  ) {
-    return target;
-  }
-  return {
-    ...target,
-    component: target.component.serializeSync(),
-  };
-}
-
-/**
  * Custom buttons as the options carry them: their permission and availability
  * stay server-side, applied per request.
  */
@@ -128,7 +105,7 @@ export function serializeCustomButtons(
 
 /** A built-in row action as the options carry it: its confirmation serialized. */
 function serializeRowActionConfig<T extends Record<string, unknown>>(
-  config: boolean | BulkRowActionConfig<T> | undefined,
+  config: boolean | BulkRowActionConfig<T> | AddRowActionConfig<T> | undefined,
 ): boolean | RowActionConfigSerialized | undefined {
   if (config === undefined || typeof config === "boolean") return config;
   const { confirm, rule, ...rest } = config;

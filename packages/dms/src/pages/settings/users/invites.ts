@@ -63,7 +63,6 @@ import {
   INVITES_PERMISSION_ID,
   INVITES_TAB_ICON,
   MEMBER_INVITE_BUTTON_ID,
-  MEMBER_INVITE_HEADER_ACTION,
   MEMBER_LISTS_LAYOUT,
   memberListFormPages,
   MEMBER_LISTS_PAGE_SIZE,
@@ -295,7 +294,7 @@ export class InvitesSettingsController extends PageController(
     icon: "i-ph-envelope-simple",
     description: "$page.settings.description.invites",
   },
-  DefaultLayout({ headerActions: [MEMBER_INVITE_HEADER_ACTION] }),
+  DefaultLayout(),
 ) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
@@ -335,8 +334,7 @@ export class InvitesSettingsController extends PageController(
         icon: "i-ph-user-plus",
         color: "primary",
         permission: membersTableAddAction,
-        // Pressed from the page header.
-        hidden: true,
+        placement: "header",
         target: {
           type: "modal",
           size: "lg",

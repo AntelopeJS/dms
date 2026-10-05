@@ -29,17 +29,25 @@ export class PageBlocksSettings extends PageController(
         id: "docs",
         label: "Documentation",
         icon: "i-ph-book-open",
-        to: "https://antelopejs.com/docs",
-        external: true,
+        target: {
+          type: "external",
+          url: "https://antelopejs.com/docs",
+          newTab: true,
+        },
       },
       // Lends its label and icon; hidden for users it is not served to.
-      { id: "new-task", quickAction: "playground:new-task", color: "primary" },
-      // Nobody holds this permission: the action never reaches the client.
+      {
+        id: "new-task",
+        label: "",
+        color: "primary",
+        target: { type: "quickAction", id: "playground:new-task" },
+      },
+      // Nobody holds this permission: the button never reaches the client.
       {
         id: "audit",
         label: "Audit log",
         icon: "i-ph-scroll",
-        to: "/settings/user/roles",
+        target: { type: "page", url: "/settings/user/roles" },
         permission: "playground.never-granted",
       },
     ],

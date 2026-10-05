@@ -18,8 +18,8 @@ export interface CustomButton {
   /** Why the button is disabled, shown in its tooltip. May be an i18n key. */
   disabledReason?: string;
   /**
-   * Left out of the toolbar; still pressed by id (quick action, page header
-   * action).
+   * `header`: drawn in the page header (the server adds it there) instead of
+   * the toolbar; still pressed by id by a quick action.
    */
-  hidden?: boolean;
+  placement?: "toolbar" | "header";
 }

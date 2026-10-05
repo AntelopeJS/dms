@@ -14,6 +14,8 @@ export type ActionTarget =
     }
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
+  /** Runs a quick action, by its `category:id` key or bare id. */
+  | { type: "quickAction"; id: string }
   | {
       type: "api";
       url: string;

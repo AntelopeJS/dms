@@ -53,6 +53,7 @@ import {
   type ComponentNodeMap,
   filterComponents,
   filterLayoutHeaderActions,
+  withComponentHeaderButtons,
 } from "./layout-filter";
 import {
   pageExtensions,
@@ -568,29 +569,44 @@ export class PageMetadata {
 
     // Header actions declaring a permission are filtered on every page, even
     // one skipping component permissions: they name their own requirement.
+    const context = { tenantId, user };
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,
-        layout: await filterLayoutHeaderActions(layout.layout, loadPermissions),
+        layout: withComponentHeaderButtons(
+          await filterLayoutHeaderActions(
+            layout.layout,
+            loadPermissions,
+            context,
+          ),
+          components,
+        ),
         components,
       };
     }
 
     const permissions = await loadPermissions();
+    const servedComponents = await filterComponents(
+      components,
+      this.pagePermissionId,
+      permissions,
+      this.componentMap,
+      context,
+    );
 
     return {
       ...layout,
-      layout: await filterLayoutHeaderActions(
-        layout.layout,
-        async () => permissions,
+      // A component's header buttons are added once it was filtered: the
+      // ones the caller may not press are gone already.
+      layout: withComponentHeaderButtons(
+        await filterLayoutHeaderActions(
+          layout.layout,
+          async () => permissions,
+          context,
+        ),
+        servedComponents,
       ),
-      components: await filterComponents(
-        components,
-        this.pagePermissionId,
-        permissions,
-        this.componentMap,
-        { tenantId, user },
-      ),
+      components: servedComponents,
     };
   }
 

@@ -339,8 +339,8 @@ export const membersTable = TableView(memberSettingDataAPI, {
       icon: "i-ph-user-plus",
       color: "primary",
       permission: "add",
-      // Pressed from the page header and the invite quick action.
-      hidden: true,
+      // In the page header; the invite quick action presses it too.
+      placement: "header",
       availability: internal.ResolveInviteAvailability,
       target: {
         type: "modal",
@@ -415,15 +415,6 @@ async function loadRoleOptions(tenantId: string): Promise<InviteRoleOptions> {
   );
 }
 
-/** The page header's "Invite members", pressing the table's invite button. */
-export const MEMBER_INVITE_HEADER_ACTION = {
-  id: MEMBER_INVITE_BUTTON_ID,
-  button: MEMBER_INVITE_BUTTON_ID,
-  label: "$page.settings.members.invite.header_button",
-  icon: "i-ph-user-plus",
-  color: "primary" as const,
-};
-
 @RegisterPage()
 export class MembersSettingsController extends PageController(
   "members",
@@ -434,7 +425,7 @@ export class MembersSettingsController extends PageController(
     order: 4,
     description: "$page.settings.description.members",
   },
-  DefaultLayout({ headerActions: [MEMBER_INVITE_HEADER_ACTION] }),
+  DefaultLayout(),
 ) {
   static table = membersTable;
 

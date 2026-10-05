@@ -1,72 +1,43 @@
-import type { ComponentInfo } from "../component";
-import type { QuickActionInfo } from "../quick-actions";
-
-/** Colors a page header action button takes. */
-export type PageHeaderActionColor =
-  | "primary"
-  | "secondary"
-  | "neutral"
-  | "success"
-  | "warning"
-  | "error"
-  | "info";
-
-/** Fill styles a page header action button takes. */
-export type PageHeaderActionVariant =
-  | "solid"
-  | "outline"
-  | "soft"
-  | "subtle"
-  | "ghost";
+import type { ButtonPermission, ComponentInfo } from "../component";
+import { serializeActionConfirm } from "./confirm-dialog";
+import {
+  type ActionTargetSerialized,
+  serializeActionTarget,
+} from "./types/action-target";
+import type {
+  CustomButton,
+  CustomButtonAvailability,
+  CustomButtonSerialized,
+} from "./types/custom-button";
 
 /**
- * A button in the page header, right of the title: a primary "New invoice",
- * an "Export", a link to the docs.
- *
- * It opens `to`, runs a registered quick action, or presses a component's
- * custom `button`. A quick action lends
- * its label and icon and, being served only to the users its page admits, its
- * access too; `permission` restricts any action further.
+ * A button of the page header as the layout serves it, right of the title.
+ * One the layout declares (`DefaultLayout({ headerActions })`) carries its
+ * `target`; one a component of the page places in the header (a table view's
+ * `placement: "header"` button or add) names that component, which runs it.
  */
-export interface PageHeaderAction {
-  /** Key of the action, unique in the header. */
+export interface PageHeaderButtonSerialized extends Omit<
+  CustomButtonSerialized,
+  "id" | "target"
+> {
+  /** Key of the button in the header. */
   id: string;
-  /** Button text (i18n key with `$` or literal). */
-  label?: string;
-  /** Icon name, e.g. `i-ph-plus`. */
-  icon?: string;
-  /** DMS path the button opens, or a full URL with `external`. */
-  to?: string;
-  /** Opens `to` in a new tab. */
-  external?: boolean;
-  /**
-   * Quick action the button runs: what `QuickAction()` returned, or its key —
-   * `category:id`, or the bare id when no other category uses it. The button
-   * is left out for users the quick action is not served to.
-   */
-  quickAction?: string | QuickActionInfo;
-  /**
-   * Presses the custom button of this `id` a component of the page declares
-   * (a table view's `customButtons[].id`, often one marked `hidden`). The
-   * header button mirrors it: left out when the button is not served to the
-   * user, disabled with its reason when its availability refuses.
-   */
-  button?: string;
-  /** Defaults to `neutral` (outline); give the page's main action `primary`. */
-  color?: PageHeaderActionColor;
-  variant?: PageHeaderActionVariant;
-  /**
-   * Permission id the user must hold to see the button (checked when the
-   * layout is served).
-   */
-  permission?: string;
+  target?: ActionTargetSerialized;
+  /** The component of the page the button belongs to, which runs it. */
+  componentId?: string;
+  /** Id of that component's button; absent for its built-in add action. */
+  buttonId?: string;
 }
 
-/** A header action as the layout serves it: the quick action by key. */
-export type PageHeaderActionSerialized = Omit<
-  PageHeaderAction,
-  "quickAction"
-> & { quickAction?: string };
+/**
+ * A header button as the layout holds it until a request is served: its
+ * permission and availability are resolved per request, then dropped.
+ * @internal
+ */
+export interface PageHeaderButtonDeclared extends PageHeaderButtonSerialized {
+  permission?: ButtonPermission;
+  availability?: CustomButtonAvailability;
+}
 
 export interface DefaultLayoutOptions {
   /**
@@ -86,31 +57,48 @@ export interface DefaultLayoutOptions {
    * Defaults to `false`.
    */
   fillHeight?: boolean;
-  /** Buttons right of the page title, in order. */
-  headerActions?: PageHeaderAction[];
+  /**
+   * Buttons right of the page title, in order: the same buttons as a table's
+   * toolbar — a link (`page` or `external` target), a quick action
+   * (`quickAction`), a drawer, a modal, an API call or an export, with their
+   * confirmation and availability. A string `permission` is a permission id.
+   * A table view's own buttons join them with `placement: "header"`.
+   */
+  headerActions?: CustomButton[];
 }
 
-function serializeHeaderAction(
-  action: PageHeaderAction,
-): PageHeaderActionSerialized {
-  const { quickAction, ...rest } = action;
-  if (quickAction === undefined) return rest;
+/** The options a page layout serializes, its header buttons held as declared. */
+export interface DefaultLayoutSerializedOptions extends Omit<
+  DefaultLayoutOptions,
+  "headerActions"
+> {
+  headerActions?: PageHeaderButtonDeclared[];
+}
+
+// A button without an id is keyed by its place in the header.
+const HEADER_BUTTON_ID_PREFIX = "header-";
+
+function declareHeaderButton(
+  button: CustomButton,
+  index: number,
+): PageHeaderButtonDeclared {
+  const { id, target, confirm, placement: _placement, ...rest } = button;
   return {
     ...rest,
-    quickAction:
-      typeof quickAction === "string"
-        ? quickAction
-        : `${quickAction.category.id}:${quickAction.id}`,
+    id: id ?? `${HEADER_BUTTON_ID_PREFIX}${index}`,
+    target: serializeActionTarget(target),
+    ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
   };
 }
 
 export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {
   const { headerActions, ...rest } = options ?? {};
-  const layoutOptions: Omit<DefaultLayoutOptions, "headerActions"> & {
-    headerActions?: PageHeaderActionSerialized[];
-  } = { fullWidth: true, ...rest };
+  const layoutOptions: DefaultLayoutSerializedOptions = {
+    fullWidth: true,
+    ...rest,
+  };
   if (headerActions) {
-    layoutOptions.headerActions = headerActions.map(serializeHeaderAction);
+    layoutOptions.headerActions = headerActions.map(declareHeaderButton);
   }
   return {
     componentName: "dms-default-layout",

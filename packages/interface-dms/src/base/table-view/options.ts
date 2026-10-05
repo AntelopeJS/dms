@@ -8,6 +8,7 @@ import type {
 } from "../types/custom-button";
 import type { TableViewGuards } from "../types/guards";
 import type {
+  AddRowActionConfig,
   BulkRowActionConfig,
   CustomRowAction,
   CustomRowActionSerialized,
@@ -64,9 +65,10 @@ export interface TableViewRowActionOptions<
    */
   copyLink?: boolean | RowActionConfig<T>;
   /**
-   * Add/new row action configuration
+   * Add/new row action configuration; `placement: "header"` draws its button
+   * in the page header instead of the toolbar.
    */
-  add?: boolean | RowActionConfig<T>;
+  add?: boolean | AddRowActionConfig<T>;
   /**
    * Enable the row selection feature
    */
