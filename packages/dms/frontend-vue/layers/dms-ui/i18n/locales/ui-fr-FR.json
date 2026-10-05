@@ -150,7 +150,9 @@
       },
       "cell": {
         "now": "Maintenant",
-        "by": "{date} · par {name}"
+        "by": "{date} · par {name}",
+        "copy": "Copier",
+        "copied": "Copié dans le presse-papiers"
       },
       "bulk_refused": {
         "delete": "Cet élément n’a pas pu être supprimé. | Ces {count} éléments n’ont pas pu être supprimés.",

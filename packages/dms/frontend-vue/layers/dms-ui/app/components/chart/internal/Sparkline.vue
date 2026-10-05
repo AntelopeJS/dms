@@ -6,13 +6,16 @@ import {
   smoothSparkPath,
 } from "../../../composables/chart/sparklinePath";
 
-type SparklineArea = "gradient" | "flat";
+type SparklineArea = "gradient" | "flat" | "none";
 
 interface Props {
   values: number[];
   accent?: string;
   ariaLabel?: string;
-  /** "gradient" fades the area 26% → 0 (KPI), "flat" is a quiet 12% wash (lists). */
+  /**
+   * "gradient" fades the area 26% → 0 (KPI), "flat" is a quiet 12% wash
+   * (lists), "none" draws the line alone (table cells).
+   */
   area?: SparklineArea;
   showDot?: boolean;
 }
@@ -107,7 +110,7 @@ const dotStyle = computed(() => {
         </linearGradient>
       </defs>
       <path
-        v-if="areaPath"
+        v-if="areaPath && area !== 'none'"
         :d="areaPath"
         :fill="areaFill"
         :fill-opacity="areaOpacity"

@@ -4,8 +4,15 @@ import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
-import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { buildRelationBadges } from "./relationBadges";
+import {
+  isSet,
+  readRowField,
+  type Row,
+  stringOf,
+  toneClass,
+} from "./cellHelpers";
+import { registerMetricCellTypes } from "./metricCells";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import IdentityCell from "../../../components/table-view/IdentityCell.vue";
 import {
@@ -399,39 +406,6 @@ function renderFile(value: unknown, options: unknown) {
 
   return "";
 }
-
-type Row = Record<string, unknown> | undefined;
-
-const readRowField = (row: Row, field: string | undefined): unknown =>
-  field && row ? get(row, field) : undefined;
-
-const stringOf = (value: unknown): string | undefined =>
-  value === null || value === undefined || value === ""
-    ? undefined
-    : String(value);
-
-/** Truthy the way a status reads it: a non-empty list, a set flag. */
-const isSet = (value: unknown): boolean => {
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "string") return value !== "" && value !== "false";
-  return Boolean(value);
-};
-
-// Text tones a cell data type can take, as literal classes for Tailwind.
-const CELL_TONES: Record<string, string> = {
-  default: "text-toned",
-  toned: "text-toned",
-  highlighted: "text-highlighted",
-  muted: "text-muted",
-  dimmed: "text-dimmed",
-  success: "text-success",
-  warning: "text-warning",
-  error: "text-error",
-  info: "text-info",
-  primary: "text-primary",
-};
-const toneClass = (tone: string | undefined, fallback = "default"): string =>
-  CELL_TONES[tone ?? fallback] ?? CELL_TONES[fallback]!;
 
 interface IdentityBadgeOption {
   /** Row field the badge reads. */
@@ -941,4 +915,5 @@ export function registerDefaultDataTypes() {
   registerFileType(registerDataType);
   registerDisplayOnlyTypes(registerDataType);
   registerCellTypes(registerDataType);
+  registerMetricCellTypes(registerDataType);
 }

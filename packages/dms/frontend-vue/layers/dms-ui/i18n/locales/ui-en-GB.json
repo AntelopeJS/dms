@@ -150,7 +150,9 @@
       },
       "cell": {
         "now": "Now",
-        "by": "{date} · by {name}"
+        "by": "{date} · by {name}",
+        "copy": "Copy",
+        "copied": "Copied to the clipboard"
       },
       "bulk_refused": {
         "delete": "This item couldn’t be deleted. | These {count} items couldn’t be deleted.",

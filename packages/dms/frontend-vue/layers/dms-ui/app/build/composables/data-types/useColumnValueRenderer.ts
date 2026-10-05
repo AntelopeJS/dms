@@ -44,13 +44,20 @@ export function useColumnValueRenderer() {
   const { getDataType } = useDataTypes();
   const { locale } = useI18n();
 
+  // A display also reads the column's own type options (`typeOptions`): a
+  // select's items name the values it draws. A display declared without
+  // options reads them at the top level, as it always did.
   const resolveRenderer = (column: RenderableColumn) => {
-    const typeId = column.display?.type ?? column.type?.id;
-    const options = (column.display?.options ??
-      column.type?.inputComponent?.options) as
+    const typeOptions = column.type?.inputComponent?.options as
       | Record<string, unknown>
       | undefined;
-    return { typeId, options };
+    if (!column.display)
+      return { typeId: column.type?.id, options: typeOptions };
+    const displayOptions = column.display.options ?? typeOptions;
+    return {
+      typeId: column.display.type,
+      options: { ...displayOptions, typeOptions },
+    };
   };
 
   /** Whether the column renders right-aligned figures (amounts, numbers). */

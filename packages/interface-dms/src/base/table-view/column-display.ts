@@ -203,4 +203,73 @@ export namespace DefaultDisplays {
   /** An on/off state as an icon and a word: on for a set flag or a list. */
   @RegisterDisplay("indicator")
   export class IndicatorDisplay extends ColumnDisplay<IndicatorDisplayOptions> {}
+
+  export interface StatusPillDisplayOptions {
+    /**
+     * Tone of the pill for each value of the column; a value left out is
+     * neutral. A select column's item labels and icons name the pill.
+     * @example { healthy: "success", degraded: "warning", failing: "error" }
+     */
+    tones: Record<string, DisplayTone>;
+    /** Row field drawn under the pill, in its tone (the failure's cause). */
+    subField?: string;
+    /** A pulsing dot for these values (a run in progress). */
+    liveValues?: string[];
+  }
+
+  /** A status as a tinted pill led by a dot, with an optional line under it. */
+  @RegisterDisplay("status_pill")
+  export class StatusPillDisplay extends ColumnDisplay<StatusPillDisplayOptions> {}
+
+  export interface ProgressDisplayOptions {
+    /** Row field holding the number of items done. */
+    doneField: string;
+    /** Row field holding the number of items in all. */
+    totalField: string;
+    /** Row field holding the number of failed items, drawn in red. */
+    errorField?: string;
+  }
+
+  /**
+   * A bar filled with the share of items done ("31 / 44"), failed items in
+   * red at its end; green once every item is done.
+   */
+  @RegisterDisplay("progress")
+  export class ProgressDisplay extends ColumnDisplay<ProgressDisplayOptions> {}
+
+  export interface SparklineDisplayOptions {
+    /** Row field holding the series, a list of numbers. */
+    field: string;
+    /** Line color. Defaults to `primary`. */
+    tone?: DisplayTone;
+  }
+
+  /** A small line chart of a list of numbers ("last 30 days"). */
+  @RegisterDisplay("sparkline")
+  export class SparklineDisplay extends ColumnDisplay<SparklineDisplayOptions> {}
+
+  /** The unit a duration column stores. */
+  export type DurationUnit = "ms" | "s";
+
+  export interface DurationDisplayOptions {
+    /** Unit of the stored number. Defaults to `ms`. */
+    unit?: DurationUnit;
+  }
+
+  /** A duration in its most readable unit: "910 ms", "1.8 s", "4 min 12 s". */
+  @RegisterDisplay("duration")
+  export class DurationDisplay extends ColumnDisplay<DurationDisplayOptions> {}
+
+  /** A size in bytes in its most readable unit: "12 kB", "1.4 MB". */
+  @RegisterDisplay("bytes")
+  export class BytesDisplay extends ColumnDisplay<Record<string, never>> {}
+
+  export interface MonoDisplayOptions {
+    /** A button copies the value (an id, a key, a URL). */
+    copy?: boolean;
+  }
+
+  /** The value in a monospace font: ids, codes, slugs. */
+  @RegisterDisplay("mono")
+  export class MonoDisplay extends ColumnDisplay<MonoDisplayOptions> {}
 }

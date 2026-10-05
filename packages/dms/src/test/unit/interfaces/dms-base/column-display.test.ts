@@ -64,6 +64,54 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     expect(column.name).to.equal("Member");
   });
 
+  it("serializes the metric displays to the cell types drawing them", () => {
+    const cases: Array<[ColumnDisplay<object>, object]> = [
+      [
+        new DefaultDisplays.StatusPillDisplay({
+          tones: { failing: "error" },
+          subField: "lastError",
+        }),
+        {
+          type: "status_pill",
+          options: { tones: { failing: "error" }, subField: "lastError" },
+        },
+      ],
+      [
+        new DefaultDisplays.ProgressDisplay({
+          doneField: "done",
+          totalField: "total",
+          errorField: "failed",
+        }),
+        {
+          type: "progress",
+          options: {
+            doneField: "done",
+            totalField: "total",
+            errorField: "failed",
+          },
+        },
+      ],
+      [
+        new DefaultDisplays.SparklineDisplay({ field: "sessions" }),
+        { type: "sparkline", options: { field: "sessions" } },
+      ],
+      [
+        new DefaultDisplays.DurationDisplay({ unit: "s" }),
+        { type: "duration", options: { unit: "s" } },
+      ],
+      [new DefaultDisplays.BytesDisplay(), { type: "bytes" }],
+      [
+        new DefaultDisplays.MonoDisplay({ copy: true }),
+        { type: "mono", options: { copy: true } },
+      ],
+    ];
+    for (const [display, serialized] of cases) {
+      expect(serializeColumnDisplay(display)).to.deep.equal(serialized);
+    }
+    // @ts-expect-error a progress needs its total
+    new DefaultDisplays.ProgressDisplay({ doneField: "done" });
+  });
+
   it("serializes no display to nothing", () => {
     expect(serializeColumnDisplay(undefined)).to.equal(undefined);
   });
