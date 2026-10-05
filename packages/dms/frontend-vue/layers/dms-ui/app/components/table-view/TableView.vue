@@ -30,6 +30,7 @@ import type {
   TableViewGroupedConfig,
   TableViewEmptyStatesConfig,
   TableViewPaginationMode,
+  TableViewSourceConfig,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
@@ -96,6 +97,7 @@ import { useTableViews } from "../../build/composables/table-view/useTableViews"
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
 import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
 import TableViews, {
@@ -141,6 +143,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pageSize?: number;
   /** How the rows beyond the first page are reached. */
   pagination?: TableViewPaginationMode;
+  /** A `TableView.fromSource` table's route, instead of a data controller. */
+  source?: TableViewSourceConfig;
   /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
   /** What the empty body says, per reason it is empty. */
@@ -552,6 +556,13 @@ watch(resolvedTabs, (next) => {
 });
 
 const { $authFetch } = useAuthFetch();
+// The controller's routes, or a `TableView.fromSource` table's route.
+const tableRows = useTableRows<T>({
+  api: $authFetch,
+  location,
+  source: props.source,
+  columns: props.columns,
+});
 const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
@@ -746,9 +757,7 @@ const { data, status, error, refresh } = await useServerRenderedAsyncData(
     if (isActiveDisplaySelfManaged.value) {
       return Promise.resolve(EMPTY_LIST_RESULT);
     }
-    return $authFetch<TableViewListResponse<T>>(location + "/list", {
-      query: { ...queryRequest.value, ...archiveQuery.value },
-    });
+    return tableRows.list({ ...queryRequest.value, ...archiveQuery.value });
   },
   { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
 );
@@ -890,17 +899,11 @@ const { data: tabCountsData, refresh: refreshTabCounts } =
     `table-view-${componentId}-${pageId}-tab-counts`,
     async () => {
       if (tabCountsQuery.value.length === 0) return {};
-      return await $authFetch<Record<string, number>>(
-        location + "/count/batch",
-        {
-          method: "POST",
-          body: {
-            queries: tabCountsQuery.value.map(({ id, query }) => ({
-              id,
-              query: { ...query, ...archiveQuery.value },
-            })),
-          },
-        },
+      return await tableRows.countBatch(
+        tabCountsQuery.value.map(({ id, query }) => ({
+          id,
+          query: { ...query, ...archiveQuery.value },
+        })),
       );
     },
     { watch: [tabCountsQuery, archiveQuery] },
@@ -990,11 +993,7 @@ const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
     }),
     ...archiveQuery.value,
   }),
-  countBatch: (queries) =>
-    $authFetch<Record<string, number>>(location + "/count/batch", {
-      method: "POST",
-      body: { queries },
-    }),
+  countBatch: tableRows.countBatch,
 });
 
 // Only what the (unchanged) KanbanBoard needs beyond the generic context: the
@@ -1235,11 +1234,17 @@ const handleRowAdd = () =>
   );
 
 const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
+// A source table has no realtime: its route is no data controller's.
+const realtimeLocation = tableRows.isSource ? undefined : location;
 const realtimeRowTopic = computed(() =>
-  location ? `${REALTIME_ROW_TOPIC_PREFIX}${location}` : undefined,
+  realtimeLocation
+    ? `${REALTIME_ROW_TOPIC_PREFIX}${realtimeLocation}`
+    : undefined,
 );
 const realtimePresenceTopic = computed(() =>
-  location ? `${REALTIME_PRESENCE_TOPIC_PREFIX}${location}` : undefined,
+  realtimeLocation
+    ? `${REALTIME_PRESENCE_TOPIC_PREFIX}${realtimeLocation}`
+    : undefined,
 );
 
 const presenceByRow = ref<RealtimePresenceMap>({});
@@ -1266,7 +1271,8 @@ const patchRowLocal = async (id: string) => {
   const idx = data.value.results.findIndex((row) => getRowId(row) === id);
   if (idx === -1) return;
   try {
-    const fresh = await $authFetch<T>(`${location}/get`, { query: { id } });
+    const fresh = await tableRows.getRow(id);
+    if (!fresh) return;
     const next = [...data.value.results];
     next[idx] = fresh as unknown as T;
     data.value = { ...data.value, results: next };
@@ -1477,11 +1483,7 @@ const openRecordFromUrl = async () => {
   const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
   if (!deepLinkAction || !id) return;
   const listed = shownResults.value?.find((row) => getRowId(row) === id);
-  const row =
-    listed ??
-    (await $authFetch<T>(`${location}/get`, { query: { id } }).catch(
-      () => undefined,
-    ));
+  const row = listed ?? (await tableRows.getRow(id).catch(() => undefined));
   if (row) handleCustomRowAction(deepLinkAction, row as Data);
 };
 

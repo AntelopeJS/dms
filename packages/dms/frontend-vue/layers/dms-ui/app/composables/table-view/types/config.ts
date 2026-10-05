@@ -191,6 +191,20 @@ export interface TableViewGroupedConfig {
   count?: boolean;
 }
 
+/** What a source route handles itself (backend `capabilities`). */
+export interface TableViewSourceCapabilities {
+  search?: boolean;
+  sort?: boolean;
+  paginate?: boolean;
+  filter?: boolean;
+}
+
+/** Where a `TableView.fromSource` table reads its rows (backend `source`). */
+export interface TableViewSourceConfig {
+  fetchUrl: string;
+  capabilities: TableViewSourceCapabilities;
+}
+
 export interface TableViewListResponse<T> {
   results: T[];
   total: number;
@@ -270,6 +284,8 @@ export interface TableViewConfig<T extends Data>
   pageSize?: number;
   /** How the rows beyond the first page are reached. */
   pagination?: TableViewPaginationMode;
+  /** A `TableView.fromSource` table's route, instead of a data controller. */
+  source?: TableViewSourceConfig;
   /**
    * Row density while the user picked none in the ⋯ menu: `compact` gives
    * 36px rows under a 32px header band.

@@ -18,6 +18,7 @@ import type {
   RowActionRule,
 } from "../types/row-action";
 import type { ModalSize } from "../types/size";
+import type { TableViewSourceSerialized } from "./source";
 
 /** The frontend component `TableView` emits. */
 export const TABLE_VIEW_COMPONENT_NAME = "dms-table-view";
@@ -616,6 +617,8 @@ export interface TableViewOptionsSerialized extends Omit<
   views?: TableViewViewsSerialized;
   footer?: TableViewFooterSerialized;
   emptyStates?: TableViewEmptyStatesSerialized;
+  /** Where a `TableView.fromSource` table reads its rows. */
+  source?: TableViewSourceSerialized;
   /**
    * Key of the table view in its page, which prefixes its URL keys
    * (`?<tableId>.view=`). Set per request.

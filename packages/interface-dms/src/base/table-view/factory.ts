@@ -59,6 +59,7 @@ import {
   warnIfSummaryLacksRoute,
 } from "./footer";
 import { claimWritingTableView, tableViewAccess } from "./writer";
+import { tableViewFromSource } from "./source";
 import {
   assertRowScopedFormSlugs,
   validateTableViewOptions,
@@ -394,6 +395,12 @@ export function TableView<T extends ControllerClass>(
 
   return builder;
 }
+
+/**
+ * A read-only table view over a module's own route, without a data
+ * controller: see {@link tableViewFromSource}.
+ */
+TableView.fromSource = tableViewFromSource;
 
 /**
  * The forms a table view opens. A read-only one opens no form that submits:

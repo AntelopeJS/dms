@@ -147,6 +147,13 @@ export {
   stampAttachmentFields,
 } from "./table-view/resource-form";
 export { TableViewRoutes } from "./table-view/routes";
+export {
+  tableViewFromSource,
+  type TableViewSourceCapabilities,
+  type TableViewSourceColumn,
+  type TableViewSourceOptions,
+  type TableViewSourceSerialized,
+} from "./table-view/source";
 export * from "./table-view/schema";
 export type {
   BulkGuardArgs,
