@@ -32,3 +32,6 @@ export * from "./relation-key/database";
 export * from "./relation-key/page";
 export * from "./tabs/page";
 export * from "./users/page";
+export * from "./views/data-api";
+export * from "./views/database";
+export * from "./views/page";
