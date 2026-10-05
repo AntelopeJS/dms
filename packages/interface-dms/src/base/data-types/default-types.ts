@@ -59,6 +59,10 @@ export namespace DefaultDataTypes {
   };
 
   export type DateTypeOptions = {
+    /**
+     * A span of dates: the value is `{ start, end }`, end on or after start.
+     * A pair `[start, end]` is read too and validates to the same object.
+     */
     range?: boolean;
     multiple?: boolean;
     minDate?: string;
@@ -363,22 +367,26 @@ export namespace DefaultDataTypes {
 
     getValidation() {
       if (this.options.range) {
-        // The date picker holds a range as `{ start, end }`; a list of two
-        // dates is the older shape, still accepted. Each date gets its own
-        // schema: one shared instance would serialize as a JSON Schema `$ref`,
-        // which the form rebuilds as "anything".
-        return z.union([
-          z.array(this.singleDateValidation()),
-          z
-            .object({
+        // A range is `{ start, end }`, the date picker's shape; a pair of
+        // dates `[start, end]` is still read, and validates to the same
+        // object. Each date gets its own schema: one shared instance would
+        // serialize as a JSON Schema `$ref`, which the form rebuilds as
+        // "anything".
+        return z
+          .union([
+            z.tuple([this.singleDateValidation(), this.singleDateValidation()]),
+            z.object({
               start: this.singleDateValidation(),
               end: this.singleDateValidation(),
-            })
-            .refine((range) => range.start <= range.end, {
-              message: "The range must end on or after its start",
-              path: ["end"],
             }),
-        ]);
+          ])
+          .transform((range) =>
+            Array.isArray(range) ? { start: range[0], end: range[1] } : range,
+          )
+          .refine((range) => range.start <= range.end, {
+            message: "The range must end on or after its start",
+            path: ["end"],
+          });
       }
 
       if (this.options.multiple) {
