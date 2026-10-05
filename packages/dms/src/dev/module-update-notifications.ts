@@ -15,7 +15,7 @@ import { satisfies, validRange } from "semver";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const NPM_VIEW_TIMEOUT_MS = 30_000;
-export const UPDATES_SUBJECT_ID = "updates";
+const UPDATES_SUBJECT_ID = "updates";
 const UPDATES_ICON = "i-ph-arrow-circle-up";
 /** An update is a useful action, never an urgent one. */
 const UPDATES_TONE = "accent";

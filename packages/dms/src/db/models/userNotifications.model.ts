@@ -39,7 +39,7 @@ export interface NewUserNotification {
   duplicateId?: string;
 }
 
-/** Fields a sender (or the stored-data upgrade) may rewrite on a notification already delivered. */
+/** Fields a sender may rewrite on a notification already delivered. */
 export interface NotificationRewrite {
   /** A worded variant of the same message's title. */
   title?: string;

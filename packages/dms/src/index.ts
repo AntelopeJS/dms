@@ -67,7 +67,6 @@ import {
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { ensureDefaultTenantExists } from "./utils";
-import { upgradeStoredNotifications } from "./utils/notification-upgrade";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
 
 export * from "./config";
@@ -84,10 +83,6 @@ export async function construct(config: Config): Promise<void> {
 
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
-    // Stale texts on old notifications must not keep the DMS from starting.
-    await upgradeStoredNotifications().catch((error: unknown) => {
-      Logging.Error("[DMS] Stored notifications upgrade failed:", error);
-    });
     return undefined;
   });
 

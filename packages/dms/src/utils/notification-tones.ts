@@ -1,6 +1,6 @@
 // The tones of the DMS notifications whose colour depends on the event, not
 // only on its kind. Pure: the senders (account-notifications.ts,
-// workspace-notifications.ts) and the stored-row upgrade both read them.
+// workspace-notifications.ts) read them.
 //
 // The grid every DMS notification follows:
 // - error: an immediate risk, to act on now;
