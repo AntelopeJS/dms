@@ -1,3 +1,4 @@
+import { mergeColumnOrder } from "./utils/columnOrder";
 import type { ModelRef, Ref } from "vue";
 import type {
   Data,
@@ -110,9 +111,15 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     defaultSort: props.tableProps.defaultSort,
   });
 
-  states.columnOrderState.value = columns.value
+  // A saved order (the user's, a view's) is kept, completed with the
+  // columns it leaves out.
+  const declaredColumnOrder = columns.value
     .map((x) => x.id ?? "")
     .filter(Boolean);
+  states.columnOrderState.value = mergeColumnOrder(
+    states.columnOrderState.value,
+    declaredColumnOrder,
+  );
 
   watchEffect(() =>
     applyAlwaysPinned(states.columnPinningState, columns.value),
@@ -185,6 +192,7 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     table,
     data: tableData,
     columns,
+    declaredColumnOrder,
     labeledColumns,
     deleteFilter,
     deleteSorting,

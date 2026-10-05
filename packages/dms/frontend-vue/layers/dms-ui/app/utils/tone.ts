@@ -84,3 +84,11 @@ export const DMS_TONE_OUTLINE: Record<CanonicalTone, string> = {
   error: "border-(--dms-error-line)",
   info: "border-(--dms-info-line)",
 };
+
+/**
+ * The text color of a tone given as a plain string (a backend option); empty
+ * for a value that is no tone.
+ */
+export function toneTextClass(tone: string | undefined): string {
+  return tone && isDmsTone(tone) ? DMS_TONE_TEXT[canonicalTone(tone)] : "";
+}

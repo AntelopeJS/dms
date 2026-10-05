@@ -3,6 +3,7 @@ import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
+import { toneTextClass } from "../../../utils/tone";
 
 export interface TableTabItem {
   id: string;
@@ -26,6 +27,12 @@ export interface TableTabItem {
    * and lock. Ignored on a locked tab.
    */
   previewPartial?: boolean;
+  /** Tone of a status dot drawn before the label. */
+  dot?: string;
+  /** Colors the icon and the counter. */
+  tone?: string;
+  /** The tab's state was changed since it was opened (a view). */
+  modified?: boolean;
 }
 
 interface Props {
@@ -51,6 +58,8 @@ const theme = tv({
     count:
       "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
     countPlaceholder: "h-[17px] w-[18px] rounded-[4px]",
+    dot: "size-1.5 shrink-0 rounded-full bg-current",
+    modified: "size-1.5 shrink-0 rounded-full bg-warning",
   },
   variants: {
     active: {
@@ -132,7 +141,7 @@ const fadeStyle = computed(() => {
   };
 });
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 </script>
 
@@ -160,9 +169,15 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
       :aria-current="isActive(tab) ? currentValue : undefined"
       @click="onTabClick(tab)"
     >
+      <span
+        v-if="tab.dot"
+        aria-hidden="true"
+        :class="[ui.dot(), toneTextClass(tab.dot)]"
+      />
       <UIcon
         v-if="tab.icon"
         :name="tab.icon"
+        :class="tab.tone && !isActive(tab) ? toneTextClass(tab.tone) : ''"
         :style="
           tab.iconColor && !isActive(tab)
             ? { color: `var(--ui-${tab.iconColor})` }
@@ -186,10 +201,18 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
       />
       <span
         v-else-if="tab.count !== undefined"
-        :class="ui.count({ active: isActive(tab) })"
+        :class="[
+          ui.count({ active: isActive(tab) }),
+          tab.tone && !isActive(tab) ? toneTextClass(tab.tone) : '',
+        ]"
       >
         {{ countFormat.format(tab.count) }}
       </span>
+      <span
+        v-if="tab.modified"
+        :title="t('dms.table.views.modified')"
+        :class="ui.modified()"
+      />
       <UIcon
         v-if="tab.previewLocked"
         name="i-ph-lock-simple"

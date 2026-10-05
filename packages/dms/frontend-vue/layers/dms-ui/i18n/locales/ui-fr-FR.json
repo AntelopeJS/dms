@@ -166,6 +166,22 @@
       },
       "bulk_refused_reason": "Ses règles n’autorisent pas cette action, ou elle a déjà été effectuée. | Leurs règles n’autorisent pas cette action, ou elle a déjà été effectuée.",
       "view_mode_grouped": "Groupé",
+      "views": {
+        "title": "Vues",
+        "modified": "Modifiée depuis l'ouverture de la vue",
+        "reset": "Réinitialiser",
+        "save": "Enregistrer",
+        "save_as": "Enregistrer comme nouvelle vue",
+        "save_current": "Enregistrer la vue actuelle",
+        "delete": "Supprimer la vue",
+        "save_as_title": "Enregistrer comme nouvelle vue",
+        "save_as_description": "Conservez les filtres, la recherche, le tri, les colonnes et l'affichage actuels sous un nom. Vous seul la verrez.",
+        "save_as_confirm": "Enregistrer la vue",
+        "name_label": "Nom",
+        "name_placeholder": "ex. Mes tickets ouverts",
+        "unavailable_title": "Cette vue n'est pas disponible",
+        "unavailable_description": "Le lien ouvre une vue qui n'existe pas ou qui appartient à quelqu'un d'autre : le tableau affiche sa vue par défaut."
+      },
       "grouped": {
         "none": "Sans valeur",
         "today": "Aujourd'hui",

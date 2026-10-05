@@ -17,7 +17,10 @@ import TableMenuDensity from "../layers/dms-ui/app/build/components/table/MenuDe
 import TableMenuRoot from "../layers/dms-ui/app/build/components/table/MenuRoot.vue";
 
 const tableViewSource = readFileSync(
-  resolve(__dirname, "../layers/dms-ui/app/components/table-view/TableView.vue"),
+  resolve(
+    __dirname,
+    "../layers/dms-ui/app/components/table-view/TableView.vue",
+  ),
   "utf8",
 );
 
@@ -42,7 +45,15 @@ describe("table density menu", () => {
         setup: (props) => () => h("i", { "data-icon": props.name }),
       }),
     );
-    app.component("UChip", defineComponent({ setup: (_, { slots }) => () => slots.default?.() }));
+    app.component(
+      "UChip",
+      defineComponent({
+        setup:
+          (_, { slots }) =>
+          () =>
+            slots.default?.(),
+      }),
+    );
     app.component("UKbd", defineComponent({ setup: () => () => h("kbd") }));
     const container = document.createElement("div");
     app.mount(container);
@@ -80,7 +91,9 @@ describe("table density menu", () => {
 
     expect(densityState.value).toBe("compact");
     expect(
-      container.querySelectorAll("li")[1]!.querySelector('[data-icon="i-check"]'),
+      container
+        .querySelectorAll("li")[1]!
+        .querySelector('[data-icon="i-check"]'),
     ).not.toBeNull();
   });
 

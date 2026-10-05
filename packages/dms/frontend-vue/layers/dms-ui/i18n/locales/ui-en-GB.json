@@ -166,6 +166,22 @@
       },
       "bulk_refused_reason": "Its rules don’t allow this action, or it was already done. | Their rules don’t allow this action, or it was already done.",
       "view_mode_grouped": "Grouped",
+      "views": {
+        "title": "Views",
+        "modified": "Changed since the view was opened",
+        "reset": "Reset",
+        "save": "Save",
+        "save_as": "Save as new view",
+        "save_current": "Save current view",
+        "delete": "Delete view",
+        "save_as_title": "Save as a new view",
+        "save_as_description": "Keep the current filters, search, sort, columns and display under a name. Only you will see it.",
+        "save_as_confirm": "Save view",
+        "name_label": "Name",
+        "name_placeholder": "e.g. My open tickets",
+        "unavailable_title": "This view is not available",
+        "unavailable_description": "The link opens a view that does not exist or belongs to someone else: the table shows its default view."
+      },
       "grouped": {
         "none": "No value",
         "today": "Today",

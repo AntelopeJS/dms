@@ -97,8 +97,23 @@ export {
   type TableViewTab,
   type TableViewTabFilter,
   type TableViewTabSerialized,
+  type TableViewColumnsState,
+  type TableViewDensity,
   type TableViewGroupBy,
+  type TableViewSort,
+  type TableViewView,
+  type TableViewViewSerialized,
+  type TableViewViewsLayout,
+  type TableViewViewsOptions,
+  type TableViewViewsSerialized,
+  type TableViewViewState,
 } from "./table-view/options";
+export {
+  TABLE_VIEW_TAB_QUERY_KEY,
+  TABLE_VIEW_VIEW_QUERY_KEY,
+  tableViewLink,
+  type TableViewLinkTarget,
+} from "./table-view/views";
 export {
   internal,
   type RealtimeMutationContext,

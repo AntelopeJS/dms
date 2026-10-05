@@ -55,6 +55,7 @@ import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
 } from "./layout-filter";
+import { withTableViewPlacements } from "./table-view-ids";
 import {
   pageExtensions,
   pageLayoutHandlers,
@@ -581,7 +582,7 @@ export class PageMetadata {
           ),
           components,
         ),
-        components,
+        components: withTableViewPlacements(components),
       };
     }
 
@@ -606,7 +607,7 @@ export class PageMetadata {
         ),
         servedComponents,
       ),
-      components: servedComponents,
+      components: withTableViewPlacements(servedComponents),
     };
   }
 

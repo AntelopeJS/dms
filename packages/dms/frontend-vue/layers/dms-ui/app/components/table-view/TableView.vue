@@ -26,6 +26,7 @@ import type {
   TableViewListResponse,
   TableViewDisplayContext,
   TableViewDisplayConfig,
+  TableViewViewsConfig,
   TableViewGroupedConfig,
 } from "../../composables/table-view/types";
 import {
@@ -83,8 +84,13 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
+import { useTableViews } from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
+import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
+import TableViews, {
+  type TableViewItem,
+} from "../../build/components/table/Views.vue";
 import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
@@ -125,6 +131,12 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pageSize?: number;
   /** Footer texts: row count and hint. */
   footer?: TableViewFooter;
+  /** Named states of the table (backend `views`). */
+  views?: TableViewViewsConfig;
+  /** Key of the table view in its page, prefixing its URL keys. */
+  tableId?: string;
+  /** The page carries no other table view: `?view=` / `?tab=` are its own. */
+  isSoleTableView?: boolean;
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -388,6 +400,9 @@ const columnVisibility = ref<VisibilityState>(
 const columnSizing = ref<ColumnSizingState>(
   getPreference<ColumnSizingState>(getTablePreferenceKey("columnSizing"), {}),
 );
+const columnOrder = ref<string[]>(
+  getPreference<string[]>(getTablePreferenceKey("columnOrder"), []),
+);
 const hasEmptyDefaultFilter = (defaultFilters || []).some(
   (f) => f.value === undefined || f.value === null || f.value === "",
 );
@@ -404,12 +419,67 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
+const urlScope = {
+  tableId: props.tableId,
+  isSoleTableView: props.isSoleTableView,
+};
+
+// Views: named states of the whole table, the module's and the user's own.
+const {
+  items: tableViewItems,
+  activeViewId,
+  isModified: isViewModified,
+  canSaveViews,
+  openView,
+  resetView,
+  saveView,
+  saveAsNewView,
+  deleteView,
+} = useTableViews({
+  views: props.views,
+  defaults: {
+    pinnedFilters: (defaultFilters || []).map((filter) => ({
+      accessorKey: filter.accessorKey,
+      mode: filter.mode,
+      value: filter.value,
+      pinned: true,
+      initialValue: filter.value,
+    })),
+    sorting: defaultSortState,
+    visibility: initialVisibility,
+    columnOrder: listableColumns.map(
+      (column) => column.id ?? column.accessorKey,
+    ),
+    display: offeredDisplayIds.has(defaultDisplay)
+      ? defaultDisplay
+      : TABLE_DISPLAY_ID,
+    density: props.density ?? DEFAULT_DENSITY,
+    displays: offeredDisplayIds,
+  },
+  state: {
+    columnFilters,
+    globalFilter,
+    sorting,
+    columnVisibility,
+    columnOrder,
+    display: activeDisplayId,
+    density,
+    pagination,
+  },
+  preferenceKey: getTablePreferenceKey,
+  urlScope,
+});
+
 const ALL_TAB_ID = "all";
 
 const { t, te } = useI18n();
 
+const TAB_URL_KEY = "tab";
+const urlTab = readTableUrlKey(useDmsRoute().query, urlScope, TAB_URL_KEY);
+// A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
-  getPreference<string>(getTablePreferenceKey("activeTab"), ALL_TAB_ID),
+  urlTab.value ??
+    getPreference<string>(getTablePreferenceKey("activeTab"), ALL_TAB_ID),
 );
 
 interface ResolvedTab {
@@ -755,19 +825,28 @@ watch(
   },
 );
 
-const tabCountsQuery = computed(() =>
-  resolvedTabs.value
+// A view's counter shares the tab counters' request, under its own id.
+const VIEW_COUNT_ID_PREFIX = "view:";
+const countQuery = (filters: TableFilter[], search?: string) =>
+  buildTableQuery({
+    pagination: { pageIndex: 0, pageSize: 0 },
+    sorting: [],
+    columnFilters: filters,
+    hiddenFilters: queryParamHiddenFilters.value,
+    globalFilter: search,
+  });
+
+const tabCountsQuery = computed(() => [
+  ...resolvedTabs.value
     .filter((tab) => !tab.to)
-    .map((tab) => ({
-      id: tab.id,
-      query: buildTableQuery({
-        pagination: { pageIndex: 0, pageSize: 0 },
-        sorting: [],
-        columnFilters: [],
-        hiddenFilters: [...queryParamHiddenFilters.value, ...tab.filters],
-      }),
+    .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
+  ...tableViewItems.value
+    .filter((view) => view.count)
+    .map((view) => ({
+      id: `${VIEW_COUNT_ID_PREFIX}${view.id}`,
+      query: countQuery(view.filters ?? [], view.search),
     })),
-);
+]);
 
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
@@ -791,6 +870,24 @@ const { data: tabCountsData, refresh: refreshTabCounts } =
     },
     { watch: [tabCountsQuery, archiveQuery] },
   );
+
+const viewItems = computed<TableViewItem[]>(() =>
+  tableViewItems.value.map((view) => ({
+    id: view.id,
+    label: view.label,
+    icon: view.icon,
+    tone: view.tone,
+    dot: view.dot,
+    isUserView: view.isUserView,
+    count: view.count
+      ? tabCountsData.value?.[`${VIEW_COUNT_ID_PREFIX}${view.id}`]
+      : undefined,
+    countPending: !!view.count && tabCountsData.value == null,
+  })),
+);
+const viewsLayout = props.views?.layout ?? "tabs";
+const hasViews =
+  !!props.views && (props.views.items.length > 0 || canSaveViews);
 
 interface ActiveDisplayExposed {
   refresh?: () => Promise<void> | void;
@@ -1510,6 +1607,7 @@ const tableStatePreferences = {
   filtersOpen: filtersRowOpen,
   activeTab: activeTabId,
   viewMode: activeDisplayId,
+  columnOrder,
   kanbanGroupBy,
   density,
 } as const;
@@ -1616,6 +1714,7 @@ onMounted(() => {
     v-model:column-filters="columnFilters"
     v-model:column-visibility="columnVisibility"
     v-model:column-sizing="columnSizing"
+    v-model:column-order-state="columnOrder"
     v-model:filters-row-open="filtersRowOpen"
     v-model:active-tab="activeTabId"
     v-model:active-display="activeDisplayId"
@@ -1625,6 +1724,7 @@ onMounted(() => {
     v-model:density="density"
     :chrome="resolvedChrome"
     :grouping="grouping"
+    :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
     :footer="props.footer"
@@ -1661,6 +1761,21 @@ onMounted(() => {
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >
+    <template v-if="hasViews" #views>
+      <TableViews
+        :items="viewItems"
+        :active-id="activeViewId"
+        :layout="viewsLayout"
+        :modified="isViewModified"
+        :can-save-as="canSaveViews"
+        :divided="tabsWithCount.length === 0"
+        @open="openView"
+        @reset="resetView"
+        @save="saveView"
+        @save-as="saveAsNewView"
+        @delete="deleteView"
+      />
+    </template>
     <template v-if="expandableConfig" #expanded="{ row }">
       <ExpandedRowDetail
         :row="row.original"

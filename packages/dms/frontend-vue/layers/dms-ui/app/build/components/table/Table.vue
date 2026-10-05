@@ -66,6 +66,9 @@ export interface TableRowGrouping<T = Data> {
   collapsible?: boolean;
 }
 
+/** Where a table draws its views (see `TableProps.viewsPlacement`). */
+export type TableViewsPlacement = "band" | "header";
+
 export type TableColumn<T> = ColumnDef<T> & {
   type?: DataTypeConfig;
   /** Wrap the default cell renderer without clipping; custom cell slots own their layout. */
@@ -184,6 +187,11 @@ export interface TableProps<T> {
    * header band that stays in view.
    */
   maxHeight?: string;
+  /**
+   * Where the `views` slot is drawn: a band of its own under the header
+   * (views as tabs or pills), or inside the header (a views menu).
+   */
+  viewsPlacement?: TableViewsPlacement;
   /** Splits the rows into groups under header rows. */
   grouping?: TableRowGrouping<T>;
 
@@ -310,6 +318,7 @@ import {
   useId,
   useSlots,
   useTemplateRef,
+  watch,
   watchEffect,
 } from "vue";
 import { createEventHook, provideLocal, useElementSize } from "@vueuse/core";
@@ -334,6 +343,7 @@ import {
   DEFAULT_PAGE_INDEX,
   DEFAULT_PAGE_SIZE,
 } from "../../composables/table/constants";
+import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
 
 // Same color as the surrounding card frame (.dms-card) so sticky
 // rail/pinned cells blend in instead of showing a contrasting block.
@@ -809,7 +819,13 @@ const uiTable = computed(() =>
   }),
 );
 
-const { table, labeledColumns, deleteFilter, deleteSorting } = useTable<T>({
+const {
+  table,
+  declaredColumnOrder,
+  labeledColumns,
+  deleteFilter,
+  deleteSorting,
+} = useTable<T>({
   tableProps: props,
   emits,
   states: {
@@ -885,6 +901,12 @@ const captionCountLabel = computed(() =>
 );
 
 const hasTabs = computed(() => (props.tabs?.length ?? 0) > 0);
+const hasViewsBand = computed(
+  () => !!slots.views && props.viewsPlacement === "band",
+);
+const hasViewsInHeader = computed(
+  () => !!slots.views && props.viewsPlacement === "header",
+);
 
 const resolvedChrome = computed<ResolvedTableChrome>(
   () => props.chrome ?? FULL_TABLE_CHROME,
@@ -936,7 +958,16 @@ const resetFilters = () => {
 const clearableFilters = computed(() => clearableTableFilters(narrowingState));
 const isFiltered = computed(() => isTableNarrowed(narrowingState));
 
-const baselineColumnOrder = [...columnOrderState.value];
+// A partial order (a view's) names some columns: the others follow.
+watch(columnOrderState, (order) => {
+  const merged = mergeColumnOrder(order, declaredColumnOrder);
+  if (!isSameColumnList(merged, order)) columnOrderState.value = merged;
+});
+const baselineColumnOrder = declaredColumnOrder;
+
+function isSameColumnList(a: readonly unknown[], b: readonly unknown[]) {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
+}
 const baselineColumnPinning = JSON.parse(
   JSON.stringify(columnPinningState.value),
 ) as ColumnPinningState;
@@ -952,23 +983,19 @@ const resetSorting = () => {
   sortingState.value = defaultSortingState(props.defaultSort);
 };
 
-const areArraysEqual = (a: unknown[], b: unknown[]): boolean => {
-  if (a.length !== b.length) return false;
-  return a.every((item, index) => item === b[index]);
-};
-
 const arePinningEqual = (
   a: ColumnPinningState,
   b: ColumnPinningState,
 ): boolean => {
   return (
-    areArraysEqual(a.left ?? [], b.left ?? []) &&
-    areArraysEqual(a.right ?? [], b.right ?? [])
+    isSameColumnList(a.left ?? [], b.left ?? []) &&
+    isSameColumnList(a.right ?? [], b.right ?? [])
   );
 };
 
 const hasCustomColumns = computed(() => {
-  if (!areArraysEqual(columnOrderState.value, baselineColumnOrder)) return true;
+  if (!isSameColumnList(columnOrderState.value, baselineColumnOrder))
+    return true;
   if (!arePinningEqual(columnPinningState.value, baselineColumnPinning))
     return true;
 
@@ -1096,7 +1123,7 @@ defineShortcuts({
       <header
         :class="
           uiTable.header({
-            headerDivided: !hasTabs || tabsInline,
+            headerDivided: (!hasTabs && !hasViewsBand) || tabsInline,
             tabsInline,
           })
         "
@@ -1122,6 +1149,8 @@ defineShortcuts({
           </span>
         </h2>
 
+        <slot v-if="hasViewsInHeader" name="views" />
+
         <TableActions
           v-model:global-filter="globalFilterState"
           v-model:column-visibility="columnVisibilityState"
@@ -1141,6 +1170,8 @@ defineShortcuts({
           }"
         />
       </header>
+
+      <slot v-if="hasViewsBand" name="views" />
 
       <TableTabs
         v-if="hasTabs && tabs && !tabsInline"

@@ -93,6 +93,54 @@ export interface TableViewExpandableConfig {
   single?: boolean;
 }
 
+/** A sort a view applies (backend `TableViewSort`). */
+export interface TableViewViewSort {
+  field: string;
+  desc?: boolean;
+}
+
+/** The columns a view shows and their order (backend `columns`). */
+export interface TableViewViewColumns {
+  visible?: string[];
+  hidden?: string[];
+  order?: string[];
+}
+
+/** What a view sets on the table (backend `TableViewViewState`). */
+export interface TableViewViewStateConfig {
+  filters?: TableFilter[];
+  search?: string;
+  sort?: TableViewViewSort[];
+  columns?: TableViewViewColumns;
+  display?: string;
+  density?: "default" | "compact";
+}
+
+/** A named state of the table (backend `TableViewView`). */
+export interface TableViewViewConfig extends TableViewViewStateConfig {
+  id: string;
+  label: string;
+  icon?: string;
+  /** Colors the view's icon and counter. */
+  tone?: string;
+  /** Status dot before the label. */
+  dot?: string;
+  /** Shows the view's row count. */
+  count?: boolean;
+}
+
+/** Where the views are drawn (backend `TableViewViewsLayout`). */
+export type TableViewViewsLayout = "tabs" | "strip" | "menu";
+
+/** The views of a table view (backend `views` option). */
+export interface TableViewViewsConfig {
+  items: TableViewViewConfig[];
+  layout?: TableViewViewsLayout;
+  defaultView?: string;
+  /** Users may save the current state as a view of their own. */
+  userViews?: boolean;
+}
+
 /** How the `grouped` display cuts the rows (backend `TableViewGroupBy`). */
 export type TableViewGroupBy = "value" | "day" | "week";
 
@@ -187,4 +235,10 @@ export interface TableViewConfig<T extends Data>
    */
   density?: "default" | "compact";
   footer?: TableViewFooter;
+  /** Named states of the table, opened from a strip, tabs or a menu. */
+  views?: TableViewViewsConfig;
+  /** Key of the table view in its page, prefixing its URL keys. */
+  tableId?: string;
+  /** The page carries no other table view: `?view=` / `?tab=` are its own. */
+  isSoleTableView?: boolean;
 }

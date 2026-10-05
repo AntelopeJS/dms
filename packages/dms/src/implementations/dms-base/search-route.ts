@@ -23,6 +23,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { SearchableMeta } from "@antelopejs/interface-dms/base";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view";
+import { resolveFilterTokens } from "./filter-tokens";
 
 const MIN_SEARCH_LENGTH = 2;
 
@@ -212,7 +213,10 @@ export async function buildFilteredQuery(
     reqCtx,
     user,
     permissions,
-    params?.filters,
+    resolveFilterTokens(params?.filters, {
+      userId: user?._id,
+      now: new Date(),
+    }),
   );
 
   const sort = params?.sortKey

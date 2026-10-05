@@ -22,6 +22,8 @@ import {
   type TableViewOptions,
   type TableViewQuickFilter,
   type TableViewTab,
+  type TableViewView,
+  type TableViewViewsOptions,
 } from "./options";
 
 /** `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}. */
@@ -243,6 +245,66 @@ export function validateGroupedOptions(
   }
 }
 
+function assertViewFilters(
+  where: string,
+  meta: TableViewMeta,
+  view: TableViewView,
+): void {
+  for (const { accessorKey } of view.filters ?? []) {
+    if (!meta.columns[accessorKey]?.filterable) {
+      throw new Error(
+        `${where} filters on "${accessorKey}", which is not a filterable column`,
+      );
+    }
+  }
+  for (const { field } of view.sort ?? []) {
+    if (!meta.columns[field] || !isSortableColumn(meta, field)) {
+      throw new Error(
+        `${where} sorts on "${field}", which is not a @Sortable() column`,
+      );
+    }
+  }
+  const { visible = [], hidden = [], order = [] } = view.columns ?? {};
+  for (const key of [...visible, ...hidden, ...order]) {
+    if (!meta.columns[key]) {
+      throw new Error(`${where} references unknown column "${key}"`);
+    }
+  }
+}
+
+/**
+ * Views have unique ids, and each one names columns, a sort and a display the
+ * table view has; the default view is one of them.
+ */
+export function validateViews(
+  controllerName: string,
+  meta: TableViewMeta,
+  options: DisplayDeclarations & { views?: TableViewViewsOptions },
+): void {
+  const { views } = options;
+  if (!views) return;
+  const displays = offeredDisplayIds(options);
+  const ids = new Set<string>();
+  for (const view of views.items) {
+    const where = `TableView view "${view.id}" on ${controllerName}`;
+    if (ids.has(view.id)) {
+      throw new Error(`${where} is declared twice: view ids are unique`);
+    }
+    ids.add(view.id);
+    assertViewFilters(where, meta, view);
+    if (view.display && !displays.has(view.display)) {
+      throw new Error(
+        `${where} opens display "${view.display}", which the table does not offer`,
+      );
+    }
+  }
+  if (views.defaultView && !ids.has(views.defaultView)) {
+    throw new Error(
+      `TableView on ${controllerName} defaults to view "${views.defaultView}", which is not declared`,
+    );
+  }
+}
+
 /** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
 const ROW_SCOPED_FORM_PAGE_KINDS = ["edit", "details"] as const;
 
@@ -294,6 +356,7 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
   validateGroupedOptions(controllerName, meta, options.grouped);
   validateDisplayIds(controllerName, options.displays);
   validateDefaultDisplay(controllerName, options);
+  validateViews(controllerName, meta, options);
   validateQuickFilters(controllerName, meta, options.quickFilters);
   validatePageSize(controllerName, options.pageSize);
   assertTabTargets(controllerName, options.tabs);

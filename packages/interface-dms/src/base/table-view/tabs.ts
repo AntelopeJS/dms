@@ -86,12 +86,16 @@ export async function resolveTableViewTabs(
 
 /**
  * Whether a table view shows counters the `count/batch` route serves: filter
- * tabs or counted groups.
+ * tabs, counted views or counted groups.
  */
 export function declaresCounters(
-  options: Pick<TableViewOptions, "tabs" | "grouped">,
+  options: Pick<TableViewOptions, "tabs" | "views" | "grouped">,
 ): boolean {
-  return (options.tabs?.length ?? 0) > 0 || !!options.grouped?.count;
+  return (
+    (options.tabs?.length ?? 0) > 0 ||
+    !!options.views?.items.some((view) => view.count) ||
+    !!options.grouped?.count
+  );
 }
 
 const COUNT_BATCH_PATH = "count/batch";
@@ -113,8 +117,8 @@ function servesCountBatch(
 }
 
 /**
- * Warn, once per controller, when a table view declares filter tabs or counted
- * groups but its controller mounts no `POST count/batch`
+ * Warn, once per controller, when a table view declares filter tabs, counted
+ * views or counted groups but its controller mounts no `POST count/batch`
  * route: every counter request would fail. The fix belongs in the controller
  * (mount `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
  */
@@ -128,6 +132,6 @@ export function warnIfTabsLackCountBatch(
   if (servesCountBatch(endpoints)) return;
   controllersWarnedForTabCounts.add(controller);
   Logging.Warn(
-    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
+    `[DMS] TableView on "${controller.name}" (${location}) declares filter tabs, counted views or counted groups but its controller mounts no POST ${location}/${COUNT_BATCH_PATH} route: their counters will fail. Mount \`countBatch: TableViewRoutes.CountBatch\` on the controller.`,
   );
 }

@@ -52,6 +52,7 @@ import {
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
 } from "./tabs";
+import { resolveTableViewViews, serializeTableViewViews } from "./views";
 import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
   assertRowScopedFormSlugs,
@@ -139,6 +140,7 @@ export function TableView<T extends ControllerClass>(
   // Kept for the per-request filter, whose `options` are the serialized ones.
   const declaredCustomRowActions = options.rowActions?.custom;
   const declaredTabs = options.tabs;
+  const declaredViews = options.views;
 
   const isPageMode =
     options.formContainer === undefined ||
@@ -183,6 +185,7 @@ export function TableView<T extends ControllerClass>(
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
       tabs: serializeTableViewTabs(options.tabs),
+      views: serializeTableViewViews(options.views),
       layout: options.layout,
       searchable: hasSearchableFields(controller),
       searchPlaceholder: options.searchPlaceholder,
@@ -356,6 +359,12 @@ export function TableView<T extends ControllerClass>(
         options.tabs,
       );
 
+      const adaptedViews = await resolveTableViewViews(
+        permissions,
+        declaredViews,
+        options.views,
+      );
+
       return {
         ...options,
         // The export routes refuse a caller without the action: its toolbar
@@ -365,6 +374,7 @@ export function TableView<T extends ControllerClass>(
         rowActions: adaptedRowActions,
         customButtons: adaptedCustomButtons,
         tabs: adaptedTabs,
+        views: adaptedViews,
       };
     });
 

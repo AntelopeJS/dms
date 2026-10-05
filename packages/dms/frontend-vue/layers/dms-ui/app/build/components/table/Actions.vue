@@ -164,13 +164,16 @@ const searchSectionRef = ref<HTMLElement>();
 const { focused: inputFocus } = useFocus(searchInputRef);
 const { focused: searchAreaFocused } = useFocusWithin(searchSectionRef);
 
+// A search set from outside (a view opened) shows in its field.
 watch(
   () => tableSharedData!.globalFilterState.value,
   (newValue) => {
     if (newValue === undefined && searchActive.value) {
       searchActive.value = false;
     }
+    if (newValue && !searchActive.value) searchActive.value = true;
   },
+  { immediate: true },
 );
 
 // A "clear all" action emptied the search: fold it back to its icon, as

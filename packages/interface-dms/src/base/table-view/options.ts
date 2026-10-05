@@ -1,6 +1,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
+import type { DisplayTone } from "../display";
 import type { ColorValue } from "../types";
 import type {
   CustomButton,
@@ -101,6 +102,118 @@ export interface TableViewTabFilter {
   value?: string;
   /** Compare mode, e.g. `"is"`. */
   mode: string;
+}
+
+/** A sort a view applies: the column, newest or largest first with `desc`. */
+export interface TableViewSort {
+  field: string;
+  desc?: boolean;
+}
+
+/** The columns a view shows, and their order. */
+export interface TableViewColumnsState {
+  /** Columns shown, whatever their default visibility. */
+  visible?: string[];
+  /** Columns hidden, whatever their default visibility. */
+  hidden?: string[];
+  /**
+   * Column order, left to right; the columns left out follow in their
+   * declared order.
+   */
+  order?: string[];
+}
+
+/** Row height of a table: `compact` gives 36px rows under a 32px header. */
+export type TableViewDensity = "default" | "compact";
+
+/**
+ * Everything a view sets on the table when it is opened. What a view leaves
+ * out falls back to the table's defaults, so opening a view always shows the
+ * same rows the same way.
+ *
+ * A filter value may hold tokens the server resolves for each request, so a
+ * view's rows and its counter follow the caller and the clock:
+ * `{{user.id}}` (the signed-in user's id), `{{now}}` and `{{now-7d}}` /
+ * `{{now+14d}}` (the current instant, moved by whole days).
+ */
+export interface TableViewViewState {
+  /** Filters on filterable columns, shown as the table's filter chips. */
+  filters?: TableViewTabFilter[];
+  /** Text typed in the search field. */
+  search?: string;
+  /** Sort of the rows; the list sorts on the first entry. */
+  sort?: TableViewSort[];
+  /** Columns shown and their order. */
+  columns?: TableViewColumnsState;
+  /**
+   * Display the view opens in (`"table"`, `"kanban"`, `"grouped"`, a
+   * module's `<module>:<id>`): it must be one the table offers.
+   */
+  display?: string;
+  /** Row height of the grid. */
+  density?: TableViewDensity;
+}
+
+/**
+ * A named state of the table ("Past due > 7 days", "Mine"). Opening it
+ * applies its state; the user may then change filters or sort, which marks
+ * the view as modified with a way back (Reset) or forward (Save as new view).
+ * A view the module declares is never overwritten.
+ */
+export interface TableViewView extends TableViewViewState {
+  /** Stable id, used in the URL (`?view=<id>`). */
+  id: string;
+  /** `$`-prefixed: an i18n key. */
+  label: string;
+  icon?: string;
+  /** Colors the view's icon and counter. */
+  tone?: DisplayTone;
+  /** A status dot drawn before the label. */
+  dot?: DisplayTone;
+  /**
+   * Shows the number of rows the view lists, counted by the controller's
+   * `countBatch` route like the tab counters.
+   */
+  count?: boolean;
+  /** Permission id a caller must hold to be served the view. */
+  permission?: string;
+}
+
+/** A view as it reaches the client. */
+export type TableViewViewSerialized = Omit<TableViewView, "permission">;
+
+/**
+ * Where the views are drawn: a tab strip above the table (`tabs`), a row of
+ * pills above the status tabs (`strip`), or a menu button in the toolbar
+ * (`menu`).
+ */
+export type TableViewViewsLayout = "tabs" | "strip" | "menu";
+
+/** The views a table offers. */
+export interface TableViewViewsOptions {
+  /** The views the module declares, in order. */
+  items: TableViewView[];
+  /** Defaults to `tabs`. */
+  layout?: TableViewViewsLayout;
+  /**
+   * View opened on arrival when the URL names none. Without it the table
+   * opens in its own default state.
+   */
+  defaultView?: string;
+  /**
+   * Lets users save the current state as a view of their own ("Save as new
+   * view"), and update or delete it. A user's views are kept with the rest
+   * of their table preferences and are never shown to anyone else.
+   */
+  userViews?: boolean;
+}
+
+/** The views of a table as they reach the client. */
+export interface TableViewViewsSerialized extends Omit<
+  TableViewViewsOptions,
+  "items"
+> {
+  items: TableViewViewSerialized[];
 }
 
 /**
@@ -355,6 +468,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "formSlots"
   | "expandable"
   | "tabs"
+  | "views"
 > {
   enableTableExport: boolean;
   /** Whether the controller declares `@Searchable` fields to search in. */
@@ -378,6 +492,17 @@ export interface TableViewOptionsSerialized extends Omit<
    */
   formPages?: TableViewFormPageUrls;
   expandable?: TableViewExpandableSerialized;
+  views?: TableViewViewsSerialized;
+  /**
+   * Key of the table view in its page, which prefixes its URL keys
+   * (`?<tableId>.view=`). Set per request.
+   */
+  tableId?: string;
+  /**
+   * The table view is the only one its page carries: the short URL keys
+   * (`?view=`, `?tab=`) are its own. Set per request.
+   */
+  isSoleTableView?: boolean;
 }
 
 /**
@@ -634,6 +759,14 @@ export interface TableViewOptions<
    * @example { groupByField: "createdAt", by: "day", count: true }
    */
   grouped?: GroupedOptions;
+  /**
+   * Named states of the table — filters, search, sort, columns, display and
+   * density — drawn as tabs, a strip of pills or a menu, opened from the URL
+   * (`?view=<id>`) and, with `userViews`, saved by users for themselves.
+   * Views and `tabs` coexist: a tab filters on one column, a view sets the
+   * whole table.
+   */
+  views?: TableViewViewsOptions;
   /**
    * The card the `kanban` and `cards` displays draw for each row: the columns
    * it shows, or a component drawing it whole.
