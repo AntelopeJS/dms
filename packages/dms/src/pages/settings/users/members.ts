@@ -29,7 +29,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import type {
   FormContainerPages,
   FormContainerPageTexts,
-  RowActionConfirmDescriptor,
+  ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
 import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
@@ -250,7 +250,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       isEnabled: true,
       label: "$page.settings.members.action.remove",
       icon: "i-ph-user-minus",
-      confirmFrom: memberApiTarget("removal-confirm"),
+      confirm: { from: memberApiTarget("removal-confirm") },
       successMessage: "$page.settings.members.remove.success",
     },
     custom: [
@@ -278,14 +278,14 @@ export const membersTable = TableView(memberSettingDataAPI, {
           method: "POST",
           successMessage:
             "$page.settings.members.action.validate_email_success",
-          confirm: {
-            title: "$page.settings.members.action.validate_email_confirm_title",
-            description:
-              "$page.settings.members.action.validate_email_confirm_description",
-            confirmColor: "primary",
-            icon: "i-ph-seal-check",
-            confirmLabel: "$page.settings.members.action.validate_email",
-          },
+        },
+        confirm: {
+          title: "$page.settings.members.action.validate_email_confirm_title",
+          description:
+            "$page.settings.members.action.validate_email_confirm_description",
+          color: "primary",
+          icon: "i-ph-seal-check",
+          confirmLabel: "$page.settings.members.action.validate_email",
         },
       },
       {
@@ -299,14 +299,14 @@ export const membersTable = TableView(memberSettingDataAPI, {
           method: "POST",
           body: { isTenantOwner: true },
           successMessage: "$page.settings.members.action.make_owner_success",
-          confirm: {
-            title: "$page.settings.members.action.make_owner_confirm_title",
-            description:
-              "$page.settings.members.action.make_owner_confirm_description",
-            confirmColor: "primary",
-            icon: "i-ph-crown",
-            confirmLabel: "$page.settings.members.action.make_owner",
-          },
+        },
+        confirm: {
+          title: "$page.settings.members.action.make_owner_confirm_title",
+          description:
+            "$page.settings.members.action.make_owner_confirm_description",
+          color: "primary",
+          icon: "i-ph-crown",
+          confirmLabel: "$page.settings.members.action.make_owner",
         },
       },
       {
@@ -320,14 +320,14 @@ export const membersTable = TableView(memberSettingDataAPI, {
           method: "POST",
           body: { isTenantOwner: false },
           successMessage: "$page.settings.members.action.remove_owner_success",
-          confirm: {
-            title: "$page.settings.members.action.remove_owner_confirm_title",
-            description:
-              "$page.settings.members.action.remove_owner_confirm_description",
-            confirmColor: "warning",
-            icon: "i-ph-crown",
-            confirmLabel: "$page.settings.members.action.remove_owner",
-          },
+        },
+        confirm: {
+          title: "$page.settings.members.action.remove_owner_confirm_title",
+          description:
+            "$page.settings.members.action.remove_owner_confirm_description",
+          color: "warning",
+          icon: "i-ph-crown",
+          confirmLabel: "$page.settings.members.action.remove_owner",
         },
       },
     ],
@@ -502,7 +502,7 @@ export class MembersSettingsController extends PageController(
     @Context() ctx: RequestContext,
     @Parameter("id", "param") memberId: string,
     @AuthUserWithPermission(membersTableDeleteAction) user: User,
-  ): Promise<RowActionConfirmDescriptor> {
+  ): Promise<ConfirmDialogSerialized> {
     return memberRemovalConfirm(
       await buildMemberRemovalImpact(
         getRequestTenantId(ctx),

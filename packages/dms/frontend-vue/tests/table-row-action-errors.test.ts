@@ -43,20 +43,21 @@ const t = i18n.global.t as (...args: unknown[]) => string;
 const toast = { add: vi.fn() };
 const refresh = vi.fn();
 const api = vi.fn();
-// The dialog as ConfirmModal runs it: the action goes inside, a rejection
-// keeps it open (here: the user then gives up), a partial outcome is
-// acknowledged.
+// The dialog as ConfirmModal runs it: the action goes inside with the values
+// of its fields, a rejection keeps it open (here: the user then gives up), a
+// partial outcome is acknowledged.
 const dialogs: {
   options: ConfirmOptions;
   outcome?: unknown;
   error?: unknown;
 }[] = [];
+let dialogValues: Record<string, unknown> = {};
 const confirm = vi.fn(async (options: ConfirmOptions) => {
   const dialog: (typeof dialogs)[number] = { options };
   dialogs.push(dialog);
   if (!options.onConfirm) return true;
   try {
-    dialog.outcome = await options.onConfirm();
+    dialog.outcome = await options.onConfirm({ ...dialogValues });
     return dialog.outcome !== false;
   } catch (error) {
     dialog.error = error;
@@ -98,6 +99,7 @@ beforeEach(() => {
     useI18n: () => ({ t }),
     useToast: () => toast,
     useConfirm: () => ({ confirm }),
+    useAuthFetch: () => ({ $authFetch: api }),
     useModal: () => ({ open: vi.fn() }),
     useDrawer: () => ({ open: vi.fn() }),
     useDmsRoute: () => ({ query: {} }),
@@ -114,6 +116,7 @@ beforeEach(() => {
   api.mockReset();
   confirm.mockClear();
   dialogs.length = 0;
+  dialogValues = {};
 });
 
 afterEach(() => {
@@ -133,8 +136,8 @@ describe("Table row actions: refusals", () => {
           type: "api",
           url: "/api/invites/{_id}/resend",
           successMessage: "Sent",
-          confirm: { title: "Resend?", description: "" },
         },
+        confirm: { title: "Resend?", description: "" },
       } as never,
       { _id: "i1" },
     );
@@ -247,5 +250,87 @@ describe("Table row actions: refusals", () => {
         "1 of 2 items couldn’t be restored. Its rules don’t allow this action, or it was already done.",
     });
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("sends the values of the dialog's fields with the request, merged into its body", async () => {
+    api.mockResolvedValue({});
+    dialogValues = { reason: "spam", notify: false };
+    const { handleCustomRowAction } = await rowActions();
+    handleCustomRowAction(
+      {
+        label: "Ban",
+        target: {
+          type: "api",
+          url: "/api/users/{_id}/ban",
+          body: { notify: true, scope: "all" },
+          successMessage: "Banned",
+        },
+        confirm: { title: "Ban {name}?", fields: [] },
+      } as never,
+      { _id: "u1", name: "Ada" },
+    );
+    await vi.waitFor(() => expect(api).toHaveBeenCalled());
+
+    expect(dialogs[0]!.options.title).toBe("Ban {name}?");
+    expect(api).toHaveBeenCalledWith("/api/users/u1/ban", {
+      method: HttpMethod.post,
+      body: { notify: false, scope: "all", reason: "spam" },
+    });
+  });
+
+  it("asks the dialog a `from` URL words for one row, before a delete", async () => {
+    api.mockImplementation(async (url: string) =>
+      url === "/api/task/t1/delete-confirm"
+        ? { title: "$dms.table.delete_rows", params: { count: 1 } }
+        : 1,
+    );
+    const { deleteRows } = await rowActions();
+
+    const done = await deleteRows(["t1"], {
+      confirm: { from: "/api/task/{id}/delete-confirm" },
+    });
+
+    expect(done).toBe(true);
+    expect(dialogs[0]!.options.title).toBe("1 item deleted");
+    expect(api).toHaveBeenLastCalledWith("/api/task/delete", {
+      method: HttpMethod.delete,
+      query: { id: ["t1"] },
+    });
+  });
+
+  it("keeps the generic confirmation for several rows of a `from` dialog", async () => {
+    api.mockResolvedValue(2);
+    const { deleteRows } = await rowActions();
+
+    await deleteRows(["t1", "t2"], {
+      confirm: { from: "/api/task/{id}/delete-confirm" },
+    });
+
+    expect(api).not.toHaveBeenCalledWith("/api/task/t1/delete-confirm");
+    expect(dialogs[0]!.options.title).toBe("Delete 2 items?");
+  });
+
+  it("asks a built-in action's confirmation before running it", async () => {
+    const proceed = vi.fn();
+    const { runConfirmedBuiltIn } = await rowActions();
+
+    await runConfirmedBuiltIn(
+      { confirm: { title: "Edit {name}?" } },
+      { _id: "t1", name: "Docs" },
+      proceed,
+    );
+    expect(dialogs[0]!.options.title).toBe("Edit {name}?");
+    expect(proceed).toHaveBeenCalledOnce();
+
+    confirm.mockResolvedValueOnce(false);
+    await runConfirmedBuiltIn(
+      { confirm: { title: "Again?" } },
+      undefined,
+      proceed,
+    );
+    expect(proceed).toHaveBeenCalledOnce();
+
+    await runConfirmedBuiltIn(true, undefined, proceed);
+    expect(proceed).toHaveBeenCalledTimes(2);
   });
 });

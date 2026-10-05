@@ -29,6 +29,20 @@ const api = {
   deleteRole: vi.fn(),
 };
 const addToast = vi.fn();
+// The delete dialog as the server words it, confirmed with a role picked.
+const authFetch = vi.fn(async () => ({
+  title: "$page.settings.roles.editor.delete_title",
+  params: { name: ROLE.name, count: 0 },
+  fields: [],
+}));
+const confirm = vi.fn(
+  async (options: {
+    onConfirm?: (values: Record<string, unknown>) => Promise<unknown>;
+  }) => {
+    await options.onConfirm?.({ reassignTo: "role-2" });
+    return true;
+  },
+);
 const apiError = vi.fn();
 const draft = ref({ id: ROLE._id, name: ROLE.name, description: "" });
 
@@ -75,7 +89,7 @@ vi.mock(
     return {
       default: vue.defineComponent({
         props: { name: String, nameError: String },
-        emits: ["save", "update:name"],
+        emits: ["save", "delete", "update:name"],
         setup(props, { emit, expose }) {
           const input = vue.ref<HTMLInputElement | null>(null);
           expose({
@@ -99,6 +113,11 @@ vi.mock(
                 id: "role-save",
                 type: "button",
                 onClick: () => emit("save"),
+              }),
+              vue.h("button", {
+                id: "role-delete",
+                type: "button",
+                onClick: () => emit("delete"),
               }),
             ]);
         },
@@ -182,7 +201,11 @@ beforeEach(() => {
   vi.stubGlobal("h", h);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useToast", () => ({ add: addToast }));
-  vi.stubGlobal("useConfirm", () => ({ confirm: vi.fn() }));
+  vi.stubGlobal("useConfirm", () => ({ confirm }));
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("interpolateUrl", (url: string, data: Record<string, string>) =>
+    url.replace(/\{(\w+)\}/g, (_, key: string) => data[key] ?? ""),
+  );
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => `t(${message})`,
   }));
@@ -252,4 +275,22 @@ it("keeps a failure tied to no field as a toast", async () => {
 
   expect(nameError()).toBeNull();
   expect(apiError).toHaveBeenCalledExactlyOnceWith(failure);
+});
+
+it("asks the delete dialog the server words, then deletes with the picked role", async () => {
+  await mountRolesPage();
+  host.querySelector<HTMLButtonElement>("#role-delete")!.click();
+  await flush();
+
+  expect(authFetch).toHaveBeenCalledWith(
+    "/settings/user/roles/role-1/delete-confirm",
+  );
+  expect(api.deleteRole).toHaveBeenCalledWith("role-1", {
+    force: false,
+    reassignTo: "role-2",
+  });
+  expect(addToast).toHaveBeenCalledWith({
+    title: "page.settings.roles.editor.deleted",
+    color: "success",
+  });
 });

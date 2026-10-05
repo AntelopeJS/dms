@@ -21,7 +21,10 @@ export type ActionTarget =
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-      /** JSON body sent with the request. */
+      /**
+       * JSON body sent with the request. The values of the action's confirm
+       * `fields` are merged into it, the input winning.
+       */
       body?: Record<string, unknown>;
       /**
        * Field of the JSON response copied to the clipboard on success (a
@@ -29,19 +32,6 @@ export type ActionTarget =
        */
       copy?: string;
       successMessage: string;
-      /**
-       * Asked first. On a row action, the texts receive the row's fields as
-       * i18n parameters (`"Remove {name}?"`).
-       */
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-        /** Header icon of the dialog. */
-        icon?: string;
-        /** Text of the confirm button. `$`-prefixed: an i18n key. */
-        confirmLabel?: string;
-      };
     }
   | {
       type: "exportJob";
@@ -57,11 +47,6 @@ export type ActionTarget =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };
 
@@ -85,7 +70,10 @@ export type ActionTargetSerialized =
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-      /** JSON body sent with the request. */
+      /**
+       * JSON body sent with the request. The values of the action's confirm
+       * `fields` are merged into it, the input winning.
+       */
       body?: Record<string, unknown>;
       /**
        * Field of the JSON response copied to the clipboard on success (a
@@ -93,19 +81,6 @@ export type ActionTargetSerialized =
        */
       copy?: string;
       successMessage: string;
-      /**
-       * Asked first. On a row action, the texts receive the row's fields as
-       * i18n parameters (`"Remove {name}?"`).
-       */
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-        /** Header icon of the dialog. */
-        icon?: string;
-        /** Text of the confirm button. `$`-prefixed: an i18n key. */
-        confirmLabel?: string;
-      };
     }
   | {
       type: "exportJob";
@@ -121,10 +96,5 @@ export type ActionTargetSerialized =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };

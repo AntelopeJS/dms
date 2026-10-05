@@ -2,6 +2,7 @@ export * from "./base-component-props";
 export * from "./button";
 export * from "./color";
 export * from "./component-input";
+export * from "./confirm-dialog";
 export * from "./custom-button";
 export * from "./enum-option";
 export * from "./error";

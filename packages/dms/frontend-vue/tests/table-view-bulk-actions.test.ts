@@ -82,15 +82,15 @@ describe("TableView bulk action confirmations", () => {
     });
     const t = translator("en");
     expect(bulkActionConfirm("archive", 2, t)).toMatchObject({
-      confirmColor: "warning",
+      color: "warning",
       icon: "i-ph-archive",
     });
     expect(bulkActionConfirm("delete", 2, t)).toMatchObject({
-      confirmColor: "error",
+      color: "error",
       icon: "i-ph-trash",
     });
     expect(bulkActionConfirm("deletePermanently", 2, t)).toMatchObject({
-      confirmColor: "error",
+      color: "error",
       icon: "i-ph-trash",
     });
   });

@@ -11,12 +11,15 @@ import {
   type ConfirmNotice,
   type ConfirmPartialOutcome,
   ConfirmTextError,
+  type ConfirmValues,
 } from "../../composables/confirm/types";
 import { resolveActionError } from "../../composables/confirm/actionError";
+import type { ConfirmDialogField } from "#dms-core/app/types/confirm-dialog";
+import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
 interface ConfirmModalProps {
   title: string;
-  description: string;
+  description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   /**
@@ -24,11 +27,11 @@ interface ConfirmModalProps {
    * element (its close button) as before.
    */
   initialFocus?: ConfirmInitialFocus;
-  confirmColor?: ConfirmColor;
+  color?: ConfirmColor;
   /** Leading icon of the confirm button. */
   confirmIcon?: string;
   /** Acknowledge-only: no confirm button, cancel closes (resolves `false`). */
-  hideConfirm?: boolean;
+  blocked?: boolean;
   /** Header icon; defaults per colour, `false` gives the minimal layout. */
   icon?: string | false;
   /** Dependents listed above the actions ("Orders 48, Invoices 12…"). */
@@ -40,6 +43,13 @@ interface ConfirmModalProps {
    * empty or different flags it under the field instead.
    */
   confirmText?: string;
+  /**
+   * Fields filled in before confirming (labels resolved); their values reach
+   * `onConfirm`, and a field error it rejects with shows under its field.
+   */
+  fields?: ConfirmDialogField[];
+  /** A component drawn in the body, bound to the fields' values. */
+  component?: ComponentInfo;
   /** Checks the body fields first; `false` keeps the modal open. */
   validate?: () => boolean | Promise<boolean>;
   /**
@@ -48,7 +58,9 @@ interface ConfirmModalProps {
    * resolving `false` keeps it open (the handler reported the problem);
    * a partial outcome turns it into an acknowledgement of what went through.
    */
-  onConfirm?: () => Promise<void | boolean | ConfirmPartialOutcome>;
+  onConfirm?: (
+    values: ConfirmValues,
+  ) => Promise<void | boolean | ConfirmPartialOutcome>;
 }
 
 interface ConfirmModalSlots {
@@ -61,16 +73,19 @@ interface ConfirmModalEmits {
 }
 
 const props = withDefaults(defineProps<ConfirmModalProps>(), {
+  description: "",
   confirmLabel: undefined,
   cancelLabel: undefined,
   initialFocus: undefined,
-  confirmColor: "primary",
+  color: "primary",
   confirmIcon: undefined,
-  hideConfirm: false,
+  blocked: false,
   icon: undefined,
   impact: () => [],
   body: undefined,
   confirmText: undefined,
+  fields: () => [],
+  component: undefined,
   validate: undefined,
   onConfirm: undefined,
 });
@@ -83,11 +98,55 @@ const { t } = useI18n();
 // reactive to the caller's refs.
 const BodyRender: FunctionalComponent = () => props.body?.();
 
-const DEFAULT_ICONS: Record<ConfirmColor, string> = {
+const DEFAULT_ICONS: Partial<Record<ConfirmColor, string>> = {
   primary: "i-ph-rocket-launch",
   error: "i-ph-trash",
   warning: "i-ph-archive",
 };
+const FALLBACK_ICON = "i-ph-question";
+
+const { processApiMessage } = useTranslation();
+
+// What the dialog's fields hold, sent with the confirmed action.
+const values = ref<ConfirmValues>(
+  Object.fromEntries(
+    props.fields.map((field) => [field.id, field.defaultValue]),
+  ),
+);
+// Refusals shown under their field: required ones on confirm, the server's
+// field errors once the action ran.
+const fieldErrors = ref<Record<string, string | undefined>>({});
+watch(
+  values,
+  () => {
+    fieldErrors.value = {};
+  },
+  { deep: true },
+);
+
+const isEmptyValue = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  value === "" ||
+  (Array.isArray(value) && value.length === 0);
+
+/** Flags the required fields left empty. */
+function checkRequiredFields(): boolean {
+  const missing = props.fields.filter(
+    (field) => field.required && isEmptyValue(values.value[field.id]),
+  );
+  fieldErrors.value = Object.fromEntries(
+    missing.map((field) => [field.id, t("dms.field_errors.required")]),
+  );
+  return missing.length === 0;
+}
+
+const resolveComponentRef = (component: ComponentInfo | undefined) => {
+  const name = component?.componentName;
+  return name ? resolveDmsComponent(name) || name : undefined;
+};
+
+const bodyComponent = computed(() => resolveComponentRef(props.component));
 
 const isOpen = ref(true);
 const typedText = ref("");
@@ -111,7 +170,7 @@ watch(typedText, () => {
 const headerIcon = computed(() =>
   props.icon === false
     ? undefined
-    : (props.icon ?? DEFAULT_ICONS[props.confirmColor]),
+    : (props.icon ?? DEFAULT_ICONS[props.color] ?? FALLBACK_ICON),
 );
 
 const hasBody = computed(
@@ -119,6 +178,8 @@ const hasBody = computed(
     props.impact.length > 0 ||
     !!props.body ||
     !!slots.body ||
+    props.fields.length > 0 ||
+    !!props.component ||
     !!props.confirmText ||
     !!notice.value,
 );
@@ -168,14 +229,35 @@ function errorNotice(error: unknown): ConfirmNotice {
   return { title: resolveActionError(error, t) };
 }
 
+/**
+ * Shows under their field the field errors the server answered with; true
+ * when nothing else is left to tell in the alert.
+ */
+function showFieldErrors(error: unknown): boolean {
+  if (props.fields.length === 0) return false;
+  const resolved = resolveFieldErrors(error, {
+    fields: props.fields.map((field) => field.id),
+  });
+  if (resolved.fields.length === 0) return false;
+  fieldErrors.value = Object.fromEntries(
+    resolved.fields.map(({ field, message }) => [
+      field,
+      processApiMessage(message),
+    ]),
+  );
+  return !resolved.hasUnmatched;
+}
+
 async function runConfirm(
-  action: () => Promise<void | boolean | ConfirmPartialOutcome>,
+  action: (
+    values: ConfirmValues,
+  ) => Promise<void | boolean | ConfirmPartialOutcome>,
 ) {
   isPending.value = true;
   notice.value = undefined;
   typedError.value = undefined;
   try {
-    const result = await action();
+    const result = await action({ ...values.value });
     if (isPartialOutcome(result)) {
       notice.value = { ...result.partial, tone: "warning" };
       isSettled.value = true;
@@ -185,7 +267,7 @@ async function runConfirm(
   } catch (error) {
     if (error instanceof ConfirmTextError && props.confirmText) {
       typedError.value = error.message;
-    } else {
+    } else if (!showFieldErrors(error)) {
       notice.value = { ...errorNotice(error), tone: "error" };
     }
   } finally {
@@ -212,10 +294,12 @@ function checkTypedText(): boolean {
 }
 
 async function handleConfirm() {
-  if (props.hideConfirm || isSettled.value || isPending.value) return;
+  if (props.blocked || isSettled.value || isPending.value) return;
   // Every field is checked at once; the body ones come first on the page,
   // so the typed field takes the focus only when they passed.
-  const isBodyValid = props.validate ? await props.validate() : true;
+  const areFieldsValid = checkRequiredFields();
+  const isBodyValid =
+    (props.validate ? await props.validate() : true) && areFieldsValid;
   const isTypedValid = checkTypedText();
   if (!isTypedValid && isBodyValid) typedInput.value?.inputRef?.focus();
   if (!isBodyValid || !isTypedValid) return;
@@ -240,11 +324,7 @@ function handleCancel() {
     @update:open="(open: boolean) => !open && handleCancel()"
   >
     <template #header>
-      <DmsIconWell
-        v-if="headerIcon"
-        :icon="headerIcon"
-        :tone="props.confirmColor"
-      />
+      <DmsIconWell v-if="headerIcon" :icon="headerIcon" :tone="props.color" />
       <div class="min-w-0 flex-1">
         <DialogTitle
           class="text-highlighted text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]"
@@ -292,6 +372,38 @@ function handleCancel() {
             </span>
           </li>
         </ul>
+
+        <UFormField
+          v-for="field in props.fields"
+          :key="field.id"
+          :label="field.label"
+          :description="field.description"
+          :required="field.required"
+          :error="fieldErrors[field.id]"
+          :data-confirm-field="field.id"
+        >
+          <component
+            :is="resolveComponentRef(field.component)"
+            :id="`confirm-field-${field.id}`"
+            v-model="values[field.id]"
+            v-bind="field.component.options ?? {}"
+            :disabled="field.disabled || isPending"
+            class="w-full"
+          />
+          <template #error="{ error }">
+            <template v-if="error">
+              <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
+              {{ error }}
+            </template>
+          </template>
+        </UFormField>
+
+        <component
+          :is="bodyComponent"
+          v-if="bodyComponent"
+          v-model:values="values"
+          v-bind="props.component?.options ?? {}"
+        />
 
         <BodyRender v-if="props.body" />
         <slot name="body" />
@@ -365,10 +477,10 @@ function handleCancel() {
           @click="handleCancel"
         />
         <UButton
-          v-if="!props.hideConfirm && !isSettled"
+          v-if="!props.blocked && !isSettled"
           :label="props.confirmLabel || $t('dms.confirm.confirm')"
           :icon="props.confirmIcon"
-          :color="props.confirmColor"
+          :color="props.color"
           :loading="isPending"
           data-confirm-action="confirm"
           @click="handleConfirm"

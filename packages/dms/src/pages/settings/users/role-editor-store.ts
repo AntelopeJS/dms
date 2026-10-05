@@ -1,3 +1,4 @@
+import { HTTPResult } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -8,6 +9,11 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
+import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import {
+  type ConfirmDialogSerialized,
+  serializeConfirmDialog,
+} from "@antelopejs/interface-dms/base/table-view";
 import {
   GetCategoryPermissionIds,
   GetMenuOrder,
@@ -39,6 +45,9 @@ const NAME_TAKEN_MESSAGE = "$page.settings.roles.error.name_taken";
 const IN_USE_MESSAGE = "$page.settings.roles.error.in_use";
 const INVALID_REASSIGN_MESSAGE = "$page.settings.roles.error.invalid_reassign";
 const NOT_CREATED_MESSAGE = "$page.settings.roles.error.not_created";
+const DELETE_I18N = "$page.settings.roles.editor";
+/** The field of the delete dialog naming the role the holders move to. */
+export const REASSIGN_FIELD = "reassignTo";
 
 /** Who is editing the roles of which tenant. */
 export interface RoleEditorActor {
@@ -230,6 +239,54 @@ async function moveRoleHolders(
 }
 
 /**
+ * The dialog asking to delete a role (`confirm.from` of the editor's delete):
+ * how many members and pending invitations still hold it, and the role to
+ * move them to, picked in the dialog.
+ */
+export async function loadRoleDeleteConfirm(
+  tenantId: string,
+  roleId: string,
+): Promise<ConfirmDialogSerialized> {
+  const role = await requireRole(tenantId, roleId);
+  const [roles, members, invites] = await Promise.all([
+    GetModel(RoleModel, tenantId).getAll(),
+    GetModel(TenantMemberModel, tenantId).listAll(),
+    GetModel(UserInviteModel, tenantId).getAll(),
+  ]);
+  const holders = countRoleHolders(roleId, members, invites, new Date());
+  const otherRoles = roles.filter((candidate) => candidate._id !== roleId);
+  return serializeConfirmDialog({
+    title: `${DELETE_I18N}.delete_title`,
+    description:
+      holders > 0
+        ? `${DELETE_I18N}.delete_in_use`
+        : `${DELETE_I18N}.delete_unused`,
+    params: { name: role.name, count: holders },
+    icon: "i-ph-trash",
+    color: "error",
+    confirmLabel: `${DELETE_I18N}.delete_confirm`,
+    cancelLabel: `${DELETE_I18N}.cancel`,
+    fields:
+      holders > 0
+        ? [
+            {
+              id: REASSIGN_FIELD,
+              label: `${DELETE_I18N}.reassign_label`,
+              type: new DefaultDataTypes.SelectType({
+                items: otherRoles.map(({ _id, name }) => ({
+                  value: _id,
+                  label: name,
+                })),
+                placeholder: `${DELETE_I18N}.reassign_none`,
+                deselectable: true,
+              }),
+            },
+          ]
+        : undefined,
+  });
+}
+
+/**
  * Delete a role. Its members and invitations lose it, or move to
  * `reassignTo`; without `force` a role still held is refused.
  */
@@ -240,11 +297,14 @@ export async function deleteRole(
 ): Promise<void> {
   await requireRole(actor.tenantId, roleId);
   if (input.reassignTo) {
-    assert(
-      input.reassignTo !== roleId,
-      HTTP_CONFLICT,
-      INVALID_REASSIGN_MESSAGE,
-    );
+    // Named after the field, so the delete dialog shows it under the role
+    // picker rather than in its alert.
+    if (input.reassignTo === roleId) {
+      throw new HTTPResult(HTTP_CONFLICT, {
+        field: REASSIGN_FIELD,
+        message: INVALID_REASSIGN_MESSAGE,
+      });
+    }
     await requireRole(actor.tenantId, input.reassignTo);
   }
   if (!input.force) await assertRoleUnused(actor.tenantId, roleId);

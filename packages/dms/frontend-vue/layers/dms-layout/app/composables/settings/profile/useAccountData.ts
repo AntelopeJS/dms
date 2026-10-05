@@ -195,8 +195,8 @@ export function useAccountData() {
         names: blockerNames(blockers),
       }),
       icon: "i-ph-crown-simple",
-      confirmColor: "warning",
-      hideConfirm: true,
+      color: "warning",
+      blocked: true,
       cancelLabel: t(`${I18N}.blocked_close`),
     });
   }
@@ -289,7 +289,7 @@ export function useAccountData() {
       title: t(`${I18N}.delete_confirm_title`),
       description: t(`${I18N}.delete_confirm_description`),
       icon: "i-ph-warning",
-      confirmColor: "error",
+      color: "error",
       confirmIcon: "i-ph-trash",
       confirmLabel: t(`${I18N}.delete_confirm_button`),
       impact: impactList(impact),

@@ -103,7 +103,8 @@ export function formSchema(
   throw new Error("formSchema: unsupported source");
 }
 
-function serializeField(field: FormField): FormFieldSerialized {
+/** A form field as the client reads it: its data type reduced to an id. */
+export function serializeFormField(field: FormField): FormFieldSerialized {
   const typeId = getDataTypeId(field.type) || "unknown";
 
   return {
@@ -128,12 +129,12 @@ export function serializeFormFields(
         id: item.id,
         label: item.label,
         description: item.description,
-        fields: item.fields.map(serializeField),
+        fields: item.fields.map(serializeFormField),
         orientation: item.orientation,
         order: item.order,
       };
     }
-    return serializeField(item);
+    return serializeFormField(item);
   });
 }
 

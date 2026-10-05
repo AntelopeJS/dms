@@ -177,6 +177,10 @@ describe("ConfirmModal failures", () => {
     vi.stubGlobal("ref", ref);
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+    vi.stubGlobal("useTranslation", () => ({
+      processApiMessage: (message: string) => message,
+    }));
+    vi.stubGlobal("resolveDmsComponent", () => undefined);
     host = document.createElement("div");
     document.body.append(host);
     closed.mockReset();

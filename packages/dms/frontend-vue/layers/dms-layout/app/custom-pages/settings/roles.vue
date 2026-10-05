@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { useTemplateRef, type Ref } from "vue";
+import { useTemplateRef } from "vue";
 import UButton from "@nuxt/ui/components/Button.vue";
-import UFormField from "@nuxt/ui/components/FormField.vue";
-import USelect from "@nuxt/ui/components/Select.vue";
 import RoleEditor from "../../build/components/pages/settings/roles/RoleEditor.vue";
 import RoleOwnerPanel from "../../build/components/pages/settings/roles/RoleOwnerPanel.vue";
 import RolesList from "../../build/components/pages/settings/roles/RolesList.vue";
 import {
   NEW_ROLE_ENTRY_ID,
   OWNER_ENTRY_ID,
+  ROLES_API_PATH,
   type RoleEditorField,
   type RoleSummary,
 } from "../../build/components/pages/settings/roles/role-types";
@@ -22,30 +21,23 @@ import {
   type PermissionPreviewInput,
   usePermissionPreview,
 } from "#dms-core/app/composables/auth/usePermissionPreview";
-import {
-  resolveFieldErrors,
-  useFieldErrors,
-} from "#dms-core/app/composables/useFieldErrors";
+import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
-import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
+import { useActionConfirm } from "#dms-ui/app/build/composables/confirm/useActionConfirm";
 
 interface RoleEditorHandle {
   inputOf: (field: RoleEditorField) => HTMLInputElement | undefined;
 }
 
-interface SelectHandle {
-  triggerRef?: HTMLElement;
-}
-
 const NAME_REQUIRED = "$page.settings.roles.error.name_required";
 const NAME_TAKEN = "$page.settings.roles.error.name_taken";
-const INVALID_REASSIGN = "$page.settings.roles.error.invalid_reassign";
+const ROLE_DELETE_CONFIRM_URL = `${ROLES_API_PATH}/{id}/delete-confirm`;
 
 const api = useRolesApi();
 const { t } = useI18n();
 const toast = useToast();
-const { confirm } = useConfirm();
+const { confirmAction } = useActionConfirm();
 const { processApiMessage } = useTranslation();
 
 // Before the first await: the header renders it in the server pass. The
@@ -97,8 +89,6 @@ watch(
   () => editor.draft.value.description,
   () => fieldErrors.clear("description"),
 );
-// Reka selects refuse an empty value, so "keep nobody" needs its own id.
-const NO_REASSIGN = "__none__";
 
 const capabilities = computed(() => data.value?.overview.capabilities);
 const isReadonly = computed(() =>
@@ -224,121 +214,34 @@ async function duplicate(): Promise<void> {
   }, "page.settings.roles.editor.duplicated");
 }
 
-/**
- * Deletes the role; resolves `false` to keep the dialog open: a refused
- * target role shows under its select, anything else is a toast.
- */
+/** Deletes the role, moving its holders to `reassignTo` when one is picked. */
 async function deleteRole(
   role: RoleSummary,
   reassignTo: string | undefined,
-  reassignError: Ref<string | undefined>,
-  reassignSelect: Ref<SelectHandle | null>,
-): Promise<boolean> {
-  reassignError.value = undefined;
-  try {
-    const force = role.memberCount + role.inviteCount > 0;
-    await api.deleteRole(role._id, { force, reassignTo });
-    await refresh();
-    editor.select(reassignTo ?? editor.roles.value[0]?._id ?? OWNER_ENTRY_ID);
-    toast.add({
-      title: t("page.settings.roles.editor.deleted"),
-      color: "success",
-    });
-    return true;
-  } catch (error) {
-    const [refused] = resolveFieldErrors(error, {
-      fields: role.memberCount + role.inviteCount > 0 ? ["reassignTo"] : [],
-      codes: { [INVALID_REASSIGN]: "reassignTo" },
-    }).fields;
-    if (refused) {
-      reassignError.value = processApiMessage(refused.message);
-      await nextTick();
-      reassignSelect.value?.triggerRef?.focus();
-      return false;
-    }
-    useApiError(error);
-    return false;
-  }
+): Promise<void> {
+  const force = role.memberCount + role.inviteCount > 0;
+  await api.deleteRole(role._id, { force, reassignTo });
+  await refresh();
+  editor.select(reassignTo ?? editor.roles.value[0]?._id ?? OWNER_ENTRY_ID);
+  toast.add({
+    title: t("page.settings.roles.editor.deleted"),
+    color: "success",
+  });
 }
 
-/** v2 delete confirm: members of a role in use can move to another role. */
-function reassignField(
-  role: RoleSummary,
-  reassignTo: Ref<string>,
-  reassignError: Ref<string | undefined>,
-  reassignSelect: Ref<SelectHandle | null>,
-) {
-  const items = [
-    {
-      label: t("page.settings.roles.editor.reassign_none"),
-      value: NO_REASSIGN,
-    },
-    ...(data.value?.overview.roles ?? [])
-      .filter((entry) => entry._id !== role._id)
-      .map((entry) => ({ label: entry.name, value: entry._id })),
-  ];
-  return () =>
-    h(
-      UFormField,
-      {
-        label: t("page.settings.roles.editor.reassign_label"),
-        error: reassignError.value,
-      },
-      {
-        default: () =>
-          h(USelect, {
-            ref: reassignSelect,
-            modelValue: reassignTo.value,
-            items,
-            class: "w-full",
-            "onUpdate:modelValue": (value: string) => {
-              reassignTo.value = value;
-              reassignError.value = undefined;
-            },
-          }),
-        error: ({ error }: { error?: string | boolean }) =>
-          error
-            ? [
-                h(UIcon, {
-                  name: "i-ph-warning-circle",
-                  class: "size-3.5 shrink-0",
-                }),
-                String(error),
-              ]
-            : [],
-      },
-    );
-}
-
+// The server words the dialog: who still holds the role, and the role to
+// move them to. A refused target role shows under its field.
 async function requestDelete(): Promise<void> {
   const role = editor.selectedRole.value;
   if (!role) return;
-  const holders = role.memberCount + role.inviteCount;
-  const reassignTo = ref(NO_REASSIGN);
-  const reassignError = ref<string>();
-  const reassignSelect = ref<SelectHandle | null>(null);
-  await confirm({
-    title: t("page.settings.roles.editor.delete_title", { name: role.name }),
-    description:
-      holders > 0
-        ? t("page.settings.roles.editor.delete_in_use", holders)
-        : t("page.settings.roles.editor.delete_unused"),
-    icon: "i-ph-trash",
-    confirmColor: "error",
-    confirmLabel: t("page.settings.roles.editor.delete_confirm"),
-    cancelLabel: t("page.settings.roles.editor.cancel"),
-    body:
-      holders > 0
-        ? reassignField(role, reassignTo, reassignError, reassignSelect)
-        : undefined,
-    onConfirm: () =>
-      deleteRole(
-        role,
-        reassignTo.value === NO_REASSIGN ? undefined : reassignTo.value,
-        reassignError,
-        reassignSelect,
-      ),
-  });
+  await confirmAction(
+    { from: ROLE_DELETE_CONFIRM_URL },
+    {
+      urlParams: { id: encodeURIComponent(role._id) },
+      run: (values) =>
+        deleteRole(role, (values.reassignTo as string | null) ?? undefined),
+    },
+  );
 }
 </script>
 

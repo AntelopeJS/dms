@@ -8,9 +8,11 @@ import type {
 } from "../types/custom-button";
 import type { TableViewGuards } from "../types/guards";
 import type {
+  BulkRowActionConfig,
   CustomRowAction,
   CustomRowActionSerialized,
   RowActionConfig,
+  RowActionConfigSerialized,
 } from "../types/row-action";
 import type { ModalSize } from "../types/size";
 
@@ -30,15 +32,15 @@ export interface TableViewRowActionOptions<
    * @example true
    * @example { isEnabled: true, rule: { field: 'status', notEquals: 'completed' } }
    */
-  delete?: boolean | RowActionConfig<T>;
+  delete?: boolean | BulkRowActionConfig<T>;
   /**
    * Archive action configuration
    */
-  archive?: boolean | RowActionConfig<T>;
+  archive?: boolean | BulkRowActionConfig<T>;
   /**
    * Restore action configuration
    */
-  restore?: boolean | RowActionConfig<T>;
+  restore?: boolean | BulkRowActionConfig<T>;
   /**
    * Duplicate action configuration
    * @example true
@@ -76,15 +78,15 @@ export interface TableViewRowActionOptions<
 }
 
 export interface TableViewRowActionOptionsSerialized {
-  delete?: boolean | RowActionConfig;
-  archive?: boolean | RowActionConfig;
-  restore?: boolean | RowActionConfig;
+  delete?: boolean | RowActionConfigSerialized;
+  archive?: boolean | RowActionConfigSerialized;
+  restore?: boolean | RowActionConfigSerialized;
   showArchived?: boolean;
-  duplicate?: boolean | RowActionConfig;
-  details?: boolean | RowActionConfig;
-  edit?: boolean | RowActionConfig;
-  copyLink?: boolean | RowActionConfig;
-  add?: boolean | RowActionConfig;
+  duplicate?: boolean | RowActionConfigSerialized;
+  details?: boolean | RowActionConfigSerialized;
+  edit?: boolean | RowActionConfigSerialized;
+  copyLink?: boolean | RowActionConfigSerialized;
+  add?: boolean | RowActionConfigSerialized;
   hasSelection?: boolean;
   custom?: CustomRowActionSerialized[];
 }

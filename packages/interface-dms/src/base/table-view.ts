@@ -125,7 +125,21 @@ export type {
   TableViewGuards,
 } from "./types/guards";
 export type {
-  RowActionConfirmDescriptor,
-  RowActionConfirmImpact,
+  BulkRowActionConfig,
+  RowActionConfig,
+  RowActionConfigSerialized,
   RowActionRule,
 } from "./types/row-action";
+export type {
+  ActionConfirm,
+  ActionConfirmSerialized,
+  ConfirmDialog,
+  ConfirmDialogFrom,
+  ConfirmDialogImpact,
+  ConfirmDialogSerialized,
+} from "./types/confirm-dialog";
+export {
+  isConfirmFrom,
+  serializeActionConfirm,
+  serializeConfirmDialog,
+} from "./confirm-dialog";

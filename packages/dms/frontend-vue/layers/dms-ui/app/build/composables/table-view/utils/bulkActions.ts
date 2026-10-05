@@ -59,7 +59,7 @@ export interface BulkActionConfirm {
   title: string;
   description: string;
   confirmLabel: string;
-  confirmColor: ConfirmColor;
+  color: ConfirmColor;
   icon: string;
 }
 
@@ -77,7 +77,7 @@ export function bulkActionConfirm(
     title: t(`${prefix}_title`, { count }, count),
     description: t(`${prefix}_description`, { count }, count),
     confirmLabel: t(`${prefix}_button`, { count }, count),
-    confirmColor: BULK_CONFIRM_TONES[action],
+    color: BULK_CONFIRM_TONES[action],
     icon: BULK_CONFIRM_ICONS[action],
   };
 }

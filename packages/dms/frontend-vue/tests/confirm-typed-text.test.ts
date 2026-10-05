@@ -119,6 +119,10 @@ beforeEach(() => {
     t: (key: string, params?: Record<string, unknown>) =>
       params ? `${key} ${JSON.stringify(params)}` : key,
   }));
+  vi.stubGlobal("useTranslation", () => ({
+    processApiMessage: (message: string) => message,
+  }));
+  vi.stubGlobal("resolveDmsComponent", () => undefined);
   host = document.createElement("div");
   document.body.append(host);
   closed.mockReset();

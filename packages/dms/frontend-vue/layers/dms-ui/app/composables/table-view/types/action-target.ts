@@ -23,13 +23,6 @@ export type ActionTarget =
       /** Field of the JSON response copied to the clipboard on success. */
       copy?: string;
       successMessage: string;
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-        icon?: string;
-        confirmLabel?: string;
-      };
     }
   | {
       type: "exportJob";
@@ -45,10 +38,5 @@ export type ActionTarget =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };

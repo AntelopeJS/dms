@@ -14,6 +14,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import {
+  type ConfirmDialogSerialized,
   TableViewMeta,
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -60,6 +61,7 @@ import {
   createRole,
   deleteRole,
   duplicateRole,
+  loadRoleDeleteConfirm,
   loadRoleEditorTree,
   loadRolesOverview,
   type RoleEditorActor,
@@ -393,6 +395,16 @@ export class RolesSettingsController extends PageController("roles", {
     );
     const actor = await resolveActor(ctx, user);
     return { id: await duplicateRole(actor, roleId, name) };
+  }
+
+  /** The delete dialog of a role: who still holds it, and where they go. */
+  @Get(":id/delete-confirm")
+  async deleteConfirm(
+    @Context() ctx: RequestContext,
+    @AuthUserWithPermission(deleteAction) _user: User,
+    @Parameter("id", "param") roleId: string,
+  ): Promise<ConfirmDialogSerialized> {
+    return loadRoleDeleteConfirm(getRequestTenantId(ctx), roleId);
   }
 
   @Post(":id/delete")

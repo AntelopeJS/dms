@@ -1,6 +1,7 @@
 import type { ButtonPermission, ComponentFilterContext } from "../../component";
 import type { MaybePromise } from "../../types";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
+import type { ActionConfirm, ActionConfirmSerialized } from "./confirm-dialog";
 import type { ButtonVariant } from "./button";
 
 export type ButtonColor =
@@ -44,6 +45,8 @@ export interface CustomButton {
   variant?: ButtonVariant;
   color?: ButtonColor;
   target: ActionTarget;
+  /** Asked before the button's target runs: a fixed dialog, or `{ from }`. */
+  confirm?: ActionConfirm;
   /**
    * Gate the button behind a permission. A string names one of the owning
    * table's actions (e.g. `"add"`); an `Action` references any component's
@@ -66,9 +69,10 @@ export interface CustomButton {
 
 export interface CustomButtonSerialized extends Omit<
   CustomButton,
-  "target" | "permission" | "availability"
+  "target" | "permission" | "availability" | "confirm"
 > {
   target: ActionTargetSerialized;
+  confirm?: ActionConfirmSerialized;
   /** Set when the button's `availability` refused this request. */
   disabled?: boolean;
   /** The reason `availability` gave, shown next to the disabled button. */

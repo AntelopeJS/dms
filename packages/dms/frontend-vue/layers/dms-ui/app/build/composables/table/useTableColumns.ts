@@ -40,6 +40,7 @@ import {
 } from "../table-view/useTableViewConfig";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import { useActionConfirm } from "../confirm/useActionConfirm";
 import {
   type DefaultSortConfig,
   type HeaderSortCue,
@@ -467,6 +468,8 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   const isCustomActionInline = (action: CustomRowAction): boolean =>
     action.isVisible === true || action.visible === true;
 
+  const { confirmAction } = useActionConfirm();
+
   const normalizedConfigOf = (key: string): RowActionConfig | undefined => {
     const actionConfig = config.rowActions?.[
       key as keyof TableRowActionOptions
@@ -621,6 +624,19 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
     });
   };
 
+  // Copying a link asks first when the action declares a confirmation.
+  const copyLinkAfterConfirm = async (rowData: T) => {
+    const declared = normalizedConfigOf("copyLink")?.confirm;
+    if (declared) {
+      const isConfirmed = await confirmAction(declared, {
+        row: rowData as Record<string, unknown>,
+        urlParams: { id: get(rowData, config.rowIdKey) },
+      });
+      if (!isConfirmed) return;
+    }
+    await buildCopyLinkOnSelect(rowData)();
+  };
+
   const buildCustomActionDescriptors = (rowData: T): RowActionDescriptor[] =>
     (config.rowActions?.custom || []).map((action) => ({
       label: processI18n(action.label),
@@ -647,7 +663,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       key: "copyLink",
       label: builtInLabel("copyLink", t("dms.button.copy_link")),
       icon: builtInIcon("copyLink", "i-ph-link"),
-      onSelect: buildCopyLinkOnSelect(rowData),
+      onSelect: () => copyLinkAfterConfirm(rowData),
       disabled: isActionDisabled(config.rowActions?.copyLink, rowData),
       visible: isActionVisible(config.rowActions?.copyLink),
     },

@@ -290,7 +290,7 @@ const confirmDeleteAll = () => {
   return confirm({
     ...deleteAllText(),
     icon: "i-ph-trash",
-    confirmColor: "error",
+    color: "error",
     confirmLabel: t(
       "page.settings.notifications.delete_all_confirm",
       { count: total },

@@ -1,4 +1,5 @@
 import type { AnyFieldRule, FieldRule } from "./row-action-operators";
+import type { ActionConfirm } from "./confirm-dialog";
 
 export type FieldEqualsRule<
   T extends Record<string, unknown> = Record<string, unknown>,
@@ -52,33 +53,11 @@ export interface RowActionConfig<
   label?: string;
   /** Icon in place of the built-in one. */
   icon?: string;
+  /** Asked before the action runs: a fixed dialog, or `{ from }`. */
+  confirm?: ActionConfirm;
   /**
-   * Delete/archive/restore of one row: URL (`{id}` filled in) answering a
-   * {@link RowActionConfirmDescriptor} the dialog is worded from.
+   * Delete, archive, restore: toast once the action succeeded, receiving
+   * `{ count }` (`$`: i18n key).
    */
-  confirmFrom?: string;
-  /** Toast once the action succeeded, receiving `{ count }` (`$`: i18n key). */
   successMessage?: string;
-}
-
-/** One dependent a confirmed action affects. */
-export interface RowActionConfirmImpact {
-  icon: string;
-  label: string;
-  count?: number | string;
-}
-
-/** A confirmation worded by the server for one row (texts: i18n keys or literals). */
-export interface RowActionConfirmDescriptor {
-  title: string;
-  description: string;
-  params?: Record<string, unknown>;
-  icon?: string;
-  confirmColor?: "primary" | "error" | "warning";
-  confirmLabel?: string;
-  confirmIcon?: string;
-  cancelLabel?: string;
-  impact?: RowActionConfirmImpact[];
-  /** The action cannot run: the dialog only explains why. */
-  blocked?: boolean;
 }

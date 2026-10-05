@@ -372,14 +372,14 @@ export class InvitesSettingsController extends PageController(
             url: inviteApiTarget("resend"),
             method: "POST",
             successMessage: "$page.settings.invites.action.resend_success",
-            confirm: {
-              title: "$page.settings.invites.action.resend_confirm_title",
-              description:
-                "$page.settings.invites.action.resend_confirm_description",
-              confirmColor: "primary",
-              icon: "i-ph-paper-plane-tilt",
-              confirmLabel: "$page.settings.invites.action.resend",
-            },
+          },
+          confirm: {
+            title: "$page.settings.invites.action.resend_confirm_title",
+            description:
+              "$page.settings.invites.action.resend_confirm_description",
+            color: "primary",
+            icon: "i-ph-paper-plane-tilt",
+            confirmLabel: "$page.settings.invites.action.resend",
           },
         },
         {
@@ -407,14 +407,14 @@ export class InvitesSettingsController extends PageController(
             url: inviteApiTarget("cancel"),
             method: "DELETE",
             successMessage: "$page.settings.invites.action.revoke_success",
-            confirm: {
-              title: "$page.settings.invites.action.revoke_confirm_title",
-              description:
-                "$page.settings.invites.action.revoke_confirm_description",
-              confirmColor: "error",
-              icon: "i-ph-envelope-simple-open",
-              confirmLabel: "$page.settings.invites.action.revoke",
-            },
+          },
+          confirm: {
+            title: "$page.settings.invites.action.revoke_confirm_title",
+            description:
+              "$page.settings.invites.action.revoke_confirm_description",
+            color: "error",
+            icon: "i-ph-envelope-simple-open",
+            confirmLabel: "$page.settings.invites.action.revoke",
           },
         },
         {
@@ -428,14 +428,14 @@ export class InvitesSettingsController extends PageController(
             url: inviteApiTarget("cancel"),
             method: "DELETE",
             successMessage: "$page.settings.invites.action.remove_success",
-            confirm: {
-              title: "$page.settings.invites.action.remove_confirm_title",
-              description:
-                "$page.settings.invites.action.remove_confirm_description",
-              confirmColor: "error",
-              icon: "i-ph-envelope-simple-open",
-              confirmLabel: "$page.settings.invites.action.remove",
-            },
+          },
+          confirm: {
+            title: "$page.settings.invites.action.remove_confirm_title",
+            description:
+              "$page.settings.invites.action.remove_confirm_description",
+            color: "error",
+            icon: "i-ph-envelope-simple-open",
+            confirmLabel: "$page.settings.invites.action.remove",
           },
         },
       ],

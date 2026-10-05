@@ -7,7 +7,7 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { syncPlatformOwnerOnTenantOwnerChange } from "@antelopejs/interface-dms/tenant-ownership";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import type { RowActionConfirmDescriptor } from "@antelopejs/interface-dms/base/table-view";
+import type { ConfirmDialogSerialized } from "@antelopejs/interface-dms/base/table-view";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
@@ -155,7 +155,7 @@ const REMOVAL_I18N = "$page.settings.members.remove";
  */
 export function memberRemovalConfirm(
   impact: MemberRemovalImpact,
-): RowActionConfirmDescriptor {
+): ConfirmDialogSerialized {
   const params = { name: impact.name || impact.email };
   if (impact.isLastOwner) {
     const key = impact.isSelf ? "last_owner_self" : "last_owner_other";
@@ -164,7 +164,7 @@ export function memberRemovalConfirm(
       description: `${REMOVAL_I18N}.last_owner_description`,
       params,
       icon: "i-ph-crown",
-      confirmColor: "warning",
+      color: "warning",
       cancelLabel: "$page.settings.members.confirm.close",
       blocked: true,
     };
@@ -178,7 +178,7 @@ export function memberRemovalConfirm(
     description: `${REMOVAL_I18N}.description_${who}`,
     params,
     icon: "i-ph-user-minus",
-    confirmColor: "error",
+    color: "error",
     confirmLabel: `${REMOVAL_I18N}.confirm`,
     impact: [
       {

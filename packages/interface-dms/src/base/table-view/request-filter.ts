@@ -18,7 +18,7 @@ import type {
 import type {
   CustomRowAction,
   CustomRowActionSerialized,
-  RowActionConfig,
+  RowActionConfigSerialized,
   RowActionRule,
 } from "../types/row-action";
 import type {
@@ -59,8 +59,8 @@ export async function resolveTableViewGrants(
 
 export function applyPermissionToAction(
   hasPermission: boolean,
-  actionConfig: boolean | RowActionConfig | undefined,
-): boolean | RowActionConfig | undefined {
+  actionConfig: boolean | RowActionConfigSerialized | undefined,
+): boolean | RowActionConfigSerialized | undefined {
   if (!hasPermission) {
     return false;
   }
@@ -71,9 +71,9 @@ export function applyPermissionToAction(
 // view's -- and enforced server-side on every write; expose them where a table
 // view did not declare its own rule so its UI matches what the server accepts.
 export function mergeControllerRule(
-  actionConfig: boolean | RowActionConfig | undefined,
+  actionConfig: boolean | RowActionConfigSerialized | undefined,
   rule: RowActionRule | undefined,
-): boolean | RowActionConfig | undefined {
+): boolean | RowActionConfigSerialized | undefined {
   if (!rule || !actionConfig) {
     return actionConfig;
   }
@@ -120,7 +120,7 @@ export function adaptRowActions({
 }: RowActionsAdaptation): TableViewRowActionOptionsSerialized {
   const inArchiveMode = (
     granted: boolean,
-    config: boolean | RowActionConfig | undefined,
+    config: boolean | RowActionConfigSerialized | undefined,
   ) => (archiveMode ? applyPermissionToAction(granted, config) : undefined);
 
   const adapted: TableViewRowActionOptionsSerialized = {

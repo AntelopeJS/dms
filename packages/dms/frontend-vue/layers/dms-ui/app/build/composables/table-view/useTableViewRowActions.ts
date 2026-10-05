@@ -14,7 +14,11 @@ import {
 import DmsForm from "../../../components/form/Form.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
-import type { RowActionConfirmDescriptor } from "#dms-core/app/types/row-action";
+import {
+  type ActionConfirm,
+  isConfirmFrom,
+} from "#dms-core/app/types/confirm-dialog";
+import { useActionConfirm } from "../confirm/useActionConfirm";
 import { useClipboard } from "@vueuse/core";
 import { TableViewEvents } from "../../../composables/table-view/types";
 import { resolveResponseToast } from "../../../utils/responseWarning";
@@ -23,7 +27,6 @@ import {
   bulkActionOutcome,
   bulkActionQuery,
   bulkActionShortfall,
-  type BulkActionConfirm,
   type BulkActionKind,
   type BulkActionOutcome,
   type ConfirmedBulkAction,
@@ -33,6 +36,7 @@ import {
   ConfirmActionError,
   type ConfirmOptions,
   type ConfirmPartialOutcome,
+  type ConfirmValues,
 } from "../../../composables/confirm/types";
 import {
   resolveFormContainerTexts,
@@ -91,6 +95,7 @@ export const useTableRowActions = <T extends Data>(
   const toast = useToast();
   const { t, locale } = useI18n();
   const { confirm } = useConfirm();
+  const { confirmAction } = useActionConfirm();
   const { processI18n, processApiMessage } = useTranslation();
   const { open: openModal } = useModal();
   const { open: openDrawer } = useDrawer();
@@ -522,12 +527,16 @@ export const useTableRowActions = <T extends Data>(
   const requestBulkAction = async (
     ids: string[],
     bulkConfig: BulkActionConfig,
+    values: ConfirmValues = {},
   ): Promise<BulkActionOutcome> => {
+    const hasValues = Object.keys(values).length > 0;
     const response = await bulkAction.execute(
       () =>
         config.api(`${config.location}/${bulkConfig.kind}`, {
           method: bulkConfig.method,
           query: bulkActionQuery(bulkConfig.queryKey, ids),
+          // The values of the confirmation's fields go with the request.
+          ...(hasValues ? { body: values } : {}),
         }),
       {
         startPayload: { ids },
@@ -569,8 +578,8 @@ export const useTableRowActions = <T extends Data>(
       actionConfig: boolean | RowActionConfig | undefined,
       bulkConfig: BulkActionConfig,
     ): ConfirmedRun =>
-    async (): Promise<void | ConfirmPartialOutcome> => {
-      const outcome = await requestBulkAction(ids, bulkConfig);
+    async (values: ConfirmValues): Promise<void | ConfirmPartialOutcome> => {
+      const outcome = await requestBulkAction(ids, bulkConfig, values);
       const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
       if (outcome.processed === 0 && shortfall) {
         throw new ConfirmActionError(shortfall);
@@ -615,55 +624,43 @@ export const useTableRowActions = <T extends Data>(
   };
 
   /**
-   * The confirmation the server words for one row (`confirmFrom`): what the
-   * action takes with it, or why it cannot run (a `blocked` descriptor only
-   * explains, and resolves false). `run` performs the action from inside it.
+   * The confirmation a bulk action declares (`confirm`), for the rows it
+   * reaches: a `from` dialog is worded for one row, so several rows keep the
+   * generic confirmation. Undefined when none applies.
    */
-  const confirmFromServer = async (
-    template: string,
-    id: string,
-    fallback: BulkActionConfirm,
-    run: ConfirmedRun,
-  ): Promise<boolean> => {
-    const url = interpolateUrl(template, {
-      id,
-      [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: id,
-    });
-    let descriptor: RowActionConfirmDescriptor;
-    try {
-      descriptor = await config.api<RowActionConfirmDescriptor>(url);
-    } catch (error) {
-      handleApiError(error);
-      return false;
-    }
-    const text = (value: string | undefined) =>
-      value ? processI18n(value, descriptor.params) : undefined;
-    const isConfirmed = await confirm({
-      title: text(descriptor.title) ?? "",
-      description: text(descriptor.description) ?? "",
-      icon: descriptor.icon ?? fallback.icon,
-      confirmColor: descriptor.confirmColor ?? fallback.confirmColor,
-      confirmLabel: text(descriptor.confirmLabel),
-      confirmIcon: descriptor.confirmIcon,
-      cancelLabel: text(descriptor.cancelLabel),
-      hideConfirm: descriptor.blocked,
-      impact: descriptor.impact?.map((entry) => ({
-        icon: entry.icon,
-        label: text(entry.label) ?? "",
-        count:
-          typeof entry.count === "string" ? text(entry.count) : entry.count,
-      })),
-      onConfirm: descriptor.blocked ? undefined : run,
-    });
-    return isConfirmed && !descriptor.blocked;
+  const declaredBulkConfirm = (
+    actionConfig: boolean | RowActionConfig | undefined,
+    ids: string[],
+  ): ActionConfirm | undefined => {
+    const declared = normalizeActionConfig(actionConfig).confirm;
+    if (!declared) return undefined;
+    return isConfirmFrom(declared) && ids.length !== 1 ? undefined : declared;
   };
+
+  /** Asks the declared confirmation of a bulk action, running it inside. */
+  const askDeclaredBulkConfirm = (
+    declared: ActionConfirm,
+    ids: string[],
+    fallback: Partial<ConfirmOptions>,
+    run: ConfirmedRun,
+  ): Promise<boolean> =>
+    confirmAction(declared, {
+      urlParams: {
+        id: ids[0],
+        [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: ids[0],
+      },
+      // A fixed dialog names the rows it reaches.
+      row: { count: ids.length },
+      fallback,
+      run,
+    });
 
   /**
    * Asks before a bulk action, then runs it from inside the dialog: the
-   * server's own wording for a single row when the action declares
-   * `confirmFrom`, else the generic confirmation, toned for the action and
-   * counting the rows it reaches. Resolves whether rows went (false when the
-   * user cancelled, or gave up after a failure), so a caller keeps its
+   * action's declared `confirm` (the server's own wording for a single row
+   * with `{ from }`), else the generic confirmation, toned for the action
+   * and counting the rows it reaches. Resolves whether rows went (false when
+   * the user cancelled, or gave up after a failure), so a caller keeps its
    * selection otherwise.
    */
   const confirmBulkAction = async (
@@ -674,10 +671,8 @@ export const useTableRowActions = <T extends Data>(
   ): Promise<boolean> => {
     const fallback = bulkActionConfirm(action, ids.length, t);
     const run = bulkActionRun(ids, actionConfig, bulkConfig);
-    const { confirmFrom } = normalizeActionConfig(actionConfig);
-    if (confirmFrom && ids.length === 1) {
-      return confirmFromServer(confirmFrom, ids[0]!, fallback, run);
-    }
+    const declared = declaredBulkConfirm(actionConfig, ids);
+    if (declared) return askDeclaredBulkConfirm(declared, ids, fallback, run);
     return confirm({ ...fallback, onConfirm: run });
   };
 
@@ -727,27 +722,23 @@ export const useTableRowActions = <T extends Data>(
     return confirmBulkAction(ids, archiveConfig, "archive", ARCHIVE_CONFIG);
   };
 
-  // Restoring takes nothing away: it asks only when the server words a
-  // confirmation for the row (`confirmFrom`), else it runs at once and its
-  // outcome is toasted.
+  // Restoring takes nothing away: it asks only when it declares a
+  // confirmation, else it runs at once and its outcome is toasted.
   const restoreRows = async (
     ids: string[],
     restoreConfig: boolean | RowActionConfig | undefined,
   ): Promise<boolean> => {
-    const { confirmFrom, isEnabled } = normalizeActionConfig(restoreConfig);
-    if (!isEnabled) return false;
-    if (confirmFrom && ids.length === 1) {
-      const fallback: BulkActionConfirm = {
-        title: "",
-        description: "",
-        confirmLabel: t("dms.button.restore"),
-        confirmColor: "primary",
-        icon: "i-ph-arrow-counter-clockwise",
-      };
-      return confirmFromServer(
-        confirmFrom,
-        ids[0]!,
-        fallback,
+    if (!normalizeActionConfig(restoreConfig).isEnabled) return false;
+    const declared = declaredBulkConfirm(restoreConfig, ids);
+    if (declared) {
+      return askDeclaredBulkConfirm(
+        declared,
+        ids,
+        {
+          confirmLabel: t("dms.button.restore"),
+          color: "primary",
+          icon: "i-ph-arrow-counter-clockwise",
+        },
         bulkActionRun(ids, restoreConfig, RESTORE_CONFIG),
       );
     }
@@ -759,12 +750,15 @@ export const useTableRowActions = <T extends Data>(
     target: ActionTarget & { type: "api" },
     url: string,
     rowData?: Data,
+    values: ConfirmValues = {},
   ) => {
+    // The confirmation's values join the declared body, the input winning.
+    const body = { ...target.body, ...values };
     const response = await config.api<Record<string, unknown> | undefined>(
       url,
       {
         method: target.method || HttpMethod.post,
-        ...(target.body ? { body: target.body } : {}),
+        ...(Object.keys(body).length > 0 ? { body } : {}),
       },
     );
     if (target.copy) {
@@ -784,29 +778,14 @@ export const useTableRowActions = <T extends Data>(
     if (target.method !== "GET") config.refreshCallback?.();
   };
 
-  // On a row action, the texts take the row's fields as parameters
-  // ("Make {name} an owner?"). Confirmed, the call runs inside the dialog,
-  // which shows a refusal and stays open; a direct call toasts it.
+  // A direct call toasts a refusal; a confirmed one runs inside its dialog
+  // (see `confirmedRuns`).
   const handleApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
     label: string,
     rowData?: Data,
   ) => {
-    if (target.confirm) {
-      const text = (value: string | undefined) =>
-        value ? processI18n(value, rowData) : undefined;
-      await confirm({
-        title: text(target.confirm.title) ?? "",
-        description: text(target.confirm.description) ?? "",
-        confirmColor: target.confirm.confirmColor,
-        icon: target.confirm.icon,
-        confirmLabel: text(target.confirm.confirmLabel),
-        onConfirm: () => requestApiTarget(target, url, rowData),
-      });
-      return;
-    }
-
     try {
       await requestApiTarget(target, url, rowData);
     } catch (error: unknown) {
@@ -819,14 +798,6 @@ export const useTableRowActions = <T extends Data>(
     url: string,
     rowData?: Data,
   ) => {
-    if (target.confirm) {
-      const isConfirmed = await confirm({
-        title: processI18n(target.confirm.title),
-        description: processI18n(target.confirm.description),
-        confirmColor: target.confirm.confirmColor,
-      });
-      if (!isConfirmed) return;
-    }
     const labels = target.labels
       ? {
           title: target.labels.title
@@ -993,15 +964,75 @@ export const useTableRowActions = <T extends Data>(
     },
   };
 
+  const targetUrl = (url: string, rowData?: Data): string =>
+    rowData ? interpolateUrl(url, rowData) : url;
+
+  // A target making a request runs it from inside its confirmation, which
+  // shows a refusal (under its field when it names one) and stays open; any
+  // other runs once confirmed.
+  const confirmedRuns: Partial<
+    Record<
+      ActionTarget["type"],
+      (target: ActionTarget, rowData?: Data) => ConfirmedRun
+    >
+  > = {
+    api: (target, rowData) => (values) => {
+      const apiTarget = target as ActionTarget & { type: "api" };
+      return requestApiTarget(
+        apiTarget,
+        targetUrl(apiTarget.url, rowData),
+        rowData,
+        values,
+      );
+    },
+  };
+
+  /**
+   * Runs an action's target, after its confirmation when it declares one.
+   * On a row action, the dialog's texts take the row's fields as parameters
+   * ("Make {name} an owner?").
+   */
   const handleActionTarget = async (
     target: ActionTarget,
     label: string,
     rowData?: Data,
+    declared?: ActionConfirm,
   ) => {
     const handler = targetHandlers[target.type];
-    if (handler) {
+    if (!handler) return;
+    if (!declared) {
       await handler(target, label, rowData);
+      return;
     }
+    const runInside = confirmedRuns[target.type]?.(target, rowData);
+    const isConfirmed = await confirmAction(declared, {
+      row: rowData,
+      run: runInside,
+    });
+    if (isConfirmed && !runInside) await handler(target, label, rowData);
+  };
+
+  /**
+   * Runs a built-in action (edit, details, duplicate, add…) after the
+   * confirmation it declares, if any.
+   */
+  const runConfirmedBuiltIn = async (
+    actionConfig: boolean | RowActionConfig | undefined,
+    rowData: Data | undefined,
+    proceed: () => unknown,
+  ): Promise<void> => {
+    const declared = normalizeActionConfig(actionConfig).confirm;
+    if (declared) {
+      const id = rowData
+        ? getItemId(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
+        : undefined;
+      const isConfirmed = await confirmAction(declared, {
+        row: rowData,
+        urlParams: { id },
+      });
+      if (!isConfirmed) return;
+    }
+    await proceed();
   };
 
   // Reached for a disabled button only through a quick action, which presses
@@ -1017,11 +1048,21 @@ export const useTableRowActions = <T extends Data>(
       });
       return;
     }
-    handleActionTarget(button.target, button.label);
+    void handleActionTarget(
+      button.target,
+      button.label,
+      undefined,
+      button.confirm,
+    );
   };
 
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    handleActionTarget(action.target, action.label, rowData);
+    void handleActionTarget(
+      action.target,
+      action.label,
+      rowData,
+      action.confirm,
+    );
   };
 
   return {
@@ -1037,5 +1078,6 @@ export const useTableRowActions = <T extends Data>(
     handleCustomButton,
     handleCustomRowAction,
     handleApiError,
+    runConfirmedBuiltIn,
   };
 };

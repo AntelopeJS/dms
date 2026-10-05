@@ -64,7 +64,7 @@ export function useDiscardChangesPrompt(): () => Promise<boolean> {
       cancelLabel: t("dms.leave_guard.keep_editing"),
       // Staying is the safe answer: Enter keeps editing.
       initialFocus: "cancel",
-      confirmColor: "warning",
+      color: "warning",
       icon: "i-ph-warning",
     });
 }

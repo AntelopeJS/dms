@@ -918,6 +918,7 @@ const {
   restoreRows: restoreRowsAction,
   handleCustomButton,
   handleCustomRowAction,
+  runConfirmedBuiltIn,
 } = useTableRowActions<T>({
   api: $authFetch,
   location,
@@ -999,9 +1000,21 @@ const handleExportTable = () =>
   exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
 const handleExportSelection = (ids: string[]) =>
   exportTable(location, queryRequest.value, ids);
-const handleRowClick = (item: T) => openRow(item);
-const handleRowDuplicate = (itemId: string) => duplicateRow(itemId);
-const handleRowAdd = () => newRow(queryParamDefaults.value);
+// A built-in action declaring a `confirm` asks it first.
+const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
+  tableProps.value.rowActions?.[key];
+const handleRowClick = (item: T) =>
+  runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
+const handleRowDuplicate = (itemId: string) =>
+  runConfirmedBuiltIn(
+    rowActionConfig("duplicate"),
+    { [props.rowIdKey ?? ROW_ID_DEFAULT_KEY]: itemId },
+    () => duplicateRow(itemId),
+  );
+const handleRowAdd = () =>
+  runConfirmedBuiltIn(rowActionConfig("add"), undefined, () =>
+    newRow(queryParamDefaults.value),
+  );
 
 const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
 const realtimeRowTopic = computed(() =>
@@ -1220,7 +1233,9 @@ const handleRowEdit = async (item: T) => {
     const others = otherEditorsForRow(itemId);
     if (others.length > 0 && !(await warnBeforeEdit(others))) return;
   }
-  return editRow(item, queryParamDefaults.value);
+  return runConfirmedBuiltIn(rowActionConfig("edit"), item, () =>
+    editRow(item, queryParamDefaults.value),
+  );
 };
 
 const EMPTY_ITEMS: T[] = [];

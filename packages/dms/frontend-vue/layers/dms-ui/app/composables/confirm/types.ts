@@ -1,6 +1,11 @@
 import type { VNodeChild } from "vue";
+import type {
+  ConfirmDialog,
+  ConfirmDialogColor,
+  ConfirmDialogImpact,
+} from "#dms-core/app/types/confirm-dialog";
 
-export type ConfirmColor = "primary" | "error" | "warning";
+export type ConfirmColor = ConfirmDialogColor;
 
 /** The footer button a confirm dialog focuses when it opens. */
 export type ConfirmInitialFocus = "cancel" | "confirm";
@@ -9,44 +14,31 @@ export type ConfirmInitialFocus = "cancel" | "confirm";
 export type ConfirmBodyRender = () => VNodeChild;
 
 /** One dependent affected by the confirmed action. */
-export interface ConfirmImpact {
-  icon: string;
-  label: string;
-  count?: number | string;
-}
+export type ConfirmImpact = ConfirmDialogImpact;
 
-export interface ConfirmOptions {
-  title: string;
-  description: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
+/** The values the dialog's fields hold when the user confirms. */
+export type ConfirmValues = Record<string, unknown>;
+
+/**
+ * A confirmation dialog as `useConfirm()` opens it: a {@link ConfirmDialog}
+ * whose texts are already resolved, plus what only a caller in the browser
+ * can give (render functions, handlers).
+ */
+export interface ConfirmOptions extends Omit<ConfirmDialog, "params" | "icon"> {
   /**
    * The button focused on open (`"cancel"` for a dialog whose safe answer
    * is to stay); left out, the dialog's first focusable element.
    */
   initialFocus?: ConfirmInitialFocus;
-  confirmColor?: ConfirmColor;
   /** Leading icon of the confirm button. */
   confirmIcon?: string;
-  /**
-   * Acknowledge-only dialog (a guard that explains why the action can't run):
-   * no confirm button, the cancel button closes it (resolves `false`).
-   */
-  hideConfirm?: boolean;
   /** Header icon; defaults per colour, `false` gives the minimal layout. */
   icon?: string | false;
-  /** Dependents listed above the actions. */
-  impact?: ConfirmImpact[];
   /**
    * Extra content (a select, a note…) as a render function, re-run
    * reactively: state it reads can be refs owned by the caller.
    */
   body?: ConfirmBodyRender;
-  /**
-   * Text the user must type (exactly, trimmed) to confirm. Confirming with
-   * the field empty or different flags it (required / mismatch) instead.
-   */
-  confirmText?: string;
   /**
    * Checks the `body` fields on confirm, before `onConfirm`: returns `false`
    * after flagging the empty or wrong ones (and focusing the first), which
@@ -62,9 +54,13 @@ export interface ConfirmOptions {
    * it is user-facing, else a translated fallback. Resolving `false` also
    * keeps it open, for a handler that already reported the problem itself
    * (toast); resolving a {@link ConfirmPartialOutcome} keeps it open to say
-   * the action went only part of the way.
+   * the action went only part of the way. It receives the values of the
+   * dialog's `fields`; a field error the server answers shows under its
+   * field.
    */
-  onConfirm?: () => Promise<void | boolean | ConfirmPartialOutcome>;
+  onConfirm?: (
+    values: ConfirmValues,
+  ) => Promise<void | boolean | ConfirmPartialOutcome>;
 }
 
 /** A summary shown in the confirm modal's alert: a title and its detail. */

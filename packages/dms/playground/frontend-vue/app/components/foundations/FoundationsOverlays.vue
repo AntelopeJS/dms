@@ -40,7 +40,7 @@ const openMinimal = () =>
       title: "Leave without saving?",
       description: "Your changes to this order will be lost.",
       confirmLabel: "Leave",
-      confirmColor: "warning",
+      color: "warning",
       icon: false,
     }),
   );
@@ -51,7 +51,7 @@ const openImpact = () =>
       title: "Delete Northwind Traders?",
       description: "The customer and everything attached to it is removed.",
       confirmLabel: "Delete customer",
-      confirmColor: "error",
+      color: "error",
       confirmIcon: "i-ph-trash",
       impact: [
         { icon: "i-ph-shopping-cart", label: "Orders", count: 48 },
@@ -68,7 +68,7 @@ const openTyped = () =>
       description:
         "Every module, member and record of the workspace is deleted. This cannot be undone.",
       confirmLabel: "Delete workspace",
-      confirmColor: "error",
+      color: "error",
       confirmText: "acme",
     }),
   );
@@ -80,7 +80,7 @@ const openAsync = () =>
       description:
         "The first try fails on purpose to show the inline error; confirm again to succeed.",
       confirmLabel: "Archive",
-      confirmColor: "warning",
+      color: "warning",
       async onConfirm() {
         await wait(1200);
         if (failNext.value) {
@@ -100,7 +100,7 @@ const openBody = () =>
       title: "Remove Claire from the workspace?",
       description: "Her records are transferred to another member first.",
       confirmLabel: "Remove member",
-      confirmColor: "error",
+      color: "error",
       icon: "i-ph-user-minus",
       body: () =>
         h("div", { class: "grid gap-3" }, [
@@ -131,7 +131,7 @@ const openAcknowledge = () =>
       description:
         "Owner is a built-in role. Move its members to another role instead.",
       icon: "i-ph-lock-simple",
-      hideConfirm: true,
+      blocked: true,
       cancelLabel: "Got it",
     }),
   );
@@ -142,7 +142,7 @@ const openAcknowledge = () =>
     <ShowcaseSection
       id="confirm"
       title="DmsConfirmModal · useConfirm()"
-      description="const { confirm } = useConfirm(); await confirm(options) resolves true when the user confirmed. The modal reads its look from confirmColor (primary, warning, error) and its options."
+      description="const { confirm } = useConfirm(); await confirm(options) resolves true when the user confirmed. The modal reads its look from color (primary, warning, error) and its options."
       :columns="3"
     >
       <ShowcaseDemo label="title · description · confirmLabel">
@@ -153,7 +153,7 @@ const openAcknowledge = () =>
           @click="openSimple"
         />
       </ShowcaseDemo>
-      <ShowcaseDemo label="confirmColor='warning' · :icon='false' (minimal)">
+      <ShowcaseDemo label="color='warning' · :icon='false' (minimal)">
         <UButton
           label="Minimal"
           color="warning"
@@ -162,7 +162,7 @@ const openAcknowledge = () =>
           @click="openMinimal"
         />
       </ShowcaseDemo>
-      <ShowcaseDemo label="confirmColor='error' · confirmIcon · impact[]">
+      <ShowcaseDemo label="color='error' · confirmIcon · impact[]">
         <UButton
           label="Impact list"
           color="error"
@@ -204,7 +204,7 @@ const openAcknowledge = () =>
           @click="openBody"
         />
       </ShowcaseDemo>
-      <ShowcaseDemo label="hideConfirm · cancelLabel (acknowledge only)">
+      <ShowcaseDemo label="blocked · cancelLabel (acknowledge only)">
         <UButton
           label="Acknowledge only"
           color="neutral"

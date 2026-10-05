@@ -15,6 +15,7 @@ export * from "./card";
 export * from "./chart";
 export * from "./chart-card";
 export * from "./chart-schemas";
+export * from "./confirm-dialog";
 export * from "./display";
 export * from "./empty-state";
 export * from "./export-jobs";

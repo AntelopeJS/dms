@@ -1,6 +1,7 @@
 import type { ButtonPermission } from "../../component";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
 import type { ButtonVariant } from "./button";
+import type { ActionConfirm, ActionConfirmSerialized } from "./confirm-dialog";
 import type { ButtonColor } from "./custom-button";
 import type { AnyFieldRule, FieldRule } from "./row-action-operators";
 
@@ -46,6 +47,7 @@ export type RowActionRule<
   T extends Record<string, unknown> = Record<string, unknown>,
 > = AnyFieldRule<T> | LogicalRule<T>;
 
+/** A built-in row action of a table view, configured. */
 export interface RowActionConfig<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -57,46 +59,36 @@ export interface RowActionConfig<
   /** Icon in place of the built-in one. */
   icon?: string;
   /**
-   * Delete, archive and restore of one row: a URL (`{id}` and the row-id
-   * field are filled in) answering a {@link RowActionConfirmDescriptor}, the
-   * confirmation the server words for that row — what it takes with it, or
-   * why it cannot go. Several rows at once keep the generic confirmation.
+   * Asked before the action runs: a fixed dialog, or `{ from }`, a URL
+   * (`{id}` and the row's fields are filled in) answering the dialog the
+   * server words for that row — what it takes with it, or why it cannot go.
+   * Delete and archive ask a generic confirmation without it; a `from`
+   * dialog applies to one row, several rows at once keep the generic one.
    */
-  confirmFrom?: string;
-  /**
-   * Toast once delete, archive or restore succeeded, receiving `{ count }`.
-   * `$`-prefixed: an i18n key.
-   */
+  confirm?: ActionConfirm;
+}
+
+/** A built-in row action as it reaches the client. */
+export interface RowActionConfigSerialized extends Omit<
+  RowActionConfig,
+  "confirm"
+> {
+  confirm?: ActionConfirmSerialized;
   successMessage?: string;
 }
 
-/** One dependent a confirmed action affects, listed in its dialog. */
-export interface RowActionConfirmImpact {
-  icon: string;
-  /** `$`-prefixed: an i18n key, receiving the descriptor's `params`. */
-  label: string;
-  count?: number | string;
-}
-
 /**
- * A confirmation dialog worded by the server for one row. Texts are i18n keys
- * (with `$`) or literals, all interpolated with `params`.
+ * Delete, archive or restore: a built-in action that runs on the selected
+ * rows too, and reports what it did.
  */
-export interface RowActionConfirmDescriptor {
-  title: string;
-  description: string;
-  params?: Record<string, unknown>;
-  icon?: string;
-  confirmColor?: "primary" | "error" | "warning";
-  confirmLabel?: string;
-  confirmIcon?: string;
-  cancelLabel?: string;
-  impact?: RowActionConfirmImpact[];
+export interface BulkRowActionConfig<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> extends RowActionConfig<T> {
   /**
-   * The action cannot run (the last owner, a locked row): the dialog only
-   * explains why, with a close button.
+   * Toast once the action succeeded, receiving `{ count }`. `$`-prefixed: an
+   * i18n key.
    */
-  blocked?: boolean;
+  successMessage?: string;
 }
 
 export interface CustomRowAction<
@@ -105,6 +97,12 @@ export interface CustomRowAction<
   label: string;
   icon?: string;
   target: ActionTarget;
+  /**
+   * Asked before the action runs, whatever its target: a fixed dialog (its
+   * texts receive the row's fields as i18n parameters, "Remove {name}?"), or
+   * `{ from }`, a URL answering the dialog the server words for the row.
+   */
+  confirm?: ActionConfirm;
   rule?: RowActionRule<T>;
   isVisible?: boolean;
   /**
@@ -131,6 +129,7 @@ export interface CustomRowActionSerialized {
   label: string;
   icon?: string;
   target: ActionTargetSerialized;
+  confirm?: ActionConfirmSerialized;
   rule?: RowActionRule;
   isVisible?: boolean;
   /**

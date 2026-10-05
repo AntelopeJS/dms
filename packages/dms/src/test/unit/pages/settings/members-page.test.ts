@@ -295,7 +295,7 @@ describe("[unit] pages/settings/users members page", () => {
         "$page.settings.members.remove.title_other",
       );
       expect(confirm.params).to.deep.equal({ name: "Ada" });
-      expect(confirm.confirmColor).to.equal("error");
+      expect(confirm.color).to.equal("error");
       expect(confirm.blocked).to.equal(undefined);
       expect(confirm.impact?.[0]?.count).to.equal("Admin, Editor");
     });

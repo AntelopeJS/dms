@@ -191,9 +191,9 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(
       optionsOf(TableView(SearchableOrderAPI, { realtime: false })).searchable,
     ).to.equal(true);
-    expect(optionsOf(TableView(OrderAPI, { realtime: false })).searchable).to.equal(
-      false,
-    );
+    expect(
+      optionsOf(TableView(OrderAPI, { realtime: false })).searchable,
+    ).to.equal(false);
   });
 
   it("offers built-in displays by id and module displays as <module>:<id>", () => {
@@ -277,14 +277,15 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(() =>
       TableView(OrderAPI, { realtime: false, pageSize: 51 }),
     ).to.throw(/pageSize .* from 1 to 50 \(got 51\)/);
-    expect(() => TableView(OrderAPI, { realtime: false, pageSize: 0 })).to.throw(
-      /pageSize/,
-    );
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, pageSize: 0 }),
+    ).to.throw(/pageSize/);
     expect(() =>
       TableView(OrderAPI, { realtime: false, pageSize: 12.5 }),
     ).to.throw(/pageSize/);
-    expect(optionsOf(TableView(OrderAPI, { realtime: false, pageSize: 50 })))
-      .to.include({ pageSize: 50 });
+    expect(
+      optionsOf(TableView(OrderAPI, { realtime: false, pageSize: 50 })),
+    ).to.include({ pageSize: 50 });
   });
 
   it("refuses a quick filter the controller lacks", () => {
@@ -451,5 +452,89 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         "orders",
       ),
     ).to.have.length(1);
+  });
+
+  it("serializes one confirmation type on every action, its fields included", () => {
+    const options = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        rowActions: {
+          delete: {
+            confirm: { from: "/api/orders/{id}/delete-confirm" },
+            successMessage: "$orders.deleted",
+          },
+          edit: { confirm: { title: "$orders.edit_locked" } },
+          custom: [
+            {
+              label: "Refund",
+              target: {
+                type: "api",
+                url: "/api/orders/{_id}/refund",
+                successMessage: "Done",
+              },
+              confirm: {
+                title: "Refund {number}?",
+                color: "warning",
+                fields: [
+                  {
+                    id: "reason",
+                    label: "Reason",
+                    type: new DefaultDataTypes.StringType(),
+                    required: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        customButtons: [
+          {
+            label: "Purge",
+            target: {
+              type: "api",
+              url: "/api/orders/purge",
+              successMessage: "Purged",
+            },
+            confirm: { title: "Purge?", confirmText: "PURGE", blocked: false },
+          },
+        ],
+      }),
+    );
+    expect(options.rowActions?.delete).to.deep.equal({
+      confirm: { from: "/api/orders/{id}/delete-confirm" },
+      successMessage: "$orders.deleted",
+    });
+    expect(options.rowActions?.edit).to.deep.equal({
+      confirm: { title: "$orders.edit_locked" },
+    });
+    const [refund] = options.rowActions?.custom ?? [];
+    const [reason] = (refund?.confirm as { fields?: unknown[] } | undefined)
+      ?.fields as Array<{ id: string; type: string; required?: boolean }>;
+    expect(reason).to.deep.include({
+      id: "reason",
+      type: "string",
+      required: true,
+    });
+    expect(options.customButtons?.[0]?.confirm).to.deep.equal({
+      title: "Purge?",
+      confirmText: "PURGE",
+      blocked: false,
+    });
+  });
+
+  it("types successMessage on delete, archive and restore only", () => {
+    const options = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        rowActions: {
+          archive: { successMessage: "$orders.archived" },
+          // @ts-expect-error an edit reports nothing: no successMessage
+          edit: { successMessage: "$orders.edited" },
+        },
+      }),
+    );
+    expect(options.rowActions?.archive).to.include({
+      successMessage: "$orders.archived",
+    });
   });
 });

@@ -16,7 +16,12 @@ import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
-import type { RowActionConfig, RowActionRule } from "../types/row-action";
+import { serializeActionConfirm } from "../confirm-dialog";
+import type {
+  BulkRowActionConfig,
+  RowActionConfigSerialized,
+  RowActionRule,
+} from "../types/row-action";
 import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "./meta";
 import { assertKnownColumns } from "./validation";
@@ -108,31 +113,53 @@ export function serializeCustomButtons(
   buttons: CustomButton[] | undefined,
 ): CustomButtonSerialized[] | undefined {
   return buttons?.map(
-    ({ permission: _permission, availability: _availability, ...btn }) => ({
+    ({
+      permission: _permission,
+      availability: _availability,
+      confirm,
+      ...btn
+    }) => ({
       ...btn,
       target: serializeActionTarget(btn.target),
+      ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
     }),
   );
+}
+
+/** A built-in row action as the options carry it: its confirmation serialized. */
+function serializeRowActionConfig<T extends Record<string, unknown>>(
+  config: boolean | BulkRowActionConfig<T> | undefined,
+): boolean | RowActionConfigSerialized | undefined {
+  if (config === undefined || typeof config === "boolean") return config;
+  const { confirm, rule, ...rest } = config;
+  return {
+    ...rest,
+    ...(rule ? { rule: rule as RowActionRule } : {}),
+    ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
+  };
 }
 
 export function serializeRowActions<T extends Record<string, unknown>>(
   rowActions: TableViewRowActionOptions<T>,
 ): TableViewRowActionOptionsSerialized {
   return {
-    delete: rowActions.delete as boolean | RowActionConfig | undefined,
-    archive: rowActions.archive as boolean | RowActionConfig | undefined,
-    restore: rowActions.restore as boolean | RowActionConfig | undefined,
-    duplicate: rowActions.duplicate as boolean | RowActionConfig | undefined,
-    details: rowActions.details as boolean | RowActionConfig | undefined,
-    edit: rowActions.edit as boolean | RowActionConfig | undefined,
-    copyLink: rowActions.copyLink as boolean | RowActionConfig | undefined,
-    add: rowActions.add as boolean | RowActionConfig | undefined,
+    delete: serializeRowActionConfig(rowActions.delete),
+    archive: serializeRowActionConfig(rowActions.archive),
+    restore: serializeRowActionConfig(rowActions.restore),
+    duplicate: serializeRowActionConfig(rowActions.duplicate),
+    details: serializeRowActionConfig(rowActions.details),
+    edit: serializeRowActionConfig(rowActions.edit),
+    copyLink: serializeRowActionConfig(rowActions.copyLink),
+    add: serializeRowActionConfig(rowActions.add),
     hasSelection: rowActions.hasSelection,
     custom: rowActions.custom?.map((action) => ({
       label: action.label,
       icon: action.icon,
       rule: action.rule as RowActionRule | undefined,
       target: serializeActionTarget(action.target),
+      ...(action.confirm
+        ? { confirm: serializeActionConfirm(action.confirm) }
+        : {}),
       isVisible: action.isVisible,
       isDefault: action.isDefault,
       color: action.color,
