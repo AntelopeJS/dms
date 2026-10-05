@@ -12,6 +12,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "../layers/dms-ui/app/build/components/table/Pagination.vue";
 
 vi.mock(
@@ -131,6 +132,57 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   vi.unstubAllGlobals();
+});
+
+describe("empty body", () => {
+  it("words a filtered table in the module's terms, the clear action first", () => {
+    const { container } = mount(
+      TableEmpty,
+      {
+        emptyStates: {
+          filtered: {
+            title: "$runs.none_for",
+            description: "Try another name.",
+            actions: [{ label: "Docs", to: "https://docs.example" }],
+          },
+        },
+      },
+      {
+        isFiltered: computed(() => true),
+        clearableFilters: computed(() => ({ search: true, filters: false })),
+        globalFilterState: ref("zzz"),
+        resetFilters: vi.fn(),
+      },
+    );
+    expect(container.querySelector("h3")?.textContent).toBe(
+      'runs.none_for{"search":"zzz"}',
+    );
+    expect(container.querySelector("p")?.textContent).toBe("Try another name.");
+    expect(
+      [...container.querySelectorAll("button")].map((button) => [
+        button.textContent,
+        button.getAttribute("data-to"),
+      ]),
+    ).toEqual([
+      ["dms.table.clear_search", null],
+      ["Docs", "https://docs.example"],
+    ]);
+  });
+
+  it("keeps the built-in words for a reason the module left out", () => {
+    const { container } = mount(
+      TableEmpty,
+      { loadError: "error.500", emptyStates: { filtered: { title: "x" } } },
+      {
+        isFiltered: computed(() => false),
+        clearableFilters: computed(() => ({})),
+        globalFilterState: ref(""),
+      },
+    );
+    expect(container.querySelector("h3")?.textContent).toBe(
+      "dms.table.load_error_title",
+    );
+  });
 });
 
 describe("footer figures", () => {

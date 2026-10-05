@@ -1,5 +1,6 @@
-// The footer band of a table view: the figures the `summary` route computes
-// over the listed rows, and the legend.
+// The footer band and the empty states of a table view: the figures the
+// `summary` route computes over the listed rows, the legend, and what an
+// empty body says.
 
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
@@ -13,6 +14,8 @@ import type { RowActionRule } from "../types/row-action";
 import { TableViewMeta } from "./meta";
 import { servesRoute } from "./tabs";
 import type {
+  TableViewEmptyStates,
+  TableViewEmptyStatesSerialized,
   TableViewFooterOptions,
   TableViewFooterSerialized,
   TableViewFooterSummary,
@@ -85,6 +88,22 @@ export function serializeFooter<T extends Record<string, unknown>>(
       id: ids[index]!,
     })),
   };
+}
+
+/** The empty states as they reach the client, components serialized. */
+export function serializeEmptyStates(
+  emptyStates: TableViewEmptyStates | undefined,
+): TableViewEmptyStatesSerialized | undefined {
+  if (!emptyStates) return undefined;
+  return Object.fromEntries(
+    Object.entries(emptyStates).map(([kind, state]) => [
+      kind,
+      state && {
+        ...state,
+        component: state.component?.serializeSync(),
+      },
+    ]),
+  );
 }
 
 const SUMMARY_PATH = "summary";

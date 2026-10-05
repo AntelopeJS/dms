@@ -7,6 +7,7 @@ import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
 import type { FormProps } from "../../form/types";
 import type { TableProps, TableFilter } from "../../../types/table";
+import type { BlockAction } from "../../../components/blocks/BlockActions.vue";
 
 export interface QueryParamFilter {
   field: string;
@@ -84,6 +85,23 @@ export interface TableViewFooter {
   legend?: string;
 }
 
+/** What an empty body says for one reason (backend `TableViewEmptyState`). */
+export interface TableViewEmptyStateConfig {
+  title: string;
+  description?: string;
+  icon?: string;
+  actions?: BlockAction[];
+  /** Draws the whole state; receives `state`, `search` and `refresh`. */
+  component?: ComponentInfo;
+}
+
+/** Why a table's body is empty. */
+export type TableViewEmptyStateKind = "firstRun" | "filtered" | "error";
+
+/** The empty states of a table view (backend `emptyStates`). */
+export type TableViewEmptyStatesConfig = Partial<
+  Record<TableViewEmptyStateKind, TableViewEmptyStateConfig>
+>;
 
 /** A field of the expanded row's detail band. */
 export interface TableViewExpandableField {
@@ -250,6 +268,8 @@ export interface TableViewConfig<T extends Data>
    */
   density?: "default" | "compact";
   footer?: TableViewFooter;
+  /** What the empty body says, per reason it is empty. */
+  emptyStates?: TableViewEmptyStatesConfig;
   /** Named states of the table, opened from a strip, tabs or a menu. */
   views?: TableViewViewsConfig;
   /** Key of the table view in its page, prefixing its URL keys. */

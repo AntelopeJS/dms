@@ -1,7 +1,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
-import type { DisplayTone } from "../display";
+import type { BlockLinkAction, DisplayTone } from "../display";
 import type { ColorValue } from "../types";
 import type {
   CustomButton,
@@ -395,6 +395,49 @@ export interface TableViewFooterSerialized extends Omit<
   summary?: TableViewFooterSummarySerialized[];
 }
 
+/**
+ * What a table's empty body says for one reason it is empty, in place of the
+ * built-in texts. Texts are `$`-prefixed i18n keys or literals and receive
+ * `{ search }`, the text searched.
+ */
+export interface TableViewEmptyState {
+  title: string;
+  description?: string;
+  icon?: string;
+  /** Link buttons, after the ones the table adds itself. */
+  actions?: BlockLinkAction[];
+  /**
+   * Frontend component drawing the whole state instead (a gallery of
+   * templates), resolved by name from the global registry. It receives
+   * `state` (`firstRun`, `filtered` or `error`), `search` and `refresh()`.
+   */
+  component?: Component;
+}
+
+/**
+ * The empty states of a table: `firstRun` while it has no row yet (it keeps
+ * the add button), `filtered` when its filters or search match nothing (it
+ * keeps "Clear search" / "Reset filters"), `error` when the list failed (it
+ * keeps "Retry").
+ */
+export interface TableViewEmptyStates {
+  firstRun?: TableViewEmptyState;
+  filtered?: TableViewEmptyState;
+  error?: TableViewEmptyState;
+}
+
+/** An empty state as it reaches the client. */
+export interface TableViewEmptyStateSerialized extends Omit<
+  TableViewEmptyState,
+  "component"
+> {
+  component?: ComponentInfoSerialized;
+}
+
+/** The empty states as they reach the client. */
+export type TableViewEmptyStatesSerialized = Partial<
+  Record<keyof TableViewEmptyStates, TableViewEmptyStateSerialized>
+>;
 
 /**
  * The card the `kanban` and `cards` displays draw for each row. Left out,
@@ -539,6 +582,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "tabs"
   | "views"
   | "footer"
+  | "emptyStates"
 > {
   enableTableExport: boolean;
   /** Whether the controller declares `@Searchable` fields to search in. */
@@ -564,6 +608,7 @@ export interface TableViewOptionsSerialized extends Omit<
   expandable?: TableViewExpandableSerialized;
   views?: TableViewViewsSerialized;
   footer?: TableViewFooterSerialized;
+  emptyStates?: TableViewEmptyStatesSerialized;
   /**
    * Key of the table view in its page, which prefixes its URL keys
    * (`?<tableId>.view=`). Set per request.
@@ -759,6 +804,11 @@ export interface TableViewOptions<
    * listed rows (`summary`) and a legend of a select column's items.
    */
   footer?: TableViewFooterOptions<T>;
+  /**
+   * What the empty body says when the table has no row yet, when its
+   * filters match nothing, or when the list failed.
+   */
+  emptyStates?: TableViewEmptyStates;
   /**
    * The key of the row id, default is _id
    */

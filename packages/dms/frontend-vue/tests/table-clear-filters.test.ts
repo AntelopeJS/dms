@@ -195,6 +195,9 @@ describe("table empty state", () => {
 
   beforeEach(() => {
     vi.stubGlobal("computed", computed);
+    vi.stubGlobal("useTranslation", () => ({
+      processI18n: (text: string) => text,
+    }));
     vi.stubGlobal("useI18n", () => ({
       t: (key: string) => key,
       te: () => false,

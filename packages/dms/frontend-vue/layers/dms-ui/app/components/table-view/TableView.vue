@@ -28,6 +28,7 @@ import type {
   TableViewDisplayConfig,
   TableViewViewsConfig,
   TableViewGroupedConfig,
+  TableViewEmptyStatesConfig,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
@@ -132,6 +133,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   pageSize?: number;
   /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
+  /** What the empty body says, per reason it is empty. */
+  emptyStates?: TableViewEmptyStatesConfig;
   /** Named states of the table (backend `views`). */
   views?: TableViewViewsConfig;
   /** Key of the table view in its page, prefixing its URL keys. */
@@ -1738,6 +1741,7 @@ onMounted(() => {
     :search-placeholder="props.searchPlaceholder"
     :quick-filters="resolvedQuickFilters"
     :footer="resolvedFooter"
+    :empty-states="props.emptyStates"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"

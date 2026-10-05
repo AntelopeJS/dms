@@ -20,6 +20,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
   Column,
   TableView,
@@ -84,7 +85,7 @@ const optionsOf = (options: PaymentOptions) =>
     ...options,
   }).serializeSync().options as TableViewOptionsSerialized;
 
-describe("[unit] interfaces/dms-base — table view footer", () => {
+describe("[unit] interfaces/dms-base — table view footer and empty states", () => {
   it("serves the summaries by id, keeping their rule on the server", () => {
     const options = optionsOf({
       footer: {
@@ -137,6 +138,30 @@ describe("[unit] interfaces/dms-base — table view footer", () => {
     ).to.throw(/unknown column "nope"/);
     expect(() => optionsOf({ footer: { legend: "note" } })).to.throw(
       /must name a SelectType column/,
+    );
+  });
+
+  it("serializes the empty states, a component included", () => {
+    const options = optionsOf({
+      emptyStates: {
+        firstRun: {
+          title: "$payments.empty.title",
+          actions: [{ label: "Import", to: "/payments/import" }],
+        },
+        filtered: { title: "No payment for “{search}”" },
+        error: {
+          title: "Unavailable",
+          component: CustomComponent("PaymentsOutage"),
+        },
+      },
+    });
+    expect(options.emptyStates?.firstRun).to.deep.equal({
+      title: "$payments.empty.title",
+      actions: [{ label: "Import", to: "/payments/import" }],
+      component: undefined,
+    });
+    expect(options.emptyStates?.error?.component?.componentName).to.equal(
+      "PaymentsOutage",
     );
   });
 

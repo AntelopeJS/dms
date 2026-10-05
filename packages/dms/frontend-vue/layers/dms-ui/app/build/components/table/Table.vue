@@ -29,6 +29,7 @@ import {
 import type {
   CustomButton,
   TableViewDisplayCapabilities,
+  TableViewEmptyStatesConfig,
 } from "../../../composables/table-view/types";
 import type {
   FormContainer,
@@ -194,6 +195,8 @@ export interface TableProps<T> {
   viewsPlacement?: TableViewsPlacement;
   /** Splits the rows into groups under header rows. */
   grouping?: TableRowGrouping<T>;
+  /** What the empty body says, per reason it is empty. */
+  emptyStates?: TableViewEmptyStatesConfig;
 
   data?: T[] | null;
   columns?: TableColumn<T>[];
@@ -1506,6 +1509,7 @@ defineShortcuts({
                     "
                     :load-error="loadError"
                     :archived="isShowingArchived"
+                    :empty-states="emptyStates"
                   />
                 </td>
               </tr>
