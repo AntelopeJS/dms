@@ -12,6 +12,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import TableRowSelection from "../layers/dms-ui/app/build/components/table/RowSelection.vue";
 import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "../layers/dms-ui/app/build/components/table/Pagination.vue";
 
@@ -132,6 +133,84 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   vi.unstubAllGlobals();
+});
+
+describe("selection bar", () => {
+  const rerun = {
+    label: "Re-run",
+    bulk: { allMatching: true as const },
+    target: { type: "api" as const, url: "/rerun", successMessage: "ok" },
+  };
+  const tag = {
+    label: "Tag",
+    bulk: true as const,
+    target: { type: "api" as const, url: "/tag", successMessage: "ok" },
+  };
+  const pageOf = (count: number) => ({
+    table: {
+      getRowModel: () => ({
+        rows: Array.from({ length: count }, (_, index) => ({
+          id: `r${index}`,
+        })),
+      }),
+      getIsAllPageRowsSelected: () => true,
+      toggleAllPageRowsSelected: vi.fn(),
+    },
+  });
+
+  it("offers every matching row once the page is selected, then only the actions reaching them", async () => {
+    const allMatching = ref(false);
+    const { container, emitted } = mount(
+      defineComponent({
+        setup: () => () =>
+          h(TableRowSelection, {
+            rowSelection: { r0: true, r1: true },
+            allMatching: allMatching.value,
+            "onUpdate:allMatching": (value: boolean) => {
+              allMatching.value = value;
+            },
+            rowActions: { delete: true },
+            bulkActions: [rerun, tag],
+            total: 40,
+            canExport: true,
+          }),
+      }),
+      {},
+      pageOf(2),
+    );
+    const labels = () =>
+      [...container.querySelectorAll("button")].map(
+        (button) =>
+          button.textContent?.trim() || button.getAttribute("aria-label"),
+      );
+    expect(labels()).toContain('dms.table.select_all_matching:{"count":"40"}');
+    expect(labels()).toEqual(
+      expect.arrayContaining(["Re-run", "Tag", "dms.button.delete"]),
+    );
+
+    const selectAll = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("select_all_matching"),
+    );
+    selectAll!.click();
+    await nextTick();
+    expect(allMatching.value).toBe(true);
+    expect(
+      container.querySelector(
+        '[data-keypath="dms.table.all_matching_selected"]',
+      ),
+    ).not.toBe(null);
+    expect(labels()).toContain("Re-run");
+    expect(labels()).not.toContain("Tag");
+    expect(labels()).not.toContain("dms.button.delete");
+
+    [...container.querySelectorAll("button")]
+      .find((button) => button.textContent === "Re-run")!
+      .click();
+    [...container.querySelectorAll("button")]
+      .find((button) => button.textContent === "dms.button.export_data")!
+      .click();
+    expect(emitted).toEqual([["bulkAction", rerun], ["exportAll"]]);
+  });
 });
 
 describe("empty body", () => {

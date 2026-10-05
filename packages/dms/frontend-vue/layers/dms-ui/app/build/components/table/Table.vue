@@ -195,6 +195,8 @@ export interface TableProps<T> {
   viewsPlacement?: TableViewsPlacement;
   /** Splits the rows into groups under header rows. */
   grouping?: TableRowGrouping<T>;
+  /** Custom actions the selection bar offers (backend `bulk`). */
+  bulkActions?: CustomRowAction[];
   /** What the empty body says, per reason it is empty. */
   emptyStates?: TableViewEmptyStatesConfig;
 
@@ -252,7 +254,8 @@ export interface TableFooterLegendItem {
 }
 
 export interface TableEmits<T> {
-  (e: "add" | "refresh"): void;
+  (e: "add" | "refresh" | "exportAll"): void;
+  (e: "bulkAction", action: CustomRowAction): void;
   (e: "details" | "edit", item: T): void;
   (e: "delete" | "archive" | "restore" | "export", itemIds: string[]): void;
   (e: "duplicate", itemId: string): void;
@@ -657,6 +660,10 @@ const showArchivedState = defineModel<boolean>("showArchived", {
 const densityState = defineModel<TableDensity>("density", {
   default: "default",
 });
+// "Select all N matching": a bulk action covers every row the filters match.
+const allMatchingState = defineModel<boolean>("allMatching", {
+  default: false,
+});
 
 const slots = useSlots();
 // A detail renderer turns the expander column on.
@@ -954,7 +961,8 @@ const hasBulkActions = computed(
     normalizeActionConfig(props.rowActions?.delete).isEnabled ||
     normalizeActionConfig(props.rowActions?.archive).isEnabled ||
     normalizeActionConfig(props.rowActions?.restore).isEnabled ||
-    !!props.canExport,
+    !!props.canExport ||
+    (props.bulkActions?.length ?? 0) > 0,
 );
 
 // Defined once (stable ref identity) so consumers that capture tableSharedData
@@ -1237,7 +1245,10 @@ defineShortcuts({
       <TableRowSelection
         v-if="hasBulkActions"
         v-model:row-selection="rowSelectionState"
+        v-model:all-matching="allMatchingState"
         :row-actions="rowActions"
+        :bulk-actions="bulkActions"
+        :total="rowCount"
         :can-export="canExport"
         :archived="isShowingArchived"
       />

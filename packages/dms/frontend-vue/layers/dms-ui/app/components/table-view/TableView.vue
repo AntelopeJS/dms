@@ -63,6 +63,9 @@ import {
   sortValueKind,
 } from "../../build/composables/table-view/utils/sortableColumns";
 import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
+import { isBulkAction } from "../../build/composables/actions/bulkSelection";
+import { readRecordId } from "../../build/composables/table-view/utils/recordLink";
+import type { CustomRowAction } from "../../types/row-action";
 import {
   type QuickFilterItem,
   quickFilterMode,
@@ -1066,6 +1069,7 @@ const {
   restoreRows: restoreRowsAction,
   handleCustomButton,
   handleCustomRowAction,
+  handleBulkCustomAction,
   runConfirmedBuiltIn,
 } = useTableRowActions<T>({
   api: $authFetch,
@@ -1081,7 +1085,27 @@ const {
   componentId: componentId!,
   pageId: pageId!,
   queryParamFilters,
+  rowNavigation: {
+    rows: () => (shownResults.value ?? []) as Data[],
+    rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  },
+  recordScope: urlScope,
 });
+
+// Custom actions offered on the selection bar. "Select all N matching"
+// hands them the table's filters instead of ids; a new query lists other
+// rows, so it ends with it.
+const bulkCustomActions = computed(() =>
+  (tableProps.value.rowActions?.custom ?? []).filter(isBulkAction),
+);
+const allMatching = ref(false);
+const runBulkAction = (action: CustomRowAction) =>
+  handleBulkCustomAction(
+    action,
+    allMatching.value
+      ? { matching: baseQuery.value, count: data.value?.total ?? 0 }
+      : { ids: selectedIds.value, count: selectedIds.value.length },
+  );
 
 // Archive mode: the toolbar carries an "Archived" toggle for callers allowed
 // to see archived rows.
@@ -1387,6 +1411,33 @@ const handleRowEdit = async (item: T) => {
 };
 
 const EMPTY_ITEMS: T[] = [];
+
+watch(
+  baseQuery,
+  () => {
+    allMatching.value = false;
+  },
+  { deep: true },
+);
+watch(rowSelect, (selection) => {
+  if (Object.keys(selection).length === 0) allMatching.value = false;
+});
+
+// A deep-linked action reopens on the row the URL names, listed or not.
+const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
+  (action) => action.deepLink,
+);
+const openRecordFromUrl = async () => {
+  const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
+  if (!deepLinkAction || !id) return;
+  const listed = shownResults.value?.find((row) => getRowId(row) === id);
+  const row =
+    listed ??
+    (await $authFetch<T>(`${location}/get`, { query: { id } }).catch(
+      () => undefined,
+    ));
+  if (row) handleCustomRowAction(deepLinkAction, row as Data);
+};
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 
@@ -1703,6 +1754,7 @@ const checkUrlParameter = () => {
 
 onMounted(() => {
   checkUrlParameter();
+  void openRecordFromUrl();
   void loadRelationQuickFilters();
   void refreshLinkTabCounts();
   // The registry is client-only; once hydrated, degrade to the table display if
@@ -1764,6 +1816,8 @@ onMounted(() => {
     :can-export="enableTableExport"
     :on-custom-button="handleCustomButton"
     :on-custom-row-action="handleCustomRowAction"
+    :bulk-actions="bulkCustomActions"
+    v-model:all-matching="allMatching"
     :presence-by-row="presenceByRowFiltered"
     @add="handleRowAdd"
     @refresh="refreshAll"
@@ -1772,6 +1826,8 @@ onMounted(() => {
     @archive="(e) => archiveRows(e)"
     @restore="(e) => restoreRows(e)"
     @export="handleExportSelection"
+    @export-all="handleExportTable"
+    @bulk-action="runBulkAction"
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >

@@ -1,4 +1,9 @@
-import { Controller } from "@antelopejs/interface-api";
+import {
+  Context,
+  Controller,
+  Post,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -17,6 +22,8 @@ import {
   RegisterTable,
   Table,
 } from "@antelopejs/interface-database-decorators";
+import { AuthUser } from "@antelopejs/interface-dms/auth";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import {
   RegisterPage,
@@ -26,12 +33,13 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import {
   Column,
+  resolveBulkRowIds,
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 
 // Invoices behind the table view capabilities the server takes part in:
-// footer summaries and filter tokens.
+// footer summaries, filter tokens and a bulk route finding its rows.
 
 const TABLE = "capability-invoices";
 
@@ -98,6 +106,18 @@ export class CapabilityInvoiceController extends DataController(
   @Access(AccessMode.ReadWrite)
   declare ownerId: string;
 
+  /** Marks the selected invoices paid, or every one the filters match. */
+  @Post("mark-paid")
+  async markPaid(
+    @Context() ctx: RequestContext,
+    @AuthUser() user: User,
+  ): Promise<{ ids: string[] }> {
+    const ids = await resolveBulkRowIds(this, ctx, user);
+    await Promise.all(
+      ids.map((id) => this.model.update(id, { status: "paid" })),
+    );
+    return { ids };
+  }
 }
 
 @RegisterPage()

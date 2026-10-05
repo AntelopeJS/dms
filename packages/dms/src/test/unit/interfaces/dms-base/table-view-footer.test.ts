@@ -165,4 +165,29 @@ describe("[unit] interfaces/dms-base — table view footer and empty states", ()
     );
   });
 
+  it("serializes a custom action's bulk and deep link options", () => {
+    const options = optionsOf({
+      rowActions: {
+        ...READ_ONLY,
+        custom: [
+          {
+            label: "Refund",
+            bulk: { allMatching: true },
+            target: { type: "api", url: "/refund", successMessage: "Done" },
+          },
+          {
+            label: "Details",
+            deepLink: true,
+            target: {
+              type: "drawer",
+              component: CustomComponent("PaymentDrawer"),
+            },
+          },
+        ],
+      },
+    });
+    const [refund, details] = options.rowActions!.custom!;
+    expect(refund?.bulk).to.deep.equal({ allMatching: true });
+    expect(details?.deepLink).to.equal(true);
+  });
 });

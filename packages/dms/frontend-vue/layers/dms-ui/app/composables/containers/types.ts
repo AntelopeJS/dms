@@ -26,6 +26,11 @@ export interface ContainerOptions {
   description?: string;
   component: Component;
   componentOptions?: Record<string, unknown>;
+  /**
+   * Mounts the body component anew when it changes: a drawer stepping to
+   * another row gives the component a fresh start on it.
+   */
+  componentKey?: string;
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
   containerId?: string;
@@ -48,9 +53,20 @@ export interface ModalOptions extends ContainerOptions {
 /**
  * Handle returned when a container is opened. `result` settles with the value
  * the body component emits on `success` (or the value passed to `close`) once
- * the container is dismissed; `close` dismisses it programmatically.
+ * the container is dismissed; `close` dismisses it programmatically, `patch`
+ * changes it in place.
  */
 export interface ContainerInstance<Result = unknown> {
   result: Promise<Result>;
   close: (result?: Result) => void;
+  /** Updates the open container: its texts, or its body's options and key. */
+  patch: (options: ContainerPatch) => void;
 }
+
+/** What an open container can change in place. */
+export type ContainerPatch = Partial<
+  Pick<
+    ContainerOptions,
+    "title" | "description" | "componentOptions" | "componentKey"
+  >
+>;

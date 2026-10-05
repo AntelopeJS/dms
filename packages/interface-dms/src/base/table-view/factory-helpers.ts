@@ -136,6 +136,8 @@ function serializeCustomRowAction<T extends Record<string, unknown>>(
     color: action.color,
     variant: action.variant,
     showLabel: action.showLabel,
+    bulk: action.bulk,
+    deepLink: action.deepLink,
   };
   if (action.confirm) served.confirm = serializeActionConfirm(action.confirm);
   return served;

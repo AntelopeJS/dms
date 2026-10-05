@@ -19,6 +19,8 @@ import {
 } from "#dms-core/app/types/confirm-dialog";
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import { useActionTargets } from "../actions/useActionTargets";
+import type { RowNavigationSource } from "../actions/rowNavigation";
+import type { TableUrlScope } from "./utils/views";
 import { TableViewEvents } from "../../../composables/table-view/types";
 import {
   bulkActionConfirm,
@@ -69,6 +71,10 @@ interface TableRowActionsConfig {
   componentId: string;
   pageId: string;
   queryParamFilters?: QueryParamFilters;
+  /** The rows a row's drawer or modal steps through (J / K). */
+  rowNavigation?: RowNavigationSource;
+  /** Where a `deepLink` action writes its open row in the URL. */
+  recordScope?: TableUrlScope;
 }
 
 interface BulkActionConfig {
@@ -764,13 +770,16 @@ export const useTableRowActions = <T extends Data>(
     await proceed();
   };
 
-  const { handleCustomButton, handleCustomRowAction } = useActionTargets({
-    api: config.api,
-    pageId: config.pageId,
-    componentId: config.componentId,
-    refreshCallback: config.refreshCallback,
-    handleApiError,
-  });
+  const { handleCustomButton, handleCustomRowAction, handleBulkCustomAction } =
+    useActionTargets({
+      api: config.api,
+      pageId: config.pageId,
+      componentId: config.componentId,
+      refreshCallback: config.refreshCallback,
+      handleApiError,
+      rowNavigation: config.rowNavigation,
+      recordScope: config.recordScope,
+    });
 
   return {
     createFormContainer,
@@ -784,6 +793,7 @@ export const useTableRowActions = <T extends Data>(
     restoreRows,
     handleCustomButton,
     handleCustomRowAction,
+    handleBulkCustomAction,
     handleApiError,
     runConfirmedBuiltIn,
   };

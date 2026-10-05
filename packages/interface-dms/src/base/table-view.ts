@@ -29,8 +29,11 @@
 export { authorizeAction, GATE_BYPASSABLE_ACTIONS } from "./table-view/auth";
 export {
   archiveRows,
+  BULK_ALL_MATCHING_KEY,
   countWithSearch,
   type FooterSummaryValues,
+  MAX_BULK_MATCHING_ROWS,
+  resolveBulkRowIds,
   summarizeWithSearch,
   downloadExport,
   fetchRowForGuard,
@@ -154,6 +157,8 @@ export type {
 } from "./types/guards";
 export type {
   BulkRowActionConfig,
+  CustomRowActionBulk,
+  CustomRowActionBulkOptions,
   RowActionConfig,
   RowActionConfigSerialized,
   RowActionRule,

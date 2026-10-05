@@ -5,7 +5,7 @@ import { resetDatabase } from "../helpers/db";
 
 // The table view capabilities the server takes part in, over the test host's
 // invoices (src/test/attachment-host/capabilities.ts): footer summaries,
-// and filter tokens resolved per caller.
+// filter tokens resolved per caller, and a bulk route finding its rows.
 
 const LOCATION = "/api/capabilities/invoices";
 const SLUG = "/capability-invoices";
@@ -119,4 +119,19 @@ describe("[integration] table view capabilities", () => {
     expect(otherCounts.data).to.deep.equal({ mine: 0 });
   });
 
+  it("hands a bulk route the selected ids, or every row the filters match", async () => {
+    const open = await list(client, "&filter_status=is:open");
+    const [first] = open;
+    const selected = await client.post(
+      `${LOCATION}/mark-paid?ids=${first!._id}`,
+    );
+    expect(selected.data.ids).to.deep.equal([first!._id]);
+
+    const matching = await client.post(
+      `${LOCATION}/mark-paid?allMatching=true&filter_status=is:open&search=INV`,
+    );
+    expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
+    expect(matching.data.ids).to.have.length(2);
+    expect(await list(client, "&filter_status=is:open")).to.deep.equal([]);
+  });
 });

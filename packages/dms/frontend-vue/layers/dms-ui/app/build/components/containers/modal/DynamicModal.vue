@@ -14,6 +14,8 @@ interface DynamicModalProps {
   containerId: string;
   component: Component;
   componentOptions?: Record<string, unknown>;
+  /** Mounts the body component anew when it changes. */
+  componentKey?: string;
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
   icon?: string;
@@ -191,6 +193,7 @@ function onContentResolve() {
       <Suspense @pending="onContentPending" @resolve="onContentResolve">
         <component
           :is="component"
+          :key="componentKey"
           v-bind="componentOptions"
           :container-id="containerId"
           @success="handleSuccess"

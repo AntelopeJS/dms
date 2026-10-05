@@ -54,6 +54,24 @@ export const summarizeWithSearch = InterfaceFunction<
   ) => Promise<FooterSummaryValues>
 >();
 
+/**
+ * The ids of the rows a bulk custom action runs on, from inside its route on
+ * the table's data controller (`this`): the `ids` the selection sent, or —
+ * after "Select all N matching" (`allMatching=true`) — every row the table's
+ * filters, search and archive view match, read with the caller's `list`
+ * permission. The matching rows are capped (see `MAX_BULK_MATCHING_ROWS`).
+ */
+export const resolveBulkRowIds =
+  InterfaceFunction<
+    (thisObj: unknown, ctx: RequestContext, user: User) => Promise<string[]>
+  >();
+
+/** The most rows "Select all N matching" hands a bulk action at once. */
+export const MAX_BULK_MATCHING_ROWS = 10_000;
+
+/** Query flag of a bulk request covering every matching row. */
+export const BULK_ALL_MATCHING_KEY = "allMatching";
+
 // @internal
 export const startExport = InterfaceFunction<
   // A published contract: the runtime calls this positionally and every

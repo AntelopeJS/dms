@@ -4,6 +4,8 @@ import type { RowSelectionState } from "@tanstack/vue-table";
 import type { TableRowActionOptions, Data } from "./Table.vue";
 import { useTableContext } from "../../composables/table/useTableContext";
 import { selectedRowIds } from "../../composables/table-view/utils/bulkActions";
+import { isAllMatchingAction } from "../../composables/actions/bulkSelection";
+import type { CustomRowAction } from "../../../types/row-action";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
@@ -20,6 +22,7 @@ const theme = tv({
     actions:
       "ms-auto flex flex-wrap items-center gap-1.5 max-sm:order-last max-sm:empty:hidden max-sm:ms-0 max-sm:w-full",
     clear: "text-muted hover:text-highlighted max-sm:ms-auto sm:-ms-1",
+    selectAll: "font-medium text-primary hover:underline",
   },
   variants: {
     archived: {
@@ -33,6 +36,10 @@ const theme = tv({
 
 interface TableRowSelectionProps {
   rowActions?: TableRowActionOptions;
+  /** Custom actions offered on the bar (backend `bulk`). */
+  bulkActions?: CustomRowAction[];
+  /** Rows the table's filters match, every page included. */
+  total?: number;
   canExport?: boolean;
   /** The table lists archived rows: restore replaces archive and export. */
   archived?: boolean;
@@ -44,11 +51,14 @@ const appConfig = useDmsAppConfig() as DmsAppConfig & {
   ui: { tableRowSelection: Partial<typeof theme> };
 };
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const { processI18n } = useTranslation();
 
 const rowSelectionState = defineModel<RowSelectionState>("rowSelection", {
   default: (): RowSelectionState => ({}),
 });
+// Every row the filters match is selected, not only the ones ticked.
+const allMatching = defineModel<boolean>("allMatching", { default: false });
 
 const tableSharedData = useTableContext<Data>();
 
@@ -63,6 +73,7 @@ const isWholePageSelected = computed(
 );
 
 const clearSelection = () => {
+  allMatching.value = false;
   rowSelectionState.value = {};
 };
 
@@ -103,6 +114,37 @@ const canRestore = computed(
 const canExportSelection = computed(() => !props.archived && props.canExport);
 const canDelete = computed(() => isActionEnabled(props.rowActions?.delete));
 
+const matchingTotal = computed(() => props.total ?? 0);
+// Only actions able to find the rows themselves (and the export, which
+// runs on the whole query) reach the rows of other pages.
+const allMatchingActions = computed(() =>
+  (props.bulkActions ?? []).filter(isAllMatchingAction),
+);
+const canSelectAllMatching = computed(
+  () =>
+    !allMatching.value &&
+    isWholePageSelected.value &&
+    matchingTotal.value > selectedCount.value &&
+    (allMatchingActions.value.length > 0 || canExportSelection.value),
+);
+const shownBulkActions = computed(() =>
+  allMatching.value ? allMatchingActions.value : (props.bulkActions ?? []),
+);
+const runBulkAction = (action: CustomRowAction) =>
+  tableSharedData?.emits("bulkAction", action);
+const exportShown = () => {
+  if (!allMatching.value) {
+    emitForSelection("export");
+    return;
+  }
+  tableSharedData?.emits("exportAll");
+  clearSelection();
+};
+
+const formattedTotal = computed(() =>
+  new Intl.NumberFormat(locale.value).format(matchingTotal.value),
+);
+
 const uiTableRowSelectionVariant = tv({
   extend: tv(theme),
   ...(appConfig.ui?.tableRowSelection || {}),
@@ -121,6 +163,20 @@ const uiTableRowSelection = computed(() =>
         @update:model-value="togglePageSelection"
       />
       <i18n-t
+        v-if="allMatching"
+        keypath="dms.table.all_matching_selected"
+        :plural="matchingTotal"
+        scope="global"
+        tag="span"
+      >
+        <template #count>
+          <span :class="uiTableRowSelection.countNumber()">
+            {{ formattedTotal }}
+          </span>
+        </template>
+      </i18n-t>
+      <i18n-t
+        v-else
         :keypath="
           isSelectionWithinPage
             ? 'dms.table.row_selection_count'
@@ -138,6 +194,14 @@ const uiTableRowSelection = computed(() =>
         <template #total>{{ pageRowCount }}</template>
       </i18n-t>
     </span>
+    <button
+      v-if="canSelectAllMatching"
+      type="button"
+      :class="uiTableRowSelection.selectAll()"
+      @click="allMatching = true"
+    >
+      {{ t("dms.table.select_all_matching", { count: formattedTotal }) }}
+    </button>
 
     <div :class="uiTableRowSelection.actions()">
       <UButton
@@ -147,10 +211,20 @@ const uiTableRowSelection = computed(() =>
         color="neutral"
         variant="outline"
         size="sm"
-        @click="emitForSelection('export')"
+        @click="exportShown"
       />
       <UButton
-        v-if="canArchive"
+        v-for="action in shownBulkActions"
+        :key="action.label"
+        :label="processI18n(action.label)"
+        :icon="action.icon"
+        :color="action.color ?? 'neutral'"
+        variant="outline"
+        size="sm"
+        @click="runBulkAction(action)"
+      />
+      <UButton
+        v-if="canArchive && !allMatching"
         :label="t('dms.button.archive')"
         icon="i-ph-archive"
         color="neutral"
@@ -159,7 +233,7 @@ const uiTableRowSelection = computed(() =>
         @click="emitForSelection('archive')"
       />
       <UButton
-        v-if="canRestore"
+        v-if="canRestore && !allMatching"
         :label="t('dms.button.restore')"
         icon="i-ph-arrow-counter-clockwise"
         color="neutral"
@@ -168,7 +242,7 @@ const uiTableRowSelection = computed(() =>
         @click="emitForSelection('restore')"
       />
       <UButton
-        v-if="canDelete"
+        v-if="canDelete && !allMatching"
         :label="
           archived ? t('dms.table.delete_permanently') : t('dms.button.delete')
         "

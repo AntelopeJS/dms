@@ -187,7 +187,9 @@
         "today": "Today",
         "yesterday": "Yesterday",
         "week_of": "Week of {date}"
-      }
+      },
+      "all_matching_selected": "All {count} row selected | All {count} rows selected",
+      "select_all_matching": "Select all {count} matching"
     },
     "table_form": {
       "edit_title": "Edit entry",

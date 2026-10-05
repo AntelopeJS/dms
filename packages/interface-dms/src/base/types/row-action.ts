@@ -103,6 +103,22 @@ export interface BulkRowActionConfig<
   successMessage?: string;
 }
 
+/** How a custom row action runs on several rows at once. */
+export interface CustomRowActionBulkOptions {
+  /**
+   * Also offered once the user picks "Select all N matching": the target
+   * then receives the table's current filters and search instead of ids,
+   * and the route finds the rows itself (`resolveBulkRowIds`).
+   */
+  allMatching?: true;
+}
+
+/**
+ * A custom row action offered on the selection bar: `true` for the selected
+ * rows, `{ allMatching: true }` for every row the table's filters match too.
+ */
+export type CustomRowActionBulk = true | CustomRowActionBulkOptions;
+
 export interface CustomRowAction<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -135,6 +151,21 @@ export interface CustomRowAction<
   variant?: ButtonVariant;
   /** An inline (`isVisible`) button shows its label next to its icon. */
   showLabel?: boolean;
+  /**
+   * Offers the action on the selection bar, for the selected rows: an `api`
+   * or `exportJob` target receives their `ids` as a repeated query parameter
+   * (`?ids=a&ids=b`), a page or external URL too, a drawer or modal
+   * component a `selection` prop. With `{ allMatching: true }`, "Select all
+   * N matching" sends `allMatching=true` and the table's filters and search
+   * instead. A fixed confirmation receives `{ count }`.
+   */
+  bulk?: CustomRowActionBulk;
+  /**
+   * The drawer or modal the action opens is reflected in the URL
+   * (`?record=<id>`, `?<tableId>.record=<id>` on a page with several table
+   * views): a link or a reload opens it again on that row.
+   */
+  deepLink?: boolean;
 }
 
 export interface CustomRowActionSerialized {
@@ -153,4 +184,6 @@ export interface CustomRowActionSerialized {
   color?: ButtonColor;
   variant?: ButtonVariant;
   showLabel?: boolean;
+  bulk?: CustomRowActionBulk;
+  deepLink?: boolean;
 }

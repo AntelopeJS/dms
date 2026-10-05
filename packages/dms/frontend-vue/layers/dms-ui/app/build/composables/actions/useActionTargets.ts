@@ -1,5 +1,10 @@
 import { useClipboard } from "@vueuse/core";
-import type { ActionConfirm } from "#dms-core/app/types/confirm-dialog";
+import {
+  type ActionConfirm,
+  isConfirmFrom,
+} from "#dms-core/app/types/confirm-dialog";
+import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { Component } from "vue";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../../../types/row-action";
@@ -8,7 +13,26 @@ import type {
   ConfirmValues,
 } from "../../../composables/confirm/types";
 import { resolveResponseToast } from "../../../utils/responseWarning";
+import type { ContainerInstance } from "../../../composables/containers/types";
+import {
+  type BulkSelection,
+  bulkSelectionQuery,
+  targetWithSelection,
+  withQuery,
+} from "./bulkSelection";
+import {
+  listenRowSteps,
+  type RowNavigation,
+  type RowNavigationSource,
+  rowNavigation,
+} from "./rowNavigation";
+import { writeRecordId } from "../table-view/utils/recordLink";
+import type { TableUrlScope } from "../table-view/utils/views";
 import { useActionConfirm } from "../confirm/useActionConfirm";
+import {
+  type ConfirmTranslate,
+  resolveConfirmText,
+} from "../confirm/confirmDialogTexts";
 import {
   dispatchQuickActionTarget,
   findServedQuickAction,
@@ -27,6 +51,27 @@ export interface ActionTargetsConfig {
   refreshCallback?: () => void;
   /** Toasts a failure no dialog shows. */
   handleApiError: (error: unknown, title?: string) => void;
+  /** The rows a drawer or modal opened on a row steps through (J / K). */
+  rowNavigation?: RowNavigationSource;
+  /** Where a `deepLink` action writes the row it has open in the URL. */
+  recordScope?: TableUrlScope;
+}
+
+/** How a target runs beyond its row. */
+interface TargetRunExtras {
+  /** The rows of a bulk action, handed to a drawer or modal. */
+  selection?: BulkSelection;
+  /** The open row is reflected in the URL. */
+  deepLink?: boolean;
+}
+
+/** A drawer or modal to open, and on what. */
+interface ComponentTargetRun extends TargetRunExtras {
+  target: ActionTarget & { type: "modal" | "drawer" };
+  title: string;
+  description: string;
+  containerId: string;
+  rowData?: Data;
 }
 
 /**
@@ -37,6 +82,7 @@ export interface ActionTargetsConfig {
 export function useActionTargets(config: ActionTargetsConfig) {
   const toast = useToast();
   const { processI18n, processApiMessage } = useTranslation();
+  const { t } = useI18n();
   const { open: openModal } = useModal();
   const { open: openDrawer } = useDrawer();
   const { runJob: runExportJob } = useExportJob();
@@ -68,7 +114,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
         response,
         {
           color: Color.success,
-          title: processI18n(target.successMessage, rowData),
+          // Pluralized on a bulk action's `{ count }`, like its dialog.
+          title: resolveConfirmText(
+            target.successMessage,
+            rowData ?? {},
+            t as ConfirmTranslate,
+          ),
         },
         { processI18n, processApiMessage },
       ),
@@ -139,65 +190,94 @@ export function useActionTargets(config: ActionTargetsConfig) {
     });
   };
 
-  const handleComponentTarget = (
-    target: ActionTarget & { type: "modal" | "drawer" },
-    title: string,
-    description: string,
-    containerId: string,
-    rowData?: Data,
-  ) => {
-    const componentName = target.component?.componentName;
-    if (!componentName) {
-      return;
-    }
-    const vueComponent = resolveDmsComponent(componentName) || componentName;
-
-    const componentOptions = {
-      ...target.component?.options,
-      pageId: config.pageId,
-      componentId: config.componentId,
-      containerId,
-      rowData,
+  const openContainer = (
+    run: ComponentTargetRun,
+    component: Component,
+    componentOptions: Record<string, unknown>,
+  ): ContainerInstance => {
+    const options = {
+      title: run.title,
+      description: run.description,
+      containerId: run.containerId,
+      component,
+      componentOptions,
     };
+    return run.target.type === "modal"
+      ? openModal({ ...options, size: run.target.size })
+      : openDrawer(options);
+  };
 
-    if (target.type === "modal") {
-      const modal = openModal({
-        title,
-        description,
-        size: (target as ActionTarget & { type: "modal" }).size,
-        containerId,
-        component: vueComponent as Component,
-        componentOptions: {
-          ...componentOptions,
-          onSuccessCallback: () => {
-            modal.close();
-            config.refreshCallback?.();
-          },
-        },
-      });
-      return;
-    }
-
-    const drawer = openDrawer({
-      title,
-      description,
-      containerId,
-      component: vueComponent as Component,
-      componentOptions: {
-        ...componentOptions,
+  // A container opened on a listed row steps through the rows shown (its
+  // `navigation` prop, J and K), mounting its component anew on each; a
+  // deep-linked one keeps the row in the URL while it is open.
+  const handleComponentTarget = (run: ComponentTargetRun) => {
+    const componentName = run.target.component?.componentName;
+    if (!componentName) return;
+    const component = (resolveDmsComponent(componentName) ||
+      componentName) as Component;
+    const source = config.rowNavigation;
+    let instance: ContainerInstance | undefined;
+    let navigation: RowNavigation | undefined;
+    const optionsFor = (row?: Data) => {
+      navigation =
+        row && source ? rowNavigation(source, row, showRow) : undefined;
+      return {
+        ...run.target.component?.options,
+        pageId: config.pageId,
+        componentId: config.componentId,
+        containerId: run.containerId,
+        rowData: row,
+        navigation,
+        selection: run.selection,
         onSuccessCallback: () => {
-          drawer.close();
+          instance?.close();
           config.refreshCallback?.();
         },
-      },
-    });
+      };
+    };
+    const recordRow = (row?: Data) => {
+      if (!run.deepLink || !config.recordScope || !source) return;
+      writeRecordId(
+        config.recordScope,
+        row ? String(get(row, source.rowIdKey)) : undefined,
+      );
+    };
+    function showRow(row: Data) {
+      instance?.patch({
+        componentOptions: optionsFor(row),
+        componentKey: String(get(row, source!.rowIdKey)),
+      });
+      recordRow(row);
+    }
+    instance = openContainer(run, component, optionsFor(run.rowData));
+    recordRow(run.rowData);
+    const stopSteps = navigation ? listenRowSteps(() => navigation) : undefined;
+    const settle = () => {
+      stopSteps?.();
+      recordRow(undefined);
+    };
+    instance.result.then(settle, settle);
   };
 
   type TargetHandler = (
     target: ActionTarget,
     label: string,
     rowData?: Data,
+    extras?: TargetRunExtras,
   ) => Promise<void> | void;
+
+  // A drawer or modal: a bulk action hands it the selection, not a row.
+  const componentHandler: TargetHandler = (target, label, rowData, extras) =>
+    handleComponentTarget({
+      target: target as ActionTarget & { type: "modal" | "drawer" },
+      title: processI18n((target as { title?: string }).title || label),
+      description: processI18n(
+        (target as { description?: string }).description || "",
+      ),
+      containerId: `${config.pageId}-${config.componentId}-${target.type}`,
+      rowData: extras?.selection ? undefined : rowData,
+      ...extras,
+    });
 
   const targetHandlers: Record<string, TargetHandler> = {
     page: (target, _label, rowData) => {
@@ -233,20 +313,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         : jobTarget.url;
       await handleExportJobTarget(jobTarget, url, rowData);
     },
-    modal: (target, label, rowData) => {
-      const title = processI18n((target as { title?: string }).title || label);
-      const description = processI18n(
-        (target as { description?: string }).description || "",
-      );
-      const containerId = `${config.pageId}-${config.componentId}-${target.type}`;
-      handleComponentTarget(
-        target as ActionTarget & { type: "modal" },
-        title,
-        description,
-        containerId,
-        rowData,
-      );
-    },
+    modal: componentHandler,
     // Runs the quick action as the command palette does; one the user is not
     // served runs nothing.
     quickAction: (target) => {
@@ -257,20 +324,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       );
       if (quickAction) dispatchQuickActionTarget(quickAction.target);
     },
-    drawer: (target, label, rowData) => {
-      const title = processI18n((target as { title?: string }).title || label);
-      const description = processI18n(
-        (target as { description?: string }).description || "",
-      );
-      const containerId = `${config.pageId}-${config.componentId}-${target.type}`;
-      handleComponentTarget(
-        target as ActionTarget & { type: "drawer" },
-        title,
-        description,
-        containerId,
-        rowData,
-      );
-    },
+    drawer: componentHandler,
   };
 
   const targetUrl = (url: string, rowData?: Data): string =>
@@ -306,11 +360,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
     label: string,
     rowData?: Data,
     declared?: ActionConfirm,
+    extras?: TargetRunExtras,
   ) => {
     const handler = targetHandlers[target.type];
     if (!handler) return;
     if (!declared) {
-      await handler(target, label, rowData);
+      await handler(target, label, rowData, extras);
       return;
     }
     const runInside = confirmedRuns[target.type]?.(target, rowData);
@@ -318,7 +373,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
       row: rowData,
       run: runInside,
     });
-    if (isConfirmed && !runInside) await handler(target, label, rowData);
+    if (isConfirmed && !runInside) {
+      await handler(target, label, rowData, extras);
+    }
   };
 
   // Reached for a disabled button only through a quick action, which presses
@@ -348,8 +405,32 @@ export function useActionTargets(config: ActionTargetsConfig) {
       action.label,
       rowData,
       action.confirm,
+      { deepLink: action.deepLink },
     );
   };
 
-  return { handleCustomButton, handleCustomRowAction };
+  /**
+   * Runs a bulk custom action on the selection: a URL target carries the
+   * ids (or the filters of "Select all N matching") in its query, a drawer
+   * or modal receives `selection`, and the texts receive `{ count }`.
+   */
+  const handleBulkCustomAction = (
+    action: CustomRowAction,
+    selection: BulkSelection,
+  ) => {
+    const query = bulkSelectionQuery(selection);
+    const declared =
+      action.confirm && isConfirmFrom(action.confirm)
+        ? { from: withQuery(action.confirm.from, query) }
+        : action.confirm;
+    void handleActionTarget(
+      targetWithSelection(action.target, query),
+      action.label,
+      { count: selection.count },
+      declared,
+      { selection },
+    );
+  };
+
+  return { handleCustomButton, handleCustomRowAction, handleBulkCustomAction };
 }

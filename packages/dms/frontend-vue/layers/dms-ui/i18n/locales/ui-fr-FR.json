@@ -187,7 +187,9 @@
         "today": "Aujourd'hui",
         "yesterday": "Hier",
         "week_of": "Semaine du {date}"
-      }
+      },
+      "all_matching_selected": "La {count} ligne sélectionnée | Les {count} lignes sélectionnées",
+      "select_all_matching": "Sélectionner les {count} correspondantes"
     },
     "table_form": {
       "edit_title": "Modifier l’entrée",
