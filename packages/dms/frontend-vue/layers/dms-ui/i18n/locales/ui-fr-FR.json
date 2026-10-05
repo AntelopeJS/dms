@@ -662,7 +662,6 @@
     "activity_feed": {
       "today": "Aujourd'hui",
       "yesterday": "Hier",
-      "view_all": "Tout voir",
       "empty_title": "Aucune activité pour l'instant",
       "error_title": "Impossible de charger l'activité",
       "error_description": "Vérifiez votre connexion, puis réessayez.",

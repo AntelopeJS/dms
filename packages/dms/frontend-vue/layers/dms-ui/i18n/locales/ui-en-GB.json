@@ -661,7 +661,6 @@
     "activity_feed": {
       "today": "Today",
       "yesterday": "Yesterday",
-      "view_all": "View all",
       "empty_title": "No activity yet",
       "error_title": "Activity could not be loaded",
       "error_description": "Check your connection, then try again.",
