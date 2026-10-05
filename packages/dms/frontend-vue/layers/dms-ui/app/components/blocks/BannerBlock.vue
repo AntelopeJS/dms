@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import DmsBanner from "../banner/Banner.vue";
 import DmsBlockActions, { type BlockAction } from "./BlockActions.vue";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 type BannerTone = "info" | "success" | "warning" | "error" | "primary";
@@ -22,7 +23,7 @@ interface BannerBlockProps extends Partial<DefaultComponentProps> {
   dismissible?: boolean;
   /**
    * Remembers the dismissal under this key; change it to show the banner
-   * again. Defaults to the block's position on its page.
+   * again. Defaults to the block's id on its page.
    */
   dismissKey?: string;
 }
@@ -50,6 +51,8 @@ const TONE_ICONS: Record<BannerTone, string> = {
   error: "i-ph-warning-circle",
   primary: "i-ph-sparkle",
 };
+
+useWatch(props.watchActions || [], props.componentId);
 
 const { processI18n } = useTranslation();
 const dismissed = useDmsCookie<string[]>(DISMISSED_COOKIE, {
@@ -91,7 +94,7 @@ function dismiss(): void {
       props.description ? processI18n(props.description) : undefined
     "
     :icon="props.icon ?? TONE_ICONS[props.tone]"
-    :color="props.tone"
+    :tone="props.tone"
     :size="props.size"
     :dismissible="props.dismissible"
     @dismiss="dismiss"

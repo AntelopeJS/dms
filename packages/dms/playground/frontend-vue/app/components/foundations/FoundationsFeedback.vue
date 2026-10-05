@@ -8,12 +8,12 @@ import ShowcaseSection from "./ShowcaseSection.vue";
  * meters, rule lists and permission veils.
  */
 
-const BANNER_COLORS = [
-  { color: "warning", icon: "i-ph-warning", title: "Beta module" },
-  { color: "info", icon: "i-ph-info", title: "Maintenance tonight" },
-  { color: "primary", icon: "i-ph-sparkle", title: "New: saved views" },
-  { color: "success", icon: "i-ph-check-circle", title: "Import finished" },
-  { color: "error", icon: "i-ph-warning-octagon", title: "Sync failed" },
+const BANNER_TONES = [
+  { tone: "warning", icon: "i-ph-warning", title: "Beta module" },
+  { tone: "info", icon: "i-ph-info", title: "Maintenance tonight" },
+  { tone: "primary", icon: "i-ph-sparkle", title: "New: saved views" },
+  { tone: "success", icon: "i-ph-check-circle", title: "Import finished" },
+  { tone: "error", icon: "i-ph-warning-octagon", title: "Sync failed" },
 ] as const;
 const dismissed = ref(false);
 
@@ -93,17 +93,17 @@ const STATUS_METRICS = [
       description="Notice banner: a tinted wash over the card surface with a boxed icon, for module beta notices, maintenance and results."
     >
       <ShowcaseDemo
-        label="color='warning' · 'info' · 'primary' · 'success' · 'error'"
+        label="tone='warning' · 'info' · 'primary' · 'success' · 'error'"
         wide
       >
         <div class="grid gap-3">
           <DmsBanner
-            v-for="item in BANNER_COLORS"
-            :key="item.color"
-            :color="item.color"
+            v-for="item in BANNER_TONES"
+            :key="item.tone"
+            :tone="item.tone"
             :icon="item.icon"
             :title="item.title"
-            :description="`${attr('color', item.color)} · ${attr('size', 'md')} (default)`"
+            :description="`${attr('tone', item.tone)} · ${attr('size', 'md')} (default)`"
           />
         </div>
       </ShowcaseDemo>
@@ -111,14 +111,14 @@ const STATUS_METRICS = [
         <div class="grid gap-3">
           <DmsBanner
             size="sm"
-            color="info"
+            tone="info"
             icon="i-ph-info"
             title="Read-only."
             description="You are viewing an archived record."
           />
           <DmsBanner
             size="sm"
-            color="warning"
+            tone="warning"
             title="Trial ends in 3 days."
             description="Add a payment method to keep your data."
           />
@@ -127,7 +127,7 @@ const STATUS_METRICS = [
       <ShowcaseDemo label="#actions · dismissible (@dismiss)">
         <DmsBanner
           v-if="!dismissed"
-          color="primary"
+          tone="primary"
           icon="i-ph-sparkle"
           title="Saved views are here"
           description="Pin a filter set and share it with your team."
@@ -151,7 +151,7 @@ const STATUS_METRICS = [
       </ShowcaseDemo>
       <ShowcaseDemo label="#cli (inset command box with DmsCopyButton)" wide>
         <DmsBanner
-          color="warning"
+          tone="warning"
           title="This module is in beta"
           description="Install the CLI to follow the release notes."
         >
@@ -177,14 +177,14 @@ const STATUS_METRICS = [
       <ShowcaseDemo
         v-for="item in EMPTY_VARIANTS"
         :key="item.variant"
-        :label="`${attr('variant', item.variant)} · framed`"
+        :label="`${attr('variant', item.variant)} · hatched`"
       >
         <div class="dms-card overflow-hidden">
           <DmsEmptyState
             :variant="item.variant"
             :title="item.title"
             :description="item.description"
-            framed
+            hatched
             :actions="
               item.variant === 'no-data'
                 ? [{ label: 'New order', icon: 'i-ph-plus' }]

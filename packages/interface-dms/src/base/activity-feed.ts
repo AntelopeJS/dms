@@ -1,28 +1,23 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import type { BaseComponentProps, EnumOption } from "./types";
-import { HttpMethod } from "./types/http";
-
-/** Tones an activity entry's icon well takes. */
-export const ACTIVITY_TONES = [
-  "neutral",
-  "accent",
-  "secondary",
-  "success",
-  "warning",
-  "error",
-  "info",
-] as const;
-
-export type ActivityTone = (typeof ACTIVITY_TONES)[number];
+import {
+  blockActionsOption,
+  blockCardOption,
+  type BlockItemsSource,
+  blockItemsSourceOptions,
+  type BlockLinkAction,
+  toneEnum,
+} from "./display";
+import type { BaseComponentProps } from "./types";
+import { resolveItemToneAliases, type Tone, TONES } from "./types/tone";
 
 /** One entry of an activity feed. */
 export interface ActivityFeedItem {
   id?: string;
   /** Icon of the entry's well, e.g. `i-ph-check-circle`. */
   icon?: string;
-  tone?: ActivityTone;
+  tone?: Tone;
   /** Title (i18n key with `$` or literal). */
   title: string;
   /** Details under the title, joined by "·". */
@@ -37,42 +32,32 @@ export interface ActivityFeedItem {
   to?: string;
 }
 
-export interface ActivityFeedProps extends BaseComponentProps {
+/**
+ * The options `ActivityFeed` takes. Its `fetchUrl` answers `{ items }`, newest
+ * first, like every list block.
+ */
+export interface ActivityFeedProps
+  extends BaseComponentProps, BlockItemsSource {
   /** Eyebrow title of the card head. */
   title?: string;
   /** Entries shown when no data source is set, newest first. */
   items?: ActivityFeedItem[];
-  /** Endpoint answering `ActivityFeedItem[]` or `{ items }`, newest first. */
-  fetchUrl?: string;
-  fetchUrlMethod?: EnumOption<HttpMethod>;
   /**
    * Files the entries under day separators ("Today · Sep 29") with their time.
    * Off, each entry says how long ago it happened. Defaults to `true`.
    */
   groupByDay?: boolean;
-  /** Shows at most this many entries. */
+  /** Shows at most this many entries; `skeletonCount` never exceeds it. */
   maxItems?: number;
-  /**
-   * How many placeholder rows the feed draws while `fetchUrl` loads: the
-   * number of entries the route usually answers, so the card keeps its height
-   * when they land. Never more than `maxItems`.
-   *
-   * Optional. Defaults to `maxItems`, or 3.
-   */
-  skeletonCount?: number;
-  /** "View all" link in the card head. */
-  viewAllTo?: string;
-  viewAllLabel?: string;
-  /** Empty state text. */
-  emptyTitle?: string;
-  emptyDescription?: string;
+  /** Link buttons in the card head ("View all"). */
+  actions?: BlockLinkAction[];
   /** Mono titles and details (paths, queries, request logs). */
   mono?: boolean;
   /** Card frame with a head. Defaults to `true`. */
-  framed?: boolean;
+  card?: boolean;
 }
 
-const ACTIVITY_FEED_COMPONENT_NAME = "dms-activity-feed";
+const ACTIVITY_FEED_COMPONENT_NAME = "dms-activity-feed-block";
 const DEFAULT_ICON = "i-ph-pulse";
 
 /**
@@ -88,7 +73,7 @@ const DEFAULT_ICON = "i-ph-pulse";
  *   title: "Activity",
  *   fetchUrl: "/api/activity",
  *   maxItems: 8,
- *   viewAllTo: "/audit",
+ *   actions: [{ label: "View all", to: "/audit" }],
  * })
  * ```
  */
@@ -96,7 +81,10 @@ export function ActivityFeed(
   options?: ActivityFeedProps,
 ): ComponentBuilder<ActivityFeedProps> {
   return new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
-    .options({ ...options })
+    .options({
+      ...options,
+      items: resolveItemToneAliases(options?.items, "tone"),
+    })
     .meta({
       name: options?.title || "Activity feed",
       icon: DEFAULT_ICON,
@@ -106,7 +94,7 @@ export function ActivityFeed(
 const ActivityFeedItemSchema = z.object({
   id: z.string().optional(),
   icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
-  tone: ui(z.enum(ACTIVITY_TONES).optional(), {
+  tone: ui(toneEnum(TONES).optional(), {
     label: "Tone",
     widget: "select",
   }),
@@ -131,15 +119,6 @@ export const ActivityFeedSchema = z.object({
     group: "content",
     widget: "json",
   }),
-  fetchUrl: ui(
-    z.string().optional().describe("Endpoint answering the entries."),
-    { label: "Data source", group: "data", widget: "url", advanced: true },
-  ),
-  fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
-    label: "HTTP method",
-    group: "advanced",
-    widget: "select",
-  }),
   groupByDay: ui(
     z
       .boolean()
@@ -158,52 +137,14 @@ export const ActivityFeedSchema = z.object({
     widget: "number",
     min: 1,
   }),
-  skeletonCount: ui(
-    z
-      .number()
-      .int()
-      .min(1)
-      .optional()
-      .describe("Placeholder rows drawn while the data source loads."),
-    {
-      label: "Loading placeholders",
-      group: "data",
-      widget: "number",
-      min: 1,
-      advanced: true,
-    },
-  ),
-  viewAllTo: ui(z.string().optional(), {
-    label: "View all link",
-    group: "content",
-    widget: "url",
-  }),
-  viewAllLabel: ui(z.string().optional(), {
-    label: "View all label",
-    group: "content",
-    placeholder: "View all",
-  }),
-  emptyTitle: ui(z.string().optional(), {
-    label: "Empty title",
-    group: "content",
-    placeholder: "No activity yet",
-  }),
-  emptyDescription: ui(z.string().optional(), {
-    label: "Empty description",
-    group: "content",
-    widget: "textarea",
-  }),
+  actions: blockActionsOption("Link buttons in the card head."),
+  ...blockItemsSourceOptions(),
   mono: ui(z.boolean().optional(), {
     label: "Mono text",
     group: "appearance",
     widget: "switch",
   }),
-  framed: ui(z.boolean().optional(), {
-    label: "Card frame",
-    group: "appearance",
-    widget: "switch",
-    initial: true,
-  }),
+  card: blockCardOption(true),
 }) satisfies BlockOptionsFor<ActivityFeedProps>;
 
 RegisterBlockType({

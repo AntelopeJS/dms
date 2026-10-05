@@ -4,7 +4,7 @@ import DmsStatStrip, {
   type StatStripItem,
   type StatStripLayout,
 } from "../stat-strip/StatStrip.vue";
-import DmsBlockStatus from "./BlockStatus.vue";
+import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
 import { useBlockItems } from "../../composables/blocks/useBlockItems";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
@@ -19,8 +19,8 @@ interface StatStripBlockProps extends DefaultComponentProps {
   label?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
-  /** Title of the empty state. */
-  emptyLabel?: string;
+  /** Shown when there is nothing to list. */
+  empty?: BlockEmptyText;
   /**
    * Placeholder cells while the first fetch runs: the length `fetchUrl`
    * usually answers. Optional. Defaults to `columns`, or 4.
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<StatStripBlockProps>(), {
   label: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
-  emptyLabel: undefined,
+  empty: undefined,
   skeletonCount: undefined,
 });
 
@@ -74,7 +74,7 @@ const resolvedItems = computed<StatStripItem[]>(() =>
   <DmsBlockStatus
     v-else-if="!isPending && resolvedItems.length === 0"
     state="empty"
-    :label="props.emptyLabel ? processI18n(props.emptyLabel) : undefined"
+    :empty="props.empty"
   />
   <DmsStatStrip
     v-else

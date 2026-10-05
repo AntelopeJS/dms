@@ -26,7 +26,7 @@ export interface StatStripItem {
   /** Tone of the detail line (`neutral` = muted text). */
   detailTone?: DmsTone;
   /** Route, `#anchor` or URL the whole cell links to. */
-  href?: string;
+  to?: string;
 }
 
 interface StatStripProps {
@@ -111,7 +111,7 @@ const columnClass = computed(
 const showPlaceholders = computed(
   () => props.loading && props.items.length === 0,
 );
-const hasLinks = computed(() => props.items.some((item) => !!item.href));
+const hasLinks = computed(() => props.items.some((item) => !!item.to));
 
 function keyOf(item: StatStripItem, index: number): string {
   return item.id ?? String(index);
@@ -159,13 +159,13 @@ function detailClass(item: StatStripItem): string {
       </template>
       <template v-else>
         <component
-          :is="item.href ? DmsAutoLink : 'div'"
+          :is="item.to ? DmsAutoLink : 'div'"
           v-for="(item, index) in props.items"
           :key="keyOf(item, index)"
-          :to="item.href"
+          :to="item.to"
           :class="[
             JOINED_CELL,
-            item.href && 'hover:bg-elevated transition-colors',
+            item.to && 'hover:bg-elevated transition-colors',
           ]"
         >
           <USkeleton
@@ -223,11 +223,11 @@ function detailClass(item: StatStripItem): string {
       </template>
       <template v-else>
         <component
-          :is="item.href ? DmsAutoLink : 'div'"
+          :is="item.to ? DmsAutoLink : 'div'"
           v-for="(item, index) in props.items"
           :key="keyOf(item, index)"
-          :to="item.href"
-          :class="[CARD_CELL, item.href && 'dms-card--interactive']"
+          :to="item.to"
+          :class="[CARD_CELL, item.to && 'dms-card--interactive']"
         >
           <USkeleton
             v-if="props.loading && item.icon"

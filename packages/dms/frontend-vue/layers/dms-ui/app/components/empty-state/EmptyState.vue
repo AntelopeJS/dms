@@ -22,7 +22,7 @@ interface EmptyStateProps {
   /** Overrides the variant's well tone. */
   tone?: DmsTone;
   /** Hatched panel behind the content (table body, empty card) vs bare. */
-  framed?: boolean;
+  hatched?: boolean;
   /**
    * `sm` compact (table row, chart, top list), `md` v2 .c-empty (card body),
    * `lg` table empty state (44px well, more air).
@@ -44,7 +44,7 @@ const props = withDefaults(defineProps<EmptyStateProps>(), {
   variant: "no-data",
   icon: undefined,
   tone: undefined,
-  framed: false,
+  hatched: false,
   size: "md",
   actions: undefined,
 });
@@ -93,7 +93,7 @@ const theme = tv({
         actions: "mt-3",
       },
     },
-    framed: {
+    hatched: {
       true: {
         root: "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-text-highlighted)_5%,transparent)_0_1px,transparent_1px_10px)]",
       },
@@ -101,7 +101,7 @@ const theme = tv({
   },
 });
 
-const ui = computed(() => theme({ size: props.size, framed: props.framed }));
+const ui = computed(() => theme({ size: props.size, hatched: props.hatched }));
 const resolvedIcon = computed(() => props.icon ?? VARIANT_ICONS[props.variant]);
 const resolvedTone = computed<DmsTone>(
   () => props.tone ?? (props.variant === "error" ? "error" : "neutral"),

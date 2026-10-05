@@ -26,7 +26,7 @@ export interface KeyValueItem {
   value?: string | number | null;
   type?: KeyValueType;
   /** Route, `#anchor` or URL the value links to (any type). */
-  href?: string;
+  to?: string;
   /** Text color (text, mono, money, date) or pill tone (status). */
   tone?: DmsTone;
   /** Dim note after the value ("Authenticator app"). */
@@ -200,10 +200,10 @@ function keyOf(item: KeyValueItem, index: number): string {
           />
           <template v-else>
             <component
-              :is="item.href ? DmsAutoLink : 'span'"
-              :to="item.href"
+              :is="item.to ? DmsAutoLink : 'span'"
+              :to="item.to"
               class="min-w-0"
-              :class="item.href && item.type !== 'status' && 'hover:underline'"
+              :class="item.to && item.type !== 'status' && 'hover:underline'"
             >
               <DmsStatusPill
                 v-if="item.type === 'status'"

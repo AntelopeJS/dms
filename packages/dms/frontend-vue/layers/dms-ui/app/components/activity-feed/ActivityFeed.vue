@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, resolveComponent } from "vue";
 import DmsActivityItem from "../activity/ActivityItem.vue";
+import DmsBlockActions, { type BlockAction } from "../blocks/BlockActions.vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
-import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { useBlockItems } from "../../composables/blocks/useBlockItems";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import {
   type ActivityFeedDay,
@@ -12,15 +13,16 @@ import {
   groupActivityByDay,
 } from "./activityFeedDays";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockEmptyText } from "../blocks/BlockStatus.vue";
 
 // The renderer's props are optional: DmsActivityFeed is both the backend
-// `ActivityFeed` block and a template component.
+// `ActivityFeed` block (`dms-activity-feed-block`) and a template component.
 interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Eyebrow title of the card head ("Activity"). */
   title?: string;
   /** Entries shown when no data source is set. */
   items?: ActivityFeedItem[];
-  /** Endpoint answering `ActivityFeedItem[]` or `{ items }`, newest first. */
+  /** Endpoint answering `{ items }`, newest first. */
   fetchUrl?: string;
   fetchUrlMethod?: string;
   /**
@@ -36,16 +38,14 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
    * or 3.
    */
   skeletonCount?: number;
-  /** "View all" link in the card head. */
-  viewAllTo?: string;
-  viewAllLabel?: string;
+  /** Link buttons in the card head ("View all"). */
+  actions?: BlockAction[];
   /** Empty state text (i18n keys with `$` or literals). */
-  emptyTitle?: string;
-  emptyDescription?: string;
+  empty?: BlockEmptyText;
   /** Mono titles and meta (paths, queries, request logs). */
   mono?: boolean;
   /** Card frame with a head; off, the bare list. */
-  framed?: boolean;
+  card?: boolean;
 }
 
 const props = withDefaults(defineProps<ActivityFeedProps>(), {
@@ -56,12 +56,10 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   groupByDay: true,
   maxItems: undefined,
   skeletonCount: undefined,
-  viewAllTo: undefined,
-  viewAllLabel: undefined,
-  emptyTitle: undefined,
-  emptyDescription: undefined,
+  actions: () => [],
+  empty: undefined,
   mono: false,
-  framed: true,
+  card: true,
 });
 
 const SKELETON_ROWS = 3;
@@ -69,24 +67,25 @@ const SKELETON_ROWS = 3;
 const SKELETON_ROWS_PER_DAY = 3;
 const SKELETON_TITLE_WIDTHS = ["w-3/5", "w-1/2", "w-2/5"];
 
-type ActivityFeedResponse = ActivityFeedItem[] | { items?: ActivityFeedItem[] };
-
 const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
 
-const { data, isLoading, error, refresh } = useChartFetch<ActivityFeedResponse>(
-  {
-    fetchUrl: props.fetchUrl,
-    fetchUrlMethod: props.fetchUrlMethod,
-    staticData: () => props.items ?? null,
-  },
-);
-
-const entries = computed<ActivityFeedItem[]>(() => {
-  const payload = data.value;
-  const list = Array.isArray(payload) ? payload : (payload?.items ?? []);
-  return props.maxItems ? list.slice(0, props.maxItems) : list;
+const {
+  items: list,
+  isPending,
+  hasError,
+  refresh,
+} = useBlockItems<ActivityFeedItem>({
+  items: () => props.items,
+  fetchUrl: props.fetchUrl,
+  fetchUrlMethod: props.fetchUrlMethod,
+  watchActions: props.watchActions,
+  componentId: props.componentId,
 });
+
+const entries = computed<ActivityFeedItem[]>(() =>
+  props.maxItems ? list.value.slice(0, props.maxItems) : list.value,
+);
 
 const days = computed<ActivityFeedDay[]>(() =>
   props.groupByDay
@@ -110,7 +109,7 @@ const metaOf = (item: ActivityFeedItem): string | undefined =>
     ? item.meta.map((entry) => processI18n(entry)).join(" · ")
     : undefined;
 
-const isFirstLoad = computed(() => isLoading.value && !entries.value.length);
+const isFirstLoad = isPending;
 
 // The placeholder takes the feed's loaded shape: as many rows as it will show
 // (`skeletonCount`, else `maxItems`; never more than `maxItems`), under day
@@ -130,16 +129,9 @@ const skeletonDays = computed<number[][]>(() => {
   }
   return days;
 });
-const hasError = computed(() => !!error.value && !entries.value.length);
-const viewAllText = computed(() =>
-  props.viewAllLabel
-    ? processI18n(props.viewAllLabel)
-    : t("dms.activity_feed.view_all"),
-);
-
-const Wrapper = props.framed ? resolveComponent("DmsCard") : "div";
+const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
 const wrapperProps = computed(() =>
-  props.framed
+  props.card
     ? {
         padded: false,
         title: props.title ? processI18n(props.title) : undefined,
@@ -151,14 +143,13 @@ const wrapperProps = computed(() =>
 
 <template>
   <component :is="Wrapper" v-bind="wrapperProps">
-    <template v-if="props.framed && props.viewAllTo" #actions>
-      <UButton
-        :to="props.viewAllTo"
-        :label="viewAllText"
-        trailing-icon="i-ph-arrow-right"
-        color="neutral"
-        variant="ghost"
+    <template v-if="props.card && props.actions.length" #actions>
+      <DmsBlockActions
+        :actions="props.actions"
         size="xs"
+        lead-variant="ghost"
+        lead-color="neutral"
+        rest-variant="ghost"
       />
     </template>
 
@@ -217,12 +208,14 @@ const wrapperProps = computed(() =>
       icon="i-ph-tray"
       size="sm"
       :title="
-        props.emptyTitle
-          ? processI18n(props.emptyTitle)
+        props.empty
+          ? processI18n(props.empty.title)
           : t('dms.activity_feed.empty_title')
       "
       :description="
-        props.emptyDescription ? processI18n(props.emptyDescription) : undefined
+        props.empty?.description
+          ? processI18n(props.empty.description)
+          : undefined
       "
     />
 

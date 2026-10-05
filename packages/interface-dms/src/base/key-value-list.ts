@@ -2,11 +2,12 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import {
+  blockCardOption,
   type BlockItemsSource,
   blockItemsSourceOptions,
-  DISPLAY_TONES,
-  type DisplayTone,
+  toneEnum,
 } from "./display";
+import { TONES, type Tone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 
 /**
@@ -35,9 +36,9 @@ export interface KeyValueListItem {
   value?: string | number | null;
   type?: KeyValueType;
   /** Route, `#anchor` or URL the value links to. */
-  href?: string;
+  to?: string;
   /** Text colour, or the pill tone of a `status` value. */
-  tone?: DisplayTone;
+  tone?: Tone;
   /** Dim note after the value. */
   detail?: string;
   /** ISO 4217 code of a `money` value; overrides the list's `currency`. */
@@ -104,8 +105,8 @@ const KeyValueListItemSchema = z.object({
     label: "Type",
     widget: "select",
   }),
-  href: ui(z.string().optional(), { label: "Link", widget: "url" }),
-  tone: ui(z.enum(DISPLAY_TONES).optional(), {
+  to: ui(z.string().optional(), { label: "Link", widget: "url" }),
+  tone: ui(toneEnum(TONES).optional(), {
     label: "Tone",
     widget: "select",
   }),
@@ -123,13 +124,7 @@ export const KeyValueListSchema = z.object({
     z.array(KeyValueListItemSchema).optional().describe("The rows, in order."),
     { label: "Rows", group: "content" },
   ),
-  card: ui(
-    z
-      .boolean()
-      .default(KEY_VALUE_LIST_DEFAULTS.card)
-      .describe("Card surface around the list."),
-    { label: "In a card", group: "appearance", widget: "switch" },
-  ),
+  card: blockCardOption(KEY_VALUE_LIST_DEFAULTS.card),
   dense: ui(z.boolean().optional().describe("Tighter rows."), {
     label: "Dense",
     group: "appearance",

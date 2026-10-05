@@ -239,7 +239,7 @@ export class NotificationsSettingsController extends PageController(
   static inbox = Section({
     title: `${NOTIFICATION_TEXTS}.inbox_title`,
     description: `${NOTIFICATION_TEXTS}.inbox_description`,
-    bare: true,
+    card: false,
   }).child("table", notificationInboxTable());
 
   @AuthUserWithPermission(

@@ -3,10 +3,11 @@ import { computed, provide } from "vue";
 import { tv } from "tailwind-variants";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import { DMS_SECTION_SURFACE_KEY } from "./context";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // The renderer's props are optional: DmsSection is both the backend `Section`
-// block and a template component.
+// block (`dms-section-block`) and a template component.
 interface SectionProps extends Partial<DefaultComponentProps> {
   /** Heading (i18n key with `$` or literal). */
   title?: string;
@@ -14,8 +15,8 @@ interface SectionProps extends Partial<DefaultComponentProps> {
   description?: string;
   /** Destructive actions: the frame and title turn to the error color. */
   danger?: boolean;
-  /** Render the content without the card frame (custom layouts, grids). */
-  bare?: boolean;
+  /** The card frame around the content; off for custom layouts and grids. */
+  card?: boolean;
 }
 
 interface SectionSlots {
@@ -33,9 +34,11 @@ const props = withDefaults(defineProps<SectionProps>(), {
   title: undefined,
   description: undefined,
   danger: false,
-  bare: false,
+  card: true,
 });
 const slots = defineSlots<SectionSlots>();
+
+useWatch(props.watchActions || [], props.componentId);
 
 // v2 .st-block: a 15px title and one line of description (the generic
 // section header) above a card whose rows are set apart by hairlines.
@@ -60,7 +63,7 @@ const theme = tv({
 const ui = computed(() => theme({ danger: props.danger }));
 const { processI18n } = useTranslation();
 
-provide(DMS_SECTION_SURFACE_KEY, !props.bare);
+provide(DMS_SECTION_SURFACE_KEY, props.card);
 </script>
 
 <template>
@@ -82,7 +85,7 @@ provide(DMS_SECTION_SURFACE_KEY, !props.bare);
       </template>
     </DmsSectionHeader>
 
-    <slot v-if="props.bare" />
+    <slot v-if="!props.card" />
     <div v-else :class="ui.card()">
       <slot />
       <footer v-if="slots.footer" :class="ui.footer()">

@@ -178,7 +178,7 @@ onMounted(async () => {
   <DmsSection
     title="$page.settings.profile.title"
     description="$page.settings.profile.description"
-    bare
+    :card="false"
   >
     <form class="dms-card overflow-hidden" @submit.prevent="save">
       <DmsFieldRow

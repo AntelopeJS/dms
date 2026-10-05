@@ -22,7 +22,7 @@ function twoFactorItem(data: SecurityOverview): StatStripItem {
   const isOn = methods.length > 0;
   return {
     id: "two-factor",
-    href: "#two-factor",
+    to: "#two-factor",
     icon: isOn ? "i-ph-shield-check" : "i-ph-shield-warning",
     tone: isOn ? "success" : "warning",
     eyebrow: t("page.settings.security.status.two_factor"),
@@ -56,7 +56,7 @@ function backupItem({ twoFactor }: SecurityOverview): StatStripItem {
   const isLow = attention.value.includes("backup_codes_low");
   return {
     id: "backup-codes",
-    href: "#backup-codes",
+    to: "#backup-codes",
     icon: "i-ph-key",
     tone: isOn && (isUnsaved || isLow) ? "warning" : "muted",
     eyebrow: t("page.settings.security.status.backup_codes"),
@@ -74,7 +74,7 @@ function backupItem({ twoFactor }: SecurityOverview): StatStripItem {
 function passwordItem(data: SecurityOverview): StatStripItem {
   const base = {
     id: "password",
-    href: "#password",
+    to: "#password",
     icon: "i-ph-password",
     tone: "muted" as const,
     eyebrow: t("page.settings.security.status.password"),
@@ -110,7 +110,7 @@ function sessionsItem(data: SecurityOverview): StatStripItem {
   const others = Math.max(0, data.activeSessions - 1);
   return {
     id: "sessions",
-    href: "#sessions",
+    to: "#sessions",
     icon: "i-ph-devices",
     tone: "muted",
     eyebrow: t("page.settings.security.status.sessions"),

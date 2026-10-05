@@ -59,6 +59,13 @@ describe("Vue source inventory", () => {
     expect(frontendModule).toContain(
       "sdk.registerComponent(`Dms${pascalCase(name)}`, component)",
     );
+    for (const [name, alias] of [
+      ["DmsActivityFeed", "DmsActivityFeedBlock"],
+      ["DmsSection", "DmsSectionBlock"],
+      ["DmsFieldRow", "DmsFieldRowBlock"],
+    ]) {
+      expect(frontendModule).toContain(`${name}: "${alias}"`);
+    }
     expect(frontendModule).toContain('.replace(/\\/index$/, "")');
     expect(frontendModule).toContain(
       "sdk.registerErrorPage(lazyComponent(loader), loader)",

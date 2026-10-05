@@ -2,33 +2,27 @@ import { z } from "zod";
 import { type BlockOptionsFor, ui } from "./block-registry";
 import type { EnumOption } from "./types/enum-option";
 import { HttpMethod } from "./types/http";
+import { resolveToneAlias, type Tone, TONES } from "./types/tone";
 
 /**
  * Shared vocabulary of the display blocks — StatStrip, KeyValueList,
- * NavCardGrid, EmptyState, Banner, Card: the semantic tones they colour with
- * and the link buttons they offer.
+ * NavCardGrid, EmptyState, Banner, Card, Meter, ActivityFeed: the tones they
+ * read, the link buttons they offer, the data source and the empty state of a
+ * list block.
  */
-
-/** The semantic tones a display block colours a well, a pill or a line with. */
-export const DISPLAY_TONES = [
-  "neutral",
-  "primary",
-  "secondary",
-  "success",
-  "warning",
-  "error",
-  "info",
-] as const;
-
-export type DisplayTone = (typeof DISPLAY_TONES)[number];
 
 /**
- * The tones of an icon well: the semantic ones plus `muted`, the quiet well
- * of a settings row or a status strip cell.
+ * A zod enum of tones that also reads the deprecated tone names, so a page
+ * saved with `accent` keeps its colour.
+ *
+ * @internal
  */
-export const ICON_TONES = [...DISPLAY_TONES, "muted"] as const;
-
-export type IconTone = (typeof ICON_TONES)[number];
+export const toneEnum = <T extends readonly [string, ...string[]]>(tones: T) =>
+  z.preprocess(resolveToneAlias, z.enum(tones)) as z.ZodEffects<
+    z.ZodEnum<[T[number], ...T[number][]]>,
+    T[number],
+    T[number]
+  >;
 
 export const BLOCK_ACTION_VARIANTS = [
   "solid",
@@ -52,7 +46,7 @@ export interface BlockLinkAction {
   to: string;
   icon?: string;
   variant?: BlockActionVariant;
-  color?: DisplayTone;
+  color?: Tone;
 }
 
 export const BlockLinkActionSchema = z.object({
@@ -66,7 +60,7 @@ export const BlockLinkActionSchema = z.object({
     label: "Variant",
     widget: "select",
   }),
-  color: ui(z.enum(DISPLAY_TONES).optional(), {
+  color: ui(toneEnum(TONES).optional(), {
     label: "Colour",
     widget: "select",
   }),
@@ -79,16 +73,70 @@ export const blockActionsOption = (description: string) =>
     group: "content",
   });
 
+/** What a block shows when it has nothing to list. */
+export interface BlockEmptyText {
+  /** `$`-prefixed for an i18n key, like `description`. */
+  title: string;
+  description?: string;
+}
+
+/** The `empty` option of a block. */
+export const blockEmptyOption = () =>
+  ui(
+    z
+      .object({
+        title: ui(z.string(), { label: "Title" }),
+        description: ui(z.string().optional(), {
+          label: "Description",
+          widget: "textarea",
+        }),
+      })
+      .optional()
+      .describe("Shown when there is nothing to list."),
+    { label: "Empty state", group: "content" },
+  );
+
 /**
- * The options a list block reads its items from a route with. The route
- * answers `{ items: [...] }` in the block's own item shape, which replaces the
- * static `items`.
+ * The `card` option of a block: the card surface around it, `isOnByDefault`
+ * or not. Turn it off to nest the block in a `Card`.
+ */
+export const blockCardOption = (isOnByDefault: boolean) =>
+  ui(
+    z
+      .boolean()
+      .default(isOnByDefault)
+      .describe("Card surface around the block; off inside a `Card`."),
+    { label: "In a card", group: "appearance", widget: "switch" },
+  );
+
+/** The `fetchUrl` option of a block, picked in the editor's source list. */
+export const blockFetchUrlOption = (description: string) =>
+  ui(z.string().optional().describe(description), {
+    label: "Data source",
+    group: "data",
+    widget: "dataSource",
+    advanced: true,
+  });
+
+/** The `fetchUrlMethod` option that goes with `fetchUrl`. */
+export const blockFetchUrlMethodOption = () =>
+  ui(z.nativeEnum(HttpMethod).optional(), {
+    label: "HTTP method",
+    group: "advanced",
+    widget: "select",
+  });
+
+/**
+ * The options a list block (StatStrip, KeyValueList, NavCardGrid,
+ * ActivityFeed) reads its items from a route with. The route answers
+ * `{ items: [...] }` in the block's own item shape, which replaces the static
+ * `items`.
  */
 export interface BlockItemsSource {
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
-  /** Title of the empty state, when there is nothing to show. */
-  emptyLabel?: string;
+  /** Shown when there is nothing to list. */
+  empty?: BlockEmptyText;
   /**
    * How many placeholder rows, cells or cards the block draws while
    * `fetchUrl` loads. The block cannot know the length of a list it has not
@@ -97,30 +145,17 @@ export interface BlockItemsSource {
    * at every width.
    *
    * Optional. Defaults to `columns`, or 4 (StatStrip); 5 (KeyValueList);
-   * `columns`, or 3 (NavCardGrid).
+   * `columns`, or 3 (NavCardGrid); `maxItems`, or 3 (ActivityFeed).
    */
   skeletonCount?: number;
 }
 
 export const blockItemsSourceOptions = () => ({
-  fetchUrl: ui(
-    z
-      .string()
-      .optional()
-      .describe(
-        "Route answering `{ items }`; when set it replaces the static items.",
-      ),
-    { label: "Data source", group: "data", widget: "url", advanced: true },
+  fetchUrl: blockFetchUrlOption(
+    "Route answering `{ items }`; when set it replaces the static items.",
   ),
-  fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
-    label: "HTTP method",
-    group: "advanced",
-    widget: "select",
-  }),
-  emptyLabel: ui(
-    z.string().optional().describe("Shown when there is nothing to list."),
-    { label: "Empty message", group: "content" },
-  ),
+  fetchUrlMethod: blockFetchUrlMethodOption(),
+  empty: blockEmptyOption(),
   skeletonCount: ui(
     z
       .number()

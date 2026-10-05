@@ -1,24 +1,29 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import { blockActionsOption, type BlockLinkAction } from "./display";
+import { blockActionsOption, type BlockLinkAction, toneEnum } from "./display";
+import type { BaseComponentProps } from "./types";
+import type { Tone } from "./types/tone";
 
+/** The tones a banner washes with. */
 export const BANNER_TONES = [
   "info",
   "success",
   "warning",
   "error",
   "primary",
-] as const;
+] as const satisfies readonly Tone[];
 
-export type BannerTone = (typeof BANNER_TONES)[number];
+export type BannerTone = Extract<Tone, (typeof BANNER_TONES)[number]>;
 
+/** The sizes of a banner. */
 export const BANNER_SIZES = ["md", "sm"] as const;
 
 /** `md` boxed banner; `sm` compact one-line banner, for cards and panels. */
 export type BannerSize = (typeof BANNER_SIZES)[number];
 
-export interface BannerProps {
+/** The options `Banner` takes. */
+export interface BannerProps extends BaseComponentProps {
   /** `$`-prefixed for an i18n key, like every text of the block. */
   title?: string;
   description?: string;
@@ -31,7 +36,9 @@ export interface BannerProps {
   dismissible?: boolean;
   /**
    * Key the dismissal is remembered under (a cookie, one year). Defaults to
-   * the block's position on its page; change it to show the banner again.
+   * the block's id on its page (`.child("welcome", Banner(…))` → `welcome`),
+   * which holds when blocks are added or moved; change it to show the banner
+   * again.
    */
   dismissKey?: string;
 }
@@ -80,8 +87,7 @@ export const BannerSchema = z.object({
     "Buttons on the right; the last one is the main action.",
   ),
   tone: ui(
-    z
-      .enum(BANNER_TONES)
+    toneEnum(BANNER_TONES)
       .default(BANNER_DEFAULTS.tone)
       .describe("Colour of the wash and the icon."),
     { label: "Tone", group: "appearance", widget: "select" },

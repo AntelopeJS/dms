@@ -4,11 +4,9 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import {
   type BlockItemsSource,
   blockItemsSourceOptions,
-  DISPLAY_TONES,
-  type DisplayTone,
-  ICON_TONES,
-  type IconTone,
+  toneEnum,
 } from "./display";
+import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 
 /** One cell of a stat strip. */
@@ -29,9 +27,9 @@ export interface StatStripItem {
   /** One line under the value. */
   detail?: string;
   /** Tone of the detail line (`neutral` = muted). */
-  detailTone?: DisplayTone;
+  detailTone?: Tone;
   /** Route, `#anchor` or URL the whole cell links to. */
-  href?: string;
+  to?: string;
 }
 
 export const STAT_STRIP_LAYOUTS = ["joined", "cards"] as const;
@@ -85,7 +83,10 @@ export function StatStrip(
 const StatStripItemSchema = z.object({
   id: ui(z.string().optional(), { label: "Key", advanced: true }),
   icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
-  tone: ui(z.enum(ICON_TONES).optional(), { label: "Tone", widget: "select" }),
+  tone: ui(toneEnum(ICON_TONES).optional(), {
+    label: "Tone",
+    widget: "select",
+  }),
   eyebrow: ui(z.string().describe("Mono label above the value."), {
     label: "Label",
   }),
@@ -94,11 +95,11 @@ const StatStripItemSchema = z.object({
     { label: "Value" },
   ),
   detail: ui(z.string().optional(), { label: "Detail" }),
-  detailTone: ui(z.enum(DISPLAY_TONES).optional(), {
+  detailTone: ui(toneEnum(TONES).optional(), {
     label: "Detail tone",
     widget: "select",
   }),
-  href: ui(z.string().optional().describe("Route, `#anchor` or URL."), {
+  to: ui(z.string().optional().describe("Route, `#anchor` or URL."), {
     label: "Link",
     widget: "url",
   }),

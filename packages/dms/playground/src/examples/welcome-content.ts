@@ -241,7 +241,7 @@ export const SOURCE_MAP_ITEMS: KeyValueListItem[] = [
     label: "Frontend layers guide",
     value: "dms.antelopejs.com",
     type: "link",
-    href: DOCS_LINKS.frontendLayer,
+    to: DOCS_LINKS.frontendLayer,
   },
 ];
 
@@ -251,19 +251,19 @@ export const CONTRIBUTE_ITEMS: KeyValueListItem[] = [
     label: "Report a bug",
     value: "GitHub issues",
     type: "link",
-    href: `${DMS_REPOSITORY_URL}/issues`,
+    to: `${DMS_REPOSITORY_URL}/issues`,
   },
   {
     label: "Propose a change",
     value: "Pull requests",
     type: "link",
-    href: `${DMS_REPOSITORY_URL}/pulls`,
+    to: `${DMS_REPOSITORY_URL}/pulls`,
   },
   {
     label: "Commit titles",
     value: "Conventional Commits",
     type: "link",
-    href: "https://www.conventionalcommits.org/",
+    to: "https://www.conventionalcommits.org/",
   },
   {
     label: "Checks",
@@ -274,13 +274,13 @@ export const CONTRIBUTE_ITEMS: KeyValueListItem[] = [
     label: "Contributing guide",
     value: "CONTRIBUTING.md",
     type: "link",
-    href: `${DMS_REPOSITORY_URL}/blob/main/CONTRIBUTING.md`,
+    to: `${DMS_REPOSITORY_URL}/blob/main/CONTRIBUTING.md`,
   },
   {
     label: "Talk to the team",
     value: "Discord",
     type: "link",
-    href: "https://discord.gg/kxzZMWqdFU",
+    to: "https://discord.gg/kxzZMWqdFU",
   },
 ];
 

@@ -6,7 +6,9 @@ import DmsMeter, {
   type MeterSize,
   type MeterTone,
 } from "./Meter.vue";
+import DmsBlockActions, { type BlockAction } from "../blocks/BlockActions.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 /** What a meter's data source answers: any subset of its figures. */
@@ -19,7 +21,7 @@ interface MeterResponse {
 }
 
 // The page block behind the backend `Meter` builder: static figures or a
-// data source, optionally framed as a card. DmsMeter draws it.
+// data source, optionally in a card. DmsMeter draws it.
 interface MeterBlockProps extends DefaultComponentProps {
   label?: string;
   hint?: string;
@@ -37,10 +39,9 @@ interface MeterBlockProps extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   /** Wraps the meter in a padded card. */
-  framed?: boolean;
-  /** Legend link pushed right ("Manage members"). */
-  linkLabel?: string;
-  linkTo?: string;
+  card?: boolean;
+  /** Link buttons pushed right of the legend ("Manage members"). */
+  actions?: BlockAction[];
 }
 
 const props = withDefaults(defineProps<MeterBlockProps>(), {
@@ -52,22 +53,27 @@ const props = withDefaults(defineProps<MeterBlockProps>(), {
   legend: false,
   format: "fraction",
   valueLabel: undefined,
-  tone: "accent",
+  tone: "primary",
   warnAt: undefined,
   errorAt: undefined,
   size: "sm",
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
-  framed: false,
-  linkLabel: undefined,
-  linkTo: undefined,
+  card: false,
+  actions: () => [],
 });
 
 const { processI18n } = useTranslation();
 
+const { state: watchState } = useWatch(
+  props.watchActions || [],
+  props.componentId,
+);
+
 const { data, isLoading } = useChartFetch<MeterResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  watchSource: () => JSON.stringify(watchState.value),
 });
 
 const translate = (text: string | undefined): string | undefined =>
@@ -99,10 +105,10 @@ const skeletonTrackClass = computed(
   () => SKELETON_TRACK_HEIGHTS[props.size] ?? SKELETON_TRACK_HEIGHTS.sm,
 );
 const skeletonHasLegend = computed(
-  () => props.legend || !!(props.linkLabel && props.linkTo),
+  () => props.legend || props.actions.length > 0,
 );
 // Resolved once: the frame does not change after the page is laid out.
-const Wrapper = props.framed ? resolveComponent("DmsCard") : "div";
+const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
 </script>
 
 <template>
@@ -138,13 +144,13 @@ const Wrapper = props.framed ? resolveComponent("DmsCard") : "div";
       :error-at="props.errorAt"
       :size="props.size"
     >
-      <template v-if="props.linkLabel && props.linkTo" #legend-end>
-        <DmsLink
-          :to="props.linkTo"
-          class="text-primary text-xs font-medium hover:underline"
-        >
-          {{ processI18n(props.linkLabel) }}
-        </DmsLink>
+      <template v-if="props.actions.length" #legend-end>
+        <DmsBlockActions
+          :actions="props.actions"
+          size="xs"
+          lead-variant="link"
+          rest-variant="link"
+        />
       </template>
     </DmsMeter>
   </component>

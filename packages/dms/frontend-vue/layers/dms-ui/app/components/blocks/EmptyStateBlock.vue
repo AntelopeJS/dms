@@ -6,6 +6,7 @@ import DmsEmptyState, {
 } from "../empty-state/EmptyState.vue";
 import DmsBlockActions, { type BlockAction } from "./BlockActions.vue";
 import type { DmsTone } from "../../utils/tone";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `EmptyState` block (interface-dms `base/empty-state`): the generic v2
@@ -18,7 +19,8 @@ interface EmptyStateBlockProps extends Partial<DefaultComponentProps> {
   variant?: EmptyStateVariant;
   icon?: string;
   tone?: DmsTone;
-  framed?: boolean;
+  /** Hatched panel behind the content. */
+  hatched?: boolean;
   size?: EmptyStateSize;
   actions?: BlockAction[];
   /** Card surface around it; off when it sits inside a Card block. */
@@ -31,11 +33,13 @@ const props = withDefaults(defineProps<EmptyStateBlockProps>(), {
   variant: "no-data",
   icon: undefined,
   tone: undefined,
-  framed: false,
+  hatched: false,
   size: "md",
   actions: () => [],
   card: true,
 });
+
+useWatch(props.watchActions || [], props.componentId);
 
 const { processI18n } = useTranslation();
 
@@ -52,7 +56,7 @@ const description = computed(() =>
       :variant="props.variant"
       :icon="props.icon"
       :tone="props.tone"
-      :framed="props.framed"
+      :hatched="props.hatched"
       :size="props.size"
     >
       <template v-if="props.actions.length" #actions>

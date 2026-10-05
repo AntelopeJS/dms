@@ -45,7 +45,7 @@ describe("[unit] interfaces/dms-base — list and settings blocks in the catalog
       "groupByDay",
       "maxItems",
       "skeletonCount",
-      "viewAllTo",
+      "actions",
     );
     expect(declared("Meter").config).to.include.keys(
       "value",
@@ -60,7 +60,7 @@ describe("[unit] interfaces/dms-base — list and settings blocks in the catalog
       "form",
       "stack",
     ]);
-    expect(declared("Section").config).to.include.keys("danger", "bare");
+    expect(declared("Section").config).to.include.keys("danger", "card");
   });
 
   it("offers the sticky save bar on a form", () => {

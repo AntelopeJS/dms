@@ -87,6 +87,14 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
+// Components that render a backend block under a name of their own: the block
+// names (`dms-xxx-block`) resolve to the same component as the template name.
+const COMPONENT_ALIASES: Record<string, string> = {
+  DmsActivityFeed: "DmsActivityFeedBlock",
+  DmsSection: "DmsSectionBlock",
+  DmsFieldRow: "DmsFieldRowBlock",
+};
+
 function registerComponents(
   sdk: Parameters<DmsFrontendModule["setup"]>[0],
 ): void {
@@ -100,7 +108,10 @@ function registerComponents(
       );
     }
     names.set(name, path);
-    sdk.registerComponent(name, lazyComponent(loader));
+    const component = lazyComponent(loader);
+    sdk.registerComponent(name, component);
+    const alias = COMPONENT_ALIASES[name];
+    if (alias) sdk.registerComponent(alias, component);
   }
 }
 

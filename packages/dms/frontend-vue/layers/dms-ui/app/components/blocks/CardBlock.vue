@@ -3,6 +3,7 @@ import { computed } from "vue";
 import DmsCard from "../card/Card.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, { type BlockAction } from "./BlockActions.vue";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `Card` block (interface-dms `base/card`): a titled v2 card holding other
@@ -42,6 +43,8 @@ const props = withDefaults(defineProps<CardBlockProps>(), {
   variant: "default",
 });
 const slots = defineSlots<CardBlockSlots>();
+
+useWatch(props.watchActions || [], props.componentId);
 
 const { processI18n } = useTranslation();
 

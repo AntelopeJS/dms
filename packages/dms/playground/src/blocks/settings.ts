@@ -73,8 +73,7 @@ export class PageBlocksSettings extends PageController(
             { value: 2, tone: "soft", label: "2 pending invites" },
           ],
           legend: true,
-          linkLabel: "Manage members",
-          linkTo: "/settings/user/members",
+          actions: [{ label: "Manage members", to: "/settings/user/members" }],
         }),
       ),
     )
@@ -142,7 +141,7 @@ export class PageBlocksSettings extends PageController(
 
   static activity = Section({
     title: "Recent activity",
-    bare: true,
+    card: false,
   }).child(
     "feed",
     ActivityFeed({

@@ -68,7 +68,7 @@ const previewVeilDetail = (fullId: string): string | undefined =>
       :key="group.id"
       :title="group.label"
       :description="GROUP_DESCRIPTIONS[group.id] ?? OTHER_GROUP_DESCRIPTION"
-      bare
+      :card="false"
     >
       <!-- As many 16rem tracks as the settings column holds: fixed
            viewport breakpoints squeezed three cards into it at 1280px (and

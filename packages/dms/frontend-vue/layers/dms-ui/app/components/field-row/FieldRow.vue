@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
+import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 export type FieldRowLayout = "inline" | "form" | "stack";
 
 // The renderer's props are optional: DmsFieldRow is both the backend
-// `FieldRow` block and a template component.
+// `FieldRow` block (`dms-field-row-block`) and a template component.
 interface FieldRowProps extends Partial<DefaultComponentProps> {
   /** Row label (i18n key with `$` or literal). */
   label?: string;
@@ -86,6 +87,8 @@ const theme = tv({
 const ui = computed(() =>
   theme({ layout: props.layout, disabled: props.disabled }),
 );
+useWatch(props.watchActions || [], props.componentId);
+
 const { processI18n } = useTranslation();
 </script>
 

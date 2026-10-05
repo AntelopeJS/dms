@@ -31,7 +31,7 @@ export class PageBlocksActivity extends PageController("blocks-activity", {
           fetchUrl: "/api/blocks-feed/activity",
           // The route answers 11 entries: the skeleton draws as many rows.
           skeletonCount: 11,
-          viewAllTo: "/settings/user/notifications",
+          actions: [{ label: "View all", to: "/settings/user/notifications" }],
         }),
       )
       .child(
@@ -84,9 +84,11 @@ export class PageBlocksActivity extends PageController("blocks-activity", {
         ActivityFeed({
           title: "Activity · empty",
           fetchUrl: "/api/blocks-feed/empty",
-          emptyTitle: "No activity yet",
-          emptyDescription:
-            "Orders, releases and assistant changes will show up here.",
+          empty: {
+            title: "No activity yet",
+            description:
+              "Orders, releases and assistant changes will show up here.",
+          },
         }),
       )
       .child(

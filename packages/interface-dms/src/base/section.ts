@@ -1,23 +1,30 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
+import { blockCardOption } from "./display";
+import type { BaseComponentProps } from "./types";
 
-export interface SectionOptions {
+/** The options `Section` takes. */
+export interface SectionProps extends BaseComponentProps {
   /** Heading above the card (i18n key with `$` or literal). */
   title?: string;
   /** One line under the heading. */
   description?: string;
   /** Destructive actions: the frame and the title turn to the error color. */
   danger?: boolean;
-  /** The children without the card frame (grids, custom layouts). */
-  bare?: boolean;
+  /**
+   * The card frame around the children. Defaults to `true`; off for grids
+   * and custom layouts.
+   */
+  card?: boolean;
 }
 
 /** How a field row lays its label and control out. */
 export const FIELD_ROW_LAYOUTS = ["inline", "form", "stack"] as const;
 export type FieldRowLayout = (typeof FIELD_ROW_LAYOUTS)[number];
 
-export interface FieldRowOptions {
+/** The options `FieldRow` takes. */
+export interface FieldRowProps extends BaseComponentProps {
   /** Row label (i18n key with `$` or literal). */
   label?: string;
   /** Help text under the label. */
@@ -34,13 +41,13 @@ export interface FieldRowOptions {
   disabled?: boolean;
 }
 
-const SECTION_COMPONENT_NAME = "dms-section";
-const FIELD_ROW_COMPONENT_NAME = "dms-field-row";
+const SECTION_COMPONENT_NAME = "dms-section-block";
+const FIELD_ROW_COMPONENT_NAME = "dms-field-row-block";
 const SECTION_ICON = "i-ph-rows";
 const FIELD_ROW_ICON = "i-ph-text-columns";
 
 /**
- * Section - a titled settings block (v2 .st-block).
+ * Section - a titled settings block.
  *
  * A heading and a one-line description above a card whose children — field
  * rows, a form, a list — are set apart by hairlines. A `Form` placed in a
@@ -55,9 +62,9 @@ const FIELD_ROW_ICON = "i-ph-text-columns";
  * ```
  */
 export function Section(
-  options?: SectionOptions,
-): ComponentBuilder<SectionOptions> {
-  return new ComponentBuilder<SectionOptions>(SECTION_COMPONENT_NAME)
+  options?: SectionProps,
+): ComponentBuilder<SectionProps> {
+  return new ComponentBuilder<SectionProps>(SECTION_COMPONENT_NAME)
     .options({ ...options })
     .meta({
       name: options?.title || "Section",
@@ -66,7 +73,7 @@ export function Section(
 }
 
 /**
- * FieldRow - one row of a section (v2 .st-row): a label with its help text
+ * FieldRow - one row of a section: a label with its help text
  * and the control its child block renders — a button, a status, a meter.
  *
  * Fields that are filled in and submitted belong to a `Form`, which owns their
@@ -80,9 +87,9 @@ export function Section(
  * ```
  */
 export function FieldRow(
-  options?: FieldRowOptions,
-): ComponentBuilder<FieldRowOptions> {
-  return new ComponentBuilder<FieldRowOptions>(FIELD_ROW_COMPONENT_NAME)
+  options?: FieldRowProps,
+): ComponentBuilder<FieldRowProps> {
+  return new ComponentBuilder<FieldRowProps>(FIELD_ROW_COMPONENT_NAME)
     .options({ ...options })
     .meta({
       name: options?.label || "Field row",
@@ -105,12 +112,8 @@ export const SectionSchema = z.object({
     z.boolean().optional().describe("Marks a block of destructive actions."),
     { label: "Danger zone", group: "appearance", widget: "switch" },
   ),
-  bare: ui(z.boolean().optional().describe("Leaves out the card frame."), {
-    label: "No frame",
-    group: "appearance",
-    widget: "switch",
-  }),
-}) satisfies BlockOptionsFor<SectionOptions>;
+  card: blockCardOption(true),
+}) satisfies BlockOptionsFor<SectionProps>;
 
 /** The options `FieldRow` accepts. */
 export const FieldRowSchema = z.object({
@@ -135,7 +138,7 @@ export const FieldRowSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
-}) satisfies BlockOptionsFor<FieldRowOptions>;
+}) satisfies BlockOptionsFor<FieldRowProps>;
 
 RegisterBlockType({
   type: "Section",

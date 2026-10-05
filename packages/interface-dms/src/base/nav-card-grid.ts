@@ -4,11 +4,9 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import {
   type BlockItemsSource,
   blockItemsSourceOptions,
-  DISPLAY_TONES,
-  type DisplayTone,
-  ICON_TONES,
-  type IconTone,
+  toneEnum,
 } from "./display";
+import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 
 /** One navigation card. */
@@ -25,7 +23,7 @@ export interface NavCardItem {
   /** Live state of the target, in mono at the bottom ("3 unread"). */
   state?: string;
   /** Tone of the state line (`neutral` = dimmed). */
-  stateTone?: DisplayTone;
+  stateTone?: Tone;
   /** Small uppercase tag after the title (the module a page comes from). */
   badge?: string;
   /** Mono readout lines under the description. */
@@ -84,7 +82,7 @@ const NavCardItemSchema = z.object({
     widget: "textarea",
   }),
   icon: ui(z.string(), { label: "Icon", widget: "icon" }),
-  iconTone: ui(z.enum(ICON_TONES).optional(), {
+  iconTone: ui(toneEnum(ICON_TONES).optional(), {
     label: "Icon tone",
     widget: "select",
   }),
@@ -93,7 +91,7 @@ const NavCardItemSchema = z.object({
     widget: "url",
   }),
   state: ui(z.string().optional(), { label: "State" }),
-  stateTone: ui(z.enum(DISPLAY_TONES).optional(), {
+  stateTone: ui(toneEnum(TONES).optional(), {
     label: "State tone",
     widget: "select",
   }),

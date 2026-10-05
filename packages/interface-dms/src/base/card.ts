@@ -2,12 +2,15 @@ import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { blockActionsOption, type BlockLinkAction } from "./display";
+import type { BaseComponentProps } from "./types";
 
+/** The looks of a card. */
 export const CARD_VARIANTS = ["default", "elevated"] as const;
 
 export type CardVariant = (typeof CARD_VARIANTS)[number];
 
-export interface CardProps {
+/** The options `Card` takes. */
+export interface CardProps extends BaseComponentProps {
   /** Eyebrow title of the head; `$`-prefixed for an i18n key. */
   title?: string;
   /** Mono count after the title. */

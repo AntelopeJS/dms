@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import DmsNavCard from "../card/NavCard.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
-import DmsBlockStatus from "./BlockStatus.vue";
+import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
 import { useBlockItems } from "../../composables/blocks/useBlockItems";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
 import type { DmsTone } from "../../utils/tone";
@@ -33,7 +33,8 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
   description?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
-  emptyLabel?: string;
+  /** Shown when there is nothing to list. */
+  empty?: BlockEmptyText;
   /**
    * Placeholder cards while `fetchUrl` loads: the length it usually answers.
    * Optional. Defaults to `columns` (one row), or 3.
@@ -48,7 +49,7 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   description: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
-  emptyLabel: undefined,
+  empty: undefined,
   skeletonCount: undefined,
 });
 
@@ -104,7 +105,7 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
     <DmsBlockStatus
       v-else-if="!isPending && cards.length === 0"
       state="empty"
-      :label="props.emptyLabel ? processI18n(props.emptyLabel) : undefined"
+      :empty="props.empty"
     />
     <div
       v-else

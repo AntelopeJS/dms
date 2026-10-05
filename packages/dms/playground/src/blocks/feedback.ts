@@ -120,7 +120,7 @@ export class PageBlocksFeedback extends PageController("blocks-feedback", {
           variant: "no-result",
           title: "No match for “acme”",
           description: "Try another spelling, or clear the filters.",
-          framed: true,
+          hatched: true,
           actions: [
             {
               label: "Clear filters",

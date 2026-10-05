@@ -19,7 +19,7 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
         .child(
           "seats",
           Meter({
-            framed: true,
+            card: true,
             label: "Seats",
             hint: "8 in use · 2 free",
             max: 10,
@@ -28,14 +28,15 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
               { value: 2, tone: "soft", label: "2 pending invites" },
             ],
             legend: true,
-            linkLabel: "Manage members",
-            linkTo: "/settings/user/members",
+            actions: [
+              { label: "Manage members", to: "/settings/user/members" },
+            ],
           }),
         )
         .child(
           "live",
           Meter({
-            framed: true,
+            card: true,
             label: "Seats (live)",
             fetchUrl: "/api/blocks-feed/seats",
             legend: true,
@@ -48,7 +49,7 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
         .child(
           "storage",
           Meter({
-            framed: true,
+            card: true,
             label: "Storage",
             hint: "38.2 of 50 GB",
             value: 76.4,
@@ -61,7 +62,7 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
         .child(
           "quota",
           Meter({
-            framed: true,
+            card: true,
             label: "API calls this month",
             value: 98200,
             max: 100000,
@@ -73,7 +74,7 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
         .child(
           "coverage",
           Meter({
-            framed: true,
+            card: true,
             label: "Permission coverage",
             value: 42,
             max: 669,

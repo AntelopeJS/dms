@@ -1,20 +1,23 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
+import {
+  blockActionsOption,
+  blockCardOption,
+  blockFetchUrlMethodOption,
+  blockFetchUrlOption,
+  type BlockLinkAction,
+  toneEnum,
+} from "./display";
 import type { BaseComponentProps, EnumOption } from "./types";
-import { HttpMethod } from "./types/http";
+import type { HttpMethod } from "./types/http";
+import { resolveItemToneAliases, resolveToneAlias, TONES } from "./types/tone";
 
-/** Fill colors of a meter. `soft` is the quiet accent (pending, reserved). */
-export const METER_TONES = [
-  "accent",
-  "soft",
-  "neutral",
-  "secondary",
-  "success",
-  "warning",
-  "error",
-  "info",
-] as const;
+/**
+ * Fill tones of a meter: the semantic tones plus `soft`, the pale primary of
+ * what is pending or reserved.
+ */
+export const METER_TONES = [...TONES, "soft"] as const;
 export type MeterTone = (typeof METER_TONES)[number];
 
 /** Value text right of the label: `8 / 10`, `80%`, `8` or none. */
@@ -33,6 +36,7 @@ export interface MeterSegment {
   label?: string;
 }
 
+/** The options `Meter` takes. */
 export interface MeterProps extends BaseComponentProps {
   /** Name of the measure ("Seats"). */
   label?: string;
@@ -50,7 +54,7 @@ export interface MeterProps extends BaseComponentProps {
   format?: MeterFormat;
   /** Replaces the formatted value text. */
   valueLabel?: string;
-  /** Fill tone of a single value. Defaults to `accent`. */
+  /** Fill tone of a single value. Defaults to `primary`. */
   tone?: MeterTone;
   /** Percent of `max` from which the fill turns warning. */
   warnAt?: number;
@@ -58,16 +62,17 @@ export interface MeterProps extends BaseComponentProps {
   errorAt?: number;
   size?: MeterSize;
   /**
-   * Endpoint answering any of `{ value, max, segments, hint, valueLabel }`,
-   * for figures that change per request (seats used, quota left).
+   * Endpoint answering an object with any of `{ value, max, segments, hint,
+   * valueLabel }`, for figures that change per request (seats used, quota
+   * left). A meter is one measure, so unlike the list blocks it reads an
+   * object rather than `{ items }`.
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
-  /** Wraps the meter in a padded card. */
-  framed?: boolean;
-  /** Link under the bar, on the right ("Manage members"). */
-  linkLabel?: string;
-  linkTo?: string;
+  /** Wraps the meter in a padded card. Defaults to `false`. */
+  card?: boolean;
+  /** Link buttons under the bar, on the right ("Manage members"). */
+  actions?: BlockLinkAction[];
 }
 
 const METER_COMPONENT_NAME = "dms-meter-block";
@@ -95,7 +100,11 @@ const DEFAULT_ICON = "i-ph-gauge";
  */
 export function Meter(options?: MeterProps): ComponentBuilder<MeterProps> {
   return new ComponentBuilder<MeterProps>(METER_COMPONENT_NAME)
-    .options({ ...options })
+    .options({
+      ...options,
+      tone: resolveToneAlias(options?.tone),
+      segments: resolveItemToneAliases(options?.segments, "tone"),
+    })
     .meta({
       name: options?.label || "Meter",
       icon: DEFAULT_ICON,
@@ -104,7 +113,10 @@ export function Meter(options?: MeterProps): ComponentBuilder<MeterProps> {
 
 const MeterSegmentSchema = z.object({
   value: ui(z.number(), { label: "Value", widget: "number" }),
-  tone: ui(z.enum(METER_TONES).optional(), { label: "Tone", widget: "select" }),
+  tone: ui(toneEnum(METER_TONES).optional(), {
+    label: "Tone",
+    widget: "select",
+  }),
   label: ui(z.string().optional(), { label: "Legend" }),
 }) satisfies BlockOptionsFor<MeterSegment>;
 
@@ -144,7 +156,7 @@ export const MeterSchema = z.object({
     label: "Custom value text",
     group: "content",
   }),
-  tone: ui(z.enum(METER_TONES).optional(), {
+  tone: ui(toneEnum(METER_TONES).optional(), {
     label: "Tone",
     group: "appearance",
     widget: "select",
@@ -168,31 +180,10 @@ export const MeterSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  fetchUrl: ui(z.string().optional().describe("Where the figures come from."), {
-    label: "Data source",
-    group: "data",
-    widget: "url",
-    advanced: true,
-  }),
-  fetchUrlMethod: ui(z.nativeEnum(HttpMethod).optional(), {
-    label: "HTTP method",
-    group: "advanced",
-    widget: "select",
-  }),
-  framed: ui(z.boolean().optional(), {
-    label: "Card frame",
-    group: "appearance",
-    widget: "switch",
-  }),
-  linkLabel: ui(z.string().optional(), {
-    label: "Link label",
-    group: "content",
-  }),
-  linkTo: ui(z.string().optional(), {
-    label: "Link",
-    group: "content",
-    widget: "url",
-  }),
+  fetchUrl: blockFetchUrlOption("Where the figures come from."),
+  fetchUrlMethod: blockFetchUrlMethodOption(),
+  card: blockCardOption(false),
+  actions: blockActionsOption("Link buttons under the bar."),
 }) satisfies BlockOptionsFor<MeterProps>;
 
 RegisterBlockType({

@@ -21,7 +21,7 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
         eyebrow: "Two-factor",
         value: "On",
         detail: "Authenticator app",
-        href: "#two-factor",
+        to: "#two-factor",
       },
       {
         icon: "i-ph-key",
@@ -30,21 +30,21 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
         value: "3 of 10 left",
         detail: "Not downloaded yet",
         detailTone: "warning",
-        href: "#backup-codes",
+        to: "#backup-codes",
       },
       {
         icon: "i-ph-password",
         eyebrow: "Password",
         value: "Changed 12 days ago",
         detail: "Sep 19, 2026",
-        href: "#password",
+        to: "#password",
       },
       {
         icon: "i-ph-devices",
         eyebrow: "Sessions",
         value: "3 active",
         detail: "This device + 2 others",
-        href: "#sessions",
+        to: "#sessions",
       },
     ],
   });
@@ -82,7 +82,7 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
         eyebrow: "Members",
         value: "8 / 10 seats",
         detail: "6 members · 2 pending invites",
-        href: "/settings/user/members",
+        to: "/settings/user/members",
       },
       {
         eyebrow: "Plan",
@@ -113,6 +113,6 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
   static empty = StatStrip({
     layout: "cards",
     fetchUrl: "/api/blocks/empty",
-    emptyLabel: "No invoices this month",
+    empty: { title: "No invoices this month" },
   });
 }

@@ -8,14 +8,15 @@ import type { SemanticColor } from "../../utils/semanticTint";
 // notices. Wraps UAlert so we keep its a11y + slots while pinning the exact
 // reference look. The `cli` slot hosts the optional inset command box
 // (compose with DmsCopyButton), `actions` the right-aligned buttons.
-type BannerColor = Exclude<SemanticColor, "neutral">;
+type BannerTone = Exclude<SemanticColor, "neutral">;
 type BannerSize = "sm" | "md";
 
 interface BannerProps {
   title?: string;
   description?: string;
   icon?: string;
-  color?: BannerColor;
+  /** Colour of the wash and the icon well. */
+  tone?: BannerTone;
   /** "sm" is the compact one-line banner: title and description inline. */
   size?: BannerSize;
   /** Adds a close button; the banner emits `dismiss` when it is pressed. */
@@ -39,7 +40,7 @@ const props = withDefaults(defineProps<BannerProps>(), {
   title: undefined,
   description: undefined,
   icon: "i-ph-warning",
-  color: "warning",
+  tone: "warning",
   size: "md",
   dismissible: false,
 });
@@ -49,7 +50,7 @@ const slots = defineSlots<BannerSlots>();
 
 // Literal class maps (Tailwind needs the full class string to extract them —
 // no dynamic `bg-${color}` interpolation).
-const SURFACE: Record<BannerColor, string> = {
+const SURFACE: Record<BannerTone, string> = {
   warning: "border-warning/40 from-warning/10",
   info: "border-info/40 from-info/10",
   primary: "border-primary/40 from-primary/10",
@@ -91,7 +92,7 @@ const alertUi = computed(() => ({
   // On a phone the actions wrap under the text instead of squeezing it. Nuxt
   // UI renders the dismiss button inside the actions box: a banner with no
   // actions keeps that box (the lone dismiss) on the text line.
-  root: `items-center border ring-0 bg-default bg-linear-100 to-transparent to-70% max-sm:flex-wrap ${SIZE_ROOT[props.size]} ${SURFACE[props.color]}`,
+  root: `items-center border ring-0 bg-default bg-linear-100 to-transparent to-70% max-sm:flex-wrap ${SIZE_ROOT[props.size]} ${SURFACE[props.tone]}`,
   wrapper: SIZE_WRAPPER[props.size],
   title: "text-highlighted text-sm font-[650]",
   description: `text-muted text-[13px] leading-relaxed ${SIZE_DESCRIPTION[props.size]}`,
@@ -115,7 +116,7 @@ function onOpenChange(open: boolean) {
     @update:open="onOpenChange"
   >
     <template #leading>
-      <DmsIconWell :icon="icon" :tone="color" :size="SIZE_WELL[size]" />
+      <DmsIconWell :icon="icon" :tone="tone" :size="SIZE_WELL[size]" />
     </template>
 
     <template v-if="slots.description || slots.cli" #description>

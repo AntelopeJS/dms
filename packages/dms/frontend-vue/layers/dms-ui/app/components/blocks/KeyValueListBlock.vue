@@ -4,7 +4,7 @@ import DmsCard from "../card/Card.vue";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../key-value-list/KeyValueList.vue";
-import DmsBlockStatus from "./BlockStatus.vue";
+import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
 import { useBlockItems } from "../../composables/blocks/useBlockItems";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
@@ -22,7 +22,8 @@ interface KeyValueListBlockProps extends DefaultComponentProps {
   card?: boolean;
   fetchUrl?: string;
   fetchUrlMethod?: string;
-  emptyLabel?: string;
+  /** Shown when there is nothing to list. */
+  empty?: BlockEmptyText;
   /**
    * Placeholder rows while `fetchUrl` loads: the length it usually answers.
    * Optional. Defaults to 5.
@@ -39,7 +40,7 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   card: true,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
-  emptyLabel: undefined,
+  empty: undefined,
   // A fetched list's length is unknown until it lands: draw the rows a record
   // card usually lists (customer, ids, status, amounts, dates), not a stub.
   skeletonCount: 5,
@@ -94,7 +95,7 @@ const listClass = computed(() => (props.card ? "px-[18px] py-2" : undefined));
       v-else-if="isEmpty"
       state="empty"
       :card="false"
-      :label="props.emptyLabel ? processI18n(props.emptyLabel) : undefined"
+      :empty="props.empty"
     />
     <DmsKeyValueList
       v-else

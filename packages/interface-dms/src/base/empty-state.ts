@@ -1,12 +1,14 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
+import type { BaseComponentProps } from "./types";
 import {
   blockActionsOption,
+  blockCardOption,
   type BlockLinkAction,
-  DISPLAY_TONES,
-  type DisplayTone,
+  toneEnum,
 } from "./display";
+import { TONES, type Tone } from "./types/tone";
 
 export const EMPTY_STATE_VARIANTS = [
   "no-data",
@@ -22,7 +24,8 @@ export const EMPTY_STATE_SIZES = ["sm", "md", "lg"] as const;
 
 export type EmptyStateSize = (typeof EMPTY_STATE_SIZES)[number];
 
-export interface EmptyStateProps {
+/** The options `EmptyState` takes. */
+export interface EmptyStateProps extends BaseComponentProps {
   /** `$`-prefixed for an i18n key, like every text of the block. */
   title: string;
   description?: string;
@@ -30,9 +33,9 @@ export interface EmptyStateProps {
   /** Overrides the variant's icon. */
   icon?: string;
   /** Overrides the variant's well tone. */
-  tone?: DisplayTone;
+  tone?: Tone;
   /** Hatched panel behind the content. */
-  framed?: boolean;
+  hatched?: boolean;
   size?: EmptyStateSize;
   actions?: BlockLinkAction[];
   /** Card surface around it; turn it off inside a `Card` block. */
@@ -52,10 +55,6 @@ const EMPTY_STATE_DEFAULTS = {
  * that fit the case: a first-run page, a section with nothing in it yet, a
  * page the viewer cannot use.
  *
- * `options` is optional because a page is written as it is built: the editor
- * places a block before anything is configured, and writes that as the bare
- * call `EmptyState()`.
- *
  * @example
  * ```typescript
  * EmptyState({
@@ -66,13 +65,13 @@ const EMPTY_STATE_DEFAULTS = {
  * ```
  */
 export function EmptyState(
-  options?: EmptyStateProps,
+  options: EmptyStateProps,
 ): ComponentBuilder<EmptyStateProps> {
   return new ComponentBuilder<EmptyStateProps>(EMPTY_STATE_COMPONENT_NAME)
-    .options({ ...EMPTY_STATE_DEFAULTS, ...options } as EmptyStateProps)
+    .options({ ...EMPTY_STATE_DEFAULTS, ...options })
     .meta({
-      name: options?.title || "Empty state",
-      icon: options?.icon || EMPTY_STATE_ICON,
+      name: options.title || "Empty state",
+      icon: options.icon || EMPTY_STATE_ICON,
     });
 }
 
@@ -81,6 +80,7 @@ export const EmptyStateSchema = z.object({
   title: ui(z.string().describe("Title of the empty state."), {
     label: "Title",
     group: "content",
+    initial: "Nothing here yet",
   }),
   description: ui(z.string().optional(), {
     label: "Description",
@@ -110,7 +110,7 @@ export const EmptyStateSchema = z.object({
     group: "appearance",
     widget: "icon",
   }),
-  tone: ui(z.enum(DISPLAY_TONES).optional(), {
+  tone: ui(toneEnum(TONES).optional(), {
     label: "Tone",
     group: "appearance",
     widget: "select",
@@ -120,18 +120,12 @@ export const EmptyStateSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  framed: ui(z.boolean().optional().describe("Hatched panel behind it."), {
+  hatched: ui(z.boolean().optional().describe("Hatched panel behind it."), {
     label: "Hatched",
     group: "appearance",
     widget: "switch",
   }),
-  card: ui(
-    z
-      .boolean()
-      .default(EMPTY_STATE_DEFAULTS.card)
-      .describe("Card surface around it."),
-    { label: "In a card", group: "appearance", widget: "switch" },
-  ),
+  card: blockCardOption(EMPTY_STATE_DEFAULTS.card),
 }) satisfies BlockOptionsFor<EmptyStateProps>;
 
 RegisterBlockType({

@@ -223,7 +223,7 @@ const builtInActions = computed(() => {
     :description="content.description"
     :actions="actions"
     size="lg"
-    framed
+    hatched
     class="z-10 w-full"
   />
 </template>

@@ -164,7 +164,7 @@ export class ExamplesOverviewPage extends PageController(
     title: "How it's built",
     description:
       "No page here was drawn by hand: the backend describes it, the DMS frontend renders it.",
-    bare: true,
+    card: false,
   }).child(
     "grid",
     Grid(TWO_COLUMNS).child(
@@ -194,7 +194,7 @@ export class ExamplesOverviewPage extends PageController(
     title: "Run it locally & contribute",
     description:
       "The playground is the DMS repository's own test bed: run it, add a demo, send a pull request.",
-    bare: true,
+    card: false,
   }).child(
     "grid",
     Grid(TWO_COLUMNS).child(

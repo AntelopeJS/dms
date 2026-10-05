@@ -38,7 +38,7 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
 
     expect(cell.eyebrow?.optional).to.not.equal(true);
     expect(cell.tone?.enum).to.include("muted");
-    expect(cell.href?.ui?.widget).to.equal("url");
+    expect(cell.to?.ui?.widget).to.equal("url");
   });
 
   it("keeps a list block's route for the advanced view", () => {
