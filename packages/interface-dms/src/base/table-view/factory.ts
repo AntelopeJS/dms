@@ -178,7 +178,6 @@ export function TableView<T extends ControllerClass>(
       rowActions: serializedRowActions,
       caption: options.caption,
       density: options.density,
-      stickyHeader: options.stickyHeader,
       maxHeight: options.maxHeight,
       expandable: serializedExpandable,
       enableTableExport: isExportEnabled,

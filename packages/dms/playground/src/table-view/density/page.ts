@@ -51,7 +51,7 @@ export class PageTableViewDensity extends PageController(
     category: tableViewCategory,
     order: 32,
     description:
-      'density: "compact" (36px rows under a 32px header) next to the default density. Both set stickyHeader with maxHeight "420px": the default table scrolls at 10 rows, the compact one fits 10 rows and scrolls under its header from 25 rows per page',
+      'density: "compact" (36px rows under a 32px header) next to the default density. Both set maxHeight "420px" (their own scroll area under a sticky header): the default table scrolls at 10 rows, the compact one fits 10 rows and scrolls under its header from 25 rows per page',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -60,7 +60,6 @@ export class PageTableViewDensity extends PageController(
     labelKey: "name",
     formTexts: demoFormTexts("task"),
     density: "compact",
-    stickyHeader: true,
     maxHeight: SCROLL_HEIGHT,
     rowActions: ROW_ACTIONS,
   });
@@ -69,7 +68,6 @@ export class PageTableViewDensity extends PageController(
     caption: "Default density · sticky header · 420px",
     labelKey: "name",
     formTexts: demoFormTexts("task"),
-    stickyHeader: true,
     maxHeight: SCROLL_HEIGHT,
     rowActions: ROW_ACTIONS,
   });

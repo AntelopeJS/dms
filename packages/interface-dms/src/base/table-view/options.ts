@@ -431,10 +431,9 @@ export interface TableViewOptions<
   /** Row density: "compact" gives 36px rows under a 32px header. */
   density?: "default" | "compact";
   /**
-   * Keeps the column header in view while rows scroll under it. Needs
-   * `maxHeight`, which caps the scroll area (any CSS length, e.g. "60vh").
+   * Caps the rows in a scroll area of their own (any CSS length, e.g.
+   * "60vh"), under a column header that stays in view while they scroll.
    */
-  stickyHeader?: boolean;
   maxHeight?: string;
   /**
    * Expandable rows: a caret column in front of the content opens a detail

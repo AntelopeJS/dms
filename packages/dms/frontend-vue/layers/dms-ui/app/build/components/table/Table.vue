@@ -160,10 +160,9 @@ export interface TableProps<T> {
   /** Footer texts: the row count (i18n key receiving `{ count }`) and a hint. */
   footer?: TableFooterTexts;
   /**
-   * Keeps the header band visible while the rows scroll. Takes effect with
-   * `maxHeight`, which caps the scroll area (any CSS length).
+   * Caps the rows in a scroll area of their own (any CSS length), under a
+   * header band that stays in view.
    */
-  stickyHeader?: boolean;
   maxHeight?: string;
 
   data?: T[] | null;
@@ -449,7 +448,7 @@ const theme = tv({
       },
     },
     // The header band sticks to the top of a height-capped scroll area.
-    stickyHeader: {
+    scrollArea: {
       true: {
         tableRoot: "overflow-y-auto overscroll-contain",
         table: "border-separate border-spacing-0",
@@ -517,14 +516,14 @@ const theme = tv({
       },
     },
     {
-      stickyHeader: true,
+      scrollArea: true,
       pinned: ["left", "right"],
       class: {
         headCell: "z-30",
       },
     },
     {
-      stickyHeader: true,
+      scrollArea: true,
       scrolled: true,
       class: {
         headCell: HEADER_SCROLL_SHADOW,
@@ -612,17 +611,17 @@ const skeletonWidth = (rowIndex: number, columnIndex: number): string =>
   SKELETON_WIDTHS[(rowIndex + columnIndex) % SKELETON_WIDTHS.length]!;
 
 // The scroll shadow under a sticky header only shows once rows went under it.
+const hasScrollArea = computed(() => !!props.maxHeight);
 const isScrolled = ref(false);
 const onTableScroll = (event: Event) => {
-  if (!props.stickyHeader) return;
+  if (!hasScrollArea.value) return;
   isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
 };
 // Expanded detail bands are as wide as the visible scroll area.
 const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
 const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableRootStyle = computed(() => ({
-  maxHeight:
-    props.stickyHeader && props.maxHeight ? props.maxHeight : undefined,
+  maxHeight: props.maxHeight,
   "--dms-table-viewport":
     isExpandable && tableViewportWidth.value > 0
       ? `${tableViewportWidth.value}px`
@@ -767,7 +766,7 @@ const uiTableRoot = tv({
 const uiTable = computed(() =>
   uiTableRoot({
     density: props.density ?? "default",
-    stickyHeader: !!props.stickyHeader,
+    scrollArea: hasScrollArea.value,
     scrolled: isScrolled.value,
     archived: isShowingArchived.value,
   }),
@@ -1140,7 +1139,7 @@ defineShortcuts({
                   :class="[
                     HEADER_MATCH_BG,
                     'border-b-default sticky left-0 z-30 border-b p-0',
-                    stickyHeader && 'top-0 z-40',
+                    hasScrollArea && 'top-0 z-40',
                   ]"
                   :style="{
                     width: PRESENCE_RAIL_WIDTH_PX,

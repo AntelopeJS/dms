@@ -73,7 +73,6 @@ export class PageTableViewExpandableRows extends PageController(
     labelKey: "number",
     formTexts: demoFormTexts("order"),
     density: "compact",
-    stickyHeader: true,
     maxHeight: "560px",
     defaultSort: { field: "placedAt", desc: true },
     tabs: statusTabs,

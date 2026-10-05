@@ -293,13 +293,13 @@ export const TableViewSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  stickyHeader: ui(z.boolean().optional(), {
-    label: "Sticky header",
-    group: "appearance",
-    widget: "switch",
-  }),
   maxHeight: ui(
-    z.string().optional().describe("Scroll area height, e.g. 60vh."),
+    z
+      .string()
+      .optional()
+      .describe(
+        "Height of the rows' own scroll area, under a sticky header, e.g. 60vh.",
+      ),
     { label: "Max height", group: "appearance" },
   ),
   expandable: ui(

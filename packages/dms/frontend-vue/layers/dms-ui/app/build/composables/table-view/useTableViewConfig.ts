@@ -121,7 +121,6 @@ export const useTableViewConfig = <T extends Data>(
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),
     density: config.density,
-    stickyHeader: config.stickyHeader,
     maxHeight: config.maxHeight,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
