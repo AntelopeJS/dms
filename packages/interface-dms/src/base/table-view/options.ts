@@ -161,10 +161,22 @@ export interface TableViewTabSerialized extends Omit<
  */
 export type TableViewLayout = "full" | "compact";
 
+/** How a quick filter compares its column with the picked value. */
+export type TableViewQuickFilterMode =
+  | "is"
+  | "is_not"
+  | "include"
+  | "exclude"
+  | "array_contains_string";
+
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
  * values of a column: a select's items, a boolean's two labels, or the rows
- * a relation points to. Not persisted, not shown in the filters row.
+ * a relation points to. The picked value is the column's filter, the very one
+ * the filters row edits: kept with the table's state, counted as an active
+ * filter and cleared by "Reset filters". In the `compact` layout, which has
+ * no filters row, the button names the column and its value ("Role: Admin")
+ * next to a clear button.
  */
 export interface TableViewQuickFilter {
   /** Filterable column the control filters on. */
@@ -179,7 +191,7 @@ export interface TableViewQuickFilter {
    * Compare mode of the filter. Defaults to `array_contains_string` for a
    * multiple relation or select, `is` otherwise.
    */
-  mode?: string;
+  mode?: TableViewQuickFilterMode;
 }
 
 /** Texts of the footer band. */

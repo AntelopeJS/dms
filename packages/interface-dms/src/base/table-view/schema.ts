@@ -141,7 +141,9 @@ const quickFilterSchema = z.object({
   label: z.string().optional(),
   icon: ui(z.string().optional(), { widget: "icon" }),
   allLabel: z.string().optional(),
-  mode: z.string().optional(),
+  mode: z
+    .enum(["is", "is_not", "include", "exclude", "array_contains_string"])
+    .optional(),
 }) satisfies BlockOptionsFor<TableViewQuickFilter>;
 
 const formContainerPageConfigSchema = z.object({

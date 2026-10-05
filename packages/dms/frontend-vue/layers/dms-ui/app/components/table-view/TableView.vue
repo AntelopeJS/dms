@@ -61,7 +61,6 @@ import {
 import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
 import {
   type QuickFilterItem,
-  quickFilterFilters,
   quickFilterMode,
   relationQuickFilterItems,
   relationQuickFilterSource,
@@ -494,9 +493,8 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
 });
 
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
-// items, a boolean, the rows a relation points to). Not persisted, not in the
-// filters row, and left out of the tab counters.
-const quickFilterValues = ref<Record<string, string | undefined>>({});
+// items, a boolean, the rows a relation points to), writing that column's
+// filter like the filters row does.
 const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
 // Relation values load after mount: until then their buttons hold their place.
 const relationQuickFiltersLoaded = ref(false);
@@ -554,21 +552,10 @@ const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
     .filter((filter) => filter.items.length > 0 || filter.pending),
 );
 
-const quickFilterHiddenFilters = computed<TableFilter[]>(() =>
-  quickFilterFilters(
-    quickFilterDefinitions.map(({ filter, mode }) => ({
-      field: filter.field,
-      mode,
-    })),
-    quickFilterValues.value,
-  ),
-);
-
 const hiddenFilters = computed<TableFilter[]>(() => [
   ...queryParamHiddenFilters.value,
   ...routeParamHiddenFilters.value,
   ...activeTabFilters.value,
-  ...quickFilterHiddenFilters.value,
 ]);
 
 const queryParamDefaults = computed<Record<string, unknown> | undefined>(() => {
@@ -1534,17 +1521,6 @@ const checkUrlParameter = () => {
   }
 };
 
-// A new quick filter value lists its first page.
-watch(
-  quickFilterValues,
-  () => {
-    if (pagination.value.pageIndex !== 0) {
-      pagination.value = { ...pagination.value, pageIndex: 0 };
-    }
-  },
-  { deep: true },
-);
-
 onMounted(() => {
   checkUrlParameter();
   void loadRelationQuickFilters();
@@ -1577,7 +1553,6 @@ onMounted(() => {
     v-model:kanban-group-by="kanbanGroupBy"
     v-model:show-archived="showArchived"
     v-model:expanded="expandedModel"
-    v-model:quick-filter-values="quickFilterValues"
     v-model:density="density"
     :chrome="resolvedChrome"
     :search-placeholder="props.searchPlaceholder"

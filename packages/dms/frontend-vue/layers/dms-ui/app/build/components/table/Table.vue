@@ -151,8 +151,8 @@ export interface TableProps<T> {
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /**
-   * One-click dropdown filters of the toolbar, their picked values bound to
-   * the `quickFilterValues` model.
+   * One-click dropdown filters of the toolbar, writing the column filters
+   * (the `columnFilters` model).
    */
   quickFilters?: ResolvedQuickFilter[];
   /** Footer texts: the row count (i18n key receiving `{ count }`) and a hint. */
@@ -245,13 +245,13 @@ export interface TableSharedData<T> {
   hasCustomColumns: ComputedRef<boolean>;
   deleteFilter: (index: number) => void;
   /**
-   * Clears everything that narrows the rows — filter chips, the toolbar
-   * search, quick filters — and goes back to the first page.
+   * Clears everything that narrows the rows — filter chips (quick filters
+   * included) and the toolbar search — and goes back to the first page.
    */
   resetFilters: () => void;
   /** What `resetFilters` would clear (nothing: no clear action to offer). */
   clearableFilters: ComputedRef<ClearableTableFilters>;
-  /** A search, a filter chip or a quick filter narrows the rows. */
+  /** A search or a filter chip narrows the rows. */
   isFiltered: ComputedRef<boolean>;
   /** Runs after `resetFilters` (e.g. the toolbar folds its search). */
   onFiltersCleared: EventHookOn;
@@ -595,10 +595,6 @@ const showArchivedState = defineModel<boolean>("showArchived", {
 const densityState = defineModel<TableDensity>("density", {
   default: "default",
 });
-const quickFilterValuesState = defineModel<Record<string, string | undefined>>(
-  "quickFilterValues",
-  { default: (): Record<string, string | undefined> => ({}) },
-);
 
 const slots = useSlots();
 // A detail renderer turns the expander column on.
@@ -852,7 +848,6 @@ const resolvedCapabilities = computed<Required<TableViewDisplayCapabilities>>(
 const narrowingState: TableNarrowingState = {
   columnFilters: columnFiltersState,
   globalFilter: globalFilterState,
-  quickFilterValues: quickFilterValuesState,
   pagination: paginationState,
   searchApplies: computed(() => resolvedCapabilities.value.search),
 };
@@ -1055,7 +1050,6 @@ defineShortcuts({
           v-model:column-visibility="columnVisibilityState"
           v-model:sorting="sortingState"
           v-model:show-archived="showArchivedState"
-          v-model:quick-filter-values="quickFilterValuesState"
           :table
           :can-add-row="normalizeActionConfig(rowActions?.add).isEnabled"
           :archive-toggle="archiveToggle"

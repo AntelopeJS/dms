@@ -52,8 +52,16 @@ export interface TableViewQuickFilter {
   label?: string;
   icon?: string;
   allLabel?: string;
-  mode?: string;
+  mode?: TableViewQuickFilterMode;
 }
+
+/** How a quick filter compares the column with the picked value. */
+export type TableViewQuickFilterMode =
+  | "is"
+  | "is_not"
+  | "include"
+  | "exclude"
+  | "array_contains_string";
 
 /** Texts of the footer band (backend `footer`). */
 export interface TableViewFooter {

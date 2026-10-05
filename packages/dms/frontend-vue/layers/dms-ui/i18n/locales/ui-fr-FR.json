@@ -145,7 +145,8 @@
       "view_mode_title": "Mode d'affichage",
       "view_mode_cards": "Cartes",
       "quick_filter": {
-        "all": "Tous"
+        "all": "Tous",
+        "clear": "Effacer {label}"
       },
       "cell": {
         "now": "Maintenant",

@@ -1,4 +1,5 @@
 import type { TableViewColumn } from "../../../../composables/table-view/types/column";
+import type { TableViewQuickFilterMode } from "../../../../composables/table-view/types/config";
 import type { TableFilter } from "../../../components/table/Table.vue";
 
 /** A value a quick filter offers. */
@@ -13,7 +14,7 @@ export interface ResolvedQuickFilter {
   label: string;
   icon: string;
   allLabel: string;
-  mode: string;
+  mode: TableViewQuickFilterMode;
   items: QuickFilterItem[];
   /** Its values are still loading: the button holds its place, disabled. */
   pending?: boolean;
@@ -35,8 +36,8 @@ interface ColumnInputOptions {
 
 const DEFAULT_LABEL_KEY = "name";
 const DEFAULT_VALUE_KEY = "_id";
-const ARRAY_MODE = "array_contains_string";
-const SCALAR_MODE = "is";
+const ARRAY_MODE: TableViewQuickFilterMode = "array_contains_string";
+const SCALAR_MODE: TableViewQuickFilterMode = "is";
 
 const inputOptions = (column: TableViewColumn | undefined) =>
   (column?.type?.inputComponent?.options ?? {}) as ColumnInputOptions;
@@ -48,8 +49,8 @@ const inputOptions = (column: TableViewColumn | undefined) =>
  */
 export function quickFilterMode(
   column: TableViewColumn | undefined,
-  declared?: string,
-): string {
+  declared?: TableViewQuickFilterMode,
+): TableViewQuickFilterMode {
   if (declared) return declared;
   return inputOptions(column).multiple ? ARRAY_MODE : SCALAR_MODE;
 }
@@ -113,15 +114,65 @@ export function relationQuickFilterItems(
   });
 }
 
-/** The hidden filters the picked quick filter values apply. */
-export function quickFilterFilters(
-  filters: Pick<ResolvedQuickFilter, "field" | "mode">[],
-  values: Record<string, string | undefined>,
+/** The column filter a quick filter reads and writes. */
+const isQuickFilterOf =
+  (quickFilter: Pick<ResolvedQuickFilter, "field" | "mode">) =>
+  (filter: TableFilter): boolean =>
+    filter.accessorKey === quickFilter.field && filter.mode === quickFilter.mode;
+
+/**
+ * The value a quick filter shows as picked: the one its column's filter holds
+ * in the table's filter state, whichever control set it.
+ */
+export function quickFilterValue(
+  filters: TableFilter[],
+  quickFilter: Pick<ResolvedQuickFilter, "field" | "mode">,
+): string | undefined {
+  const value = filters.find(isQuickFilterOf(quickFilter))?.value;
+  return value === undefined || value === null || value === ""
+    ? undefined
+    : String(value);
+}
+
+/**
+ * The table's filters once a quick filter picked `value`, `undefined` for its
+ * "All" entry. It writes the column's own filter — the one the filters row
+ * shows, the preferences keep and "Reset filters" clears: a default filter on
+ * the column takes the value, any other filter on it gives way.
+ */
+export function applyQuickFilter(
+  filters: TableFilter[],
+  quickFilter: Pick<ResolvedQuickFilter, "field" | "mode">,
+  value: string | undefined,
 ): TableFilter[] {
-  return filters.flatMap(({ field, mode }) => {
-    const value = values[field];
-    return value === undefined || value === ""
-      ? []
-      : [{ accessorKey: field, mode, value }];
-  });
+  const { field, mode } = quickFilter;
+  const pinned = filters.find(
+    (filter) => filter.accessorKey === field && filter.pinned,
+  );
+  if (pinned) {
+    return filters.map((filter) =>
+      filter === pinned ? { ...filter, mode, value } : filter,
+    );
+  }
+  const others = filters.filter((filter) => filter.accessorKey !== field);
+  return value === undefined
+    ? others
+    : [...others, { accessorKey: field, mode, value, pinned: false }];
+}
+
+/**
+ * The text of a quick filter's button: its label while nothing is picked,
+ * else the picked value's label — preceded by the filter's own label
+ * ("Role: Admin") when the table has no filters row to show the chip in.
+ */
+export function quickFilterButtonLabel(
+  quickFilter: ResolvedQuickFilter,
+  filters: TableFilter[],
+  hasFiltersRow: boolean,
+): string {
+  const value = quickFilterValue(filters, quickFilter);
+  if (value === undefined) return quickFilter.label;
+  const picked =
+    quickFilter.items.find((item) => item.value === value)?.label ?? value;
+  return hasFiltersRow ? picked : `${quickFilter.label}: ${picked}`;
 }

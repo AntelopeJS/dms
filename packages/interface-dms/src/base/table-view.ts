@@ -81,6 +81,7 @@ export {
   type TableViewFormText,
   type TableViewLayout,
   type TableViewQuickFilter,
+  type TableViewQuickFilterMode,
   type TableViewOptions,
   type TableViewOptionsSerialized,
   type TableViewRowActionOptions,

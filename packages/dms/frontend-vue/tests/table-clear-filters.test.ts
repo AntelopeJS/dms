@@ -41,30 +41,34 @@ const dueDate: TableFilter = {
 interface Harness extends TableNarrowingState {
   columnFilters: Ref<TableFilter[]>;
   globalFilter: Ref<string | undefined>;
-  quickFilterValues: Ref<Record<string, string | undefined>>;
   pagination: Ref<PaginationState>;
 }
+
+// What a quick filter writes: the column's own filter.
+const quickPriority = (value: string): TableFilter => ({
+  accessorKey: "priority",
+  mode: "is",
+  value,
+  pinned: false,
+});
 
 const createState = (
   overrides: Partial<{
     columnFilters: TableFilter[];
     globalFilter: string;
-    quickFilterValues: Record<string, string | undefined>;
     pageIndex: number;
   }> = {},
 ): Harness => ({
   columnFilters: ref(overrides.columnFilters ?? []),
   globalFilter: ref(overrides.globalFilter ?? ""),
-  quickFilterValues: ref(overrides.quickFilterValues ?? {}),
   pagination: ref({ pageIndex: overrides.pageIndex ?? 0, pageSize: 25 }),
 });
 
 describe("clearTableFilters", () => {
   it("clears the chips, the search and the quick filters, back to page 1", () => {
     const state = createState({
-      columnFilters: [pinnedStatus("done"), dueDate],
+      columnFilters: [pinnedStatus("done"), dueDate, quickPriority("high")],
       globalFilter: "dfgdf",
-      quickFilterValues: { priority: "high" },
       pageIndex: 3,
     });
 
@@ -73,7 +77,6 @@ describe("clearTableFilters", () => {
     // The default filter goes back to its value, the added chip is dropped.
     expect(state.columnFilters.value).toEqual([pinnedStatus("open")]);
     expect(state.globalFilter.value).toBe("");
-    expect(state.quickFilterValues.value).toEqual({});
     expect(state.pagination.value).toEqual({ pageIndex: 0, pageSize: 25 });
   });
 
@@ -106,7 +109,7 @@ describe("clearTableFilters", () => {
     );
     expect(
       clearableTableFilters(
-        createState({ quickFilterValues: { priority: "high" } }),
+        createState({ columnFilters: [quickPriority("high")] }),
       ),
     ).toEqual({ filters: true, search: false });
     expect(
@@ -141,7 +144,7 @@ describe("clearTableFilters", () => {
       true,
     );
     expect(
-      isTableNarrowed(createState({ quickFilterValues: { priority: "low" } })),
+      isTableNarrowed(createState({ columnFilters: [quickPriority("low")] })),
     ).toBe(true);
   });
 

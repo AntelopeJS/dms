@@ -3,9 +3,10 @@ import type { PaginationState } from "@tanstack/vue-table";
 import type { TableFilter } from "../../../components/table/Table.vue";
 import { isFilterEffective } from "../../table-view/utils/tableQuery";
 
-// Everything that narrows a table's rows — filter chips, the toolbar search
-// and the quick filters — cleared in one go. The "clear all" actions (empty
-// state, filters row, filters popover) all go through `clearTableFilters`.
+// Everything that narrows a table's rows — filter chips (quick filters write
+// theirs) and the toolbar search — cleared in one go. The "clear all" actions
+// (empty state, filters row, filters popover) all go through
+// `clearTableFilters`.
 // Sort, page size, tab, display, group-by and the archive toggle are not
 // filters: they stay as they are.
 
@@ -13,7 +14,6 @@ export interface TableNarrowingState {
   columnFilters: Ref<TableFilter[]>;
   /** The toolbar search text. */
   globalFilter: Ref<string | undefined>;
-  quickFilterValues?: Ref<Record<string, string | undefined>>;
   /** Sent back to the first page after a clear. */
   pagination?: Ref<PaginationState>;
   /**
@@ -25,7 +25,7 @@ export interface TableNarrowingState {
 
 /** What a clear would change. */
 export interface ClearableTableFilters {
-  /** Filter chips or quick filters. */
+  /** Filter chips, those of the quick filters included. */
   filters: boolean;
   search: boolean;
 }
@@ -47,30 +47,19 @@ const hasClearableColumnFilters = (filters: TableFilter[]): boolean =>
     filter.pinned ? !sameValue(filter.value, filter.initialValue) : true,
   );
 
-const hasQuickFilterValues = (
-  values: Record<string, string | undefined> | undefined,
-): boolean =>
-  Object.values(values ?? {}).some(
-    (value) => value !== undefined && value !== "",
-  );
-
 const hasSearch = (state: TableNarrowingState): boolean =>
   !!state.globalFilter.value && (state.searchApplies?.value ?? true);
 
 export const clearableTableFilters = (
   state: TableNarrowingState,
 ): ClearableTableFilters => ({
-  filters:
-    hasClearableColumnFilters(state.columnFilters.value) ||
-    hasQuickFilterValues(state.quickFilterValues?.value),
+  filters: hasClearableColumnFilters(state.columnFilters.value),
   search: hasSearch(state),
 });
 
-/** The rows are narrowed by a search, a filter chip or a quick filter. */
+/** The rows are narrowed by a search or a filter chip. */
 export const isTableNarrowed = (state: TableNarrowingState): boolean =>
-  hasSearch(state) ||
-  state.columnFilters.value.some(isFilterEffective) ||
-  hasQuickFilterValues(state.quickFilterValues?.value);
+  hasSearch(state) || state.columnFilters.value.some(isFilterEffective);
 
 /** i18n key of a clear action, naming what it clears. */
 export const clearTableFiltersLabelKey = (
@@ -85,7 +74,6 @@ export const clearTableFiltersLabelKey = (
 export const clearTableFilters = (state: TableNarrowingState): void => {
   state.columnFilters.value = resetColumnFilters(state.columnFilters.value);
   state.globalFilter.value = "";
-  if (state.quickFilterValues) state.quickFilterValues.value = {};
   if (state.pagination && state.pagination.value.pageIndex !== 0) {
     state.pagination.value = { ...state.pagination.value, pageIndex: 0 };
   }

@@ -145,7 +145,8 @@
       "view_mode_title": "View mode",
       "view_mode_cards": "Cards",
       "quick_filter": {
-        "all": "All"
+        "all": "All",
+        "clear": "Clear {label}"
       },
       "cell": {
         "now": "Now",

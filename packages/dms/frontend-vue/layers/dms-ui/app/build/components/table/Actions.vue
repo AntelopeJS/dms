@@ -14,7 +14,12 @@ import {
   FULL_TABLE_CHROME,
   type ResolvedTableChrome,
 } from "../../composables/table-view/utils/chrome";
-import type { ResolvedQuickFilter } from "../../composables/table-view/utils/quickFilters";
+import {
+  applyQuickFilter,
+  quickFilterButtonLabel,
+  quickFilterValue,
+  type ResolvedQuickFilter,
+} from "../../composables/table-view/utils/quickFilters";
 
 const theme = tv({
   slots: {
@@ -25,8 +30,11 @@ const theme = tv({
       "transition-width relative overflow-hidden duration-300 ease-in-out",
     // Always-open search field of a reduced chrome (v2 settings lists).
     searchField: "w-[240px] max-sm:w-full",
-    // A quick filter: a secondary button naming the picked value.
+    // A quick filter: a secondary button naming the picked value, joined by
+    // its clear button while it has no chip to clear it from.
+    quickFilterGroup: "inline-flex",
     quickFilter: "max-sm:h-8",
+    quickFilterClear: "rounded-s-none border-s border-default max-sm:h-8",
     // v2 toolbar icon triggers: muted until hovered, lit while their panel
     // is open or their configuration differs from the default.
     // Phones get 32px touch targets (28px from sm up).
@@ -84,6 +92,11 @@ const theme = tv({
         quickFilter: "text-highlighted",
       },
     },
+    quickFilterClearable: {
+      true: {
+        quickFilter: "rounded-e-none",
+      },
+    },
   },
 });
 
@@ -97,17 +110,13 @@ interface TableActionsProps {
   chrome?: ResolvedTableChrome;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
-  /** Dropdown filters, their values bound to `quickFilterValues`. */
+  /** Dropdown filters writing their column's filter. */
   quickFilters?: ResolvedQuickFilter[];
 }
 
 const props = defineProps<TableActionsProps>();
 
 const showArchived = defineModel<boolean>("showArchived", { default: false });
-const quickFilterValues = defineModel<Record<string, string | undefined>>(
-  "quickFilterValues",
-  { default: (): Record<string, string | undefined> => ({}) },
-);
 
 const chrome = computed(() => props.chrome ?? FULL_TABLE_CHROME);
 const showSearch = computed(
@@ -198,33 +207,53 @@ const searchPlaceholderText = computed(() =>
     : t("dms.table.search_placeholder"),
 );
 
-const quickFilterLabel = (filter: ResolvedQuickFilter): string => {
-  const value = quickFilterValues.value[filter.field];
-  return (
-    filter.items.find((item) => item.value === value)?.label ?? filter.label
-  );
-};
+const pickedQuickFilter = (filter: ResolvedQuickFilter): string | undefined =>
+  quickFilterValue(tableSharedData.columnFiltersState.value, filter);
 
-const setQuickFilter = (field: string, value: string | undefined) => {
-  quickFilterValues.value = { ...quickFilterValues.value, [field]: value };
+// Without a filters row to show the chip (the compact layout), the button
+// names the column and its value ("Role: Admin") and carries the clear.
+const quickFilterLabel = (filter: ResolvedQuickFilter): string =>
+  quickFilterButtonLabel(
+    filter,
+    tableSharedData.columnFiltersState.value,
+    chrome.value.filters,
+  );
+
+const isQuickFilterClearable = (filter: ResolvedQuickFilter): boolean =>
+  !chrome.value.filters && pickedQuickFilter(filter) !== undefined;
+
+// A new value lists the first page.
+const setQuickFilter = (
+  filter: ResolvedQuickFilter,
+  value: string | undefined,
+) => {
+  const { columnFiltersState, paginationState } = tableSharedData;
+  columnFiltersState.value = applyQuickFilter(
+    columnFiltersState.value,
+    filter,
+    value,
+  );
+  if (paginationState.value.pageIndex !== 0) {
+    paginationState.value = { ...paginationState.value, pageIndex: 0 };
+  }
 };
 
 const quickFilterItems = (filter: ResolvedQuickFilter) => {
-  const picked = quickFilterValues.value[filter.field];
+  const picked = pickedQuickFilter(filter);
   return [
     [
       {
         label: filter.allLabel,
         type: "checkbox" as const,
         checked: picked === undefined,
-        onSelect: () => setQuickFilter(filter.field, undefined),
+        onSelect: () => setQuickFilter(filter, undefined),
       },
     ],
     filter.items.map((item) => ({
       label: item.label,
       type: "checkbox" as const,
       checked: item.value === picked,
-      onSelect: () => setQuickFilter(filter.field, item.value),
+      onSelect: () => setQuickFilter(filter, item.value),
     })),
   ];
 };
@@ -342,28 +371,43 @@ const uiTableActions = computed(() => uiTableActionsVariant());
       @keydown.esc="closeSearch"
     />
 
-    <UDropdownMenu
+    <div
       v-for="filter in props.quickFilters ?? []"
       :key="filter.field"
-      :items="quickFilterItems(filter)"
-      :content="{ align: 'end' }"
-      :ui="{ content: 'min-w-48' }"
+      :class="uiTableActions.quickFilterGroup()"
     >
+      <UDropdownMenu
+        :items="quickFilterItems(filter)"
+        :content="{ align: 'end' }"
+        :ui="{ content: 'min-w-48' }"
+      >
+        <UButton
+          size="sm"
+          color="neutral"
+          :variant="pickedQuickFilter(filter) ? 'soft' : 'outline'"
+          :icon="filter.icon"
+          :label="quickFilterLabel(filter)"
+          :aria-label="filter.label"
+          :disabled="filter.pending"
+          :class="
+            uiTableActions.quickFilter({
+              quickFilterOn: !!pickedQuickFilter(filter),
+              quickFilterClearable: isQuickFilterClearable(filter),
+            })
+          "
+        />
+      </UDropdownMenu>
       <UButton
+        v-if="isQuickFilterClearable(filter)"
         size="sm"
         color="neutral"
-        :variant="quickFilterValues[filter.field] ? 'soft' : 'outline'"
-        :icon="filter.icon"
-        :label="quickFilterLabel(filter)"
-        :aria-label="filter.label"
-        :disabled="filter.pending"
-        :class="
-          uiTableActions.quickFilter({
-            quickFilterOn: !!quickFilterValues[filter.field],
-          })
-        "
+        variant="soft"
+        :icon="appConfig.ui.icons.close"
+        :aria-label="t('dms.table.quick_filter.clear', { label: filter.label })"
+        :class="uiTableActions.quickFilterClear()"
+        @click="setQuickFilter(filter, undefined)"
       />
-    </UDropdownMenu>
+    </div>
 
     <div v-if="hasIconControls" :class="uiTableActions.base()">
       <div
