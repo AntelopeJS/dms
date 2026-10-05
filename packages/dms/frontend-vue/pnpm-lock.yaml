@@ -121,11 +121,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.13.3 <2'
-        version: 1.13.3
+        specifier: '>=1.13.4 <2'
+        version: 1.13.4
       '@antelopejs/dms-frontend':
         specifier: '>=0.3.2 <1.0.0'
-        version: 0.3.2(@antelopejs/core@1.13.3)
+        version: 0.3.2(@antelopejs/core@1.13.4)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -196,8 +196,8 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@antelopejs/core@1.13.3':
-    resolution: {integrity: sha512-6xypCf+zUHUC8VdSJtacB+NGYAYVMBjVwHamwSz/GrbwbHGkBtM00b7FSK81AeU8xSpExuHAXcfjk8NTjqQ1bQ==}
+  '@antelopejs/core@1.13.4':
+    resolution: {integrity: sha512-nr28aF/uOLqfZ72HPIxt7cv3YfgAeXEemEZm7mOPCbAr1yXB6CMyBWFHlmlk/vdFChAunnsGwDYqWCDnjTXRnA==}
     engines: {node: '>=20.19'}
     hasBin: true
 
@@ -4118,7 +4118,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/core@1.13.3':
+  '@antelopejs/core@1.13.4':
     dependencies:
       '@antelopejs/interface-core': 0.1.1
       '@clack/prompts': 1.8.1
@@ -4133,7 +4133,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.3.2(@antelopejs/core@1.13.3)':
+  '@antelopejs/dms-frontend@0.3.2(@antelopejs/core@1.13.4)':
     dependencies:
       boxen: 5.1.2
       chalk: 4.1.2
@@ -4144,7 +4144,7 @@ snapshots:
       semver: 7.8.5
       unzipper: 0.12.5
     optionalDependencies:
-      '@antelopejs/core': 1.13.3
+      '@antelopejs/core': 1.13.4
       '@oxc-parser/binding-darwin-arm64': 0.95.0
       '@oxc-parser/binding-darwin-x64': 0.95.0
       '@oxc-parser/binding-linux-arm64-gnu': 0.95.0
