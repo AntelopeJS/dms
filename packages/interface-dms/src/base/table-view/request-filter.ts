@@ -56,6 +56,10 @@ export async function resolveTableViewGrants(
   return grants;
 }
 
+/**
+ * A built-in row action as served to a caller: refused (`false`) without
+ * the permission, on (`true`) when the table view left it unset.
+ */
 export function applyPermissionToAction(
   hasPermission: boolean,
   actionConfig: boolean | RowActionConfigSerialized | undefined,
@@ -66,9 +70,12 @@ export function applyPermissionToAction(
   return typeof actionConfig === "undefined" ? true : actionConfig;
 }
 
-// Row action rules are registered once per controller -- the writing table
-// view's -- and enforced server-side on every write; expose them where a table
-// view did not declare its own rule so its UI matches what the server accepts.
+/**
+ * A built-in row action with the controller's rule, where the table view did
+ * not declare its own: rules are registered once per controller (the writing
+ * table view's) and enforced on every write, so the UI matches what the
+ * server accepts.
+ */
 export function mergeControllerRule(
   actionConfig: boolean | RowActionConfigSerialized | undefined,
   rule: RowActionRule | undefined,

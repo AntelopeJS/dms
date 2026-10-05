@@ -10,6 +10,7 @@ import {
 } from "./display";
 import { TONES, type Tone } from "./types/tone";
 
+/** Why a block is empty: see `EmptyStateVariant`. */
 export const EMPTY_STATE_VARIANTS = [
   "no-data",
   "no-result",
@@ -20,6 +21,7 @@ export const EMPTY_STATE_VARIANTS = [
 /** Why it is empty: sets the default icon, the well tone and the live role. */
 export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
+/** The sizes of an empty state. */
 export const EMPTY_STATE_SIZES = ["sm", "md", "lg"] as const;
 
 export type EmptyStateSize = (typeof EMPTY_STATE_SIZES)[number];

@@ -30,6 +30,7 @@ export interface NavCardItem {
   readout?: string[];
 }
 
+/** The options `NavCardGrid` takes. */
 export interface NavCardGridProps extends BaseComponentProps, BlockItemsSource {
   items?: NavCardItem[];
   /** Columns on wide screens (1–4); fewer on narrow ones. */

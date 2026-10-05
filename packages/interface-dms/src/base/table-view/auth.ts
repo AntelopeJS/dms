@@ -38,9 +38,10 @@ export const SELECT_ACTION = "select";
  * `export` is deliberately out — it queues a job and delivers a file, which is
  * a side effect on a tenant the product has been shut off for, not a read of
  * the recovery surface.
+ *
+ * @internal Read by the tests that check this list against the actions a
+ * real table view declares.
  */
-// @internal — read by the tests that check this list against the actions a
-// real table view declares.
 export const GATE_BYPASSABLE_ACTIONS = [
   VIEW_ACTION,
   LIST_ACTION,
@@ -54,7 +55,7 @@ function isGateBypassableAction(
   return permissionIds.length > 0 && GATE_BYPASSABLE_ACTIONS.includes(actionId);
 }
 
-// @internal
+/** @internal */
 export async function authorizeAction(
   thisObj: unknown,
   actionId: string,

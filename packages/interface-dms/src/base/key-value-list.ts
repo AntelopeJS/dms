@@ -45,6 +45,7 @@ export interface KeyValueListItem {
   currency?: string;
 }
 
+/** The options `KeyValueList` takes. */
 export interface KeyValueListProps
   extends BaseComponentProps, BlockItemsSource {
   items?: KeyValueListItem[];

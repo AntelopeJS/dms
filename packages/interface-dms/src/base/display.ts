@@ -24,6 +24,7 @@ export const toneEnum = <T extends readonly [string, ...string[]]>(tones: T) =>
     T[number]
   >;
 
+/** The button variants a block link action may take. */
 export const BLOCK_ACTION_VARIANTS = [
   "solid",
   "outline",
@@ -150,6 +151,7 @@ export interface BlockItemsSource {
   skeletonCount?: number;
 }
 
+/** The options of `BlockItemsSource`, for a list block's schema. */
 export const blockItemsSourceOptions = () => ({
   fetchUrl: blockFetchUrlOption(
     "Route answering `{ items }`; when set it replaces the static items.",

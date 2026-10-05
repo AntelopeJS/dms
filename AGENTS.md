@@ -17,6 +17,12 @@ does not fall back to a directory index inside an `exports` map, so a new
 directory in the interface package needs an entry there -- `pnpm --dir
 packages/interface-dms check:exports` is the gate.
 
+Every built file is importable through the `./*` export, as everywhere in
+AntelopeJS, so a module may import any of them by its path. Moving or renaming
+a file under `packages/interface-dms/src` is therefore a breaking change, like
+removing an export: keep paths stable, and list such a move in the release
+notes.
+
 ### The interface package is a singleton
 
 `@antelopejs/interface-dms` is not a types-only package: the page, category and

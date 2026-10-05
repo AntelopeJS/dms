@@ -173,7 +173,7 @@ const CHANGED_COUNT_KEYS = ["deleted", "archivedCount", "restoredCount"];
  * or none existed. Broadcasting its ids would have every session watching
  * the table (the caller included) drop rows that are still there.
  */
-// @internal
+/** @internal */
 export const reportsNoChange = (result: unknown): boolean => {
   if (typeof result === "number") return result === 0;
   if (!result || typeof result !== "object") return false;

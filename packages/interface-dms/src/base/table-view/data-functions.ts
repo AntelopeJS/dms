@@ -9,7 +9,7 @@ import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
 import type { TableViewFooterSummary } from "./options";
 
-// @internal
+/** @internal */
 export const listWithSearch = InterfaceFunction<
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
@@ -25,7 +25,7 @@ export const listWithSearch = InterfaceFunction<
   }>
 >();
 
-// @internal
+/** @internal */
 export const countWithSearch =
   InterfaceFunction<
     (
@@ -40,7 +40,7 @@ export const countWithSearch =
 /** The figures of a footer, by summary id. */
 export type FooterSummaryValues = Record<string, number>;
 
-// @internal
+/** @internal */
 export const summarizeWithSearch = InterfaceFunction<
   // A published contract: the runtime calls this positionally.
   // oxlint-disable-next-line eslint/max-params
@@ -72,7 +72,7 @@ export const MAX_BULK_MATCHING_ROWS = 10_000;
 /** Query flag of a bulk request covering every matching row. */
 export const BULK_ALL_MATCHING_KEY = "allMatching";
 
-// @internal
+/** @internal */
 export const startExport = InterfaceFunction<
   // A published contract: the runtime calls this positionally and every
   // implementing module declares the same shape, so an options object
@@ -89,7 +89,7 @@ export const startExport = InterfaceFunction<
   ) => { jobId: string; format: string; extension: string }
 >();
 
-// @internal
+/** @internal */
 export const getExportStatus = InterfaceFunction<
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
@@ -103,7 +103,7 @@ export const getExportStatus = InterfaceFunction<
   }
 >();
 
-// @internal
+/** @internal */
 export const downloadExport =
   InterfaceFunction<
     (
@@ -120,7 +120,7 @@ export type RowBulkOperationParams = [
   ids: string | string[],
 ];
 
-// @internal
+/** @internal */
 export const archiveRows = InterfaceFunction<
   (...args: RowBulkOperationParams) => {
     success: boolean;
@@ -128,7 +128,7 @@ export const archiveRows = InterfaceFunction<
   }
 >();
 
-// @internal
+/** @internal */
 export const restoreRows = InterfaceFunction<
   (...args: RowBulkOperationParams) => {
     success: boolean;
@@ -141,7 +141,7 @@ interface RuleValidationResult {
   rejectedIds: string[];
 }
 
-// @internal
+/** @internal */
 export const validateRowsAgainstRule =
   InterfaceFunction<
     (
@@ -153,7 +153,7 @@ export const validateRowsAgainstRule =
     ) => Promise<RuleValidationResult>
   >();
 
-// @internal
+/** @internal */
 export const fetchRowForGuard =
   InterfaceFunction<
     (

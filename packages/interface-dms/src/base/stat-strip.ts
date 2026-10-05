@@ -32,10 +32,12 @@ export interface StatStripItem {
   to?: string;
 }
 
+/** How a stat strip lays its cells out: see `StatStripProps.layout`. */
 export const STAT_STRIP_LAYOUTS = ["joined", "cards"] as const;
 
 export type StatStripLayout = (typeof STAT_STRIP_LAYOUTS)[number];
 
+/** The options `StatStrip` takes. */
 export interface StatStripProps extends BaseComponentProps, BlockItemsSource {
   items?: StatStripItem[];
   /**

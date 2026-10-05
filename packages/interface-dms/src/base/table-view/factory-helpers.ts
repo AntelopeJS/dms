@@ -144,6 +144,7 @@ function serializeCustomRowAction<T extends Record<string, unknown>>(
   return served;
 }
 
+/** The row actions as the options carry them to the client. */
 export function serializeRowActions<T extends Record<string, unknown>>(
   rowActions: TableViewRowActionOptions<T>,
 ): TableViewRowActionOptionsSerialized {
