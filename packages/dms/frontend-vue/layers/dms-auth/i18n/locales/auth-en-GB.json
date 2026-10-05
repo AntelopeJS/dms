@@ -372,7 +372,6 @@
           "running_low": "Running low",
           "generated": "Generated {date}",
           "usage": "Use one if you lose your phone",
-          "show": "Show codes",
           "regenerate": "Regenerate…",
           "regenerate_title": "Regenerate backup codes?",
           "regenerate_confirm": "Regenerate codes",

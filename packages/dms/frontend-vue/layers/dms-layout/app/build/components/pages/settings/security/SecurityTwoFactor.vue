@@ -7,6 +7,7 @@ import {
   type TotpSetup,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
+import { useRevealedBackupCodes } from "../../../../../composables/settings/security/useRevealedBackupCodes";
 import SecurityBackupCodesModal from "./SecurityBackupCodesModal.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityTotpSetupModal from "./SecurityTotpSetupModal.vue";
@@ -66,17 +67,13 @@ const { formatDate, errorMessage } = useSecurityFormat();
 const isProcessing = ref(false);
 const isTotpOpen = ref(false);
 const totpSetup = ref<TotpSetup | null>(null);
-// Shared state, not local refs: codes are shown once, and a page refresh
-// (a notification arriving re-renders the page) must not lose them.
-const isCodesOpen = useDmsState<boolean>(
-  "dms-security-codes-open",
-  () => false,
-);
-const codes = useDmsState<string[]>("dms-security-codes", () => []);
-const isRegenerated = useDmsState<boolean>(
-  "dms-security-codes-regenerated",
-  () => false,
-);
+const { user } = useUserSession<User>();
+const {
+  codes,
+  isRegenerated,
+  isOpen: isCodesOpen,
+  reveal: revealCodes,
+} = useRevealedBackupCodes(computed(() => user.value?._id));
 const isRemoveOpen = ref(false);
 const totpCodeError = ref<string>();
 const removeCodeError = ref<string>();
@@ -97,7 +94,6 @@ const isUnsaved = computed(() =>
   attention.value.includes("backup_codes_unsaved"),
 );
 const isLow = computed(() => attention.value.includes("backup_codes_low"));
-const hasFreshCodes = computed(() => codes.value.length > 0);
 
 const addItems = computed<DropdownMenuItem[]>(() =>
   addableMethods.value.map((method) => ({
@@ -134,8 +130,7 @@ function showCodes(
   regenerated = false,
 ): void {
   if (!backupCodes?.length) return;
-  codes.value = backupCodes;
-  isRegenerated.value = regenerated;
+  revealCodes(backupCodes, regenerated);
   setTimeout(() => (isCodesOpen.value = true), DIALOG_SWAP_MS);
 }
 
@@ -420,15 +415,6 @@ async function markSaved(): Promise<void> {
             </template>
           </DmsListRow>
         </template>
-        <UButton
-          v-if="hasFreshCodes"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          icon="i-ph-download-simple"
-          :label="t('page.settings.security.backup.show')"
-          @click="isCodesOpen = true"
-        />
         <UButton
           color="neutral"
           variant="ghost"
