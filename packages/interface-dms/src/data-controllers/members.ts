@@ -96,7 +96,7 @@ export class memberSettingDataAPI extends DataController(
           field: "isValidated",
           equals: false,
           label: "$page.settings.members.email_not_verified",
-          color: "warning",
+          tone: "warning",
         },
       ],
     }),

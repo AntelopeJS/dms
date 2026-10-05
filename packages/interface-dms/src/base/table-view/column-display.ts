@@ -3,7 +3,7 @@ import {
   type ClassDecorator,
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
-import type { DisplayTone } from "../display";
+import type { Tone } from "../types/tone";
 
 /**
  * How table cells (and expanded-row fields) draw a column's value, in place of
@@ -106,7 +106,8 @@ export namespace DefaultDisplays {
     notEquals?: unknown;
     /** `$`-prefixed: an i18n key. */
     label: string;
-    color?: DisplayTone;
+    /** Tone of the badge's pill. */
+    tone?: Tone;
   }
 
   export interface IdentityDisplayOptions {
@@ -210,7 +211,7 @@ export namespace DefaultDisplays {
      * neutral. A select column's item labels and icons name the pill.
      * @example { healthy: "success", degraded: "warning", failing: "error" }
      */
-    tones: Record<string, DisplayTone>;
+    tones: Record<string, Tone>;
     /** Row field drawn under the pill, in its tone (the failure's cause). */
     subField?: string;
     /** A pulsing dot for these values (a run in progress). */
@@ -241,7 +242,7 @@ export namespace DefaultDisplays {
     /** Row field holding the series, a list of numbers. */
     field: string;
     /** Line color. Defaults to `primary`. */
-    tone?: DisplayTone;
+    tone?: Tone;
   }
 
   /** A small line chart of a list of numbers ("last 30 days"). */

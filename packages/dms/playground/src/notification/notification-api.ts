@@ -64,7 +64,7 @@ export class NotificationAPIController extends Controller("/api/notification") {
       .description(`${DEMO_MESSAGES}.dms_update.description`)
       .linkTo("/modules")
       .subject(GeneralSubject)
-      .tone("accent")
+      .tone("primary")
       .build();
 
     await notification.toUser(user._id);
@@ -80,7 +80,7 @@ export class NotificationAPIController extends Controller("/api/notification") {
       .description(`${DEMO_MESSAGES}.hosting_promo.description`)
       .linkTo("https://antelopejs.com/hosting")
       .subject(GeneralSubject)
-      .tone("accent")
+      .tone("primary")
       .build();
 
     await notification.toUser(user._id);

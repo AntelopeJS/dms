@@ -1,7 +1,8 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
-import type { BlockLinkAction, DisplayTone } from "../display";
+import type { BlockLinkAction } from "../display";
+import type { Tone } from "../types/tone";
 import type { ColorValue } from "../types";
 import type {
   CustomButton,
@@ -169,9 +170,9 @@ export interface TableViewView extends TableViewViewState {
   label: string;
   icon?: string;
   /** Colors the view's icon and counter. */
-  tone?: DisplayTone;
+  tone?: Tone;
   /** A status dot drawn before the label. */
-  dot?: DisplayTone;
+  dot?: Tone;
   /**
    * Shows the number of rows the view lists, counted by the controller's
    * `countBatch` route like the tab counters.

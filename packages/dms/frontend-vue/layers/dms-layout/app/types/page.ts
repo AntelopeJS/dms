@@ -58,7 +58,7 @@ export type ModuleWithAccess = ModuleInfo & { hasAccess: boolean };
 
 // Mirror of ModuleStatus / ModuleReadoutLine from @antelopejs/interface-dms/page.
 export type ModuleStatus = "live" | "beta" | "update" | "attention";
-export type ModuleReadoutTone = "ok" | "info" | "warning" | "error";
+export type ModuleReadoutTone = "success" | "info" | "warning" | "error";
 export interface ModuleReadoutLine {
   text: string;
   tone?: ModuleReadoutTone;

@@ -3,10 +3,12 @@ import { computed } from "vue";
 import { tv } from "tailwind-variants";
 
 /**
- * Fill colors of a meter segment. `accent` is the brand fill, `soft` its
- * quieter line color (pending, reserved, locked).
+ * Fill colors of a meter segment. `primary` is the brand fill, `soft` its
+ * quieter line color (pending, reserved, locked); `accent` is the former name
+ * of `primary`, still accepted.
  */
 export type MeterTone =
+  | "primary"
   | "accent"
   | "soft"
   | "neutral"
@@ -72,7 +74,7 @@ const props = withDefaults(defineProps<MeterProps>(), {
   legend: false,
   format: "none",
   valueLabel: undefined,
-  tone: "accent",
+  tone: "primary",
   warnAt: undefined,
   errorAt: undefined,
   size: "sm",
@@ -83,6 +85,7 @@ const { locale } = useI18n();
 const PERCENT = 100;
 
 const FILL_CLASSES: Record<MeterTone, string> = {
+  primary: "bg-(--dms-accent-fill)",
   accent: "bg-(--dms-accent-fill)",
   soft: "bg-(--dms-accent-line)",
   neutral: "bg-(--ui-border-accented)",
@@ -166,7 +169,7 @@ const drawn = computed<DrawnSegment[]>(() => {
   }
   return props.segments!.map((segment) => ({
     width: percentOf(segment.value),
-    className: FILL_CLASSES[segment.tone ?? "accent"],
+    className: FILL_CLASSES[segment.tone ?? "primary"],
     label: segment.label,
   }));
 });

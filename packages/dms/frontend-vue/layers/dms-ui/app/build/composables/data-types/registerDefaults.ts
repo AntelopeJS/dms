@@ -415,7 +415,7 @@ interface IdentityBadgeOption {
   /** Shown when the field differs from this. */
   notEquals?: unknown;
   label: string;
-  color?: string;
+  tone?: string;
 }
 
 interface IdentityOptions {
@@ -442,7 +442,7 @@ function renderIdentity(value: unknown, options: unknown, row: Row) {
   const opts = (options ?? {}) as IdentityOptions;
   const badges = (opts.badges ?? [])
     .filter((badge) => matchesBadge(badge, readRowField(row, badge.field)))
-    .map((badge) => ({ label: processI18n(badge.label), color: badge.color }));
+    .map((badge) => ({ label: processI18n(badge.label), color: badge.tone }));
   return h(IdentityCell, {
     title: stringOf(value) ?? "",
     subtitle: stringOf(readRowField(row, opts.subtitleField)) ?? "",

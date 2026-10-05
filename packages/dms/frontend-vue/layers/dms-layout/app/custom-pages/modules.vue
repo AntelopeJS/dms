@@ -285,7 +285,7 @@ const SUMMARY_CARDS: Array<{
   icon: string;
   tone: DmsTone;
 }> = [
-  { key: "installed", icon: "i-ph-squares-four", tone: "accent" },
+  { key: "installed", icon: "i-ph-squares-four", tone: "primary" },
   { key: "updates", icon: "i-ph-arrow-circle-up", tone: "warning" },
   { key: "attention", icon: "i-ph-warning-circle", tone: "error" },
   { key: "beta", icon: "i-ph-flask", tone: "secondary" },
@@ -327,7 +327,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
     <!-- Load failure: what failed, what still works, and a retry. -->
     <div v-else-if="failure" role="alert">
       <DmsBanner
-        color="error"
+        tone="error"
         icon="i-ph-plugs"
         :title="t('modules.error.title')"
       >
@@ -532,7 +532,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
 
         <DmsBanner
           class="mb-4"
-          color="info"
+          tone="info"
           size="sm"
           icon="i-ph-storefront"
           :title="t('modules.store.banner.title')"

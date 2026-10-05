@@ -3,7 +3,7 @@ import { NotificationEvents } from "./types/events";
 /** Icon well colour a sender may set on a notification. */
 export type NotificationTone =
   | "neutral"
-  | "accent"
+  | "primary"
   | "success"
   | "warning"
   | "error";

@@ -1,14 +1,17 @@
+import type { Tone } from "../base/types/tone";
+
 export type TogglePermission = "allowed" | "forbidden" | "default";
 
 export type ReadScope = "individual" | "shared";
 
-/** Colour of the icon well a notification is listed with. */
-export type NotificationTone =
-  | "neutral"
-  | "accent"
-  | "success"
-  | "warning"
-  | "error";
+/**
+ * Colour of the icon well a notification is listed with. The former `accent`
+ * is still read as `primary` in 0.4, with a warning.
+ */
+export type NotificationTone = Extract<
+  Tone,
+  "neutral" | "primary" | "success" | "warning" | "error"
+>;
 
 export interface NotificationCategoryInfo {
   id: string;
@@ -43,7 +46,7 @@ export interface NotificationData {
   subject: NotificationSubjectInfo;
   linkTo?: string;
   params?: Record<string, string | number>;
-  /** Icon well colour; unset notifications use the accent while unread, neutral once read. */
+  /** Icon well colour; unset notifications use `primary` while unread, neutral once read. */
   tone?: NotificationTone;
 }
 

@@ -63,7 +63,7 @@ const templates = {
     "invite_expired",
     "i-ph-clock-countdown",
     NOTIFICATION_LINKS.invites,
-    { tone: "accent" },
+    { tone: "primary" },
   ),
   memberRemoved: workspaceTemplate(
     "member_removed",
@@ -74,7 +74,7 @@ const templates = {
     "role_permissions_changed",
     "i-ph-key",
     NOTIFICATION_LINKS.roles,
-    { tone: "accent" },
+    { tone: "primary" },
   ),
   rolesChanged: workspaceTemplate(
     "roles_changed",

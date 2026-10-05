@@ -6,7 +6,7 @@
 // - error: an immediate risk, to act on now;
 // - warning: a "Not you?" security change, or a loss of access;
 // - success: protection added, or good news;
-// - accent: a useful action is available, nothing urgent;
+// - primary: a useful action is available, nothing urgent;
 // - neutral: plain information.
 
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";

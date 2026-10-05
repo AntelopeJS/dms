@@ -34,7 +34,7 @@ const STATUS_TONES: Record<ModuleStatus, DmsTone> = {
 
 // v2 .module-tile__viz: each readout line opens with a tone glyph.
 const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
-  ok: "ok",
+  success: "ok",
   info: "info",
   warning: "warn",
   error: "error",

@@ -19,7 +19,7 @@ export interface OrderLine {
   unitPrice: number;
 }
 
-export type OrderEventTone = "accent" | "success" | "warning" | "info";
+export type OrderEventTone = "primary" | "success" | "warning" | "info";
 
 /** A step of an order's timeline, shown next to its lines. */
 export interface OrderEvent {
@@ -231,7 +231,7 @@ function eventsOf(seed: OrderSeed, number: string, placedAt: Date) {
   const events: OrderEvent[] = [
     {
       icon: "i-ph-shopping-cart",
-      tone: "accent",
+      tone: "primary",
       title: `Order ${number} placed`,
       at: placedAt,
     },

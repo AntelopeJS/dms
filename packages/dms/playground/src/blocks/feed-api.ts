@@ -61,7 +61,7 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
         {
           id: "a3",
           icon: "i-ph-rocket-launch",
-          tone: "accent",
+          tone: "primary",
           title: "Release v2.14 promoted",
           meta: ["staging → production", "42 s"],
           date: ago(2 * HOUR_MS),

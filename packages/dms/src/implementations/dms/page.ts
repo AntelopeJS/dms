@@ -36,6 +36,7 @@ import {
   PageMetadata,
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
+import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/tone";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
@@ -2359,7 +2360,7 @@ const MODULE_STATUSES = new Set<string>([
   "attention",
 ]);
 const MODULE_READOUT_TONES = new Set<string>([
-  "ok",
+  "success",
   "info",
   "warning",
   "error",
@@ -2423,13 +2424,16 @@ async function runModuleReadoutHook(
           !!line && typeof line.text === "string" && line.text.length > 0,
       )
       .slice(0, MODULE_READOUT_MAX_LINES)
-      .map((line) => ({
-        text: line.text,
-        tone:
-          line.tone && MODULE_READOUT_TONES.has(line.tone)
-            ? line.tone
-            : ("info" as ModuleReadoutTone),
-      }));
+      .map((line) => {
+        const tone = resolveToneAlias(line.tone);
+        return {
+          text: line.text,
+          tone:
+            tone && MODULE_READOUT_TONES.has(tone)
+              ? tone
+              : ("info" as ModuleReadoutTone),
+        };
+      });
   } catch (error) {
     warnOnceFor(
       info,

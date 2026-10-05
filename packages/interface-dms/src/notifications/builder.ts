@@ -3,6 +3,7 @@
 // `this` to a different instantiation of its own class, which is what makes the
 // chain unavoidable for this pattern.
 /* oxlint-disable anti-slop/no-chained-type-assertions */
+import { resolveToneAlias } from "../base/types/tone";
 import { SendableNotification } from "./sendable";
 import type {
   NotificationData,
@@ -50,7 +51,7 @@ export class NotificationBuilder<Set extends string = never> {
 
   /** Colours the icon well the notification is listed with. */
   tone(value: NotificationTone): NotificationBuilder<Set | "tone"> {
-    this.data.tone = value;
+    this.data.tone = resolveToneAlias(value);
     return this as unknown as NotificationBuilder<Set | "tone">;
   }
 

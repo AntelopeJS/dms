@@ -10,7 +10,7 @@ export const demoModule = RegisterModule({
   category: "Content",
   status: () => "live",
   readout: () => [
-    { tone: "ok", text: "2 pages · 1 form" },
+    { tone: "success", text: "2 pages · 1 form" },
     { tone: "info", text: `up ${formatUptime(process.uptime())}` },
   ],
   // Group the module's loose pages under a controllable category heading

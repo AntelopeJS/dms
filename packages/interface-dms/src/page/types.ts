@@ -9,6 +9,7 @@ import type {
 } from "../component";
 import type { RoleModel, TenantMemberModel } from "../db";
 import type { Permission } from "../permissions";
+import type { Tone } from "../base/types/tone";
 import type { MaybePromise } from "../types";
 
 export type { MaybePromise };
@@ -82,10 +83,14 @@ export const ROOT_SLUG = "/";
 export type ModuleStatus = "live" | "beta" | "update" | "attention";
 
 /**
- * Tone of one readout line: `ok` (healthy figure), `info` (neutral fact),
- * `warning` (worth a look) or `error` (something is failing).
+ * Tone of one readout line: `success` (healthy figure), `info` (neutral
+ * fact), `warning` (worth a look) or `error` (something is failing). The
+ * former `ok` is still read as `success` in 0.4, with a warning.
  */
-export type ModuleReadoutTone = "ok" | "info" | "warning" | "error";
+export type ModuleReadoutTone = Extract<
+  Tone,
+  "success" | "info" | "warning" | "error"
+>;
 
 /**
  * One short line of a module's live readout on the catalog

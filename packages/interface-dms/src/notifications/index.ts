@@ -2,6 +2,7 @@ import { NotificationBuilder } from "./builder";
 import { internal } from "./internal";
 
 export { internal };
+export * from "./types";
 import type {
   NotificationCategoryInfo,
   NotificationSubjectInfo,

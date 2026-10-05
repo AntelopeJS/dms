@@ -18,7 +18,7 @@ const NPM_VIEW_TIMEOUT_MS = 30_000;
 const UPDATES_SUBJECT_ID = "updates";
 const UPDATES_ICON = "i-ph-arrow-circle-up";
 /** An update is a useful action, never an urgent one. */
-const UPDATES_TONE = "accent";
+const UPDATES_TONE = "primary";
 const MESSAGE_PREFIX = "$dms.notifications.messages.module_updates";
 const MODULE_LIST_SEPARATOR = ", ";
 const PACKAGE_SOURCE_TYPE = "package";

@@ -5,25 +5,25 @@
 // both themes) wherever one exists.
 
 /**
- * `accent` and `primary` are the same brand tone (v2 calls it accent, Nuxt UI
- * calls it primary); both are accepted so callers can pass a Nuxt UI color.
+ * The semantic tones, the `Tone` of interface-dms. `accent` is the former name
+ * of `primary`, still accepted (a backend in 0.4 may send it).
  */
 export type DmsTone =
   | "neutral"
-  | "accent"
   | "primary"
+  | "accent"
   | "secondary"
   | "success"
   | "warning"
   | "error"
   | "info";
 
-type CanonicalTone = Exclude<DmsTone, "primary">;
+type CanonicalTone = Exclude<DmsTone, "accent">;
 
 const KNOWN_TONES = new Set<string>([
   "neutral",
-  "accent",
   "primary",
+  "accent",
   "secondary",
   "success",
   "warning",
@@ -36,15 +36,15 @@ export function isDmsTone(tone: string): tone is DmsTone {
   return KNOWN_TONES.has(tone);
 }
 
-/** Folds the `primary` alias onto `accent`. */
+/** Folds the former `accent` onto `primary`. */
 export function canonicalTone(tone: DmsTone): CanonicalTone {
-  return tone === "primary" ? "accent" : tone;
+  return tone === "accent" ? "primary" : tone;
 }
 
 /** v2 .icon-well: the tone tint with an inset 1px line of the same tone. */
 export const DMS_TONE_WELL: Record<CanonicalTone, string> = {
   neutral: "bg-elevated text-muted ring-(--ui-border-accented)",
-  accent: "bg-(--dms-accent-tint) text-primary ring-(--dms-accent-line)",
+  primary: "bg-(--dms-accent-tint) text-primary ring-(--dms-accent-line)",
   secondary: "bg-secondary/10 text-secondary ring-secondary/35",
   success: "bg-(--dms-success-tint) text-success ring-(--dms-success-line)",
   warning: "bg-(--dms-warning-tint) text-warning ring-(--dms-warning-line)",
@@ -55,7 +55,7 @@ export const DMS_TONE_WELL: Record<CanonicalTone, string> = {
 /** v2 .status: the tone text on a soft tint of it. */
 export const DMS_TONE_SOFT: Record<CanonicalTone, string> = {
   neutral: "bg-elevated text-muted",
-  accent: "bg-(--dms-accent-tint) text-primary",
+  primary: "bg-(--dms-accent-tint) text-primary",
   secondary: "bg-secondary/12 text-secondary",
   success: "bg-success/12 text-success",
   warning: "bg-warning/12 text-warning",
@@ -66,7 +66,7 @@ export const DMS_TONE_SOFT: Record<CanonicalTone, string> = {
 /** Tone as a text color only. */
 export const DMS_TONE_TEXT: Record<CanonicalTone, string> = {
   neutral: "text-muted",
-  accent: "text-primary",
+  primary: "text-primary",
   secondary: "text-secondary",
   success: "text-success",
   warning: "text-warning",
@@ -77,7 +77,7 @@ export const DMS_TONE_TEXT: Record<CanonicalTone, string> = {
 /** Tone as a hairline border (outline pills). */
 export const DMS_TONE_OUTLINE: Record<CanonicalTone, string> = {
   neutral: "border-(--ui-border-accented)",
-  accent: "border-(--dms-accent-line)",
+  primary: "border-(--dms-accent-line)",
   secondary: "border-secondary/35",
   success: "border-(--dms-success-line)",
   warning: "border-(--dms-warning-line)",

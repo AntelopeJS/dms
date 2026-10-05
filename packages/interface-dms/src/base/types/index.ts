@@ -15,4 +15,5 @@ export * from "./json";
 export * from "./orientation";
 export * from "./readonly-behavior";
 export * from "./size";
+export * from "./tone";
 export * from "./watch";

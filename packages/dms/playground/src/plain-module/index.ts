@@ -11,7 +11,7 @@ export const plainModule = RegisterModule({
   category: "Developer",
   status: () => "beta",
   readout: () => [
-    { tone: "ok", text: "1 page · Pages fallback" },
+    { tone: "success", text: "1 page · Pages fallback" },
     { tone: "warning", text: "no default category set" },
   ],
 });

@@ -8,11 +8,11 @@ import type {
   UserNotification,
 } from "../../../../../composables/notification/useNotifications";
 
-/** Notifications without a tone stand out in the accent until read. */
+/** Notifications without a tone stand out in `primary` until read. */
 export const resolveNotificationTone = (
   notification: UserNotification,
 ): NotificationTone =>
-  notification.tone ?? (notification.isRead ? "neutral" : "accent");
+  notification.tone ?? (notification.isRead ? "neutral" : "primary");
 
 /** Inbox sections, newest first. */
 export type NotificationDayGroupKey = "today" | "week" | "older";

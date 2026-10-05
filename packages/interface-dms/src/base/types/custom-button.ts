@@ -3,15 +3,10 @@ import type { MaybePromise } from "../../types";
 import type { ActionTarget, ActionTargetSerialized } from "./action-target";
 import type { ActionConfirm, ActionConfirmSerialized } from "./confirm-dialog";
 import type { ButtonVariant } from "./button";
+import type { Tone } from "./tone";
 
-export type ButtonColor =
-  | "primary"
-  | "secondary"
-  | "success"
-  | "error"
-  | "warning"
-  | "info"
-  | "neutral";
+/** The `color` of a button or an action: one of the semantic tones. */
+export type ButtonColor = Tone;
 
 /** Where a table's button is drawn: its toolbar, or its page's header. */
 export type ButtonPlacement = "toolbar" | "header";
