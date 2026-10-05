@@ -51,6 +51,7 @@ export default defineConfig({
     maxWarnings: 1,
   },
   rules: {
+    ...base.rules,
     "eslint/no-restricted-imports": [
       "error",
       { paths: ROOT_PATHS, patterns: ROOT_PATTERNS },

@@ -35,6 +35,7 @@ import {
   streamExportFromStorage,
   uploadExportToStorage,
 } from "./export-jobs";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 // The contract declares the vocabulary; re-exported so a caller inside the
 // module reaches the whole export surface from one place.
@@ -350,16 +351,19 @@ export async function downloadExportJob<TContext = unknown>(
   );
 
   const cleanup = (): void => {
-    void Promise.allSettled([
-      deleteExportFromStorage(resourceKey),
-      model.delete(jobId),
-    ]).then((results) => {
-      for (const result of results) {
-        if (result.status === "rejected") {
-          Logging.Error(`Export job ${jobId} cleanup failed:`, result.reason);
+    fireAndForget(
+      Promise.allSettled([
+        deleteExportFromStorage(resourceKey),
+        model.delete(jobId),
+      ]).then((results) => {
+        for (const result of results) {
+          if (result.status === "rejected") {
+            Logging.Error(`Export job ${jobId} cleanup failed:`, result.reason);
+          }
         }
-      }
-    });
+      }),
+      "export job cleanup",
+    );
   };
 
   // A retained job stays downloadable until the sweep expires it: its history

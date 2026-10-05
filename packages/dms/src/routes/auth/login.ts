@@ -9,6 +9,7 @@ import {
 } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { type LoginOutcome, resolveLoginOutcome } from "./session-response";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const HTTP_UNAUTHORIZED = 401;
 const INVALID_CREDENTIALS_MESSAGE = "error.invalid_credentials";
@@ -27,9 +28,12 @@ export async function login(
 
   assert(user, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
   const isPasswordValid = user.testHash("password", password);
-  void (isPasswordValid
-    ? clearFailedPasswords(user._id)
-    : recordFailedPassword(user));
+  fireAndForget(
+    isPasswordValid
+      ? clearFailedPasswords(user._id)
+      : recordFailedPassword(user),
+    "failed password bookkeeping",
+  );
   assert(isPasswordValid, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
 
   return resolveLoginOutcome(sessionModel, user, userAgent, ip);

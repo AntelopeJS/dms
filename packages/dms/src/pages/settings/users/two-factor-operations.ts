@@ -20,6 +20,7 @@ import {
   generateTotpSecret,
   verifyUserCode,
 } from "./profile-helpers";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 type TwoFactorMethod = "totp" | "email";
 
@@ -166,7 +167,10 @@ export async function confirmTotpSetup(
   user.twoFactorPendingSecret = null;
   const backupCodes = enableMethod(user, "totp");
   await userModel.update(user);
-  void notifyTwoFactorEnabled(user._id, "totp");
+  fireAndForget(
+    notifyTwoFactorEnabled(user._id, "totp"),
+    "two-factor enabled notification",
+  );
   return { success: true, backupCodes };
 }
 
@@ -181,7 +185,10 @@ export async function enableEmailMethod(
 ): Promise<MethodEnabledResult> {
   const backupCodes = enableMethod(user, "email");
   await userModel.update(user);
-  void notifyTwoFactorEnabled(user._id, "email");
+  fireAndForget(
+    notifyTwoFactorEnabled(user._id, "email"),
+    "two-factor enabled notification",
+  );
   return { success: true, backupCodes };
 }
 
@@ -218,7 +225,10 @@ export async function disableTwoFactorMethod(
   if (method === "totp") user.twoFactorSecret = null;
   if (methods.length === 0) clearTwoFactorLeftovers(user);
   await userModel.update(user);
-  void notifyTwoFactorDisabled(user._id, method);
+  fireAndForget(
+    notifyTwoFactorDisabled(user._id, method),
+    "two-factor disabled notification",
+  );
   return { success: true };
 }
 
@@ -252,7 +262,10 @@ export async function regenerateBackupCodes(
   const previousCount = user.twoFactorBackupCodes?.length ?? 0;
   const backupCodes = issueBackupCodes(user);
   await userModel.update(user);
-  void notifyBackupCodesRegenerated(user._id, previousCount);
+  fireAndForget(
+    notifyBackupCodesRegenerated(user._id, previousCount),
+    "backup codes regenerated notification",
+  );
   return { backupCodes };
 }
 

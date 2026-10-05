@@ -17,6 +17,7 @@ import { recordSignIn } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "./constants";
 import type { AuthResponse } from "./types";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 type VerifyMethod = "totp" | "email" | "backup";
 
@@ -95,7 +96,10 @@ export async function verify2FA(
   assert(verifier, 400, "error.invalid_2fa_method");
   await verifier({ user, code, userModel });
   if (method === "backup") {
-    void notifyBackupCodeUsed(user._id, user.twoFactorBackupCodes?.length ?? 0);
+    fireAndForget(
+      notifyBackupCodeUsed(user._id, user.twoFactorBackupCodes?.length ?? 0),
+      "backup code used notification",
+    );
   }
   await recordSignIn(user, userAgent, ip);
 

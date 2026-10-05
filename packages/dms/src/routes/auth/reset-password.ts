@@ -3,6 +3,7 @@ import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../../config";
 import { notifyPasswordReset } from "../../utils/account-notifications";
 import { authSchema } from "../../validation/auth.schema";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 export async function resetPassword(
   userModel: UserModel,
@@ -29,5 +30,8 @@ export async function resetPassword(
 
   await userModel.update(user);
 
-  void notifyPasswordReset(user._id, user.email);
+  fireAndForget(
+    notifyPasswordReset(user._id, user.email),
+    "password reset notification",
+  );
 }

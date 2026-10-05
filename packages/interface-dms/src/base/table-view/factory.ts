@@ -59,6 +59,7 @@ import {
   validateKanbanOptions,
   validateQuickFilters,
 } from "./validation";
+import { fireAndForget } from "../../utils/fire-and-forget";
 
 export function TableView<T extends ControllerClass>(
   controller: T,
@@ -346,7 +347,7 @@ export function TableView<T extends ControllerClass>(
           );
         }
         formMeta.SetComponent("form", form);
-        void formMeta.Register();
+        fireAndForget(formMeta.Register(), "table view form registration");
 
         if (options.realtime === false) return;
         registerTableViewPageTopics(

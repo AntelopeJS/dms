@@ -9,6 +9,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { RegisterTenantAccessGate } from "@antelopejs/interface-dms/tenant-access";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 export const GATE_DEMO_DENIED_CODE = "playground.gate_demo.suspended";
 
@@ -43,7 +44,7 @@ export class GateDemoController extends Controller("/playground/gate-demo") {
     } else {
       suspendedTenants.delete(tenantId);
     }
-    void NotifyMenuChanged(tenantId);
+    fireAndForget(NotifyMenuChanged(tenantId), "menu change notification");
     return { tenantId, suspended };
   }
 }

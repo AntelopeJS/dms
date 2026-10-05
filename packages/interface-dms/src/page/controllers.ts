@@ -20,6 +20,7 @@ import type {
   PageExtensionComponent,
   PageExtensionInfo,
 } from "./types";
+import { fireAndForget } from "../utils/fire-and-forget";
 
 interface StaticComponentField {
   key: string;
@@ -57,7 +58,7 @@ export const RegisterPage = MakeClassDecorator((cl) => {
     meta.SetComponent(key, component);
   }
 
-  void meta.Register();
+  fireAndForget(meta.Register(), "page registration");
 });
 
 function buildExtensionComponents(

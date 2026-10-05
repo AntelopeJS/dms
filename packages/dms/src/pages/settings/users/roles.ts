@@ -76,6 +76,7 @@ import {
   type RolePreviewResult,
   sanitizePreviewPermissions,
 } from "./role-preview";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(roleSettingDataAPI);
 
@@ -378,12 +379,15 @@ export class RolesSettingsController extends PageController("roles", {
     const actor = await resolveActor(ctx, user);
     const { name, permissionsChanged } = await updateRole(actor, roleId, input);
     if (permissionsChanged) {
-      void notifyRolePermissionsChanged({
-        tenantId: actor.tenantId,
-        roleId,
-        roleName: name,
-        actor: { id: user._id, name: user.name || user.email },
-      });
+      fireAndForget(
+        notifyRolePermissionsChanged({
+          tenantId: actor.tenantId,
+          roleId,
+          roleName: name,
+          actor: { id: user._id, name: user.name || user.email },
+        }),
+        "role permissions change notification",
+      );
     }
   }
 

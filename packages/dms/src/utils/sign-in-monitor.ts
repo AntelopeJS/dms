@@ -10,6 +10,7 @@ import {
 } from "./failed-sign-ins";
 import { classifySignIn, describeSignInDevice } from "./sign-in-devices";
 import { parseUserAgent } from "./user-agent";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const MS_PER_MINUTE = 60 * 1000;
 /** Attempts older than this are pruned; they no longer weigh in any window. */
@@ -58,7 +59,11 @@ export async function recordSignIn(
       device.fingerprint,
       new Date(),
     );
-    if (kind === "new") void notifyNewLogin(user._id, device, ip);
+    if (kind === "new")
+      fireAndForget(
+        notifyNewLogin(user._id, device, ip),
+        "new sign-in notification",
+      );
   } catch (error) {
     logFailure("record the sign-in device", user._id, error);
   }

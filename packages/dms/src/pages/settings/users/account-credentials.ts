@@ -23,6 +23,7 @@ import {
   getTwoFactorStatus,
   type TwoFactorStatus,
 } from "./two-factor-operations";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
@@ -198,7 +199,10 @@ export async function changePassword(
   const revoked = signOutOtherSessions
     ? await revokeOtherSessions(user, context)
     : undefined;
-  void notifyPasswordChanged(user._id);
+  fireAndForget(
+    notifyPasswordChanged(user._id),
+    "password change notification",
+  );
   return {
     success: true,
     passwordChangedAt,
@@ -227,7 +231,10 @@ export async function changeEmail(
   assert(available !== user.email, HTTP_BAD_REQUEST, "error.email_unchanged");
   user.email = available;
   await userModel.update(user);
-  void notifyEmailChanged(user._id, available);
+  fireAndForget(
+    notifyEmailChanged(user._id, available),
+    "email change notification",
+  );
   return available;
 }
 

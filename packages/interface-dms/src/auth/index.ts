@@ -18,6 +18,7 @@ import {
   type RequestPrincipal,
   resolveRequestPrincipal,
 } from "./request-authenticators";
+import { fireAndForget } from "../utils/fire-and-forget";
 
 export * from "./request-authenticators";
 
@@ -370,7 +371,7 @@ async function notifyAccountCreation(
   userModel: UserModel,
   user: User,
 ): Promise<void> {
-  void NotifyWelcome(user._id, user.name);
+  fireAndForget(NotifyWelcome(user._id, user.name), "welcome notification");
 
   try {
     const owners = await userModel.getOwners();
@@ -379,7 +380,10 @@ async function notifyAccountCreation(
       .filter((id) => id !== user._id);
 
     if (ownerIds.length > 0) {
-      void NotifyCollaboratorJoined(ownerIds, user.name, user.email);
+      fireAndForget(
+        NotifyCollaboratorJoined(ownerIds, user.name, user.email),
+        "collaborator joined notification",
+      );
     }
   } catch (error) {
     Logging.Error(
@@ -411,7 +415,10 @@ export async function announceRegistration(
   user: User,
   tenantId: string,
 ): Promise<void> {
-  void notifyAccountCreation(userModel, user);
+  fireAndForget(
+    notifyAccountCreation(userModel, user),
+    "account creation notification",
+  );
 
   try {
     await ExecuteHooks(Hook.USER_REGISTERED, {

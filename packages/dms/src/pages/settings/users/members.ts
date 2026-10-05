@@ -67,6 +67,7 @@ import {
   rememberMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(memberSettingDataAPI);
 
@@ -522,10 +523,13 @@ export class MembersSettingsController extends PageController(
       isTenantOwner,
     );
     if (change !== null && member.userId !== user._id) {
-      void notifyOwnershipChanged(member.userId, isTenantOwner, {
-        id: user._id,
-        name: user.name || user.email,
-      });
+      fireAndForget(
+        notifyOwnershipChanged(member.userId, isTenantOwner, {
+          id: user._id,
+          name: user.name || user.email,
+        }),
+        "ownership change notification",
+      );
     }
   }
 

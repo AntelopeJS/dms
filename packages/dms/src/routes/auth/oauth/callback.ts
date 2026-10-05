@@ -15,6 +15,7 @@ import { getEnabledOAuthProvider, resolveOAuthPolicy } from "./config";
 import { resolveOAuthUser } from "./identity-resolution";
 import { assertValidOAuthState } from "./state";
 import { exchangeCodeForAccessToken } from "./token-exchange";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const HTTP_FORBIDDEN = 403;
 const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
@@ -94,7 +95,10 @@ export async function oauthCallback({
   });
 
   if (wasCreated && !isRegistration) {
-    void notifyLoginMethodAdded(user._id, enabled.provider.displayName);
+    fireAndForget(
+      notifyLoginMethodAdded(user._id, enabled.provider.displayName),
+      "login method added notification",
+    );
   }
 
   if (resolvedInvite) {
