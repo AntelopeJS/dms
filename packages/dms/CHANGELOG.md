@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.5...v0.5.6)
+
+### 🩹 Fixes
+
+- **tab:** Space the blocks of a tab like the page spaces its own ([#98](https://github.com/AntelopeJS/dms/pull/98))
+- **dev-reload:** End the reload streams when the module stops ([#125](https://github.com/AntelopeJS/dms/pull/125))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Glastis ([@Glastis](http://github.com/Glastis))
+
 ## v0.5.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.4...v0.5.5)
