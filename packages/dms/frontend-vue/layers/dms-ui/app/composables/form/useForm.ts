@@ -25,6 +25,7 @@ import {
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
+import { sameFormValue } from "../unsaved-changes/formValue";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {
@@ -254,6 +255,11 @@ export interface SubmitDataContext {
   submitDefaults?: Record<string, unknown>;
   /** Fields a watch action disabled. */
   disabled?: Set<string>;
+  /**
+   * Send only the fields whose value differs from `initialValues`: an edit of
+   * a loaded record must not write back a value someone else changed since.
+   */
+  onlyChanged?: boolean;
 }
 
 /**
@@ -266,7 +272,8 @@ export interface SubmitDataContext {
  * keep the value the user removed. A field that started empty and is still
  * empty is not sent, so a create form sends no `null` for the fields nobody
  * touched, nor an edit form for values the row never had. A disabled field
- * is never cleared: the user cannot have emptied it.
+ * is never cleared: the user cannot have emptied it. With `onlyChanged`, a
+ * field still holding the value it loaded is left out.
  */
 export function collectSubmitData(
   data: Record<string, unknown>,
@@ -277,12 +284,13 @@ export function collectSubmitData(
 
   for (const field of fields) {
     const value = unref(data[field.id]) as FormFieldValue | undefined;
+    const initial = context.initialValues?.[field.id];
+    if (context.onlyChanged && sameFormValue(value, initial)) continue;
     if (value !== undefined) {
       fieldData[field.id] = value;
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;
-    const initial = context.initialValues?.[field.id];
     if (isBlankValue(initial, field.type)) continue;
     fieldData[field.id] = clearedFieldValue(initial);
   }
@@ -539,6 +547,12 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     return url.includes("{{") ? undefined : url;
   });
 
+  // A form that loaded a record and does not create one (a duplicate posts
+  // the loaded values as a new row) updates it: only its changes are sent.
+  const isRecordUpdate = computed(
+    () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
+  );
+
   const fetchData = async () => {
     if (!props.fetchUrl) return undefined;
 
@@ -727,6 +741,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       initialValues: initialValues.value,
       submitDefaults: effectiveSubmitDefaults.value,
       disabled: disabledFields.value,
+      onlyChanged: isRecordUpdate.value,
     });
 
     loading.value = true;

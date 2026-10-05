@@ -449,11 +449,12 @@ if (props.fetchUrl) {
     }),
   );
 
-  // A drawer or modal reopened on the same row reads its values from this
-  // cached load: once the form saved, they are out of date (a cleared field
-  // would show its old value again), so the next opening fetches the row.
-  watch(submitSucceeded, (saved) => {
-    if (saved) formLoad.status.value = "idle";
+  // The load is cached under this key, and outlives a drawer or modal: a
+  // reopening would show the values of the previous one, stale if the row
+  // changed since (here or elsewhere). Marked idle once read, every mounting
+  // fetches the row again.
+  onMounted(() => {
+    formLoad.status.value = "idle";
   });
 
   const payload = formLoad.data.value;
