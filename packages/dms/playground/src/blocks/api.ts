@@ -80,7 +80,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           to: "#billing",
           state: "Payment failed on Sep 28",
           stateTone: "error",
-          badge: "SaaS",
+          tag: "SaaS",
         },
         {
           icon: "i-ph-plugs-connected",

@@ -20,7 +20,7 @@ interface NavCardGridItem {
   to: string;
   state?: string;
   stateTone?: DmsTone;
-  badge?: string;
+  tag?: string;
   readout?: string[];
 }
 
@@ -144,7 +144,7 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
           :description="card.description"
           :state="card.state"
           :state-tone="card.stateTone"
-          :badge="card.badge"
+          :tag="card.tag"
           :readout="card.readout"
           :class="hasStates && 'gap-2.5'"
         />

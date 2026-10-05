@@ -92,7 +92,7 @@ const previewVeilDetail = (fullId: string): string | undefined =>
             :icon="page.icon"
             :title="processI18n(page.label)"
             :description="processI18n(page.description)"
-            :badge="trails[page.fullId]?.tag"
+            :tag="trails[page.fullId]?.tag"
             :state="trails[page.fullId]?.label ?? trails[page.fullId]?.badge"
             :state-tone="trails[page.fullId]?.status ?? 'neutral'"
             :state-pending="isTrailPending(page.fullId)"

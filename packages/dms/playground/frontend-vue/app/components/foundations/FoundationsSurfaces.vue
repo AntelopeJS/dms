@@ -180,12 +180,12 @@ const LOCALES = [
           state-tone="success"
         />
       </ShowcaseDemo>
-      <ShowcaseDemo label="badge='SAAS' · readout (module tile)">
+      <ShowcaseDemo label="tag='SAAS' · readout (module tile)">
         <DmsNavCard
           to="#nav-card"
           icon="i-ph-invoice"
           title="Billing"
-          badge="SaaS"
+          tag="SaaS"
           description="Plans, invoices and payment methods."
           :readout="['v2.4.1 · up to date', '12 invoices this month']"
         />

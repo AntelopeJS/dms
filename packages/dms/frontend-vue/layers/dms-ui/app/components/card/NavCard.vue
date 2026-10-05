@@ -32,7 +32,7 @@ interface NavCardProps {
   /** The state is still loading: a placeholder holds its line. */
   statePending?: boolean;
   /** Small uppercase mono tag after the title (module tag: "SAAS"). */
-  badge?: string;
+  tag?: string;
   /** Mono readout lines under the description (module tile). */
   readout?: string[];
 }
@@ -44,7 +44,7 @@ const props = withDefaults(defineProps<NavCardProps>(), {
   iconTone: "accent",
   state: undefined,
   stateTone: "neutral",
-  badge: undefined,
+  tag: undefined,
   readout: undefined,
 });
 const attrs = useAttrs();
@@ -53,7 +53,7 @@ const theme = tv({
   slots: {
     root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
     title: "text-highlighted min-w-0 truncate text-sm font-[650]",
-    badge:
+    tag:
       "bg-elevated shrink-0 text-dimmed rounded-[4px] px-1.5 font-mono text-[9.5px] font-semibold tracking-[0.08em] uppercase",
     arrow:
       "text-dimmed group-hover:text-primary ms-auto size-4 shrink-0 -translate-x-[3px] opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100",
@@ -76,7 +76,7 @@ const passthrough = computed(() => {
     <div class="flex items-center gap-3">
       <DmsIconWell :icon="props.icon" :tone="props.iconTone" />
       <h3 :class="ui.title()">{{ props.title }}</h3>
-      <span v-if="props.badge" :class="ui.badge()">{{ props.badge }}</span>
+      <span v-if="props.tag" :class="ui.tag()">{{ props.tag }}</span>
       <UIcon name="i-ph-arrow-right" :class="ui.arrow()" :aria-hidden="true" />
     </div>
 

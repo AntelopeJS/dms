@@ -25,7 +25,7 @@ export interface NavCardItem {
   /** Tone of the state line (`neutral` = dimmed). */
   stateTone?: Tone;
   /** Small uppercase tag after the title (the module a page comes from). */
-  badge?: string;
+  tag?: string;
   /** Mono readout lines under the description. */
   readout?: string[];
 }
@@ -95,7 +95,7 @@ const NavCardItemSchema = z.object({
     label: "State tone",
     widget: "select",
   }),
-  badge: ui(z.string().optional(), { label: "Tag" }),
+  tag: ui(z.string().optional(), { label: "Tag" }),
   readout: ui(z.array(z.string()).optional(), { label: "Readout lines" }),
 }) satisfies BlockOptionsFor<NavCardItem>;
 

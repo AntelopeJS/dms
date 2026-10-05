@@ -52,7 +52,7 @@ export class PageBlocksNavCards extends PageController("blocks-nav-cards", {
         to: "#billing",
         state: "Payment failed",
         stateTone: "error",
-        badge: "SaaS",
+        tag: "SaaS",
       },
       {
         icon: "i-ph-book-open",
