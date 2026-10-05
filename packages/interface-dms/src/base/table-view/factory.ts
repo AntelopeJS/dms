@@ -9,7 +9,7 @@ import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
-import { SearchableMeta } from "../searchable";
+import { hasSearchableFields } from "../searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import {
   TABLE_VIEW_COMPONENT_NAME,
@@ -47,20 +47,14 @@ import {
   TableViewFunctions,
 } from "./factory-helpers";
 import {
-  assertTabTargets,
   resolveTableViewTabs,
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
 } from "./tabs";
 import { claimWritingTableView, tableViewAccess } from "./writer";
 import {
-  assertKnownColumns,
   assertRowScopedFormSlugs,
-  validateDefaultDisplay,
-  validateDisplayIds,
-  validateKanbanOptions,
-  validatePageSize,
-  validateQuickFilters,
+  validateTableViewOptions,
 } from "./validation";
 import { fireAndForget } from "../../utils/fire-and-forget";
 
@@ -117,18 +111,7 @@ export function TableView<T extends ControllerClass>(
     );
   }
 
-  validateKanbanOptions(controller.name, meta, options.kanban);
-  assertKnownColumns(
-    controller.name,
-    meta,
-    "card fields",
-    options.card?.fields ?? [],
-  );
-  validateDisplayIds(controller.name, options.displays);
-  validateDefaultDisplay(controller.name, options);
-  validateQuickFilters(controller.name, meta, options.quickFilters);
-  validatePageSize(controller.name, options.pageSize);
-  assertTabTargets(controller.name, options.tabs);
+  validateTableViewOptions(controller.name, meta, options);
 
   const serializedExpandable = serializeExpandable(
     controller.name,
@@ -200,10 +183,7 @@ export function TableView<T extends ControllerClass>(
       defaultFilters: options.defaultFilters,
       tabs: serializeTableViewTabs(options.tabs),
       layout: options.layout,
-      searchable:
-        Object.keys(
-          GetMetadata(controller, SearchableMeta).getSearchableFields(),
-        ).length > 0,
+      searchable: hasSearchableFields(controller),
       searchPlaceholder: options.searchPlaceholder,
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,

@@ -508,8 +508,10 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       confirm: { title: "$orders.edit_locked" },
     });
     const [refund] = options.rowActions?.custom ?? [];
-    const [reason] = (refund?.confirm as { fields?: unknown[] } | undefined)
-      ?.fields as Array<{ id: string; type: string; required?: boolean }>;
+    const refundConfirm = refund?.confirm as
+      | { fields?: Array<{ id: string; type: string; required?: boolean }> }
+      | undefined;
+    const [reason] = refundConfirm?.fields ?? [];
     expect(reason).to.deep.include({
       id: "reason",
       type: "string",

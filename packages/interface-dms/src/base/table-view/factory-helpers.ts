@@ -17,6 +17,8 @@ import { serializeActionConfirm } from "../confirm-dialog";
 import type {
   AddRowActionConfig,
   BulkRowActionConfig,
+  CustomRowAction,
+  CustomRowActionSerialized,
   RowActionConfigSerialized,
   RowActionRule,
 } from "../types/row-action";
@@ -95,11 +97,14 @@ export function serializeCustomButtons(
       availability: _availability,
       confirm,
       ...btn
-    }) => ({
-      ...btn,
-      target: serializeActionTarget(btn.target),
-      ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
-    }),
+    }) => {
+      const served: CustomButtonSerialized = {
+        ...btn,
+        target: serializeActionTarget(btn.target),
+      };
+      if (confirm) served.confirm = serializeActionConfirm(confirm);
+      return served;
+    },
   );
 }
 
@@ -109,11 +114,29 @@ function serializeRowActionConfig<T extends Record<string, unknown>>(
 ): boolean | RowActionConfigSerialized | undefined {
   if (config === undefined || typeof config === "boolean") return config;
   const { confirm, rule, ...rest } = config;
-  return {
-    ...rest,
-    ...(rule ? { rule: rule as RowActionRule } : {}),
-    ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
+  const served: RowActionConfigSerialized = rest;
+  if (rule) served.rule = rule as RowActionRule;
+  if (confirm) served.confirm = serializeActionConfirm(confirm);
+  return served;
+}
+
+/** A custom row action as the options carry it. */
+function serializeCustomRowAction<T extends Record<string, unknown>>(
+  action: CustomRowAction<T>,
+): CustomRowActionSerialized {
+  const served: CustomRowActionSerialized = {
+    label: action.label,
+    icon: action.icon,
+    rule: action.rule as RowActionRule | undefined,
+    target: serializeActionTarget(action.target),
+    isVisible: action.isVisible,
+    isDefault: action.isDefault,
+    color: action.color,
+    variant: action.variant,
+    showLabel: action.showLabel,
   };
+  if (action.confirm) served.confirm = serializeActionConfirm(action.confirm);
+  return served;
 }
 
 export function serializeRowActions<T extends Record<string, unknown>>(
@@ -129,20 +152,7 @@ export function serializeRowActions<T extends Record<string, unknown>>(
     copyLink: serializeRowActionConfig(rowActions.copyLink),
     add: serializeRowActionConfig(rowActions.add),
     hasSelection: rowActions.hasSelection,
-    custom: rowActions.custom?.map((action) => ({
-      label: action.label,
-      icon: action.icon,
-      rule: action.rule as RowActionRule | undefined,
-      target: serializeActionTarget(action.target),
-      ...(action.confirm
-        ? { confirm: serializeActionConfirm(action.confirm) }
-        : {}),
-      isVisible: action.isVisible,
-      isDefault: action.isDefault,
-      color: action.color,
-      variant: action.variant,
-      showLabel: action.showLabel,
-    })),
+    custom: rowActions.custom?.map(serializeCustomRowAction),
   };
 }
 

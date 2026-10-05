@@ -15,7 +15,9 @@ import {
   MAX_TABLE_PAGE_SIZE,
   TABLE_DISPLAY_ID,
   type TableViewDisplayOption,
+  type TableViewOptions,
   type TableViewQuickFilter,
+  type TableViewTab,
 } from "./options";
 
 /** `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}. */
@@ -203,4 +205,42 @@ export function assertRowScopedFormSlugs(
       );
     }
   }
+}
+
+/** A tab filters the rows or opens another page, never both. */
+export function assertTabTargets(
+  controllerName: string,
+  tabs: TableViewTab[] | undefined,
+): void {
+  for (const tab of tabs ?? []) {
+    if (tab.filter && tab.to) {
+      throw new Error(
+        `TableView tab "${tab.id}" on ${controllerName} gives both a filter and a link (to): a tab filters the rows or opens another page, not both`,
+      );
+    }
+  }
+}
+
+/**
+ * Every declaration check `TableView()` runs before it builds anything: the
+ * options naming columns, displays, tabs and sizes name ones the table view
+ * can have.
+ */
+export function validateTableViewOptions<T extends Record<string, unknown>>(
+  controllerName: string,
+  meta: TableViewMeta,
+  options: TableViewOptions<T>,
+): void {
+  validateKanbanOptions(controllerName, meta, options.kanban);
+  assertKnownColumns(
+    controllerName,
+    meta,
+    "card fields",
+    options.card?.fields ?? [],
+  );
+  validateDisplayIds(controllerName, options.displays);
+  validateDefaultDisplay(controllerName, options);
+  validateQuickFilters(controllerName, meta, options.quickFilters);
+  validatePageSize(controllerName, options.pageSize);
+  assertTabTargets(controllerName, options.tabs);
 }

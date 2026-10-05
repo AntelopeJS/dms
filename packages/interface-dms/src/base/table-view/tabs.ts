@@ -20,20 +20,6 @@ function dataApiLocation(countFrom: ControllerClass | string): string {
     : GetMetadata(countFrom, ControllerMeta).location;
 }
 
-/** A tab filters the rows or opens another page, never both. */
-export function assertTabTargets(
-  controllerName: string,
-  tabs: TableViewTab[] | undefined,
-): void {
-  for (const tab of tabs ?? []) {
-    if (tab.filter && tab.to) {
-      throw new Error(
-        `TableView tab "${tab.id}" on ${controllerName} gives both a filter and a link (to): a tab filters the rows or opens another page, not both`,
-      );
-    }
-  }
-}
-
 /**
  * Tabs as the options carry them: a link tab's path target and its count
  * location are plain strings already; a page controller target is resolved

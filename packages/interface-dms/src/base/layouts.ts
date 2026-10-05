@@ -83,12 +83,13 @@ function declareHeaderButton(
   index: number,
 ): PageHeaderButtonDeclared {
   const { id, target, confirm, placement: _placement, ...rest } = button;
-  return {
+  const declared: PageHeaderButtonDeclared = {
     ...rest,
     id: id ?? `${HEADER_BUTTON_ID_PREFIX}${index}`,
     target: serializeActionTarget(target),
-    ...(confirm ? { confirm: serializeActionConfirm(confirm) } : {}),
   };
+  if (confirm) declared.confirm = serializeActionConfirm(confirm);
+  return declared;
 }
 
 export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {

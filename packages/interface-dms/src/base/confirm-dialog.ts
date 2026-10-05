@@ -22,11 +22,10 @@ export function serializeConfirmDialog(
   dialog: ConfirmDialog,
 ): ConfirmDialogSerialized {
   const { fields, component, ...texts } = dialog;
-  return {
-    ...texts,
-    ...(fields ? { fields: fields.map(serializeFormField) } : {}),
-    ...(component ? { component: component.serializeSync() } : {}),
-  };
+  const serialized: ConfirmDialogSerialized = texts;
+  if (fields) serialized.fields = fields.map(serializeFormField);
+  if (component) serialized.component = component.serializeSync();
+  return serialized;
 }
 
 /** An action's confirmation as its options carry it. */
