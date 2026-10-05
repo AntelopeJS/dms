@@ -2,7 +2,6 @@
 import Draggable from "vuedraggable";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { Data } from "../../build/components/table/Table.vue";
-import { TABLE_VIEW_QUERY_KEY } from "../../build/composables/table-view/utils/bulkActions";
 import {
   AccessMode,
   type TableViewColumn,
@@ -49,11 +48,6 @@ interface KanbanBoardProps {
   editAction?: boolean | RowActionConfig;
   /** Delete action config; gates the default card delete button per row */
   deleteAction?: boolean | RowActionConfig;
-  /**
-   * The table view's key: a move is an edit, checked against this table's
-   * permission and row rules rather than another table's.
-   */
-  tableViewKey?: string;
 }
 
 const props = defineProps<KanbanBoardProps>();
@@ -249,12 +243,7 @@ const persistGroupChange = async (
 
   await $authFetch(`${props.location}/edit`, {
     method: "put",
-    query: {
-      id: itemId,
-      ...(props.tableViewKey
-        ? { [TABLE_VIEW_QUERY_KEY]: props.tableViewKey }
-        : {}),
-    },
+    query: { id: itemId },
     body,
     headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
   });

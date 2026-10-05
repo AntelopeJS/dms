@@ -41,18 +41,6 @@ describe("TableView bulk actions", () => {
     );
   });
 
-  it("names the table view the request comes from", () => {
-    const url = withQuery(
-      "/api/task/delete",
-      bulkActionQuery("id", ["17", "21"], "pages.drawer.table"),
-    );
-    expect(url).toBe(
-      "/api/task/delete?id=17&id=21&tableView=pages.drawer.table",
-    );
-    // No key, no parameter: the server falls back to the caller's tables.
-    expect(bulkActionQuery("id", ["17"])).toEqual({ id: ["17"] });
-  });
-
   it("counts what each bulk route changed and what it skipped", () => {
     expect(bulkActionOutcome({ success: true, archivedCount: 3 }, 3)).toEqual({
       processed: 3,

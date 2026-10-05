@@ -70,11 +70,6 @@ interface TableRowActionsConfig {
   componentId: string;
   pageId: string;
   queryParamFilters?: QueryParamFilters;
-  /**
-   * The table view's key (`tableViewKey` of its options): sent with every
-   * write so the server applies this table's permission and row rules.
-   */
-  tableViewKey?: string;
 }
 
 interface BulkActionConfig {
@@ -535,7 +530,7 @@ export const useTableRowActions = <T extends Data>(
       () =>
         config.api(`${config.location}/${bulkConfig.kind}`, {
           method: bulkConfig.method,
-          query: bulkActionQuery(bulkConfig.queryKey, ids, config.tableViewKey),
+          query: bulkActionQuery(bulkConfig.queryKey, ids),
         }),
       {
         startPayload: { ids },

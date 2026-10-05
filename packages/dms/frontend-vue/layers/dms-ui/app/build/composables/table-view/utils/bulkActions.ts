@@ -3,13 +3,6 @@ import type {
   ConfirmNotice,
 } from "../../../../composables/confirm/types";
 
-/**
- * Query key naming the table view a write comes from: the server applies that
- * table's permission and row rules (several tables may share a controller's
- * routes, never their rules). Mirrors the backend `TABLE_VIEW_QUERY_KEY`.
- */
-export const TABLE_VIEW_QUERY_KEY = "tableView";
-
 /** A table's row selection, by row id (TanStack `RowSelectionState`). */
 export type RowSelectionMap = Record<string, boolean>;
 
@@ -25,12 +18,8 @@ export function selectedRowIds(selection: RowSelectionMap): string[] {
 export function bulkActionQuery(
   queryKey: string,
   ids: string[],
-  tableViewKey?: string,
 ): Record<string, string | string[]> {
-  return {
-    [queryKey]: [...ids],
-    ...(tableViewKey ? { [TABLE_VIEW_QUERY_KEY]: tableViewKey } : {}),
-  };
+  return { [queryKey]: [...ids] };
 }
 
 /** The bulk actions that ask before running. */

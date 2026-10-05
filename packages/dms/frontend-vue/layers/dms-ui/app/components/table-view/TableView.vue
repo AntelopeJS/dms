@@ -130,11 +130,6 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   footer?: TableViewFooter;
   /** Titles and descriptions of the add, edit and details forms. */
   formTexts?: TableViewFormTexts;
-  /**
-   * The table view's key (backend `tableViewKey`): its writes carry it, so
-   * the server applies this table's permission and row rules.
-   */
-  tableViewKey?: string;
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -821,7 +816,6 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   groupByField: kanbanGroupBy,
   editAction: tableProps.value.rowActions?.edit,
   deleteAction: tableProps.value.rowActions?.delete,
-  tableViewKey: props.tableViewKey,
 });
 
 // A link tab counts the rows of the list it opens; a list the caller may not
@@ -947,7 +941,6 @@ const {
   componentId: componentId!,
   pageId: pageId!,
   queryParamFilters,
-  tableViewKey: props.tableViewKey,
 });
 
 // Archive mode: the toolbar carries an "Archived" toggle for callers allowed
