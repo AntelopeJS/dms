@@ -132,8 +132,13 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   });
 
   it("preserves unkeyed create results and physical deletion", async () => {
+    // Two different messages: an identical one within the duplicate window
+    // is not stored again (see the next case).
     await sendable.toUser(USER);
-    await sendable.toUser(USER);
+    await new SendableNotification({
+      ...data,
+      params: { amount: 200 },
+    }).toUser(USER);
     const rows = await model.getByUserId(USER);
     assert.equal(rows.length, 2);
     assert.equal(rows[0].title, data.title);
@@ -142,6 +147,12 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.equal(await model.table.get(rows[0]._id).run(), undefined);
     await model.deleteAll(USER);
     assert.equal((await model.table.run()).length, 0);
+  });
+
+  it("stores an identical unkeyed message sent twice in a row once", async () => {
+    await sendable.toUser(USER);
+    await sendable.toUser(USER);
+    assert.equal((await model.getByUserId(USER)).length, 1);
   });
 
   it("retains a dismissed receipt and excludes it from all visible reads", async () => {
