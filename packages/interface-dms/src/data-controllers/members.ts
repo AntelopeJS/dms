@@ -14,7 +14,6 @@ import {
 import { TenantMember, TenantMemberModel } from "../db";
 import { TenantScopedModel } from "../tenant-scoped-model";
 import { User } from "../auth/db";
-import { CustomComponent } from "../base/custom";
 import { DefaultDataTypes } from "../base/data-types/default-types";
 import { Searchable } from "../base/searchable";
 import {
@@ -29,11 +28,6 @@ import { getRequestTenantId } from "../request-tenant";
 import { runTenantLifecycleOperation } from "../tenant-lifecycle";
 import { roleSettingDataAPI } from "./roles";
 
-/** Roles the "Change roles" form offers, a route of the members page. */
-const MEMBER_ROLE_OPTIONS_URL = "/settings/user/members/role-options";
-/** The roles page, linked from the roles field as "Compare roles". */
-const ROLES_PAGE_PATH = "/settings/user/roles";
-/** A member's roles, as the data API loads them: `{ _id, name }` each. */
 const ROLE_KEY_MAPPING = { label: "name", value: "_id" } as const;
 
 /** "Active now" lasts this long after the member's last request. */
@@ -142,17 +136,6 @@ export class memberSettingDataAPI extends DataController(
       keyMapping: ROLE_KEY_MAPPING,
     }),
     description: "$page.settings.members.description.roles",
-    // The roles as pills, each with what it grants, like the invite form;
-    // inert while the member is an owner, and none is a valid choice. The
-    // form reads `multiple` and `keyMapping` to load the roles as ids.
-    inputComponent: CustomComponent("DmsMemberRolePicker").options({
-      multiple: true,
-      keyMapping: ROLE_KEY_MAPPING,
-      rolesUrl: MEMBER_ROLE_OPTIONS_URL,
-      rolesPageUrl: ROLES_PAGE_PATH,
-      ownerField: "isTenantOwner",
-      allowEmpty: true,
-    }),
     filterable: true,
     size: 180,
     // An owner holds every permission: one crown pill replaces the roles.

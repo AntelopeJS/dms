@@ -37,6 +37,7 @@ import { requestEmailVerification } from "../../../routes/auth/request-email-ver
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
 import { userCategory } from "./category";
+import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
 import {
   type InviteFormDefaults,
   memberInviteForm,
@@ -208,6 +209,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
     size: "md",
     pages: memberListFormPages("members"),
   },
+  formSlots: { edit: MEMBER_EDIT_FORM_SLOT_ID },
   layout: MEMBER_LISTS_LAYOUT,
   searchPlaceholder: "$page.settings.members.search_members",
   quickFilters: [{ field: "roleIds", ...ROLE_QUICK_FILTER }],
