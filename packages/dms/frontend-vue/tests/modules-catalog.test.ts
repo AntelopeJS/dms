@@ -11,7 +11,7 @@ import {
   moduleCategoryOptions,
   sortModules,
   summarizeModules,
-} from "../layers/dms-layout/app/utils/modules-catalog";
+} from "../layers/dms-layout/app/build/utils/modules-catalog";
 
 const resolve = (value: string) =>
   value === MODULE_CATEGORY_OTHER ? "Other" : value;

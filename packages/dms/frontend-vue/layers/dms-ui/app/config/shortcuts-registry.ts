@@ -1,4 +1,4 @@
-import { GLOBAL_SHORTCUTS_METADATA } from "../composables/global/shortcuts";
+import { GLOBAL_SHORTCUTS_METADATA } from "../build/composables/global/shortcuts";
 import { TAB_SHORTCUTS_METADATA } from "../composables/tab/shortcuts";
 import { TABLE_VIEW_SHORTCUTS_METADATA } from "../composables/table-view/shortcuts";
 import { TREE_SHORTCUTS_METADATA } from "../composables/tree/shortcuts";

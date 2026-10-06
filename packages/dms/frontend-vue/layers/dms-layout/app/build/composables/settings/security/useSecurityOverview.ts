@@ -1,4 +1,4 @@
-import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 
 /** Base URL of the Security page API. */
 export const SECURITY_ENDPOINT = "/settings/user/security";

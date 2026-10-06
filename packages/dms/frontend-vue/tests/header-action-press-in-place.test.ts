@@ -13,14 +13,14 @@ import {
 import {
   registerQuickActionTarget,
   runMountedQuickAction,
-} from "../layers/dms-ui/app/utils/quickActionTargets";
+} from "../layers/dms-ui/app/build/utils/quickActionTargets";
 
 const handleCustomButton = vi.fn();
 vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
   useActionTargets: () => ({ handleCustomButton }),
 }));
 
-vi.mock("#dms-core/app/composables/auth/usePermissionPreview", () => ({
+vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
   usePermissionPreview: () => ({
     isHeaderActionHidden: () => false,
     session: ref(null),

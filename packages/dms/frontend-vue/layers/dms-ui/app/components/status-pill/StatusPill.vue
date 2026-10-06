@@ -8,7 +8,7 @@ import {
   canonicalTone,
   isDmsTone,
   type DmsTone,
-} from "../../utils/tone";
+} from "../../build/utils/tone";
 
 export type StatusPillDot = "none" | "static" | "live";
 export type StatusPillSize = "sm" | "md";

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
-import { childLayoutPath } from "#dms-core/app/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { childLayoutPath } from "#dms-core/app/build/utils/permission-preview";
 import {
   GRID_DECLARED_COLUMNS,
   type GridDeclaredColumns,

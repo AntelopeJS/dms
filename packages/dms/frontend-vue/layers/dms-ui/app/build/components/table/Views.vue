@@ -3,7 +3,7 @@ import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
-import { toneTextClass } from "../../../utils/tone";
+import { toneTextClass } from "../../utils/tone";
 import TableTabs, { type TableTabItem } from "./Tabs.vue";
 
 /** A view as the strip draws it: its counter already read. */

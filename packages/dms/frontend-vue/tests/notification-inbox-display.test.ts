@@ -34,7 +34,7 @@ vi.mock(
 );
 
 vi.mock(
-  "../layers/dms-layout/app/composables/notification/useNotificationCatalog",
+  "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog",
   async () => {
     const vue = await import("vue");
     return {

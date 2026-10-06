@@ -3,7 +3,7 @@ import {
   formatShortDate,
   type RelativeDayBucket,
   relativeDayBucket,
-} from "#dms-ui/app/components/activity-feed/activityFeedDays";
+} from "#dms-ui/app/build/components/activity-feed/activityFeedDays";
 import type {
   NotificationTone,
   UserNotification,

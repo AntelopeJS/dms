@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
-import { useFileReadUrls } from "../../composables/useFileReadUrls";
+import { useFileReadUrls } from "../../../composables/useFileReadUrls";
 
 /**
  * The `identity` cell of a table: an avatar (or an icon tile), a name with an

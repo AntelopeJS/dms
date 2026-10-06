@@ -2,9 +2,12 @@
 // the user may see. Pure: useProfilePreferences reads the data.
 
 import type { TimeFormatPreference } from "#dms-core/app/utils/regional";
-import type { AccessibilityPreferences } from "#dms-ui/app/utils/accessibilityPreferences";
+import type { AccessibilityPreferences } from "#dms-ui/app/build/utils/accessibilityPreferences";
 import type { NotificationSubject } from "../../notification/useNotificationCatalog";
-import type { ColorModePreference, InterfaceScale } from "../../general/types";
+import type {
+  ColorModePreference,
+  InterfaceScale,
+} from "../../../../composables/general/types";
 
 /** `t` as vue-i18n takes it: key, named params, plural count. */
 export type SummaryTranslate = (

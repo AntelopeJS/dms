@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { nextTick, useTemplateRef } from "vue";
-import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
-import AuthBackLink from "../../components/AuthBackLink.vue";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthBackLink from "../../build/components/AuthBackLink.vue";
 import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
-import AuthFormAlert from "../../components/AuthFormAlert.vue";
-import { useAuthFormError } from "../../composables/useAuthFormError";
-import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import { useAuthFormError } from "../../build/composables/useAuthFormError";
+import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 
 type TwoFactorMethod = "totp" | "email";

@@ -12,7 +12,7 @@ import type {
   ConfirmOptions,
   ConfirmValues,
 } from "../../../composables/confirm/types";
-import { resolveResponseToast } from "../../../utils/responseWarning";
+import { resolveResponseToast } from "../../utils/responseWarning";
 import type { ContainerInstance } from "../../../composables/containers/types";
 import {
   type BulkSelection,

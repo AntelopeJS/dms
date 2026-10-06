@@ -6,7 +6,7 @@ import type {
 import { useForwardPropsEmits } from "reka-ui";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import { FIELD_RING_INVALID_CLASS } from "../../../utils/fieldTrigger";
+import { FIELD_RING_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
 import {
   parseDate,
   fromDate,

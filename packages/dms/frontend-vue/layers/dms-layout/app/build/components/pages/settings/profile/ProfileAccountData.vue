@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAccountData } from "../../../../../composables/settings/profile/useAccountData";
+import { useAccountData } from "../../../../composables/settings/profile/useAccountData";
 
 const { t } = useI18n();
 const { isExporting, isCheckingDeletion, exportData, deleteAccount } =

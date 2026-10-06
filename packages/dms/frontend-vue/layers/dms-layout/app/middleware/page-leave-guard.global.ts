@@ -1,4 +1,4 @@
-import { confirmLeave } from "#dms-ui/app/composables/unsaved-changes/registry";
+import { confirmLeave } from "#dms-ui/app/build/composables/unsaved-changes/registry";
 
 export default defineDmsMiddleware(async (to, from) => {
   if (to.path === from.path) {

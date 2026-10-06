@@ -3,7 +3,7 @@ import {
   formSaveMode,
   type SaveBarContext,
   saveBarState,
-} from "../layers/dms-ui/app/composables/form/formFooter";
+} from "../layers/dms-ui/app/build/composables/form/formFooter";
 
 describe("formSaveMode", () => {
   it("saves with the bar by default", () => {

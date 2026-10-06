@@ -4,8 +4,10 @@ import DmsStatStrip, {
   type StatStripItem,
   type StatStripLayout,
 } from "../stat-strip/StatStrip.vue";
-import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
-import { useBlockItems } from "../../composables/blocks/useBlockItems";
+import DmsBlockStatus, {
+  type BlockEmptyText,
+} from "../../build/components/blocks/BlockStatus.vue";
+import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `StatStrip` block (interface-dms `base/stat-strip`): the generic StatStrip

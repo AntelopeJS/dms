@@ -5,7 +5,7 @@ import {
   isEmptyFormValue,
   sameFormValue,
   snapshotFormValue,
-} from "../layers/dms-ui/app/composables/unsaved-changes/formValue";
+} from "../layers/dms-ui/app/build/composables/unsaved-changes/formValue";
 import { useFormDirty } from "../layers/dms-ui/app/composables/unsaved-changes/useFormDirty";
 import {
   confirmLeave,
@@ -13,7 +13,7 @@ import {
   isLeavingVisit,
   registerUnsavedChanges,
   resetUnsavedChanges,
-} from "../layers/dms-ui/app/composables/unsaved-changes/registry";
+} from "../layers/dms-ui/app/build/composables/unsaved-changes/registry";
 
 describe("sameFormValue", () => {
   it("compares nested objects and lists by value", () => {

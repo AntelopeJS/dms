@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import StepIndicator from "../components/onboarding/StepIndicator.vue";
-import Platform from "../components/onboarding/steps/platform.vue";
-import Ready from "../components/onboarding/steps/ready.vue";
+import StepIndicator from "../build/components/onboarding/StepIndicator.vue";
+import Platform from "../build/components/onboarding/steps/platform.vue";
+import Ready from "../build/components/onboarding/steps/ready.vue";
 import Register from "../components/onboarding/steps/register.vue";
 import {
   ONBOARDING_STEPS,
   type OnboardingAdministrator,
   type OnboardingPlatform,
   type OnboardingStep,
-} from "../composables/onboarding/steps";
+} from "../build/composables/onboarding/steps";
 
 // A custom page runs the global middleware only once it declares its meta:
 // that is what lets the onboarding middleware send a visitor away from a

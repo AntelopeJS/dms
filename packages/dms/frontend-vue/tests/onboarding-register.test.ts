@@ -20,15 +20,15 @@ const data = {
   password: "test-only",
 };
 
+const REGISTER_STEP = "components/onboarding/steps/register.vue";
+const READY_STEP = "build/components/onboarding/steps/ready.vue";
+
 const IMPORT_STATEMENT = /^import[\s\S]*?from\s+"[^"]+";$/gm;
 
 /** The named function of a step's `<script setup>`, run against stubs. */
 function loadStepFunction<T>(file: string, name: string): T {
   const component = readFileSync(
-    new URL(
-      `../layers/dms-onboarding/app/components/onboarding/steps/${file}`,
-      import.meta.url,
-    ),
+    new URL(`../layers/dms-onboarding/app/${file}`, import.meta.url),
     "utf8",
   );
   const script = component
@@ -84,7 +84,7 @@ type Submit = (event: { data: typeof data }) => Promise<void>;
 type Open = (destination?: string) => Promise<void>;
 
 it("registers with the platform details, signs in, then moves to the Ready step", async () => {
-  await loadStepFunction<Submit>("register.vue", "onSubmit")({ data });
+  await loadStepFunction<Submit>(REGISTER_STEP, "onSubmit")({ data });
 
   expect(register).toHaveBeenCalledWith("/api/onboarding/register", {
     method: "POST",
@@ -105,7 +105,7 @@ it("registers with the platform details, signs in, then moves to the Ready step"
 
 it("shows the error in the card and stays on the step when registration fails", async () => {
   register.mockRejectedValueOnce(new Error("Registration failed"));
-  await loadStepFunction<Submit>("register.vue", "onSubmit")({ data });
+  await loadStepFunction<Submit>(REGISTER_STEP, "onSubmit")({ data });
   expect(complete).not.toHaveBeenCalled();
   expect(login).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ it("shows the error in the card and stays on the step when registration fails", 
 
 it("opens login without allowing another registration after automatic login fails", async () => {
   login.mockRejectedValueOnce(new Error("Login failed"));
-  const submit = loadStepFunction<Submit>("register.vue", "onSubmit");
+  const submit = loadStepFunction<Submit>(REGISTER_STEP, "onSubmit");
   await submit({ data });
   await submit({ data });
   expect(register).toHaveBeenCalledOnce();
@@ -125,7 +125,7 @@ it("opens login without allowing another registration after automatic login fail
 });
 
 it("opens the first accessible page from the Ready step once the session is refreshed", async () => {
-  await loadStepFunction<Open>("ready.vue", "open")();
+  await loadStepFunction<Open>(READY_STEP, "open")();
 
   expect(redirect).toHaveBeenCalledOnce();
   expect(redirect.mock.calls[0]![0]()).toBe("/dashboard");
@@ -133,7 +133,7 @@ it("opens the first accessible page from the Ready step once the session is refr
 
 it("opens a next step's page from the Ready step", async () => {
   await loadStepFunction<Open>(
-    "ready.vue",
+    READY_STEP,
     "open",
   )("/settings/workspace/members");
 
@@ -146,7 +146,7 @@ it.each(["Session failed", "Layout failed"])(
   "uses a full reload to recover from %s when leaving the Ready step",
   async (message) => {
     redirect.mockRejectedValueOnce(new Error(message));
-    const open = loadStepFunction<Open>("ready.vue", "open");
+    const open = loadStepFunction<Open>(READY_STEP, "open");
     await open();
     await open();
     expect(redirect).toHaveBeenCalledOnce();

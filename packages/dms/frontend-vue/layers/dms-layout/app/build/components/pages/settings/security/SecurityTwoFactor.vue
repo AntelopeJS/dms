@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import type { Ref } from "vue";
-import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
+import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
   type TotpSetup,
   useSecurityOverview,
-} from "../../../../../composables/settings/security/useSecurityOverview";
-import { useRevealedBackupCodes } from "../../../../../composables/settings/security/useRevealedBackupCodes";
+} from "../../../../composables/settings/security/useSecurityOverview";
+import { useRevealedBackupCodes } from "../../../../composables/settings/security/useRevealedBackupCodes";
 import SecurityBackupCodesModal from "./SecurityBackupCodesModal.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityPasswordModal from "./SecurityPasswordModal.vue";

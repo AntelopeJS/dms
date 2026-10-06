@@ -3,13 +3,13 @@ import { computed, type Component, type VNodeChild } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import DmsKeyValueList, {
   type KeyValueItem,
-} from "../key-value-list/KeyValueList.vue";
-import DmsEyebrow from "../section-header/Eyebrow.vue";
-import { useColumnValueRenderer } from "../../build/composables/data-types/useColumnValueRenderer";
+} from "../../../components/key-value-list/KeyValueList.vue";
+import DmsEyebrow from "../../../components/section-header/Eyebrow.vue";
+import { useColumnValueRenderer } from "../../composables/data-types/useColumnValueRenderer";
 import type {
   TableViewColumn,
   TableViewExpandableConfig,
-} from "../../composables/table-view/types";
+} from "../../../composables/table-view/types";
 
 /**
  * Detail band of an expanded TableView row: the configured `component`, which

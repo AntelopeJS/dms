@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
-import type { ReduceMotionPreference } from "#dms-ui/app/utils/accessibilityPreferences";
+import type { ReduceMotionPreference } from "#dms-ui/app/build/utils/accessibilityPreferences";
 import { useAppearanceSave } from "./useAppearanceSave";
 
 const reduceMotionValues: ReduceMotionPreference[] = ["auto", "on", "off"];

@@ -1,5 +1,8 @@
 import { computed, shallowRef, type ComputedRef, type ShallowRef } from "vue";
-import { sameFormValue, snapshotFormValue } from "./formValue";
+import {
+  sameFormValue,
+  snapshotFormValue,
+} from "../../build/composables/unsaved-changes/formValue";
 
 export interface UseFormDirtyOptions<T> {
   /**

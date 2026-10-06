@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
-import { listPreviewablePages } from "#dms-core/app/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { listPreviewablePages } from "#dms-core/app/build/utils/permission-preview";
 
 // v2 .cs-asbar: "Previewing <page> as <role> · unsaved changes included ·
 // Exit preview", pinned under the dashboard header while a tab previews a

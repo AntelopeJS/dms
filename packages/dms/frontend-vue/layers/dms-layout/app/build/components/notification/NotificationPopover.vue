@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
-import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
 import type { UserNotification } from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";

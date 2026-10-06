@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { StatStripItem } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
-import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
+import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   type SecurityOverview,
   useSecurityOverview,
-} from "../../../../../composables/settings/security/useSecurityOverview";
+} from "../../../../composables/settings/security/useSecurityOverview";
 
 const METHODS_LABEL_KEYS: Record<string, string> = {
   "email,totp": "page.settings.security.status.methods_both",

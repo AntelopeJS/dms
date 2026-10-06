@@ -4,8 +4,10 @@ import DmsCard from "../card/Card.vue";
 import DmsKeyValueList, {
   type KeyValueItem,
 } from "../key-value-list/KeyValueList.vue";
-import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
-import { useBlockItems } from "../../composables/blocks/useBlockItems";
+import DmsBlockStatus, {
+  type BlockEmptyText,
+} from "../../build/components/blocks/BlockStatus.vue";
+import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `KeyValueList` block (interface-dms `base/key-value-list`): label / value

@@ -12,7 +12,7 @@ import type {
   TableViewEmptyStateKind,
   TableViewEmptyStatesConfig,
 } from "../../../composables/table-view/types";
-import { buttonLinkProps } from "../../../utils/link";
+import { buttonLinkProps } from "../../utils/link";
 
 // The table's empty body: the generic v2 empty state (hatched, 44px well),
 // worded and equipped for why the table is empty — load error, filters

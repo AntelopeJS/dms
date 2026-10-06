@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
-import { quickActionKey } from "#dms-core/app/utils/permission-preview";
+import { quickActionKey } from "#dms-core/app/build/utils/permission-preview";
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();

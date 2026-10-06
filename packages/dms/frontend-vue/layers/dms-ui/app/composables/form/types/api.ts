@@ -1,5 +1,5 @@
 import type { FormData } from "./value";
-import type { WarningResponse } from "../../../utils/responseWarning";
+import type { WarningResponse } from "../../../build/utils/responseWarning";
 
 export interface FormFetchResponse extends FormData {}
 

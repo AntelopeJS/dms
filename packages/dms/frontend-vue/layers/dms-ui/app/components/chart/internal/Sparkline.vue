@@ -4,7 +4,7 @@ import {
   closeSparkArea,
   projectSparkPoints,
   smoothSparkPath,
-} from "../../../composables/chart/sparklinePath";
+} from "../../../build/composables/chart/sparklinePath";
 
 type SparklineArea = "gradient" | "flat" | "none";
 

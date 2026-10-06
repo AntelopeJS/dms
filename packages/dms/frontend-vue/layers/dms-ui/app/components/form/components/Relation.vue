@@ -15,7 +15,7 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
-import { FIELD_TRIGGER_ICON } from "../../../utils/fieldTrigger";
+import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type { FormProps } from "../../../composables/form/types";
 
 const SEARCH_DEBOUNCE_MS = 200;

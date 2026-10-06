@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useProfilePreferences } from "../../../../../composables/settings/profile/useProfilePreferences";
+import { useProfilePreferences } from "../../../../composables/settings/profile/useProfilePreferences";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
 const KEY = "page.settings.profile.preferences";

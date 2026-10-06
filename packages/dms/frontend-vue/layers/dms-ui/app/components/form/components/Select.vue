@@ -8,7 +8,7 @@
   "
 >
 import { useForwardPropsEmits } from "reka-ui";
-import { FIELD_TRIGGER_ICON } from "../../../utils/fieldTrigger";
+import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type {
   SelectProps,
   SelectEmits,

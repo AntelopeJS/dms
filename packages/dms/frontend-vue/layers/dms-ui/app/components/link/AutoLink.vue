@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { EXTERNAL_LINK_ATTRIBUTES, linkKind } from "../../utils/link";
+import { EXTERNAL_LINK_ATTRIBUTES, linkKind } from "../../build/utils/link";
 
 // A link whose target comes from data (a block option, a fetched row): a DMS
 // route goes through <DmsLink> (Inertia visit), an in-page anchor stays a bare

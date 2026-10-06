@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
-import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
+import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
   useSecurityOverview,
-} from "../../../../../composables/settings/security/useSecurityOverview";
+} from "../../../../composables/settings/security/useSecurityOverview";
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";

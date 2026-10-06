@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from "vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
-import DmsChartSkeleton from "./internal/ChartSkeleton.vue";
+import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
 import {
   chartFrameHeight,
   useApexChart,

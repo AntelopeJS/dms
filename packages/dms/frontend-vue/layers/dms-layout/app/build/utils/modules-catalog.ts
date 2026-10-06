@@ -1,4 +1,8 @@
-import type { ModuleCatalogEntry, ModuleStatus, PageInfo } from "../types/page";
+import type {
+  ModuleCatalogEntry,
+  ModuleStatus,
+  PageInfo,
+} from "../../types/page";
 
 /** Category of the modules that declare none. */
 export const MODULE_CATEGORY_OTHER = "$modules.category_other";

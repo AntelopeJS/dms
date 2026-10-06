@@ -3,18 +3,18 @@ import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import striptags from "striptags";
-import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
-import AuthFormAlert from "../../../../../dms-auth/app/components/AuthFormAlert.vue";
-import AuthNewPasswordField from "../../../../../dms-auth/app/components/AuthNewPasswordField.vue";
+import StageCard from "../../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthFormAlert from "../../../../../dms-auth/app/build/components/AuthFormAlert.vue";
+import AuthNewPasswordField from "../../../../../dms-auth/app/build/components/AuthNewPasswordField.vue";
 import {
   type AuthFormHandle,
   useAuthFormError,
-} from "../../../../../dms-auth/app/composables/useAuthFormError";
+} from "../../../../../dms-auth/app/build/composables/useAuthFormError";
 import type {
   OnboardingAdministrator,
   OnboardingPlatform,
-} from "../../../composables/onboarding/steps";
-import StepMeta from "../StepMeta.vue";
+} from "../../../build/composables/onboarding/steps";
+import StepMeta from "../../../build/components/onboarding/StepMeta.vue";
 import {
   focusFirstFormError,
   useLiveFormErrors,

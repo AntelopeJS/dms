@@ -11,7 +11,7 @@ import {
   useLiveFormErrors,
 } from "../layers/dms-core/app/composables/useFormValidation";
 import { passwordSchema } from "../layers/dms-ui/app/composables/usePasswordStrength";
-import { useCodeFieldError } from "../layers/dms-layout/app/composables/settings/security/useCodeFieldError";
+import { useCodeFieldError } from "../layers/dms-layout/app/build/composables/settings/security/useCodeFieldError";
 
 /** Marks the keys it translates, so a test sees what went through i18n. */
 const translate = (key: string) => `t(${key})`;

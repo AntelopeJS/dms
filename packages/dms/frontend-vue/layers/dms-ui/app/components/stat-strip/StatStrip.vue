@@ -3,7 +3,11 @@ import { computed } from "vue";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import { DMS_TONE_TEXT, canonicalTone, type DmsTone } from "../../utils/tone";
+import {
+  DMS_TONE_TEXT,
+  canonicalTone,
+  type DmsTone,
+} from "../../build/utils/tone";
 
 export type StatStripLayout = "joined" | "cards";
 

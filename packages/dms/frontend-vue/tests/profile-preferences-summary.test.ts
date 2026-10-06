@@ -10,9 +10,9 @@ import {
   type SummaryTranslate,
   tallySubjects,
   weekdayName,
-} from "../layers/dms-layout/app/composables/settings/profile/preferencesSummary";
-import type { NotificationSubject } from "../layers/dms-layout/app/composables/notification/useNotificationCatalog";
-import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/utils/accessibilityPreferences";
+} from "../layers/dms-layout/app/build/composables/settings/profile/preferencesSummary";
+import type { NotificationSubject } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
+import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
 
 const KEY = "page.settings.profile.preferences";
 
@@ -263,7 +263,7 @@ vi.mock("#dms-core/app/utils/formatter", () => ({
   formatDate: () => "03/10/2026",
 }));
 vi.mock(
-  "../layers/dms-layout/app/composables/settings/useSettingsNavigation",
+  "../layers/dms-layout/app/build/composables/settings/useSettingsNavigation",
   async () => {
     const { computed } = await import("vue");
     return {
@@ -287,7 +287,7 @@ vi.mock(
   }),
 );
 vi.mock(
-  "../layers/dms-layout/app/composables/notification/useNotificationCatalog",
+  "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog",
   async () => {
     const { ref } = await import("vue");
     return {
@@ -302,7 +302,7 @@ vi.mock(
   },
 );
 vi.mock(
-  "../layers/dms-layout/app/composables/notification/useNotificationPreferences",
+  "../layers/dms-layout/app/build/composables/notification/useNotificationPreferences",
   async () => {
     const { ref } = await import("vue");
     return {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
 </script>
 
 <template>

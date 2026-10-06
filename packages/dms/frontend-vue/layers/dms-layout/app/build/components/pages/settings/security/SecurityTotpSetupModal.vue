@@ -3,8 +3,8 @@ import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopy
 import { useTemplateRef } from "vue";
 import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
-import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
-import type { TotpSetup } from "../../../../../composables/settings/security/useSecurityOverview";
+import { useCodeFieldError } from "../../../../composables/settings/security/useCodeFieldError";
+import type { TotpSetup } from "../../../../composables/settings/security/useSecurityOverview";
 
 interface SecurityTotpSetupModalProps {
   setup: TotpSetup | null;

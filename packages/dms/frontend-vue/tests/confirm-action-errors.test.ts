@@ -15,7 +15,7 @@ import {
   ACTION_ERROR_GENERIC_KEY,
   ACTION_ERROR_NETWORK_KEY,
   resolveActionError,
-} from "../layers/dms-ui/app/composables/confirm/actionError";
+} from "../layers/dms-ui/app/build/composables/confirm/actionError";
 import { ConfirmActionError } from "../layers/dms-ui/app/composables/confirm/types";
 
 // The modal's title and description need a reka DialogRoot: plain text here.

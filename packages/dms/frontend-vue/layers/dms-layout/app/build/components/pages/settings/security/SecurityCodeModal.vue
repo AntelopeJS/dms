@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
-import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
+import { useCodeFieldError } from "../../../../composables/settings/security/useCodeFieldError";
 import SecurityDialogFrame, {
   type SecurityDialogTone,
 } from "./SecurityDialogFrame.vue";

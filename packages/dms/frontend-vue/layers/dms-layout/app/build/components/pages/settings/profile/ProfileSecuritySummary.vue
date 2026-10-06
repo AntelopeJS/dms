@@ -2,7 +2,7 @@
 import {
   SECURITY_PAGE_PATH,
   useSecurityOverview,
-} from "../../../../../composables/settings/security/useSecurityOverview";
+} from "../../../../composables/settings/security/useSecurityOverview";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
 const { t } = useI18n();

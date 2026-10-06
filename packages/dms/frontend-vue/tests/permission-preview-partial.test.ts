@@ -18,7 +18,7 @@ import {
   type PreviewEntryState,
   type PreviewLockableEntry,
   resolvePreviewEntryState,
-} from "#dms-core/app/utils/permission-preview";
+} from "#dms-core/app/build/utils/permission-preview";
 import { MENU_STATUS_TEXT_CLASSES } from "#dms-core/app/utils/menu";
 import NavigationMenu from "../layers/dms-layout/app/components/navigation/NavigationMenu.vue";
 
@@ -267,7 +267,7 @@ describe("PermissionVeil partial state (settings overview cards)", () => {
 
   it("keeps the card usable under an orange hatch with the lock badge", async () => {
     const { default: PermissionVeil } = await import(
-      "../layers/dms-ui/app/components/permission/PermissionVeil.vue"
+      "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue"
     );
     host = document.createElement("div");
     document.body.append(host);

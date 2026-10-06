@@ -1,5 +1,8 @@
 import type { FormFieldOrGroup, FormSection, FormSectionNav } from "./field";
-import type { FormKind, FormSaveMode } from "../formFooter";
+import type {
+  FormKind,
+  FormSaveMode,
+} from "../../../build/composables/form/formFooter";
 
 interface FormComponentProps {
   componentId: string;

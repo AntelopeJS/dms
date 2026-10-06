@@ -2,7 +2,7 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { SelectItem } from "@nuxt/ui";
-import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
+import StageCard from "../../../../../../dms-layout/app/build/components/layout/StageCard.vue";
 import type { OnboardingPlatform } from "../../../composables/onboarding/steps";
 import StepMeta from "../StepMeta.vue";
 import {

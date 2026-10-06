@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import DmsBanner from "../banner/Banner.vue";
-import DmsBlockActions, { type BlockAction } from "./BlockActions.vue";
+import DmsBlockActions, {
+  type BlockAction,
+} from "../../build/components/blocks/BlockActions.vue";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 

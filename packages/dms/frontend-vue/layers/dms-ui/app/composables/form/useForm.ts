@@ -7,7 +7,7 @@ import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
-import { resolveResponseToast } from "../../utils/responseWarning";
+import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
 
 /** A toast a submit response asks for, on top of the success one. */
@@ -26,7 +26,7 @@ import {
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
-import { sameFormValue } from "../unsaved-changes/formValue";
+import { sameFormValue } from "../../build/composables/unsaved-changes/formValue";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {

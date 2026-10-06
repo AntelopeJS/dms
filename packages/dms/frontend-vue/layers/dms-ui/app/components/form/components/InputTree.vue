@@ -3,7 +3,7 @@ import type { DefaultComponentProps } from "../../../../../dms-core/app/types/co
 import Tree from "../../tree/Tree.vue";
 import type { TreeNode } from "../../../composables/tree/types";
 import { TreeSelectionBehavior } from "../../../composables/tree/types/props";
-import { FIELD_RING_INVALID_CLASS } from "../../../utils/fieldTrigger";
+import { FIELD_RING_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
 interface InputTreeProps extends DefaultComponentProps {
   items?: TreeNode[];
   fetchUrl?: string;

@@ -1,5 +1,5 @@
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
-import { PERMISSION_PREVIEW_PENDING_ATTRIBUTE } from "#dms-core/app/utils/permission-preview";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { PERMISSION_PREVIEW_PENDING_ATTRIBUTE } from "#dms-core/app/build/utils/permission-preview";
 
 /** The page shows again: the pre-paint hold of a preview tab is over. */
 function releasePrePaintHold(): void {

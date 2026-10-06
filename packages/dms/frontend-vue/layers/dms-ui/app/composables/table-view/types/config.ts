@@ -7,7 +7,7 @@ import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
 import type { FormProps } from "../../form/types";
 import type { TableProps, TableFilter } from "../../../types/table";
-import type { BlockAction } from "../../../components/blocks/BlockActions.vue";
+import type { BlockAction } from "../../../build/components/blocks/BlockActions.vue";
 
 export interface QueryParamFilter {
   field: string;

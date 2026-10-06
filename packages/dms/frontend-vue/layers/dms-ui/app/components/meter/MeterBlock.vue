@@ -6,7 +6,9 @@ import DmsMeter, {
   type MeterSize,
   type MeterTone,
 } from "./Meter.vue";
-import DmsBlockActions, { type BlockAction } from "../blocks/BlockActions.vue";
+import DmsBlockActions, {
+  type BlockAction,
+} from "../../build/components/blocks/BlockActions.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";

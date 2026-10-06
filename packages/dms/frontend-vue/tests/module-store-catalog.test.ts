@@ -3,13 +3,13 @@ import {
   MODULE_CATEGORY_ALL,
   filterModules,
   moduleCategoryOptions,
-} from "../layers/dms-layout/app/utils/modules-catalog";
+} from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
   MODULE_STORE_CATALOG,
   availableStoreModules,
   moduleInstallCommand,
   type ModuleStoreEntry,
-} from "../layers/dms-layout/app/utils/module-store-catalog";
+} from "../layers/dms-layout/app/build/utils/module-store-catalog";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 

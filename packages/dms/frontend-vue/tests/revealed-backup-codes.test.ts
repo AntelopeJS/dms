@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nextTick, ref } from "vue";
-import { useRevealedBackupCodes } from "../layers/dms-layout/app/composables/settings/security/useRevealedBackupCodes";
+import { useRevealedBackupCodes } from "../layers/dms-layout/app/build/composables/settings/security/useRevealedBackupCodes";
 
 const ALICE = "user-alice";
 const BOB = "user-bob";

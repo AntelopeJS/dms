@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { accessibilityHtmlClasses } from "#dms-ui/app/utils/accessibilityPreferences";
+import { accessibilityHtmlClasses } from "#dms-ui/app/build/utils/accessibilityPreferences";
 import { useAccessibilityPreferences } from "../composables/general/useAccessibilityPreferences";
 
 /**

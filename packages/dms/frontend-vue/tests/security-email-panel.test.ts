@@ -36,14 +36,14 @@ vi.mock(
 );
 
 vi.mock(
-  "../layers/dms-layout/app/composables/settings/security/useSecurityOverview",
+  "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview",
   () => ({
     SECURITY_ENDPOINT: "/settings/user/security",
     useSecurityOverview: () => ({ overview, refresh }),
   }),
 );
 vi.mock(
-  "../layers/dms-layout/app/composables/settings/security/useSecurityFormat",
+  "../layers/dms-layout/app/build/composables/settings/security/useSecurityFormat",
   () => ({
     useSecurityFormat: () => ({
       errorMessage: (_error: unknown, fallback: string) => fallback,

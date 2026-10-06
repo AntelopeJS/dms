@@ -2,7 +2,7 @@ import { type ComputedRef, type Ref, watch } from "vue";
 import type { FormField } from "../../../composables/form/types/field";
 import type { FormFieldValue } from "../../../composables/form/types/value";
 import { cloneFormValue } from "../../../composables/form/useForm";
-import { sameFormValue } from "../../../composables/unsaved-changes/formValue";
+import { sameFormValue } from "../unsaved-changes/formValue";
 import {
   type InstantSave,
   useInstantSave,

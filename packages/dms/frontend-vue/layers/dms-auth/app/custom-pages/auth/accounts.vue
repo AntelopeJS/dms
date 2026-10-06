@@ -3,7 +3,7 @@ import {
   TILE_ROW_CLASS,
   TILE_ROW_INTERACTIVE_CLASS,
 } from "#dms-ui/app/build/utils/tileRow";
-import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
 
 const ACCOUNT_SKELETON_ROWS = 2;
 

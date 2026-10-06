@@ -1,12 +1,12 @@
-import type { ApexTypeConfig } from "./apexTypeConfigs";
-import type { ChartSeries, ChartType } from "./types";
-import type { UseApexChartInput } from "./useApexChart.types";
+import type { ApexTypeConfig } from "../../../composables/chart/apexTypeConfigs";
+import type { ChartSeries, ChartType } from "../../../composables/chart/types";
+import type { UseApexChartInput } from "../../../composables/chart/useApexChart.types";
 import {
   readThemeBorder,
   readThemeDimmed,
   readThemeMonoFont,
   readThemeSurface,
-} from "./useChartTheme";
+} from "../../../composables/chart/useChartTheme";
 
 const GRID_PADDING = { left: 8, right: 8, top: 0, bottom: 0 };
 const AXIS_LABEL_FONT_SIZE = "11px";

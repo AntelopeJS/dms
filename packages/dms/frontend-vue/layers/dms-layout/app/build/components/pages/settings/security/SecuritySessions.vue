@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
-import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
+import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
   useSecurityOverview,
-} from "../../../../../composables/settings/security/useSecurityOverview";
+} from "../../../../composables/settings/security/useSecurityOverview";
 import {
   type SessionHandoff,
   useSessionHandoff,

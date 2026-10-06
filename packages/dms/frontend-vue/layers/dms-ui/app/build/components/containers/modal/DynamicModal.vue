@@ -5,7 +5,7 @@ import type { ModalSize } from "../../../../types/modal";
 import type { ContainerColor } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
-import { DMS_CONTAINER_KEY } from "../../../../composables/containers/context";
+import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
 
 interface DynamicModalProps {
   title: string;

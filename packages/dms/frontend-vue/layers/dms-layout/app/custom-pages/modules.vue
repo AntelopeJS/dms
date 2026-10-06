@@ -8,7 +8,7 @@ import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsStatStrip, {
   type StatStripItem,
 } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
-import type { DmsTone } from "#dms-ui/app/utils/tone";
+import type { DmsTone } from "#dms-ui/app/build/utils/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
@@ -28,11 +28,11 @@ import {
   sortModules,
   summarizeModules,
   type ModuleSortMode,
-} from "../utils/modules-catalog";
+} from "../build/utils/modules-catalog";
 import {
   MODULE_STORE_CATALOG,
   availableStoreModules,
-} from "../utils/module-store-catalog";
+} from "../build/utils/module-store-catalog";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
 const MODULES_LISTING_DATA_KEY = "modules-page-listing";

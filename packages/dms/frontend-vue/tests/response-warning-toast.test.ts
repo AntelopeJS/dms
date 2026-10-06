@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   readResponseWarning,
   resolveResponseToast,
-} from "../layers/dms-ui/app/utils/responseWarning";
+} from "../layers/dms-ui/app/build/utils/responseWarning";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 import uiEn from "../layers/dms-ui/i18n/locales/ui-en-GB.json";

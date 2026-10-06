@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
-import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import {
   applyPreviewEntryStates,
   type PreviewEntryState,
-} from "#dms-core/app/utils/permission-preview";
+} from "#dms-core/app/build/utils/permission-preview";
 
 interface Props {
   items: NavigationMenuItem[] | NavigationMenuItem[][];

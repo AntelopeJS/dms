@@ -3,8 +3,8 @@ import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
 import {
   type AvatarFieldOptions,
   useProfileAvatar,
-} from "../../../../../composables/settings/profile/useProfileAvatar";
-import { SECURITY_PAGE_PATH } from "../../../../../composables/settings/security/useSecurityOverview";
+} from "../../../../composables/settings/profile/useProfileAvatar";
+import { SECURITY_PAGE_PATH } from "../../../../composables/settings/security/useSecurityOverview";
 import ProfileAvatar from "./ProfileAvatar.vue";
 import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
-import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
-import { useNotificationPreferences } from "../../../../../composables/notification/useNotificationPreferences";
+import type { NotificationCategory } from "../../../../composables/notification/useNotificationCatalog";
+import { useNotificationPreferences } from "../../../../composables/notification/useNotificationPreferences";
 import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";

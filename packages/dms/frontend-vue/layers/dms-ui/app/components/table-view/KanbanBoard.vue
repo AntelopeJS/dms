@@ -11,7 +11,7 @@ import {
   buildKanbanColumns,
   type KanbanColumnDef,
 } from "../../composables/table-view/kanban";
-import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
+import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
 import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
 import { buildCardProps } from "../../build/composables/table-view/utils/card";
 

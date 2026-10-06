@@ -16,7 +16,7 @@ import {
   FIELD_TRIGGER_ICON,
   FIELD_TRIGGER_INVALID_CLASS,
   FIELD_TRIGGER_UI,
-} from "../../../utils/fieldTrigger";
+} from "../../../build/utils/fieldTrigger";
 
 interface CascaderProps {
   searchUrl: string;

@@ -4,7 +4,7 @@ import {
   MODULE_INSTALL_COMMAND,
   moduleInstallCommand,
   type ModuleStoreEntry,
-} from "../../../../utils/module-store-catalog";
+} from "../../../utils/module-store-catalog";
 
 interface ModuleStoreTileProps {
   /** The store module the tile presents. */

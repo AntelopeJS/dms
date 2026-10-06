@@ -4,8 +4,10 @@ import DmsEmptyState, {
   type EmptyStateSize,
   type EmptyStateVariant,
 } from "../empty-state/EmptyState.vue";
-import DmsBlockActions, { type BlockAction } from "./BlockActions.vue";
-import type { DmsTone } from "../../utils/tone";
+import DmsBlockActions, {
+  type BlockAction,
+} from "../../build/components/blocks/BlockActions.vue";
+import type { DmsTone } from "../../build/utils/tone";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 

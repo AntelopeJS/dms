@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
+import type { NotificationCategory } from "../../../../composables/notification/useNotificationCatalog";
 import {
   MATRIX_GRID_CLASS,
   MODULE_TAG_CLASS,

@@ -1,8 +1,8 @@
 import { computed, type ComputedRef } from "vue";
-import { useChartFetch } from "../chart/useChartFetch";
-import { useComponentEvent } from "../../../../dms-core/app/composables/components/useComponentEvent";
-import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
-import type { WatchAction } from "../../../../dms-core/app/types/watch";
+import { useChartFetch } from "../../../composables/chart/useChartFetch";
+import { useComponentEvent } from "../../../../../dms-core/app/composables/components/useComponentEvent";
+import { useWatch } from "../../../../../dms-core/app/composables/watch/useWatch";
+import type { WatchAction } from "../../../../../dms-core/app/types/watch";
 
 /** What a list block's `fetchUrl` answers with. */
 export interface BlockItemsResponse<T> {

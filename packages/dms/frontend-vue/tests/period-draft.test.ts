@@ -1,12 +1,12 @@
 import { effectScope } from "vue";
 import { describe, expect, it } from "vitest";
 import { usePeriod } from "../layers/dms-core/app/composables/period/usePeriod";
-import { usePeriodDraft } from "../layers/dms-ui/app/composables/period/usePeriodDraft";
+import { usePeriodDraft } from "../layers/dms-ui/app/build/composables/period/usePeriodDraft";
 import {
   formatPeriodRange,
   localeWeekStart,
   periodDuration,
-} from "../layers/dms-ui/app/composables/period/periodDisplay";
+} from "../layers/dms-ui/app/build/composables/period/periodDisplay";
 
 function setup() {
   const scope = effectScope();

@@ -19,7 +19,7 @@ import {
   FIELD_TRIGGER_CLASS,
   FIELD_TRIGGER_INVALID_CLASS,
   FIELD_TRIGGER_UI,
-} from "../../../utils/fieldTrigger";
+} from "../../../build/utils/fieldTrigger";
 
 // Mid-selection, the range calendar emits a range whose end is still unset.
 interface StrictDateRange {

@@ -3,7 +3,11 @@ import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import { DMS_TONE_TEXT, canonicalTone, type DmsTone } from "../../utils/tone";
+import {
+  DMS_TONE_TEXT,
+  canonicalTone,
+  type DmsTone,
+} from "../../build/utils/tone";
 
 /**
  * How a value is drawn: `text` plain, `status` a tinted pill, `money` a

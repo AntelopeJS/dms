@@ -4,7 +4,7 @@ import type {
   TableViewFooter,
   TableViewFooterSummaryConfig,
 } from "../../../composables/table-view/types";
-import { useServerRenderedAsyncData } from "../../../composables/table-view/useServerRenderedAsyncData";
+import { useServerRenderedAsyncData } from "./useServerRenderedAsyncData";
 import type {
   TableFooterLegendItem,
   TableFooterTexts,

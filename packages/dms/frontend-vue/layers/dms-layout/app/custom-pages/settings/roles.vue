@@ -20,7 +20,7 @@ import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActi
 import {
   type PermissionPreviewInput,
   usePermissionPreview,
-} from "#dms-core/app/composables/auth/usePermissionPreview";
+} from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { useFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";

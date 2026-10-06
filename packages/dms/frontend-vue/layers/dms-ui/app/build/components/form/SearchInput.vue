@@ -6,7 +6,7 @@ import {
   NAV_SEARCH_SHORTCUT,
   PAGE_SEARCH_HINT_KEYS,
   pageSearchAriaKeyshortcuts,
-} from "../../../composables/global/searchShortcuts";
+} from "../../composables/global/searchShortcuts";
 import {
   keyboardKeyLabel,
   type KeyboardPlatform,

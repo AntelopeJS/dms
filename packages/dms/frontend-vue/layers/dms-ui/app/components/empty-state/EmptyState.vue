@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { tv } from "tailwind-variants";
 import type { ButtonProps } from "@nuxt/ui";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
-import type { DmsTone } from "../../utils/tone";
+import type { DmsTone } from "../../build/utils/tone";
 
 export type EmptyStateVariant = "no-data" | "no-result" | "no-access" | "error";
 export type EmptyStateSize = "sm" | "md" | "lg";

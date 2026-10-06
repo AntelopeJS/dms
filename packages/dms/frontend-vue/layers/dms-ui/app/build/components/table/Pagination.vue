@@ -7,7 +7,7 @@ import { useTemplateRef, type ShallowRef } from "vue";
 import type { TableSharedData, Data } from "./Table.vue";
 import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
 import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
-import { toneTextClass } from "../../../utils/tone";
+import { toneTextClass } from "../../utils/tone";
 
 // v2 footer band: count and page size on the left, pager on the right.
 const theme = tv({

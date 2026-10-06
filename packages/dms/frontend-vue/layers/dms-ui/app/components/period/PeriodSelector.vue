@@ -11,15 +11,15 @@ import type {
   PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import { usePeriodDraft } from "../../composables/period/usePeriodDraft";
+import { usePeriodDraft } from "../../build/composables/period/usePeriodDraft";
 import {
   type CalendarRange,
   calendarToRange,
   formatPeriodRange,
   periodDuration,
   rangeToCalendar,
-} from "../../composables/period/periodDisplay";
-import PeriodRangeCalendar from "./PeriodRangeCalendar.vue";
+} from "../../build/composables/period/periodDisplay";
+import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalendar.vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 
 interface Props extends DefaultComponentProps {

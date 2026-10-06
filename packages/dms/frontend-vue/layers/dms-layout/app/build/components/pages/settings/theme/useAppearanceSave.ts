@@ -3,7 +3,7 @@ import {
   type InstantSave,
   useInstantSave,
 } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
-import { useSidebarStartCollapsed } from "../../../../../composables/general/useSidebarStartCollapsed";
+import { useSidebarStartCollapsed } from "../../../../composables/general/useSidebarStartCollapsed";
 import { useAccessibilityPreferences } from "../../../../../composables/general/useAccessibilityPreferences";
 import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
 import { injectPageHeaderActionsHost } from "../../../../../composables/layout/usePageHeaderActions";

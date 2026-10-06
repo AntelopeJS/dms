@@ -2,7 +2,7 @@ import { computed } from "vue";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions } from "./apexPlotOptions";
-import { isReducedMotionActive } from "../../utils/accessibilityPreferences";
+import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
   axisLabelStyle,
   buildDataLabels,
@@ -12,7 +12,7 @@ import {
   buildTooltip,
   readApexThemeColors,
   type ApexThemeColors,
-} from "./apexTheme";
+} from "../../build/composables/chart/apexTheme";
 import {
   resolveChartColor,
   resolveChartColors,

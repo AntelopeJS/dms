@@ -1,3 +1,5 @@
+import { openDevReloadStream } from "../build/utils/dev-reload-stream";
+
 const RELOAD_ENDPOINT_PATH = "/dms/dev/reload";
 
 function resolveBackendBase(): string | null {

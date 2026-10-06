@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
-import { DMS_TONE_WELL, canonicalTone, type DmsTone } from "../../utils/tone";
+import {
+  DMS_TONE_WELL,
+  canonicalTone,
+  type DmsTone,
+} from "../../build/utils/tone";
 
 export type IconWellSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 /**

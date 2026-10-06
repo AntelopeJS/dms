@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NotificationSubject } from "../../../../../composables/notification/useNotificationCatalog";
+import type { NotificationSubject } from "../../../../composables/notification/useNotificationCatalog";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import {
   MATRIX_GRID_CLASS,

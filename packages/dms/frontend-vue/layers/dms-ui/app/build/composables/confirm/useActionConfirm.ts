@@ -3,7 +3,7 @@ import type {
   ConfirmDialog,
 } from "#dms-core/app/types/confirm-dialog";
 import { isConfirmFrom } from "#dms-core/app/types/confirm-dialog";
-import { resolveActionError } from "../../../composables/confirm/actionError";
+import { resolveActionError } from "./actionError";
 import type {
   ConfirmOptions,
   ConfirmPartialOutcome,

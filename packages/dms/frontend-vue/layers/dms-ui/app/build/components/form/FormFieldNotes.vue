@@ -4,7 +4,7 @@ import type { FormField } from "../../../composables/form/types/field";
 import {
   isEmptyFormValue,
   sameFormValue,
-} from "../../../composables/unsaved-changes/formValue";
+} from "../../composables/unsaved-changes/formValue";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
 
 interface FormFieldNotesProps {

@@ -5,7 +5,7 @@ import {
   parseAccessibilityPreferences,
   type AccessibilityPreferences,
   type ReduceMotionPreference,
-} from "#dms-ui/app/utils/accessibilityPreferences";
+} from "#dms-ui/app/build/utils/accessibilityPreferences";
 
 const ACCESSIBILITY_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 

@@ -4,12 +4,18 @@ import { useCategoryNavCards } from "../layers/dms-layout/app/build/composables/
 
 const badges = ref<Record<string, string>>({});
 
-vi.mock("../layers/dms-ui/app/composables/navigation/useNavBadges", () => ({
-  useNavBadges: () => ({ badges }),
-}));
-vi.mock("../layers/dms-core/app/composables/auth/usePermissionPreview", () => ({
-  usePermissionPreview: () => ({}),
-}));
+vi.mock(
+  "../layers/dms-ui/app/build/composables/navigation/useNavBadges",
+  () => ({
+    useNavBadges: () => ({ badges }),
+  }),
+);
+vi.mock(
+  "../layers/dms-core/app/build/composables/auth/usePermissionPreview",
+  () => ({
+    usePermissionPreview: () => ({}),
+  }),
+);
 
 const node = (fullId: string, extra: Record<string, unknown> = {}) => ({
   fullId,

@@ -5,7 +5,7 @@ import {
   formatKeyboardShortcut,
   keyboardKeyLabel,
 } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
-import { PAGE_SEARCH_HINT_KEYS } from "../layers/dms-ui/app/composables/global/searchShortcuts";
+import { PAGE_SEARCH_HINT_KEYS } from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
 
 const MAC_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";

@@ -11,7 +11,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import PermissionVeil from "../layers/dms-ui/app/components/permission/PermissionVeil.vue";
+import PermissionVeil from "../layers/dms-ui/app/build/components/permission/PermissionVeil.vue";
 
 // A role preview veils the blocks of the page it previews, and the veils move
 // as the preview answers for each page. A block's content (a table view) has

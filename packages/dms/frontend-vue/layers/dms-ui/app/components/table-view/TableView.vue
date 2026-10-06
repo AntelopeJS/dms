@@ -16,7 +16,7 @@ import {
   type QuickActionIntent,
   readQuickActionIntent,
 } from "../../types/quick-actions";
-import { registerQuickActionTarget } from "../../utils/quickActionTargets";
+import { registerQuickActionTarget } from "../../build/utils/quickActionTargets";
 import type {
   KanbanConfig,
   TableViewConfig,
@@ -79,12 +79,12 @@ import {
   type ResolvedQuickFilter,
   staticQuickFilterItems,
 } from "../../build/composables/table-view/utils/quickFilters";
-import { useNavBadges } from "../../composables/navigation/useNavBadges";
+import { useNavBadges } from "../../build/composables/navigation/useNavBadges";
 import { resolveRowClickAction } from "../../utils/rowClickAction";
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 
 import UTable from "../../build/components/table/Table.vue";
-import ExpandedRowDetail from "./ExpandedRowDetail.vue";
+import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
 import type {
   TableAccumulation,
   TableViewSwitcherItem,
@@ -107,7 +107,7 @@ import { readTableUrlKey } from "../../build/composables/table-view/utils/views"
 import TableViews, {
   type TableViewItem,
 } from "../../build/components/table/Views.vue";
-import { useServerRenderedAsyncData } from "../../composables/table-view/useServerRenderedAsyncData";
+import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";

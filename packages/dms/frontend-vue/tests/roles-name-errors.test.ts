@@ -160,7 +160,7 @@ vi.mock(
     usePageHeaderActions: vi.fn(),
   }),
 );
-vi.mock("#dms-core/app/composables/auth/usePermissionPreview", () => ({
+vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
   usePermissionPreview: () => ({
     isActive: ref(false),
     start: vi.fn(),

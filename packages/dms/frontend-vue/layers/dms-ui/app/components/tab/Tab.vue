@@ -2,7 +2,7 @@
 import type { TabProps } from "../../composables/tab/types";
 import { type TabBadges, TabVariant } from "../../composables/tab/types/props";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
-import { confirmLeave } from "../../composables/unsaved-changes/registry";
+import { confirmLeave } from "../../build/composables/unsaved-changes/registry";
 
 const { processI18n } = useTranslation();
 

@@ -5,7 +5,7 @@ import {
   regionalDayNumber,
   regionalWeekStart,
 } from "#dms-core/app/utils/regional";
-import { nameCalendarDay } from "../../../../components/activity-feed/activityFeedDays";
+import { nameCalendarDay } from "../../../components/activity-feed/activityFeedDays";
 import type {
   TableViewGroupBy,
   TableViewGroupedConfig,

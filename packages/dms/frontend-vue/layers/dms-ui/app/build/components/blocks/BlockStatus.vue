@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DmsEmptyState from "../empty-state/EmptyState.vue";
+import DmsEmptyState from "../../../components/empty-state/EmptyState.vue";
 
 /** What a block shows when it has nothing to list (interface-dms `BlockEmptyText`). */
 export interface BlockEmptyText {

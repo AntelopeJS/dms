@@ -31,7 +31,7 @@ import {
   type BulkActionOutcome,
   type ConfirmedBulkAction,
 } from "./utils/bulkActions";
-import { resolveActionError } from "../../../composables/confirm/actionError";
+import { resolveActionError } from "../confirm/actionError";
 import {
   ConfirmActionError,
   type ConfirmOptions,

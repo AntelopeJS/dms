@@ -3,7 +3,7 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import TableEmpty from "#dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "#dms-ui/app/build/components/table/Pagination.vue";
 import type { TableViewDisplayContext } from "#dms-ui/app/composables/table-view/types/display";
-import { useNotificationCatalog } from "../../../../../composables/notification/useNotificationCatalog";
+import { useNotificationCatalog } from "../../../../composables/notification/useNotificationCatalog";
 import {
   type UserNotification,
   useNotifications,

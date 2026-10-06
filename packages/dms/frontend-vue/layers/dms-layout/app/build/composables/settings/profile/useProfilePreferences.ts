@@ -3,14 +3,14 @@ import { computed, onMounted, ref } from "vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useUniqueLocales } from "#dms-core/app/composables/translation/useUniqueLocales";
 import { formatDate } from "#dms-core/app/utils/formatter";
-import { useAccessibilityPreferences } from "../../general/useAccessibilityPreferences";
-import { useColorModePreference } from "../../general/useColorModePreference";
-import { useInterfaceScale } from "../../general/useInterfaceScale";
-import { useIsOwner } from "../../page/useIsOwner";
+import { useAccessibilityPreferences } from "../../../../composables/general/useAccessibilityPreferences";
+import { useColorModePreference } from "../../../../composables/general/useColorModePreference";
+import { useInterfaceScale } from "../../../../composables/general/useInterfaceScale";
+import { useIsOwner } from "../../../../composables/page/useIsOwner";
 import { useNotificationCatalog } from "../../notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../notification/useNotificationPreferences";
-import { useNotifications } from "../../notification/useNotifications";
-import { timeZoneLabel } from "../../../build/components/pages/settings/region/timeZones";
+import { useNotifications } from "../../../../composables/notification/useNotifications";
+import { timeZoneLabel } from "../../../components/pages/settings/region/timeZones";
 import { useSettingsNavigation } from "../useSettingsNavigation";
 import {
   buildAccessSummary,

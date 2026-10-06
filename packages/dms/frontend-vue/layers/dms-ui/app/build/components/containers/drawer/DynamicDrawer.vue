@@ -7,7 +7,7 @@ import type {
 } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
-import { DMS_CONTAINER_KEY } from "../../../../composables/containers/context";
+import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
 
 interface DynamicDrawerProps {
   title: string;

@@ -13,7 +13,7 @@ import {
   confirmLeave,
   installBrowserLeaveGuards,
   registerUnsavedChanges,
-} from "./registry";
+} from "../../build/composables/unsaved-changes/registry";
 
 /** The element a form renders, or the component rendering it. */
 type ElementSource = Element | ComponentPublicInstance | null | undefined;

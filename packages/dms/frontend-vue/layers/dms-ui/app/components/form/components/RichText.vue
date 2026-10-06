@@ -4,7 +4,7 @@ import { useEditor, EditorContent, type AnyExtension } from "@tiptap/vue-3";
 import TiptapStarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import { FIELD_SURFACE_INVALID_CLASS } from "../../../utils/fieldTrigger";
+import { FIELD_SURFACE_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
 
 interface RichTextProps {
   /** Id of the editable area, the control a field label points to. */

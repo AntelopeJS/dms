@@ -13,7 +13,7 @@ const KanbanDisplay = defineAsyncComponent(
 );
 
 const CardsDisplay = defineAsyncComponent(
-  () => import("../components/table-view/CardsDisplay.vue"),
+  () => import("../build/components/table-view/CardsDisplay.vue"),
 );
 
 // Registers the presentation of the built-in displays on the server as well:

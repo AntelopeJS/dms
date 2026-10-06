@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { openDevReloadStream } from "../layers/dms-layout/app/utils/dev-reload-stream";
+import { openDevReloadStream } from "../layers/dms-layout/app/build/utils/dev-reload-stream";
 
 const ENDPOINT = "http://backend.test/dms/dev/reload";
 // Comfortably past the delay before a source the browser gave up on is reopened.

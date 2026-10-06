@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import DmsListRow from "../list-row/ListRow.vue";
-import type { DmsTone } from "../../utils/tone";
+import type { DmsTone } from "../../build/utils/tone";
 
 // DMS activity / feed / history row (v2 .activity): the feed preset of
 // DmsListRow — a 30px tinted well, a one-line title, a dimmed subtitle and a

@@ -12,7 +12,7 @@ import {
   type FormValidationIssue,
   unwrapUnionIssue,
   validateFormState,
-} from "../layers/dms-ui/app/composables/form/formValidation";
+} from "../layers/dms-ui/app/build/composables/form/formValidation";
 
 // The client rebuilds the schema the backend serializes (see useForm's
 // createBaseValidationSchema): the same round trip here, so each case reads

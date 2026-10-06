@@ -2,7 +2,7 @@
 import type { DmsErrorData } from "#dms/frontend-module";
 import StageCard, {
   type StageCardTone,
-} from "./components/layout/StageCard.vue";
+} from "./build/components/layout/StageCard.vue";
 import EmptyLayout from "./custom-layouts/EmptyLayout.vue";
 
 interface ErrorConfig {

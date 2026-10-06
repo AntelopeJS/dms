@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
-import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,
   type SettingsNavGroup,
   type SettingsNavPage,
-} from "../../../../../composables/settings/useSettingsNavigation";
+} from "../../../../composables/settings/useSettingsNavigation";
 
 const SETTINGS_INDEX_PATH = "/settings";
 const ALL_SETTINGS_ICON = "i-ph-squares-four";

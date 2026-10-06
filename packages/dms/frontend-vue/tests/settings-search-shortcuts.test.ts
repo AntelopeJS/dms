@@ -12,7 +12,7 @@ import {
   buildNavSearchShortcuts,
   buildPageSearchShortcuts,
   pageSearchAriaKeyshortcuts,
-} from "../layers/dms-ui/app/composables/global/searchShortcuts";
+} from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
 import registry from "../layers/dms-ui/app/config/shortcuts-registry";
 
 let app: App;

@@ -13,7 +13,7 @@ import {
   ConfirmTextError,
   type ConfirmValues,
 } from "../../composables/confirm/types";
-import { resolveActionError } from "../../composables/confirm/actionError";
+import { resolveActionError } from "../../build/composables/confirm/actionError";
 import type { ConfirmDialogField } from "#dms-core/app/types/confirm-dialog";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 

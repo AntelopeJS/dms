@@ -1,5 +1,5 @@
 import type { Ref } from "vue";
-import { useSidebarStartCollapsed } from "../../../composables/general/useSidebarStartCollapsed";
+import { useSidebarStartCollapsed } from "../../composables/general/useSidebarStartCollapsed";
 
 interface SidebarState {
   open: Ref<boolean>;

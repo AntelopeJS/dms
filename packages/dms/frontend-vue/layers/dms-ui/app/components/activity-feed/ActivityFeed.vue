@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, resolveComponent } from "vue";
 import DmsActivityItem from "../activity/ActivityItem.vue";
-import DmsBlockActions, { type BlockAction } from "../blocks/BlockActions.vue";
+import DmsBlockActions, {
+  type BlockAction,
+} from "../../build/components/blocks/BlockActions.vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 import DmsRowSkeleton from "../../build/components/skeleton/RowSkeleton.vue";
-import { useBlockItems } from "../../composables/blocks/useBlockItems";
+import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import {
   type ActivityFeedDay,
@@ -13,9 +15,9 @@ import {
   formatActivityTime,
   groupActivityByDay,
   resolveActivityParams,
-} from "./activityFeedDays";
+} from "../../build/components/activity-feed/activityFeedDays";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import type { BlockEmptyText } from "../blocks/BlockStatus.vue";
+import type { BlockEmptyText } from "../../build/components/blocks/BlockStatus.vue";
 
 // The renderer's props are optional: DmsActivityFeed is both the backend
 // `ActivityFeed` block (`dms-activity-feed-block`) and a template component.

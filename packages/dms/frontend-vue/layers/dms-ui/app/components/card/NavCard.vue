@@ -4,7 +4,7 @@ import { tv } from "tailwind-variants";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import type { DmsTone } from "../../utils/tone";
+import type { DmsTone } from "../../build/utils/tone";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 
 // Navigation tile (v2 .navcard): an icon well + title + description rendered

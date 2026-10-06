@@ -1,4 +1,4 @@
-import type { QuickActionIntent } from "../types/quick-actions";
+import type { QuickActionIntent } from "../../types/quick-actions";
 
 /** Runs a quick-action intent (open the creation form, press a button). */
 export type QuickActionTargetRunner = (intent: QuickActionIntent) => void;

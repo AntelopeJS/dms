@@ -6,12 +6,14 @@ import {
 } from "#dms-layout/app/build/composables/navigation/useCategoryNavCards";
 import { computed } from "vue";
 import DmsNavCard from "../card/NavCard.vue";
-import DmsPermissionVeil from "../permission/PermissionVeil.vue";
+import DmsPermissionVeil from "../../build/components/permission/PermissionVeil.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
-import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
-import { useBlockItems } from "../../composables/blocks/useBlockItems";
+import DmsBlockStatus, {
+  type BlockEmptyText,
+} from "../../build/components/blocks/BlockStatus.vue";
+import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
-import type { DmsTone } from "../../utils/tone";
+import type { DmsTone } from "../../build/utils/tone";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `NavCardGrid` block (interface-dms `base/nav-card-grid`): a responsive grid

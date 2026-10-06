@@ -3,7 +3,7 @@ import {
   PERMISSION_PREVIEW_QUERY_KEY,
   PERMISSION_PREVIEW_STORAGE_PREFIX,
   PERMISSION_PREVIEW_TAB_KEY,
-} from "#dms-core/app/utils/permission-preview";
+} from "#dms-core/app/build/utils/permission-preview";
 
 const PRE_PAINT_SCRIPT_ID = "dms-role-preview";
 const PENDING_VALUE = "pending";

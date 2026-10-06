@@ -4,7 +4,7 @@ import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import { toneTextClass } from "../../../utils/tone";
+import { toneTextClass } from "../../utils/tone";
 import { PREVIEW_LOCK_ICON } from "../../utils/permissionPreview";
 
 export interface TableTabItem {

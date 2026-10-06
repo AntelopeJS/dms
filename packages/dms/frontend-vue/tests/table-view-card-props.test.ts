@@ -3,7 +3,7 @@ import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import CardsDisplay from "../layers/dms-ui/app/components/table-view/CardsDisplay.vue";
+import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import { buildCardProps } from "../layers/dms-ui/app/build/composables/table-view/utils/card";
 import type {
   TableViewCardProps,

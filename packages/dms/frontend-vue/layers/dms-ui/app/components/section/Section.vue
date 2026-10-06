@@ -2,7 +2,7 @@
 import { computed, provide } from "vue";
 import { tv } from "tailwind-variants";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
-import { DMS_SECTION_SURFACE_KEY } from "./context";
+import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 

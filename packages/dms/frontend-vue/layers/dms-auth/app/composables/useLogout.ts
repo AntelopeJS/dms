@@ -1,3 +1,5 @@
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+
 const SWITCH_ACCOUNT_ROUTE = "/auth/accounts";
 const FALLBACK_AUTH_ROUTE = "/auth";
 

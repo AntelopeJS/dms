@@ -18,20 +18,20 @@ import {
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
-import { DMS_SECTION_SURFACE_KEY } from "../section/context";
+import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
 import type { ZodErrorMap } from "zod";
 import {
   formIssueMessage,
   REQUIRED_MESSAGE,
 } from "#dms-core/app/composables/useFormValidation";
-import { validateFormState } from "../../composables/form/formValidation";
-import { DMS_CONTAINER_KEY } from "../../composables/containers/context";
-import { sameFormValue } from "../../composables/unsaved-changes/formValue";
+import { validateFormState } from "../../build/composables/form/formValidation";
+import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
+import { sameFormValue } from "../../build/composables/unsaved-changes/formValue";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
-import { formSaveMode } from "../../composables/form/formFooter";
-import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
+import { formSaveMode } from "../../build/composables/form/formFooter";
+import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
 import {
   FORM_ENTRY_CONTEXT_KEY,

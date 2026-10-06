@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
-import type { DmsTone } from "#dms-ui/app/utils/tone";
+import type { DmsTone } from "#dms-ui/app/build/utils/tone";
 import type {
   CheckListItem,
   CheckListState,
@@ -10,10 +10,7 @@ import type {
   ModuleReadoutTone,
   ModuleStatus,
 } from "../../../../types/page";
-import {
-  moduleCategory,
-  moduleStatus,
-} from "../../../../utils/modules-catalog";
+import { moduleCategory, moduleStatus } from "../../../utils/modules-catalog";
 
 interface ModuleCatalogTileProps {
   entry: ModuleCatalogEntry;

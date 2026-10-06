@@ -2,14 +2,14 @@
 import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
-import AuthFormAlert from "../../components/AuthFormAlert.vue";
-import AuthNewPasswordField from "../../components/AuthNewPasswordField.vue";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
 import {
   type AuthFormHandle,
   useAuthFormError,
-} from "../../composables/useAuthFormError";
-import { AUTH_LINK_CLASS } from "../../utils/authStyles";
+} from "../../build/composables/useAuthFormError";
+import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
 import {
   focusFirstFormError,
   useLiveFormErrors,

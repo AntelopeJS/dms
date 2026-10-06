@@ -1,5 +1,5 @@
-import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
-import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { findTreeNode, listCategoryPages } from "../../utils/categoryPages";
 
 const DEFAULT_PAGE_ICON = "i-ph-file";

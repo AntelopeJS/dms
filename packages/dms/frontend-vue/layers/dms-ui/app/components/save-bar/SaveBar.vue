@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
-import { type FormKind, saveBarState } from "../../composables/form/formFooter";
+import {
+  type FormKind,
+  saveBarState,
+} from "../../build/composables/form/formFooter";
 import DmsUnsavedStatus from "../../build/components/form/UnsavedStatus.vue";
 
 /**

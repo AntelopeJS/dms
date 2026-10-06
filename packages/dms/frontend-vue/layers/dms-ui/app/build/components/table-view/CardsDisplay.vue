@@ -1,14 +1,14 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import TablePagination from "../../build/components/table/Pagination.vue";
-import TableEmpty from "../../build/components/table/Empty.vue";
+import TablePagination from "../table/Pagination.vue";
+import TableEmpty from "../table/Empty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
-import type { TableViewColumn } from "../../composables/table-view/types/column";
+import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
   TableViewCardConfig,
   TableViewDisplayContext,
-} from "../../composables/table-view/types/display";
-import { buildCardProps } from "../../build/composables/table-view/utils/card";
+} from "../../../composables/table-view/types/display";
+import { buildCardProps } from "../../composables/table-view/utils/card";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;

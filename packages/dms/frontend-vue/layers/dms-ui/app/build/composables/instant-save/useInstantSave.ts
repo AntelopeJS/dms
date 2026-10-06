@@ -7,7 +7,7 @@ import {
   type Ref,
 } from "vue";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
-import { sameFormValue } from "../../../composables/unsaved-changes/formValue";
+import { sameFormValue } from "../unsaved-changes/formValue";
 
 /** How long typing pauses before a text saves. */
 export const INSTANT_SAVE_DEBOUNCE_MS = 500;

@@ -15,12 +15,12 @@ import {
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
-import IdentityCell from "../../../components/table-view/IdentityCell.vue";
+import IdentityCell from "../../components/table-view/IdentityCell.vue";
 import {
   firstNameOf,
   formatDayMonth,
   formatRelativeDate,
-} from "../../../utils/relativeDate";
+} from "../../utils/relativeDate";
 
 const FilePreview = defineAsyncComponent(
   () => import("../../../components/table-view/FilePreview.vue"),
