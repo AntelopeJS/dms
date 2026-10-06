@@ -176,11 +176,7 @@ function toggle(roleId: string) {
     />
     <p class="text-muted text-xs">
       {{ hint }}
-      <ULink
-        v-if="props.rolesPageUrl"
-        :to="props.rolesPageUrl"
-        class="text-primary ms-1 font-[550] hover:underline"
-      >
+      <ULink v-if="props.rolesPageUrl" :to="props.rolesPageUrl" class="ms-1">
         {{ t("page.settings.members.invite.compare_roles") }}
       </ULink>
     </p>

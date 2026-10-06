@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
 import {
   type AvatarFieldOptions,
   useProfileAvatar,
@@ -311,7 +312,10 @@ onMounted(async () => {
           </div>
           <DmsLink
             :to="`${SECURITY_PAGE_PATH}${EMAIL_ANCHOR}`"
-            class="text-primary inline-flex items-center gap-1.5 text-[12.5px] font-medium hover:underline hover:underline-offset-3"
+            :class="[
+              TEXT_LINK_CLASS,
+              'inline-flex items-center gap-1.5 text-[12.5px]',
+            ]"
           >
             {{ t("page.settings.profile.email_change_link") }}
             <UIcon name="i-ph-arrow-right" class="size-3.5" />

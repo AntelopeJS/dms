@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
 import DmsCard from "#dms-ui/app/components/card/Card.vue";
 import RoleMemberAvatars from "./RoleMemberAvatars.vue";
 import RolesListItem from "./RolesListItem.vue";
@@ -134,10 +135,7 @@ function coverage(count: number): number {
       <UIcon name="i-ph-info" class="text-dimmed size-4 shrink-0" />
       <span class="text-muted text-[12.5px]">
         {{ t("page.settings.roles.editor.foot_prefix") }}
-        <DmsLink
-          to="/settings/workspace/members"
-          class="text-primary font-medium hover:underline"
-        >
+        <DmsLink to="/settings/workspace/members" :class="TEXT_LINK_CLASS">
           {{ t("page.settings.roles.editor.foot_link") }}
         </DmsLink>
       </span>

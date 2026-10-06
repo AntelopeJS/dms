@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
 import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -258,7 +259,7 @@ async function submit(): Promise<void> {
         <template #after>
           <DmsLink
             :to="FORGOT_PASSWORD_PATH"
-            class="text-primary w-fit text-xs font-medium hover:underline hover:underline-offset-3"
+            :class="[TEXT_LINK_CLASS, 'w-fit text-xs']"
           >
             {{ t("page.settings.security.password.forgot") }}
           </DmsLink>
