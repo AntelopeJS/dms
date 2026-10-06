@@ -1,6 +1,7 @@
 import { expect } from "chai";
+import { GetOwnedFrontendModuleName } from "../../../../implementations/dms/frontend-modules";
 import {
-  AddFrontendModule,
+  AddOwnedFrontendModule,
   GetFrontendModules,
 } from "../../../../implementations/dms/page";
 
@@ -11,7 +12,7 @@ const HIGHER_PRIORITY = 8;
 describe("[unit] frontend module metadata", () => {
   it("returns ordered public source snapshots without exposing mutable registration state", () => {
     for (const priority of [HIGHER_PRIORITY, LOWER_PRIORITY]) {
-      AddFrontendModule({
+      AddOwnedFrontendModule({
         name: `metadata-${priority}`,
         sourcePath: process.cwd(),
         renderer: new Proxy(RENDERER, {}),
@@ -40,5 +41,29 @@ describe("[unit] frontend module metadata", () => {
     );
     expect(original?.options).to.deep.equal({ locale: { editable: true } });
     expect(original?.renderer).to.deep.equal(RENDERER);
+  });
+
+  it("names the first frontend module each module added, and none for a module without one", () => {
+    const owner = "metadata-owner";
+    for (const name of ["metadata-owned", "metadata-owned-later"]) {
+      AddOwnedFrontendModule(
+        { name, sourcePath: process.cwd(), renderer: RENDERER },
+        owner,
+      );
+    }
+    AddOwnedFrontendModule(
+      {
+        name: "metadata-unowned",
+        sourcePath: process.cwd(),
+        renderer: RENDERER,
+      },
+      undefined,
+    );
+
+    expect(GetOwnedFrontendModuleName(owner)).to.equal("metadata-owned");
+    expect(GetOwnedFrontendModuleName("metadata-no-frontend")).to.equal(
+      undefined,
+    );
+    expect(GetOwnedFrontendModuleName(undefined)).to.equal(undefined);
   });
 });

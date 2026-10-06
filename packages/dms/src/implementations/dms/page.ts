@@ -22,6 +22,7 @@ import {
   type DynamicMenuItem,
   type DynamicMenuProviderInfo,
   GetPageLayoutBySlug,
+  GetPageOwnerModule,
   isInsideModule,
   MODULE_URL_PREFIX,
   type ModuleCatalogContext,
@@ -69,6 +70,7 @@ import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
 import { assertPageSessionAccepted } from "./stale-session";
 import {
   buildFrontendManifest,
+  GetOwnedFrontendModuleName,
   writeFrontendModules,
 } from "./frontend-modules";
 import { BOOTSTRAP_HEADER } from "./frontend-bootstrap";
@@ -105,7 +107,7 @@ import {
 import { runInBatches } from "../../utils/run-in-batches";
 
 export {
-  AddFrontendModule,
+  AddOwnedFrontendModule,
   createIgnoreFilter,
   GetFrontendModules,
 } from "./frontend-modules";
@@ -898,6 +900,11 @@ export interface PagePayload {
   route: PageInfo & AccessFlag;
   shared: SiteLayoutPayload;
   layout: PageLayout;
+  /**
+   * The frontend module that owns the page's component tree (its manifest
+   * name): the components it registered as private resolve in this page only.
+   */
+  module?: string;
 }
 
 export interface PageResponsePayload extends Omit<PagePayload, "shared"> {
@@ -921,6 +928,10 @@ function resolveRegisteredPageSlug(path: string): string | undefined {
   return Object.keys(pagesBySlug).find(
     (pattern) => pattern.includes(":") && matchesPagePattern(pattern, path),
   );
+}
+
+function pageModule(route: PageInfo): string | undefined {
+  return GetOwnedFrontendModuleName(GetPageOwnerModule(route.fullId));
 }
 
 type SharedPagePayloadArguments = [
@@ -974,7 +985,7 @@ export async function buildPagePayload(
       { [registeredSlug]: route },
       context,
     );
-    return { route: routes[registeredSlug], layout };
+    return { route: routes[registeredSlug], layout, module: pageModule(route) };
   }
   const [layout, shared] = await Promise.all([
     handler(user, memberModel, roleModel, tenantId),
@@ -986,7 +997,12 @@ export async function buildPagePayload(
       requestContext,
     ),
   ]);
-  return { route: shared.siteLayout.pages[registeredSlug], shared, layout };
+  return {
+    route: shared.siteLayout.pages[registeredSlug],
+    shared,
+    layout,
+    module: pageModule(route),
+  };
 }
 
 /** The page a permission preview runs on, read with the viewer's own access. */

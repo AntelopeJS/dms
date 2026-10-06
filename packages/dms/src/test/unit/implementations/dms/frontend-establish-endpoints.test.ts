@@ -1,7 +1,7 @@
 import type { AddFrontendModuleOptions } from "@antelopejs/interface-dms/page";
 import { expect } from "chai";
 import {
-  AddFrontendModule,
+  AddOwnedFrontendModule,
   GetFrontendModules,
 } from "../../../../implementations/dms/page";
 
@@ -16,7 +16,7 @@ function register(name: string, authEstablishEndpoints?: string[]) {
   if (authEstablishEndpoints) {
     config.authEstablishEndpoints = authEstablishEndpoints;
   }
-  AddFrontendModule(config);
+  AddOwnedFrontendModule(config);
 }
 
 function endpointsOf(name: string): string[] | undefined {

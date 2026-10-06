@@ -22,6 +22,7 @@ export { internal, isInsideModule } from "./page/categories";
 export {
   AddFrontendModule,
   type AddFrontendModuleOptions,
+  AddOwnedFrontendModule,
   Category,
   type FrontendModuleMetadata,
   type FrontendModuleOptions,
@@ -43,6 +44,7 @@ export {
   ClearPageLayoutBySlug,
   GetComponentPermissionIds,
   GetPageLayoutBySlug,
+  GetPageOwnerModule,
   GetPendingPageExtensions,
   GetPermissionId,
   GetRegisteredPageIds,

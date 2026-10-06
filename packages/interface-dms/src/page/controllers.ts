@@ -1,5 +1,9 @@
 import { Controller, type ControllerClass } from "@antelopejs/interface-api";
-import { GetMetadata, InterfaceFunction } from "@antelopejs/interface-core";
+import {
+  GetMetadata,
+  GetResponsibleModule,
+  InterfaceFunction,
+} from "@antelopejs/interface-core";
 import { MakeClassDecorator } from "@antelopejs/interface-core/decorators";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Component, type ComponentInfo, DEFAULT_PLACEMENT } from "../component";
@@ -351,8 +355,29 @@ export interface AddFrontendModuleOptions {
   authEstablishEndpoints?: string[];
 }
 
-export const AddFrontendModule =
-  InterfaceFunction<(config: AddFrontendModuleOptions) => void>();
+/**
+ * What the DMS implements behind {@link AddFrontendModule}: `owner` is the
+ * AntelopeJS module that added the frontend module.
+ *
+ * @internal
+ */
+export const AddOwnedFrontendModule =
+  InterfaceFunction<
+    (config: AddFrontendModuleOptions, owner: string | undefined) => void
+  >();
+
+/**
+ * Adds the frontend module a module ships to the DMS frontend. The calling
+ * module owns it: the components it registers with `{ private: true }`
+ * resolve in the component trees of the pages that module registers.
+ *
+ * @param config The frontend module: its name, sources, renderer and options
+ */
+export function AddFrontendModule(
+  config: AddFrontendModuleOptions,
+): Promise<void> {
+  return AddOwnedFrontendModule(config, GetResponsibleModule());
+}
 
 export interface FrontendModuleMetadata {
   name: string;
