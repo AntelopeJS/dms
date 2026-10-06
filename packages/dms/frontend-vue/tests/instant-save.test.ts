@@ -163,6 +163,19 @@ describe("useInstantSave", () => {
     expect(instant.states.digest).toBe("saving");
   });
 
+  it("leaves a text still being typed out of a save of several keys", () => {
+    const server = deferredServer();
+    const { instant } = setup(server.save);
+
+    instant.change("name", "Acme Inc", { debounce: true });
+    instant.changeMany({ theme: "dark" });
+    expect(server.save).toHaveBeenCalledTimes(1);
+    expect(server.save).toHaveBeenCalledWith({ theme: "dark" });
+
+    vi.advanceTimersByTime(INSTANT_SAVE_DEBOUNCE_MS);
+    expect(server.save).toHaveBeenLastCalledWith({ name: "Acme Inc" });
+  });
+
   it("queues a value the source already shows, from the confirmed one", async () => {
     const server = deferredServer();
     const { values, instant } = setup(server.save);
