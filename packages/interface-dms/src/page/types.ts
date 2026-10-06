@@ -72,6 +72,7 @@ export interface PageValidation {
 
 export const MODULE_URL_PREFIX = "/modules";
 
+/** @internal */
 export const ROOT_SLUG = "/";
 
 /**

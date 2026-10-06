@@ -15,6 +15,7 @@ import { RoleModel, TenantMemberModel } from "../db";
 // through the proxies declared in categories. Neither module
 // dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
+/** @internal */
 export interface RouteCallbackContext {
   user: User;
   memberModel: TenantMemberModel;
@@ -30,6 +31,8 @@ export interface RouteCallbackContext {
  * topics. Holding the undo of each next to the thing that made it turns
  * teardown from a list somebody has to remember into a loop — and makes it
  * impossible to add a registry to the path without saying how it is released.
+ *
+ * @internal
  */
 export class PageRegistration {
   private readonly disposers: Array<() => void> = [];

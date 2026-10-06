@@ -21,12 +21,15 @@ import type {
   PageLayoutHandler,
 } from "./types";
 
+/** @internal */
 export const permissionMap = new Map<Component | ControllerClass, string>();
 
 getPermissionIdRef.get = (component: Component) => permissionMap.get(component);
 
+/** @internal */
 export const pageLayoutHandlers = new Map<string, PageLayoutHandler>();
 
+/** @internal */
 export const pageMetadataByFullId = new Map<string, PageMetadata>();
 
 /**
@@ -63,6 +66,8 @@ type Stamped<T> = T & { [REGISTRATION_TOKEN]?: string };
  * holds would match nothing and silently leave the registration live. The
  * token survives the round trip, so it can stand in for the reference in the
  * first case and lead back to it in the second.
+ *
+ * @internal
  */
 export class RegistrationIdentity<T extends object> {
   private readonly byToken = new Map<string, T>();
@@ -135,17 +140,22 @@ export class RegistrationIdentity<T extends object> {
   }
 }
 
+/** @internal */
 export const pageIdentity = new RegistrationIdentity<PageInfo>("page");
 
+/** @internal */
 export const categoryIdentity = new RegistrationIdentity<CategoryInfo>(
   "category",
 );
 
+/** @internal */
 export const moduleIdentity = new RegistrationIdentity<ModuleInfo>("module");
 
+/** @internal */
 export const dynamicMenuProviderIdentity =
   new RegistrationIdentity<DynamicMenuProviderInfo>("dynamic-menu-provider");
 
+/** @internal */
 export const pageExtensionIdentity =
   new RegistrationIdentity<PageExtensionInfo>("page-extension");
 
@@ -168,6 +178,8 @@ const pageExtensionContexts = new WeakMap<
 /**
  * Remember the context of the module registering `info`. Called from the
  * registration itself, before the extension crosses into the DMS.
+ *
+ * @internal
  */
 export function capturePageExtensionContext(info: PageExtensionInfo): void {
   const context = GetModuleContext();
@@ -183,6 +195,8 @@ export function capturePageExtensionContext(info: PageExtensionInfo): void {
  * Run `callback` as the module that registered `info`, so everything it
  * registers is owned by, and released with, that module. Runs in the current
  * context when the registering module is unknown.
+ *
+ * @internal
  */
 export function runAsPageExtensionOwner<T>(
   info: PageExtensionInfo,
@@ -194,10 +208,12 @@ export function runAsPageExtensionOwner<T>(
   return context ? RunWithModuleContext(context, callback) : callback();
 }
 
+/** @internal */
 export function stampPageRegistration(pageInfo: PageInfo): void {
   pageIdentity.stamp(pageInfo);
 }
 
+/** @internal */
 export function isSamePageRegistration(
   left: PageInfo | undefined,
   right: PageInfo | undefined,
@@ -211,12 +227,15 @@ export function GetComponentPermissionIds(component: Component): string[] {
     page.ComponentPermissionIds(component),
   );
 }
+/** @internal */
 export const pageExtensions = new Map<string, PageExtensionInfo[]>();
 
 /**
  * Whether `info` is still registered: an extension whose module went away is
  * revoked before that module's context is invalidated, and must not be
  * prepared in that context afterwards.
+ *
+ * @internal
  */
 export function isPageExtensionRegistered(info: PageExtensionInfo): boolean {
   const registered = pageExtensions.get(info.targetFullId) ?? [];
@@ -247,12 +266,18 @@ export function ClearPageLayoutBySlug(slug: string): void {
  * Whether the page is registered *and* done serializing its own components.
  * Presence in `pageMetadataByFullId` only answers the first half: a page is
  * published there before it has any component to anchor onto.
+ *
+ * @internal
  */
 export function acceptsPageExtensions(targetFullId: string): boolean {
   return pageMetadataByFullId.get(targetFullId)?.AcceptsExtensions() ?? false;
 }
 
-/** One page extension still waiting for the page id it names to register. */
+/**
+ * One page extension still waiting for the page id it names to register.
+ *
+ * @internal
+ */
 export interface PendingPageExtension {
   extensionName: string;
   targetFullId: string;
@@ -262,6 +287,8 @@ export interface PendingPageExtension {
  * Extensions whose target page no module has registered. An extension names its
  * target by id, so a typo — or a module that is simply not deployed — is
  * indistinguishable from a page that has yet to start; both surface here.
+ *
+ * @internal
  */
 export function GetPendingPageExtensions(): PendingPageExtension[] {
   const pending: PendingPageExtension[] = [];
@@ -282,6 +309,7 @@ export function GetRegisteredPageIds(): string[] {
   return [...pageMetadataByFullId.keys()].sort();
 }
 
+/** @internal */
 export function syncTargetExtensions(targetFullId: string): Promise<void> {
   const metadata = pageMetadataByFullId.get(targetFullId);
   if (!metadata) {
@@ -302,5 +330,7 @@ export function GetPermissionId(
   return permissionMap.get(target);
 }
 
+/** @internal */
 export const moduleRootCategories = new Map<string, CategoryInfo>();
+/** @internal */
 export const moduleDefaultCategories = new Map<string, CategoryInfo>();

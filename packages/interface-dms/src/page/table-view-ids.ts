@@ -41,6 +41,8 @@ function placeTableViews(
  * page and whether it is the page's only one: a URL addresses a table view's
  * views and tabs by that key, and by the short `?view=` / `?tab=` only when
  * it is alone.
+ *
+ * @internal
  */
 export function withTableViewPlacements(
   components: Record<string, ComponentInfoSerialized>,

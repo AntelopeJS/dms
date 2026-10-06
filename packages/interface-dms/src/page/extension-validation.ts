@@ -7,6 +7,8 @@ import type { PageExtensionComponent, PageExtensionInfo } from "./types";
  * page — its own fields and the ones earlier extensions injected — mapped to
  * whoever owns it. A page's keys share one namespace because they share one
  * permission subtree.
+ *
+ * @internal
  */
 export interface ExtensionTargetView {
   own: Record<string, ComponentInfoSerialized>;
@@ -59,6 +61,8 @@ function anchorErrors(
  * grafted onto. Reported rather than thrown: the extending module declared it
  * against a page id, so nothing could be checked when it was declared, and a
  * mistake there must cost that extension, not the DMS.
+ *
+ * @internal
  */
 export function collectExtensionErrors(
   info: PageExtensionInfo,

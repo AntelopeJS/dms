@@ -44,6 +44,8 @@ function childAccess(parent: Component, childId: string): ComponentAccess {
  *
  * @param root A component the page declares.
  * @param rootPermissionId `<page fullId>.<component key>`.
+ *
+ * @internal
  */
 export function collectComponentTree(
   root: Component,

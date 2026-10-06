@@ -9,7 +9,11 @@
 import { PageDeclarationConflictError } from "./declaration-conflict";
 import { pageLayoutHandlers, pageMetadataByFullId } from "./registry";
 
-/** One page-mode form sub-page a table view is about to register. */
+/**
+ * One page-mode form sub-page a table view is about to register.
+ *
+ * @internal
+ */
 export interface FormPageRouteClaim {
   /** Permission id of the table view registering it. */
   owner: string;
@@ -48,6 +52,8 @@ function conflict(
  * A claim only stands in the way while the page it named is live: the same
  * table view re-registering after a hot reload re-claims what it held, and a
  * page that went away releases its id and its slug through its own teardown.
+ *
+ * @internal
  */
 export function claimFormPageRoute(claim: FormPageRouteClaim): void {
   const byId = claimsByFullId.get(claim.fullId);

@@ -199,6 +199,8 @@ export function isInsideModule(entry: ModuleEntry): boolean {
  * Resolve a category to CategoryInfo
  * @param category A CategoryInfo object or a ControllerClass
  * @returns The resolved CategoryInfo
+ *
+ * @internal
  */
 export function resolveCategoryInfo(
   category: CategoryInfo | ControllerClass | undefined,
@@ -224,6 +226,8 @@ export function resolveCategoryInfo(
  *
  * @param category The parent the entry is declared under
  * @returns That layout, or undefined when no ancestor declares one
+ *
+ * @internal
  */
 export function resolveInheritedLayout(
   category: CategoryInfo | ControllerClass | undefined,
@@ -251,6 +255,8 @@ function findCategoryInfo(
  * @param id The unique identifier
  * @param options Menu options containing urlSlug and category
  * @returns The calculated full slug
+ *
+ * @internal
  */
 export function calculateFullSlug(
   id: string,
@@ -338,6 +344,7 @@ function validateExplicitCategoryMatchesModule(
 // a check that only needs the id.
 const SETTINGS_ROOT_FULL_ID = "settings";
 
+/** @internal */
 export function validateNotInsideSettings(
   moduleId: string | undefined,
   resolved: CategoryInfo | undefined,
@@ -350,10 +357,12 @@ export function validateNotInsideSettings(
   }
 }
 
+/** @internal */
 export function createCategoryFunction(
   id: string,
   options: internal.RootCategoryOptions,
 ): CategoryInfo;
+/** @internal */
 export function createCategoryFunction(
   id: string,
   options: MenuOptions,
@@ -426,6 +435,7 @@ export function createCategoryFunction(
   return categoryInfo;
 }
 
+/** @internal */
 export function applyModuleResolution(
   id: string,
   options: MenuOptions,

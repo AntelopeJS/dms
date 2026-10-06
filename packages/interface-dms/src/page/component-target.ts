@@ -6,7 +6,11 @@ import {
   type ComponentTargetInput,
 } from "../component";
 
-/** A component and its resolved position under a page's static root field. */
+/**
+ * A component and its resolved position under a page's static root field.
+ *
+ * @internal
+ */
 export interface ResolvedComponentTarget {
   rootKey: string;
   path: readonly string[];
@@ -14,7 +18,11 @@ export interface ResolvedComponentTarget {
   parent?: Component;
 }
 
-/** Read children that are available synchronously during page registration. */
+/**
+ * Read children that are available synchronously during page registration.
+ *
+ * @internal
+ */
 export function getDeclaredComponentChildren(
   component: Component,
 ): BaseComponentChild[] {
@@ -54,7 +62,11 @@ function resolveDescendant(
   return { component, parent };
 }
 
-/** Resolve and validate a target against a page's static root components. */
+/**
+ * Resolve and validate a target against a page's static root components.
+ *
+ * @internal
+ */
 export function resolveComponentTarget(
   target: ComponentTargetInput,
   roots: Map<string, Component>,
@@ -67,7 +79,11 @@ export function resolveComponentTarget(
   return { rootKey: rootEntry[0], path, ...descendant };
 }
 
-/** Build the id assigned by the recursive frontend component renderer. */
+/**
+ * Build the id assigned by the recursive frontend component renderer.
+ *
+ * @internal
+ */
 export function componentTargetClientId(
   target: ResolvedComponentTarget,
 ): string {

@@ -193,6 +193,8 @@ async function serveHeaderButton(
  * names an action of the page, relative to `pagePermissionId` — and those
  * whose `availability` refuses the request are disabled with its reason.
  * `loadPermissions` is only called when a button declares a permission.
+ *
+ * @internal
  */
 export async function filterLayoutHeaderActions<T>(
   layout: ComponentInfo<T> | undefined,
@@ -268,6 +270,8 @@ function componentHeaderButtons(
  * were, so a button whose permission the caller lacks is already gone, and a
  * disabled one keeps its reason. The component still runs them: the header
  * names it.
+ *
+ * @internal
  */
 export function withComponentHeaderButtons<T>(
   layout: ComponentInfo<T> | undefined,

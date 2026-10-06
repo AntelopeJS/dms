@@ -2,6 +2,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import type { ChildSerialized, ComponentInfoSerialized } from "../component";
 import type { PageExtensionComponent } from "./types";
 
+/** @internal */
 export interface PageExtensionEntry extends PageExtensionComponent {
   extensionName: string;
   declarationIndex: number;
@@ -135,6 +136,7 @@ function assembleNestedComponent(
   return { ...component, children: assembled };
 }
 
+/** @internal */
 export function assembleLayoutComponents(
   own: Record<string, ComponentInfoSerialized>,
   entries: PageExtensionEntry[],

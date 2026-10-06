@@ -21,6 +21,7 @@ import { getRequestTenantId } from "../request-tenant";
 // dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { MODULE_URL_PREFIX, type PageInfo } from "./types";
+/** @internal */
 export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(
   (target, key, index) => {
     SetParameterProvider(target, key, index, (ctx: RequestContext) =>
@@ -29,12 +30,14 @@ export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(
   },
 );
 
+/** @internal */
 export function isPageInsideModule(pageInfo: PageInfo): boolean {
   return pageInfo.fullSlug.startsWith(`${MODULE_URL_PREFIX}/`);
 }
 
 const loggedModuleSlugs = new Set<string>();
 
+/** @internal */
 export function logModuleRouteGated(fullSlug: string): void {
   if (loggedModuleSlugs.has(fullSlug)) return;
   loggedModuleSlugs.add(fullSlug);

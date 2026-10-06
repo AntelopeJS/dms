@@ -6,7 +6,11 @@ import { getDeclaredComponentChildren } from "./component-target";
 import { PageMetadata } from "./metadata";
 import { pageMetadataByFullId } from "./registry";
 
-/** Page full id → the navigation badge shown next to its entry. */
+/**
+ * Page full id → the navigation badge shown next to its entry.
+ *
+ * @internal
+ */
 export type NavBadges = Record<string, string>;
 
 interface PublishedNavBadge {
