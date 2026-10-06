@@ -15,10 +15,6 @@
       "login_subtitle_workspace": "Welcome back. Sign in to the {workspace} workspace.",
       "login_subtitle": "Welcome back. Sign in to continue.",
       "email_placeholder": "you{'@'}company.com",
-      "password": {
-        "show": "Show",
-        "hide": "Hide"
-      },
       "code": {
         "label": "Verification code",
         "not_received": "Didn't get it?",
@@ -323,8 +319,6 @@
           "updated": "Password updated",
           "signed_out": "{count} other session signed out | {count} other sessions signed out",
           "error": "Your password couldn't be updated.",
-          "show": "Show password",
-          "hide": "Hide password",
           "rules_head": "Same rules as sign-up · {met} of {total} met"
         },
         "email": {

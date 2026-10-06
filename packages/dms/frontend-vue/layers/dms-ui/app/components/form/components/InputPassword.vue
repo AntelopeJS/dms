@@ -6,6 +6,7 @@ import type {
 } from "@nuxt/ui/components/Input.vue";
 import { useForwardPropsEmits } from "reka-ui";
 import { FORM_VALIDATOR_KEY } from "../../../composables/form/types/validation";
+import DmsPasswordInput from "../../../build/components/form/PasswordInput.vue";
 
 const props = defineProps<
   InputProps & {
@@ -54,54 +55,20 @@ if (registerValidator) {
 
 <template>
   <div class="grid gap-2">
-    <UInput v-bind="forwarded" :type="passwordVisibility ? 'text' : 'password'">
-      <template #trailing>
-        <UButton
-          color="neutral"
-          variant="link"
-          size="sm"
-          :icon="passwordVisibility ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-          :aria-label="
-            passwordVisibility
-              ? $t('dms.form.input.hide_password')
-              : $t('dms.form.input.show_password')
-          "
-          :aria-pressed="passwordVisibility"
-          :aria-controls="props.id"
-          @click="passwordVisibility = !passwordVisibility"
-        />
-      </template>
-    </UInput>
+    <DmsPasswordInput v-bind="forwarded" v-model:visible="passwordVisibility" />
     <template v-if="props.confirmPassword">
-      <UInput
+      <DmsPasswordInput
         :id="confirmInputId"
         v-bind="confirmPropsFiltered"
         v-model="confirmValue"
+        v-model:visible="passwordVisibility"
         :placeholder="
           props.confirmPlaceholder
             ? processI18n(props.confirmPlaceholder)
             : undefined
         "
-        :type="passwordVisibility ? 'text' : 'password'"
-        :color="hasMismatch ? 'error' : undefined"
-      >
-        <template #trailing>
-          <UButton
-            color="neutral"
-            variant="link"
-            size="sm"
-            :icon="passwordVisibility ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-            :aria-label="
-              passwordVisibility
-                ? $t('dms.form.input.hide_password')
-                : $t('dms.form.input.show_password')
-            "
-            :aria-pressed="passwordVisibility"
-            :aria-controls="confirmInputId"
-            @click="passwordVisibility = !passwordVisibility"
-          />
-        </template>
-      </UInput>
+        :invalid="hasMismatch"
+      />
       <p v-if="hasMismatch" class="text-error text-sm">
         {{ $t("dms.form.validation.password_mismatch") }}
       </p>

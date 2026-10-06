@@ -15,10 +15,6 @@
       "login_subtitle_workspace": "Bon retour. Connectez-vous à l'espace {workspace}.",
       "login_subtitle": "Bon retour. Connectez-vous pour continuer.",
       "email_placeholder": "vous{'@'}entreprise.com",
-      "password": {
-        "show": "Afficher",
-        "hide": "Masquer"
-      },
       "code": {
         "label": "Code de vérification",
         "not_received": "Rien reçu ?",
@@ -323,8 +319,6 @@
           "updated": "Mot de passe mis à jour",
           "signed_out": "{count} autre session déconnectée | {count} autres sessions déconnectées",
           "error": "Votre mot de passe n'a pas pu être mis à jour.",
-          "show": "Afficher le mot de passe",
-          "hide": "Masquer le mot de passe",
           "rules_head": "Mêmes règles qu'à l'inscription · {met} sur {total} respectées"
         },
         "email": {

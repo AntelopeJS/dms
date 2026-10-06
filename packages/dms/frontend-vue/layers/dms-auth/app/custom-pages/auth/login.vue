@@ -4,7 +4,7 @@ import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
-import AuthPasswordInput from "../../components/AuthPasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import {
   type AuthFormHandle,
   useAuthFormError,
@@ -169,8 +169,9 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
           </DmsLink>
         </template>
 
-        <AuthPasswordInput
+        <DmsPasswordInput
           v-model="state.password"
+          size="lg"
           autocomplete="current-password"
           placeholder="••••••••"
         />

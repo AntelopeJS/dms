@@ -6,7 +6,7 @@ import {
 } from "../../../../../composables/settings/security/useSecurityOverview";
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
-import SecurityPasswordInput from "./SecurityPasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
@@ -246,7 +246,8 @@ async function submit(): Promise<void> {
         alone
       >
         <template #default="{ describedby, invalid }">
-          <SecurityPasswordInput
+          <DmsPasswordInput
+            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
             autocomplete="current-password"
@@ -269,7 +270,8 @@ async function submit(): Promise<void> {
         :error="newError"
       >
         <template #default="{ describedby, invalid }">
-          <SecurityPasswordInput
+          <DmsPasswordInput
+            has-lock-icon
             :id="NEW_FIELD_ID"
             v-model="newPassword"
             autocomplete="new-password"
@@ -285,7 +287,8 @@ async function submit(): Promise<void> {
         :error="confirmError"
       >
         <template #default="{ describedby, invalid }">
-          <SecurityPasswordInput
+          <DmsPasswordInput
+            has-lock-icon
             :id="CONFIRM_FIELD_ID"
             v-model="confirmPassword"
             @blur="isConfirmTouched = true"

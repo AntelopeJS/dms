@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AuthPasswordInput from "./AuthPasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import PasswordRules from "../../../dms-ui/app/components/check-list/PasswordRules.vue";
 
 interface AuthNewPasswordFieldProps {
@@ -22,12 +22,14 @@ const password = defineModel<string | undefined>();
   <!-- The rules list fills in live; the field itself turns red only with
        the form's error (empty, or a rule still unmet) on blur or submit. -->
   <UFormField :label="props.label" :name="props.name">
-    <AuthPasswordInput
+    <DmsPasswordInput
       v-model="password"
+      size="lg"
       autocomplete="new-password"
-      :described-by="RULES_ID"
+      :aria-describedby="RULES_ID"
       :disabled="props.disabled"
-      is-new-password
+      labelled-toggle
+      has-lock-icon
     />
 
     <PasswordRules

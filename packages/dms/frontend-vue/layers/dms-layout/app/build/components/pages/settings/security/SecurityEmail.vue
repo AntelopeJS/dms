@@ -6,7 +6,7 @@ import {
 } from "../../../../../composables/settings/security/useSecurityOverview";
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
-import SecurityPasswordInput from "./SecurityPasswordInput.vue";
+import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
@@ -246,7 +246,8 @@ async function submit(): Promise<void> {
         :error="currentError"
       >
         <template #default="{ describedby, invalid }">
-          <SecurityPasswordInput
+          <DmsPasswordInput
+            has-lock-icon
             :id="CURRENT_FIELD_ID"
             v-model="currentPassword"
             autocomplete="current-password"

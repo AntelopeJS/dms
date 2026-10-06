@@ -296,7 +296,9 @@
       },
       "input": {
         "show_password": "Afficher le mot de passe",
-        "hide_password": "Masquer le mot de passe"
+        "hide_password": "Masquer le mot de passe",
+        "show": "Afficher",
+        "hide": "Masquer"
       },
       "validation": {
         "password_mismatch": "Les mots de passe ne correspondent pas",
