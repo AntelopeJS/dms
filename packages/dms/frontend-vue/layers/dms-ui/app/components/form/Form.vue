@@ -48,6 +48,7 @@ import {
   errorFieldId,
   invalidFieldIds,
   layoutSections,
+  type FormErrorRef,
   type FormSectionState,
   resolveSectionNav,
   sectionState,
@@ -593,7 +594,7 @@ const sectionNav = resolveSectionNav(
 // The fields the form shows an error on, from UForm's own list: what the
 // validation summary and the sections' counts read.
 const invalidFields = computed<ReadonlySet<string>>(() => {
-  const errors: ReadonlyArray<{ name?: string }> = form.value?.errors ?? [];
+  const errors: readonly FormErrorRef[] = form.value?.errors ?? [];
   return new Set(invalidFieldIds(errors, allFieldIds.value));
 });
 const changedFieldIds = computed(

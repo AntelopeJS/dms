@@ -70,9 +70,11 @@ function onSelect(event: MouseEvent, sectionId: string): void {
             class="size-4 shrink-0"
           />
           <span class="truncate">{{ processI18n(section.label) }}</span>
+          <!-- Read by its sr-only label below, not twice. -->
           <span
             v-if="props.states[section.id]?.invalidCount"
             class="text-error ms-auto inline-flex items-center gap-1 font-mono text-[11px]"
+            aria-hidden="true"
           >
             <span class="bg-error size-1.5 rounded-full" aria-hidden="true" />
             {{ props.states[section.id]?.invalidCount }}

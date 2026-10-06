@@ -21,6 +21,11 @@ export interface FormSectionsLayout {
   sections: FormSectionLayout[];
 }
 
+/** An error of the form, as UForm lists them: the name it went under. */
+export interface FormErrorRef {
+  name?: string;
+}
+
 /** What the navigation shows of a section. */
 export interface FormSectionState {
   /** It holds an unsaved change. */
@@ -83,7 +88,7 @@ export function errorFieldId(
 
 /** The fields holding an error, once each, in the form's order. */
 export function invalidFieldIds(
-  errors: ReadonlyArray<{ name?: string }>,
+  errors: readonly FormErrorRef[],
   fieldIds: readonly string[],
 ): string[] {
   const invalid = new Set(
