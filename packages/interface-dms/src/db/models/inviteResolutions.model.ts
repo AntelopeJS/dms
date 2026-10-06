@@ -23,7 +23,11 @@ function decisionId(tenantId: string, inviteId: string): string {
     .digest("hex");
 }
 
-/** Arbitrates terminal invite outcomes using an insert-only primary key, never a lease. */
+/**
+ * Arbitrates terminal invite outcomes using an insert-only primary key, never a lease.
+ *
+ * @internal
+ */
 export class InviteResolutionsModel extends BasicDataModel(
   InviteResolution,
   inviteResolutionsTableName,

@@ -8,6 +8,7 @@ import { TENANT_SCHEMA_NAME } from "../../constants";
 import type { UserInvite } from "./user_invites.table";
 import type { InviteDeletedReason } from "../../hooks";
 
+/** @internal */
 export const inviteResolutionsTableName = "invite_resolutions";
 export type InviteResolutionReason = InviteDeletedReason | "expired";
 export type InviteMembershipPhase = "pending" | "applying" | "applied";

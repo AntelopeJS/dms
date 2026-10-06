@@ -20,6 +20,7 @@ const CREATED_AT_INDEX = "createdAt";
 const USER_ID_INDEX = "userId";
 const FIRST_RECORD_OFFSET = 0;
 
+/** @internal */
 export class ExportJobModel extends BasicDataModel(
   ExportJob,
   exportJobsTableName,

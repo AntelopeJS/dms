@@ -7,7 +7,11 @@ import {
 
 const LIFECYCLE_ID = "membership-and-invites";
 
-/** Admissions never expire; deletion cannot overtake a suspended producer. */
+/**
+ * Admissions never expire; deletion cannot overtake a suspended producer.
+ *
+ * @internal
+ */
 export class TenantLifecycleModel extends BasicDataModel(
   TenantLifecycle,
   tenantLifecycleTableName,
