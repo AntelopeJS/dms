@@ -47,6 +47,8 @@ const { overview, refresh: refreshOverview } = useSecurityOverview();
 const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
 
 const isLoading = ref(true);
+// The list could not be loaded: shown as such, never as "no sessions".
+const hasLoadError = ref(false);
 const sessions = ref<SessionInfo[]>([]);
 const revokingId = ref<string | null>(null);
 const isConfirmOpen = ref(false);
@@ -72,6 +74,7 @@ const sessionPlace = (session: SessionInfo): string =>
 
 async function fetchSessions(): Promise<void> {
   sessions.value = await $authFetch<SessionInfo[]>(SESSIONS_URL);
+  hasLoadError.value = false;
 }
 
 async function revoke(session: SessionInfo): Promise<void> {
@@ -127,18 +130,34 @@ watch(
   () => overview.value?.activeSessions,
   (count, previous) => {
     if (previous !== undefined && count !== sessions.value.length) {
-      void fetchSessions();
+      // A failed reload keeps the list on screen.
+      fetchSessions().catch(() => {});
     }
   },
 );
 
-onMounted(async () => {
+async function loadSessions(): Promise<void> {
+  isLoading.value = true;
   try {
     await fetchSessions();
+  } catch {
+    hasLoadError.value = true;
   } finally {
     isLoading.value = false;
   }
-});
+}
+
+const retryActions = computed(() => [
+  {
+    label: t("dms.table.load_error_retry"),
+    icon: "i-ph-arrows-clockwise",
+    color: "neutral" as const,
+    variant: "outline" as const,
+    onClick: () => void loadSessions(),
+  },
+]);
+
+onMounted(loadSessions);
 </script>
 
 <template>
@@ -148,7 +167,7 @@ onMounted(async () => {
     title="$page.settings.sessions.title"
     description="$page.settings.security.sessions.description"
   >
-    <template v-if="!isLoading" #badge>
+    <template v-if="!isLoading && !hasLoadError" #badge>
       <span class="text-muted font-mono text-[11.5px] font-medium tabular-nums">
         {{
           t(
@@ -177,6 +196,13 @@ onMounted(async () => {
         class="h-10 w-full"
       />
     </div>
+    <DmsEmptyState
+      v-else-if="hasLoadError"
+      variant="error"
+      :title="t('dms.table.load_error_title')"
+      :actions="retryActions"
+      size="sm"
+    />
     <DmsEmptyState
       v-else-if="!sessions.length"
       icon="i-ph-devices"
