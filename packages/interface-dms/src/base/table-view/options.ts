@@ -484,7 +484,8 @@ export type TableViewEmptyStatesSerialized = Partial<
 
 /**
  * The card the `kanban` and `cards` displays draw for each row. Left out,
- * a card shows the row's label and a few of its columns.
+ * a card shows the row's label and its first few listable columns (on the
+ * board, besides the one it groups on).
  */
 export interface TableViewCardOptions {
   /**

@@ -8,7 +8,10 @@ import type {
   TableViewCardConfig,
   TableViewDisplayContext,
 } from "../../../composables/table-view/types/display";
-import { buildCardProps } from "../../composables/table-view/utils/card";
+import {
+  buildCardProps,
+  cardFieldColumns,
+} from "../../composables/table-view/utils/card";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -16,7 +19,6 @@ interface CardsDisplayProps {
 
 const props = defineProps<CardsDisplayProps>();
 
-const MAX_CARD_FIELDS = 4;
 const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
@@ -55,26 +57,12 @@ const cardComponent = computed(() => {
   return name ? resolveDmsComponent(name) || name : undefined;
 });
 
-const columnByKey = (key: string) =>
-  props.context.columns.find((column) => column.accessorKey === key);
-
-// The card's `fields`, else the first listable columns besides the title.
-const fieldColumns = computed<TableViewColumn[]>(() => {
-  const declared = card.value?.fields;
-  if (declared) {
-    return declared
-      .map(columnByKey)
-      .filter((column): column is TableViewColumn => !!column);
-  }
-  return props.context.columns
-    .filter(
-      (column) =>
-        column.listable !== false &&
-        column.accessorKey !== props.context.labelKey &&
-        column.accessorKey !== props.context.rowIdKey,
-    )
-    .slice(0, MAX_CARD_FIELDS);
-});
+const fieldColumns = computed<TableViewColumn[]>(() =>
+  cardFieldColumns(props.context.columns, card.value?.fields, {
+    labelKey: props.context.labelKey,
+    rowIdKey: props.context.rowIdKey,
+  }),
+);
 
 // A field renders the same way a table cell does: through the formatter of
 // the column's data type (status pills, links, dates…).

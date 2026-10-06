@@ -108,9 +108,9 @@ describe("confirmation dialog texts", () => {
     expect(options.title).toBe("Remove Editors?");
     expect(options.description).toBe("2 rows go with it, {missing} stays.");
     expect(options.confirmLabel).toBe("Remove Editors");
-    expect(resolveConfirmText("{nested} {constructor}", { nested: {} }, t)).toBe(
-      "{nested} {constructor}",
-    );
+    expect(
+      resolveConfirmText("{nested} {constructor}", { nested: {} }, t),
+    ).toBe("{nested} {constructor}");
   });
 });
 

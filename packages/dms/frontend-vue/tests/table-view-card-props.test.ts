@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
-import { buildCardProps } from "../layers/dms-ui/app/build/composables/table-view/utils/card";
+import {
+  buildCardProps,
+  cardFieldColumns,
+} from "../layers/dms-ui/app/build/composables/table-view/utils/card";
+import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types/column";
 import type {
   TableViewCardProps,
   TableViewDisplayContext,
@@ -134,5 +138,51 @@ describe("cards display with a custom card", () => {
     expect(received.map((props) => props.selected)).toEqual([false, true]);
     buttons[0]!.click();
     expect(opened).toEqual([rows[0]]);
+  });
+});
+
+describe("card fields", () => {
+  const columns = [
+    "_id",
+    "name",
+    "status",
+    "owner",
+    "due",
+    "hidden",
+    "size",
+    "tags",
+  ].map(
+    (key) =>
+      ({
+        id: key,
+        accessorKey: key,
+        listable: key !== "hidden",
+      }) as TableViewColumn,
+  );
+  const keys = (picked: TableViewColumn[]) =>
+    picked.map((column) => column.accessorKey);
+
+  it("shows the declared fields, in their order", () => {
+    expect(
+      keys(
+        cardFieldColumns(columns, ["due", "name", "gone"], { rowIdKey: "_id" }),
+      ),
+    ).toEqual(["due", "name"]);
+  });
+
+  it("falls back to the first listable columns besides the title and the id, on the board too", () => {
+    const shown = { labelKey: "name", rowIdKey: "_id" };
+    expect(keys(cardFieldColumns(columns, undefined, shown))).toEqual([
+      "status",
+      "owner",
+      "due",
+      "size",
+    ]);
+    // A kanban card sits in its group's column: the group is not repeated.
+    expect(
+      keys(
+        cardFieldColumns(columns, undefined, { ...shown, others: ["status"] }),
+      ),
+    ).toEqual(["owner", "due", "size", "tags"]);
   });
 });

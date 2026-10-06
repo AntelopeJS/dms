@@ -13,7 +13,10 @@ import {
 } from "../../composables/table-view/kanban";
 import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
 import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
-import { buildCardProps } from "../../build/composables/table-view/utils/card";
+import {
+  buildCardProps,
+  cardFieldColumns,
+} from "../../build/composables/table-view/utils/card";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -366,10 +369,13 @@ const customCardComponent = computed(() => {
   return resolveDmsComponent(componentName) || componentName;
 });
 
+// The cards grid's fields; the column a card sits in already says its group.
 const cardColumns = computed(() =>
-  (props.cardFields ?? [])
-    .map((field) => props.columns.find((col) => col.accessorKey === field))
-    .filter((col): col is TableViewColumn => !!col),
+  cardFieldColumns(props.columns, props.cardFields, {
+    labelKey: props.labelKey,
+    rowIdKey: props.rowIdKey ?? DEFAULT_ROW_ID_KEY,
+    others: [groupByField.value],
+  }),
 );
 
 // The id line only adds something when the title is a label, not the id.
