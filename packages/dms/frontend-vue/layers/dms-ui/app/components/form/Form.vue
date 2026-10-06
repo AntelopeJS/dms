@@ -175,30 +175,37 @@ async function focusField(name: string | undefined): Promise<void> {
 function showFieldErrors(errors: FormServerFieldError[]): boolean {
   const target = form.value;
   if (!target) return false;
-  // An error naming a part of its field (an address's street) goes on the
-  // part when the field's control declares it, on the whole field otherwise.
-  const located = errors.map((error) => ({
-    ...error,
-    name: error.path ?? error.name,
-  }));
-  target.setErrors(located);
-  target.setErrors(
-    located.map((error, index) =>
-      target.getErrors(error.name).length
-        ? error
-        : { ...error, name: errors[index]!.name },
-    ),
-  );
+  // A refused submit replaces every error; a field saved on its own (an
+  // instant form) replaces its own only.
+  if (!isInstant) {
+    target.setErrors([]);
+    serverErrorValues.clear();
+  }
+  for (const error of errors) placeServerError(target, error);
   const shown = errors.filter(
     (error) => target.getErrors(fieldErrorPattern(error.name)).length,
   );
-  serverErrorValues.clear();
   for (const error of shown) {
     serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
   }
   showsErrorSummary.value = shown.length > 0;
   void focusField(target.errors[0]?.name);
   return shown.length > 0;
+}
+
+/**
+ * Puts a server error under its field, replacing that field's: on the part
+ * it names (an address's street) when the field's control declares it, on
+ * the whole field otherwise.
+ */
+function placeServerError(
+  target: NonNullable<typeof form.value>,
+  error: FormServerFieldError,
+): void {
+  const scope = fieldErrorPattern(error.name);
+  target.setErrors([{ ...error, name: error.path ?? error.name }], scope);
+  if (!error.path || target.getErrors(error.path).length) return;
+  target.setErrors([error], scope);
 }
 
 /** A submit the client-side validation stopped: focus the first bad field. */
@@ -898,7 +905,12 @@ onUnmounted(async () => {
           :states="sectionStates"
           :form-id="formElementId"
         >
-          <template v-if="instantSave" #nav-footer>
+          <!-- A page form's state is in the page header's pill; a drawer or
+            a modal has no header: the side list says it. -->
+          <template
+            v-if="instantSave && (inFormContainer || container)"
+            #nav-footer
+          >
             <DmsSaveStatus
               :state="instantSave.state.value"
               class="px-2.5"

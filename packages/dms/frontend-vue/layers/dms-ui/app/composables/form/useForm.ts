@@ -722,6 +722,41 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
+  /** Sends a body to the submit URL, through the form's submit events. */
+  const sendSubmit = async (
+    submitUrl: string,
+    body: FormData,
+  ): Promise<FormSubmitResponse | undefined> => {
+    let submitResponse: FormSubmitResponse | undefined;
+    await executeSubmit(
+      () =>
+        $authFetch<FormSubmitResponse>(submitUrl, {
+          method: props.submitUrlMethod || "PUT",
+          body,
+          headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
+        }).then((res) => {
+          submitResponse = res;
+          return res;
+        }),
+      {
+        startPayload: { data: body },
+        successPayload: (response) => ({ data: body, response, submitUrl }),
+        errorPayload: (error) => ({
+          data: body,
+          error: (error as EventError).data || (error as EventError).message,
+        }),
+      },
+    );
+    return submitResponse;
+  };
+
+  /** A refused save: under its field when it names one, else a toast. */
+  const reportSubmitError = (error: unknown): void => {
+    if (!showServerFieldErrors(error)) {
+      showSubmitErrorToast(error as EventError);
+    }
+  };
+
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
@@ -731,7 +766,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       if (target.missing === "token") showUnresolvedTargetToast();
       return;
     }
-    const submitUrl = target.url;
     const plainData = collectSubmitData(event.data, allFields.value, {
       initialValues: initialValues.value,
       submitDefaults: effectiveSubmitDefaults.value,
@@ -741,36 +775,11 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
     loading.value = true;
     try {
-      let submitResponse: FormSubmitResponse | undefined;
-      await executeSubmit(
-        () =>
-          $authFetch<FormSubmitResponse>(submitUrl, {
-            method: props.submitUrlMethod || "PUT",
-            body: plainData,
-            headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-          }).then((res) => {
-            submitResponse = res;
-            return res;
-          }),
-        {
-          startPayload: { data: plainData },
-          successPayload: (response) => ({
-            data: plainData,
-            response,
-            submitUrl,
-          }),
-          errorPayload: (error) => ({
-            data: plainData,
-            error: (error as EventError).data || (error as EventError).message,
-          }),
-        },
-      );
+      const response = await sendSubmit(target.url, plainData);
       submitSucceeded.value = true;
-      await handleSubmitSuccess(submitResponse, plainData);
+      await handleSubmitSuccess(response, plainData);
     } catch (error) {
-      if (!showServerFieldErrors(error)) {
-        showSubmitErrorToast(error as EventError);
-      }
+      reportSubmitError(error);
     } finally {
       loading.value = false;
     }
@@ -778,9 +787,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
   /**
    * Saves some fields at once, alone (the instant save of a form): sent to
-   * `submitUrl` with the form's `submitDefaults`, without the success toast
-   * of a submit. Rejects when the server refuses them, for the caller to put
-   * the values back before `reportSubmitError` says why.
+   * `submitUrl` with the form's `submitDefaults`, a cleared field as its
+   * empty value, without the success toast of a submit. Rejects when the
+   * server refuses them, for the caller to put the values back before
+   * `reportSubmitError` says why.
    */
   const submitChanges = async (changes: FormData): Promise<void> => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
@@ -788,38 +798,19 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       showUnresolvedTargetToast();
       throw new Error(`Form submit target: missing ${target.missing}`);
     }
-    const body = { ...effectiveSubmitDefaults.value, ...changes };
-    await executeSubmit(
-      () =>
-        $authFetch<FormSubmitResponse>(target.url, {
-          method: props.submitUrlMethod || "PUT",
-          body,
-          headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-        }),
-      {
-        startPayload: { data: body },
-        successPayload: (response) => ({
-          data: body,
-          response,
-          submitUrl: target.url,
-        }),
-        errorPayload: (error) => ({
-          data: body,
-          error: (error as EventError).data || (error as EventError).message,
-        }),
-      },
+    const changedFields = allFields.value.filter(
+      (field) => field.id in changes,
     );
+    const body = collectSubmitData(changes, changedFields, {
+      initialValues: initialValues.value,
+      submitDefaults: effectiveSubmitDefaults.value,
+      disabled: disabledFields.value,
+    });
+    await sendSubmit(target.url, body);
     initialValues.value = {
       ...initialValues.value,
-      ...JSON.parse(JSON.stringify(changes)),
+      ...(snapshotFormState(changes) as FormData),
     };
-  };
-
-  /** A refused save: under its field when it names one, else a toast. */
-  const reportSubmitError = (error: unknown): void => {
-    if (!showServerFieldErrors(error)) {
-      showSubmitErrorToast(error as EventError);
-    }
   };
 
   const reset = (form: FormResetTarget | null): void => {
