@@ -84,9 +84,19 @@ export function useRegionSettings() {
         method: "POST",
         body: changes,
       });
-      await refresh().catch(() => undefined);
+      needsRefresh = true;
     },
     onError: showRefusal,
+  });
+
+  // The session user is read again once nothing saves any more: read while
+  // another control saves, it would show that control's old value for a
+  // moment.
+  let needsRefresh = false;
+  watch(instant.state, (state) => {
+    if (state === "saving" || !needsRefresh) return;
+    needsRefresh = false;
+    void refresh().catch(() => undefined);
   });
 
   function save<K extends RegionSettingsField>(
@@ -98,11 +108,18 @@ export function useRegionSettings() {
     instant.change(field, value);
   }
 
+  function retry(): void {
+    for (const field of Object.keys(instant.failed.value ?? {})) {
+      delete errors[field as RegionSettingsField];
+    }
+    instant.retry();
+  }
+
   return {
     states: instant.states,
     state: instant.state,
     errors,
     save,
-    retry: instant.retry,
+    retry,
   };
 }
