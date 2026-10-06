@@ -94,7 +94,7 @@ with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`).
 class-level `@ColumnGroup(id, config)`), `@Listable` / `@Sortable` from
 `@antelopejs/interface-data-api/metadata`. Read a
 real one first: `@antelopejs/interface-dms/data-controllers` (`members`); guide in
-`docs/04.components/09.data-controller.md` (+ `06.tables.md`). Database rows carry **`_id`**
+`docs/04.components/09.data-controller.md` (+ `06.tables/`). Database rows carry **`_id`**
 as the primary key — return and type it as `_id`, never alias to `id`.
 
 ## DataTypes
