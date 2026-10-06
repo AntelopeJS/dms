@@ -54,6 +54,8 @@ export class Invoice extends Table {
   @Field("string") declare status: string;
   @Field("number") declare amount: number;
   @Field("string") declare ownerId?: string;
+  @Field("date") declare dueAt?: Date;
+  @Field("object") declare period?: { start: Date; end: Date };
 }
 
 export class InvoiceModel extends BasicDataModel(Invoice, TABLE) {}
@@ -105,6 +107,17 @@ export class CapabilityInvoiceController extends DataController(
   })
   @Access(AccessMode.ReadWrite)
   declare ownerId: string;
+
+  @Column({ name: "Due", type: new DefaultDataTypes.DateType() })
+  @Access(AccessMode.ReadWrite)
+  declare dueAt: Date;
+
+  @Column({
+    name: "Billing period",
+    type: new DefaultDataTypes.DateType({ range: true }),
+  })
+  @Access(AccessMode.ReadWrite)
+  declare period: { start: Date; end: Date };
 
   /** Marks the selected invoices paid, or every one the filters match. */
   @Post("mark-paid")

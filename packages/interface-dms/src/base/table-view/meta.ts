@@ -508,10 +508,13 @@ export const Column = MakeMethodAndPropertyDecorator(
         required: false,
       });
 
-      Validator(async (value) => {
-        const result = await zodSchema.safeParseAsync(value);
-        return result.success;
-      })(target, key, descriptor ?? {});
+      // The parse result rather than its success flag: the data API writes
+      // the parsed value, so a date sent as text is stored as a date.
+      Validator((value) => zodSchema.safeParseAsync(value))(
+        target,
+        key,
+        descriptor ?? {},
+      );
     }
 
     if (options.filterable) {

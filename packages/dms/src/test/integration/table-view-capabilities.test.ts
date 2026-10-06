@@ -1,13 +1,14 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
-import { resetDatabase } from "../helpers/db";
+import { countRawDocuments, resetDatabase } from "../helpers/db";
 
 // The table view capabilities the server takes part in, over the test host's
 // invoices (src/test/attachment-host/capabilities.ts): footer summaries,
 // filter tokens resolved per caller, and a bulk route finding its rows.
 
 const LOCATION = "/api/capabilities/invoices";
+const COLLECTION = "capability-invoices";
 const SLUG = "/capability-invoices";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
@@ -92,6 +93,34 @@ describe("[integration] table view capabilities", () => {
       [open!]: 0,
       [openOrLarge!]: 500,
     });
+  });
+
+  it("stores the dates an edit sends as text as dates, and keeps what it leaves out", async () => {
+    const [invoice] = await list(client, "&filter_number=is:INV-3");
+    const edit = async (body: Record<string, unknown>) => {
+      const response = await client.put(`${LOCATION}/edit`, body, {
+        params: { id: invoice!._id },
+      });
+      expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    };
+
+    await edit({
+      dueAt: "2026-03-31",
+      period: { start: "2026-03-01", end: "2026-03-31" },
+      ownerId: "accounting",
+    });
+    await edit({ ownerId: null });
+
+    expect(
+      await countRawDocuments(COLLECTION, {
+        number: "INV-3",
+        status: "open",
+        amount: 50,
+        ownerId: null,
+        dueAt: new Date("2026-03-31"),
+        period: { start: new Date("2026-03-01"), end: new Date("2026-03-31") },
+      }),
+    ).to.equal(1);
   });
 
   it("refuses a summary no table view declared", async () => {
