@@ -160,9 +160,7 @@ function sessionDevice(
 }
 
 function signedIn(device: Record<string, string> | undefined): ActivityText {
-  return device
-    ? text("event.signed_in_on", device)
-    : text("event.signed_in");
+  return device ? text("event.signed_in_on", device) : text("event.signed_in");
 }
 
 const TITLES: Partial<

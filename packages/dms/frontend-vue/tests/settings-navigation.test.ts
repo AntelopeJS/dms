@@ -112,7 +112,6 @@ it("labels the core groups with their i18n keys and others by category", () => {
   ]);
 });
 
-
 // Pending invitations: a hidden page (out of the menu tree) the nav lists from
 // the site layout's page registry, right after Members.
 function invitesRegistryEntry(hasAccess: boolean) {

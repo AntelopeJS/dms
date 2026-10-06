@@ -1,4 +1,9 @@
-import { Context, Get, Parameter, type RequestContext } from "@antelopejs/interface-api";
+import {
+  Context,
+  Get,
+  Parameter,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ActivityFeed } from "@antelopejs/interface-dms/base/activity-feed";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
@@ -12,7 +17,10 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { RegisterPage, settingsCategory } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { loadOverviewActivity } from "./overview/account-activity";
-import { type BlockItems, loadAccountSummary } from "./overview/account-summary";
+import {
+  type BlockItems,
+  loadAccountSummary,
+} from "./overview/account-summary";
 import { extractSessionId } from "./users/profile-helpers";
 
 const TEXTS = "$page.settings.overview";

@@ -28,9 +28,7 @@ describe("[unit] interfaces/dms/page — category default layout", () => {
   });
 
   it("gives the settings pages the settings layout", () => {
-    expect(layoutOf(settingsCategory)).to.equal(
-      SettingsLayout().componentName,
-    );
+    expect(layoutOf(settingsCategory)).to.equal(SettingsLayout().componentName);
     const page = PageController("cdl-settings-page", {
       displayName: "Settings page",
       category: settingsSection,

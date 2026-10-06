@@ -5,7 +5,6 @@ import {
 } from "../../../../../composables/settings/security/useSecurityOverview";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
-
 const { t } = useI18n();
 const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
 
@@ -43,34 +42,34 @@ onMounted(refresh);
 <template>
   <!-- Points to where email, password, two-factor and sessions now live,
          with what needs attention there. -->
-    <ProfileSummaryRow
-      :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
-      :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
-      :loading="!overview && !isUnavailable"
-      :placeholder="placeholder"
-      :to="SECURITY_PAGE_PATH"
-      :action-label="t('page.settings.profile.security_open')"
-    >
-      <template v-if="overview">
-        <b class="text-highlighted font-semibold">
-          {{
-            needsAttention
-              ? t(
-                  "page.settings.profile.security_attention",
-                  { count: attention.length },
-                  attention.length,
-                )
-              : t("page.settings.profile.security_all_good")
-          }}
-        </b>
-        <template v-if="needsAttention">
-          — {{ t(`page.settings.security.attention.${attention[0]}`) }}.
-        </template>
-        <template v-else>{{ " — " }}</template>
-        {{ facts }}
+  <ProfileSummaryRow
+    :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
+    :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
+    :loading="!overview && !isUnavailable"
+    :placeholder="placeholder"
+    :to="SECURITY_PAGE_PATH"
+    :action-label="t('page.settings.profile.security_open')"
+  >
+    <template v-if="overview">
+      <b class="text-highlighted font-semibold">
+        {{
+          needsAttention
+            ? t(
+                "page.settings.profile.security_attention",
+                { count: attention.length },
+                attention.length,
+              )
+            : t("page.settings.profile.security_all_good")
+        }}
+      </b>
+      <template v-if="needsAttention">
+        — {{ t(`page.settings.security.attention.${attention[0]}`) }}.
       </template>
-      <template v-else>
-        {{ t("page.settings.profile.security_description") }}
-      </template>
-    </ProfileSummaryRow>
+      <template v-else>{{ " — " }}</template>
+      {{ facts }}
+    </template>
+    <template v-else>
+      {{ t("page.settings.profile.security_description") }}
+    </template>
+  </ProfileSummaryRow>
 </template>

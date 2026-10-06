@@ -103,16 +103,13 @@ const profileFields = [
 const PROFILE_TEXTS = "$page.settings.profile";
 
 @RegisterPage()
-export class ProfileSettingsController extends PageController(
-  "profile",
-  {
-    displayName: "$menu.profile",
-    category: userCategory,
-    icon: "i-ph-user-circle",
-    order: 1,
-    description: "$page.settings.description.profile",
-  },
-) {
+export class ProfileSettingsController extends PageController("profile", {
+  displayName: "$menu.profile",
+  category: userCategory,
+  icon: "i-ph-user-circle",
+  order: 1,
+  description: "$page.settings.description.profile",
+}) {
   // The avatar field travels as a serialized image field: page registration
   // finds it there and stamps the upload token bound to the form.
   static profileComponent = Section({

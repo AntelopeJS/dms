@@ -30,9 +30,7 @@ function setReduceMotion(value: string | number | undefined): void {
       <DmsSegmented
         :model-value="preferences.reduceMotion.value"
         :items="reduceMotionItems"
-        :aria-label="
-          t('page.settings.appearance.accessibility.reduce_motion')
-        "
+        :aria-label="t('page.settings.appearance.accessibility.reduce_motion')"
         @update:model-value="setReduceMotion"
       />
     </DmsFieldRow>

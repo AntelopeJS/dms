@@ -31,7 +31,10 @@ export type AppearanceKey = keyof AppearancePreferences;
 
 export interface AppearanceSave {
   preferences: PreferenceRefs;
-  pick: <K extends AppearanceKey>(key: K, value: AppearancePreferences[K]) => void;
+  pick: <K extends AppearanceKey>(
+    key: K,
+    value: AppearancePreferences[K],
+  ) => void;
 }
 
 // One save per page header: the Appearance page is a block per group, and

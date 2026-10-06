@@ -40,13 +40,14 @@ import {
 } from "../uploads";
 // Categories resolve controller classes through PageMetadata; neither module
 // dereferences the other during evaluation.
-// oxlint-disable-next-line import/no-cycle
+// oxlint-disable import/no-cycle
 import {
   internal,
   isInsideModule,
   resolveCategoryInfo,
   resolveInheritedLayout,
 } from "./categories";
+// oxlint-enable import/no-cycle
 import { type ComponentTreeNode, collectComponentTree } from "./component-tree";
 import {
   assembleLayoutComponents,

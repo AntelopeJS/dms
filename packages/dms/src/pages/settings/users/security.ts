@@ -40,16 +40,13 @@ import {
  * sessions. Every credential change asks for the current password.
  */
 @RegisterPage()
-export class SecuritySettingsController extends PageController(
-  "security",
-  {
-    displayName: "$menu.security",
-    category: userCategory,
-    icon: "i-ph-shield-check",
-    order: 2,
-    description: "$page.settings.description.security",
-  },
-) {
+export class SecuritySettingsController extends PageController("security", {
+  displayName: "$menu.security",
+  category: userCategory,
+  icon: "i-ph-shield-check",
+  order: 2,
+  description: "$page.settings.description.security",
+}) {
   static statusComponent = CustomComponent("DmsSecurityStatus").meta({
     name: "$page.settings.security.status_title",
     icon: "i-ph-gauge",

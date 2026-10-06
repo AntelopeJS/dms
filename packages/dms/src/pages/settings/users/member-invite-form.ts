@@ -14,7 +14,6 @@ import {
 } from "../../../validation/member-invite.schema";
 import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
-
 const DEFAULT_INVITE_LANGUAGE = "en";
 
 export const INVITE_DEFAULTS_URL = "/settings/user/members/invite/defaults";

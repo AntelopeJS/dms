@@ -281,17 +281,14 @@ const EXPIRED = { field: "status", equals: false } as const;
 // id it had as a user-category page, so the roles that already grant it are
 // unchanged.
 @RegisterPage()
-export class InvitesSettingsController extends PageController(
-  "invites",
-  {
-    displayName: "$menu.invites",
-    category: MembersSettingsController,
-    permission: { id: INVITES_PERMISSION_ID },
-    hidden: true,
-    icon: "i-ph-envelope-simple",
-    description: "$page.settings.description.invites",
-  },
-) {
+export class InvitesSettingsController extends PageController("invites", {
+  displayName: "$menu.invites",
+  category: MembersSettingsController,
+  permission: { id: INVITES_PERMISSION_ID },
+  hidden: true,
+  icon: "i-ph-envelope-simple",
+  description: "$page.settings.description.invites",
+}) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",

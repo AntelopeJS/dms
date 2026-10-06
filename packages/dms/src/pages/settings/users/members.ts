@@ -417,16 +417,13 @@ async function loadRoleOptions(tenantId: string): Promise<InviteRoleOptions> {
 }
 
 @RegisterPage()
-export class MembersSettingsController extends PageController(
-  "members",
-  {
-    displayName: "$menu.members",
-    category: userCategory,
-    icon: "i-ph-users-three",
-    order: 4,
-    description: "$page.settings.description.members",
-  },
-) {
+export class MembersSettingsController extends PageController("members", {
+  displayName: "$menu.members",
+  category: userCategory,
+  icon: "i-ph-users-three",
+  order: 4,
+  description: "$page.settings.description.members",
+}) {
   static table = membersTable;
 
   @Get("/invite/defaults")

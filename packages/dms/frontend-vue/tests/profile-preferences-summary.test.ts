@@ -375,7 +375,9 @@ async function mountSection(): Promise<void> {
 }
 
 const rowTexts = () =>
-  [...host.querySelectorAll(":scope > div > div")].map((row) => row.textContent);
+  [...host.querySelectorAll(":scope > div > div")].map(
+    (row) => row.textContent,
+  );
 const skeletonRows = () =>
   [...host.querySelectorAll(":scope > div > div")].filter((row) =>
     row.querySelector("[data-skeleton]"),
