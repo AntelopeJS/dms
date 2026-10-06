@@ -1,13 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import {
-  TenantMemberModel,
-  TenantModel,
-  type UserInvite,
-  UserInviteModel,
-} from "./db";
-import { sendAdminInviteEmail } from "./auth";
+import { TenantMemberModel, type UserInvite, UserInviteModel } from "./db";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
@@ -15,12 +9,16 @@ import { MILLISECONDS_PER_DAY } from "./utils/internal/time";
 import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/delivery";
-import {
-  completeAdmittedInviteResolution,
-  decideInvite,
-} from "./invite-resolution";
+import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
+import { decideInvite } from "./invite-resolution";
 import { runTenantLifecycleOperation } from "./tenant-lifecycle";
-import { applyAdmittedTenantOwnership } from "./tenant-ownership";
+import { applyAdmittedTenantOwnership } from "./internal/tenant-ownership";
+import {
+  deliverTenantInviteEmail,
+  sendTenantInviteEmail,
+} from "./internal/invites";
+
+export { inviteeDisplayName } from "./invitee-display-name";
 
 export const INVITE_TOKEN_LENGTH = 64;
 export const INVITE_EXPIRY_DAYS = 7;
@@ -51,84 +49,8 @@ export interface InviteUserToTenantOptions {
   extensions?: InviteExtensionPayloads;
 }
 
-/**
- * Combined display name of an invitee, or `undefined` when the invite carries
- * no name.
- */
-export function inviteeDisplayName(
-  firstname?: string | null,
-  lastname?: string | null,
-): string | undefined {
-  const name = [firstname, lastname]
-    .filter((part) => !!part)
-    .join(" ")
-    .trim();
-  return name || undefined;
-}
-
-async function tenantName(tenantId: string): Promise<string | undefined> {
-  const tenant = await GetModel(TenantModel).get(tenantId);
-  return tenant?.name || undefined;
-}
-
 /** Whether a tenant invitation's email left. */
 export type InviteEmailDelivery = "sent" | "failed";
-
-/**
- * @internal
- */
-export namespace internal {
-  /** A pending tenant invitation, as its email needs it. */
-  export interface TenantInviteEmail {
-    tenantId: string;
-    email: string;
-    token: string;
-    firstname?: string | null;
-    lastname?: string | null;
-    language?: string;
-    /** Who sends the invitation. */
-    inviterName?: string;
-  }
-
-  /**
-   * Send a tenant invitation's email, naming the workspace and the inviter and
-   * written in the invitation's language.
-   */
-  export async function sendTenantInviteEmail(
-    invite: TenantInviteEmail,
-  ): Promise<void> {
-    await sendAdminInviteEmail(
-      invite.email,
-      invite.token,
-      inviteeDisplayName(invite.firstname, invite.lastname),
-      {
-        workspaceName: await tenantName(invite.tenantId),
-        inviterName: invite.inviterName,
-        language: invite.language,
-      },
-    );
-  }
-
-  /**
-   * {@link sendTenantInviteEmail}, reporting the outcome instead of throwing.
-   * The failure is logged with its details; the caller only learns that the
-   * email did not leave, which is what it may show the inviter.
-   */
-  export async function deliverTenantInviteEmail(
-    invite: TenantInviteEmail,
-  ): Promise<InviteEmailDelivery> {
-    try {
-      await sendTenantInviteEmail(invite);
-      return "sent";
-    } catch (error) {
-      Logging.Error(
-        `[DMS] invite email to "${invite.email}" could not be sent:`,
-        error,
-      );
-      return "failed";
-    }
-  }
-}
 
 export interface InvitedUserResult {
   kind: "invited";
@@ -171,14 +93,14 @@ export async function inviteUserToTenant(
   const invite = { ...options, token: result.token };
   if (!options.awaitEmailDelivery) {
     fireAndForget(
-      internal.sendTenantInviteEmail(invite),
+      sendTenantInviteEmail(invite),
       `invite email to "${options.email}"`,
     );
     return result;
   }
   return {
     ...result,
-    emailDelivery: await internal.deliverTenantInviteEmail(invite),
+    emailDelivery: await deliverTenantInviteEmail(invite),
   };
 }
 

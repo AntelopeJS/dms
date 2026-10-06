@@ -1,8 +1,8 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
-import type { InviteResolution } from "./db/tables/inviteResolutions.table";
-import { UserInviteModel } from "./db/models/user_invites.model";
-import { ExecuteHooks, Hook, type InviteHookPayload } from "./hooks";
+import { InviteResolutionsModel } from "../db/internal/inviteResolutions.model";
+import type { InviteResolution } from "../db/tables/inviteResolutions.table";
+import { UserInviteModel } from "../db/models/user_invites.model";
+import { ExecuteHooks, Hook, type InviteHookPayload } from "../hooks";
 
 function hookPayload(resolution: InviteResolution): InviteHookPayload {
   const replacement = resolution.replacement;

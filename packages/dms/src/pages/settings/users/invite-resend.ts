@@ -1,9 +1,7 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { loadInviteForAction } from "@antelopejs/interface-dms/invite-resolution";
-import {
-  createUserInviteToken,
-  internal,
-} from "@antelopejs/interface-dms/invites";
+import { createUserInviteToken } from "@antelopejs/interface-dms/invites";
+import { deliverTenantInviteEmail } from "@antelopejs/interface-dms/internal/invites";
 import {
   type InviteEmailOutcome,
   inviteEmailOutcome,
@@ -52,7 +50,7 @@ export async function resendPendingInvite(
     invitedBy: inviter?.userId,
   });
 
-  const emailDelivery = await internal.deliverTenantInviteEmail({
+  const emailDelivery = await deliverTenantInviteEmail({
     tenantId,
     email: existingInvite.email,
     token,

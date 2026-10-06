@@ -21,7 +21,7 @@ import {
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import { ResolveComponentSlots } from "../component-slots";
+import { ResolveComponentSlots } from "../internal/component-slots";
 import { RoleModel, TenantMemberModel } from "../db";
 import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
 import {
@@ -32,12 +32,10 @@ import {
   UnregisterPermission,
 } from "../permissions";
 import { getRequestTenantId } from "../request-tenant";
-import { AssertTenantAccess, gateAllowsSurface } from "../tenant-access";
-import {
-  type NativeUploadFieldRegistration,
-  SignUploadToken,
-  internal as uploadInternal,
-} from "../uploads";
+import { AssertTenantAccess } from "../tenant-access";
+import { gateAllowsSurface } from "../internal/tenant-access";
+import type { NativeUploadFieldRegistration } from "../internal/uploads";
+import { SignUploadToken, internal as uploadInternal } from "../uploads";
 // Categories resolve controller classes through PageMetadata; neither module
 // dereferences the other during evaluation.
 // oxlint-disable import/no-cycle

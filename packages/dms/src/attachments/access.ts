@@ -6,7 +6,7 @@ import {
   GetEffectiveUserPermissions,
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
-import type { NativeUploadFieldRegistration } from "@antelopejs/interface-dms/uploads";
+import type { NativeUploadFieldRegistration } from "@antelopejs/interface-dms/internal/uploads";
 import {
   authenticateRequestPrincipal,
   type RequestPrincipal,

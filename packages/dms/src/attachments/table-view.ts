@@ -6,10 +6,8 @@ import {
   unlock,
 } from "@antelopejs/interface-database-decorators";
 import { fetchRowForGuard } from "../implementations/dms-base/table-view";
-import type {
-  AttachmentField,
-  TableViewAttachmentSaveRequest,
-} from "@antelopejs/interface-dms/attachments";
+import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
+import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
 import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/guards";
 import {
   getControllerLocation,

@@ -13,7 +13,6 @@ export {
   AttachmentSaveResult,
   GetAttachmentValidationMetadata,
   SaveComponentFiles,
-  TableViewAttachmentSaveRequest,
 } from "./attachments";
 export * from "./component";
 export * from "./component-slots";
@@ -55,8 +54,6 @@ export {
   logInviteExtensionFailure,
   splitInviteExtensionFieldId,
 } from "./invite-extensions";
-export * from "./invite-membership";
-export * from "./invite-replacement";
 export * from "./invite-resolution";
 export {
   CreateUserInviteTokenOptions,
@@ -177,21 +174,14 @@ export * from "./request-tenant";
 export {
   AssertTenantAccess,
   CheckTenantAccess,
-  GatedSurface,
   RegisterTenantAccessGate,
   TenantAccessGateFn,
   TenantAccessGateInfo,
   TenantAccessResult,
-  gateAllowsSurface,
 } from "./tenant-access";
 export * from "./tenant-export";
 export * from "./tenant-lifecycle";
 export * from "./tenant-ownership";
 export * from "./tenant-scoped-model";
 export * from "./types";
-export {
-  NativeUploadFieldRegistration,
-  SignUploadToken,
-  StampUploadFieldTokens,
-  UploadTokenClaims,
-} from "./uploads";
+export { SignUploadToken, StampUploadFieldTokens } from "./uploads";

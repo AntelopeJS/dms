@@ -5,7 +5,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { PageMetadata } from "../../page";
-import { holdsPermissionGate } from "../../permission-gate";
+import { holdsPermissionGate } from "../../internal/permission-gate";
 import type {
   TableViewViewSerialized,
   TableViewViewsOptions,

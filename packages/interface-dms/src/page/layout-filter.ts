@@ -12,7 +12,10 @@ import type {
   ComponentFilterContext,
   ComponentInfoSerialized,
 } from "../component";
-import { holdsPermissionGate, isPermissionGated } from "../permission-gate";
+import {
+  holdsPermissionGate,
+  isPermissionGated,
+} from "../internal/permission-gate";
 import { HasPermission } from "../permissions";
 import type { ComponentTreeNode } from "./component-tree";
 

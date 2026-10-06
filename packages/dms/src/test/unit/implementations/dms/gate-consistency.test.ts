@@ -16,7 +16,7 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
-import { gateAllowsSurface } from "@antelopejs/interface-dms/tenant-access";
+import { gateAllowsSurface } from "@antelopejs/interface-dms/internal/tenant-access";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,

@@ -6,10 +6,8 @@
 
 import { applyButtonAvailability } from "../button-availability";
 import type { ComponentFilterContext } from "../../component";
-import {
-  holdsPermissionGate,
-  type PermissionGate,
-} from "../../permission-gate";
+import { holdsPermissionGate } from "../../internal/permission-gate";
+import type { PermissionGate } from "../../permission-gate";
 import { HasPermission } from "../../permissions";
 import type {
   CustomButton,

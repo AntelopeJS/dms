@@ -1,14 +1,12 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
-import type { InviteResolution } from "./db/tables/inviteResolutions.table";
-import { UserModel } from "./auth/db/models/users.model";
-import { TenantMemberModel } from "./db/models/tenantMembers.model";
-import type { TenantMember } from "./db/tables/tenantMembers.table";
-import { ExecuteHooks, Hook } from "./hooks";
-import {
-  applyAdmittedTenantOwnership,
-  syncPlatformOwnerOnTenantOwnerChange,
-} from "./tenant-ownership";
+import { InviteResolutionsModel } from "../db/internal/inviteResolutions.model";
+import type { InviteResolution } from "../db/tables/inviteResolutions.table";
+import { UserModel } from "../auth/db/models/users.model";
+import { TenantMemberModel } from "../db/models/tenantMembers.model";
+import type { TenantMember } from "../db/tables/tenantMembers.table";
+import { ExecuteHooks, Hook } from "../hooks";
+import { applyAdmittedTenantOwnership } from "./tenant-ownership";
+import { syncPlatformOwnerOnTenantOwnerChange } from "../tenant-ownership";
 
 async function beginMembership(resolution: InviteResolution): Promise<void> {
   const { tenantId, userId, invite } = resolution;

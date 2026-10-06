@@ -1,10 +1,10 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import type {
   FileMetadata,
   UploadConstraints,
 } from "@antelopejs/interface-file-storage";
+import type { TableViewAttachmentSaveRequest } from "./internal/attachments";
 
 /** A server-declared file field; ids must match the form's attachmentField. */
 export interface AttachmentField {
@@ -29,21 +29,6 @@ export interface AttachmentSaveRequest {
   fields: AttachmentField[];
   submitted: Record<string, unknown>;
   before: Record<string, unknown>;
-}
-
-/**
- * Trusted inputs used to wrap a table-view attachment write.
- *
- * @internal
- */
-export interface TableViewAttachmentSaveRequest {
-  controller: unknown;
-  route: DataControllerCallback;
-  context: RequestContext;
-  params: unknown;
-  args: unknown[];
-  mode: "save" | "delete";
-  componentIds: string[];
 }
 
 /** @internal */

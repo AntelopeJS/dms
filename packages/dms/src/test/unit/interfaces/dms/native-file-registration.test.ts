@@ -10,7 +10,7 @@ import {
 import type {
   NativeUploadFieldRegistration,
   UploadTokenClaims,
-} from "@antelopejs/interface-dms/uploads";
+} from "@antelopejs/interface-dms/internal/uploads";
 import * as uploads from "@antelopejs/interface-dms/uploads";
 
 function fileComponent(type = "file", name = "dms-table-view") {

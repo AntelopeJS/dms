@@ -38,7 +38,7 @@ import {
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
 import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/tone";
-import { isPermissionGated } from "@antelopejs/interface-dms/permission-gate";
+import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
   GetEffectiveUserPermissions,
   HasPermission,
@@ -47,10 +47,8 @@ import {
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
-import {
-  CheckTenantAccess,
-  gateAllowsSurface,
-} from "@antelopejs/interface-dms/tenant-access";
+import { CheckTenantAccess } from "@antelopejs/interface-dms/tenant-access";
+import { gateAllowsSurface } from "@antelopejs/interface-dms/internal/tenant-access";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { IfAuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";

@@ -7,11 +7,8 @@ import {
   isFieldGroupSerialized,
 } from "../base/form";
 import type { WatchAction } from "../base/types/watch";
-import {
-  COMPONENT_SLOT_KEY,
-  RegisterComponentSlot,
-  type SlotOptions,
-} from "../component-slots";
+import { COMPONENT_SLOT_KEY } from "../internal/component-slots";
+import { RegisterComponentSlot, type SlotOptions } from "../component-slots";
 import { inviteExtensionFieldId } from "./field-ids";
 import {
   type InviteExtensionEntry,
