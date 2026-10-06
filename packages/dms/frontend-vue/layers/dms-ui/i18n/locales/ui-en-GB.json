@@ -687,7 +687,9 @@
       "saving": "Saving",
       "saved": "Saved",
       "instant": "Saved instantly",
-      "instant_hint": "Changes on this page are saved as soon as you make them"
+      "instant_hint": "Changes on this page are saved as soon as you make them",
+      "not_saved": "Not saved",
+      "retry": "Retry"
     },
     "blocks": {
       "empty": "Nothing to show yet",

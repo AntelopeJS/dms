@@ -688,7 +688,9 @@
       "saving": "Enregistrement",
       "saved": "Enregistré",
       "instant": "Enregistré instantanément",
-      "instant_hint": "Les modifications de cette page sont enregistrées dès que vous les faites"
+      "instant_hint": "Les modifications de cette page sont enregistrées dès que vous les faites",
+      "not_saved": "Non enregistré",
+      "retry": "Réessayer"
     },
     "blocks": {
       "empty": "Rien à afficher pour l'instant",
