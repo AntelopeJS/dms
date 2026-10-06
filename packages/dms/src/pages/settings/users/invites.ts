@@ -110,7 +110,7 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
-    size: 170,
+    size: 180,
     display: new DefaultDisplays.IdentityDisplay({
       icon: "i-ph-envelope-simple",
     }),
@@ -152,7 +152,7 @@ export class inviteSettingDataAPI extends DataController(
       },
     }),
     filterable: true,
-    size: 150,
+    size: 130,
     display: new DefaultDisplays.PillsDisplay({
       exclusive: {
         field: "asTenantOwner",
@@ -227,7 +227,7 @@ export class inviteSettingDataAPI extends DataController(
       view: ReadonlyBehaviorType.disabled,
       new: ReadonlyBehaviorType.hidden,
     },
-    size: 100,
+    size: 90,
     // "In 5 days", amber within a day, the bare date once expired.
     display: new DefaultDisplays.RelativeDateDisplay({
       soonWithinMs: DAY_MS,
@@ -257,7 +257,7 @@ export class inviteSettingDataAPI extends DataController(
       onlineColor: "warning",
       offlineColor: "neutral",
     }),
-    size: 100,
+    size: 110,
   })
   @Access(AccessMode.ReadOnly)
   get status(): boolean {
@@ -370,11 +370,13 @@ export class InvitesSettingsController extends PageController("invites", {
             confirmLabel: "$page.settings.invites.action.resend",
           },
         },
+        // An icon (named, with its tooltip) rather than a label: with Resend
+        // and Revoke labelled, the five columns fit the settings column of a
+        // 1440px screen beside the actions, none hidden under them.
         {
           label: "$page.settings.invites.action.copy_link",
           icon: "i-ph-link",
           isVisible: true,
-          showLabel: true,
           rule: PENDING,
           target: {
             type: "api",

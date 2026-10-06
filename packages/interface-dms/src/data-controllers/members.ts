@@ -78,7 +78,7 @@ export class memberSettingDataAPI extends DataController(
       placeholder: "$page.settings.members.placeholder.name",
     }),
     filterable: true,
-    size: 300,
+    size: 260,
     // Avatar, name, a "You" tag, the unverified-email badge and the address.
     display: new DefaultDisplays.IdentityDisplay({
       avatarField: "avatar",
@@ -137,7 +137,7 @@ export class memberSettingDataAPI extends DataController(
     }),
     description: "$page.settings.members.description.roles",
     filterable: true,
-    size: 180,
+    size: 140,
     // An owner holds every permission: one crown pill replaces the roles.
     display: new DefaultDisplays.PillsDisplay({
       exclusive: {
@@ -174,7 +174,7 @@ export class memberSettingDataAPI extends DataController(
     type: new DefaultDataTypes.DateType(),
     description: "$page.settings.members.description.last_active",
     readonlyBehavior: SYSTEM_MANAGED_FIELD,
-    size: 140,
+    size: 130,
     display: new DefaultDisplays.RelativeDateDisplay({
       nowWithinMs: ACTIVE_NOW_MS,
       nowLabel: "$page.settings.members.active_now",
@@ -201,7 +201,7 @@ export class memberSettingDataAPI extends DataController(
       ],
     }),
     readonlyBehavior: SYSTEM_MANAGED_FIELD,
-    size: 110,
+    size: 100,
     display: new DefaultDisplays.IndicatorDisplay({
       onLabel: "$page.settings.members.two_factor_on",
       offLabel: "$page.settings.members.two_factor_off",
