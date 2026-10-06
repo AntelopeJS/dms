@@ -64,8 +64,8 @@ be used as a key: `RegisteringProxy` looks its entries up by object reference,
 so unregistering with the view a module holds matches nothing and leaves the
 registration live -- silently, exactly like a second copy would. `RegisterPage`
 and `RegisterCategory` resolve their argument through `RegistrationIdentity`
-(`page/registry`) for that reason; anything else keyed on a value that crossed
-the boundary has to do the same. The same trap catches structural comparisons:
+(`page/internal/registry`) for that reason; anything else keyed on a value
+that crossed the boundary has to do the same. The same trap catches structural comparisons:
 `isDeepStrictEqual` and `assert.deepStrictEqual` both refuse two views that hold
 equal values, so compare plain data, field by field or after a JSON round trip.
 
