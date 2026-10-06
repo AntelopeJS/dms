@@ -152,6 +152,12 @@ const visitedAt = computed(
     ),
 );
 
+// The installed modules, their skeleton and the store share one grid and
+// one search toolbar.
+const TILE_GRID_CLASS =
+  "grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4";
+const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
+
 // ── Search, category, sort ─────────────────────────────────────────
 const query = ref("");
 const category = ref<string>(MODULE_CATEGORY_ALL);
@@ -378,7 +384,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
           </template>
         </DmsSectionHeader>
 
-        <div class="mb-[18px] flex flex-wrap items-center gap-2.5">
+        <div :class="TOOLBAR_CLASS">
           <!-- The Modules page has no settings menu: "/" is this search's. -->
           <DmsSearchInput
             v-model="query"
@@ -398,7 +404,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
         <!-- Loading -->
         <div
           v-if="isInitiallyLoading"
-          class="grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4"
+          :class="TILE_GRID_CLASS"
           aria-busy="true"
         >
           <DmsCard
@@ -492,10 +498,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
           </DmsEmptyState>
         </DmsCard>
 
-        <div
-          v-else
-          class="grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4"
-        >
+        <div v-else :class="TILE_GRID_CLASS">
           <ModuleCatalogTile
             v-for="entry in visibleModules"
             :key="entry.id"
@@ -548,7 +551,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
         </DmsCard>
 
         <template v-else-if="!isInitiallyLoading">
-          <div class="mb-[18px] flex flex-wrap items-center gap-2.5">
+          <div :class="TOOLBAR_CLASS">
             <DmsSearchInput
               v-model="storeQuery"
               size="sm"
@@ -586,10 +589,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
             </DmsEmptyState>
           </DmsCard>
 
-          <div
-            v-else
-            class="grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4"
-          >
+          <div v-else :class="TILE_GRID_CLASS">
             <ModuleStoreTile
               v-for="entry in visibleStoreModules"
               :key="entry.id"

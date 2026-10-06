@@ -46,6 +46,8 @@ function loadStepFunction<T>(file: string, name: string): T {
 
 beforeEach(() => {
   vi.stubGlobal("ref", ref);
+  // Imports are stripped from the steps run here: their constants are stubbed.
+  vi.stubGlobal("TILE_ROW_INTERACTIVE_CLASS", "");
   vi.stubGlobal("reactive", reactive);
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("defineProps", () => ({ platform }));

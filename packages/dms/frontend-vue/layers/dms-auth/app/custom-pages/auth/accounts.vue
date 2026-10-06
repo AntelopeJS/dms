@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import {
+  TILE_ROW_CLASS,
+  TILE_ROW_INTERACTIVE_CLASS,
+} from "#dms-ui/app/build/utils/tileRow";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 
 const ACCOUNT_SKELETON_ROWS = 2;
@@ -82,7 +86,7 @@ onMounted(() => {
         <li
           v-for="account in sortedAccounts"
           :key="account.userId"
-          class="group border-default hover:bg-elevated relative flex items-center gap-3 rounded-[10px] border px-3 py-2.5 transition-colors hover:border-(--dms-accent-line)"
+          :class="[TILE_ROW_INTERACTIVE_CLASS, 'group relative py-2.5']"
         >
           <button
             type="button"
@@ -142,7 +146,7 @@ onMounted(() => {
           <li
             v-for="row in ACCOUNT_SKELETON_ROWS"
             :key="row"
-            class="border-default flex items-center gap-3 rounded-[10px] border px-3 py-2.5"
+            :class="[TILE_ROW_CLASS, 'py-2.5']"
           >
             <USkeleton class="size-8 rounded-full" />
             <span class="grid gap-1.5">

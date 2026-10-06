@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TILE_ROW_INTERACTIVE_CLASS } from "#dms-ui/app/build/utils/tileRow";
 import type { KeyValueItem } from "#dms-ui/app/components/key-value-list/KeyValueList.vue";
 import StageCard from "../../../../../dms-layout/app/components/layout/StageCard.vue";
 import type {
@@ -57,8 +58,7 @@ const NEXT_ACTIONS: NextAction[] = [
   },
 ];
 
-const ACTION_CLASS =
-  "border-default hover:bg-elevated flex w-full items-center gap-3 rounded-[10px] border px-3 py-[11px] text-start text-[13px] transition-colors hover:border-(--dms-accent-line)";
+const ACTION_CLASS = `${TILE_ROW_INTERACTIVE_CLASS} w-full py-[11px] text-start text-[13px]`;
 
 const EXTERNAL_LINK_ATTRIBUTES = {
   target: "_blank",
