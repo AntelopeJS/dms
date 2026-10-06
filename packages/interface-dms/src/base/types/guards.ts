@@ -42,22 +42,28 @@ export type AfterWrite = () => void | Promise<void>;
 /**
  * Throws to refuse the action. A mutating guard (`edit`, `delete`, `archive`,
  * `restore`, `new`) may return an {@link AfterWrite}; what `get` returns is
- * ignored.
+ * ignored. It runs with the data controller instance as `this`
+ * (`TController`), so a guard written as a `function` reaches its models.
  */
-export type GuardFn<TArgs> = (
-  this: unknown,
+export type GuardFn<TArgs, TController = unknown> = (
+  this: TController,
   ctx: RequestContext,
   args: TArgs,
 ) => void | AfterWrite | Promise<void | AfterWrite>;
 
+/**
+ * The guards of a table view. `T` is its data controller instance — the type
+ * `TableView()` infers from the controller — so it types both the row a
+ * guard reads and the `this` it runs with.
+ */
 export interface TableViewGuards<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
   /** Runs after view authorization and loading, before response and presence acquisition. Not used by exports. */
-  get?: GuardFn<GetGuardArgs<T>>;
-  edit?: GuardFn<EditGuardArgs<T>>;
-  delete?: GuardFn<DeleteGuardArgs>;
-  archive?: GuardFn<BulkGuardArgs>;
-  restore?: GuardFn<BulkGuardArgs>;
-  new?: GuardFn<NewGuardArgs<T>>;
+  get?: GuardFn<GetGuardArgs<T>, T>;
+  edit?: GuardFn<EditGuardArgs<T>, T>;
+  delete?: GuardFn<DeleteGuardArgs, T>;
+  archive?: GuardFn<BulkGuardArgs, T>;
+  restore?: GuardFn<BulkGuardArgs, T>;
+  new?: GuardFn<NewGuardArgs<T>, T>;
 }

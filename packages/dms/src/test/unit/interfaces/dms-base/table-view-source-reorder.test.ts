@@ -1,4 +1,4 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -218,5 +218,18 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
         rowActions: { edit: false },
       }),
     ).to.throw(/needs the edit action/);
+  });
+
+  it("types a guard's `this` as the data controller it runs with", async () => {
+    const reached: FeatureModel[] = [];
+    const guards: FeatureOptions["guards"] = {
+      delete: function () {
+        // Compiles only while `this` is typed as the controller.
+        reached.push(this.model);
+      },
+    };
+    const controller = new FeatureAPI();
+    await guards?.delete?.call(controller, {} as RequestContext, { ids: [] });
+    expect(reached).to.deep.equal([controller.model]);
   });
 });
