@@ -58,12 +58,14 @@ export interface ChartCardData extends ComparedFigure {
   comparisonSeries?: ChartSeries[];
 }
 
+/** What `kpiCardData` hands a `KpiCard`: its figure and the sparkline behind it. */
 export interface KpiCardData extends ComparedFigure {
   /** Absent when no group was measured; see `headline`. */
   value?: number;
   sparkline?: number[];
 }
 
+/** One group of a `TopListCard`, with its change over the preceding period. */
 export interface TopListEntry {
   id: string | number;
   title: string;
@@ -71,6 +73,7 @@ export interface TopListEntry {
   delta?: number | null;
 }
 
+/** What `topListData` hands a `TopListCard`: one entry per measured group. */
 export interface TopListData {
   items: TopListEntry[];
 }
