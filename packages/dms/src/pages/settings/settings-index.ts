@@ -1,4 +1,9 @@
-import { Context, Get, Parameter, type RequestContext } from "@antelopejs/interface-api";
+import {
+  Context,
+  Get,
+  Parameter,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ActivityFeed } from "@antelopejs/interface-dms/base/activity-feed";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
@@ -17,7 +22,10 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { loadOverviewActivity } from "./overview/account-activity";
-import { type BlockItems, loadAccountSummary } from "./overview/account-summary";
+import {
+  type BlockItems,
+  loadAccountSummary,
+} from "./overview/account-summary";
 import { userCategory } from "./users/category";
 import { extractSessionId } from "./users/profile-helpers";
 
@@ -81,7 +89,10 @@ export class SettingsIndexPage extends settingsCategory {
     title: workspaceSettingsCategory.displayName,
     description: workspaceSettingsCategory.description,
     category: workspaceSettingsCategory,
-  }).meta({ name: workspaceSettingsCategory.displayName, icon: "i-ph-buildings" });
+  }).meta({
+    name: workspaceSettingsCategory.displayName,
+    icon: "i-ph-buildings",
+  });
 
   @AuthUserWithPermission(SettingsIndexPage)
   declare user: User;

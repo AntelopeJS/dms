@@ -130,9 +130,14 @@ it("opens the first accessible page from the Ready step once the session is refr
 });
 
 it("opens a next step's page from the Ready step", async () => {
-  await loadStepFunction<Open>("ready.vue", "open")("/settings/workspace/members");
+  await loadStepFunction<Open>(
+    "ready.vue",
+    "open",
+  )("/settings/workspace/members");
 
-  expect(redirect).toHaveBeenCalledExactlyOnceWith("/settings/workspace/members");
+  expect(redirect).toHaveBeenCalledExactlyOnceWith(
+    "/settings/workspace/members",
+  );
 });
 
 it.each(["Session failed", "Layout failed"])(

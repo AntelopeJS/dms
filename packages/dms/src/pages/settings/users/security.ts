@@ -41,16 +41,13 @@ import { securityAttention } from "./security-attention";
  * sessions. Every credential change asks for the current password.
  */
 @RegisterPage()
-export class SecuritySettingsController extends PageController(
-  "security",
-  {
-    displayName: "$menu.security",
-    category: userCategory,
-    icon: "i-ph-shield-check",
-    order: 3,
-    description: "$page.settings.description.security",
-  },
-) {
+export class SecuritySettingsController extends PageController("security", {
+  displayName: "$menu.security",
+  category: userCategory,
+  icon: "i-ph-shield-check",
+  order: 3,
+  description: "$page.settings.description.security",
+}) {
   // Counts what needs the user's attention: the user's own state, read by
   // anyone who can open the page.
   static statusComponent = CustomComponent("DmsSecurityStatus")

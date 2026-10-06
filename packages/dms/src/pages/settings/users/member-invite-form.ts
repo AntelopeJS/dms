@@ -16,7 +16,8 @@ import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
 const DEFAULT_INVITE_LANGUAGE = "en";
 
-export const INVITE_DEFAULTS_URL = "/settings/workspace/members/invite/defaults";
+export const INVITE_DEFAULTS_URL =
+  "/settings/workspace/members/invite/defaults";
 export const INVITE_ROLES_URL = "/settings/workspace/members/invite/roles";
 export const ROLES_PAGE_PATH = "/settings/workspace/roles";
 

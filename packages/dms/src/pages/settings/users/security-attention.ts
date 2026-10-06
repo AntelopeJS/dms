@@ -33,8 +33,7 @@ const ATTENTION_RULES: AttentionRule[] = [
   {
     id: "backup_codes_low",
     applies: (twoFactor) =>
-      isTwoFactorOn(twoFactor) &&
-      twoFactor.backupCodesLeft <= LOW_BACKUP_CODES,
+      isTwoFactorOn(twoFactor) && twoFactor.backupCodesLeft <= LOW_BACKUP_CODES,
   },
 ];
 

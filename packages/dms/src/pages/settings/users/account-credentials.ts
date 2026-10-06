@@ -24,7 +24,10 @@ import {
   type TwoFactorStatus,
 } from "./two-factor-operations";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { type SecurityAttention, securityAttention } from "./security-attention";
+import {
+  type SecurityAttention,
+  securityAttention,
+} from "./security-attention";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;

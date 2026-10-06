@@ -72,7 +72,10 @@ const NAV_CARD_GRID_DEFAULT_COLUMNS = 3;
  * ```
  */
 /** What `NavCardGrid` takes: its options, the category being given whole. */
-export interface NavCardGridOptions extends Omit<NavCardGridProps, "categoryId"> {
+export interface NavCardGridOptions extends Omit<
+  NavCardGridProps,
+  "categoryId"
+> {
   /**
    * The category whose pages the cards stand for: a card per page the viewer
    * can open, with the badge its navigation entry shows. A settings overview
@@ -85,7 +88,10 @@ export function NavCardGrid(
   options?: NavCardGridOptions,
 ): ComponentBuilder<NavCardGridProps> {
   const { category, ...rest } = options ?? {};
-  const props: NavCardGridProps = { columns: NAV_CARD_GRID_DEFAULT_COLUMNS, ...rest };
+  const props: NavCardGridProps = {
+    columns: NAV_CARD_GRID_DEFAULT_COLUMNS,
+    ...rest,
+  };
   if (category) props.categoryId = category.fullId;
   return new ComponentBuilder<NavCardGridProps>(NAV_CARD_GRID_COMPONENT_NAME)
     .options(props)

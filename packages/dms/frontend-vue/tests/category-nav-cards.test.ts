@@ -7,10 +7,9 @@ const badges = ref<Record<string, string>>({});
 vi.mock("../layers/dms-ui/app/composables/navigation/useNavBadges", () => ({
   useNavBadges: () => ({ badges }),
 }));
-vi.mock(
-  "../layers/dms-core/app/composables/auth/usePermissionPreview",
-  () => ({ usePermissionPreview: () => ({}) }),
-);
+vi.mock("../layers/dms-core/app/composables/auth/usePermissionPreview", () => ({
+  usePermissionPreview: () => ({}),
+}));
 
 const node = (fullId: string, extra: Record<string, unknown> = {}) => ({
   fullId,
@@ -74,7 +73,10 @@ it("makes a card of each page the viewer can open, in menu order", () => {
 });
 
 it("shows the navigation badge, a fresher count first", () => {
-  badges.value = { "settings.user.notifications": "", "settings.user.security": "2" };
+  badges.value = {
+    "settings.user.notifications": "",
+    "settings.user.security": "2",
+  };
   const { cards } = useCategoryNavCards(() => "settings.user");
   expect(cards.value.map((card) => card.state)).toEqual([
     undefined,

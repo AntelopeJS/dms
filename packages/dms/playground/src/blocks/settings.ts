@@ -73,7 +73,9 @@ export class PageBlocksSettings extends PageController(
             { value: 2, tone: "soft", label: "2 pending invites" },
           ],
           legend: true,
-          actions: [{ label: "Manage members", to: "/settings/workspace/members" }],
+          actions: [
+            { label: "Manage members", to: "/settings/workspace/members" },
+          ],
         }),
       ),
     )

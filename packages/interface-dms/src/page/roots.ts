@@ -61,18 +61,15 @@ export const modulesCategory = RootPageController(
   DefaultLayout(),
 );
 
-export const settingsCategory = RootPageController(
-  "settings",
-  {
-    displayName: "$page.settings.title",
-    description: "$page.settings.intro",
-    urlSlug: "/settings",
-    icon: "i-ph-gear",
-    order: 3,
-    noComponentPermissions: true,
-    layout: SettingsLayout(),
-  },
-);
+export const settingsCategory = RootPageController("settings", {
+  displayName: "$page.settings.title",
+  description: "$page.settings.intro",
+  urlSlug: "/settings",
+  icon: "i-ph-gear",
+  order: 3,
+  noComponentPermissions: true,
+  layout: SettingsLayout(),
+});
 
 /**
  * The settings of the workspace as a whole — members, invitations, roles —

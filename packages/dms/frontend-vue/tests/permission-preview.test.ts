@@ -34,9 +34,9 @@ describe("permission preview", () => {
     });
 
     it("refuses writes", () => {
-      expect(isPreviewSafeRequest("POST", "/settings/workspace/roles/create")).toBe(
-        false,
-      );
+      expect(
+        isPreviewSafeRequest("POST", "/settings/workspace/roles/create"),
+      ).toBe(false);
       expect(isPreviewSafeRequest("PUT", "/settings/workspace/roles/r1")).toBe(
         false,
       );

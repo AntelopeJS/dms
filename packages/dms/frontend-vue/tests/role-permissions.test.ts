@@ -217,7 +217,11 @@ describe("role permissions", () => {
     // without children (`media.upload.form`, `examples`) never open.
     expect(levels).toEqual([
       ["pages.sales", "settings.user"],
-      ["pages.sales.orders", "settings.workspace.roles", "settings.user.profile"],
+      [
+        "pages.sales.orders",
+        "settings.workspace.roles",
+        "settings.user.profile",
+      ],
       ["settings.workspace.roles.table"],
     ]);
     expect(parents.get("settings.workspace.roles.table")).toBe(
@@ -405,7 +409,11 @@ describe("role permissions", () => {
       expect.arrayContaining([
         ["settings", "", "settings"],
         ["settings.user", "Settings", "settings.user"],
-        ["settings.workspace.roles", "Settings › User settings", "settings.user"],
+        [
+          "settings.workspace.roles",
+          "Settings › User settings",
+          "settings.user",
+        ],
       ]),
     );
   });

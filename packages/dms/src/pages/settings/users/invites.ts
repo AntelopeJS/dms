@@ -279,16 +279,13 @@ const EXPIRED = { field: "status", equals: false } as const;
 // Nested under Members: its URL and breadcrumb go through Members, and the
 // settings navigation lists it right after Members.
 @RegisterPage()
-export class InvitesSettingsController extends PageController(
-  "invites",
-  {
-    displayName: "$page.settings.shell.member_invitations",
-    category: MembersSettingsController,
-    permission: { id: INVITES_PERMISSION_ID },
-    icon: "i-ph-envelope-simple",
-    description: "$page.settings.description.invites",
-  },
-) {
+export class InvitesSettingsController extends PageController("invites", {
+  displayName: "$page.settings.shell.member_invitations",
+  category: MembersSettingsController,
+  permission: { id: INVITES_PERMISSION_ID },
+  icon: "i-ph-envelope-simple",
+  description: "$page.settings.description.invites",
+}) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",

@@ -143,7 +143,10 @@ it("carries each page's badge and status to its entry", () => {
     status: "warning",
   });
   const { groups } = useSettingsNavigation();
-  expect(groups.value[0]?.pages[1]).toMatchObject({ badge: "3", status: "warning" });
+  expect(groups.value[0]?.pages[1]).toMatchObject({
+    badge: "3",
+    status: "warning",
+  });
 });
 
 it("marks only the most specific settings entry active", () => {
@@ -152,15 +155,15 @@ it("marks only the most specific settings entry active", () => {
     "/settings/workspace/members/invites",
     "/settings/workspace/roles",
   ];
-  expect(findActiveSettingsPath("/settings/workspace/members/invites", paths)).toBe(
-    "/settings/workspace/members/invites",
-  );
+  expect(
+    findActiveSettingsPath("/settings/workspace/members/invites", paths),
+  ).toBe("/settings/workspace/members/invites");
   expect(findActiveSettingsPath("/settings/workspace/members", paths)).toBe(
     "/settings/workspace/members",
   );
-  expect(findActiveSettingsPath("/settings/workspace/members/42/edit", paths)).toBe(
-    "/settings/workspace/members",
-  );
+  expect(
+    findActiveSettingsPath("/settings/workspace/members/42/edit", paths),
+  ).toBe("/settings/workspace/members");
   expect(findActiveSettingsPath("/settings/workspace/rolesx", paths)).toBe(
     undefined,
   );
