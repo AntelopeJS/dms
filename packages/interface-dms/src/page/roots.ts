@@ -73,9 +73,12 @@ export const settingsCategory = RootPageController("settings", {
 
 /**
  * The settings of the workspace as a whole — members, invitations, roles —
- * next to the account settings each user keeps for themselves. A project or
- * module adds its workspace settings here (`category: workspaceSettingsCategory`)
- * rather than declaring a `settings.workspace` category of its own.
+ * next to the account settings each user keeps for themselves. A project adds
+ * its workspace settings here (`category: workspaceSettingsCategory`) rather
+ * than declaring a `settings.workspace` category of its own. A page declaring
+ * a `module` cannot: registration throws for any page of a module under the
+ * settings root. A module keeps its settings in its own sidebar, or
+ * registers a workspace settings page without `module`.
  */
 export const workspaceSettingsCategory = Category("workspace", {
   category: settingsCategory,
