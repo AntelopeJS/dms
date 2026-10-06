@@ -5,6 +5,9 @@ import {
   formStateInjectionKey,
   useFormField,
 } from "@nuxt/ui/composables/useFormField";
+import DmsChipGroup, {
+  type ChipGroupItem,
+} from "#dms-ui/app/build/components/form/ChipGroup.vue";
 
 /**
  * The roles of a member as pills, one per role of the workspace, each with
@@ -93,6 +96,9 @@ onMounted(async () => {
 });
 
 const selectedIds = computed(() => new Set(model.value ?? []));
+const roleItems = computed<ChipGroupItem[]>(() =>
+  options.value.roles.map((role) => ({ value: role._id, label: role.name })),
+);
 const selectedRoles = computed(() =>
   options.value.roles.filter((role) => selectedIds.value.has(role._id)),
 );
@@ -149,49 +155,25 @@ function toggle(roleId: string) {
 
 <template>
   <div class="flex flex-col gap-1.5">
-    <div
-      :id="props.id"
-      class="flex flex-wrap gap-1.5"
-      role="group"
-      :aria-label="t('page.settings.members.invite.field.roles')"
-      :aria-disabled="isInert || undefined"
-      v-bind="ariaAttrs"
+    <USkeleton v-if="isLoading" class="h-7 w-48 rounded-full" />
+    <span
+      v-else-if="options.roles.length === 0"
+      class="text-dimmed text-[12.5px]"
     >
-      <USkeleton v-if="isLoading" class="h-[26px] w-48 rounded-full" />
-      <template v-else>
-        <button
-          v-for="role in options.roles"
-          :key="role._id"
-          type="button"
-          :aria-pressed="selectedIds.has(role._id)"
-          :disabled="isInert"
-          :data-role-id="role._id"
-          class="inline-flex h-[26px] items-center gap-[5px] rounded-full border px-[11px] font-mono text-[11.5px] font-[550] whitespace-nowrap transition-colors"
-          :class="[
-            selectedIds.has(role._id)
-              ? 'border-primary bg-primary/10 text-primary'
-              : hasFieldError
-                ? 'border-error text-toned hover:bg-elevated'
-                : 'border-accented text-toned hover:bg-elevated',
-            isInert ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
-          ]"
-          @click="toggle(role._id)"
-        >
-          <UIcon
-            v-if="selectedIds.has(role._id)"
-            name="i-ph-check"
-            class="size-3"
-          />
-          {{ role.name }}
-        </button>
-        <span
-          v-if="options.roles.length === 0"
-          class="text-dimmed text-[12.5px]"
-        >
-          {{ t("page.settings.members.invite.no_roles") }}
-        </span>
-      </template>
-    </div>
+      {{ t("page.settings.members.invite.no_roles") }}
+    </span>
+    <DmsChipGroup
+      v-else
+      :id="props.id"
+      :items="roleItems"
+      :selected="model ?? []"
+      :label="t('page.settings.members.invite.field.roles')"
+      multiple
+      :disabled="isInert"
+      :invalid="hasFieldError"
+      v-bind="ariaAttrs"
+      @pick="toggle"
+    />
     <p class="text-muted text-xs">
       {{ hint }}
       <ULink

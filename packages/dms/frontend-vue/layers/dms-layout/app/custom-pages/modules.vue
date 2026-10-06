@@ -9,7 +9,7 @@ import DmsStatStrip, {
 } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
 import type { DmsTone } from "#dms-ui/app/utils/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
-import ModuleCategoryChips from "../build/components/pages/modules/ModuleCategoryChips.vue";
+import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
 import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
@@ -387,7 +387,12 @@ const summaryCards = computed<StatStripItem[]>(() =>
             shortcut="nav"
             class="w-[300px] max-md:w-full"
           />
-          <ModuleCategoryChips v-model="category" :options="categoryOptions" />
+          <DmsChipGroup
+            :items="categoryOptions"
+            :selected="[category]"
+            :label="t('modules.category.label')"
+            @pick="category = $event"
+          />
         </div>
 
         <!-- Loading -->
@@ -550,10 +555,11 @@ const summaryCards = computed<StatStripItem[]>(() =>
               :placeholder="t('modules.store.search_placeholder')"
               class="w-[300px] max-md:w-full"
             />
-            <ModuleCategoryChips
-              v-model="storeCategory"
-              :options="storeCategoryOptions"
+            <DmsChipGroup
+              :items="storeCategoryOptions"
+              :selected="[storeCategory]"
               :label="t('modules.store.category_label')"
+              @pick="storeCategory = $event"
             />
           </div>
 

@@ -89,7 +89,7 @@ async function mountPicker(props: Record<string, unknown> = {}) {
 }
 
 const pill = (name: string) =>
-  [...host.querySelectorAll<HTMLButtonElement>("button[data-role-id]")].find(
+  [...host.querySelectorAll<HTMLButtonElement>("button[data-value]")].find(
     (button) => button.textContent?.trim() === name,
   )!;
 const pressed = () =>
@@ -129,7 +129,7 @@ it("offers the server's roles and picks and unpicks them", async () => {
 
   expect(authFetch).toHaveBeenCalledWith(ROLES_URL);
   expect(
-    [...host.querySelectorAll("button[data-role-id]")].map((b) =>
+    [...host.querySelectorAll("button[data-value]")].map((b) =>
       b.textContent?.trim(),
     ),
   ).toEqual(["Admin", "Finance", "Support"]);
@@ -223,5 +223,5 @@ it("keeps the roles inert while the owner field is on", async () => {
 
 it("waits for the form's values before showing the pills", async () => {
   await mountPicker({ loading: true });
-  expect(host.querySelectorAll("button[data-role-id]")).toHaveLength(0);
+  expect(host.querySelectorAll("button[data-value]")).toHaveLength(0);
 });
