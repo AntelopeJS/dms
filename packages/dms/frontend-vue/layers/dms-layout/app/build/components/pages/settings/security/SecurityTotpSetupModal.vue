@@ -20,6 +20,10 @@ const emit = defineEmits<{
 }>();
 
 const CODE_LENGTH = 6;
+// v2 .cs-step: the two steps of the setup, numbered in an accent disc.
+const STEP_NUMBER_CLASS =
+  "grid size-6 place-items-center rounded-full border border-(--dms-accent-line) bg-(--dms-accent-tint) font-mono text-[11px] font-semibold text-(--dms-accent)";
+const STEP_TITLE_CLASS = "text-highlighted mt-[3px] text-sm font-semibold";
 const KEY_GROUP = /.{1,4}/g;
 const COPIED_RESET_MS = 2000;
 
@@ -87,13 +91,9 @@ function confirm(): void {
         @submit.prevent="confirm"
       >
         <div class="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
-          <span
-            class="grid size-6 place-items-center rounded-full border border-(--dms-accent-line) bg-(--dms-accent-tint) font-mono text-[11px] font-semibold text-(--dms-accent)"
-          >
-            1
-          </span>
+          <span :class="STEP_NUMBER_CLASS">1</span>
           <div>
-            <div class="text-highlighted mt-[3px] text-sm font-semibold">
+            <div :class="STEP_TITLE_CLASS">
               {{ t("page.settings.security.totp.scan_title") }}
             </div>
             <div class="text-muted mt-0.5 text-[12.5px]">
@@ -149,13 +149,9 @@ function confirm(): void {
           </div>
         </div>
         <div class="grid grid-cols-[24px_minmax(0,1fr)] gap-3">
-          <span
-            class="grid size-6 place-items-center rounded-full border border-(--dms-accent-line) bg-(--dms-accent-tint) font-mono text-[11px] font-semibold text-(--dms-accent)"
-          >
-            2
-          </span>
+          <span :class="STEP_NUMBER_CLASS">2</span>
           <div ref="codeField">
-            <div class="text-highlighted mt-[3px] text-sm font-semibold">
+            <div :class="STEP_TITLE_CLASS">
               {{ t("page.settings.security.totp.code_title") }}
             </div>
             <div class="text-muted mt-0.5 text-[12.5px]">
