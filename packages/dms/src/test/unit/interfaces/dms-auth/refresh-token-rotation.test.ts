@@ -186,16 +186,19 @@ describe("refresh token rotation", () => {
   });
 
   it("keeps no refresh token in plaintext once rotated", async () => {
+    // Long enough that the random sealed text cannot contain it by chance,
+    // as it did with a two-character token about once in a hundred runs.
+    const rotated = "rotated-refresh-token-in-plaintext";
     const model = createModel();
     model.currentSession = createLegacySession("T0");
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
+    await model.rotateRefreshToken("session", "T0", rotated, committedAt);
     const session = model.currentSession as Session;
 
     expect(session.refreshToken).to.equal("");
-    expect(session.refreshTokenHash).to.equal(sha256("T1"));
+    expect(session.refreshTokenHash).to.equal(sha256(rotated));
     expect(session.sealedRefreshToken).to.be.a("string");
-    expect(session.sealedRefreshToken).to.not.include("T1");
-    expect(isCurrentRefreshToken(session, "T1")).to.equal(true);
+    expect(session.sealedRefreshToken).to.not.include(rotated);
+    expect(isCurrentRefreshToken(session, rotated)).to.equal(true);
     expect(isCurrentRefreshToken(session, "T0")).to.equal(false);
   });
 
