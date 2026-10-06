@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
-import { useSettingsNavTrails } from "../../../composables/settings/useSettingsNavTrails";
+import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
 import type { UserNotification } from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
@@ -24,7 +24,7 @@ const {
   markAsRead,
   markAllSeen,
 } = useNotifications();
-const { setTrail, clearTrail, settleIndicator } = useSettingsNavTrails();
+const { setNavBadge } = useNavBadges();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
 // Each opening reloads the list from its first page: until it answers, the
@@ -52,23 +52,11 @@ const formatCount = (count: number) =>
 const displayedCount = computed(() => formatCount(unseenCount.value));
 
 // The bell is on every page, so it keeps the unread badge of the
-// Notifications entry in the settings navigation (and its overview card)
-// current: that one counts what is still unread, seen or not.
-watch(
-  unreadCount,
-  (count) => {
-    if (count === 0) {
-      clearTrail(NOTIFICATIONS_SETTINGS_PAGE);
-      return;
-    }
-    setTrail({
-      fullId: NOTIFICATIONS_SETTINGS_PAGE,
-      badge: formatCount(count),
-      label: t("page.settings.notifications.unread_badge", { count }, count),
-    });
-  },
-  { immediate: true },
-);
+// Notifications entry in the navigation current between two menu loads:
+// that one counts what is still unread, seen or not.
+watch(unreadCount, (count) => {
+  setNavBadge(NOTIFICATIONS_SETTINGS_PAGE, count > 0 ? formatCount(count) : "");
+});
 
 const refreshCounts = () =>
   settleWidgetRequest(fetchBellCounts, () => {
@@ -102,7 +90,6 @@ const markSeen = async () => {
 onMounted(async () => {
   if (!loggedIn.value) return;
   await refreshCounts();
-  settleIndicator(NOTIFICATIONS_SETTINGS_PAGE);
 
   window.addEventListener(
     NotificationEvents.NOTIFICATION_RECEIVED,

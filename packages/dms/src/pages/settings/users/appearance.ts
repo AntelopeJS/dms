@@ -30,7 +30,7 @@ export class AppearanceSettingsController extends PageController("appearance", {
   displayName: "$menu.appearance",
   category: userCategory,
   icon: "i-ph-swatches",
-  order: 7,
+  order: 5,
   description: "$page.settings.description.appearance",
 }) {
   static themeComponent = appearanceGroup({

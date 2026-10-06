@@ -120,26 +120,6 @@ export function hasChildren(node: RolePermissionNode): boolean {
 }
 
 /**
- * Reorder every level of a tree: nodes with a rank (`rankOf` ≥ 0) first, by
- * rank, the others after them in the order they came in. The roles editor
- * lists the settings pages as the settings nav does.
- */
-export function orderByRank(
-  nodes: RolePermissionNode[],
-  rankOf: (id: string) => number,
-): RolePermissionNode[] {
-  const ranked = nodes
-    .filter((node) => rankOf(node.id) >= 0)
-    .sort((left, right) => rankOf(left.id) - rankOf(right.id));
-  const unranked = nodes.filter((node) => rankOf(node.id) < 0);
-  return [...ranked, ...unranked].map((node) =>
-    node.children
-      ? { ...node, children: orderByRank(node.children, rankOf) }
-      : node,
-  );
-}
-
-/**
  * The collapsible rows of the tree, depth by depth: the areas with children
  * are depth 1, their children with children depth 2, and so on. Section
  * headings are not collapsible and have no depth.

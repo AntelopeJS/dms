@@ -12,13 +12,11 @@ import { useNotificationPreferences } from "../../notification/useNotificationPr
 import { useNotifications } from "../../notification/useNotifications";
 import { timeZoneLabel } from "../../../build/components/pages/settings/region/timeZones";
 import { useSettingsNavigation } from "../useSettingsNavigation";
-import { useSettingsNavTrails } from "../useSettingsNavTrails";
 import {
   buildAccessSummary,
   buildAppearanceSummary,
   buildNotificationsSummary,
   buildRegionSummary,
-  PREFERENCE_ROW_PAGES,
   type ProfileAccess,
   resolvePreferenceRows,
   type SummaryTranslate,
@@ -120,12 +118,9 @@ export function useProfilePreferences() {
 
   const notificationPreferences = useNotificationPreferences();
   const { subjects } = useNotificationCatalog();
-  const { unreadCount } = useNotifications();
-  const { isIndicatorPending } = useSettingsNavTrails();
+  const { unreadCount, areCountsLoaded } = useNotifications();
   const isNotificationsLoading = computed(
-    () =>
-      notificationPreferences.isLoading.value ||
-      isIndicatorPending(PREFERENCE_ROW_PAGES.notifications),
+    () => notificationPreferences.isLoading.value || !areCountsLoaded.value,
   );
   const notificationsSummary = computed(() => {
     if (isNotificationsLoading.value) return undefined;

@@ -10,7 +10,7 @@ import {
   Route,
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
-import { Model } from "@antelopejs/interface-database-decorators";
+import { GetModel, Model } from "@antelopejs/interface-database-decorators";
 import {
   AuthTenantMember,
   AuthUserWithPermission,
@@ -223,7 +223,7 @@ export class NotificationsSettingsController extends PageController(
     displayName: "$menu.notifications",
     category: userCategory,
     icon: "i-ph-bell",
-    order: 2,
+    order: 4,
     description: "$page.settings.notifications.description",
   },
 ) {
@@ -234,11 +234,17 @@ export class NotificationsSettingsController extends PageController(
     icon: "i-ph-sliders-horizontal",
   });
 
+  // The navigation counts the user's own unread notifications.
   static inbox = Section({
     title: `${NOTIFICATION_TEXTS}.inbox_title`,
     description: `${NOTIFICATION_TEXTS}.inbox_description`,
     card: false,
-  }).child("table", notificationInboxTable());
+  })
+    .child("table", notificationInboxTable())
+    .navBadge({
+      count: (_ctx, user) =>
+        GetModel(UserNotificationsModel).countUnread(user._id),
+    });
 
   @AuthUserWithPermission(
     NotificationsSettingsController.notificationsComponent,

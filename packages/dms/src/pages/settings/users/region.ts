@@ -23,13 +23,16 @@ const HTTP_NOT_FOUND = 404;
  * every device follows them; each one saves as soon as it is picked.
  */
 @RegisterPage()
-export class RegionSettingsController extends PageController("region", {
-  displayName: "$menu.region",
-  category: userCategory,
-  icon: "i-ph-globe-hemisphere-west",
-  order: 1,
-  description: "$page.settings.description.region",
-}) {
+export class RegionSettingsController extends PageController(
+  "region",
+  {
+    displayName: "$menu.region",
+    category: userCategory,
+    icon: "i-ph-globe-hemisphere-west",
+    order: 2,
+    description: "$page.settings.description.region",
+  },
+) {
   static regionComponent = regionPreferencesForm().meta({
     name: "$menu.region",
     icon: "i-ph-globe-hemisphere-west",

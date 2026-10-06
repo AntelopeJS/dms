@@ -65,6 +65,12 @@ export const useNotifications = () => {
     "notifications-unseen-count",
     () => 0,
   );
+  // Whether the counts have been asked once, answered or not: until then,
+  // a 0 unread is not known to be true.
+  const areCountsLoaded = useDmsState<boolean>(
+    "notifications-counts-loaded",
+    () => false,
+  );
   const unreadPreview = useDmsState<UserNotification[]>(
     "notifications-unread-preview",
     () => [],
@@ -127,8 +133,12 @@ export const useNotifications = () => {
 
   /** Loads the bell's unseen count and the whole feed's unread count. */
   const fetchBellCounts = async () => {
-    const counts = await $authFetch<FeedCounts>(`${API_BASE}/counts`);
-    if (counts) applyFeedCounts(counts);
+    try {
+      const counts = await $authFetch<FeedCounts>(`${API_BASE}/counts`);
+      if (counts) applyFeedCounts(counts);
+    } finally {
+      areCountsLoaded.value = true;
+    }
   };
 
   /**
@@ -252,6 +262,7 @@ export const useNotifications = () => {
   return {
     unreadCount,
     unseenCount,
+    areCountsLoaded,
     unreadPreview,
     notifications,
     hasMore,

@@ -34,23 +34,34 @@ import {
   requestTwoFactorEmailCode,
   startTotpSetup,
 } from "./two-factor-operations";
+import { securityAttention } from "./security-attention";
 
 /**
  * The account's sign-in security: password, sign-in email, two-factor and
  * sessions. Every credential change asks for the current password.
  */
 @RegisterPage()
-export class SecuritySettingsController extends PageController("security", {
-  displayName: "$menu.security",
-  category: userCategory,
-  icon: "i-ph-shield-check",
-  order: 2,
-  description: "$page.settings.description.security",
-}) {
-  static statusComponent = CustomComponent("DmsSecurityStatus").meta({
-    name: "$page.settings.security.status_title",
-    icon: "i-ph-gauge",
-  });
+export class SecuritySettingsController extends PageController(
+  "security",
+  {
+    displayName: "$menu.security",
+    category: userCategory,
+    icon: "i-ph-shield-check",
+    order: 3,
+    description: "$page.settings.description.security",
+  },
+) {
+  // Counts what needs the user's attention: the user's own state, read by
+  // anyone who can open the page.
+  static statusComponent = CustomComponent("DmsSecurityStatus")
+    .meta({
+      name: "$page.settings.security.status_title",
+      icon: "i-ph-gauge",
+    })
+    .navBadge({
+      count: (_ctx, user) =>
+        Promise.resolve(securityAttention(getTwoFactorStatus(user)).length),
+    });
 
   static passwordComponent = CustomComponent("DmsSecurityPassword").meta({
     name: "$page.settings.security.password_title",

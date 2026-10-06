@@ -24,6 +24,7 @@ import {
   type TwoFactorStatus,
 } from "./two-factor-operations";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import { type SecurityAttention, securityAttention } from "./security-attention";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
@@ -40,6 +41,8 @@ export interface SecurityOverview {
   accountCreatedAt: Date;
   twoFactor: TwoFactorStatus;
   activeSessions: number;
+  /** What needs the user's attention, most important first. */
+  attention: SecurityAttention[];
 }
 
 export interface PasswordChangeResult {
@@ -248,13 +251,15 @@ export async function getSecurityOverview(
   sessionModel: SessionModel,
 ): Promise<SecurityOverview> {
   const sessions = await sessionModel.getByUserId(user._id);
+  const twoFactor = getTwoFactorStatus(user);
   return {
     email: user.email,
     isValidated: !!user.isValidated,
     hasPassword: !!user.password,
     passwordChangedAt: user.passwordChangedAt ?? null,
     accountCreatedAt: user.createdAt,
-    twoFactor: getTwoFactorStatus(user),
+    twoFactor,
     activeSessions: sessions.length,
+    attention: securityAttention(twoFactor),
   };
 }

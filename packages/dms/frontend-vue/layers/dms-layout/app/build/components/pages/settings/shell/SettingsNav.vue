@@ -12,11 +12,6 @@ import {
   type SettingsNavGroup,
   type SettingsNavPage,
 } from "../../../../../composables/settings/useSettingsNavigation";
-import {
-  useSettingsNavTrails,
-  type SettingsNavTrail,
-} from "../../../../../composables/settings/useSettingsNavTrails";
-import { useSettingsNavIndicators } from "../../../../../composables/settings/useSettingsNavIndicators";
 
 const SETTINGS_INDEX_PATH = "/settings";
 const ALL_SETTINGS_ICON = "i-ph-squares-four";
@@ -38,10 +33,7 @@ const theme = tv({
     itemLabel: "min-w-0 truncate",
     trailBadge:
       "ms-auto hidden rounded-full bg-elevated px-1.5 font-mono text-[10.5px] font-semibold tabular-nums text-muted lg:inline",
-    trailPlaceholder: "ms-auto hidden h-4 w-5 shrink-0 rounded-full lg:block",
     trailDot: "ms-auto hidden size-[7px] shrink-0 rounded-full lg:block",
-    trailTag:
-      "ms-auto hidden font-mono text-[9.5px] font-semibold tracking-[0.08em] text-dimmed uppercase lg:inline",
     empty: "hidden px-2.5 text-[12.5px] text-muted lg:block",
     previewLock: "ms-auto size-3.5 shrink-0",
   },
@@ -52,6 +44,7 @@ const theme = tv({
       },
     },
     status: {
+      success: { trailDot: "bg-success" },
       warning: { trailDot: "bg-warning" },
       error: { trailDot: "bg-error" },
     },
@@ -79,14 +72,6 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 const route = useDmsRoute();
 const { groups } = useSettingsNavigation();
-const { trails, isIndicatorPending } = useSettingsNavTrails();
-
-// Counts and the security dot load with the nav, not on each page's visit.
-const navPageIds = computed(
-  () =>
-    new Set(groups.value.flatMap((group) => group.pages.map((p) => p.fullId))),
-);
-useSettingsNavIndicators(navPageIds);
 
 const query = ref("");
 const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>("search");
@@ -141,17 +126,11 @@ function revealActiveItem(): void {
 onMounted(revealActiveItem);
 watch(() => route.path, revealActiveItem, { flush: "post" });
 
-// The page's badge (a table view tab with `navBadge`, counted by the server,
-// then kept fresh by the table) stands in when the page set no trail of its
-// own.
+// The page's badge, counted by the server when the menu loads (`navBadge`)
+// or declared, then kept fresh by the page that shows the count.
 const { badges: navBadges } = useNavBadges();
-
-const trailOf = (page: SettingsNavPage): SettingsNavTrail | undefined => {
-  const trail = trails.value[page.fullId];
-  if (trail) return trail;
-  const badge = navBadges.value[page.fullId] ?? page.badge;
-  return badge ? { fullId: page.fullId, badge } : undefined;
-};
+const badgeOf = (page: SettingsNavPage): string | undefined =>
+  navBadges.value[page.fullId] ?? page.badge;
 
 // "Preview as role": a settings page the role could not open stays listed,
 // locked, so the preview shows what the role loses; one it opens without all
@@ -243,26 +222,13 @@ const previewStateLabel = (
           role="img"
           :aria-label="previewStateLabel(preview.entryState(page.fullId))"
         />
-        <span
-          v-else-if="trailOf(page)?.badge"
-          :class="ui.trailBadge()"
-          :aria-label="trailOf(page)?.label"
-        >
-          {{ trailOf(page)?.badge }}
+        <span v-else-if="badgeOf(page)" :class="ui.trailBadge()">
+          {{ badgeOf(page) }}
         </span>
         <span
-          v-else-if="trailOf(page)?.status"
-          :class="ui.trailDot({ status: trailOf(page)?.status })"
-          :aria-label="trailOf(page)?.label"
+          v-else-if="page.status && page.status !== 'neutral'"
+          :class="ui.trailDot({ status: page.status })"
           role="img"
-        />
-        <span v-else-if="trailOf(page)?.tag" :class="ui.trailTag()">
-          {{ trailOf(page)?.tag }}
-        </span>
-        <USkeleton
-          v-else-if="isIndicatorPending(page.fullId)"
-          aria-hidden="true"
-          :class="ui.trailPlaceholder()"
         />
       </DmsLink>
     </div>
