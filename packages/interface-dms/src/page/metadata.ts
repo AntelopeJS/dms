@@ -238,6 +238,7 @@ export class PageMetadata {
       hidden: menuOptions.hidden || resolvedCategory?.hidden,
       publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
       authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
+      memberAccess: menuOptions.memberAccess || resolvedCategory?.memberAccess,
       bypassTenantAccessGate:
         menuOptions.bypassTenantAccessGate ||
         resolvedCategory?.bypassTenantAccessGate,
@@ -462,7 +463,7 @@ export class PageMetadata {
       id: pageInfo.fullId,
       title: pageInfo.displayName,
       icon: pageInfo.icon,
-      defaultGranted: pageInfo.publicAccess,
+      defaultGranted: pageInfo.publicAccess || pageInfo.memberAccess,
       ...(pageInfo.permission as Partial<Permission> | undefined),
     };
 
@@ -631,9 +632,13 @@ export class PageMetadata {
   }
 
   private actionPermissions(component: Component): Permission[] {
+    const grantsMembers = this.pageInfo?.memberAccess === true;
     return Object.values(component.actions)
       .map((action) => action.toPermission())
-      .filter((permission): permission is Permission => !!permission);
+      .filter((permission): permission is Permission => !!permission)
+      .map((permission) =>
+        grantsMembers ? { ...permission, defaultGranted: true } : permission,
+      );
   }
 
   /**
@@ -795,6 +800,7 @@ export class PageMetadata {
         title: component.metadata.name,
         icon: component.metadata.icon,
         description: component.metadata.description,
+        defaultGranted: this.pageInfo?.memberAccess,
       });
     }
 

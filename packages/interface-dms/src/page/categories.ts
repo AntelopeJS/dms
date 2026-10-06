@@ -413,7 +413,7 @@ export function createCategoryFunction(
     id: categoryInfo.fullId,
     title: categoryInfo.displayName,
     icon: categoryInfo.icon,
-    defaultGranted: categoryInfo.publicAccess,
+    defaultGranted: categoryInfo.publicAccess || categoryInfo.memberAccess,
     // oxlint-disable-next-line typescript/no-misused-spread
     ...categoryInfo.permission,
   };

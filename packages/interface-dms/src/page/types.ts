@@ -165,6 +165,18 @@ export interface MenuOptions {
   permission?: Partial<Permission> | Action;
   publicAccess?: boolean;
   authOnly?: boolean;
+  /**
+   * Every signed-in member of the tenant reaches the entry, its components and
+   * their actions without a role grant: their permissions are registered as
+   * `defaultGranted`, so they never wait on a role and the role editor does not
+   * list them. Guards, menus and table views keep checking them as usual — only
+   * the grant is implied. Unlike `authOnly`, the tenant access gate still
+   * applies and the permission ids still exist.
+   *
+   * Inherited by the pages of a flagged category. Meant for personal surfaces
+   * every member owns: their profile, security, notifications and preferences.
+   */
+  memberAccess?: boolean;
   type?: MenuItemType;
   validation?: PageValidation;
   setupId?: string;
