@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
 interface SecurityBackupCodesModalProps {
   codes: string[];
   /** Codes replace a previous set, which stopped working. */
@@ -20,7 +21,9 @@ const FILE_TYPE = "text/plain";
 
 const isOpen = defineModel<boolean>("open", { default: false });
 const { t } = useI18n();
-const isCopied = ref(false);
+// Copied, the codes stay marked so: the footer says they are kept.
+const clipboard = useCopyFeedback(Number.POSITIVE_INFINITY);
+const isCopied = computed(() => clipboard.isCopied(true));
 const isDownloaded = ref(false);
 
 // Shown exactly as they are typed at sign-in: no grouping separator.
@@ -28,7 +31,7 @@ const displayCodes = computed(() => props.codes);
 
 watch(isOpen, (open) => {
   if (!open) return;
-  isCopied.value = false;
+  clipboard.reset();
   isDownloaded.value = false;
 });
 
@@ -41,8 +44,7 @@ function codesText(): string {
 }
 
 async function copy(): Promise<void> {
-  await navigator.clipboard.writeText(displayCodes.value.join("\n"));
-  isCopied.value = true;
+  await clipboard.copyText(displayCodes.value.join("\n"), true);
   emit("saved");
 }
 
@@ -113,7 +115,7 @@ function acknowledge(): void {
             class="flex-1 justify-center"
             :color="isCopied ? 'success' : 'neutral'"
             variant="outline"
-            :icon="isCopied ? 'i-ph-check' : 'i-ph-copy'"
+            :icon="clipboard.iconOf(true)"
             :label="
               isCopied
                 ? t('page.settings.security.copied')

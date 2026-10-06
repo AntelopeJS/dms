@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
 import { useTemplateRef } from "vue";
 import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
@@ -25,7 +26,6 @@ const STEP_NUMBER_CLASS =
   "grid size-6 place-items-center rounded-full border border-(--dms-accent-line) bg-(--dms-accent-tint) font-mono text-[11px] font-semibold text-(--dms-accent)";
 const STEP_TITLE_CLASS = "text-highlighted mt-[3px] text-sm font-semibold";
 const KEY_GROUP = /.{1,4}/g;
-const COPIED_RESET_MS = 2000;
 
 const isOpen = defineModel<boolean>("open", { default: false });
 /** A code the API refused, shown under the cells; typing clears it. */
@@ -36,7 +36,7 @@ const digits = ref<string[]>([]);
 const codeField = useTemplateRef<HTMLElement>("codeField");
 
 const { flag } = useCodeFieldError(digits, error, codeField);
-const isKeyCopied = ref(false);
+const keyClipboard = useCopyFeedback();
 
 const code = computed(() => digits.value.join(""));
 const groupedKey = computed(
@@ -58,9 +58,7 @@ watch(code, () => {
 
 async function copyKey(): Promise<void> {
   if (!props.setup) return;
-  await navigator.clipboard.writeText(props.setup.manualKey);
-  isKeyCopied.value = true;
-  setTimeout(() => (isKeyCopied.value = false), COPIED_RESET_MS);
+  await keyClipboard.copyText(props.setup.manualKey, true);
 }
 
 function confirm(): void {
@@ -128,9 +126,9 @@ function confirm(): void {
                     variant="ghost"
                     size="xs"
                     class="ms-auto shrink-0 self-start"
-                    :icon="isKeyCopied ? 'i-ph-check' : 'i-ph-copy'"
+                    :icon="keyClipboard.iconOf(true)"
                     :label="
-                      isKeyCopied
+                      keyClipboard.isCopied(true)
                         ? t('page.settings.security.copied')
                         : t('page.settings.security.copy')
                     "

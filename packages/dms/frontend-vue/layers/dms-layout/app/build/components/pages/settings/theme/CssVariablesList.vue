@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { useClipboard } from "@vueuse/core";
+import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
 
 const CSS_LOAD_DELAY_MS = 100;
-const COPIED_RESET_MS = 1500;
 const UI_VARIABLE_PREFIX = "--ui-";
 const SKELETON_ROW_COUNT = 6;
 const ROW_CLASS =
@@ -63,7 +62,7 @@ const cssVariables = ref<CSSVariable[]>([]);
 const isLoading = ref(true);
 const query = ref("");
 const category = ref<CategoryFilter>(ALL_CATEGORIES);
-const copiedName = ref<string | null>(null);
+const clipboard = useCopyFeedback<string>();
 
 function categoryOf(name: string): VariableCategory {
   for (const [pattern, match] of CATEGORY_PATTERNS) {
@@ -160,17 +159,7 @@ function swatchStyle(variable: CSSVariable): Record<string, string> {
   return {};
 }
 
-const { copy } = useClipboard();
-let copiedTimer: ReturnType<typeof setTimeout> | undefined;
-
-async function copyName(name: string): Promise<void> {
-  await copy(name);
-  copiedName.value = name;
-  clearTimeout(copiedTimer);
-  copiedTimer = setTimeout(() => {
-    copiedName.value = null;
-  }, COPIED_RESET_MS);
-}
+const copyName = (name: string) => clipboard.copyText(name, name);
 
 function exportAsCss(): void {
   const body = cssVariables.value
@@ -250,7 +239,7 @@ onBeforeUnmount(() => {
         :key="variable.name"
         :class="[
           ROW_CLASS,
-          copiedName === variable.name && 'bg-(--dms-success-tint)',
+          clipboard.isCopied(variable.name) && 'bg-(--dms-success-tint)',
         ]"
       >
         <span
@@ -277,13 +266,13 @@ onBeforeUnmount(() => {
           {{ variable.value }}
         </span>
         <UButton
-          :icon="copiedName === variable.name ? 'i-ph-check' : 'i-ph-copy'"
+          :icon="clipboard.iconOf(variable.name)"
           :label="
-            copiedName === variable.name
+            clipboard.isCopied(variable.name)
               ? t('page.settings.appearance.css_vars.copied')
               : t('page.settings.appearance.css_vars.copy')
           "
-          :color="copiedName === variable.name ? 'success' : 'neutral'"
+          :color="clipboard.isCopied(variable.name) ? 'success' : 'neutral'"
           variant="ghost"
           size="xs"
           class="justify-self-end max-sm:row-span-2"
