@@ -23,6 +23,8 @@ import {
   FormFunctions,
   FormProps,
   FormPropsSerialized,
+  FormSection,
+  FormSectionSerialized,
   isFieldGroup,
 } from "./form-types";
 /**
@@ -84,13 +86,42 @@ function isFormBuilder(source: unknown): source is FormBuilder {
   return source instanceof ComponentBuilder && FIELDS_KEY in source;
 }
 
+const SECTIONS_KEY = "sections";
+
 function isFormProps(source: unknown): source is FormProps {
+  if (typeof source !== "object" || source === null) return false;
+  const props = source as FormProps;
   return (
-    typeof source === "object" &&
-    source !== null &&
-    FIELDS_KEY in source &&
-    Array.isArray((source as FormProps).fields)
+    (FIELDS_KEY in props && Array.isArray(props.fields)) ||
+    (SECTIONS_KEY in props && Array.isArray(props.sections))
   );
+}
+
+/** Every entry of a form: its own fields and groups, then each section's. */
+export function formEntries(
+  options: Pick<FormProps, "fields" | "sections">,
+): FormFieldOrGroup[] {
+  return [
+    ...(options.fields ?? []),
+    ...(options.sections ?? []).flatMap((section) => section.fields),
+  ];
+}
+
+function withoutSections(
+  options: FormProps | undefined,
+): Omit<FormProps, "sections"> | undefined {
+  if (!options) return undefined;
+  const { sections: _sections, ...rest } = options;
+  return rest;
+}
+
+function serializeFormSections(
+  sections: FormSection[] | undefined,
+): FormSectionSerialized[] | undefined {
+  return sections?.map(({ fields, ...section }) => ({
+    ...section,
+    fieldIds: fields.map((item) => item.id),
+  }));
 }
 
 export type FormSchemaSource = FormFieldOrGroup[] | FormProps | FormBuilder;
@@ -100,7 +131,7 @@ export function formSchema(
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   if (Array.isArray(source)) return buildFormSchema(source);
   if (isFormBuilder(source)) return buildFormSchema(source.fields);
-  if (isFormProps(source)) return buildFormSchema(source.fields);
+  if (isFormProps(source)) return buildFormSchema(formEntries(source));
   throw new Error("formSchema: unsupported source");
 }
 
@@ -147,14 +178,17 @@ export function serializeFormFields(
  */
 export const Form = (declared?: FormProps): FormBuilder => {
   const options = declared && resolveFormFooterAliases(declared);
-  const fields = options?.fields ?? [];
+  const fields = options ? formEntries(options) : [];
   const schema = buildFormSchema(fields);
   const serializedFields = serializeFormFields(fields);
 
   const builder = new ComponentBuilder<FormPropsSerialized>(FORM_COMPONENT_NAME)
     .options({
-      ...options,
+      ...withoutSections(options),
       fields: serializedFields,
+      ...(options?.sections && {
+        sections: serializeFormSections(options.sections),
+      }),
       schema: zodToJsonSchema(schema),
     })
     // The form claims the upload tokens its fields need — its own, and those

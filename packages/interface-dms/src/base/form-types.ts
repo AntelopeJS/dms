@@ -74,6 +74,32 @@ export const FORM_SAVE_MODES = ["bar", "footer", "none", "instant"] as const;
 
 export type FormSaveMode = (typeof FORM_SAVE_MODES)[number];
 
+/** How a sectioned form lists its sections: see `FormProps.sectionNav`. */
+export const FORM_SECTION_NAVS = ["side", "jump", "none"] as const;
+
+export type FormSectionNav = (typeof FORM_SECTION_NAVS)[number];
+
+/**
+ * A titled part of a form: one card of fields, reached from the form's
+ * section navigation. Every section saves with the rest of the form.
+ */
+export interface FormSection {
+  /** Anchor of the section, unique within the form. */
+  id: string;
+  /** Title of the section's card and of its entry in the navigation. */
+  label: string;
+  description?: string;
+  /** Icon of the section's entry in the side navigation. */
+  icon?: string;
+  fields: FormFieldOrGroup[];
+}
+
+/** A section as the client reads it: the entries of the form it holds. */
+export interface FormSectionSerialized extends Omit<FormSection, "fields"> {
+  /** Ids of the entries of the form's `fields` the section holds, in order. */
+  fieldIds: string[];
+}
+
 /** What a form edits: see `FormProps.kind`. */
 export const FORM_KINDS = ["record", "action"] as const;
 
@@ -83,7 +109,24 @@ export type FormKind = (typeof FORM_KINDS)[number];
 export interface FormProps extends BaseComponentProps {
   title?: string;
   description?: string;
-  fields: FormFieldOrGroup[];
+  /**
+   * The form's fields and groups. Beside `sections`, they come first, outside
+   * any section.
+   */
+  fields?: FormFieldOrGroup[];
+  /**
+   * The form's fields split into titled cards, on one page and saved together:
+   * a navigation leads to each (see `sectionNav`), and marks the sections
+   * holding unsaved changes or invalid values.
+   */
+  sections?: FormSection[];
+  /**
+   * How a sectioned form lists its sections. `side`: a list beside the
+   * sections that follows the scroll (a row of chips on a narrow screen);
+   * `jump`: a row of chips above them; `none`: no navigation. Defaults to
+   * `side` from three sections, `none` below.
+   */
+  sectionNav?: FormSectionNav;
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   submitUrl?: string;
@@ -168,8 +211,13 @@ export interface FormProps extends BaseComponentProps {
   labelKey?: string;
 }
 
-export interface FormPropsSerialized extends Omit<FormProps, "fields"> {
+export interface FormPropsSerialized extends Omit<
+  FormProps,
+  "fields" | "sections"
+> {
+  /** Every entry of the form: its own, then each section's. */
   fields: FormFieldOrGroupSerialized[];
+  sections?: FormSectionSerialized[];
   schema?: ReturnType<typeof zodToJsonSchema>;
 }
 

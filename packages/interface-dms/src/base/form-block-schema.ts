@@ -11,9 +11,11 @@ import type { DataType } from "./data-types/core";
 import {
   FORM_KINDS,
   FORM_SAVE_MODES,
+  FORM_SECTION_NAVS,
   type FieldGroup,
   type FormField,
   type FormProps,
+  type FormSection,
 } from "./form-types";
 import type { DefaultValue } from "./types";
 import { HttpMethod } from "./types/http";
@@ -88,6 +90,26 @@ const FieldGroupSchema = ui(
   { label: "Group" },
 );
 
+// Group first: a field's opaque type would otherwise match a group and strip its fields.
+const FormEntriesSchema = z.array(z.union([FieldGroupSchema, FormFieldSchema]));
+
+const FormSectionSchema = ui(
+  z.object({
+    id: ui(z.string().describe("Anchor of the section."), {
+      label: "Key",
+      derivedFrom: "label",
+    }),
+    label: ui(z.string(), { label: "Title" }),
+    description: ui(z.string().optional(), {
+      label: "Help text",
+      widget: "textarea",
+    }),
+    icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
+    fields: ui(FormEntriesSchema, { label: "Fields" }),
+  }) satisfies BlockOptionsFor<FormSection>,
+  { label: "Section" },
+);
+
 const SUBMIT_MESSAGES = "Custom submit messages";
 
 /**
@@ -121,11 +143,31 @@ export const FormSchema = z.object({
     widget: "textarea",
   }),
   fields: ui(
-    z
-      // Group first: a field's opaque type would otherwise match a group and strip its fields.
-      .array(z.union([FieldGroupSchema, FormFieldSchema]))
-      .describe("The fields and field groups the form renders."),
+    FormEntriesSchema.optional().describe(
+      "The fields and field groups the form renders.",
+    ),
     { label: "Fields", group: "content" },
+  ),
+  sections: ui(
+    z
+      .array(FormSectionSchema)
+      .optional()
+      .describe("The form's fields split into titled cards."),
+    { label: "Sections", group: "content" },
+  ),
+  sectionNav: ui(
+    z
+      .enum(FORM_SECTION_NAVS)
+      .optional()
+      .describe(
+        "How a sectioned form lists its sections: beside them, as chips above them, or not at all.",
+      ),
+    {
+      label: "Section navigation",
+      group: "layout",
+      widget: "segmented",
+      valueLabels: { side: "Side", jump: "Chips", none: "None" },
+    },
   ),
   // Addresses and methods: written by the builder from the table an author
   // picks in its simple view, and typed in its advanced one.
