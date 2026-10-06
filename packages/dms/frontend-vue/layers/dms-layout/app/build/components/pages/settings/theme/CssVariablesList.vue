@@ -188,7 +188,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   themeObserver?.disconnect();
-  clearTimeout(copiedTimer);
 });
 </script>
 

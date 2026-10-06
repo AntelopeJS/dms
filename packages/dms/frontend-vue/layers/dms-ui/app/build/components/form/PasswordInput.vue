@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
+import type { InputProps } from "@nuxt/ui/components/Input.vue";
 
 // The one password input of the DMS (sign-in, new password, security
 // settings, the form's PasswordType): a UInput whose Phosphor eye toggles
@@ -25,7 +26,7 @@ const props = withDefaults(defineProps<PasswordInputProps>(), {
   disabled: false,
 });
 
-const model = defineModel<string | undefined | null>();
+const model = defineModel<InputProps["modelValue"]>();
 /** Whether the value shows in clear; shared by a password and its confirmation. */
 const isVisible = defineModel<boolean>("visible", { default: false });
 

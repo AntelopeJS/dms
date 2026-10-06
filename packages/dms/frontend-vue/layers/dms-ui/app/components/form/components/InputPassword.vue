@@ -18,6 +18,17 @@ const emits = defineEmits<InputEmits>();
 defineSlots<InputSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
+// The value goes out through `updateValue`: the password input types its
+// model as possibly `undefined`, which UInput never emits (cleared is "").
+const passwordBindings = computed(() => {
+  const { "onUpdate:modelValue": _onUpdate, ...rest } = forwarded.value;
+  return rest;
+});
+
+function updateValue(value: InputProps["modelValue"]): void {
+  if (value !== undefined) emits("update:modelValue", value);
+}
+
 const { processI18n } = useTranslation();
 
 const passwordVisibility = ref(false);
@@ -55,7 +66,11 @@ if (registerValidator) {
 
 <template>
   <div class="grid gap-2">
-    <DmsPasswordInput v-bind="forwarded" v-model:visible="passwordVisibility" />
+    <DmsPasswordInput
+      v-bind="passwordBindings"
+      v-model:visible="passwordVisibility"
+      @update:model-value="updateValue"
+    />
     <template v-if="props.confirmPassword">
       <DmsPasswordInput
         :id="confirmInputId"
