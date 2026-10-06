@@ -1,9 +1,10 @@
 const PROFILE_ENDPOINT = "/settings/user/profile";
 
 /**
- * Switches the interface language and stores it on the user's profile, so the
- * `language-sync` plugin re-applies it on the next load instead of reverting
- * to the previously stored language. Every language switcher goes through it.
+ * Switches the interface language and stores it on the user's profile, then
+ * reads the session again: the interface follows the session's language, so
+ * it would otherwise revert to the previously stored one. Every language
+ * switcher goes through it.
  */
 export function useUserLanguage() {
   const dmsApp = useDmsApp();
