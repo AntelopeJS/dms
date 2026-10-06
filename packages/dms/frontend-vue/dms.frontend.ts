@@ -40,8 +40,9 @@ interface DmsPublicOptions {
 const components = import.meta.glob<VueModule>(
   "./layers/**/app/components/**/*.vue",
 );
-// The build/ components a DMS backend page tree names. Every other build/
-// component is private and imported by path, so it is never registered.
+// The build/ components a DMS backend page tree names, registered private so
+// they resolve on the DMS's own pages only. Every other build/ component is
+// imported by path, so it is never registered.
 const backendPageComponents = import.meta.glob<VueModule>([
   "./layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue",
   "./layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxDisplay.vue",
@@ -64,6 +65,7 @@ const backendPageComponents = import.meta.glob<VueModule>([
   "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceTheme.vue",
 ]);
 const registeredComponents = { ...components, ...backendPageComponents };
+const PRIVATE_COMPONENT = { private: true };
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );
@@ -132,6 +134,10 @@ function registerComponents(
     }
     names.set(name, path);
     const component = lazyComponent(loader);
+    if (path in backendPageComponents) {
+      sdk.registerComponent(name, component, PRIVATE_COMPONENT);
+      continue;
+    }
     sdk.registerComponent(name, component);
     const alias = COMPONENT_ALIASES[name];
     if (alias) sdk.registerComponent(alias, component);
@@ -155,7 +161,11 @@ function registerCustomPages(
     const name = entryName(path, "custom-pages").replace(/\/index$/, "");
     const component = lazyComponent(loader);
     sdk.registerPage(name, component, loader);
-    sdk.registerComponent(`Dms${pascalCase(name)}`, component);
+    sdk.registerComponent(
+      `Dms${pascalCase(name)}`,
+      component,
+      PRIVATE_COMPONENT,
+    );
   });
 }
 

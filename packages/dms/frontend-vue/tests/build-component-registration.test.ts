@@ -71,6 +71,13 @@ describe("build/ component registration", () => {
     expect(registeredBuildComponents().sort()).toEqual(expected);
   });
 
+  it("registers them private, so they resolve on the DMS's own pages only", () => {
+    const source = readFileSync(join(ROOT, "dms.frontend.ts"), "utf8");
+    expect(source).toMatch(
+      /if \(path in backendPageComponents\) \{\s*sdk\.registerComponent\(name, component, PRIVATE_COMPONENT\);/,
+    );
+  });
+
   it("lists only existing build/ components", () => {
     for (const path of registeredBuildComponents()) {
       expect(buildComponents).toContain(path);

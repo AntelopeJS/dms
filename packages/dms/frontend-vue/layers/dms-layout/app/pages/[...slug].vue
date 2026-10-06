@@ -1,6 +1,13 @@
 <script setup lang="ts">
+import { useAttrs } from "vue";
 import { withoutTrailingSlash } from "ufo";
+import type { DmsPagePayload } from "#dms/frontend-module";
+import { usePageModule } from "#dms-ui/app/build/composables/page/pageModule";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
+
+interface PageAttrs {
+  page?: DmsPagePayload;
+}
 
 defineOptions({ inheritAttrs: false });
 
@@ -134,6 +141,10 @@ defineDmsPageMeta({
 // Before the first await: the blocks below may put actions in the page
 // header, which waits for them until they have rendered.
 const PageContentRendered = holdPageHeaderActions();
+
+// The engine hands the page its payload, which names the frontend module
+// owning the page: its private components resolve in the tree below.
+usePageModule().value = (useAttrs() as PageAttrs).page?.module;
 
 const route = useDmsRoute();
 const siteLayout = useSiteLayout();

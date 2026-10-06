@@ -56,8 +56,8 @@ describe("Vue source inventory", () => {
       '"./layers/**/app/custom-layouts/**/*.vue"',
     );
     expect(frontendModule).toContain('"./layers/**/app/error.vue"');
-    expect(frontendModule).toContain(
-      "sdk.registerComponent(`Dms${pascalCase(name)}`, component)",
+    expect(frontendModule).toMatch(
+      /sdk\.registerComponent\(\s*`Dms\$\{pascalCase\(name\)\}`,\s*component,\s*PRIVATE_COMPONENT,\s*\)/,
     );
     for (const [name, alias] of [
       ["DmsActivityFeed", "DmsActivityFeedBlock"],

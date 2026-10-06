@@ -28,10 +28,20 @@ export function collectPageLayoutComponentNames(
   return [...names];
 }
 
-function toCanonicalNames(layout: PageLayout | null | undefined): string[] {
-  return collectPageLayoutComponentNames(layout)
-    .map((name) => resolveDmsComponentName(name))
-    .filter((name): name is string => !!name);
+interface AsyncComponentLoader {
+  __asyncLoader?: () => Promise<unknown>;
+}
+
+function loadPageLayoutComponents(
+  layout: PageLayout | null | undefined,
+): Promise<unknown> {
+  return Promise.all(
+    collectPageLayoutComponentNames(layout).map((name) =>
+      (
+        resolveDmsComponent(name) as AsyncComponentLoader | undefined
+      )?.__asyncLoader?.(),
+    ),
+  );
 }
 
 /**
@@ -45,10 +55,7 @@ export function preloadPageLayoutComponents(
 ): void {
   if (import.meta.env.SSR) return;
 
-  const names = toCanonicalNames(layout);
-  if (names.length) {
-    preloadComponents(names).catch(() => {});
-  }
+  loadPageLayoutComponents(layout).catch(() => {});
 }
 
 /**
@@ -58,10 +65,5 @@ export function preloadPageLayoutComponents(
 export function prefetchPageLayoutComponents(
   layout: PageLayout | null | undefined,
 ): void {
-  if (import.meta.env.SSR) return;
-
-  const names = toCanonicalNames(layout);
-  if (names.length) {
-    prefetchComponents(names)?.catch(() => {});
-  }
+  preloadPageLayoutComponents(layout);
 }
