@@ -307,6 +307,21 @@ export async function sweepStaleExportsAllTenants(
   );
 }
 
+/**
+ * Deletes the export jobs a user started in a tenant, their stored files
+ * first: an account deletion leaves none behind.
+ */
+export async function deleteUserExportsInTenant(
+  tenantId: string,
+  userId: string,
+): Promise<void> {
+  const model = GetModel(ExportJobModel, tenantId);
+  const records = await model.table.getAll(userId, "userId").run();
+  await runInBatches(records, EXPORT_DELETE_BATCH_SIZE, (record) =>
+    removeExportRecord(model, record),
+  );
+}
+
 export async function deleteAllExportsForTenant(
   tenantId: string,
 ): Promise<void> {

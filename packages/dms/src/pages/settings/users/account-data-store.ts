@@ -27,10 +27,12 @@ import {
 import { DeleteFile } from "@antelopejs/interface-file-storage";
 import {
   SignInAttemptsModel,
+  UserEmailChangesModel,
   UserKnownDevicesModel,
   UserNotificationPreferencesModel,
   UserNotificationsModel,
 } from "../../../db";
+import { deleteUserExportsInTenant } from "../../../utils/export-jobs";
 import { accountDeletionSchema } from "../../../validation/account-deletion.schema";
 import { assertCurrentPassword } from "./current-password";
 import {
@@ -42,6 +44,10 @@ import {
   findDeletionBlockers,
   isDeletionConfirmed,
 } from "./account-data";
+
+const HTTP_CONFLICT = 409;
+const DATA_I18N = "$page.settings.profile.data";
+const LAST_OWNER_ERROR = `${DATA_I18N}.delete_error_last_owner`;
 
 export interface AccountDeletionResult {
   success: true;
@@ -193,15 +199,48 @@ export async function loadDeletionImpact(
   };
 }
 
-/** Leaves every tenant the way removing a member does, hooks included. */
+// Counted again right before the membership goes: another owner of the
+// tenant deleting their account meanwhile must not leave it ownerless.
+async function assertTenantKeepsAnOwner(
+  userId: string,
+  { tenantId, member }: AccountMembershipSource,
+): Promise<void> {
+  if (!member.isTenantOwner) return;
+  const otherOwners = await GetModel(
+    TenantMemberModel,
+    tenantId,
+  ).countOwnersExcluding([userId]);
+  assert(otherOwners > 0, HTTP_CONFLICT, LAST_OWNER_ERROR);
+}
+
+/**
+ * Leaves every tenant the way removing a member does, hooks included, with
+ * the exports the user started there.
+ */
 async function leaveTenants(
   userId: string,
   memberships: AccountMembershipSource[],
 ): Promise<void> {
-  for (const { tenantId, member } of memberships) {
+  for (const membership of memberships) {
+    const { tenantId, member } = membership;
+    await assertTenantKeepsAnOwner(userId, membership);
+    await deleteUserExportsInTenant(tenantId, userId);
     await GetModel(TenantMemberModel, tenantId).delete(member._id);
     await ExecuteHooks(Hook.MEMBER_REMOVED, { tenantId, userIds: [userId] });
   }
+}
+
+/**
+ * The memberships to leave, read again with what stands in the way: the
+ * caller's own check may be stale by the time the deletion starts.
+ */
+async function loadDeletableMemberships(
+  user: User,
+): Promise<AccountMembershipSource[]> {
+  const memberships = await loadMemberships(user._id);
+  const blockers = await loadDeletionBlockers(user, memberships);
+  assert(blockers.length === 0, HTTP_CONFLICT, LAST_OWNER_ERROR);
+  return memberships;
 }
 
 /** What `Hook.USER_DELETED` hands its handlers for a user deleting itself. */
@@ -232,25 +271,26 @@ async function announceDeletion(
 }
 
 /**
- * Deletes the account and every row keyed on it: memberships, notifications
- * and their preferences, known devices and failed sign-ins, sign-in links of
- * providers, sessions — which signs
- * the user out everywhere — and the user row, with its two-factor data. The
- * invitations the user sent stay valid: they belong to the workspace.
- * The caller has checked the password, the confirmation and the blockers.
+ * Deletes the account and every row keyed on it: memberships, the exports
+ * started in each tenant and their files, notifications and their
+ * preferences, known devices and failed sign-ins, a pending email change,
+ * sign-in links of providers, sessions — which signs the user out everywhere
+ * — and the user row, with its two-factor data. The invitations the user sent
+ * stay valid: they belong to the workspace. The caller has checked the
+ * password and the confirmation; the blockers are checked again here, and
+ * each tenant's owners right before leaving it.
  *
  * The one way the DMS deletes a user: any other path deleting one goes
  * through here, so `Hook.USER_DELETED` fires for every deletion.
  */
-export async function deleteAccount(
-  user: User,
-  memberships: AccountMembershipSource[],
-): Promise<void> {
+export async function deleteAccount(user: User): Promise<void> {
+  const memberships = await loadDeletableMemberships(user);
   await leaveTenants(user._id, memberships);
   await GetModel(UserNotificationsModel).purgeUser(user._id);
   await GetModel(UserNotificationPreferencesModel).purgeUser(user._id);
   await GetModel(UserKnownDevicesModel).purgeUser(user._id);
   await GetModel(SignInAttemptsModel).purgeUser(user._id);
+  await GetModel(UserEmailChangesModel).purgeUser(user._id);
   await GetModel(UserExternalIdentityModel).deleteByUserId(user._id);
   await GetModel(SessionModel).deleteByUserId(user._id);
   await GetModel(UserModel).delete(user._id);
@@ -262,8 +302,6 @@ export async function deleteAccount(
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
-const HTTP_CONFLICT = 409;
-const DATA_I18N = "$page.settings.profile.data";
 
 /** The stored row of the signed-in user: the guard's copy may be stale. */
 export async function requireStoredUser(user: User): Promise<User> {
@@ -296,13 +334,6 @@ export async function requestAccountDeletion(
     HTTP_BAD_REQUEST,
     `${DATA_I18N}.delete_error_confirmation`,
   );
-  const memberships = await loadMemberships(stored._id);
-  const blockers = await loadDeletionBlockers(stored, memberships);
-  assert(
-    blockers.length === 0,
-    HTTP_CONFLICT,
-    `${DATA_I18N}.delete_error_last_owner`,
-  );
-  await deleteAccount(stored, memberships);
+  await deleteAccount(stored);
   return { success: true };
 }
