@@ -20,6 +20,15 @@ export interface FormEntryContext {
   isFieldHidden: (field: FormField) => boolean;
   isFieldDisabled: (field: FormField) => boolean;
   isFieldRequired: (field: FormField) => boolean;
+  /**
+   * Whether a field points out a change waiting to be saved: not in an
+   * instant form (nothing waits) nor in an action form (nothing was saved).
+   */
+  showsChanges: boolean;
+  /** Whether a field holds a value it did not load (or last save) with. */
+  isFieldChanged: (fieldId: string) => boolean;
+  /** The value a field loaded (or was last saved) with. */
+  baselineValue: (fieldId: string) => unknown;
   /** The instant-save state of a field: `idle` unless the form saves so. */
   fieldSaveState: (fieldId: string) => SaveStatusState;
   /** Saves again the changes whose save failed. */

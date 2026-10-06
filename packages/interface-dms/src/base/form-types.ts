@@ -6,6 +6,7 @@ import type {
   DefaultValue,
   EnumOption,
   HttpMethod,
+  Tone,
 } from "./types";
 export namespace FormEvents {
   export const SUBMIT = "DmsComponent.Form.Submit";
@@ -21,14 +22,45 @@ export namespace FormFunctions {
   export const SET_FIELD_REQUIRED = "DmsComponent.Form.SetFieldRequired";
 }
 
+/** A pill shown beside a read-only field's value. */
+export interface FormFieldBadge {
+  /** i18n key or literal. */
+  label: string;
+  tone: Tone;
+}
+
+/** A link shown beside a read-only field's value: where it is changed. */
+export interface FormFieldLink {
+  /** i18n key or literal. */
+  label: string;
+  to: string;
+}
+
+/** A field shown, not edited, with what tells why or where to change it. */
+export interface FormFieldReadonly {
+  badge?: FormFieldBadge;
+  link?: FormFieldLink;
+}
+
 export interface FormField {
   id: string;
   label?: string;
   description?: string;
+  /** A grey help line under the control (i18n key or literal). */
+  hint?: string;
   type: DataType;
   inputComponent?: ComponentInfoSerialized;
   disabled?: boolean;
+  /**
+   * The value is shown, not edited: `true`, or with a pill (`badge`) and a
+   * link to where it is changed (`link`).
+   */
+  readonly?: boolean | FormFieldReadonly;
   required?: boolean;
+  /**
+   * The value of a new record. On a loaded one, a field holding something
+   * else offers "Use default", showing it.
+   */
   defaultValue?: DefaultValue;
   localized?: boolean;
 }

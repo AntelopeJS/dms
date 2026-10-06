@@ -592,7 +592,7 @@ function layoutClasses(inSectionCard: boolean) {
 }
 
 function isFieldDisabled(field: FormField): boolean {
-  if (field.disabled) return true;
+  if (field.disabled || field.readonly) return true;
   return disabledFields.value?.has(field.id) ?? false;
 }
 
@@ -624,6 +624,9 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
+  showsChanges: !isInstant && !isActionForm,
+  isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
+  baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
   fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",
   retrySave: () => instantSave?.retry(),
 });

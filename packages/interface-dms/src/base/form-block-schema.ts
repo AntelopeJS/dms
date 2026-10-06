@@ -38,6 +38,10 @@ const FormFieldSchema = ui(
       label: "Help text",
       widget: "textarea",
     }),
+    hint: ui(z.string().optional(), {
+      label: "Hint under the control",
+      widget: "textarea",
+    }),
     type: ui(
       requiredOpaqueOption<DataType>().describe("The field's data type."),
       {
@@ -51,6 +55,11 @@ const FormFieldSchema = ui(
     disabled: ui(z.boolean().optional(), {
       label: "Disabled",
       widget: "switch",
+    }),
+    readonly: ui(opaqueOption<FormField["readonly"]>().optional(), {
+      label: "Read-only",
+      widget: "json",
+      advanced: true,
     }),
     required: ui(z.boolean().optional(), {
       label: "Required",

@@ -379,13 +379,13 @@ export function isAcceptanceField(
  */
 export function isFieldMarkedRequired(
   field: Pick<FormField, "id" | "required" | "disabled" | "type"> &
-    Partial<Pick<FormField, "component">>,
+    Partial<Pick<FormField, "component" | "readonly">>,
   disabled: Set<string> | undefined,
   hidden: Set<string> | undefined,
   required: Set<string> | undefined,
 ): boolean {
-  if (field.disabled || disabled?.has(field.id) || hidden?.has(field.id))
-    return false;
+  if (field.disabled || field.readonly) return false;
+  if (disabled?.has(field.id) || hidden?.has(field.id)) return false;
   const isAlwaysFilled =
     !!field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type);
   if (isAlwaysFilled && !isAcceptanceField(field)) return false;
