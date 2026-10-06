@@ -2,6 +2,7 @@
 import type { AvatarProps, NavigationMenuItem } from "@nuxt/ui";
 import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import {
   applyPreviewEntryStates,
   type PreviewEntryState,
@@ -127,12 +128,9 @@ function resolveMenuBadge(badge: DmsMenuItem["badge"]): DmsMenuItem["badge"] {
 // `entryState` is always null: nothing is ever drawn.
 const preview = usePermissionPreview();
 const { t } = useI18n();
-const PREVIEW_LOCK_ICON = "i-ph-lock-simple";
 const PREVIEW_ENTRY_LINK_CLASSES: Record<PreviewEntryState, string> = {
-  hidden:
-    "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
-  partial:
-    "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
+  hidden: "text-muted dms-hatch-locked",
+  partial: "dms-hatch-partial",
 };
 const PREVIEW_LOCK_TONES: Record<PreviewEntryState, string> = {
   hidden: "text-error",

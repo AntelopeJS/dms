@@ -52,11 +52,11 @@ const theme = tv({
     // page the role could not open, orange for one it opens partially.
     previewState: {
       hidden: {
-        item: "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
+        item: "text-muted dms-hatch-locked",
         previewLock: "text-error",
       },
       partial: {
-        item: "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
+        item: "dms-hatch-partial",
         previewLock: "text-warning",
       },
     },

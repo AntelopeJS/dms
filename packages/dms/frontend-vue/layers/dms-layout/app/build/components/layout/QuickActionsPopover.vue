@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import { quickActionKey } from "#dms-core/app/utils/permission-preview";
 
 const { t } = useI18n();
@@ -14,9 +15,7 @@ const TITLE_GROUP_CLASS =
 // "Preview as role": an action the role would not be served stays listed,
 // hatched and locked. Never outside a preview.
 const preview = usePermissionPreview();
-const PREVIEW_LOCK_ICON = "i-ph-lock-simple";
-const PREVIEW_LOCK_CLASS =
-  "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]";
+const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
 
 function buildActionEntry(action: QuickActionInfo): DropdownMenuItem {
   const entry: DropdownMenuItem = {

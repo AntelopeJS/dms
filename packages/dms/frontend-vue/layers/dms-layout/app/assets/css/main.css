@@ -442,6 +442,25 @@
   }
 }
 
+/* "Preview as role" hatches, one look wherever an entry is drawn (sidebar,
+   settings menu, tabs, header and quick actions): red on an entry the role
+   could not open, orange on one it opens partially. */
+@utility dms-hatch-locked {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--ui-error) 9%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+@utility dms-hatch-partial {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--ui-warning) 12%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
 /* Card frame around primary components (design .card: surface-card
    background, hairline border, radius-xl, soft shadow). */
 @layer components {

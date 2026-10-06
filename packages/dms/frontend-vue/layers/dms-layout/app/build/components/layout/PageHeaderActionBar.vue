@@ -11,6 +11,7 @@ import {
 import type { CustomButton } from "#dms-ui/app/composables/table-view/types/custom-button";
 import type { ActionTarget } from "#dms-ui/app/composables/table-view/types/action-target";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import { runMountedQuickAction } from "#dms-ui/app/utils/quickActionTargets";
 import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
 import {
@@ -191,9 +192,7 @@ function resolveAction(
 // nothing is locked: the server and the rules above already left it out.
 const preview = usePermissionPreview();
 const { t } = useI18n();
-const PREVIEW_LOCK_ICON = "i-ph-lock-simple";
-const PREVIEW_LOCK_CLASS =
-  "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]";
+const PREVIEW_LOCK_CLASS = "text-muted dms-hatch-locked";
 
 function lockForPreview(action: ResolvedHeaderAction): ResolvedHeaderAction {
   if (!preview.isHeaderActionHidden(action.id)) return action;

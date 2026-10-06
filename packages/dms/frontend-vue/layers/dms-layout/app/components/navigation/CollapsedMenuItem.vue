@@ -42,17 +42,15 @@ const theme = tv({
     // entry the role could not open, orange for one it opens partially.
     previewState: {
       hidden: {
-        topLevelButton:
-          "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
-        link: "text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
+        topLevelButton: "text-muted dms-hatch-locked",
+        link: "text-muted dms-hatch-locked",
         topLevelLock: "text-error",
         lock: "text-error",
         groupLock: "text-error",
       },
       partial: {
-        topLevelButton:
-          "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
-        link: "bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
+        topLevelButton: "dms-hatch-partial",
+        link: "dms-hatch-partial",
         topLevelLock: "text-warning",
         lock: "text-warning",
         groupLock: "text-warning",
@@ -60,12 +58,12 @@ const theme = tv({
     },
   },
 });
-
-const PREVIEW_LOCK_ICON = "i-ph-lock-simple";
 </script>
 
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+
 interface Props {
   item: DmsMenuItem;
   isTopLevel?: boolean;

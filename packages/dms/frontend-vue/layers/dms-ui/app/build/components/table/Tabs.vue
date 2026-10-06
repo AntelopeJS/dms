@@ -4,6 +4,7 @@ import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { toneTextClass } from "../../../utils/tone";
+import { PREVIEW_LOCK_ICON } from "../../utils/permissionPreview";
 
 export interface TableTabItem {
   id: string;
@@ -80,13 +81,13 @@ const theme = tv({
     // Same hatch as the sidebar's locked entries.
     previewLocked: {
       true: {
-        tab: "px-1.5 text-muted bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-error)_9%,transparent)_0_6px,transparent_6px_12px)]",
+        tab: "px-1.5 text-muted dms-hatch-locked",
       },
     },
     // Same hatch as the sidebar's partially locked entries.
     previewPartial: {
       true: {
-        tab: "px-1.5 bg-[repeating-linear-gradient(-45deg,color-mix(in_srgb,var(--ui-warning)_12%,transparent)_0_6px,transparent_6px_12px)]",
+        tab: "px-1.5 dms-hatch-partial",
       },
     },
   },
@@ -215,12 +216,12 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
       />
       <UIcon
         v-if="tab.previewLocked"
-        name="i-ph-lock-simple"
+        :name="PREVIEW_LOCK_ICON"
         class="text-error"
       />
       <UIcon
         v-else-if="tab.previewPartial"
-        name="i-ph-lock-simple"
+        :name="PREVIEW_LOCK_ICON"
         class="text-warning"
       />
     </component>
