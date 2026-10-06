@@ -230,9 +230,9 @@ export function clearedFieldValue(initial: unknown): FormFieldValue {
 /**
  * Whether a control's value means its field was emptied: no value, a blank
  * text (an emptied editor's markup or a cleared number included) or a plain
- * object whose parts are all blank (every language of a localized text, an
- * address). A list is not: an empty list is the value of an emptied list. Nor
- * is a file or another instance, whatever its own properties.
+ * object whose parts are all blank (an address nobody filled). A list is not:
+ * an empty list is the value of an emptied list. Nor is a file or another
+ * instance, whatever its own properties.
  */
 export function isClearedFieldValue(value: unknown, type?: string): boolean {
   if (Array.isArray(value)) return false;
@@ -244,8 +244,36 @@ export function isClearedFieldValue(value: unknown, type?: string): boolean {
   return !isInstance && isBlankValue(value, type);
 }
 
+/**
+ * A localized value as submitted: each emptied language as `""`, the way the
+ * localized field holds a language nobody filled, whatever its editor emitted.
+ */
+export function localizedSubmitValue(value: unknown, type?: string): unknown {
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([locale, text]) => [
+      locale,
+      typeof text === "string" && isBlankValue(text, type) ? "" : text,
+    ]),
+  );
+}
+
+// A localized field keeps its languages even emptied, never `null`: the
+// database stores it as one value per language and cannot read a `null` back.
+function isClearedField(field: SubmitField, value: unknown): boolean {
+  if (field.localized) return value === undefined;
+  return isClearedFieldValue(value, field.type);
+}
+
+function submittedFieldValue(field: SubmitField, value: unknown): unknown {
+  return field.localized ? localizedSubmitValue(value, field.type) : value;
+}
+
 /** A field as `collectSubmitData` reads it. */
-export type SubmitField = Pick<FormField, "id" | "type" | "disabled"> &
+export type SubmitField = Pick<
+  FormField,
+  "id" | "type" | "disabled" | "localized"
+> &
   Partial<Pick<FormField, "component">>;
 
 /** Whether a field holds the same value on both sides. */
@@ -302,7 +330,8 @@ export interface SubmitDataContext {
  * `undefined`, or holding a blank text, see `isClearedFieldValue`) is sent as
  * its empty value (`clearedFieldValue`) when it started with a value: an
  * endpoint merging the body into the stored row would otherwise keep the value
- * the user removed. A field that started empty and is still empty is not sent,
+ * the user removed. A localized field is sent with its emptied languages as
+ * `""` (`localizedSubmitValue`). A field that started empty and is still empty is not sent,
  * so a create form sends no `null` for the fields nobody touched, nor an edit
  * form for values the row never had. A disabled field is never cleared: the
  * user cannot have emptied it. With `onlyChanged`, a field still holding the
@@ -320,8 +349,8 @@ export function collectSubmitData(
     const value = unref(data[field.id]) as FormFieldValue | undefined;
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
-    if (!isClearedFieldValue(value, field.type)) {
-      fieldData[field.id] = value as FormFieldValue;
+    if (!isClearedField(field, value)) {
+      fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;

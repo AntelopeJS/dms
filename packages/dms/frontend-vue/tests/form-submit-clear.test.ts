@@ -4,6 +4,7 @@ import {
   clearedFieldValue,
   collectSubmitData,
   isClearedFieldValue,
+  localizedSubmitValue,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
 /** A field as `collectSubmitData` reads it. */
@@ -11,6 +12,12 @@ const field = (id: string, type?: string, disabled?: boolean) => ({
   id,
   type,
   disabled,
+});
+
+/** A localized field, one value per language. */
+const localizedField = (id: string, type = "string") => ({
+  ...field(id, type),
+  localized: true,
 });
 
 /**
@@ -31,13 +38,6 @@ const CLEARABLE = [
     label: "textarea",
     stored: "Line one\nLine two",
     cleared: "",
-    sent: null,
-  },
-  {
-    type: "string",
-    label: "localized",
-    stored: { en: "Title", fr: "Titre" },
-    cleared: { en: "", fr: "" },
     sent: null,
   },
   { type: "email", stored: "ann@example.com", cleared: "", sent: null },
@@ -263,7 +263,7 @@ describe("collectSubmitData on an edit form", () => {
   it("clears one language of a localized field, keeping the others", () => {
     const body = collectSubmitData(
       { title: { en: "", fr: "Titre" } },
-      [field("title", "string")],
+      [localizedField("title")],
       { initialValues: { title: { en: "Title", fr: "Titre" } } },
     );
     expect(body).toEqual({ title: { en: "", fr: "Titre" } });
@@ -272,12 +272,29 @@ describe("collectSubmitData on an edit form", () => {
   it("drops a language whose control emitted nothing from the body", () => {
     const body = collectSubmitData(
       { title: { en: undefined, fr: "Titre" } },
-      [field("title", "string")],
+      [localizedField("title")],
       { initialValues: { title: { en: "Title", fr: "Titre" } } },
     );
     expect(JSON.parse(JSON.stringify(body))).toEqual({
       title: { fr: "Titre" },
     });
+  });
+
+  it("sends a localized field with every language emptied as empty languages", () => {
+    // The database stores a localized field as one value per language and
+    // cannot read a `null` back in its place.
+    expect(
+      collectSubmitData(
+        { title: { en: "", fr: "" }, notes: { en: "<p></p>", fr: "" } },
+        [localizedField("title"), localizedField("notes", "rich_text")],
+        {
+          initialValues: {
+            title: { en: "Title", fr: "Titre" },
+            notes: { en: "<p>Notes</p>" },
+          },
+        },
+      ),
+    ).toEqual({ title: { en: "", fr: "" }, notes: { en: "", fr: "" } });
   });
 
   it("unwraps a ref held in the state", () => {
@@ -364,6 +381,18 @@ describe("isClearedFieldValue", () => {
     expect(isClearedFieldValue([])).toBe(false);
     expect(isClearedFieldValue({ en: "", fr: "Titre" })).toBe(false);
     expect(isClearedFieldValue(new Blob(["pdf"]))).toBe(false);
+  });
+});
+
+describe("localizedSubmitValue", () => {
+  it("empties each blank language, keeping the filled ones", () => {
+    expect(
+      localizedSubmitValue({ en: "<p></p>", fr: "<p>Notes</p>" }, "rich_text"),
+    ).toEqual({ en: "", fr: "<p>Notes</p>" });
+    expect(localizedSubmitValue({ en: "  ", fr: "Titre" })).toEqual({
+      en: "",
+      fr: "Titre",
+    });
   });
 });
 
