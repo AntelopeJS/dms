@@ -41,9 +41,7 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
     ]);
     expect(config?.kind?.enum).to.deep.equal(["record", "action"]);
     expect(config?.labelKey?.ui).to.include({ advanced: true });
-    for (const alias of ["showActions", "saveBar", "cancellable"]) {
-      expect(config?.[alias]?.ui, alias).to.include({ hidden: true });
-    }
+    expect(config).to.not.have.any.keys("showActions", "saveBar", "cancellable");
   });
 
   it("leaves its addresses and methods to the advanced view", () => {

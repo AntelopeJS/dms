@@ -221,8 +221,6 @@ export interface TableViewListResponse<T> {
 
 export interface KanbanConfig {
   groupByField: string;
-  cardFields?: string[];
-  cardComponent?: ComponentInfo;
   draggable?: boolean;
   columnMaxHeight?: string;
 }

@@ -6,16 +6,9 @@
 
 import type { Tone } from "../../types/tone";
 
-/**
- * A tone as a value may still carry it: `accent`, the former name of
- * `primary`, folds onto it.
- */
-export type DmsTone = Tone | "accent";
-
 const KNOWN_TONES = new Set<string>([
   "neutral",
   "primary",
-  "accent",
   "secondary",
   "success",
   "warning",
@@ -24,13 +17,8 @@ const KNOWN_TONES = new Set<string>([
 ]);
 
 /** True when `tone` is one of the semantic tones (not a custom color name). */
-export function isDmsTone(tone: string): tone is DmsTone {
+export function isDmsTone(tone: string): tone is Tone {
   return KNOWN_TONES.has(tone);
-}
-
-/** Folds the former `accent` onto `primary`. */
-export function canonicalTone(tone: DmsTone): Tone {
-  return tone === "accent" ? "primary" : tone;
 }
 
 /** v2 .icon-well: the tone tint with an inset 1px line of the same tone. */
@@ -82,5 +70,5 @@ export const DMS_TONE_OUTLINE: Record<Tone, string> = {
  * for a value that is no tone.
  */
 export function toneTextClass(tone: string | undefined): string {
-  return tone && isDmsTone(tone) ? DMS_TONE_TEXT[canonicalTone(tone)] : "";
+  return tone && isDmsTone(tone) ? DMS_TONE_TEXT[tone] : "";
 }

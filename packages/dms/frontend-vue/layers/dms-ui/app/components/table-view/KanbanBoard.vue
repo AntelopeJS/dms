@@ -354,12 +354,10 @@ const onColumnChange = async (
 };
 
 // A custom card gets the props a card of the cards display gets, plus the
-// value of the column it sits in; `item` stays for the cards written against
-// the deprecated `kanban.cardComponent`.
+// value of the column it sits in.
 const customCardProps = (item: T, groupValue: string) => ({
   ...props.cardComponent?.options,
   ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
-  item,
   groupValue,
 });
 

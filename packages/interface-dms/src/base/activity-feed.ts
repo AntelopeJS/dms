@@ -10,7 +10,6 @@ import {
 } from "./display";
 import { toneEnum } from "./internal/display";
 import type { BaseComponentProps } from "./types";
-import { resolveItemToneAliases } from "./types/internal/tone";
 import { type Tone, TONES } from "./types/tone";
 
 /** One entry of an activity feed. */
@@ -89,10 +88,7 @@ export function ActivityFeed(
   options?: ActivityFeedProps,
 ): ComponentBuilder<ActivityFeedProps> {
   return new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
-    .options({
-      ...options,
-      items: resolveItemToneAliases(options?.items, "tone"),
-    })
+    .options({ ...options })
     .meta({
       name: options?.title || "Activity feed",
       icon: DEFAULT_ICON,

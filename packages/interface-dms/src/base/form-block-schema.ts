@@ -259,19 +259,6 @@ export const FormSchema = z.object({
       .describe("Field of the loaded record that ends the page's breadcrumb."),
     { label: "Record label field", group: "data", advanced: true },
   ),
-  // Deprecated aliases of `saveMode` and `kind`: read, no longer offered.
-  showActions: ui(z.boolean().optional(), {
-    label: "Show the buttons",
-    hidden: true,
-  }),
-  saveBar: ui(z.boolean().optional(), {
-    label: "Sticky save bar",
-    hidden: true,
-  }),
-  cancellable: ui(z.boolean().optional(), {
-    label: "Cancellable",
-    hidden: true,
-  }),
   fieldsOrientation: ui(z.enum(FIELD_ORIENTATIONS).optional(), {
     label: "Field orientation",
     group: "layout",

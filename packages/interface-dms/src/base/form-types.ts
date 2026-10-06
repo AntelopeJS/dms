@@ -198,21 +198,6 @@ export interface FormProps extends BaseComponentProps {
    * offers no Cancel. Table views set it on their form pages, to the list.
    */
   backTo?: string;
-  /**
-   * @deprecated Use `saveMode`: `false` is `"none"`, `true` is `"footer"`.
-   * Read in 0.4 with a warning.
-   */
-  showActions?: boolean;
-  /**
-   * @deprecated Use `saveMode`: `true` is `"bar"`, `false` is `"footer"`.
-   * Read in 0.4 with a warning.
-   */
-  saveBar?: boolean;
-  /**
-   * @deprecated Use `kind`: `true` is `"record"`, `false` is `"action"`.
-   * Read in 0.4 with a warning.
-   */
-  cancellable?: boolean;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token

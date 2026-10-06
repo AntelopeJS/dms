@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { resolveToneAlias } from "../types/internal/tone";
 
 /**
  * Shared vocabulary of the display blocks — StatStrip, KeyValueList,
@@ -9,14 +8,9 @@ import { resolveToneAlias } from "../types/internal/tone";
  */
 
 /**
- * A zod enum of tones that also reads the deprecated tone names, so a page
- * saved with `accent` keeps its colour.
+ * A zod enum of tones.
  *
  * @internal
  */
 export const toneEnum = <T extends readonly [string, ...string[]]>(tones: T) =>
-  z.preprocess(resolveToneAlias, z.enum(tones)) as z.ZodEffects<
-    z.ZodEnum<[T[number], ...T[number][]]>,
-    T[number],
-    T[number]
-  >;
+  z.enum(tones as unknown as [T[number], ...T[number][]]);

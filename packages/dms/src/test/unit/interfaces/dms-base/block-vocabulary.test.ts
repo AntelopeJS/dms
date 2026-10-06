@@ -2,7 +2,6 @@ import { expect } from "chai";
 import {
   ActivityFeed,
   Banner,
-  BannerSchema,
   Card,
   EmptyState,
   FieldRow,
@@ -13,7 +12,6 @@ import {
   StatStrip,
 } from "@antelopejs/interface-dms/base";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
-import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/internal/tone";
 import { TONES } from "@antelopejs/interface-dms/base/types/tone";
 
 function declared(type: string) {
@@ -65,25 +63,6 @@ describe("[unit] interfaces/dms-base — block vocabulary", () => {
     expect(declared("StatStrip").config.items?.items?.properties?.tone?.enum)
       .to.include("muted")
       .and.not.include("accent");
-  });
-
-  it("reads a deprecated tone as the current one", () => {
-    expect(resolveToneAlias("accent")).to.equal("primary");
-    expect(resolveToneAlias("ok")).to.equal("success");
-    expect(resolveToneAlias("warning")).to.equal("warning");
-    expect(BannerSchema.parse({ tone: "accent" }).tone).to.equal("primary");
-
-    const meter = Meter({
-      tone: "accent" as never,
-      segments: [{ value: 1, tone: "accent" as never }],
-    }).serializeSync().options;
-    expect(meter?.tone).to.equal("primary");
-    expect(meter?.segments?.[0]?.tone).to.equal("primary");
-
-    const feed = ActivityFeed({
-      items: [{ title: "Deployed", tone: "accent" as never }],
-    }).serializeSync().options;
-    expect(feed?.items?.[0]?.tone).to.equal("primary");
   });
 
   it("frames each block with `card`, on or off by default", () => {

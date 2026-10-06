@@ -508,10 +508,7 @@ export interface TableViewCardOptionsSerialized {
 }
 
 /** The kanban options as its display entry carries them. */
-export interface KanbanOptionsSerialized extends Omit<
-  KanbanOptions,
-  "card" | "cardFields" | "cardComponent"
-> {
+export interface KanbanOptionsSerialized extends Omit<KanbanOptions, "card"> {
   card?: TableViewCardOptionsSerialized;
 }
 
@@ -766,16 +763,6 @@ export interface KanbanOptions {
    * board.
    */
   groupByField: string;
-  /**
-   * @deprecated Use the table view's `card.fields`; this alias goes in 0.5.
-   */
-  cardFields?: string[];
-  /**
-   * @deprecated Use the table view's `card.component`, which receives the
-   * card props (`row`, `actions`, `selected`, `open()`…); this alias goes in
-   * 0.5.
-   */
-  cardComponent?: Component;
   /**
    * Allow dragging cards between columns to update the group field.
    * Defaults to true.

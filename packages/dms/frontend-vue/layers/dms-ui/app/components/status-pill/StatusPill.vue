@@ -5,7 +5,6 @@ import {
   DMS_TONE_OUTLINE,
   DMS_TONE_SOFT,
   DMS_TONE_TEXT,
-  canonicalTone,
   isDmsTone,
 } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
@@ -112,8 +111,8 @@ const theme = tv({
 const isKnownTone = computed(() => isDmsTone(props.tone));
 
 const toneClass = computed(() => {
-  if (!isDmsTone(props.tone)) return "";
-  const tone = canonicalTone(props.tone);
+  const tone = props.tone;
+  if (!isDmsTone(tone)) return "";
   if (props.variant === "soft") return DMS_TONE_SOFT[tone];
   const text = props.variant === "text" && tone === "neutral";
   const color = text ? "text-dimmed" : DMS_TONE_TEXT[tone];

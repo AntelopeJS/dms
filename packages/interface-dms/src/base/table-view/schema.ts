@@ -209,15 +209,6 @@ const kanbanSchema = z.object({
     // drag, which goes stale rather than wrong when the field is not listed.
     { label: "Group by", widget: "field", fieldAspect: "filterable" },
   ),
-  // Deprecated aliases of the table's `card`: read, no longer offered.
-  cardFields: ui(z.array(z.string()).optional(), {
-    label: "Card fields",
-    hidden: true,
-  }),
-  cardComponent: ui(opaqueOption<KanbanOptions["cardComponent"]>().optional(), {
-    label: "Card component",
-    hidden: true,
-  }),
   draggable: ui(z.boolean().default(true), {
     label: "Drag between columns",
     widget: "switch",

@@ -11,10 +11,6 @@ import {
 import { toneEnum } from "./internal/display";
 import type { BaseComponentProps, EnumOption } from "./types";
 import type { HttpMethod } from "./types/http";
-import {
-  resolveItemToneAliases,
-  resolveToneAlias,
-} from "./types/internal/tone";
 import { TONES } from "./types/tone";
 
 /**
@@ -104,11 +100,7 @@ const DEFAULT_ICON = "i-ph-gauge";
  */
 export function Meter(options?: MeterProps): ComponentBuilder<MeterProps> {
   return new ComponentBuilder<MeterProps>(METER_COMPONENT_NAME)
-    .options({
-      ...options,
-      tone: resolveToneAlias(options?.tone),
-      segments: resolveItemToneAliases(options?.segments, "tone"),
-    })
+    .options({ ...options })
     .meta({
       name: options?.label || "Meter",
       icon: DEFAULT_ICON,

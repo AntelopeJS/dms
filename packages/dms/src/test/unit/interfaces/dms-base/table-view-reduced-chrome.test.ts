@@ -244,29 +244,6 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
-  it("reads the kanban's deprecated card aliases, the table's card first", () => {
-    const legacy = optionsOf(
-      TableView(StatusOrderAPI, {
-        realtime: false,
-        kanban: { groupByField: "status", cardFields: ["carrier"] },
-      }),
-    );
-    expect(legacy.displays?.[0]?.options).to.deep.equal({
-      groupByField: "status",
-      card: { fields: ["carrier"], component: undefined },
-    });
-    const both = optionsOf(
-      TableView(StatusOrderAPI, {
-        realtime: false,
-        kanban: { groupByField: "status", cardFields: ["carrier"] },
-        card: { fields: ["number"] },
-      }),
-    );
-    expect(
-      (both.displays?.[0]?.options as { card?: unknown } | undefined)?.card,
-    ).to.deep.equal({ fields: ["number"], component: undefined });
-  });
-
   it("refuses a card field the controller lacks", () => {
     expect(() =>
       TableView(OrderAPI, { realtime: false, card: { fields: ["nope"] } }),

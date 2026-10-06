@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
-import { DMS_TONE_WELL, canonicalTone } from "../../build/utils/tone";
+import { DMS_TONE_WELL } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
 
 export type IconWellSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -66,9 +66,7 @@ const ui = computed(() => theme({ size: props.size }));
 const MUTED_WELL = "bg-(--dms-bg-muted) text-muted ring-(--ui-border)";
 
 const toneClass = computed(() =>
-  props.tone === "muted"
-    ? MUTED_WELL
-    : DMS_TONE_WELL[canonicalTone(props.tone)],
+  props.tone === "muted" ? MUTED_WELL : DMS_TONE_WELL[props.tone],
 );
 </script>
 

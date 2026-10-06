@@ -145,13 +145,6 @@ export function validateKanbanOptions(
 ): void {
   if (!kanban) return;
   validateKanbanField(controllerName, meta, kanban.groupByField);
-  for (const field of kanban.cardFields ?? []) {
-    if (!meta.columns[field]) {
-      throw new Error(
-        `TableView kanban cardFields on ${controllerName} references unknown column "${field}"`,
-      );
-    }
-  }
 }
 
 /** Display ids the DMS keeps for its built-in displays. */

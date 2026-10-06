@@ -3,7 +3,7 @@ import { computed } from "vue";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import { DMS_TONE_TEXT, canonicalTone } from "../../build/utils/tone";
+import { DMS_TONE_TEXT } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
 
 export type StatStripLayout = "joined" | "cards";
@@ -15,7 +15,7 @@ export interface StatStripItem {
   icon?: string;
   /**
    * Well tone. Defaults to `muted` (quiet row icon) in the joined layout and
-   * `accent` in the cards layout.
+   * `primary` in the cards layout.
    */
   tone?: IconWellTone;
   /** Mono label above the value. */
@@ -122,7 +122,7 @@ function wellTone(item: StatStripItem): IconWellTone {
 }
 
 function detailClass(item: StatStripItem): string {
-  return DMS_TONE_TEXT[canonicalTone(item.detailTone ?? "neutral")];
+  return DMS_TONE_TEXT[item.detailTone ?? "neutral"];
 }
 // Two layouts: joined (v2 .cs-status, one card with cells split by hairlines)
 // and cards (v2 .mc-summary, one compact card per item). The template keeps no

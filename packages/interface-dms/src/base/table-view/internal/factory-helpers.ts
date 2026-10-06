@@ -295,18 +295,12 @@ export interface TableViewDisplaySources {
   card?: TableViewCardOptions;
 }
 
-/**
- * The card both card displays draw: the table view's `card`, else the kanban's
- * deprecated `cardFields`/`cardComponent` aliases.
- */
+/** The card both card displays draw: the table view's `card`. */
 function serializeCard({
   card,
-  kanban,
 }: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
-  const fields = card?.fields ?? kanban?.cardFields;
-  const component = card?.component ?? kanban?.cardComponent;
-  if (!fields && !component) return undefined;
-  return { fields, component: component?.serializeSync() };
+  if (!card?.fields && !card?.component) return undefined;
+  return { fields: card.fields, component: card.component?.serializeSync() };
 }
 
 /**
@@ -332,12 +326,7 @@ export function serializeTableViewDisplays(
       component: display.component?.serializeSync(),
     })) ?? [];
   if (kanban && !serialized.some((entry) => entry.id === KANBAN_DISPLAY_ID)) {
-    const {
-      cardFields: _cardFields,
-      cardComponent: _cardComponent,
-      ...board
-    } = kanban;
-    const kanbanOptions: KanbanOptionsSerialized = { ...board, card };
+    const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
     serialized.push({
       id: KANBAN_DISPLAY_ID,
       // The serialised options and a bare dictionary do not overlap, so this

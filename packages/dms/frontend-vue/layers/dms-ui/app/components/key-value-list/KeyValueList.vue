@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import { DMS_TONE_TEXT, canonicalTone } from "../../build/utils/tone";
+import { DMS_TONE_TEXT } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
 
 /**
@@ -149,7 +149,7 @@ function valueClass(item: KeyValueItem): string[] {
     type === "link"
       ? ""
       : item.tone
-        ? DMS_TONE_TEXT[canonicalTone(item.tone)]
+        ? DMS_TONE_TEXT[item.tone]
         : "text-highlighted";
   // A value longer than the whole row (an id, a long name) wraps rather than
   // hiding its end: there is no hover on a phone to reveal it.

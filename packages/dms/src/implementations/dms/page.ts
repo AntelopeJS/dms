@@ -42,7 +42,6 @@ import {
   revokePageExtension,
 } from "@antelopejs/interface-dms/page/internal/categories";
 import { GetPageOwnerModule } from "@antelopejs/interface-dms/page/internal/registry";
-import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/internal/tone";
 import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
   GetEffectiveUserPermissions,
@@ -2546,7 +2545,7 @@ async function runModuleReadoutHook(
       )
       .slice(0, MODULE_READOUT_MAX_LINES)
       .map((line) => {
-        const tone = resolveToneAlias(line.tone);
+        const tone = line.tone;
         return {
           text: line.text,
           tone:

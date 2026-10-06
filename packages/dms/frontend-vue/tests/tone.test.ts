@@ -7,7 +7,6 @@ import { renderToString } from "vue/server-renderer";
 import IconWell from "../layers/dms-ui/app/components/icon-well/IconWell.vue";
 import {
   DMS_TONE_WELL,
-  canonicalTone,
   isDmsTone,
 } from "../layers/dms-ui/app/build/utils/tone";
 
@@ -21,10 +20,9 @@ function walk(directory: string): string[] {
 }
 
 describe("Tone", () => {
-  it("folds the former accent onto primary at runtime", () => {
-    expect(isDmsTone("accent")).toBe(true);
-    expect(canonicalTone("accent")).toBe("primary");
-    expect(canonicalTone("success")).toBe("success");
+  it("knows the semantic tones only", () => {
+    expect(isDmsTone("success")).toBe(true);
+    expect(isDmsTone("accent")).toBe(false);
     expect(isDmsTone("violet")).toBe(false);
   });
 
