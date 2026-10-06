@@ -1,5 +1,5 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { FormKind, FormProps, FormSaveMode } from "./form-types";
+import type { FormKind, FormProps, FormSaveMode } from "../form-types";
 
 type FormFooterAlias = "showActions" | "saveBar" | "cancellable";
 

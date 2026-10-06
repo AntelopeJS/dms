@@ -1,5 +1,5 @@
 import type { ZodTypeAny } from "zod";
-import type { BlockOptionUi } from "./types";
+import type { BlockOptionUi } from "../types";
 
 /**
  * Hints live in a side table rather than in the schema, so validation and type

@@ -1,9 +1,9 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { ComponentFilterContext } from "../component";
+import type { ComponentFilterContext } from "../../component";
 import type {
   CustomButtonAvailability,
   CustomButtonSerialized,
-} from "./types/custom-button";
+} from "../types/custom-button";
 
 /**
  * What a button served to one request carries of its availability.

@@ -5,8 +5,8 @@ import {
   blockCardOption,
   type BlockItemsSource,
   blockItemsSourceOptions,
-  toneEnum,
 } from "./display";
+import { toneEnum } from "./internal/display";
 import { TONES, type Tone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 

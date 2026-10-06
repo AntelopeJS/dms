@@ -10,7 +10,7 @@ import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
-import { hasSearchableFields } from "../searchable";
+import { hasSearchableFields } from "../internal/searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import {
   TABLE_VIEW_COMPONENT_NAME,

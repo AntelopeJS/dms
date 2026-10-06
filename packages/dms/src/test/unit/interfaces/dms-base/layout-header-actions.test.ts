@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/layouts";
+import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 import {
   filterLayoutHeaderActions,

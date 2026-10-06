@@ -6,8 +6,8 @@ import {
   blockActionsOption,
   blockCardOption,
   type BlockLinkAction,
-  toneEnum,
 } from "./display";
+import { toneEnum } from "./internal/display";
 import { TONES, type Tone } from "./types/tone";
 
 /** Why a block is empty: see `EmptyStateVariant`. */

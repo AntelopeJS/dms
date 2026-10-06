@@ -19,9 +19,6 @@ export const EXPORT_TTL_MS = MILLISECONDS_PER_DAY;
 
 /** Query parameter carrying the job id on a delivered download link. */
 export const EXPORT_JOB_QUERY_PARAM = "exportJob";
-
-/** @internal */
-export const DEFAULT_EXPORT_HISTORY_LIMIT = 20;
 export const DEFAULT_EXPORT_FORMAT = "csv";
 export const DEFAULT_DELIVERY = "download";
 export const EMAIL_DELIVERY = "email";

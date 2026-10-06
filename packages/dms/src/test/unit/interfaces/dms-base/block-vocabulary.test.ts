@@ -13,10 +13,8 @@ import {
   StatStrip,
 } from "@antelopejs/interface-dms/base";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
-import {
-  resolveToneAlias,
-  TONES,
-} from "@antelopejs/interface-dms/base/types/tone";
+import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/internal/tone";
+import { TONES } from "@antelopejs/interface-dms/base/types/tone";
 
 function declared(type: string) {
   const block = GetBlockType(type);

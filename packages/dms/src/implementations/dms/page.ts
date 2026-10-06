@@ -37,7 +37,7 @@ import {
   PageMetadata,
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
-import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/tone";
+import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/internal/tone";
 import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
   GetEffectiveUserPermissions,

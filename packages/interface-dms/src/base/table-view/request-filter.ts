@@ -4,7 +4,7 @@
 //
 // Split out of factory-helpers.ts.
 
-import { applyButtonAvailability } from "../button-availability";
+import { applyButtonAvailability } from "../internal/button-availability";
 import type { ComponentFilterContext } from "../../component";
 import { holdsPermissionGate } from "../../internal/permission-gate";
 import type { PermissionGate } from "../../permission-gate";

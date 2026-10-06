@@ -3,7 +3,7 @@ import type {
   BlockOptionSchema,
   BlockOptionType,
   BlockOptionUi,
-} from "./types";
+} from "../types";
 import { getUiHints, mergeUiHints } from "./ui";
 
 const MAX_DEPTH = 6;

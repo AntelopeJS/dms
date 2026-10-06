@@ -1,7 +1,8 @@
 import { ComponentBuilder } from "../component";
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import { blockActionsOption, type BlockLinkAction, toneEnum } from "./display";
+import { blockActionsOption, type BlockLinkAction } from "./display";
+import { toneEnum } from "./internal/display";
 import type { BaseComponentProps } from "./types";
 import type { Tone } from "./types/tone";
 

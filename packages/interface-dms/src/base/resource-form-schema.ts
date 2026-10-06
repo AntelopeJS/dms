@@ -5,7 +5,8 @@
 
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import { FORM_COMPONENT_NAME, SubmitMessageOptions } from "./form-block-schema";
+import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
+import { SubmitMessageOptions } from "./form-block-schema";
 import type { FormProps } from "./form-types";
 
 /** Which of a resource's forms: creating a row, editing one, or reading one. */

@@ -3,7 +3,7 @@
 // layouts and quick actions are resolved by the caller (page.ts).
 
 import { createHash } from "node:crypto";
-import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/layouts";
+import type { PageHeaderButtonSerialized } from "@antelopejs/interface-dms/base/internal/layouts";
 
 /** The quick actions served to one permission set, keyed `category:id`. */
 export interface ServedQuickActions {

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { Form } from "@antelopejs/interface-dms/base/form";
-import { resolveFormFooterAliases } from "@antelopejs/interface-dms/base/form-footer";
+import { resolveFormFooterAliases } from "@antelopejs/interface-dms/base/internal/form-footer";
 
 const optionsOf = (form: ReturnType<typeof Form>) =>
   form.serializeSync().options ?? {};

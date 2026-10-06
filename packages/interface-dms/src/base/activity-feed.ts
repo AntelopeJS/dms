@@ -7,10 +7,11 @@ import {
   type BlockItemsSource,
   blockItemsSourceOptions,
   type BlockLinkAction,
-  toneEnum,
 } from "./display";
+import { toneEnum } from "./internal/display";
 import type { BaseComponentProps } from "./types";
-import { resolveItemToneAliases, type Tone, TONES } from "./types/tone";
+import { resolveItemToneAliases } from "./types/internal/tone";
+import { type Tone, TONES } from "./types/tone";
 
 /** One entry of an activity feed. */
 export interface ActivityFeedItem {

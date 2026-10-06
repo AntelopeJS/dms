@@ -1,5 +1,9 @@
 import type { ZodTypeAny } from "zod";
-import { cloneDefault, collectDefaults, describeOptions } from "./describe";
+import {
+  cloneDefault,
+  collectDefaults,
+  describeOptions,
+} from "./internal/describe";
 import type { BlockTypeDefinition, BlockTypeDescriptor } from "./types";
 
 const DEFINITIONS = new Map<string, BlockTypeDefinition>();

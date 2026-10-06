@@ -180,8 +180,4 @@ export type {
   ConfirmDialogImpact,
   ConfirmDialogSerialized,
 } from "./types/confirm-dialog";
-export {
-  isConfirmFrom,
-  serializeActionConfirm,
-  serializeConfirmDialog,
-} from "./confirm-dialog";
+export { serializeConfirmDialog } from "./confirm-dialog";

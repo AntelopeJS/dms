@@ -11,15 +11,13 @@ import type { DefaultDataTypes } from "./data-types/default-types";
 import type { FormContainerPageTexts } from "./table-view/options";
 import type { TreeNode } from "./tree";
 import type { AxeOrientation, EnumOption } from "./types";
-import { resolveFormFooterAliases } from "./form-footer";
-import { FORM_COMPONENT_NAME } from "./form-block-schema";
-export * from "./form-block-schema";
+import { resolveFormFooterAliases } from "./internal/form-footer";
+import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
 import {
   FormBuilder,
   FormField,
   FormFieldOrGroup,
   FormFieldOrGroupSerialized,
-  FormFieldSerialized,
   FormFunctions,
   FormProps,
   FormPropsSerialized,
@@ -27,6 +25,9 @@ import {
   FormSectionSerialized,
   isFieldGroup,
 } from "./form-types";
+import { serializeFormField } from "./internal/form-schema";
+
+export * from "./form-block-schema";
 /**
  * Adapts a Zod schema to handle localization and optional/required state
  */
@@ -148,29 +149,6 @@ export function formSchema(
   if (isFormBuilder(source)) return buildFormSchema(source.fields);
   if (isFormProps(source)) return buildFormSchema(formEntries(source));
   throw new Error("formSchema: unsupported source");
-}
-
-/**
- * A form field as the client reads it: its data type reduced to an id.
- *
- * @internal
- */
-export function serializeFormField(field: FormField): FormFieldSerialized {
-  const typeId = getDataTypeId(field.type) || "unknown";
-
-  return {
-    id: field.id,
-    label: field.label,
-    description: field.description,
-    hint: field.hint,
-    component: field.inputComponent || field.type.inputComponent(),
-    disabled: field.disabled,
-    readonly: field.readonly,
-    type: typeId,
-    required: field.required,
-    defaultValue: field.defaultValue,
-    localized: field.localized,
-  };
 }
 
 export function serializeFormFields(

@@ -8,12 +8,12 @@
 
 import { ComponentBuilder } from "../../component";
 import { type FormBuilder, FormEvents } from "../form-types";
-import { serializeActionTarget } from "../types/action-target";
+import { serializeActionTarget } from "../types/internal/action-target";
 import type {
   CustomButton,
   CustomButtonSerialized,
 } from "../types/custom-button";
-import { serializeActionConfirm } from "../confirm-dialog";
+import { serializeActionConfirm } from "../internal/confirm-dialog";
 import type {
   AddRowActionConfig,
   BulkRowActionConfig,

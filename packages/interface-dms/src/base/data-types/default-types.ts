@@ -38,10 +38,8 @@ import type { TreeNode } from "../tree";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
 import * as FieldTypes from "./field-types";
-import {
-  absolutizeJoinedSchemas,
-  DefaultDataCompareTypes,
-} from "./compare-types";
+import { absolutizeJoinedSchemas } from "./internal/compare-types";
+import { DefaultDataCompareTypes } from "./compare-types";
 /** How a `SelectType` shows its options. */
 export const SELECT_DISPLAYS = [
   "dropdown",

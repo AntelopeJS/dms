@@ -1,8 +1,8 @@
-import { applyButtonAvailability } from "../base/button-availability";
+import { applyButtonAvailability } from "../base/internal/button-availability";
 import type {
   PageHeaderButtonDeclared,
   PageHeaderButtonSerialized,
-} from "../base/layouts";
+} from "../base/internal/layouts";
 import type { CustomButtonSerialized } from "../base/types/custom-button";
 import type { RowActionConfigSerialized } from "../base/types/row-action";
 import type { WatchAction } from "../base/types/watch";

@@ -49,11 +49,11 @@ export type {
 export {
   DEFAULT_DELIVERY,
   DEFAULT_EXPORT_FORMAT,
-  DEFAULT_EXPORT_HISTORY_LIMIT,
   EMAIL_DELIVERY,
   EXPORT_JOB_QUERY_PARAM,
   EXPORT_TTL_MS,
 } from "@antelopejs/interface-dms/base/export-jobs";
+export { DEFAULT_EXPORT_HISTORY_LIMIT } from "@antelopejs/interface-dms/base/internal/export-jobs";
 const EXPORT_TMP_PREFIX = "dms-export-";
 const EXPORT_STORAGE_PREFIX = "table-view-exports";
 const READ_URL_EXPIRES_IN_SEC = 60 * 60;

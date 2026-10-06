@@ -13,7 +13,7 @@
 import "./activity-feed";
 import "./banner";
 import "./card";
-import "./chart-schemas";
+import "./internal/chart-schemas";
 import "./chart-card";
 import "./empty-state";
 import "./form-block-schema";

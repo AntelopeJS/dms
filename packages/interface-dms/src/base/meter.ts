@@ -7,11 +7,15 @@ import {
   blockFetchUrlMethodOption,
   blockFetchUrlOption,
   type BlockLinkAction,
-  toneEnum,
 } from "./display";
+import { toneEnum } from "./internal/display";
 import type { BaseComponentProps, EnumOption } from "./types";
 import type { HttpMethod } from "./types/http";
-import { resolveItemToneAliases, resolveToneAlias, TONES } from "./types/tone";
+import {
+  resolveItemToneAliases,
+  resolveToneAlias,
+} from "./types/internal/tone";
+import { TONES } from "./types/tone";
 
 /**
  * Fill tones of a meter: the semantic tones plus `soft`, the pale primary of

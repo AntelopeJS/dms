@@ -1,22 +1,8 @@
-import { serializeFormField } from "./form-schema";
+import { serializeFormField } from "./internal/form-schema";
 import type {
-  ActionConfirm,
-  ActionConfirmSerialized,
   ConfirmDialog,
-  ConfirmDialogFrom,
   ConfirmDialogSerialized,
 } from "./types/confirm-dialog";
-
-/**
- * Whether a confirmation is worded by the server (`{ from }`).
- *
- * @internal
- */
-export function isConfirmFrom(
-  confirm: ActionConfirm | ActionConfirmSerialized,
-): confirm is ConfirmDialogFrom {
-  return "from" in confirm;
-}
 
 /**
  * A confirmation dialog as the client reads it: its fields and component
@@ -30,16 +16,4 @@ export function serializeConfirmDialog(
   if (fields) serialized.fields = fields.map(serializeFormField);
   if (component) serialized.component = component.serializeSync();
   return serialized;
-}
-
-/**
- * An action's confirmation as its options carry it.
- *
- * @internal
- */
-export function serializeActionConfirm(
-  confirm: ActionConfirm | undefined,
-): ActionConfirmSerialized | undefined {
-  if (!confirm) return undefined;
-  return isConfirmFrom(confirm) ? confirm : serializeConfirmDialog(confirm);
 }

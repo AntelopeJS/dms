@@ -19,13 +19,7 @@ import {
 } from "./form-types";
 import type { DefaultValue } from "./types";
 import { HttpMethod } from "./types/http";
-
-/**
- * The frontend component `Form` emits.
- *
- * @internal
- */
-export const FORM_COMPONENT_NAME = "dms-form";
+import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
 
 const FIELD_ORIENTATIONS = ["horizontal", "vertical"] as const;
 

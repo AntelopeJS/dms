@@ -3,7 +3,7 @@
 // `this` to a different instantiation of its own class, which is what makes the
 // chain unavoidable for this pattern.
 /* oxlint-disable anti-slop/no-chained-type-assertions */
-import { resolveToneAlias } from "../base/types/tone";
+import { resolveToneAlias } from "../base/types/internal/tone";
 import { SendableNotification } from "./sendable";
 import type {
   NotificationData,

@@ -12,7 +12,6 @@
 // on DataCompareMode.filter, which would ripple through every implementation.
 /* oxlint-disable anti-slop/no-chained-type-assertions */
 import type { RequestContext } from "@antelopejs/interface-api";
-import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type {
   ValueProxy,
   ValueProxyOrValue,
@@ -32,17 +31,6 @@ import { isNumber } from "../../utils/internal/type-check";
 // neither side dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
-/** @internal */
-export function absolutizeJoinedSchemas(meta: DataAPIMeta): void {
-  if (meta.schemaName == null) {
-    return;
-  }
-  for (const field of Object.values(meta.fields)) {
-    if (field.joined && field.joined.schemaName == null) {
-      field.joined.schemaName = meta.schemaName;
-    }
-  }
-}
 
 export namespace DefaultDataCompareTypes {
   @RegisterDataCompareMode("is")

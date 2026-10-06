@@ -7,7 +7,7 @@ import {
   ui,
 } from "./block-registry";
 import { VALUE_FORMATS, type ValueFormat, type ValuePrecision } from "./chart";
-import { CHART_BLOCK_TYPES } from "./chart-schemas";
+import { CHART_BLOCK_TYPES } from "./internal/chart-schemas";
 import type { BaseComponentProps, EnumOption } from "./types";
 import { HttpMethod } from "./types/http";
 
