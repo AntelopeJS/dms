@@ -11,6 +11,8 @@ import type { MaybePromise } from "./types";
  * the form behind a table view's modal button, say — serializes synchronously,
  * once, when its host is declared. Nothing can be grafted onto it afterwards,
  * and re-serializing the host would drop the upload tokens its fields carry.
+ *
+ * @internal
  */
 export const COMPONENT_SLOT_KEY = "slotId";
 
@@ -123,6 +125,8 @@ async function resolveNode(node: unknown): Promise<void> {
  * Returns the input untouched when it declares no slot anyone owns; otherwise
  * a deep clone, since the tree it is given is the page's cached layout and is
  * shared by every request.
+ *
+ * @internal
  */
 export async function ResolveComponentSlots<T>(options: T): Promise<T> {
   if (!hasResolvableSlot(options)) {

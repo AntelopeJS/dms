@@ -4,6 +4,7 @@ import {
 } from "@antelopejs/interface-core";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
 
+/** @internal */
 export interface UploadTokenClaims {
   pageId?: string;
   componentId?: string;
@@ -14,6 +15,7 @@ export interface UploadTokenClaims {
   writePermission?: string;
 }
 
+/** @internal */
 export type NativeUploadFieldRegistration = UploadTokenClaims & {
   pageId: string;
   componentId: string;
@@ -34,6 +36,8 @@ export namespace internal {
  * unbound tokens cannot presign uploads. The token has no expiry because each
  * presign rechecks live membership, page/component access and write permission.
  * Only the DMS backend holds the signing secret.
+ *
+ * @internal
  */
 export const SignUploadToken =
   InterfaceFunction<(claims: UploadTokenClaims) => Promise<string>>();

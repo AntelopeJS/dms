@@ -89,6 +89,8 @@ export async function AssertTenantAccess(
 
 /**
  * The surface flags a denied tenant may still reach.
+ *
+ * @internal
  */
 export interface GatedSurface {
   bypassTenantAccessGate?: boolean;
@@ -110,6 +112,8 @@ export interface GatedSurface {
  * suspended-workspace screen, which a denied tenant has to reach to recover.
  * Permission checks still apply on top of this — a surface that survives the
  * gate is not thereby granted to everyone.
+ *
+ * @internal
  */
 export function gateAllowsSurface(
   surface: GatedSurface,

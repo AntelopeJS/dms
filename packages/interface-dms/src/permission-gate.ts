@@ -15,7 +15,11 @@ export interface PermissionGate {
   permissionId?: string;
 }
 
-/** Whether `gate` names a permission at all. */
+/**
+ * Whether `gate` names a permission at all.
+ *
+ * @internal
+ */
 export function isPermissionGated(gate: PermissionGate | undefined): boolean {
   return gate?.permission !== undefined || gate?.permissionId !== undefined;
 }
@@ -25,6 +29,8 @@ export function isPermissionGated(gate: PermissionGate | undefined): boolean {
  * `ownerPermissionId`. Undefined for an ungated declaration, and for a
  * relative name on an owner that never registered — which
  * {@link holdsPermissionGate} refuses.
+ *
+ * @internal
  */
 export function resolvePermissionGateId(
   gate: PermissionGate | undefined,
@@ -38,6 +44,8 @@ export function resolvePermissionGateId(
 /**
  * Whether a caller holding `permissions` passes `gate` on its owner. An
  * ungated declaration passes; a gate that cannot be resolved fails closed.
+ *
+ * @internal
  */
 export async function holdsPermissionGate(
   permissions: Set<string>,

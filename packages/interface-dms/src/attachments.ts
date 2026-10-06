@@ -31,7 +31,11 @@ export interface AttachmentSaveRequest {
   before: Record<string, unknown>;
 }
 
-/** Trusted inputs used to wrap a table-view attachment write. */
+/**
+ * Trusted inputs used to wrap a table-view attachment write.
+ *
+ * @internal
+ */
 export interface TableViewAttachmentSaveRequest {
   controller: unknown;
   route: DataControllerCallback;
@@ -67,7 +71,11 @@ type AttachmentSaver = <T>(
 export const SaveComponentFiles =
   InterfaceFunction<AttachmentSaver>() as AttachmentSaver;
 
-/** Resolve prepared metadata for field validators; unknown references return undefined. */
+/**
+ * Resolve prepared metadata for field validators; unknown references return undefined.
+ *
+ * @internal
+ */
 export const GetAttachmentValidationMetadata =
   InterfaceFunction<
     (key: string, storage?: string) => Promise<FileMetadata | undefined>

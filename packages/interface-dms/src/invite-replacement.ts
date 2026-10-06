@@ -57,7 +57,11 @@ async function reconcileReplacement(
   );
 }
 
-/** Inserts a replacement incarnation once; retries never resurrect a later retired token. */
+/**
+ * Inserts a replacement incarnation once; retries never resurrect a later retired token.
+ *
+ * @internal
+ */
 export async function ensureInviteReplacement(
   resolution: InviteResolution,
 ): Promise<void> {

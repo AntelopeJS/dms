@@ -101,6 +101,7 @@ export interface LayoutBannerComponentInfo extends LayoutBannerBase {
  */
 export type LayoutBannerInfo = LayoutBannerTextInfo | LayoutBannerComponentInfo;
 
+/** @internal */
 export namespace internal {
   export const RegisterLayoutBanner = new RegisteringProxy<
     (info: LayoutBannerInfo) => void

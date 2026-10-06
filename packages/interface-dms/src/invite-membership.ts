@@ -74,7 +74,11 @@ async function notifyMembership(
   });
 }
 
-/** Grants at most one membership incarnation; a removed or indeterminate grant is never recreated. */
+/**
+ * Grants at most one membership incarnation; a removed or indeterminate grant is never recreated.
+ *
+ * @internal
+ */
 export async function ensureInviteMembership(
   resolution: InviteResolution,
 ): Promise<TenantMember> {
