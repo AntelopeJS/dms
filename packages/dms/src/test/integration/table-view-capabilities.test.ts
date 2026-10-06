@@ -11,6 +11,7 @@ const LOCATION = "/api/capabilities/invoices";
 const SLUG = "/capability-invoices";
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
+const HTTP_FORBIDDEN = 403;
 
 interface Invoice {
   _id: string;
@@ -133,5 +134,20 @@ describe("[integration] table view capabilities", () => {
     expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
     expect(matching.data.ids).to.have.length(2);
     expect(await list(client, "&filter_status=is:open")).to.deep.equal([]);
+  });
+
+  it("refuses the selected ids to a caller who may not list the rows", async () => {
+    const [invoice] = await list(client);
+    const member = await registerUser();
+    const memberClient = authorizedClient(member.accessToken);
+    const listed = await memberClient.get(`${LOCATION}/list`);
+    expect(listed.status).to.equal(HTTP_FORBIDDEN);
+
+    const selected = await memberClient.post(
+      `${LOCATION}/mark-paid?ids=${invoice!._id}`,
+    );
+    expect(selected.status, JSON.stringify(selected.data)).to.equal(
+      HTTP_FORBIDDEN,
+    );
   });
 });

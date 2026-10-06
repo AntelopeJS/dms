@@ -21,21 +21,22 @@ const HTTP_PAYLOAD_TOO_LARGE = 413;
 /**
  * The rows a bulk custom action runs on: the selected ids, or every row the
  * table's filters, search and archive view match, read like the list reads
- * them, with the caller's `list` permission.
+ * them. Either way the caller needs the table's `list` permission: a caller
+ * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
   thisObj: unknown,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
-  const query = ctx.url.searchParams;
-  if (query.get(BULK_ALL_MATCHING_KEY) !== "true") return query.getAll(IDS_KEY);
   const permissions = await authorizeAction(
     thisObj,
     LIST_ACTION,
     user,
     getRequestTenantId(ctx),
   );
+  const query = ctx.url.searchParams;
+  if (query.get(BULK_ALL_MATCHING_KEY) !== "true") return query.getAll(IDS_KEY);
   const filters = Parameters.ExtractFilters(
     ctx,
     GetDataControllerMeta(thisObj),
