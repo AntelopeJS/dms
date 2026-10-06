@@ -5,7 +5,7 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
-import { ExportJobModel } from "@antelopejs/interface-dms/db";
+import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { FileExists } from "@antelopejs/interface-file-storage";
 import { expect } from "chai";
 import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";

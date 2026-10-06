@@ -1,5 +1,5 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { InviteResolutionsModel } from "./db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { UserModel } from "./auth/db/models/users.model";
 import { TenantMemberModel } from "./db/models/tenantMembers.model";

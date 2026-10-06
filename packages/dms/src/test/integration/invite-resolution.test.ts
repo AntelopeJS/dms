@@ -3,7 +3,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
 import { listenersFor, type MemberAddedEvent } from "../../automation/events";
 import { runCleanupUserInvites } from "../../crons/cleanup-user-invites";
-import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import {
   TenantMemberModel,

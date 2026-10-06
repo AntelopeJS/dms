@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { TenantLifecycleModel } from "./db/models/tenantLifecycle.model";
+import { TenantLifecycleModel } from "./db/internal/tenantLifecycle.model";
 
 const HTTP_CLIENT_ERROR_MIN = 400;
 const HTTP_SERVER_ERROR_MIN = 500;

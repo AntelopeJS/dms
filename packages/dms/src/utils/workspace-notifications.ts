@@ -4,10 +4,10 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
   type InviteResolution,
-  InviteResolutionsModel,
   RoleModel,
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import {
   AccountSubject,
   CollaborationSubject,

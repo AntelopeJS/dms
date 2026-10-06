@@ -20,7 +20,7 @@ import {
 } from "@antelopejs/interface-dms/html-render";
 import { stringify } from "csv-stringify/sync";
 import { getClientBaseUrl } from "../config";
-import { ExportJobModel } from "@antelopejs/interface-dms/db/models/exportJobs.model";
+import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
 import { runInBatches } from "./run-in-batches";
 import {

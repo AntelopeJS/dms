@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { mock } from "node:test";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import * as storage from "@antelopejs/interface-file-storage";
-import { ExportJobModel } from "@antelopejs/interface-dms/db/models/exportJobs.model";
+import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import { TenantModel } from "@antelopejs/interface-dms/db";
 import { ExportStatus } from "@antelopejs/interface-dms/base/types/export-status";
 import { sweepStaleExportsAllTenants } from "../../utils/export-jobs";

@@ -1,10 +1,8 @@
 import { isDeepStrictEqual } from "node:util";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import {
-  type InviteDecision,
-  InviteResolutionsModel,
-} from "./db/models/inviteResolutions.model";
+import type { InviteDecision } from "./db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { UserInviteModel } from "./db/models/user_invites.model";
 import type { UserInvite } from "./db/tables/user_invites.table";

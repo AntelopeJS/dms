@@ -1,6 +1,7 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { ExportStatus } from "../../base/types";
-import { ExportJob, exportJobsTableName } from "../tables/exportJobs.table";
+import { ExportJob } from "../tables/exportJobs.table";
+import { exportJobsTableName } from "./table-names";
 
 interface NewExportJobInput {
   jobId: string;

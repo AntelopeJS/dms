@@ -3,7 +3,7 @@ import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import {
   TenantLifecycle,
   tenantLifecycleTableName,
-} from "../tables/tenantLifecycle.table";
+} from "./tenantLifecycle.table";
 
 const LIFECYCLE_ID = "membership-and-invites";
 

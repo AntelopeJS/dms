@@ -13,7 +13,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { type User } from "@antelopejs/interface-dms/auth/db";
 import { ExportStatus } from "@antelopejs/interface-dms/base/types";
-import { ExportJobModel } from "@antelopejs/interface-dms/db/models/exportJobs.model";
+import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
 import type {
   ExportJobAccessOptions,

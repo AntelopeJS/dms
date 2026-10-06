@@ -9,11 +9,8 @@ import {
   Validation,
 } from "@antelopejs/interface-data-api/components";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import {
-  InviteResolutionsModel,
-  type UserInvite,
-  UserInviteModel,
-} from "@antelopejs/interface-dms/db";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
+import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import { internal } from "@antelopejs/interface-dms/invite-extensions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base";

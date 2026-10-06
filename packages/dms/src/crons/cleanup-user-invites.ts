@@ -2,7 +2,7 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import cron, { type ScheduledTask } from "node-cron";
-import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   completeInviteResolution,
