@@ -9,8 +9,8 @@
     "frontend:dev": "ajs dms dev"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.10.1 <2",
-    "@antelopejs/dms-frontend": "0.3.6",
+    "@antelopejs/core": ">=1.13.2 <2",
+    "@antelopejs/dms-frontend": "0.4.0",
     "@types/node": "^20.5.7",
     "prettier": "^2.6.1",
     "rimraf": "^6.0.1",
@@ -27,7 +27,7 @@
   "dependencies": {
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
-    "@antelopejs/interface-data-api": ">=0.1.9 <1.0.0",
+    "@antelopejs/interface-data-api": ">=0.2.0 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.8 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.7 <1.0.0",
     "@antelopejs/interface-dms": "workspace:*",
