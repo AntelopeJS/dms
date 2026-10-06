@@ -39,8 +39,32 @@ interface DmsPublicOptions {
 }
 
 const components = import.meta.glob<VueModule>(
-  "./layers/**/app/{components,build/components}/**/*.vue",
+  "./layers/**/app/components/**/*.vue",
 );
+// The build/ components a DMS backend page tree names. Every other build/
+// component is private and imported by path, so it is never registered.
+const backendPageComponents = import.meta.glob<VueModule>([
+  "./layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxDisplay.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/notification/NotificationPreferencesForm.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfileAccountData.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfilePersonalInfo.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfilePreferencesSummary.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfileSecuritySummary.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/region/RegionFormatPreview.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/region/RegionTimeZoneInput.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityEmail.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityPassword.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityStatus.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityTwoFactor.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceAccessibility.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceDeveloper.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceScale.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceSidebar.vue",
+  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceTheme.vue",
+]);
+const registeredComponents = { ...components, ...backendPageComponents };
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );
@@ -99,7 +123,7 @@ function registerComponents(
   sdk: Parameters<DmsFrontendModule["setup"]>[0],
 ): void {
   const names = new Map<string, string>();
-  for (const [path, loader] of sortedEntries(components)) {
+  for (const [path, loader] of sortedEntries(registeredComponents)) {
     const name = componentName(path);
     const previousPath = names.get(name);
     if (previousPath) {

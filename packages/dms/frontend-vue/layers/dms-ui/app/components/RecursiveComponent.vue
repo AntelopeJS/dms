@@ -5,6 +5,7 @@ import {
   GRID_DECLARED_COLUMNS,
   type GridDeclaredColumns,
 } from "./grid/constants";
+import DmsPermissionVeil from "../build/components/permission/PermissionVeil.vue";
 
 interface Props {
   component: ResolvedComponentInfo;

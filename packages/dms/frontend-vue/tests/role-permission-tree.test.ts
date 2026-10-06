@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   type App,
   type Component,
@@ -281,6 +281,10 @@ const SearchInputStub: FunctionalComponent<SearchInputStubProps> = (
 ) => h(InputStub, { ...attrs, ...props, "aria-label": props.placeholder });
 SearchInputStub.props = ["modelValue", "placeholder"];
 
+vi.mock("../layers/dms-ui/app/build/components/form/SearchInput.vue", () => ({
+  default: SearchInputStub,
+}));
+
 const slotStub = defineComponent({
   setup:
     (_, { slots }) =>
@@ -319,7 +323,6 @@ function mountEditor() {
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
   app.component("UInput", InputStub);
-  app.component("DmsSearchInput", SearchInputStub);
   app.component("UFormField", slotStub);
   app.component("UDropdownMenu", slotStub);
   app.component("DmsMeter", stub("span"));

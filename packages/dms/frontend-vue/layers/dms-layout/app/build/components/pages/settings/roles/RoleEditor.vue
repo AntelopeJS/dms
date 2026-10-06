@@ -21,6 +21,7 @@ import {
   type RoleEditorField,
   type RoleMemberPreview,
 } from "./role-types";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 interface RoleEditorProps {
   isNew: boolean;

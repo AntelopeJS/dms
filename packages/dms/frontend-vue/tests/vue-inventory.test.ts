@@ -95,7 +95,7 @@ describe("Vue source inventory", () => {
       "utf8",
     );
     expect(frontendModule).toContain("defineAsyncComponent");
-    expect(frontendModule).toContain("sortedEntries(components)");
+    expect(frontendModule).toContain("sortedEntries(registeredComponents)");
     expect(frontendModule).toContain(
       "Duplicate component name ${name}: ${previousPath}, ${path}",
     );

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
 import { useUnsavedChanges } from "#dms-ui/app/composables/unsaved-changes/useUnsavedChanges";
+import DmsUnsavedStatus from "#dms-ui/app/build/components/form/UnsavedStatus.vue";
 
 interface SecurityEditPanelProps {
   /** Id of the form; the trigger and the panel ids derive from it. */

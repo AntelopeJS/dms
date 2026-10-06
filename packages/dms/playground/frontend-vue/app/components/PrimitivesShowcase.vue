@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import DmsStepIndicator from "#dms-onboarding/app/build/components/onboarding/StepIndicator.vue";
 
 /**
  * Review page for the Nuxt UI primitives themed to the DMS v2 design

@@ -14,6 +14,7 @@ import {
   groupNotificationsByDay,
   type NotificationSourceTag,
 } from "./notificationDisplay";
+import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 // The `dms:inbox` display of the notifications page's table: the user's feed
 // as v2 inbox rows under day headings. The table brings the tabs, the

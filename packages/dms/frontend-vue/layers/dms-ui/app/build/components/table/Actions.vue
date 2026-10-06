@@ -20,6 +20,7 @@ import {
   quickFilterValue,
   type ResolvedQuickFilter,
 } from "../../composables/table-view/utils/quickFilters";
+import DmsSearchInput from "../form/SearchInput.vue";
 
 const theme = tv({
   slots: {

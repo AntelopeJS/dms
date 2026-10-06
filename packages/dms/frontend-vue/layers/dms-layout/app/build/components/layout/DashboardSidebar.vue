@@ -12,6 +12,7 @@ import {
 import { useSidebarState } from "./sidebarState";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import { useMediaQuery } from "@vueuse/core";
+import DmsSidebarUserMenu from "./SidebarUserMenu.vue";
 
 const SETTINGS_PATH = "/settings";
 const MODULES_PATH = "/modules";

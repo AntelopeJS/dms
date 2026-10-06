@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import DmsEmpty from "#dms-ui/app/build/components/table/Empty.vue";
+import DmsPagination from "#dms-ui/app/build/components/table/Pagination.vue";
+import DmsCardGridSkeleton from "#dms-ui/app/build/components/table-view/CardGridSkeleton.vue";
 // Example project-contributed table view display: a responsive card grid.
 //
 // It receives the single normalized `context` prop every display gets. It

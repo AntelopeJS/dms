@@ -5,6 +5,7 @@ import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBad
 import { settleWidgetRequest } from "./widgetRequest";
 import type { UserNotification } from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
+import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 const MAX_DISPLAYED_COUNT = 99;
 // Placeholder rows while the list loads: enough to fill the list's height.

@@ -17,6 +17,11 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
 import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
 
+vi.mock(
+  "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue",
+  () => ({ default: { render: () => null } }),
+);
+
 const route = reactive({ path: "/modules/automation/runs", query: {} });
 let app: App;
 let host: HTMLDivElement;
@@ -114,10 +119,6 @@ it.each(["/modules/automation/runs", "/modules", "/settings/user/profile"])(
     app.component("DmsNavigationMenu", Navigation);
     app.component(
       "DmsDashboardSearch",
-      defineComponent({ render: () => null }),
-    );
-    app.component(
-      "DmsSidebarUserMenu",
       defineComponent({ render: () => null }),
     );
     app.mount(host);

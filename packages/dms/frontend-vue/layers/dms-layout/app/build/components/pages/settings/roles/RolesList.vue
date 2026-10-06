@@ -10,6 +10,7 @@ import {
   type RoleOwnersSummary,
   type RoleSummary,
 } from "./role-types";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 interface RolesListProps {
   roles: RoleSummary[];

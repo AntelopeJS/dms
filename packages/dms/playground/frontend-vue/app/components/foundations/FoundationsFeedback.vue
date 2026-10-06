@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import ShowcaseDemo from "./ShowcaseDemo.vue";
 import ShowcaseSection from "./ShowcaseSection.vue";
+import DmsPermissionVeil from "#dms-ui/app/build/components/permission/PermissionVeil.vue";
 
 /**
  * Design system › Foundations › Feedback & status: notices, empty states,

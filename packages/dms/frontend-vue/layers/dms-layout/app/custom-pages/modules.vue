@@ -33,6 +33,7 @@ import {
   MODULE_STORE_CATALOG,
   availableStoreModules,
 } from "../build/utils/module-store-catalog";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
 const MODULES_LISTING_DATA_KEY = "modules-page-listing";

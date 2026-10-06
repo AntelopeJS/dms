@@ -9,6 +9,7 @@ import {
   MATRIX_CONTAINER_CLASS,
   MATRIX_GRID_CLASS,
 } from "./notificationDisplay";
+import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 const PREFERENCES_SKELETON_ROWS = 4;
 
