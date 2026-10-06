@@ -69,7 +69,7 @@ provide(DMS_SECTION_SURFACE_KEY, props.card);
 <template>
   <section :class="ui.root()">
     <DmsSectionHeader
-      v-if="props.title || slots.trail || slots.badge"
+      v-if="props.title || props.description || slots.trail || slots.badge"
       class="mb-2.5"
       :title="props.title ? processI18n(props.title) : undefined"
       :description="
