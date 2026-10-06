@@ -173,10 +173,12 @@ export interface TableProps<T> {
    * Displays offered by this table view (registry ∩ config, filtered by
    * availability). When more than one, the options menu shows a "view mode"
    * switcher. In kanban mode the menu also edits the `kanbanGroupBy` model
-   * among `kanbanGroupByOptions`.
+   * among `kanbanGroupByOptions`, in grouped mode the `groupedGroupBy` model
+   * among `groupedGroupByOptions`.
    */
   displays?: TableViewSwitcherItem[];
   kanbanGroupByOptions?: KanbanGroupByOption[];
+  groupedGroupByOptions?: KanbanGroupByOption[];
   /** Chrome capabilities of the active display; gates filters/search/sort/columns. */
   activeCapabilities?: Required<TableViewDisplayCapabilities>;
 
@@ -342,6 +344,8 @@ export interface TableSharedData<T> {
   activeCapabilities: ComputedRef<Required<TableViewDisplayCapabilities>>;
   kanbanGroupByState: ModelRef<string>;
   kanbanGroupByOptions: KanbanGroupByOption[];
+  groupedGroupByState: ModelRef<string>;
+  groupedGroupByOptions: KanbanGroupByOption[];
   showArchivedState: ModelRef<boolean>;
   /** Row height: `compact` gives 36px rows under a 32px header band. */
   densityState: ModelRef<TableDensity>;
@@ -690,6 +694,9 @@ const activeDisplayState = defineModel<string>("activeDisplay", {
   default: "table",
 });
 const kanbanGroupByState = defineModel<string>("kanbanGroupBy", {
+  default: "",
+});
+const groupedGroupByState = defineModel<string>("groupedGroupBy", {
   default: "",
 });
 const expandedState = defineModel<ExpandedState>("expanded", {
@@ -1142,6 +1149,8 @@ watchEffect(() => {
     activeCapabilities: resolvedCapabilities,
     kanbanGroupByState,
     kanbanGroupByOptions: props.kanbanGroupByOptions || [],
+    groupedGroupByState,
+    groupedGroupByOptions: props.groupedGroupByOptions || [],
     showArchivedState,
     densityState,
     chrome: resolvedChrome,

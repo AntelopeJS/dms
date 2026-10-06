@@ -6,11 +6,14 @@ import {
   regionalWeekStart,
 } from "#dms-core/app/utils/regional";
 import { nameCalendarDay } from "../../../components/activity-feed/activityFeedDays";
+import { isEligibleKanbanColumn } from "../../../../composables/table-view/kanban";
 import type {
+  TableViewColumn,
   TableViewGroupBy,
   TableViewGroupedConfig,
 } from "../../../../composables/table-view/types";
 import type { TableFilter } from "../../../components/table/Table.vue";
+import { sortValueKind } from "./sortableColumns";
 
 /** Key of the group of rows without a value. */
 export const NO_GROUP_KEY = "";
@@ -141,4 +144,37 @@ export function groupedSorting(
   const { groupByField, by = "value" } = grouped;
   const own = sorting.find((entry) => entry.id === groupByField);
   return [{ id: groupByField, desc: own ? !!own.desc : by !== "value" }];
+}
+
+/** How a date column picked in the options menu is cut, unless configured. */
+const DEFAULT_DATE_GROUP_BY: TableViewGroupBy = "day";
+
+const isDateColumn = (column: TableViewColumn): boolean =>
+  sortValueKind(column.type.id) === "date";
+
+/**
+ * A column the user may group the rows by from the options menu: one holding
+ * a few known values, as a kanban board's columns do, or a date.
+ */
+export const isGroupableColumn = (column: TableViewColumn): boolean =>
+  isEligibleKanbanColumn(column) || isDateColumn(column);
+
+/**
+ * The grouped options once the user picked `field`: the configured ones on
+ * the configured column; on another date, the configured day or week cut
+ * (by day when the configured column groups by value); else by value.
+ */
+export function groupedOptionsFor(
+  grouped: TableViewGroupedConfig,
+  field: string,
+  columns: TableViewColumn[],
+): TableViewGroupedConfig {
+  if (field === grouped.groupByField) return grouped;
+  const column = columns.find((candidate) => candidate.accessorKey === field);
+  if (!column || !isDateColumn(column)) {
+    return { ...grouped, groupByField: field, by: "value" };
+  }
+  const by =
+    grouped.by && grouped.by !== "value" ? grouped.by : DEFAULT_DATE_GROUP_BY;
+  return { ...grouped, groupByField: field, by };
 }
