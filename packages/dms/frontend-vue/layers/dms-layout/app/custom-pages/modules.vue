@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
@@ -336,7 +337,10 @@ const summaryCards = computed<StatStripItem[]>(() =>
           <i18n-t keypath="modules.error.description" scope="global" tag="span">
             <template #endpoint>
               <code
-                class="bg-elevated text-highlighted rounded-[4px] px-[5px] py-px font-mono text-xs"
+                :class="[
+                  MONO_CHIP_CLASS,
+                  'bg-elevated text-highlighted text-xs',
+                ]"
               >
                 {{ ENDPOINT_MODULES_LISTING }}
               </code>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
@@ -157,7 +158,10 @@ const detectedLabel = computed(() =>
     >
       <template #badge>
         <span
-          class="bg-elevated text-dimmed rounded-[4px] px-[5px] py-px font-mono text-[10.5px] font-semibold"
+          :class="[
+            MONO_CHIP_CLASS,
+            'bg-elevated text-dimmed text-[10.5px] font-semibold',
+          ]"
         >
           {{ group.shortcuts.length }}
         </span>

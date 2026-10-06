@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import { useSecurityFormat } from "../../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -195,7 +196,10 @@ onMounted(async () => {
           <span>{{ sessionPlace(session) }}</span>
           <span v-if="session.ip">
             <span
-              class="bg-elevated text-toned rounded px-[5px] py-px font-mono text-[11.5px] font-medium"
+              :class="[
+                MONO_CHIP_CLASS,
+                'bg-elevated text-toned text-[11.5px] font-medium',
+              ]"
             >
               {{ session.ip }}
             </span>

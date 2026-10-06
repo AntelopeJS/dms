@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "../../build/utils/monoChip";
 import { computed, ref } from "vue";
 
 // Segmented toggle (design .segmented): a recessed track holding segments,
@@ -199,12 +200,13 @@ function itemClass(item: SegItem, index: number): (string | false)[] {
       {{ item.label }}
       <span
         v-if="item.count !== undefined"
-        class="rounded-[4px] px-[5px] py-px font-mono text-[10px] font-semibold"
-        :class="
+        :class="[
+          MONO_CHIP_CLASS,
+          'text-[10px] font-semibold',
           model === item.value
             ? 'text-primary bg-(--dms-accent-tint)'
-            : 'text-dimmed bg-(--ui-bg-elevated)'
-        "
+            : 'text-dimmed bg-elevated',
+        ]"
       >
         {{ item.count }}
       </span>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "../../utils/monoChip";
 import { onMounted, ref, resolveComponent, useTemplateRef } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
@@ -56,8 +57,7 @@ const theme = tv({
     root: "no-scrollbar flex gap-5 overflow-x-auto border-b border-default px-[18px]",
     tab: "relative inline-flex h-[38px] shrink-0 items-center gap-1.5 px-0.5 text-[13px] transition-colors [&>svg]:size-3.5",
     label: "",
-    count:
-      "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed",
+    count: `${MONO_CHIP_CLASS} bg-elevated text-[10.5px] font-semibold tabular-nums text-dimmed`,
     countPlaceholder: "h-[17px] w-[18px] rounded-[4px]",
     dot: "size-1.5 shrink-0 rounded-full bg-current",
     modified: "size-1.5 shrink-0 rounded-full bg-warning",
