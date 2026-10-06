@@ -408,7 +408,9 @@
       "password_rules": "The password doesn’t meet every rule.",
       "invalid_duration": "Enter a duration such as 1h30m or 01:30.",
       "range_incomplete": "Pick the end of the range too.",
-      "invalid_json": "This isn’t valid JSON."
+      "invalid_json": "This isn’t valid JSON.",
+      "key_missing": "Give every value a name.",
+      "key_duplicate": "Each name can appear only once."
     },
     "confirm": {
       "confirm": "Confirm",
