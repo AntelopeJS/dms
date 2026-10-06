@@ -33,7 +33,7 @@ export class RecipesPage extends PageController("recipes", {
 `options` is the `MenuOptions` shape (`@antelopejs/interface-dms/page`): `displayName`, `icon`,
 `module` and/or `category` (at least one required; a module page's explicit category must
 descend from the module's root), `urlSlug` (defaults to the id), `order`, `description`, `hidden`,
-`type`, plus auth knobs (`publicAccess`, `authOnly`, `permission`, `noComponentPermissions` —
+`type`, plus auth knobs (`publicAccess`, `authOnly`, `memberAccess`, `permission`, `noComponentPermissions` —
 see **dms-auth**). `Category(id, options)` returns a `CategoryInfo` to pass as a page's
 `category`; `RegisterModule({ id, … })` creates a module root that pages attach to via
 `module: "<id>"`. Module pages live under `MODULE_URL_PREFIX` (`/modules`), e.g.

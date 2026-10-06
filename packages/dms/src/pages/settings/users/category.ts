@@ -10,4 +10,5 @@ export const userCategory = Category("user", {
   urlSlug: "user",
   icon: "i-ph-users",
   order: 1,
+  memberAccess: true,
 });
