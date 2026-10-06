@@ -29,6 +29,8 @@ const OWN_EMAIL = "camille@acme.dev";
 const TAKEN_EMAIL = "taken@acme.dev";
 const FREE_EMAIL = "camille.laurent@acme.dev";
 const CURRENT_SESSION = "session-current";
+const TENANT_ID = "account-security-tenant";
+const ORIGINAL_AUTH_KEY = "original-auth-key";
 const TOKEN_SIGNING_KEY = "account-security-test";
 const BACKUP_CODE_TOTAL = 10;
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
@@ -39,6 +41,8 @@ interface Harness {
   sessionModel: SessionModel;
   sessions: Session[];
   updates: number;
+  /** Refresh tokens written per session id. */
+  refreshTokens: Map<string, string>;
 }
 
 function buildUser(password: string | null): User {
@@ -46,6 +50,7 @@ function buildUser(password: string | null): User {
     _id: USER_ID,
     email: OWN_EMAIL,
     password,
+    authKey: ORIGINAL_AUTH_KEY,
     createdAt: new Date(0),
     twoFactorMethods: [],
     twoFactorBackupCodes: [],
@@ -78,6 +83,7 @@ function buildHarness(password: string | null = "hashed"): Harness {
       session("session-recent", 3),
     ],
     updates: 0,
+    refreshTokens: new Map<string, string>(),
   } as Harness;
   harness.userModel = {
     get: async () => harness.user,
@@ -94,11 +100,14 @@ function buildHarness(password: string | null = "hashed"): Harness {
     delete: async (id: string) => {
       harness.sessions = harness.sessions.filter((entry) => entry._id !== id);
     },
+    replaceRefreshToken: async (id: string, token: string) => {
+      harness.refreshTokens.set(id, token);
+    },
   } as unknown as SessionModel;
   return harness;
 }
 
-const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION }, TOKEN_SIGNING_KEY)}`;
+const authorization = `Bearer ${sign({ sessionId: CURRENT_SESSION, tenantId: TENANT_ID }, TOKEN_SIGNING_KEY)}`;
 
 async function refusal(action: Promise<unknown>): Promise<HTTPResult> {
   const outcome = await action.then(
@@ -151,29 +160,34 @@ describe("[unit] settings/security — password change asks for the current pass
     expect(harness.updates).to.equal(0);
   });
 
-  it("changes the password, stamps the change and keeps other sessions by default", async () => {
+  it("changes the password and stamps the change, with the new auth key in one write", async () => {
     const harness = buildHarness();
-    const result = await passwordChange(harness, {
+    await passwordChange(harness, {
       currentPassword: CURRENT_PASSWORD,
       password: NEW_PASSWORD,
     });
     expect(harness.user.password).to.equal(NEW_PASSWORD);
     expect(harness.user.passwordChangedAt).to.be.instanceOf(Date);
-    expect(result.signedOutSessions).to.equal(0);
-    expect(harness.sessions).to.have.length(3);
+    expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
+    expect(harness.updates).to.equal(1);
   });
 
-  it("signs out the other sessions on request, never this one", async () => {
+  it("signs out every other session and hands this one back a way in", async () => {
     const harness = buildHarness();
     const result = await passwordChange(harness, {
       currentPassword: CURRENT_PASSWORD,
       password: NEW_PASSWORD,
-      signOutOtherSessions: true,
     });
     expect(result.signedOutSessions).to.equal(2);
     expect(harness.sessions.map((entry) => entry._id)).to.deep.equal([
       CURRENT_SESSION,
     ]);
+    expect(result.sessionHandoff?.endpoint).to.equal(
+      "/api/auth/session-handoff",
+    );
+    expect(harness.refreshTokens.get(CURRENT_SESSION)).to.equal(
+      result.sessionHandoff?.payload.token,
+    );
   });
 
   it("lets an account without a password set its first one", async () => {
@@ -239,11 +253,14 @@ describe("[unit] settings/security — sessions and backup codes", () => {
   it("signs out the other sessions only", async () => {
     const harness = buildHarness();
     const result = await revokeOtherSessions(harness.user, {
+      userModel: harness.userModel,
       sessionModel: harness.sessionModel,
       authorization,
     });
     expect(result.count).to.equal(2);
     expect(harness.sessions).to.have.length(1);
+    expect(harness.user.authKey).to.not.equal(ORIGINAL_AUTH_KEY);
+    expect(result.sessionHandoff?.payload.token).to.be.a("string");
   });
 
   it("reports the codes left and records that they were saved", async () => {

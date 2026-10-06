@@ -8,6 +8,7 @@ export * from "./refresh";
 export * from "./request-2fa-email";
 export * from "./request-email-verification";
 export * from "./reset-password";
+export * from "./session-handoff";
 export * from "./session-response";
 export * from "./signup";
 export * from "./switch-tenant";

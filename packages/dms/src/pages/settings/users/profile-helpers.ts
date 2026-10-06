@@ -230,11 +230,24 @@ export interface SessionResponse {
   isCurrent: boolean;
 }
 
-export function extractSessionId(authorization: string): string | undefined {
+/** The session and tenant an access token was issued for. */
+export interface SessionClaims {
+  sessionId?: string;
+  tenantId?: string;
+}
+
+/**
+ * Reads the claims of the bearer token in an `Authorization` header. Not a
+ * verification: the route guard has already checked the token.
+ */
+export function extractSessionClaims(authorization: string): SessionClaims {
   const token = authorization?.split(" ")[1];
-  if (!token) return undefined;
-  const payload = decode(token) as { sessionId?: string } | null;
-  return payload?.sessionId;
+  if (!token) return {};
+  return (decode(token) as SessionClaims | null) ?? {};
+}
+
+export function extractSessionId(authorization: string): string | undefined {
+  return extractSessionClaims(authorization).sessionId;
 }
 
 interface SessionRecord {

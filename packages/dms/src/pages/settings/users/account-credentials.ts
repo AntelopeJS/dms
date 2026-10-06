@@ -11,10 +11,13 @@ import {
   notifyEmailChanged,
   notifyPasswordChanged,
 } from "../../../utils/account-notifications";
+import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
+import { SESSION_HANDOFF_ENDPOINT } from "../../../routes/auth/session-handoff";
 import { generateAuthKey } from "../../../utils/auth-key";
 import { securitySchema } from "../../../validation/security.schema";
 import {
   assertEmailAvailable,
+  extractSessionClaims,
   extractSessionId,
   formatSession,
   type SessionResponse,
@@ -48,15 +51,32 @@ export interface SecurityOverview {
   attention: SecurityAttention[];
 }
 
+/** The body the frontend server posts to `endpoint` to reopen the session. */
+export interface SessionHandoffPayload {
+  token: string;
+}
+
+/**
+ * How the caller's device stays signed in once its tokens were invalidated:
+ * the frontend server trades `payload` at `endpoint` for a new token pair
+ * (`/auth/establish`).
+ */
+export interface SessionHandoff {
+  endpoint: string;
+  payload: SessionHandoffPayload;
+}
+
 export interface PasswordChangeResult {
   success: true;
   passwordChangedAt: Date;
   signedOutSessions: number;
+  sessionHandoff?: SessionHandoff;
 }
 
 export interface SessionsRevokedResult {
   success: true;
   count: number;
+  sessionHandoff?: SessionHandoff;
 }
 
 export interface SessionContext {
@@ -162,30 +182,62 @@ export async function revokeAllSessions(
   return { success: true, count: sessions.length };
 }
 
-/**
- * Signs out every session but the caller's, which stays signed in.
- *
- * @param user The signed-in user
- * @param sessions Session model and the caller's authorization header
- */
-export async function revokeOtherSessions(
+async function deleteOtherSessions(
   user: User,
-  { sessionModel, authorization }: SessionContext,
-): Promise<SessionsRevokedResult> {
-  const currentSessionId = extractSessionId(authorization);
+  sessionModel: SessionModel,
+  currentSessionId: string | undefined,
+): Promise<number> {
   const others = (await sessionModel.getByUserId(user._id)).filter(
     (session) => session._id !== currentSessionId,
   );
   for (const session of others) await sessionModel.delete(session._id);
-  return { success: true, count: others.length };
+  return others.length;
+}
+
+// The handoff takes the session's refresh slot: the refresh token the device
+// holds was signed with the old key and is dead anyway, and redeeming the
+// handoff rotates it out, so it serves once.
+async function handOffCurrentSession(
+  user: User,
+  { sessionModel, authorization }: SessionContext,
+): Promise<SessionHandoff | undefined> {
+  const { sessionId, tenantId } = extractSessionClaims(authorization);
+  if (!sessionId || !tenantId) return undefined;
+  const token = generateSessionHandoffToken(user, tenantId, sessionId);
+  await sessionModel.replaceRefreshToken(sessionId, token);
+  return { endpoint: SESSION_HANDOFF_ENDPOINT, payload: { token } };
 }
 
 /**
- * Changes the password once the current one is proven, optionally signing
- * out the other sessions.
+ * Signs out every session but the caller's: rotates the auth key, so every
+ * token issued so far stops verifying, deletes the other sessions, and hands
+ * the caller's session a way back in (`sessionHandoff`). Whatever else the
+ * caller changed on `user` is saved with the new key.
  *
  * @param user The signed-in user
- * @param body `{ currentPassword, password, signOutOtherSessions? }`
+ * @param context User model, session model and the caller's authorization header
+ */
+export async function revokeOtherSessions(
+  user: User,
+  context: PasswordChangeContext,
+): Promise<SessionsRevokedResult> {
+  user.authKey = generateAuthKey();
+  await context.userModel.update(user);
+  const count = await deleteOtherSessions(
+    user,
+    context.sessionModel,
+    extractSessionId(context.authorization),
+  );
+  const sessionHandoff = await handOffCurrentSession(user, context);
+  return { success: true, count, sessionHandoff };
+}
+
+/**
+ * Changes the password once the current one is proven and signs out every
+ * other session (see {@link revokeOtherSessions}).
+ *
+ * @param user The signed-in user
+ * @param body `{ currentPassword, password }`
  * @param context User model and the session context
  */
 export async function changePassword(
@@ -193,18 +245,14 @@ export async function changePassword(
   body: unknown,
   context: PasswordChangeContext,
 ): Promise<PasswordChangeResult> {
-  const { currentPassword, password, signOutOtherSessions } = assertValidation(
-    body,
-    (value) => securitySchema.changePassword.parse(value),
+  const { currentPassword, password } = assertValidation(body, (value) =>
+    securitySchema.changePassword.parse(value),
   );
   await assertCanSetPassword(context.userModel, user, currentPassword);
   const passwordChangedAt = new Date();
   user.password = password;
   user.passwordChangedAt = passwordChangedAt;
-  await context.userModel.update(user);
-  const revoked = signOutOtherSessions
-    ? await revokeOtherSessions(user, context)
-    : undefined;
+  const revoked = await revokeOtherSessions(user, context);
   fireAndForget(
     notifyPasswordChanged(user._id),
     "password change notification",
@@ -212,7 +260,8 @@ export async function changePassword(
   return {
     success: true,
     passwordChangedAt,
-    signedOutSessions: revoked?.count ?? 0,
+    signedOutSessions: revoked.count,
+    sessionHandoff: revoked.sessionHandoff,
   };
 }
 

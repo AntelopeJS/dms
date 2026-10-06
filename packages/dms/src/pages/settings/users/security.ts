@@ -170,10 +170,15 @@ export class SecuritySettingsController extends PageController("security", {
 
   @Delete("/other-sessions")
   revokeOtherSessions(
+    @Model(UserModel) userModel: UserModel,
     @Model(SessionModel) sessionModel: SessionModel,
     @Parameter("authorization", "header") authorization: string,
   ) {
-    return revokeOtherSessions(this.user, { sessionModel, authorization });
+    return revokeOtherSessions(this.user, {
+      userModel,
+      sessionModel,
+      authorization,
+    });
   }
 
   @Delete("/sessions/:id")

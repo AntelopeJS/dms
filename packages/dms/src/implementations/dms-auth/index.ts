@@ -19,6 +19,7 @@ import {
 } from "../../utils/admin-invite-email";
 import { isObject } from "@antelopejs/interface-dms/utils/type-check";
 import { recordUserActivity } from "../../utils/user-activity";
+import { generateSecret } from "./token-secret";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -73,12 +74,6 @@ const EmailValidationTemplate = RegisterHtmlTemplate<EmailValidationData>(
 
 const AdminInviteTemplate =
   RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
-
-function generateSecret(key: string) {
-  const secret = getAuthConfig().jwtSecret;
-  const session = 1;
-  return `${session}:${key}:${secret}`;
-}
 
 /**
  * Common validation logic for user tokens

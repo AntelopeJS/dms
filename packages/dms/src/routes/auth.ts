@@ -125,6 +125,11 @@ export class AuthController extends Controller("/api/auth") {
     );
   }
 
+  @Post("/session-handoff")
+  sessionHandoff(@JSONBody() body: unknown): Promise<AuthResponse> {
+    return authRoutes.redeemSessionHandoff(this.sessionModel, body);
+  }
+
   @Post("/request-2fa-email")
   request2FAEmail(@JSONBody() body: unknown) {
     return authRoutes.request2FAEmail(this.userModel, body);

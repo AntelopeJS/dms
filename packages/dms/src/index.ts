@@ -66,6 +66,7 @@ import {
 } from "./page-extensions/pending-report";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
+import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
 import { ensureDefaultTenantExists } from "./utils";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
 
@@ -235,6 +236,7 @@ async function registerDmsFrontend(): Promise<void> {
     name: "@antelopejs/dms-frontend-vue",
     sourcePath: path.join(__dirname, "../frontend-vue"),
     renderer: { name: "vue", version: "3" },
+    authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
   });
 }
 

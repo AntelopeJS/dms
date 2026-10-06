@@ -20,7 +20,6 @@ export const securitySchema = {
     // Optional only for an account that has no password yet (single sign-on).
     currentPassword: currentPasswordSchema.optional(),
     password: passwordSchema,
-    signOutOtherSessions: z.boolean().optional(),
   }),
   changeEmail: z.object({
     email: z.string().email(),

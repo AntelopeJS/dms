@@ -29,6 +29,9 @@ export const authSchema = {
   refresh: z.object({
     token: z.string(),
   }),
+  sessionHandoff: z.object({
+    token: z.string().min(1),
+  }),
   logout: z.object({
     token: z.string(),
   }),
