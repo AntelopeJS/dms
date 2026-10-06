@@ -29,6 +29,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
+import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
 import type {
   FormContainerPages,
   FormContainerPageTexts,
@@ -67,8 +68,8 @@ import {
   type InviteRoleOptions,
 } from "./member-role-options";
 import {
-  rememberMemberEdit,
-  rememberMemberRemovals,
+  announceMemberEdit,
+  announceMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -170,7 +171,11 @@ export async function assertNotLastPlatformOwnerOnDelete(
   );
 }
 
-async function guardMemberRemoval(tenantId: string, ids: string[]) {
+async function guardMemberRemoval(
+  ctx: RequestContext,
+  tenantId: string,
+  ids: string[],
+): Promise<AfterWrite> {
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const targets = await Promise.all(ids.map((id) => memberModel.get(id)));
   const tenantTargets = targets.filter((m): m is TenantMember => !!m);
@@ -195,7 +200,7 @@ async function guardMemberRemoval(tenantId: string, ids: string[]) {
     tenantId,
     userIds: excludedUserIds,
   });
-  rememberMemberRemovals(tenantId, tenantTargets);
+  return announceMemberRemovals(ctx, tenantId, tenantTargets);
 }
 
 const memberApiTarget = (action: string) =>
@@ -365,11 +370,10 @@ export const membersTable = TableView(memberSettingDataAPI, {
       const { isTenantOwner } = body as { isTenantOwner?: boolean };
       const tenantId = getRequestTenantId(ctx);
       await prepareOwnerChange(tenantId, currentRow, isTenantOwner);
-      rememberMemberEdit(tenantId, currentRow);
+      return announceMemberEdit(ctx, tenantId, currentRow);
     },
-    delete: async (ctx, { ids }) => {
-      await guardMemberRemoval(getRequestTenantId(ctx), ids);
-    },
+    delete: (ctx, { ids }) =>
+      guardMemberRemoval(ctx, getRequestTenantId(ctx), ids),
   },
 });
 

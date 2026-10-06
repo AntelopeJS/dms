@@ -1,14 +1,11 @@
 // Notifications about members someone else edited or removed through the
 // members table. Its guards run before the write and know the row as it was;
-// the realtime mutation listener runs once the write is done and knows who
-// made it. The guard leaves the row here, the listener picks it up.
+// the work they hand back runs once the write is done, in the same request.
 
+import type { RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import type {
-  RealtimeMutationContext,
-  RealtimeMutationEventType,
-  RealtimePresenceActor,
-} from "@antelopejs/interface-dms/base/table-view";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth";
+import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
 import {
   type TenantMember,
   TenantMemberModel,
@@ -21,70 +18,17 @@ import {
   notifyRolesChanged,
 } from "../../../utils/workspace-notifications";
 
-/** Data API of the members table, whose mutations the listener reads. */
-const MEMBERS_API_LOCATION = "/api/tables/members";
-/** A guard and the write it precedes run in one request; anything older is a write that failed. */
-const PENDING_TTL_MS = 60 * 1000;
-
-interface PendingChange {
-  tenantId: string;
-  member: TenantMember;
-  at: number;
-}
-
-const pendingEdits = new Map<string, PendingChange>();
-const pendingRemovals = new Map<string, PendingChange>();
-
-function remember(
-  pending: Map<string, PendingChange>,
-  tenantId: string,
-  member: TenantMember,
-): void {
-  const now = Date.now();
-  for (const [id, change] of pending) {
-    if (now - change.at > PENDING_TTL_MS) pending.delete(id);
-  }
-  pending.set(member._id, { tenantId, member, at: now });
-}
-
-function take(
-  pending: Map<string, PendingChange>,
-  memberId: string,
-): PendingChange | undefined {
-  const change = pending.get(memberId);
-  pending.delete(memberId);
-  if (!change || Date.now() - change.at > PENDING_TTL_MS) return undefined;
-  return change;
-}
-
-/** Called by the members table's edit guard, with the row before the edit. */
-export function rememberMemberEdit(
-  tenantId: string,
-  member: TenantMember,
-): void {
-  remember(pendingEdits, tenantId, member);
-}
-
-/** Called by the members table's delete guard, with the rows about to go. */
-export function rememberMemberRemovals(
-  tenantId: string,
-  members: readonly TenantMember[],
-): void {
-  for (const member of members) remember(pendingRemovals, tenantId, member);
-}
-
-function toActor(actor: RealtimePresenceActor): NotificationActor {
-  return { id: actor.id, name: actor.displayName || actor.id };
+async function requestActor(ctx: RequestContext): Promise<NotificationActor> {
+  const { user } = await authenticateRequestPrincipal(ctx);
+  return { id: user._id, name: user.name || user.email };
 }
 
 async function announceEdit(
-  memberId: string,
+  tenantId: string,
+  before: TenantMember,
   actor: NotificationActor,
 ): Promise<void> {
-  const pending = take(pendingEdits, memberId);
-  if (!pending) return;
-  const { tenantId, member: before } = pending;
-  const after = await GetModel(TenantMemberModel, tenantId).get(memberId);
+  const after = await GetModel(TenantMemberModel, tenantId).get(before._id);
   // Users changing their own membership know what they did.
   if (!after || after.userId === actor.id) return;
   if (!haveSameMembers(before.roleIds ?? [], after.roleIds ?? [])) {
@@ -102,39 +46,44 @@ async function announceEdit(
   }
 }
 
-async function announceRemoval(
-  memberId: string,
+async function announceRemovals(
+  tenantId: string,
+  members: readonly TenantMember[],
   actor: NotificationActor,
 ): Promise<void> {
-  const pending = take(pendingRemovals, memberId);
-  if (!pending) return;
-  const { tenantId, member } = pending;
-  if (await GetModel(TenantMemberModel, tenantId).get(memberId)) return;
-  await notifyMemberRemoved({ tenantId, removedUserId: member.userId, actor });
+  const model = GetModel(TenantMemberModel, tenantId);
+  for (const member of members) {
+    if (await model.get(member._id)) continue;
+    await notifyMemberRemoved({
+      tenantId,
+      removedUserId: member.userId,
+      actor,
+    });
+  }
 }
 
-const ANNOUNCERS: Partial<
-  Record<
-    RealtimeMutationEventType,
-    (memberId: string, actor: NotificationActor) => Promise<void>
-  >
-> = {
-  updated: announceEdit,
-  deleted: announceRemoval,
-};
+/**
+ * The members table's edit guard hands this back with the row before the
+ * edit: once the row is written, its member hears what changed.
+ */
+export async function announceMemberEdit(
+  ctx: RequestContext,
+  tenantId: string,
+  before: TenantMember,
+): Promise<AfterWrite> {
+  const actor = await requestActor(ctx);
+  return () => announceEdit(tenantId, before, actor);
+}
 
-/** Realtime mutation listener: notifies once the members table wrote. */
-export async function announceMemberMutation(
-  context: RealtimeMutationContext,
-): Promise<void> {
-  const announce = ANNOUNCERS[context.eventType];
-  if (
-    !announce ||
-    !context.actor ||
-    context.controllerLocation.replace(/\/+$/, "") !== MEMBERS_API_LOCATION
-  ) {
-    return;
-  }
-  const actor = toActor(context.actor);
-  for (const memberId of context.ids) await announce(memberId, actor);
+/**
+ * The members table's delete guard hands this back with the rows about to go:
+ * each member actually removed hears it.
+ */
+export async function announceMemberRemovals(
+  ctx: RequestContext,
+  tenantId: string,
+  members: readonly TenantMember[],
+): Promise<AfterWrite> {
+  const actor = await requestActor(ctx);
+  return () => announceRemovals(tenantId, members, actor);
 }

@@ -1,11 +1,9 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import { registerRealtimeMutationListener } from "@antelopejs/interface-dms/base/table-view";
 import {
   Hook,
   type InviteDeletedHookPayload,
   RegisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import { announceMemberMutation } from "../pages/settings/users/member-change-notifications";
 import {
   type NotifiedInviteOutcome,
   notifyInviteOutcome,
@@ -41,13 +39,12 @@ async function onInviteDeleted(
 }
 
 /**
- * Notifies inviters of their invitations' outcome and members of changes
- * other people made to their membership.
+ * Notifies inviters of their invitations' outcome. Members hear of changes
+ * other people made to their membership from the members table's guards.
  *
- * Called once per module generation, from `construct`; the hook and listener
- * registries release these with the generation.
+ * Called once per module generation, from `construct`; the hook registry
+ * releases it with the generation.
  */
 export function registerWorkspaceNotifications(): void {
   RegisterHook(Hook.INVITE_DELETED, onInviteDeleted);
-  registerRealtimeMutationListener(announceMemberMutation);
 }
