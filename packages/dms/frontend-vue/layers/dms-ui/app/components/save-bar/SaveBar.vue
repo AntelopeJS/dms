@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
 import { type FormKind, saveBarState } from "../../composables/form/formFooter";
+import DmsUnsavedStatus from "../../build/components/form/UnsavedStatus.vue";
 
 /**
  * `floating`: the v2 save bar, a card that sticks to the bottom of the panel
@@ -66,8 +67,6 @@ const SECONDARY_LABELS: Record<FormKind, string> = {
 const theme = tv({
   slots: {
     root: "flex items-center transition-[opacity,translate,visibility] duration-200 ease-out",
-    status: "text-muted flex min-w-0 items-center gap-2",
-    dot: "bg-warning size-[7px] shrink-0 rounded-full",
     actions: "ms-auto flex shrink-0 items-center gap-2",
   },
   variants: {
@@ -77,8 +76,6 @@ const theme = tv({
       },
       band: {
         root: "gap-2",
-        status: "text-[12.5px]",
-        dot: "ring-warning/15 ring-3",
       },
     },
     hidden: {
@@ -108,9 +105,13 @@ const ui = computed(() =>
 );
 const buttons = computed(() => BUTTONS[props.variant]);
 
-const changedFields = computed(() =>
-  props.changes.map((label) => processI18n(label)).join(", "),
-);
+// Empty while there is nothing to save: the hidden bar keeps its line.
+const statusText = computed(() => {
+  if (!props.dirty) return "";
+  const changed = props.changes.map((label) => processI18n(label)).join(", ");
+  const unsaved = t("dms.save_bar.unsaved");
+  return changed ? `${unsaved} · ${changed}` : unsaved;
+});
 const saveText = computed(() => {
   if (props.saving) return t("dms.save_bar.saving");
   return props.saveLabel
@@ -125,15 +126,11 @@ const saveText = computed(() => {
     :inert="state.isHidden || undefined"
     :aria-hidden="state.isHidden || undefined"
   >
-    <span v-if="state.showsStatus" :class="ui.status()" role="status">
-      <span :class="ui.dot()" />
-      <span class="truncate">
-        <template v-if="props.dirty">
-          {{ t("dms.save_bar.unsaved") }}
-          <template v-if="changedFields">· {{ changedFields }}</template>
-        </template>
-      </span>
-    </span>
+    <DmsUnsavedStatus
+      v-if="state.showsStatus"
+      :text="statusText"
+      :is-band="props.variant === 'band'"
+    />
     <div :class="ui.actions()">
       <UButton
         v-if="state.secondary === 'discard'"

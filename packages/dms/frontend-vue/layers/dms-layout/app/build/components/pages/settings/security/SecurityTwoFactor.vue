@@ -301,22 +301,16 @@ async function markSaved(): Promise<void> {
         aria-hidden="true"
         class="h-5 w-12 rounded-full"
       />
-      <span
+      <DmsStatusPill
         v-else
-        class="inline-flex h-5 items-center gap-1.5 rounded-full border px-2 text-[11px] font-semibold"
-        :class="
+        :tone="isOn ? 'success' : 'neutral'"
+        :label="
           isOn
-            ? 'border-success/35 bg-success/10 text-success'
-            : 'border-accented bg-elevated text-muted'
+            ? t('page.settings.security.on')
+            : t('page.settings.security.off')
         "
-      >
-        <span class="size-1.5 rounded-full bg-current" />
-        {{
-          isOn
-            ? t("page.settings.security.on")
-            : t("page.settings.security.off")
-        }}
-      </span>
+        size="sm"
+      />
     </template>
 
     <!-- One row built like the loaded ones (a title and its meta line). -->

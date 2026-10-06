@@ -201,14 +201,11 @@ onMounted(async () => {
             </span>
           </span>
           <span v-if="session.isCurrent">
-            <span
-              class="text-success inline-flex items-center gap-1.5 font-medium"
-            >
-              <span
-                class="ring-success/15 size-1.5 rounded-full bg-current ring-3"
-              />
-              {{ t("page.settings.security.sessions.active_now") }}
-            </span>
+            <DmsStatusPill
+              tone="success"
+              variant="text"
+              :label="t('page.settings.security.sessions.active_now')"
+            />
           </span>
           <span v-else>
             {{

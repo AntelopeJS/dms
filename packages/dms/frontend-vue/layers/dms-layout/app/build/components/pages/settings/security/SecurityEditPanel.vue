@@ -142,17 +142,11 @@ watch(isOpen, async (value, previous) => {
         <slot />
         <div class="col-span-full flex flex-wrap items-center gap-2.5">
           <slot name="footer" />
-          <span
+          <DmsUnsavedStatus
             v-if="isDirty"
-            class="text-muted inline-flex items-center gap-2 text-[12.5px]"
-            role="status"
-          >
-            <span
-              class="bg-warning ring-warning/15 size-[7px] shrink-0 rounded-full ring-3"
-              aria-hidden="true"
-            />
-            {{ t("dms.save_bar.unsaved") }}
-          </span>
+            :text="t('dms.save_bar.unsaved')"
+            is-band
+          />
           <div class="ms-auto flex items-center gap-2">
             <UButton
               color="neutral"
