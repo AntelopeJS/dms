@@ -3,10 +3,18 @@ import { computed, effectScope, ref, watch, type EffectScope } from "vue";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
 import {
   collectSubmitData,
+  createFieldValueComparer,
   useForm,
 } from "../layers/dms-ui/app/composables/form/useForm";
+import { sameRelationValue } from "../layers/dms-ui/app/build/composables/data-types/relationValue";
 
 const authFetch = vi.fn();
+const RELATION_TYPE = {
+  id: "relation",
+  isSameValue: sameRelationValue,
+};
+const getDataType = (type: string) =>
+  type === RELATION_TYPE.id ? RELATION_TYPE : undefined;
 let scope: EffectScope;
 
 const field = (id: string, type = "string") => ({ id, type });
@@ -18,12 +26,12 @@ const FIELDS = ["status", "notes", "owner"].map((id) => ({
 /** The row as it was loaded, before a colleague changed its status. */
 const LOADED_ROW = { status: "open", notes: "First call", owner: "ana" };
 
-function setupForm(submitUrlMethod?: HttpMethod) {
+function setupForm(submitUrlMethod?: HttpMethod, fields: unknown[] = FIELDS) {
   return scope.run(() =>
     useForm({
       componentId: "form-1",
       pageId: "page-1",
-      fields: FIELDS,
+      fields,
       fetchUrl: "/api/rows/get?id=row-1",
       submitUrl: "/api/rows/edit?id=row-1",
       submitUrlMethod,
@@ -55,7 +63,7 @@ beforeEach(() => {
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "Content-Language");
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  vi.stubGlobal("useDataTypes", () => ({ getDataType }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (key: string) => key,
     processApiMessage: (message: string) => message,
@@ -106,6 +114,40 @@ describe("collectSubmitData with onlyChanged", () => {
     ).toEqual({ tags: [] });
   });
 
+  it("leaves out a relation still referencing the rows it loaded", () => {
+    // The server sends the joined row, the picker holds its id.
+    const assignees = {
+      id: "assignees",
+      type: "relation",
+      component: { componentName: "DmsInputRelation", options: {} },
+    };
+    expect(
+      collectSubmitData(
+        { assignees: "u-1", notes: "Second" },
+        [assignees, field("notes")],
+        {
+          initialValues: {
+            assignees: { _id: "u-1", name: "Ann" },
+            notes: "First",
+          },
+          onlyChanged: true,
+          isSameValue: createFieldValueComparer(getDataType),
+        },
+      ),
+    ).toEqual({ notes: "Second" });
+  });
+
+  it("sends a relation pointing at another row", () => {
+    const assignees = { id: "assignees", type: "relation" };
+    expect(
+      collectSubmitData({ assignees: "u-2" }, [assignees], {
+        initialValues: { assignees: { _id: "u-1", name: "Ann" } },
+        onlyChanged: true,
+        isSameValue: createFieldValueComparer(getDataType),
+      }),
+    ).toEqual({ assignees: "u-2" });
+  });
+
   it("keeps the submit defaults", () => {
     expect(
       collectSubmitData({ status: "open" }, [field("status")], {
@@ -122,6 +164,27 @@ describe("DMS form submitting a loaded record", () => {
   // change made since the form loaded.
   it("sends only what the user changed when it updates the record", async () => {
     await editNotes(setupForm());
+    expect(sentBody()).toEqual({ notes: "Second call" });
+  });
+
+  it("leaves out a relation the user did not touch", async () => {
+    const assignees = {
+      id: "assignees",
+      label: "Assignees",
+      type: "relation",
+      component: {
+        componentName: "DmsInputRelation",
+        options: { keyMapping: { value: "_id" } },
+      },
+    };
+    const form = setupForm(undefined, [...FIELDS, assignees]);
+    form.initialValues.value = {
+      ...LOADED_ROW,
+      assignees: { _id: "u-1", name: "Ann" },
+    };
+    const edited = { ...LOADED_ROW, notes: "Second call", assignees: "u-1" };
+    Object.assign(form.state.value, edited);
+    await form.onSubmit({ data: edited } as never);
     expect(sentBody()).toEqual({ notes: "Second call" });
   });
 

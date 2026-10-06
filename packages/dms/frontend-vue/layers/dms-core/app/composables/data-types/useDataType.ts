@@ -25,10 +25,27 @@ export type DataTypeFormatter = (
  */
 export type BeforeStateMapper = (value: unknown, options?: unknown) => unknown;
 
+/**
+ * Whether two values of a data type are the same value, whatever shape each
+ * comes in: a form compares the value it loaded from the server with the one
+ * its control holds through it, to tell an edited field from an untouched one.
+ */
+export type DataTypeValueComparer = (
+  left: unknown,
+  right: unknown,
+  options?: unknown,
+) => boolean;
+
 export interface DataType {
   id: string;
   formatter?: RecordWithDefault<DataTypeFormatter>;
   beforeStateMapper?: BeforeStateMapper;
+  /**
+   * How two values of the type compare, for a type whose server value and
+   * form state differ in shape (a relation loaded as its row, held as its id)
+   * or whose order does not count. Without it, values compare deeply.
+   */
+  isSameValue?: DataTypeValueComparer;
   displayComponent?: Component;
 }
 const dataTypes: Record<string, DataType> = {};

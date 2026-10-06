@@ -6,6 +6,7 @@ import UBadge from "@nuxt/ui/components/Badge.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
 import { buildRelationBadges } from "./relationBadges";
+import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
 import {
   isSet,
   readRowField,
@@ -54,7 +55,6 @@ const LINK_CLASS =
   "flex items-center gap-1 truncate text-[13px] font-medium text-primary hover:text-primary/80";
 const LINK_ICON_CLASS = "size-3 text-primary/70 flex-shrink-0";
 const LINK_ICON_NAME = "i-ph-arrow-up-right-light";
-const DEFAULT_RELATION_VALUE_KEY = "_id";
 const DEFAULT_RELATION_LABEL_KEY = "name";
 const RELATION_BADGES_CLASS = "inline-flex flex-wrap items-center gap-1";
 const RELATION_BADGE_CLASS = "max-w-40";
@@ -348,29 +348,6 @@ function renderCascaderRelation(value: unknown, options: unknown) {
     searchUrl: opts?.searchUrl,
     keyMapping: opts?.keyMapping,
   });
-}
-
-function mapRelationBeforeState(value: unknown, options: unknown) {
-  if (!value) return value;
-
-  const opts = options as RelationOptions | undefined;
-  const valueKey = opts?.keyMapping?.value || DEFAULT_RELATION_VALUE_KEY;
-
-  if (typeof value === "string" || typeof value === "number") return value;
-
-  if (opts?.multiple && Array.isArray(value)) {
-    return value.map((item) =>
-      typeof item === "object" && item !== null
-        ? (item as Record<string, unknown>)[valueKey]
-        : item,
-    );
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return (value as Record<string, unknown>)[valueKey];
-  }
-
-  return value;
 }
 
 function toImageList(value: unknown): ImageItemValue[] {
@@ -856,6 +833,7 @@ const registerRelationType = (
         renderRelation(value, options),
     },
     beforeStateMapper: mapRelationBeforeState,
+    isSameValue: sameRelationValue,
   });
 };
 
@@ -869,6 +847,7 @@ const registerCascaderRelationType = (
         renderCascaderRelation(value, options),
     },
     beforeStateMapper: mapRelationBeforeState,
+    isSameValue: sameRelationValue,
   });
 };
 

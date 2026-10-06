@@ -224,6 +224,37 @@ export function clearedFieldValue(initial: unknown): FormFieldValue {
   return Array.isArray(initial) ? [] : null;
 }
 
+/** A field as `collectSubmitData` reads it. */
+export type SubmitField = Pick<FormField, "id" | "type" | "disabled"> &
+  Partial<Pick<FormField, "component">>;
+
+/** Whether a field holds the same value on both sides. */
+export type FieldValueComparer = (
+  field: SubmitField,
+  left: unknown,
+  right: unknown,
+) => boolean;
+
+/**
+ * Compares the values of a field as its data type does (see
+ * `DataType.isSameValue`), deeply by value for a type that does not say.
+ */
+export function createFieldValueComparer(
+  getDataType: (type: string) => DataType | undefined,
+): FieldValueComparer {
+  return (field, left, right) => {
+    const compare = field.type
+      ? getDataType(field.type)?.isSameValue
+      : undefined;
+    return compare
+      ? compare(left, right, field.component?.options)
+      : sameFormValue(left, right);
+  };
+}
+
+const defaultFieldValueComparer: FieldValueComparer = (_field, left, right) =>
+  sameFormValue(left, right);
+
 /** What `collectSubmitData` needs to know of the form besides its values. */
 export interface SubmitDataContext {
   /** The values the form loaded (or last saved, or its field defaults). */
@@ -237,6 +268,11 @@ export interface SubmitDataContext {
    * a loaded record must not write back a value someone else changed since.
    */
   onlyChanged?: boolean;
+  /**
+   * How a field's value compares with its initial one under `onlyChanged`
+   * (by default deeply, by value).
+   */
+  isSameValue?: FieldValueComparer;
 }
 
 /**
@@ -254,15 +290,16 @@ export interface SubmitDataContext {
  */
 export function collectSubmitData(
   data: Record<string, unknown>,
-  fields: ReadonlyArray<Pick<FormField, "id" | "type" | "disabled">>,
+  fields: ReadonlyArray<SubmitField>,
   context: SubmitDataContext = {},
 ): FormData {
   const fieldData: FormData = {};
+  const isSameValue = context.isSameValue ?? defaultFieldValueComparer;
 
   for (const field of fields) {
     const value = unref(data[field.id]) as FormFieldValue | undefined;
     const initial = context.initialValues?.[field.id];
-    if (context.onlyChanged && sameFormValue(value, initial)) continue;
+    if (context.onlyChanged && isSameValue(field, value, initial)) continue;
     if (value !== undefined) {
       fieldData[field.id] = value;
       continue;
@@ -455,6 +492,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const toast = useToast();
   const { $authFetch } = useAuthFetch();
   const { getDataType } = useDataTypes();
+  const isSameFieldValue = createFieldValueComparer(getDataType);
   const { processI18n, processApiMessage } = useTranslation();
   const route = useDmsRoute();
 
@@ -771,6 +809,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       submitDefaults: effectiveSubmitDefaults.value,
       disabled: disabledFields.value,
       onlyChanged: isRecordUpdate.value,
+      isSameValue: isSameFieldValue,
     });
 
     loading.value = true;
@@ -823,6 +862,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     loading,
     state,
     initialValues,
+    isSameFieldValue,
     validationSchema,
     onSubmit,
     submitChanges,

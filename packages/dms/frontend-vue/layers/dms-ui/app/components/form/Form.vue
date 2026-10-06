@@ -27,7 +27,6 @@ import {
 } from "#dms-core/app/composables/useFormValidation";
 import { validateFormState } from "../../build/composables/form/formValidation";
 import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
-import { sameFormValue } from "../../build/composables/unsaved-changes/formValue";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
 import { formSaveMode } from "../../build/composables/form/formFooter";
@@ -219,6 +218,7 @@ const {
   loading,
   state,
   initialValues,
+  isSameFieldValue,
   validationSchema,
   onSubmit: handleSubmit,
   submitChanges,
@@ -408,7 +408,11 @@ function discardChanges(): void {
 const changedFields = computed(() =>
   toValue(allFields).filter(
     (field) =>
-      !sameFormValue(state.value[field.id], formDirty.baseline.value[field.id]),
+      !isSameFieldValue(
+        field,
+        state.value[field.id],
+        formDirty.baseline.value[field.id],
+      ),
   ),
 );
 // Only a form someone can save has unsaved changes to speak of.
