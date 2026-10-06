@@ -123,6 +123,24 @@ describe("[integration] table view capabilities", () => {
     ).to.equal(1);
   });
 
+  it("refuses an edit clearing a mandatory field, naming it, and keeps the row", async () => {
+    const [invoice] = await list(client, "&filter_number=is:INV-4");
+    for (const cleared of [null, ""]) {
+      const response = await client.put(
+        `${LOCATION}/edit`,
+        { number: cleared, status: "open" },
+        { params: { id: invoice!._id } },
+      );
+      expect(response.status).to.equal(HTTP_BAD_REQUEST);
+      expect(JSON.stringify(response.data)).to.contain(
+        "Missing mandatory fields: number",
+      );
+    }
+    expect(
+      await countRawDocuments(COLLECTION, { number: "INV-4", status: "paid" }),
+    ).to.equal(1);
+  });
+
   it("refuses a summary no table view declared", async () => {
     const response = await client.get(`${LOCATION}/summary?ids=999`);
     expect(response.status).to.equal(HTTP_BAD_REQUEST);

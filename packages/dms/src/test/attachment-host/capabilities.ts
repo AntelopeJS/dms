@@ -12,6 +12,7 @@ import {
   Access,
   AccessMode,
   Listable,
+  Mandatory,
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
@@ -82,6 +83,7 @@ export class CapabilityInvoiceController extends DataController(
     type: new DefaultDataTypes.StringType(),
     filterable: true,
   })
+  @Mandatory("edit")
   @Access(AccessMode.ReadWrite)
   declare number: string;
 
