@@ -7,7 +7,11 @@ import type {
   ConfirmDialogSerialized,
 } from "./types/confirm-dialog";
 
-/** Whether a confirmation is worded by the server (`{ from }`). */
+/**
+ * Whether a confirmation is worded by the server (`{ from }`).
+ *
+ * @internal
+ */
 export function isConfirmFrom(
   confirm: ActionConfirm | ActionConfirmSerialized,
 ): confirm is ConfirmDialogFrom {
@@ -28,7 +32,11 @@ export function serializeConfirmDialog(
   return serialized;
 }
 
-/** An action's confirmation as its options carry it. */
+/**
+ * An action's confirmation as its options carry it.
+ *
+ * @internal
+ */
 export function serializeActionConfirm(
   confirm: ActionConfirm | undefined,
 ): ActionConfirmSerialized | undefined {

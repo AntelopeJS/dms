@@ -5,7 +5,11 @@ import { GetComponentPermissionIds } from "../../page";
 import { hasFileColumns } from "../helpers/file-refs";
 import { getTableViewMetaFor } from "./meta";
 
-/** Apply native staging and cleanup only after the route's write guards. */
+/**
+ * Apply native staging and cleanup only after the route's write guards.
+ *
+ * @internal
+ */
 export const withFilePromotion = (
   baseRoute: DataControllerCallback,
   mode: "save" | "delete" = "save",

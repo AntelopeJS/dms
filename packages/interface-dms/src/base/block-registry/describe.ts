@@ -113,6 +113,8 @@ function unwrap(schema: ZodTypeAny): UnwrapResult {
  * every one of those to `{}`. A value it cannot clone — a function, a class
  * instance — is not a describable default, and is passed through rather than
  * lost.
+ *
+ * @internal
  */
 export function cloneDefault<T>(value: T): T {
   if (typeof value !== "object" || value === null) {
@@ -248,7 +250,11 @@ const HANDLERS: Partial<Record<ZodFirstPartyTypeKind, Handler>> = {
   }),
 };
 
-/** Describe one option schema as a JSON-serializable shape. */
+/**
+ * Describe one option schema as a JSON-serializable shape.
+ *
+ * @internal
+ */
 export function describeSchema(
   schema: ZodTypeAny,
   depth = 0,
@@ -292,6 +298,8 @@ function describeShape(
 /**
  * Describe a block's whole options schema. A non-object schema yields an empty
  * record, since a block's options are always a plain object.
+ *
+ * @internal
  */
 export function describeOptions(
   schema?: ZodTypeAny,
@@ -307,7 +315,11 @@ export function describeOptions(
   return describeShape((def.shape as () => ZodRawShape)(), 0);
 }
 
-/** The default value of every option that declares one. */
+/**
+ * The default value of every option that declares one.
+ *
+ * @internal
+ */
 export function collectDefaults(
   described: Record<string, BlockOptionSchema>,
 ): Record<string, unknown> {

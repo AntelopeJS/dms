@@ -58,7 +58,11 @@ export function tableViewLink(
   return search ? `${path}?${search}` : path;
 }
 
-/** The views as the options carry them: their permission stays server-side. */
+/**
+ * The views as the options carry them: their permission stays server-side.
+ *
+ * @internal
+ */
 export function serializeTableViewViews(
   views: TableViewViewsOptions | undefined,
 ): TableViewViewsSerialized | undefined {
@@ -78,6 +82,8 @@ export function serializeTableViewViews(
 /**
  * The views served to one request: a view whose permission the caller lacks
  * is left out. A default view left out falls back to the table's own state.
+ *
+ * @internal
  */
 export async function resolveTableViewViews(
   permissions: Set<string>,

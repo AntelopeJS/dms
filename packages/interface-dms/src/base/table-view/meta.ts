@@ -553,12 +553,14 @@ export const Exported = MakeMethodAndPropertyDecorator(
   },
 );
 
+/** @internal */
 export const getTableViewMetaFor = (target: unknown): TableViewMeta =>
   GetMetadata(
     (target as { constructor: ControllerClass }).constructor,
     TableViewMeta,
   );
 
+/** @internal */
 export const getControllerLocation = (target: unknown): string =>
   GetMetadata(
     (target as { constructor: ControllerClass }).constructor,

@@ -29,12 +29,15 @@ export type IconTone = (typeof ICON_TONES)[number];
 /**
  * Former tone names still read in 0.4, with a warning: `accent` is `primary`,
  * `ok` is `success`. They go in 0.5.
+ *
+ * @internal
  */
 export const DEPRECATED_TONE_ALIASES = {
   accent: "primary",
   ok: "success",
 } as const satisfies Record<string, Tone>;
 
+/** @internal */
 export type DeprecatedToneAlias = keyof typeof DEPRECATED_TONE_ALIASES;
 
 const warnedAliases = new Set<string>();

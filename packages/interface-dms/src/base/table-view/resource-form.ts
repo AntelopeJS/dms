@@ -64,6 +64,8 @@ function formRoutes(
  * upload a form field hands out is claimed against that address, so a form
  * built before it is set cannot upload anything. Idempotent: whichever form or
  * table over the controller comes first sets the same value.
+ *
+ * @internal
  */
 export function stampAttachmentFields(
   meta: TableViewMeta,
@@ -86,6 +88,8 @@ export function stampAttachmentFields(
  *
  * `undefined` when no column has an input in that mode — a resource whose
  * every field is read-only has no edit form to offer.
+ *
+ * @internal
  */
 export function resourceForm<T extends ControllerClass>(
   controller: T,

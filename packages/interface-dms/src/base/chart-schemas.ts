@@ -439,7 +439,11 @@ const CHART_BLOCKS: ChartBlockDefinition[] = [
   },
 ];
 
-/** Every chart block type, in the order the palette lists them. */
+/**
+ * Every chart block type, in the order the palette lists them.
+ *
+ * @internal
+ */
 export const CHART_BLOCK_TYPES = CHART_BLOCKS.map((block) => block.type);
 
 for (const block of CHART_BLOCKS) {

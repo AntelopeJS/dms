@@ -32,7 +32,11 @@ export const Searchable = MakePropertyDecorator(
   },
 );
 
-/** Whether a controller declares `@Searchable` fields to search in. */
+/**
+ * Whether a controller declares `@Searchable` fields to search in.
+ *
+ * @internal
+ */
 export function hasSearchableFields(
   controller: new (...args: unknown[]) => unknown,
 ): boolean {

@@ -121,6 +121,8 @@ function measuredValues(points: SeriesPoint[]): number[] {
  * which is not the average over all the rows — the two differ whenever the groups
  * are not the same size, and computing the real one would mean a second query.
  * Said here because a card showing it should not imply otherwise.
+ *
+ * @internal
  */
 export function headline(
   points: SeriesPoint[],

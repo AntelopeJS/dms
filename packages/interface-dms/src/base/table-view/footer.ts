@@ -23,7 +23,11 @@ import type {
 
 const LEGEND_TYPE_ID = "select";
 
-/** The columns a row rule reads, nested rules included. */
+/**
+ * The columns a row rule reads, nested rules included.
+ *
+ * @internal
+ */
 export function ruleFields<T extends Record<string, unknown>>(
   rule: RowActionRule<T>,
 ): string[] {
@@ -61,6 +65,8 @@ function assertSummary<T extends Record<string, unknown>>(
  * The footer as it reaches the client: its summaries checked, recorded on
  * the controller and named by the id the `summary` route knows them by,
  * their `where` rule kept server-side. The legend must be a select column.
+ *
+ * @internal
  */
 export function serializeFooter<T extends Record<string, unknown>>(
   controllerName: string,
@@ -90,7 +96,11 @@ export function serializeFooter<T extends Record<string, unknown>>(
   };
 }
 
-/** The empty states as they reach the client, components serialized. */
+/**
+ * The empty states as they reach the client, components serialized.
+ *
+ * @internal
+ */
 export function serializeEmptyStates(
   emptyStates: TableViewEmptyStates | undefined,
 ): TableViewEmptyStatesSerialized | undefined {
@@ -114,6 +124,8 @@ const controllersWarnedForSummaries = new WeakSet<ControllerClass>();
  * Warn, once per controller, when a table view declares footer summaries but
  * its controller mounts no `GET summary` route: the footer could not read
  * them. The fix belongs in the controller (`summary: TableViewRoutes.Summary`).
+ *
+ * @internal
  */
 export function warnIfSummaryLacksRoute<T extends Record<string, unknown>>(
   controller: ControllerClass,

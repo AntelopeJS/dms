@@ -26,6 +26,7 @@ interface ActionValidationConfig {
   transformParams?: (params: unknown, eligibleIds: string[]) => unknown;
 }
 
+/** @internal */
 export const normalizeToArray = (value: string | string[]): string[] =>
   Array.isArray(value) ? value : [value];
 
@@ -86,6 +87,7 @@ const getValidationContext = (
   };
 };
 
+/** @internal */
 export const extractRuleFromConfig = (
   controllerRules: TableViewRowActionOptions | undefined,
   actionName: ValidatedActionName,
@@ -111,6 +113,7 @@ const handleNoEligibleIds = (
   return config.emptyResult;
 };
 
+/** @internal */
 export const createValidatedRoute = (
   baseRoute: DataControllerCallback,
   actionName: ValidatedActionName,

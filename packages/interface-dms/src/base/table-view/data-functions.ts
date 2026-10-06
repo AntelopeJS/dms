@@ -37,7 +37,11 @@ export const countWithSearch =
     ) => Promise<{ total: number }>
   >();
 
-/** The figures of a footer, by summary id. */
+/**
+ * The figures of a footer, by summary id.
+ *
+ * @internal
+ */
 export type FooterSummaryValues = Record<string, number>;
 
 /** @internal */
@@ -116,6 +120,7 @@ export const downloadExport =
     ) => void
   >();
 
+/** @internal */
 export type RowBulkOperationParams = [
   thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
   ctx: RequestContext,

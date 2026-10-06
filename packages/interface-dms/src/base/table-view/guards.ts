@@ -18,6 +18,7 @@ import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";
 
+/** @internal */
 export const parseGuardBody = (raw: unknown): Record<string, unknown> => {
   if (Buffer.isBuffer(raw)) return JSON.parse(raw.toString());
   if (typeof raw === "string" && raw.length > 0) return JSON.parse(raw);
@@ -97,6 +98,7 @@ const getGuardForAction = (
   return meta.controllerGuards?.[actionName] as GuardFn<any> | undefined;
 };
 
+/** @internal */
 export const guardedGetRoute = DefaultRoutes.WithGetGuard(
   async function (ctx, current, params) {
     await getGuardForAction(this, "get")?.call(this, ctx, {
@@ -127,6 +129,7 @@ async function runAfterWrite(
   }
 }
 
+/** @internal */
 export const createGuardedRoute = (
   baseRoute: DataControllerCallback,
   actionName: GuardedActionName,

@@ -150,7 +150,11 @@ export function formSchema(
   throw new Error("formSchema: unsupported source");
 }
 
-/** A form field as the client reads it: its data type reduced to an id. */
+/**
+ * A form field as the client reads it: its data type reduced to an id.
+ *
+ * @internal
+ */
 export function serializeFormField(field: FormField): FormFieldSerialized {
   const typeId = getDataTypeId(field.type) || "unknown";
 

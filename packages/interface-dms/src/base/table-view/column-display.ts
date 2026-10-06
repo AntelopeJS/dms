@@ -55,7 +55,11 @@ export const RegisterDisplay: (
   },
 );
 
-/** The id a display instance is registered under, if any. */
+/**
+ * The id a display instance is registered under, if any.
+ *
+ * @internal
+ */
 export function getColumnDisplayId(
   display: ColumnDisplay<object>,
 ): string | undefined {
@@ -66,6 +70,8 @@ export function getColumnDisplayId(
  * A column display as the column metadata carries it. Throws for a display
  * whose class was never registered: its cells would fall back to the column's
  * type without a word.
+ *
+ * @internal
  */
 export function serializeColumnDisplay(
   display: ColumnDisplay<object> | undefined,

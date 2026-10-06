@@ -5,7 +5,11 @@ import type {
   CustomButtonSerialized,
 } from "./types/custom-button";
 
-/** What a button served to one request carries of its availability. */
+/**
+ * What a button served to one request carries of its availability.
+ *
+ * @internal
+ */
 export type AvailabilityFields = Pick<
   CustomButtonSerialized,
   "id" | "label" | "disabled" | "disabledReason"
@@ -16,6 +20,8 @@ export type AvailabilityFields = Pick<
  * the request. A resolver that throws leaves the button enabled: the
  * operation behind it still refuses on its own, and failing the layout would
  * take the page down.
+ *
+ * @internal
  */
 export async function applyButtonAvailability<T extends AvailabilityFields>(
   availability: CustomButtonAvailability | undefined,

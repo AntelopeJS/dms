@@ -26,9 +26,13 @@ import { TableViewMeta } from "./meta";
  * the builder that declares it and the gate-bypass list below can never drift
  * apart — a rename that reached only two of the three would quietly take the
  * recovery surface down.
+ *
+ * @internal
  */
 export const VIEW_ACTION = "view";
+/** @internal */
 export const LIST_ACTION = "list";
+/** @internal */
 export const SELECT_ACTION = "select";
 
 /**
@@ -116,6 +120,7 @@ export async function authorizeAction(
   );
 }
 
+/** @internal */
 export function withActionCheck<T extends DataControllerCallback>(
   actionId: string,
   baseRoute: T,
@@ -135,6 +140,7 @@ export function withActionCheck<T extends DataControllerCallback>(
   };
 }
 
+/** @internal */
 export function withActionCheckOptions(
   actionId: string,
   baseRoute: DataControllerCallbackWithOptions,

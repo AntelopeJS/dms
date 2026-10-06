@@ -29,6 +29,7 @@ import { isNumber } from "../../utils/type-check";
 // neither side dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
+/** @internal */
 export function absolutizeJoinedSchemas(meta: DataAPIMeta): void {
   if (meta.schemaName == null) {
     return;

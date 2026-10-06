@@ -298,13 +298,21 @@ export type AnyChartProps =
   | RadialBarChartProps
   | HeatmapChartProps;
 
-/** Palette metadata for one chart type. */
+/**
+ * Palette metadata for one chart type.
+ *
+ * @internal
+ */
 export interface ChartTypeMeta {
   name: string;
   icon: string;
 }
 
-/** Palette name and icon for each chart type. */
+/**
+ * Palette name and icon for each chart type.
+ *
+ * @internal
+ */
 export const CHART_META_BY_TYPE: Record<ChartType, ChartTypeMeta> = {
   [ChartType.LINE]: { name: "Line Chart", icon: "i-ph-chart-line" },
   [ChartType.AREA]: { name: "Area Chart", icon: "i-ph-chart-line-up" },
@@ -327,7 +335,11 @@ export const CHART_META_BY_TYPE: Record<ChartType, ChartTypeMeta> = {
   [ChartType.CANDLESTICK]: { name: "Candlestick Chart", icon: "i-ph-flag" },
 };
 
-/** The frontend component every chart factory emits. */
+/**
+ * The frontend component every chart factory emits.
+ *
+ * @internal
+ */
 export const CHART_COMPONENT_NAME = "dms-chart";
 
 function normalizeChartTopics(topic: string | string[] | undefined): string[] {

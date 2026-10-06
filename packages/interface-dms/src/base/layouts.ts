@@ -15,6 +15,8 @@ import type {
  * One the layout declares (`DefaultLayout({ headerActions })`) carries its
  * `target`; one a component of the page places in the header (a table view's
  * `placement: "header"` button or add) names that component, which runs it.
+ *
+ * @internal
  */
 export interface PageHeaderButtonSerialized extends Omit<
   CustomButtonSerialized,
@@ -69,7 +71,11 @@ export interface DefaultLayoutOptions {
   headerActions?: CustomButton[];
 }
 
-/** The options a page layout serializes, its header buttons held as declared. */
+/**
+ * The options a page layout serializes, its header buttons held as declared.
+ *
+ * @internal
+ */
 export interface DefaultLayoutSerializedOptions extends Omit<
   DefaultLayoutOptions,
   "headerActions"

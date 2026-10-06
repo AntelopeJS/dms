@@ -104,7 +104,11 @@ function navBadgeSourceOf(
   };
 }
 
-/** Declares on `builder` the navigation badges of the tabs that publish one. */
+/**
+ * Declares on `builder` the navigation badges of the tabs that publish one.
+ *
+ * @internal
+ */
 export function declareTabNavBadges<T>(
   builder: ComponentBuilder<T>,
   tabs: TableViewTab[] | undefined,

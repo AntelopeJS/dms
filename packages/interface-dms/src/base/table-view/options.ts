@@ -25,7 +25,11 @@ import type {
 import type { ModalSize } from "../types/size";
 import type { TableViewSourceSerialized } from "./source";
 
-/** The frontend component `TableView` emits. */
+/**
+ * The frontend component `TableView` emits.
+ *
+ * @internal
+ */
 export const TABLE_VIEW_COMPONENT_NAME = "dms-table-view";
 
 export const DEFAULT_ROW_ID_FIELD = "_id";

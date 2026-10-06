@@ -9,7 +9,9 @@ import { OwnedRegistry } from "../../utils/owned-registry";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";
+/** @internal */
 export const REALTIME_PRESENCE_QUERY = "_presence";
+/** @internal */
 export const REALTIME_PRESENCE_ACQUIRE_VALUE = "1";
 const PARAMS_INDEX = 1;
 const BULK_IDS_ARG_INDEX = 1;
@@ -61,6 +63,8 @@ export function tableViewPresenceTopic(controllerLocation: string): string {
  * Bind the topics of the table view served at `controllerLocation` to the page
  * it is placed on. Called from the builder's `onCreated`, so the module whose
  * page it is owns them.
+ *
+ * @internal
  */
 export function registerTableViewPageTopics(
   pageId: string,
@@ -137,23 +141,27 @@ type IdExtractor = (
   idKey: string,
 ) => string[];
 
+/** @internal */
 export const extractFromResult: IdExtractor = (_args, result, idKey) => {
   if (!result || typeof result !== "object") return [];
   const value = (result as Record<string, unknown>)[idKey];
   return typeof value === "string" ? [value] : [];
 };
 
+/** @internal */
 export const extractSingleParamId: IdExtractor = (args) => {
   const params = args[PARAMS_INDEX] as { id?: string } | undefined;
   return params?.id ? [params.id] : [];
 };
 
+/** @internal */
 export const extractMultiParamId: IdExtractor = (args) => {
   const params = args[PARAMS_INDEX] as { id?: string | string[] } | undefined;
   if (!params?.id) return [];
   return Array.isArray(params.id) ? params.id : [params.id];
 };
 
+/** @internal */
 export const extractBulkArgIds: IdExtractor = (args) => {
   const ids = args[BULK_IDS_ARG_INDEX] as string | string[] | undefined;
   if (!ids) return [];
@@ -188,6 +196,7 @@ interface MutationConfig {
   extractIds: IdExtractor;
 }
 
+/** @internal */
 export function withRealtimeMutation<T extends DataControllerCallback>(
   config: MutationConfig,
   baseRoute: T,
@@ -226,6 +235,7 @@ export function withRealtimeMutation<T extends DataControllerCallback>(
   };
 }
 
+/** @internal */
 export function withPresenceAcquire<T extends DataControllerCallback>(
   baseRoute: T,
 ): DataControllerCallback {

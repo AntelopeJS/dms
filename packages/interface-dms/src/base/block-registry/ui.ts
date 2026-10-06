@@ -5,10 +5,16 @@ import type { BlockOptionUi } from "./types";
  * Hints live in a side table rather than in the schema, so validation and type
  * inference are untouched. `ui()`, the declaration side, lives in `./helpers`
  * with the other authoring helpers; reading them stays here.
+ *
+ * @internal
  */
 export const UI_HINTS = new WeakMap<ZodTypeAny, BlockOptionUi>();
 
-/** The hints attached to a schema node, if any. */
+/**
+ * The hints attached to a schema node, if any.
+ *
+ * @internal
+ */
 export function getUiHints(schema: ZodTypeAny): BlockOptionUi | undefined {
   return UI_HINTS.get(schema);
 }
@@ -16,6 +22,8 @@ export function getUiHints(schema: ZodTypeAny): BlockOptionUi | undefined {
 /**
  * Merge hints collected while unwrapping a schema. Outer wrappers
  * (`optional`, `default`) are visited first, so an inner hint wins.
+ *
+ * @internal
  */
 export function mergeUiHints(
   hints: Array<BlockOptionUi | undefined>,
