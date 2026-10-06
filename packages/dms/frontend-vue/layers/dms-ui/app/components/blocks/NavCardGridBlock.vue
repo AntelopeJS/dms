@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { gridColumnsTemplate } from "../grid/columns";
+import {
+  useCategoryNavCards,
+  usePreviewEntryVeil,
+} from "#dms-layout/app/build/composables/navigation/useCategoryNavCards";
 import { computed } from "vue";
 import DmsNavCard from "../card/NavCard.vue";
+import DmsPermissionVeil from "../permission/PermissionVeil.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockStatus, { type BlockEmptyText } from "./BlockStatus.vue";
 import { useBlockItems } from "../../composables/blocks/useBlockItems";
@@ -27,6 +32,11 @@ interface NavCardGridItem {
 
 interface NavCardGridBlockProps extends DefaultComponentProps {
   items?: NavCardGridItem[];
+  /**
+   * Full id of a category: a card per page of it the viewer can open, with
+   * its navigation badge, in place of `items` and `fetchUrl`.
+   */
+  categoryId?: string;
   /** Columns on wide screens (1–4); fewer on narrow ones. */
   columns?: number;
   /** Section title above the grid. */
@@ -45,6 +55,7 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
 
 const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   items: () => [],
+  categoryId: undefined,
   columns: 3,
   title: undefined,
   description: undefined,
@@ -62,7 +73,15 @@ const CARD_GAP = "0.75rem";
 
 const { processI18n } = useTranslation();
 
-const { items, isPending, hasError, refresh } = useBlockItems<NavCardGridItem>({
+const { cards: categoryCards } = useCategoryNavCards(() => props.categoryId);
+const veil = usePreviewEntryVeil();
+
+const {
+  items: blockItems,
+  isPending,
+  hasError,
+  refresh,
+} = useBlockItems<NavCardGridItem>({
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
@@ -85,6 +104,10 @@ const gridStyle = computed(() => ({
     MIN_CARD_WIDTH,
   ),
 }));
+
+const items = computed<NavCardGridItem[]>(() =>
+  props.categoryId ? categoryCards.value : blockItems.value,
+);
 
 const cards = computed(() =>
   items.value.map((item, index) => ({
@@ -144,20 +167,30 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
         </div>
       </template>
       <template v-else>
-        <DmsNavCard
+        <!-- A card leading to a page carries the role preview's veil, like
+             the page's entry in the navigation. -->
+        <DmsPermissionVeil
           v-for="card in cards"
           :key="card.key"
-          :to="card.to"
-          :icon="card.icon"
-          :icon-tone="card.iconTone"
-          :title="card.title"
-          :description="card.description"
-          :state="card.state"
-          :state-tone="card.stateTone"
-          :tag="card.tag"
-          :readout="card.readout"
-          :class="hasStates && 'gap-2.5'"
-        />
+          :state="props.categoryId && card.id ? veil.state(card.id) : null"
+          :label="card.id ? veil.label(card.id) : ''"
+          :detail="card.id ? veil.detail(card.id) : undefined"
+          :persistent="veil.isActive.value"
+        >
+          <DmsNavCard
+            class="h-full"
+            :to="card.to"
+            :icon="card.icon"
+            :icon-tone="card.iconTone"
+            :title="card.title"
+            :description="card.description"
+            :state="card.state"
+            :state-tone="card.stateTone"
+            :tag="card.tag"
+            :readout="card.readout"
+            :class="hasStates && 'gap-2.5'"
+          />
+        </DmsPermissionVeil>
       </template>
     </div>
   </section>

@@ -1,9 +1,4 @@
-import {
-  Context,
-  Get,
-  Parameter,
-  type RequestContext,
-} from "@antelopejs/interface-api";
+import { Context, Get, Parameter, type RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ActivityFeed } from "@antelopejs/interface-dms/base/activity-feed";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
@@ -14,13 +9,16 @@ import {
   type KeyValueListItem,
 } from "@antelopejs/interface-dms/base/key-value-list";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { RegisterPage, settingsCategory } from "@antelopejs/interface-dms/page";
+import { NavCardGrid } from "@antelopejs/interface-dms/base/nav-card-grid";
+import {
+  RegisterPage,
+  settingsCategory,
+  workspaceSettingsCategory,
+} from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { loadOverviewActivity } from "./overview/account-activity";
-import {
-  type BlockItems,
-  loadAccountSummary,
-} from "./overview/account-summary";
+import { type BlockItems, loadAccountSummary } from "./overview/account-summary";
+import { userCategory } from "./users/category";
 import { extractSessionId } from "./users/profile-helpers";
 
 const TEXTS = "$page.settings.overview";
@@ -34,7 +32,7 @@ const SUMMARY_COLUMN_WIDTH = "20rem";
 
 /**
  * The settings overview: the signed-in user's account and latest activity,
- * then a card per settings page they can open.
+ * then a card per settings page they can open, account then workspace.
  */
 @RegisterPage()
 export class SettingsIndexPage extends settingsCategory {
@@ -72,6 +70,18 @@ export class SettingsIndexPage extends settingsCategory {
         ),
     )
     .meta({ name: `${TEXTS}.your_account`, icon: "i-ph-user-circle" });
+
+  static accountPages = NavCardGrid({
+    title: userCategory.displayName,
+    description: userCategory.description,
+    category: userCategory,
+  }).meta({ name: userCategory.displayName, icon: "i-ph-user" });
+
+  static workspacePages = NavCardGrid({
+    title: workspaceSettingsCategory.displayName,
+    description: workspaceSettingsCategory.description,
+    category: workspaceSettingsCategory,
+  }).meta({ name: workspaceSettingsCategory.displayName, icon: "i-ph-buildings" });
 
   @AuthUserWithPermission(SettingsIndexPage)
   declare user: User;
