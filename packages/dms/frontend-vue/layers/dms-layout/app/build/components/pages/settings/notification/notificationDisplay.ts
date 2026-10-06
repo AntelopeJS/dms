@@ -1,3 +1,4 @@
+import { MONO_TAG_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import {
   formatShortDate,
   type RelativeDayBucket,
@@ -72,8 +73,7 @@ export const MATRIX_GRID_CLASS =
 export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[42px] @max-md/matrix:pl-0";
 
 /** v2 .cs-mod: the mono module / source tag. */
-export const SOURCE_TAG_CLASS =
-  "inline-flex h-[18px] items-center rounded-[4px] border border-accented px-1.5 font-mono text-[9.5px] font-semibold tracking-[0.08em] whitespace-nowrap text-muted uppercase";
+export const SOURCE_TAG_CLASS = `${MONO_TAG_CLASS} inline-flex h-[18px] items-center border border-accented whitespace-nowrap text-muted`;
 
 export const MODULE_TAG_CLASS =
   "border-(--dms-accent-line) bg-(--dms-accent-tint) text-primary";

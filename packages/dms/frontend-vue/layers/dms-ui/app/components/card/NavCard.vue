@@ -5,6 +5,7 @@ import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
 import type { DmsTone } from "../../utils/tone";
+import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 
 // Navigation tile (v2 .navcard): an icon well + title + description rendered
 // as a clickable card linking elsewhere (settings overview, a module's home),
@@ -53,8 +54,7 @@ const theme = tv({
   slots: {
     root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
     title: "text-highlighted min-w-0 truncate text-sm font-[650]",
-    tag:
-      "bg-elevated shrink-0 text-dimmed rounded-[4px] px-1.5 font-mono text-[9.5px] font-semibold tracking-[0.08em] uppercase",
+    tag: `${MONO_TAG_CLASS} bg-elevated shrink-0 text-dimmed`,
     arrow:
       "text-dimmed group-hover:text-primary ms-auto size-4 shrink-0 -translate-x-[3px] opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100",
     description: "text-muted text-[13px] leading-normal",
