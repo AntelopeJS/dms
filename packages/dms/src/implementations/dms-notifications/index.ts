@@ -5,6 +5,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type {
+  DeliveryOptions,
   NotificationCategoryInfo,
   NotificationData,
   NotificationSubjectInfo,
@@ -87,9 +88,9 @@ function isDeliverable(data: NotificationData, recipient: string): boolean {
 
 /**
  * Stores a delivery unless the same notification (recipient, title,
- * description, params and link) reached this user within the duplicate
- * window: in the window before, or in this one, where the database refuses
- * the second row.
+ * description, params, link, category, subject, tone and icon) reached this
+ * user within the duplicate window: in the window before, or in this one,
+ * where the database refuses the second row.
  */
 async function storeUnlessDuplicate(
   userId: string,
@@ -113,6 +114,36 @@ async function storeUnlessDuplicate(
     );
   }
   return created;
+}
+
+/** How one delivery is stored. */
+interface StoreOptions {
+  groupId?: string;
+  idempotencyKey?: string;
+  /** Drop a repeat within the duplicate window. */
+  dedupe: boolean;
+}
+
+// A keyed delivery is stored once per key already; any other is kept from
+// repeating itself within the duplicate window, unless the sender opted out.
+async function store(
+  userId: string,
+  data: NotificationData,
+  { groupId, idempotencyKey, dedupe }: StoreOptions,
+): Promise<UserNotification | undefined> {
+  const notificationsModel = GetModel(UserNotificationsModel);
+  if (idempotencyKey !== undefined) {
+    return notificationsModel.createIdempotently(
+      userId,
+      data,
+      idempotencyKey,
+      groupId,
+    );
+  }
+  if (dedupe) return storeUnlessDuplicate(userId, data, groupId);
+  return notificationsModel.create(
+    buildNewUserNotification(userId, data, groupId),
+  );
 }
 
 export async function publishAllNotificationsRead(
@@ -204,6 +235,7 @@ export namespace internal {
     data: NotificationData,
     groupId?: string,
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
     if (!isDeliverable(data, `"${userId}"`)) return;
 
@@ -217,17 +249,11 @@ export namespace internal {
       return;
     }
 
-    // A keyed delivery is stored once per key already; any other is kept
-    // from repeating itself within the duplicate window.
-    const created =
-      idempotencyKey !== undefined
-        ? await GetModel(UserNotificationsModel).createIdempotently(
-            userId,
-            data,
-            idempotencyKey,
-            groupId,
-          )
-        : await storeUnlessDuplicate(userId, data, groupId);
+    const created = await store(userId, data, {
+      groupId,
+      idempotencyKey,
+      dedupe: delivery.dedupe !== false,
+    });
 
     if (!created) return;
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {
@@ -240,22 +266,26 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
     if (!isDeliverable(data, `list of ${userIds.length}`)) return;
     const groupId = buildGroupId(readScope, idempotencyKey);
-    await sendToUsersWithGroupId(userIds, data, groupId, idempotencyKey);
+    await sendToUsersWithGroupId(userIds, data, {
+      groupId,
+      idempotencyKey,
+      dedupe: delivery.dedupe !== false,
+    });
   }
 
   async function sendToUsersWithGroupId(
     userIds: string[],
     data: NotificationData,
-    groupId: string | undefined,
-    idempotencyKey?: string,
+    { groupId, idempotencyKey, dedupe }: StoreOptions,
   ): Promise<void> {
     const uniqueUserIds = [...new Set(userIds)];
 
     await runInBatches(uniqueUserIds, NOTIFICATION_SEND_BATCH_SIZE, (userId) =>
-      SendToUser(userId, data, groupId, idempotencyKey),
+      SendToUser(userId, data, groupId, idempotencyKey, { dedupe }),
     );
   }
 
@@ -264,6 +294,7 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
     if (roleIds.length === 0 || !isDeliverable(data, "roles")) {
       return;
@@ -275,7 +306,7 @@ export namespace internal {
       return;
     }
 
-    await SendToUsers(userIds, data, readScope, idempotencyKey);
+    await SendToUsers(userIds, data, readScope, idempotencyKey, delivery);
   }
 
   async function collectUserIdsWithRoles(roleIds: string[]): Promise<string[]> {
@@ -302,6 +333,7 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
     if (!isDeliverable(data, "everyone")) return;
     const userModel = GetModel(UserModel);
@@ -314,8 +346,7 @@ export namespace internal {
       await sendToUsersWithGroupId(
         users.map((user) => user._id),
         data,
-        groupId,
-        idempotencyKey,
+        { groupId, idempotencyKey, dedupe: delivery.dedupe !== false },
       );
       if (users.length < NOTIFICATION_RECIPIENT_PAGE_SIZE) break;
       offset += NOTIFICATION_RECIPIENT_PAGE_SIZE;

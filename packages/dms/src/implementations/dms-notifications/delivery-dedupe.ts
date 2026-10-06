@@ -10,10 +10,14 @@ export const DUPLICATE_WINDOW_MS = 10 * 1000;
 
 const DUPLICATE_ID_PREFIX = "notification-recent:";
 
-/** What makes two deliveries the same notification. */
+/**
+ * What makes two deliveries the same notification: what it says, where it
+ * leads, what it is filed under and how it looks. Two notices worded alike
+ * but about different subjects are two notices.
+ */
 export type DuplicateIdentity = Pick<
   NotificationData,
-  "title" | "description" | "params" | "linkTo"
+  "title" | "description" | "params" | "linkTo" | "subject" | "tone" | "icon"
 >;
 
 /** The row ids a delivery is stored under, now and in the window before. */
@@ -47,6 +51,10 @@ function duplicateId(
     data.description,
     sortedParams(data.params),
     data.linkTo || null,
+    data.subject.category.id,
+    data.subject.id,
+    data.tone ?? null,
+    data.icon,
     window,
   ]);
   return `${DUPLICATE_ID_PREFIX}${createHash("sha256").update(identity).digest("hex")}`;

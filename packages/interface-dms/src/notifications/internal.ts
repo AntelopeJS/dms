@@ -3,6 +3,7 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import type {
+  DeliveryOptions,
   NotificationCategoryInfo,
   NotificationData,
   NotificationSubjectInfo,
@@ -34,6 +35,7 @@ export namespace internal {
         data: NotificationData,
         groupId?: string,
         idempotencyKey?: string,
+        delivery?: DeliveryOptions,
       ) => Promise<void>
     >();
 
@@ -44,6 +46,7 @@ export namespace internal {
         data: NotificationData,
         readScope?: ReadScope,
         idempotencyKey?: string,
+        delivery?: DeliveryOptions,
       ) => Promise<void>
     >();
 
@@ -54,6 +57,7 @@ export namespace internal {
         data: NotificationData,
         readScope?: ReadScope,
         idempotencyKey?: string,
+        delivery?: DeliveryOptions,
       ) => Promise<void>
     >();
 
@@ -63,6 +67,7 @@ export namespace internal {
         data: NotificationData,
         readScope?: ReadScope,
         idempotencyKey?: string,
+        delivery?: DeliveryOptions,
       ) => Promise<void>
     >();
 }

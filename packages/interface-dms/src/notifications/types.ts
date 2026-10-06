@@ -33,7 +33,20 @@ export interface NotificationSubjectInfo {
   badgeKey?: string;
 }
 
-export interface SendOptions {
+/** How a delivery is stored, whoever receives it. */
+export interface DeliveryOptions {
+  /**
+   * By default, a notification identical to one the same recipient received
+   * less than 10 seconds before is not stored again: a form submitted twice,
+   * a hook firing on every instance, a retried request. Identical means the
+   * same title, description, params, link, category, subject, tone and icon.
+   * `false` stores every send. A keyed send (`idempotencyKey`) is stored once
+   * per key either way.
+   */
+  dedupe?: boolean;
+}
+
+export interface SendOptions extends DeliveryOptions {
   readScope?: ReadScope;
   /** Stable event key, unique across notification producers. Retries preserve delivery and dismissal state. */
   idempotencyKey?: string;

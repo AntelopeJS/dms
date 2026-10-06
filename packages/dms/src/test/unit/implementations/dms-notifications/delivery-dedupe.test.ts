@@ -1,15 +1,25 @@
 import { expect } from "chai";
 import {
   DUPLICATE_WINDOW_MS,
+  type DuplicateIdentity,
   duplicateIds,
   isWithinDuplicateWindow,
 } from "../../../../implementations/dms-notifications/delivery-dedupe";
 
-const SIGN_IN = {
+const SECURITY = { id: "security", labelKey: "security", icon: "i-ph-lock" };
+const SIGN_IN_SUBJECT = {
+  id: "sign-in",
+  labelKey: "sign_in",
+  category: SECURITY,
+};
+const SIGN_IN: DuplicateIdentity = {
   title: "$dms.notifications.messages.new_login.title_browser_os",
   description: "$dms.notifications.messages.new_login.description",
-  params: { browser: "Firefox", os: "Windows", ip: "127.0.0.1" },
+  params: { browser: "Firefox", os: "Windows", country: "France" },
   linkTo: "/settings/user/security",
+  subject: SIGN_IN_SUBJECT,
+  tone: "warning",
+  icon: "i-ph-sign-in",
 };
 const WINDOW_START = new Date(
   1_700_000_000_000 - (1_700_000_000_000 % DUPLICATE_WINDOW_MS),
@@ -40,6 +50,25 @@ describe("[unit] implementations/dms-notifications/delivery-dedupe", () => {
     const later = duplicateIds("u1", SIGN_IN, at(HOUR_MS));
     expect([later.current, later.previous]).to.not.include(first.current);
     expect(isWithinDuplicateWindow(at(0), at(HOUR_MS))).to.equal(false);
+  });
+
+  it("tells apart a different category, subject, tone or icon", () => {
+    const id = duplicateIds("u1", SIGN_IN, at(0)).current;
+    const variants = [
+      {
+        ...SIGN_IN,
+        subject: {
+          ...SIGN_IN_SUBJECT,
+          category: { ...SECURITY, id: "account" },
+        },
+      },
+      { ...SIGN_IN, subject: { ...SIGN_IN_SUBJECT, id: "password" } },
+      { ...SIGN_IN, tone: "error" as const },
+      { ...SIGN_IN, icon: "i-ph-warning" },
+    ];
+    for (const variant of variants) {
+      expect(duplicateIds("u1", variant, at(0)).current).to.not.equal(id);
+    }
   });
 
   it("tells apart a different recipient, title, description, params or link", () => {
@@ -73,12 +102,18 @@ describe("[unit] implementations/dms-notifications/delivery-dedupe", () => {
   it("matches params whatever their key order, and no params with empty ones", () => {
     const reordered = {
       ...SIGN_IN,
-      params: { ip: "127.0.0.1", os: "Windows", browser: "Firefox" },
+      params: { country: "France", os: "Windows", browser: "Firefox" },
     };
     expect(duplicateIds("u1", reordered, at(0)).current).to.equal(
       duplicateIds("u1", SIGN_IN, at(0)).current,
     );
-    const plain = { title: "Plain", description: "Text", linkTo: "" };
+    const plain: DuplicateIdentity = {
+      ...SIGN_IN,
+      title: "Plain",
+      description: "Text",
+      linkTo: "",
+      params: undefined,
+    };
     expect(duplicateIds("u1", plain, at(0)).current).to.equal(
       duplicateIds("u1", { ...plain, params: {} }, at(0)).current,
     );

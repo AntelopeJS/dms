@@ -155,6 +155,29 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.equal((await model.getByUserId(USER)).length, 1);
   });
 
+  it("keeps a message worded alike but filed under another subject", async () => {
+    const otherSubject = { ...data.subject, id: "budget-forecast" };
+    internal.RegisterNotificationSubject.register(otherSubject);
+    try {
+      await sendable.toUser(USER);
+      await new SendableNotification({ ...data, subject: otherSubject }).toUser(
+        USER,
+      );
+      await new SendableNotification({ ...data, tone: "error" }).toUser(USER);
+      assert.equal((await model.getByUserId(USER)).length, 3);
+    } finally {
+      internal.RegisterNotificationSubject.unregister(otherSubject);
+    }
+  });
+
+  it("stores every send of a sender that turned deduplication off", async () => {
+    await sendable.toUser(USER, { dedupe: false });
+    await sendable.toUser(USER, { dedupe: false });
+    await sendable.toUsers([USER, OTHER_USER], { dedupe: false });
+    assert.equal((await model.getByUserId(USER)).length, 3);
+    assert.equal((await model.getByUserId(OTHER_USER)).length, 1);
+  });
+
   it("retains a dismissed receipt and excludes it from all visible reads", async () => {
     await sendable.toUsersIdempotently([USER], EVENT);
     const [row] = await model.getByUserId(USER);
