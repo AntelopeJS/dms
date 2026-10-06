@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { tv } from "tailwind-variants";
 import type { ButtonProps } from "@nuxt/ui";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 export type EmptyStateVariant = "no-data" | "no-result" | "no-access" | "error";
 export type EmptyStateSize = "sm" | "md" | "lg";
@@ -20,7 +20,7 @@ interface EmptyStateProps {
   /** Overrides the variant's icon. */
   icon?: string;
   /** Overrides the variant's well tone. */
-  tone?: DmsTone;
+  tone?: Tone;
   /** Hatched panel behind the content (table body, empty card) vs bare. */
   hatched?: boolean;
   /**
@@ -103,7 +103,7 @@ const theme = tv({
 
 const ui = computed(() => theme({ size: props.size, hatched: props.hatched }));
 const resolvedIcon = computed(() => props.icon ?? VARIANT_ICONS[props.variant]);
-const resolvedTone = computed<DmsTone>(
+const resolvedTone = computed<Tone>(
   () => props.tone ?? (props.variant === "error" ? "error" : "neutral"),
 );
 const hasDescription = computed(() => !!props.description || !!slots.default);

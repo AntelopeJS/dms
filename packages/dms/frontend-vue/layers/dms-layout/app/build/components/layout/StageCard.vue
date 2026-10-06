@@ -8,7 +8,7 @@ export type StageCardWidth = "default" | "wide" | "xwide";
 
 /** Color of the icon well above the title. */
 export type StageCardTone =
-  | "accent"
+  | "primary"
   | "success"
   | "warning"
   | "error"
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<StageCardProps>(), {
   eyebrow: undefined,
   icon: undefined,
   iconClass: undefined,
-  tone: "accent",
+  tone: "primary",
 });
 
 const WIDTH_CLASSES: Record<StageCardWidth, string> = {
@@ -63,7 +63,7 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
       <DmsEyebrow
         v-if="props.eyebrow"
         as="span"
-        tone="accent"
+        tone="primary"
         class="mb-2.5 block"
         :label="props.eyebrow"
       />

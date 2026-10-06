@@ -42,7 +42,7 @@ const KEY_VALUE_ITEMS = [
 ] as const;
 
 const SHORT_FACTS = [
-  { label: "Plan", value: "Pro", type: "status", tone: "accent" },
+  { label: "Plan", value: "Pro", type: "status", tone: "primary" },
   { label: "Seats", value: "8 / 10", type: "mono" },
   { label: "Renews", value: "2026-11-01", type: "date" },
   { label: "Monthly", value: 49, type: "money" },
@@ -85,7 +85,7 @@ const MODULE_STATS = [
     icon: "i-ph-squares-four",
     eyebrow: "Installed",
     value: 12,
-    tone: "accent",
+    tone: "primary",
   },
   {
     icon: "i-ph-arrow-circle-up",
@@ -130,7 +130,7 @@ const MODULE_STATS = [
           </DmsListRow>
           <DmsListRow
             icon="i-ph-device-mobile"
-            tone="accent"
+            tone="primary"
             title="Authenticator app"
             description="Codes from 1Password, Authy or Google Authenticator."
             :meta="['Added Sep 14', 'Last used today']"
@@ -178,7 +178,7 @@ const MODULE_STATS = [
           <DmsListRow
             size="sm"
             icon="i-ph-user-plus"
-            tone="accent"
+            tone="primary"
             icon-size="xs"
             title="Bruno joined the workspace"
             :meta="['Members', '5 min ago']"
@@ -262,7 +262,7 @@ const MODULE_STATS = [
         <div class="dms-card overflow-hidden">
           <DmsActivityItem
             icon="i-ph-rocket-launch"
-            icon-color="accent"
+            icon-color="primary"
             title="Billing module installed"
             subtitle="by Claire Lambert"
             trailing="10:42"

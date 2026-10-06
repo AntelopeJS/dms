@@ -127,7 +127,7 @@ onMounted(async () => {
       <div class="grid gap-5">
         <div class="flex flex-wrap items-center gap-3">
           <DmsIconWell icon="i-ph-flask" size="xl" />
-          <DmsStatusPill tone="accent" label="Playground" dot="live" />
+          <DmsStatusPill tone="primary" label="Playground" dot="live" />
         </div>
 
         <div class="grid gap-3">
@@ -214,7 +214,7 @@ onMounted(async () => {
             <DmsIconWell
               :icon="layer.icon"
               size="sm"
-              :tone="index === 1 ? 'accent' : 'neutral'"
+              :tone="index === 1 ? 'primary' : 'neutral'"
             />
             <div class="min-w-0">
               <p class="text-highlighted text-[13px] font-semibold">

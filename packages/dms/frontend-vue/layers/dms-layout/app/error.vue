@@ -17,7 +17,7 @@ const ERROR_CONFIGS: Record<number, ErrorConfig> = {
     icon: "i-ph-magnifying-glass",
     titleKey: "error.404.title",
     descriptionKey: "error.404.description",
-    tone: "accent",
+    tone: "primary",
   },
   401: {
     icon: "i-ph-lock-simple",

@@ -3,19 +3,19 @@ import type { ButtonProps } from "@nuxt/ui";
 import { tv } from "tailwind-variants";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 /** The pill at the card's top right ("Builder", "Local", "Legacy"). */
 export interface RecordCardBadge {
   label: string;
-  tone?: DmsTone;
+  tone?: Tone;
 }
 
 interface RecordCardProps {
   /** Icon drawn in a tinted well before the title. */
   icon?: string;
-  /** Tone of the icon well. Defaults to `accent`. */
-  tone?: DmsTone;
+  /** Tone of the icon well. Defaults to `primary`. */
+  tone?: Tone;
   title: string;
   /** Mono line under the title (a package, a slug, an order). */
   subtitle?: string;
@@ -49,7 +49,7 @@ interface RecordCardSlots {
 
 const props = withDefaults(defineProps<RecordCardProps>(), {
   icon: undefined,
-  tone: "accent",
+  tone: "primary",
   subtitle: undefined,
   badge: undefined,
   description: undefined,

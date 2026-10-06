@@ -4,21 +4,13 @@
 // The tints and lines come from the v2 tokens (--dms-*-tint / --dms-*-line,
 // both themes) wherever one exists.
 
-/**
- * The semantic tones, the `Tone` of interface-dms. `accent` is the former name
- * of `primary`, still accepted (a backend in 0.4 may send it).
- */
-export type DmsTone =
-  | "neutral"
-  | "primary"
-  | "accent"
-  | "secondary"
-  | "success"
-  | "warning"
-  | "error"
-  | "info";
+import type { Tone } from "../../types/tone";
 
-type CanonicalTone = Exclude<DmsTone, "accent">;
+/**
+ * A tone as a value may still carry it: `accent`, the former name of
+ * `primary`, folds onto it.
+ */
+export type DmsTone = Tone | "accent";
 
 const KNOWN_TONES = new Set<string>([
   "neutral",
@@ -37,12 +29,12 @@ export function isDmsTone(tone: string): tone is DmsTone {
 }
 
 /** Folds the former `accent` onto `primary`. */
-export function canonicalTone(tone: DmsTone): CanonicalTone {
+export function canonicalTone(tone: DmsTone): Tone {
   return tone === "accent" ? "primary" : tone;
 }
 
 /** v2 .icon-well: the tone tint with an inset 1px line of the same tone. */
-export const DMS_TONE_WELL: Record<CanonicalTone, string> = {
+export const DMS_TONE_WELL: Record<Tone, string> = {
   neutral: "bg-elevated text-muted ring-(--ui-border-accented)",
   primary: "bg-(--dms-accent-tint) text-primary ring-(--dms-accent-line)",
   secondary: "bg-secondary/10 text-secondary ring-secondary/35",
@@ -53,7 +45,7 @@ export const DMS_TONE_WELL: Record<CanonicalTone, string> = {
 };
 
 /** v2 .status: the tone text on a soft tint of it. */
-export const DMS_TONE_SOFT: Record<CanonicalTone, string> = {
+export const DMS_TONE_SOFT: Record<Tone, string> = {
   neutral: "bg-elevated text-muted",
   primary: "bg-(--dms-accent-tint) text-primary",
   secondary: "bg-secondary/12 text-secondary",
@@ -64,7 +56,7 @@ export const DMS_TONE_SOFT: Record<CanonicalTone, string> = {
 };
 
 /** Tone as a text color only. */
-export const DMS_TONE_TEXT: Record<CanonicalTone, string> = {
+export const DMS_TONE_TEXT: Record<Tone, string> = {
   neutral: "text-muted",
   primary: "text-primary",
   secondary: "text-secondary",
@@ -75,7 +67,7 @@ export const DMS_TONE_TEXT: Record<CanonicalTone, string> = {
 };
 
 /** Tone as a hairline border (outline pills). */
-export const DMS_TONE_OUTLINE: Record<CanonicalTone, string> = {
+export const DMS_TONE_OUTLINE: Record<Tone, string> = {
   neutral: "border-(--ui-border-accented)",
   primary: "border-(--dms-accent-line)",
   secondary: "border-secondary/35",

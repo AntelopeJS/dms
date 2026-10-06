@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ButtonProps } from "@nuxt/ui";
 import { buttonLinkProps } from "../../utils/link";
-import type { DmsTone } from "../../utils/tone";
+import type { Tone } from "../../../types/tone";
 
 /** A link button a block option declares (interface-dms `BlockLinkAction`). */
 export interface BlockAction {
@@ -10,7 +10,7 @@ export interface BlockAction {
   to: string;
   icon?: string;
   variant?: ButtonProps["variant"];
-  color?: DmsTone;
+  color?: Tone;
 }
 
 // The link buttons of a display block (empty state, banner, card head). One
@@ -21,7 +21,7 @@ interface BlockActionsProps {
   actions: BlockAction[];
   size?: ButtonProps["size"];
   leadVariant?: ButtonProps["variant"];
-  leadColor?: DmsTone;
+  leadColor?: Tone;
   /** Look of the other actions. */
   restVariant?: ButtonProps["variant"];
   /** Which action leads. */
@@ -54,8 +54,7 @@ function buttonVariant(
 }
 
 function buttonColor(action: BlockAction, index: number): ButtonProps["color"] {
-  const color = action.color ?? (isLead(index) ? props.leadColor : "neutral");
-  return (color === "accent" ? "primary" : color) as ButtonProps["color"];
+  return action.color ?? (isLead(index) ? props.leadColor : "neutral");
 }
 </script>
 

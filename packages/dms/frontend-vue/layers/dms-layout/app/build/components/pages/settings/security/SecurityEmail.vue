@@ -392,7 +392,7 @@ async function cancelChange(): Promise<void> {
         })
       "
       icon="i-ph-envelope-simple"
-      tone="accent"
+      tone="primary"
       :code-label="t('page.settings.security.email.code_label')"
       :confirm-label="t('page.settings.security.email.confirm')"
       :loading="isConfirming"

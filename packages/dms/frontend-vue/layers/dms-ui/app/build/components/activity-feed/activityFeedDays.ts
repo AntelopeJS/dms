@@ -3,13 +3,13 @@ import {
   regionalDayKey,
   regionalDayNumber,
 } from "#dms-core/app/utils/regional";
-import type { DmsTone } from "../../utils/tone";
+import type { Tone } from "../../../types/tone";
 
 /** One entry of an activity feed, as a page declares it or a source answers. */
 export interface ActivityFeedItem {
   id?: string;
   icon?: string;
-  tone?: DmsTone;
+  tone?: Tone;
   /** Title (i18n key with `$` or literal). */
   title: string;
   /** Dimmed details, joined by "·". */

@@ -13,7 +13,7 @@ import DmsBlockStatus, {
 } from "../../build/components/blocks/BlockStatus.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 // `NavCardGrid` block (interface-dms `base/nav-card-grid`): a responsive grid
@@ -27,7 +27,7 @@ interface NavCardGridItem {
   iconTone?: IconWellTone;
   to: string;
   state?: string;
-  stateTone?: DmsTone;
+  stateTone?: Tone;
   tag?: string;
   readout?: string[];
 }

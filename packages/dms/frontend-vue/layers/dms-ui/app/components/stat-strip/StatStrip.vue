@@ -3,11 +3,8 @@ import { computed } from "vue";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import {
-  DMS_TONE_TEXT,
-  canonicalTone,
-  type DmsTone,
-} from "../../build/utils/tone";
+import { DMS_TONE_TEXT, canonicalTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 export type StatStripLayout = "joined" | "cards";
 
@@ -28,7 +25,7 @@ export interface StatStripItem {
   /** One line under the value. */
   detail?: string;
   /** Tone of the detail line (`neutral` = muted text). */
-  detailTone?: DmsTone;
+  detailTone?: Tone;
   /** Route, `#anchor` or URL the whole cell links to. */
   to?: string;
 }
@@ -121,7 +118,7 @@ function keyOf(item: StatStripItem, index: number): string {
 }
 
 function wellTone(item: StatStripItem): IconWellTone {
-  return item.tone ?? (isJoined.value ? "muted" : "accent");
+  return item.tone ?? (isJoined.value ? "muted" : "primary");
 }
 
 function detailClass(item: StatStripItem): string {

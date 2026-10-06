@@ -188,7 +188,7 @@ onMounted(async () => {
         v-for="session in sessions"
         :key="session._id"
         :icon="deviceIcon(session)"
-        :tone="session.isCurrent ? 'accent' : 'muted'"
+        :tone="session.isCurrent ? 'primary' : 'muted'"
         :current="session.isCurrent"
       >
         {{ sessionName(session) }}

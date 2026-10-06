@@ -154,7 +154,7 @@ async function open(destination?: string) {
         >
           <DmsIconWell
             :icon="action.icon"
-            :tone="action.isExternal ? 'neutral' : 'accent'"
+            :tone="action.isExternal ? 'neutral' : 'primary'"
             size="sm"
           />
           <span class="min-w-0 flex-1">

@@ -17,7 +17,7 @@ interface SecurityPasswordModalProps {
 }
 
 const props = withDefaults(defineProps<SecurityPasswordModalProps>(), {
-  tone: "accent",
+  tone: "primary",
   loading: false,
 });
 

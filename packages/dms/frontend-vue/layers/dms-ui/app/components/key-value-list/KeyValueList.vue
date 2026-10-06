@@ -3,11 +3,8 @@ import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import {
-  DMS_TONE_TEXT,
-  canonicalTone,
-  type DmsTone,
-} from "../../build/utils/tone";
+import { DMS_TONE_TEXT, canonicalTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 /**
  * How a value is drawn: `text` plain, `status` a tinted pill, `money` a
@@ -32,7 +29,7 @@ export interface KeyValueItem {
   /** Route, `#anchor` or URL the value links to (any type). */
   to?: string;
   /** Text color (text, mono, money, date) or pill tone (status). */
-  tone?: DmsTone;
+  tone?: Tone;
   /** Dim note after the value ("Authenticator app"). */
   detail?: string;
   /** ISO 4217 code of a `money` value; overrides the list's `currency`. */

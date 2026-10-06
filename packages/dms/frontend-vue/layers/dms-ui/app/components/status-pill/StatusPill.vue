@@ -7,8 +7,8 @@ import {
   DMS_TONE_TEXT,
   canonicalTone,
   isDmsTone,
-  type DmsTone,
 } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 export type StatusPillDot = "none" | "static" | "live";
 export type StatusPillSize = "sm" | "md";
@@ -19,7 +19,7 @@ interface StatusPillProps {
    * Semantic tone, or any Nuxt UI color name (`--ui-<name>` must exist) for
    * statuses configured by the backend; unknown names get an inline tint.
    */
-  tone?: DmsTone | (string & {});
+  tone?: Tone | (string & {});
   /** Visible text (the default slot overrides it). */
   label?: string;
   /**

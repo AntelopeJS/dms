@@ -87,7 +87,7 @@ const ui = computed(() =>
         size="xs"
         class="flex-1"
         :value="props.coverage"
-        :tone="props.isLocked ? 'soft' : 'accent'"
+        :tone="props.isLocked ? 'soft' : 'primary'"
       />
       {{ props.summary }}
     </span>

@@ -1,5 +1,5 @@
 <script lang="ts">
-export type SecurityDialogTone = "accent" | "error" | "warning";
+export type SecurityDialogTone = "primary" | "error" | "warning";
 </script>
 
 <script setup lang="ts">
@@ -24,7 +24,7 @@ const CONFIRM_COLORS: Record<
   SecurityDialogTone,
   "primary" | "error" | "warning"
 > = {
-  accent: "primary",
+  primary: "primary",
   error: "error",
   warning: "warning",
 };

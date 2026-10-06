@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
 
-export type EyebrowTone = "dimmed" | "muted" | "accent" | "error";
+export type EyebrowTone = "dimmed" | "muted" | "primary" | "error";
 export type EyebrowSize = "xs" | "sm";
 
 interface EyebrowProps {
@@ -11,7 +11,7 @@ interface EyebrowProps {
   /** Text (the default slot overrides it). */
   label?: string;
   /**
-   * `dimmed` (v2 .eyebrow default), `muted` (card heads), `accent` (stage
+   * `dimmed` (v2 .eyebrow default), `muted` (card heads), `primary` (stage
    * kicker), `error` (danger zone).
    */
   tone?: EyebrowTone;
@@ -41,7 +41,7 @@ const theme = tv({
     tone: {
       dimmed: "text-dimmed",
       muted: "text-muted",
-      accent: "text-primary",
+      primary: "text-primary",
       error: "text-error",
     },
     size: {

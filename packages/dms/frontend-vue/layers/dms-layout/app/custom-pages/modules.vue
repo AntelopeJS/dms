@@ -8,7 +8,7 @@ import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsStatStrip, {
   type StatStripItem,
 } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
-import type { DmsTone } from "#dms-ui/app/build/utils/tone";
+import type { Tone } from "#dms-ui/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
@@ -286,7 +286,7 @@ const skeletonItems = Array.from(
 const SUMMARY_CARDS: Array<{
   key: keyof ReturnType<typeof summarizeModules>;
   icon: string;
-  tone: DmsTone;
+  tone: Tone;
 }> = [
   { key: "installed", icon: "i-ph-squares-four", tone: "primary" },
   { key: "updates", icon: "i-ph-arrow-circle-up", tone: "warning" },

@@ -4,12 +4,10 @@ import { tv } from "tailwind-variants";
 
 /**
  * Fill colors of a meter segment. `primary` is the brand fill, `soft` its
- * quieter line color (pending, reserved, locked); `accent` is the former name
- * of `primary`, still accepted.
+ * quieter line color (pending, reserved, locked).
  */
 export type MeterTone =
   | "primary"
-  | "accent"
   | "soft"
   | "neutral"
   | "secondary"
@@ -86,7 +84,6 @@ const PERCENT = 100;
 
 const FILL_CLASSES: Record<MeterTone, string> = {
   primary: "bg-(--dms-accent-fill)",
-  accent: "bg-(--dms-accent-fill)",
   soft: "bg-(--dms-accent-line)",
   neutral: "bg-(--ui-border-accented)",
   secondary: "bg-secondary",

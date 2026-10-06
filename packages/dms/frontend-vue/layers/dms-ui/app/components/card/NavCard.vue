@@ -4,7 +4,7 @@ import { tv } from "tailwind-variants";
 import DmsIconWell, { type IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
 
 // Navigation tile (v2 .navcard): an icon well + title + description rendered
@@ -29,7 +29,7 @@ interface NavCardProps {
   /** Live state of the target, in mono under the description ("3 unread"). */
   state?: string;
   /** Tone of the state line (`neutral` = dimmed). */
-  stateTone?: DmsTone;
+  stateTone?: Tone;
   /** The state is still loading: a placeholder holds its line. */
   statePending?: boolean;
   /** Small uppercase mono tag after the title (module tag: "SAAS"). */
@@ -42,7 +42,7 @@ defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(defineProps<NavCardProps>(), {
   description: undefined,
-  iconTone: "accent",
+  iconTone: "primary",
   state: undefined,
   stateTone: "neutral",
   tag: undefined,

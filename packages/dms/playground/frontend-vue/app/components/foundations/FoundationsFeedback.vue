@@ -45,7 +45,7 @@ const EMPTY_VARIANTS = [
 ] as const;
 
 const SEATS_SEGMENTS = [
-  { value: 6, tone: "accent", label: "6 members" },
+  { value: 6, tone: "primary", label: "6 members" },
   { value: 2, tone: "soft", label: "2 pending" },
   { value: 2, tone: "neutral", label: "2 free" },
 ] as const;
@@ -225,7 +225,7 @@ const STATUS_METRICS = [
           <DmsEmptyState
             size="lg"
             icon="i-ph-users-three"
-            tone="accent"
+            tone="primary"
             title="Invite your team"
             description="Members get their own sign-in and the roles you pick."
           >
@@ -290,7 +290,7 @@ const STATUS_METRICS = [
       <ShowcaseDemo label="size='xs' (4px) · 'sm' (6px) · 'md' (8px) · tone">
         <div class="grid gap-4">
           <DmsMeter :value="72" size="xs" tone="success" />
-          <DmsMeter :value="72" size="sm" tone="accent" />
+          <DmsMeter :value="72" size="sm" tone="primary" />
           <DmsMeter :value="72" size="md" tone="secondary" />
         </div>
       </ShowcaseDemo>

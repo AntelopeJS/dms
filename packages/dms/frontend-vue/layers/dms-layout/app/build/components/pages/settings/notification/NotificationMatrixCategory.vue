@@ -25,7 +25,7 @@ const { t } = useI18n();
 
 const label = computed(() => t(props.category.labelKey));
 const iconWellTone = computed(() =>
-  props.category.tagKey ? "accent" : "muted",
+  props.category.tagKey ? "primary" : "muted",
 );
 </script>
 

@@ -411,7 +411,7 @@ async function markSaved(): Promise<void> {
     <template v-else>
       <DmsFieldRow v-for="method in enabledMethods" :key="method.key">
         <template #label>
-          <DmsListRow bare :icon="method.icon" tone="accent">
+          <DmsListRow bare :icon="method.icon" tone="primary">
             {{ t(method.nameKey) }}
             <template #meta>
               <span>{{ t(method.metaKey, { email }) }}</span>

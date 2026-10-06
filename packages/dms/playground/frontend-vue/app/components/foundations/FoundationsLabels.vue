@@ -9,7 +9,7 @@ import ShowcaseSection from "./ShowcaseSection.vue";
 
 const TONES = [
   "neutral",
-  "accent",
+  "primary",
   "secondary",
   "success",
   "warning",
@@ -20,7 +20,7 @@ const WELL_TONES = [...TONES, "muted"] as const;
 const WELL_SIZES = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"] as const;
 const WELL_ICONS: Record<(typeof WELL_TONES)[number], string> = {
   neutral: "i-ph-tray",
-  accent: "i-ph-rocket-launch",
+  primary: "i-ph-rocket-launch",
   secondary: "i-ph-sparkle",
   success: "i-ph-check-circle",
   warning: "i-ph-warning",
@@ -30,7 +30,7 @@ const WELL_ICONS: Record<(typeof WELL_TONES)[number], string> = {
 };
 const PILL_LABELS: Record<(typeof TONES)[number], string> = {
   neutral: "Draft",
-  accent: "Active",
+  primary: "Active",
   secondary: "AI",
   success: "Paid",
   warning: "Pending",
@@ -38,7 +38,7 @@ const PILL_LABELS: Record<(typeof TONES)[number], string> = {
   info: "Synced",
 };
 const PILL_VARIANTS = ["soft", "outline", "text"] as const;
-const EYEBROW_TONES = ["dimmed", "muted", "accent", "error"] as const;
+const EYEBROW_TONES = ["dimmed", "muted", "primary", "error"] as const;
 
 const API_KEY = "ak_live_7f3c9e21b04d";
 const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
@@ -88,7 +88,7 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
         label="default slot (initials, glyph) · label='…' (accessible)"
       >
         <div class="flex flex-wrap items-center gap-3">
-          <DmsIconWell tone="accent" label="Claire Lambert">
+          <DmsIconWell tone="primary" label="Claire Lambert">
             <span class="text-[12px] font-semibold">CL</span>
           </DmsIconWell>
           <DmsIconWell tone="secondary" size="xl">
@@ -114,7 +114,6 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
             :tone="tone"
             :label="PILL_LABELS[tone]"
           />
-          <DmsStatusPill tone="primary" label="primary = accent" />
         </div>
       </ShowcaseDemo>
       <ShowcaseDemo label="dot='none' · 'static' · 'live'">
@@ -127,8 +126,8 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
       </ShowcaseDemo>
       <ShowcaseDemo label="size='sm' (20px) · size='md' (22px)">
         <div class="flex flex-wrap items-center gap-2">
-          <DmsStatusPill tone="accent" size="sm" label="Small" />
-          <DmsStatusPill tone="accent" size="md" label="Medium" />
+          <DmsStatusPill tone="primary" size="sm" label="Small" />
+          <DmsStatusPill tone="primary" size="md" label="Medium" />
           <DmsStatusPill
             tone="warning"
             size="sm"
@@ -176,7 +175,7 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
       </ShowcaseDemo>
       <ShowcaseDemo label=":mono='false' · uppercase">
         <div class="flex flex-wrap items-center gap-2">
-          <DmsStatusPill tone="accent" :mono="false" label="Sans label" />
+          <DmsStatusPill tone="primary" :mono="false" label="Sans label" />
           <DmsStatusPill tone="neutral" uppercase label="Installed" />
           <DmsStatusPill
             tone="success"
@@ -193,7 +192,7 @@ const COPY_LABEL = `DmsCopyButton value='${API_KEY}'`;
       title="DmsEyebrow"
       description="The v2 signature label: mono, uppercase and tracked."
     >
-      <ShowcaseDemo label="tone='dimmed' · 'muted' · 'accent' · 'error'">
+      <ShowcaseDemo label="tone='dimmed' · 'muted' · 'primary' · 'error'">
         <div class="grid gap-2">
           <DmsEyebrow
             v-for="tone in EYEBROW_TONES"

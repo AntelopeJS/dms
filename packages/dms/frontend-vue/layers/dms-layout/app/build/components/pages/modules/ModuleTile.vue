@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
 import { DmsLink } from "#dms/frontend-module";
-import type { DmsTone } from "#dms-ui/app/build/utils/tone";
+import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
 
 // v2 .mc-tile, the frame of the Modules page's tiles: an installed module's
@@ -11,7 +11,7 @@ import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPil
 
 /** The status pill of the tile's head. */
 export interface ModuleTileStatus {
-  tone: DmsTone;
+  tone: Tone;
   label: string;
   dot?: StatusPillDot;
 }

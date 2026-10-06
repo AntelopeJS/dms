@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<StepMetaProps>(), {
   >
     <DmsEyebrow
       as="span"
-      tone="accent"
+      tone="primary"
       :label="
         $t('page.onboarding.steps.eyebrow', {
           step: props.step,

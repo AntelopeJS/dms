@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
-import type { DmsTone } from "#dms-ui/app/build/utils/tone";
+import type { Tone } from "#dms-ui/app/types/tone";
 import type {
   CheckListItem,
   CheckListState,
@@ -23,7 +23,7 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 // v2 .module-tile__state: a mono uppercase pill with a leading dot.
-const STATUS_TONES: Record<ModuleStatus, DmsTone> = {
+const STATUS_TONES: Record<ModuleStatus, Tone> = {
   live: "success",
   beta: "secondary",
   update: "warning",

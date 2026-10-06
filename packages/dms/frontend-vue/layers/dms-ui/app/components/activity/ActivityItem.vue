@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import DmsListRow from "../list-row/ListRow.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 // DMS activity / feed / history row (v2 .activity): the feed preset of
 // DmsListRow — a 30px tinted well, a one-line title, a dimmed subtitle and a
@@ -11,7 +11,7 @@ import type { DmsTone } from "../../build/utils/tone";
 interface Props {
   icon?: string;
   /** Well tone (v2 .activity.is-*). */
-  iconColor?: DmsTone;
+  iconColor?: Tone;
   title?: string;
   subtitle?: string;
   /** Trailing meta, usually the time. */

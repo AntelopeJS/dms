@@ -7,7 +7,7 @@ import DmsEmptyState, {
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
-import type { DmsTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
@@ -20,7 +20,7 @@ interface EmptyStateBlockProps extends Partial<DefaultComponentProps> {
   description?: string;
   variant?: EmptyStateVariant;
   icon?: string;
-  tone?: DmsTone;
+  tone?: Tone;
   /** Hatched panel behind the content. */
   hatched?: boolean;
   size?: EmptyStateSize;

@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { tv } from "tailwind-variants";
-import {
-  DMS_TONE_WELL,
-  canonicalTone,
-  type DmsTone,
-} from "../../build/utils/tone";
+import { DMS_TONE_WELL, canonicalTone } from "../../build/utils/tone";
+import type { Tone } from "../../types/tone";
 
 export type IconWellSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 /**
  * The semantic tones plus `muted`, the quiet v2 .cs-rowicon (muted surface,
  * default border) used for settings rows and read notifications.
  */
-export type IconWellTone = DmsTone | "muted";
+export type IconWellTone = Tone | "muted";
 
 interface IconWellProps {
   /** Iconify name (`i-ph-…`). Omit it to fill the well with the default slot. */
   icon?: string;
   /**
-   * Tint, icon color and inset line. `primary` is an alias of `accent`;
-   * `neutral` is the raised v2 empty-state well, `muted` the quiet row icon.
+   * Tint, icon color and inset line. `neutral` is the raised v2 empty-state
+   * well, `muted` the quiet row icon.
    */
   tone?: IconWellTone;
   /**
@@ -40,7 +37,7 @@ interface IconWellSlots {
 
 const props = withDefaults(defineProps<IconWellProps>(), {
   icon: undefined,
-  tone: "accent",
+  tone: "primary",
   size: "lg",
   label: undefined,
 });
