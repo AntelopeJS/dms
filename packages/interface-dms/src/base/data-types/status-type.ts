@@ -1,3 +1,4 @@
+import type { ComponentInfoSerialized } from "../../component";
 import { z } from "zod";
 import { FormComponents } from "../form-schema";
 import { DataType, RegisterDataType } from "./core";
@@ -32,7 +33,7 @@ export class StatusType extends DataType {
   }
 
   protected defaultInputComponent() {
-    const component = FormComponents.InputCheckbox();
+    const component: ComponentInfoSerialized = FormComponents.InputCheckbox();
     component.options = this.options;
     return component;
   }

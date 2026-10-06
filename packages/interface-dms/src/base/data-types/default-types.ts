@@ -36,10 +36,29 @@ import type { FormContainerPageTexts } from "../table-view/options";
 import type { TreeNode } from "../tree";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
+import * as FieldTypes from "./field-types";
 import {
   absolutizeJoinedSchemas,
   DefaultDataCompareTypes,
 } from "./compare-types";
+/** How a `SelectType` shows its options. */
+export const SELECT_DISPLAYS = [
+  "dropdown",
+  "cards",
+  "segmented",
+  "radio",
+] as const;
+
+export type SelectDisplay = (typeof SELECT_DISPLAYS)[number];
+
+/** How a `BooleanType` shows its value. */
+export const BOOLEAN_DISPLAYS = ["switch", "checkbox", "card"] as const;
+
+export type BooleanDisplay = (typeof BOOLEAN_DISPLAYS)[number];
+
+// Displays picking one value only: a select picking several shows cards.
+const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>(["segmented", "radio"]);
+
 export namespace DefaultDataTypes {
   export type NumberTypeOptions = {
     min?: number;
@@ -55,6 +74,11 @@ export namespace DefaultDataTypes {
     minLength?: number;
     textarea?: boolean;
     rows?: number;
+    /**
+     * A value to read and copy, not to edit (a webhook URL): shown read-only
+     * with a copy button.
+     */
+    copyable?: boolean;
     fallback?: string;
   };
 
@@ -71,6 +95,19 @@ export namespace DefaultDataTypes {
   };
 
   export type BooleanTypeOptions = {
+    /**
+     * `switch` (default), `checkbox` (required, it must be ticked: an
+     * agreement), or `card`: a bordered row with an icon, a title (`label`)
+     * and a text (`description`), for a choice that deserves more than a bare
+     * switch.
+     */
+    display?: BooleanDisplay;
+    /** Icon of the card. */
+    icon?: string;
+    /** Text beside the switch or the box, or the card's title. */
+    label?: string;
+    /** Text under the label, in the control. */
+    description?: string;
     fallback?: string;
   };
 
@@ -79,6 +116,13 @@ export namespace DefaultDataTypes {
     placeholder?: string;
     multiple?: boolean;
     deselectable?: boolean;
+    /**
+     * `dropdown` (default); `cards`, a card per option with its `description`
+     * (one or several picked); `segmented`, the options side by side; `radio`,
+     * a list of radio buttons. `segmented` and `radio` pick one: a `multiple`
+     * select shows cards instead.
+     */
+    display?: SelectDisplay;
     fallback?: string;
   };
 
@@ -196,6 +240,20 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
+      if (this.options.copyable) {
+        return FormComponents.InputCopyableText({
+          placeholder: this.options.placeholder,
+        });
+      }
+      return this.editableInputComponent();
+    }
+
+    // A filter is typed in, even on a value the form only shows.
+    override filterComponents() {
+      return { default: this.editableInputComponent() };
+    }
+
+    private editableInputComponent() {
       if (this.options.textarea) {
         return FormComponents.InputTextarea({
           placeholder: this.options.placeholder,
@@ -446,7 +504,14 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return FormComponents.InputSwitch();
+      const { display, icon, label, description } = this.options;
+      if (display === "card") {
+        return FormComponents.InputBooleanCard({ icon, label, description });
+      }
+      if (display === "checkbox") {
+        return FormComponents.InputCheckbox({ label, description });
+      }
+      return FormComponents.InputSwitch({ label, description });
     }
 
     override filterComponents() {
@@ -491,7 +556,30 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return FormComponents.InputSelect(this.options);
+      const { display, ...options } = this.options;
+      const shown =
+        options.multiple && display && SINGLE_PICK_DISPLAYS.has(display)
+          ? "cards"
+          : display;
+      if (shown === "cards") {
+        return FormComponents.InputChoiceCards({
+          items: options.items,
+          multiple: options.multiple,
+        });
+      }
+      if (shown === "segmented") {
+        return FormComponents.InputSegmentedSelect({ items: options.items });
+      }
+      if (shown === "radio") {
+        return FormComponents.InputRadioGroup({ items: options.items });
+      }
+      return FormComponents.InputSelect(options);
+    }
+
+    // A filter picks from a dropdown, whatever the form shows.
+    override filterComponents() {
+      const { display: _display, ...options } = this.options;
+      return { default: FormComponents.InputSelect(options) };
     }
 
     getValidation() {
@@ -1348,4 +1436,21 @@ export namespace DefaultDataTypes {
       });
     }
   }
+
+  // The field types of `field-types.ts`, under the namespace modules use.
+  export const ArrayType = FieldTypes.ArrayType;
+  export type ArrayType = FieldTypes.ArrayType;
+  export type ArrayTypeOptions = FieldTypes.ArrayTypeOptions;
+  export const KeyValueType = FieldTypes.KeyValueType;
+  export type KeyValueType = FieldTypes.KeyValueType;
+  export type KeyValueTypeOptions = FieldTypes.KeyValueTypeOptions;
+  export const SecretType = FieldTypes.SecretType;
+  export type SecretType = FieldTypes.SecretType;
+  export type SecretTypeOptions = FieldTypes.SecretTypeOptions;
+  export const CodeType = FieldTypes.CodeType;
+  export type CodeType = FieldTypes.CodeType;
+  export type CodeTypeOptions = FieldTypes.CodeTypeOptions;
+  export const TagsType = FieldTypes.TagsType;
+  export type TagsType = FieldTypes.TagsType;
+  export type TagsTypeOptions = FieldTypes.TagsTypeOptions;
 }

@@ -407,7 +407,8 @@
       "code_incomplete": "Saisissez tous les chiffres du code.",
       "password_rules": "Le mot de passe ne respecte pas toutes les règles.",
       "invalid_duration": "Saisissez une durée comme 1h30m ou 01:30.",
-      "range_incomplete": "Choisissez aussi la fin de la période."
+      "range_incomplete": "Choisissez aussi la fin de la période.",
+      "invalid_json": "Ce JSON n’est pas valide."
     },
     "confirm": {
       "confirm": "Confirmer",

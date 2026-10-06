@@ -227,10 +227,104 @@ export namespace FormComponents {
   export interface SelectOption {
     label: string;
     value: string | number;
+    /** A line under the label, where the display shows one (cards, radio). */
+    description?: string;
     disabled?: boolean;
     icon?: string;
     iconColor?: string;
     textColor?: string;
+  }
+
+  /** The text a boolean control shows beside it, or a card's title and body. */
+  export interface BooleanControlOptions {
+    label?: string;
+    description?: string;
+  }
+
+  export interface BooleanCardOptions extends BooleanControlOptions {
+    icon?: string;
+  }
+
+  export interface ChoiceCardsOptions {
+    items: SelectOption[];
+    multiple?: boolean;
+  }
+
+  export interface SegmentedSelectOptions {
+    items: SelectOption[];
+  }
+
+  /** A field of the rows a repeater edits: one column. */
+  export interface RepeaterColumn {
+    id: string;
+    /** Eyebrow header of the column. */
+    label?: string;
+    /** Data type id of the field. */
+    type?: string;
+    component: ComponentInfoSerialized;
+    required?: boolean;
+  }
+
+  export interface RepeaterOptions {
+    columns: RepeaterColumn[];
+    /** Rows reordered by a drag handle. */
+    sortable?: boolean;
+    min?: number;
+    max?: number;
+    /** Label of the "+ Add …" button (i18n key or literal). */
+    addLabel?: string;
+  }
+
+  /** The value column of a key-value editor. */
+  export interface KeyValueColumn {
+    type?: string;
+    component: ComponentInfoSerialized;
+  }
+
+  export interface KeyValueOptions {
+    value: KeyValueColumn;
+    /** Each pair has a box turning it on or off. */
+    toggleable?: boolean;
+    addLabel?: string;
+    keyLabel?: string;
+    valueLabel?: string;
+  }
+
+  export interface SecretOptions {
+    revealable?: boolean;
+    copyable?: boolean;
+    /** POSTed (after a confirmation) to get a new value, `{ value }`. */
+    rotateUrl?: string;
+    placeholder?: string;
+  }
+
+  export interface CopyableTextOptions {
+    placeholder?: string;
+  }
+
+  /** A suggestion of a code editor's autocomplete. */
+  export interface CodeCompletion {
+    label: string;
+    detail?: string;
+    icon?: string;
+  }
+
+  export interface CodeOptions {
+    language: string;
+    lineNumbers?: boolean;
+    minLines?: number;
+    maxLines?: number;
+    /** GET, answering `{ items: CodeCompletion[] }` or a list of them. */
+    completionsUrl?: string;
+    completions?: CodeCompletion[];
+    placeholder?: string;
+  }
+
+  export interface TagsOptions {
+    itemType?: string;
+    max?: number;
+    suggestions?: string[];
+    placeholder?: string;
   }
 
   export interface InputEmailOptions {
@@ -418,8 +512,93 @@ export namespace FormComponents {
     resize?: ImageResizeOptions;
   }
 
-  export function InputCheckbox(): ComponentInfoSerialized {
-    return new ComponentBuilder<undefined>("dms-checkbox").serializeSync();
+  export function InputCheckbox(
+    options?: BooleanControlOptions,
+  ): ComponentInfoSerialized<BooleanControlOptions> {
+    return new ComponentBuilder<BooleanControlOptions>("dms-checkbox")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** A boolean as a bordered card: an icon, a title and a switch. */
+  export function InputBooleanCard(
+    options?: BooleanCardOptions,
+  ): ComponentInfoSerialized<BooleanCardOptions> {
+    return new ComponentBuilder<BooleanCardOptions>("dms-boolean-card")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** The options of a select as cards, one picked or several. */
+  export function InputChoiceCards(
+    options: ChoiceCardsOptions,
+  ): ComponentInfoSerialized<ChoiceCardsOptions> {
+    return new ComponentBuilder<ChoiceCardsOptions>("dms-choice-cards")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** The options of a select as segments of one control. */
+  export function InputSegmentedSelect(
+    options: SegmentedSelectOptions,
+  ): ComponentInfoSerialized<SegmentedSelectOptions> {
+    return new ComponentBuilder<SegmentedSelectOptions>("dms-segmented-select")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** Rows of fields, added, removed and reordered (`ArrayType`). */
+  export function InputRepeater(
+    options: RepeaterOptions,
+  ): ComponentInfoSerialized<RepeaterOptions> {
+    return new ComponentBuilder<RepeaterOptions>("dms-repeater")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** Pairs of a name and a value (`KeyValueType`). */
+  export function InputKeyValue(
+    options: KeyValueOptions,
+  ): ComponentInfoSerialized<KeyValueOptions> {
+    return new ComponentBuilder<KeyValueOptions>("dms-key-value")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** A secret, masked until shown (`SecretType`). */
+  export function InputSecret(
+    options?: SecretOptions,
+  ): ComponentInfoSerialized<SecretOptions> {
+    return new ComponentBuilder<SecretOptions>("dms-input-secret")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** A read-only value with a copy button (`StringType({ copyable })`). */
+  export function InputCopyableText(
+    options?: CopyableTextOptions,
+  ): ComponentInfoSerialized<CopyableTextOptions> {
+    return new ComponentBuilder<CopyableTextOptions>("dms-copyable-text")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** A code editor (`CodeType`). */
+  export function InputCode(
+    options: CodeOptions,
+  ): ComponentInfoSerialized<CodeOptions> {
+    return new ComponentBuilder<CodeOptions>("dms-input-code")
+      .options(options)
+      .serializeSync();
+  }
+
+  /** A list of short texts typed as tags (`TagsType`). */
+  export function InputTags(
+    options?: TagsOptions,
+  ): ComponentInfoSerialized<TagsOptions> {
+    return new ComponentBuilder<TagsOptions>("dms-input-tags")
+      .options(options)
+      .serializeSync();
   }
 
   export function InputEmail(
@@ -525,8 +704,12 @@ export namespace FormComponents {
       .serializeSync();
   }
 
-  export function InputSwitch(): ComponentInfoSerialized {
-    return new ComponentBuilder<undefined>("dms-switch").serializeSync();
+  export function InputSwitch(
+    options?: BooleanControlOptions,
+  ): ComponentInfoSerialized<BooleanControlOptions> {
+    return new ComponentBuilder<BooleanControlOptions>("dms-switch")
+      .options(options)
+      .serializeSync();
   }
 
   export function InputTextarea(
