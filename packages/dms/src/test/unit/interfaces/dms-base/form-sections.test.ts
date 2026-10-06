@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Form,
+  FormComponents,
   type FormPropsSerialized,
   formSchema,
 } from "@antelopejs/interface-dms/base/form";
@@ -89,5 +90,30 @@ describe("[unit] interfaces/dms-base — form sections", () => {
     )?.config;
     expect(config?.sections?.items?.ui?.label).to.equal("Section");
     expect(config?.sectionNav?.enum).to.deep.equal(["side", "jump", "none"]);
+  });
+});
+
+/** A required box to tick is an agreement: only `true` satisfies it. */
+describe("[unit] interfaces/dms-base — required box to tick", () => {
+  const terms = (
+    inputComponent?: ReturnType<typeof FormComponents.InputCheckbox>,
+  ) =>
+    formSchema([
+      {
+        id: "terms",
+        type: new DefaultDataTypes.BooleanType(),
+        inputComponent,
+        required: true,
+      },
+    ]);
+
+  it("refuses an unticked checkbox", () => {
+    const schema = terms(FormComponents.InputCheckbox());
+    expect(schema.safeParse({ terms: false }).success).to.equal(false);
+    expect(schema.safeParse({ terms: true }).success).to.equal(true);
+  });
+
+  it("keeps a switch's false a value", () => {
+    expect(terms().safeParse({ terms: false }).success).to.equal(true);
   });
 });

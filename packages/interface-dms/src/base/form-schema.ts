@@ -51,11 +51,26 @@ export function adaptFieldValidationSchema(
   return schema;
 }
 
+const BOOLEAN_TYPE_ID = "boolean";
+// Controls a boolean is ticked in rather than switched: required, such a box
+// is an agreement ("I accept the terms") only `true` satisfies.
+const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+
+/** Whether a field is a box to tick: required, only `true` passes. */
+export function isAcceptanceField(field: FormField): boolean {
+  if (getDataTypeId(field.type) !== BOOLEAN_TYPE_ID) return false;
+  const component = field.inputComponent ?? field.type.inputComponent();
+  return ACCEPTANCE_COMPONENTS.has(component.componentName);
+}
+
 function addFieldToSchema(
   shape: Record<string, z.ZodTypeAny>,
   field: FormField,
 ): void {
-  const baseSchema = field.type.getValidation();
+  const baseSchema =
+    field.required && isAcceptanceField(field)
+      ? z.literal(true)
+      : field.type.getValidation();
   shape[field.id] = adaptFieldValidationSchema(baseSchema, {
     localized: field.localized,
     required: field.required,

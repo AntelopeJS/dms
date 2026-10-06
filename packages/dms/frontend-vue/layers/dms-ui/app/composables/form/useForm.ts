@@ -35,6 +35,8 @@ export interface FormServerFieldError {
   message: string;
   /** The values of the field the error names (addresses of a list…). */
   values?: string[];
+  /** The part of the field it names (`address.streetName`), if any. */
+  path?: string;
 }
 
 export interface UseFormOptions {
@@ -355,6 +357,20 @@ export function buildValidationSchema(
 // missing, so marking it required would only suggest an action that does not
 // exist.
 const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
+// ...unless it is a box to tick: required, it is an agreement ("I accept the
+// terms") left missing until ticked.
+const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+
+/** Whether a field is a box to tick, which only `true` fills when required. */
+export function isAcceptanceField(
+  field: Pick<FormField, "type"> & Partial<Pick<FormField, "component">>,
+): boolean {
+  return (
+    !!field.type &&
+    ALWAYS_FILLED_FIELD_TYPES.has(field.type) &&
+    ACCEPTANCE_COMPONENTS.has(field.component?.componentName ?? "")
+  );
+}
 
 /**
  * Whether the form marks a field as required: declared so, or made so by a
@@ -362,14 +378,17 @@ const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
  * does not validate inactive fields, nor a type that always holds a value.
  */
 export function isFieldMarkedRequired(
-  field: Pick<FormField, "id" | "required" | "disabled" | "type">,
+  field: Pick<FormField, "id" | "required" | "disabled" | "type"> &
+    Partial<Pick<FormField, "component">>,
   disabled: Set<string> | undefined,
   hidden: Set<string> | undefined,
   required: Set<string> | undefined,
 ): boolean {
   if (field.disabled || disabled?.has(field.id) || hidden?.has(field.id))
     return false;
-  if (field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type)) return false;
+  const isAlwaysFilled =
+    !!field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type);
+  if (isAlwaysFilled && !isAcceptanceField(field)) return false;
   return !!field.required || (required?.has(field.id) ?? false);
 }
 
@@ -648,6 +667,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
             })
           : processApiMessage(entry.message),
         values: entry.values,
+        path: entry.path,
       })),
     );
   };

@@ -221,6 +221,14 @@ export class PageFormRequired extends PageController(
         required: true,
       },
       {
+        id: "period",
+        label: "Reporting period",
+        description: "A range picked in two calendars, start then end",
+        type: new DefaultDataTypes.DateType({ range: true }),
+        inputComponent: FormComponents.DatePickerRange(),
+        required: true,
+      },
+      {
         id: "holidays",
         label: "Holidays",
         description: "Several dates",
@@ -238,7 +246,7 @@ export class PageFormRequired extends PageController(
       {
         id: "duration",
         label: "Duration",
-        description: "A time span (hh:mm)",
+        description: "A time span: 01:30 or 1h30m",
         type: new DefaultDataTypes.StringTimeType({ placeholder: "01:30" }),
         required: true,
       },
@@ -331,6 +339,15 @@ export class PageFormRequired extends PageController(
         description:
           "A switch always holds a value (off is a value): never flagged",
         type: new DefaultDataTypes.BooleanType(),
+        required: true,
+      },
+      {
+        id: "terms",
+        label: "Terms",
+        description:
+          "A box to tick: required, only ticking it fills it (unlike a switch)",
+        type: new DefaultDataTypes.BooleanType(),
+        inputComponent: FormComponents.InputCheckbox(),
         required: true,
       },
     ],
