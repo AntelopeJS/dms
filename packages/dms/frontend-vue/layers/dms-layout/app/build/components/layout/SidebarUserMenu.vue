@@ -93,15 +93,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
       :class="{ 'justify-center': props.collapsed }"
       :aria-label="user?.name"
     >
-      <UAvatar
-        :alt="user?.name"
-        size="sm"
-        :ui="{
-          root: 'bg-linear-135 from-(--ui-color-primary-400) to-(--ui-color-secondary-400)',
-          fallback:
-            'font-mono text-[11px] font-bold text-(--dms-accent-on-fill)',
-        }"
-      />
+      <UAvatar :alt="user?.name" size="sm" />
       <template v-if="!props.collapsed">
         <span class="flex min-w-0 flex-1 flex-col">
           <span
@@ -121,14 +113,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
       <div
         class="border-default flex items-center gap-2.5 border-b px-2.5 py-2.5"
       >
-        <UAvatar
-          :alt="user?.name"
-          size="md"
-          :ui="{
-            root: 'bg-linear-135 from-(--ui-color-primary-400) to-(--ui-color-secondary-400)',
-            fallback: 'font-mono text-xs font-bold text-(--dms-accent-on-fill)',
-          }"
-        />
+        <UAvatar :alt="user?.name" size="md" />
         <div class="min-w-0">
           <div class="text-highlighted truncate text-[13px] font-semibold">
             {{ user?.name }}

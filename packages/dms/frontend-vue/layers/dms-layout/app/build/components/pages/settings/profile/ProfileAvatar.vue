@@ -14,32 +14,18 @@ const emit = defineEmits<{
   edit: [];
 }>();
 
-const MAX_INITIALS = 2;
 const { t } = useI18n();
-
-const initials = computed(() =>
-  props.name
-    .trim()
-    .split(/\s+/)
-    .slice(0, MAX_INITIALS)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join(""),
-);
 </script>
 
 <template>
   <!-- v2 .cs-avatar__img: 64px gradient initials ringed by the card, with a
        camera badge that opens the picker. -->
-  <div
-    class="relative grid size-16 shrink-0 place-items-center rounded-full bg-linear-135 from-(--ui-color-primary-400) to-(--ui-color-secondary-400) font-mono text-xl font-bold text-(--dms-accent-on-fill) shadow-[0_0_0_3px_var(--ui-bg),0_0_0_4px_var(--ui-border-accented)]"
-  >
-    <img
-      v-if="props.src"
-      :src="props.src"
+  <div class="relative size-16 shrink-0">
+    <UAvatar
+      :src="props.src ?? undefined"
       :alt="props.name"
-      class="size-full rounded-full object-cover"
+      class="size-16 text-xl shadow-[0_0_0_3px_var(--ui-bg),0_0_0_4px_var(--ui-border-accented)]"
     />
-    <span v-else aria-hidden="true">{{ initials }}</span>
     <span
       v-if="props.loading"
       class="absolute inset-0 grid place-items-center rounded-full bg-(--ui-bg)/60"

@@ -90,10 +90,7 @@ const initials = computed(() =>
       :alt="label"
       :text="initials"
       size="sm"
-      :ui="{
-        root: 'size-7 shrink-0 bg-linear-135 from-(--ui-color-primary-400) to-(--ui-color-secondary-400)',
-        fallback: 'font-mono text-[11px] font-bold text-(--dms-accent-on-fill)',
-      }"
+      class="shrink-0"
     />
     <div class="min-w-0">
       <span
