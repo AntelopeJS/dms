@@ -50,6 +50,34 @@ const YEAR_KEY_LENGTH = 4;
 
 const isValidDate = (date: Date): boolean => !Number.isNaN(date.getTime());
 
+/** Calendar days from `date` to `now`, counted in the reader's time zone. */
+export function calendarDaysAgo(date: Date, now: Date): number {
+  return regionalDayNumber(now) - regionalDayNumber(date);
+}
+
+/** The short date of a day ("Sep 29"), with its year when not this year's. */
+export function formatShortDate(date: Date, now: Date, locale: string): string {
+  const sameYear =
+    regionalDayKey(date).slice(0, YEAR_KEY_LENGTH) ===
+    regionalDayKey(now).slice(0, YEAR_KEY_LENGTH);
+  return regionalDateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  }).format(date);
+}
+
+/** How far back a day is, in the coarse buckets of a feed. */
+export type RelativeDayBucket = "today" | "week" | "older";
+
+/** Today, earlier this week (the last seven days), or older. */
+export function relativeDayBucket(date: Date, now: Date): RelativeDayBucket {
+  const daysAgo = calendarDaysAgo(date, now);
+  if (daysAgo <= 0) return "today";
+  if (daysAgo < WEEK_DAYS) return "week";
+  return "older";
+}
+
 /**
  * How a calendar day reads next to today: "Today", "Yesterday", a weekday
  * within the week, else the short date — with the short date beside a name.
@@ -60,16 +88,8 @@ export function nameCalendarDay(
   locale: string,
   labels: ActivityFeedDayLabels,
 ): Pick<ActivityFeedDay, "name" | "date"> {
-  // Days and years are counted in the reader's time zone.
-  const daysAgo = regionalDayNumber(now) - regionalDayNumber(date);
-  const sameYear =
-    regionalDayKey(date).slice(0, YEAR_KEY_LENGTH) ===
-    regionalDayKey(now).slice(0, YEAR_KEY_LENGTH);
-  const shortDate = regionalDateTimeFormat(locale, {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+  const daysAgo = calendarDaysAgo(date, now);
+  const shortDate = formatShortDate(date, now, locale);
   if (daysAgo === 0) return { name: labels.today, date: shortDate };
   if (daysAgo === 1) return { name: labels.yesterday, date: shortDate };
   if (daysAgo > 1 && daysAgo < WEEK_DAYS) {

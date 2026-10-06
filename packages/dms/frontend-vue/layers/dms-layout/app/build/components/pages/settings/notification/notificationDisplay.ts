@@ -1,8 +1,8 @@
 import {
-  regionalDateTimeFormat,
-  regionalDayKey,
-  regionalDayNumber,
-} from "#dms-core/app/utils/regional";
+  formatShortDate,
+  type RelativeDayBucket,
+  relativeDayBucket,
+} from "#dms-ui/app/components/activity-feed/activityFeedDays";
 import type {
   NotificationTone,
   UserNotification,
@@ -15,7 +15,7 @@ export const resolveNotificationTone = (
   notification.tone ?? (notification.isRead ? "neutral" : "primary");
 
 /** Inbox sections, newest first. */
-export type NotificationDayGroupKey = "today" | "week" | "older";
+export type NotificationDayGroupKey = RelativeDayBucket;
 
 export interface NotificationDayGroup {
   key: NotificationDayGroupKey;
@@ -23,30 +23,16 @@ export interface NotificationDayGroup {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_DAYS = 7;
-const YEAR_KEY_LENGTH = 4;
 const DAY_GROUP_ORDER: NotificationDayGroupKey[] = ["today", "week", "older"];
-
-// Days are counted in the reader's time zone.
-const dayGroupOf = (
-  createdAt: string,
-  today: number,
-): NotificationDayGroupKey => {
-  const daysAgo = today - regionalDayNumber(new Date(createdAt));
-  if (daysAgo <= 0) return "today";
-  if (daysAgo < WEEK_DAYS) return "week";
-  return "older";
-};
 
 /** Splits a newest-first feed into Today, Earlier this week and Older. */
 export const groupNotificationsByDay = (
   items: UserNotification[],
   now = new Date(),
 ): NotificationDayGroup[] => {
-  const today = regionalDayNumber(now);
   const buckets = new Map<NotificationDayGroupKey, UserNotification[]>();
   for (const item of items) {
-    const key = dayGroupOf(item.createdAt, today);
+    const key = relativeDayBucket(new Date(item.createdAt), now);
     buckets.set(key, [...(buckets.get(key) ?? []), item]);
   }
   return DAY_GROUP_ORDER.filter((key) => buckets.has(key)).map((key) => ({
@@ -64,14 +50,7 @@ export const formatNotificationTime = (
 ): string => {
   const date = new Date(createdAt);
   if (now.getTime() - date.getTime() < DAY_MS) return formatRecent(createdAt);
-  const sameYear =
-    regionalDayKey(date).slice(0, YEAR_KEY_LENGTH) ===
-    regionalDayKey(now).slice(0, YEAR_KEY_LENGTH);
-  return regionalDateTimeFormat(locale, {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  }).format(date);
+  return formatShortDate(date, now, locale);
 };
 
 /**

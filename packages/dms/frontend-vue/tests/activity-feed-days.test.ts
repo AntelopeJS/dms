@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   formatActivityTime,
+  formatShortDate,
   groupActivityByDay,
   resolveActivityParams,
+  relativeDayBucket,
 } from "../layers/dms-ui/app/components/activity-feed/activityFeedDays";
 
 // Tuesday Sep 29, 2026, mid-morning, local time.
@@ -104,5 +106,20 @@ describe("resolveActivityParams", () => {
 
   it("gives nothing for an entry without values", () => {
     expect(resolveActivityParams(undefined, translate)).toBeNull();
+  });
+});
+
+describe("shared day helpers", () => {
+  it("files a day as today, earlier this week or older", () => {
+    expect(relativeDayBucket(new Date(at(29, 8)), NOW)).toBe("today");
+    expect(relativeDayBucket(new Date(at(23, 8)), NOW)).toBe("week");
+    expect(relativeDayBucket(new Date(at(22, 8)), NOW)).toBe("older");
+  });
+
+  it("writes the year of a short date only when it is not this year's", () => {
+    expect(formatShortDate(new Date(at(3, 9)), NOW, "en-GB")).toBe("3 Sept");
+    expect(formatShortDate(new Date(at(3, 9, 11, 2025)), NOW, "en-GB")).toBe(
+      "3 Dec 2025",
+    );
   });
 });
