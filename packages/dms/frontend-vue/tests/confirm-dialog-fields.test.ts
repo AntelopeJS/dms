@@ -93,6 +93,25 @@ describe("confirmation dialog texts", () => {
       items: [{ value: "r2", label: "Readers" }],
     });
   });
+
+  it("fills a literal text's placeholders like a key's, leaving unknown ones as written", () => {
+    const options = resolveConfirmDialog(
+      {
+        title: "Remove {name}?",
+        description: "{count} rows go with it, {missing} stays.",
+        params: { count: 2 },
+        confirmLabel: "Remove {name}",
+      },
+      { name: "Editors", nested: { name: "x" } },
+      t,
+    );
+    expect(options.title).toBe("Remove Editors?");
+    expect(options.description).toBe("2 rows go with it, {missing} stays.");
+    expect(options.confirmLabel).toBe("Remove Editors");
+    expect(resolveConfirmText("{nested} {constructor}", { nested: {} }, t)).toBe(
+      "{nested} {constructor}",
+    );
+  });
 });
 
 describe("ConfirmModal fields", () => {

@@ -271,7 +271,7 @@ describe("Table row actions: refusals", () => {
     );
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
 
-    expect(dialogs[0]!.options.title).toBe("Ban {name}?");
+    expect(dialogs[0]!.options.title).toBe("Ban Ada?");
     expect(api).toHaveBeenCalledWith("/api/users/u1/ban", {
       method: HttpMethod.post,
       body: { notify: false, scope: "all", reason: "spam" },
@@ -319,7 +319,7 @@ describe("Table row actions: refusals", () => {
       { _id: "t1", name: "Docs" },
       proceed,
     );
-    expect(dialogs[0]!.options.title).toBe("Edit {name}?");
+    expect(dialogs[0]!.options.title).toBe("Edit Docs?");
     expect(proceed).toHaveBeenCalledOnce();
 
     confirm.mockResolvedValueOnce(false);

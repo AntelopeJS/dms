@@ -437,8 +437,8 @@ export interface TableViewFooterSerialized extends Omit<
 
 /**
  * What a table's empty body says for one reason it is empty, in place of the
- * built-in texts. Texts are `$`-prefixed i18n keys or literals and receive
- * `{ search }`, the text searched.
+ * built-in texts. Texts are `$`-prefixed i18n keys or literals; both receive
+ * `{ search }`, the text searched. Action labels receive no parameter.
  */
 export interface TableViewEmptyState {
   title: string;
@@ -457,8 +457,10 @@ export interface TableViewEmptyState {
 /**
  * The empty states of a table: `firstRun` while it has no row yet (it keeps
  * the add button), `filtered` when its filters or search match nothing (it
- * keeps "Clear search" / "Reset filters"), `error` when the list failed (it
- * keeps "Retry").
+ * keeps "Clear search", "Clear filters" or "Clear filters and search"),
+ * `error` when the list failed (it keeps "Try again"). The grid and the
+ * `cards` display draw them; the kanban board and a module's own display do
+ * not.
  */
 export interface TableViewEmptyStates {
   firstRun?: TableViewEmptyState;
@@ -852,8 +854,9 @@ export interface TableViewOptions<
    */
   footer?: TableViewFooterOptions<T>;
   /**
-   * What the empty body says when the table has no row yet, when its
-   * filters match nothing, or when the list failed.
+   * What the empty body of the grid and the `cards` display says when the
+   * table has no row yet, when its filters match nothing, or when the list
+   * failed. See {@link TableViewEmptyStates}.
    */
   emptyStates?: TableViewEmptyStates;
   /**

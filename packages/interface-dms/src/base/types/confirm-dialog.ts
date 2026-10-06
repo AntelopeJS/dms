@@ -13,8 +13,8 @@ export interface ConfirmDialogImpact {
 /**
  * The dialog an action asks in before it runs, the same for every action:
  * built-in (delete, archive, edit…) and custom, whatever its target. Texts
- * are i18n keys (with `$`) or literals, interpolated with `params` — and, on
- * a row action, with the row's fields ("Remove {name}?").
+ * are i18n keys (with `$`) or literals, both interpolated with `params` —
+ * and, on a row action, with the row's fields ("Remove {name}?").
  */
 export interface ConfirmDialog {
   title: string;

@@ -248,6 +248,32 @@ describe("empty body", () => {
     ]);
   });
 
+  it("fills {search} in a literal text too", () => {
+    const { container } = mount(
+      TableEmpty,
+      {
+        emptyStates: {
+          filtered: {
+            title: "No run matches “{search}”",
+            description: "{other} stays as written.",
+          },
+        },
+      },
+      {
+        isFiltered: computed(() => true),
+        clearableFilters: computed(() => ({ search: true, filters: false })),
+        globalFilterState: ref("zzz"),
+        resetFilters: vi.fn(),
+      },
+    );
+    expect(container.querySelector("h3")?.textContent).toBe(
+      "No run matches “zzz”",
+    );
+    expect(container.querySelector("p")?.textContent).toBe(
+      "{other} stays as written.",
+    );
+  });
+
   it("keeps the built-in words for a reason the module left out", () => {
     const { container } = mount(
       TableEmpty,

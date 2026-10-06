@@ -13,6 +13,8 @@ import type {
   TableViewEmptyStatesConfig,
 } from "../../../composables/table-view/types";
 import { buttonLinkProps } from "../../utils/link";
+import { interpolateLiteral } from "../../utils/literalText";
+import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 
 // The table's empty body: the generic v2 empty state (hatched, 44px well),
 // worded and equipped for why the table is empty — load error, filters
@@ -66,8 +68,13 @@ const declared = computed<TableViewEmptyStateConfig | undefined>(() =>
 const search = computed(
   () => tableSharedData.value?.globalFilterState.value ?? "",
 );
-const declaredText = (text: string | undefined) =>
-  text ? processI18n(text, { search: search.value }) : undefined;
+const declaredText = (text: string | undefined) => {
+  if (!text) return undefined;
+  const params = { search: search.value };
+  return readTranslationKey(text).isKey
+    ? processI18n(text, params)
+    : interpolateLiteral(text, params);
+};
 const customComponent = computed(() => {
   const name = declared.value?.component?.componentName;
   return name ? resolveDmsComponent(name) || name : undefined;
