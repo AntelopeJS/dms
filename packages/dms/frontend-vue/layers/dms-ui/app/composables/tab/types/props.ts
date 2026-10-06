@@ -24,4 +24,12 @@ export interface TabProps extends TabComponentProps {
   unmountOnHide?: boolean;
   persistState?: boolean;
   stateKey?: string;
+  /**
+   * GET answering `{ [slot]: string | number }`: the badge of each tab it
+   * names, read in one request and again when a watch action fires.
+   */
+  badgesUrl?: string;
 }
+
+/** The badges `badgesUrl` answers with, by tab slot. */
+export type TabBadges = Record<string, string | number>;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TabProps } from "../../composables/tab/types";
-import { TabVariant } from "../../composables/tab/types/props";
+import { type TabBadges, TabVariant } from "../../composables/tab/types/props";
+import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { confirmLeave } from "../../composables/unsaved-changes/registry";
 
 const { processI18n } = useTranslation();
@@ -18,7 +19,34 @@ const props = withDefaults(defineProps<TabProps>(), {
   unmountOnHide: true,
   persistState: false,
   stateKey: "tab",
+  badgesUrl: undefined,
 });
+
+// The badges a module counts for a record's tabs, in one request, again when
+// a watch action fires: each replaces its tab's static badge.
+const { state: watchState } = useWatch(
+  props.watchActions || [],
+  props.componentId,
+);
+const { data: fetchedBadges } = useChartFetch<TabBadges>({
+  fetchUrl: props.badgesUrl,
+  watchSource: () => JSON.stringify(watchState.value),
+});
+const { locale } = useI18n();
+const countFormat = computed(() => new Intl.NumberFormat(locale.value));
+
+// Shown like a table view's tab counts: a mono counter, tinted on the
+// active tab.
+const COUNT_BADGE_CLASS =
+  "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed ring-0 in-data-[state=active]:bg-primary/10 in-data-[state=active]:text-primary";
+
+function badgeOf(item: TabProps["items"][number]) {
+  const fetched = fetchedBadges.value?.[item.slot];
+  if (fetched === undefined) return item.badge;
+  return typeof fetched === "number"
+    ? countFormat.value.format(fetched)
+    : fetched;
+}
 
 const tabCount = computed(() => props.items.length);
 
@@ -47,6 +75,7 @@ const tabsUi = computed(() => ({
   // The panel may shrink below its content's width (a wide table scrolls
   // inside it instead of pushing the page sideways).
   content: "min-w-0",
+  trailingBadge: props.badgesUrl ? COUNT_BADGE_CLASS : undefined,
 }));
 
 const {
@@ -81,7 +110,7 @@ const tabItems = computed(() => {
       value: String(index),
       slot: item.slot,
       icon: item.icon,
-      badge: item.badge,
+      badge: badgeOf(item),
       disabled: item.disabled,
       avatar: item.avatar,
     };
