@@ -2,7 +2,7 @@ import { expect } from "chai";
 import {
   aggregatePreviewMenu,
   previewCacheKey,
-  PreviewLossCache,
+  PreviewScopeCache,
   type PreviewMenuNode,
 } from "../../../../implementations/dms/permission-preview";
 
@@ -133,7 +133,7 @@ describe("[unit] implementations/dms/permission-preview — loss cache", () => {
 
   it("answers a scope from its entry until it expires", () => {
     let time = 0;
-    const cache = new PreviewLossCache(1000, 4, () => time);
+    const cache = new PreviewScopeCache<boolean>(1000, 4, () => time);
     const pages = cache.pagesFor("k");
     pages.set("pages.sales.orders", Promise.resolve(true));
     time = 999;
@@ -143,7 +143,7 @@ describe("[unit] implementations/dms/permission-preview — loss cache", () => {
   });
 
   it("drops the least recent scope beyond its capacity", () => {
-    const cache = new PreviewLossCache(1000, 2, () => 0);
+    const cache = new PreviewScopeCache<boolean>(1000, 2, () => 0);
     cache.pagesFor("a").set("p", Promise.resolve(true));
     cache.pagesFor("b").set("p", Promise.resolve(true));
     // Reading `a` again makes `b` the oldest.

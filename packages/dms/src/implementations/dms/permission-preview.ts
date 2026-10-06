@@ -192,19 +192,20 @@ export function previewCacheKey(scope: PreviewCacheScope): string {
     .digest("hex");
 }
 
-interface PreviewCacheEntry {
+interface PreviewCacheEntry<V> {
   expiresAt: number;
-  pages: Map<string, Promise<boolean>>;
+  pages: Map<string, Promise<V>>;
 }
 
 /**
- * Per preview scope, whether the previewed set loses anything on each page —
- * so a preview tab moving from page to page, or asking again for the same
- * edits, does not resolve every page layout again. Entries live `ttlMs`, and
- * only the `maxScopes` most recent scopes are kept.
+ * Per preview scope, an answer per page — whether the previewed set loses
+ * anything there, or the layout the viewer is served — so a preview tab
+ * moving from page to page, or asking again for the same edits, does not
+ * resolve every page layout again. Entries live `ttlMs`, and only the
+ * `maxScopes` most recent scopes are kept.
  */
-export class PreviewLossCache {
-  private readonly entries = new Map<string, PreviewCacheEntry>();
+export class PreviewScopeCache<V> {
+  private readonly entries = new Map<string, PreviewCacheEntry<V>>();
 
   constructor(
     private readonly ttlMs: number,
@@ -213,7 +214,7 @@ export class PreviewLossCache {
   ) {}
 
   /** The answers of one scope, by page `fullId`; filled by the caller. */
-  pagesFor(key: string): Map<string, Promise<boolean>> {
+  pagesFor(key: string): Map<string, Promise<V>> {
     const time = this.now();
     for (const [scope, entry] of this.entries) {
       if (entry.expiresAt <= time) this.entries.delete(scope);
@@ -225,7 +226,7 @@ export class PreviewLossCache {
       this.entries.set(key, existing);
       return existing.pages;
     }
-    const pages = new Map<string, Promise<boolean>>();
+    const pages = new Map<string, Promise<V>>();
     this.entries.set(key, { expiresAt: time + this.ttlMs, pages });
     while (this.entries.size > this.maxScopes) {
       const oldest = this.entries.keys().next().value;

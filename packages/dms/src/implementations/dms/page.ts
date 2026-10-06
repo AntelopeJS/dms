@@ -96,12 +96,13 @@ import {
   findQuickActionsHiddenByPreview,
   type HeaderActionAccess,
   previewCacheKey,
-  PreviewLossCache,
+  PreviewScopeCache,
   type PreviewMenuNode,
   type PreviewMenuStates,
   readHeaderActions,
   type ServedQuickActions,
 } from "./permission-preview";
+import { runInBatches } from "../../utils/run-in-batches";
 
 export {
   AddFrontendModule,
@@ -1174,6 +1175,14 @@ function memoizeViewerModels(
   // oxlint-enable anti-slop/no-chained-type-assertions
 }
 
+// Answers of `pageLoses`, per check: a preview tab asks again on every page
+// it moves to and on every edit, and each ask would otherwise resolve the
+// layout of every page. Short-lived, so data-driven filters catch up.
+const PREVIEW_LOSS_TTL_MS = 30_000;
+const PREVIEW_LOSS_MAX_SCOPES = 16;
+// Page layouts a preview resolves at once: each may query data.
+const PREVIEW_PAGE_CONCURRENCY = 4;
+
 const PREVIEW_ROLE_ID = "dms-permission-preview";
 
 async function findPreviewHeaderActions(
@@ -1209,17 +1218,61 @@ async function findPreviewHeaderActions(
   return findHeaderActionsHiddenByPreview(viewer, preview);
 }
 
+/** How one page of a preview is read, besides the page itself. */
+interface PreviewPageReading {
+  request: PermissionPreviewRequest;
+  hiddenInPreview: boolean;
+  quickActions: { real: ServedQuickActions; preview: ServedQuickActions };
+  /** The viewer's layouts of this scope, by page `fullId`. */
+  layouts: Map<string, Promise<PageLayout>>;
+}
+
+// The viewer's layout does not depend on the previewed set: read once per
+// viewer and access, whatever set the editor previews next. A failed read is
+// not kept.
+function readViewerLayout(
+  route: PageInfo,
+  handler: PageLayoutHandler,
+  { request, layouts }: PreviewPageReading,
+): Promise<PageLayout> {
+  const known = layouts.get(route.fullId);
+  if (known) return known;
+  const { user, memberModel, roleModel, tenantId } = request;
+  const layout = handler(user, memberModel, roleModel, tenantId);
+  layouts.set(route.fullId, layout);
+  layout.catch(() => layouts.delete(route.fullId));
+  return layout;
+}
+
+const viewerLayoutCache = new PreviewScopeCache<PageLayout>(
+  PREVIEW_LOSS_TTL_MS,
+  PREVIEW_LOSS_MAX_SCOPES,
+);
+
+function viewerLayoutsFor(
+  request: PermissionPreviewRequest,
+  real: RequestAccessContext,
+): Map<string, Promise<PageLayout>> {
+  return viewerLayoutCache.pagesFor(
+    previewCacheKey({
+      tenantId: request.tenantId,
+      userId: request.user._id,
+      structureVersion: previewStructureVersion,
+      real: real.ungated.permissions,
+      preview: [],
+    }),
+  );
+}
+
 // A page the viewer opens, read with the viewer's own access: its layout is
 // the one the viewer is served, and it never leaves the server.
 async function readPreviewPage(
   route: PageInfo,
   handler: PageLayoutHandler,
-  request: PermissionPreviewRequest,
-  hiddenInPreview: boolean,
-  quickActions: { real: ServedQuickActions; preview: ServedQuickActions },
+  reading: PreviewPageReading,
 ): Promise<PermissionPreviewPage> {
-  const { user, memberModel, roleModel, tenantId } = request;
-  const layout = await handler(user, memberModel, roleModel, tenantId);
+  const { request, hiddenInPreview, quickActions } = reading;
+  const layout = await readViewerLayout(route, handler, reading);
   return {
     fullId: route.fullId,
     displayName: route.displayName,
@@ -1254,26 +1307,28 @@ async function resolvePreviewPage(
   // read, so the preview cannot serve what the viewer is refused.
   if (!(await computeEntryAccess(route, contexts.real))) return null;
   const hiddenInPreview = !(await computeEntryAccess(route, contexts.preview));
-  return readPreviewPage(
-    route,
-    handler,
+  return readPreviewPage(route, handler, {
     request,
     hiddenInPreview,
     quickActions,
-  );
+    layouts: viewerLayoutsFor(request, contexts.real),
+  });
 }
 
-// Answers of `pageLoses`, per check: a preview tab asks again on every page
-// it moves to and on every edit, and each ask would otherwise resolve the
-// layout of every page. Short-lived, so data-driven filters catch up.
-const PREVIEW_LOSS_TTL_MS = 30_000;
-const PREVIEW_LOSS_MAX_SCOPES = 16;
-const previewLossCaches = new WeakMap<PreviewPageLossCheck, PreviewLossCache>();
+const previewLossCaches = new WeakMap<
+  PreviewPageLossCheck,
+  PreviewScopeCache<boolean>
+>();
 
-function previewLossCacheFor(check: PreviewPageLossCheck): PreviewLossCache {
+function previewLossCacheFor(
+  check: PreviewPageLossCheck,
+): PreviewScopeCache<boolean> {
   let cache = previewLossCaches.get(check);
   if (!cache) {
-    cache = new PreviewLossCache(PREVIEW_LOSS_TTL_MS, PREVIEW_LOSS_MAX_SCOPES);
+    cache = new PreviewScopeCache<boolean>(
+      PREVIEW_LOSS_TTL_MS,
+      PREVIEW_LOSS_MAX_SCOPES,
+    );
     previewLossCaches.set(check, cache);
   }
   return cache;
@@ -1336,28 +1391,30 @@ async function findPagesLosingInPreview(
       preview: grants.preview,
     }),
   );
-  const viewerRequest: PermissionPreviewRequest = {
-    ...request,
-    ...memoizeViewerModels(request.memberModel, request.roleModel),
+  const pageReading: PreviewPageReading = {
+    request: {
+      ...request,
+      ...memoizeViewerModels(request.memberModel, request.roleModel),
+    },
+    hiddenInPreview: false,
+    quickActions,
+    layouts: viewerLayoutsFor(request, contexts.real),
   };
-  const results = await Promise.all(
-    pages.map(async (route) => {
-      let answer = answers.get(route.fullId);
-      if (!answer) {
-        const handler = GetPageLayoutBySlug(route.fullSlug);
-        answer = handler
-          ? readPreviewPage(route, handler, viewerRequest, false, quickActions)
-              .then((page) => check(page, grants))
-              .catch(() => false)
-          : Promise.resolve(false);
-        answers.set(route.fullId, answer);
-      }
-      return [route.fullId, await answer] as const;
-    }),
-  );
-  return new Set(
-    results.filter(([, loses]) => loses).map(([fullId]) => fullId),
-  );
+  const losing = new Set<string>();
+  await runInBatches(pages, PREVIEW_PAGE_CONCURRENCY, async (route) => {
+    let answer = answers.get(route.fullId);
+    if (!answer) {
+      const handler = GetPageLayoutBySlug(route.fullSlug);
+      answer = handler
+        ? readPreviewPage(route, handler, pageReading)
+            .then((page) => check(page, grants))
+            .catch(() => false)
+        : Promise.resolve(false);
+      answers.set(route.fullId, answer);
+    }
+    if (await answer) losing.add(route.fullId);
+  });
+  return losing;
 }
 
 // Pages drawn in the menu, and the pages dynamic entries lead to (often kept
