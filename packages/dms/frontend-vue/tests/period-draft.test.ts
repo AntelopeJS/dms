@@ -2,9 +2,9 @@ import { effectScope } from "vue";
 import { describe, expect, it } from "vitest";
 import { usePeriod } from "../layers/dms-core/app/composables/period/usePeriod";
 import { usePeriodDraft } from "../layers/dms-ui/app/build/composables/period/usePeriodDraft";
+import { localeWeekStart } from "../layers/dms-core/app/utils/regional";
 import {
   formatPeriodRange,
-  localeWeekStart,
   periodDuration,
 } from "../layers/dms-ui/app/build/composables/period/periodDisplay";
 

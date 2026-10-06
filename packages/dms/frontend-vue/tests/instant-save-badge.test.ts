@@ -177,7 +177,7 @@ describe("instant-save page registry", () => {
         path: relative(root, path).replaceAll("\\", "/"),
         source: readFileSync(path, "utf8"),
       }))
-      .filter(({ source }) => source.includes("useInstantSaveHeader"));
+      .filter(({ source }) => /useInstantSaveHeader\(/.test(source));
     expect(users.map(({ path }) => path).sort()).toEqual(
       INSTANT_SAVE.filter((path) => path.endsWith(".vue")).sort(),
     );

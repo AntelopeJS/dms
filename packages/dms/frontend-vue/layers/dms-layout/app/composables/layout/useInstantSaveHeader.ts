@@ -3,7 +3,21 @@ import DmsInstantSaveBadge from "#dms-ui/app/components/save-bar/InstantSaveBadg
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import { usePageHeaderActions } from "./usePageHeaderActions";
 
-export { combineSaveStates } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
+// The one state a page shows for many keys: a save running wins, then a
+// failure waiting for its retry, then a save that just went through.
+const STATE_PRIORITY: readonly SaveStatusState[] = ["saving", "error", "saved"];
+
+/**
+ * Folds the per-control save states of a page into the one state its header
+ * pill shows: saving while any control writes, error while any failed, saved
+ * while any just did.
+ */
+export const combineSaveStates = (
+  states: Iterable<SaveStatusState | undefined>,
+): SaveStatusState => {
+  const present = new Set(states);
+  return STATE_PRIORITY.find((state) => present.has(state)) ?? "idle";
+};
 
 /**
  * Puts the "Saved instantly" pill in the page header. Every page (or section

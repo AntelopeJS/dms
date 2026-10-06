@@ -15,9 +15,6 @@ import {
 } from "#dms-core/app/composables/period/types";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 
-// Owned by the regional formatters, which also answer the user's own choice.
-export { localeWeekStart } from "#dms-core/app/utils/regional";
-
 /** A day range as the range calendar reads and writes it. */
 export interface CalendarRange {
   start: CalendarDate;

@@ -7,28 +7,13 @@ import {
   type Ref,
 } from "vue";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
+import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import { sameFormValue } from "../unsaved-changes/formValue";
 
 /** How long typing pauses before a text saves. */
 export const INSTANT_SAVE_DEBOUNCE_MS = 500;
 /** How long a key keeps its "Saved" tick. */
 export const INSTANT_SAVED_STATE_MS = 2000;
-
-// The one state a page shows for many keys: a save running wins, then a
-// failure waiting for its retry, then a save that just went through.
-const STATE_PRIORITY: readonly SaveStatusState[] = ["saving", "error", "saved"];
-
-/**
- * Folds the per-control save states of a page into the one state its header
- * pill shows: saving while any control writes, error while any failed, saved
- * while any just did.
- */
-export const combineSaveStates = (
-  states: Iterable<SaveStatusState | undefined>,
-): SaveStatusState => {
-  const present = new Set(states);
-  return STATE_PRIORITY.find((state) => present.has(state)) ?? "idle";
-};
 
 type InstantSaveKey<V> = Extract<keyof V, string>;
 

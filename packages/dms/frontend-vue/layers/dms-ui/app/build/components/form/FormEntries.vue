@@ -6,7 +6,7 @@ import type {
 import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
 import { GROUP_FIELDS_CLASSES } from "../../composables/form/formLayout";
-import { combineSaveStates } from "../../composables/instant-save/useInstantSave";
+import { combineSaveStates } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
 import DmsFieldRow from "../../../components/field-row/FieldRow.vue";
