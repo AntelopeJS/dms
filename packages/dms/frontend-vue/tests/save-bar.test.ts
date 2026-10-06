@@ -1,19 +1,27 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { type App, createApp, defineComponent, h, nextTick } from "vue";
+import {
+  type App,
+  createApp,
+  type FunctionalComponent,
+  h,
+  nextTick,
+} from "vue";
 
-const Button = defineComponent({
-  inheritAttrs: false,
-  props: { label: String, disabled: Boolean, type: String },
-  setup:
-    (props, { attrs }) =>
-    () =>
-      h(
-        "button",
-        { ...attrs, type: props.type ?? "button", disabled: props.disabled },
-        props.label,
-      ),
-});
+interface ButtonStubProps {
+  label?: string;
+  disabled?: boolean;
+  type?: string;
+}
+
+const Button: FunctionalComponent<ButtonStubProps> = (props, { attrs }) =>
+  h(
+    "button",
+    { ...attrs, type: props.type ?? "button", disabled: props.disabled },
+    props.label,
+  );
+Button.props = { label: String, disabled: Boolean, type: String };
+Button.inheritAttrs = false;
 
 let app: App | undefined;
 let host: HTMLDivElement;

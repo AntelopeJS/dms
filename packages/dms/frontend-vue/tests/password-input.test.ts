@@ -1,37 +1,46 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
+import {
+  type App,
+  createApp,
+  type FunctionalComponent,
+  h,
+  nextTick,
+  ref,
+} from "vue";
 
-const Input = defineComponent({
-  inheritAttrs: false,
-  props: { modelValue: String, icon: String, color: String },
-  emits: ["update:modelValue"],
-  setup:
-    (props, { attrs, slots }) =>
-    () =>
-      h("div", [
-        h("input", {
-          ...attrs,
-          value: props.modelValue,
-          "data-icon": props.icon,
-          "data-color": props.color,
-        }),
-        slots.trailing?.(),
-      ]),
-});
+interface InputStubProps {
+  modelValue?: string;
+  icon?: string;
+  color?: string;
+}
 
-const Button = defineComponent({
-  inheritAttrs: false,
-  props: { label: String, icon: String },
-  setup:
-    (props, { attrs }) =>
-    () =>
-      h(
-        "button",
-        { type: "button", ...attrs, "data-icon": props.icon },
-        props.label,
-      ),
-});
+const Input: FunctionalComponent<InputStubProps> = (props, { attrs, slots }) =>
+  h("div", [
+    h("input", {
+      ...attrs,
+      value: props.modelValue,
+      "data-icon": props.icon,
+      "data-color": props.color,
+    }),
+    slots.trailing?.(),
+  ]);
+Input.props = ["modelValue", "icon", "color"];
+Input.inheritAttrs = false;
+
+interface ButtonStubProps {
+  label?: string;
+  icon?: string;
+}
+
+const Button: FunctionalComponent<ButtonStubProps> = (props, { attrs }) =>
+  h(
+    "button",
+    { type: "button", ...attrs, "data-icon": props.icon },
+    props.label,
+  );
+Button.props = ["label", "icon"];
+Button.inheritAttrs = false;
 
 let app: App | undefined;
 let host: HTMLDivElement;

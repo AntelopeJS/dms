@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { type App, createApp, defineComponent, h, nextTick } from "vue";
+import { type App, createApp, h, nextTick } from "vue";
 
 const ITEMS = [
   { value: "all", label: "All", count: 12 },
@@ -20,10 +20,7 @@ async function mount(props: Record<string, unknown>) {
     setup: () => () =>
       h(ChipGroup, { items: ITEMS, label: "Category", onPick, ...props }),
   });
-  app.component(
-    "UIcon",
-    defineComponent({ setup: () => () => h("i", { "data-check": "" }) }),
-  );
+  app.component("UIcon", () => h("i", { "data-check": "" }));
   app.mount(host);
   await nextTick();
   return { onPick };

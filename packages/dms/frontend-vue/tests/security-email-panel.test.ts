@@ -120,15 +120,7 @@ async function mountEmail(): Promise<void> {
   app.component("UInput", Input);
   app.component("UCollapsible", Collapsible);
   app.component("I18nT", I18nT);
-  app.component(
-    "DmsBanner",
-    defineComponent({
-      setup:
-        (_, { slots }) =>
-        () =>
-          h("div", slots.description?.()),
-    }),
-  );
+  app.component("DmsBanner", (_, { slots }) => h("div", slots.description?.()));
   app.mount(host);
   await flush();
 }

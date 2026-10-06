@@ -39,6 +39,9 @@ const INVALID_BINDINGS = {
 } as const;
 
 const attrs = useAttrs();
+const controlledId = computed(() =>
+  typeof attrs.id === "string" ? attrs.id : undefined,
+);
 const { t } = useI18n();
 
 // Built on the attributes, not after them: a colour or an icon the caller
@@ -82,7 +85,7 @@ const toggleLabel = computed(() =>
         :label="toggleLabel"
         :aria-label="toggleAriaLabel"
         :aria-pressed="isVisible"
-        :aria-controls="attrs.id as string | undefined"
+        :aria-controls="controlledId"
         :disabled="props.disabled"
         @click="isVisible = !isVisible"
       />

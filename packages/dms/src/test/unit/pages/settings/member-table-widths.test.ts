@@ -28,8 +28,15 @@ const INVITE_ACTIONS_WIDTH =
   REVOKE_BUTTON +
   3 * BUTTON_GAP;
 
-function gridWidth(controller: object, columns: string[]): number {
-  const meta = GetMetadata(controller as never, TableViewMeta);
+type MemberListController =
+  | typeof memberSettingDataAPI
+  | typeof inviteSettingDataAPI;
+
+function gridWidth(
+  controller: MemberListController,
+  columns: string[],
+): number {
+  const meta = GetMetadata(controller, TableViewMeta);
   return columns.reduce((sum, key) => {
     const size = meta.columns[key]?.size;
     expect(size, `${key} has a size`).to.be.a("number");

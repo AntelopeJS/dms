@@ -1,27 +1,37 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
+import {
+  type App,
+  createApp,
+  type FunctionalComponent,
+  h,
+  nextTick,
+  ref,
+} from "vue";
 
 const CELLS = 6;
 
-const PinInput = defineComponent({
-  inheritAttrs: false,
-  props: { modelValue: Array, length: Number },
-  emits: ["update:modelValue", "complete"],
-  setup:
-    (props, { attrs, emit }) =>
-    () =>
-      h(
-        "div",
-        { ...attrs },
-        Array.from({ length: props.length ?? CELLS }, (_, index) =>
-          h("input", {
-            value: (props.modelValue as string[] | undefined)?.[index] ?? "",
-            onInput: () => emit("complete"),
-          }),
-        ),
-      ),
-});
+interface PinInputStubProps {
+  modelValue?: string[];
+  length?: number;
+}
+
+const PinInput: FunctionalComponent<PinInputStubProps, ["complete"]> = (
+  props,
+  { attrs, emit },
+) =>
+  h(
+    "div",
+    { ...attrs },
+    Array.from({ length: props.length ?? CELLS }, (_, index) =>
+      h("input", {
+        value: props.modelValue?.[index] ?? "",
+        onInput: () => emit("complete"),
+      }),
+    ),
+  );
+PinInput.props = ["modelValue", "length"];
+PinInput.emits = ["complete"];
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -37,7 +47,7 @@ async function mount(props: Record<string, unknown> = {}) {
       h(OtpInput, { ref: exposed, label: "Code", onComplete, ...props }),
   });
   app.component("UPinInput", PinInput);
-  app.component("UIcon", defineComponent({ setup: () => () => h("i") }));
+  app.component("UIcon", () => h("i"));
   app.mount(host);
   await nextTick();
   return { exposed, onComplete };

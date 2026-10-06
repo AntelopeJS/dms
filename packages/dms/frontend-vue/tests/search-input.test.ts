@@ -5,6 +5,7 @@ import {
   computed,
   createApp,
   defineComponent,
+  type FunctionalComponent,
   h,
   nextTick,
   ref,
@@ -25,10 +26,12 @@ const Input = defineComponent({
   },
 });
 
-const Kbd = defineComponent({
-  props: { value: String },
-  setup: (props) => () => h("kbd", props.value),
-});
+interface KbdStubProps {
+  value?: string;
+}
+
+const Kbd: FunctionalComponent<KbdStubProps> = (props) => h("kbd", props.value);
+Kbd.props = ["value"];
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -37,9 +40,7 @@ async function mount(props: Record<string, unknown> = {}) {
   const { default: SearchInput } = await import(
     "../layers/dms-ui/app/build/components/form/SearchInput.vue"
   );
-  app = createApp({
-    setup: () => () => h(SearchInput, { placeholder: "Search", ...props }),
-  });
+  app = createApp(() => h(SearchInput, { placeholder: "Search", ...props }));
   app.component("UInput", Input);
   app.component("UKbd", Kbd);
   app.mount(host);

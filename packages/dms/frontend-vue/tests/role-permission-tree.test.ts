@@ -6,6 +6,7 @@ import {
   computed,
   createApp,
   defineComponent,
+  type FunctionalComponent,
   h,
   nextTick,
   ref,
@@ -268,20 +269,17 @@ const InputStub = defineComponent({
       }),
 });
 
+interface SearchInputStubProps {
+  modelValue?: string;
+  placeholder?: string;
+}
+
 // DmsSearchInput: an input named by its placeholder.
-const SearchInputStub = defineComponent({
-  props: { modelValue: String, placeholder: String },
-  emits: ["update:modelValue"],
-  setup:
-    (props, { emit }) =>
-    () =>
-      h(InputStub, {
-        "aria-label": props.placeholder,
-        modelValue: props.modelValue,
-        "onUpdate:modelValue": (value: string) =>
-          emit("update:modelValue", value),
-      }),
-});
+const SearchInputStub: FunctionalComponent<SearchInputStubProps> = (
+  props,
+  { attrs },
+) => h(InputStub, { ...attrs, ...props, "aria-label": props.placeholder });
+SearchInputStub.props = ["modelValue", "placeholder"];
 
 const slotStub = defineComponent({
   setup:
