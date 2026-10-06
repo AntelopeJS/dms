@@ -50,6 +50,13 @@ export class UserNotification extends Table {
   @Field("boolean")
   declare isRead: boolean;
 
+  /**
+   * The "mark all as read" pass that read this row, which its undo reopens.
+   * Any other change of the read state clears it.
+   */
+  @Field("string")
+  declare readBatchId?: string | null;
+
   @Field("boolean")
   declare isDismissed?: boolean;
 

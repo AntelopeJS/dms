@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import type {
@@ -53,6 +53,13 @@ export interface UserNotificationCounts {
   unread: number;
   /** Unread notifications that arrived since the bell last opened (whole feed only). */
   unseen?: number;
+}
+
+/** What a "mark all as read" pass changed, and the handle that undoes it. */
+export interface MarkAllAsReadResult {
+  /** Reopens the pass through `undoMarkAllAsRead`; null when nothing changed. */
+  batchId: string | null;
+  ids: string[];
 }
 
 /** Maps a delivery onto the row to store for one recipient. */
@@ -335,6 +342,7 @@ export class UserNotificationsModel extends BasicDataModel(
       .get(id)
       .update({
         isRead,
+        readBatchId: null,
         updatedAt: new Date(),
       })
       .run();
@@ -354,47 +362,47 @@ export class UserNotificationsModel extends BasicDataModel(
       .filter((row) => row.key("isRead").eq(!isRead))
       .update({
         isRead,
+        readBatchId: null,
         updatedAt: new Date(),
       })
       .run();
   }
 
   /**
-   * Marks the given notifications of one user unread again (the undo of
-   * "mark all as read"). Ids of other users or of missing rows are skipped;
-   * the ids actually reopened are returned.
+   * Undoes one "mark all as read" pass: reopens the user's notifications it
+   * read that nothing has changed since, a shared copy for its whole group.
+   * Returns the ids of the user's rows reopened.
    */
-  async markManyAsUnread(userId: string, ids: string[]): Promise<string[]> {
+  async undoMarkAllAsRead(userId: string, batchId: string): Promise<string[]> {
+    const rows = await this.visibleFeed(userId)
+      .filter((row) => row.key("readBatchId").eq(batchId))
+      .filter((row) => row.key("isRead").eq(true))
+      .run();
     const reopened: string[] = [];
-    await runInBatches(
-      [...new Set(ids)],
-      SHARED_GROUP_UPDATE_BATCH_SIZE,
-      async (id) => {
-        const notification = await this.get(id);
-        if (notification?.userId !== userId || !notification.isRead) return;
-        await this.markAsUnread(id);
-        reopened.push(id);
-      },
-    );
+    await runInBatches(rows, SHARED_GROUP_UPDATE_BATCH_SIZE, async (row) => {
+      await this.markAsUnread(row._id);
+      reopened.push(row._id);
+    });
     return reopened;
   }
 
   /**
    * Marks every unread notification of a user read, or only those `filter`
-   * keeps, and returns their ids, so the change can be undone.
+   * keeps. Returns their ids and the batch id that `undoMarkAllAsRead` takes.
    */
   async markAllAsRead(
     userId: string,
     filter: NotificationFeedFilter = {},
-  ): Promise<string[]> {
+  ): Promise<MarkAllAsReadResult> {
     const notifications = await applyFeedFilter(
       this.unreadFeed(userId),
       filter,
     ).run();
 
     if (notifications.length === 0) {
-      return [];
+      return { batchId: null, ids: [] };
     }
+    const batchId = randomUUID();
 
     const uniqueGroupIds = [
       ...new Set(
@@ -407,6 +415,7 @@ export class UserNotificationsModel extends BasicDataModel(
     await applyFeedFilter(this.unreadFeed(userId), filter)
       .update({
         isRead: true,
+        readBatchId: batchId,
         updatedAt: new Date(),
       })
       .run();
@@ -417,7 +426,7 @@ export class UserNotificationsModel extends BasicDataModel(
       (groupId) => this.markSharedGroupAsRead(groupId),
     );
 
-    return notifications.map((n) => n._id);
+    return { batchId, ids: notifications.map((n) => n._id) };
   }
 
   /** Retains keyed notifications as receipts so dismissal cannot undo deduplication. */

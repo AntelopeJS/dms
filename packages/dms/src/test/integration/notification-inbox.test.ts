@@ -8,7 +8,7 @@ import { resetDatabase } from "../helpers/db";
 
 // The routes behind the notifications page's inbox table
 // (`notificationInboxTable`): a page of the feed per read-state tab, and the
-// dialog "Delete all" asks in.
+// dialog "Delete all" asks in, and the undo of "Mark all as read".
 
 const LOCATION = "/settings/user/notifications";
 const HTTP_OK = 200;
@@ -109,5 +109,26 @@ describe("[integration] notifications inbox table", () => {
     ).to.deep.equal([title]);
     expect(await search({ q: "$v2" })).to.deep.equal([title]);
     expect(await search({ q: "release" })).to.deep.equal([]);
+  });
+
+  it("undoes 'Mark all as read' through the batch it answers", async () => {
+    const unreadBefore = (await inbox({ limit: 1, filter_isRead: "is:false" }))
+      .total;
+    const marked = await client.put(`${LOCATION}/mark-all-read`);
+    expect(marked.status, JSON.stringify(marked.data)).to.equal(HTTP_OK);
+    expect(marked.data.batchId).to.be.a("string");
+    expect(marked.data).not.to.have.property("ids");
+    expect(
+      (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
+    ).to.equal(0);
+
+    const undone = await client.put(
+      `${LOCATION}/mark-all-read/${marked.data.batchId}/undo`,
+    );
+    expect(undone.status, JSON.stringify(undone.data)).to.equal(HTTP_OK);
+    expect(undone.data.ids).to.have.length(unreadBefore);
+    expect(
+      (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
+    ).to.equal(unreadBefore);
   });
 });

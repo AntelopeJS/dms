@@ -50,7 +50,6 @@ import {
   publishNotificationsUnread,
 } from "../../../implementations/dms-notifications";
 import {
-  notificationIdsSchema,
   userNotificationPreferencesPatchSchema,
   userNotificationPreferencesSchema,
 } from "../../../validation/user-notification-preferences.schema";
@@ -509,26 +508,6 @@ export class NotificationsApiController extends Controller(
     return { success: true };
   }
 
-  /** Reopens several notifications at once: the undo of "mark all as read". */
-  @Put("/mark-unread")
-  async markManyAsUnread(
-    @JSONBody() body: unknown,
-    @Model(UserNotificationsModel)
-    notificationsModel: UserNotificationsModel,
-  ) {
-    const { ids } = assertValidation(body, (v) =>
-      notificationIdsSchema.parse(v),
-    );
-
-    const reopened = await notificationsModel.markManyAsUnread(
-      this.user._id,
-      ids,
-    );
-    await publishNotificationsUnread(this.user._id, reopened);
-
-    return { success: true, ids: reopened };
-  }
-
   @Delete("/delete/:id")
   async deleteNotification(
     @Parameter("id", "param") id: string,
@@ -544,7 +523,7 @@ export class NotificationsApiController extends Controller(
 
   /**
    * Marks the whole feed read, or only what the inbox filter keeps. Returns
-   * the ids it marked read, which `PUT /mark-unread` takes to undo it.
+   * the batch id that `PUT /mark-all-read/:batchId/undo` takes to undo it.
    */
   @Put("/mark-all-read")
   async markAllAsRead(
@@ -553,13 +532,35 @@ export class NotificationsApiController extends Controller(
     notificationsModel: UserNotificationsModel,
   ) {
     const filter = readFeedFilter(context);
-    const ids = await notificationsModel.markAllAsRead(this.user._id, filter);
+    const { batchId, ids } = await notificationsModel.markAllAsRead(
+      this.user._id,
+      filter,
+    );
     // A filtered pass names its rows: "all read" would clear the others too.
     if (isFilteredFeed(filter)) {
       await publishNotificationsRead(this.user._id, ids);
     } else {
       await publishAllNotificationsRead(this.user._id);
     }
+
+    return { success: true, batchId };
+  }
+
+  /**
+   * Undoes one "mark all as read": reopens what it read and nothing has
+   * changed since, however many notifications that is.
+   */
+  @Put("/mark-all-read/:batchId/undo")
+  async undoMarkAllAsRead(
+    @Parameter("batchId", "param") batchId: string,
+    @Model(UserNotificationsModel)
+    notificationsModel: UserNotificationsModel,
+  ) {
+    const ids = await notificationsModel.undoMarkAllAsRead(
+      this.user._id,
+      batchId,
+    );
+    await publishNotificationsUnread(this.user._id, ids);
 
     return { success: true, ids };
   }

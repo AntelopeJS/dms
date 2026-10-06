@@ -62,26 +62,59 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     expect((await model.get(id))?.isRead).to.equal(false);
   });
 
-  it("returns the ids mark-all-read changed, and reopens only those of the user", async () => {
+  it("undoes mark-all-read: reopens what it read, and only that", async () => {
     const readId = await seed(USER_ID, "already read");
     await model.markAsRead(readId);
     const unreadIds = [await seed(USER_ID, "a"), await seed(USER_ID, "b")];
     const foreignId = await seed(OTHER_USER_ID, "foreign");
-    await model.markAsRead(foreignId);
 
-    const markedIds = await model.markAllAsRead(USER_ID);
-    expect(markedIds).to.have.members(unreadIds);
+    const { batchId, ids } = await model.markAllAsRead(USER_ID);
+    expect(ids).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(0);
 
-    const reopened = await model.markManyAsUnread(USER_ID, [
-      ...markedIds,
-      foreignId,
-      "missing-notification",
-    ]);
+    expect(await model.undoMarkAllAsRead(OTHER_USER_ID, batchId!)).to.be.empty;
+    const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
     expect(reopened).to.have.members(unreadIds);
     expect(await model.countUnread(USER_ID)).to.equal(unreadIds.length);
-    expect((await model.get(foreignId))?.isRead).to.equal(true);
     expect((await model.get(readId))?.isRead).to.equal(true);
+    expect((await model.get(foreignId))?.isRead).to.equal(false);
+  });
+
+  it("undoes mark-all-read past 500 notifications", async () => {
+    const count = 501;
+    await Promise.all(
+      Array.from({ length: count }, (_, index) =>
+        seed(USER_ID, `bulk ${index}`),
+      ),
+    );
+
+    const { batchId } = await model.markAllAsRead(USER_ID);
+    expect(await model.countUnread(USER_ID)).to.equal(0);
+    const reopened = await model.undoMarkAllAsRead(USER_ID, batchId!);
+    expect(reopened).to.have.length(count);
+    expect(await model.countUnread(USER_ID)).to.equal(count);
+  });
+
+  it("leaves out of the undo a notification changed since", async () => {
+    const [kept, toggled] = [
+      await seed(USER_ID, "kept"),
+      await seed(USER_ID, "toggled"),
+    ];
+    const { batchId } = await model.markAllAsRead(USER_ID);
+    await model.markAsUnread(toggled);
+    await model.markAsRead(toggled);
+
+    expect(await model.undoMarkAllAsRead(USER_ID, batchId!)).to.deep.equal([
+      kept,
+    ]);
+    expect((await model.get(toggled))?.isRead).to.equal(true);
+  });
+
+  it("returns no batch when nothing was unread", async () => {
+    expect(await model.markAllAsRead(USER_ID)).to.deep.equal({
+      batchId: null,
+      ids: [],
+    });
   });
 
   it("counts as unseen the unread rows created after the bell opened", async () => {
