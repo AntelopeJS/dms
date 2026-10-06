@@ -6,18 +6,23 @@
  *
  * An extension key may not contain the separator, so the first occurrence
  * always splits key from field id — even when the field id contains one too.
+ *
+ * @internal
  */
 export const INVITE_EXTENSION_FIELD_SEPARATOR = "__";
 
+/** @internal */
 export interface InviteExtensionFieldId {
   key: string;
   fieldId: string;
 }
 
+/** @internal */
 export function inviteExtensionFieldId(key: string, fieldId: string): string {
   return `${key}${INVITE_EXTENSION_FIELD_SEPARATOR}${fieldId}`;
 }
 
+/** @internal */
 export function splitInviteExtensionFieldId(
   id: string,
 ): InviteExtensionFieldId | undefined {

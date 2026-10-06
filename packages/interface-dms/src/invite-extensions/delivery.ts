@@ -24,6 +24,8 @@ import type {
  * been consumed. Parsing happens once, in {@link readPayload}.
  *
  * @throws HTTPResult 400 when a slice does not satisfy its schema
+ *
+ * @internal
  */
 export function CollectInviteExtensionPayloads(
   body: unknown,
@@ -46,6 +48,8 @@ export function CollectInviteExtensionPayloads(
  *
  * Legacy delivery logs failures. Durable delivery requests retryOnFailure:
  * invalid stored payloads and failed handlers then keep the decision pending.
+ *
+ * @internal
  */
 export async function DeliverInviteExtensions(
   payloads: InviteExtensionPayloads | null | undefined,
@@ -75,6 +79,8 @@ export async function DeliverInviteExtensions(
  * Called for every registered extension, with the stored payload when the
  * invitation still had one: a member being removed carries none, and the
  * contributor is expected to key its own data off `context.userId`.
+ *
+ * @internal
  */
 export async function CleanupInviteExtensions(
   payloads: InviteExtensionPayloads | null | undefined,

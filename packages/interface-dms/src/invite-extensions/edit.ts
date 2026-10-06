@@ -27,6 +27,8 @@ function isSamePayload(a: unknown, b: unknown): boolean {
  * registered extension's stored slice, under the prefixed ids its fields carry
  * in the form. Payloads of an extension that is no longer registered have no
  * field to fill and are left out.
+ *
+ * @internal
  */
 export function ReadInviteExtensionFields(
   payloads: InviteExtensionPayloads | null | undefined,
@@ -53,6 +55,8 @@ export function ReadInviteExtensionFields(
  *
  * @returns The new payloads, keyed by extension key, to store over the old ones
  * @throws HTTPResult 400 when a slice does not satisfy its schema
+ *
+ * @internal
  */
 export function CollectInviteExtensionEdits(
   body: unknown,
@@ -95,6 +99,8 @@ async function notifyUpdate(
  *
  * A failing handler is logged and the others still run: the invitation already
  * carries the new payload, which is what acceptance delivers either way.
+ *
+ * @internal
  */
 export async function NotifyInviteExtensionUpdates(
   previous: InviteExtensionPayloads | null | undefined,

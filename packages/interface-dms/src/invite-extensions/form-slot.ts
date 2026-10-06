@@ -20,12 +20,18 @@ import {
 } from "./registry";
 import type { InviteExtensionInfo, InviteFieldContribution } from "./types";
 
-/** Slot the DMS invite form opens for `RegisterInviteExtension`. */
+/**
+ * Slot the DMS invite form opens for `RegisterInviteExtension`.
+ *
+ * @internal
+ */
 export const INVITE_FORM_SLOT_ID = "dms.invite-form";
 
 /**
  * Slot the edit form of a pending invitation opens, so the contributed fields
  * can be changed until the invitee accepts.
+ *
+ * @internal
  */
 export const INVITE_EDIT_FORM_SLOT_ID = "dms.invite-edit-form";
 

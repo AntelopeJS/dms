@@ -20,7 +20,11 @@ export interface InviteExtensionPlacement {
   order?: number;
 }
 
-/** Resolved placement of a registered extension. */
+/**
+ * Resolved placement of a registered extension.
+ *
+ * @internal
+ */
 export interface ResolvedInvitePlacement {
   side: PlacementSide;
   anchorField?: string;
@@ -77,6 +81,7 @@ export type InviteCleanupHandler<T> = (
   context: InviteCleanupContext,
 ) => MaybePromise<void>;
 
+/** @internal */
 export interface InviteDeliveryOptions {
   /** Retains durable work by propagating contributor failures after all callbacks run. */
   retryOnFailure?: boolean;
@@ -132,6 +137,8 @@ export interface InviteExtensionOptions<T> {
  * A registration as the registry holds it: placement resolved, payload type
  * erased. The object itself is the handle — it is what the registering proxy
  * hands back to unregister when the extending module stops.
+ *
+ * @internal
  */
 export interface InviteExtensionInfo {
   key: string;
@@ -157,6 +164,8 @@ export type InviteExtensionPayloads = Record<string, unknown>;
  * registers: the block of fields, the JSON-schema entries the browser
  * validates them against, and the watches the contributed form declared —
  * all keyed by the prefixed field ids the merged form uses.
+ *
+ * @internal
  */
 export interface InviteFieldContribution {
   key: string;

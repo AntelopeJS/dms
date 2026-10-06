@@ -61,6 +61,8 @@ async function resolveOne(
 /**
  * The reason the first refusing resolver gives, in registration order;
  * `undefined` while every resolver leaves invitations available.
+ *
+ * @internal
  */
 export async function ResolveInviteAvailability(
   context: ComponentFilterContext,

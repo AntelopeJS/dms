@@ -10,6 +10,7 @@ import type {
   InviteExtensionPayloads,
 } from "./types";
 
+/** @internal */
 export const HTTP_BAD_REQUEST = 400;
 
 interface IssueLike {
@@ -17,6 +18,7 @@ interface IssueLike {
   message: string;
 }
 
+/** @internal */
 export interface StoredPayload {
   value: unknown;
 }
@@ -48,7 +50,11 @@ function describeFailure(key: string, error: unknown): unknown {
   };
 }
 
-/** The submitted values of one extension's fields, keyed by unprefixed id. */
+/**
+ * The submitted values of one extension's fields, keyed by unprefixed id.
+ *
+ * @internal
+ */
 export function sliceOf(
   key: string,
   body: Record<string, unknown>,
@@ -63,7 +69,11 @@ export function sliceOf(
   return slice;
 }
 
-/** @throws HTTPResult 400 when the slice does not satisfy the schema */
+/**
+ * @throws HTTPResult 400 when the slice does not satisfy the schema
+ *
+ * @internal
+ */
 export function assertSliceValid(
   info: InviteExtensionInfo,
   slice: Record<string, unknown>,
@@ -83,6 +93,8 @@ export function assertSliceValid(
  * can outlive the version of the module that wrote its payload, and this is
  * also where a transforming schema produces its output — exactly once, on the
  * input as the admin submitted it.
+ *
+ * @internal
  */
 export function readPayload(
   info: InviteExtensionInfo,

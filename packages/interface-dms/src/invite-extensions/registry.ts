@@ -16,6 +16,8 @@ import type {
  * built once, lazily, and cached on the entry: serializing runs the form's
  * option transforms — which is where its upload fields claim their tokens —
  * and those must not be re-signed on every layout request.
+ *
+ * @internal
  */
 export interface InviteExtensionEntry {
   info: InviteExtensionInfo;
@@ -24,14 +26,17 @@ export interface InviteExtensionEntry {
 
 const inviteExtensions = new Map<string, InviteExtensionEntry>();
 
+/** @internal */
 export function listInviteExtensionEntries(): InviteExtensionEntry[] {
   return [...inviteExtensions.values()];
 }
 
+/** @internal */
 export function listInviteExtensions(): InviteExtensionInfo[] {
   return listInviteExtensionEntries().map((entry) => entry.info);
 }
 
+/** @internal */
 export function getInviteExtension(
   key: string,
 ): InviteExtensionInfo | undefined {
@@ -189,6 +194,7 @@ export namespace internal {
   }
 }
 
+/** @internal */
 export function logInviteExtensionFailure(
   key: string,
   action: string,
