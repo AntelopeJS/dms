@@ -48,7 +48,6 @@ import {
 } from "../../../implementations/dms/page";
 import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
 import {
-  roleDeleteSchema,
   roleDuplicateSchema,
   roleEditorSchema,
   rolePreviewSchema,
@@ -60,13 +59,12 @@ import type {
   RolesOverview,
 } from "./role-editor";
 import {
-  assertRoleUnused,
   createRole,
-  deleteRole,
   duplicateRole,
   loadRoleDeleteConfirm,
   loadRoleEditorTree,
   loadRolesOverview,
+  prepareRoleDeletion,
   type RoleEditorActor,
   updateRole,
 } from "./role-editor-store";
@@ -117,10 +115,8 @@ registerTableViewActions(rolesEditor, {
 const rolesMeta = GetMetadata(roleSettingDataAPI, TableViewMeta);
 rolesMeta.addComponentBuilder(rolesEditor);
 rolesMeta.setControllerGuards({
-  delete: async (ctx, { ids }) => {
-    const tenantId = getRequestTenantId(ctx);
-    for (const id of ids) await assertRoleUnused(tenantId, id);
-  },
+  delete: (ctx, { ids, values }) =>
+    prepareRoleDeletion(getRequestTenantId(ctx), ids, values),
 });
 
 function requireEditorAction(id: string): Action {
@@ -426,16 +422,5 @@ export class RolesSettingsController extends PageController("roles", {
     @Parameter("id", "param") roleId: string,
   ): Promise<ConfirmDialogSerialized> {
     return loadRoleDeleteConfirm(getRequestTenantId(ctx), roleId);
-  }
-
-  @Post(":id/delete")
-  async remove(
-    @Context() ctx: RequestContext,
-    @AuthUserWithPermission(deleteAction) user: User,
-    @Parameter("id", "param") roleId: string,
-    @JSONBody() body: unknown,
-  ): Promise<void> {
-    const input = assertValidation(body, (v) => roleDeleteSchema.parse(v));
-    await deleteRole(await resolveActor(ctx, user), roleId, input);
   }
 }

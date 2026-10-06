@@ -310,6 +310,30 @@ describe("Table row actions: refusals", () => {
     expect(dialogs[0]!.options.title).toBe("Delete 2 items?");
   });
 
+  it("hands a `from` URL naming no row the whole selection, and the delete its answer", async () => {
+    api.mockImplementation(async (url: string) =>
+      url.startsWith("/api/roles/delete-confirm")
+        ? { title: "Delete {count} roles?", params: { count: 2 } }
+        : 2,
+    );
+    dialogValues = { reassignTo: "r3" };
+    const { deleteRows } = await rowActions();
+
+    const done = await deleteRows(["r1", "r2"], {
+      confirm: { from: "/api/roles/delete-confirm" },
+    });
+    dialogValues = {};
+
+    expect(done).toBe(true);
+    expect(api).toHaveBeenCalledWith("/api/roles/delete-confirm?ids=r1&ids=r2");
+    expect(dialogs[0]!.options.title).toBe("Delete 2 roles?");
+    expect(api).toHaveBeenLastCalledWith("/api/task/delete", {
+      method: HttpMethod.delete,
+      query: { id: ["r1", "r2"] },
+      body: { reassignTo: "r3" },
+    });
+  });
+
   it("asks a built-in action's confirmation before running it", async () => {
     const proceed = vi.fn();
     const { runConfirmedBuiltIn } = await rowActions();

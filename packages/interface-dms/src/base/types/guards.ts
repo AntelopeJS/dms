@@ -16,12 +16,21 @@ export interface EditGuardArgs<
   current: T;
 }
 
+/**
+ * What a delete, archive or restore guard receives: the rows, and the values
+ * of the fields its confirmation asked (`confirm.fields`), such as where to
+ * move what the rows take with them. `values` is unset when the request
+ * carried no body: no confirmation with fields was answered.
+ */
 export interface DeleteGuardArgs {
   ids: string[];
+  values?: Record<string, unknown>;
 }
 
+/** What an archive or restore guard receives; see {@link DeleteGuardArgs}. */
 export interface BulkGuardArgs {
   ids: string[];
+  values?: Record<string, unknown>;
 }
 
 export interface NewGuardArgs<

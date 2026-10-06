@@ -60,8 +60,8 @@ export interface RoleDraft {
 
 /** Body of the delete call. */
 export interface RoleDeleteRequest {
-  force: boolean;
-  reassignTo?: string;
+  /** Role given to the holders of the deleted one; none: they just lose it. */
+  reassignTo: string | null;
 }
 
 /** Response of the create and duplicate calls. */
@@ -77,6 +77,9 @@ export const NEW_ROLE_ENTRY_ID = "__new__";
 
 /** Base path of the roles page API. */
 export const ROLES_API_PATH = "/settings/workspace/roles";
+
+/** The roles' table data routes, which delete a role. */
+export const ROLES_TABLE_API_PATH = "/api/tables/roles";
 
 /** Bounds mirrored from the backend validation schema. */
 export const ROLE_NAME_MAX_LENGTH = 80;

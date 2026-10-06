@@ -217,10 +217,9 @@ async function duplicate(): Promise<void> {
 /** Deletes the role, moving its holders to `reassignTo` when one is picked. */
 async function deleteRole(
   role: RoleSummary,
-  reassignTo: string | undefined,
+  reassignTo: string | null,
 ): Promise<void> {
-  const force = role.memberCount + role.inviteCount > 0;
-  await api.deleteRole(role._id, { force, reassignTo });
+  await api.deleteRole(role._id, { reassignTo });
   await refresh();
   editor.select(reassignTo ?? editor.roles.value[0]?._id ?? OWNER_ENTRY_ID);
   toast.add({
@@ -239,7 +238,7 @@ async function requestDelete(): Promise<void> {
     {
       urlParams: { id: encodeURIComponent(role._id) },
       run: (values) =>
-        deleteRole(role, (values.reassignTo as string | null) ?? undefined),
+        deleteRole(role, (values.reassignTo as string | null) ?? null),
     },
   );
 }

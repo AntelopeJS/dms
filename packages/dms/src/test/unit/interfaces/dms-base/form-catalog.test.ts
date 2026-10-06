@@ -41,7 +41,11 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
     ]);
     expect(config?.kind?.enum).to.deep.equal(["record", "action"]);
     expect(config?.labelKey?.ui).to.include({ advanced: true });
-    expect(config).to.not.have.any.keys("showActions", "saveBar", "cancellable");
+    expect(config).to.not.have.any.keys(
+      "showActions",
+      "saveBar",
+      "cancellable",
+    );
   });
 
   it("leaves its addresses and methods to the advanced view", () => {

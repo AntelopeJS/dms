@@ -3,8 +3,8 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import {
-  deleteRole,
   loadRoleDeleteConfirm,
+  prepareRoleDeletion,
   REASSIGN_FIELD,
 } from "../../../../pages/settings/users/role-editor-store";
 
@@ -60,23 +60,42 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
     expect(dialog.fields).to.equal(undefined);
   });
 
-  it("refuses to move the holders to the deleted role, naming the field", async () => {
+  async function refusal(run: () => Promise<void>): Promise<HTTPResult> {
     try {
-      await deleteRole(
-        { tenantId: TENANT, permissions: new Set(["*"]) },
-        heldRole,
-        { force: true, reassignTo: heldRole },
-      );
-      expect.fail("Expected the deletion to be refused");
+      await run();
     } catch (error) {
       expect(error).to.be.instanceOf(HTTPResult);
-      expect((error as HTTPResult).getStatus()).to.equal(HTTP_CONFLICT);
-      expect(JSON.parse(String((error as HTTPResult).getBody()))).to.deep.equal(
-        {
-          field: REASSIGN_FIELD,
-          message: "$page.settings.roles.error.invalid_reassign",
-        },
-      );
+      return error as HTTPResult;
     }
+    return expect.fail("Expected the deletion to be refused");
+  }
+
+  it("refuses a held role when no dialog was answered", async () => {
+    const error = await refusal(() =>
+      prepareRoleDeletion(TENANT, [heldRole], undefined),
+    );
+    expect(error.getStatus()).to.equal(HTTP_CONFLICT);
+  });
+
+  it("refuses to move the holders to a deleted role, naming the field", async () => {
+    const error = await refusal(() =>
+      prepareRoleDeletion(TENANT, [heldRole, freeRole], {
+        reassignTo: freeRole,
+      }),
+    );
+    expect(error.getStatus()).to.equal(HTTP_CONFLICT);
+    expect(JSON.parse(String(error.getBody()))).to.deep.equal({
+      field: REASSIGN_FIELD,
+      message: "$page.settings.roles.error.invalid_reassign",
+    });
+  });
+
+  it("moves the holders to the role the dialog picked", async () => {
+    await prepareRoleDeletion(TENANT, [heldRole], { reassignTo: freeRole });
+
+    const member = await GetModel(TenantMemberModel, TENANT).get(
+      "role-delete-confirm-member",
+    );
+    expect(member?.roleIds).to.deep.equal([freeRole]);
   });
 });

@@ -10,10 +10,12 @@ import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { listUserInvitesByEmail, seedUserInvite } from "../helpers/fixtures";
 
-// Deleting a role its members and pending invitations still hold: refused
-// unless forced, and with `reassignTo` they all move to the role picked.
+// Deleting a role its members and pending invitations still hold, through the
+// table's own delete: refused without the delete dialog's answer as the body,
+// and with `reassignTo` they all move to the role picked.
 
 const ROLES = "/settings/workspace/roles";
+const ROLES_TABLE = "/api/tables/roles";
 const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;
 const HTTP_CONFLICT = 409;
@@ -29,6 +31,12 @@ describe("[integration] role delete with reassignment", () => {
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     return response.data.id as string;
   }
+
+  const deleteRole = (roleId: string, answer?: Record<string, unknown>) =>
+    client.delete(`${ROLES_TABLE}/delete`, {
+      params: { id: roleId },
+      data: answer,
+    });
 
   const rolesOf = async (userId: string) =>
     (await GetModel(TenantMemberModel, DEFAULT_TENANT_ID).getByUser(userId))
@@ -47,19 +55,13 @@ describe("[integration] role delete with reassignment", () => {
     const holdsBoth = await registerUser({ roles_ids: [editors, readers] });
     await seedUserInvite({ email: PENDING_EMAIL, roles_ids: [editors] });
 
-    const unforced = await client.post(`${ROLES}/${editors}/delete`, {});
-    expect(unforced.status).to.equal(HTTP_CONFLICT);
-    const ontoItself = await client.post(`${ROLES}/${editors}/delete`, {
-      force: true,
-      reassignTo: editors,
-    });
+    const unanswered = await deleteRole(editors);
+    expect(unanswered.status).to.equal(HTTP_CONFLICT);
+    const ontoItself = await deleteRole(editors, { reassignTo: editors });
     expect(ontoItself.status).to.equal(HTTP_CONFLICT);
     expect(ontoItself.data).to.include({ field: "reassignTo" });
 
-    const deleted = await client.post(`${ROLES}/${editors}/delete`, {
-      force: true,
-      reassignTo: readers,
-    });
+    const deleted = await deleteRole(editors, { reassignTo: readers });
     expect(deleted.status, JSON.stringify(deleted.data)).to.be.oneOf([
       HTTP_OK,
       HTTP_NO_CONTENT,
@@ -76,9 +78,7 @@ describe("[integration] role delete with reassignment", () => {
 
   it("takes the role away from its holders when none is picked", async () => {
     const member = await registerUser({ roles_ids: [readers] });
-    const deleted = await client.post(`${ROLES}/${readers}/delete`, {
-      force: true,
-    });
+    const deleted = await deleteRole(readers, { reassignTo: null });
     expect(deleted.status, JSON.stringify(deleted.data)).to.be.oneOf([
       HTTP_OK,
       HTTP_NO_CONTENT,

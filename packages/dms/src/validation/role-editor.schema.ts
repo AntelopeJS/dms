@@ -24,11 +24,10 @@ export const roleDuplicateSchema = z.object({
   name: roleName,
 });
 
+/** What the delete dialog of a role answers. */
 export const roleDeleteSchema = z.object({
-  /** Confirms the deletion of a role that members or invitations still hold. */
-  force: z.boolean().default(false),
   /** Role given to the members and invitations of the deleted one. */
-  reassignTo: z.string().min(1).optional(),
+  reassignTo: z.string().min(1).nullish(),
 });
 
 /** Bound on the ids and the page path of a role preview request. */

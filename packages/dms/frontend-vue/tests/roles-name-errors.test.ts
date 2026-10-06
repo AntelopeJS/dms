@@ -286,7 +286,6 @@ it("asks the delete dialog the server words, then deletes with the picked role",
     "/settings/workspace/roles/role-1/delete-confirm",
   );
   expect(api.deleteRole).toHaveBeenCalledWith("role-1", {
-    force: false,
     reassignTo: "role-2",
   });
   expect(addToast).toHaveBeenCalledWith({

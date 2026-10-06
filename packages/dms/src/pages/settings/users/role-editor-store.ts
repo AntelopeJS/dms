@@ -1,5 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
-import { assert } from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import {
@@ -19,9 +19,9 @@ import {
   GetMenuOrder,
 } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils/notification-rules";
-import type {
-  RoleDeleteInput,
-  RoleEditorInput,
+import {
+  type RoleEditorInput,
+  roleDeleteSchema,
 } from "../../../validation/role-editor.schema";
 import {
   collectPermissionIds,
@@ -195,9 +195,9 @@ export async function duplicateRole(
 
 /**
  * Refuse deleting a role that members or pending invitations still hold, so
- * nobody loses access by accident. The editor confirms and passes `force`.
+ * nobody loses access by accident.
  */
-export async function assertRoleUnused(
+async function assertRoleUnused(
   tenantId: string,
   roleId: string,
 ): Promise<void> {
@@ -287,27 +287,35 @@ export async function loadRoleDeleteConfirm(
 }
 
 /**
- * Delete a role. Its members and invitations lose it, or move to
- * `reassignTo`; without `force` a role still held is refused.
+ * Readies roles for the table's delete, as its guard. With no dialog
+ * answered (`values` unset), a role members or invitations still hold is
+ * refused, so a bare API call strips nobody's access; once the delete dialog
+ * was confirmed, their holders move to `reassignTo`, or just lose the role.
  */
-export async function deleteRole(
-  actor: RoleEditorActor,
-  roleId: string,
-  input: RoleDeleteInput,
+export async function prepareRoleDeletion(
+  tenantId: string,
+  roleIds: string[],
+  values: Record<string, unknown> | undefined,
 ): Promise<void> {
-  await requireRole(actor.tenantId, roleId);
-  if (input.reassignTo) {
+  if (!values) {
+    for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);
+    return;
+  }
+  const { reassignTo } = assertValidation(values, (v) =>
+    roleDeleteSchema.parse(v),
+  );
+  if (reassignTo) {
     // Named after the field, so the delete dialog shows it under the role
     // picker rather than in its alert.
-    if (input.reassignTo === roleId) {
+    if (roleIds.includes(reassignTo)) {
       throw new HTTPResult(HTTP_CONFLICT, {
         field: REASSIGN_FIELD,
         message: INVALID_REASSIGN_MESSAGE,
       });
     }
-    await requireRole(actor.tenantId, input.reassignTo);
+    await requireRole(tenantId, reassignTo);
   }
-  if (!input.force) await assertRoleUnused(actor.tenantId, roleId);
-  await moveRoleHolders(actor.tenantId, roleId, input.reassignTo);
-  await GetModel(RoleModel, actor.tenantId).delete(roleId);
+  for (const roleId of roleIds) {
+    await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined);
+  }
 }

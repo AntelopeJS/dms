@@ -4,6 +4,7 @@ import {
   type RoleDraft,
   type RolePermissionNode,
   ROLES_API_PATH,
+  ROLES_TABLE_API_PATH,
   type RolesOverview,
 } from "./role-types";
 
@@ -50,9 +51,12 @@ export function useRolesApi() {
       { method: "POST", body: { name } },
     );
 
+  // The table's own delete: the answer of the delete dialog goes as its
+  // body, which the roles' delete guard reads to move the holders.
   const deleteRole = (roleId: string, request: RoleDeleteRequest) =>
-    $authFetch<void>(`${ROLES_API_PATH}/${encodeURIComponent(roleId)}/delete`, {
-      method: "POST",
+    $authFetch<number>(`${ROLES_TABLE_API_PATH}/delete`, {
+      method: "DELETE",
+      query: { id: roleId },
       body: request,
     });
 

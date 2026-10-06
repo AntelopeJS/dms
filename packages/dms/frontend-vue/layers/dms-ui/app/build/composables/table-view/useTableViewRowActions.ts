@@ -19,6 +19,7 @@ import {
 } from "#dms-core/app/types/confirm-dialog";
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import { useActionTargets } from "../actions/useActionTargets";
+import { bulkSelectionQuery, withQuery } from "../actions/bulkSelection";
 import type { RowNavigationSource } from "../actions/rowNavigation";
 import type { TableUrlScope } from "./utils/views";
 import { TableViewEvents } from "../../../composables/table-view/types";
@@ -88,6 +89,7 @@ interface BulkActionConfig {
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
 
+const ROW_URL_PLACEHOLDER = /\{[^}]+\}/;
 /** Options of a delete: from the archive, it is a permanent one. */
 interface DeleteRowsOptions {
   permanently?: boolean;
@@ -630,13 +632,24 @@ export const useTableRowActions = <T extends Data>(
    * reaches: a `from` dialog is worded for one row, so several rows keep the
    * generic confirmation. Undefined when none applies.
    */
+  // A `from` URL naming a row (`{id}`, `{_id}`…) is worded for that row
+  // alone; one naming none receives the rows as `?ids=`, one or several, like
+  // the `from` of a bulk custom action.
   const declaredBulkConfirm = (
     actionConfig: boolean | RowActionConfig | undefined,
     ids: string[],
   ): ActionConfirm | undefined => {
     const declared = normalizeActionConfig(actionConfig).confirm;
-    if (!declared) return undefined;
-    return isConfirmFrom(declared) && ids.length !== 1 ? undefined : declared;
+    if (!declared || !isConfirmFrom(declared)) return declared;
+    if (ROW_URL_PLACEHOLDER.test(declared.from)) {
+      return ids.length === 1 ? declared : undefined;
+    }
+    return {
+      from: withQuery(
+        declared.from,
+        bulkSelectionQuery({ ids, count: ids.length }),
+      ),
+    };
   };
 
   /** Asks the declared confirmation of a bulk action, running it inside. */
