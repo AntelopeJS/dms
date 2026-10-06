@@ -162,9 +162,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
 
   it("runs the registration checks of TableView(): page size, displays, card fields, tab targets", () => {
     expect(() => sourceOf({ pageSize: 0 })).to.throw(/pageSize/);
-    expect(() =>
-      sourceOf({ displays: [{ id: "plan-cards" }] }),
-    ).to.throw(/named "<module>:<id>"/);
+    expect(() => sourceOf({ displays: [{ id: "plan-cards" }] })).to.throw(
+      /named "<module>:<id>"/,
+    );
     expect(() => sourceOf({ defaultDisplay: "cards" })).to.throw(
       /not declared in displays/,
     );
