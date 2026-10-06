@@ -38,14 +38,13 @@ const PageRendered = defineComponent({
   },
 });
 
-// After a client navigation the page shows nothing until its chunk (and its
-// setup) resolves: the skeleton fills the body meanwhile. Pure CSS, keyed on
-// the page wrapper being empty (a pending Suspense leaves only a comment), so
-// the navigation is never held and the old page never kept.
-const PAGE_SKELETON_CLASS =
-  "hidden [[data-dms-page-slot]:empty+&]:block [html[data-dms-role-preview=pending]_&]:block";
+// After a client navigation the skeleton stands in for the page until its
+// chunk (and its setup) resolves, so the old page is never kept on screen.
+const isPageLoading = useDmsPageLoading();
 // A reloaded "preview as role" tab holds its page back (pre-paint script, see
 // the permission-preview-prepaint plugin) until the preview veils it.
+const PAGE_SKELETON_CLASS =
+  "hidden [html[data-dms-role-preview=pending]_&]:block";
 const PAGE_SLOT_CLASS =
   "contents [html[data-dms-role-preview=pending]_&]:hidden";
 </script>
@@ -62,10 +61,12 @@ const PAGE_SLOT_CLASS =
       <PageHeaderActionsOutlet :actions="props.headerActions" />
     </template>
   </PageHeader>
-  <div data-dms-page-slot :class="PAGE_SLOT_CLASS"><slot /></div>
+  <div :class="isPageLoading ? 'hidden' : PAGE_SLOT_CLASS">
+    <slot />
+  </div>
   <PageSkeleton
     :with-title="!props.title || props.hideHeader"
-    :class="PAGE_SKELETON_CLASS"
+    :class="isPageLoading ? undefined : PAGE_SKELETON_CLASS"
   />
   <PageRendered />
 </template>

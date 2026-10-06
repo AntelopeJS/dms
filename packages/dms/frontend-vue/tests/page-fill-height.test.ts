@@ -50,12 +50,13 @@ interface PageLayoutFixture {
 }
 
 const route = reactive({ path: "/tools/explorer", query: {} });
+const pageLoading = ref(false);
 const pageLayout = ref<PageLayoutFixture | null>(null);
 
-// The page skeleton the layout keeps after the page (shown by CSS only while
-// the page is pending after a client navigation, once a short delay passes).
+// The page skeleton the layout keeps after the page (shown only while the page
+// is pending after a client navigation, once a short delay passes).
 const PAGE_SKELETON_MARKUP =
-  '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [[data-dms-page-slot]:empty+&amp;]:block [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
+  '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
   '<div class="dms-card space-y-4 p-[18px]"><USkeleton class="h-3.5 w-40"></USkeleton><!--[-->' +
   ["72%", "58%", "66%", "44%"]
     .map(
@@ -76,7 +77,7 @@ const FLOW_PAGE_MARKUP =
   '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
   '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
   '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
-  '<div data-dms-page-slot class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
+  '<div class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
   '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
@@ -147,6 +148,7 @@ function installRuntime(): void {
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDevReloading: () => ref(false),
+    useDmsPageLoading: () => pageLoading,
     useDmsRoute: () => route,
     useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
     useHomepage: () => "/",
@@ -236,6 +238,7 @@ function expectNoFillClasses(element: Element | null | undefined) {
 
 beforeEach(() => {
   installRuntime();
+  pageLoading.value = false;
   route.path = "/tools/explorer";
   pageLayout.value = withComponents("stats", "explorer");
 });
@@ -373,6 +376,37 @@ describe("DefaultLayout with fillHeight", () => {
     host
       .querySelectorAll(".dms-page-stack > div")
       .forEach((wrapper) => expectNoFillClasses(wrapper));
+    app.unmount();
+  });
+});
+
+describe("DefaultLayout while the page loads", () => {
+  it("shows the skeleton in place of the page while the engine waits on it", async () => {
+    const app = withStubs(
+      createApp(() =>
+        h(
+          DefaultLayout,
+          { title: "Explorer" },
+          { default: () => h("section", { "data-page": "" }) },
+        ),
+      ),
+    );
+    const host = document.createElement("div");
+    app.mount(host);
+    const skeleton = () => host.querySelector(".dms-page-skeleton");
+    const pageWrapper = () => host.querySelector("[data-page]")?.parentElement;
+    expect(classesOf(skeleton())).toContain("hidden");
+    expect(classesOf(pageWrapper())).not.toContain("hidden");
+
+    pageLoading.value = true;
+    await nextTick();
+    expect(classesOf(skeleton())).not.toContain("hidden");
+    expect(classesOf(pageWrapper())).toContain("hidden");
+
+    pageLoading.value = false;
+    await nextTick();
+    expect(classesOf(skeleton())).toContain("hidden");
+    expect(classesOf(pageWrapper())).not.toContain("hidden");
     app.unmount();
   });
 });
