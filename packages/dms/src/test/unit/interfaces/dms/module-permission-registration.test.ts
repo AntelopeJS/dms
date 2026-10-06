@@ -8,6 +8,7 @@ import {
   PageMetadata,
   pagesCategory,
   RegisterModule,
+  workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { IsModuleScopedPermission } from "@antelopejs/interface-dms/permissions";
@@ -82,6 +83,22 @@ describe("[unit] interfaces/dms/page — module permission registration", () => 
   it("keeps the permission tree free of any module entry", () => {
     const tree = permissionsImpl.GetPermissions();
     expect(tree).to.not.have.property("modules");
+  });
+
+  it("refuses a module's page under the workspace settings, not a project's", () => {
+    expect(() =>
+      PageController("mpr-settings", {
+        displayName: "Module settings",
+        module: MODULE_ID,
+        category: workspaceSettingsCategory,
+      }),
+    ).to.throw(MODULE_ID);
+    expect(() =>
+      PageController("mpr-project-settings", {
+        displayName: "Project settings",
+        category: workspaceSettingsCategory,
+      }),
+    ).to.not.throw();
   });
 
   it("still registers regular page permissions", () => {
