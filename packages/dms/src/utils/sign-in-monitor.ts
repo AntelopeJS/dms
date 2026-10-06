@@ -6,6 +6,7 @@ import { UserKnownDevicesModel } from "../db/models/userKnownDevices.model";
 import { notifyFailedSignIns, notifyNewLogin } from "./account-notifications";
 import {
   evaluateFailedSignIns,
+  FAILED_SIGN_IN_THRESHOLD,
   FAILED_SIGN_IN_WINDOW_MS,
 } from "./failed-sign-ins";
 import { type ClientOrigin, lookupCountry } from "./sign-in-country";
@@ -96,9 +97,10 @@ export async function rememberSignInDevice(
 
 async function alertOnBurst(user: User, now: Date): Promise<void> {
   const attempts = GetModel(SignInAttemptsModel);
-  const records = await attempts.listSince(
+  const records = await attempts.listBurst(
     user._id,
     new Date(now.getTime() - FAILED_SIGN_IN_WINDOW_MS),
+    FAILED_SIGN_IN_THRESHOLD,
   );
   const { failures, alertKey } = evaluateFailedSignIns(records, now);
   if (alertKey === undefined) return;

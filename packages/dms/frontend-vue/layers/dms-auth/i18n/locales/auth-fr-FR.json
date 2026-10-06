@@ -430,6 +430,7 @@
       "relay_required": "Appel direct refusé : ce point d'entrée n'accepte que le serveur frontend de l'instance.",
       "identity_malformed": "Le fournisseur a renvoyé une identité inexploitable, réessayez."
     },
-    "rate_limited": "Trop de tentatives, réessayez dans une minute."
+    "rate_limited": "Trop de tentatives, réessayez dans une minute.",
+    "too_many_sign_in_attempts": "Trop de tentatives de connexion. Réessayez dans quelques minutes."
   }
 }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { SignInAttempt, signInAttemptsTableName } from "../tables";
+import type { SignInAttemptKind } from "../tables/signInAttempts.table";
 
 function alertId(userId: string, alertKey: string): string {
   return createHash("sha256")
@@ -16,13 +17,31 @@ export class SignInAttemptsModel extends BasicDataModel(
     await this.table.insert({ userId, kind: "failed", createdAt: now }).run();
   }
 
-  /** The user's attempts and alerts recorded after `since`. */
-  async listSince(userId: string, since: Date): Promise<SignInAttempt[]> {
-    const rows = await this.table
+  private recordedSince(userId: string, since: Date, kind: SignInAttemptKind) {
+    return this.table
       .getAll(userId, "userId")
       .filter((row) => row.key("createdAt").gt(since))
-      .run();
-    return rows
+      .filter((row) => row.key("kind").eq(kind));
+  }
+
+  /**
+   * What a burst check reads after `since`, bounded whatever the number of
+   * rows: the oldest `failureLimit` failures, and one alert if any was
+   * claimed.
+   */
+  async listBurst(
+    userId: string,
+    since: Date,
+    failureLimit: number,
+  ): Promise<SignInAttempt[]> {
+    const [failures, alerts] = await Promise.all([
+      this.recordedSince(userId, since, "failed")
+        .orderBy("createdAt")
+        .slice(0, failureLimit)
+        .run(),
+      this.recordedSince(userId, since, "alerted").slice(0, 1).run(),
+    ]);
+    return [...failures, ...alerts]
       .map((row) => SignInAttemptsModel.fromDatabase(row))
       .filter((row): row is SignInAttempt => row !== undefined);
   }

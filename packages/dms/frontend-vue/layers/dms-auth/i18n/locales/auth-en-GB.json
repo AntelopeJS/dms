@@ -430,6 +430,7 @@
       "relay_required": "Direct call refused: this endpoint only accepts the instance's frontend server.",
       "identity_malformed": "The provider returned an unusable identity, please try again."
     },
-    "rate_limited": "Too many attempts, please try again in a minute."
+    "rate_limited": "Too many attempts, please try again in a minute.",
+    "too_many_sign_in_attempts": "Too many sign-in attempts. Please try again in a few minutes."
   }
 }
