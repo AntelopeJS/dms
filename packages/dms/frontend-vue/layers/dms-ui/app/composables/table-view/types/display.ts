@@ -130,6 +130,27 @@ export interface TableViewCardProps<T = Record<string, unknown>> {
 }
 
 /**
+ * The props a custom detail band receives (backend `expandable.component`):
+ * a card's, without the selection the grid row above it already shows.
+ */
+export interface TableViewExpandedRowProps<T = Record<string, unknown>> {
+  /** The row the band details: the listed one, or the one `lazyLoad` read. */
+  row: T;
+  /** Its id (its `rowIdKey` value). */
+  rowId: string;
+  /** Column metadata of the table view (types, labels). */
+  columns: TableViewColumn[];
+  /** Field naming the row, if configured. */
+  labelKey?: string;
+  /** The table's row actions and their per-row predicates. */
+  actions: TableViewDisplayActions<T>;
+  /** Does what a click on the row does in the grid. */
+  open: () => void;
+  /** Reloads the table, and with it the open bands. */
+  refresh: () => Promise<void> | void;
+}
+
+/**
  * The single, normalized prop every display component receives. A display reads
  * what it needs and ignores the rest; everything is sourced from the table
  * view's existing state/handlers so a display inherits search/filters/sorting/

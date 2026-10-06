@@ -4,8 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExpandedRowDetail from "../layers/dms-ui/app/build/components/table-view/ExpandedRowDetail.vue";
 import type {
   TableViewColumn,
+  TableViewDisplayActions,
   TableViewExpandableConfig,
 } from "../layers/dms-ui/app/composables/table-view/types";
+import type { ExpandedRowLoadState } from "../layers/dms-ui/app/build/composables/table-view/useExpandedRowDetails";
 
 vi.mock(
   "../layers/dms-ui/app/components/key-value-list/KeyValueList.vue",
@@ -27,10 +29,16 @@ vi.mock(
 );
 
 const OrderLines = defineComponent({
-  props: { row: Object, rowId: String },
+  props: { row: Object, rowId: String, refresh: Function, open: Function },
   setup: (props) => () =>
-    h("div", { "data-lines": props.rowId }, String(props.row?.number)),
+    h(
+      "button",
+      { "data-lines": props.rowId, onClick: () => props.refresh?.() },
+      String(props.row?.number),
+    ),
 });
+
+const refresh = vi.fn();
 
 const columns = [
   { id: "carrier", accessorKey: "carrier", header: "Carrier" },
@@ -39,16 +47,37 @@ const columns = [
 describe("TableView expanded row band", () => {
   let app: App | undefined;
 
-  const mount = (config: TableViewExpandableConfig) => {
+  const mount = (
+    config: TableViewExpandableConfig,
+    loadState: ExpandedRowLoadState = "ready",
+    onRetry = () => {},
+  ) => {
     app = createApp({
       render: () =>
         h(ExpandedRowDetail, {
-          row: { number: "A-1", carrier: "UPS" },
-          rowId: "a1",
-          columns,
+          rowProps: {
+            row: { number: "A-1", carrier: "UPS" },
+            rowId: "a1",
+            columns,
+            actions: {} as TableViewDisplayActions<Record<string, unknown>>,
+            open: () => {},
+            refresh,
+          },
           config,
+          loadState,
+          onRetry,
         }),
     });
+    for (const name of ["USkeleton", "UIcon"]) {
+      app.component(name, defineComponent({ render: () => h("span") }));
+    }
+    app.component(
+      "UButton",
+      defineComponent({
+        props: { label: String },
+        setup: (props) => () => h("button", { "data-retry": "" }, props.label),
+      }),
+    );
     const container = document.createElement("div");
     app.mount(container);
     return container;
@@ -59,7 +88,10 @@ describe("TableView expanded row band", () => {
       processI18n: (text: string) => text,
     }));
     vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
-    vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
+    vi.stubGlobal("useI18n", () => ({
+      locale: { value: "en" },
+      t: (key: string) => key,
+    }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "OrderLines" ? OrderLines : undefined,
     );
@@ -80,6 +112,27 @@ describe("TableView expanded row band", () => {
       "A-1",
     );
     expect(container.querySelector("dl")).toBeNull();
+  });
+
+  it("hands the component the table's refresh", () => {
+    const container = mount({ component: { componentName: "OrderLines" } });
+    container.querySelector<HTMLButtonElement>("[data-lines]")!.click();
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("holds the band's place while its row loads, then says a failure, with a retry", () => {
+    const config = { component: { componentName: "OrderLines" } };
+    const loading = mount(config, "loading");
+    expect(loading.querySelector("[aria-busy='true']")).not.toBeNull();
+    expect(loading.querySelector("[data-lines]")).toBeNull();
+    app?.unmount();
+
+    const onRetry = vi.fn();
+    const failed = mount(config, "error", onRetry);
+    expect(failed.querySelector("[data-lines]")).toBeNull();
+    expect(failed.textContent).toContain("dms.table.load_error_title");
+    failed.querySelector<HTMLButtonElement>("[data-retry]")!.click();
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("lists the fields without a component", () => {

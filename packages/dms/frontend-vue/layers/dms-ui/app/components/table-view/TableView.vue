@@ -26,6 +26,7 @@ import type {
   TableViewListResponse,
   TableViewDisplayContext,
   TableViewDisplayConfig,
+  TableViewExpandedRowProps,
   TableViewViewsConfig,
   TableViewGroupedConfig,
   TableViewEmptyStatesConfig,
@@ -85,6 +86,11 @@ import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePe
 
 import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
+import { buildExpandedRowProps } from "../../build/composables/table-view/utils/expandedRowProps";
+import {
+  type ExpandedRowLoadState,
+  useExpandedRowDetails,
+} from "../../build/composables/table-view/useExpandedRowDetails";
 import type {
   TableAccumulation,
   TableViewSwitcherItem,
@@ -1498,6 +1504,36 @@ if (expandableConfig) {
   );
 }
 
+// `lazyLoad` bands read their row when it opens; any reload of the listed
+// rows drops what they read, and the open ones read it again.
+const expandedDetails = useExpandedRowDetails<T>((id) => tableRows.getRow(id));
+if (expandableConfig?.lazyLoad) {
+  watch(shownResults, () => expandedDetails.reset());
+  watch(
+    [expanded, shownResults],
+    () =>
+      expandedDetails.ensure(
+        Object.keys(expanded.value).filter((id) => expanded.value[id]),
+      ),
+    { immediate: true },
+  );
+}
+
+const expandedRowLoadState = (id: string): ExpandedRowLoadState =>
+  expandableConfig?.lazyLoad
+    ? (expandedDetails.entryOf(id)?.state ?? "loading")
+    : "ready";
+
+// The band takes any row: its props are the table's, for the row type it lists.
+const expandedRowProps = (listed: T): TableViewExpandedRowProps => {
+  const id = getRowId(listed);
+  const read = id ? expandedDetails.entryOf(id)?.row : undefined;
+  return buildExpandedRowProps<T>(
+    read ? { ...listed, ...read } : listed,
+    displayContext.value,
+  ) as unknown as TableViewExpandedRowProps;
+};
+
 const { warnBeforeEdit } = usePresenceEditWarning();
 
 const handleRowEdit = async (item: T) => {
@@ -1954,10 +1990,10 @@ onMounted(() => {
     </template>
     <template v-if="expandableConfig" #expanded="{ row }">
       <ExpandedRowDetail
-        :row="row.original"
-        :row-id="row.id"
-        :columns="props.columns"
+        :row-props="expandedRowProps(row.original)"
         :config="expandableConfig"
+        :load-state="expandedRowLoadState(row.id)"
+        @retry="expandedDetails.load(row.id)"
       />
     </template>
     <template

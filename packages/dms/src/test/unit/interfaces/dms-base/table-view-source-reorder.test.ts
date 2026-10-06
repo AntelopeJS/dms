@@ -191,6 +191,9 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(() => sourceOf({ expandable: { fields: ["status"] } })).to.throw(
       /unknown column "status"/,
     );
+    expect(() =>
+      sourceOf({ expandable: { fields: ["path"], lazyLoad: true } }),
+    ).to.throw(/lazyLoad: a source has no get route/);
   });
 
   it("serves the reorder field and the pagination mode", () => {

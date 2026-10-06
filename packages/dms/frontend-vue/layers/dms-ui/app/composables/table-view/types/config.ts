@@ -120,7 +120,7 @@ export interface TableViewExpandableField {
 /**
  * Expandable rows (backend `expandable` option): a caret column opens a
  * detail band under the row, listing `fields` or rendering `component` (which
- * receives `row`, `columns` and `rowId` and replaces the field list).
+ * receives `TableViewExpandedRowProps` and replaces the field list).
  */
 export interface TableViewExpandableConfig {
   fields?: TableViewExpandableField[];
@@ -130,6 +130,8 @@ export interface TableViewExpandableConfig {
   defaultExpanded?: "none" | "first" | "all";
   /** At most one row open at a time. */
   single?: boolean;
+  /** Reads the row from the data API's `get` route when it opens. */
+  lazyLoad?: boolean;
 }
 
 /** A sort a view applies (backend `TableViewSort`). */

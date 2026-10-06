@@ -280,6 +280,10 @@ const expandableBehaviorShape = {
     label: "One row at a time",
     widget: "switch",
   }),
+  lazyLoad: ui(z.boolean().optional(), {
+    label: "Load the row on open",
+    widget: "switch",
+  }),
 };
 
 // The band lists fields or renders a component, never both: one shape each.

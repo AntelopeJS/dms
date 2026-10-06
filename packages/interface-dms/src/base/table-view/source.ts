@@ -241,6 +241,11 @@ export function tableViewFromSource(
     location: options.fetchUrl,
     columns: serializeSourceColumns(options.columns, capabilities),
   };
+  if (options.expandable?.lazyLoad) {
+    throw new Error(
+      `TableView expandable on ${sourceName(options)} sets lazyLoad: a source has no get route to load a row from`,
+    );
+  }
   const expandable = serializeExpandable(
     sourceName(options),
     { columns: options.columns },

@@ -322,6 +322,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       fieldsLabel: undefined,
       defaultExpanded: "first",
       single: true,
+      lazyLoad: undefined,
     });
     expect(() =>
       TableView(OrderAPI, {
@@ -329,6 +330,26 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         expandable: { fields: ["missing"] },
       }),
     ).to.throw(/expandable fields .* unknown column "missing"/);
+  });
+
+  it("passes lazyLoad through, with fields or a component", () => {
+    const fields = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        expandable: { fields: ["carrier"], lazyLoad: true },
+      }),
+    );
+    expect(fields.expandable).to.include({ lazyLoad: true });
+    const component = optionsOf(
+      TableView(OrderAPI, {
+        realtime: false,
+        expandable: {
+          component: CustomComponent("OrderLines"),
+          lazyLoad: true,
+        },
+      }),
+    );
+    expect(component.expandable).to.include({ lazyLoad: true });
   });
 
   it("hands the band to a component alone, refusing both or neither", () => {
@@ -342,6 +363,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(options.expandable).to.deep.equal({
       defaultExpanded: undefined,
       single: true,
+      lazyLoad: undefined,
       component: component.serializeSync(),
     });
     // What the types refuse, a schema-built option can still carry.

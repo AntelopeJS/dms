@@ -256,6 +256,7 @@ export function serializeExpandable(
   const behavior = {
     defaultExpanded: expandable.defaultExpanded,
     single: expandable.single,
+    lazyLoad: expandable.lazyLoad,
   };
   if (expandable.component && expandable.fields) {
     throw new Error(
