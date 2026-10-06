@@ -71,19 +71,19 @@ const FLOW_PAGE_MARKUP =
   '<div data-dms-persistent-shell storage-key="dms-dashboard" unit="px" data-group><!---->' +
   "<div data-panel><!--[--><!----><!----><!----><!--]-->" +
   "<div data-body>" +
-  '<div class="w-full max-w-none pb-12 lg:pb-16" data-dms-page-region data-dms-page-content><!--[--><!--[-->' +
+  '<div class="w-full max-w-none pb-12 lg:pb-16" data-dms-page-region data-dms-page-content><!--[--><!--[--><!--[-->' +
   '<section class="flex flex-wrap gap-x-3.5 gap-y-4 items-start pb-6">' +
   '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
   '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
   '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
-  '<div data-dms-page-slot class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[-->' +
+  '<div data-dms-page-slot class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
   '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
   '<div class="">' +
-  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--></div>' +
+  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
   PAGE_SKELETON_MARKUP +
-  "<!----><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
+  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {

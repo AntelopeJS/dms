@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 import {
   findActiveSettingsPath,
   INVITES_PAGE_ID,
-  isSettingsFullId,
   useSettingsNavigation,
 } from "../layers/dms-layout/app/composables/settings/useSettingsNavigation";
 
@@ -113,12 +112,6 @@ it("labels the core groups with their i18n keys and others by category", () => {
   ]);
 });
 
-it("recognises settings ids", () => {
-  expect(isSettingsFullId("settings")).toBe(true);
-  expect(isSettingsFullId("settings.user.profile")).toBe(true);
-  expect(isSettingsFullId("settingsx.page")).toBe(false);
-  expect(isSettingsFullId(undefined)).toBe(false);
-});
 
 // Pending invitations: a hidden page (out of the menu tree) the nav lists from
 // the site layout's page registry, right after Members.

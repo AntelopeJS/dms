@@ -25,7 +25,6 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { TableView } from "@antelopejs/interface-dms/base";
-import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import type {
   FormContainerPages,
   FormContainerPageTexts,
@@ -427,7 +426,6 @@ export class MembersSettingsController extends PageController(
     order: 4,
     description: "$page.settings.description.members",
   },
-  DefaultLayout(),
 ) {
   static table = membersTable;
 

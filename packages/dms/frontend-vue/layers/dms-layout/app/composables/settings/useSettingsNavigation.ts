@@ -233,7 +233,3 @@ export function findActiveSettingsPath(
   }
   return active;
 }
-
-/** Whether a page or category id belongs to the settings area. */
-export const isSettingsFullId = (fullId: string | null | undefined): boolean =>
-  fullId === SETTINGS_ROOT_ID || !!fullId?.startsWith(SETTINGS_ID_PREFIX);

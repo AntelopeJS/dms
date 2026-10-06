@@ -13,7 +13,6 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import {
@@ -50,7 +49,6 @@ export class SecuritySettingsController extends PageController(
     order: 2,
     description: "$page.settings.description.security",
   },
-  FormPageLayout(),
 ) {
   static statusComponent = CustomComponent("DmsSecurityStatus").meta({
     name: "$page.settings.security.status_title",

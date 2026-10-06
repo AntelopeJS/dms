@@ -26,7 +26,6 @@ import {
   serializeConfirmDialog,
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
-import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import {
   type UserNotificationCounts,
@@ -227,7 +226,6 @@ export class NotificationsSettingsController extends PageController(
     order: 2,
     description: "$page.settings.notifications.description",
   },
-  FormPageLayout(),
 ) {
   static notificationsComponent = CustomComponent(
     "DmsSettingsNotifications",

@@ -24,7 +24,7 @@ import {
   type User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { FormPageLayout, formSchema } from "@antelopejs/interface-dms/base";
+import { formSchema } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -112,7 +112,6 @@ export class ProfileSettingsController extends PageController(
     order: 1,
     description: "$page.settings.description.profile",
   },
-  FormPageLayout(),
 ) {
   // The avatar field travels as a serialized image field: page registration
   // finds it there and stamps the upload token bound to this component.

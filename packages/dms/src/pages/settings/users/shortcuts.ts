@@ -1,6 +1,5 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { userCategory } from "./category";
 
 @RegisterPage()
@@ -13,7 +12,6 @@ export class ShortcutsSettingsController extends PageController(
     order: 3,
     description: "$page.settings.description.shortcuts",
   },
-  FormPageLayout(),
 ) {
   static shortcutsComponent = CustomComponent("DmsSettingsShortcuts").meta({
     name: "$menu.shortcuts",

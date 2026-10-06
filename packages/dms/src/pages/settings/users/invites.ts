@@ -71,7 +71,6 @@ import {
   membersTableAddAction,
   ROLE_QUICK_FILTER,
 } from "./members";
-import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HTTP_NOT_FOUND = 404;
@@ -294,7 +293,6 @@ export class InvitesSettingsController extends PageController(
     icon: "i-ph-envelope-simple",
     description: "$page.settings.description.invites",
   },
-  DefaultLayout(),
 ) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",

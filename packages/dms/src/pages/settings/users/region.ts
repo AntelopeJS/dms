@@ -3,7 +3,6 @@ import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
-import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { regionalPreferencesSchema } from "../../../validation/regional-preferences.schema";
@@ -31,7 +30,6 @@ export class RegionSettingsController extends PageController(
     order: 1,
     description: "$page.settings.description.region",
   },
-  FormPageLayout(),
 ) {
   static regionComponent = CustomComponent("DmsSettingsRegion").meta({
     name: "$menu.region",
