@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DmsCard from "#dms-ui/app/components/card/Card.vue";
 import DmsIconWell from "#dms-ui/app/components/icon-well/IconWell.vue";
 import DmsEyebrow from "#dms-ui/app/components/section-header/Eyebrow.vue";
 
@@ -45,11 +46,13 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
 </script>
 
 <template>
-  <!-- v2 .au-card: one elevated card on the stage, 16px radius and the
-       modal shadow. -->
-  <component
-    :is="props.as"
-    class="border-accented bg-default mx-auto w-full rounded-[16px] border px-5 py-6 shadow-xl sm:p-8"
+  <!-- v2 .au-card: the elevated card, alone on the stage, with the stage's
+       16px radius. -->
+  <DmsCard
+    :as="props.as"
+    variant="elevated"
+    :padded="false"
+    class="mx-auto w-full rounded-[16px] px-5 py-6 sm:p-8"
     :class="WIDTH_CLASSES[props.width]"
   >
     <DmsIconWell v-if="props.icon" :tone="props.tone" size="xl" class="mb-4">
@@ -81,5 +84,5 @@ const WIDTH_CLASSES: Record<StageCardWidth, string> = {
     </p>
 
     <slot />
-  </component>
+  </DmsCard>
 </template>
