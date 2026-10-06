@@ -68,6 +68,7 @@ import {
 } from "../../build/composables/table-view/utils/sortableColumns";
 import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
 import { isBulkAction } from "../../build/composables/actions/bulkSelection";
+import { selectionScopeKey } from "../../build/utils/selectionScope";
 import { readRecordId } from "../../build/composables/table-view/utils/recordLink";
 import type { CustomRowAction } from "../../types/row-action";
 import {
@@ -1192,6 +1193,19 @@ const runBulkAction = (action: CustomRowAction) =>
 const canToggleArchived = computed(
   () => !!archiveMode && tableProps.value.rowActions?.showArchived === true,
 );
+
+// A selection made among the rows a filter, a search or a tab listed would
+// let a bulk action reach rows no longer shown: it goes with them.
+const selectionScope = computed(() =>
+  selectionScopeKey({
+    columnFilters: effectiveColumnFilters.value,
+    hiddenFilters: hiddenFilters.value,
+    globalFilter: effectiveGlobalFilter.value,
+  }),
+);
+watch(selectionScope, () => {
+  rowSelect.value = {};
+});
 
 // A selection made among active rows means nothing among archived ones, and
 // the page reached in one list rarely exists in the other: start over.
