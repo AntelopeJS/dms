@@ -9,6 +9,7 @@ import { GROUP_FIELDS_CLASSES } from "../../composables/form/formLayout";
 import { combineSaveStates } from "../../composables/instant-save/useInstantSave";
 import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
+import DmsFieldRow from "../../../components/field-row/FieldRow.vue";
 
 interface FormEntriesProps {
   entries: FormFieldOrGroup[];
@@ -18,7 +19,6 @@ interface FormEntriesProps {
 
 const props = defineProps<FormEntriesProps>();
 const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
-const { processI18n } = useTranslation();
 
 const classes = computed(() => context.layoutClasses(props.inSection));
 
@@ -49,28 +49,19 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
   <div :class="classes.rows">
     <template v-for="entry in props.entries" :key="entry.id">
       <template v-if="isFieldGroup(entry)">
-        <section v-if="isGroupVisible(entry)" :class="classes.row">
-          <div :class="classes.meta">
-            <span class="text-highlighted text-[13px] font-[550]">
-              {{ processI18n(entry.label || "") }}
-              <span
-                v-if="isGroupRequired(entry)"
-                class="text-error ms-0.5"
-                aria-hidden="true"
-              >
-                *
-              </span>
-            </span>
-            <p v-if="entry.description" :class="classes.description">
-              {{ processI18n(entry.description) }}
-            </p>
+        <DmsFieldRow
+          v-if="isGroupVisible(entry)"
+          v-bind="classes.row"
+          :label="entry.label || ''"
+          :description="entry.description"
+          :required="isGroupRequired(entry)"
+        >
+          <template v-if="saveStateOf(entry) !== 'idle'" #details>
             <DmsSaveStatus
-              v-if="saveStateOf(entry) !== 'idle'"
               :state="saveStateOf(entry)"
               @retry="context.retrySave()"
             />
-          </div>
-
+          </template>
           <div :class="groupFieldsClass(entry)">
             <template v-for="field in entry.fields" :key="field.id">
               <DmsFormFieldControl
@@ -82,40 +73,29 @@ function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
               />
             </template>
           </div>
-        </section>
+        </DmsFieldRow>
       </template>
 
-      <section v-else-if="!context.isFieldHidden(entry)" :class="classes.row">
-        <div :class="classes.meta">
-          <label
-            :for="entry.id"
-            class="text-highlighted text-[13px] font-[550]"
-          >
-            {{ processI18n(entry.label || "") }}
-            <span
-              v-if="context.isFieldRequired(entry)"
-              class="text-error ms-0.5"
-              aria-hidden="true"
-            >
-              *
-            </span>
-          </label>
-          <p v-if="entry.description" :class="classes.description">
-            {{ processI18n(entry.description) }}
-          </p>
+      <DmsFieldRow
+        v-else-if="!context.isFieldHidden(entry)"
+        v-bind="classes.row"
+        :label="entry.label || ''"
+        :label-for="entry.id"
+        :description="entry.description"
+        :required="context.isFieldRequired(entry)"
+      >
+        <template v-if="saveStateOf(entry) !== 'idle'" #details>
           <DmsSaveStatus
-            v-if="saveStateOf(entry) !== 'idle'"
             :state="saveStateOf(entry)"
             @retry="context.retrySave()"
           />
-        </div>
-
+        </template>
         <DmsFormFieldControl
           v-if="entry.component.componentName"
           :field="entry"
           class="min-w-0"
         />
-      </section>
+      </DmsFieldRow>
     </template>
   </div>
 </template>

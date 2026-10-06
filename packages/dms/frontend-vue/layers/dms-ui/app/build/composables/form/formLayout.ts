@@ -1,12 +1,22 @@
+import type {
+  FieldRowLayout,
+  FieldRowSpacing,
+} from "../../../components/field-row/FieldRow.vue";
+
 export type FormOrientation = "horizontal" | "vertical";
 export type FormSurface = "card" | "container" | "section" | "sections";
 
-/** Classes of a form's rows: the list, a row, its label column. */
+/** How a form draws each row, through `DmsFieldRow`. */
+export interface FormRowLayout {
+  layout: FieldRowLayout;
+  inset: boolean;
+  spacing: FieldRowSpacing;
+}
+
+/** A form's rows: the classes of their list, and how each is drawn. */
 export interface FormLayoutClasses {
   rows: string;
-  row: string;
-  meta: string;
-  description: string;
+  row: FormRowLayout;
 }
 
 /** Classes of the bands around a form's rows. */
@@ -17,21 +27,17 @@ export interface FormSurfaceClasses {
   foot: string;
 }
 
-// v2 record form (mockup form.html): horizontal rows put the label column
-// (minmax(180px, 38%)) beside the control, split by hairlines, and collapse
-// to one column under 560px of form width; vertical rows stack them.
+// v2 record form (mockup form.html): horizontal rows are FieldRow's form
+// rows, the label column beside the control and split by hairlines; the
+// card pads them. Vertical rows stack the label above the control.
 export const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
   horizontal: {
-    rows: "@container flex flex-col divide-y divide-muted py-1",
-    row: "grid gap-2 py-4 @min-[560px]:grid-cols-[minmax(180px,38%)_minmax(0,1fr)] @min-[560px]:gap-6",
-    meta: "grid content-start gap-px @min-[560px]:pt-1.5",
-    description: "text-muted max-w-[34ch] text-[12.5px]",
+    rows: "flex flex-col py-1",
+    row: { layout: "form", inset: false, spacing: "row" },
   },
   vertical: {
     rows: "flex flex-col gap-4 py-5",
-    row: "grid gap-1.5",
-    meta: "grid gap-px",
-    description: "text-dimmed text-xs",
+    row: { layout: "stack", inset: false, spacing: "list" },
   },
 };
 
@@ -70,16 +76,14 @@ export const FORM_SURFACE_CLASSES: Record<FormSurface, FormSurfaceClasses> = {
   },
 };
 
-// v2 .st-row.is-form: a 240px label column, 18px row inset.
+// v2 .st-row.is-form: FieldRow's form rows with the card's 18px inset.
 export const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
-  rows: "@container flex flex-col divide-y divide-muted",
-  row: "grid gap-2 px-[18px] py-4 @min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)] @min-[560px]:gap-6",
-  meta: "grid content-start gap-px @min-[560px]:pt-1.5",
-  description: "text-muted text-[12.5px] leading-normal",
+  rows: "flex flex-col",
+  row: { layout: "form", inset: true, spacing: "row" },
 };
 
-// Grouped controls sit side by side once the form is wide enough for its
-// label column (the same 560px container step), whatever the viewport: a
+// Grouped controls sit side by side once the row is wide enough for its
+// label column (FieldRow's 560px container step), whatever the viewport: a
 // narrow modal or drawer form stacks them.
 export const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
   horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
