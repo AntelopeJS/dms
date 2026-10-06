@@ -12,7 +12,11 @@ import type { TableViewCapabilities } from "./factory-helpers";
 import type { TableViewAccess, TableViewMeta } from "./meta";
 import type { TableViewRowActionOptions } from "./options";
 
-/** Where the controller derivation that lifts the restriction is documented. */
+/**
+ * Where the controller derivation that lifts the restriction is documented.
+ *
+ * @internal
+ */
 export const DERIVE_CONTROLLER_DOCS =
   'the DMS docs, "Show the same data in two writing screens: derive the controller" (docs/04.components/13.derived-controller.md)';
 
@@ -44,6 +48,8 @@ const isEnabled = (config: boolean | RowActionConfig | undefined): boolean =>
  * `write` when the TableView enables at least one action that changes rows
  * through the data routes -- add, duplicate, edit, delete, archive or
  * restore -- and the controller offers it; `read` otherwise.
+ *
+ * @internal
  */
 export function tableViewAccess(
   rowActions: TableViewRowActionOptions<any> | undefined,
@@ -69,6 +75,8 @@ const claims = new WeakMap<TableViewMeta, WritingTableViewClaim>();
  * A claim only stands in the way while the page registration holding it is
  * live: a page re-registering after a hot reload replaces that registration,
  * and a page that went away leaves the controller to the next writer.
+ *
+ * @internal
  */
 export function claimWritingTableView(
   meta: TableViewMeta,

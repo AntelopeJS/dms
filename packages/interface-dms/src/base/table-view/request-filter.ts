@@ -38,10 +38,18 @@ const GRANTED_ACTIONS = [
   "export",
 ] as const;
 
-/** Whether the caller holds each table view action. */
+/**
+ * Whether the caller holds each table view action.
+ *
+ * @internal
+ */
 export type TableViewGrants = Record<(typeof GRANTED_ACTIONS)[number], boolean>;
 
-/** The table view actions the caller holds, checked one after the other. */
+/**
+ * The table view actions the caller holds, checked one after the other.
+ *
+ * @internal
+ */
 export async function resolveTableViewGrants(
   permissions: Set<string>,
   permissionId: string,
@@ -59,6 +67,8 @@ export async function resolveTableViewGrants(
 /**
  * A built-in row action as served to a caller: refused (`false`) without
  * the permission, on (`true`) when the table view left it unset.
+ *
+ * @internal
  */
 export function applyPermissionToAction(
   hasPermission: boolean,
@@ -75,6 +85,8 @@ export function applyPermissionToAction(
  * not declare its own: rules are registered once per controller (the writing
  * table view's) and enforced on every write, so the UI matches what the
  * server accepts.
+ *
+ * @internal
  */
 export function mergeControllerRule(
   actionConfig: boolean | RowActionConfigSerialized | undefined,
@@ -99,7 +111,11 @@ const CONTROLLER_RULED_ACTIONS = [
   "restore",
 ] as const;
 
-/** What the row actions of a table view are served from. */
+/**
+ * What the row actions of a table view are served from.
+ *
+ * @internal
+ */
 export interface RowActionsAdaptation {
   /** The row actions as the table view serialized them. */
   rowActions: TableViewRowActionOptionsSerialized | undefined;
@@ -116,6 +132,8 @@ export interface RowActionsAdaptation {
  * its permission, the archive ones only in archive mode, and controller-wide
  * rules exposed where the table declared none. Details are dropped when edit
  * is offered unconditionally, since edit already shows the row.
+ *
+ * @internal
  */
 export function adaptRowActions({
   rowActions,
@@ -167,6 +185,8 @@ export function adaptRowActions({
  * The custom buttons served to one request: those whose permission the caller
  * lacks are stripped, and those whose `availability` refuses the request are
  * disabled with its reason.
+ *
+ * @internal
  */
 export async function resolveCustomButtons(
   permissions: Set<string>,
@@ -200,6 +220,8 @@ export async function resolveCustomButtons(
 /**
  * The custom row actions served to one request: those whose `permission` the
  * caller lacks are stripped, like custom buttons.
+ *
+ * @internal
  */
 export async function resolveCustomRowActions(
   permissions: Set<string>,

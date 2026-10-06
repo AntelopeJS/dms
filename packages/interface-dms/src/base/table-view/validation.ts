@@ -29,7 +29,11 @@ import {
   type TableViewViewsOptions,
 } from "./options";
 
-/** `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}. */
+/**
+ * `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}.
+ *
+ * @internal
+ */
 export function validatePageSize(
   controllerName: string,
   pageSize: number | undefined,
@@ -46,7 +50,11 @@ export function validatePageSize(
   }
 }
 
-/** Throws when a table view option names a column the controller lacks. */
+/**
+ * Throws when a table view option names a column the controller lacks.
+ *
+ * @internal
+ */
 export function assertKnownColumns(
   controllerName: string,
   meta: Pick<TableViewMeta, "columns">,
@@ -62,7 +70,11 @@ export function assertKnownColumns(
   }
 }
 
-/** Quick filters must name filterable columns: they filter with `filter_<field>`. */
+/**
+ * Quick filters must name filterable columns: they filter with `filter_<field>`.
+ *
+ * @internal
+ */
 export function validateQuickFilters(
   controllerName: string,
   meta: TableViewMeta,
@@ -123,6 +135,8 @@ function validateKanbanField(
 /**
  * The kanban groups on an eligible column and shows declared columns on its
  * cards.
+ *
+ * @internal
  */
 export function validateKanbanOptions(
   controllerName: string,
@@ -154,6 +168,8 @@ const MODULE_DISPLAY_ID = /^[a-z0-9][\w-]*:[\w-]+$/i;
  * A display a table view offers is a built-in one, named by its reserved id
  * and drawn by the DMS (no `component` of its own), or a module's, named
  * `<module>:<id>`.
+ *
+ * @internal
  */
 export function validateDisplayIds(
   controllerName: string,
@@ -183,7 +199,11 @@ interface DisplayDeclarations {
   displays?: TableViewDisplayOption[];
 }
 
-/** The ids of the displays a table view offers. */
+/**
+ * The ids of the displays a table view offers.
+ *
+ * @internal
+ */
 export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
   const { kanban, grouped, displays } = options;
   return new Set<string>([
@@ -194,7 +214,11 @@ export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
   ]);
 }
 
-/** The default display must be one the table view offers. */
+/**
+ * The default display must be one the table view offers.
+ *
+ * @internal
+ */
 export function validateDefaultDisplay(
   controllerName: string,
   options: DisplayDeclarations & { defaultDisplay?: string },
@@ -221,6 +245,8 @@ const DAY_GROUPING_TYPE_ID = "date";
 /**
  * The grouped display sorts on its column, which must therefore be a sortable
  * column, and a date one to be grouped by day or week.
+ *
+ * @internal
  */
 export function validateGroupedOptions(
   controllerName: string,
@@ -253,6 +279,8 @@ const NUMBER_TYPE_ID = "number";
 /**
  * A hand-ordered table writes its position column through the edit route:
  * the column must be a writable, sortable number, and the edit action on.
+ *
+ * @internal
  */
 export function validateReorder<T extends Record<string, unknown>>(
   controllerName: string,
@@ -311,6 +339,8 @@ function assertViewFilters(
 /**
  * Views have unique ids, and each one names columns, a sort and a display the
  * table view has; the default view is one of them.
+ *
+ * @internal
  */
 export function validateViews(
   controllerName: string,
@@ -344,7 +374,11 @@ export function validateViews(
 /** The kinds addressing one row, whose slug therefore has to carry an `:id`. */
 const ROW_SCOPED_FORM_PAGE_KINDS = ["edit", "details"] as const;
 
-/** A declared slug for a row-scoped form page must carry the row's `:id`. */
+/**
+ * A declared slug for a row-scoped form page must carry the row's `:id`.
+ *
+ * @internal
+ */
 export function assertRowScopedFormSlugs(
   pages: FormContainerPages | undefined,
 ): void {
@@ -358,7 +392,11 @@ export function assertRowScopedFormSlugs(
   }
 }
 
-/** A tab filters the rows or opens another page, never both. */
+/**
+ * A tab filters the rows or opens another page, never both.
+ *
+ * @internal
+ */
 export function assertTabTargets(
   controllerName: string,
   tabs: TableViewTab[] | undefined,
@@ -376,6 +414,8 @@ export function assertTabTargets(
  * Every declaration check `TableView()` runs before it builds anything: the
  * options naming columns, displays, tabs and sizes name ones the table view
  * can have.
+ *
+ * @internal
  */
 export function validateTableViewOptions<T extends Record<string, unknown>>(
   controllerName: string,

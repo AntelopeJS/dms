@@ -29,6 +29,8 @@ function dataApiLocation(countFrom: ControllerClass | string): string {
  * Tabs as the options carry them: a link tab's path target and its count
  * location are plain strings already; a page controller target is resolved
  * per request by {@link resolveTableViewTabs}, once pages are registered.
+ *
+ * @internal
  */
 export function serializeTableViewTabs(
   tabs: TableViewTab[] | undefined,
@@ -58,6 +60,8 @@ const withLeadingSlash = (path: string): string =>
  * its `permission` (relative to the table view) or `permissionId` — and a
  * page target is resolved to its path and full id. A page that never
  * registered drops its tab.
+ *
+ * @internal
  */
 export async function resolveTableViewTabs(
   permissions: Set<string>,
@@ -96,6 +100,8 @@ export async function resolveTableViewTabs(
 /**
  * Whether a table view shows counters the `count/batch` route serves: filter
  * tabs, counted views or counted groups.
+ *
+ * @internal
  */
 export function declaresCounters(
   options: Pick<TableViewOptions, "tabs" | "views" | "grouped">,
@@ -115,6 +121,7 @@ const controllersWarnedForTabCounts = new WeakSet<ControllerClass>();
 
 // Matched on the mounted path and method rather than on the route object: a
 // module mounts its own per-context copy of `TableViewRoutes.CountBatch`.
+/** @internal */
 export function servesRoute(
   endpoints: Record<string, DataControllerCallbackWithOptions>,
   path: string,
@@ -132,6 +139,8 @@ export function servesRoute(
  * views or counted groups but its controller mounts no `POST count/batch`
  * route: every counter request would fail. The fix belongs in the controller
  * (mount `countBatch: TableViewRoutes.CountBatch`), so this only reports it.
+ *
+ * @internal
  */
 export function warnIfTabsLackCountBatch(
   controller: ControllerClass,

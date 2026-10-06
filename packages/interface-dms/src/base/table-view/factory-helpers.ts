@@ -48,6 +48,7 @@ import {
   type TableViewRowActionOptionsSerialized,
 } from "./options";
 
+/** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
 
 export namespace TableViewEvents {
@@ -66,6 +67,7 @@ export namespace TableViewFunctions {
     "DmsComponent.TableView.CustomPageFormSuccess";
 }
 
+/** @internal */
 export function applyFormRedirect<T>(
   formBuilder: ComponentBuilder<T>,
   redirectUrl: string,
@@ -89,6 +91,8 @@ export function applyFormRedirect<T>(
 /**
  * Custom buttons as the options carry them: their permission and availability
  * stay server-side, applied per request.
+ *
+ * @internal
  */
 export function serializeCustomButtons(
   buttons: CustomButton[] | undefined,
@@ -144,7 +148,11 @@ function serializeCustomRowAction<T extends Record<string, unknown>>(
   return served;
 }
 
-/** The row actions as the options carry them to the client. */
+/**
+ * The row actions as the options carry them to the client.
+ *
+ * @internal
+ */
 export function serializeRowActions<T extends Record<string, unknown>>(
   rowActions: TableViewRowActionOptions<T>,
 ): TableViewRowActionOptionsSerialized {
@@ -162,7 +170,11 @@ export function serializeRowActions<T extends Record<string, unknown>>(
   };
 }
 
-/** What a table view can do, which decides the actions it declares. */
+/**
+ * What a table view can do, which decides the actions it declares.
+ *
+ * @internal
+ */
 export interface TableViewCapabilities {
   hasNewForm: boolean;
   hasEditForm: boolean;
@@ -178,6 +190,8 @@ export interface TableViewCapabilities {
  * the table view can perform it. A component standing in for a TableView over
  * the same data routes (a custom editor) declares its actions here too, so
  * the routes and the roles carry the same permission ids.
+ *
+ * @internal
  */
 export function registerTableViewActions<T>(
   builder: ComponentBuilder<T>,
@@ -245,6 +259,8 @@ export function registerTableViewActions<T>(
  * giving both, or neither (an editor's schema can), is refused. Every field
  * must name a declared column: its value renders through that column's data
  * type.
+ *
+ * @internal
  */
 export function serializeExpandable(
   controllerName: string,
@@ -281,7 +297,11 @@ export function serializeExpandable(
   return { ...behavior, fields, fieldsLabel: expandable.fieldsLabel };
 }
 
-/** What `TableView()` serializes its displays from. */
+/**
+ * What `TableView()` serializes its displays from.
+ *
+ * @internal
+ */
 export interface TableViewDisplaySources {
   displays?: TableViewDisplayOption[];
   kanban?: KanbanOptions;
@@ -308,6 +328,8 @@ function serializeCard({
  * `displays` entries (`{ id: "kanban", options }`), not as dedicated fields;
  * those displays read their options from `context.options` like any other.
  * The `card` joins the options of both card displays, kanban and cards.
+ *
+ * @internal
  */
 export function serializeTableViewDisplays(
   sources: TableViewDisplaySources,
@@ -348,7 +370,11 @@ export function serializeTableViewDisplays(
   return serialized.length > 0 ? serialized : undefined;
 }
 
-/** What a page-mode form sub-page is, beyond the form it carries. */
+/**
+ * What a page-mode form sub-page is, beyond the form it carries.
+ *
+ * @internal
+ */
 export interface FormPageDefinition {
   /** Slug it takes below the key of its table view, when none is declared. */
   defaultSlug: string;
@@ -362,6 +388,7 @@ export interface FormPageDefinition {
   submitsFilterDefaults: boolean;
 }
 
+/** @internal */
 export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
   new: {
     defaultSlug: "new",
@@ -389,13 +416,21 @@ export const FORM_PAGE_DEFINITIONS: Record<FormPageKind, FormPageDefinition> = {
   },
 };
 
-/** The `formContainer.pages` key of each form kind. */
+/**
+ * The `formContainer.pages` key of each form kind.
+ *
+ * @internal
+ */
 export const FORM_PAGE_CONFIG_KEYS: Record<
   FormPageKind,
   keyof FormContainerPages
 > = { new: "new", edit: "edit", view: "details" };
 
-/** The `formContainer.pages` entry of a form kind. */
+/**
+ * The `formContainer.pages` entry of a form kind.
+ *
+ * @internal
+ */
 export function formPageConfig(
   kind: FormPageKind,
   pages: FormContainerPages | undefined,
@@ -407,6 +442,8 @@ export function formPageConfig(
  * Title and description of a page-mode form sub-page: its
  * `formContainer.pages` entry, else the generic "New entry" / "Edit entry" /
  * "Entry details" texts.
+ *
+ * @internal
  */
 export function resolveFormPageTexts(
   kind: FormPageKind,
@@ -420,11 +457,16 @@ export function resolveFormPageTexts(
   };
 }
 
+/** @internal */
 export const FORM_PAGE_KINDS = Object.keys(
   FORM_PAGE_DEFINITIONS,
 ) as FormPageKind[];
 
-/** Append a form page slug to the slug of the page carrying the table view. */
+/**
+ * Append a form page slug to the slug of the page carrying the table view.
+ *
+ * @internal
+ */
 export function joinPageSlug(pageSlug: string, slug: string): string {
   return `${pageSlug}/${slug}`.replace(/\/+/g, "/");
 }
@@ -462,6 +504,8 @@ function toFormPageUrl(pageSlug: string, slug: string): string {
  *
  * @param permissionId Permission id of the table view
  * @param pagePermissionId Permission id of the page carrying it
+ *
+ * @internal
  */
 export function formRouteKey(
   permissionId: string,
@@ -487,6 +531,8 @@ export function formRouteKey(
  * A declared `urlSlug` is full control — it is taken as it stands, no key
  * segment inserted, which is both what every existing declaration already meant
  * and the escape hatch for anyone wanting a specific URL.
+ *
+ * @internal
  */
 export function formPageSlug(
   kind: FormPageKind,
@@ -503,6 +549,8 @@ export function formPageSlug(
  * The URL each page-mode form is reached at, whether or not the table view
  * registers a page for it: a `customPage` entry points at a hand-written page
  * and is navigated to all the same.
+ *
+ * @internal
  */
 export function buildFormPageUrls(
   pageSlug: string,
@@ -516,13 +564,21 @@ export function buildFormPageUrls(
   return urls;
 }
 
-/** The URL filters of a table view, which its forms submit as defaults. */
+/**
+ * The URL filters of a table view, which its forms submit as defaults.
+ *
+ * @internal
+ */
 export interface TableViewUrlFilters {
   queryParamFilters?: QueryParamFilters;
   routeParamFilters?: RouteParamFilters;
 }
 
-/** A form page route, and the slug of the page carrying its table view. */
+/**
+ * A form page route, and the slug of the page carrying its table view.
+ *
+ * @internal
+ */
 export interface FormRouteFrame {
   pageSlug: string;
   formSlug: string;
@@ -572,6 +628,8 @@ function pageParamToken(
  * (`/workspaces/:id` becomes `/workspaces/{{params.id:1}}` from
  * `/workspaces/:id/invoiceTable/:id/edit`). A slug without placeholder is
  * returned as is.
+ *
+ * @internal
  */
 export function buildFormRedirectUrl(frame: FormRouteFrame): string {
   const seen: Record<string, number> = {};
@@ -595,6 +653,8 @@ export function buildFormRedirectUrl(frame: FormRouteFrame): string {
  * @param filters URL filters of the table view
  * @param frame Route of the form page the form is registered under; without
  * one, the form renders on the page carrying the table view
+ *
+ * @internal
  */
 export function buildFilterSubmitDefaults(
   filters: TableViewUrlFilters,
@@ -621,6 +681,8 @@ export function buildFilterSubmitDefaults(
  * view embeds it, and where `{{params.<name>}}` is the parameter it filters
  * on. On a form route repeating that name, the bare name is shadowed by the
  * form's own placeholder.
+ *
+ * @internal
  */
 export function applyFormPageSubmitDefaults(
   form: FormBuilder,
