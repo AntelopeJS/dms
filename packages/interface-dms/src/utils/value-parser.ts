@@ -1,5 +1,6 @@
 import { isBoolean, isDate, isNull, isNumber, isString } from "./type-check";
 
+/** @internal */
 export type Primitive =
   | string
   | number
@@ -51,6 +52,8 @@ const STRING_TYPE_PARSERS = [
  * parseValue('not a number') // returns 'not a number'
  * parseValue('null') // returns null
  * parseValue('undefined') // returns undefined
+ *
+ * @internal
  */
 export function parseValue(value: string): Primitive {
   for (const parser of STRING_TYPE_PARSERS) {
@@ -70,6 +73,8 @@ export function parseValue(value: string): Primitive {
  *   {key: 'enabled', value: 'true'},
  *   {key: 'count', value: '42'}
  * ]) // returns {enabled: true, count: 42}
+ *
+ * @internal
  */
 export function parseObject(
   items: Array<{ key: string; value: string }>,
@@ -88,6 +93,8 @@ export function parseObject(
  * @example
  * isStringKeyword('null') // returns true
  * isStringKeyword('unknown') // returns false
+ *
+ * @internal
  */
 export function isStringKeyword(value: string): boolean {
   return Object.keys(KEYWORD_VALUES).includes(value);
@@ -101,6 +108,8 @@ export function isStringKeyword(value: string): boolean {
  * isStringNumber('42') // returns true
  * isStringNumber('3.14') // returns true
  * isStringNumber('abc') // returns false
+ *
+ * @internal
  */
 export function isStringNumber(value: string): boolean {
   return value !== "" && !Number.isNaN(Number(value));
@@ -114,6 +123,8 @@ export function isStringNumber(value: string): boolean {
  * isStringDate('2024-01-01') // returns true
  * isStringDate('2024-01-01T12:00:00Z') // returns true
  * isStringDate('invalid-date') // returns false
+ *
+ * @internal
  */
 export function isStringDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)?$/.test(value)) {
@@ -132,6 +143,8 @@ export function isStringDate(value: string): boolean {
  * isStringJSON('[1, 2, 3]') // returns true
  * isStringJSON('42') // returns true
  * isStringJSON('not json') // returns false
+ *
+ * @internal
  */
 export function isStringJSON(value: string): boolean {
   try {
@@ -149,6 +162,7 @@ const PRIMITIVE_TYPE_VALIDATORS = [
   isDate,
   isNull,
 ];
+/** @internal */
 export const assertPrimitiveValue = (value: unknown): void => {
   if (PRIMITIVE_TYPE_VALIDATORS.some((test) => test(value))) {
     return;

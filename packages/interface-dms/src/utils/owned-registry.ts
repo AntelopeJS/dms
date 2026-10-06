@@ -22,6 +22,8 @@ type EntryMatcher<V> = (value: V) => boolean;
  * registered. A `ModuleDestroyed` listener of our own could not do it: the
  * runtime's listener runs first and invalidates the owner, so the destroyed
  * context can no longer be read by the time ours would run.
+ *
+ * @internal
  */
 export class OwnedRegistry<V> {
   private readonly entries = new EventProxy<RegistryEntry<V>>();

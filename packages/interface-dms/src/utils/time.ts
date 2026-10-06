@@ -1,4 +1,8 @@
+/** @internal */
 export const MILLISECONDS_PER_SECOND = 1000;
+/** @internal */
 export const MILLISECONDS_PER_MINUTE = 60_000;
+/** @internal */
 export const MILLISECONDS_PER_HOUR = 3_600_000;
+/** @internal */
 export const MILLISECONDS_PER_DAY = 86_400_000;
