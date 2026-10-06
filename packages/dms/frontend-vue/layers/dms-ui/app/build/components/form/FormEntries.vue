@@ -6,6 +6,8 @@ import type {
 import { isFieldGroup } from "../../../composables/form/types/field";
 import { FORM_ENTRY_CONTEXT_KEY } from "../../composables/form/formEntryContext";
 import { GROUP_FIELDS_CLASSES } from "../../composables/form/formLayout";
+import { combineSaveStates } from "../../composables/instant-save/useInstantSave";
+import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import DmsFormFieldControl from "./FormFieldControl.vue";
 
 interface FormEntriesProps {
@@ -33,6 +35,14 @@ function isGroupVisible(group: FieldGroup): boolean {
 function isGroupRequired(group: FieldGroup): boolean {
   return group.fields.some(context.isFieldRequired);
 }
+
+/** The instant-save state a row shows: its field's, or its group's. */
+function saveStateOf(entry: FormFieldOrGroup): SaveStatusState {
+  if (!isFieldGroup(entry)) return context.fieldSaveState(entry.id);
+  return combineSaveStates(
+    entry.fields.map((field) => context.fieldSaveState(field.id)),
+  );
+}
 </script>
 
 <template>
@@ -54,6 +64,11 @@ function isGroupRequired(group: FieldGroup): boolean {
             <p v-if="entry.description" :class="classes.description">
               {{ processI18n(entry.description) }}
             </p>
+            <DmsSaveStatus
+              v-if="saveStateOf(entry) !== 'idle'"
+              :state="saveStateOf(entry)"
+              @retry="context.retrySave()"
+            />
           </div>
 
           <div :class="groupFieldsClass(entry)">
@@ -88,6 +103,11 @@ function isGroupRequired(group: FieldGroup): boolean {
           <p v-if="entry.description" :class="classes.description">
             {{ processI18n(entry.description) }}
           </p>
+          <DmsSaveStatus
+            v-if="saveStateOf(entry) !== 'idle'"
+            :state="saveStateOf(entry)"
+            @retry="context.retrySave()"
+          />
         </div>
 
         <DmsFormFieldControl

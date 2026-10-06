@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { FormProps } from "../../composables/form/types/props";
-import type { FormFieldValue } from "../../composables/form/types/value";
+import type {
+  FormData,
+  FormFieldValue,
+} from "../../composables/form/types/value";
 import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
@@ -54,8 +57,11 @@ import {
   sectionState,
 } from "../../build/composables/form/formSections";
 import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/useControlError";
+import { useInstantForm } from "../../build/composables/form/useInstantForm";
+import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
 import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
+import DmsFormRequiredLegend from "../../build/components/form/FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
@@ -211,6 +217,8 @@ const {
   initialValues,
   validationSchema,
   onSubmit: handleSubmit,
+  submitChanges,
+  reportSubmitError,
   reset,
   fetchData,
   fields,
@@ -238,7 +246,9 @@ watch(
 const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
-const saveMode = formSaveMode(props.saveMode);
+const saveMode = formSaveMode(props.saveMode, props.kind);
+// An instant form saves each change on its own: no save bar, no footer.
+const isInstant = saveMode === "instant";
 
 // zod words its own messages in English ("String must contain at least 1
 // character(s)"): the issues a schema leaves unworded get the dashboard's.
@@ -382,6 +392,7 @@ function markFormClean(): void {
   isTouched = false;
   showsErrorSummary.value = false;
   formDirty.markClean();
+  instantSave?.start();
 }
 
 /** Discard: every field back to the value it opened with. */
@@ -398,7 +409,9 @@ const changedFields = computed(() =>
 );
 // Only a form someone can save has unsaved changes to speak of.
 const canSave = showActions;
-const isDirty = computed(() => canSave.value && changedFields.value.length > 0);
+const isDirty = computed(
+  () => canSave.value && !isInstant && changedFields.value.length > 0,
+);
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
@@ -409,6 +422,29 @@ useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 const isActionForm = props.kind === "action";
 const canCancel = inFormContainer || !!container || !!props.backTo;
 const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
+
+/** Validates one field alone: whether it holds no error. */
+async function isFieldValid(field: FormField): Promise<boolean> {
+  await form.value?.validate({ name: errorNames(field), silent: true });
+  return !form.value?.getErrors(fieldErrorPattern(field.id)).length;
+}
+
+const instantSave = isInstant
+  ? useInstantForm({
+      state,
+      fields: allFields,
+      isTouched: () => isTouched,
+      isFieldValid,
+      submit: (changes) => submitChanges(changes as FormData),
+      onRefused: reportSubmitError,
+    })
+  : undefined;
+
+// A page whose form saves as it goes says so once, in its header; a drawer
+// or a modal has no header of its own.
+if (instantSave && !inFormContainer && !container) {
+  useInstantSaveHeader(() => instantSave.state.value);
+}
 const hasChangeableFields = computed(() =>
   toValue(allFields).some(
     (field) => !isFieldDisabled(field) && !isFieldHidden(field),
@@ -581,6 +617,8 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
+  fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",
+  retrySave: () => instantSave?.retry(),
 });
 
 const sectionsLayout = computed(() =>
@@ -597,8 +635,9 @@ const invalidFields = computed<ReadonlySet<string>>(() => {
   const errors: readonly FormErrorRef[] = form.value?.errors ?? [];
   return new Set(invalidFieldIds(errors, allFieldIds.value));
 });
+// An instant form has nothing unsaved to mark: each change is saved.
 const changedFieldIds = computed(
-  () => new Set(changedFields.value.map((field) => field.id)),
+  () => new Set(isInstant ? [] : changedFields.value.map((field) => field.id)),
 );
 const sectionStates = computed<Record<string, FormSectionState>>(() =>
   Object.fromEntries(
@@ -858,17 +897,26 @@ onUnmounted(async () => {
           :nav="sectionNav"
           :states="sectionStates"
           :form-id="formElementId"
-        />
-        <DmsFormEntries v-else :entries="fields" />
-
-        <p
-          v-if="hasRequiredFields"
-          class="text-dimmed text-xs"
-          :class="surfaceClasses.legend"
         >
-          <span class="text-error" aria-hidden="true">*</span>
-          {{ $t("dms.form.required_legend") }}
-        </p>
+          <template v-if="instantSave" #nav-footer>
+            <DmsSaveStatus
+              :state="instantSave.state.value"
+              class="px-2.5"
+              @retry="instantSave.retry"
+            />
+          </template>
+          <DmsFormRequiredLegend
+            v-if="hasRequiredFields"
+            :class="surfaceClasses.legend"
+          />
+        </DmsFormSections>
+        <template v-else>
+          <DmsFormEntries :entries="fields" />
+          <DmsFormRequiredLegend
+            v-if="hasRequiredFields"
+            :class="surfaceClasses.legend"
+          />
+        </template>
       </div>
 
       <!-- A page form's bar (v2 save bar, or the footer band) holds its place
@@ -919,7 +967,7 @@ onUnmounted(async () => {
         />
       </footer>
       <footer
-        v-else-if="canSave"
+        v-else-if="canSave && !isInstant"
         class="flex items-center gap-2"
         :class="[surfaceClasses.foot, !isDirty && !canCancel && 'invisible']"
         :inert="(!isDirty && !canCancel) || undefined"

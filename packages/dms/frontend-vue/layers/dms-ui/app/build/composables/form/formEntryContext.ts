@@ -1,4 +1,5 @@
 import type { InjectionKey, Ref } from "vue";
+import type { SaveStatusState } from "../../../components/save-bar/SaveStatus.vue";
 import type { FormField } from "../../../composables/form/types/field";
 import type { FormData } from "../../../composables/form/types/value";
 import type { FormLayoutClasses } from "./formLayout";
@@ -19,6 +20,10 @@ export interface FormEntryContext {
   isFieldHidden: (field: FormField) => boolean;
   isFieldDisabled: (field: FormField) => boolean;
   isFieldRequired: (field: FormField) => boolean;
+  /** The instant-save state of a field: `idle` unless the form saves so. */
+  fieldSaveState: (fieldId: string) => SaveStatusState;
+  /** Saves again the changes whose save failed. */
+  retrySave: () => void;
 }
 
 export const FORM_ENTRY_CONTEXT_KEY: InjectionKey<FormEntryContext> = Symbol(

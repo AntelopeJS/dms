@@ -5,9 +5,14 @@ import {
 } from "../layers/dms-ui/app/composables/form/formFooter";
 
 describe("formSaveMode", () => {
-  it("saves with the bar by default, and for an instant form until it ships", () => {
+  it("saves with the bar by default", () => {
     expect(formSaveMode(undefined)).toBe("bar");
-    expect(formSaveMode("instant")).toBe("bar");
+  });
+
+  it("saves as it goes when instant, unless it is an action form", () => {
+    expect(formSaveMode("instant")).toBe("instant");
+    expect(formSaveMode("instant", "record")).toBe("instant");
+    expect(formSaveMode("instant", "action")).toBe("bar");
   });
 
   it("keeps the footer and no buttons as asked", () => {

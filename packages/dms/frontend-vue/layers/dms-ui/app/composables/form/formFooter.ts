@@ -15,9 +15,16 @@ export type FormKind = "record" | "action";
 /** How a form offers to save (interface-dms `FormSaveMode`). */
 export type FormSaveMode = "bar" | "footer" | "none" | "instant";
 
-/** The way a form saves: `instant` saves like `bar` until it ships. */
-export function formSaveMode(mode: FormSaveMode | undefined): FormSaveMode {
-  return mode === undefined || mode === "instant" ? "bar" : mode;
+/**
+ * The way a form saves: `bar` unless it says otherwise. An `action` form
+ * (send, invite, run) is sent on purpose, so it never saves as it goes.
+ */
+export function formSaveMode(
+  mode: FormSaveMode | undefined,
+  kind?: FormKind,
+): FormSaveMode {
+  if (mode === "instant" && kind === "action") return "bar";
+  return mode ?? "bar";
 }
 
 /**

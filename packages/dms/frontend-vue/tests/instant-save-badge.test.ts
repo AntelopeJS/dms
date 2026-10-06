@@ -137,10 +137,13 @@ describe("instant-save page registry", () => {
   const SETTINGS_PARTS = "dms-layout/app/build/components/pages/settings";
 
   /** Pages (or the section owning them) whose controls save on their own. */
+  /** The generic form: the pill with `saveMode: "instant"`, a bar otherwise. */
+  const FORM = "dms-ui/app/components/form/Form.vue";
   const INSTANT_SAVE = [
     `${SETTINGS}/appearance.vue`,
     `${SETTINGS}/region.vue`,
     `${SETTINGS_PARTS}/notification/NotificationPreferencesForm.vue`,
+    FORM,
   ];
   /** Save bar, explicit actions, or nothing persisted: no pill. */
   const NO_PILL = [
@@ -181,8 +184,10 @@ describe("instant-save page registry", () => {
       [...INSTANT_SAVE].sort(),
     );
     for (const { path, source } of users) {
+      if (path === FORM) continue;
       expect(source, path).not.toMatch(/DmsSaveBar|saveBar/);
     }
+    expect(read(FORM)).toMatch(/if \(instantSave && /);
     for (const path of vueFiles(root)) {
       const source = readFileSync(path, "utf8");
       if (!source.includes("usePageHeaderActions(")) continue;

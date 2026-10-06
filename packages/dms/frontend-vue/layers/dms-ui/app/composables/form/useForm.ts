@@ -776,6 +776,52 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     }
   };
 
+  /**
+   * Saves some fields at once, alone (the instant save of a form): sent to
+   * `submitUrl` with the form's `submitDefaults`, without the success toast
+   * of a submit. Rejects when the server refuses them, for the caller to put
+   * the values back before `reportSubmitError` says why.
+   */
+  const submitChanges = async (changes: FormData): Promise<void> => {
+    const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
+    if ("missing" in target) {
+      showUnresolvedTargetToast();
+      throw new Error(`Form submit target: missing ${target.missing}`);
+    }
+    const body = { ...effectiveSubmitDefaults.value, ...changes };
+    await executeSubmit(
+      () =>
+        $authFetch<FormSubmitResponse>(target.url, {
+          method: props.submitUrlMethod || "PUT",
+          body,
+          headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
+        }),
+      {
+        startPayload: { data: body },
+        successPayload: (response) => ({
+          data: body,
+          response,
+          submitUrl: target.url,
+        }),
+        errorPayload: (error) => ({
+          data: body,
+          error: (error as EventError).data || (error as EventError).message,
+        }),
+      },
+    );
+    initialValues.value = {
+      ...initialValues.value,
+      ...JSON.parse(JSON.stringify(changes)),
+    };
+  };
+
+  /** A refused save: under its field when it names one, else a toast. */
+  const reportSubmitError = (error: unknown): void => {
+    if (!showServerFieldErrors(error)) {
+      showSubmitErrorToast(error as EventError);
+    }
+  };
+
   const reset = (form: FormResetTarget | null): void => {
     form?.clear?.();
     restoreInitialValues();
@@ -788,6 +834,8 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     initialValues,
     validationSchema,
     onSubmit,
+    submitChanges,
+    reportSubmitError,
     reset,
     fetchData,
     fields,
