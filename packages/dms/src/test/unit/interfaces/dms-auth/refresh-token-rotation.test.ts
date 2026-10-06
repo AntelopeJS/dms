@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { expect } from "chai";
 import {
   isCurrentRefreshToken,
-  REFRESH_TOKEN_PREDECESSOR_GRACE_MS,
   SessionModel,
 } from "@antelopejs/interface-dms/auth/db/models/sessions.model";
+import { REFRESH_TOKEN_PREDECESSOR_GRACE_MS } from "@antelopejs/interface-dms/auth/db/internal/sessions.model";
 import type { Session } from "@antelopejs/interface-dms/auth/db/tables/sessions.table";
 
 interface RotationUpdate {

@@ -4,7 +4,7 @@
 
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
 import {
   type TenantMember,

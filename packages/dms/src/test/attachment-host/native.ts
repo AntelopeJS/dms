@@ -31,7 +31,7 @@ import {
   RegisterPage,
   RootPageController,
 } from "@antelopejs/interface-dms/page";
-import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {

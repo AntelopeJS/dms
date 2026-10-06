@@ -1,22 +1,11 @@
 import type { IncomingMessage } from "node:http";
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
-import type { User } from "./db";
+import type {
+  RequestAuthenticator,
+  RequestPrincipal,
+} from "../request-authenticators";
 
 const HTTP_UNAUTHORIZED = 401;
-
-/** Identity and tenant established together by a verified credential, not authorization. */
-export interface RequestPrincipal {
-  user: User;
-  tenantId: string;
-}
-
-/** A route-local credential handler. Recognition must include malformed owned credentials. */
-export interface RequestAuthenticator {
-  /** Claim this credential family without treating its contents as trusted. */
-  recognizes(token: string): boolean;
-  /** Verify the credential and reload its user; throw on invalid, expired or revoked credentials. */
-  authenticate(token: string): Promise<RequestPrincipal>;
-}
 
 interface RequestIdentity {
   userId: string;

@@ -1,7 +1,7 @@
 // Which sign-ins are worth a "new device" alert. Pure: the store
 // (sign-in-monitor.ts) reads the history and sends the notification.
 
-import type { ParsedUserAgent } from "@antelopejs/interface-dms/auth";
+import type { ParsedUserAgent } from "@antelopejs/interface-dms/auth/internal/user-agent";
 
 const FINGERPRINT_SEPARATOR = "|";
 /** Browser, system and device type: the parts every fingerprint starts with. */

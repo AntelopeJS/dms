@@ -1,4 +1,4 @@
-import type { ParsedUserAgent } from "@antelopejs/interface-dms/auth";
+import type { ParsedUserAgent } from "@antelopejs/interface-dms/auth/internal/user-agent";
 import { expect } from "chai";
 import {
   classifySignIn,

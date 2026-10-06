@@ -7,10 +7,8 @@ import {
   HasPermission,
 } from "@antelopejs/interface-dms/permissions";
 import type { NativeUploadFieldRegistration } from "@antelopejs/interface-dms/internal/uploads";
-import {
-  authenticateRequestPrincipal,
-  type RequestPrincipal,
-} from "@antelopejs/interface-dms/auth";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
+import type { RequestPrincipal } from "@antelopejs/interface-dms/auth";
 import type { UploadTokenClaims } from "../utils/upload-token";
 import { denyAttachment } from "./registry";
 

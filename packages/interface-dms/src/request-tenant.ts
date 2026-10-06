@@ -1,6 +1,6 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { decode } from "jsonwebtoken";
-import { getAuthenticatedRequestTenantId } from "./auth/request-authenticators";
+import { getAuthenticatedRequestTenantId } from "./auth/internal/request-authenticators";
 import { DEFAULT_TENANT_ID } from "./constants";
 
 const BEARER_PREFIX = "Bearer ";

@@ -11,8 +11,8 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { Action, ComponentTargetInput } from "./component";
 import { TenantMemberModel } from "./db";
 import { AssertTenantAccess } from "./tenant-access";
+import { authenticateRequestPrincipal } from "./auth/internal/request-principal";
 import {
-  authenticateRequestPrincipal,
   internal as authInternal,
   type RequestAuthenticator,
   type TenantTokenInput,

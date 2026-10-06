@@ -1,13 +1,13 @@
 import type {
   DeviceType,
   ParsedUserAgent,
-} from "@antelopejs/interface-dms/auth";
+} from "@antelopejs/interface-dms/auth/internal/user-agent";
 import { UAParser } from "ua-parser-js";
 
 export type {
   DeviceType,
   ParsedUserAgent,
-} from "@antelopejs/interface-dms/auth";
+} from "@antelopejs/interface-dms/auth/internal/user-agent";
 
 const DEVICE_TYPES: Record<string, DeviceType> = {
   mobile: "mobile",

@@ -4,7 +4,6 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { ExecuteHooks, Hook } from "../hooks";
-import { DEFAULT_TENANT_ID } from "../constants";
 import {
   buildExternalIdentityId,
   type SessionModel,
@@ -13,26 +12,10 @@ import {
   UserExternalIdentityModel,
   type UserModel,
 } from "./db";
-import {
-  type RequestAuthenticator,
-  type RequestPrincipal,
-  resolveRequestPrincipal,
-} from "./request-authenticators";
 import { fireAndForget } from "../utils/fire-and-forget";
+import type { ParsedUserAgent } from "./internal/user-agent";
 
 export * from "./request-authenticators";
-
-/** @internal */
-export type DeviceType = "mobile" | "tablet" | "desktop";
-
-/** @internal */
-export interface ParsedUserAgent {
-  browserName: string;
-  browserVersion: string;
-  osName: string;
-  osVersion: string;
-  deviceType: DeviceType;
-}
 
 /**
  * Sending account e-mails and reading a user agent are DMS behaviour, not
@@ -58,27 +41,6 @@ const HTTP_UNAUTHORIZED = 401;
 const HTTP_CONFLICT = 409;
 const UNAUTHORIZED_MESSAGE = "Unauthorized";
 const IDENTITY_ALREADY_LINKED_MESSAGE = "error.oauth.identity_already_linked";
-
-/**
- * Authenticate with route-local credential handlers, otherwise the existing JWT interfaces.
- * Recognized failures and ambiguous handlers never fall back to JWT. Every call revalidates;
- * repeat calls must retain the same credential, user and tenant. No permissions are granted.
- *
- * @internal
- */
-export async function authenticateRequestPrincipal(
-  ctx: RequestContext,
-  authenticators: readonly RequestAuthenticator[] = [],
-): Promise<RequestPrincipal> {
-  return resolveRequestPrincipal(ctx, authenticators, async (token) => {
-    const decoded = await internal.AuthUserAuthenticator(token);
-    const user = await internal.AuthUserValidator(decoded);
-    if (!user || typeof user === "boolean") {
-      throw new HTTPResult(HTTP_UNAUTHORIZED, UNAUTHORIZED_MESSAGE);
-    }
-    return { user, tenantId: decoded.tenantId || DEFAULT_TENANT_ID };
-  });
-}
 
 export interface TenantTokenInput {
   tenantId: string;
