@@ -14,6 +14,7 @@ import {
 } from "@internationalized/date";
 import { reactivePick } from "@vueuse/core";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
+import { useControlError } from "../../../build/composables/form/useControlError";
 import {
   FIELD_TRIGGER_CLASS,
   FIELD_TRIGGER_INVALID_CLASS,
@@ -155,6 +156,32 @@ const {
 );
 const invalid = computed(() => fieldColor.value === "error");
 
+// A range picked halfway (its start only) is no range, and the calendar
+// drops that start once it closes: the field says the end is missing, until
+// a whole range is picked or the field is cleared.
+const RANGE_INCOMPLETE = "$dms.field_errors.range_incomplete";
+const { report } = useControlError();
+let isHalfPicked = false;
+
+/** Follows a range being picked: its start alone, then both ends. */
+function trackRangePick(value: unknown): void {
+  if (value === null || value === undefined) {
+    isHalfPicked = false;
+    report(undefined);
+    return;
+  }
+  const ends = value as Partial<StrictDateRange>;
+  if (!ends.start) return;
+  isHalfPicked = !ends.end;
+  if (!isHalfPicked) report(undefined);
+}
+
+function onPickerToggle(open: boolean): void {
+  if (open) return;
+  if (props.range && isHalfPicked) report(RANGE_INCOMPLETE);
+  emitFormBlur();
+}
+
 function toBoundDate(value: string | undefined): CalendarDate | undefined {
   return value ? convertIsoStringToCalendarDate(value) : undefined;
 }
@@ -184,6 +211,7 @@ type EmitValue = unknown;
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
   forwardEmit(event, value);
+  if (event === "update:modelValue" && props.range) trackRangePick(value);
   // After the update: the field re-validates its new value.
   if (event === "update:modelValue") emitFormChange();
 };
@@ -258,7 +286,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <UPopover @update:open="(open: boolean) => !open && emitFormBlur()">
+  <UPopover @update:open="onPickerToggle">
     <UButton
       :id="props.id"
       :label="label ?? t('dms.form.select_date')"

@@ -220,40 +220,58 @@ export function formatPercentage(
   });
 }
 
+const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
+  y: "y",
+  M: "M",
+  mo: "M",
+  w: "w",
+  d: "d",
+  h: "h",
+  m: "m",
+  s: "s",
+  ms: "ms",
+};
+
+// `01:30`, `26:00:30`: hours, then minutes and seconds under 60.
+const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
+// `1h30m`, `1h 30m`, `1h:30m` (what `formatTimeSpan` writes), `1.5h`.
+const UNIT_SPAN = /^(?:\d+(?:\.\d+)?(?:ms|mo|[Mmwydhs])[\s:]*)+$/;
+const UNIT_SPAN_PART = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
+
+function readClockSpan(text: string): number | undefined {
+  const match = CLOCK_SPAN.exec(text);
+  if (!match) return undefined;
+  const [, hours, minutes, seconds] = match;
+  return (
+    Number(hours) * TIME_UNITS.h +
+    Number(minutes) * TIME_UNITS.m +
+    Number(seconds ?? 0) * TIME_UNITS.s
+  );
+}
+
+function readUnitSpan(text: string): number | undefined {
+  if (!UNIT_SPAN.test(text)) return undefined;
+  let total = 0;
+  for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
+    total += Number.parseFloat(amount!) * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+  }
+  return total;
+}
+
+/**
+ * A duration typed in, in milliseconds: a clock duration (`01:30`,
+ * `26:00:30`) or units (`1h30m`, `1h 30m`, `1.5h`), or `undefined` for a
+ * text that is neither.
+ */
+export function readTimeSpan(value: string): number | undefined {
+  const text = value.trim();
+  if (!text) return undefined;
+  return readClockSpan(text) ?? readUnitSpan(text);
+}
+
 export function parseTimeSpan(value: string | number): number {
   if (isNumber(value)) return Number(value);
-  const normalizedValue = value.trim();
-  if (!normalizedValue) return 0;
-
-  const UNIT_MAP: Record<string, keyof typeof TIME_UNITS> = {
-    y: "y",
-    M: "M",
-    mo: "M",
-    w: "w",
-    d: "d",
-    h: "h",
-    m: "m",
-    s: "s",
-    ms: "ms",
-  };
-
-  let totalMs = 0;
-  const regex = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
-
-  let match;
-  while ((match = regex.exec(normalizedValue)) !== null) {
-    const rawValue = match[1];
-    const unit = match[2];
-    if (!rawValue || !unit) continue;
-
-    const canonicalUnit = UNIT_MAP[unit];
-    if (!canonicalUnit || !(canonicalUnit in TIME_UNITS)) continue;
-
-    const numValue = Number.parseFloat(rawValue);
-    totalMs += numValue * TIME_UNITS[canonicalUnit as keyof typeof TIME_UNITS];
-  }
-
-  return totalMs;
+  return readTimeSpan(value) ?? 0;
 }
 
 const DEFAULT_SEPARATOR = ":";

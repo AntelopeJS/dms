@@ -354,3 +354,54 @@ describe("unwrapUnionIssue", () => {
     expect(issues.map((issue) => issue.path)).toEqual([["a"]]);
   });
 });
+
+describe("validateFormState: errors a control reports", () => {
+  const DURATION = "Enter a duration such as 1h30m or 01:30.";
+
+  it("refuses the field with the control's message, before required", async () => {
+    const result = await validateFormState(
+      roundTrip({ duration: z.number(), name: optional(z.string()) }),
+      { duration: null },
+      {
+        fields: [
+          required("duration", "string_time"),
+          { id: "name", required: false },
+        ],
+        requiredMessage: REQUIRED,
+        controlErrors: new Map([["duration", DURATION]]),
+      },
+    );
+    expect("issues" in result && result.issues).toEqual([
+      { message: DURATION, path: ["duration"] },
+    ]);
+  });
+
+  it("leaves a field without one to the schema", async () => {
+    const result = await validateFormState(
+      roundTrip({ duration: optional(z.number()) }),
+      { duration: 5 },
+      {
+        fields: [{ id: "duration", required: false }],
+        requiredMessage: REQUIRED,
+        controlErrors: new Map(),
+      },
+    );
+    expect(result).toEqual({ value: { duration: 5 } });
+  });
+});
+
+describe("validateFormState: a box to tick", () => {
+  it("is missing until ticked when required", async () => {
+    const shape = { terms: z.literal(true) };
+    const field = { ...required("terms", "boolean"), acceptance: true };
+    expect(await issuesOf(shape, [field], { terms: false })).toEqual([
+      { message: REQUIRED, path: ["terms"] },
+    ]);
+    expect(await issuesOf(shape, [field], {})).toEqual([
+      { message: REQUIRED, path: ["terms"] },
+    ]);
+    expect(await valueOf(shape, [field], { terms: true })).toEqual({
+      terms: true,
+    });
+  });
+});

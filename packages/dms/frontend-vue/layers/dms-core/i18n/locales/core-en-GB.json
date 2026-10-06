@@ -405,7 +405,9 @@
       "too_large": "This value is too large.",
       "with_values": "{message}: {values}",
       "code_incomplete": "Enter every digit of the code.",
-      "password_rules": "The password doesn’t meet every rule."
+      "password_rules": "The password doesn’t meet every rule.",
+      "invalid_duration": "Enter a duration such as 1h30m or 01:30.",
+      "range_incomplete": "Pick the end of the range too."
     },
     "confirm": {
       "confirm": "Confirm",

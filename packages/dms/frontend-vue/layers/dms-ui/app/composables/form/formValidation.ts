@@ -22,6 +22,8 @@ export interface FormValidationField {
   type?: string;
   /** Holds one value per content language. */
   localized?: boolean;
+  /** A box to tick: unticked, it is missing. */
+  acceptance?: boolean;
   /**
    * Whether the form requires a value now: declared so or set by a watch
    * action, and shown (see `isFieldMarkedRequired`).
@@ -47,6 +49,12 @@ export interface FormValidationContext {
   locale?: string;
   /** Passed to zod (the error map wording its issues). */
   parseParams?: Partial<z.ParseParams>;
+  /**
+   * Errors controls report on their own value (a duration or JSON that
+   * cannot be read), by field id, already translated: the field is refused
+   * with that message, whatever its value.
+   */
+  controlErrors?: ReadonlyMap<string, string>;
 }
 
 const BOOLEAN_TYPE = "boolean";
@@ -104,9 +112,15 @@ export async function validateFormState(
   const input: Record<string, unknown> = { ...state };
   const missing = new Set<string>();
 
+  const reported = context.controlErrors ?? new Map<string, string>();
+
   for (const field of context.fields) {
     const value = state[field.id];
-    if (!isBlankValue(value, field.type)) continue;
+    if (reported.has(field.id)) continue;
+    const isBlank = field.acceptance
+      ? value !== true
+      : isBlankValue(value, field.type);
+    if (!isBlank) continue;
     if (field.required) {
       missing.add(field.id);
       continue;
@@ -131,8 +145,15 @@ export async function validateFormState(
     ? []
     : result.error.issues
         .flatMap(unwrapUnionIssue)
-        .filter((issue) => !missing.has(String(issueField(issue))))
+        .filter((issue) => {
+          const field = String(issueField(issue));
+          return !missing.has(field) && !reported.has(field);
+        })
         .map(({ message, path }) => ({ message, path }));
+
+  for (const [fieldId, message] of reported) {
+    issues.push({ message, path: [fieldId] });
+  }
 
   for (const field of context.fields) {
     if (!missing.has(field.id)) continue;
