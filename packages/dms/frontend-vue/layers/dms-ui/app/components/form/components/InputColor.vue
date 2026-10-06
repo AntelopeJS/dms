@@ -23,10 +23,13 @@ const modelValue = defineModel<string | null | undefined>();
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const FALLBACK_COLOR = "#000000";
 
+const hasColor = computed(
+  () => !!modelValue.value && HEX_PATTERN.test(modelValue.value),
+);
+// The native picker opens on black; the swatch shows no colour until one is
+// picked, rather than a black one reading as a value.
 const swatchValue = computed(() =>
-  modelValue.value && HEX_PATTERN.test(modelValue.value)
-    ? modelValue.value
-    : FALLBACK_COLOR,
+  hasColor.value ? modelValue.value! : FALLBACK_COLOR,
 );
 
 const handlePickerInput = (event: Event) => {
@@ -56,7 +59,8 @@ const handleTextInput = (value: string | number) => {
       <span
         aria-hidden="true"
         class="size-full rounded-[5px]"
-        :style="{ backgroundColor: swatchValue }"
+        :class="!hasColor && 'border-accented border border-dashed'"
+        :style="hasColor ? { backgroundColor: swatchValue } : undefined"
       />
       <input
         type="color"
