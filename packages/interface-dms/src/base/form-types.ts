@@ -188,7 +188,8 @@ export interface FormProps extends BaseComponentProps {
    * while clean when it has somewhere to go back to (`backTo`, or the drawer
    * or modal it sits in). `action`: a form that does something each time it
    * is sent — send a message, invite someone, run a job; its buttons are
-   * Reset and its `submitLabel`, shown once a value changes, and it empties
+   * Reset and its `submitLabel`, shown once a value changes (in a drawer or
+   * a modal, Cancel and the held submit show before that), and it empties
    * after a successful submit.
    */
   kind?: FormKind;

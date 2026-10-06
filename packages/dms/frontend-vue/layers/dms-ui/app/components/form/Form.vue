@@ -30,10 +30,7 @@ import { DMS_CONTAINER_KEY } from "../../composables/containers/context";
 import { sameFormValue } from "../../composables/unsaved-changes/formValue";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
-import {
-  actionFormShowsButtons,
-  formSaveMode,
-} from "../../composables/form/formFooter";
+import { formSaveMode } from "../../composables/form/formFooter";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
 import {
@@ -422,10 +419,9 @@ const isDirty = computed(
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
-// A record form offers Cancel while clean when it has somewhere to go back
-// to: its drawer or modal, or `backTo` on a page. An action form (send,
-// invite, run) shows its buttons in its footer once a value changes: Reset
-// and its own submit label.
+// A form offers Cancel while clean when it has somewhere to go back to: its
+// drawer or modal, or `backTo` on a page. An action form (send, invite, run)
+// saves from its footer band, never from the floating bar.
 const isActionForm = props.kind === "action";
 const canCancel = inFormContainer || !!container || !!props.backTo;
 const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
@@ -456,9 +452,6 @@ const hasChangeableFields = computed(() =>
   toValue(allFields).some(
     (field) => !isFieldDisabled(field) && !isFieldHidden(field),
   ),
-);
-const showsActionButtons = computed(() =>
-  actionFormShowsButtons(isDirty.value, hasChangeableFields.value),
 );
 
 const router = useDmsRouter();
@@ -934,97 +927,24 @@ onUnmounted(async () => {
         </template>
       </div>
 
-      <!-- A page form's bar (v2 save bar, or the footer band) holds its place
-        while hidden, so its showing up never moves anything. -->
-      <!-- A table view's form always shows its footer: Cancel while there
-        is nothing to save (closing the drawer or modal, or back to the
-        previous page), "Unsaved changes" with Discard and Save once there is.
-        Same height in both states: only the content changes. -->
+      <!-- One bar for every form (see `saveBarState`): the v2 floating bar
+        on a page, the footer band of a card, a drawer or a modal. It holds
+        its place while hidden, so its showing up never moves anything. -->
       <DmsSaveBar
-        v-if="canSave && usesSaveBar"
+        v-if="canSave && !isInstant"
+        :variant="usesSaveBar ? 'floating' : 'band'"
+        :kind="props.kind"
         :dirty="isDirty"
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
-        :save-label="props.submitLabel"
+        :save-label="usesSaveBar ? props.submitLabel : submitButtonLabel"
         :cancellable="canCancel"
-        class="mx-3 mb-3"
+        :resettable="hasChangeableFields"
+        :class="usesSaveBar ? 'mx-3 mb-3' : surfaceClasses.foot"
         @discard="discardChanges"
         @cancel="cancelForm"
       />
-      <!-- An action form (send, invite, run) has nothing to cancel: its
-        buttons show once a value changes, Reset and its own submit label,
-        and keep their place while hidden. -->
-      <footer
-        v-else-if="canSave && isActionForm"
-        class="flex items-center justify-end gap-2 transition-[opacity,translate,visibility] duration-200 ease-out"
-        :class="[
-          surfaceClasses.foot,
-          !showsActionButtons && 'invisible translate-y-1 opacity-0',
-        ]"
-        :inert="!showsActionButtons || undefined"
-        :aria-hidden="!showsActionButtons || undefined"
-      >
-        <UButton
-          v-if="hasChangeableFields"
-          :label="$t('dms.button.reset')"
-          :disabled="loading || isAnyFieldLoading"
-          variant="outline"
-          color="neutral"
-          size="lg"
-          @click="discardChanges"
-        />
-        <UButton
-          :label="submitButtonLabel"
-          :loading="loading || isAnyFieldLoading"
-          type="submit"
-          size="lg"
-        />
-      </footer>
-      <footer
-        v-else-if="canSave && !isInstant"
-        class="flex items-center gap-2"
-        :class="[surfaceClasses.foot, !isDirty && !canCancel && 'invisible']"
-        :inert="(!isDirty && !canCancel) || undefined"
-      >
-        <template v-if="isDirty">
-          <span
-            class="text-muted inline-flex min-w-0 items-center gap-2 text-[12.5px]"
-            role="status"
-          >
-            <span
-              class="bg-warning ring-warning/15 size-[7px] shrink-0 rounded-full ring-3"
-              aria-hidden="true"
-            />
-            <span class="truncate">{{ $t("dms.save_bar.unsaved") }}</span>
-          </span>
-          <div class="ms-auto flex shrink-0 gap-2">
-            <UButton
-              :label="$t('dms.save_bar.discard')"
-              :disabled="loading || isAnyFieldLoading"
-              variant="outline"
-              color="neutral"
-              size="lg"
-              @click="discardChanges"
-            />
-            <UButton
-              :label="submitButtonLabel"
-              :loading="loading || isAnyFieldLoading"
-              type="submit"
-              size="lg"
-            />
-          </div>
-        </template>
-        <UButton
-          v-else-if="canCancel"
-          :label="$t('dms.button.cancel')"
-          variant="outline"
-          color="neutral"
-          size="lg"
-          class="ms-auto"
-          @click="cancelForm"
-        />
-      </footer>
     </UForm>
   </component>
 </template>
