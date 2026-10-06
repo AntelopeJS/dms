@@ -65,26 +65,35 @@ export function readRegionalPreferences(user: User): RegionalPreferences {
   };
 }
 
-/** The preferences as the Language & region form shows them. */
+/**
+ * The preferences as the Language & region form shows them: each regional
+ * one as the text of its select option, "Automatic" when unset.
+ */
 export function toRegionFormValues(
   preferences: RegionalPreferences,
 ): Record<string, unknown> {
   const values: Record<string, unknown> = { language: preferences.language };
   for (const key of REGIONAL_KEYS) {
-    values[key] = preferences[key] ?? AUTOMATIC_PREFERENCE;
+    const value = preferences[key];
+    values[key] = value === null ? AUTOMATIC_PREFERENCE : String(value);
   }
   return values;
 }
 
 /**
  * A body of the Language & region form as the API takes it: "Automatic"
- * becomes null. Anything else is left for the schema to judge.
+ * becomes null and the first day of the week a number. Anything else is
+ * left for the schema to judge.
  */
 export function fromRegionFormValues(body: unknown): unknown {
   if (!body || typeof body !== "object") return body;
   const values = { ...(body as Record<string, unknown>) };
   for (const key of REGIONAL_KEYS) {
     if (values[key] === AUTOMATIC_PREFERENCE) values[key] = null;
+  }
+  // A select carries its values as text: the week starts on a day number.
+  if (typeof values.weekStart === "string") {
+    values.weekStart = Number(values.weekStart);
   }
   return values;
 }

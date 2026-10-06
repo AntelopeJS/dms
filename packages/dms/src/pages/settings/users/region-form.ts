@@ -50,7 +50,6 @@ export function regionPreferencesForm() {
               items: DASHBOARD_LANGUAGE_ITEMS,
               deselectable: false,
             }),
-            required: true,
           },
         ],
       },
@@ -75,9 +74,9 @@ export function regionPreferencesForm() {
             label: `${TEXTS}.week_start_title`,
             description: `${TEXTS}.week_start_hint`,
             type: segmented([
-              { label: `${TEXTS}.weekday_monday`, value: MONDAY },
-              { label: `${TEXTS}.weekday_sunday`, value: SUNDAY },
-              { label: `${TEXTS}.weekday_saturday`, value: SATURDAY },
+              { label: `${TEXTS}.weekday_monday`, value: String(MONDAY) },
+              { label: `${TEXTS}.weekday_sunday`, value: String(SUNDAY) },
+              { label: `${TEXTS}.weekday_saturday`, value: String(SATURDAY) },
             ]),
           },
           {

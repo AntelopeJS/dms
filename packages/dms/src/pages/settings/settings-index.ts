@@ -8,7 +8,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { ActivityFeed } from "@antelopejs/interface-dms/base/activity-feed";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import { Card } from "@antelopejs/interface-dms/base/card";
-import { Grid } from "@antelopejs/interface-dms/base/grid";
+import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
 import {
   KeyValueList,
   type KeyValueListItem,
@@ -40,33 +40,36 @@ const SUMMARY_COLUMN_WIDTH = "20rem";
 export class SettingsIndexPage extends settingsCategory {
   static summary = Grid({ minColumnWidth: SUMMARY_COLUMN_WIDTH })
     .child(
-      "account",
-      Card({
-        title: `${TEXTS}.your_account`,
-        padded: false,
-        actions: [
-          {
-            label: `${TEXTS}.edit_profile`,
-            to: PROFILE_PATH,
-            icon: "i-ph-arrow-right",
-          },
-        ],
-      }).child(
-        "details",
-        KeyValueList({ fetchUrl: ACCOUNT_SUMMARY_URL, card: false }),
-      ),
-    )
-    .child(
-      "activity",
-      ActivityFeed({
-        title: `${TEXTS}.activity.title`,
-        fetchUrl: ACTIVITY_URL,
-        maxItems: ACTIVITY_ROWS,
-        empty: {
-          title: `${TEXTS}.activity.empty_title`,
-          description: `${TEXTS}.activity.empty_description`,
-        },
-      }),
+      "row",
+      GridRow()
+        .child(
+          "account",
+          Card({
+            title: `${TEXTS}.your_account`,
+            actions: [
+              {
+                label: `${TEXTS}.edit_profile`,
+                to: PROFILE_PATH,
+                icon: "i-ph-arrow-right",
+              },
+            ],
+          }).child(
+            "details",
+            KeyValueList({ fetchUrl: ACCOUNT_SUMMARY_URL, card: false }),
+          ),
+        )
+        .child(
+          "activity",
+          ActivityFeed({
+            title: `${TEXTS}.activity.title`,
+            fetchUrl: ACTIVITY_URL,
+            maxItems: ACTIVITY_ROWS,
+            empty: {
+              title: `${TEXTS}.activity.empty_title`,
+              description: `${TEXTS}.activity.empty_description`,
+            },
+          }),
+        ),
     )
     .meta({ name: `${TEXTS}.your_account`, icon: "i-ph-user-circle" });
 

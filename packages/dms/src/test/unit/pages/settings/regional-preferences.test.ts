@@ -110,6 +110,22 @@ describe("[unit] regional preferences — the Language & region form", () => {
     });
   });
 
+  it("carries the first day of the week as the text of its option", () => {
+    expect(
+      toRegionFormValues({
+        language: "en",
+        timeZone: null,
+        weekStart: 1,
+        timeFormat: null,
+        dateFormat: null,
+      }).weekStart,
+    ).to.equal("1");
+    const body = fromRegionFormValues({ weekStart: "6" });
+    expect(regionalPreferencesSchema.parse(body)).to.deep.equal({
+      weekStart: 6,
+    });
+  });
+
   it("is one instant form with a section per group", () => {
     const options = regionPreferencesForm().serializeSync()
       .options as FormPropsSerialized;

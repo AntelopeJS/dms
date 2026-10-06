@@ -176,7 +176,12 @@ onMounted(async () => {
 
 <template>
   <div>
-    <form @submit.prevent="save">
+    <DmsCard
+      as="form"
+      :padded="false"
+      class="overflow-clip"
+      @submit.prevent="save"
+    >
       <DmsFieldRow
         layout="form"
         label="$page.settings.profile.avatar"
@@ -322,7 +327,7 @@ onMounted(async () => {
           {{ t("page.settings.profile.credentials_hint") }}
         </span>
       </DmsFieldRow>
-    </form>
+    </DmsCard>
 
     <DmsSaveBar
       :dirty="isDirty"

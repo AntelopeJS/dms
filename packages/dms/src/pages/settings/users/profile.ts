@@ -127,9 +127,12 @@ export class ProfileSettingsController extends PageController("profile", {
   order: 1,
   description: "$page.settings.description.profile",
 }) {
+  // No card of the section's own: the form draws its card, its save bar
+  // floating under it.
   static profileComponent = Section({
     title: `${PROFILE_TEXTS}.title`,
     description: `${PROFILE_TEXTS}.description`,
+    card: false,
   })
     .child("form", personalInfoForm)
     .meta({
