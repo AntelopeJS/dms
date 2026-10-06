@@ -528,8 +528,6 @@
           "unsaved_included": "modifications non enregistrées incluses",
           "page_hidden": "Page masquée pour {role}",
           "out_of_scope": "{count} permission hors de votre propre accès n'est pas affichée | {count} permissions hors de votre propre accès ne sont pas affichées",
-          "blocked_notice": "Aperçu en lecture seule : rien n'a été modifié",
-          "blocked_request": "Cet aperçu est en lecture seule. Quittez-le pour faire des modifications.",
           "failed": "L'aperçu n'a pas pu être mis à jour",
           "loading": "Mise à jour de l'aperçu",
           "exit": "Quitter l'aperçu",

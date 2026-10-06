@@ -524,8 +524,6 @@
           "unsaved_included": "unsaved changes included",
           "page_hidden": "Page hidden for {role}",
           "out_of_scope": "{count} permission outside your own access is not shown | {count} permissions outside your own access are not shown",
-          "blocked_notice": "Read-only preview: nothing was changed",
-          "blocked_request": "This is a read-only preview. Exit it to make changes.",
           "failed": "The preview could not be updated",
           "loading": "Updating the preview",
           "exit": "Exit preview",

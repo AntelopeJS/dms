@@ -5,8 +5,6 @@ import { listPreviewablePages } from "#dms-core/app/utils/permission-preview";
 // v2 .cs-asbar: "Previewing <page> as <role> · unsaved changes included ·
 // Exit preview", pinned under the dashboard header while a tab previews a
 // role. The page name doubles as a picker to look at another page.
-const BLOCKED_NOTICE_MS = 4000;
-
 const preview = usePermissionPreview();
 const siteLayout = useSiteLayout();
 const route = useDmsRoute();
@@ -48,21 +46,6 @@ const pagePartial = computed(
   () => preview.entryState(preview.result.value?.page?.fullId) === "partial",
 );
 const outOfScope = computed(() => preview.result.value?.outOfScope ?? 0);
-
-const showBlocked = ref(false);
-let blockedTimer: ReturnType<typeof setTimeout> | undefined;
-watch(
-  () => preview.blockedAt.value,
-  (at) => {
-    if (!at) return;
-    showBlocked.value = true;
-    clearTimeout(blockedTimer);
-    blockedTimer = setTimeout(() => {
-      showBlocked.value = false;
-    }, BLOCKED_NOTICE_MS);
-  },
-);
-onBeforeUnmount(() => clearTimeout(blockedTimer));
 </script>
 
 <template>
@@ -117,15 +100,7 @@ onBeforeUnmount(() => clearTimeout(blockedTimer));
       {{ t("page.settings.roles.preview.out_of_scope", outOfScope) }}
     </span>
     <span
-      v-if="showBlocked"
-      class="text-warning inline-flex items-center gap-1"
-      role="alert"
-    >
-      <UIcon name="i-ph-prohibit" class="size-3.5" />
-      {{ t("page.settings.roles.preview.blocked_notice") }}
-    </span>
-    <span
-      v-else-if="preview.failed.value"
+      v-if="preview.failed.value"
       class="text-error inline-flex items-center gap-1"
       role="alert"
     >

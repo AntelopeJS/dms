@@ -7,8 +7,10 @@ import {
   PERMISSION_PREVIEW_TAB_KEY,
 } from "../layers/dms-core/app/utils/permission-preview";
 
-// Signing out forgets every "Preview as role" this browser holds: the next
-// account must not find the previous one's role name and draft permissions.
+// A "Preview as role" tab only annotates what the viewer is served: its
+// requests leave as they are, run with the viewer's own rights. Signing out
+// forgets every preview this browser holds, so the next account does not find
+// the previous one's role name and draft permissions.
 
 const states = new Map<string, unknown>();
 
@@ -42,4 +44,26 @@ it("removes the previews of every tab and the session in memory", () => {
   expect(preview.session.value).toBeNull();
   expect(sessionStorage.getItem(PERMISSION_PREVIEW_TAB_KEY)).toBeNull();
   expect(Object.keys(localStorage)).toEqual(["unrelated"]);
+});
+
+it("lets a preview tab's requests through untouched", () => {
+  const nativeFetch = window.fetch;
+  const nativeOpen = XMLHttpRequest.prototype.open;
+  localStorage.setItem(
+    `${PERMISSION_PREVIEW_STORAGE_PREFIX}a`,
+    JSON.stringify({
+      id: "a",
+      roleId: null,
+      roleName: "Support",
+      permissions: [],
+      unsaved: false,
+      returnTo: "/settings/workspace/roles",
+      updatedAt: Date.now(),
+    }),
+  );
+  const preview = usePermissionPreview();
+
+  expect(preview.activate()).toBe(true);
+  expect(window.fetch).toBe(nativeFetch);
+  expect(XMLHttpRequest.prototype.open).toBe(nativeOpen);
 });

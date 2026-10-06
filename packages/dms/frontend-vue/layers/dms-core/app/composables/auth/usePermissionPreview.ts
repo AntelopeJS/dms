@@ -1,7 +1,6 @@
 import {
   buildPreviewUrl,
   isPreviewEntryLocked,
-  isPreviewSafeRequest,
   isStalePreviewSession,
   parsePreviewSession,
   PERMISSION_PREVIEW_ENDPOINT,
@@ -22,9 +21,6 @@ export type PermissionPreviewInput = Omit<
   "id" | "updatedAt"
 >;
 
-/** Body of the synthetic answer a blocked request receives. */
-const BLOCKED_MESSAGE_KEY = "page.settings.roles.preview.blocked_request";
-const HTTP_FORBIDDEN = 403;
 const CLOSE_FALLBACK_DELAY_MS = 150;
 
 function storageKey(id: string): string {
@@ -81,77 +77,8 @@ function newPreviewId(): string {
     : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 }
 
-function blockedResponse(): Response {
-  return new Response(JSON.stringify({ message: BLOCKED_MESSAGE_KEY }), {
-    status: HTTP_FORBIDDEN,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-let guardInstalled = false;
 // Only the latest preview request may land: the route and the edits both move.
 let refreshGeneration = 0;
-
-// A preview tab is read-only: every write leaves through `fetch` or XHR, so
-// both are wrapped once and refuse what `isPreviewSafeRequest` does not allow
-// for as long as the preview lasts. The server never learns about the
-// preview; the session's own permissions are untouched either way.
-function installRequestGuard(
-  isActive: () => boolean,
-  onBlocked: () => void,
-): void {
-  if (guardInstalled || typeof window === "undefined") return;
-  guardInstalled = true;
-
-  const nativeFetch = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    const method =
-      init?.method ?? (input instanceof Request ? input.method : "GET");
-    const url =
-      input instanceof Request
-        ? input.url
-        : input instanceof URL
-          ? input.href
-          : input;
-    if (isActive() && !isPreviewSafeRequest(method, url)) {
-      onBlocked();
-      return Promise.resolve(blockedResponse());
-    }
-    return nativeFetch(input, init);
-  };
-
-  const nativeOpen = XMLHttpRequest.prototype.open;
-  const nativeSend = XMLHttpRequest.prototype.send;
-  const blockedRequests = new WeakSet<XMLHttpRequest>();
-  XMLHttpRequest.prototype.open = function open(
-    this: XMLHttpRequest,
-    method: string,
-    url: string | URL,
-    ...rest: unknown[]
-  ) {
-    const href = url instanceof URL ? url.href : url;
-    if (isActive() && !isPreviewSafeRequest(method, href)) {
-      blockedRequests.add(this);
-    }
-    return (nativeOpen as (...args: unknown[]) => void).call(
-      this,
-      method,
-      url,
-      ...rest,
-    );
-  } as typeof XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.send = function send(
-    this: XMLHttpRequest,
-    body?: Document | XMLHttpRequestBodyInit | null,
-  ) {
-    if (blockedRequests.has(this)) {
-      onBlocked();
-      this.dispatchEvent(new ProgressEvent("error"));
-      return;
-    }
-    return nativeSend.call(this, body);
-  };
-}
 
 function usePreviewState() {
   return {
@@ -168,7 +95,6 @@ function usePreviewState() {
       () => false,
     ),
     failed: useDmsState<boolean>("dms-permission-preview-failed", () => false),
-    blockedAt: useDmsState<number>("dms-permission-preview-blocked", () => 0),
   };
 }
 
@@ -176,10 +102,11 @@ function usePreviewState() {
  * "Preview as role": the roles editor opens a tab that browses the real
  * dashboard as a role would see it — its unsaved edits included. The server
  * says what the role would lose on the menu and on the current page; the tab
- * veils those blocks instead of removing them, and refuses every write.
+ * veils those blocks instead of removing them.
  *
  * The session's permissions never change: the tab keeps the viewer's own
- * access, and the preview only ever annotates what the viewer is served.
+ * access, and the preview only ever annotates what the viewer is served. An
+ * action taken in the tab runs with those real rights, as anywhere else.
  */
 export function usePermissionPreview() {
   const state = usePreviewState();
@@ -296,12 +223,6 @@ export function usePermissionPreview() {
       const next = parsePreviewSession(event.newValue);
       if (next) state.session.value = next;
     });
-    installRequestGuard(
-      () => isActive.value,
-      () => {
-        state.blockedAt.value = Date.now();
-      },
-    );
     return true;
   }
 
@@ -360,7 +281,6 @@ export function usePermissionPreview() {
     result: state.result,
     loading: state.loading,
     failed: state.failed,
-    blockedAt: state.blockedAt,
     isActive,
     blockFor,
     isEntryHidden,

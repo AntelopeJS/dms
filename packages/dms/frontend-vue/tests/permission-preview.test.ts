@@ -4,7 +4,6 @@ import {
   buildPreviewUrl,
   childLayoutPath,
   isPreviewEntryLocked,
-  isPreviewSafeRequest,
   isStalePreviewSession,
   listPreviewablePages,
   parsePreviewSession,
@@ -26,50 +25,6 @@ const SESSION = {
 };
 
 describe("permission preview", () => {
-  describe("isPreviewSafeRequest", () => {
-    it("lets reads through", () => {
-      expect(isPreviewSafeRequest("GET", "/api/tables/orders")).toBe(true);
-      expect(isPreviewSafeRequest(undefined, "/dms/page?path=/")).toBe(true);
-      expect(isPreviewSafeRequest("head", "/x")).toBe(true);
-    });
-
-    it("refuses writes", () => {
-      expect(
-        isPreviewSafeRequest("POST", "/settings/workspace/roles/create"),
-      ).toBe(false);
-      expect(isPreviewSafeRequest("PUT", "/settings/workspace/roles/r1")).toBe(
-        false,
-      );
-      expect(isPreviewSafeRequest("DELETE", "/api/tables/orders/1")).toBe(
-        false,
-      );
-      expect(isPreviewSafeRequest("POST", "/files/presign")).toBe(false);
-    });
-
-    it("keeps the writes a preview tab depends on", () => {
-      expect(
-        isPreviewSafeRequest(
-          "POST",
-          "http://127.0.0.1:5010/settings/workspace/roles/preview",
-        ),
-      ).toBe(true);
-      expect(isPreviewSafeRequest("POST", "/api/_auth/session")).toBe(true);
-      expect(isPreviewSafeRequest("POST", "/api/auth/refresh")).toBe(true);
-      expect(isPreviewSafeRequest("POST", "/api/realtime/subscribe/x")).toBe(
-        true,
-      );
-      expect(
-        isPreviewSafeRequest("POST", "/api/tables/orders/count/batch?x=1"),
-      ).toBe(true);
-    });
-
-    it("judges the path, not the query string", () => {
-      expect(
-        isPreviewSafeRequest("POST", "/api/tables/orders?next=/count/batch"),
-      ).toBe(false);
-    });
-  });
-
   describe("parsePreviewSession", () => {
     it("reads a stored session", () => {
       expect(parsePreviewSession(JSON.stringify(SESSION))).toEqual(SESSION);

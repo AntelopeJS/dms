@@ -61,18 +61,6 @@ export const PERMISSION_PREVIEW_TTL_MS = 86_400_000;
  */
 export const PERMISSION_PREVIEW_PENDING_ATTRIBUTE = "data-dms-role-preview";
 
-const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-
-// Writes a preview tab still needs: the preview itself, keeping the session
-// alive, realtime presence, and the batched counts tables read through a POST.
-const SAFE_PATH_SUFFIXES = [
-  PERMISSION_PREVIEW_ENDPOINT,
-  "/api/_auth/session",
-  "/auth/refresh",
-  "/count/batch",
-];
-const SAFE_PATH_PREFIXES = ["/api/realtime/"];
-
 function isStringArray(value: unknown): value is string[] {
   return (
     Array.isArray(value) && value.every((item) => typeof item === "string")
@@ -117,31 +105,6 @@ export function isStalePreviewSession(
   now: number,
 ): boolean {
   return now - session.updatedAt > PERMISSION_PREVIEW_TTL_MS;
-}
-
-function requestPathname(url: string): string {
-  try {
-    return new URL(url, "http://preview.invalid").pathname;
-  } catch {
-    return url.split(/[?#]/)[0] ?? url;
-  }
-}
-
-/**
- * Whether a preview tab may send a request. A preview is read-only: anything
- * but a read is refused before it leaves the browser, except the few writes
- * the tab itself depends on.
- */
-export function isPreviewSafeRequest(
-  method: string | undefined,
-  url: string,
-): boolean {
-  if (SAFE_METHODS.has((method ?? "GET").toUpperCase())) return true;
-  const pathname = requestPathname(url);
-  return (
-    SAFE_PATH_SUFFIXES.some((suffix) => pathname.endsWith(suffix)) ||
-    SAFE_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-  );
 }
 
 /** Layout path of a child block: its parent's path, then its own id. */
