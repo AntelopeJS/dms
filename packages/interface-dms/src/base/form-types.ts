@@ -142,9 +142,12 @@ export interface FormProps extends BaseComponentProps {
    * How the form offers to save. `bar` (the default): a sticky bar that shows
    * while there are unsaved changes, names them and offers Discard and Save.
    * `footer`: the buttons in the form's footer. `none`: no buttons, the form
-   * is read or saved by something else. `instant` reserves the save-as-you-go
-   * of a later release and saves like `bar` for now. In a drawer or a modal,
-   * `bar` and `footer` both use the container's footer.
+   * is read or saved by something else. `instant`: no buttons, each change
+   * saves on its own — the changed field alone, sent to `submitUrl` (which
+   * must accept a partial body), a pick at once and a text once typing
+   * pauses; a refused save is put back, with a retry. An `action` form saves
+   * with the bar instead. In a drawer or a modal, `bar` and `footer` both use
+   * the container's footer.
    */
   saveMode?: FormSaveMode;
   /**

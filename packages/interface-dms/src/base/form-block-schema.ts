@@ -208,7 +208,7 @@ export const FormSchema = z.object({
       .enum(FORM_SAVE_MODES)
       .optional()
       .describe(
-        "How the form offers to save: a sticky bar while there are changes, footer buttons, or none.",
+        "How the form offers to save: a sticky bar while there are changes, footer buttons, none, or each change on its own.",
       ),
     {
       label: "Save buttons",
