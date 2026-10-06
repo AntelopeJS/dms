@@ -372,20 +372,19 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   // Labelled buttons are sized on the rows listed when the table opens: rules
   // often make inline actions exclusive (revoke a pending invitation, remove
   // an expired one), so the widest row decides rather than their sum.
-  const labelledActionsColumnSize = (): number => {
-    const rows = config.data.value;
-    if (rows.length === 0) {
-      return actionsCellWidth(buildRowActionDescriptors({} as T));
-    }
-    return Math.max(
-      ...rows.map((row) =>
-        actionsCellWidth(
-          buildRowActionDescriptors(row).filter(
-            (d) => !d.disabled && !isOffMode(d),
-          ),
-        ),
+  // An empty list is read as a row with no values, through the same rules:
+  // counting every labelled action there reserved room for buttons no row
+  // shows at once, and pushed the last columns under the pinned actions.
+  const shownActionsWidth = (row: T): number =>
+    actionsCellWidth(
+      buildRowActionDescriptors(row).filter(
+        (d) => !d.disabled && !isOffMode(d),
       ),
     );
+  const labelledActionsColumnSize = (): number => {
+    const rows = config.data.value;
+    if (rows.length === 0) return shownActionsWidth({} as T);
+    return Math.max(...rows.map(shownActionsWidth));
   };
 
   const renderActionButton = (descriptor: RowActionDescriptor, rowId: string) =>
