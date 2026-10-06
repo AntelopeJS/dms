@@ -2,11 +2,8 @@ import { isDeepStrictEqual } from "node:util";
 import { inviteExtensionFieldId } from "./field-ids";
 import { assertSliceValid, readPayload, sliceOf } from "./payload-slices";
 import { listInviteExtensions, logInviteExtensionFailure } from "./registry";
-import type {
-  InviteExtensionContext,
-  InviteExtensionInfo,
-  InviteExtensionPayloads,
-} from "./types";
+import type { InviteExtensionContext, InviteExtensionPayloads } from "../types";
+import type { InviteExtensionInfo } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);

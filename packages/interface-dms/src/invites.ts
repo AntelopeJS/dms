@@ -8,7 +8,7 @@ import { fireAndForget } from "./utils/fire-and-forget";
 import { MILLISECONDS_PER_DAY } from "./utils/internal/time";
 import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
-import { DeliverInviteExtensions } from "./invite-extensions/delivery";
+import { DeliverInviteExtensions } from "./invite-extensions/internal/delivery";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 import { decideInvite } from "./invite-resolution";
 import { runTenantLifecycleOperation } from "./tenant-lifecycle";

@@ -6,7 +6,7 @@ import { InviteResolutionsModel } from "./db/internal/inviteResolutions.model";
 import type { InviteResolution } from "./db/tables/inviteResolutions.table";
 import { UserInviteModel } from "./db/models/user_invites.model";
 import type { UserInvite } from "./db/tables/user_invites.table";
-import { listInviteExtensions } from "./invite-extensions";
+import { listInviteExtensions } from "./invite-extensions/internal/registry";
 import { runTenantLifecycleOperation } from "./tenant-lifecycle";
 import { completeAdmittedInviteResolution } from "./internal/invite-resolution";
 

@@ -22,7 +22,7 @@ import {
 } from "@antelopejs/interface-data-api/metadata";
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
 import { UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
-import { INVITE_EDIT_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions";
+import { INVITE_EDIT_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions/internal/form-slot";
 import {
   completeInviteResolution,
   decideInvite,

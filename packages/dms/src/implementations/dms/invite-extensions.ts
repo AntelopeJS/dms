@@ -1,7 +1,8 @@
+import type { InviteExtensionInfo } from "@antelopejs/interface-dms/invite-extensions/internal/types";
 import {
-  type InviteExtensionInfo,
-  internal as inviteExtensionInterfaceInternal,
-} from "@antelopejs/interface-dms/invite-extensions";
+  applyInviteExtension,
+  revokeInviteExtension,
+} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
 import { scheduleBroadcast } from "./dev-reload";
 
 // Routing invite extensions through the proxy is what binds them to the
@@ -10,11 +11,11 @@ import { scheduleBroadcast } from "./dev-reload";
 export namespace internal {
   export const RegisterInviteExtension = {
     register: (info: InviteExtensionInfo) => {
-      inviteExtensionInterfaceInternal.applyInviteExtension(info);
+      applyInviteExtension(info);
       scheduleBroadcast();
     },
     unregister: (info: InviteExtensionInfo) => {
-      inviteExtensionInterfaceInternal.revokeInviteExtension(info);
+      revokeInviteExtension(info);
       scheduleBroadcast();
     },
   };

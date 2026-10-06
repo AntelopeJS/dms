@@ -3,8 +3,8 @@ import { InviteResolutionsModel } from "../db/internal/inviteResolutions.model";
 import type { InviteResolution } from "../db/tables/inviteResolutions.table";
 import { UserInviteModel } from "../db/models/user_invites.model";
 import { ExecuteHooks, Hook } from "../hooks";
-import { listInviteExtensions } from "../invite-extensions";
-import { DeliverInviteExtensions } from "../invite-extensions/delivery";
+import { listInviteExtensions } from "../invite-extensions/internal/registry";
+import { DeliverInviteExtensions } from "../invite-extensions/internal/delivery";
 import { ensureInviteMembership } from "./invite-membership";
 import { ensureInviteReplacement } from "./invite-replacement";
 

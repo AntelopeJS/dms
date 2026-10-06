@@ -4,7 +4,10 @@ import { z } from "zod";
 import { UserInviteModel } from "@antelopejs/interface-dms/db";
 import { decideInvite } from "@antelopejs/interface-dms/invite-resolution";
 import type { InviteExtensionContext } from "@antelopejs/interface-dms/invite-extensions";
-import { internal as extensions } from "@antelopejs/interface-dms/invite-extensions/registry";
+import {
+  applyInviteExtension,
+  clearInviteExtensions,
+} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { editPendingInvite } from "../../pages/settings/users/invite-extension-routes";
 import { resetDatabase } from "../helpers/db";
@@ -43,10 +46,10 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
 
   beforeEach(async () => {
     await resetDatabase();
-    extensions.clearInviteExtensions();
+    clearInviteExtensions();
     updates = [];
     rowWrites = 0;
-    extensions.applyInviteExtension({
+    applyInviteExtension({
       key: "scope",
       component: Form({ fields: [] }),
       schema: z.object({ access: z.enum(["all", "some"]) }),
@@ -60,7 +63,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
         });
       },
     });
-    extensions.applyInviteExtension({
+    applyInviteExtension({
       key: "frozen",
       component: Form({ fields: [] }),
       schema: z.object({ value: z.string() }),
@@ -87,7 +90,7 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
     });
   });
 
-  afterEach(() => extensions.clearInviteExtensions());
+  afterEach(() => clearInviteExtensions());
 
   it("stores the edited payload and tells its extension", async () => {
     await editPendingInvite(

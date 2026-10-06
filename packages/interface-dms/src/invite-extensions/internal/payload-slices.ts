@@ -4,11 +4,8 @@ import {
   splitInviteExtensionFieldId,
 } from "./field-ids";
 import { logInviteExtensionFailure } from "./registry";
-import type {
-  InviteDeliveryOptions,
-  InviteExtensionInfo,
-  InviteExtensionPayloads,
-} from "./types";
+import type { InviteDeliveryOptions, InviteExtensionInfo } from "./types";
+import type { InviteExtensionPayloads } from "../types";
 
 /** @internal */
 export const HTTP_BAD_REQUEST = 400;

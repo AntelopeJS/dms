@@ -18,7 +18,8 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
-import { internal } from "@antelopejs/interface-dms/invite-extensions";
+import { ResolveInviteAvailability } from "@antelopejs/interface-dms/invite-extensions/internal/availability";
+import { CollectInviteExtensionPayloads } from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
 import {
   PageController,
   RegisterPage,
@@ -350,7 +351,7 @@ export const membersTable = TableView(memberSettingDataAPI, {
       permission: "add",
       // In the page header; the invite quick action presses it too.
       placement: "header",
-      availability: internal.ResolveInviteAvailability,
+      availability: ResolveInviteAvailability,
       target: {
         type: "modal",
         size: "lg",
@@ -469,7 +470,7 @@ export class MembersSettingsController extends PageController("members", {
     const payload = assertValidation(body, (v) => memberInviteSchema.parse(v));
     // Validated before any invite exists: a payload a module refuses must not
     // leave a half-populated invitation behind.
-    const extensions = internal.CollectInviteExtensionPayloads(body);
+    const extensions = CollectInviteExtensionPayloads(body);
     const results = await inviteMembers(
       payload,
       { tenantId: getRequestTenantId(ctx), userId: user._id, name: user.name },

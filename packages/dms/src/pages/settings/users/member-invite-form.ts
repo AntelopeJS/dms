@@ -1,5 +1,5 @@
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
-import { INVITE_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions";
+import { INVITE_FORM_SLOT_ID } from "@antelopejs/interface-dms/invite-extensions/internal/form-slot";
 import {
   Form,
   FormEvents,

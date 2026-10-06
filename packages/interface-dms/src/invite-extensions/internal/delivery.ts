@@ -1,12 +1,12 @@
-import type { TenantMember } from "../db";
+import type { TenantMember } from "../../db";
 import { assertSliceValid, readPayload, sliceOf } from "./payload-slices";
 import { listInviteExtensions, logInviteExtensionFailure } from "./registry";
 import type {
   InviteCleanupContext,
-  InviteDeliveryOptions,
   InviteExtensionContext,
   InviteExtensionPayloads,
-} from "./types";
+} from "../types";
+import type { InviteDeliveryOptions } from "./types";
 
 /**
  * Pull each registered extension's slice out of an invite submission and

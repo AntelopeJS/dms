@@ -22,14 +22,29 @@ import * as inviteExtensionsInterface from "@antelopejs/interface-dms/invite-ext
 import {
   INVITE_EDIT_FORM_SLOT_ID,
   INVITE_FORM_SLOT_ID,
+} from "@antelopejs/interface-dms/invite-extensions/internal/form-slot";
+import {
   type InviteCleanupContext,
   type InviteExtensionContext,
-  type InviteExtensionInfo,
   type InviteExtensionOptions,
-  internal,
   RegisterInviteExtension,
 } from "@antelopejs/interface-dms/invite-extensions";
-import { getInviteExtension } from "@antelopejs/interface-dms/invite-extensions/registry";
+import {
+  CleanupInviteExtensions,
+  CollectInviteExtensionPayloads,
+  DeliverInviteExtensions,
+} from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
+import {
+  CollectInviteExtensionEdits,
+  NotifyInviteExtensionUpdates,
+  ReadInviteExtensionFields,
+} from "@antelopejs/interface-dms/invite-extensions/internal/edit";
+import {
+  applyInviteExtension,
+  getInviteExtension,
+  revokeInviteExtension,
+} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
+import type { InviteExtensionInfo } from "@antelopejs/interface-dms/invite-extensions/internal/types";
 import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   GetPageLayoutBySlug,
@@ -346,7 +361,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(
-        internal.ReadInviteExtensionFields({
+        ReadInviteExtensionFields({
           billing: { costCenter: "CC-42" },
           gone: { value: "orphan" },
         }),
@@ -356,7 +371,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("prefills nothing for an invitation without payloads", () => {
       register(recordingExtension("billing", "costCenter").options);
 
-      expect(internal.ReadInviteExtensionFields(null)).to.deep.equal({});
+      expect(ReadInviteExtensionFields(null)).to.deep.equal({});
     });
   });
 
@@ -372,7 +387,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("onboarding", "track").options);
 
       expect(
-        internal.CollectInviteExtensionEdits({
+        CollectInviteExtensionEdits({
           firstname: "Ada",
           billing__costCenter: "CC-43",
         }),
@@ -383,7 +398,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(() =>
-        internal.CollectInviteExtensionEdits({ billing__costCenter: "" }),
+        CollectInviteExtensionEdits({ billing__costCenter: "" }),
       ).to.throw();
     });
 
@@ -394,7 +409,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       });
 
       expect(
-        internal.CollectInviteExtensionEdits({ frozen__value: "changed" }),
+        CollectInviteExtensionEdits({ frozen__value: "changed" }),
       ).to.deep.equal({});
     });
 
@@ -410,7 +425,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await internal.NotifyInviteExtensionUpdates(
+      await NotifyInviteExtensionUpdates(
         { capacity: { seats: "3" } },
         { capacity: { seats: "5" } },
         context,
@@ -428,7 +443,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await internal.NotifyInviteExtensionUpdates(
+      await NotifyInviteExtensionUpdates(
         { billing: { costCenter: "CC-42" } },
         { billing: { costCenter: "CC-42" } },
         context,
@@ -452,7 +467,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      await internal.NotifyInviteExtensionUpdates(
+      await NotifyInviteExtensionUpdates(
         null,
         { failing: { value: "x" }, billing: { costCenter: "CC-43" } },
         context,
@@ -468,7 +483,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("onboarding", "track").options);
 
       expect(
-        internal.CollectInviteExtensionPayloads({
+        CollectInviteExtensionPayloads({
           email: "someone@acme.dev",
           billing__costCenter: "CC-42",
           onboarding__track: "sales",
@@ -483,7 +498,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(recordingExtension("billing", "costCenter").options);
 
       expect(() =>
-        internal.CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
+        CollectInviteExtensionPayloads({ email: "someone@acme.dev" }),
       ).to.throw();
     });
 
@@ -493,7 +508,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       disposers.length = 0;
 
       expect(
-        internal.CollectInviteExtensionPayloads({ gone__value: "orphan" }),
+        CollectInviteExtensionPayloads({ gone__value: "orphan" }),
       ).to.deep.equal({});
     });
   });
@@ -509,7 +524,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await internal.DeliverInviteExtensions(
+      await DeliverInviteExtensions(
         { billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -524,7 +539,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await internal.DeliverInviteExtensions(
+      await DeliverInviteExtensions(
         { billing: { costCenter: 42 } },
         MEMBER,
         context,
@@ -547,10 +562,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
         },
       });
 
-      const stored = internal.CollectInviteExtensionPayloads({
+      const stored = CollectInviteExtensionPayloads({
         capacity__seats: "3",
       });
-      await internal.DeliverInviteExtensions(stored, MEMBER, context);
+      await DeliverInviteExtensions(stored, MEMBER, context);
 
       expect(seen).to.deep.equal([{ seats: 3 }]);
     });
@@ -566,7 +581,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const billing = recordingExtension("billing", "costCenter");
       register(billing.options);
 
-      await internal.DeliverInviteExtensions(
+      await DeliverInviteExtensions(
         { failing: { value: "x" }, billing: { costCenter: "CC-42" } },
         MEMBER,
         context,
@@ -652,7 +667,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       const { options } = recordingExtension("billing", "costCenter");
       register({ ...options, onCleanup: undefined });
 
-      await internal.CleanupInviteExtensions(null, {
+      await CleanupInviteExtensions(null, {
         reason: "member-removed",
         tenantId: TENANT,
         userId: "user-1",
@@ -691,11 +706,11 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("stays quiet when the next generation of a module reclaims its key", async () => {
       const departing = infoOf("billing", "a", "ie-reloaded");
       const next = infoOf("billing", "b", "ie-reloaded");
-      internal.applyInviteExtension(departing);
+      applyInviteExtension(departing);
       const warnings = captureWarnings();
       try {
-        internal.applyInviteExtension(next);
-        internal.revokeInviteExtension(departing);
+        applyInviteExtension(next);
+        revokeInviteExtension(departing);
       } finally {
         warnings.restore();
       }
@@ -707,7 +722,7 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
           fieldIds(await hostLayoutFields("/ie-generation")),
         ).to.deep.equal(["email", "roles", "billing__b"]);
       } finally {
-        internal.revokeInviteExtension(next);
+        revokeInviteExtension(next);
       }
       expect(fieldIds(await hostLayoutFields("/ie-generation"))).to.deep.equal([
         "email",
@@ -718,13 +733,13 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
     it("warns when a different module claims a key already held", () => {
       const held = infoOf("billing", "a", "ie-holder");
       const claimed = infoOf("billing", "b", "ie-claimant");
-      internal.applyInviteExtension(held);
+      applyInviteExtension(held);
       const warnings = captureWarnings();
       try {
-        internal.applyInviteExtension(claimed);
+        applyInviteExtension(claimed);
       } finally {
         warnings.restore();
-        internal.revokeInviteExtension(claimed);
+        revokeInviteExtension(claimed);
       }
 
       expect(warnings.messages).to.have.length(1);
@@ -746,14 +761,10 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       register(second.options);
       disposeFirst();
 
-      await internal.DeliverInviteExtensions(
-        { billing: { b: "value" } },
-        MEMBER,
-        {
-          tenantId: TENANT,
-          email: "someone@acme.dev",
-        },
-      );
+      await DeliverInviteExtensions({ billing: { b: "value" } }, MEMBER, {
+        tenantId: TENANT,
+        email: "someone@acme.dev",
+      });
 
       expect(first.recorded.accepted).to.have.length(0);
       expect(second.recorded.accepted).to.have.length(1);

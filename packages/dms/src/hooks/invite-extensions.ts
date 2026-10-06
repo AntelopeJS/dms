@@ -5,10 +5,8 @@ import {
   type MemberRemovedHookPayload,
   RegisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import {
-  type InviteCleanupContext,
-  internal,
-} from "@antelopejs/interface-dms/invite-extensions";
+import { type InviteCleanupContext } from "@antelopejs/interface-dms/invite-extensions";
+import { CleanupInviteExtensions } from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
 
 /**
  * Deletions that end the invitation, as opposed to the two that delete a row
@@ -34,7 +32,7 @@ async function onInviteDeleted(
     email: payload.email,
   };
   if (payload.deliveryId) context.deliveryId = payload.deliveryId;
-  await internal.CleanupInviteExtensions(payload.extensions, context, {
+  await CleanupInviteExtensions(payload.extensions, context, {
     retryOnFailure: payload.deliveryId !== undefined,
   });
   return undefined;
@@ -46,7 +44,7 @@ async function onMemberRemoved(
   for (const userId of payload.userIds) {
     // No payload to hand over: it left with the invitation the member accepted.
     // A contributor keys its own data off the member instead.
-    await internal.CleanupInviteExtensions(undefined, {
+    await CleanupInviteExtensions(undefined, {
       reason: "member-removed",
       tenantId: payload.tenantId,
       userId,
