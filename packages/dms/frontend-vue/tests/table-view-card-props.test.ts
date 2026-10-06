@@ -141,6 +141,44 @@ describe("cards display with a custom card", () => {
   });
 });
 
+describe("the default cards", () => {
+  let app: App | undefined;
+
+  beforeEach(() => {
+    vi.stubGlobal("computed", computed);
+    vi.stubGlobal("useI18n", () => ({ locale: ref("en") }));
+    vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
+    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  });
+
+  afterEach(() => {
+    app?.unmount();
+    app = undefined;
+    vi.unstubAllGlobals();
+  });
+
+  it("open from the keyboard, but not through their checkbox", () => {
+    const { context, opened } = createContext();
+    context.options = {};
+    app = createApp({ render: () => h(CardsDisplay, { context }) });
+    app.component(
+      "UCheckbox",
+      defineComponent({ render: () => h("button", { type: "button" }) }),
+    );
+    const container = document.createElement("div");
+    app.mount(container);
+
+    const cards = [...container.querySelectorAll("article")];
+    expect(cards.map((card) => card.tabIndex)).toEqual([0, 0]);
+    const enter = () =>
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
+    cards[1]!.dispatchEvent(enter());
+    expect(opened).toEqual([rows[1]]);
+    cards[0]!.querySelector("button")!.dispatchEvent(enter());
+    expect(opened).toEqual([rows[1]]);
+  });
+});
+
 describe("card fields", () => {
   const columns = [
     "_id",

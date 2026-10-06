@@ -121,12 +121,14 @@ const openItem = (item: T) => props.context.actions.open(item);
         <article
           v-for="item in props.context.items"
           :key="rowId(item)"
-          class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors"
+          class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
           :class="{
             'border-primary ring-primary ring-1':
               props.context.selection.isSelected(rowId(item)),
           }"
+          tabindex="0"
           @click="openItem(item)"
+          @keydown.enter.self="openItem(item)"
         >
           <header class="flex items-center gap-2.5">
             <span
