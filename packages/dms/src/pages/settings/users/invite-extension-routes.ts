@@ -1,7 +1,13 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
-import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
+import {
+  type DataControllerCallback,
+  DefaultRoutes,
+} from "@antelopejs/interface-data-api";
+import {
+  type Parameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
   InviteResolutionsModel,
@@ -14,10 +20,6 @@ import { TableViewRoutes } from "@antelopejs/interface-dms/base";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
-
-function parseEditBody(body: Buffer): unknown {
-  return JSON.parse(body.toString());
-}
 
 /**
  * The invitation about to be edited. One with a decision already taken is
@@ -87,7 +89,7 @@ export async function editPendingInvite(
 }
 
 const editInviteWithExtensions: DataControllerCallback = {
-  ...TableViewRoutes.PartialEdit,
+  ...DefaultRoutes.Edit,
   func: function (
     this: unknown,
     ctx: RequestContext,
@@ -97,8 +99,8 @@ const editInviteWithExtensions: DataControllerCallback = {
     return editPendingInvite(
       getRequestTenantId(ctx),
       String(params.id),
-      parseEditBody(body),
-      () => TableViewRoutes.PartialEdit.func.call(this, ctx, params, body),
+      Validation.ParseBody(body),
+      () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
     );
   },
 };

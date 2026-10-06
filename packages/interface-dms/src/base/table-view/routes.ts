@@ -39,7 +39,6 @@ import {
 } from "./data-functions";
 import { withFilePromotion } from "./files";
 import { createGuardedRoute, guardedGetRoute } from "./guards";
-import { PartialEditRoute } from "./partial-edit";
 import {
   extractBulkArgIds,
   extractFromResult,
@@ -318,18 +317,12 @@ export namespace TableViewRoutes {
    * change: a field left out keeps its stored value, `null` (or an empty
    * value) clears it. A mandatory field may be left out but not cleared.
    */
-  export const Edit = createEditRoute(PartialEditRoute);
-  /**
-   * The bare row write behind `Edit`, with the same partial-update semantics
-   * and none of its checks. An `EditWith` base calls it to write the row:
-   * `DefaultRoutes.Edit` would null every writable field the body leaves out.
-   */
-  export const PartialEdit = PartialEditRoute;
+  export const Edit = createEditRoute(DefaultRoutes.Edit);
   /**
    * `Edit` around another write: the permission check, guard, row rules, file
    * promotion and realtime broadcast still wrap it, so it runs only once the
    * edit is allowed. `baseRoute` takes the arguments of `DefaultRoutes.Edit`,
-   * and typically calls {@link PartialEdit} to write the row.
+   * and typically calls it to write the row.
    */
   export const EditWith = createEditRoute;
   export const Delete = withRealtimeMutation(
