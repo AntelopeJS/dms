@@ -8,6 +8,7 @@ import {
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { SESSIONS_TABLE_NAME, Session } from "../tables/sessions.table";
 
+/** @internal */
 export const REFRESH_TOKEN_PREDECESSOR_GRACE_MS = 15_000;
 
 interface UpdateResult {
@@ -101,6 +102,7 @@ export function isCurrentRefreshToken(
   );
 }
 
+/** @internal */
 export function isImmediateRefreshTokenPredecessor(
   session: Session,
   presentedToken: string,

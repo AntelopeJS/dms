@@ -22,8 +22,10 @@ import { fireAndForget } from "../utils/fire-and-forget";
 
 export * from "./request-authenticators";
 
+/** @internal */
 export type DeviceType = "mobile" | "tablet" | "desktop";
 
+/** @internal */
 export interface ParsedUserAgent {
   browserName: string;
   browserVersion: string;
@@ -36,15 +38,19 @@ export interface ParsedUserAgent {
  * Sending account e-mails and reading a user agent are DMS behaviour, not
  * contract: the templates, the mailer and the parser are the module's. Declared
  * here because the registration and session flows below need them.
+ *
+ * @internal
  */
 export const NotifyWelcome =
   InterfaceFunction<(userId: string, name: string) => void>();
 
+/** @internal */
 export const NotifyCollaboratorJoined =
   InterfaceFunction<
     (ownerIds: string[], name: string, email: string) => void
   >();
 
+/** @internal */
 export const ParseUserAgent =
   InterfaceFunction<(userAgent: string) => ParsedUserAgent>();
 
@@ -57,6 +63,8 @@ const IDENTITY_ALREADY_LINKED_MESSAGE = "error.oauth.identity_already_linked";
  * Authenticate with route-local credential handlers, otherwise the existing JWT interfaces.
  * Recognized failures and ambiguous handlers never fall back to JWT. Every call revalidates;
  * repeat calls must retain the same credential, user and tenant. No permissions are granted.
+ *
+ * @internal
  */
 export async function authenticateRequestPrincipal(
   ctx: RequestContext,
