@@ -1,5 +1,7 @@
 export * from "./address/page";
 export * from "./advanced/page";
+export * from "./field-types-api";
+export * from "./field-types/page";
 export * from "./grouped/page";
 export * from "./instant-api";
 export * from "./instant/page";

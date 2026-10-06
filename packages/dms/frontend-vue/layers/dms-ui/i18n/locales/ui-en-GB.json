@@ -395,6 +395,42 @@
       },
       "error_summary": {
         "title": "No field to fix | 1 field needs your attention | {count} fields need your attention"
+      },
+      "repeater": {
+        "add": "Add a row",
+        "move": "Move row {row} (arrow keys)",
+        "remove": "Remove row {row}",
+        "count": "No rows | 1 row | {count} rows"
+      },
+      "key_value": {
+        "key": "Name",
+        "value": "Value",
+        "count": "No entries | 1 entry | {count} entries"
+      },
+      "secret": {
+        "show": "Show",
+        "hide": "Hide",
+        "rotate": "Rotate…",
+        "rotate_title": "Rotate this secret?",
+        "rotate_description": "A new secret replaces this one. Whatever still uses the current one stops working until it gets the new one.",
+        "rotate_confirm": "Rotate",
+        "rotated": "A new secret replaces the previous one."
+      },
+      "tags": {
+        "invalid_email": "{value} isn’t a valid email address. | {value} aren’t valid email addresses.",
+        "remove": "Remove {value}"
+      },
+      "code": {
+        "completion_footer": "↵ insert · Esc close",
+        "complete": "complete",
+        "position": "Ln {line}, Col {column}"
+      },
+      "field_notes": {
+        "changed": "Changed",
+        "was": "was",
+        "was_empty": "was empty",
+        "default": "Module default:",
+        "use_default": "Use default"
       }
     },
     "chart": {

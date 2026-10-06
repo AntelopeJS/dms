@@ -396,6 +396,42 @@
       },
       "error_summary": {
         "title": "Aucun champ à corriger | 1 champ demande votre attention | {count} champs demandent votre attention"
+      },
+      "repeater": {
+        "add": "Ajouter une ligne",
+        "move": "Déplacer la ligne {row} (flèches)",
+        "remove": "Supprimer la ligne {row}",
+        "count": "Aucune ligne | 1 ligne | {count} lignes"
+      },
+      "key_value": {
+        "key": "Nom",
+        "value": "Valeur",
+        "count": "Aucune entrée | 1 entrée | {count} entrées"
+      },
+      "secret": {
+        "show": "Afficher",
+        "hide": "Masquer",
+        "rotate": "Renouveler…",
+        "rotate_title": "Renouveler ce secret ?",
+        "rotate_description": "Un nouveau secret remplace celui-ci. Ce qui utilise encore l’actuel cesse de fonctionner tant qu’il n’a pas reçu le nouveau.",
+        "rotate_confirm": "Renouveler",
+        "rotated": "Un nouveau secret remplace le précédent."
+      },
+      "tags": {
+        "invalid_email": "{value} n’est pas une adresse e-mail valide. | {value} ne sont pas des adresses e-mail valides.",
+        "remove": "Retirer {value}"
+      },
+      "code": {
+        "completion_footer": "↵ insérer · Échap fermer",
+        "complete": "compléter",
+        "position": "Ln {line}, Col {column}"
+      },
+      "field_notes": {
+        "changed": "Modifié",
+        "was": "avant :",
+        "was_empty": "vide avant",
+        "default": "Valeur par défaut du module :",
+        "use_default": "Utiliser la valeur par défaut"
       }
     },
     "chart": {

@@ -1,3 +1,4 @@
+import { registerFieldTypes } from "./registerFieldTypes";
 import { defineAsyncComponent, type VNode } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
@@ -916,4 +917,5 @@ export function registerDefaultDataTypes() {
   registerDisplayOnlyTypes(registerDataType);
   registerCellTypes(registerDataType);
   registerMetricCellTypes(registerDataType);
+  registerFieldTypes(registerDataType);
 }
