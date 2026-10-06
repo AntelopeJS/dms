@@ -56,11 +56,11 @@ const pageLayout = ref<PageLayoutFixture | null>(null);
 // the page is pending after a client navigation, once a short delay passes).
 const PAGE_SKELETON_MARKUP =
   '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [[data-dms-page-slot]:empty+&amp;]:block [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
-  '<div class="dms-card space-y-4 p-[18px]"><USkeleton class="h-3.5 w-40 bg-(--dms-skeleton)"></USkeleton><!--[-->' +
+  '<div class="dms-card space-y-4 p-[18px]"><USkeleton class="h-3.5 w-40"></USkeleton><!--[-->' +
   ["72%", "58%", "66%", "44%"]
     .map(
       (width) =>
-        `<USkeleton class="h-2.5 bg-(--dms-skeleton)" style="width:${width};"></USkeleton>`,
+        `<USkeleton class="h-2.5" style="width:${width};"></USkeleton>`,
     )
     .join("") +
   "<!--]--></div></div>";

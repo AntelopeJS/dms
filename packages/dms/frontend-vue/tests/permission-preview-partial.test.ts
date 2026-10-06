@@ -105,8 +105,8 @@ describe("applyPreviewEntryStates", () => {
 });
 
 describe("NavigationMenu in a role preview", () => {
-  const WARNING_HATCH = "var(--ui-warning)";
-  const ERROR_HATCH = "var(--ui-error)";
+  const WARNING_HATCH = "dms-hatch-partial";
+  const ERROR_HATCH = "dms-hatch-locked";
   const ITEMS: NavigationMenuItem[] = [
     {
       label: "Sales",
