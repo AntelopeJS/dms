@@ -148,7 +148,6 @@ describe("instant-save page registry", () => {
   const NO_PILL = [
     `${SETTINGS}/roles.vue`,
     `${SETTINGS}/shortcuts.vue`,
-    `${SETTINGS}/index.vue`,
     `${SETTINGS_PARTS}/profile/ProfilePersonalInfo.vue`,
     `${SETTINGS_PARTS}/roles/RoleEditor.vue`,
   ];

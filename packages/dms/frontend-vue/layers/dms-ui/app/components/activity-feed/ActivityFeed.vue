@@ -11,6 +11,7 @@ import {
   type ActivityFeedItem,
   formatActivityTime,
   groupActivityByDay,
+  resolveActivityParams,
 } from "./activityFeedDays";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockEmptyText } from "../blocks/BlockStatus.vue";
@@ -104,9 +105,12 @@ const trailingOf = (item: ActivityFeedItem): string | undefined => {
     : formatRelativeTime(item.date, t, locale.value);
 };
 
+const textOf = (item: ActivityFeedItem, text: string): string =>
+  processI18n(text, resolveActivityParams(item.params, processI18n));
+
 const metaOf = (item: ActivityFeedItem): string | undefined =>
   item.meta?.length
-    ? item.meta.map((entry) => processI18n(entry)).join(" · ")
+    ? item.meta.map((entry) => textOf(item, entry)).join(" · ")
     : undefined;
 
 const isFirstLoad = isPending;
@@ -236,7 +240,7 @@ const wrapperProps = computed(() =>
           :key="item.id ?? `${day.key}-${index}`"
           :icon="item.icon"
           :icon-color="item.tone ?? 'neutral'"
-          :title="processI18n(item.title)"
+          :title="textOf(item, item.title)"
           :subtitle="metaOf(item)"
           :trailing="trailingOf(item)"
           :unread="item.unread"

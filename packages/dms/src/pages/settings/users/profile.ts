@@ -30,8 +30,6 @@ import { Section } from "@antelopejs/interface-dms/base/section";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import * as z from "zod";
-import type { AccountActivityEvent } from "./account-activity";
-import { loadAccountActivity } from "./account-activity-store";
 import {
   listSessions,
   revokeAllSessions,
@@ -55,7 +53,6 @@ import {
   AVATAR_MIMETYPES,
   AVATAR_STORAGE_PATH,
   avatarAttachmentFields,
-  extractSessionId,
   HTTP_BAD_REQUEST,
   type UpdateProfileInput,
 } from "./profile-helpers";
@@ -279,18 +276,6 @@ export class ProfileSettingsController extends PageController(
     if (language) this.user.language = language;
     if (avatar !== undefined) this.user.avatar = avatar;
     await userModel.update(this.user);
-  }
-
-  /**
-   * The latest events of the signed-in user's own account (sign-ins,
-   * credential and two-factor changes, workspaces joined, invitations sent),
-   * newest first, for the settings overview.
-   */
-  @Get("/activity")
-  getAccountActivity(
-    @Parameter("authorization", "header") authorization: string,
-  ): Promise<AccountActivityEvent[]> {
-    return loadAccountActivity(this.user, extractSessionId(authorization));
   }
 
   /**

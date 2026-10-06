@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatActivityTime,
   groupActivityByDay,
+  resolveActivityParams,
 } from "../layers/dms-ui/app/components/activity-feed/activityFeedDays";
 
 // Tuesday Sep 29, 2026, mid-morning, local time.
@@ -80,5 +81,28 @@ describe("activity feed day groups", () => {
   it("formats the time of an entry and ignores a broken date", () => {
     expect(formatActivityTime(at(29, 9), "en-GB")).toBe("09:15");
     expect(formatActivityTime("nope", "en-GB")).toBe("");
+  });
+});
+
+describe("resolveActivityParams", () => {
+  // Echoes the key and its values, so assertions read the whole text.
+  const translate = (key: string, params?: Record<string, string> | null) =>
+    `${key}(${JSON.stringify(params ?? {})})`;
+
+  it("translates a $ value with the entry's literal values", () => {
+    expect(
+      resolveActivityParams(
+        { device: "$activity.device", browser: "Chrome", os: "Windows" },
+        translate,
+      ),
+    ).toEqual({
+      device: '$activity.device({"browser":"Chrome","os":"Windows"})',
+      browser: "Chrome",
+      os: "Windows",
+    });
+  });
+
+  it("gives nothing for an entry without values", () => {
+    expect(resolveActivityParams(undefined, translate)).toBeNull();
   });
 });

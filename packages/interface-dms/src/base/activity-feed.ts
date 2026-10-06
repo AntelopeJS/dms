@@ -22,6 +22,13 @@ export interface ActivityFeedItem {
   title: string;
   /** Details under the title, joined by "·". */
   meta?: string[];
+  /**
+   * Values the title and the details interpolate (`{device}`) when they are
+   * i18n keys. A value written as a `$`-prefixed key is translated first,
+   * with the item's other values: `{ device: "$…device", browser: "Chrome",
+   * os: "Windows" }`.
+   */
+  params?: Record<string, string>;
   /** ISO date: files the entry under its day and gives its time. */
   date?: string;
   /** Literal trailing text, in place of the formatted time. */
@@ -100,6 +107,10 @@ const ActivityFeedItemSchema = z.object({
   }),
   title: ui(z.string(), { label: "Title" }),
   meta: ui(z.array(z.string()).optional(), { label: "Details" }),
+  params: ui(z.record(z.string(), z.string()).optional(), {
+    label: "Text values",
+    widget: "json",
+  }),
   date: ui(z.string().optional().describe("ISO date of the event."), {
     label: "Date",
   }),

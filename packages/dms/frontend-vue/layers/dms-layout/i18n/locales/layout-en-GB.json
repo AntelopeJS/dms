@@ -650,7 +650,6 @@
         "edit_profile": "Edit profile",
         "owner": "Owner",
         "two_factor": "Two-factor",
-        "two_factor_on": "On · {methods}",
         "two_factor_off": "Off",
         "backup_codes": "Backup codes",
         "backup_codes_ready": "Generated",
@@ -661,7 +660,6 @@
         "other_description": "Settings added by modules and projects.",
         "activity": {
           "title": "Recent account activity",
-          "view_all": "View all",
           "empty_title": "No recent activity",
           "empty_description": "Sign-ins and changes to your account will show here.",
           "this_device": "This device",
@@ -692,7 +690,12 @@
             "collaborator_joined": "{name} joined the workspace",
             "collaborator_joined_unnamed": "A collaborator joined the workspace"
           }
-        }
+        },
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "member": "Member",
+        "two_factor_on_short": "On"
       }
     }
   },

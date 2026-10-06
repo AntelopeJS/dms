@@ -654,7 +654,6 @@
         "edit_profile": "Modifier le profil",
         "owner": "Propriétaire",
         "two_factor": "Double authentification",
-        "two_factor_on": "Activée · {methods}",
         "two_factor_off": "Désactivée",
         "backup_codes": "Codes de secours",
         "backup_codes_ready": "Générés",
@@ -665,7 +664,6 @@
         "other_description": "Réglages ajoutés par les modules et les projets.",
         "activity": {
           "title": "Activité récente du compte",
-          "view_all": "Tout voir",
           "empty_title": "Aucune activité récente",
           "empty_description": "Les connexions et les modifications de votre compte s'afficheront ici.",
           "this_device": "Cet appareil",
@@ -696,7 +694,12 @@
             "collaborator_joined": "{name} a rejoint l'espace de travail",
             "collaborator_joined_unnamed": "Un collaborateur a rejoint l'espace de travail"
           }
-        }
+        },
+        "name": "Nom",
+        "email": "E-mail",
+        "role": "Rôle",
+        "member": "Membre",
+        "two_factor_on_short": "Activée"
       }
     }
   },

@@ -14,6 +14,11 @@ export interface ActivityFeedItem {
   title: string;
   /** Dimmed details, joined by "·". */
   meta?: string[];
+  /**
+   * Values the title and the details interpolate; a `$`-prefixed value is
+   * translated first.
+   */
+  params?: Record<string, string>;
   /** ISO date: files the entry under its day and gives its time. */
   date?: string;
   /** Literal trailing text, in place of the formatted time. */
@@ -116,4 +121,33 @@ export function formatActivityTime(date: string, locale: string): string {
     hour: "2-digit",
     minute: "2-digit",
   }).format(parsed);
+}
+
+type ActivityTranslate = (
+  key: string,
+  params?: Record<string, string> | null,
+) => string;
+
+const isTextKey = (value: string): boolean => value.startsWith("$");
+
+/**
+ * The values an entry's title and details interpolate. A `$` value is a text
+ * of its own, translated with the entry's literal values: "Signed in on
+ * {device}" with `device` = "{browser} on {os}".
+ */
+export function resolveActivityParams(
+  params: Record<string, string> | undefined,
+  translate: ActivityTranslate,
+): Record<string, string> | null {
+  if (!params) return null;
+  const entries = Object.entries(params);
+  const literals = Object.fromEntries(
+    entries.filter(([, value]) => !isTextKey(value)),
+  );
+  return Object.fromEntries(
+    entries.map(([name, value]) => [
+      name,
+      isTextKey(value) ? translate(value, literals) : value,
+    ]),
+  );
 }
