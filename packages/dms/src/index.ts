@@ -53,7 +53,10 @@ import {
 } from "./implementations/dms/dev-reload";
 import { publishDevBootstrapCredential } from "./implementations/dms/dev-handshake";
 import { initFrontendBootstrapSecret } from "./implementations/dms/frontend-bootstrap";
-import { cancelPendingMenuNotifications } from "./implementations/dms/page";
+import {
+  cancelMissingCategoryCheck,
+  cancelPendingMenuNotifications,
+} from "./implementations/dms/page";
 import {
   configureRealtime,
   type RealtimeConfig,
@@ -245,6 +248,7 @@ async function registerDmsFrontend(): Promise<void> {
  */
 function cancelDeferredNotifications(): void {
   cancelPendingMenuNotifications();
+  cancelMissingCategoryCheck();
   cancelScheduledBroadcast();
   cancelPendingExtensionReport();
 }

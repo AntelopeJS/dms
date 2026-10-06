@@ -3,6 +3,7 @@ import { expect } from "chai";
 import {
   internal as pageImplInternal,
   buildSiteLayoutPayload,
+  reportMissingCategories,
 } from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
@@ -94,6 +95,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
       expect(pages.childrenOrders).to.include("missing-reports-sales");
       expect(pages.childrenOrders).to.not.include("missing-reports");
       expect(displayNames(pages)).to.not.include(PLACEHOLDER_LABEL);
+      reportMissingCategories();
     } finally {
       captured.restore();
       removePage();
@@ -126,6 +128,7 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
         "pages.missing-ghost.missing-ghost-sales",
       );
       expect(displayNames(pages)).to.not.include(PLACEHOLDER_LABEL);
+      reportMissingCategories();
     } finally {
       captured.restore();
       removePage();
@@ -136,6 +139,67 @@ describe("[unit] implementations/dms/page — entries of a missing category", ()
     );
     expect(reported).to.have.lengthOf(1);
     expect(reported[0]).to.include("pages.missing-ghost.missing-ghost-sales");
+  });
+
+  // A hot reload or a stop unregisters the category first, then its pages.
+  it("does not warn about a category unregistered just before its pages", async () => {
+    const reloaded = registerTestCategory("missing-reloaded", {
+      displayName: "Reloaded",
+      category: pagesCategory,
+      type: "label",
+    });
+    const removePage = await registerTestPage(
+      PageController("missing-reloaded-page", {
+        displayName: "Reloaded page",
+        category: reloaded.category,
+      }),
+    );
+    const captured = captureWarnings();
+
+    try {
+      reloaded.cleanup();
+      removePage();
+      reportMissingCategories();
+    } finally {
+      captured.restore();
+    }
+
+    expect(
+      captured.messages.filter((message) =>
+        message.includes('"pages.missing-reloaded"'),
+      ),
+    ).to.have.lengthOf(0);
+  });
+
+  it("does not warn about a page registered just before its category", async () => {
+    const captured = captureWarnings();
+    let removePage: () => void = () => undefined;
+    let removeCategory: () => void = () => undefined;
+
+    try {
+      removePage = await registerTestPage(
+        PageController("missing-late-page", {
+          displayName: "Early page",
+          category: unregisteredCategory("missing-late"),
+        }),
+      );
+      removeCategory = registerTestCategory("missing-late", {
+        displayName: "Late",
+        category: pagesCategory,
+        type: "label",
+      }).cleanup;
+      reportMissingCategories();
+    } finally {
+      captured.restore();
+      removePage();
+      removeCategory();
+    }
+
+    expect(
+      captured.messages.filter((message) =>
+        message.includes('"pages.missing-late"'),
+      ),
+    ).to.have.lengthOf(0);
   });
 
   it("keeps the registered sibling when a hoisted entry has its id", async () => {
