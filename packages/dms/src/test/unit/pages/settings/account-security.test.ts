@@ -8,11 +8,11 @@ import type {
 } from "@antelopejs/interface-dms/auth/db";
 import { sign } from "jsonwebtoken";
 import {
-  changeEmail,
   changePassword,
   listSessions,
   revokeOtherSessions,
 } from "../../../../pages/settings/users/account-credentials";
+import { requestEmailChange } from "../../../../pages/settings/users/email-change";
 import {
   getTwoFactorStatus,
   markBackupCodesSaved,
@@ -201,7 +201,7 @@ describe("[unit] settings/security — email change asks for the current passwor
   it("refuses a wrong current password", async () => {
     const harness = buildHarness();
     const result = await refusal(
-      changeEmail(
+      requestEmailChange(
         harness.user,
         { email: FREE_EMAIL, currentPassword: "Wrong1!" },
         harness.userModel,
@@ -214,24 +214,13 @@ describe("[unit] settings/security — email change asks for the current passwor
   it("refuses an address another account holds", async () => {
     const harness = buildHarness();
     const result = await refusal(
-      changeEmail(
+      requestEmailChange(
         harness.user,
         { email: TAKEN_EMAIL, currentPassword: CURRENT_PASSWORD },
         harness.userModel,
       ),
     );
     expect(result.getStatus()).to.equal(HTTP_CONFLICT);
-  });
-
-  it("changes the email once the password is proven", async () => {
-    const harness = buildHarness();
-    const email = await changeEmail(
-      harness.user,
-      { email: "Camille.Laurent@ACME.dev", currentPassword: CURRENT_PASSWORD },
-      harness.userModel,
-    );
-    expect(email).to.equal(FREE_EMAIL);
-    expect(harness.user.email).to.equal(FREE_EMAIL);
   });
 });
 

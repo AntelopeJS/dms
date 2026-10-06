@@ -52,6 +52,30 @@ vi.mock(
   }),
 );
 
+// The code dialog stands for its confirm button, which sends a fixed code.
+vi.mock(
+  "../layers/dms-layout/app/build/components/pages/settings/security/SecurityCodeModal.vue",
+  async () => {
+    const { defineComponent, h } = await import("vue");
+    return {
+      default: defineComponent({
+        props: { open: Boolean },
+        emits: ["confirm"],
+        setup:
+          (props, { emit }) =>
+          () =>
+            props.open
+              ? h("button", {
+                  id: "email-code-confirm",
+                  type: "button",
+                  onClick: () => emit("confirm", "123456"),
+                })
+              : null,
+      }),
+    };
+  },
+);
+
 let app: App;
 let host: HTMLDivElement;
 
@@ -274,8 +298,8 @@ it("flags every empty field on submit, focuses the first and sends nothing", asy
   ).toBeNull();
 });
 
-it("posts the new address with the current password, then collapses", async () => {
-  authFetch.mockResolvedValue({});
+it("posts the new address with the current password, then asks for the code", async () => {
+  authFetch.mockResolvedValue({ pendingEmail: "new@example.com" });
   await mountEmail();
   await openPanel();
   await type(emailInput(), "  new@example.com ");
@@ -288,12 +312,38 @@ it("posts the new address with the current password, then collapses", async () =
     body: { email: "new@example.com", currentPassword: "secret" },
   });
   expect(addToast).toHaveBeenCalledWith({
-    title: "page.settings.security.email.updated",
+    title: "page.settings.security.email.code_sent",
     color: "success",
   });
   expect(refresh).toHaveBeenCalled();
-  expect(refreshSession).toHaveBeenCalled();
+  expect(refreshSession).not.toHaveBeenCalled();
   expect(form()).toBeNull();
+  expect(host.querySelector("#email-code-confirm")).not.toBeNull();
+});
+
+it("moves to the new address once its code is confirmed", async () => {
+  authFetch.mockResolvedValue({ pendingEmail: "new@example.com" });
+  await mountEmail();
+  await openPanel();
+  await type(emailInput(), "new@example.com");
+  await type(passwordInput(), "secret");
+  form()!.dispatchEvent(new Event("submit"));
+  await flush();
+  addToast.mockReset();
+
+  host.querySelector<HTMLButtonElement>("#email-code-confirm")!.click();
+  await flush();
+
+  expect(authFetch).toHaveBeenLastCalledWith(
+    "/settings/user/security/email/confirm",
+    { method: "POST", body: { code: "123456" } },
+  );
+  expect(addToast).toHaveBeenCalledWith({
+    title: "page.settings.security.email.updated",
+    color: "success",
+  });
+  expect(refreshSession).toHaveBeenCalled();
+  expect(host.querySelector("#email-code-confirm")).toBeNull();
 });
 
 it("shows a wrong current password under its field, without a toast", async () => {

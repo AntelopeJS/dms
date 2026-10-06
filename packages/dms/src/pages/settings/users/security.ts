@@ -16,7 +16,6 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import {
-  changeEmail,
   changePassword,
   getSecurityOverview,
   listSessions,
@@ -24,6 +23,11 @@ import {
   revokeSession,
 } from "./account-credentials";
 import { userCategory } from "./category";
+import {
+  cancelEmailChange,
+  confirmEmailChange,
+  requestEmailChange,
+} from "./email-change";
 import {
   confirmTotpSetup,
   disableTwoFactorMethod,
@@ -103,12 +107,25 @@ export class SecuritySettingsController extends PageController("security", {
   }
 
   @Post("/email")
-  async updateEmail(
+  requestEmailChange(
+    @JSONBody() body: unknown,
+    @Model(UserModel) userModel: UserModel,
+  ) {
+    return requestEmailChange(this.user, body, userModel);
+  }
+
+  @Post("/email/confirm")
+  async confirmEmailChange(
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ): Promise<Partial<User>> {
-    await changeEmail(this.user, body, userModel);
+    await confirmEmailChange(this.user, body, userModel);
     return sanitizeUser(this.user);
+  }
+
+  @Delete("/email/pending")
+  cancelEmailChange() {
+    return cancelEmailChange(this.user);
   }
 
   @Get("/two-factor")

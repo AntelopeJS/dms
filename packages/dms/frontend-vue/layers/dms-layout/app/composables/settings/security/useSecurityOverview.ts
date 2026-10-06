@@ -19,6 +19,8 @@ export interface TwoFactorStatus {
 /** Summary behind the Security status strip and the profile pointer card. */
 export interface SecurityOverview {
   email: string;
+  /** The address a sign-in email change waits on, until its code is entered. */
+  pendingEmail: string | null;
   isValidated: boolean;
   hasPassword: boolean;
   passwordChangedAt: string | null;

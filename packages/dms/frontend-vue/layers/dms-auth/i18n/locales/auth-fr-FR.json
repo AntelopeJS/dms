@@ -273,7 +273,7 @@
         "password_title": "Mot de passe",
         "password_description": "Au moins 8 caractères mêlant majuscules, chiffres et symboles. Votre mot de passe actuel vous sera demandé.",
         "email_title": "E-mail de connexion",
-        "email_description": "Le modifier demande votre mot de passe actuel. Vous vous connectez avec la nouvelle adresse dès qu'elle est enregistrée.",
+        "email_description": "Le modifier demande votre mot de passe actuel, puis un code envoyé à la nouvelle adresse avant qu'elle ne prenne effet.",
         "status": {
           "two_factor": "Double authentification",
           "methods_both": "Codes appli + e-mail",
@@ -328,10 +328,19 @@
           "new": "Nouvel e-mail",
           "invalid": "Saisissez une adresse e-mail valide.",
           "new_placeholder": "la nouvelle adresse",
-          "note": "Vous vous connecterez désormais avec {email}. Le changement apparaît dans vos notifications de sécurité.",
+          "note": "Nous enverrons un code à {email} : le changement prend effet une fois ce code saisi, et votre adresse actuelle en est informée.",
           "submit": "Changer d'e-mail",
           "updated": "E-mail de connexion modifié",
-          "error": "Votre e-mail n'a pas pu être modifié."
+          "error": "Votre e-mail n'a pas pu être modifié.",
+          "code_sent": "Code envoyé à {email}",
+          "confirm_title": "Confirmez votre nouvel e-mail",
+          "confirm_description": "Saisissez le code envoyé à {email}. Votre compte garde son adresse actuelle d'ici là.",
+          "code_label": "Code reçu par e-mail",
+          "confirm": "Confirmer",
+          "pending": "En attente de confirmation de {email} : saisissez le code envoyé à cette adresse.",
+          "enter_code": "Saisir le code",
+          "cancel_change": "Annuler le changement",
+          "cancelled": "Changement d'e-mail annulé"
         },
         "totp": {
           "scan_title": "Scannez avec votre application",

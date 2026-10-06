@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const EXPECTED_VUE_FILES = 263;
+const EXPECTED_VUE_FILES = 267;
 
 function walk(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -41,7 +41,7 @@ describe("Vue source inventory", () => {
     expect(files.filter((path) => !ownership(path))).toEqual([]);
     expect(
       files.filter((path) => ownership(path) === "server-email-template"),
-    ).toHaveLength(8);
+    ).toHaveLength(10);
   });
 
   it("exposes entries for the frontend adapter", () => {

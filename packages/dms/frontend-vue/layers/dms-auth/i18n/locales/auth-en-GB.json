@@ -273,7 +273,7 @@
         "password_title": "Password",
         "password_description": "Use at least 8 characters with a mix of uppercase letters, numbers and symbols. You'll need your current password.",
         "email_title": "Sign-in email",
-        "email_description": "Changing it needs your current password. You sign in with the new address as soon as it's saved.",
+        "email_description": "Changing it needs your current password, and a code sent to the new address before it takes effect.",
         "status": {
           "two_factor": "Two-factor",
           "methods_both": "App + email codes",
@@ -328,10 +328,19 @@
           "new": "New email",
           "invalid": "Enter a valid email address.",
           "new_placeholder": "the new address",
-          "note": "From now on you'll sign in with {email}. The change is recorded in your security notifications.",
+          "note": "We'll send a code to {email}: the change takes effect once you enter it, and your current address is told about it.",
           "submit": "Change email",
           "updated": "Sign-in email changed",
-          "error": "Your email couldn't be changed."
+          "error": "Your email couldn't be changed.",
+          "code_sent": "Code sent to {email}",
+          "confirm_title": "Confirm your new email",
+          "confirm_description": "Enter the code sent to {email}. Your account keeps its current address until then.",
+          "code_label": "Code from the email",
+          "confirm": "Confirm",
+          "pending": "Waiting for {email} to be confirmed: enter the code sent there.",
+          "enter_code": "Enter code",
+          "cancel_change": "Cancel change",
+          "cancelled": "Email change cancelled"
         },
         "totp": {
           "scan_title": "Scan with your app",

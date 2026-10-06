@@ -6,6 +6,7 @@ import {
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
 import SecurityEditPanel from "./SecurityEditPanel.vue";
+import SecurityCodeModal from "./SecurityCodeModal.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
 import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
@@ -13,6 +14,13 @@ import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 
 const EMAIL_URL = `${SECURITY_ENDPOINT}/email`;
+const CONFIRM_URL = `${EMAIL_URL}/confirm`;
+const PENDING_URL = `${EMAIL_URL}/pending`;
+// Refusals of the code typed in the confirmation dialog.
+const CODE_ERRORS = {
+  "error.invalid_token": "code",
+  "error.token_expired": "code",
+} as const;
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const EMAIL_ALREADY_USED = "error.email_already_used";
@@ -41,6 +49,9 @@ const currentPassword = ref("");
 const isEmailTouched = ref(false);
 const isEmailTaken = ref(false);
 const isCurrentInvalid = ref(false);
+const isCodeOpen = ref(false);
+const isConfirming = ref(false);
+const codeError = ref<string>();
 // Set on submit: the empty fields say they are required.
 const isSubmitted = ref(false);
 // An address or a password typed and not submitted yet.
@@ -51,6 +62,7 @@ const { dirty: isDirty } = useFormDirty(
 
 const email = computed(() => overview.value?.email ?? "");
 const isValidated = computed(() => overview.value?.isValidated ?? false);
+const pendingEmail = computed(() => overview.value?.pendingEmail ?? null);
 const hasPassword = computed(() => overview.value?.hasPassword ?? true);
 const trimmedEmail = computed(() => newEmail.value.trim());
 const isWellFormed = computed(() => EMAIL_PATTERN.test(trimmedEmail.value));
@@ -158,10 +170,13 @@ async function submit(): Promise<void> {
     });
     isEditing.value = false;
     toast.add({
-      title: t("page.settings.security.email.updated"),
+      title: t("page.settings.security.email.code_sent", {
+        email: trimmedEmail.value,
+      }),
       color: "success",
     });
-    await Promise.all([refresh(), refreshSession()]);
+    await refresh();
+    isCodeOpen.value = true;
   } catch (error) {
     if (await flagField(error)) return;
     toast.add({
@@ -170,6 +185,57 @@ async function submit(): Promise<void> {
     });
   } finally {
     isSaving.value = false;
+  }
+}
+
+function isCodeRefusal(error: unknown): boolean {
+  return (
+    resolveFieldErrors(error, { fields: ["code"], codes: CODE_ERRORS }).fields
+      .length > 0
+  );
+}
+
+async function confirmCode(code: string): Promise<void> {
+  isConfirming.value = true;
+  codeError.value = undefined;
+  try {
+    await $authFetch(CONFIRM_URL, { method: "POST", body: { code } });
+    isCodeOpen.value = false;
+    toast.add({
+      title: t("page.settings.security.email.updated"),
+      color: "success",
+    });
+    await Promise.all([refresh(), refreshSession()]);
+  } catch (error) {
+    if (isCodeRefusal(error)) {
+      codeError.value = errorMessage(
+        error,
+        "page.settings.two_factor.invalid_code",
+      );
+      return;
+    }
+    toast.add({
+      title: errorMessage(error, "page.settings.security.email.error"),
+      color: "error",
+    });
+  } finally {
+    isConfirming.value = false;
+  }
+}
+
+async function cancelChange(): Promise<void> {
+  try {
+    await $authFetch(PENDING_URL, { method: "DELETE" });
+    toast.add({
+      title: t("page.settings.security.email.cancelled"),
+      color: "success",
+    });
+    await refresh();
+  } catch (error) {
+    toast.add({
+      title: errorMessage(error, "page.settings.security.email.error"),
+      color: "error",
+    });
   }
 }
 </script>
@@ -218,6 +284,33 @@ async function submit(): Promise<void> {
             <span>{{ t("page.settings.security.email.usage") }}</span>
           </template>
         </DmsListRow>
+        <DmsBanner
+          v-if="pendingEmail && !isEditing"
+          class="mt-3"
+          size="sm"
+          tone="warning"
+          icon="i-ph-hourglass"
+          :description="
+            t('page.settings.security.email.pending', { email: pendingEmail })
+          "
+        >
+          <template #actions>
+            <UButton
+              size="xs"
+              variant="outline"
+              color="neutral"
+              :label="t('page.settings.security.email.enter_code')"
+              @click="isCodeOpen = true"
+            />
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              :label="t('page.settings.security.email.cancel_change')"
+              @click="cancelChange"
+            />
+          </template>
+        </DmsBanner>
       </template>
 
       <SecurityPanelField
@@ -289,5 +382,21 @@ async function submit(): Promise<void> {
         </template>
       </DmsBanner>
     </SecurityEditPanel>
+    <SecurityCodeModal
+      v-model:open="isCodeOpen"
+      v-model:error="codeError"
+      :title="t('page.settings.security.email.confirm_title')"
+      :description="
+        t('page.settings.security.email.confirm_description', {
+          email: pendingEmail ?? '',
+        })
+      "
+      icon="i-ph-envelope-simple"
+      tone="accent"
+      :code-label="t('page.settings.security.email.code_label')"
+      :confirm-label="t('page.settings.security.email.confirm')"
+      :loading="isConfirming"
+      @confirm="confirmCode"
+    />
   </DmsSection>
 </template>

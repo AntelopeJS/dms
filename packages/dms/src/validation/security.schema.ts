@@ -5,6 +5,8 @@ import { passwordSchema } from "./password";
 /** Longest current password accepted for verification; bounds hashing work. */
 const MAX_CURRENT_PASSWORD_LENGTH = 1024;
 
+const EMAIL_CHANGE_CODE_PATTERN = /^\d{6}$/;
+
 const currentPasswordSchema = z
   .string()
   .min(1)
@@ -24,6 +26,9 @@ export const securitySchema = {
   changeEmail: z.object({
     email: z.string().email(),
     currentPassword: currentPasswordSchema,
+  }),
+  confirmEmailChange: z.object({
+    code: z.string().regex(EMAIL_CHANGE_CODE_PATTERN),
   }),
   // Optional only for an account that has no password (single sign-on).
   addTwoFactorMethod: z.object({

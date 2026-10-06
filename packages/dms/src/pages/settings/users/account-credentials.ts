@@ -7,20 +7,14 @@ import type {
   User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import {
-  notifyEmailChanged,
-  notifyPasswordChanged,
-} from "../../../utils/account-notifications";
+import { notifyPasswordChanged } from "../../../utils/account-notifications";
 import { generateSessionHandoffToken } from "../../../implementations/dms-auth/session-handoff";
 import { SESSION_HANDOFF_ENDPOINT } from "../../../routes/auth/session-handoff";
 import { generateAuthKey } from "../../../utils/auth-key";
 import { securitySchema } from "../../../validation/security.schema";
+import { assertCurrentPasswordIfSet } from "./current-password";
+import { findPendingEmail } from "./email-change";
 import {
-  assertCurrentPassword,
-  assertCurrentPasswordIfSet,
-} from "./current-password";
-import {
-  assertEmailAvailable,
   extractSessionClaims,
   extractSessionId,
   formatSession,
@@ -36,13 +30,14 @@ import {
   securityAttention,
 } from "./security-attention";
 
-const HTTP_BAD_REQUEST = 400;
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 
 /** Everything the Security page status strip summarises. */
 export interface SecurityOverview {
   email: string;
+  /** The address a sign-in email change waits on, until its code is entered. */
+  pendingEmail: string | null;
   isValidated: boolean;
   hasPassword: boolean;
   passwordChangedAt: Date | null;
@@ -232,34 +227,6 @@ export async function changePassword(
 }
 
 /**
- * Changes the sign-in email once the current password is proven.
- *
- * @param user The signed-in user
- * @param body `{ email, currentPassword }`
- * @param userModel Model the account is read from and written to
- * @returns The normalized new email
- */
-export async function changeEmail(
-  user: User,
-  body: unknown,
-  userModel: UserModel,
-): Promise<string> {
-  const { email, currentPassword } = assertValidation(body, (value) =>
-    securitySchema.changeEmail.parse(value),
-  );
-  await assertCurrentPassword(userModel, user, currentPassword);
-  const available = await assertEmailAvailable(userModel, email, user._id);
-  assert(available !== user.email, HTTP_BAD_REQUEST, "error.email_unchanged");
-  user.email = available;
-  await userModel.update(user);
-  fireAndForget(
-    notifyEmailChanged(user._id, available),
-    "email change notification",
-  );
-  return available;
-}
-
-/**
  * @param user The signed-in user
  * @param sessionModel Model the active sessions are counted in
  * @returns The Security page status summary
@@ -268,10 +235,14 @@ export async function getSecurityOverview(
   user: User,
   sessionModel: SessionModel,
 ): Promise<SecurityOverview> {
-  const sessions = await sessionModel.getByUserId(user._id);
+  const [sessions, pendingEmail] = await Promise.all([
+    sessionModel.getByUserId(user._id),
+    findPendingEmail(user._id),
+  ]);
   const twoFactor = getTwoFactorStatus(user);
   return {
     email: user.email,
+    pendingEmail,
     isValidated: !!user.isValidated,
     hasPassword: !!user.password,
     passwordChangedAt: user.passwordChangedAt ?? null,
