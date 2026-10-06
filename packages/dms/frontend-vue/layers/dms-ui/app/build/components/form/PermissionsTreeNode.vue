@@ -8,6 +8,8 @@ export interface PermissionNode {
 
 interface PermissionsTreeNodeProps {
   node: PermissionNode;
+  /** Prefix of the checkboxes' ids, unique to the tree. */
+  idPrefix: string;
   level?: number;
   checkedIds?: string[];
   expandedNodes?: Set<string>;
@@ -106,6 +108,7 @@ const verticalLinePosition = `${props.level * INDENT_SIZE + BASE_PADDING + ICON_
         />
 
         <UCheckbox
+          :id="`${idPrefix}-${node.id}`"
           :model-value="checkboxValue"
           size="sm"
           @update:model-value="handleCheckChange"
@@ -134,6 +137,7 @@ const verticalLinePosition = `${props.level * INDENT_SIZE + BASE_PADDING + ICON_
         v-for="child in node.children"
         :key="child.id"
         :node="child"
+        :id-prefix="idPrefix"
         :level="level + 1"
         :checked-ids="checkedIds"
         :expanded-nodes="expandedNodes"

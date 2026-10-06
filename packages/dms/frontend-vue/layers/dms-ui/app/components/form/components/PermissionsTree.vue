@@ -3,6 +3,7 @@ import type { DefaultComponentProps } from "../../../../../dms-core/app/types/co
 import type { PermissionNode } from "../../../build/components/form/PermissionsTreeNode.vue";
 import PermissionsTreeNode from "../../../build/components/form/PermissionsTreeNode.vue";
 interface PermissionsTreeProps extends DefaultComponentProps {
+  id?: string;
   permissions?: PermissionNode[];
   fetchUrl?: string;
 }
@@ -13,6 +14,9 @@ const props = withDefaults(defineProps<PermissionsTreeProps>(), {
 });
 
 const selectedIds = defineModel<string[]>({ default: () => [] });
+// Each checkbox gets an id of its own, not the field's.
+const generatedId = useId();
+const idPrefix = computed(() => props.id ?? generatedId);
 
 // The field state UFormField hands its control: taken here so the checkboxes
 // of the tree do not each turn red, shown as one error border on the panel.
@@ -127,6 +131,7 @@ const handleCheckChange = (node: PermissionNode, checked: boolean) => {
   <div
     class="bg-default space-y-1 rounded-lg border p-2"
     :class="invalid ? 'border-error' : 'border-default'"
+    :id="props.id"
     role="group"
     v-bind="ariaAttrs"
   >
@@ -134,6 +139,7 @@ const handleCheckChange = (node: PermissionNode, checked: boolean) => {
       v-for="item in permissionTree"
       :key="item.id"
       :node="item"
+      :id-prefix="idPrefix"
       :level="0"
       :checked-ids="selectedIds"
       :expanded-nodes="expandedNodes"
