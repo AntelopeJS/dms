@@ -1,3 +1,4 @@
+import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { h, type ComputedRef } from "vue";
 import type {
@@ -17,8 +18,7 @@ import {
   rowGroupKey,
 } from "./utils/groupedRows";
 
-const GROUP_EYEBROW_CLASS =
-  "font-mono text-[10.5px] font-semibold tracking-[0.12em] text-dimmed uppercase";
+const GROUP_EYEBROW_CLASS = `${EYEBROW_CLASS} text-dimmed`;
 
 export interface GroupedRowsOptions {
   grouped: TableViewGroupedConfig | undefined;

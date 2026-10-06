@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../../composables/notification/useNotificationPreferences";
 import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
@@ -74,8 +75,11 @@ onMounted(load);
       :aria-label="t('page.settings.notifications.preferences_title')"
     >
       <div
-        :class="MATRIX_GRID_CLASS"
-        class="border-default text-dimmed h-[34px] border-b bg-(--dms-bg-muted) font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+        :class="[
+          MATRIX_GRID_CLASS,
+          EYEBROW_CLASS,
+          'border-default text-dimmed h-[34px] border-b bg-(--dms-bg-muted)',
+        ]"
         role="row"
       >
         <span role="columnheader">

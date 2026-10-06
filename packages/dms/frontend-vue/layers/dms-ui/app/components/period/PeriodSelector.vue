@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "../../build/utils/eyebrow";
 import { computed, onBeforeUnmount, ref } from "vue";
 import type { CalendarDate, DateValue } from "@internationalized/date";
 import { useMediaQuery } from "@vueuse/core";
@@ -85,8 +86,7 @@ const PRESET_ITEM_CLASS =
 const PRESET_ACTIVE_CLASS = "text-primary bg-(--dms-accent-tint) font-semibold";
 const PRESET_IDLE_CLASS =
   "text-toned hover:text-highlighted hover:bg-(--ui-bg-elevated)";
-const FIELD_LABEL_CLASS =
-  "text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase";
+const FIELD_LABEL_CLASS = `${EYEBROW_CLASS} text-dimmed`;
 
 useComponentEvent(props.componentId);
 useWatch(props.watchActions || [], props.componentId);

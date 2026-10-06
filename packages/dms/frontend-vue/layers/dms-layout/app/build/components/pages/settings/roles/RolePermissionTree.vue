@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import RolePermissionArea from "./RolePermissionArea.vue";
 import RolePermissionBranch from "./RolePermissionBranch.vue";
 import RolePermissionGroup from "./RolePermissionGroup.vue";
@@ -116,7 +117,7 @@ function opensSection(position: number): boolean {
       <template v-for="(hit, position) in props.hits" :key="hit.node.id">
         <div
           v-if="isNewHeading(position)"
-          class="text-dimmed flex h-8 items-center px-2 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+          :class="[EYEBROW_CLASS, 'text-dimmed flex h-8 items-center px-2']"
         >
           {{ hit.heading }}
         </div>

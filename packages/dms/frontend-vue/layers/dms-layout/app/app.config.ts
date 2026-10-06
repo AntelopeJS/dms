@@ -1,3 +1,4 @@
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import { actionsTheme } from "./theme/actions";
 import { dataTheme } from "./theme/data";
 import { formControlsTheme } from "./theme/form-controls";
@@ -90,8 +91,7 @@ export default {
       variants: {
         size: {
           md: {
-            label:
-              "px-2.5 pt-2.5 pb-1.5 font-mono text-[10.5px] font-semibold tracking-[0.12em] text-dimmed uppercase",
+            label: `${EYEBROW_CLASS} px-2.5 pt-2.5 pb-1.5 text-dimmed`,
             item: "h-11 items-center gap-3 rounded-[10px] px-2.5 before:rounded-[10px]",
             // A bordered well around each result's icon; SVG padding shrinks
             // the glyph inside the 28px box.
@@ -114,8 +114,7 @@ export default {
       slots: {
         // Section labels as v2 eyebrows (mono 10.5px/600, uppercase, 0.12em
         // tracking, dimmed), without the category icon.
-        label:
-          "font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase text-dimmed pt-1 pb-1.5 [&>svg]:hidden",
+        label: `${EYEBROW_CLASS} text-dimmed pt-1 pb-1.5 [&>svg]:hidden`,
         // v2 sections are set apart by spacing alone, with no rule between.
         separator: "h-0 my-0.5 bg-transparent",
         // Sidebar density from the design (.nav-head 13.5px/500, .nav-sub

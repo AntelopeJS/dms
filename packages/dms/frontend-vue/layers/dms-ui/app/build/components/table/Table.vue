@@ -401,6 +401,7 @@ import {
   DEFAULT_PAGE_SIZE,
 } from "../../composables/table/constants";
 import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
+import { EYEBROW_CLASS } from "../../utils/eyebrow";
 
 // Same color as the surrounding card frame (.dms-card) so sticky
 // rail/pinned cells blend in instead of showing a contrasting block.
@@ -481,7 +482,7 @@ const theme = tv({
     expandedBody:
       "sticky start-0 w-[var(--dms-table-viewport,auto)] pt-4 pb-[18px] pe-[18px] ps-[18px] sm:ps-[68px]",
 
-    headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase last:pe-2.5`,
+    headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 ${EYEBROW_CLASS} last:pe-2.5`,
     headCellInternal: "flex w-full items-center justify-between gap-1",
     colOptionsTrigger: "opacity-0 transition-opacity group-hover:opacity-100",
     colResizer:

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import { quickActionKey } from "#dms-core/app/utils/permission-preview";
 
@@ -68,8 +69,7 @@ const hasItems = computed(() => groupedItems.value.length > 1);
     :content="{ align: 'end' }"
     :ui="{
       content: 'w-72 p-1.5',
-      label:
-        'font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase text-dimmed px-2 pt-2 pb-1',
+      label: `${EYEBROW_CLASS} text-dimmed px-2 pt-2 pb-1`,
       item: 'h-[30px] gap-2.5 px-2 text-[13px]',
       itemLeadingIcon: 'size-4 text-muted',
     }"

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
@@ -31,8 +32,7 @@ const theme = tv({
     remove:
       "grid w-[26px] place-items-center text-dimmed hover:bg-elevated hover:text-highlighted [&>svg]:size-3.5",
     editor: "grid w-72 gap-2 p-3",
-    editorLabel:
-      "font-mono text-[10.5px] font-semibold tracking-[0.12em] text-dimmed uppercase",
+    editorLabel: `${EYEBROW_CLASS} text-dimmed`,
     inputWrapper: "w-full",
     emptyValue: "text-muted",
     actions: "ms-auto flex shrink-0 items-center gap-1.5",

@@ -8,13 +8,11 @@
  * Every class stays a literal string so Tailwind finds it when scanning.
  */
 
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
+
 /** Floating panels (menus, popovers, toasts): accented hairline and the pop shadow. */
 const FLOATING_SURFACE =
   "bg-default ring-accented shadow-(--dms-shadow-pop) rounded-[10px]";
-
-/** Mono uppercase section label (design .eyebrow). */
-const EYEBROW =
-  "font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em]";
 
 /** Topmost overlays: the brightest border and the modal shadow. */
 const OVERLAY_SURFACE =
@@ -27,7 +25,7 @@ const cardTheme = {
     // 48px head carrying the mono eyebrow title, 18px body, muted footer band.
     header:
       "flex items-center gap-2.5 min-h-12 py-2 ps-[18px] pe-4 sm:ps-[18px] sm:pe-4",
-    title: `${EYEBROW} text-muted`,
+    title: `${EYEBROW_CLASS} text-muted`,
     description: "mt-0.5 text-[13px]",
     body: "p-[18px] sm:p-5",
     footer: "flex items-center gap-2 px-4 py-2.5 sm:px-4 bg-(--dms-bg-muted)",
@@ -44,7 +42,7 @@ const cardTheme = {
 
 /** Menu rows: 30px, 13px labels, 16px icons, 6px hover box. */
 const MENU_MD_SIZE = {
-  label: `${EYEBROW} text-dimmed px-2 pt-2 pb-1`,
+  label: `${EYEBROW_CLASS} text-dimmed px-2 pt-2 pb-1`,
   item: "px-2 py-[5px] text-[13px]/5 gap-[9px] before:rounded-[6px]",
   empty: "p-2.5 text-[13px]",
   itemLeadingIcon: "size-4 my-0.5",

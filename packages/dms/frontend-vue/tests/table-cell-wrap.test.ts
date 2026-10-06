@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { tv } from "tailwind-variants";
+import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 
 const tableSource = readFileSync(
   new URL(
@@ -13,7 +14,11 @@ const themeSource = tableSource.slice(
   tableSource.indexOf("const PANEL_MATCH_BG"),
   tableSource.indexOf("// Grid-like default"),
 );
-const theme = new Function("tv", `${themeSource}; return theme;`)(tv);
+const theme = new Function(
+  "tv",
+  "EYEBROW_CLASS",
+  `${themeSource}; return theme;`,
+)(tv, EYEBROW_CLASS);
 
 describe("Table grid cell layout theme", () => {
   it.each([undefined, false])("preserves the default for %s", (cellWrap) => {

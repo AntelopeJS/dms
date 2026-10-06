@@ -1,3 +1,4 @@
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 /**
  * Nuxt UI themes of the data display primitives (DMS design v2, mockup
  * components/table.html, form.html tree picker, shell.html dots and
@@ -17,7 +18,7 @@
 const tableTheme = {
   slots: {
     root: "outline-(--dms-accent-tint-strong)",
-    th: "h-9 px-3.5 py-0 first:ps-[18px] last:pe-4 bg-(--dms-bg-muted) border-b border-default font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase text-dimmed",
+    th: `${EYEBROW_CLASS} h-9 px-3.5 py-0 first:ps-[18px] last:pe-4 bg-(--dms-bg-muted) border-b border-default text-dimmed`,
     td: "h-11 px-3.5 py-0 first:ps-[18px] last:pe-4 text-[13px] text-toned",
     tbody:
       "divide-(--ui-border-muted) [&>tr]:data-[selectable=true]:hover:bg-elevated/60 [&>tr]:data-[selectable=true]:outline-(--dms-accent-tint-strong)",
@@ -118,8 +119,7 @@ const chipTheme = {
 /** Hairline rules; a label reads as the mono eyebrow (auth "or" divider). */
 const separatorTheme = {
   slots: {
-    container:
-      "font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase text-dimmed",
+    container: `${EYEBROW_CLASS} text-dimmed`,
     label: "text-[10.5px]",
     icon: "size-4 text-dimmed",
   },

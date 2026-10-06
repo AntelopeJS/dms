@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import {
   joinPath,
   type SelectionCount,
@@ -31,7 +32,10 @@ const label = computed(() =>
   <!-- v2 .cs-psub: a mono eyebrow heading with its own tri-state box. -->
   <div
     :data-permission-id="props.permissionId"
-    class="group text-dimmed flex h-8 items-center gap-2 px-2 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+    :class="[
+      EYEBROW_CLASS,
+      'group text-dimmed flex h-8 items-center gap-2 px-2',
+    ]"
   >
     <UCheckbox
       :model-value="props.state"

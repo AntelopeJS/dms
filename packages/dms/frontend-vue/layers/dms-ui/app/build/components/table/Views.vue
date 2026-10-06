@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { TableViewViewsLayout } from "../../../composables/table-view/types";
@@ -45,8 +46,7 @@ const theme = tv({
   slots: {
     strip:
       "no-scrollbar flex items-center gap-1.5 overflow-x-auto pe-3.5 pb-3 ps-[18px]",
-    eyebrow:
-      "me-1 shrink-0 font-mono text-[10.5px] font-semibold tracking-[0.12em] text-dimmed uppercase",
+    eyebrow: `${EYEBROW_CLASS} me-1 shrink-0 text-dimmed`,
     pill: "inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-full border border-default px-2.5 text-xs font-medium whitespace-nowrap text-muted transition-colors hover:bg-elevated hover:text-highlighted [&>svg]:size-[13px]",
     pillCount: "font-mono text-[10.5px] tabular-nums",
     pillAdd: "border-dashed",

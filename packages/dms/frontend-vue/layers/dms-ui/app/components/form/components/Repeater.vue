@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { EYEBROW_CLASS } from "../../../build/utils/eyebrow";
 import {
   formErrorsInjectionKey,
   formInputsInjectionKey,
@@ -178,7 +179,7 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
   <div :id="props.id" class="grid gap-1.5" role="group">
     <div
       v-if="hasHeaders && rows.length"
-      class="text-dimmed grid items-end gap-2 font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
+      :class="[EYEBROW_CLASS, 'text-dimmed grid items-end gap-2']"
       :style="gridTemplate"
       aria-hidden="true"
     >
