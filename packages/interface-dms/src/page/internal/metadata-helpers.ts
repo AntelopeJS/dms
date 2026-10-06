@@ -14,13 +14,13 @@ import { Logging } from "@antelopejs/interface-core/logging";
 // table-view, which imports the page interface back — entering through the
 // barrel would then call DefaultLayout() while the barrel is still
 // mid-evaluation.
-import { getRequestTenantId } from "../request-tenant";
+import { getRequestTenantId } from "../../request-tenant";
 // Deliberate and documented above: categories resolve controller
 // classes through PageMetadata, and metadata registers pages
 // through the proxies declared in categories. Neither module
 // dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
-import { MODULE_URL_PREFIX, type PageInfo } from "./types";
+import { MODULE_URL_PREFIX, type PageInfo } from "../types";
 /** @internal */
 export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(
   (target, key, index) => {

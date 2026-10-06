@@ -11,10 +11,11 @@ import {
   applyModuleResolution,
   calculateFullSlug,
   createCategoryFunction,
-  internal,
   resolveCategoryInfo,
+  RootCategory as createRootCategory,
   validateNotInsideSettings,
-} from "./categories";
+} from "./internal/categories";
+import { internal } from "./categories";
 import { PageMetadata } from "./metadata";
 import type {
   CategoryInfo,
@@ -286,7 +287,7 @@ export function RootCategory(
   // Spread options first so an explicitly-passed type wins, then default an
   // omitted type to "label". Spreading after the default would let an explicit
   // `type: undefined` clobber it.
-  return internal.RootCategory(id, {
+  return createRootCategory(id, {
     ...options,
     type: options.type ?? "label",
   });

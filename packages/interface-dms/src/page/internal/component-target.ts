@@ -4,7 +4,7 @@ import {
   type ComponentInfo,
   ComponentTarget,
   type ComponentTargetInput,
-} from "../component";
+} from "../../component";
 
 /**
  * A component and its resolved position under a page's static root field.

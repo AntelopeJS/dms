@@ -72,9 +72,6 @@ export interface PageValidation {
 
 export const MODULE_URL_PREFIX = "/modules";
 
-/** @internal */
-export const ROOT_SLUG = "/";
-
 /**
  * State a module reports on the modules catalog, rendered as a pill on its
  * tile: `live` (working normally, the default), `beta` (usable, still

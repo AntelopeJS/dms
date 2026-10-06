@@ -26,7 +26,7 @@ import * as tableViewImpl from "../../../../implementations/dms-base/table-view"
 import { applyArchiveFilter } from "../../../../implementations/dms-base/search-route";
 import { evaluateRowActionRule } from "../../../../utils/row-action-rule-evaluator";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
-import { permissionMap } from "@antelopejs/interface-dms/page/registry";
+import { permissionMap } from "@antelopejs/interface-dms/page/internal/registry";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types";
 import {
   ArchiveField,

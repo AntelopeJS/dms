@@ -39,27 +39,26 @@ import { SignUploadToken, internal as uploadInternal } from "../uploads";
 // Categories resolve controller classes through PageMetadata; neither module
 // dereferences the other during evaluation.
 // oxlint-disable import/no-cycle
+import { internal, isInsideModule } from "./categories";
 import {
-  internal,
-  isInsideModule,
   resolveCategoryInfo,
   resolveInheritedLayout,
-} from "./categories";
+} from "./internal/categories";
 // oxlint-enable import/no-cycle
-import { type ComponentTreeNode, collectComponentTree } from "./component-tree";
+import type { ComponentTreeNode } from "./component-tree";
+import { collectComponentTree } from "./internal/component-tree";
 import {
   assembleLayoutComponents,
   type PageExtensionEntry,
-} from "./extension-assembly";
-import { collectExtensionErrors } from "./extension-validation";
+} from "./internal/extension-assembly";
+import { collectExtensionErrors } from "./internal/extension-validation";
 import { PageDeclarationConflictError } from "./declaration-conflict";
+import { type ComponentNodeMap, filterComponents } from "./layout-filter";
 import {
-  type ComponentNodeMap,
-  filterComponents,
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
-} from "./layout-filter";
-import { withTableViewPlacements } from "./table-view-ids";
+} from "./internal/layout-filter";
+import { withTableViewPlacements } from "./internal/table-view-ids";
 import {
   pageExtensions,
   pageLayoutHandlers,
@@ -69,7 +68,7 @@ import {
   permissionMap,
   runAsPageExtensionOwner,
   syncTargetExtensions,
-} from "./registry";
+} from "./internal/registry";
 import {
   type MenuOptions,
   type PageExtensionComponent,
@@ -81,12 +80,12 @@ import {
 import {
   PageRegistration,
   type RouteCallbackContext,
-} from "./page-registration";
+} from "./internal/page-registration";
 import {
   isPageInsideModule,
   logModuleRouteGated,
   RequestTenantIdProperty,
-} from "./metadata-helpers";
+} from "./internal/metadata-helpers";
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 

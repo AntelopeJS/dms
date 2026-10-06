@@ -5,13 +5,8 @@ import {
   type ModuleExecutionContext,
   RunWithModuleContext,
 } from "@antelopejs/interface-core/modules";
-import {
-  type Component,
-  ComponentTarget,
-  type ComponentTargetInput,
-  getPermissionIdRef,
-} from "../component";
-import type { PageMetadata } from "./metadata";
+import type { Component } from "../../component";
+import type { PageMetadata } from "../metadata";
 import type {
   CategoryInfo,
   DynamicMenuProviderInfo,
@@ -19,12 +14,10 @@ import type {
   PageExtensionInfo,
   PageInfo,
   PageLayoutHandler,
-} from "./types";
+} from "../types";
 
 /** @internal */
 export const permissionMap = new Map<Component | ControllerClass, string>();
-
-getPermissionIdRef.get = (component: Component) => permissionMap.get(component);
 
 /** @internal */
 export const pageLayoutHandlers = new Map<string, PageLayoutHandler>();
@@ -220,13 +213,6 @@ export function isSamePageRegistration(
 ): boolean {
   return pageIdentity.isSame(left, right);
 }
-
-/** Resolve every live page position of a reusable component. */
-export function GetComponentPermissionIds(component: Component): string[] {
-  return [...pageMetadataByFullId.values()].flatMap((page) =>
-    page.ComponentPermissionIds(component),
-  );
-}
 /** @internal */
 export const pageExtensions = new Map<string, PageExtensionInfo[]>();
 
@@ -240,26 +226,6 @@ export const pageExtensions = new Map<string, PageExtensionInfo[]>();
 export function isPageExtensionRegistered(info: PageExtensionInfo): boolean {
   const registered = pageExtensions.get(info.targetFullId) ?? [];
   return registered.some((entry) => pageExtensionIdentity.isSame(entry, info));
-}
-
-export function GetPageLayoutBySlug(
-  slug: string,
-): PageLayoutHandler | undefined {
-  return pageLayoutHandlers.get(slug);
-}
-
-/**
- * Drop the layout handler a page registered.
- *
- * Called when the page unregisters: the handler is reachable by slug through
- * `/dms/pagelayout`, so leaving it behind keeps serving the layout of a page
- * that is already gone from the registry, the navigation tree and its own
- * route — an unloaded module's screens would still answer.
- *
- * @param slug Full slug the page registered under
- */
-export function ClearPageLayoutBySlug(slug: string): void {
-  pageLayoutHandlers.delete(slug);
 }
 
 /**
@@ -301,14 +267,6 @@ export function GetPendingPageExtensions(): PendingPageExtension[] {
   return pending;
 }
 
-/**
- * Ids of every registered page, sorted. The id of a page is what
- * `@RegisterPageExtension` takes, and also its permission id.
- */
-export function GetRegisteredPageIds(): string[] {
-  return [...pageMetadataByFullId.keys()].sort();
-}
-
 /** @internal */
 export function syncTargetExtensions(targetFullId: string): Promise<void> {
   const metadata = pageMetadataByFullId.get(targetFullId);
@@ -316,18 +274,6 @@ export function syncTargetExtensions(targetFullId: string): Promise<void> {
     return Promise.resolve();
   }
   return metadata.SyncExtensions();
-}
-
-/** Resolve the permission id of a page, component, or exact child position. */
-export function GetPermissionId(
-  target: ComponentTargetInput | ControllerClass,
-): string | undefined {
-  if (target instanceof ComponentTarget) {
-    const rootPermissionId = permissionMap.get(target.root);
-    if (!rootPermissionId) return undefined;
-    return [rootPermissionId, ...target.path].join(".");
-  }
-  return permissionMap.get(target);
 }
 
 /** @internal */

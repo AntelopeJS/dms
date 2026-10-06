@@ -5,7 +5,7 @@ import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/componen
 import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
-} from "@antelopejs/interface-dms/page/layout-filter";
+} from "@antelopejs/interface-dms/page/internal/layout-filter";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 

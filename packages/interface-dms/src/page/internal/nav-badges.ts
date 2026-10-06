@@ -1,9 +1,9 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
-import type { User } from "../auth/db";
-import type { Component, NavBadgeSource } from "../component";
+import type { User } from "../../auth/db";
+import type { Component, NavBadgeSource } from "../../component";
 import { getDeclaredComponentChildren } from "./component-target";
-import { PageMetadata } from "./metadata";
+import { PageMetadata } from "../metadata";
 import { pageMetadataByFullId } from "./registry";
 
 /**

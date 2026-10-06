@@ -1,7 +1,11 @@
 import { DefaultLayout, SettingsLayout } from "../base/layouts";
 import { internal } from "./categories";
+import { RootCategory } from "./internal/categories";
 import { Category, RootPageController } from "./controllers";
-import { moduleDefaultCategories, moduleRootCategories } from "./registry";
+import {
+  moduleDefaultCategories,
+  moduleRootCategories,
+} from "./internal/registry";
 import type { CategoryInfo, ModuleInfo } from "./types";
 
 export function RegisterModule(opts: ModuleInfo): CategoryInfo {
@@ -9,7 +13,7 @@ export function RegisterModule(opts: ModuleInfo): CategoryInfo {
     throw new Error(`Module "${opts.id}" is already registered.`);
   }
 
-  const moduleRoot = internal.RootCategory(opts.id, {
+  const moduleRoot = RootCategory(opts.id, {
     displayName: opts.title,
     description: opts.description,
     icon: opts.icon,
@@ -22,7 +26,7 @@ export function RegisterModule(opts: ModuleInfo): CategoryInfo {
   moduleRootCategories.set(opts.id, moduleRoot);
 
   if (opts.defaultCategory) {
-    const defaultCategory = internal.RootCategory("pages", {
+    const defaultCategory = RootCategory("pages", {
       // Treat an empty string the same as omitted: fall back to the built-in
       // i18n label rather than rendering a blank heading.
       displayName: opts.defaultCategory.displayName || "$menu.section.pages",
@@ -40,7 +44,7 @@ export function RegisterModule(opts: ModuleInfo): CategoryInfo {
   return moduleRoot;
 }
 
-export const pagesCategory = internal.RootCategory("pages", {
+export const pagesCategory = RootCategory("pages", {
   displayName: "$menu.section.pages",
   urlSlug: "/",
   order: 1,

@@ -1,5 +1,5 @@
 import type { PageMetadata } from "../../../page/metadata";
-import { pageMetadataByFullId } from "../../../page/registry";
+import { pageMetadataByFullId } from "../../../page/internal/registry";
 import type { RowActionConfig } from "../../types/row-action";
 import type { TableViewCapabilities } from "./factory-helpers";
 import type { TableViewAccess, TableViewMeta } from "../meta";

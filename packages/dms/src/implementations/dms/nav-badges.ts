@@ -7,7 +7,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   type NavBadges,
   ResolveNavBadges,
-} from "@antelopejs/interface-dms/page/nav-badges";
+} from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 
 /** What the menu payload carries per entry, as far as the badges go. */

@@ -15,7 +15,6 @@ import * as pageInterface from "@antelopejs/interface-dms/page";
 import {
   type CategoryInfo,
   GetPageLayoutBySlug,
-  GetPendingPageExtensions,
   GetRegisteredPageIds,
   PageController,
   type PageExtensionInfo,
@@ -26,6 +25,7 @@ import {
   RegisterPage,
   RegisterPageExtension,
 } from "@antelopejs/interface-dms/page";
+import { GetPendingPageExtensions } from "@antelopejs/interface-dms/page/internal/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { User } from "@antelopejs/interface-dms/auth/db";

@@ -1,5 +1,5 @@
-import type { ChildSerialized, ComponentInfoSerialized } from "../component";
-import type { PageExtensionComponent, PageExtensionInfo } from "./types";
+import type { ChildSerialized, ComponentInfoSerialized } from "../../component";
+import type { PageExtensionComponent, PageExtensionInfo } from "../types";
 
 /**
  * The target page as an extension sees it when the injection applies: its own

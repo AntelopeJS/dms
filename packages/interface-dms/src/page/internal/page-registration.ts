@@ -4,12 +4,12 @@
 // Split out of metadata.ts.
 
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { User } from "../auth/db";
+import type { User } from "../../auth/db";
 // Import from the defining leaf, not the dms-base barrel: the barrel pulls in
 // table-view, which imports the page interface back — entering through the
 // barrel would then call DefaultLayout() while the barrel is still
 // mid-evaluation.
-import { RoleModel, TenantMemberModel } from "../db";
+import { RoleModel, TenantMemberModel } from "../../db";
 // Deliberate and documented above: categories resolve controller
 // classes through PageMetadata, and metadata registers pages
 // through the proxies declared in categories. Neither module

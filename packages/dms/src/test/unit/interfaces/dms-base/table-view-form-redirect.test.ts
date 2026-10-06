@@ -29,7 +29,7 @@ import {
   RegisterPage,
   RootPageController,
 } from "@antelopejs/interface-dms/page";
-import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/registry";
+import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";

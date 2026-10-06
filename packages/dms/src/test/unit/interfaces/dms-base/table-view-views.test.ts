@@ -37,7 +37,7 @@ import {
   tableViewLink,
 } from "@antelopejs/interface-dms/base/table-view";
 import { resolveTableViewViews } from "@antelopejs/interface-dms/base/table-view/internal/views";
-import { withTableViewPlacements } from "@antelopejs/interface-dms/page/table-view-ids";
+import { withTableViewPlacements } from "@antelopejs/interface-dms/page/internal/table-view-ids";
 import type { ComponentInfoSerialized } from "@antelopejs/interface-dms/component";
 
 const TABLE = "views-tickets";

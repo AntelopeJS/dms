@@ -2,7 +2,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/registry";
+import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
 import { userCanAccessPage } from "../../../implementations/dms/page";
 import { loadAccountActivity } from "../users/account-activity-store";
 import {

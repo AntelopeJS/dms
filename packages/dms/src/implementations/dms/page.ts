@@ -22,7 +22,6 @@ import {
   type DynamicMenuItem,
   type DynamicMenuProviderInfo,
   GetPageLayoutBySlug,
-  GetPageOwnerModule,
   isInsideModule,
   MODULE_URL_PREFIX,
   type ModuleCatalogContext,
@@ -35,8 +34,14 @@ import {
   type PageLayout,
   type PageLayoutHandler,
   PageMetadata,
-  internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
+import {
+  applyPageExtension,
+  clearModuleResolution,
+  clearPageMetadata,
+  revokePageExtension,
+} from "@antelopejs/interface-dms/page/internal/categories";
+import { GetPageOwnerModule } from "@antelopejs/interface-dms/page/internal/registry";
 import { resolveToneAlias } from "@antelopejs/interface-dms/base/types/internal/tone";
 import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
@@ -55,7 +60,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   componentTargetClientId,
   resolveComponentTarget,
-} from "@antelopejs/interface-dms/page/component-target";
+} from "@antelopejs/interface-dms/page/internal/component-target";
 import {
   buildMenuTopic,
   clearPageTopics,
@@ -626,7 +631,7 @@ export namespace internal {
       // registry, and letting the earlier one delete on its way out would take
       // the live entry with it.
       if (pagesBySlug[pageInfo.fullSlug] !== pageInfo) {
-        pageInterfaceInternal.clearPageMetadata(pageInfo.fullId, pageInfo);
+        clearPageMetadata(pageInfo.fullId, pageInfo);
         return;
       }
       delete pagesBySlug[pageInfo.fullSlug];
@@ -642,7 +647,7 @@ export namespace internal {
       // Drop the page's metadata too, so an extension registered afterwards is
       // held for the page's next registration instead of grafting itself onto
       // a page that no longer serves.
-      pageInterfaceInternal.clearPageMetadata(pageInfo.fullId, pageInfo);
+      clearPageMetadata(pageInfo.fullId, pageInfo);
       // …and its layout handler, which `/dms/pagelayout` resolves by slug and
       // would otherwise keep serving the page after its module is gone.
       ClearPageLayoutBySlug(pageInfo.fullSlug);
@@ -661,7 +666,7 @@ export namespace internal {
     },
     unregister: (info: ModuleInfo) => {
       delete moduleRegistry[info.id];
-      pageInterfaceInternal.clearModuleResolution(info.id);
+      clearModuleResolution(info.id);
       notifyStructureChanged();
     },
   };
@@ -683,11 +688,11 @@ export namespace internal {
   // registered when that module stops, so its blocks leave the target page.
   export const RegisterPageExtension = {
     register: (info: PageExtensionInfo) => {
-      pageInterfaceInternal.applyPageExtension(info);
+      applyPageExtension(info);
       scheduleBroadcast();
     },
     unregister: (info: PageExtensionInfo) => {
-      pageInterfaceInternal.revokePageExtension(info);
+      revokePageExtension(info);
       scheduleBroadcast();
     },
   };
