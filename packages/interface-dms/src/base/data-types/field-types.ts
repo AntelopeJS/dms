@@ -15,8 +15,10 @@ export interface ArrayItemField {
   required?: boolean;
 }
 
+/** A field of an `ArrayType`'s rows: its type alone, or with a header. */
 export type ArrayItemFieldInput = DataType | ArrayItemField;
 
+/** The options `ArrayType` takes. */
 export type ArrayTypeOptions = {
   /** The fields of a row, by key: each row is an object of them. */
   of: Record<string, ArrayItemFieldInput>;
@@ -29,6 +31,7 @@ export type ArrayTypeOptions = {
   fallback?: string;
 };
 
+/** The options `KeyValueType` takes. */
 export type KeyValueTypeOptions = {
   /** Type of the values; a text by default. */
   valueType?: DataType;
@@ -45,6 +48,7 @@ export type KeyValueTypeOptions = {
   fallback?: string;
 };
 
+/** The options `SecretType` takes. */
 export type SecretTypeOptions = {
   /** "Show" reveals the value, in the browser only. Default `true`. */
   revealable?: boolean;
@@ -68,8 +72,10 @@ export const CODE_LANGUAGES = [
   "text",
 ] as const;
 
+/** A language a `CodeType` highlights: see `CODE_LANGUAGES`. */
 export type CodeLanguage = (typeof CODE_LANGUAGES)[number];
 
+/** The options `CodeType` takes. */
 export type CodeTypeOptions = {
   language: CodeLanguage;
   /** A gutter numbering the lines. Default `true`. */
@@ -91,8 +97,10 @@ export type CodeTypeOptions = {
 /** What the tags of a `TagsType` are. */
 export const TAG_ITEM_TYPES = ["string", "email"] as const;
 
+/** What the tags of a `TagsType` are: see `TAG_ITEM_TYPES`. */
 export type TagItemType = (typeof TAG_ITEM_TYPES)[number];
 
+/** The options `TagsType` takes. */
 export type TagsTypeOptions = {
   /** `string` (default) or `email`: an address that is not one is refused. */
   itemType?: TagItemType;

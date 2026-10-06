@@ -18,6 +18,7 @@ import {
   type UploadConstraints,
 } from "@antelopejs/interface-file-storage";
 import { z } from "zod";
+import type { ComponentInfoSerialized } from "../../component";
 import { parseValue } from "../../utils/value-parser";
 import { isString } from "../../utils/type-check";
 import { GetAttachmentValidationMetadata } from "../../attachments";
@@ -58,6 +59,34 @@ export type BooleanDisplay = (typeof BOOLEAN_DISPLAYS)[number];
 
 // Displays picking one value only: a select picking several shows cards.
 const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>(["segmented", "radio"]);
+
+type SelectInputOptions = FormComponents.SelectOptions;
+
+// The input each display of a select renders.
+const SELECT_INPUTS: Record<
+  SelectDisplay,
+  (options: SelectInputOptions) => ComponentInfoSerialized
+> = {
+  dropdown: (options) => FormComponents.InputSelect(options),
+  cards: ({ items, multiple }) =>
+    FormComponents.InputChoiceCards({ items, multiple }),
+  segmented: ({ items }) => FormComponents.InputSegmentedSelect({ items }),
+  radio: ({ items }) => FormComponents.InputRadioGroup({ items }),
+};
+
+type BooleanInputOptions = FormComponents.BooleanCardOptions;
+
+// The input each display of a boolean renders.
+const BOOLEAN_INPUTS: Record<
+  BooleanDisplay,
+  (options: BooleanInputOptions) => ComponentInfoSerialized
+> = {
+  switch: ({ label, description }) =>
+    FormComponents.InputSwitch({ label, description }),
+  checkbox: ({ label, description }) =>
+    FormComponents.InputCheckbox({ label, description }),
+  card: (options) => FormComponents.InputBooleanCard(options),
+};
 
 export namespace DefaultDataTypes {
   export type NumberTypeOptions = {
@@ -504,14 +533,8 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      const { display, icon, label, description } = this.options;
-      if (display === "card") {
-        return FormComponents.InputBooleanCard({ icon, label, description });
-      }
-      if (display === "checkbox") {
-        return FormComponents.InputCheckbox({ label, description });
-      }
-      return FormComponents.InputSwitch({ label, description });
+      const { display = "switch", icon, label, description } = this.options;
+      return BOOLEAN_INPUTS[display]({ icon, label, description });
     }
 
     override filterComponents() {
@@ -556,24 +579,12 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      const { display, ...options } = this.options;
+      const { display = "dropdown", ...options } = this.options;
       const shown =
-        options.multiple && display && SINGLE_PICK_DISPLAYS.has(display)
+        options.multiple && SINGLE_PICK_DISPLAYS.has(display)
           ? "cards"
           : display;
-      if (shown === "cards") {
-        return FormComponents.InputChoiceCards({
-          items: options.items,
-          multiple: options.multiple,
-        });
-      }
-      if (shown === "segmented") {
-        return FormComponents.InputSegmentedSelect({ items: options.items });
-      }
-      if (shown === "radio") {
-        return FormComponents.InputRadioGroup({ items: options.items });
-      }
-      return FormComponents.InputSelect(options);
+      return SELECT_INPUTS[shown](options);
     }
 
     // A filter picks from a dropdown, whatever the form shows.
