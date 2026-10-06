@@ -20,7 +20,6 @@ import {
   type RouteParamFilter,
   type TableViewCardOptions,
   TABLE_DISPLAY_ID,
-  TABLE_VIEW_COMPONENT_NAME,
   type TableViewDisplayOption,
   type TableViewExpandableComponent,
   type TableViewExpandableOptions,
@@ -29,6 +28,7 @@ import {
   type TableViewRowActionOptions,
   type TableViewTab,
 } from "./options";
+import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
 
 const DEFAULT_KANBAN_COLUMN_MAX_HEIGHT = "60vh";
 

@@ -10,16 +10,16 @@ import type {
   DataControllerCallbackWithOptions,
 } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { RoleModel, TenantMemberModel } from "../../db";
+import { RoleModel, TenantMemberModel } from "../../../db";
 import {
   GetEffectiveUserPermissions,
   HasAnyPermission,
-} from "../../permissions";
-import { getRequestTenantId } from "../../request-tenant";
-import { AssertTenantAccess } from "../../tenant-access";
-import { AuthUser } from "../../auth";
-import type { User } from "../../auth/db";
-import { TableViewMeta } from "./meta";
+} from "../../../permissions";
+import { getRequestTenantId } from "../../../request-tenant";
+import { AssertTenantAccess } from "../../../tenant-access";
+import { AuthUser } from "../../../auth";
+import type { User } from "../../../auth/db";
+import { TableViewMeta } from "../meta";
 
 /**
  * The read actions of a table view, named once so the route that checks one,

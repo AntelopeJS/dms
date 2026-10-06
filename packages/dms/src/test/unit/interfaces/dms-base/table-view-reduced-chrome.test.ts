@@ -29,8 +29,8 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
-import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/request-filter";
-import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/tabs";
+import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
+import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/internal/tabs";
 
 const TABLE = "reduced-chrome-orders";
 const LOCATION = "/api/reduced-chrome-orders";

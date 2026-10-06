@@ -37,10 +37,10 @@ import {
   TableViewRoutes,
   validateRowsAgainstRule,
 } from "@antelopejs/interface-dms/base/table-view";
-import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/row-rules";
+import { createValidatedRoute } from "@antelopejs/interface-dms/base/table-view/internal/row-rules";
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 
-import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/writer";
+import { tableViewAccess } from "@antelopejs/interface-dms/base/table-view/internal/writer";
 
 // Several table views may mount one controller, but only one of them writes:
 // its rules, archive-mode defaults included, are the ones the data routes

@@ -10,8 +10,8 @@ import {
   AccessMode,
   DataAPIMeta,
 } from "@antelopejs/interface-data-api/metadata";
-import { getDataTypeId } from "../data-types";
-import { TableViewMeta } from "./meta";
+import { getDataTypeId } from "../../data-types";
+import { TableViewMeta } from "../meta";
 import {
   type FormContainerPages,
   CARDS_DISPLAY_ID,
@@ -27,7 +27,7 @@ import {
   type TableViewTab,
   type TableViewView,
   type TableViewViewsOptions,
-} from "./options";
+} from "../options";
 
 /**
  * `pageSize` is a whole number of rows, from 1 up to {@link MAX_TABLE_PAGE_SIZE}.

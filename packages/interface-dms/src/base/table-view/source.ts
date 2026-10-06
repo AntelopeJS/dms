@@ -5,34 +5,34 @@
 import { ComponentBuilder } from "../../component";
 import { ReadonlyBehaviorType } from "../types";
 import { serializeType } from "../data-types";
-import { LIST_ACTION } from "./auth";
-import { serializeColumnDisplay } from "./column-display";
+import { LIST_ACTION } from "./internal/auth";
+import { serializeColumnDisplay } from "./internal/column-display";
 import {
   serializeCustomButtons,
   serializeExpandable,
   serializeRowActions,
   serializeTableViewDisplays,
-} from "./factory-helpers";
+} from "./internal/factory-helpers";
 import type { ColumnOptions } from "./meta";
-import {
-  TABLE_VIEW_COMPONENT_NAME,
-  type TableViewFooterOptions,
-  type TableViewOptions,
-  type TableViewOptionsSerialized,
-  type TableViewRowActionOptions,
+import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import type {
+  TableViewFooterOptions,
+  TableViewOptions,
+  TableViewOptionsSerialized,
+  TableViewRowActionOptions,
 } from "./options";
 import {
   resolveCustomButtons,
   resolveCustomRowActions,
-} from "./request-filter";
-import { resolveTableViewTabs, serializeTableViewTabs } from "./tabs";
-import { serializeEmptyStates } from "./footer";
+} from "./internal/request-filter";
+import { resolveTableViewTabs, serializeTableViewTabs } from "./internal/tabs";
+import { serializeEmptyStates } from "./internal/footer";
 import {
   assertTabTargets,
   validateDefaultDisplay,
   validateDisplayIds,
   validatePageSize,
-} from "./validation";
+} from "./internal/validation";
 
 /** A column of a source table: a `@Column`'s options, keyed by row field. */
 export interface TableViewSourceColumn extends Pick<

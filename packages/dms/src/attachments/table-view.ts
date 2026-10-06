@@ -8,11 +8,11 @@ import {
 import { fetchRowForGuard } from "../implementations/dms-base/table-view";
 import type { AttachmentField } from "@antelopejs/interface-dms/attachments";
 import type { TableViewAttachmentSaveRequest } from "@antelopejs/interface-dms/internal/attachments";
-import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/guards";
+import { parseGuardBody } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import {
   getControllerLocation,
   getTableViewMetaFor,
-} from "@antelopejs/interface-dms/base/table-view/meta";
+} from "@antelopejs/interface-dms/base/table-view/internal/meta";
 import { tableAttachmentFields } from "./bindings";
 import { collectAttachments } from "./fields";
 import { denyAttachment } from "./registry";

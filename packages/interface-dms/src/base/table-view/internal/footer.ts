@@ -5,13 +5,13 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
-import { getDataTypeId } from "../data-types";
+import { getDataTypeId } from "../../data-types";
 import {
   FIELD_KEY,
   LOGICAL_OPERATOR_KEYS,
-} from "../types/row-action-operators";
-import type { RowActionRule } from "../types/row-action";
-import { TableViewMeta } from "./meta";
+} from "../../types/row-action-operators";
+import type { RowActionRule } from "../../types/row-action";
+import { TableViewMeta } from "../meta";
 import { servesRoute } from "./tabs";
 import type {
   TableViewEmptyStates,
@@ -19,7 +19,7 @@ import type {
   TableViewFooterOptions,
   TableViewFooterSerialized,
   TableViewFooterSummary,
-} from "./options";
+} from "../options";
 
 const LEGEND_TYPE_ID = "select";
 

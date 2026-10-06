@@ -5,8 +5,8 @@ import {
   type ColumnOptions,
   DefaultDisplays,
   RegisterDisplay,
-  serializeColumnDisplay,
 } from "@antelopejs/interface-dms/base/table-view";
+import { serializeColumnDisplay } from "@antelopejs/interface-dms/base/table-view/internal/column-display";
 
 interface DurationOptions {
   unit?: "s" | "ms";

@@ -6,32 +6,26 @@
  * - `meta` — `TableViewMeta` and the column declaration decorators
  * - `data-functions` — the interface functions the data implementation
  *   provides (search, export, archive, guard fetches)
- * - `row-rules` — server-side row action rule validation around a route
- * - `guards` — consumer guard invocation around mutating routes
- * - `files` — staged upload promotion and orphaned file cleanup
- * - `auth` — per-action permission checks and the tenant access gate
- * - `realtime` — mutation/presence broadcasting around routes, and the topics
- *   a table view registers for its page
+ * - `realtime` — the topics of a table view and the mutation listeners a
+ *   module may add
  * - `routes` — the assembled `TableViewRoutes` a data controller mounts
- * - `factory` — the `TableView()` builder that ties it all together, with
- *   `factory-helpers` (serialization, actions, form pages), `validation`
- *   (declaration checks), `tabs` (filter tabs), `request-filter` (what one
- *   request is served) and `writer` (the one TableView writing through a
- *   controller)
- * - `resource-form` — the forms over a resource, shared by `TableView()` and
- *   the `ResourceForm()` block
+ * - `factory` — the `TableView()` builder that ties it all together
+ * - `resource-form` — the `ResourceForm()` block over a resource
  *
- * The barrel re-exports the exact surface the former single-file module
- * exposed; the pieces also export their cross-file internals, which are not
- * part of the public interface.
+ * The plumbing behind them lives under `./table-view/internal/` and is not
+ * re-exported here: row rule validation (`row-rules`), consumer guards
+ * (`guards`), staged uploads (`files`), per-action permission checks
+ * (`auth`), the realtime route wrappers (`realtime`), serialization and form
+ * pages (`factory-helpers`), declaration checks (`validation`), filter tabs
+ * (`tabs`), what one request is served (`request-filter`), the one TableView
+ * writing through a controller (`writer`) and the forms over a resource
+ * (`resource-form`).
  */
 
-export { authorizeAction, GATE_BYPASSABLE_ACTIONS } from "./table-view/auth";
 export {
   archiveRows,
   BULK_ALL_MATCHING_KEY,
   countWithSearch,
-  type FooterSummaryValues,
   MAX_BULK_MATCHING_ROWS,
   resolveBulkRowIds,
   summarizeWithSearch,
@@ -141,12 +135,7 @@ export {
   tableViewRowTopic,
   unregisterRealtimeMutationListener,
 } from "./table-view/realtime";
-export {
-  ResourceForm,
-  resourceForm,
-  ROUTE_PARAM_ROW_ID,
-  stampAttachmentFields,
-} from "./table-view/resource-form";
+export { ResourceForm, ROUTE_PARAM_ROW_ID } from "./table-view/resource-form";
 export { TableViewRoutes } from "./table-view/routes";
 export {
   tableViewFromSource,

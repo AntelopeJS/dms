@@ -12,12 +12,12 @@ import {
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
-import type { ComponentBuilder, NavBadgeSource } from "../../component";
-import type { User } from "../../auth/db";
-import { getRequestTenantId } from "../../request-tenant";
+import type { ComponentBuilder, NavBadgeSource } from "../../../component";
+import type { User } from "../../../auth/db";
+import { getRequestTenantId } from "../../../request-tenant";
 import { authorizeAction, LIST_ACTION } from "./auth";
-import { countWithSearch } from "./data-functions";
-import type { TableViewTab, TableViewTabFilter } from "./options";
+import { countWithSearch } from "../data-functions";
+import type { TableViewTab, TableViewTabFilter } from "../options";
 
 const FILTER_QUERY_PREFIX = "filter_";
 

@@ -1,16 +1,10 @@
-// A data controller has one writing TableView: its permission guards the
-// writes of the data routes, its row rules apply to them, and its forms are the
-// ones whose files those routes accept. Read-only TableViews may share the
-// controller. A second writing one is a declaration the routes cannot honour --
-// whose permission, whose rules? -- so its page is refused when it registers.
-
-import { PageDeclarationConflictError } from "../../page/declaration-conflict";
-import type { PageMetadata } from "../../page/metadata";
-import { pageMetadataByFullId } from "../../page/registry";
-import type { RowActionConfig } from "../types/row-action";
+import type { PageMetadata } from "../../../page/metadata";
+import { pageMetadataByFullId } from "../../../page/registry";
+import type { RowActionConfig } from "../../types/row-action";
 import type { TableViewCapabilities } from "./factory-helpers";
-import type { TableViewAccess, TableViewMeta } from "./meta";
-import type { TableViewRowActionOptions } from "./options";
+import type { TableViewAccess, TableViewMeta } from "../meta";
+import type { TableViewRowActionOptions } from "../options";
+import { WritingTableViewConflictError } from "../writer";
 
 /**
  * Where the controller derivation that lifts the restriction is documented.
@@ -33,12 +27,6 @@ interface WritingTableViewClaim {
   /** The registration of the page carrying it. */
   page: PageMetadata;
 }
-
-/**
- * Two TableViews with write actions mounted over the same data controller.
- * Thrown while the second one's page registers, which fails it.
- */
-export class WritingTableViewConflictError extends PageDeclarationConflictError {}
 
 const isEnabled = (config: boolean | RowActionConfig | undefined): boolean =>
   config === undefined ||

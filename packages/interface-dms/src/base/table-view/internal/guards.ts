@@ -10,10 +10,10 @@ import {
 } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { AfterWrite, GuardFn } from "../types/guards";
-import { fetchRowForGuard } from "./data-functions";
-import { TableViewMeta } from "./meta";
-import { DEFAULT_ROW_ID_FIELD } from "./options";
+import type { AfterWrite, GuardFn } from "../../types/guards";
+import { fetchRowForGuard } from "../data-functions";
+import { TableViewMeta } from "../meta";
+import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { normalizeToArray } from "./row-rules";
 
 type GuardedActionName = "edit" | "delete" | "archive" | "restore" | "new";

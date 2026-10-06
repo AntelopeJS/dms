@@ -6,12 +6,14 @@ import { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   authorizeAction,
+  LIST_ACTION,
+} from "@antelopejs/interface-dms/base/table-view/internal/auth";
+import {
   BULK_ALL_MATCHING_KEY,
   DEFAULT_ROW_ID_FIELD,
   MAX_BULK_MATCHING_ROWS,
   TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
-import { LIST_ACTION } from "@antelopejs/interface-dms/base/table-view/auth";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { buildFilteredQuery } from "./search-route";
 

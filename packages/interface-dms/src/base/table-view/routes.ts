@@ -25,20 +25,20 @@ import {
   VIEW_ACTION,
   withActionCheck,
   withActionCheckOptions,
-} from "./auth";
+} from "./internal/auth";
 import {
   archiveRows,
   countWithSearch,
   downloadExport,
   getExportStatus,
   listWithSearch,
-  type RowBulkOperationParams,
   restoreRows,
   startExport,
   summarizeWithSearch,
 } from "./data-functions";
-import { withFilePromotion } from "./files";
-import { createGuardedRoute, guardedGetRoute } from "./guards";
+import type { RowBulkOperationParams } from "./internal/data-functions";
+import { withFilePromotion } from "./internal/files";
+import { createGuardedRoute, guardedGetRoute } from "./internal/guards";
 import {
   extractBulkArgIds,
   extractFromResult,
@@ -46,10 +46,10 @@ import {
   extractSingleParamId,
   withPresenceAcquire,
   withRealtimeMutation,
-} from "./realtime";
+} from "./internal/realtime";
 import { TableViewMeta } from "./meta";
 import type { TableViewFooterSummary } from "./options";
-import { createValidatedRoute } from "./row-rules";
+import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
 

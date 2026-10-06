@@ -4,24 +4,24 @@
 //
 // Split out of factory-helpers.ts.
 
-import { applyButtonAvailability } from "../internal/button-availability";
-import type { ComponentFilterContext } from "../../component";
-import { holdsPermissionGate } from "../../internal/permission-gate";
-import type { PermissionGate } from "../../permission-gate";
-import { HasPermission } from "../../permissions";
+import { applyButtonAvailability } from "../../internal/button-availability";
+import type { ComponentFilterContext } from "../../../component";
+import { holdsPermissionGate } from "../../../internal/permission-gate";
+import type { PermissionGate } from "../../../permission-gate";
+import { HasPermission } from "../../../permissions";
 import type {
   CustomButton,
   CustomButtonSerialized,
-} from "../types/custom-button";
+} from "../../types/custom-button";
 import type {
   CustomRowActionSerialized,
   RowActionConfigSerialized,
   RowActionRule,
-} from "../types/row-action";
+} from "../../types/row-action";
 import type {
   TableViewRowActionOptions,
   TableViewRowActionOptionsSerialized,
-} from "./options";
+} from "../options";
 import { extractRuleFromConfig } from "./row-rules";
 
 /** The table view actions whose permission shapes what a request is served. */

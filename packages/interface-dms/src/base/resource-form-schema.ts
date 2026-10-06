@@ -19,6 +19,9 @@ export type ResourceFormMode = (typeof RESOURCE_FORM_MODES)[number];
  */
 export const QUERY_ROW_ID = "{{query.id}}";
 
+/** The row a page served under a `:id` route segment is about. */
+export const ROUTE_PARAM_ROW_ID = "{{params.id}}";
+
 /** What a form over a resource leaves open: everything but its fields and routes. */
 export interface ResourceFormOptions extends Omit<
   FormProps,

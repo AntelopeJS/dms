@@ -6,11 +6,11 @@ import { assert as throwHttpAssert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
-import type { RowActionRule } from "../types/row-action";
-import { validateRowsAgainstRule } from "./data-functions";
-import { TableViewMeta } from "./meta";
-import type { TableViewRowActionOptions } from "./options";
-import { DEFAULT_ROW_ID_FIELD } from "./options";
+import type { RowActionRule } from "../../types/row-action";
+import { validateRowsAgainstRule } from "../data-functions";
+import { TableViewMeta } from "../meta";
+import type { TableViewRowActionOptions } from "../options";
+import { DEFAULT_ROW_ID_FIELD } from "../options";
 
 type ValidatedActionName = "delete" | "edit" | "archive" | "restore";
 

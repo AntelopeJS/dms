@@ -4,7 +4,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   extractFromResult,
   withRealtimeMutation,
-} from "@antelopejs/interface-dms/base/table-view/realtime";
+} from "@antelopejs/interface-dms/base/table-view/internal/realtime";
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
 import { expect } from "chai";
 import { captureErrors } from "../../../helpers/logging";

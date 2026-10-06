@@ -6,14 +6,14 @@
 // filter tabs in `./tabs`, the per-request filtering in `./request-filter` and
 // the one writing TableView of a controller in `./writer`.
 
-import { ComponentBuilder } from "../../component";
-import { type FormBuilder, FormEvents } from "../form-types";
-import { serializeActionTarget } from "../types/internal/action-target";
+import { ComponentBuilder } from "../../../component";
+import { type FormBuilder, FormEvents } from "../../form-types";
+import { serializeActionTarget } from "../../types/internal/action-target";
 import type {
   CustomButton,
   CustomButtonSerialized,
-} from "../types/custom-button";
-import { serializeActionConfirm } from "../internal/confirm-dialog";
+} from "../../types/custom-button";
+import { serializeActionConfirm } from "../../internal/confirm-dialog";
 import type {
   AddRowActionConfig,
   BulkRowActionConfig,
@@ -21,9 +21,9 @@ import type {
   CustomRowActionSerialized,
   RowActionConfigSerialized,
   RowActionRule,
-} from "../types/row-action";
+} from "../../types/row-action";
 import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
-import { TableViewMeta } from "./meta";
+import { TableViewMeta } from "../meta";
 import { assertKnownColumns } from "./validation";
 import {
   CARDS_DISPLAY_ID,
@@ -46,26 +46,11 @@ import {
   type TableViewFormPageUrls,
   type TableViewRowActionOptions,
   type TableViewRowActionOptionsSerialized,
-} from "./options";
+} from "../options";
+import { TableViewFunctions } from "../factory-helpers";
 
 /** @internal */
 export type FormPageKind = keyof TableViewFormPageUrls;
-
-export namespace TableViewEvents {
-  export const ROW_CLICK = "DmsComponent.TableView.RowClick";
-  export const ROW_SELECT = "DmsComponent.TableView.RowSelect";
-  export const ROW_DELETE = "DmsComponent.TableView.RowDelete";
-  export const ROW_ADD = "DmsComponent.TableView.RowAdd";
-  export const ROW_EDIT = "DmsComponent.TableView.RowEdit";
-  export const FILTER_CHANGE = "DmsComponent.TableView.FilterChange";
-  export const SORT_CHANGE = "DmsComponent.TableView.SortChange";
-  export const EXPORT = "DmsComponent.TableView.Export";
-}
-
-export namespace TableViewFunctions {
-  export const CUSTOM_PAGE_FORM_SUCCESS =
-    "DmsComponent.TableView.CustomPageFormSuccess";
-}
 
 /** @internal */
 export function applyFormRedirect<T>(
@@ -515,7 +500,7 @@ export function formRouteKey(
   const path = permissionId.startsWith(prefix)
     ? permissionId.slice(prefix.length)
     : "";
-  const key = path.split("./").pop();
+  const key = path.split(".").pop();
   if (!key) {
     throw new Error(
       `TableView permission id "${permissionId}" names no component of the page whose permission id is "${pagePermissionId}": its form routes have no key to be named after.`,

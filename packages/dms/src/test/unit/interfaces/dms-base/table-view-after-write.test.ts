@@ -1,7 +1,7 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetMetadata } from "@antelopejs/interface-core";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/guards";
+import { createGuardedRoute } from "@antelopejs/interface-dms/base/table-view/internal/guards";
 import { TableViewMeta } from "@antelopejs/interface-dms/base/table-view/meta";
 import type { TableViewGuards } from "@antelopejs/interface-dms/base/types/guards";
 import { expect } from "chai";

@@ -12,19 +12,16 @@ import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
 import { hasSearchableFields } from "../internal/searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
-import {
-  TABLE_VIEW_COMPONENT_NAME,
-  type TableViewOptions,
-  type TableViewOptionsSerialized,
-} from "./options";
-import { registerTableViewPageTopics } from "./realtime";
+import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
+import { registerTableViewPageTopics } from "./internal/realtime";
 import {
   adaptRowActions,
   resolveCustomButtons,
   resolveCustomRowActions,
   resolveTableViewGrants,
-} from "./request-filter";
-import { resourceForm, stampAttachmentFields } from "./resource-form";
+} from "./internal/request-filter";
+import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
 import { TableViewRoutes } from "./routes";
 import {
   applyFormPageSubmitDefaults,
@@ -45,27 +42,30 @@ import {
   serializeExpandable,
   serializeRowActions,
   serializeTableViewDisplays,
-  TableViewFunctions,
-} from "./factory-helpers";
+} from "./internal/factory-helpers";
+import { TableViewFunctions } from "./factory-helpers";
 import {
   declaresCounters,
   resolveTableViewTabs,
   serializeTableViewTabs,
   warnIfTabsLackCountBatch,
-} from "./tabs";
-import { declareTabNavBadges } from "./nav-badges";
-import { resolveTableViewViews, serializeTableViewViews } from "./views";
+} from "./internal/tabs";
+import { declareTabNavBadges } from "./internal/nav-badges";
+import {
+  resolveTableViewViews,
+  serializeTableViewViews,
+} from "./internal/views";
 import {
   serializeEmptyStates,
   serializeFooter,
   warnIfSummaryLacksRoute,
-} from "./footer";
-import { claimWritingTableView, tableViewAccess } from "./writer";
+} from "./internal/footer";
+import { claimWritingTableView, tableViewAccess } from "./internal/writer";
 import { tableViewFromSource } from "./source";
 import {
   assertRowScopedFormSlugs,
   validateTableViewOptions,
-} from "./validation";
+} from "./internal/validation";
 import { fireAndForget } from "../../utils/fire-and-forget";
 
 export function TableView<T extends ControllerClass>(

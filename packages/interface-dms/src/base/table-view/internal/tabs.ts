@@ -10,14 +10,14 @@ import {
 import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { DataControllerCallbackWithOptions } from "@antelopejs/interface-data-api";
-import { GetPermissionId, PageMetadata } from "../../page";
-import { holdsPermissionGate } from "../../internal/permission-gate";
-import { HasPermission } from "../../permissions";
+import { GetPermissionId, PageMetadata } from "../../../page";
+import { holdsPermissionGate } from "../../../internal/permission-gate";
+import { HasPermission } from "../../../permissions";
 import type {
   TableViewOptions,
   TableViewTab,
   TableViewTabSerialized,
-} from "./options";
+} from "../options";
 
 function dataApiLocation(countFrom: ControllerClass | string): string {
   return typeof countFrom === "string"

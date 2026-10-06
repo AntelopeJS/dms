@@ -12,8 +12,8 @@ import type {
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import type { FooterSummaryValues } from "@antelopejs/interface-dms/base/table-view/internal/data-functions";
 import type {
-  FooterSummaryValues,
   TableViewFooterSummary,
   TableViewSummaryOperation,
 } from "@antelopejs/interface-dms/base/table-view";

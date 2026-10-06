@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { resolveFormPageTexts } from "@antelopejs/interface-dms/base/table-view/factory-helpers";
+import { resolveFormPageTexts } from "@antelopejs/interface-dms/base/table-view/internal/factory-helpers";
 
 const TASK_PAGES = {
   new: { displayName: "$tasks.form.new_title" },

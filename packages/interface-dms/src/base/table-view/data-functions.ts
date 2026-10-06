@@ -8,6 +8,10 @@ import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
 import type { TableViewFooterSummary } from "./options";
+import type {
+  FooterSummaryValues,
+  RowBulkOperationParams,
+} from "./internal/data-functions";
 
 /** @internal */
 export const listWithSearch = InterfaceFunction<
@@ -36,13 +40,6 @@ export const countWithSearch =
       permissions?: Set<string>,
     ) => Promise<{ total: number }>
   >();
-
-/**
- * The figures of a footer, by summary id.
- *
- * @internal
- */
-export type FooterSummaryValues = Record<string, number>;
 
 /** @internal */
 export const summarizeWithSearch = InterfaceFunction<
@@ -119,13 +116,6 @@ export const downloadExport =
       user?: User,
     ) => void
   >();
-
-/** @internal */
-export type RowBulkOperationParams = [
-  thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
-  ctx: RequestContext,
-  ids: string | string[],
-];
 
 /** @internal */
 export const archiveRows = InterfaceFunction<

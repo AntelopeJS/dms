@@ -18,7 +18,8 @@ import {
 } from "@antelopejs/interface-database-decorators";
 import type { Component, ComponentBuilder } from "../../component";
 import { isString } from "../../utils/internal/type-check";
-import { type ColumnDisplay, serializeColumnDisplay } from "./column-display";
+import type { ColumnDisplay } from "./column-display";
+import { serializeColumnDisplay } from "./internal/column-display";
 // Through the barrel, not core: the default data types register themselves by
 // decorator, and this value import is what evaluates them. serializeType below
 // reads the registry they fill, so importing the definitions alone would leave
@@ -552,17 +553,3 @@ export const Exported = MakeMethodAndPropertyDecorator(
     return Listable(requiredFields, "export")(target, key, descriptor ?? {});
   },
 );
-
-/** @internal */
-export const getTableViewMetaFor = (target: unknown): TableViewMeta =>
-  GetMetadata(
-    (target as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
-
-/** @internal */
-export const getControllerLocation = (target: unknown): string =>
-  GetMetadata(
-    (target as { constructor: ControllerClass }).constructor,
-    ControllerMeta,
-  ).location;

@@ -1,4 +1,4 @@
-import { TABLE_VIEW_COMPONENT_NAME } from "../base/table-view/options";
+import { TABLE_VIEW_COMPONENT_NAME } from "../base/table-view/internal/options";
 import type { ChildSerialized, ComponentInfoSerialized } from "../component";
 
 /** What a served table view learns of its place in the page. */

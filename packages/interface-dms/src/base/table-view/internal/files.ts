@@ -1,8 +1,8 @@
 import type { RequestContext } from "@antelopejs/interface-api";
 import type { DataControllerCallback } from "@antelopejs/interface-data-api";
-import { internal } from "../../attachments";
-import { GetComponentPermissionIds } from "../../page";
-import { hasFileColumns } from "../helpers/file-refs";
+import { internal } from "../../../attachments";
+import { GetComponentPermissionIds } from "../../../page";
+import { hasFileColumns } from "../../helpers/file-refs";
 import { getTableViewMetaFor } from "./meta";
 
 /**

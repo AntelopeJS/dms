@@ -18,7 +18,7 @@ import {
   TableViewMeta,
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
-import { registerTableViewActions } from "@antelopejs/interface-dms/base/table-view/factory-helpers";
+import { registerTableViewActions } from "@antelopejs/interface-dms/base/table-view/internal/factory-helpers";
 import {
   type Action,
   ComponentBuilder,

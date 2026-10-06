@@ -4,6 +4,7 @@ import {
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
 import type { Tone } from "../types/tone";
+import { displayIds } from "./internal/column-display";
 
 /**
  * How table cells (and expanded-row fields) draw a column's value, in place of
@@ -37,10 +38,6 @@ export interface ColumnDisplaySerialized {
   options?: Record<string, unknown>;
 }
 
-// Weak: a hot reload registers a module's displays again as new classes, and
-// the replaced ones must not stay reachable through this lookup.
-const displayIds = new WeakMap<Class<ColumnDisplay<object>>, string>();
-
 /**
  * Register a column display class under the id of the frontend data type that
  * draws its cells. A module's display id is `<module>:<id>`.
@@ -54,40 +51,6 @@ export const RegisterDisplay: (
     displayIds.set(target, id);
   },
 );
-
-/**
- * The id a display instance is registered under, if any.
- *
- * @internal
- */
-export function getColumnDisplayId(
-  display: ColumnDisplay<object>,
-): string | undefined {
-  return displayIds.get(Object.getPrototypeOf(display).constructor);
-}
-
-/**
- * A column display as the column metadata carries it. Throws for a display
- * whose class was never registered: its cells would fall back to the column's
- * type without a word.
- *
- * @internal
- */
-export function serializeColumnDisplay(
-  display: ColumnDisplay<object> | undefined,
-): ColumnDisplaySerialized | undefined {
-  if (!display) return undefined;
-  const type = getColumnDisplayId(display);
-  if (!type) {
-    throw new Error(
-      `Column display ${Object.getPrototypeOf(display).constructor.name} is not registered: decorate its class with @RegisterDisplay("<module>:<id>")`,
-    );
-  }
-  const { options } = display;
-  return options
-    ? { type, options: options as Record<string, unknown> }
-    : { type };
-}
 
 /** The tones of a cell's text. */
 export type CellTone =
