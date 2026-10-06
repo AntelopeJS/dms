@@ -2,11 +2,7 @@
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
-import {
-  buildPageSearchShortcuts,
-  PAGE_SEARCH_HINT_KEYS,
-  pageSearchAriaKeyshortcuts,
-} from "#dms-ui/app/composables/global/searchShortcuts";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 import {
   keyboardKeyLabel,
   type KeyboardPlatform,
@@ -122,18 +118,6 @@ const detectedLabel = computed(() =>
     ? t("page.settings.shortcuts.os_mac")
     : t("page.settings.shortcuts.os_other"),
 );
-
-// "/" stays with the settings menu search (SettingsNav); this page's own search
-// takes ⌘ / or Ctrl / so the two never share a key.
-const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>("search");
-defineShortcuts(
-  buildPageSearchShortcuts(() => searchInput.value?.inputRef?.focus()),
-);
-
-/** The search's key hint follows the layout picked in the header. */
-const searchHintKeys = computed(() =>
-  PAGE_SEARCH_HINT_KEYS.map((key) => keyboardKeyLabel(key, platform.value)),
-);
 </script>
 
 <!-- Rendered on the server too: the list is static, and the platform comes
@@ -142,27 +126,17 @@ const searchHintKeys = computed(() =>
 <template>
   <div>
     <div class="mb-7 flex flex-wrap items-center gap-x-4 gap-y-2">
-      <UInput
+      <!-- "/" stays with the settings menu search (SettingsNav): this page's
+        own search takes ⌘ / or Ctrl /, its hint drawn for the layout picked
+        in the header. -->
+      <DmsSearchInput
         id="shortcuts-search"
-        ref="search"
         v-model="query"
         :placeholder="t('page.settings.shortcuts.search_placeholder')"
-        icon="i-ph-magnifying-glass"
+        shortcut="page"
+        :hint-platform="platform"
         class="w-full max-w-[420px]"
-        :aria-keyshortcuts="pageSearchAriaKeyshortcuts(isMac)"
-      >
-        <!-- No key hint on phones: it covered the placeholder there. -->
-        <template #trailing>
-          <span class="flex items-center gap-0.5 max-sm:hidden">
-            <UKbd
-              v-for="key in searchHintKeys"
-              :key="key"
-              :value="key"
-              size="sm"
-            />
-          </span>
-        </template>
-      </UInput>
+      />
       <span class="text-muted inline-flex items-center gap-1.5 text-xs">
         <UIcon name="i-ph-info" class="size-3.5 shrink-0" />
         {{

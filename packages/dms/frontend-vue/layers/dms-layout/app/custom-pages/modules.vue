@@ -156,11 +156,6 @@ const visitedAt = computed(
 const query = ref("");
 const category = ref<string>(MODULE_CATEGORY_ALL);
 const sortMode = ref<ModuleSortMode>("recent");
-const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>("search");
-
-defineShortcuts({
-  "/": () => searchInput.value?.inputRef?.focus(),
-});
 
 const categoryOptions = computed(() => [
   {
@@ -384,19 +379,14 @@ const summaryCards = computed<StatStripItem[]>(() =>
         </DmsSectionHeader>
 
         <div class="mb-[18px] flex flex-wrap items-center gap-2.5">
-          <UInput
-            ref="search"
+          <!-- The Modules page has no settings menu: "/" is this search's. -->
+          <DmsSearchInput
             v-model="query"
             size="sm"
-            icon="i-ph-magnifying-glass"
             :placeholder="t('modules.search.placeholder')"
-            :aria-label="t('modules.search.placeholder')"
+            shortcut="nav"
             class="w-[300px] max-md:w-full"
-          >
-            <template #trailing>
-              <UKbd value="/" size="sm" />
-            </template>
-          </UInput>
+          />
           <ModuleCategoryChips v-model="category" :options="categoryOptions" />
         </div>
 
@@ -554,12 +544,10 @@ const summaryCards = computed<StatStripItem[]>(() =>
 
         <template v-else-if="!isInitiallyLoading">
           <div class="mb-[18px] flex flex-wrap items-center gap-2.5">
-            <UInput
+            <DmsSearchInput
               v-model="storeQuery"
               size="sm"
-              icon="i-ph-magnifying-glass"
               :placeholder="t('modules.store.search_placeholder')"
-              :aria-label="t('modules.store.search_placeholder')"
               class="w-[300px] max-md:w-full"
             />
             <ModuleCategoryChips

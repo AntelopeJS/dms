@@ -209,12 +209,10 @@ onBeforeUnmount(() => {
     <div
       class="border-muted flex flex-wrap items-center gap-2.5 border-b bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5"
     >
-      <UInput
+      <DmsSearchInput
         v-model="query"
-        icon="i-ph-magnifying-glass"
         size="sm"
         :placeholder="t('page.settings.appearance.css_vars.filter_placeholder')"
-        :aria-label="t('page.settings.appearance.css_vars.filter_placeholder')"
         class="w-full sm:w-60"
       />
       <!-- Phones: the six categories wrap onto a second line. -->

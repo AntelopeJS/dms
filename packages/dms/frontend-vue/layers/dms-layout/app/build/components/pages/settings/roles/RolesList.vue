@@ -62,14 +62,12 @@ function coverage(count: number): number {
       </span>
     </div>
     <div class="border-muted border-b px-3 py-2">
-      <UInput
+      <DmsSearchInput
         v-model="query"
-        icon="i-ph-magnifying-glass"
         size="sm"
         variant="none"
         class="w-full"
         :placeholder="t('page.settings.roles.editor.search_roles')"
-        :aria-label="t('page.settings.roles.editor.search_roles')"
       />
     </div>
     <div

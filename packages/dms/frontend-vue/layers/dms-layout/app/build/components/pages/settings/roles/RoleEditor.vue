@@ -264,13 +264,11 @@ function toggleArea(id: string): void {
     <div
       class="border-muted flex flex-wrap items-center gap-2 border-b py-3 ps-[18px] pe-4"
     >
-      <UInput
+      <DmsSearchInput
         v-model="query"
-        icon="i-ph-magnifying-glass"
         size="sm"
         class="max-w-[280px] flex-[1_1_180px] @max-md/editor:max-w-none @max-md/editor:basis-full"
         :placeholder="t('page.settings.roles.editor.search_permissions')"
-        :aria-label="t('page.settings.roles.editor.search_permissions')"
       />
       <template v-if="!hits">
         <UButton

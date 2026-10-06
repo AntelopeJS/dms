@@ -268,6 +268,21 @@ const InputStub = defineComponent({
       }),
 });
 
+// DmsSearchInput: an input named by its placeholder.
+const SearchInputStub = defineComponent({
+  props: { modelValue: String, placeholder: String },
+  emits: ["update:modelValue"],
+  setup:
+    (props, { emit }) =>
+    () =>
+      h(InputStub, {
+        "aria-label": props.placeholder,
+        modelValue: props.modelValue,
+        "onUpdate:modelValue": (value: string) =>
+          emit("update:modelValue", value),
+      }),
+});
+
 const slotStub = defineComponent({
   setup:
     (_, { slots }) =>
@@ -306,6 +321,7 @@ function mountEditor() {
   app.component("UButton", stub("button"));
   app.component("UIcon", stub("i"));
   app.component("UInput", InputStub);
+  app.component("DmsSearchInput", SearchInputStub);
   app.component("UFormField", slotStub);
   app.component("UDropdownMenu", slotStub);
   app.component("DmsMeter", stub("span"));

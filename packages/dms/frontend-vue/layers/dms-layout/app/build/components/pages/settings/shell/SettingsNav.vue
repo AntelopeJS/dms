@@ -2,10 +2,7 @@
 import { tv } from "tailwind-variants";
 import { usePermissionPreview } from "#dms-core/app/composables/auth/usePermissionPreview";
 import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
-import {
-  NAV_SEARCH_SHORTCUT,
-  buildNavSearchShortcuts,
-} from "#dms-ui/app/composables/global/searchShortcuts";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 import {
   findActiveSettingsPath,
   useSettingsNavigation,
@@ -15,7 +12,6 @@ import {
 
 const SETTINGS_INDEX_PATH = "/settings";
 const ALL_SETTINGS_ICON = "i-ph-squares-four";
-const SEARCH_ICON = "i-ph-magnifying-glass";
 
 // v2 settings nav: title, search, "All settings", then one eyebrow-labelled
 // group per scope. Under lg it folds into a horizontal strip of items.
@@ -74,13 +70,6 @@ const route = useDmsRoute();
 const { groups } = useSettingsNavigation();
 
 const query = ref("");
-const searchInput = useTemplateRef<{ inputRef?: HTMLInputElement }>("search");
-
-// "/" belongs to this search on every settings page; a page with a search of
-// its own focuses it with ⌘ / or Ctrl / instead, never "/".
-defineShortcuts(
-  buildNavSearchShortcuts(() => searchInput.value?.inputRef?.focus()),
-);
 
 const matchesQuery = (page: SettingsNavPage, needle: string): boolean =>
   [page.label, page.description].some((text) =>
@@ -154,19 +143,15 @@ const previewStateLabel = (
   <nav ref="navRoot" :class="ui.root()" :aria-label="t('page.settings.title')">
     <h2 :class="ui.title()">{{ t("page.settings.title") }}</h2>
 
-    <UInput
-      ref="search"
+    <!-- "/" belongs to this search on every settings page; a page with a
+      search of its own focuses it with ⌘ / or Ctrl / instead, never "/". -->
+    <DmsSearchInput
       v-model="query"
       :placeholder="t('page.settings.shell.search_placeholder')"
-      :icon="SEARCH_ICON"
+      shortcut="nav"
       size="sm"
       :class="ui.search()"
-      :aria-keyshortcuts="NAV_SEARCH_SHORTCUT"
-    >
-      <template #trailing>
-        <UKbd :value="NAV_SEARCH_SHORTCUT" size="sm" />
-      </template>
-    </UInput>
+    />
 
     <DmsLink
       :to="SETTINGS_INDEX_PATH"

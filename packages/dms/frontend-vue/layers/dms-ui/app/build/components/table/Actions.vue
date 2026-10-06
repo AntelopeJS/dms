@@ -362,13 +362,11 @@ const uiTableActions = computed(() => uiTableActionsVariant());
 
 <template>
   <div :class="uiTableActions.root()">
-    <UInput
+    <DmsSearchInput
       v-if="showSearch && isSearchField"
       ref="searchFieldRef"
       v-model="tableSharedData!.globalFilterState.value"
       :placeholder="searchPlaceholderText"
-      :aria-label="searchPlaceholderText"
-      icon="i-ph-magnifying-glass"
       size="sm"
       :class="uiTableActions.searchField()"
       @keydown.esc="closeSearch"
