@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModuleTile from "./ModuleTile.vue";
 import {
   MODULE_INSTALL_COMMAND,
   moduleInstallCommand,
@@ -20,32 +21,16 @@ const command = computed(() => moduleInstallCommand(props.entry));
 </script>
 
 <template>
-  <article
-    class="flex min-h-[228px] flex-col gap-3 overflow-hidden rounded-(--dms-radius-card) border border-dashed border-(--ui-border-accented) px-4 pt-4"
-    :aria-label="processI18n(props.entry.title)"
+  <ModuleTile
+    :icon="props.entry.icon"
+    :title="processI18n(props.entry.title)"
+    :description="processI18n(props.entry.description)"
+    :status="{
+      tone: 'neutral',
+      dot: 'none',
+      label: t('modules.store.available_soon'),
+    }"
   >
-    <!-- v2 .mc-tile.is-available: a dashed, transparent tile with a quiet
-         icon and no live readout, since the module does not run here. -->
-    <div class="flex items-start justify-between gap-2.5">
-      <DmsIconWell :icon="props.entry.icon" tone="muted" />
-      <DmsStatusPill
-        tone="neutral"
-        dot="none"
-        :label="t('modules.store.available_soon')"
-        size="sm"
-        uppercase
-      />
-    </div>
-
-    <div
-      class="text-highlighted mt-auto truncate text-lg font-[650] tracking-[-0.02em]"
-    >
-      {{ processI18n(props.entry.title) }}
-    </div>
-    <p class="text-muted -mt-1.5 line-clamp-2 text-sm leading-[1.45]">
-      {{ processI18n(props.entry.description) }}
-    </p>
-
     <!-- The CLI command that adds the module today, shown muted: the store
          will run it for you once installing from here is possible. -->
     <div
@@ -63,10 +48,10 @@ const command = computed(() => moduleInstallCommand(props.entry));
       </b>
     </div>
 
-    <div
-      class="text-dimmed -mx-4 mt-0.5 flex items-center gap-2 border-t border-(--ui-border-muted) py-[7px] ps-4 pe-3 font-mono text-[11px] font-medium"
-    >
-      <span class="truncate">{{ processI18n(props.entry.catalogCategory) }}</span>
+    <template #footer>
+      <span class="truncate">
+        {{ processI18n(props.entry.catalogCategory) }}
+      </span>
       <!-- aria-disabled rather than disabled: the button stays focusable and
            hoverable so its "Coming soon" tooltip can explain why. -->
       <span class="ms-auto shrink-0 font-sans">
@@ -85,6 +70,6 @@ const command = computed(() => moduleInstallCommand(props.entry));
           />
         </UTooltip>
       </span>
-    </div>
-  </article>
+    </template>
+  </ModuleTile>
 </template>

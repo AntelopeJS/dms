@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DmsCard from "#dms-ui/app/components/card/Card.vue";
+import RolePanelHead from "./RolePanelHead.vue";
 import type { RoleOwnersSummary } from "./role-types";
 
 interface RoleOwnerPanelProps {
@@ -14,27 +16,27 @@ const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 <template>
   <!-- v2 "Owner role · locked": the owner is not a stored role, so the editor
        explains it instead of offering a tree. -->
-  <section class="dms-card min-w-0" aria-labelledby="role-owner-title">
-    <div
-      class="border-default flex items-center gap-3 border-b py-3.5 ps-[18px] pe-4"
-    >
-      <DmsIconWell icon="i-ph-crown" size="md" />
-      <h2
-        id="role-owner-title"
-        class="text-highlighted flex items-center gap-2 text-[15px] leading-[1.3] font-[650] tracking-[-0.01em]"
+  <DmsCard
+    as="section"
+    :padded="false"
+    class="min-w-0"
+    aria-labelledby="role-owner-title"
+  >
+    <template #header>
+      <RolePanelHead
+        icon="i-ph-crown"
+        title-id="role-owner-title"
+        :meta="
+          t(
+            'page.settings.roles.editor.members_count',
+            props.owners.memberCount,
+          )
+        "
       >
         {{ t("page.settings.roles.editor.owner") }}
         <UIcon name="i-ph-lock-simple" class="text-dimmed size-4" />
-        <span class="text-dimmed font-mono text-[10.5px] font-medium">
-          {{
-            t(
-              "page.settings.roles.editor.members_count",
-              props.owners.memberCount,
-            )
-          }}
-        </span>
-      </h2>
-    </div>
+      </RolePanelHead>
+    </template>
     <DmsEmptyState
       variant="no-access"
       icon="i-ph-lock-key"
@@ -51,5 +53,5 @@ const MEMBERS_PAGE_PATH = "/settings/workspace/members";
         />
       </template>
     </DmsEmptyState>
-  </section>
+  </DmsCard>
 </template>

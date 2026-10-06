@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useTemplateRef } from "vue";
+import DmsCard from "#dms-ui/app/components/card/Card.vue";
 import RolePermissionTree from "./RolePermissionTree.vue";
+import RolePanelHead from "./RolePanelHead.vue";
 import {
   buildPermissionLevels,
   collapseOneLevel,
@@ -161,58 +163,52 @@ function toggleArea(id: string): void {
 <template>
   <!-- v2 .cs-editor: the selected role's head, its name and description,
        then the permission tree with its tools and the save bar. -->
-  <section
-    class="dms-card @container/editor flex min-w-0 flex-col"
+  <DmsCard
+    as="section"
+    :padded="false"
+    class="@container/editor min-w-0"
     aria-labelledby="role-editor-title"
   >
-    <div
-      class="border-default flex items-center gap-3 border-b py-3.5 ps-[18px] pe-4"
-    >
-      <DmsIconWell icon="i-ph-key" size="md" />
-      <h2
-        id="role-editor-title"
-        class="text-highlighted flex min-w-0 flex-wrap items-center gap-2 text-[15px] leading-[1.3] font-[650] tracking-[-0.01em]"
+    <template #header>
+      <RolePanelHead
+        icon="i-ph-key"
+        title-id="role-editor-title"
+        :meta="props.isNew ? undefined : memberLine"
       >
         <span class="truncate">
           {{ name || t("page.settings.roles.editor.untitled") }}
         </span>
-        <span
-          v-if="!props.isNew"
-          class="text-dimmed font-mono text-[10.5px] font-medium"
-        >
-          {{ memberLine }}
+      </RolePanelHead>
+    </template>
+    <template #actions>
+      <UButton
+        v-if="props.canPreview"
+        icon="i-ph-eye"
+        color="neutral"
+        variant="outline"
+        size="sm"
+        :aria-label="previewLabel"
+        :title="previewLabel"
+        @click="emit('preview')"
+      >
+        <span class="hidden max-w-[200px] truncate @3xl/editor:inline">
+          {{ previewLabel }}
         </span>
-      </h2>
-      <div class="ms-auto flex shrink-0 items-center gap-2">
+      </UButton>
+      <UDropdownMenu
+        v-if="!props.isNew"
+        :items="actions"
+        :content="{ align: 'end' }"
+      >
         <UButton
-          v-if="props.canPreview"
-          icon="i-ph-eye"
+          icon="i-ph-dots-three"
           color="neutral"
           variant="outline"
           size="sm"
-          :aria-label="previewLabel"
-          :title="previewLabel"
-          @click="emit('preview')"
-        >
-          <span class="hidden max-w-[200px] truncate @3xl/editor:inline">
-            {{ previewLabel }}
-          </span>
-        </UButton>
-        <UDropdownMenu
-          v-if="!props.isNew"
-          :items="actions"
-          :content="{ align: 'end' }"
-        >
-          <UButton
-            icon="i-ph-dots-three"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            :aria-label="t('page.settings.roles.editor.more_actions')"
-          />
-        </UDropdownMenu>
-      </div>
-    </div>
+          :aria-label="t('page.settings.roles.editor.more_actions')"
+        />
+      </UDropdownMenu>
+    </template>
 
     <div
       class="border-default grid gap-x-4 gap-y-3.5 border-b px-[18px] py-4 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)]"
@@ -369,5 +365,5 @@ function toggleArea(id: string): void {
       @discard="emit('discard')"
       @save="emit('save')"
     />
-  </section>
+  </DmsCard>
 </template>

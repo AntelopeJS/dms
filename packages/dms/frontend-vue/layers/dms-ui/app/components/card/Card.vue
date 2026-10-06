@@ -59,7 +59,9 @@ const cardClass = computed(() => [
   props.variant === "elevated" && "dms-card--elevated",
   props.interactive && "dms-card--interactive",
   props.selected && "dms-card--selected",
-  isSectioned.value && "flex flex-col overflow-hidden",
+  // Clip, not hidden: the card rounds its head and footer without becoming
+  // the scroll container a sticky save bar inside it would stick to.
+  isSectioned.value && "flex flex-col overflow-clip",
   props.padded && !isSectioned.value && BODY_PADDING,
 ]);
 </script>

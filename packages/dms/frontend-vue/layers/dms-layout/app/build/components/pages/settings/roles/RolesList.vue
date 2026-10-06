@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DmsCard from "#dms-ui/app/components/card/Card.vue";
 import RoleMemberAvatars from "./RoleMemberAvatars.vue";
 import RolesListItem from "./RolesListItem.vue";
 import {
@@ -42,25 +43,19 @@ function coverage(count: number): number {
 <template>
   <!-- v2 .cs-rlist: a card of roles, each with its members and a coverage bar;
        it sticks beside the editor while the permission tree scrolls. -->
-  <aside
-    class="dms-card overflow-hidden @3xl:sticky @3xl:top-6"
+  <DmsCard
+    as="aside"
+    :padded="false"
+    class="@3xl:sticky @3xl:top-6"
+    :title="t('page.settings.roles.editor.list_title')"
+    :count="props.roles.length + 1"
     :aria-label="t('page.settings.roles.editor.list_title')"
   >
-    <div
-      class="border-default flex min-h-11 items-center gap-2.5 border-b ps-[18px] pe-4"
-    >
-      <DmsEyebrow
-        as="span"
-        tone="muted"
-        :label="t('page.settings.roles.editor.list_title')"
-      />
+    <template #actions>
       <span class="text-dimmed font-mono text-[10.5px] font-medium">
-        {{ props.roles.length + 1 }}
-      </span>
-      <span class="text-dimmed ms-auto font-mono text-[10.5px] font-medium">
         {{ t("page.settings.roles.editor.list_members") }}
       </span>
-    </div>
+    </template>
     <div class="border-muted border-b px-3 py-2">
       <DmsSearchInput
         v-model="query"
@@ -135,12 +130,9 @@ function coverage(count: number): number {
         {{ t("page.settings.roles.editor.no_role_match") }}
       </p>
     </div>
-    <!-- v2 .cs-foot -->
-    <div
-      class="border-default text-muted flex items-center gap-2.5 border-t bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-4 text-[12.5px]"
-    >
+    <template #footer>
       <UIcon name="i-ph-info" class="text-dimmed size-4 shrink-0" />
-      <span>
+      <span class="text-muted text-[12.5px]">
         {{ t("page.settings.roles.editor.foot_prefix") }}
         <DmsLink
           to="/settings/workspace/members"
@@ -149,6 +141,6 @@ function coverage(count: number): number {
           {{ t("page.settings.roles.editor.foot_link") }}
         </DmsLink>
       </span>
-    </div>
-  </aside>
+    </template>
+  </DmsCard>
 </template>

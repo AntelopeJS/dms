@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModuleTile from "./ModuleTile.vue";
 import type { DmsTone } from "#dms-ui/app/utils/tone";
 import type {
   CheckListItem,
@@ -52,42 +53,29 @@ const title = computed(() => processI18n(props.entry.title));
 </script>
 
 <template>
-  <DmsLink
+  <ModuleTile
     :to="props.to"
-    class="group dms-card dms-card--interactive flex min-h-[228px] flex-col gap-3 overflow-hidden px-4 pt-4 text-inherit"
+    :icon="props.entry.icon"
+    :title="title"
+    :description="processI18n(props.entry.description)"
+    :status="{
+      tone: STATUS_TONES[status],
+      label: t(`modules.status.${status}`),
+    }"
   >
-    <div class="flex items-start justify-between gap-2.5">
-      <DmsIconWell :icon="props.entry.icon" />
-      <DmsStatusPill
-        :tone="STATUS_TONES[status]"
-        :label="t(`modules.status.${status}`)"
-        size="sm"
-        uppercase
+    <template #readout>
+      <DmsCheckList
+        v-if="readout.length > 0"
+        :items="readout"
+        marker="glyph"
+        size="xs"
+        :tint-labels="false"
+        truncate
+        class="overflow-hidden"
       />
-    </div>
+    </template>
 
-    <DmsCheckList
-      v-if="readout.length > 0"
-      :items="readout"
-      marker="glyph"
-      size="xs"
-      :tint-labels="false"
-      truncate
-      class="overflow-hidden"
-    />
-
-    <div
-      class="text-highlighted mt-auto truncate text-lg font-[650] tracking-[-0.02em]"
-    >
-      {{ title }}
-    </div>
-    <p class="text-muted -mt-1.5 line-clamp-2 text-sm leading-[1.45]">
-      {{ processI18n(props.entry.description) }}
-    </p>
-
-    <div
-      class="text-dimmed -mx-4 mt-0.5 flex items-center gap-2 border-t border-(--ui-border-muted) bg-(--dms-bg-muted) py-[9px] ps-4 pe-3 font-mono text-[11px] font-medium"
-    >
+    <template #footer>
       <span v-if="props.entry.version" class="whitespace-nowrap">
         v{{ props.entry.version }}
       </span>
@@ -109,6 +97,6 @@ const title = computed(() => processI18n(props.entry.title));
           :aria-hidden="true"
         />
       </span>
-    </div>
-  </DmsLink>
+    </template>
+  </ModuleTile>
 </template>
