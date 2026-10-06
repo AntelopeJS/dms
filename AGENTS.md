@@ -23,6 +23,12 @@ a file under `packages/interface-dms/src` is therefore a breaking change, like
 removing an export: keep paths stable, and list such a move in the release
 notes.
 
+What a module must not rely on carries `/** @internal */`. The interface
+publishes its TSDoc in its declarations, so the tag shows in a module's
+editor, but it is not stripped: the runtime compiles against those same
+declarations and implements or calls much of what is internal, and
+`stripInternal` would break both its build and the published barrels.
+
 ### The interface package is a singleton
 
 `@antelopejs/interface-dms` is not a types-only package: the page, category and
