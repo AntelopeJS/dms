@@ -55,20 +55,24 @@ function removeStorage(storage: Storage, key: string): void {
   }
 }
 
-// Sessions left behind by tabs closed without "Exit preview".
-function pruneStaleSessions(now: number): void {
+function removeSessions(isRemoved: (key: string) => boolean): void {
   try {
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
       if (!key?.startsWith(PERMISSION_PREVIEW_STORAGE_PREFIX)) continue;
-      const session = parsePreviewSession(readStorage(localStorage, key));
-      if (!session || isStalePreviewSession(session, now)) {
-        removeStorage(localStorage, key);
-      }
+      if (isRemoved(key)) removeStorage(localStorage, key);
     }
   } catch {
     /* noop */
   }
+}
+
+// Sessions left behind by tabs closed without "Exit preview".
+function pruneStaleSessions(now: number): void {
+  removeSessions((key) => {
+    const session = parsePreviewSession(readStorage(localStorage, key));
+    return !session || isStalePreviewSession(session, now);
+  });
 }
 
 function newPreviewId(): string {
@@ -340,6 +344,17 @@ export function usePermissionPreview() {
     }, CLOSE_FALLBACK_DELAY_MS);
   }
 
+  /**
+   * Forget every preview this browser holds, on sign-out: the next account to
+   * sign in here must not find the previous one's role and drafts.
+   */
+  function purge(): void {
+    state.session.value = null;
+    state.result.value = null;
+    removeStorage(sessionStorage, PERMISSION_PREVIEW_TAB_KEY);
+    removeSessions(() => true);
+  }
+
   return {
     session: state.session,
     result: state.result,
@@ -357,5 +372,6 @@ export function usePermissionPreview() {
     activate,
     refresh,
     exit,
+    purge,
   };
 }

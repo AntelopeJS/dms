@@ -8,14 +8,17 @@ const FALLBACK_AUTH_ROUTE = "/auth";
  *
  * Clears the session even when the user object is malformed (missing `_id`),
  * so logout never silently no-ops; only the multi-account cleanup needs the id.
+ * Any "Preview as role" state goes too.
  */
 export function useLogout() {
   const { user, clear: clearSession } = useUserSession<User>();
   const { accounts, removeAccount } = useMultiAccount();
+  const { purge: purgePermissionPreviews } = usePermissionPreview();
 
   async function logout(): Promise<void> {
     const userId = user.value?._id;
 
+    purgePermissionPreviews();
     await clearSession();
     if (userId) {
       await removeAccount(userId);
