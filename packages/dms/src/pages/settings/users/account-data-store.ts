@@ -32,7 +32,7 @@ import {
   UserNotificationsModel,
 } from "../../../db";
 import { accountDeletionSchema } from "../../../validation/account-deletion.schema";
-import { assertCurrentPassword } from "./account-credentials";
+import { assertCurrentPassword } from "./current-password";
 import {
   type AccountExport,
   type AccountInviteSource,

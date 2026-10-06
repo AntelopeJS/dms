@@ -3,14 +3,15 @@ import { useTemplateRef } from "vue";
 import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
-
-type CodeModalTone = "accent" | "error" | "warning";
+import SecurityDialogFrame, {
+  type SecurityDialogTone,
+} from "./SecurityDialogFrame.vue";
 
 interface SecurityCodeModalProps {
   title: string;
   description: string;
   icon: string;
-  tone?: CodeModalTone;
+  tone?: SecurityDialogTone;
   codeLabel: string;
   confirmLabel: string;
   loading?: boolean;
@@ -30,11 +31,6 @@ const emit = defineEmits<{
 }>();
 
 const CODE_LENGTH = 6;
-const CONFIRM_COLORS: Record<CodeModalTone, "primary" | "error" | "warning"> = {
-  accent: "primary",
-  error: "error",
-  warning: "warning",
-};
 
 const isOpen = defineModel<boolean>("open", { default: false });
 /** A code the API refused, shown under the cells; typing clears it. */
@@ -76,66 +72,39 @@ function confirm(): void {
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" :ui="{ content: 'max-w-md' }">
-    <template #header>
-      <div class="flex items-start gap-3">
-        <DmsIconWell :icon="props.icon" :tone="props.tone" size="xl" />
-        <div class="grid gap-1 pt-1">
-          <h3 class="text-highlighted text-base font-semibold">
-            {{ props.title }}
-          </h3>
-        </div>
-      </div>
-    </template>
-    <template #body>
-      <form class="grid gap-4" @submit.prevent="confirm">
-        <p class="text-muted text-sm">{{ props.description }}</p>
-        <div ref="codeField" class="grid gap-2">
-          <span class="text-highlighted text-[13px] font-medium">
-            {{ props.codeLabel }}
-          </span>
-          <DmsOtpInput
-            v-model="digits"
-            :label="props.codeLabel"
-            :length="CODE_LENGTH"
-            type="number"
-            is-otp
-            :error="error"
-            @complete="confirm"
-          />
-          <UButton
-            v-if="props.canSendEmailCode"
-            variant="link"
-            size="sm"
-            class="w-fit px-0"
-            :label="t('page.settings.two_factor.send_code')"
-            @click="emit('sendCode')"
-          />
-        </div>
-      </form>
-    </template>
-    <template #footer>
-      <!-- Phones: no Esc hint (no keyboard) and the buttons may wrap. -->
-      <div class="flex w-full flex-wrap items-center justify-end gap-2">
-        <span
-          class="text-dimmed me-auto flex items-center gap-1.5 text-xs max-sm:hidden"
-        >
-          <UKbd value="Esc" size="sm" />
-          {{ t("page.settings.security.esc_to_cancel") }}
+  <SecurityDialogFrame
+    v-model:open="isOpen"
+    :title="props.title"
+    :icon="props.icon"
+    :tone="props.tone"
+    :confirm-label="props.confirmLabel"
+    :loading="props.loading"
+    @confirm="confirm"
+  >
+    <form class="grid gap-4" @submit.prevent="confirm">
+      <p class="text-muted text-sm">{{ props.description }}</p>
+      <div ref="codeField" class="grid gap-2">
+        <span class="text-highlighted text-[13px] font-medium">
+          {{ props.codeLabel }}
         </span>
-        <UButton
-          color="neutral"
-          variant="outline"
-          :label="t('page.settings.security.cancel')"
-          @click="isOpen = false"
+        <DmsOtpInput
+          v-model="digits"
+          :label="props.codeLabel"
+          :length="CODE_LENGTH"
+          type="number"
+          is-otp
+          :error="error"
+          @complete="confirm"
         />
         <UButton
-          :color="CONFIRM_COLORS[props.tone]"
-          :loading="props.loading"
-          :label="props.confirmLabel"
-          @click="confirm"
+          v-if="props.canSendEmailCode"
+          variant="link"
+          size="sm"
+          class="w-fit px-0"
+          :label="t('page.settings.two_factor.send_code')"
+          @click="emit('sendCode')"
         />
       </div>
-    </template>
-  </UModal>
+    </form>
+  </SecurityDialogFrame>
 </template>

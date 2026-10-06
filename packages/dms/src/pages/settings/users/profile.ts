@@ -56,15 +56,6 @@ import {
   HTTP_BAD_REQUEST,
   type UpdateProfileInput,
 } from "./profile-helpers";
-import {
-  confirmTotpSetup,
-  disableTwoFactorMethod,
-  enableEmailMethod,
-  getTwoFactorStatus,
-  regenerateBackupCodes,
-  requestTwoFactorEmailCode,
-  startTotpSetup,
-} from "./two-factor-operations";
 
 const PROFILE_URL = "/settings/user/profile";
 const IMAGE_FIELD_TYPE = "image";
@@ -315,50 +306,6 @@ export class ProfileSettingsController extends PageController("profile", {
     @JSONBody() body: unknown,
   ): Promise<AccountDeletionResult> {
     return requestAccountDeletion(user, body);
-  }
-
-  @Get("/two-factor")
-  getTwoFactorStatus() {
-    return getTwoFactorStatus(this.user);
-  }
-
-  @Post("/two-factor/enable-totp")
-  enableTotp(@Model(UserModel) userModel: UserModel) {
-    return startTotpSetup(this.user, userModel);
-  }
-
-  @Post("/two-factor/confirm-totp")
-  confirmTotp(
-    @JSONBody() body: unknown,
-    @Model(UserModel) userModel: UserModel,
-  ) {
-    return confirmTotpSetup(this.user, body, userModel);
-  }
-
-  @Post("/two-factor/enable-email")
-  enableEmail(@Model(UserModel) userModel: UserModel) {
-    return enableEmailMethod(this.user, userModel);
-  }
-
-  @Post("/two-factor/disable")
-  disableTwoFactor(
-    @JSONBody() body: unknown,
-    @Model(UserModel) userModel: UserModel,
-  ) {
-    return disableTwoFactorMethod(this.user, body, userModel);
-  }
-
-  @Post("/two-factor/regenerate-backup")
-  regenerateBackupCodes(
-    @JSONBody() body: unknown,
-    @Model(UserModel) userModel: UserModel,
-  ) {
-    return regenerateBackupCodes(this.user, body, userModel);
-  }
-
-  @Post("/two-factor/request-email-code")
-  requestTwoFactorEmailCode(@Model(UserModel) userModel: UserModel) {
-    return requestTwoFactorEmailCode(this.user, userModel);
   }
 
   @Get("/sessions")

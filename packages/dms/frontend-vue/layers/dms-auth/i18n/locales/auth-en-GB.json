@@ -357,7 +357,9 @@
           "off_meta": "Add an authenticator app or email codes to protect your account.",
           "keep_two": "Keep at least two methods so you're never locked out.",
           "add_method": "Add method",
-          "add_named": "Add {method}"
+          "add_named": "Add {method}",
+          "password_prompt": "Confirm your password to add a sign-in method.",
+          "password_continue": "Continue"
         },
         "backup": {
           "title": "Backup codes",

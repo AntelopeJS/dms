@@ -357,7 +357,9 @@
           "off_meta": "Ajoutez une application d'authentification ou des codes par e-mail pour protéger votre compte.",
           "keep_two": "Gardez au moins deux méthodes pour ne jamais perdre l'accès.",
           "add_method": "Ajouter une méthode",
-          "add_named": "Ajouter « {method} »"
+          "add_named": "Ajouter « {method} »",
+          "password_prompt": "Confirmez votre mot de passe pour ajouter une méthode de connexion.",
+          "password_continue": "Continuer"
         },
         "backup": {
           "title": "Codes de secours",

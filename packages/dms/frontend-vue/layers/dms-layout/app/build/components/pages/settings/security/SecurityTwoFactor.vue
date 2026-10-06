@@ -10,6 +10,7 @@ import {
 import { useRevealedBackupCodes } from "../../../../../composables/settings/security/useRevealedBackupCodes";
 import SecurityBackupCodesModal from "./SecurityBackupCodesModal.vue";
 import SecurityCodeModal from "./SecurityCodeModal.vue";
+import SecurityPasswordModal from "./SecurityPasswordModal.vue";
 import SecurityTotpSetupModal from "./SecurityTotpSetupModal.vue";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
@@ -37,6 +38,11 @@ const INVALID_CODE_KEY = "page.settings.two_factor.invalid_code";
 const CODE_ERRORS = {
   "error.invalid_2fa_code": "code",
   "error.2fa_code_expired": "code",
+} as const;
+const INVALID_PASSWORD_KEY =
+  "page.settings.security.errors.invalid_current_password";
+const PASSWORD_ERRORS = {
+  "error.invalid_current_password": "currentPassword",
 } as const;
 // Opening a dialog while the previous one is still leaving nests them, and the
 // leaving one stays on top until the new one closes: let it finish first.
@@ -78,6 +84,9 @@ const isRemoveOpen = ref(false);
 const totpCodeError = ref<string>();
 const removeCodeError = ref<string>();
 const regenerateCodeError = ref<string>();
+const isPasswordOpen = ref(false);
+const passwordError = ref<string>();
+const pendingMethod = ref<TwoFactorMethod | null>(null);
 const removingMethod = ref<MethodConfig | null>(null);
 const isRegenerateOpen = ref(false);
 
@@ -90,6 +99,15 @@ const addableMethods = computed(() =>
   METHODS.filter((method) => !status.value?.methods.includes(method.key)),
 );
 const isOn = computed(() => enabledMethods.value.length > 0);
+const hasPassword = computed(() => overview.value?.hasPassword ?? true);
+const pendingMethodTitle = computed(() => {
+  const method = METHODS.find((entry) => entry.key === pendingMethod.value);
+  return method
+    ? t("page.settings.security.two_factor.add_named", {
+        method: t(method.nameKey),
+      })
+    : "";
+});
 const isUnsaved = computed(() =>
   attention.value.includes("backup_codes_unsaved"),
 );
@@ -142,23 +160,45 @@ function isCodeError(error: unknown): boolean {
   );
 }
 
+function isPasswordError(error: unknown): boolean {
+  return (
+    resolveFieldErrors(error, {
+      fields: ["currentPassword"],
+      codes: PASSWORD_ERRORS,
+    }).fields.length > 0
+  );
+}
+
+/** A refusal of what the open dialog asked for, shown in that dialog. */
+interface FieldRefusal {
+  error: Ref<string | undefined>;
+  matches: (error: unknown) => boolean;
+  messageKey: string;
+}
+
+const codeRefusal = (error: Ref<string | undefined>): FieldRefusal => ({
+  error,
+  matches: isCodeError,
+  messageKey: INVALID_CODE_KEY,
+});
+
 /**
- * @param codeError Where a refused code shows (under the code of the open
- *   dialog) instead of a toast
+ * @param refusal Where a refused code or password shows (in the open dialog)
+ *   instead of a toast
  */
 async function run(
   action: () => Promise<void>,
   fallbackKey: string,
-  codeError?: Ref<string | undefined>,
+  refusal?: FieldRefusal,
 ): Promise<void> {
   isProcessing.value = true;
-  if (codeError) codeError.value = undefined;
+  if (refusal) refusal.error.value = undefined;
   try {
     await action();
     await refresh();
   } catch (error) {
-    if (codeError && isCodeError(error)) {
-      codeError.value = errorMessage(error, INVALID_CODE_KEY);
+    if (refusal?.matches(error)) {
+      refusal.error.value = errorMessage(error, refusal.messageKey);
     } else {
       fail(error, fallbackKey);
     }
@@ -167,16 +207,34 @@ async function run(
   }
 }
 
-async function startTotp(): Promise<void> {
-  await run(async () => {
-    totpSetup.value = await $authFetch<TotpSetup>(
-      `${TWO_FACTOR_URL}/enable-totp`,
-      {
-        method: "POST",
-      },
-    );
-    isTotpOpen.value = true;
-  }, "page.settings.two_factor.setup_error");
+const passwordRefusal: FieldRefusal = {
+  error: passwordError,
+  matches: isPasswordError,
+  messageKey: INVALID_PASSWORD_KEY,
+};
+
+/** Closes the password dialog, then opens `next` once it has left. */
+function leavePasswordDialog(next?: () => void): void {
+  if (!isPasswordOpen.value) {
+    next?.();
+    return;
+  }
+  isPasswordOpen.value = false;
+  if (next) setTimeout(next, DIALOG_SWAP_MS);
+}
+
+async function startTotp(currentPassword?: string): Promise<void> {
+  await run(
+    async () => {
+      totpSetup.value = await $authFetch<TotpSetup>(
+        `${TWO_FACTOR_URL}/enable-totp`,
+        { method: "POST", body: { currentPassword } },
+      );
+      leavePasswordDialog(() => (isTotpOpen.value = true));
+    },
+    "page.settings.two_factor.setup_error",
+    passwordRefusal,
+  );
 }
 
 async function confirmTotp(code: string): Promise<void> {
@@ -194,31 +252,52 @@ async function confirmTotp(code: string): Promise<void> {
       showCodes(response.backupCodes);
     },
     INVALID_CODE_KEY,
-    totpCodeError,
+    codeRefusal(totpCodeError),
   );
 }
 
-async function enableEmail(): Promise<void> {
-  await run(async () => {
-    const response = await $authFetch<MethodEnabledResponse>(
-      `${TWO_FACTOR_URL}/enable-email`,
-      { method: "POST" },
-    );
-    toast.add({
-      title: t("page.settings.two_factor.enable_success"),
-      color: "success",
-    });
-    showCodes(response.backupCodes);
-  }, "page.settings.two_factor.setup_error");
+async function enableEmail(currentPassword?: string): Promise<void> {
+  await run(
+    async () => {
+      const response = await $authFetch<MethodEnabledResponse>(
+        `${TWO_FACTOR_URL}/enable-email`,
+        { method: "POST", body: { currentPassword } },
+      );
+      leavePasswordDialog();
+      toast.add({
+        title: t("page.settings.two_factor.enable_success"),
+        color: "success",
+      });
+      showCodes(response.backupCodes);
+    },
+    "page.settings.two_factor.setup_error",
+    passwordRefusal,
+  );
 }
 
-const ADD_HANDLERS: Record<TwoFactorMethod, () => Promise<void>> = {
+const ADD_HANDLERS: Record<
+  TwoFactorMethod,
+  (currentPassword?: string) => Promise<void>
+> = {
   totp: startTotp,
   email: enableEmail,
 };
 
+// Adding a method asks for the account password first, so a borrowed
+// session cannot enrol a second factor of its own. An account without a
+// password (single sign-on only) has nothing to prove it with.
 async function addMethod(method: TwoFactorMethod): Promise<void> {
-  await ADD_HANDLERS[method]();
+  if (!hasPassword.value) {
+    await ADD_HANDLERS[method]();
+    return;
+  }
+  pendingMethod.value = method;
+  isPasswordOpen.value = true;
+}
+
+async function confirmPassword(currentPassword: string): Promise<void> {
+  const method = pendingMethod.value;
+  if (method) await ADD_HANDLERS[method](currentPassword);
 }
 
 function openRemove(method: MethodConfig): void {
@@ -242,7 +321,7 @@ async function confirmRemove(code: string): Promise<void> {
       });
     },
     INVALID_CODE_KEY,
-    removeCodeError,
+    codeRefusal(removeCodeError),
   );
 }
 
@@ -271,7 +350,7 @@ async function confirmRegenerate(code: string): Promise<void> {
       showCodes(response.backupCodes, true);
     },
     INVALID_CODE_KEY,
-    regenerateCodeError,
+    codeRefusal(regenerateCodeError),
   );
 }
 
@@ -457,6 +536,16 @@ async function markSaved(): Promise<void> {
       </div>
     </template>
 
+    <SecurityPasswordModal
+      v-model:open="isPasswordOpen"
+      v-model:error="passwordError"
+      :title="pendingMethodTitle"
+      :description="t('page.settings.security.two_factor.password_prompt')"
+      icon="i-ph-shield-check"
+      :confirm-label="t('page.settings.security.two_factor.password_continue')"
+      :loading="isProcessing"
+      @confirm="confirmPassword"
+    />
     <SecurityTotpSetupModal
       v-model:open="isTotpOpen"
       v-model:error="totpCodeError"

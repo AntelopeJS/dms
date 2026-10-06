@@ -13,6 +13,8 @@ import {
   notifyTwoFactorEnabled,
 } from "../../../utils/account-notifications";
 import { authSchema } from "../../../validation/auth.schema";
+import { securitySchema } from "../../../validation/security.schema";
+import { assertCurrentPasswordIfSet } from "./current-password";
 import {
   BACKUP_CODE_COUNT,
   DMS_ISSUER,
@@ -98,17 +100,33 @@ function renderQrCode(user: User, secret: string): Promise<string> {
   });
 }
 
+// Adding a second factor asks for the account password: a borrowed session
+// must not enrol a factor of its own and lock the owner out.
+async function assertMayAddMethod(
+  user: User,
+  body: unknown,
+  userModel: UserModel,
+): Promise<void> {
+  const { currentPassword } = assertValidation(body ?? {}, (value) =>
+    securitySchema.addTwoFactorMethod.parse(value),
+  );
+  await assertCurrentPasswordIfSet(userModel, user, currentPassword);
+}
+
 /**
  * Stores a pending TOTP secret until the user proves their app holds it.
  *
  * @param user The signed-in user
+ * @param body `{ currentPassword }`, unless the account has no password
  * @param userModel Model the user is written to
  * @returns The key, its otpauth URL and a locally rendered QR code
  */
 export async function startTotpSetup(
   user: User,
+  body: unknown,
   userModel: UserModel,
 ): Promise<TotpSetup> {
+  await assertMayAddMethod(user, body, userModel);
   const secret = await generateTotpSecret();
   const otpAuthUrl = generateUrl(DMS_ISSUER, user.email, secret);
   user.twoFactorPendingSecret = secret;
@@ -176,13 +194,16 @@ export async function confirmTotpSetup(
 
 /**
  * @param user The signed-in user
+ * @param body `{ currentPassword }`, unless the account has no password
  * @param userModel Model the user is written to
  * @returns Success, with backup codes when a new set was issued
  */
 export async function enableEmailMethod(
   user: User,
+  body: unknown,
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
+  await assertMayAddMethod(user, body, userModel);
   const backupCodes = enableMethod(user, "email");
   await userModel.update(user);
   fireAndForget(

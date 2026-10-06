@@ -117,8 +117,11 @@ export class SecuritySettingsController extends PageController("security", {
   }
 
   @Post("/two-factor/enable-totp")
-  enableTotp(@Model(UserModel) userModel: UserModel) {
-    return startTotpSetup(this.user, userModel);
+  enableTotp(
+    @JSONBody() body: unknown,
+    @Model(UserModel) userModel: UserModel,
+  ) {
+    return startTotpSetup(this.user, body, userModel);
   }
 
   @Post("/two-factor/confirm-totp")
@@ -130,8 +133,11 @@ export class SecuritySettingsController extends PageController("security", {
   }
 
   @Post("/two-factor/enable-email")
-  enableEmail(@Model(UserModel) userModel: UserModel) {
-    return enableEmailMethod(this.user, userModel);
+  enableEmail(
+    @JSONBody() body: unknown,
+    @Model(UserModel) userModel: UserModel,
+  ) {
+    return enableEmailMethod(this.user, body, userModel);
   }
 
   @Post("/two-factor/disable")

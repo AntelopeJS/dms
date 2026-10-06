@@ -25,4 +25,8 @@ export const securitySchema = {
     email: z.string().email(),
     currentPassword: currentPasswordSchema,
   }),
+  // Optional only for an account that has no password (single sign-on).
+  addTwoFactorMethod: z.object({
+    currentPassword: currentPasswordSchema.optional(),
+  }),
 };
