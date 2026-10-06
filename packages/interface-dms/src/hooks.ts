@@ -8,7 +8,7 @@ import type {
   TenantDataExportContribution,
   TenantExportArchive,
 } from "./tenant-export";
-import { OwnedRegistry } from "./utils/owned-registry";
+import { OwnedRegistry } from "./utils/internal/owned-registry";
 
 export * from "./tenant-export";
 

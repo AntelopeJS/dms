@@ -11,7 +11,7 @@ import { sendAdminInviteEmail } from "./auth";
 import { normalizeEmail, UserModel } from "./auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "./utils/fire-and-forget";
-import { MILLISECONDS_PER_DAY } from "./utils/time";
+import { MILLISECONDS_PER_DAY } from "./utils/internal/time";
 import { ExecuteHooks, Hook, type InviteReplacementReason } from "./hooks";
 import type { InviteExtensionPayloads } from "./invite-extensions";
 import { DeliverInviteExtensions } from "./invite-extensions/delivery";

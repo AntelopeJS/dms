@@ -515,7 +515,7 @@ export function formRouteKey(
   const path = permissionId.startsWith(prefix)
     ? permissionId.slice(prefix.length)
     : "";
-  const key = path.split(".").pop();
+  const key = path.split("./").pop();
   if (!key) {
     throw new Error(
       `TableView permission id "${permissionId}" names no component of the page whose permission id is "${pagePermissionId}": its form routes have no key to be named after.`,

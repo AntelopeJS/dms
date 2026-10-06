@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sign } from "jsonwebtoken";
-import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 import { getHtmlRenderConfig } from "../../config";
 import { HTML_RENDER_NAMESPACE } from "./constants";
 

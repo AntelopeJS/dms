@@ -33,7 +33,7 @@ import {
   EXPORT_TTL_MS,
   type StreamedExport,
 } from "@antelopejs/interface-dms/base/export-jobs";
-import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 
 // The contract declares the vocabulary and the defaults; re-exported here so a
 // caller inside the module reaches the whole export surface from one place.

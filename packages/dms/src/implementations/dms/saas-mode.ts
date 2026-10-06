@@ -1,4 +1,4 @@
-import type { SaasModeRegistration } from "@antelopejs/interface-dms/utils/saas-mode";
+import type { SaasModeRegistration } from "@antelopejs/interface-dms/utils/internal/saas-mode";
 
 const registrationIds = new Set<string>();
 

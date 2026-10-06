@@ -19,8 +19,8 @@ import {
 } from "@antelopejs/interface-file-storage";
 import { z } from "zod";
 import type { ComponentInfoSerialized } from "../../component";
-import { parseValue } from "../../utils/value-parser";
-import { isString } from "../../utils/type-check";
+import { parseValue } from "../../utils/internal/value-parser";
+import { isString } from "../../utils/internal/type-check";
 import { GetAttachmentValidationMetadata } from "../../attachments";
 import { Form, FormComponents } from "../form-schema";
 // Import from the defining leaf, not the table-view barrel: the barrel pulls

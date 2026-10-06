@@ -68,7 +68,7 @@ import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
 import { ensureDefaultTenantExists } from "./utils";
-import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 
 export * from "./config";
 

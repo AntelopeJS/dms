@@ -6,7 +6,7 @@ import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
-import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 import { getAuthConfig } from "../../../config";
 import { UserEmailChangesModel } from "../../../db/models/userEmailChanges.model";
 import { notifyEmailChanged } from "../../../utils/account-notifications";

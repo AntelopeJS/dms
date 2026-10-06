@@ -5,7 +5,7 @@ import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_HOUR,
   MILLISECONDS_PER_MINUTE,
-} from "@antelopejs/interface-dms/utils/time";
+} from "@antelopejs/interface-dms/utils/internal/time";
 
 /**
  * Runtime configuration state and accessors.

@@ -17,7 +17,7 @@ import {
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
 } from "../../utils/admin-invite-email";
-import { isObject } from "@antelopejs/interface-dms/utils/type-check";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";

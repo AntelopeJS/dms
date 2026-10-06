@@ -7,7 +7,7 @@ import {
   isStringNumber,
   parseObject,
   parseValue,
-} from "@antelopejs/interface-dms/utils/value-parser";
+} from "@antelopejs/interface-dms/utils/internal/value-parser";
 
 const KEYWORD_TRUE = "true";
 const KEYWORD_FALSE = "false";

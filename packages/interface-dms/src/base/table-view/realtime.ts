@@ -5,7 +5,7 @@ import type { DataControllerCallback } from "@antelopejs/interface-data-api";
 import { AuthUser } from "../../auth";
 import type { User } from "../../auth/db";
 import { RegisterPageTopic } from "../../realtime";
-import { OwnedRegistry } from "../../utils/owned-registry";
+import { OwnedRegistry } from "../../utils/internal/owned-registry";
 import { getControllerLocation, getTableViewMetaFor } from "./meta";
 
 const REALTIME_SESSION_HEADER = "x-realtime-session";

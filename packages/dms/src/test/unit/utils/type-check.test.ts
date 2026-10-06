@@ -12,7 +12,7 @@ import {
   isString,
   isSymbol,
   isUndefined,
-} from "@antelopejs/interface-dms/utils/type-check";
+} from "@antelopejs/interface-dms/utils/internal/type-check";
 
 const SAMPLE_STRING = "hello";
 const SAMPLE_NUMBER = 42;

@@ -17,8 +17,11 @@ import type {
   ValueProxy,
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
-import { assertPrimitiveValue, parseValue } from "../../utils/value-parser";
-import { isNumber } from "../../utils/type-check";
+import {
+  assertPrimitiveValue,
+  parseValue,
+} from "../../utils/internal/value-parser";
+import { isNumber } from "../../utils/internal/type-check";
 // Import from the defining leaf, not the table-view barrel: the barrel pulls
 // in the assembled routes, whose composition runs at module evaluation — and
 // this module sits on the import path of the pieces being composed.

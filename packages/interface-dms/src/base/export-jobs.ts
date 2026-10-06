@@ -11,7 +11,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { User } from "../auth/db";
 import type { ExportJob } from "../db/tables/exportJobs.table";
-import { MILLISECONDS_PER_DAY } from "../utils/time";
+import { MILLISECONDS_PER_DAY } from "../utils/internal/time";
 import type { ExportStatus } from "./types/export-status";
 
 /** Lifetime of a stored export, enforced by the `sweep-stale-exports` cron. */

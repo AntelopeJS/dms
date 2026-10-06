@@ -8,7 +8,7 @@ import {
   completeInviteResolution,
   decideInvite,
 } from "@antelopejs/interface-dms/invite-resolution";
-import { getRowInstance } from "@antelopejs/interface-dms/utils/row-instance";
+import { getRowInstance } from "@antelopejs/interface-dms/utils/internal/row-instance";
 
 export const CLEANUP_USER_INVITES_CRON_NAME = "cleanup-user-invites";
 const CLEANUP_USER_INVITES_SCHEDULE = "0 3 * * *";

@@ -4,7 +4,7 @@ import type {
   CustomButtonUnavailability,
 } from "../base/types/custom-button";
 import type { ComponentFilterContext } from "../component";
-import { OwnedRegistry } from "../utils/owned-registry";
+import { OwnedRegistry } from "../utils/internal/owned-registry";
 
 /**
  * Decides, per request, whether members can be invited into the tenant right
