@@ -9,7 +9,8 @@ import {
   DefaultRoutes,
 } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
-import type { GuardFn } from "../types/guards";
+import { Logging } from "@antelopejs/interface-core/logging";
+import type { AfterWrite, GuardFn } from "../types/guards";
 import { fetchRowForGuard } from "./data-functions";
 import { TableViewMeta } from "./meta";
 import { DEFAULT_ROW_ID_FIELD } from "./options";
@@ -36,7 +37,7 @@ interface GuardInvocationConfig {
     args: unknown[],
     guard: GuardFn<any>,
     idField: string,
-  ) => Promise<void>;
+  ) => Promise<void | AfterWrite>;
 }
 
 const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
@@ -54,7 +55,7 @@ const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
         idField,
       );
       throwHttpAssert(current, 404, "Not Found");
-      await guard.call(controller, ctx, { id, body, current });
+      return guard.call(controller, ctx, { id, body, current });
     },
   },
   delete: {
@@ -62,25 +63,25 @@ const ACTION_GUARD_CONFIGS: Record<GuardedActionName, GuardInvocationConfig> = {
       const ids = normalizeToArray(
         (params as Parameters.DeleteParameters).id as string | string[],
       );
-      await guard.call(controller, ctx, { ids });
+      return guard.call(controller, ctx, { ids });
     },
   },
   archive: {
     invokeGuard: async (controller, ctx, params, _args, guard) => {
       const ids = normalizeToArray(params as string | string[]);
-      await guard.call(controller, ctx, { ids });
+      return guard.call(controller, ctx, { ids });
     },
   },
   restore: {
     invokeGuard: async (controller, ctx, params, _args, guard) => {
       const ids = normalizeToArray(params as string | string[]);
-      await guard.call(controller, ctx, { ids });
+      return guard.call(controller, ctx, { ids });
     },
   },
   new: {
     invokeGuard: async (controller, ctx, _params, args, guard) => {
       const body = parseGuardBody(args[0]);
-      await guard.call(controller, ctx, { body });
+      return guard.call(controller, ctx, { body });
     },
   },
 };
@@ -113,6 +114,19 @@ const getIdField = (controller: unknown): string => {
   return meta.options.rowIdKey || DEFAULT_ROW_ID_FIELD;
 };
 
+async function runAfterWrite(
+  afterWrite: AfterWrite,
+  actionName: GuardedActionName,
+): Promise<void> {
+  try {
+    await afterWrite();
+  } catch (error) {
+    Logging.Error(
+      `[dms] the ${actionName} guard's after-write work failed: ${String(error)}`,
+    );
+  }
+}
+
 export const createGuardedRoute = (
   baseRoute: DataControllerCallback,
   actionName: GuardedActionName,
@@ -126,17 +140,19 @@ export const createGuardedRoute = (
       ...args: unknown[]
     ) {
       const guard = getGuardForAction(this, actionName);
-      if (guard) {
-        await config.invokeGuard(
-          this,
-          ctx,
-          params,
-          args,
-          guard,
-          getIdField(this),
-        );
-      }
-      return baseRoute.func.call(this, ctx, params, ...args);
+      const afterWrite = guard
+        ? await config.invokeGuard(
+            this,
+            ctx,
+            params,
+            args,
+            guard,
+            getIdField(this),
+          )
+        : undefined;
+      const result = await baseRoute.func.call(this, ctx, params, ...args);
+      if (afterWrite) await runAfterWrite(afterWrite, actionName);
+      return result;
     },
     args: baseRoute.args,
     method: baseRoute.method,

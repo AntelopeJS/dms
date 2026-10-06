@@ -30,11 +30,25 @@ export interface NewGuardArgs<
   body: Partial<T>;
 }
 
+/**
+ * Work a mutating guard hands back, run once the write it guarded succeeded:
+ * the guard knows the row as it was, this knows it was written — a
+ * notification comparing the two belongs here. It runs in the same request,
+ * on the same instance; a failure is logged and never fails the request, the
+ * write being done.
+ */
+export type AfterWrite = () => void | Promise<void>;
+
+/**
+ * Throws to refuse the action. A mutating guard (`edit`, `delete`, `archive`,
+ * `restore`, `new`) may return an {@link AfterWrite}; what `get` returns is
+ * ignored.
+ */
 export type GuardFn<TArgs> = (
   this: unknown,
   ctx: RequestContext,
   args: TArgs,
-) => void | Promise<void>;
+) => void | AfterWrite | Promise<void | AfterWrite>;
 
 export interface TableViewGuards<
   T extends Record<string, unknown> = Record<string, unknown>,
