@@ -118,22 +118,21 @@ onMounted(load);
         />
       </div>
 
-      <div
+      <DmsEmptyState
         v-else-if="loadFailed"
-        class="text-error flex items-center gap-3 px-[18px] py-6 text-[13px]"
-      >
-        <UIcon name="i-ph-warning-circle" class="size-4" />
-        {{ t("dms.notifications.preferences.error_loading") }}
-        <UButton
-          class="ms-auto"
-          color="neutral"
-          variant="outline"
-          size="xs"
-          icon="i-ph-arrows-clockwise"
-          :label="t('page.settings.notifications.retry')"
-          @click="load"
-        />
-      </div>
+        variant="error"
+        size="sm"
+        :title="t('dms.notifications.preferences.error_loading')"
+        :actions="[
+          {
+            label: t('page.settings.notifications.retry'),
+            icon: 'i-ph-arrows-clockwise',
+            color: 'neutral',
+            variant: 'outline',
+            onClick: load,
+          },
+        ]"
+      />
 
       <template
         v-for="(category, index) in visibleCategories"

@@ -167,21 +167,18 @@ const detectedLabel = computed(() =>
         </span>
       </template>
 
-      <div
+      <DmsFieldRow
         v-for="(shortcut, index) in group.shortcuts"
         :key="`${group.key}-${index}`"
-        class="border-muted flex items-center gap-4 border-t px-[18px] py-3 first:border-t-0"
+        :label="translate(shortcut.descriptionKey)"
+        :description="
+          shortcut.condition
+            ? translate(shortcut.condition.descriptionKey)
+            : undefined
+        "
       >
-        <div class="min-w-0 flex-1">
-          <div class="text-highlighted text-[13px] font-medium">
-            {{ translate(shortcut.descriptionKey) }}
-          </div>
-          <div v-if="shortcut.condition" class="text-muted mt-0.5 text-[12px]">
-            {{ translate(shortcut.condition.descriptionKey) }}
-          </div>
-        </div>
         <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
-      </div>
+      </DmsFieldRow>
     </DmsSection>
 
     <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
