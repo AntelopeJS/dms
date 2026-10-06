@@ -559,14 +559,14 @@
       "messages": {
         "new_login": {
           "title": "Nouvelle connexion depuis {device}",
-          "description": "Depuis l'IP {ip}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "description": "Pays : {country}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
           "title_browser_os": "Nouvelle connexion depuis {browser} sur {os}",
-          "description_no_ip": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
+          "description_no_country": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "new_login_unknown_device": {
           "title": "Connexion depuis un appareil non reconnu",
-          "description": "Depuis l'IP {ip}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
-          "description_no_ip": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
+          "description": "Pays : {country}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "description_no_country": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "password_changed": {
           "title": "Mot de passe modifié",

@@ -13,6 +13,7 @@ import type {
 } from "@antelopejs/interface-dms/auth/db";
 import { verifyTOTP } from "2fa";
 import { notifyBackupCodeUsed } from "../../utils/account-notifications";
+import type { ClientOrigin } from "../../utils/sign-in-country";
 import { recordSignIn } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "./constants";
@@ -82,7 +83,7 @@ export async function verify2FA(
   sessionModel: SessionModel,
   body: unknown,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
 ): Promise<AuthResponse> {
   const { token, code, method } = assertValidation(body, (v) =>
     authSchema.verify2FA.parse(v),
@@ -101,9 +102,14 @@ export async function verify2FA(
       "backup code used notification",
     );
   }
-  await recordSignIn(user, userAgent, ip);
+  await recordSignIn(user, userAgent, origin);
 
-  const sessionId = await createSession(sessionModel, user._id, userAgent, ip);
+  const sessionId = await createSession(
+    sessionModel,
+    user._id,
+    userAgent,
+    origin.ip,
+  );
 
   const accessTokenData = await generateAccessToken(tenantId, user, sessionId);
   const refreshTokenData = await generateRefreshToken(

@@ -1,3 +1,4 @@
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   AccountSubject,
   SecuritySubject,
@@ -9,6 +10,7 @@ import {
   type NotificationTemplate,
 } from "./notification-emitter";
 import { backupCodeUsedTone, LOW_BACKUP_CODES } from "./notification-tones";
+import { countryDisplayName } from "./sign-in-country";
 import type { SignInDevice } from "./sign-in-devices";
 
 function securityTemplate(
@@ -97,22 +99,27 @@ function newLoginTitle(device: SignInDevice): NotificationDelivery {
   return { params: { device: device.browser || device.os } };
 }
 
+/**
+ * Warns an account of a sign-in from a device — or a country — it never signed
+ * in from. Names the country, never the address.
+ */
 export function notifyNewLogin(
-  userId: string,
+  user: Pick<User, "_id" | "language">,
   device: SignInDevice,
-  ip: string,
 ): Promise<void> {
   const isRecognised = Boolean(device.browser || device.os);
   const delivery = isRecognised ? newLoginTitle(device) : {};
   const params = { ...delivery.params };
-  if (ip) params.ip = ip;
+  if (device.country) {
+    params.country = countryDisplayName(device.country, user.language);
+  }
   return emitNotification(
-    userId,
+    user._id,
     isRecognised ? templates.newLogin : templates.newLoginUnknownDevice,
     {
       ...delivery,
       params,
-      descriptionKey: ip ? "description" : "description_no_ip",
+      descriptionKey: device.country ? "description" : "description_no_country",
     },
   );
 }

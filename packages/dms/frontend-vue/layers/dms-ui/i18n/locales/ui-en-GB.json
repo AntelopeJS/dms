@@ -558,14 +558,14 @@
       "messages": {
         "new_login": {
           "title": "New sign-in from {device}",
-          "description": "From IP {ip}. Not you? Change your password, then sign out the other sessions in Security.",
+          "description": "Country: {country}. Not you? Change your password, then sign out the other sessions in Security.",
           "title_browser_os": "New sign-in from {browser} on {os}",
-          "description_no_ip": "Not you? Change your password, then sign out the other sessions in Security."
+          "description_no_country": "Not you? Change your password, then sign out the other sessions in Security."
         },
         "new_login_unknown_device": {
           "title": "New sign-in from an unrecognised device",
-          "description": "From IP {ip}. Not you? Change your password, then sign out the other sessions in Security.",
-          "description_no_ip": "Not you? Change your password, then sign out the other sessions in Security."
+          "description": "Country: {country}. Not you? Change your password, then sign out the other sessions in Security.",
+          "description_no_country": "Not you? Change your password, then sign out the other sessions in Security."
         },
         "password_changed": {
           "title": "Password changed",

@@ -100,4 +100,43 @@ describe("[unit] utils/sign-in-devices", () => {
       ).to.equal("new");
     });
   });
+
+  describe("the country of a sign-in", () => {
+    const inFrance = describeSignInDevice(agent(), "FR").fingerprint;
+    const inBrazil = describeSignInDevice(agent(), "BR").fingerprint;
+    const nowhere = describeSignInDevice(agent()).fingerprint;
+    const used = { ...NO_HISTORY, hasBeenActive: true };
+
+    it("joins the fingerprint, after the device", () => {
+      expect(inFrance).to.equal("chrome|windows|desktop|fr");
+      expect(nowhere).to.equal("chrome|windows|desktop");
+    });
+
+    it("alerts on a known device signing in from another country", () => {
+      expect(
+        classifySignIn(inBrazil, { ...used, knownFingerprints: [inFrance] }),
+      ).to.equal("new");
+      expect(
+        classifySignIn(inBrazil, { ...used, sessionFingerprints: [inFrance] }),
+      ).to.equal("new");
+    });
+
+    it("stays quiet for a known device in its known country", () => {
+      expect(
+        classifySignIn(inFrance, { ...used, knownFingerprints: [inFrance] }),
+      ).to.equal("known");
+    });
+
+    it("needs the country seen with the device once the sign-in has one", () => {
+      expect(
+        classifySignIn(inFrance, { ...used, sessionFingerprints: [nowhere] }),
+      ).to.equal("new");
+    });
+
+    it("matches on the device alone when the sign-in's country is unknown", () => {
+      expect(
+        classifySignIn(nowhere, { ...used, knownFingerprints: [inFrance] }),
+      ).to.equal("known");
+    });
+  });
 });

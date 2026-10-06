@@ -63,6 +63,24 @@ export interface OAuthConfig {
   trustProxy?: boolean;
 }
 
+/** Where the "New sign-in" alert reads the country a sign-in came from. */
+export interface SignInCountryConfig {
+  /**
+   * Request header a trusted reverse proxy fills with the client's ISO 3166-1
+   * alpha-2 country code, such as `CF-IPCountry` behind Cloudflare. Unset by
+   * default: any caller can write a header, so it is read only once named
+   * here, and the proxy must overwrite it on every request. Wins over the
+   * database lookup.
+   */
+  header?: string;
+  /**
+   * Path of a MaxMind-format country database (`.mmdb`) the client address is
+   * looked up in when the header gives nothing. Defaults to the DB-IP Country
+   * Lite database shipped with the package; `false` turns the lookup off.
+   */
+  database?: string | false;
+}
+
 export interface AuthConfig {
   jwtSecret: string;
   emailValidationTokenLifetime: number;
@@ -86,6 +104,13 @@ export interface AuthConfig {
    * Too low records a proxy address; too high trusts a client-supplied entry.
    */
   trustedProxies?: number;
+  /**
+   * The country of a sign-in joins its device in the "New sign-in" check: the
+   * same browser and system signing in from another country is a new sign-in.
+   * Without a country (no header, no database entry for the address), the
+   * device alone decides.
+   */
+  signInCountry?: SignInCountryConfig;
 }
 
 export interface DmsMetaConfig {

@@ -15,6 +15,10 @@ import {
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { getAuthConfig } from "../config";
+import {
+  type ClientOrigin,
+  resolveClientOrigin,
+} from "../utils/sign-in-country";
 import * as authRoutes from "./auth/index";
 import type { OAuthAuthorizeUrl } from "./auth/oauth";
 import type { LoginOutcome } from "./auth/session-response";
@@ -53,6 +57,13 @@ export class AuthController extends Controller("/api/auth") {
     );
   }
 
+  private get clientOrigin(): ClientOrigin {
+    return resolveClientOrigin(
+      this.clientIp,
+      this.requestContext.rawRequest.headers,
+    );
+  }
+
   @Post("/signup")
   signup(@JSONBody() body: unknown): Promise<AuthResponse> {
     return authRoutes.signup(
@@ -60,7 +71,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.clientIp,
+      this.clientOrigin,
     );
   }
 
@@ -75,7 +86,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.clientIp,
+      this.clientOrigin,
     );
   }
 
@@ -99,7 +110,7 @@ export class AuthController extends Controller("/api/auth") {
       providerId: provider,
       body,
       userAgent: this.userAgent || "",
-      ip: this.clientIp,
+      origin: this.clientOrigin,
     });
   }
 
@@ -110,7 +121,7 @@ export class AuthController extends Controller("/api/auth") {
       this.sessionModel,
       body,
       this.userAgent || "",
-      this.clientIp,
+      this.clientOrigin,
     );
   }
 

@@ -1,3 +1,4 @@
+import type { ClientOrigin } from "../../../utils/sign-in-country";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import {
   announceRegistration,
@@ -39,7 +40,7 @@ const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
  * @param providerId Provider handling the callback
  * @param body Callback payload relayed by the browser-facing layer
  * @param userAgent Requesting user agent
- * @param ip Requesting IP
+ * @param origin Requesting address and country
  * @returns Session, two-factor challenge, or tenant assignment handover
  */
 /** One OAuth return trip. */
@@ -49,7 +50,7 @@ export interface OAuthCallbackInput {
   providerId: string;
   body: unknown;
   userAgent: string;
-  ip: string;
+  origin: ClientOrigin;
 }
 
 export async function oauthCallback({
@@ -58,7 +59,7 @@ export async function oauthCallback({
   providerId,
   body,
   userAgent,
-  ip,
+  origin,
 }: OAuthCallbackInput): Promise<LoginOutcome> {
   const payload = assertValidation(body, (v) =>
     authSchema.oauthCallback.parse(v),
@@ -112,7 +113,7 @@ export async function oauthCallback({
     sessionModel,
     user,
     userAgent,
-    ip,
+    origin,
     resolvedInvite?.tenantId,
   );
 }

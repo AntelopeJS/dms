@@ -7,6 +7,7 @@ import {
   clearFailedPasswords,
   recordFailedPassword,
 } from "../../utils/sign-in-monitor";
+import type { ClientOrigin } from "../../utils/sign-in-country";
 import { authSchema } from "../../validation/auth.schema";
 import { type LoginOutcome, resolveLoginOutcome } from "./session-response";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -19,7 +20,7 @@ export async function login(
   sessionModel: SessionModel,
   body: unknown,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
 ): Promise<LoginOutcome> {
   const { email, password } = assertValidation(body, (v) =>
     authSchema.login.parse(v),
@@ -36,5 +37,5 @@ export async function login(
   );
   assert(isPasswordValid, HTTP_UNAUTHORIZED, INVALID_CREDENTIALS_MESSAGE);
 
-  return resolveLoginOutcome(sessionModel, user, userAgent, ip);
+  return resolveLoginOutcome(sessionModel, user, userAgent, origin);
 }

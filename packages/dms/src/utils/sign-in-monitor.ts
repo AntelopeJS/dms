@@ -8,6 +8,7 @@ import {
   evaluateFailedSignIns,
   FAILED_SIGN_IN_WINDOW_MS,
 } from "./failed-sign-ins";
+import { type ClientOrigin, lookupCountry } from "./sign-in-country";
 import { classifySignIn, describeSignInDevice } from "./sign-in-devices";
 import { parseUserAgent } from "./user-agent";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -24,27 +25,33 @@ async function openSessionFingerprints(userId: string): Promise<string[]> {
   const sessions = await GetModel(SessionModel).getByUserId(userId);
   return sessions.map(
     (session) =>
-      describeSignInDevice(parseUserAgent(session.userAgent)).fingerprint,
+      describeSignInDevice(
+        parseUserAgent(session.userAgent),
+        lookupCountry(session.ip),
+      ).fingerprint,
   );
 }
 
 /**
  * Remembers the device of a successful sign-in and, when the account never
- * signed in from it before, warns its owner. Awaited before the new session
+ * signed in from it — or from its country — before, warns its owner. Awaited before the new session
  * is written, so that session never counts as proof the device was known;
  * never throws, so a sign-in cannot fail on it.
  *
  * @param user The account signing in
  * @param userAgent Requesting user agent
- * @param ip Requesting IP
+ * @param origin Requesting address and country
  */
 export async function recordSignIn(
   user: User,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
 ): Promise<void> {
   try {
-    const device = describeSignInDevice(parseUserAgent(userAgent));
+    const device = describeSignInDevice(
+      parseUserAgent(userAgent),
+      origin.country,
+    );
     const [knownFingerprints, sessionFingerprints] = await Promise.all([
       GetModel(UserKnownDevicesModel).listFingerprints(user._id),
       openSessionFingerprints(user._id),
@@ -60,10 +67,7 @@ export async function recordSignIn(
       new Date(),
     );
     if (kind === "new")
-      fireAndForget(
-        notifyNewLogin(user._id, device, ip),
-        "new sign-in notification",
-      );
+      fireAndForget(notifyNewLogin(user, device), "new sign-in notification");
   } catch (error) {
     logFailure("record the sign-in device", user._id, error);
   }
@@ -73,9 +77,13 @@ export async function recordSignIn(
 export async function rememberSignInDevice(
   userId: string,
   userAgent: string,
+  origin: ClientOrigin,
 ): Promise<void> {
   try {
-    const device = describeSignInDevice(parseUserAgent(userAgent));
+    const device = describeSignInDevice(
+      parseUserAgent(userAgent),
+      origin.country,
+    );
     await GetModel(UserKnownDevicesModel).remember(
       userId,
       device.fingerprint,
