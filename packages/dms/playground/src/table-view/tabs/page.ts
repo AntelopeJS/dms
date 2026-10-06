@@ -3,13 +3,12 @@ import {
   DataController,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
-import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
-import { Task, TaskModel } from "../database";
+import { Task } from "../database";
 import { TASK_STATUSES } from "../status";
 import { demoFormPages } from "../form-texts";
 
@@ -27,10 +26,7 @@ class tabsTaskDataAPI extends DataController(
   Task,
   {},
   Controller("/api/tasks/tabs", taskDataAPI),
-) {
-  @ModelReference()
-  declare model: TaskModel;
-}
+) {}
 
 @RegisterPage()
 export class PageTableViewTabs extends PageController(

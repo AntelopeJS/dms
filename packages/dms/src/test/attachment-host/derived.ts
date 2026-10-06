@@ -74,17 +74,12 @@ export class BaseNoteController extends DataController(
   declare file: string;
 }
 
-// `@ModelReference()` again: interface-data-api 0.1.9 does not carry the model
-// key over to a derived controller (the provider behind `@Model` is).
 @RegisterDataController()
 export class DerivedNoteController extends DataController(
   Note,
   {},
   Controller("/api/derived-controller/derived-notes", BaseNoteController),
-) {
-  @ModelReference()
-  declare model: NoteModel;
-}
+) {}
 
 @RegisterPage()
 export class BaseNotesPage extends RootPageController("base-notes", {

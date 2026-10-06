@@ -3,14 +3,13 @@ import {
   DataController,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
-import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { ORDER_STATUSES, orderDataAPI } from "./data-api";
-import { Order, OrderModel } from "./database";
+import { Order } from "./database";
 import { demoFormPages } from "../form-texts";
 
 const DETAIL_FIELDS = [
@@ -31,10 +30,7 @@ class componentOrderDataAPI extends DataController(
   Order,
   {},
   Controller("/api/playground/orders-component", orderDataAPI),
-) {
-  @ModelReference()
-  declare model: OrderModel;
-}
+) {}
 
 @RegisterPage()
 export class PageTableViewExpandableRows extends PageController(

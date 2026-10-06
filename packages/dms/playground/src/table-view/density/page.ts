@@ -3,13 +3,12 @@ import {
   DataController,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
-import { ModelReference } from "@antelopejs/interface-data-api/metadata";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
-import { Task, TaskModel } from "../database";
+import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
 
 const SCROLL_HEIGHT = "420px";
@@ -27,20 +26,14 @@ class compactTaskDataAPI extends DataController(
   Task,
   {},
   Controller("/api/tasks/density-compact", taskDataAPI),
-) {
-  @ModelReference()
-  declare model: TaskModel;
-}
+) {}
 
 @RegisterDataController()
 class comfortableTaskDataAPI extends DataController(
   Task,
   {},
   Controller("/api/tasks/density-comfortable", taskDataAPI),
-) {
-  @ModelReference()
-  declare model: TaskModel;
-}
+) {}
 
 @RegisterPage()
 export class PageTableViewDensity extends PageController(
