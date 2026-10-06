@@ -3,14 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { SessionModel, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { ExportJobModel } from "@antelopejs/interface-dms/db";
 import { FileExists } from "@antelopejs/interface-file-storage";
 import { expect } from "chai";
+import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
+import { UserKnownDevicesModel } from "../../db/models/userKnownDevices.model";
 import { deleteAccount } from "../../pages/settings/users/account-data-store";
 import { uploadExportToStorage } from "../../utils/export-jobs";
-import { authorizedClient, registerUser } from "../helpers/auth";
+import { authorizedClient, loginUser, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 
 // An account deletion takes the exports the user started with it, their files
@@ -66,6 +68,37 @@ describe("[integration] account deletion", () => {
     const exports = GetModel(ExportJobModel, DEFAULT_TENANT_ID);
     expect(await exports.get(jobId)).to.equal(undefined);
     expect(await FileExists(resourceKey)).to.equal(false);
+  });
+
+  it("removes the devices, sign-in attempts and sessions of the user", async () => {
+    await registerUser({ owner: true });
+    const member = await registerUser();
+    const { accessToken } = await loginUser(member.email, member.password);
+    const devices = GetModel(UserKnownDevicesModel);
+    const attempts = GetModel(SignInAttemptsModel);
+    await attempts.recordFailure(member.userId, new Date());
+    await attempts.claimAlert(member.userId, "burst", new Date());
+    const epoch = new Date(0);
+    expect(await devices.listFingerprints(member.userId)).to.not.be.empty;
+    expect(await attempts.listBurst(member.userId, epoch, 10)).to.have.length(
+      2,
+    );
+    expect(await GetModel(SessionModel).getByUserId(member.userId)).to.not.be
+      .empty;
+
+    const response = await authorizedClient(accessToken).post(
+      "/settings/user/profile/account-deletion",
+      { password: member.password, confirmation: member.email },
+    );
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+
+    expect(await devices.listFingerprints(member.userId)).to.deep.equal([]);
+    expect(await attempts.listBurst(member.userId, epoch, 10)).to.deep.equal(
+      [],
+    );
+    expect(
+      await GetModel(SessionModel).getByUserId(member.userId),
+    ).to.deep.equal([]);
   });
 
   it("refuses the last owner however it is reached", async () => {
