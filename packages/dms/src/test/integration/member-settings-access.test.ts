@@ -4,13 +4,16 @@ import { internal } from "../../implementations/dms-notifications";
 import { SendableNotification } from "@antelopejs/interface-dms/notifications/sendable";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
 import { authorizedClient, registerUser } from "../helpers/auth";
+import { createClient } from "../helpers/http";
 import { resetDatabase } from "../helpers/db";
 
 // A member holding no role at all still owns their account settings: the user
 // settings category is `memberAccess`, the workspace one is not.
 
 const HTTP_OK = 200;
+const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
+const PERMISSIONS_TREE = "/settings/workspace/roles/permissions-tree";
 const NOTIFICATIONS = "/settings/user/notifications";
 const PERSONAL_SLUGS = [
   "/settings/user/profile",
@@ -118,5 +121,14 @@ describe("[integration] a member without a role and their own settings", () => {
       const response = await layout(slug);
       expect(response.status, slug).to.equal(HTTP_FORBIDDEN);
     }
+  });
+
+  it("is refused the permission tree, which no anonymous caller reads either", async () => {
+    expect((await member.get(PERMISSIONS_TREE)).status).to.equal(
+      HTTP_FORBIDDEN,
+    );
+    expect((await createClient().get(PERMISSIONS_TREE)).status).to.equal(
+      HTTP_UNAUTHORIZED,
+    );
   });
 });
