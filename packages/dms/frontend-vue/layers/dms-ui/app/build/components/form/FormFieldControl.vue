@@ -7,6 +7,8 @@ import {
   FORM_ENTRY_CONTEXT_KEY,
   fieldErrorPattern,
 } from "../../composables/form/formEntryContext";
+import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
+import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
 
 interface FormFieldControlProps {
@@ -22,6 +24,17 @@ const isDisabled = computed(() => context.isFieldDisabled(props.field));
 const component = computed(() => {
   const name = props.field.component.componentName;
   return name ? resolveDmsComponent(name) || name : null;
+});
+// The hint under the control, which describes it (`aria-describedby`).
+const hint = computed(() =>
+  props.field.hint ? processI18n(props.field.hint) : undefined,
+);
+// UFormField shows its error slot whenever one is given, in the hint's
+// place: it gets one only while the field holds an error.
+const formErrors = inject(formErrorsInjectionKey, null);
+const hasError = computed(() => {
+  const pattern = fieldErrorPattern(props.field.id);
+  return !!formErrors?.value.some((error) => pattern.test(error.name ?? ""));
 });
 // What a read-only field shows beside its value: a pill, a link.
 const readonly = computed<FormFieldReadonly>(() =>
@@ -46,6 +59,7 @@ const readonly = computed<FormFieldReadonly>(() =>
       :name="field.id"
       :error-pattern="fieldErrorPattern(field.id)"
       :data-field="field.id"
+      :help="hint"
     >
       <div
         v-if="isDisabled && !!field.type"
@@ -85,11 +99,8 @@ const readonly = computed<FormFieldReadonly>(() =>
         class="w-full"
         v-bind="field.component.options || {}"
       />
-      <template #error="{ error }">
-        <template v-if="error">
-          <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
-          {{ error }}
-        </template>
+      <template v-if="hasError" #error="{ error }">
+        <DmsFormErrorText :error />
       </template>
     </UFormField>
 

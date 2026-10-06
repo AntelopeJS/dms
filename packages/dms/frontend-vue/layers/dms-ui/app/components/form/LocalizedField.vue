@@ -3,6 +3,7 @@ import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import type { FormField } from "../../composables/form/types";
 import { resolveDmsComponent } from "../../composables/resolveDmsComponent";
 import { escapeRegExp } from "../../build/composables/form/formEntryContext";
+import DmsFormErrorText from "../../build/components/form/FormErrorText.vue";
 
 interface LocalizedFieldProps {
   field: FormField;
@@ -17,6 +18,7 @@ const props = defineProps<LocalizedFieldProps>();
 const fieldValue = defineModel<Record<string, string> | undefined>();
 
 const { locale, locales } = useI18n();
+const { processI18n } = useTranslation();
 
 const isExpanded = ref(false);
 
@@ -90,6 +92,14 @@ const mainErrorPattern = computed(
 // A translation refused while the panel is closed opens it: its error shows
 // on its own line.
 const formErrors = inject(formErrorsInjectionKey, null);
+// The error slot replaces the hint under the field: given only while the
+// field holds an error.
+const hasMainError = computed(
+  () =>
+    !!formErrors?.value.some((error) =>
+      mainErrorPattern.value.test(error.name ?? ""),
+    ),
+);
 watch(
   () => formErrors?.value ?? [],
   (errors) => {
@@ -109,6 +119,7 @@ watch(
         :name="field.id"
         :error-pattern="mainErrorPattern"
         :data-field="field.id"
+        :help="field.hint ? processI18n(field.hint) : undefined"
       >
         <DmsDisplay
           v-if="showDisplay"
@@ -140,11 +151,8 @@ watch(
           v-bind="field.component.options || {}"
           @update:model-value="setLocaleValue(locale, $event)"
         />
-        <template #error="{ error }">
-          <template v-if="error">
-            <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
-            {{ error }}
-          </template>
+        <template v-if="hasMainError" #error="{ error }">
+          <DmsFormErrorText :error />
         </template>
       </UFormField>
       <div class="mt-1 flex justify-end">
@@ -207,13 +215,7 @@ watch(
                     @update:model-value="setLocaleValue(lang.code, $event)"
                   />
                   <template #error="{ error }">
-                    <template v-if="error">
-                      <UIcon
-                        name="i-ph-warning-circle"
-                        class="size-3.5 shrink-0"
-                      />
-                      {{ error }}
-                    </template>
+                    <DmsFormErrorText :error />
                   </template>
                 </UFormField>
               </div>

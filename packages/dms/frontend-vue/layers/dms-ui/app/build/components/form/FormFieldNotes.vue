@@ -14,7 +14,6 @@ interface FormFieldNotesProps {
 const props = defineProps<FormFieldNotesProps>();
 const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
 const { t, locale } = useI18n();
-const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
 
 const value = computed(() => context.state.value[props.field.id]);
@@ -62,13 +61,7 @@ function useDefault(): void {
 </script>
 
 <template>
-  <div
-    v-if="props.field.hint || showsChange || showsDefault"
-    class="grid gap-0.5 text-xs"
-  >
-    <p v-if="props.field.hint" class="text-dimmed">
-      {{ processI18n(props.field.hint) }}
-    </p>
+  <div v-if="showsChange || showsDefault" class="grid gap-0.5 text-xs">
     <p
       v-if="showsChange"
       class="text-muted flex flex-wrap items-center gap-1.5"
