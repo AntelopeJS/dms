@@ -85,9 +85,8 @@ export interface ComponentButton {
 
 /**
  * A count a component publishes as the navigation badge of a page, read when
- * the menu loads: a table view's tab declared with `navBadge`.
- *
- * @internal
+ * the menu loads (see {@link Component.navBadge}). A table view's tab declared
+ * with `navBadge` publishes one.
  */
 export interface NavBadgeSource {
   /** The page the badge goes to; the component's own page when absent. */
@@ -673,7 +672,14 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
     return this;
   }
 
-  /** @internal Publishes a count as the navigation badge of a page. */
+  /**
+   * Publishes a count as the navigation badge of a page: the component's own
+   * page, or `source.page`. The DMS counts it per caller when it serves the
+   * menu, for the pages the caller can open; a count that throws (a caller
+   * who may not read it) or is zero shows no badge, and a page's static
+   * `MenuOptions.badge` wins over it. The first count published for a page is
+   * the one shown.
+   */
   navBadge(source: NavBadgeSource): this {
     this._navBadges.push(source);
     return this;
