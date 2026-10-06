@@ -301,7 +301,7 @@ export function RootCategory(
  * is Vue 3, whichever `@antelopejs/dms-frontend` release loads it. The loader
  * releases a module runs on are declared by the module itself, in the
  * package.json of its `sourcePath`, under `engines` keyed by the loader package
- * (`"@antelopejs/dms-frontend": ">=0.3.2 <0.4.0"`). The loader reads that file,
+ * (`"@antelopejs/dms-frontend": ">=0.4.0 <0.5.0"`). The loader reads that file,
  * with or without a backend, and refuses a module whose range excludes it; the
  * DMS passes the directory through without reading it.
  */
