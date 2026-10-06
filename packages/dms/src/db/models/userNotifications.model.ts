@@ -39,17 +39,6 @@ export interface NewUserNotification {
   duplicateId?: string;
 }
 
-/** Fields a sender may rewrite on a notification already delivered. */
-export interface NotificationRewrite {
-  /** A worded variant of the same message's title. */
-  title?: string;
-  params?: Record<string, string | number>;
-  description?: string;
-  tone?: NotificationTone;
-}
-
-const REPLACE_ROW = { conflict: "replace" } as const;
-
 /** What a user's visible feed holds, for the inbox search and filters. */
 export interface UserNotificationFacets {
   /** Message keys (without `$`) of the stored titles and descriptions. */
@@ -300,36 +289,16 @@ export class UserNotificationsModel extends BasicDataModel(
     match: Record<string, string | number>,
     since: Date,
   ): Promise<UserNotification[]> {
-    // The title is compared here rather than in the query: a message key
-    // starts with `$`, which the database reads as a field reference.
-    const rows = await this.visibleFeed(userId)
+    let feed = this.visibleFeed(userId)
       .filter((row) => row.key("createdAt").gt(since))
-      .run();
+      .filter((row) => row.key("title").eq(title));
+    for (const [key, value] of Object.entries(match)) {
+      feed = feed.filter((row) => row.key("params").key(key).eq(value));
+    }
+    const rows = await feed.orderBy("createdAt", "desc").run();
     return rows
       .map((row) => UserNotificationsModel.fromDatabase(row))
-      .filter((row): row is UserNotification => row?.title === title)
-      .filter((row) =>
-        Object.entries(match).every(
-          ([key, value]) => row.params?.[key] === value,
-        ),
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-  }
-
-  /**
-   * Writes new params or a new description back, leaving the read state
-   * and the dates alone. The whole row is replaced: an update reads a
-   * string starting with `$`, as every message key does, as a field
-   * reference.
-   */
-  async rewrite(
-    row: UserNotification,
-    changes: NotificationRewrite,
-  ): Promise<void> {
-    await this.table.insert(Object.assign({}, row, changes), REPLACE_ROW).run();
+      .filter((row): row is UserNotification => row !== undefined);
   }
 
   async countUnread(userId: string): Promise<number> {

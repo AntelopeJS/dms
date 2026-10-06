@@ -346,7 +346,7 @@ async function continueEditingSession(
   if (!latest || !isWithinEditingSession(new Date(editedAt), now)) {
     return false;
   }
-  await GetModel(UserNotificationsModel).rewrite(latest, {
+  await GetModel(UserNotificationsModel).update(latest._id, {
     params: { ...latest.params, role: edit.roleName, editedAt: now.getTime() },
   });
   return true;

@@ -9,7 +9,7 @@ import {
   escapeRegex,
   isFilteredFeed,
   isNarrowedFeed,
-  messageKeysPattern,
+  messageKeyValues,
   parseNotificationFeedQuery,
   rawTextPattern,
 } from "../../../db/models/notification-feed-filter";
@@ -154,25 +154,10 @@ describe("[unit] db/notification-feed-filter", () => {
       );
     });
 
-    it("matches only the listed message keys, whole", () => {
-      const pattern = toRegExp(
-        messageKeysPattern(["dms.a.title", "dms.b.description"]),
-      );
-      expect(pattern.test("$dms.a.title")).to.equal(true);
-      expect(pattern.test("$dms.b.description")).to.equal(true);
-      expect(pattern.test("$dms.a.title.extra")).to.equal(false);
-      expect(pattern.test("dms.a.title")).to.equal(false);
-      expect(pattern.test("$dmsXa.title")).to.equal(false);
-    });
-
-    it("never starts with `$`, which the database reads as a field", () => {
-      for (const pattern of [
-        rawTextPattern("$x"),
-        paramValuePattern("$x"),
-        messageKeysPattern(["a"]),
-      ]) {
-        expect(pattern.startsWith("$")).to.equal(false);
-      }
+    it("names the listed message keys as they are stored, whole", () => {
+      expect(
+        messageKeyValues(["dms.a.title", "dms.b.description"]),
+      ).to.deep.equal(["$dms.a.title", "$dms.b.description"]);
     });
   });
 
@@ -199,14 +184,14 @@ describe("[unit] db/notification-feed-filter", () => {
       expect(subject).to.contain('"security"');
       expect(search)
         .to.contain(JSON.stringify(rawTextPattern("sign-in")))
-        .and.to.contain(JSON.stringify(messageKeysPattern(["dms.a.title"])))
+        .and.to.contain(JSON.stringify(messageKeyValues(["dms.a.title"])))
         .and.to.contain('"params"');
     });
 
     it("leaves the key match out when no translation matched", () => {
       const feed = new RecordingFeed();
       applyFeedFilter(feed, { search: { text: "alice", keys: [] } });
-      expect(stagesOf(feed.predicates[0]!)).to.not.contain("^[$](?:");
+      expect(stagesOf(feed.predicates[0]!)).to.not.contain('"$');
     });
   });
 

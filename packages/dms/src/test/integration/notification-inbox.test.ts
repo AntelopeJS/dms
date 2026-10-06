@@ -25,13 +25,20 @@ const data: NotificationData = {
   },
 };
 
+interface InboxRow {
+  _id: string;
+  title: string;
+  isRead: boolean;
+}
+
 interface InboxPage {
-  results: { _id: string; isRead: boolean }[];
+  results: InboxRow[];
   total: number;
 }
 
 describe("[integration] notifications inbox table", () => {
   let client: AxiosInstance;
+  let userId: string;
   // What the feed held before the test's notifications (a signup sends some).
   let baseline: { all: number; unread: number; read: number };
 
@@ -45,6 +52,7 @@ describe("[integration] notifications inbox table", () => {
     await resetDatabase();
     const owner = await registerUser({ owner: true });
     client = authorizedClient(owner.accessToken);
+    userId = owner.userId;
     baseline = {
       all: (await inbox({ limit: 1 })).total,
       unread: (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
@@ -57,7 +65,7 @@ describe("[integration] notifications inbox table", () => {
       await new SendableNotification({
         ...data,
         title: `${data.title} #${sent + 1}`,
-      }).toUser(owner.userId);
+      }).toUser(userId);
     }
     const [first] = (await inbox({ limit: 1 })).results;
     const read = await client.put(`${LOCATION}/mark-read/${first!._id}`);
@@ -81,5 +89,25 @@ describe("[integration] notifications inbox table", () => {
     const response = await client.get(`${LOCATION}/delete-all/confirm`);
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
     expect(response.data.params).to.deep.equal({ count: baseline.all + SENT });
+  });
+
+  it("searches message keys and `$` param values as stored", async () => {
+    const title = "$inbox.test.release.title";
+    await new SendableNotification({
+      ...data,
+      title,
+      params: { tag: "$v2-final" },
+    }).toUser(userId);
+    const search = async (query: Record<string, string>) => {
+      const response = await client.get(`${LOCATION}/list`, { params: query });
+      expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+      return (response.data as InboxRow[]).map((row) => row.title);
+    };
+
+    expect(
+      await search({ q: "release", keys: "inbox.test.release.title" }),
+    ).to.deep.equal([title]);
+    expect(await search({ q: "$v2" })).to.deep.equal([title]);
+    expect(await search({ q: "release" })).to.deep.equal([]);
   });
 });

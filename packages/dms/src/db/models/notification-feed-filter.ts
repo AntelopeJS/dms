@@ -1,6 +1,6 @@
-import type {
+import {
   ValueProxy,
-  ValueProxyOrValue,
+  type ValueProxyOrValue,
 } from "@antelopejs/interface-database";
 import type { UserNotification } from "../tables";
 
@@ -15,10 +15,11 @@ const READ_STATES = ["unread", "read"] as const;
 // The unfiltered tab, which older clients may name.
 const ALL_READ_STATES = "all";
 const KEY_LIST_SEPARATOR = ",";
+// What a stored title or description starts with when it is a message key.
+const MESSAGE_KEY_MARKER = "$";
 // A message key without its `$` marker, as `dms.notifications.messages.x.title`.
 const MESSAGE_KEY_PATTERN = /^[\w.-]+$/;
-// Category and subject ids: never a leading `$`, which the database reads
-// as a field reference.
+// Category and subject ids.
 const ID_PATTERN = /^[\w.:-]{1,100}$/;
 const REGEX_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\/-]/g;
 const WHITESPACE_RUN = /\s+/g;
@@ -147,9 +148,9 @@ export function rawTextPattern(text: string): string {
   return `(?i)^(?![$])[\\s\\S]*?${escapeRegex(text)}`;
 }
 
-/** Matches a stored `$key` whose key is one of `keys`. */
-export function messageKeysPattern(keys: string[]): string {
-  return `^[$](?:${keys.map(escapeRegex).join("|")})$`;
+/** The stored values (`$key`) of the message keys `keys`. */
+export function messageKeyValues(keys: string[]): string[] {
+  return keys.map((key) => `${MESSAGE_KEY_MARKER}${key}`);
 }
 
 type NotificationRow = ValueProxy<UserNotification>;
@@ -196,10 +197,10 @@ export function searchCondition(
     .or(paramsContain(row, paramValuePattern(search.text)));
 
   if (search.keys.length > 0) {
-    const keys = messageKeysPattern(search.keys);
+    const keys = ValueProxy.constant(messageKeyValues(search.keys));
     condition = condition
-      .or(textField(row, "title").match(keys))
-      .or(textField(row, "description").match(keys));
+      .or(keys.includes(textField(row, "title")))
+      .or(keys.includes(textField(row, "description")));
   }
   return condition;
 }

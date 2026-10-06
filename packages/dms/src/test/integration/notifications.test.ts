@@ -170,6 +170,34 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     }
   });
 
+  it("finds and updates a row whose title and params start with `$`", async () => {
+    const title = "$dms.notifications.messages.budget.title";
+    const since = new Date(Date.now() - 60_000);
+    await new SendableNotification({
+      ...data,
+      title,
+      params: { amount: 100, owner: "$finance", note: "$draft" },
+    }).toUser(USER);
+
+    const [row] = await model.findMatching(
+      USER,
+      title,
+      { owner: "$finance" },
+      since,
+    );
+    assert.ok(row);
+    assert.deepEqual(
+      await model.findMatching(USER, title, { owner: "$sales" }, since),
+      [],
+    );
+
+    await model.update(row._id, { params: { amount: 200, owner: "$finance" } });
+    const updated = await model.get(row._id);
+    assert.equal(updated?.title, title);
+    assert.deepEqual(updated?.params, { amount: 200, owner: "$finance" });
+    assert.equal(updated?.isRead, false);
+  });
+
   it("stores every send of a sender that turned deduplication off", async () => {
     await sendable.toUser(USER, { dedupe: false });
     await sendable.toUser(USER, { dedupe: false });
