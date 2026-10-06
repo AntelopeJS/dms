@@ -71,7 +71,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.13.2 <2",
+    "@antelopejs/core": ">=1.13.4 <2",
     "@antelopejs/dms-frontend": ">=0.4.0 <0.5.0",
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
