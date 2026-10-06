@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { TEXT_LINK_CLASS } from "#dms-ui/app/build/utils/textLink";
 import DmsCard from "#dms-ui/app/components/card/Card.vue";
+import DmsEyebrow from "#dms-ui/app/components/section-header/Eyebrow.vue";
 import RoleMemberAvatars from "./RoleMemberAvatars.vue";
 import RolesListItem from "./RolesListItem.vue";
 import {
@@ -48,12 +49,24 @@ function coverage(count: number): number {
     as="aside"
     :padded="false"
     class="@3xl:sticky @3xl:top-6"
-    :title="t('page.settings.roles.editor.list_title')"
-    :count="props.roles.length + 1"
     :aria-label="t('page.settings.roles.editor.list_title')"
   >
-    <template #actions>
-      <span class="text-dimmed font-mono text-[10.5px] font-medium">
+    <!-- The members column's label stays on the title's line: as an action
+         it would drop under it in this narrow column. -->
+    <template #header>
+      <DmsEyebrow
+        as="span"
+        tone="muted"
+        :label="t('page.settings.roles.editor.list_title')"
+      />
+      <UBadge
+        :label="String(props.roles.length + 1)"
+        color="neutral"
+        size="sm"
+        square
+        class="font-mono"
+      />
+      <span class="text-dimmed ms-auto font-mono text-[10.5px] font-medium">
         {{ t("page.settings.roles.editor.list_members") }}
       </span>
     </template>
