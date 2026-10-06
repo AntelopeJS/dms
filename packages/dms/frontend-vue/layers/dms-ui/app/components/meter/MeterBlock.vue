@@ -66,13 +66,14 @@ const props = withDefaults(defineProps<MeterBlockProps>(), {
 });
 
 const { processI18n } = useTranslation();
+const { t } = useI18n();
 
 const { state: watchState } = useWatch(
   props.watchActions || [],
   props.componentId,
 );
 
-const { data, isLoading } = useChartFetch<MeterResponse>({
+const { data, isLoading, error, refresh } = useChartFetch<MeterResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
   watchSource: () => JSON.stringify(watchState.value),
@@ -96,6 +97,12 @@ const figures = computed(() => {
 });
 
 const showSkeleton = computed(() => isLoading.value && !data.value);
+// v2 error state, as on a KPI card: a failed first load shows a message and
+// a retry button in place of the bar, never default figures (`0 / 100`); a
+// failed refetch keeps the last figures.
+const hasError = computed(
+  () => !isLoading.value && !data.value && Boolean(error.value),
+);
 // The placeholder is the meter's own shape: the label line (the label is
 // configuration, shown as is), the bar at its size, the legend line.
 const SKELETON_TRACK_HEIGHTS: Record<string, string> = {
@@ -127,6 +134,25 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
       <span v-if="skeletonHasLegend" class="flex h-4 items-center">
         <USkeleton class="h-2.5 w-40" />
       </span>
+    </div>
+    <div v-else-if="hasError" class="grid min-w-0 gap-1.5" role="alert">
+      <span v-if="props.label" class="text-toned text-[13px]">
+        {{ translate(props.label) }}
+      </span>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-error flex min-w-0 items-center gap-1.5 text-[12.5px]">
+          <UIcon name="i-ph-warning-circle" class="size-4 shrink-0" />
+          <span class="truncate">{{ t("dms.table.load_error_title") }}</span>
+        </p>
+        <UButton
+          :label="t('dms.table.load_error_retry')"
+          icon="i-ph-arrows-clockwise"
+          color="neutral"
+          variant="outline"
+          size="xs"
+          @click="refresh()"
+        />
+      </div>
     </div>
     <DmsMeter
       v-else
