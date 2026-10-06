@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { useShortcutRegistry } from "#dms-ui/app/build/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
