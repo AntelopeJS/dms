@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { gridColumnsTemplate } from "../grid/columns";
 import { computed } from "vue";
 import DmsNavCard from "../card/NavCard.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
@@ -54,12 +55,10 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
 });
 
 const MAX_COLUMNS = 4;
-const COLUMN_CLASSES: Record<number, string> = {
-  1: "grid-cols-1",
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
-  4: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
-};
+// Narrowest card before the grid drops a column, and the `gap-3` between
+// cards the column width leaves room for.
+const MIN_CARD_WIDTH = "16rem";
+const CARD_GAP = "0.75rem";
 
 const { processI18n } = useTranslation();
 
@@ -75,6 +74,17 @@ const columnCount = computed(() =>
   Math.min(MAX_COLUMNS, Math.max(1, Math.round(props.columns))),
 );
 const placeholders = computed(() => props.skeletonCount ?? columnCount.value);
+
+// As many cards per row as the grid's own width holds, never more than
+// `columns`: viewport breakpoints squeezed three cards into a column next to
+// a navigation (the settings pages) and truncated their titles.
+const gridStyle = computed(() => ({
+  gridTemplateColumns: gridColumnsTemplate(
+    columnCount.value,
+    CARD_GAP,
+    MIN_CARD_WIDTH,
+  ),
+}));
 
 const cards = computed(() =>
   items.value.map((item, index) => ({
@@ -110,7 +120,7 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
     <div
       v-else
       class="grid gap-3"
-      :class="COLUMN_CLASSES[columnCount]"
+      :style="gridStyle"
       :aria-busy="isPending || undefined"
     >
       <template v-if="isPending">
