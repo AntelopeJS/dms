@@ -2,7 +2,7 @@
 import { nextTick, useTemplateRef } from "vue";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
-import AuthCodeInput from "../../components/AuthCodeInput.vue";
+import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import AuthResendCode from "../../components/AuthResendCode.vue";
 import { useAuthFormError } from "../../composables/useAuthFormError";
@@ -139,8 +139,12 @@ async function requestEmailValidation() {
     >
       <AuthFormAlert :error="formError" />
 
-      <AuthCodeInput
+      <DmsOtpInput
         ref="codeInput"
+        :label="$t('page.auth.code.label')"
+        size="xl"
+        is-split
+        is-centered
         v-model="state.pin"
         :error="codeError"
         :length="PIN_LENGTH"

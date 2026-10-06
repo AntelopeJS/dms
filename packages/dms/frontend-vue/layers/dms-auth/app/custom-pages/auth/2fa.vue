@@ -2,7 +2,7 @@
 import { nextTick, useTemplateRef } from "vue";
 import StageCard from "../../../../dms-layout/app/components/layout/StageCard.vue";
 import AuthBackLink from "../../components/AuthBackLink.vue";
-import AuthCodeInput from "../../components/AuthCodeInput.vue";
+import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import AuthFormAlert from "../../components/AuthFormAlert.vue";
 import { useAuthFormError } from "../../composables/useAuthFormError";
 import { AUTH_LINK_CLASS } from "../../utils/authStyles";
@@ -161,8 +161,12 @@ function switchMethod(method: TwoFactorMethod) {
       />
 
       <template v-else>
-        <AuthCodeInput
+        <DmsOtpInput
           ref="codeInput"
+          :label="$t('page.auth.code.label')"
+          size="xl"
+          is-split
+          is-centered
           v-model="pin"
           :length="PIN_LENGTH"
           :error="codeError"

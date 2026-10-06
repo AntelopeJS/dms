@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { useId, useTemplateRef } from "vue";
-import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
-import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import { useTemplateRef } from "vue";
+import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
-import { PIN_PHONE_UI } from "./security-pin";
 
 type CodeModalTone = "accent" | "error" | "warning";
 
@@ -45,7 +43,6 @@ const { t } = useI18n();
 const { processApiMessage } = useTranslation();
 const digits = ref<string[]>([]);
 const codeField = useTemplateRef<HTMLElement>("codeField");
-const errorId = fieldErrorId(`security-code-${useId()}`);
 
 const { flag } = useCodeFieldError(digits, error, codeField);
 
@@ -97,20 +94,15 @@ function confirm(): void {
           <span class="text-highlighted text-[13px] font-medium">
             {{ props.codeLabel }}
           </span>
-          <UPinInput
+          <DmsOtpInput
             v-model="digits"
+            :label="props.codeLabel"
             :length="CODE_LENGTH"
-            otp
             type="number"
-            :ui="PIN_PHONE_UI"
-            :aria-label="props.codeLabel"
-            :color="error ? 'error' : undefined"
-            :highlight="!!error"
-            :aria-invalid="!!error || undefined"
-            :aria-describedby="error ? errorId : undefined"
+            is-otp
+            :error="error"
             @complete="confirm"
           />
-          <DmsFieldError :id="errorId" :message="error" />
           <UButton
             v-if="props.canSendEmailCode"
             variant="link"

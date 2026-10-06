@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
-import DmsFieldError from "#dms-ui/app/components/field-error/FieldError.vue";
-import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
+import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
 import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 import { useCodeFieldError } from "../../../../../composables/settings/security/useCodeFieldError";
 import type { TotpSetup } from "../../../../../composables/settings/security/useSecurityOverview";
-import { PIN_PHONE_UI } from "./security-pin";
 
 interface SecurityTotpSetupModalProps {
   setup: TotpSetup | null;
@@ -32,7 +30,6 @@ const { t } = useI18n();
 const { processApiMessage } = useTranslation();
 const digits = ref<string[]>([]);
 const codeField = useTemplateRef<HTMLElement>("codeField");
-const ERROR_ID = fieldErrorId("security-totp-code");
 
 const { flag } = useCodeFieldError(digits, error, codeField);
 const isKeyCopied = ref(false);
@@ -164,22 +161,17 @@ function confirm(): void {
             <div class="text-muted mt-0.5 text-[12.5px]">
               {{ t("page.settings.security.totp.code_description") }}
             </div>
-            <UPinInput
+            <DmsOtpInput
               v-model="digits"
               class="mt-2.5"
+              :label="t('page.settings.security.totp.code_title')"
               :length="CODE_LENGTH"
-              otp
               type="number"
               size="lg"
-              :ui="PIN_PHONE_UI"
-              :aria-label="t('page.settings.security.totp.code_title')"
-              :color="error ? 'error' : undefined"
-              :highlight="!!error"
-              :aria-invalid="!!error || undefined"
-              :aria-describedby="error ? ERROR_ID : undefined"
+              is-otp
+              :error="error"
               @complete="confirm"
             />
-            <DmsFieldError :id="ERROR_ID" class="mt-2" :message="error" />
           </div>
         </div>
       </form>

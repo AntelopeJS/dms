@@ -1,4 +1,5 @@
 import { nextTick, watch, type Ref } from "vue";
+import { focusFirstEmptyCell } from "#dms-ui/app/build/utils/codeCells";
 
 /**
  * The inline error of a two-factor code entry. A code the API refused empties
@@ -18,12 +19,7 @@ export function useCodeFieldError(
   let isResetting = false;
   let keepsDigits = false;
 
-  function focusCell(): void {
-    const cells = [
-      ...(container.value?.querySelectorAll<HTMLInputElement>("input") ?? []),
-    ];
-    (cells.find((cell) => !cell.value) ?? cells[0])?.focus();
-  }
+  const focusCell = () => focusFirstEmptyCell(container.value);
 
   watch(error, async (message) => {
     if (!message) return;
