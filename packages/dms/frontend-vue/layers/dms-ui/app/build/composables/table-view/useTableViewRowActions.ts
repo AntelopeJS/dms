@@ -779,6 +779,7 @@ export const useTableRowActions = <T extends Data>(
       handleApiError,
       rowNavigation: config.rowNavigation,
       recordScope: config.recordScope,
+      rowIdKey: config.rowIdKey,
     });
 
   return {

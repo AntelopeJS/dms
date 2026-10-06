@@ -55,7 +55,14 @@ export interface ActionTargetsConfig {
   rowNavigation?: RowNavigationSource;
   /** Where a `deepLink` action writes the row it has open in the URL. */
   recordScope?: TableUrlScope;
+  /**
+   * The field a row's id is read from (`_id` by default): it fills `{id}` in
+   * the `from` URL of a row action's confirmation, as on a built-in action.
+   */
+  rowIdKey?: string;
 }
+
+const DEFAULT_ROW_ID_KEY = "_id";
 
 /** How a target runs beyond its row. */
 interface TargetRunExtras {
@@ -350,6 +357,14 @@ export function useActionTargets(config: ActionTargetsConfig) {
     },
   };
 
+  // `{id}` of a confirmation's `from` URL, when the row carries an id.
+  const rowUrlParams = (rowData?: Data) => {
+    const id = rowData
+      ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
+      : undefined;
+    return id === undefined || id === null ? undefined : { id };
+  };
+
   /**
    * Runs an action's target, after its confirmation when it declares one.
    * On a row action, the dialog's texts take the row's fields as parameters
@@ -371,6 +386,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const runInside = confirmedRuns[target.type]?.(target, rowData);
     const isConfirmed = await confirmAction(declared, {
       row: rowData,
+      urlParams: rowUrlParams(rowData),
       run: runInside,
     });
     if (isConfirmed && !runInside) {

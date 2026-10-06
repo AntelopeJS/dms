@@ -127,8 +127,9 @@ export interface CustomRowAction<
   target: ActionTarget;
   /**
    * Asked before the action runs, whatever its target: a fixed dialog (its
-   * texts receive the row's fields as i18n parameters, "Remove {name}?"), or
-   * `{ from }`, a URL answering the dialog the server words for the row.
+   * texts receive the row's fields as parameters, "Remove {name}?"), or
+   * `{ from }`, a URL (`{id}` and the row's fields are filled in) answering
+   * the dialog the server words for the row.
    */
   confirm?: ActionConfirm;
   rule?: RowActionRule<T>;

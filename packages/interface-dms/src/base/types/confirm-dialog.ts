@@ -53,8 +53,10 @@ export interface ConfirmDialog {
 
 /**
  * A confirmation the server words for the row an action targets: a URL
- * (`{id}` and the row's fields are filled in) answering a
- * {@link ConfirmDialogSerialized}.
+ * answering a {@link ConfirmDialogSerialized}. On a row action, built-in or
+ * custom, `{id}` is filled in with the row's id (read through the table's
+ * `rowIdKey`) and `{<field>}` with any of the row's fields; a bulk custom
+ * action appends its selection to the query instead.
  */
 export interface ConfirmDialogFrom {
   from: string;
