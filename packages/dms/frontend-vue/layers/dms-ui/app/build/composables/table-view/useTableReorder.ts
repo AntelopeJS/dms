@@ -28,7 +28,8 @@ export interface TableReorderOptions<T> {
 /**
  * Rows ordered by hand: a move updates the page at once and saves, by a
  * partial edit, only the rows whose position changed. Moving is off while
- * the rows are narrowed, outside the grid, or for a caller who may not edit.
+ * the rows are narrowed (the handle says how to turn it back on); outside
+ * the grid, or for a caller who may not edit, there is no handle at all.
  */
 export function useTableReorder<T>(options: TableReorderOptions<T>) {
   const { reorder, data, rowIdKey } = options;
@@ -66,9 +67,10 @@ export function useTableReorder<T>(options: TableReorderOptions<T>) {
   };
 
   const state = computed<TableReorder | undefined>(() => {
-    if (!reorder || !options.isGrid.value) return undefined;
-    const isAllowed = options.canEdit.value && !options.isNarrowed.value;
-    return { enabled: isAllowed, move };
+    if (!reorder || !options.isGrid.value || !options.canEdit.value) {
+      return undefined;
+    }
+    return { enabled: !options.isNarrowed.value, move };
   });
 
   return { reorderState: state };

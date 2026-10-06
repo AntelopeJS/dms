@@ -103,4 +103,20 @@ describe("rows ordered by hand", () => {
     expect(refresh).toHaveBeenCalled();
     expect(reorderOf(api, true).reorderState.value?.enabled).toBe(false);
   });
+
+  it("draws no handle for a caller who may not edit, whose tooltip would say to clear the filters", () => {
+    const { reorderState } = useTableReorder({
+      reorder: { field: "position" },
+      data: ref(null),
+      rowIdKey: "_id",
+      location: "/api/features",
+      api: vi.fn() as unknown as Api,
+      canEdit: computed(() => false),
+      isNarrowed: computed(() => false),
+      isGrid: computed(() => true),
+      refresh: vi.fn(),
+      onError: vi.fn(),
+    });
+    expect(reorderState.value).toBe(undefined);
+  });
 });

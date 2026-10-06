@@ -347,7 +347,8 @@ export type TableViewPaginationMode = "pages" | "loadMore" | "infinite";
 
 /**
  * Rows the user orders by hand: a drag handle (or the arrow keys on it)
- * moves a row, and the rows it moved get a new value of `field`.
+ * moves a row, and the rows it moved get a new value of `field`. The handle
+ * shows on the grid, to a caller who may edit the rows.
  */
 export interface TableViewReorderOptions {
   /**
