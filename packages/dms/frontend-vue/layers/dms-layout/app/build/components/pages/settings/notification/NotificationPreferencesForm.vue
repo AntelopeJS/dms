@@ -108,17 +108,14 @@ onMounted(load);
       </div>
 
       <div v-if="isLoading" class="divide-y divide-(--ui-border-muted)">
-        <div
+        <DmsRowSkeleton
           v-for="row in PREFERENCES_SKELETON_ROWS"
           :key="row"
-          class="flex items-center gap-3 px-[18px] py-3.5"
-        >
-          <USkeleton class="size-[30px] rounded-lg" />
-          <div class="flex-1 space-y-1.5">
-            <USkeleton class="h-3 w-40" />
-            <USkeleton class="h-2.5 w-64" />
-          </div>
-        </div>
+          class="px-[18px] py-3.5"
+          well="size-[30px] rounded-lg"
+          :lines="['h-3 w-40', 'h-2.5 w-64']"
+          is-centered
+        />
       </div>
 
       <div

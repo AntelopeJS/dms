@@ -4,6 +4,7 @@ import DmsActivityItem from "../activity/ActivityItem.vue";
 import DmsBlockActions, { type BlockAction } from "../blocks/BlockActions.vue";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
+import DmsRowSkeleton from "../../build/components/skeleton/RowSkeleton.vue";
 import { useBlockItems } from "../../composables/blocks/useBlockItems";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import {
@@ -168,22 +169,17 @@ const wrapperProps = computed(() =>
           <USkeleton class="my-[1.5px] h-2.5 w-24" />
         </div>
         <div class="divide-y divide-(--ui-border-muted)">
-          <div
+          <DmsRowSkeleton
             v-for="row in day"
             :key="row"
-            class="flex items-start gap-3 px-[18px] py-2.5"
-          >
-            <USkeleton class="size-[30px] shrink-0 rounded-lg" />
-            <div class="grid flex-1 gap-px">
-              <USkeleton
-                class="my-[3px] h-3"
-                :class="
-                  SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]
-                "
-              />
-              <USkeleton class="my-[3px] h-2.5 w-1/3" />
-            </div>
-          </div>
+            class="px-[18px] py-2.5"
+            well="size-[30px] rounded-lg"
+            :lines="[
+              `my-[3px] h-3 ${SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]}`,
+              'my-[3px] h-2.5 w-1/3',
+            ]"
+            lines-class="grid gap-px"
+          />
         </div>
       </div>
     </div>

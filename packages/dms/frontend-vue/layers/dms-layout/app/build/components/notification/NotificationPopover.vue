@@ -8,6 +8,12 @@ import { resolveNotificationTone } from "../pages/settings/notification/notifica
 
 const MAX_DISPLAYED_COUNT = 99;
 // Placeholder rows while the list loads: enough to fill the list's height.
+const POPOVER_SKELETON_LINES = [
+  "mt-[3px] mb-[5px] h-2.5 w-2/5",
+  "my-1 h-2 w-11/12",
+  "my-1 h-2 w-3/5",
+  "mt-2 h-2 w-14",
+];
 const SKELETON_ROW_COUNT = 4;
 const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
@@ -191,27 +197,16 @@ const goToNotifications = () => {
           aria-hidden="true"
           class="-mr-2 -ml-2 max-h-96 overflow-hidden"
         >
-          <div
+          <!-- The lines sit where a card's title, two lines of message and
+            its time do. -->
+          <DmsRowSkeleton
             v-for="n in SKELETON_ROW_COUNT"
             :key="n"
-            class="flex items-start gap-3 p-4"
-          >
-            <USkeleton class="size-10 shrink-0 rounded-[10px]" />
-            <div class="min-w-0 flex-1">
-              <div class="mb-0.5 text-xs">
-                <USkeleton class="inline-block h-2.5 w-2/5 align-middle" />
-              </div>
-              <div class="text-xs">
-                <USkeleton class="inline-block h-2 w-11/12 align-middle" />
-              </div>
-              <div class="text-xs">
-                <USkeleton class="inline-block h-2 w-3/5 align-middle" />
-              </div>
-              <div class="mt-1 text-[10px]">
-                <USkeleton class="inline-block h-2 w-14 align-middle" />
-              </div>
-            </div>
-          </div>
+            class="p-4"
+            well="size-10 rounded-[10px]"
+            :lines="POPOVER_SKELETON_LINES"
+            lines-class=""
+          />
         </div>
 
         <div
@@ -269,17 +264,13 @@ const goToNotifications = () => {
           </NotificationCard>
 
           <div v-if="hasMore" ref="sentinel" class="min-h-4">
-            <div
+            <DmsRowSkeleton
               v-if="isLoadingMore"
-              aria-hidden="true"
-              class="flex items-start gap-3 p-4"
-            >
-              <USkeleton class="size-10 shrink-0 rounded-[10px]" />
-              <div class="min-w-0 flex-1 space-y-2 pt-1">
-                <USkeleton class="h-2.5 w-2/5" />
-                <USkeleton class="h-2 w-4/5" />
-              </div>
-            </div>
+              class="p-4"
+              well="size-10 rounded-[10px]"
+              :lines="['h-2.5 w-2/5', 'h-2 w-4/5']"
+              lines-class="space-y-2 pt-1"
+            />
           </div>
         </div>
 

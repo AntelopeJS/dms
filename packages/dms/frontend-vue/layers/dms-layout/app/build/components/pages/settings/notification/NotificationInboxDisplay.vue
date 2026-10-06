@@ -101,17 +101,12 @@ onMounted(() => {
 <template>
   <div>
     <div v-if="isFirstLoad" class="space-y-4 px-[18px] py-5">
-      <div
+      <DmsRowSkeleton
         v-for="row in SKELETON_ROWS"
         :key="row"
-        class="flex items-start gap-3"
-      >
-        <USkeleton class="size-[34px] rounded-[9px]" />
-        <div class="flex-1 space-y-1.5">
-          <USkeleton class="h-3 w-56 max-w-full" />
-          <USkeleton class="h-2.5 w-80 max-w-full" />
-        </div>
-      </div>
+        well="size-[34px] rounded-[9px]"
+        :lines="['h-3 w-56 max-w-full', 'h-2.5 w-80 max-w-full']"
+      />
     </div>
 
     <template v-else-if="context.items.length > 0">
