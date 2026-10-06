@@ -111,8 +111,12 @@ describe("grouped rows", () => {
 describe("grouped display wiring", () => {
   it("draws a header row before each group of the page", () => {
     expect(tableSource).toMatch(
-      /v-for="\{ kind, id, row, key \} in bodyEntries"/,
+      /v-for="\{ kind, id, row, key, header \} in bodyEntries"/,
     );
+    // Drawn by the entry, not by reading the prop when the header renders:
+    // leaving the grouped display then cannot leave it undefined.
+    expect(tableSource).toContain('<component :is="header" />');
+    expect(tableSource).not.toContain("grouping!.header");
     expect(tableSource).toContain(':class="uiTable.groupCell()"');
     expect(tableSource).toMatch(/if \(key !== currentKey\) \{/);
   });
