@@ -1,4 +1,5 @@
-import type { Ref } from "vue";
+import type { Component, Ref } from "vue";
+import { resolveDmsComponent as resolveRegisteredComponent } from "#dms/frontend-module";
 
 const PAGE_MODULE_STATE = "dms-page-module";
 
@@ -9,4 +10,12 @@ const PAGE_MODULE_STATE = "dms-page-module";
  */
 export function usePageModule(): Ref<string | undefined> {
   return useDmsState<string | undefined>(PAGE_MODULE_STATE, () => undefined);
+}
+
+/**
+ * The registered component `name` resolves to on the page on screen: a
+ * private component of the module owning the page, or a public one.
+ */
+export function findPageComponent(name: string): Component | undefined {
+  return resolveRegisteredComponent(name, usePageModule().value);
 }

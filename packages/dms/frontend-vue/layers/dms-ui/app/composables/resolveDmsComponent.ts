@@ -1,6 +1,5 @@
 import { camelize, capitalize, type Component } from "vue";
-import { resolveDmsComponent as resolveRegisteredComponent } from "#dms/frontend-module";
-import { usePageModule } from "../build/composables/page/pageModule";
+import { findPageComponent } from "../build/composables/page/pageModule";
 
 function normalizeComponentName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -37,7 +36,7 @@ function findRegistryKey(
 export function resolveDmsComponent(name?: string): Component | undefined {
   if (!name) return undefined;
 
-  const component = resolveRegisteredComponent(name, usePageModule().value);
+  const component = findPageComponent(name);
 
   if (!component && import.meta.env.DEV) {
     console.warn(

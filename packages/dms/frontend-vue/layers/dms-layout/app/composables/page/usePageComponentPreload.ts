@@ -1,3 +1,5 @@
+import { findPageComponent } from "#dms-ui/app/build/composables/page/pageModule";
+
 function collectFromComponentInfo(
   info: ComponentInfo | undefined,
   names: Set<string>,
@@ -38,7 +40,7 @@ function loadPageLayoutComponents(
   return Promise.all(
     collectPageLayoutComponentNames(layout).map((name) =>
       (
-        resolveDmsComponent(name) as AsyncComponentLoader | undefined
+        findPageComponent(name) as AsyncComponentLoader | undefined
       )?.__asyncLoader?.(),
     ),
   );
