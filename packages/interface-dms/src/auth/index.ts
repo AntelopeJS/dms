@@ -418,7 +418,6 @@ export async function createSession(
   const now = new Date();
   const ids = await sessionModel.insert({
     userId,
-    refreshToken: "",
     userAgent: userAgent || "",
     ip: ip || "",
     browser: browser || "Unknown",

@@ -226,7 +226,6 @@ async function registerDmsFrontend(): Promise<void> {
       },
       oauth: {
         relaySecret: deriveOAuthRelaySecret(),
-        trustProxy: authConfig.oauth?.trustProxy ?? false,
       },
     },
   };

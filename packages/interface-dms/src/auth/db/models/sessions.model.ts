@@ -69,8 +69,7 @@ function openRefreshToken(sealed: string, predecessor: string): string | null {
 }
 
 /**
- * Whether a presented refresh token is the session's current one. A session
- * written before tokens were hashed still holds its token in plaintext.
+ * Whether a presented refresh token is the session's current one.
  *
  * @param session The session the token claims
  * @param presentedToken Token the client presented
@@ -80,13 +79,9 @@ export function isCurrentRefreshToken(
   session: Session,
   presentedToken: string,
 ): boolean {
-  const presentedHash = hashRefreshToken(presentedToken);
-  if (session.refreshTokenHash) {
-    return hashesMatch(session.refreshTokenHash, presentedHash);
-  }
   return (
-    !!session.refreshToken &&
-    hashesMatch(hashRefreshToken(session.refreshToken), presentedHash)
+    !!session.refreshTokenHash &&
+    hashesMatch(session.refreshTokenHash, hashRefreshToken(presentedToken))
   );
 }
 
@@ -94,11 +89,8 @@ function recoverSuccessor(
   session: Session,
   presentedToken: string,
 ): string | null {
-  if (session.sealedRefreshToken) {
-    return openRefreshToken(session.sealedRefreshToken, presentedToken);
-  }
-  // Rotated before tokens were sealed: the successor is still in plaintext.
-  return session.refreshToken || null;
+  if (!session.sealedRefreshToken) return null;
+  return openRefreshToken(session.sealedRefreshToken, presentedToken);
 }
 
 export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
@@ -112,13 +104,9 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     const result: unknown = await this.table
       .getAll(sessionId)
       .filter((row) =>
-        row
-          .key("refreshTokenHash")
-          .eq(hashRefreshToken(presentedToken))
-          .or(row.key("refreshToken").eq(presentedToken)),
+        row.key("refreshTokenHash").eq(hashRefreshToken(presentedToken)),
       )
       .update({
-        refreshToken: "",
         refreshTokenHash: hashRefreshToken(refreshToken),
         sealedRefreshToken: sealRefreshToken(refreshToken, presentedToken),
         previousRefreshTokenHash: hashRefreshToken(presentedToken),
@@ -144,7 +132,6 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     refreshToken: string,
   ): Promise<void> {
     await this.update(sessionId, {
-      refreshToken: "",
       refreshTokenHash: hashRefreshToken(refreshToken),
       sealedRefreshToken: null,
       previousRefreshTokenHash: null,

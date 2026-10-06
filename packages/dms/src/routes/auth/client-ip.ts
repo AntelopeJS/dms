@@ -4,7 +4,6 @@ import type { AuthConfig } from "../../config";
 const FORWARDED_FOR_SEPARATOR = ",";
 const IPV4_MAPPED_PREFIX = "::ffff:";
 const NO_TRUSTED_PROXY = 0;
-const LEGACY_TRUST_PROXY_HOPS = 1;
 
 /** What a request exposes about the address it came from. */
 export interface ClientAddressSource {
@@ -71,14 +70,13 @@ function isProxyCount(value: unknown): value is number {
 
 /**
  * The trusted proxy hop count an auth config declares: `trustedProxies`, or
- * one hop for the deprecated `oauth.trustProxy`, or none.
+ * none.
  *
  * @param authConfig The resolved auth configuration
  * @returns A non-negative integer
  */
 export function trustedProxyCount(authConfig: AuthConfig): number {
-  if (isProxyCount(authConfig.trustedProxies)) return authConfig.trustedProxies;
-  return authConfig.oauth?.trustProxy
-    ? LEGACY_TRUST_PROXY_HOPS
+  return isProxyCount(authConfig.trustedProxies)
+    ? authConfig.trustedProxies
     : NO_TRUSTED_PROXY;
 }

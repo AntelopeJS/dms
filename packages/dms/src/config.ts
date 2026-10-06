@@ -51,16 +51,6 @@ export interface OAuthConfig {
    * set it when the browser-facing origin differs from the configured one.
    */
   callbackBaseUrl?: string;
-  /**
-   * Declares that one trusted reverse proxy sits in front and appends to
-   * `x-forwarded-for`.
-   *
-   * @deprecated Set {@link AuthConfig.trustedProxies} instead. Still read when
-   * `trustedProxies` is unset, as one trusted hop. The OAuth rate limit is
-   * enforced by the frontend server, which takes its own hop count from its
-   * `DMS_TRUSTED_PROXY_HOPS` environment variable.
-   */
-  trustProxy?: boolean;
 }
 
 /** Where the "New sign-in" alert reads the country a sign-in came from. */

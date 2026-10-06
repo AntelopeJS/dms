@@ -18,7 +18,6 @@ describe("[unit] session sweep — idle sessions past the refresh token lifetime
     return model.insert({
       _id: id,
       userId: USER_ID,
-      refreshToken: "",
       userAgent: "",
       ip: "",
       browser: "",

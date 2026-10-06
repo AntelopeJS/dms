@@ -8,7 +8,6 @@ import { REFRESH_TOKEN_PREDECESSOR_GRACE_MS } from "@antelopejs/interface-dms/au
 import type { Session } from "@antelopejs/interface-dms/auth/db/tables/sessions.table";
 
 interface RotationUpdate {
-  refreshToken: string;
   refreshTokenHash: string;
   sealedRefreshToken: string;
   previousRefreshTokenHash: string;
@@ -39,23 +38,17 @@ function sha256(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** A session written before tokens were hashed: plaintext, no hash. */
-function createLegacySession(refreshToken: string): Session {
-  return { _id: "session", refreshToken } as Session;
+/** A session whose current refresh token is `refreshToken`. */
+function createSession(refreshToken: string): Session {
+  return { _id: "session", refreshTokenHash: sha256(refreshToken) } as Session;
 }
 
 /**
  * Mirrors the rotation filter: the row matches when the presented token, whose
- * hash the update records as the predecessor, is the current one — by hash,
- * or in plaintext for a legacy row.
+ * hash the update records as the predecessor, is the current one.
  */
 function matchesPresented(session: Session, presentedHash: string): boolean {
-  if (session.refreshTokenHash) {
-    return session.refreshTokenHash === presentedHash;
-  }
-  return (
-    !!session.refreshToken && sha256(session.refreshToken) === presentedHash
-  );
+  return session.refreshTokenHash === presentedHash;
 }
 
 function createModel(): FakeModel {
@@ -93,7 +86,7 @@ describe("refresh token rotation", () => {
 
   it("returns the canonical winner to a concurrent CAS loser", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
 
     expect(
       await model.rotateRefreshToken("session", "T0", "T1", committedAt),
@@ -105,7 +98,7 @@ describe("refresh token rotation", () => {
 
   it("accepts a loser that began just before the winning commit", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     const loserStartedAt = new Date(committedAt.getTime() - 1);
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
 
@@ -116,7 +109,7 @@ describe("refresh token rotation", () => {
 
   it("recovers a late duplicate and response-loss retry", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     const retryAt = new Date(committedAt.getTime() + 10_000);
 
@@ -130,7 +123,7 @@ describe("refresh token rotation", () => {
 
   it("does not slide predecessor expiry", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     await model.rotateRefreshToken(
       "session",
@@ -149,7 +142,7 @@ describe("refresh token rotation", () => {
 
   it("rejects other tokens and deleted sessions", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     expect(
       await model.rotateRefreshToken(
@@ -168,7 +161,7 @@ describe("refresh token rotation", () => {
 
   it("clears predecessor state on replacement", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     Object.defineProperty(model, "update", {
       value: async (_id: string, update: Partial<Session>) => {
@@ -190,11 +183,10 @@ describe("refresh token rotation", () => {
     // as it did with a two-character token about once in a hundred runs.
     const rotated = "rotated-refresh-token-in-plaintext";
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", rotated, committedAt);
     const session = model.currentSession as Session;
 
-    expect(session.refreshToken).to.equal("");
     expect(session.refreshTokenHash).to.equal(sha256(rotated));
     expect(session.sealedRefreshToken).to.be.a("string");
     expect(session.sealedRefreshToken).to.not.include(rotated);
@@ -202,26 +194,9 @@ describe("refresh token rotation", () => {
     expect(isCurrentRefreshToken(session, "T0")).to.equal(false);
   });
 
-  it("accepts a legacy plaintext token once, then only its successor", async () => {
-    const model = createModel();
-    model.currentSession = createLegacySession("T0");
-    expect(isCurrentRefreshToken(model.currentSession, "T0")).to.equal(true);
-    await model.rotateRefreshToken("session", "T0", "T1", committedAt);
-    const afterGrace = new Date(
-      committedAt.getTime() + REFRESH_TOKEN_PREDECESSOR_GRACE_MS + 1,
-    );
-
-    expect(
-      await model.rotateRefreshToken("session", "T0", "discarded", afterGrace),
-    ).to.equal(null);
-    expect(
-      await model.rotateRefreshToken("session", "T1", "T2", afterGrace),
-    ).to.equal("T2");
-  });
-
   it("hands the sealed successor back to a holder of the predecessor", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     const secondRotation = new Date(committedAt.getTime() + 60_000);
     await model.rotateRefreshToken("session", "T1", "T2", secondRotation);
@@ -233,7 +208,7 @@ describe("refresh token rotation", () => {
 
   it("opens nothing for a predecessor the successor was not sealed under", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     await model.rotateRefreshToken("session", "T0", "T1", committedAt);
     // Forge the predecessor check so only the seal stands in the way.
     (model.currentSession as Session).previousRefreshTokenHash =
@@ -246,7 +221,7 @@ describe("refresh token rotation", () => {
 
   it("stores only the hash on replacement", async () => {
     const model = createModel();
-    model.currentSession = createLegacySession("T0");
+    model.currentSession = createSession("T0");
     Object.defineProperty(model, "update", {
       value: async (_id: string, update: Partial<Session>) => {
         Object.assign(model.currentSession as Session, update);
@@ -257,7 +232,6 @@ describe("refresh token rotation", () => {
     await model.replaceRefreshToken("session", "replacement");
     const session = model.currentSession as Session;
 
-    expect(session.refreshToken).to.equal("");
     expect(session.sealedRefreshToken).to.equal(null);
     expect(isCurrentRefreshToken(session, "replacement")).to.equal(true);
     expect(isCurrentRefreshToken(session, "T0")).to.equal(false);

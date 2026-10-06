@@ -41,14 +41,6 @@ interface DmsPrivateConfig {
      * backend-side from the instance `jwtSecret`; never exposed to browsers.
      */
     relaySecret: string;
-    /**
-     * Whether a trusted reverse proxy sits immediately in front and appends
-     * to `x-forwarded-for`.
-     *
-     * @deprecated Mirrors the deprecated `auth.oauth.trustProxy`. The frontend
-     * server keys its OAuth rate limit on its own `DMS_TRUSTED_PROXY_HOPS`.
-     */
-    trustProxy?: boolean;
   };
 }
 

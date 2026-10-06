@@ -117,20 +117,6 @@ describe("[unit] trustedProxyCount", () => {
     expect(trustedProxyCount(authConfig({ trustedProxies: 3 }))).to.equal(3);
   });
 
-  it("maps the deprecated oauth.trustProxy to one hop", () => {
-    expect(
-      trustedProxyCount(authConfig({ oauth: { trustProxy: true } })),
-    ).to.equal(1);
-  });
-
-  it("prefers trustedProxies over oauth.trustProxy", () => {
-    expect(
-      trustedProxyCount(
-        authConfig({ trustedProxies: 0, oauth: { trustProxy: true } }),
-      ),
-    ).to.equal(0);
-  });
-
   it("ignores a value that is not a non-negative integer", () => {
     expect(trustedProxyCount(authConfig({ trustedProxies: -1 }))).to.equal(0);
     expect(trustedProxyCount(authConfig({ trustedProxies: 1.5 }))).to.equal(0);
