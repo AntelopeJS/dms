@@ -6,7 +6,8 @@
 
 type PlainObject = Record<string, unknown>;
 
-function isPlainObject(value: unknown): value is PlainObject {
+/** Whether a value is a plain object (not a list, a date, a file or an instance). */
+export function isPlainObject(value: unknown): value is PlainObject {
   if (typeof value !== "object" || value === null) return false;
   if (Array.isArray(value) || value instanceof Date) return false;
   if (typeof Blob !== "undefined" && value instanceof Blob) return false;

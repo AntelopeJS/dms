@@ -3,6 +3,7 @@ import { ref } from "vue";
 import {
   clearedFieldValue,
   collectSubmitData,
+  isClearedFieldValue,
 } from "../layers/dms-ui/app/composables/form/useForm";
 
 /** A field as `collectSubmitData` reads it. */
@@ -18,7 +19,34 @@ const field = (id: string, type?: string, disabled?: boolean) => ({
  */
 const CLEARABLE = [
   { type: "string", stored: "Some text", cleared: undefined, sent: null },
+  {
+    type: "string",
+    label: "emptied",
+    stored: "Some text",
+    cleared: "",
+    sent: null,
+  },
+  {
+    type: "string",
+    label: "textarea",
+    stored: "Line one\nLine two",
+    cleared: "",
+    sent: null,
+  },
+  {
+    type: "string",
+    label: "localized",
+    stored: { en: "Title", fr: "Titre" },
+    cleared: { en: "", fr: "" },
+    sent: null,
+  },
+  { type: "email", stored: "ann@example.com", cleared: "", sent: null },
+  { type: "url", stored: "https://example.com", cleared: "", sent: null },
+  { type: "phone", stored: "+32 2 123 45 67", cleared: "", sent: null },
+  { type: "rich_text", stored: "<p>Notes</p>", cleared: "<p></p>", sent: null },
   { type: "number", stored: 4, cleared: undefined, sent: null },
+  { type: "number", label: "emptied", stored: 4, cleared: null, sent: null },
+  { type: "number", label: "NaN", stored: 4, cleared: Number.NaN, sent: null },
   { type: "price", stored: 12.5, cleared: undefined, sent: null },
   {
     type: "date",
@@ -125,9 +153,9 @@ describe("collectSubmitData on an edit form", () => {
     });
   }
 
-  it("sends what a control emits on clearing as it is", () => {
+  it("sends an emptied text as null, an emptied list as an empty list", () => {
     // A file or image control emits `null`, a multiple select `[]`, a text
-    // input `""`: values already, sent unchanged.
+    // input `""`: the text is a cleared field like the others.
     expect(
       collectSubmitData(
         { file: null, tags: [], title: "" },
@@ -138,7 +166,42 @@ describe("collectSubmitData on an edit form", () => {
         ],
         { initialValues: { file: "a.pdf", tags: ["x"], title: "Old" } },
       ),
-    ).toEqual({ file: null, tags: [], title: "" });
+    ).toEqual({ file: null, tags: [], title: null });
+  });
+
+  it("sends a number cleared to zero as zero, and an unticked box as false", () => {
+    expect(
+      collectSubmitData(
+        { quantity: 0, done: false },
+        [field("quantity", "number"), field("done", "boolean")],
+        { initialValues: { quantity: 4, done: true } },
+      ),
+    ).toEqual({ quantity: 0, done: false });
+  });
+
+  it("sends no null for an empty text the row never had a value for", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", phone: "", notes: "<p></p>", title: { en: "" } },
+        [
+          field("name", "string"),
+          field("phone", "phone"),
+          field("notes", "rich_text"),
+          field("title", "string"),
+        ],
+        { initialValues: { name: "Task", phone: null, notes: "" } },
+      ),
+    ).toEqual({ name: "Task" });
+  });
+
+  it("leaves out an untouched empty text when only changes are sent", () => {
+    expect(
+      collectSubmitData(
+        { name: "Task", phone: "" },
+        [field("name", "string"), field("phone", "phone")],
+        { initialValues: { name: "Task", phone: null }, onlyChanged: true },
+      ),
+    ).toEqual({});
   });
 
   it("leaves out a field the row never had a value for", () => {
@@ -225,6 +288,16 @@ describe("collectSubmitData on an edit form", () => {
 });
 
 describe("collectSubmitData on a create form", () => {
+  it("sends no null for a text typed then emptied", () => {
+    expect(
+      collectSubmitData(
+        { name: "New", description: "" },
+        [field("name", "string"), field("description", "string")],
+        { initialValues: {} },
+      ),
+    ).toEqual({ name: "New" });
+  });
+
   it("sends no null for the fields nobody touched", () => {
     expect(
       collectSubmitData(
@@ -270,6 +343,27 @@ describe("collectSubmitData on a create form", () => {
         },
       ),
     ).toEqual({ project: "p-1" });
+  });
+});
+
+describe("isClearedFieldValue", () => {
+  it("reads nothing, a blank text and an all-blank object as cleared", () => {
+    expect(isClearedFieldValue(undefined)).toBe(true);
+    expect(isClearedFieldValue(null)).toBe(true);
+    expect(isClearedFieldValue("")).toBe(true);
+    expect(isClearedFieldValue("  ")).toBe(true);
+    expect(isClearedFieldValue("<p></p>", "rich_text")).toBe(true);
+    expect(isClearedFieldValue(Number.NaN)).toBe(true);
+    expect(isClearedFieldValue({ en: "", fr: "" })).toBe(true);
+  });
+
+  it("reads a value, zero, false and a list as values", () => {
+    expect(isClearedFieldValue("a")).toBe(false);
+    expect(isClearedFieldValue(0)).toBe(false);
+    expect(isClearedFieldValue(false)).toBe(false);
+    expect(isClearedFieldValue([])).toBe(false);
+    expect(isClearedFieldValue({ en: "", fr: "Titre" })).toBe(false);
+    expect(isClearedFieldValue(new Blob(["pdf"]))).toBe(false);
   });
 });
 

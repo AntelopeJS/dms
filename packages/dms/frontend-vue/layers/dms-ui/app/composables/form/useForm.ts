@@ -26,7 +26,10 @@ import {
   resolveFieldErrors,
 } from "#dms-core/app/composables/useFieldErrors";
 import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
-import { sameFormValue } from "../../build/composables/unsaved-changes/formValue";
+import {
+  isPlainObject,
+  sameFormValue,
+} from "../../build/composables/unsaved-changes/formValue";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {
@@ -224,6 +227,23 @@ export function clearedFieldValue(initial: unknown): FormFieldValue {
   return Array.isArray(initial) ? [] : null;
 }
 
+/**
+ * Whether a control's value means its field was emptied: no value, a blank
+ * text (an emptied editor's markup or a cleared number included) or a plain
+ * object whose parts are all blank (every language of a localized text, an
+ * address). A list is not: an empty list is the value of an emptied list. Nor
+ * is a file or another instance, whatever its own properties.
+ */
+export function isClearedFieldValue(value: unknown, type?: string): boolean {
+  if (Array.isArray(value)) return false;
+  const isInstance =
+    typeof value === "object" &&
+    value !== null &&
+    !(value instanceof Date) &&
+    !isPlainObject(value);
+  return !isInstance && isBlankValue(value, type);
+}
+
 /** A field as `collectSubmitData` reads it. */
 export type SubmitField = Pick<FormField, "id" | "type" | "disabled"> &
   Partial<Pick<FormField, "component">>;
@@ -278,15 +298,15 @@ export interface SubmitDataContext {
 /**
  * The body a submit sends.
  *
- * Every field holding a value is sent. A field left `undefined` (a control
- * cleared: a deselected select, an emptied colour, a removed tree pick) is
- * sent too, as its empty value (`clearedFieldValue`), when it started with a
- * value: an endpoint merging the body into the stored row would otherwise
- * keep the value the user removed. A field that started empty and is still
- * empty is not sent, so a create form sends no `null` for the fields nobody
- * touched, nor an edit form for values the row never had. A disabled field
- * is never cleared: the user cannot have emptied it. With `onlyChanged`, a
- * field still holding the value it loaded is left out.
+ * Every field holding a value is sent. A field its control emptied (left
+ * `undefined`, or holding a blank text, see `isClearedFieldValue`) is sent as
+ * its empty value (`clearedFieldValue`) when it started with a value: an
+ * endpoint merging the body into the stored row would otherwise keep the value
+ * the user removed. A field that started empty and is still empty is not sent,
+ * so a create form sends no `null` for the fields nobody touched, nor an edit
+ * form for values the row never had. A disabled field is never cleared: the
+ * user cannot have emptied it. With `onlyChanged`, a field still holding the
+ * value it loaded is left out.
  */
 export function collectSubmitData(
   data: Record<string, unknown>,
@@ -300,8 +320,8 @@ export function collectSubmitData(
     const value = unref(data[field.id]) as FormFieldValue | undefined;
     const initial = context.initialValues?.[field.id];
     if (context.onlyChanged && isSameValue(field, value, initial)) continue;
-    if (value !== undefined) {
-      fieldData[field.id] = value;
+    if (!isClearedFieldValue(value, field.type)) {
+      fieldData[field.id] = value as FormFieldValue;
       continue;
     }
     if (field.disabled || context.disabled?.has(field.id)) continue;
