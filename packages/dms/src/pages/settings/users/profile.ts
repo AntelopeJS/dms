@@ -102,6 +102,23 @@ const profileFields = [
 
 const PROFILE_TEXTS = "$page.settings.profile";
 
+// The avatar field travels as a serialized image field: page registration
+// finds it there and stamps the upload token bound to this form, which the
+// save route claims its files for.
+const personalInfoForm = CustomComponent("DmsProfilePersonalInfo")
+  .options({
+    endpoint: PROFILE_URL,
+    avatarField: {
+      id: "avatar",
+      type: IMAGE_FIELD_TYPE,
+      component: avatarType.inputComponent(),
+    },
+  })
+  .meta({
+    name: `${PROFILE_TEXTS}.title`,
+    icon: "i-ph-identification-card",
+  });
+
 @RegisterPage()
 export class ProfileSettingsController extends PageController("profile", {
   displayName: "$menu.profile",
@@ -110,28 +127,11 @@ export class ProfileSettingsController extends PageController("profile", {
   order: 1,
   description: "$page.settings.description.profile",
 }) {
-  // The avatar field travels as a serialized image field: page registration
-  // finds it there and stamps the upload token bound to the form.
   static profileComponent = Section({
     title: `${PROFILE_TEXTS}.title`,
     description: `${PROFILE_TEXTS}.description`,
   })
-    .child(
-      "form",
-      CustomComponent("DmsProfilePersonalInfo")
-        .options({
-          endpoint: PROFILE_URL,
-          avatarField: {
-            id: "avatar",
-            type: IMAGE_FIELD_TYPE,
-            component: avatarType.inputComponent(),
-          },
-        })
-        .meta({
-          name: `${PROFILE_TEXTS}.title`,
-          icon: "i-ph-identification-card",
-        }),
-    )
+    .child("form", personalInfoForm)
     .meta({
       name: `${PROFILE_TEXTS}.title`,
       icon: "i-ph-identification-card",
@@ -222,9 +222,7 @@ export class ProfileSettingsController extends PageController("profile", {
       {
         context,
         fields: avatarAttachmentFields,
-        componentIds: GetComponentPermissionIds(
-          ProfileSettingsController.profileComponent,
-        ),
+        componentIds: GetComponentPermissionIds(personalInfoForm),
         submitted: { avatar: this.user.avatar, ...submitted },
         before: { avatar: (await userModel.get(this.user._id))?.avatar },
       },
