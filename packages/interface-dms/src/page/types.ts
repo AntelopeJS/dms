@@ -184,6 +184,14 @@ export interface MenuOptions {
    */
   badge?: string;
   /**
+   * Default layout of the entry and of every page and sub-category declared
+   * under it that sets none of its own (`Category("billing", { category,
+   * layout: SettingsLayout() })`). The nearest declaring ancestor wins; a
+   * page's own layout argument always overrides it, and a page with neither
+   * gets `DefaultLayout()`.
+   */
+  layout?: ComponentInfo;
+  /**
    * Keep the page reachable while a tenant access gate denies the tenant, the
    * page-level mirror of the `bypassTenantAccessGate` guard option. Covers page
    * visibility, menu visibility and the page's own layout route. Permission

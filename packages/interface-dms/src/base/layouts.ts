@@ -94,19 +94,23 @@ function declareHeaderButton(
   return declared;
 }
 
-export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {
-  const { headerActions, ...rest } = options ?? {};
-  const layoutOptions: DefaultLayoutSerializedOptions = {
-    fullWidth: true,
-    ...rest,
-  };
+function dashboardLayout(
+  componentName: string,
+  options: DefaultLayoutOptions,
+): ComponentInfo {
+  const { headerActions, ...rest } = options;
+  const layoutOptions: DefaultLayoutSerializedOptions = rest;
   if (headerActions) {
     layoutOptions.headerActions = headerActions.map(declareHeaderButton);
   }
-  return {
-    componentName: "dms-default-layout",
-    options: layoutOptions,
-  };
+  return { componentName, options: layoutOptions };
+}
+
+export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {
+  return dashboardLayout("dms-default-layout", {
+    fullWidth: true,
+    ...options,
+  });
 }
 
 /**
@@ -117,6 +121,18 @@ export function FormPageLayout(
   options?: Omit<DefaultLayoutOptions, "fullWidth">,
 ): ComponentInfo {
   return DefaultLayout({ ...options, fullWidth: false });
+}
+
+/**
+ * Dashboard frame of the settings area: the settings navigation next to the
+ * page, in the one column width every settings page shares. Declared by
+ * `settingsCategory`, so its pages and sub-categories get it without naming
+ * it; a settings page declared with a layout of its own opts out.
+ */
+export function SettingsLayout(
+  options?: Omit<DefaultLayoutOptions, "fullWidth">,
+): ComponentInfo {
+  return dashboardLayout("dms-settings-layout", { ...options });
 }
 
 export function EmptyLayout(): ComponentInfo {

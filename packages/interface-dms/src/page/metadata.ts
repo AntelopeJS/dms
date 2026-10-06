@@ -41,7 +41,12 @@ import {
 // Categories resolve controller classes through PageMetadata; neither module
 // dereferences the other during evaluation.
 // oxlint-disable-next-line import/no-cycle
-import { internal, isInsideModule, resolveCategoryInfo } from "./categories";
+import {
+  internal,
+  isInsideModule,
+  resolveCategoryInfo,
+  resolveInheritedLayout,
+} from "./categories";
 import { type ComponentTreeNode, collectComponentTree } from "./component-tree";
 import {
   assembleLayoutComponents,
@@ -237,11 +242,11 @@ export class PageMetadata {
         resolvedCategory?.bypassTenantAccessGate,
     };
 
-    if (!pageLayout) {
-      pageLayout = DefaultLayout();
-    }
-
-    this.layout = pageLayout;
+    this.layout =
+      pageLayout ??
+      menuOptions.layout ??
+      resolveInheritedLayout(resolvedCategory) ??
+      DefaultLayout();
     this.pageInfo = pageInfo;
   }
 

@@ -1,4 +1,4 @@
-import { DefaultLayout } from "../base/layouts";
+import { DefaultLayout, SettingsLayout } from "../base/layouts";
 import { internal } from "./categories";
 import { RootPageController } from "./controllers";
 import { moduleDefaultCategories, moduleRootCategories } from "./registry";
@@ -70,6 +70,6 @@ export const settingsCategory = RootPageController(
     icon: "i-ph-gear",
     order: 3,
     noComponentPermissions: true,
+    layout: SettingsLayout(),
   },
-  DefaultLayout(),
 );

@@ -1,6 +1,7 @@
 import type { ControllerClass } from "@antelopejs/interface-api";
 import { GetMetadata, RegisteringProxy } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
+import type { ComponentInfo } from "../component";
 import { fireAndForget } from "../utils/fire-and-forget";
 import {
   MarkModuleScopedPermission,
@@ -215,6 +216,34 @@ export function resolveCategoryInfo(
   }
 
   return category;
+}
+
+/**
+ * The default layout a page or category declared under `category` inherits:
+ * the `layout` of the nearest ancestor that declares one.
+ *
+ * @param category The parent the entry is declared under
+ * @returns That layout, or undefined when no ancestor declares one
+ */
+export function resolveInheritedLayout(
+  category: CategoryInfo | ControllerClass | undefined,
+): ComponentInfo | undefined {
+  let current = findCategoryInfo(category);
+  while (current) {
+    if (current.layout) return current.layout;
+    current = findCategoryInfo(current.category);
+  }
+  return undefined;
+}
+
+// Unlike resolveCategoryInfo, a parent class that is not a registered page
+// ends the walk instead of throwing: the page declaring it reports that when
+// it registers, not while its layout is being chosen.
+function findCategoryInfo(
+  category: CategoryInfo | ControllerClass | undefined,
+): CategoryInfo | undefined {
+  if (typeof category !== "function") return category;
+  return GetMetadata(category, PageMetadata).pageInfo;
 }
 
 /**

@@ -5,6 +5,7 @@ import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
 import { GetPermissionId, PageMetadata } from "../../page";
 import { claimFormPageRoute } from "../../page/form-page-routes";
+import { resolveInheritedLayout } from "../../page/categories";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
@@ -306,7 +307,7 @@ export function TableView<T extends ControllerClass>(
             hidden: true,
             permission: builder.getAction(definition.action),
           },
-          FormPageLayout(),
+          resolveInheritedLayout(parentInfo) ?? FormPageLayout(),
         );
         const frame = { pageSlug: parentInfo.fullSlug, formSlug: fullSlug };
         if (definition.submitsFilterDefaults) {
