@@ -12,11 +12,8 @@ import {
   INVITE_EMAILS_MAX,
   INVITE_FULL_NAME_MAX_LENGTH,
 } from "../../../validation/member-invite.schema";
+import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
-export const inviteLanguageSelectItems = [
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-];
 
 const DEFAULT_INVITE_LANGUAGE = "en";
 
@@ -35,7 +32,7 @@ export interface InviteFormDefaults {
  */
 export function resolveInviteLanguage(language: string | undefined): string {
   const code = language?.slice(0, 2);
-  const isOffered = inviteLanguageSelectItems.some(
+  const isOffered = DASHBOARD_LANGUAGE_ITEMS.some(
     (item) => item.value === code,
   );
   return code && isOffered ? code : DEFAULT_INVITE_LANGUAGE;
@@ -84,7 +81,7 @@ export const memberInviteForm = Form({
       label: "$page.settings.members.invite.field.language",
       description: "$page.settings.members.invite.field.language_description",
       type: new DefaultDataTypes.SelectType({
-        items: inviteLanguageSelectItems,
+        items: DASHBOARD_LANGUAGE_ITEMS,
       }),
       required: true,
       // Until the inviter's own language arrives from `fetchUrl`.

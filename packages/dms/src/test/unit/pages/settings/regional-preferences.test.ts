@@ -1,9 +1,14 @@
 import { expect } from "chai";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
+  AUTOMATIC_PREFERENCE,
   applyRegionalPreferences,
+  fromRegionFormValues,
   readRegionalPreferences,
+  toRegionFormValues,
 } from "../../../../pages/settings/users/regional-preferences";
+import type { FormPropsSerialized } from "@antelopejs/interface-dms/base/form-types";
+import { regionPreferencesForm } from "../../../../pages/settings/users/region-form";
 import { regionalPreferencesSchema } from "../../../../validation/regional-preferences.schema";
 
 const PASSWORD_HASH = "$2b$10$kept-hash";
@@ -72,5 +77,55 @@ describe("[unit] regional preferences — saving onto the user row", () => {
     applyRegionalPreferences(user, { timeZone: null, language: "fr" });
     expect(user.timeZone).to.equal(null);
     expect(user.language).to.equal("fr");
+  });
+});
+
+describe("[unit] regional preferences — the Language & region form", () => {
+  it("shows an unset preference as automatic and keeps the language", () => {
+    expect(
+      toRegionFormValues({
+        language: "fr",
+        timeZone: "Asia/Tokyo",
+        weekStart: null,
+        timeFormat: "h12",
+        dateFormat: null,
+      }),
+    ).to.deep.equal({
+      language: "fr",
+      timeZone: "Asia/Tokyo",
+      weekStart: AUTOMATIC_PREFERENCE,
+      timeFormat: "h12",
+      dateFormat: AUTOMATIC_PREFERENCE,
+    });
+  });
+
+  it("saves automatic as null, which the schema accepts", () => {
+    const body = fromRegionFormValues({ weekStart: AUTOMATIC_PREFERENCE });
+    expect(body).to.deep.equal({ weekStart: null });
+    expect(regionalPreferencesSchema.parse(body)).to.deep.equal({
+      weekStart: null,
+    });
+    expect(fromRegionFormValues({ language: "fr" })).to.deep.equal({
+      language: "fr",
+    });
+  });
+
+  it("is one instant form with a section per group", () => {
+    const options = regionPreferencesForm().serializeSync()
+      .options as FormPropsSerialized;
+    expect(options?.saveMode).to.equal("instant");
+    expect(options?.sections?.map((section) => section.id)).to.deep.equal([
+      "language",
+      "time",
+    ]);
+    expect(
+      options?.sections?.flatMap((section) => section.fieldIds),
+    ).to.deep.equal([
+      "language",
+      "timeZone",
+      "weekStart",
+      "timeFormat",
+      "dateFormat",
+    ]);
   });
 });

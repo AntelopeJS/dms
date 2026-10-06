@@ -54,10 +54,8 @@ import {
 import type { InviteEmailOutcome } from "./invite-email-outcome";
 import { resendPendingInvite } from "./invite-resend";
 import { inviteEditRoute, inviteGetRoute } from "./invite-extension-routes";
-import {
-  inviteLanguageSelectItems,
-  memberInviteForm,
-} from "./member-invite-form";
+import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
+import { memberInviteForm } from "./member-invite-form";
 import {
   INVITES_PAGE_PATH,
   INVITES_PERMISSION_ID,
@@ -182,7 +180,7 @@ export class inviteSettingDataAPI extends DataController(
   @Column({
     name: "$page.settings.invites.column.language",
     type: new DefaultDataTypes.SelectType({
-      items: inviteLanguageSelectItems,
+      items: DASHBOARD_LANGUAGE_ITEMS,
     }),
   })
   @Access(AccessMode.ReadWrite)

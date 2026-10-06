@@ -141,7 +141,6 @@ describe("instant-save page registry", () => {
   const FORM = "dms-ui/app/components/form/Form.vue";
   const INSTANT_SAVE = [
     `${SETTINGS}/appearance.vue`,
-    `${SETTINGS}/region.vue`,
     `${SETTINGS_PARTS}/notification/NotificationPreferencesForm.vue`,
     FORM,
   ];

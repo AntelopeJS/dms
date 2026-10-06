@@ -10,7 +10,7 @@ import { useIsOwner } from "../../page/useIsOwner";
 import { useNotificationCatalog } from "../../notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../notification/useNotificationPreferences";
 import { useNotifications } from "../../notification/useNotifications";
-import { timeZoneLabel } from "../region/timeZones";
+import { timeZoneLabel } from "../../../build/components/pages/settings/region/timeZones";
 import { useSettingsNavigation } from "../useSettingsNavigation";
 import { useSettingsNavTrails } from "../useSettingsNavTrails";
 import {

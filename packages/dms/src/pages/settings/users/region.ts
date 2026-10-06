@@ -9,9 +9,11 @@ import { regionalPreferencesSchema } from "../../../validation/regional-preferen
 import { userCategory } from "./category";
 import {
   applyRegionalPreferences,
-  type RegionalPreferences,
+  fromRegionFormValues,
   readRegionalPreferences,
+  toRegionFormValues,
 } from "./regional-preferences";
+import { regionPreferencesForm } from "./region-form";
 
 const HTTP_NOT_FOUND = 404;
 
@@ -31,17 +33,22 @@ export class RegionSettingsController extends PageController(
     description: "$page.settings.description.region",
   },
 ) {
-  static regionComponent = CustomComponent("DmsSettingsRegion").meta({
+  static regionComponent = regionPreferencesForm().meta({
     name: "$menu.region",
     icon: "i-ph-globe-hemisphere-west",
+  });
+
+  static formatsComponent = CustomComponent("DmsRegionFormatPreview").meta({
+    name: "$page.settings.region.preview_title",
+    icon: "i-ph-eye",
   });
 
   @AuthUserWithPermission(RegionSettingsController)
   declare user: User;
 
   @Get("/preferences")
-  getPreferences(): RegionalPreferences {
-    return readRegionalPreferences(this.user);
+  getPreferences(): Record<string, unknown> {
+    return toRegionFormValues(readRegionalPreferences(this.user));
   }
 
   /** Saves the preferences the body names; returns all of them. */
@@ -49,8 +56,8 @@ export class RegionSettingsController extends PageController(
   async updatePreferences(
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
-  ): Promise<RegionalPreferences> {
-    const input = assertValidation(body, (value) =>
+  ): Promise<Record<string, unknown>> {
+    const input = assertValidation(fromRegionFormValues(body), (value) =>
       regionalPreferencesSchema.parse(value),
     );
     // The whole stored row is written back: a partial update would drop the
@@ -59,6 +66,6 @@ export class RegionSettingsController extends PageController(
     assert(stored, HTTP_NOT_FOUND, "error.user_not_found");
     applyRegionalPreferences(stored, input);
     await userModel.update(stored);
-    return readRegionalPreferences(stored);
+    return toRegionFormValues(readRegionalPreferences(stored));
   }
 }
