@@ -14,7 +14,7 @@ const METHODS_LABEL_KEYS: Record<string, string> = {
 const SKELETON_COUNT = 4;
 
 const { t } = useI18n();
-const { overview, attention, refresh } = useSecurityOverview();
+const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
 const { formatDate, daysSince } = useSecurityFormat();
 
 function twoFactorItem(data: SecurityOverview): StatStripItem {
@@ -138,12 +138,34 @@ const items = computed<StatStripItem[]>(() => {
   ];
 });
 
+// The summary feeds every block of the page: its failure is said once, here,
+// with the retry that reloads them all.
+const hasLoadError = computed(() => !overview.value && isUnavailable.value);
+const retryActions = computed(() => [
+  {
+    label: t("dms.table.load_error_retry"),
+    icon: "i-ph-arrows-clockwise",
+    color: "neutral" as const,
+    variant: "outline" as const,
+    onClick: () => void refresh(),
+  },
+]);
+
 onMounted(refresh);
 </script>
 
 <template>
   <!-- v2 .cs-status: one card split in four links, each jumping to its block. -->
+  <div v-if="hasLoadError" class="dms-card mb-7">
+    <DmsEmptyState
+      variant="error"
+      :title="t('dms.table.load_error_title')"
+      :actions="retryActions"
+      size="sm"
+    />
+  </div>
   <DmsStatStrip
+    v-else
     class="mb-7"
     layout="joined"
     :items="items"
