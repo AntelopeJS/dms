@@ -7,6 +7,10 @@ import {
 } from "../../../../../composables/settings/security/useSecurityOverview";
 import SecurityEditPanel from "./SecurityEditPanel.vue";
 import SecurityPanelField from "./SecurityPanelField.vue";
+import {
+  type SessionHandoff,
+  useSessionHandoff,
+} from "../../../../composables/security/useSessionHandoff";
 import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
@@ -19,6 +23,7 @@ import {
 interface PasswordChangeResponse {
   passwordChangedAt: string;
   signedOutSessions: number;
+  sessionHandoff?: SessionHandoff;
 }
 
 const PASSWORD_URL = `${SECURITY_ENDPOINT}/password`;
@@ -36,31 +41,29 @@ const { processApiMessage } = useTranslation();
 const { overview, refresh } = useSecurityOverview();
 const { formatDate, daysSince, errorMessage } = useSecurityFormat();
 const { passwordSchema } = usePasswordStrength(ref(""));
+const adoptSessionHandoff = useSessionHandoff();
 
 const isEditing = ref(false);
 const isSaving = ref(false);
 const currentPassword = ref("");
 const newPassword = ref("");
 const confirmPassword = ref("");
-const signOutOthers = ref(true);
 const isCurrentInvalid = ref(false);
 // Errors show once the field was left or the form submitted, and go away
 // as soon as the value is fixed.
 const isSubmitted = ref(false);
-// Something typed (or the sign-out choice changed) and not submitted yet.
+// Something typed and not submitted yet.
 const { dirty: isDirty } = useFormDirty(
   () => ({
     currentPassword: currentPassword.value,
     newPassword: newPassword.value,
     confirmPassword: confirmPassword.value,
-    signOutOthers: signOutOthers.value,
   }),
   {
     initial: () => ({
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
-      signOutOthers: true,
     }),
   },
 );
@@ -105,7 +108,6 @@ function resetForm(): void {
   currentPassword.value = "";
   newPassword.value = "";
   confirmPassword.value = "";
-  signOutOthers.value = true;
   isCurrentInvalid.value = false;
   isSubmitted.value = false;
   isNewTouched.value = false;
@@ -152,9 +154,9 @@ async function submit(): Promise<void> {
       body: {
         currentPassword: hasPassword.value ? currentPassword.value : undefined,
         password: newPassword.value,
-        signOutOtherSessions: otherSessions.value > 0 && signOutOthers.value,
       },
     });
+    await adoptSessionHandoff(response.sessionHandoff);
     announceSuccess(response);
     isEditing.value = false;
     await refresh();
@@ -313,18 +315,15 @@ async function submit(): Promise<void> {
       </PasswordRules>
 
       <template #footer>
-        <UCheckbox
-          v-if="otherSessions > 0"
-          v-model="signOutOthers"
-          :label="t('page.settings.security.password.sign_out_others')"
-          :description="
+        <p v-if="otherSessions > 0" class="text-muted text-sm">
+          {{
             t(
-              'page.settings.security.password.sign_out_others_hint',
+              "page.settings.security.password.sign_out_others_hint",
               { count: otherSessions },
               otherSessions,
             )
-          "
-        />
+          }}
+        </p>
       </template>
     </SecurityEditPanel>
   </DmsSection>

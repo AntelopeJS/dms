@@ -313,7 +313,6 @@
           "confirm": "Confirm new password",
           "confirm_placeholder": "Type it again",
           "mismatch": "The passwords don't match.",
-          "sign_out_others": "Sign out my other sessions",
           "sign_out_others_hint": "Your other device will need to sign in again. This device stays signed in. | Your {count} other devices will need to sign in again. This device stays signed in.",
           "submit": "Update password",
           "updated": "Password updated",

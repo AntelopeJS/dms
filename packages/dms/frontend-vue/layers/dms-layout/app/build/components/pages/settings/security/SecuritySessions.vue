@@ -5,6 +5,10 @@ import {
   SECURITY_ENDPOINT,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
+import {
+  type SessionHandoff,
+  useSessionHandoff,
+} from "../../../../composables/security/useSessionHandoff";
 
 interface SessionInfo {
   _id: string;
@@ -20,6 +24,7 @@ interface SessionInfo {
 
 interface SessionsRevokedResponse {
   count: number;
+  sessionHandoff?: SessionHandoff;
 }
 
 const SESSIONS_URL = `${SECURITY_ENDPOINT}/sessions`;
@@ -37,6 +42,7 @@ const DEVICE_ICONS: Record<string, string> = {
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
+const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
 const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
 
@@ -94,6 +100,7 @@ async function signOutOthers(): Promise<void> {
       OTHER_SESSIONS_URL,
       { method: "DELETE" },
     );
+    await adoptSessionHandoff(response.sessionHandoff);
     isConfirmOpen.value = false;
     toast.add({
       title: t(

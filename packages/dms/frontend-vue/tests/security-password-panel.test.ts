@@ -16,6 +16,7 @@ const overview = ref({ hasPassword: true, activeSessions: 1 });
 const refresh = vi.fn(async () => {});
 const authFetch = vi.fn();
 const addToast = vi.fn();
+const adoptSessionHandoff = vi.fn(async () => {});
 
 // The leave guard needs the app (router, confirm dialog): the dirty state only.
 vi.mock(
@@ -47,6 +48,10 @@ vi.mock(
       errorMessage: (_error: unknown, fallback: string) => fallback,
     }),
   }),
+);
+vi.mock(
+  "../layers/dms-layout/app/build/composables/security/useSessionHandoff",
+  () => ({ useSessionHandoff: () => adoptSessionHandoff }),
 );
 vi.mock("../layers/dms-ui/app/components/check-list/PasswordRules.vue", () => ({
   default: { render: () => null },
@@ -156,6 +161,7 @@ beforeEach(() => {
   vi.stubGlobal("usePasswordStrength", () => ({ passwordSchema }));
   authFetch.mockReset();
   addToast.mockReset();
+  adoptSessionHandoff.mockClear();
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -236,4 +242,26 @@ it("shows a wrong current password under its field, without a toast", async () =
 
   await type("security-current-password", "wrong2");
   expect(errorOf("security-current-password")).toBeUndefined();
+});
+
+it("keeps this device signed in through the handoff the change sends back", async () => {
+  const sessionHandoff = {
+    endpoint: "/api/auth/session-handoff",
+    payload: { token: "handoff" },
+  };
+  authFetch.mockResolvedValue({
+    passwordChangedAt: "2026-10-06T10:00:00.000Z",
+    signedOutSessions: 2,
+    sessionHandoff,
+  });
+  await mountAndOpen();
+  await type("security-current-password", "Current1!");
+  await type("security-new-password", "Abcdefg1!");
+  await type("security-confirm-password", "Abcdefg1!");
+  await submit();
+  expect(authFetch.mock.calls[0]?.[1]?.body).toEqual({
+    currentPassword: "Current1!",
+    password: "Abcdefg1!",
+  });
+  expect(adoptSessionHandoff).toHaveBeenCalledWith(sessionHandoff);
 });

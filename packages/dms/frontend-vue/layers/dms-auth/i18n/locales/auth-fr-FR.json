@@ -313,7 +313,6 @@
           "confirm": "Confirmer le nouveau mot de passe",
           "confirm_placeholder": "Saisissez-le à nouveau",
           "mismatch": "Les mots de passe ne correspondent pas.",
-          "sign_out_others": "Déconnecter mes autres sessions",
           "sign_out_others_hint": "Votre autre appareil devra se reconnecter. Cet appareil reste connecté. | Vos {count} autres appareils devront se reconnecter. Cet appareil reste connecté.",
           "submit": "Mettre à jour le mot de passe",
           "updated": "Mot de passe mis à jour",
