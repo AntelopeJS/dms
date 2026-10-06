@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import type { NotificationCategory } from "../../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../../composables/notification/useNotificationPreferences";
-import {
-  combineSaveStates,
-  useInstantSaveHeader,
-} from "../../../../../composables/layout/useInstantSaveHeader";
+import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
 import {
@@ -19,6 +16,7 @@ const {
   categories,
   subjectsOf,
   failedChanges,
+  saveState,
   isLoading,
   loadFailed,
   isEnabled,
@@ -49,13 +47,7 @@ const isCategoryOn = (category: NotificationCategory) => {
 
 // Each switch saves on its own: the page header carries the shared
 // "Saved instantly" pill, which flashes while a row saves.
-useInstantSaveHeader(() =>
-  combineSaveStates(
-    visibleCategories.value.flatMap((category) =>
-      subjectsOf(category.id).map(rowState),
-    ),
-  ),
-);
+useInstantSaveHeader(() => saveState.value);
 
 /** Names the direction the failed switch went back to, as v2 words it. */
 const failureMessage = computed(() => {
@@ -163,6 +155,7 @@ onMounted(load);
           :enabled="isEnabled(subject)"
           :state="rowState(subject)"
           @toggle="(enabled) => toggleSubject(subject, enabled)"
+          @retry="retry"
         />
       </template>
     </div>

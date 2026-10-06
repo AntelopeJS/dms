@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NotificationSubject } from "../../../../../composables/notification/useNotificationCatalog";
-import type { PreferenceRowState } from "../../../../../composables/notification/useNotificationPreferences";
+import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import {
   MATRIX_GRID_CLASS,
   MATRIX_SUBJECT_INDENT_CLASS,
@@ -9,11 +9,11 @@ import {
 interface NotificationMatrixSubjectProps {
   subject: NotificationSubject;
   enabled: boolean;
-  state: PreferenceRowState;
+  state: SaveStatusState;
 }
 
 const props = defineProps<NotificationMatrixSubjectProps>();
-const emit = defineEmits<{ toggle: [enabled: boolean] }>();
+const emit = defineEmits<{ toggle: [enabled: boolean]; retry: [] }>();
 const { t } = useI18n();
 
 const label = computed(() => t(props.subject.labelKey));
@@ -78,7 +78,11 @@ const onToggle = (value: boolean) => {
       —
     </div>
     <div class="flex justify-end" role="cell">
-      <DmsSaveStatus v-if="props.state !== 'idle'" :state="props.state" />
+      <DmsSaveStatus
+        v-if="props.state !== 'idle'"
+        :state="props.state"
+        @retry="emit('retry')"
+      />
     </div>
   </div>
 </template>

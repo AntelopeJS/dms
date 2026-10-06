@@ -6,10 +6,7 @@ import {
   localeWeekStart,
   regionalDateTimeFormat,
 } from "#dms-core/app/utils/regional";
-import {
-  combineSaveStates,
-  useInstantSaveHeader,
-} from "../../composables/layout/useInstantSaveHeader";
+import { useInstantSaveHeader } from "../../composables/layout/useInstantSaveHeader";
 import {
   buildTimeZoneOptions,
   listTimeZones,
@@ -57,7 +54,7 @@ const { locale, t } = useI18n();
 const { uniqueLocales } = useUniqueLocales();
 const { preferences, detectedTimeZone, timeZone } =
   useUserRegionalPreferences();
-const { states, errors, save } = useRegionSettings();
+const { states, state, errors, save, retry } = useRegionSettings();
 const LANGUAGE_ERROR_ID = "region-language-error";
 const TIME_ZONE_ERROR_ID = "region-time-zone-error";
 
@@ -140,15 +137,15 @@ const choiceValue = (field: ChoiceField) => preferences.value[field] ?? AUTO;
 
 function saveChoice(field: ChoiceField, value: string | number | undefined) {
   const next = value === AUTO || value === undefined ? null : value;
-  void save(field, next as RegionSettingsValues[ChoiceField]);
+  save(field, next as RegionSettingsValues[ChoiceField]);
 }
 
 function saveTimeZone(value: string): void {
-  void save("timeZone", value === AUTO ? null : value);
+  save("timeZone", value === AUTO ? null : value);
 }
 
 function saveLanguage(value: string): void {
-  if (value !== locale.value) void save("language", value);
+  if (value !== locale.value) save("language", value);
 }
 
 const samples = computed<FormatSample[]>(() => {
@@ -185,7 +182,7 @@ const samples = computed<FormatSample[]>(() => {
 
 // Every control on this page saves as soon as it is picked: the shared
 // header pill states it once and flashes while a control saves.
-useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
+useInstantSaveHeader(() => state.value);
 </script>
 
 <template>
@@ -198,7 +195,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
         label="$page.settings.region.language_title"
         description="$page.settings.region.language_description"
       >
-        <DmsSaveStatus :state="states.language ?? 'idle'" />
+        <DmsSaveStatus :state="states.language ?? 'idle'" @retry="retry" />
         <USelect
           class="w-[260px] max-w-full"
           icon="i-ph-translate"
@@ -242,7 +239,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
               })
         "
       >
-        <DmsSaveStatus :state="states.timeZone ?? 'idle'" />
+        <DmsSaveStatus :state="states.timeZone ?? 'idle'" @retry="retry" />
         <UButton
           v-if="isAwayFromBrowser"
           color="neutral"
@@ -296,7 +293,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
           })
         "
       >
-        <DmsSaveStatus :state="states.weekStart ?? 'idle'" />
+        <DmsSaveStatus :state="states.weekStart ?? 'idle'" @retry="retry" />
         <DmsSegmented
           :class="SEGMENTED_PHONE_CLASS"
           :items="weekStartOptions"
@@ -314,7 +311,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
           })
         "
       >
-        <DmsSaveStatus :state="states.timeFormat ?? 'idle'" />
+        <DmsSaveStatus :state="states.timeFormat ?? 'idle'" @retry="retry" />
         <DmsSegmented
           :class="SEGMENTED_PHONE_CLASS"
           :items="timeFormatOptions"
@@ -332,7 +329,7 @@ useInstantSaveHeader(() => combineSaveStates(Object.values(states)));
           })
         "
       >
-        <DmsSaveStatus :state="states.dateFormat ?? 'idle'" />
+        <DmsSaveStatus :state="states.dateFormat ?? 'idle'" @retry="retry" />
         <DmsSegmented
           :class="SEGMENTED_PHONE_CLASS"
           :items="dateFormatOptions"

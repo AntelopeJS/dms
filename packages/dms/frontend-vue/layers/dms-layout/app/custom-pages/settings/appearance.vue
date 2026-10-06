@@ -8,6 +8,7 @@ import { useAccessibilityPreferences } from "../../composables/general/useAccess
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import type { ReduceMotionPreference } from "#dms-ui/app/utils/accessibilityPreferences";
 import { useInstantSaveHeader } from "../../composables/layout/useInstantSaveHeader";
+import { useInstantSave } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 
 // Number of `--ui-*` variables, shown in the Developer block summary.
@@ -81,14 +82,54 @@ const reduceMotionItems = computed(() =>
   })),
 );
 
-function setReduceMotion(value: string | number | undefined): void {
-  const next = reduceMotionValues.find((option) => option === value);
-  if (next) reduceMotion.value = next;
+// Everything on this page is a per-device preference kept in a cookie: each
+// pick goes through the shared instant save, whose cookie write is the save,
+// and the header pill states it once instead of per control.
+const preferenceRefs = {
+  colorMode: colorModePreference,
+  interfaceScale,
+  sidebarStartCollapsed,
+  reduceMotion,
+  increaseContrast,
+  underlineLinks,
+};
+type AppearancePreferences = {
+  [K in keyof typeof preferenceRefs]: (typeof preferenceRefs)[K]["value"];
+};
+type AppearanceKey = keyof AppearancePreferences;
+
+const instant = useInstantSave<AppearancePreferences>({
+  read: (key) => preferenceRefs[key].value as AppearancePreferences[typeof key],
+  write: (key, value) => {
+    (preferenceRefs[key] as Ref<AppearancePreferences[typeof key]>).value =
+      value;
+  },
+  save: () => Promise.resolve(),
+});
+
+function pick<K extends AppearanceKey>(
+  key: K,
+  value: AppearancePreferences[K],
+): void {
+  instant.change(key, value);
 }
 
-// Everything on this page is a per-device preference saved as soon as it is
-// picked, which the shared header pill states once instead of per control.
-useInstantSaveHeader();
+function pickColorMode(value: string): void {
+  const option = colorOptions.find((entry) => entry.value === value);
+  if (option) pick("colorMode", option.value);
+}
+
+function pickScale(value: string): void {
+  const option = scaleOptions.find((entry) => entry.value === value);
+  if (option) pick("interfaceScale", option.value);
+}
+
+function setReduceMotion(value: string | number | undefined): void {
+  const next = reduceMotionValues.find((option) => option === value);
+  if (next) pick("reduceMotion", next);
+}
+
+useInstantSaveHeader(() => instant.state.value);
 </script>
 
 <template>
@@ -101,12 +142,13 @@ useInstantSaveHeader();
         <AppearanceOptionTile
           v-for="option in colorOptions"
           :key="option.value"
-          v-model="colorModePreference"
+          :model-value="colorModePreference"
           name="color-mode"
           :value="option.value"
           :label="option.label"
           :hint="option.hint"
           :icon="option.icon"
+          @update:model-value="pickColorMode"
         >
           <template #preview>
             <ThemePreview :mode="option.value" class="h-[118px] w-full" />
@@ -123,11 +165,12 @@ useInstantSaveHeader();
         <AppearanceOptionTile
           v-for="option in scaleOptions"
           :key="option.value"
-          v-model="interfaceScale"
+          :model-value="interfaceScale"
           name="interface-scale"
           :value="option.value"
           :label="option.label"
           :hint="option.hint"
+          @update:model-value="pickScale"
         >
           <template #preview>
             <ScalePreview :scale="option.value" class="h-[118px] w-full" />
@@ -158,7 +201,8 @@ useInstantSaveHeader();
         description="$page.settings.appearance.accessibility.increase_contrast_hint"
       >
         <USwitch
-          v-model="increaseContrast"
+          :model-value="increaseContrast"
+          @update:model-value="pick('increaseContrast', $event)"
           :aria-label="
             t('page.settings.appearance.accessibility.increase_contrast')
           "
@@ -169,7 +213,8 @@ useInstantSaveHeader();
         description="$page.settings.appearance.accessibility.underline_links_hint"
       >
         <USwitch
-          v-model="underlineLinks"
+          :model-value="underlineLinks"
+          @update:model-value="pick('underlineLinks', $event)"
           :aria-label="
             t('page.settings.appearance.accessibility.underline_links')
           "
@@ -186,7 +231,8 @@ useInstantSaveHeader();
         description="$page.settings.appearance.sidebar_start_collapsed_hint"
       >
         <USwitch
-          v-model="sidebarStartCollapsed"
+          :model-value="sidebarStartCollapsed"
+          @update:model-value="pick('sidebarStartCollapsed', $event)"
           :aria-label="t('page.settings.appearance.sidebar_start_collapsed')"
         />
       </DmsFieldRow>
