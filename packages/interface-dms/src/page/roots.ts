@@ -1,6 +1,6 @@
 import { DefaultLayout, SettingsLayout } from "../base/layouts";
 import { internal } from "./categories";
-import { RootPageController } from "./controllers";
+import { Category, RootPageController } from "./controllers";
 import { moduleDefaultCategories, moduleRootCategories } from "./registry";
 import type { CategoryInfo, ModuleInfo } from "./types";
 
@@ -61,12 +61,30 @@ export const modulesCategory = RootPageController(
   DefaultLayout(),
 );
 
-export const settingsCategory = RootPageController("settings", {
-  displayName: "$page.settings.title",
-  description: "$page.settings.intro",
-  urlSlug: "/settings",
-  icon: "i-ph-gear",
-  order: 3,
-  noComponentPermissions: true,
-  layout: SettingsLayout(),
+export const settingsCategory = RootPageController(
+  "settings",
+  {
+    displayName: "$page.settings.title",
+    description: "$page.settings.intro",
+    urlSlug: "/settings",
+    icon: "i-ph-gear",
+    order: 3,
+    noComponentPermissions: true,
+    layout: SettingsLayout(),
+  },
+);
+
+/**
+ * The settings of the workspace as a whole — members, invitations, roles —
+ * next to the account settings each user keeps for themselves. A project or
+ * module adds its workspace settings here (`category: workspaceSettingsCategory`)
+ * rather than declaring a `settings.workspace` category of its own.
+ */
+export const workspaceSettingsCategory = Category("workspace", {
+  category: settingsCategory,
+  displayName: "$page.settings.shell.workspace",
+  description: "$page.settings.overview.workspace_description",
+  urlSlug: "workspace",
+  icon: "i-ph-buildings",
+  order: 2,
 });

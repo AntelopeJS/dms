@@ -8,6 +8,7 @@ import {
 } from "./display";
 import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
+import type { CategoryInfo } from "../page/types";
 
 /** One navigation card. */
 export interface NavCardItem {
@@ -33,6 +34,12 @@ export interface NavCardItem {
 /** The options `NavCardGrid` takes. */
 export interface NavCardGridProps extends BaseComponentProps, BlockItemsSource {
   items?: NavCardItem[];
+  /**
+   * Full id of a category: a card per page of it the viewer can open, in
+   * menu order, each with its navigation badge — in place of `items` and
+   * `fetchUrl`. Set through the `category` option.
+   */
+  categoryId?: string;
   /** Columns on wide screens (1–4); fewer on narrow ones. */
   columns?: number;
   /** Section title above the grid. */
@@ -58,17 +65,30 @@ const NAV_CARD_GRID_DEFAULT_COLUMNS = 3;
  * NavCardGrid({
  *   title: "Workspace",
  *   items: [
- *     { icon: "i-ph-users", title: "Members", to: "/settings/user/members",
+ *     { icon: "i-ph-users", title: "Members", to: "/settings/workspace/members",
  *       state: "8 of 10 seats" },
  *   ],
  * })
  * ```
  */
+/** What `NavCardGrid` takes: its options, the category being given whole. */
+export interface NavCardGridOptions extends Omit<NavCardGridProps, "categoryId"> {
+  /**
+   * The category whose pages the cards stand for: a card per page the viewer
+   * can open, with the badge its navigation entry shows. A settings overview
+   * lists its sections this way, a module's home its pages.
+   */
+  category?: CategoryInfo;
+}
+
 export function NavCardGrid(
-  options?: NavCardGridProps,
+  options?: NavCardGridOptions,
 ): ComponentBuilder<NavCardGridProps> {
+  const { category, ...rest } = options ?? {};
+  const props: NavCardGridProps = { columns: NAV_CARD_GRID_DEFAULT_COLUMNS, ...rest };
+  if (category) props.categoryId = category.fullId;
   return new ComponentBuilder<NavCardGridProps>(NAV_CARD_GRID_COMPONENT_NAME)
-    .options({ columns: NAV_CARD_GRID_DEFAULT_COLUMNS, ...options })
+    .options(props)
     .meta({
       name: options?.title || "Navigation cards",
       icon: NAV_CARD_GRID_ICON,
@@ -124,6 +144,15 @@ export const NavCardGridSchema = z.object({
       .default(NAV_CARD_GRID_DEFAULT_COLUMNS)
       .describe("Columns on wide screens."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 4 },
+  ),
+  categoryId: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        "Full id of a category: a card per page of it the viewer can open, instead of the cards above.",
+      ),
+    { label: "Pages of category", group: "content", advanced: true },
   ),
   ...blockItemsSourceOptions(),
 }) satisfies BlockOptionsFor<NavCardGridProps>;

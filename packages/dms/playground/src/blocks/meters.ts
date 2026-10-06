@@ -29,7 +29,7 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
             ],
             legend: true,
             actions: [
-              { label: "Manage members", to: "/settings/user/members" },
+              { label: "Manage members", to: "/settings/workspace/members" },
             ],
           }),
         )

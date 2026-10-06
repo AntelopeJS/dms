@@ -10,7 +10,7 @@ import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
  * members page down with it. This is the shape dms-saas's seat-quota banner
  * takes.
  */
-@RegisterPageExtension("settings.user.members")
+@RegisterPageExtension("settings.workspace.members")
 export class MembersQuotaExtension {
   static seatQuota = Placeholder({
     label: "seatQuota — injected into the DMS members page by the playground",
@@ -24,7 +24,7 @@ export class MembersQuotaExtension {
  * The same seat-quota slot on the invitations page, so both workspace member
  * pages carry it, as dms-saas does.
  */
-@RegisterPageExtension("settings.user.members.invites")
+@RegisterPageExtension("settings.workspace.members.invites")
 export class InvitesQuotaExtension {
   static seatQuota = Placeholder({
     label:

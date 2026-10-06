@@ -98,7 +98,7 @@ function buildExtensionComponents(
  * followed by its own id — it is also the page's permission id, the one listed
  * in the roles screen and returned by `GetPermissionId(ThePageClass)` inside
  * the owning module. The DMS members page, for instance, is
- * `settings.user.members`.
+ * `settings.workspace.members`.
  *
  * Placement is declared on each component with `.before(anchor)` /
  * `.after(anchor)`, where an anchor is a static field name of the target page
@@ -117,7 +117,7 @@ function buildExtensionComponents(
  * declare, is reported and the extension is skipped.
  *
  * ```ts
- * @RegisterPageExtension("settings.user.members")
+ * @RegisterPageExtension("settings.workspace.members")
  * export class SeatQuotaExtension {
  *   static seatQuota = CustomComponent("SeatQuotaBanner")
  *     .meta({ name: "Seat quota" })
@@ -133,7 +133,7 @@ export const RegisterPageExtension = MakeClassDecorator(
       (cl as ControllerClass).name || "anonymous page extension";
     if (!targetPageId.trim()) {
       throw new Error(
-        `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.user.members".`,
+        `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.workspace.members".`,
       );
     }
 

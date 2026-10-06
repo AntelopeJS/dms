@@ -21,7 +21,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The settings page each row opens, which is also the page that gates it. */
 export const PREFERENCE_ROW_PAGES = {
-  access: "settings.user.roles",
+  access: "settings.workspace.roles",
   region: "settings.user.region",
   notifications: "settings.user.notifications",
   appearance: "settings.user.appearance",

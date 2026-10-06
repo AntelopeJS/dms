@@ -27,7 +27,7 @@ vi.mock("#dms-core/app/composables/auth/usePermissionPreview", () => ({
   }),
 }));
 
-const MEMBERS_PATH = "/settings/user/members";
+const MEMBERS_PATH = "/settings/workspace/members";
 const TABLE_ID = "table";
 const INVITE = "invite";
 
@@ -217,7 +217,7 @@ describe("runMountedQuickAction", () => {
     });
 
     expect(
-      runMountedQuickAction("/settings/user/roles", TABLE_ID, intent),
+      runMountedQuickAction("/settings/workspace/roles", TABLE_ID, intent),
     ).toBe(false);
     expect(runMountedQuickAction(MEMBERS_PATH, "other", intent)).toBe(false);
     expect(run).not.toHaveBeenCalled();

@@ -17,7 +17,7 @@ import {
 } from "@nuxt/ui/composables/useFormField";
 import { sameFormValue } from "../layers/dms-ui/app/composables/unsaved-changes/formValue";
 
-const ROLES_URL = "/settings/user/members/role-options";
+const ROLES_URL = "/settings/workspace/members/role-options";
 const ROLE_OPTIONS = {
   roles: [
     { _id: "admin", name: "Admin", permissionIds: ["a", "b", "c"] },

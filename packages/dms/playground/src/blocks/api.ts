@@ -70,7 +70,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           title: "Members",
           description:
             "People with access to this workspace and pending invitations.",
-          to: "/settings/user/members",
+          to: "/settings/workspace/members",
           state: "8 of 10 seats used",
         },
         {

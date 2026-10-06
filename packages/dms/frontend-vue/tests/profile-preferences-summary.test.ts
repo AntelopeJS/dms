@@ -202,11 +202,11 @@ describe("access gating", () => {
     expect(rows.appearance.visible).toBe(true);
 
     const withRoles = resolvePreferenceRows(
-      new Map([["settings.user.roles", "/settings/user/roles"]]),
+      new Map([["settings.workspace.roles", "/settings/workspace/roles"]]),
     );
     expect(withRoles.access).toEqual({
       visible: true,
-      to: "/settings/user/roles",
+      to: "/settings/workspace/roles",
     });
   });
 });
@@ -274,16 +274,17 @@ vi.mock(
   },
 );
 vi.mock(
-  "../layers/dms-layout/app/composables/settings/useSettingsNavTrails",
+  "../layers/dms-layout/app/composables/notification/useNotifications",
   () => ({
-    useSettingsNavTrails: () => ({
-      isIndicatorPending: () => bellPending.value,
+    useNotifications: () => ({
+      unreadCount,
+      areCountsLoaded: {
+        get value() {
+          return !bellPending.value;
+        },
+      },
     }),
   }),
-);
-vi.mock(
-  "../layers/dms-layout/app/composables/notification/useNotifications",
-  () => ({ useNotifications: () => ({ unreadCount }) }),
 );
 vi.mock(
   "../layers/dms-layout/app/composables/notification/useNotificationCatalog",
@@ -486,10 +487,10 @@ describe("Preferences & access section", () => {
 
   it("links Your access to the roles page when it opens", async () => {
     navPages.value = [
-      { fullId: "settings.user.roles", to: "/settings/user/roles" },
+      { fullId: "settings.workspace.roles", to: "/settings/workspace/roles" },
     ];
     await mountSection();
-    expect(buttons()).toEqual(["/settings/user/roles"]);
+    expect(buttons()).toEqual(["/settings/workspace/roles"]);
   });
 
   it("says the roles could not be loaded rather than spinning forever", async () => {

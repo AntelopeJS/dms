@@ -34,10 +34,10 @@ describe("permission preview", () => {
     });
 
     it("refuses writes", () => {
-      expect(isPreviewSafeRequest("POST", "/settings/user/roles/create")).toBe(
+      expect(isPreviewSafeRequest("POST", "/settings/workspace/roles/create")).toBe(
         false,
       );
-      expect(isPreviewSafeRequest("PUT", "/settings/user/roles/r1")).toBe(
+      expect(isPreviewSafeRequest("PUT", "/settings/workspace/roles/r1")).toBe(
         false,
       );
       expect(isPreviewSafeRequest("DELETE", "/api/tables/orders/1")).toBe(
@@ -50,7 +50,7 @@ describe("permission preview", () => {
       expect(
         isPreviewSafeRequest(
           "POST",
-          "http://127.0.0.1:5010/settings/user/roles/preview",
+          "http://127.0.0.1:5010/settings/workspace/roles/preview",
         ),
       ).toBe(true);
       expect(isPreviewSafeRequest("POST", "/api/_auth/session")).toBe(true);

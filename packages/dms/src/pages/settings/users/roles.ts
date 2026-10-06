@@ -7,7 +7,7 @@ import {
   Put,
   type RequestContext,
 } from "@antelopejs/interface-api";
-import { assertValidation } from "@antelopejs/interface-api-util";
+import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -26,7 +26,11 @@ import {
 import { roleSettingDataAPI } from "@antelopejs/interface-dms/data-controllers/roles";
 import { RoleModel, TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  RegisterPage,
+  workspaceSettingsCategory,
+} from "@antelopejs/interface-dms/page";
 import {
   GetEffectiveUserPermissions,
   GetPermission,
@@ -49,7 +53,6 @@ import {
   roleEditorSchema,
   rolePreviewSchema,
 } from "../../../validation/role-editor.schema";
-import { userCategory } from "./category";
 import { mapPermissionTreeToPermissionNodes } from "./permission-tree-nodes";
 import type {
   RoleEditorCapabilities,
@@ -92,7 +95,7 @@ export interface CreatedRole {
 /**
  * The roles editor, mounted as the page's `table` and standing in for a
  * TableView over `roleSettingDataAPI`: it declares a table's actions, so the
- * grantable ids stay `settings.user.roles.table.{list,add,edit,…}` and roles
+ * grantable ids stay `settings.workspace.roles.table.{list,add,edit,…}` and roles
  * saved before the editor keep granting the same rights.
  */
 export const rolesEditor = new ComponentBuilder<TableViewOptionsSerialized>(
@@ -157,6 +160,24 @@ async function holdsAction(
   const { permissionId } = action;
   return !permissionId || HasPermission(actor.permissions, permissionId);
 }
+
+// The roles list shows the built-in Owner row above the stored roles: the
+// navigation counts it too, so both say the same number.
+const OWNER_ROW = 1;
+const HTTP_FORBIDDEN = 403;
+
+rolesEditor.navBadge({
+  count: async (ctx, user) => {
+    const actor = await resolveActor(ctx, user);
+    assert(
+      await holdsAction(actor, listAction),
+      HTTP_FORBIDDEN,
+      "error.forbidden",
+    );
+    const roles = await GetModel(RoleModel, actor.tenantId).getAll();
+    return roles.length + OWNER_ROW;
+  },
+});
 
 async function resolveCapabilities(
   actor: RoleEditorActor,
@@ -296,9 +317,9 @@ async function previewRole(
 @RegisterPage()
 export class RolesSettingsController extends PageController("roles", {
   displayName: "$menu.roles",
-  category: userCategory,
+  category: workspaceSettingsCategory,
   icon: "i-ph-key",
-  order: 6,
+  order: 2,
   description: "$page.settings.description.roles",
 }) {
   static table = rolesEditor;

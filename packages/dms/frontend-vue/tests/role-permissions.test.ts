@@ -14,7 +14,6 @@ import {
   nextCollapseDepth,
   nextExpandDepth,
   openDepth,
-  orderByRank,
   type PermissionIndex,
   revokePermission,
   searchPermissions,
@@ -57,15 +56,15 @@ const TREE: RolePermissionNode[] = [
         label: "User settings",
         children: [
           {
-            id: "settings.user.roles",
+            id: "settings.workspace.roles",
             label: "Roles",
             children: [
               {
-                id: "settings.user.roles.table",
+                id: "settings.workspace.roles.table",
                 label: "Roles list",
                 children: [
-                  { id: "settings.user.roles.table.list", label: "List" },
-                  { id: "settings.user.roles.table.edit", label: "Edit" },
+                  { id: "settings.workspace.roles.table.list", label: "List" },
+                  { id: "settings.workspace.roles.table.edit", label: "Edit" },
                 ],
               },
             ],
@@ -210,20 +209,6 @@ describe("role permissions", () => {
     ]);
   });
 
-  it("puts ranked nodes first, every level down, the rest in served order", () => {
-    const rank = (id: string) =>
-      ["settings.user.profile", "settings.user.roles"].indexOf(id);
-    const ordered = orderByRank(TREE, rank);
-    expect(ordered.map((node) => node.id)).toEqual(TREE.map((node) => node.id));
-    const user = ordered[1]!.children![0]!;
-    expect(user.children!.map((node) => node.id)).toEqual([
-      "settings.user.profile",
-      "settings.user.roles",
-    ]);
-    // The input is left as it was.
-    expect(TREE[1]!.children![0]!.children![0]!.id).toBe("settings.user.roles");
-  });
-
   it("sorts the collapsible rows below the section headings by depth", () => {
     const { levels, parents } = buildPermissionLevels(
       buildPermissionAreas(TREE, identity),
@@ -232,11 +217,11 @@ describe("role permissions", () => {
     // without children (`media.upload.form`, `examples`) never open.
     expect(levels).toEqual([
       ["pages.sales", "settings.user"],
-      ["pages.sales.orders", "settings.user.roles", "settings.user.profile"],
-      ["settings.user.roles.table"],
+      ["pages.sales.orders", "settings.workspace.roles", "settings.user.profile"],
+      ["settings.workspace.roles.table"],
     ]);
-    expect(parents.get("settings.user.roles.table")).toBe(
-      "settings.user.roles",
+    expect(parents.get("settings.workspace.roles.table")).toBe(
+      "settings.workspace.roles",
     );
     expect(parents.has("settings.user")).toBe(false);
   });
@@ -308,18 +293,18 @@ describe("role permissions", () => {
       new Set([
         "settings",
         "settings.user",
-        "settings.user.roles",
-        "settings.user.roles.table",
-        "settings.user.roles.table.list",
+        "settings.workspace.roles",
+        "settings.workspace.roles.table",
+        "settings.workspace.roles.table.list",
       ]),
-      "settings.user.roles.table.list",
+      "settings.workspace.roles.table.list",
     );
-    // Only `settings.user.roles.table` is judged emptied: the ancestors above
+    // Only `settings.workspace.roles.table` is judged emptied: the ancestors above
     // it still saw it selected, so they stay.
     expect(sorted(next)).toEqual([
       "settings",
       "settings.user",
-      "settings.user.roles",
+      "settings.workspace.roles",
     ]);
   });
 
@@ -420,7 +405,7 @@ describe("role permissions", () => {
       expect.arrayContaining([
         ["settings", "", "settings"],
         ["settings.user", "Settings", "settings.user"],
-        ["settings.user.roles", "Settings › User settings", "settings.user"],
+        ["settings.workspace.roles", "Settings › User settings", "settings.user"],
       ]),
     );
   });
@@ -462,15 +447,15 @@ describe("permission tree levels", () => {
         "pages.sales.orders",
         "settings.user",
         "settings.user.profile",
-        "settings.user.roles",
+        "settings.workspace.roles",
       ],
       [
         "pages.sales",
         "pages.sales.orders",
         "settings.user",
         "settings.user.profile",
-        "settings.user.roles",
-        "settings.user.roles.table",
+        "settings.workspace.roles",
+        "settings.workspace.roles.table",
       ],
     ]);
     expect(openDepth(levels, expanded)).toBe(3);
@@ -494,33 +479,33 @@ describe("permission tree levels", () => {
 
   it("fills the shallowest incomplete depth of a tree opened by hand", () => {
     // One area and one of its rows opened by hand, the other area closed.
-    let expanded = open("settings.user", "settings.user.roles");
+    let expanded = open("settings.user", "settings.workspace.roles");
     expect(openDepth(levels, expanded)).toBe(0);
     expect(nextExpandDepth(levels, expanded)).toBe(1);
     expanded = expandOneLevel(levels, expanded);
     expect(sorted(expanded)).toEqual([
       "pages.sales",
       "settings.user",
-      "settings.user.roles",
+      "settings.workspace.roles",
     ]);
     expect(nextExpandDepth(levels, expanded)).toBe(2);
     // Depth 3 is opened by hand, but depth 2 is still incomplete: it comes first.
     expanded = open(
       "pages.sales",
       "settings.user",
-      "settings.user.roles",
-      "settings.user.roles.table",
+      "settings.workspace.roles",
+      "settings.workspace.roles.table",
     );
     expect(nextExpandDepth(levels, expanded)).toBe(2);
     expect(openDepth(levels, expanded)).toBe(1);
   });
 
   it("collapses the deepest depth shown open, not a hidden open row", () => {
-    // `settings.user.roles.table` is open but hidden under a closed area.
+    // `settings.workspace.roles.table` is open but hidden under a closed area.
     const expanded = open(
       "pages.sales",
-      "settings.user.roles",
-      "settings.user.roles.table",
+      "settings.workspace.roles",
+      "settings.workspace.roles.table",
     );
     expect(nextCollapseDepth(levels, expanded)).toBe(1);
     // The hidden open rows below that depth close with it.

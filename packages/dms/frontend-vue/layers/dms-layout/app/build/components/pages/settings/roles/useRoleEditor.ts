@@ -1,12 +1,10 @@
 import { watch, type Ref } from "vue";
 import { useNavBadges } from "#dms-ui/app/composables/navigation/useNavBadges";
-import { curatedSettingsPageRank } from "../../../../../composables/settings/useSettingsNavigation";
 import {
   buildPermissionAreas,
   buildPermissionIndex,
   diffPermissions,
   grantPermission,
-  orderByRank,
   revokePermission,
 } from "./role-permissions";
 import {
@@ -18,7 +16,9 @@ import {
   type RoleSummary,
 } from "./role-types";
 
-const ROLES_PAGE_ID = "settings.user.roles";
+// The Owner row the list shows above the stored roles.
+const OWNER_ROW = 1;
+const ROLES_PAGE_ID = "settings.workspace.roles";
 
 /** What the roles page loads: the roles and the permission tree. */
 export interface RolesPageData {
@@ -110,20 +110,21 @@ export function useRoleEditor(data: Ref<RolesPageData | null>) {
 
   const roles = computed(() => data.value?.overview.roles ?? []);
 
-  // The settings nav shows the role count; keep it current as roles are
-  // created, duplicated or deleted here.
+  // The settings nav shows the role count — the stored roles and the Owner
+  // row, as the list and the server count them; keep it current as roles
+  // are created, duplicated or deleted here.
   const { setNavBadge } = useNavBadges();
   watch(
     () => data.value?.overview.roles.length,
     (count) => {
-      if (count !== undefined) setNavBadge(ROLES_PAGE_ID, String(count));
+      if (count !== undefined) {
+        setNavBadge(ROLES_PAGE_ID, String(count + OWNER_ROW));
+      }
     },
     { immediate: true },
   );
-  // Served in main menu order; the settings pages follow the settings nav.
-  const tree = computed(() =>
-    orderByRank(data.value?.tree ?? [], curatedSettingsPageRank),
-  );
+  // Served in menu order, which the settings nav follows too.
+  const tree = computed(() => data.value?.tree ?? []);
   const index = computed(() => buildPermissionIndex(tree.value));
   const areas = computed(() => buildPermissionAreas(tree.value, processI18n));
   const selectedRole = computed(

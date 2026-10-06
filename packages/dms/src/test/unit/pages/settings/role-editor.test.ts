@@ -112,12 +112,12 @@ describe("[unit] pages/settings/users/role-editor", () => {
               ...permission("settings.user"),
               children: {
                 roles: {
-                  ...permission("settings.user.roles"),
+                  ...permission("settings.workspace.roles"),
                   children: {
                     table: {
-                      ...permission("settings.user.roles.table"),
+                      ...permission("settings.workspace.roles.table"),
                       children: {
-                        list: permission("settings.user.roles.table.list"),
+                        list: permission("settings.workspace.roles.table.list"),
                       },
                     },
                   },
@@ -145,9 +145,9 @@ describe("[unit] pages/settings/users/role-editor", () => {
         "pages.form.simple.form",
         "settings",
         "settings.user",
-        "settings.user.roles",
-        "settings.user.roles.table",
-        "settings.user.roles.table.list",
+        "settings.workspace.roles",
+        "settings.workspace.roles.table",
+        "settings.workspace.roles.table.list",
         "media.upload",
       ]);
     });

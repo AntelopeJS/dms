@@ -1,6 +1,6 @@
 /**
  * Fresh counts a page publishes for its navigation entry, by page full id
- * (`settings.user.members` → `"7"`, `""` for none). The server counts a table
+ * (`settings.workspace.members` → `"7"`, `""` for none). The server counts a table
  * view tab declared with `navBadge: true` when the menu loads; the table
  * publishes its own counter here once shown, which navigation surfaces draw
  * over the server's badge.

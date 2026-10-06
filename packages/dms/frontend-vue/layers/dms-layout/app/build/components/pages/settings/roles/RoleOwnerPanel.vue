@@ -8,7 +8,7 @@ interface RoleOwnerPanelProps {
 const props = defineProps<RoleOwnerPanelProps>();
 const { t } = useI18n();
 
-const MEMBERS_PAGE_PATH = "/settings/user/members";
+const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 </script>
 
 <template>

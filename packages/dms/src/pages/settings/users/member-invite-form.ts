@@ -16,9 +16,9 @@ import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 
 const DEFAULT_INVITE_LANGUAGE = "en";
 
-export const INVITE_DEFAULTS_URL = "/settings/user/members/invite/defaults";
-export const INVITE_ROLES_URL = "/settings/user/members/invite/roles";
-export const ROLES_PAGE_PATH = "/settings/user/roles";
+export const INVITE_DEFAULTS_URL = "/settings/workspace/members/invite/defaults";
+export const INVITE_ROLES_URL = "/settings/workspace/members/invite/roles";
+export const ROLES_PAGE_PATH = "/settings/workspace/roles";
 
 export interface InviteFormDefaults {
   language: string;
@@ -124,7 +124,7 @@ export const memberInviteForm = Form({
   // Modules attach their own fields here through `RegisterInviteExtension`.
   slotId: INVITE_FORM_SLOT_ID,
   fetchUrl: INVITE_DEFAULTS_URL,
-  submitUrl: "/settings/user/members/invite",
+  submitUrl: "/settings/workspace/members/invite",
   submitUrlMethod: HttpMethod.post,
   submitLabel: "$page.settings.members.invite.submit",
   successMessage: "$page.settings.members.invite.success",

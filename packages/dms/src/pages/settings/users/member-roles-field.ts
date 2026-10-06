@@ -19,7 +19,7 @@ export const MEMBER_EDIT_FORM_SLOT_ID = "dms.member-edit-form";
 
 const ROLES_FIELD_ID = "roleIds";
 /** Roles the "Change roles" form offers, a route of the members page. */
-const MEMBER_ROLE_OPTIONS_URL = "/settings/user/members/role-options";
+const MEMBER_ROLE_OPTIONS_URL = "/settings/workspace/members/role-options";
 
 // The roles as pills, each with what it grants, like the invite form; inert
 // while the member is an owner, and none is a valid choice. The form reads

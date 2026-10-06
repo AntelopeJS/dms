@@ -11,9 +11,9 @@ const MESSAGES_PREFIX = "$dms.notifications.messages";
 export const NOTIFICATION_LINKS = {
   settings: "/settings",
   security: "/settings/user/security",
-  members: "/settings/user/members",
-  invites: "/settings/user/members/invites",
-  roles: "/settings/user/roles",
+  members: "/settings/workspace/members",
+  invites: "/settings/workspace/members/invites",
+  roles: "/settings/workspace/roles",
 } as const;
 
 /** What every notification of one kind shares. */

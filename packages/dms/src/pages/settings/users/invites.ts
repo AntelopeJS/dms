@@ -276,19 +276,19 @@ const inviteApiTarget = (action: string) =>
 const PENDING = { field: "status", equals: true } as const;
 const EXPIRED = { field: "status", equals: false } as const;
 
-// Reached from the members page rather than the settings menu: nested under
-// it, so its URL and breadcrumb go through Members. The permission keeps the
-// id it had as a user-category page, so the roles that already grant it are
-// unchanged.
+// Nested under Members: its URL and breadcrumb go through Members, and the
+// settings navigation lists it right after Members.
 @RegisterPage()
-export class InvitesSettingsController extends PageController("invites", {
-  displayName: "$menu.invites",
-  category: MembersSettingsController,
-  permission: { id: INVITES_PERMISSION_ID },
-  hidden: true,
-  icon: "i-ph-envelope-simple",
-  description: "$page.settings.description.invites",
-}) {
+export class InvitesSettingsController extends PageController(
+  "invites",
+  {
+    displayName: "$page.settings.shell.member_invitations",
+    category: MembersSettingsController,
+    permission: { id: INVITES_PERMISSION_ID },
+    icon: "i-ph-envelope-simple",
+    description: "$page.settings.description.invites",
+  },
+) {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",

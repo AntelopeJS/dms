@@ -211,7 +211,7 @@ beforeEach(() => {
   }));
   vi.stubGlobal("useApiError", apiError);
   vi.stubGlobal("useHomepage", () => "/");
-  vi.stubGlobal("useDmsRoute", () => ({ path: "/settings/user/roles" }));
+  vi.stubGlobal("useDmsRoute", () => ({ path: "/settings/workspace/roles" }));
   vi.stubGlobal("useDmsAsyncData", async () => ({
     data: ref({
       overview: {
@@ -283,7 +283,7 @@ it("asks the delete dialog the server words, then deletes with the picked role",
   await flush();
 
   expect(authFetch).toHaveBeenCalledWith(
-    "/settings/user/roles/role-1/delete-confirm",
+    "/settings/workspace/roles/role-1/delete-confirm",
   );
   expect(api.deleteRole).toHaveBeenCalledWith("role-1", {
     force: false,

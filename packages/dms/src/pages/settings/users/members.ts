@@ -19,7 +19,11 @@ import {
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
 import { internal } from "@antelopejs/interface-dms/invite-extensions";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  RegisterPage,
+  workspaceSettingsCategory,
+} from "@antelopejs/interface-dms/page";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
@@ -35,7 +39,6 @@ import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
 import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
-import { userCategory } from "./category";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
 import {
   type InviteFormDefaults,
@@ -74,7 +77,7 @@ RegisterDataController()(memberSettingDataAPI);
 
 // Redirect targets for the invite form: an existing user is added straight to
 // the members list, a new email lands as a pending invite.
-export const MEMBERS_PAGE_PATH = "/settings/user/members";
+export const MEMBERS_PAGE_PATH = "/settings/workspace/members";
 export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
 /** Data API of the invitations list, whose total the Invitations tab shows. */
 export const INVITES_API_LOCATION = "/api/tables/admin-invites";
@@ -93,7 +96,7 @@ export const INVITE_EMAIL_FAILED_WARNING =
   "$page.settings.members.invite.email_failed";
 
 /** Permission of the invitations page, which the members page links to. */
-export const INVITES_PERMISSION_ID = "settings.user.invites";
+export const INVITES_PERMISSION_ID = "settings.workspace.invites";
 
 /**
  * The reduced grid both lists of the members page share: no caption (the page
@@ -417,13 +420,16 @@ async function loadRoleOptions(tenantId: string): Promise<InviteRoleOptions> {
 }
 
 @RegisterPage()
-export class MembersSettingsController extends PageController("members", {
-  displayName: "$menu.members",
-  category: userCategory,
-  icon: "i-ph-users-three",
-  order: 4,
-  description: "$page.settings.description.members",
-}) {
+export class MembersSettingsController extends PageController(
+  "members",
+  {
+    displayName: "$menu.members",
+    category: workspaceSettingsCategory,
+    icon: "i-ph-users-three",
+    order: 1,
+    description: "$page.settings.description.members",
+  },
+) {
   static table = membersTable;
 
   @Get("/invite/defaults")
@@ -443,7 +449,7 @@ export class MembersSettingsController extends PageController("members", {
 
   /**
    * The roles the "Change roles" form offers: the members data API's
-   * `roleIds` column reads them from `/settings/user/members/role-options`.
+   * `roleIds` column reads them from `/settings/workspace/members/role-options`.
    */
   @Get("/role-options")
   memberRoleOptions(

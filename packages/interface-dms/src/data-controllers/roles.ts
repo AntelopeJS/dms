@@ -50,7 +50,7 @@ export class roleSettingDataAPI extends DataController(
   @Column({
     name: "$page.settings.roles.column.permissions",
     type: new DefaultDataTypes.PermissionsType({
-      fetchUrl: "/settings/user/roles/permissions-tree",
+      fetchUrl: "/settings/workspace/roles/permissions-tree",
     }),
     description: "$page.settings.roles.description.permissions",
     defaultValue: [],

@@ -31,7 +31,7 @@ const NEXT_ACTIONS: NextAction[] = [
     icon: "i-ph-user-plus",
     titleKey: "page.onboarding.ready.invite_title",
     descriptionKey: "page.onboarding.ready.invite_description",
-    to: "/settings/user/members",
+    to: "/settings/workspace/members",
   },
   {
     id: "security",

@@ -282,7 +282,7 @@ describe("PermissionVeil partial state (settings overview cards)", () => {
       h(
         PermissionVeil,
         { state: "partial", label: "Partial access", persistent: true },
-        () => h("a", { class: "card", href: "/settings/user/members" }),
+        () => h("a", { class: "card", href: "/settings/workspace/members" }),
       ),
     );
     app.component("UTooltip", Stub);

@@ -10,8 +10,8 @@ export const ACTIVITY_PAGE_IDS = {
   security: "settings.user.security",
   profile: "settings.user.profile",
   notifications: "settings.user.notifications",
-  members: "settings.user.members",
-  invites: "settings.user.members.invites",
+  members: "settings.workspace.members",
+  invites: "settings.workspace.members.invites",
 } as const;
 
 /** Route of each settings page the viewer can open, by page id. */

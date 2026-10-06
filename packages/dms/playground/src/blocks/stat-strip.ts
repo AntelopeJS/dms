@@ -82,7 +82,7 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
         eyebrow: "Members",
         value: "8 / 10 seats",
         detail: "6 members · 2 pending invites",
-        to: "/settings/user/members",
+        to: "/settings/workspace/members",
       },
       {
         eyebrow: "Plan",

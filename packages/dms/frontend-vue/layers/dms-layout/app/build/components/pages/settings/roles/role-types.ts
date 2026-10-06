@@ -1,4 +1,4 @@
-/** A permission of the roles editor tree (`GET /settings/user/roles/editor-tree`). */
+/** A permission of the roles editor tree (`GET /settings/workspace/roles/editor-tree`). */
 export interface RolePermissionNode {
   id: string;
   label: string;
@@ -15,7 +15,7 @@ export interface RoleMemberPreview {
   name: string;
 }
 
-/** One role of the roles list (`GET /settings/user/roles/overview`). */
+/** One role of the roles list (`GET /settings/workspace/roles/overview`). */
 export interface RoleSummary {
   _id: string;
   name: string;
@@ -40,7 +40,7 @@ export interface RoleEditorCapabilities {
   canDelete: boolean;
 }
 
-/** Payload of `GET /settings/user/roles/overview`. */
+/** Payload of `GET /settings/workspace/roles/overview`. */
 export interface RolesOverview {
   roles: RoleSummary[];
   owners: RoleOwnersSummary;
@@ -76,7 +76,7 @@ export const OWNER_ENTRY_ID = "__owner__";
 export const NEW_ROLE_ENTRY_ID = "__new__";
 
 /** Base path of the roles page API. */
-export const ROLES_API_PATH = "/settings/user/roles";
+export const ROLES_API_PATH = "/settings/workspace/roles";
 
 /** Bounds mirrored from the backend validation schema. */
 export const ROLE_NAME_MAX_LENGTH = 80;

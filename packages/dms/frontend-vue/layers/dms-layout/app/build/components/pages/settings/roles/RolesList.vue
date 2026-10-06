@@ -145,7 +145,7 @@ function coverage(count: number): number {
       <span>
         {{ t("page.settings.roles.editor.foot_prefix") }}
         <DmsLink
-          to="/settings/user/members"
+          to="/settings/workspace/members"
           class="text-primary font-medium hover:underline"
         >
           {{ t("page.settings.roles.editor.foot_link") }}

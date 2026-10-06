@@ -47,7 +47,7 @@ export class PageBlocksSettings extends PageController(
         id: "audit",
         label: "Audit log",
         icon: "i-ph-scroll",
-        target: { type: "page", url: "/settings/user/roles" },
+        target: { type: "page", url: "/settings/workspace/roles" },
         permissionId: "playground.never-granted",
       },
     ],
@@ -73,7 +73,7 @@ export class PageBlocksSettings extends PageController(
             { value: 2, tone: "soft", label: "2 pending invites" },
           ],
           legend: true,
-          actions: [{ label: "Manage members", to: "/settings/user/members" }],
+          actions: [{ label: "Manage members", to: "/settings/workspace/members" }],
         }),
       ),
     )

@@ -81,7 +81,7 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
         label: "Owner",
         value: "Camille Laurent",
         type: "link",
-        to: "/settings/user/members",
+        to: "/settings/workspace/members",
       },
       { label: "Region", value: "eu-west-3", type: "mono" },
       { label: "Monthly cost", value: 1240.5, type: "money", currency: "USD" },

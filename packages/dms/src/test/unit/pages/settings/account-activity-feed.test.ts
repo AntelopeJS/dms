@@ -7,8 +7,8 @@ const ALL_PAGES = {
   "settings.user.profile": "/settings/user/profile",
   "settings.user.security": "/settings/user/security",
   "settings.user.notifications": "/settings/user/notifications",
-  "settings.user.members": "/settings/user/members",
-  "settings.user.members.invites": "/settings/user/members/invites",
+  "settings.workspace.members": "/settings/workspace/members",
+  "settings.workspace.members.invites": "/settings/workspace/members/invites",
 };
 const PROFILE_ONLY = { "settings.user.profile": "/settings/user/profile" };
 const EVENT_DATE = "2026-09-30T10:00:00.000Z";
@@ -123,9 +123,9 @@ describe("[unit] settings overview — account activity feed", () => {
     expect(items.map((item) => item.to)).to.deep.equal([
       "/settings/user/security#two-factor",
       "/settings/user/security#two-factor",
-      "/settings/user/members",
-      "/settings/user/members",
-      "/settings/user/members/invites",
+      "/settings/workspace/members",
+      "/settings/workspace/members",
+      "/settings/workspace/members/invites",
     ]);
   });
 
