@@ -9,6 +9,7 @@ import { LIST_ACTION } from "./auth";
 import { serializeColumnDisplay } from "./column-display";
 import {
   serializeCustomButtons,
+  serializeExpandable,
   serializeRowActions,
   serializeTableViewDisplays,
 } from "./factory-helpers";
@@ -26,6 +27,12 @@ import {
 } from "./request-filter";
 import { resolveTableViewTabs, serializeTableViewTabs } from "./tabs";
 import { serializeEmptyStates } from "./footer";
+import {
+  assertTabTargets,
+  validateDefaultDisplay,
+  validateDisplayIds,
+  validatePageSize,
+} from "./validation";
 
 /** A column of a source table: a `@Column`'s options, keyed by row field. */
 export interface TableViewSourceColumn extends Pick<
@@ -159,12 +166,22 @@ function serializeSourceColumns(
     }));
 }
 
+/** How registration errors name a source table. */
+const sourceName = (options: TableViewSourceOptions): string =>
+  `TableView.fromSource(${options.fetchUrl})`;
+
 /**
- * Tabs and quick filters send column filters, which only a route reading
- * them can apply; the columns they name must be the source's.
+ * The checks `TableView()` runs that apply to a source — the page size,
+ * the display ids, a tab filtering or linking — and its own: tabs and quick
+ * filters send column filters, which only a route reading them can apply,
+ * and every key an option names (card fields included) must be a column.
  */
 function assertSourceOptions(options: TableViewSourceOptions): void {
-  const where = `TableView.fromSource(${options.fetchUrl})`;
+  const where = sourceName(options);
+  validatePageSize(where, options.pageSize);
+  validateDisplayIds(where, options.displays);
+  validateDefaultDisplay(where, options);
+  assertTabTargets(where, options.tabs);
   const filtering =
     (options.tabs?.some((tab) => tab.filter) ?? false) ||
     (options.quickFilters?.length ?? 0) > 0;
@@ -179,6 +196,7 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
     ),
     ...(options.quickFilters ?? []).map((filter) => filter.field),
     ...(options.labelKey ? [options.labelKey] : []),
+    ...(options.card?.fields ?? []),
   ];
   for (const key of keys) {
     if (!options.columns[key]) {
@@ -223,6 +241,11 @@ export function tableViewFromSource(
     location: options.fetchUrl,
     columns: serializeSourceColumns(options.columns, capabilities),
   };
+  const expandable = serializeExpandable(
+    sourceName(options),
+    { columns: options.columns },
+    options.expandable,
+  );
   return builder
     .options({
       ...config,
@@ -237,6 +260,7 @@ export function tableViewFromSource(
       pageSize: options.pageSize,
       pagination: options.pagination,
       footer: options.footer,
+      expandable,
       emptyStates: serializeEmptyStates(options.emptyStates),
       searchable: browserCan(capabilities, "search"),
       searchPlaceholder: options.searchPlaceholder,

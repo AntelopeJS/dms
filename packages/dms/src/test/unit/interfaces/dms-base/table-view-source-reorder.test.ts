@@ -160,6 +160,39 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     ).to.throw(/unknown column "status"/);
   });
 
+  it("runs the registration checks of TableView(): page size, displays, card fields, tab targets", () => {
+    expect(() => sourceOf({ pageSize: 0 })).to.throw(/pageSize/);
+    expect(() =>
+      sourceOf({ displays: [{ id: "plan-cards" }] }),
+    ).to.throw(/named "<module>:<id>"/);
+    expect(() => sourceOf({ defaultDisplay: "cards" })).to.throw(
+      /not declared in displays/,
+    );
+    expect(() => sourceOf({ card: { fields: ["status"] } })).to.throw(
+      /unknown column "status"/,
+    );
+    const both = [
+      {
+        id: "get",
+        label: "GET",
+        to: "/elsewhere",
+        filter: { accessorKey: "method", mode: "is", value: "GET" },
+      },
+    ] as SourceOptions["tabs"];
+    expect(() =>
+      sourceOf({ tabs: both, capabilities: { filter: true } }),
+    ).to.throw(/both a filter and a link/);
+  });
+
+  it("serves the expandable band of a source's rows, refusing unknown fields", () => {
+    expect(
+      sourceOf({ expandable: { fields: ["path"] } }).expandable,
+    ).to.deep.include({ fields: [{ key: "path" }] });
+    expect(() => sourceOf({ expandable: { fields: ["status"] } })).to.throw(
+      /unknown column "status"/,
+    );
+  });
+
   it("serves the reorder field and the pagination mode", () => {
     const options = optionsOf({
       reorder: { field: "position" },

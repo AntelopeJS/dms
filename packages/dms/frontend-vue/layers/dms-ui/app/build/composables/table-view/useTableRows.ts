@@ -40,7 +40,10 @@ const QUERY_KEY_CAPABILITIES: Array<
   [(key) => PAGE_KEYS.includes(key), "paginate"],
 ];
 
-/** The part of the list query a source route handles, by its capabilities. */
+/**
+ * The part of the list query a source route handles, by its capabilities: a
+ * key no capability names (a controller's `showArchived`…) never reaches it.
+ */
 export function sourceRouteQuery(
   query: Query,
   capabilities: SourceCapabilities,
@@ -48,7 +51,7 @@ export function sourceRouteQuery(
   return Object.fromEntries(
     Object.entries(query).filter(([key]) => {
       const entry = QUERY_KEY_CAPABILITIES.find(([matches]) => matches(key));
-      return !entry || !!capabilities[entry[1]];
+      return !!entry && !!capabilities[entry[1]];
     }),
   );
 }

@@ -38,15 +38,19 @@ describe("source tables", () => {
     };
     expect(sourceRouteQuery(query, { filter: true })).toEqual({
       filter_method: "is:GET",
-      ids: "x",
     });
     expect(sourceRouteQuery(query, { paginate: true, sort: true })).toEqual({
       sortKey: "duration",
       sortDirection: "desc",
       offset: 10,
       limit: 10,
-      ids: "x",
     });
+    expect(
+      sourceRouteQuery(
+        { ...query, showArchived: false },
+        { filter: true, search: true, sort: true, paginate: true },
+      ),
+    ).not.toHaveProperty("showArchived");
   });
 
   it("searches, sorts and pages in the browser what the route left to it", () => {

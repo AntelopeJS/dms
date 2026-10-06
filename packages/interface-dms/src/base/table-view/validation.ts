@@ -49,7 +49,7 @@ export function validatePageSize(
 /** Throws when a table view option names a column the controller lacks. */
 export function assertKnownColumns(
   controllerName: string,
-  meta: TableViewMeta,
+  meta: Pick<TableViewMeta, "columns">,
   option: string,
   keys: string[],
 ): void {

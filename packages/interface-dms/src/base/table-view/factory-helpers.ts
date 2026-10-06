@@ -248,7 +248,7 @@ export function registerTableViewActions<T>(
  */
 export function serializeExpandable(
   controllerName: string,
-  meta: TableViewMeta,
+  meta: Pick<TableViewMeta, "columns">,
   expandable: TableViewExpandableOptions | undefined,
 ): TableViewExpandableSerialized | undefined {
   if (!expandable) return undefined;
