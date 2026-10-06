@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * Detail component of the "Expandable rows" demo, named by the backend
- * `expandable.component` option. The TableView hands it the listed row: the
- * order's lines and timeline are listed fields that are not grid columns.
+ * `expandable.component` option. With `lazyLoad`, the TableView hands it the
+ * order as `get` answers it when the row opens: its lines and timeline are
+ * neither grid columns nor listed fields.
  */
 
 interface OrderLine {
@@ -20,7 +21,7 @@ interface OrderEvent {
 }
 
 interface OrderLinesDetailProps {
-  /** The listed order row. */
+  /** The order, as `get` answered it when the row opened. */
   row: Record<string, unknown>;
   /** Id of the row. */
   rowId: string;

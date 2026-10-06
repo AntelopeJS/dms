@@ -38,8 +38,9 @@ export const ORDER_STATUSES = [
 /**
  * Orders of the "Expandable rows" demo. The grid lists the order head; the
  * shipping and payment fields are listed but hidden from the grid
- * (`isVisible: false`) so the detail band shows them, and `lines`/`events`
- * reach the row for the band's component without being columns at all.
+ * (`isVisible: false`) so the detail band shows them. `lines`/`events` are
+ * neither columns nor listed: the band's component gets them from `get`
+ * when a row opens (`lazyLoad`).
  */
 @RegisterDataController()
 export class orderDataAPI extends DataController(
@@ -175,12 +176,10 @@ export class orderDataAPI extends DataController(
   declare payment: string;
 
   /** Order lines, read by the detail band's component. */
-  @Listable()
   @Access(AccessMode.ReadOnly)
   declare lines: OrderLine[];
 
   /** Order timeline, read by the detail band's component. */
-  @Listable()
   @Access(AccessMode.ReadOnly)
   declare events: OrderEvent[];
 }
