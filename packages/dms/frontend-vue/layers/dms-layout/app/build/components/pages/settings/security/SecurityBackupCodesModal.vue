@@ -122,16 +122,13 @@ function acknowledge(): void {
             @click="copy"
           />
         </div>
-        <div
+        <DmsBanner
           v-if="props.isRegenerated"
-          class="text-muted border-warning/35 bg-warning/10 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12.5px] leading-normal"
-        >
-          <UIcon
-            name="i-ph-warning"
-            class="text-warning mt-px size-[15px] shrink-0"
-          />
-          {{ t("page.settings.security.backup.regenerated_note") }}
-        </div>
+          size="sm"
+          tone="warning"
+          icon="i-ph-warning"
+          :description="t('page.settings.security.backup.regenerated_note')"
+        />
       </div>
     </template>
     <template #footer>

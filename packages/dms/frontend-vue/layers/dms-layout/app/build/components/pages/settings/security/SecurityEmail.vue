@@ -265,28 +265,29 @@ async function submit(): Promise<void> {
           </DmsLink>
         </template>
       </SecurityPanelField>
-      <div
-        class="text-muted col-span-full flex items-start gap-2 rounded-md border border-(--dms-accent-line) bg-(--dms-accent-tint) px-3 py-2.5 text-[12.5px] leading-normal"
+      <DmsBanner
+        class="col-span-full"
+        size="sm"
+        tone="primary"
+        icon="i-ph-info"
       >
-        <UIcon
-          name="i-ph-info"
-          class="mt-px size-[15px] shrink-0 text-(--dms-accent)"
-        />
-        <i18n-t
-          keypath="page.settings.security.email.note"
-          scope="global"
-          tag="span"
-        >
-          <template #email>
-            <b class="text-highlighted font-semibold">
-              {{
-                trimmedEmail ||
-                t("page.settings.security.email.new_placeholder")
-              }}
-            </b>
-          </template>
-        </i18n-t>
-      </div>
+        <template #description>
+          <i18n-t
+            keypath="page.settings.security.email.note"
+            scope="global"
+            tag="span"
+          >
+            <template #email>
+              <b class="text-highlighted font-semibold">
+                {{
+                  trimmedEmail ||
+                  t("page.settings.security.email.new_placeholder")
+                }}
+              </b>
+            </template>
+          </i18n-t>
+        </template>
+      </DmsBanner>
     </SecurityEditPanel>
   </DmsSection>
 </template>
