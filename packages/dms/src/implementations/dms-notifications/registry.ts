@@ -18,13 +18,6 @@ export function getRegisteredSubjects(): NotificationSubjectInfo[] {
   return Array.from(subjectRegistry.values());
 }
 
-export function isSubjectRegistered(
-  categoryId: string,
-  subjectId: string,
-): boolean {
-  return subjectRegistry.has(`${categoryId}:${subjectId}`);
-}
-
 /** Category stances under which a subject's own `forbidden` locks its switch. */
 const LOCKING_CATEGORY_PERMISSIONS: ReadonlySet<string | undefined> = new Set([
   "default",

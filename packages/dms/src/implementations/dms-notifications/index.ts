@@ -25,11 +25,7 @@ import {
   isWithinDuplicateWindow,
 } from "./delivery-dedupe";
 import { hasNotificationTitle } from "./delivery-guard";
-import {
-  categoryRegistry,
-  isSubjectRegistered,
-  subjectRegistry,
-} from "./registry";
+import { categoryRegistry, isSubjectLocked, subjectRegistry } from "./registry";
 
 export * from "./registry";
 
@@ -185,20 +181,21 @@ export namespace internal {
     return `${categoryId}:${subjectId}`;
   };
 
+  // A locked subject is delivered whatever the stored preference says: one
+  // saved before the lock, or through a route that did not check it, must
+  // not mute a mandatory notice.
   async function canSendNotification(
     userId: string,
     categoryId: string,
     subjectId: string,
   ): Promise<boolean> {
-    const isRegistered = isSubjectRegistered(categoryId, subjectId);
-
-    if (!isRegistered) {
-      return false;
-    }
+    const preferenceKey = buildPreferenceKey(categoryId, subjectId);
+    const subject = subjectRegistry.get(preferenceKey);
+    if (!subject) return false;
+    if (isSubjectLocked(subject)) return true;
 
     const preferencesModel = GetModel(UserNotificationPreferencesModel);
     const preferences = await preferencesModel.getOrCreatePreferences(userId);
-    const preferenceKey = buildPreferenceKey(categoryId, subjectId);
     return preferences.preferences?.[preferenceKey] ?? true;
   }
 

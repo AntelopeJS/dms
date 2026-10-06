@@ -203,17 +203,28 @@ function readFeedFilter(context: RequestContext): NotificationFeedFilter {
   return filter;
 }
 
-/** Refuses keys that name no registered subject, and turning a locked subject off. */
-function assertChangesAllowed(changes: Record<string, boolean>): void {
+/** Refuses turning a locked subject off. */
+function assertLockedSubjectsStayOn(changes: Record<string, boolean>): void {
   for (const [key, enabled] of Object.entries(changes)) {
     const subject = findSubjectByPreferenceKey(key);
-    assert(subject, HTTP_BAD_REQUEST, "error.request_refused");
     assert(
-      enabled || !isSubjectLocked(subject),
+      enabled || !subject || !isSubjectLocked(subject),
       HTTP_FORBIDDEN,
       "error.forbidden",
     );
   }
+}
+
+/** Refuses keys that name no registered subject, and turning a locked subject off. */
+function assertChangesAllowed(changes: Record<string, boolean>): void {
+  for (const key of Object.keys(changes)) {
+    assert(
+      findSubjectByPreferenceKey(key),
+      HTTP_BAD_REQUEST,
+      "error.request_refused",
+    );
+  }
+  assertLockedSubjectsStayOn(changes);
 }
 
 @RegisterPage()
@@ -271,7 +282,11 @@ export class NotificationsApiController extends Controller(
     return preferences.preferences;
   }
 
-  /** Replaces the whole map. Kept for existing clients; the settings screen saves per subject through PATCH. */
+  /**
+   * Replaces the whole map. Kept for existing clients, which may still send
+   * keys of subjects no longer registered; the settings screen saves per
+   * subject through PATCH. A locked subject cannot be turned off here either.
+   */
   @Put("/preferences")
   async updatePreferences(
     @JSONBody() body: unknown,
@@ -281,6 +296,7 @@ export class NotificationsApiController extends Controller(
     const preferences = assertValidation(body, (v) =>
       userNotificationPreferencesSchema.parse(v),
     );
+    assertLockedSubjectsStayOn(preferences);
 
     return preferencesModel.updatePreferences(this.user._id, preferences);
   }
