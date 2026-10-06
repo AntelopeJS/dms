@@ -156,14 +156,14 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
           class="dms-card flex flex-col gap-2.5 p-[18px]"
         >
           <div class="flex items-center gap-3">
-            <USkeleton class="size-9 rounded-[10px] bg-(--dms-skeleton)" />
-            <USkeleton class="h-3.5 w-28 bg-(--dms-skeleton)" />
+            <USkeleton class="size-9 rounded-[10px]" />
+            <USkeleton class="h-3.5 w-28" />
           </div>
           <div class="grid h-[39px] content-center gap-[7.5px]">
-            <USkeleton class="h-3 w-4/5 bg-(--dms-skeleton)" />
-            <USkeleton class="h-3 w-3/5 bg-(--dms-skeleton)" />
+            <USkeleton class="h-3 w-4/5" />
+            <USkeleton class="h-3 w-3/5" />
           </div>
-          <USkeleton class="my-[2.5px] h-3 w-28 bg-(--dms-skeleton)" />
+          <USkeleton class="my-[2.5px] h-3 w-28" />
         </div>
       </template>
       <template v-else>

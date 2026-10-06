@@ -32,7 +32,7 @@ const RING_HOLE_MASK =
     aria-busy="true"
   >
     <USkeleton
-      class="aspect-square rounded-full bg-(--dms-skeleton)"
+      class="aspect-square rounded-full"
       :style="{
         height: RING_SIZE,
         maskImage: RING_HOLE_MASK,
@@ -49,7 +49,7 @@ const RING_HOLE_MASK =
     <USkeleton
       v-for="(barHeight, index) in GHOST_BAR_HEIGHTS"
       :key="index"
-      class="flex-1 rounded-t-[4px] rounded-b-none bg-(--dms-skeleton)"
+      class="flex-1 rounded-t-[4px] rounded-b-none"
       :style="{ height: `${barHeight}${PERCENT_UNIT}` }"
     />
   </div>

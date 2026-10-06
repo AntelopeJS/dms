@@ -45,7 +45,6 @@ interface Props extends DefaultComponentProps {
 const DEFAULT_FALLBACK_ICON = "i-ph-chart-bar";
 // v2 KPI sparklines are cyan when the trend is good, not green.
 const POSITIVE_SPARKLINE_ACCENT = "primary";
-const SKELETON_CLASS = "bg-(--dms-skeleton)";
 
 const props = withDefaults(defineProps<Props>(), {
   variant: "default",
@@ -134,11 +133,7 @@ const isStat = computed(() => props.variant === "stat");
     class="flex items-center gap-3.5 px-4 py-3.5"
     :aria-busy="isFirstLoad"
   >
-    <USkeleton
-      v-if="isFirstLoad"
-      class="size-10 shrink-0 rounded-[10px]"
-      :class="SKELETON_CLASS"
-    />
+    <USkeleton v-if="isFirstLoad" class="size-10 shrink-0 rounded-[10px]" />
     <DmsIconWell v-else :icon="resolvedIcon" size="xl" />
     <div class="grid min-w-0 flex-1 gap-[3px]">
       <DmsEyebrow
@@ -147,11 +142,7 @@ const isStat = computed(() => props.variant === "stat");
         class="max-sm:whitespace-normal"
         :label="processI18n(title)"
       />
-      <USkeleton
-        v-if="isFirstLoad"
-        class="h-[22px] w-24"
-        :class="SKELETON_CLASS"
-      />
+      <USkeleton v-if="isFirstLoad" class="h-[22px] w-24" />
       <p
         v-else
         class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"
@@ -215,11 +206,7 @@ const isStat = computed(() => props.variant === "stat");
       />
     </div>
     <!-- The value's placeholder takes its 33px line. -->
-    <USkeleton
-      v-if="isFirstLoad"
-      class="mt-1 h-[33px] w-32"
-      :class="SKELETON_CLASS"
-    />
+    <USkeleton v-if="isFirstLoad" class="mt-1 h-[33px] w-32" />
     <div
       v-else-if="hasError"
       class="mt-auto flex items-center justify-between gap-2"
@@ -265,17 +252,13 @@ const isStat = computed(() => props.variant === "stat");
     >
       <div class="grid">
         <div v-if="showDelta" class="flex h-6 items-center">
-          <USkeleton class="h-3 w-[58px]" :class="SKELETON_CLASS" />
+          <USkeleton class="h-3 w-[58px]" />
         </div>
         <div v-if="footnote" class="flex h-4 items-center">
-          <USkeleton class="h-2.5 w-28" :class="SKELETON_CLASS" />
+          <USkeleton class="h-2.5 w-28" />
         </div>
       </div>
-      <USkeleton
-        v-if="showSparkline"
-        class="ml-auto h-[34px] w-24"
-        :class="SKELETON_CLASS"
-      />
+      <USkeleton v-if="showSparkline" class="ml-auto h-[34px] w-24" />
     </div>
     <!-- The trend's line holds its place, as in the skeleton, while there is
          no change to show (no comparison period): no "0%" stand-in, and

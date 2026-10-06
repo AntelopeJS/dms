@@ -171,10 +171,10 @@ function keyOf(item: KeyValueItem, index: number): string {
     <template v-if="showPlaceholders">
       <div v-for="index in props.skeletonCount" :key="index" :class="rowClass">
         <dt class="min-w-[120px] flex-none">
-          <USkeleton class="h-3 w-20 bg-(--dms-skeleton)" />
+          <USkeleton class="h-3 w-20" />
         </dt>
         <dd class="ms-auto">
-          <USkeleton class="h-3 w-24 bg-(--dms-skeleton)" />
+          <USkeleton class="h-3 w-24" />
         </dd>
       </div>
     </template>
@@ -188,10 +188,7 @@ function keyOf(item: KeyValueItem, index: number): string {
         <dd
           class="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-end"
         >
-          <USkeleton
-            v-if="props.loading || item.loading"
-            class="h-3 w-24 bg-(--dms-skeleton)"
-          />
+          <USkeleton v-if="props.loading || item.loading" class="h-3 w-24" />
           <slot
             v-else-if="slots.value"
             name="value"

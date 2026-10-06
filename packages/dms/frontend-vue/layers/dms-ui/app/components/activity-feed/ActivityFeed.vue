@@ -165,7 +165,7 @@ const wrapperProps = computed(() =>
           v-if="props.groupByDay"
           class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
         >
-          <USkeleton class="my-[1.5px] h-2.5 w-24 bg-(--dms-skeleton)" />
+          <USkeleton class="my-[1.5px] h-2.5 w-24" />
         </div>
         <div class="divide-y divide-(--ui-border-muted)">
           <div
@@ -173,17 +173,15 @@ const wrapperProps = computed(() =>
             :key="row"
             class="flex items-start gap-3 px-[18px] py-2.5"
           >
-            <USkeleton
-              class="size-[30px] shrink-0 rounded-lg bg-(--dms-skeleton)"
-            />
+            <USkeleton class="size-[30px] shrink-0 rounded-lg" />
             <div class="grid flex-1 gap-px">
               <USkeleton
-                class="my-[3px] h-3 bg-(--dms-skeleton)"
+                class="my-[3px] h-3"
                 :class="
                   SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]
                 "
               />
-              <USkeleton class="my-[3px] h-2.5 w-1/3 bg-(--dms-skeleton)" />
+              <USkeleton class="my-[3px] h-2.5 w-1/3" />
             </div>
           </div>
         </div>

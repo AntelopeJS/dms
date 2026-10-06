@@ -118,15 +118,12 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
         <span v-if="props.label" class="text-toned">
           {{ translate(props.label) }}
         </span>
-        <USkeleton v-else class="h-3 w-1/3 bg-(--dms-skeleton)" />
-        <USkeleton class="ms-auto h-3 w-12 bg-(--dms-skeleton)" />
+        <USkeleton v-else class="h-3 w-1/3" />
+        <USkeleton class="ms-auto h-3 w-12" />
       </span>
-      <USkeleton
-        class="w-full rounded-full bg-(--dms-skeleton)"
-        :class="skeletonTrackClass"
-      />
+      <USkeleton class="w-full rounded-full" :class="skeletonTrackClass" />
       <span v-if="skeletonHasLegend" class="flex h-4 items-center">
-        <USkeleton class="h-2.5 w-40 bg-(--dms-skeleton)" />
+        <USkeleton class="h-2.5 w-40" />
       </span>
     </div>
     <DmsMeter
