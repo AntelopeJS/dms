@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UserIdentity from "./UserIdentity.vue";
 import type { DropdownMenuItem } from "@nuxt/ui";
 
 interface Props {
@@ -93,36 +94,20 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
       :class="{ 'justify-center': props.collapsed }"
       :aria-label="user?.name"
     >
-      <UAvatar :alt="user?.name" size="sm" />
-      <template v-if="!props.collapsed">
-        <span class="flex min-w-0 flex-1 flex-col">
-          <span
-            class="text-highlighted truncate text-[13px] leading-tight font-semibold"
-          >
-            {{ user?.name }}
-          </span>
-          <span class="text-muted truncate font-mono text-[11px] font-medium">
-            {{ user?.email }}
-          </span>
-        </span>
+      <UAvatar v-if="props.collapsed" :alt="user?.name" size="sm" />
+      <template v-else>
+        <UserIdentity :name="user?.name" :email="user?.email" />
         <UIcon :name="TRIGGER_ICON" class="text-dimmed size-4 shrink-0" />
       </template>
     </button>
 
     <template #content-top>
-      <div
-        class="border-default flex items-center gap-2.5 border-b px-2.5 py-2.5"
-      >
-        <UAvatar :alt="user?.name" size="md" />
-        <div class="min-w-0">
-          <div class="text-highlighted truncate text-[13px] font-semibold">
-            {{ user?.name }}
-          </div>
-          <div class="text-muted truncate font-mono text-[11px]">
-            {{ user?.email }}
-          </div>
-        </div>
-      </div>
+      <UserIdentity
+        :name="user?.name"
+        :email="user?.email"
+        avatar-size="md"
+        class="border-default border-b px-2.5 py-2.5"
+      />
     </template>
   </UDropdownMenu>
 </template>
