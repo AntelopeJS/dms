@@ -23,6 +23,18 @@ export interface FieldGroup {
 
 export type FormFieldOrGroup = FormField | FieldGroup;
 
+/** How a sectioned form lists its sections. */
+export type FormSectionNav = "side" | "jump" | "none";
+
+/** A titled card of a form: the ids of the form's entries it holds. */
+export interface FormSection {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  fieldIds: string[];
+}
+
 export function isFieldGroup(item: FormFieldOrGroup): item is FieldGroup {
   return "fields" in item && Array.isArray(item.fields);
 }

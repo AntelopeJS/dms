@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { FormProps } from "../../composables/form/types/props";
 import type { FormFieldValue } from "../../composables/form/types/value";
-import type { FieldGroup } from "../../composables/form/types/field";
+import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
   type FormServerFieldError,
   formShowsActions,
+  isAcceptanceField,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
 import {
@@ -32,6 +33,29 @@ import {
 } from "../../composables/form/formFooter";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  fieldErrorPattern,
+} from "../../build/composables/form/formEntryContext";
+import {
+  FORM_LAYOUT_CLASSES,
+  FORM_SURFACE_CLASSES,
+  type FormSurface,
+  SECTION_LAYOUT_CLASSES,
+} from "../../build/composables/form/formLayout";
+import {
+  entryFieldIds,
+  errorFieldId,
+  invalidFieldIds,
+  layoutSections,
+  type FormSectionState,
+  resolveSectionNav,
+  sectionState,
+} from "../../build/composables/form/formSections";
+import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/useControlError";
+import DmsFormEntries from "../../build/components/form/FormEntries.vue";
+import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
+import DmsFormSections from "../../build/components/form/FormSections.vue";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -50,14 +74,18 @@ const inFormContainer = inject("dmsFormContainer", false);
 // Inside a framed DmsSection the section card is the surface: the fields
 // become its rows (v2 .st-row) instead of a card nested in a card.
 const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
+// A sectioned form is no card either: each of its sections is one.
+const hasSections = !!props.sections?.length;
 const FormWrapper =
-  inFormContainer || inSection ? "div" : resolveComponent("DmsCard");
+  inFormContainer || inSection || hasSections
+    ? "div"
+    : resolveComponent("DmsCard");
 
 const { processI18n, processApiMessage } = useTranslation();
 
 // Server errors stay on their field until its value changes (UForm only
 // re-validates a field once it was left, and its schema knows nothing of
-// them): the value each one was raised against.
+// them): the value each field's were raised against, by field id.
 const serverErrorValues = new Map<string, string>();
 
 /** The control of a field, by its id, inside this form only. */
@@ -67,22 +95,17 @@ function fieldControl(name: string | undefined): HTMLElement | null {
   return element.querySelector<HTMLElement>(`[id="${CSS.escape(name)}"]`);
 }
 
-const REGEXP_SPECIALS = /[.*+?^${}()|[\]\\]/g;
-
-/**
- * The errors of a field: its own and those of its parts (an address's
- * street, a gallery's image), which zod names `<id>.<part>`.
- */
-function fieldErrorPattern(id: string): RegExp {
-  return new RegExp(`^${id.replace(REGEXP_SPECIALS, "\\$&")}(\\.|$)`);
-}
-
-/** The names a field's errors go under: one per language when localized. */
+/** The names a field's errors go under: its own, and one per language. */
 function errorNames(field: FormField): string[] {
   if (!field.localized) return [field.id];
-  return locales.value.map((lang) => `${field.id}.${lang.code}`);
+  return [field.id, ...locales.value.map((lang) => `${field.id}.${lang.code}`)];
 }
 
+// Where a keyboard user starts in a composite control: a calendar's current
+// day (the one cell of its grid in the tab order), not the year buttons
+// above the grid.
+const PREFERRED_FOCUS =
+  "[data-reka-calendar-cell-trigger][tabindex='0'], [role='grid'] [tabindex='0']";
 const FOCUSABLE =
   "input:not([type='hidden']):not([disabled]):not([tabindex='-1']), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
 
@@ -116,16 +139,19 @@ async function formSettled(): Promise<void> {
 }
 
 /**
- * Focuses a field's control, or its first focusable part (a pill group, a
- * picker trigger); a field with nothing to focus is scrolled into view.
+ * Focuses the control an error names (the part of a field it names, or the
+ * field), or its first focusable part (a pill group, a picker trigger); a
+ * field with nothing to focus is scrolled into view.
  */
 async function focusField(name: string | undefined): Promise<void> {
   await formSettled();
-  const control = fieldControl(name);
-  const row = fieldRow(name);
+  const fieldId = errorFieldId(name, allFieldIds.value) ?? name;
+  const control = fieldControl(name) ?? fieldControl(fieldId);
+  const row = fieldRow(fieldId);
   const target = control?.matches(FOCUSABLE)
     ? control
-    : (control?.querySelector<HTMLElement>(FOCUSABLE) ??
+    : (control?.querySelector<HTMLElement>(PREFERRED_FOCUS) ??
+      control?.querySelector<HTMLElement>(FOCUSABLE) ??
       row?.querySelector<HTMLElement>(FOCUSABLE));
   if (target) {
     target.focus();
@@ -140,23 +166,43 @@ async function focusField(name: string | undefined): Promise<void> {
  * @returns Whether any landed on a field this form renders
  */
 function showFieldErrors(errors: FormServerFieldError[]): boolean {
-  if (!form.value) return false;
-  form.value.setErrors(errors);
+  const target = form.value;
+  if (!target) return false;
+  // An error naming a part of its field (an address's street) goes on the
+  // part when the field's control declares it, on the whole field otherwise.
+  const located = errors.map((error) => ({
+    ...error,
+    name: error.path ?? error.name,
+  }));
+  target.setErrors(located);
+  target.setErrors(
+    located.map((error, index) =>
+      target.getErrors(error.name).length
+        ? error
+        : { ...error, name: errors[index]!.name },
+    ),
+  );
   const shown = errors.filter(
-    (error) => form.value?.getErrors(error.name).length,
+    (error) => target.getErrors(fieldErrorPattern(error.name)).length,
   );
   serverErrorValues.clear();
   for (const error of shown) {
     serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
   }
-  void focusField(shown[0]?.name);
+  showsErrorSummary.value = shown.length > 0;
+  void focusField(target.errors[0]?.name);
   return shown.length > 0;
 }
 
 /** A submit the client-side validation stopped: focus the first bad field. */
 function onValidationError(event: { errors: Array<{ name?: string }> }): void {
+  showsErrorSummary.value = true;
   void focusField(event.errors[0]?.name);
 }
+
+// Once a submit is refused, the form lists what to fix above its fields
+// until it is saved.
+const showsErrorSummary = ref(false);
 
 const {
   loading,
@@ -182,11 +228,13 @@ watch(
     for (const [name, value] of serverErrorValues) {
       if (JSON.stringify(current[name]) === value) continue;
       serverErrorValues.delete(name);
-      form.value?.clear(name);
+      form.value?.clear(fieldErrorPattern(name));
     }
   },
   { deep: true },
 );
+
+const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
 const saveMode = formSaveMode(props.saveMode);
@@ -211,6 +259,7 @@ const localizedSchema = computed(() => {
     type: field.type,
     localized: field.localized,
     required: isFieldRequired(field),
+    acceptance: isAcceptanceField(field),
   }));
   return {
     "~standard": {
@@ -222,9 +271,21 @@ const localizedSchema = computed(() => {
           requiredMessage: processApiMessage(REQUIRED_MESSAGE),
           locale: locale.value,
           parseParams: { errorMap: issueErrorMap },
+          controlErrors,
         }),
     },
   };
+});
+
+// What controls refuse of what was typed into them, by field id: a field
+// error of its own, checked again as soon as it is reported or withdrawn.
+const controlErrors = reactive(new Map<string, string>());
+provide(FORM_CONTROL_ERRORS_KEY, {
+  report(fieldId, message) {
+    if (message) controlErrors.set(fieldId, processApiMessage(message));
+    else controlErrors.delete(fieldId);
+    void form.value?.validate({ name: fieldId, silent: true });
+  },
 });
 
 /**
@@ -318,6 +379,7 @@ onMounted(() => {
 /** The current values become the saved ones: nothing left unsaved. */
 function markFormClean(): void {
   isTouched = false;
+  showsErrorSummary.value = false;
   formDirty.markClean();
 }
 
@@ -463,127 +525,26 @@ if (props.labelKey && !inFormContainer) {
   });
 }
 
-type FormOrientation = "horizontal" | "vertical";
-type FormSurface = "card" | "container" | "section";
-
-interface FormLayoutClasses {
-  rows: string;
-  row: string;
-  meta: string;
-  description: string;
-}
-
-interface FormSurfaceClasses {
-  head: string;
-  body: string;
-  legend: string;
-  foot: string;
-}
-
-// v2 record form (mockup form.html): horizontal rows put the label column
-// (minmax(180px, 38%)) beside the control, split by hairlines, and collapse
-// to one column under 560px of form width; vertical rows stack them.
-const FORM_LAYOUT_CLASSES: Record<FormOrientation, FormLayoutClasses> = {
-  horizontal: {
-    rows: "@container flex flex-col divide-y divide-muted py-1",
-    row: "grid gap-2 py-4 @min-[560px]:grid-cols-[minmax(180px,38%)_minmax(0,1fr)] @min-[560px]:gap-6",
-    meta: "grid content-start gap-px @min-[560px]:pt-1.5",
-    description: "text-muted max-w-[34ch] text-[12.5px]",
-  },
-  vertical: {
-    rows: "flex flex-col gap-4 py-5",
-    row: "grid gap-1.5",
-    meta: "grid gap-px",
-    description: "text-dimmed text-xs",
-  },
-};
-
-// A card form draws its own head band and sticky footer band; inside a
-// modal or drawer the container is the surface and already pads the body.
-// The footer sticks to the bottom of the scroll area while the form runs
-// past it, and sits under the fields when it fits. In a container it
-// reaches over the scroll area's padding (`--dms-form-foot-*`, set by the
-// drawer and the modal) to sit flush with its edges.
-const FORM_SURFACE_CLASSES: Record<FormSurface, FormSurfaceClasses> = {
-  card: {
-    head: "border-default border-b px-5 py-4.5",
-    body: "px-5",
-    legend: "pb-4",
-    foot: "border-default sticky bottom-0 z-10 border-t bg-(--dms-bg-muted)/90 px-5 py-3 backdrop-blur-sm",
-  },
-  container: {
-    head: "border-default border-b pb-4",
-    body: "",
-    legend: "pb-2",
-    foot: "border-default bg-default sticky bottom-[calc(var(--dms-form-foot-pb,0px)*-1)] z-10 mt-2 -mx-[var(--dms-form-foot-px,0px)] -mb-[var(--dms-form-foot-pb,0px)] border-t px-[var(--dms-form-foot-px,0px)] pt-3 pb-[var(--dms-form-foot-pb,12px)]",
-  },
-  // The rows carry the 18px inset so their hairlines run edge to edge.
-  section: {
-    head: "border-default border-b px-[18px] py-4",
-    body: "",
-    legend: "px-[18px] pb-4",
-    foot: "border-default sticky bottom-0 z-10 border-t bg-(--dms-bg-muted)/90 px-[18px] py-3 backdrop-blur-sm",
-  },
-};
-
-// v2 .st-row.is-form: a 240px label column, 18px row inset.
-const SECTION_LAYOUT_CLASSES: FormLayoutClasses = {
-  rows: "@container flex flex-col divide-y divide-muted",
-  row: "grid gap-2 px-[18px] py-4 @min-[560px]:grid-cols-[minmax(0,240px)_minmax(0,1fr)] @min-[560px]:gap-6",
-  meta: "grid content-start gap-px @min-[560px]:pt-1.5",
-  description: "text-muted text-[12.5px] leading-normal",
-};
-
-// Grouped controls sit side by side once the form is wide enough for its
-// label column (the same 560px container step), whatever the viewport: a
-// narrow modal or drawer form stacks them.
-const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
-  horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
-  vertical: "flex flex-col gap-2.5",
-};
-
-const layoutClasses = computed(() => {
-  const orientation =
-    props.fieldsOrientation === "vertical" ? "vertical" : "horizontal";
-  return inSection && orientation === "horizontal"
-    ? SECTION_LAYOUT_CLASSES
-    : FORM_LAYOUT_CLASSES[orientation];
-});
+const isHorizontal = props.fieldsOrientation !== "vertical";
 const surface: FormSurface = inFormContainer
   ? "container"
-  : inSection
-    ? "section"
-    : "card";
+  : hasSections
+    ? "sections"
+    : inSection
+      ? "section"
+      : "card";
 const surfaceClasses = FORM_SURFACE_CLASSES[surface];
 // Clip, not hidden: the card rounds the footer band without becoming the
 // scroll container the sticky footer would stick to.
 const wrapperProps =
-  inFormContainer || inSection ? {} : { padded: false, class: "overflow-clip" };
+  FormWrapper === "div" ? {} : { padded: false, class: "overflow-clip" };
 
-// The save bar names what changed: the fields whose value moved off the one the
-// form loaded (or last saved — a successful submit snapshots it).
-const formElementId = `dms-form-${props.componentId}`;
-const changedFieldLabels = computed<string[]>(() =>
-  usesSaveBar
-    ? changedFields.value.map((field) => field.label || field.id)
-    : [],
-);
-
-function groupFieldsClass(group: FieldGroup): string {
-  return GROUP_FIELDS_CLASSES[
-    group.orientation === "vertical" ? "vertical" : "horizontal"
-  ];
-}
-
-function resolveFieldComponent(field: FormField) {
-  if (!field.component.componentName) {
-    return null;
+/** Row classes: a section card's, or the form's own orientation's. */
+function layoutClasses(inSectionCard: boolean) {
+  if ((inSectionCard || inSection) && isHorizontal) {
+    return SECTION_LAYOUT_CLASSES;
   }
-
-  return (
-    resolveDmsComponent(field.component.componentName) ||
-    field.component.componentName
-  );
+  return FORM_LAYOUT_CLASSES[isHorizontal ? "horizontal" : "vertical"];
 }
 
 function isFieldDisabled(field: FormField): boolean {
@@ -595,10 +556,6 @@ function isFieldHidden(field: FormField): boolean {
   return hiddenFields.value?.has(field.id) ?? false;
 }
 
-function isGroupVisible(group: { fields: FormField[] }): boolean {
-  return group.fields.some((field) => !isFieldHidden(field));
-}
-
 function isFieldRequired(field: FormField): boolean {
   return isFieldMarkedRequired(
     field,
@@ -608,17 +565,113 @@ function isFieldRequired(field: FormField): boolean {
   );
 }
 
-function isGroupRequired(group: { fields: FormField[] }): boolean {
-  return group.fields.some(isFieldRequired);
-}
-
 const hasRequiredFields = computed(() =>
   toValue(allFields).some(isFieldRequired),
 );
 
-function shouldShowDisplay(field: FormField): boolean {
-  return isFieldDisabled(field) && !!field.type;
-}
+provide(FORM_ENTRY_CONTEXT_KEY, {
+  state,
+  initialValues,
+  loading,
+  componentId: props.componentId,
+  pageId: props.pageId,
+  routeParams: props.routeParams,
+  layoutClasses,
+  isFieldHidden,
+  isFieldDisabled,
+  isFieldRequired,
+});
+
+const sectionsLayout = computed(() =>
+  hasSections ? layoutSections(fields.value, props.sections ?? []) : undefined,
+);
+const sectionNav = resolveSectionNav(
+  props.sectionNav,
+  props.sections?.length ?? 0,
+);
+
+// The fields the form shows an error on, from UForm's own list: what the
+// validation summary and the sections' counts read.
+const invalidFields = computed<ReadonlySet<string>>(() => {
+  const errors: ReadonlyArray<{ name?: string }> = form.value?.errors ?? [];
+  return new Set(invalidFieldIds(errors, allFieldIds.value));
+});
+const changedFieldIds = computed(
+  () => new Set(changedFields.value.map((field) => field.id)),
+);
+const sectionStates = computed<Record<string, FormSectionState>>(() =>
+  Object.fromEntries(
+    (sectionsLayout.value?.sections ?? []).map((section) => [
+      section.id,
+      sectionState(section, changedFieldIds.value, invalidFields.value),
+    ]),
+  ),
+);
+
+/** What the form names a field by: its label, or its group's. */
+const fieldLabels = computed(() => {
+  const labels = new Map<string, string>();
+  for (const entry of fields.value) {
+    const fieldsOfEntry = isFieldGroup(entry) ? entry.fields : [entry];
+    for (const field of fieldsOfEntry) {
+      const label = field.label || entry.label || field.id;
+      labels.set(field.id, processI18n(label));
+    }
+  }
+  return labels;
+});
+
+const sectionOfField = computed(() => {
+  const owners = new Map<string, string>();
+  for (const section of sectionsLayout.value?.sections ?? []) {
+    for (const id of section.fieldIds) owners.set(id, section.label);
+  }
+  return owners;
+});
+
+watch(invalidFields, (invalid) => {
+  if (invalid.size === 0) showsErrorSummary.value = false;
+});
+
+// One entry per row to fix: the unlabelled fields of a group share its
+// label, and its first invalid field stands for them.
+const errorSummaryItems = computed(() => {
+  if (!showsErrorSummary.value) return [];
+  const items = [...invalidFields.value].map((id) => {
+    const section = sectionOfField.value.get(id);
+    return {
+      id,
+      label: fieldLabels.value.get(id) ?? id,
+      section: section ? processI18n(section) : undefined,
+    };
+  });
+  return items.filter(
+    (item, index) =>
+      items.findIndex(
+        (other) => other.label === item.label && other.section === item.section,
+      ) === index,
+  );
+});
+
+// The save bar names what changed: the sections holding a change, or the
+// fields whose value moved off the one the form loaded (or last saved — a
+// successful submit snapshots it).
+const formElementId = `dms-form-${props.componentId}`;
+const changedFieldLabels = computed<string[]>(() => {
+  if (!usesSaveBar) return [];
+  const layout = sectionsLayout.value;
+  if (!layout)
+    return changedFields.value.map((field) => field.label || field.id);
+  const leadIds = new Set(layout.lead.flatMap(entryFieldIds));
+  return [
+    ...changedFields.value
+      .filter((field) => leadIds.has(field.id))
+      .map((field) => field.label || field.id),
+    ...layout.sections
+      .filter((section) => sectionStates.value[section.id]?.dirty)
+      .map((section) => section.label),
+  ];
+});
 
 interface RealtimeFormContext {
   location: string;
@@ -791,165 +844,21 @@ onUnmounted(async () => {
           class="mt-4"
         />
 
-        <div :class="layoutClasses.rows">
-          <template v-for="(item, index) in fields" :key="`field-${index}`">
-            <template v-if="isFieldGroup(item)">
-              <section v-if="isGroupVisible(item)" :class="layoutClasses.row">
-                <div :class="layoutClasses.meta">
-                  <span class="text-highlighted text-[13px] font-[550]">
-                    {{ processI18n(item.label || "") }}
-                    <span
-                      v-if="isGroupRequired(item)"
-                      class="text-error ms-0.5"
-                      aria-hidden="true"
-                    >
-                      *
-                    </span>
-                  </span>
-                  <p v-if="item.description" :class="layoutClasses.description">
-                    {{ processI18n(item.description || "") }}
-                  </p>
-                </div>
+        <DmsFormErrorSummary
+          v-if="errorSummaryItems.length"
+          :items="errorSummaryItems"
+          :class="hasSections ? 'mb-5' : 'mt-4'"
+          @select="focusField"
+        />
 
-                <div :class="groupFieldsClass(item)">
-                  <template v-for="field in item.fields" :key="field.id">
-                    <template v-if="!isFieldHidden(field)">
-                      <DmsLocalizedField
-                        v-if="field.component.componentName && field.localized"
-                        v-model="
-                          state[field.id] as Record<string, string> | undefined
-                        "
-                        :field
-                        :initial-values="initialValues"
-                        :loading
-                        :component-id="props.componentId"
-                        :page-id="props.pageId"
-                        class="min-w-0 flex-1"
-                      />
-
-                      <UFormField
-                        v-else-if="
-                          field.component.componentName && !field.localized
-                        "
-                        :name="field.id"
-                        :error-pattern="fieldErrorPattern(field.id)"
-                        :data-field="field.id"
-                        class="min-w-0 flex-1"
-                      >
-                        <DmsDisplay
-                          v-if="shouldShowDisplay(field)"
-                          :model-value="state[field.id]"
-                          :type="field.type"
-                          :loading
-                          class="w-full"
-                          v-bind="field.component.options || {}"
-                        />
-                        <Component
-                          :is="resolveFieldComponent(field)"
-                          v-else
-                          :id="field.id"
-                          v-model="state[field.id]"
-                          :initial-value="initialValues?.[field.id]"
-                          :loading
-                          :disabled="isFieldDisabled(field)"
-                          :component-id="props.componentId"
-                          :page-id="props.pageId"
-                          :route-params="props.routeParams"
-                          class="w-full"
-                          v-bind="field.component.options || {}"
-                        />
-                        <template #error="{ error }">
-                          <template v-if="error">
-                            <UIcon
-                              name="i-ph-warning-circle"
-                              class="size-3.5 shrink-0"
-                            />
-                            {{ error }}
-                          </template>
-                        </template>
-                      </UFormField>
-                    </template>
-                  </template>
-                </div>
-              </section>
-            </template>
-
-            <section
-              v-else-if="!isFieldHidden(item)"
-              :class="layoutClasses.row"
-            >
-              <div :class="layoutClasses.meta">
-                <label
-                  :for="item.id"
-                  class="text-highlighted text-[13px] font-[550]"
-                >
-                  {{ processI18n(item.label || "") }}
-                  <span
-                    v-if="isFieldRequired(item)"
-                    class="text-error ms-0.5"
-                    aria-hidden="true"
-                  >
-                    *
-                  </span>
-                </label>
-                <p v-if="item.description" :class="layoutClasses.description">
-                  {{ processI18n(item.description || "") }}
-                </p>
-              </div>
-
-              <DmsLocalizedField
-                v-if="item.component.componentName && item.localized"
-                v-model="state[item.id] as Record<string, string> | undefined"
-                :field="item"
-                :initial-values="initialValues"
-                :loading
-                :component-id="props.componentId"
-                :page-id="props.pageId"
-                class="min-w-0"
-              />
-
-              <UFormField
-                v-else-if="item.component.componentName && !item.localized"
-                :name="item.id"
-                :error-pattern="fieldErrorPattern(item.id)"
-                :data-field="item.id"
-                class="min-w-0"
-              >
-                <DmsDisplay
-                  v-if="shouldShowDisplay(item)"
-                  :model-value="state[item.id]"
-                  :type="item.type"
-                  :loading
-                  class="w-full"
-                  v-bind="item.component.options || {}"
-                />
-                <Component
-                  :is="resolveFieldComponent(item)"
-                  v-else
-                  :id="item.id"
-                  v-model="state[item.id]"
-                  :initial-value="initialValues?.[item.id]"
-                  :loading
-                  :disabled="isFieldDisabled(item)"
-                  :component-id="props.componentId"
-                  :page-id="props.pageId"
-                  :route-params="props.routeParams"
-                  class="w-full"
-                  v-bind="item.component.options || {}"
-                />
-                <template #error="{ error }">
-                  <template v-if="error">
-                    <UIcon
-                      name="i-ph-warning-circle"
-                      class="size-3.5 shrink-0"
-                    />
-                    {{ error }}
-                  </template>
-                </template>
-              </UFormField>
-            </section>
-          </template>
-        </div>
+        <DmsFormSections
+          v-if="sectionsLayout"
+          :layout="sectionsLayout"
+          :nav="sectionNav"
+          :states="sectionStates"
+          :form-id="formElementId"
+        />
+        <DmsFormEntries v-else :entries="fields" />
 
         <p
           v-if="hasRequiredFields"

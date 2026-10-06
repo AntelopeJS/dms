@@ -1,4 +1,4 @@
-import type { FormFieldOrGroup } from "./field";
+import type { FormFieldOrGroup, FormSection, FormSectionNav } from "./field";
 import type { FormKind, FormSaveMode } from "../formFooter";
 
 interface FormComponentProps {
@@ -12,7 +12,20 @@ interface FormComponentProps {
 export interface FormProps extends FormComponentProps {
   title?: string;
   description?: string;
+  /** Every entry of the form, the sections' included. */
   fields: FormFieldOrGroup[];
+  /**
+   * Titled cards splitting the fields, reached from a navigation that marks
+   * the ones holding unsaved changes or errors. Entries in no section come
+   * first.
+   */
+  sections?: FormSection[];
+  /**
+   * `side`: a list beside the sections following the scroll (chips on a
+   * narrow form); `jump`: chips above them; `none`. Defaults to `side` from
+   * three sections.
+   */
+  sectionNav?: FormSectionNav;
   fetchUrl?: string;
   fetchUrlMethod?: HttpMethod;
   submitUrl?: string;

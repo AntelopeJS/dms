@@ -388,6 +388,14 @@
           "cancel": "Annuler"
         },
         "character_count": "{count} caractères"
+      },
+      "sections": {
+        "nav": "Sections",
+        "changed": "Modifications non enregistrées",
+        "invalid": "Aucune erreur | 1 champ à corriger | {count} champs à corriger"
+      },
+      "error_summary": {
+        "title": "Aucun champ à corriger | 1 champ demande votre attention | {count} champs demandent votre attention"
       }
     },
     "chart": {

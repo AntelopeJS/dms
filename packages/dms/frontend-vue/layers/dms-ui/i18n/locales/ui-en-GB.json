@@ -387,6 +387,14 @@
           "cancel": "Cancel"
         },
         "character_count": "{count} characters"
+      },
+      "sections": {
+        "nav": "Sections",
+        "changed": "Unsaved changes",
+        "invalid": "No errors | 1 field to fix | {count} fields to fix"
+      },
+      "error_summary": {
+        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention"
       }
     },
     "chart": {
