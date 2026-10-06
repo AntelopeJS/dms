@@ -8,8 +8,10 @@ import {
 } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { INVITE_FULL_NAME_MAX_LENGTH } from "../../../validation/member-invite.schema";
-import { InviteEmailListType } from "./invite-email-list-type";
+import {
+  INVITE_EMAILS_MAX,
+  INVITE_FULL_NAME_MAX_LENGTH,
+} from "../../../validation/member-invite.schema";
 
 export const inviteLanguageSelectItems = [
   { value: "en", label: "English" },
@@ -53,7 +55,11 @@ export const memberInviteForm = Form({
       id: "emails",
       label: "$page.settings.members.invite.field.emails",
       description: "$page.settings.members.invite.field.emails_description",
-      type: new InviteEmailListType({
+      // Typed or pasted as tags; an address already a member comes back as
+      // a server error naming it, and its tag turns red.
+      type: new DefaultDataTypes.TagsType({
+        itemType: "email",
+        max: INVITE_EMAILS_MAX,
         placeholder: "$page.settings.members.invite.placeholder.emails",
       }),
       required: true,
@@ -96,10 +102,15 @@ export const memberInviteForm = Form({
     },
     {
       id: "asTenantOwner",
-      type: new DefaultDataTypes.BooleanType(),
-      // A bordered row with its own title and explanation, as the owner role
+      // A card with its own title and explanation, as the owner role
       // deserves more than a bare switch.
-      inputComponent: CustomComponent("DmsInviteOwnerSwitch").serializeSync(),
+      type: new DefaultDataTypes.BooleanType({
+        display: "card",
+        icon: "i-ph-crown",
+        label: "$page.settings.members.invite.field.tenant_owner",
+        description:
+          "$page.settings.members.invite.field.tenant_owner_description",
+      }),
       required: true,
       defaultValue: false,
     },

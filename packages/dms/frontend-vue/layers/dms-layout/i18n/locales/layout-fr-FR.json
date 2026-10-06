@@ -277,7 +277,6 @@
             "lastname": "Nom",
             "roles": "Sélectionner un ou plusieurs rôles",
             "emails": "Ajoutez des adresses, séparées par une virgule",
-            "emails_more": "Ajoutez-en une autre, séparée par une virgule",
             "name": "Nicolas Petit"
           },
           "roles_required": "Au moins un rôle est requis lorsque l'utilisateur n'est pas propriétaire",
@@ -286,9 +285,6 @@
           "header_button": "Inviter des membres",
           "partial_title": "Invitations envoyées : {sent}",
           "partial_description": "{count} adresse ignorée : déjà membre ou refusée. | {count} adresses ignorées : déjà membres ou refusées.",
-          "remove_email": "Retirer {email}",
-          "email_invalid": "« {email} » n’est pas une adresse e-mail valide.",
-          "email_duplicate": "{email} est déjà dans la liste. | {email} sont déjà dans la liste.",
           "roles_owner_hint": "Les propriétaires ont toutes les permissions : les rôles sont ignorés.",
           "roles_hint_empty": "Choisissez au moins un rôle.",
           "roles_hint": "{roles} : {count} permissions sur {total}.",
