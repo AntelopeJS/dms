@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import type { FormField } from "../../composables/form/types";
 import { resolveDmsComponent } from "../../composables/resolveDmsComponent";
+import { escapeRegExp } from "../../build/composables/form/formEntryContext";
 
 interface LocalizedFieldProps {
   field: FormField;
@@ -71,6 +73,32 @@ const toggleTranslations = () => {
 const showDisplay = computed(
   () => !!props.field.disabled && !!props.field.type,
 );
+
+// The control shown in the reader's language is the field: its errors (and
+// those of the field as a whole, a server's) show under it. The panel lists
+// the other languages, each with its own.
+const otherLocales = computed(() =>
+  locales.value.filter((lang) => lang.code !== locale.value),
+);
+const mainErrorPattern = computed(
+  () =>
+    new RegExp(
+      `^${escapeRegExp(props.field.id)}(\\.${escapeRegExp(locale.value)})?$`,
+    ),
+);
+
+// A translation refused while the panel is closed opens it: its error shows
+// on its own line.
+const formErrors = inject(formErrorsInjectionKey, null);
+watch(
+  () => formErrors?.value ?? [],
+  (errors) => {
+    const isTranslationInvalid = otherLocales.value.some((lang) =>
+      errors.some((error) => error.name === `${props.field.id}.${lang.code}`),
+    );
+    if (isTranslationInvalid) isExpanded.value = true;
+  },
+);
 </script>
 
 <template>
@@ -78,8 +106,9 @@ const showDisplay = computed(
     <!-- The error sits right under the control, above the toggle. -->
     <div class="relative">
       <UFormField
-        :name="`${field.id}.${locale}`"
-        :data-field="`${field.id}.${locale}`"
+        :name="field.id"
+        :error-pattern="mainErrorPattern"
+        :data-field="field.id"
       >
         <DmsDisplay
           v-if="showDisplay"
@@ -111,6 +140,12 @@ const showDisplay = computed(
           v-bind="field.component.options || {}"
           @update:model-value="setLocaleValue(locale, $event)"
         />
+        <template #error="{ error }">
+          <template v-if="error">
+            <UIcon name="i-ph-warning-circle" class="size-3.5 shrink-0" />
+            {{ error }}
+          </template>
+        </template>
       </UFormField>
       <div class="mt-1 flex justify-end">
         <UButton
@@ -131,7 +166,7 @@ const showDisplay = computed(
         <UCard :ui="{ body: 'sm:p-4' }">
           <div class="space-y-4">
             <div
-              v-for="lang in locales"
+              v-for="lang in otherLocales"
               :key="lang.code"
               class="flex items-start gap-3"
             >
@@ -171,6 +206,15 @@ const showDisplay = computed(
                     v-bind="field.component.options || {}"
                     @update:model-value="setLocaleValue(lang.code, $event)"
                   />
+                  <template #error="{ error }">
+                    <template v-if="error">
+                      <UIcon
+                        name="i-ph-warning-circle"
+                        class="size-3.5 shrink-0"
+                      />
+                      {{ error }}
+                    </template>
+                  </template>
                 </UFormField>
               </div>
             </div>

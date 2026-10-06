@@ -22,6 +22,11 @@ export interface ApiFieldError {
   message: string;
   /** The values of the field the error names (addresses of a list…). */
   values?: string[];
+  /**
+   * The part of the field the error names, as a dotted path from the field
+   * (`address.streetName`, `title.fr`); absent when it names the field.
+   */
+  path?: string;
 }
 
 /** A code the API answers with that belongs to a field. */
@@ -197,12 +202,23 @@ function isIssueList(body: unknown): body is ValidationIssue[] {
   );
 }
 
+/** `field.part.0` for a path reaching into a field, else undefined. */
+function partPath(path: readonly unknown[]): string | undefined {
+  if (path.length < 2) return undefined;
+  return path.every((step) => ["string", "number"].includes(typeof step))
+    ? path.join(".")
+    : undefined;
+}
+
 function fromIssues(issues: ValidationIssue[]): ApiFieldError[] {
   return issues.map((issue) => {
-    const [field] = issue.path as unknown[];
+    const path = issue.path as unknown[];
+    const [field] = path;
+    const part = partPath(path);
     return {
       field: typeof field === "string" ? field : "",
       message: validationIssueMessage(issue),
+      ...(part && { path: part }),
     };
   });
 }
@@ -235,10 +251,12 @@ function fromText(text: string): ApiFieldError[] {
   const prefixed = FIELD_PREFIXED_MESSAGE.exec(text);
   if (prefixed) {
     const [, field, message] = prefixed;
+    const part = partPath(field!.split("."));
     return [
       {
         field: field!.split(".")[0]!,
         message: isI18nKey(message!) ? message! : FIELD_ERROR_KEYS.invalid,
+        ...(part && { path: part }),
       },
     ];
   }

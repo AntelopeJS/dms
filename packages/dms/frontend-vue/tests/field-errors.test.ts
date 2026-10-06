@@ -84,7 +84,11 @@ describe("resolveFieldErrors", () => {
       resolveFieldErrors(error, { fields: ["email", "roles", "name"] }),
     ).toEqual({
       fields: [
-        { field: "email", message: "$dms.field_errors.invalid_email" },
+        {
+          field: "email",
+          message: "$dms.field_errors.invalid_email",
+          path: "email.0",
+        },
         {
           field: "roles",
           message: "$page.settings.members.invite.roles_required",
