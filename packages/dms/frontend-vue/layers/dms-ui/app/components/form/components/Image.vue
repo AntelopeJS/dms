@@ -72,7 +72,7 @@ const { $authFetch } = useAuthFetch();
 // The field state UFormField hands its control: the drop zone shows the
 // field's error border and carries its aria attributes.
 const { emitFormChange, color: fieldColor, ariaAttrs } = useFormField();
-const invalid = computed(() => fieldColor.value === "error");
+const hasFieldError = computed(() => fieldColor.value === "error");
 const { t } = useI18n();
 const { formatShortcut } = useKeyboardPlatform();
 /** The paste key the hints mention: "⌘V" on macOS, "Ctrl V" elsewhere. */
@@ -377,6 +377,17 @@ const createItemFromFile = (file: File): GalleryItem => ({
 const rejections = ref<string[]>([]);
 const rejectionId = fieldErrorId(`${fieldId}-rejection`);
 
+// The field red: its own error, or a picture it just refused.
+const invalid = computed(
+  () => hasFieldError.value || rejections.value.length > 0,
+);
+
+// Once the field gets an error of its own (a refused submit), it says what
+// is wrong: the refusal of an earlier pick no longer stacks under it.
+watch(hasFieldError, (isInvalid) => {
+  if (isInvalid) rejections.value = [];
+});
+
 const notifyRejected = (file: File, reason: "size" | "mimetype") => {
   const maxSize = props.constraints?.maxSize;
   rejections.value.push(
@@ -608,15 +619,21 @@ onBeforeUnmount(() => {
         full-width square. A class, not a multi-line style attribute: the
         server and the browser serialise such an attribute differently, which
         Vue reports as a hydration mismatch. -->
+      <!-- The gallery carries the field's state: a full one has no "Add"
+        tile left to show it. -->
       <div
         class="grid grid-cols-[repeat(auto-fill,minmax(min(8.25rem,calc(50%-0.375rem)),1fr))] gap-3"
+        role="group"
+        v-bind="items.length ? ariaAttrs : undefined"
       >
         <div
           v-for="item in items"
           :key="item.id"
           class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-sm transition-transform"
           :class="{
-            'ring-primary ring-2': item.principal && item.status === 'done',
+            'ring-error ring-2': invalid,
+            'ring-primary ring-2':
+              !invalid && item.principal && item.status === 'done',
             'opacity-40': dragItemId === item.id,
             'scale-95': dragOverItemId === item.id && dragItemId !== item.id,
           }"
@@ -791,7 +808,12 @@ onBeforeUnmount(() => {
       <div v-else class="flex flex-col gap-4 sm:flex-row sm:items-stretch">
         <div
           class="group relative aspect-[4/3] w-full flex-none overflow-hidden rounded-xl shadow-sm sm:w-58"
-          :class="{ 'ring-primary ring-2': isDraggingOver }"
+          :class="{
+            'ring-primary ring-2': isDraggingOver,
+            'ring-error ring-2': !isDraggingOver && invalid,
+          }"
+          role="group"
+          v-bind="ariaAttrs"
           @dragover.prevent="isDraggingOver = true"
           @dragleave="isDraggingOver = false"
           @drop.prevent="onDrop"

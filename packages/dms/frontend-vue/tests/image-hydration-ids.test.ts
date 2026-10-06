@@ -53,7 +53,11 @@ beforeEach(() => {
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
-  vi.stubGlobal("useFormField", () => ({ emitFormChange: vi.fn() }));
+  vi.stubGlobal("useFormField", () => ({
+    emitFormChange: vi.fn(),
+    color: ref(undefined),
+    ariaAttrs: ref(undefined),
+  }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal(
     "useDmsCookie",
