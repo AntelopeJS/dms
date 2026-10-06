@@ -11,7 +11,7 @@ interface RepeaterColumn {
   id: string;
   label?: string;
   type?: string;
-  component: { componentName?: string; options?: Record<string, unknown> };
+  component: ComponentInfo;
   required?: boolean;
 }
 
@@ -65,16 +65,19 @@ const canAdd = computed(
 const canRemove = computed(
   () => !props.disabled && rows.value.length > (props.min ?? 0),
 );
-// A box to tick takes its own width; any other field shares the row.
+// A box to tick takes its own width; any other field shares the row. The
+// drag handle and the remove button have their own narrow columns.
 const FLUID_COLUMN = "minmax(0,1fr)";
 const COLUMN_WIDTHS: Record<string, string> = { boolean: "20px" };
+const HANDLE_COLUMN = "20px";
+const REMOVE_COLUMN = "28px";
 const gridTemplate = computed(() => ({
   gridTemplateColumns: [
-    props.sortable ? "20px" : "",
+    props.sortable ? HANDLE_COLUMN : "",
     ...props.columns.map(
       (column) => COLUMN_WIDTHS[column.type ?? ""] ?? FLUID_COLUMN,
     ),
-    "28px",
+    REMOVE_COLUMN,
   ]
     .filter(Boolean)
     .join(" "),
@@ -141,25 +144,27 @@ function isCellInvalid(index: number, column: string): boolean {
 
 // Each cell is an input of the form, so an error a server raises on one
 // (`headers.1.value`) lands on it rather than being dropped.
+function cellNames(length: number): string[] {
+  return Array.from({ length }, (_, index) =>
+    props.columns.map((column) => cellName(index, column.id)),
+  ).flat();
+}
+
+function unregisterCells(names: readonly string[]): void {
+  for (const name of names) delete formInputs?.value[name];
+}
+
+let registered: string[] = [];
 watch(
   () => [fieldName.value, rows.value.length] as const,
-  ([name, length], previous) => {
-    if (!name || !formInputs) return;
-    const previousLength = previous?.[1] ?? 0;
-    for (let index = length; index < previousLength; index++) {
-      for (const column of props.columns) {
-        delete formInputs.value[cellName(index, column.id)];
-      }
-    }
-    for (let index = 0; index < length; index++) {
-      for (const column of props.columns) {
-        const cell = cellName(index, column.id);
-        formInputs.value[cell] = { id: cell };
-      }
-    }
+  ([name, length]) => {
+    unregisterCells(registered);
+    registered = name && formInputs ? cellNames(length) : [];
+    for (const cell of registered) formInputs!.value[cell] = { id: cell };
   },
   { immediate: true },
 );
+onBeforeUnmount(() => unregisterCells(registered));
 
 function cellComponent(column: RepeaterColumn) {
   const name = column.component.componentName;

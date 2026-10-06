@@ -44,6 +44,8 @@ const { color, ariaAttrs, emitFormInput, emitFormBlur } = useFormField();
 const isInvalid = computed(() => color.value === "error");
 
 const LINE_HEIGHT_PX = 19;
+// The editor's top and bottom padding, around its lines.
+const EDITOR_PADDING_PX = 16;
 const INVALID_JSON = "$dms.field_errors.invalid_json";
 const LANGUAGE_LABELS: Record<string, string> = {
   json: "JSON",
@@ -60,8 +62,8 @@ let editor: CodeEditor | null = null;
 const appContext = getCurrentInstance()?.appContext ?? null;
 
 const sizeStyle = computed(() => ({
-  "--dms-code-min-height": `${props.minLines * LINE_HEIGHT_PX + 16}px`,
-  "--dms-code-max-height": `${props.maxLines * LINE_HEIGHT_PX + 16}px`,
+  "--dms-code-min-height": `${props.minLines * LINE_HEIGHT_PX + EDITOR_PADDING_PX}px`,
+  "--dms-code-max-height": `${props.maxLines * LINE_HEIGHT_PX + EDITOR_PADDING_PX}px`,
 }));
 
 const contentAttributes = computed<Record<string, string>>(() => {
@@ -96,8 +98,12 @@ async function loadCompletions(): Promise<CodeEditorCompletion[]> {
   return [...fixed, ...fetched];
 }
 
+// The icons drawn into the autocomplete popup, unmounted with the editor.
+const iconElements = new Set<HTMLElement>();
+
 function renderIcon(icon: string): HTMLElement {
   const element = document.createElement("span");
+  iconElements.add(element);
   element.className = "inline-flex shrink-0 text-dimmed";
   const vnode = h(UIcon, { name: icon, class: "size-4" });
   vnode.appContext = appContext;
@@ -142,7 +148,11 @@ watch(
 watch(contentAttributes, (attributes) =>
   editor?.setContentAttributes(attributes),
 );
-onBeforeUnmount(() => editor?.destroy());
+onBeforeUnmount(() => {
+  editor?.destroy();
+  for (const element of iconElements) render(null, element);
+  iconElements.clear();
+});
 </script>
 
 <template>

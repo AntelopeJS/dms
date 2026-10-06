@@ -10,7 +10,7 @@ import DmsRepeater from "./Repeater.vue";
 
 interface KeyValueColumn {
   type?: string;
-  component: { componentName?: string; options?: Record<string, unknown> };
+  component: ComponentInfo;
 }
 
 interface KeyValueProps {

@@ -160,6 +160,9 @@ const THEME = EditorView.theme({
 });
 
 const MODULE_BOOST = 99;
+// Where a suggestion's icon goes among the parts of its row: before the
+// label (CodeMirror's own icon slot is at 20, turned off here).
+const ICON_POSITION = 20;
 
 function completionSource(
   load: () => Promise<CodeEditorCompletion[]>,
@@ -203,7 +206,7 @@ function completionExtensions(options: CodeEditorOptions): Extension[] {
       addToOptions: render
         ? [
             {
-              position: 20,
+              position: ICON_POSITION,
               render: (completion) =>
                 completion.type ? render(completion.type) : null,
             },
@@ -240,31 +243,27 @@ function positionOf(state: EditorState): CodeEditorPosition {
   return { line: line.number, column: head - line.from + 1 };
 }
 
-/** Mounts a code editor in `parent`. */
-export function createCodeEditor(options: CodeEditorOptions): CodeEditor {
-  const editable = new Compartments();
-  const view = new EditorView({
-    parent: options.parent,
-    state: EditorState.create({
-      doc: options.value,
-      extensions: [
-        ...baseExtensions(options),
-        ...completionExtensions(options),
-        editable.readOnly.of(EditorState.readOnly.of(!!options.readOnly)),
-        editable.attributes.of(
-          EditorView.contentAttributes.of(options.contentAttributes ?? {}),
-        ),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) options.onChange(update.state.doc.toString());
-          if (update.docChanged || update.selectionSet) {
-            options.onPosition(positionOf(update.state));
-          }
-        }),
-      ],
-    }),
+function stateOf(options: CodeEditorOptions, parts: Compartments): EditorState {
+  return EditorState.create({
+    doc: options.value,
+    extensions: [
+      ...baseExtensions(options),
+      ...completionExtensions(options),
+      parts.readOnly.of(EditorState.readOnly.of(!!options.readOnly)),
+      parts.attributes.of(
+        EditorView.contentAttributes.of(options.contentAttributes ?? {}),
+      ),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) options.onChange(update.state.doc.toString());
+        if (update.docChanged || update.selectionSet) {
+          options.onPosition(positionOf(update.state));
+        }
+      }),
+    ],
   });
-  options.onPosition(positionOf(view.state));
+}
 
+function controlsOf(view: EditorView, parts: Compartments): CodeEditor {
   return {
     setValue: (value) => {
       if (value === view.state.doc.toString()) return;
@@ -274,19 +273,28 @@ export function createCodeEditor(options: CodeEditorOptions): CodeEditor {
     },
     setReadOnly: (readOnly) =>
       view.dispatch({
-        effects: editable.readOnly.reconfigure(
-          EditorState.readOnly.of(readOnly),
-        ),
+        effects: parts.readOnly.reconfigure(EditorState.readOnly.of(readOnly)),
       }),
     setContentAttributes: (attributes) =>
       view.dispatch({
-        effects: editable.attributes.reconfigure(
+        effects: parts.attributes.reconfigure(
           EditorView.contentAttributes.of(attributes),
         ),
       }),
     focus: () => view.focus(),
     destroy: () => view.destroy(),
   };
+}
+
+/** Mounts a code editor in `parent`. */
+export function createCodeEditor(options: CodeEditorOptions): CodeEditor {
+  const parts = new Compartments();
+  const view = new EditorView({
+    parent: options.parent,
+    state: stateOf(options, parts),
+  });
+  options.onPosition(positionOf(view.state));
+  return controlsOf(view, parts);
 }
 
 /** The parts of the editor reconfigured as the field changes. */
