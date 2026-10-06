@@ -355,15 +355,6 @@ async function mountSection(): Promise<void> {
   );
   app = createApp(ProfilePreferencesSummary);
   app.component(
-    "DmsSection",
-    defineComponent({
-      setup:
-        (_, { slots }) =>
-        () =>
-          h("section", slots.default?.()),
-    }),
-  );
-  app.component(
     "USkeleton",
     defineComponent({
       setup:
@@ -384,9 +375,9 @@ async function mountSection(): Promise<void> {
 }
 
 const rowTexts = () =>
-  [...host.querySelectorAll("section > div")].map((row) => row.textContent);
+  [...host.querySelectorAll(":scope > div > div")].map((row) => row.textContent);
 const skeletonRows = () =>
-  [...host.querySelectorAll("section > div")].filter((row) =>
+  [...host.querySelectorAll(":scope > div > div")].filter((row) =>
     row.querySelector("[data-skeleton]"),
   ).length;
 const buttons = () =>
@@ -482,7 +473,7 @@ describe("Preferences & access section", () => {
   it("hides the rows of pages the user cannot open and keeps Your access informative", async () => {
     navPages.value = [];
     await mountSection();
-    expect(host.querySelectorAll("section > div")).toHaveLength(1);
+    expect(host.querySelectorAll(":scope > div > div")).toHaveLength(1);
     expect(buttons()).toEqual([]);
     expect(loadPreferences).not.toHaveBeenCalled();
 

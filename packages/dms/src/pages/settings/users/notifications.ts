@@ -228,10 +228,10 @@ export class NotificationsSettingsController extends PageController(
   },
 ) {
   static notificationsComponent = CustomComponent(
-    "DmsSettingsNotifications",
+    "DmsNotificationPreferencesForm",
   ).meta({
-    name: "$menu.notifications",
-    icon: "i-ph-bell",
+    name: `${NOTIFICATION_TEXTS}.preferences_title`,
+    icon: "i-ph-sliders-horizontal",
   });
 
   static inbox = Section({

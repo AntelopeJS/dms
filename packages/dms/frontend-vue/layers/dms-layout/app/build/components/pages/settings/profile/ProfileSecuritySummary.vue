@@ -3,12 +3,8 @@ import {
   SECURITY_PAGE_PATH,
   useSecurityOverview,
 } from "../../../../../composables/settings/security/useSecurityOverview";
-import ProfilePreferencesSummary from "./ProfilePreferencesSummary.vue";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
-// Two roots: the renderer's attributes (component and page ids) stay on
-// the security section, as they did when it was the only root.
-defineOptions({ inheritAttrs: false });
 
 const { t } = useI18n();
 const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
@@ -45,12 +41,7 @@ onMounted(refresh);
 </script>
 
 <template>
-  <DmsSection
-    v-bind="$attrs"
-    title="$page.settings.profile.security_title"
-    description="$page.settings.profile.security_description"
-  >
-    <!-- Points to where email, password, two-factor and sessions now live,
+  <!-- Points to where email, password, two-factor and sessions now live,
          with what needs attention there. -->
     <ProfileSummaryRow
       :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
@@ -82,10 +73,4 @@ onMounted(refresh);
         {{ t("page.settings.profile.security_description") }}
       </template>
     </ProfileSummaryRow>
-  </DmsSection>
-  <!-- Mounted here, under this component's permission, rather than as a
-       component of its own: a new permission id would hide it from every
-       role that predates it, and each row is already gated by the page it
-       leads to. -->
-  <ProfilePreferencesSummary />
 </template>

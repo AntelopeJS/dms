@@ -26,6 +26,7 @@ import {
 } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
+import { Section } from "@antelopejs/interface-dms/base/section";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import * as z from "zod";
@@ -102,6 +103,8 @@ const profileFields = [
   { id: "email", type: new DefaultDataTypes.EmailType() },
 ];
 
+const PROFILE_TEXTS = "$page.settings.profile";
+
 @RegisterPage()
 export class ProfileSettingsController extends PageController(
   "profile",
@@ -114,18 +117,29 @@ export class ProfileSettingsController extends PageController(
   },
 ) {
   // The avatar field travels as a serialized image field: page registration
-  // finds it there and stamps the upload token bound to this component.
-  static profileComponent = CustomComponent("DmsProfilePersonalInfo")
-    .options({
-      endpoint: PROFILE_URL,
-      avatarField: {
-        id: "avatar",
-        type: IMAGE_FIELD_TYPE,
-        component: avatarType.inputComponent(),
-      },
-    })
+  // finds it there and stamps the upload token bound to the form.
+  static profileComponent = Section({
+    title: `${PROFILE_TEXTS}.title`,
+    description: `${PROFILE_TEXTS}.description`,
+  })
+    .child(
+      "form",
+      CustomComponent("DmsProfilePersonalInfo")
+        .options({
+          endpoint: PROFILE_URL,
+          avatarField: {
+            id: "avatar",
+            type: IMAGE_FIELD_TYPE,
+            component: avatarType.inputComponent(),
+          },
+        })
+        .meta({
+          name: `${PROFILE_TEXTS}.title`,
+          icon: "i-ph-identification-card",
+        }),
+    )
     .meta({
-      name: "$page.settings.profile.title",
+      name: `${PROFILE_TEXTS}.title`,
       icon: "i-ph-identification-card",
     });
 
@@ -133,20 +147,57 @@ export class ProfileSettingsController extends PageController(
     language: z.string().optional(),
   });
 
-  // Also mounts the "Preferences & access" summaries, which take no permission
-  // of their own: each row shows only when its target page opens for the
-  // user, so a new id would only hide them from roles that predate it.
-  static securityComponent = CustomComponent("DmsProfileSecuritySummary").meta({
-    name: "$page.settings.profile.security_title",
-    icon: "i-ph-shield-check",
-  });
+  static securityComponent = Section({
+    title: `${PROFILE_TEXTS}.security_title`,
+    description: `${PROFILE_TEXTS}.security_description`,
+  })
+    .child(
+      "summary",
+      CustomComponent("DmsProfileSecuritySummary").meta({
+        name: `${PROFILE_TEXTS}.security_title`,
+        icon: "i-ph-shield-check",
+      }),
+    )
+    .meta({
+      name: `${PROFILE_TEXTS}.security_title`,
+      icon: "i-ph-shield-check",
+    });
+
+  // Each row shows only when the page it leads to opens for the user.
+  static preferencesComponent = Section({
+    title: `${PROFILE_TEXTS}.preferences.title`,
+    description: `${PROFILE_TEXTS}.preferences.description`,
+  })
+    .child(
+      "summary",
+      CustomComponent("DmsProfilePreferencesSummary").meta({
+        name: `${PROFILE_TEXTS}.preferences.title`,
+        icon: "i-ph-sliders-horizontal",
+      }),
+    )
+    .meta({
+      name: `${PROFILE_TEXTS}.preferences.title`,
+      icon: "i-ph-sliders-horizontal",
+    });
 
   // Its own permission: a workspace can keep managed accounts from exporting
   // or deleting themselves by not granting it.
-  static accountDataComponent = CustomComponent("DmsProfileAccountData").meta({
-    name: "$page.settings.profile.data.title",
-    icon: "i-ph-database",
-  });
+  static accountDataComponent = Section({
+    title: `${PROFILE_TEXTS}.data.title`,
+    description: `${PROFILE_TEXTS}.data.description`,
+    danger: true,
+  })
+    .child(
+      "actions",
+      CustomComponent("DmsProfileAccountData").meta({
+        name: `${PROFILE_TEXTS}.data.title`,
+        icon: "i-ph-database",
+      }),
+    )
+    .meta({
+      name: `${PROFILE_TEXTS}.data.title`,
+      icon: "i-ph-database",
+    });
 
   @AuthUserWithPermission(ProfileSettingsController.profileComponent)
   declare user: User;

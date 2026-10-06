@@ -140,7 +140,7 @@ describe("instant-save page registry", () => {
   /** The generic form: the pill with `saveMode: "instant"`, a bar otherwise. */
   const FORM = "dms-ui/app/components/form/Form.vue";
   const INSTANT_SAVE = [
-    `${SETTINGS}/appearance.vue`,
+    `${SETTINGS_PARTS}/theme/useAppearanceSave.ts`,
     `${SETTINGS_PARTS}/notification/NotificationPreferencesForm.vue`,
     FORM,
   ];
@@ -180,7 +180,7 @@ describe("instant-save page registry", () => {
       }))
       .filter(({ source }) => source.includes("useInstantSaveHeader"));
     expect(users.map(({ path }) => path).sort()).toEqual(
-      [...INSTANT_SAVE].sort(),
+      INSTANT_SAVE.filter((path) => path.endsWith(".vue")).sort(),
     );
     for (const { path, source } of users) {
       if (path === FORM) continue;

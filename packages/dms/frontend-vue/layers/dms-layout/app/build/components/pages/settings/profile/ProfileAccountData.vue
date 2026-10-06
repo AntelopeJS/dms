@@ -7,12 +7,7 @@ const { isExporting, isCheckingDeletion, exportData, deleteAccount } =
 </script>
 
 <template>
-  <!-- v2 danger zone (.st-danger): take a copy of the account, or close it. -->
-  <DmsSection
-    title="$page.settings.profile.data.title"
-    description="$page.settings.profile.data.description"
-    danger
-  >
+  <div>
     <DmsFieldRow
       label="$page.settings.profile.data.export_title"
       description="$page.settings.profile.data.export_description"
@@ -41,5 +36,5 @@ const { isExporting, isCheckingDeletion, exportData, deleteAccount } =
         @click="deleteAccount"
       />
     </DmsFieldRow>
-  </DmsSection>
+  </div>
 </template>

@@ -175,12 +175,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <DmsSection
-    title="$page.settings.profile.title"
-    description="$page.settings.profile.description"
-    :card="false"
-  >
-    <form class="dms-card overflow-hidden" @submit.prevent="save">
+  <div>
+    <form @submit.prevent="save">
       <DmsFieldRow
         layout="form"
         label="$page.settings.profile.avatar"
@@ -335,5 +331,5 @@ onMounted(async () => {
       @discard="discard"
       @save="save"
     />
-  </DmsSection>
+  </div>
 </template>

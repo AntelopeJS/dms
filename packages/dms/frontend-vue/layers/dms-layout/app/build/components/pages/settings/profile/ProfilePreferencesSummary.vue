@@ -19,7 +19,7 @@ const {
 <template>
   <!-- One summary per settings page that follows the user around, each
        shown only when that page opens for them. -->
-  <DmsSection :title="`$${KEY}.title`" :description="`$${KEY}.description`">
+  <div>
     <ProfileSummaryRow
       icon="i-ph-key"
       :lead="t(`${KEY}.access_title`)"
@@ -64,5 +64,5 @@ const {
     >
       {{ appearanceSummary }}
     </ProfileSummaryRow>
-  </DmsSection>
+  </div>
 </template>
