@@ -13,7 +13,7 @@ List a section to see its files:
 | `docs/02.building/` | Project setup (**the common case**), every config key, pages & components, navigation, actions, backend services (hooks, notifications, realtime, replayable jobs, HTML/email rendering, export jobs), localization, frontend layer & `ajs dms` CLI, distributable modules, deployment, troubleshooting |
 | `docs/03.auth-and-tenancy/` | Auth flows (JWT, 2FA, invites), decorators & RBAC, multi-tenant data, SaaS mode |
 | `docs/04.components/` | Component catalog: charts/widgets, layout, forms, tables, DataTypes, DataController, file storage |
-| `docs/05.extending-the-dashboard/` | Dashboard chrome, theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
+| `docs/05.extending-the-dashboard/` | Dashboard chrome (header actions, command-palette sources and assistant mode, widgets, overlays), theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
 | `docs/06.frontend-composables/` | Composables a custom frontend module's Vue calls: auth'd requests, realtime, page context, UI toolkit |
 | `docs/07.interfaces/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
 
