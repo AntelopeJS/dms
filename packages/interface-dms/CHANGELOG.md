@@ -4,6 +4,9 @@
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.5...v0.3.6)
 
+> [!WARNING]
+> 0.3.6 shipped the breaking changes of [#119](https://github.com/AntelopeJS/dms/pull/119) under a patch version: changelogen 0.5 only reads a breaking change from a `!` in the commit header, not from a `BREAKING CHANGE:` footer. Do not depend on it; use 0.4.0.
+
 ### 🚀 Enhancements
 
 - **dms:** Port the v2 design across the dashboard ([#119](https://github.com/AntelopeJS/dms/pull/119))
