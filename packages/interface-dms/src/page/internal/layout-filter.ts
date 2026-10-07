@@ -10,6 +10,7 @@ import type {
   ComponentFilterContext,
   ComponentInfoSerialized,
 } from "../../component";
+import { childComponentClientId } from "./component-target";
 import {
   holdsPermissionGate,
   isPermissionGated,
@@ -114,6 +115,24 @@ function componentHeaderButtons(
 }
 
 /**
+ * The header buttons a component and its descendants place there, each named
+ * by the id the frontend renders it under: a table view nested in a tab or a
+ * card runs its buttons as one at the root of the page does.
+ */
+function treeHeaderButtons(
+  clientId: string,
+  component: ComponentInfoSerialized,
+): PageHeaderButtonSerialized[] {
+  const nested = (component.children ?? []).flatMap((child) =>
+    treeHeaderButtons(
+      childComponentClientId(clientId, child.id),
+      child.component,
+    ),
+  );
+  return [...componentHeaderButtons(clientId, component), ...nested];
+}
+
+/**
  * The layout with, after its own header buttons, those the components of the
  * page place in the header (`placement: "header"`): served as the components
  * were, so a button whose permission the caller lacks is already gone, and a
@@ -127,7 +146,7 @@ export function withComponentHeaderButtons<T>(
   components: Record<string, ComponentInfoSerialized>,
 ): ComponentInfo<T> | undefined {
   const placed = Object.entries(components).flatMap(([id, component]) =>
-    componentHeaderButtons(id, component),
+    treeHeaderButtons(id, component),
   );
   if (!layout || placed.length === 0) return layout;
   const options = (layout.options ?? {}) as {

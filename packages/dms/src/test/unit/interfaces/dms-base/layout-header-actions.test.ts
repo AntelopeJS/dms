@@ -247,4 +247,42 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
     const layout = DefaultLayout();
     expect(withComponentHeaderButtons(layout, refused)).to.equal(layout);
   });
+
+  it("adds those of a nested table, named by its id in the page", () => {
+    const nested = {
+      content: {
+        componentName: "dms-tabs",
+        children: [
+          {
+            id: "orders",
+            component: {
+              componentName: "dms-card",
+              children: [{ id: "lines", component: components.table }],
+            },
+          },
+        ],
+      },
+    } as unknown as Record<string, ComponentInfoSerialized>;
+
+    const layout = withComponentHeaderButtons(DefaultLayout(), nested);
+
+    expect(
+      actionsOf(layout!.options).map(({ id, componentId, buttonId }) => ({
+        id,
+        componentId,
+        buttonId,
+      })),
+    ).to.deep.equal([
+      {
+        id: "content-child-orders-child-lines:invite",
+        componentId: "content-child-orders-child-lines",
+        buttonId: "invite",
+      },
+      {
+        id: "content-child-orders-child-lines:add",
+        componentId: "content-child-orders-child-lines",
+        buttonId: undefined,
+      },
+    ]);
+  });
 });
