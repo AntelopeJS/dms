@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.3.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.5...v0.3.6)
+
+### 🚀 Enhancements
+
+- **dms:** Port the v2 design across the dashboard ([#119](https://github.com/AntelopeJS/dms/pull/119))
+
+### 🩹 Fixes
+
+- **layout:** Hold the in-flight modules listing fetch on the DMS app ([#121](https://github.com/AntelopeJS/dms/pull/121))
+- **tab:** Space the blocks of a tab like the page spaces its own ([#98](https://github.com/AntelopeJS/dms/pull/98))
+- **dev-reload:** End the reload streams when the module stops ([#125](https://github.com/AntelopeJS/dms/pull/125))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.5.4 ([a301255](https://github.com/AntelopeJS/dms/commit/a301255))
+- **release:** @antelopejs/dms v0.5.5 ([2eb0e86](https://github.com/AntelopeJS/dms/commit/2eb0e86))
+- **release:** @antelopejs/dms v0.5.6 ([76d9ee3](https://github.com/AntelopeJS/dms/commit/76d9ee3))
+
+### ❤️ Contributors
+
+- Maxime Westhoven ([@mwesto](http://github.com/mwesto))
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Glastis ([@Glastis](http://github.com/Glastis))
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
 ## v0.3.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.4...v0.3.5)
