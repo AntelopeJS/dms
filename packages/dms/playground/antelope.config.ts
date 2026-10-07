@@ -39,6 +39,11 @@ export default defineConfig({
           // flow fail with a 500. Development value: a real deployment must
           // supply its own.
           jwtSecret: "dev",
+          // The DB-IP database is only downloaded when a release is packed,
+          // and the playground's sign-ins come from a local address no
+          // database places in a country anyway: without this, every start
+          // warns about the missing file.
+          signInCountry: { database: false },
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
       },
