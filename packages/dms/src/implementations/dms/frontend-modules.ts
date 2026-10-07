@@ -107,9 +107,6 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const cachedModulesArchives = new Map<string, Promise<Buffer>>();
 const modules: Record<string, FrontendModule> = {};
-// Kept out of the module entries, which the manifest serves: the name of the
-// first frontend module each AntelopeJS module added.
-const frontendModuleNamesByOwner = new Map<string, string>();
 
 export function createIgnoreFilter(modulePath: string) {
   const filter = ignore();
@@ -239,16 +236,10 @@ function resolveAuthEstablishEndpoints(
   return [...new Set(declared)];
 }
 
-export function AddOwnedFrontendModule(
-  config: AddFrontendModuleOptions,
-  owner?: string,
-): void {
+export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   cachedModulesArchives.clear();
   const identity = moduleIdentity(config);
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
-  if (owner && !frontendModuleNamesByOwner.has(owner)) {
-    frontendModuleNamesByOwner.set(owner, config.name);
-  }
   const registeredModule = modules[identity];
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
@@ -265,16 +256,6 @@ export function AddOwnedFrontendModule(
     authEstablishEndpoints,
   };
   scheduleBroadcast();
-}
-
-/**
- * The name of the frontend module `owner` added, the first one if it added
- * several: the pages `owner` registers render its private components.
- */
-export function GetOwnedFrontendModuleName(
-  owner: string | undefined,
-): string | undefined {
-  return owner ? frontendModuleNamesByOwner.get(owner) : undefined;
 }
 
 function copyFrontendValue(value: FrontendModuleValue): FrontendModuleValue {

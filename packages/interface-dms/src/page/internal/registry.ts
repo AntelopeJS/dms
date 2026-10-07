@@ -26,16 +26,6 @@ export const pageLayoutHandlers = new Map<string, PageLayoutHandler>();
 export const pageMetadataByFullId = new Map<string, PageMetadata>();
 
 /**
- * The AntelopeJS module that registered the page `fullId`, when the page is
- * registered and its module is known.
- *
- * @internal
- */
-export function GetPageOwnerModule(fullId: string): string | undefined {
-  return pageMetadataByFullId.get(fullId)?.ownerModule;
-}
-
-/**
  * A registration crosses the interface boundary when the module implementing
  * the interface receives it, and the runtime hands that module a per-context
  * view of the object rather than the object itself. Reference equality does not

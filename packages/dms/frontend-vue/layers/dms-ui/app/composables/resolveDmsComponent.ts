@@ -1,5 +1,5 @@
 import { camelize, capitalize, type Component } from "vue";
-import { findPageComponent } from "../build/composables/page/pageModule";
+import { resolveDmsComponent as resolveRegisteredComponent } from "#dms/frontend-module";
 
 function normalizeComponentName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -25,18 +25,16 @@ function findRegistryKey(
 }
 
 /**
- * Resolve a DMS component by name through the frontend engine's registry, as
- * a lazy loader: the component code is fetched when it first renders. Names
- * are compared normalized (a leading `lazy` or `dms` and every
- * non-alphanumeric character dropped, case ignored), so PascalCase,
- * kebab-case and lowercase variants from backend data all match. The private
- * components of the module owning the page on screen resolve too, ahead of a
- * public component of the same name.
+ * Resolve a component by its full registered name, prefix included, through
+ * the frontend engine's registry, as a lazy loader: the component code is
+ * fetched when it first renders. Names are compared normalized (a leading
+ * `lazy` and every non-alphanumeric character dropped, case ignored), so
+ * PascalCase, kebab-case and lowercase variants from backend data all match.
  */
 export function resolveDmsComponent(name?: string): Component | undefined {
   if (!name) return undefined;
 
-  const component = findPageComponent(name);
+  const component = resolveRegisteredComponent(name);
 
   if (!component && import.meta.env.DEV) {
     console.warn(
@@ -50,9 +48,8 @@ export function resolveDmsComponent(name?: string): Component | undefined {
 }
 
 /**
- * Resolve the canonical registered name of a public DMS component in the Vue
- * app's global registry, for APIs that take an exact registered name.
- * Private components are not global and have no such name.
+ * Resolve the canonical registered name of a component in the Vue app's
+ * global registry, for APIs that take an exact registered name.
  */
 export function resolveDmsComponentName(name?: string): string | undefined {
   if (!name) return undefined;
