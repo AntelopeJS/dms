@@ -4,6 +4,7 @@ import { withoutTrailingSlash } from "ufo";
 import type { DmsPagePayload } from "#dms/frontend-module";
 import { usePageModule } from "#dms-ui/app/build/composables/page/pageModule";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
+import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
 
 interface PageAttrs {
   page?: DmsPagePayload;
