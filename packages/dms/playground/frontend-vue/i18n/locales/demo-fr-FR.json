@@ -135,6 +135,23 @@
       "empty_filtered_title": "Aucune exécution ne correspond à « {search} »",
       "empty_filtered_description": "Essayez un autre nom de procédure, ou effacez les filtres.",
       "empty_docs": "Ouvrir la documentation automation"
+    },
+    "assistant": {
+      "label": "Assistant",
+      "placeholder": "Posez n'importe quelle question à l'assistant de démo…",
+      "suggestions": {
+        "churn": "Quels clients sont partis le mois dernier ?",
+        "block": "Ajouter un bloc « Meilleurs clients » à cette page",
+        "order": "Pourquoi la commande #10482 est-elle toujours en attente ?"
+      },
+      "answer": {
+        "eyebrow": "Démo en lecture seule",
+        "echo": "Vous avez demandé : « {prompt} ». Cet assistant de démo répète seulement la question ; un vrai module y répond ici, ou la transmet à sa propre interface.",
+        "open": "Ouvrir la vue d'ensemble",
+        "copy": "Copier la question",
+        "copied": "Question copiée",
+        "copyFailed": "La copie a échoué"
+      }
     }
   }
 }
