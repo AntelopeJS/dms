@@ -2,9 +2,12 @@
 import { injectLocal } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import type { ShallowRef } from "vue";
-import type { TableSharedData, Data } from "./Table.vue";
-import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
+import type { ModelRef, ShallowRef } from "vue";
+import type { KanbanGroupByOption, TableSharedData, Data } from "./Table.vue";
+import {
+  GROUPED_DISPLAY_ID,
+  KANBAN_DISPLAY_ID,
+} from "../../../composables/table-view/types";
 
 const theme = tv({
   slots: {
@@ -43,23 +46,41 @@ const setActiveDisplay = (id: string) => {
 // when no translation exists, so literals pass through unchanged.
 const displayItems = computed(() => tableSharedData.value?.displays ?? []);
 
-const groupByOptions = computed(
-  () => tableSharedData.value?.kanbanGroupByOptions ?? [],
-);
-const groupByField = computed(
-  () => tableSharedData.value?.kanbanGroupByState.value,
-);
+/** The group-by a display lets the user pick, and the model it edits. */
+interface DisplayGroupBy {
+  options: KanbanGroupByOption[];
+  state: ModelRef<string>;
+}
 
-const selectGroupBy = (value: string) => {
-  if (!tableSharedData.value) return;
-  tableSharedData.value.kanbanGroupByState.value = value;
+type DisplayGroupByReader = (
+  shared: TableSharedData<T>,
+) => DisplayGroupBy | undefined;
+
+const DISPLAY_GROUP_BY: Record<string, DisplayGroupByReader> = {
+  [KANBAN_DISPLAY_ID]: (shared) => ({
+    options: shared.kanbanGroupByOptions,
+    state: shared.kanbanGroupByState,
+  }),
+  [GROUPED_DISPLAY_ID]: (shared) => ({
+    options: shared.groupedGroupByOptions,
+    state: shared.groupedGroupByState,
+  }),
 };
 
-const showGroupBy = computed(
-  () =>
-    activeDisplay.value === KANBAN_DISPLAY_ID &&
-    groupByOptions.value.length > 0,
-);
+const activeGroupBy = computed(() => {
+  const shared = tableSharedData.value;
+  return shared ? DISPLAY_GROUP_BY[activeDisplay.value]?.(shared) : undefined;
+});
+
+const groupByOptions = computed(() => activeGroupBy.value?.options ?? []);
+const groupByField = computed(() => activeGroupBy.value?.state.value);
+
+const selectGroupBy = (value: string) => {
+  if (!activeGroupBy.value) return;
+  activeGroupBy.value.state.value = value;
+};
+
+const showGroupBy = computed(() => groupByOptions.value.length > 0);
 
 const uiTableMenuViewModeVariant = tv({
   extend: tv(theme),

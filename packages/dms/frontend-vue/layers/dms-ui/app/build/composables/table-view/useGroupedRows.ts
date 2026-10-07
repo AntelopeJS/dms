@@ -1,6 +1,6 @@
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import { h, type ComputedRef } from "vue";
+import { h, toValue, type ComputedRef, type MaybeRefOrGetter } from "vue";
 import type {
   TableViewColumn,
   TableViewGroupedConfig,
@@ -21,7 +21,8 @@ import {
 const GROUP_EYEBROW_CLASS = `${EYEBROW_CLASS} text-dimmed`;
 
 export interface GroupedRowsOptions {
-  grouped: TableViewGroupedConfig | undefined;
+  /** Follows the group-by the user picks in the options menu. */
+  grouped: MaybeRefOrGetter<TableViewGroupedConfig | undefined>;
   /** The grouped display is the one shown. */
   isActive: ComputedRef<boolean>;
   columns: TableViewColumn[];
@@ -41,15 +42,18 @@ export interface GroupedRowsOptions {
  * or week of a date — and, with `count`, how many rows each group holds.
  */
 export function useGroupedRows(options: GroupedRowsOptions) {
-  const { grouped, isActive, columns, rows } = options;
+  const { isActive, columns, rows } = options;
   const { t, locale } = useI18n();
   const { renderColumnValue } = useColumnValueRenderer();
-  const by = grouped?.by ?? "value";
-  const field = grouped?.groupByField ?? "";
-  const column = columns.find((candidate) => candidate.accessorKey === field);
+  const grouped = computed(() => toValue(options.grouped));
+  const by = computed(() => grouped.value?.by ?? "value");
+  const field = computed(() => grouped.value?.groupByField ?? "");
+  const column = computed(() =>
+    columns.find((candidate) => candidate.accessorKey === field.value),
+  );
 
   const keyOf = (row: Data): string =>
-    rowGroupKey(get(row, field), by, locale.value);
+    rowGroupKey(get(row, field.value), by.value, locale.value);
 
   // A date heads its group as a mono eyebrow ("TODAY · 29 SEPT"); a value
   // as its cell draws it, without the row's other fields.
@@ -57,23 +61,25 @@ export function useGroupedRows(options: GroupedRowsOptions) {
     h("span", { class: GROUP_EYEBROW_CLASS }, text);
   const header = (key: string, row: Data) => {
     if (key === NO_GROUP_KEY) return eyebrow(t("dms.table.grouped.none"));
-    if (by !== "value") {
+    if (by.value !== "value") {
       return eyebrow(
-        dateGroupLabel(key, by, locale.value, {
+        dateGroupLabel(key, by.value, locale.value, {
           today: t("dms.table.grouped.today"),
           yesterday: t("dms.table.grouped.yesterday"),
           weekOf: (date) => t("dms.table.grouped.week_of", { date }),
         }),
       );
     }
-    return column
-      ? renderColumnValue(column, { [field]: get(row, field) })
+    return column.value
+      ? renderColumnValue(column.value, {
+          [field.value]: get(row, field.value),
+        })
       : key;
   };
 
   const counts = ref<Record<string, number>>({});
   const listedKeys = computed(() =>
-    isActive.value && grouped?.count
+    isActive.value && grouped.value?.count
       ? [...new Set((rows.value ?? []).map(keyOf))]
       : [],
   );
@@ -81,7 +87,7 @@ export function useGroupedRows(options: GroupedRowsOptions) {
   // Asked again whenever the groups listed or the rows' filters change.
   const countQueries = computed(() =>
     listedKeys.value.flatMap((key) => {
-      const filter = groupFilter(field, key, by);
+      const filter = groupFilter(field.value, key, by.value);
       return filter ? [{ id: key, query: options.countQuery(filter) }] : [];
     }),
   );
@@ -97,23 +103,23 @@ export function useGroupedRows(options: GroupedRowsOptions) {
     }
   };
 
-  if (grouped?.count) {
+  if (grouped.value?.count) {
     watch(countQueries, () => void refreshCounts(), {
       immediate: true,
       deep: true,
     });
   }
 
-  const grouping = computed<TableRowGrouping<Data> | undefined>(() =>
-    isActive.value && grouped
-      ? {
-          keyOf,
-          header,
-          collapsible: grouped.collapsible,
-          countOf: grouped.count ? (key) => counts.value[key] : undefined,
-        }
-      : undefined,
-  );
+  const grouping = computed<TableRowGrouping<Data> | undefined>(() => {
+    const config = grouped.value;
+    if (!isActive.value || !config) return undefined;
+    return {
+      keyOf,
+      header,
+      collapsible: config.collapsible,
+      countOf: config.count ? (key) => counts.value[key] : undefined,
+    };
+  });
 
   return { grouping, refreshCounts };
 }

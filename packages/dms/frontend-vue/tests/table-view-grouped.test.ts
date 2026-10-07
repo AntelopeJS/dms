@@ -16,8 +16,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useGroupedRows } from "../layers/dms-ui/app/build/composables/table-view/useGroupedRows";
 import {
   dateGroupLabel,
+  groupedOptionsFor,
   groupedSorting,
   groupFilter,
+  isGroupableColumn,
   NO_GROUP_KEY,
   rowGroupKey,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/groupedRows";
@@ -25,6 +27,13 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 
 const tableSource = readFileSync(
   resolve(__dirname, "../layers/dms-ui/app/build/components/table/Table.vue"),
+  "utf8",
+);
+const menuViewModeSource = readFileSync(
+  resolve(
+    __dirname,
+    "../layers/dms-ui/app/build/components/table/MenuViewMode.vue",
+  ),
   "utf8",
 );
 const tableViewSource = readFileSync(
@@ -123,9 +132,75 @@ describe("grouped display wiring", () => {
 
   it("sorts the list on the grouped column while the grouped display shows", () => {
     expect(tableViewSource).toMatch(
-      /isGroupedDisplay\.value && groupedOptions\s*\?\s*groupedSorting\(picked, groupedOptions\)/,
+      /isGroupedDisplay\.value && activeGroupedOptions\.value\s*\?\s*groupedSorting\(picked, activeGroupedOptions\.value\)/,
     );
     expect(tableViewSource).toContain(':grouping="grouping"');
+  });
+
+  it("lets the user pick the grouped column from the options menu, as on the kanban", () => {
+    expect(tableViewSource).toContain(
+      'v-model:grouped-group-by="groupedGroupBy"',
+    );
+    expect(tableViewSource).toContain(
+      ':grouped-group-by-options="groupedGroupByOptions"',
+    );
+    expect(tableViewSource).toMatch(/grouped: activeGroupedOptions,/);
+    expect(menuViewModeSource).toMatch(
+      /\[GROUPED_DISPLAY_ID\]: \(shared\) => \(\{\s*options: shared\.groupedGroupByOptions,/,
+    );
+  });
+});
+
+describe("grouped group-by", () => {
+  const column = (accessorKey: string, typeId: string, options = {}) =>
+    ({
+      id: accessorKey,
+      accessorKey,
+      header: accessorKey,
+      listable: true,
+      type: { id: typeId, inputComponent: { options } },
+    }) as unknown as TableViewColumn;
+  const columns = [
+    column("status", "select", { items: [{ value: "open", label: "Open" }] }),
+    column("tags", "select", { multiple: true }),
+    column("done", "boolean"),
+    column("startedAt", "datetime"),
+    column("dueOn", "date"),
+    column("title", "string"),
+  ];
+
+  it("offers the columns holding a few known values, and the dates", () => {
+    expect(columns.filter(isGroupableColumn).map((c) => c.accessorKey)).toEqual(
+      ["status", "done", "startedAt", "dueOn"],
+    );
+  });
+
+  it("keeps the configured cut on the configured column", () => {
+    const grouped = { groupByField: "startedAt", by: "week" as const };
+    expect(groupedOptionsFor(grouped, "startedAt", columns)).toBe(grouped);
+  });
+
+  it("groups another date by the configured date cut, else by day", () => {
+    expect(
+      groupedOptionsFor(
+        { groupByField: "startedAt", by: "week", count: true },
+        "dueOn",
+        columns,
+      ),
+    ).toEqual({ groupByField: "dueOn", by: "week", count: true });
+    expect(
+      groupedOptionsFor({ groupByField: "status" }, "dueOn", columns),
+    ).toEqual({ groupByField: "dueOn", by: "day" });
+  });
+
+  it("groups any other column by its value", () => {
+    expect(
+      groupedOptionsFor(
+        { groupByField: "startedAt", by: "day", collapsible: true },
+        "status",
+        columns,
+      ),
+    ).toEqual({ groupByField: "status", by: "value", collapsible: true });
   });
 });
 

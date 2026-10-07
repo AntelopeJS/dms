@@ -108,7 +108,11 @@ import { useTableFooter } from "../../build/composables/table-view/useTableFoote
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
-import { groupedSorting } from "../../build/composables/table-view/utils/groupedRows";
+import {
+  groupedOptionsFor,
+  groupedSorting,
+  isGroupableColumn,
+} from "../../build/composables/table-view/utils/groupedRows";
 import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
 import TableViews, {
   type TableViewItem,
@@ -369,6 +373,39 @@ const sortableIds = computed(
         (id) => !refusedSortIds.value.includes(id),
       ),
     ),
+);
+
+// The grouped display's column, picked in the options menu as the kanban's
+// is: the rows of a group follow each other only when the route sorts on it.
+const groupedGroupByOptions = groupedOptions
+  ? allColumns
+      .filter(
+        (column) =>
+          column.accessorKey === groupedOptions.groupByField ||
+          (isGroupableColumn(column) &&
+            declaredSortableIds.has(column.accessorKey)),
+      )
+      .map((column) => ({
+        label: processI18n(column.header),
+        value: column.accessorKey,
+      }))
+  : [];
+const groupedGroupBy = ref<string>(
+  getPreference<string>(
+    getTablePreferenceKey("groupedGroupBy"),
+    groupedOptions?.groupByField ?? "",
+  ),
+);
+if (
+  groupedOptions &&
+  !groupedGroupByOptions.some((o) => o.value === groupedGroupBy.value)
+) {
+  groupedGroupBy.value = groupedOptions.groupByField;
+}
+const activeGroupedOptions = computed<TableViewGroupedConfig | undefined>(
+  () =>
+    groupedOptions &&
+    groupedOptionsFor(groupedOptions, groupedGroupBy.value, allColumns),
 );
 // The declared default sort when the route accepts it; without one, the
 // sortable creation date, newest first, rather than the database's natural
@@ -715,8 +752,8 @@ const effectiveSorting = computed<SortingState>(() => {
     ? sorting.value
     : defaultSortState;
   return sanitizeSorting(
-    isGroupedDisplay.value && groupedOptions
-      ? groupedSorting(picked, groupedOptions)
+    isGroupedDisplay.value && activeGroupedOptions.value
+      ? groupedSorting(picked, activeGroupedOptions.value)
       : picked,
     sortableIds.value,
   );
@@ -1020,7 +1057,7 @@ const { reorderState } = useTableReorder<T>({
 });
 
 const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
-  grouped: groupedOptions,
+  grouped: activeGroupedOptions,
   isActive: isGroupedDisplay,
   columns: props.columns,
   rows: shownResults,
@@ -1813,6 +1850,7 @@ const tableStatePreferences = {
   viewMode: activeDisplayId,
   columnOrder,
   kanbanGroupBy,
+  groupedGroupBy,
   density,
 } as const;
 
@@ -1924,6 +1962,7 @@ onMounted(() => {
     v-model:active-tab="activeTabId"
     v-model:active-display="activeDisplayId"
     v-model:kanban-group-by="kanbanGroupBy"
+    v-model:grouped-group-by="groupedGroupBy"
     v-model:show-archived="showArchived"
     v-model:expanded="expandedModel"
     v-model:density="density"
@@ -1941,6 +1980,7 @@ onMounted(() => {
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"
+    :grouped-group-by-options="groupedGroupByOptions"
     :tabs="tabsWithCount"
     :initial-column-visibility="initialVisibility"
     :loading="isListLoading"

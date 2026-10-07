@@ -120,7 +120,9 @@ describe("table density menu", () => {
     expect(tableViewSource).toMatch(
       /getTablePreferenceKey\("density"\),\s*props\.density \?\? DEFAULT_DENSITY/,
     );
-    expect(tableViewSource).toMatch(/kanbanGroupBy,\s*density,\s*\} as const;/);
+    expect(tableViewSource).toMatch(
+      /groupedGroupBy,\s*density,\s*\} as const;/,
+    );
     expect(tableViewSource).toContain('v-model:density="density"');
   });
 });
