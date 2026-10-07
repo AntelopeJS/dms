@@ -957,6 +957,11 @@ interface BodyEntry {
   row: TableRow;
   /** Group key, on a group header. */
   key?: string;
+  /**
+   * Draws a group header with the grouping it was listed under: a header
+   * still rendering once the grouping is gone reads it, not the prop.
+   */
+  header?: () => VNodeChild;
 }
 
 const GROUP_ENTRY_PREFIX = "group:";
@@ -977,7 +982,13 @@ const bodyEntries = computed<BodyEntry[]>(() => {
     const key = grouping.keyOf(row.original);
     if (key !== currentKey) {
       currentKey = key;
-      entries.push({ kind: "group", id: GROUP_ENTRY_PREFIX + key, row, key });
+      entries.push({
+        kind: "group",
+        id: GROUP_ENTRY_PREFIX + key,
+        row,
+        key,
+        header: () => grouping.header(key, row.original),
+      });
     }
     if (!collapsedGroups.value.includes(key)) {
       entries.push({ kind: "row", id: row.id, row });
@@ -1417,7 +1428,7 @@ defineShortcuts({
             <tbody>
               <template v-if="table.getRowModel().rows?.length">
                 <template
-                  v-for="{ kind, id, row, key } in bodyEntries"
+                  v-for="{ kind, id, row, key, header } in bodyEntries"
                   :key="id"
                 >
                   <tr v-if="kind === 'group' && grouping">
@@ -1446,9 +1457,7 @@ defineShortcuts({
                             "
                             class="size-3"
                           />
-                          <component
-                            :is="() => grouping!.header(key!, row.original)"
-                          />
+                          <component :is="header" />
                         </component>
                         <span
                           v-if="grouping.countOf?.(key!) !== undefined"

@@ -29,7 +29,7 @@ interface OrderLinesDetailProps {
 
 const props = defineProps<OrderLinesDetailProps>();
 
-const { locale } = useI18n();
+const { locale, dateTimeFormat } = useRegionalFormat();
 
 const lines = computed(
   () => (props.row.lines as OrderLine[] | undefined) ?? [],
@@ -42,14 +42,13 @@ const money = computed(
   () =>
     new Intl.NumberFormat(locale.value, { style: "currency", currency: "EUR" }),
 );
-const time = computed(
-  () =>
-    new Intl.DateTimeFormat(locale.value, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+const time = computed(() =>
+  dateTimeFormat({
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }),
 );
 
 const total = computed(() =>

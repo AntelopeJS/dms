@@ -29,10 +29,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const startedAt = computed(() =>
-  props.rowData?.startedAt
-    ? new Date(props.rowData.startedAt).toLocaleString()
-    : "—",
+const { formatDateTime } = useRegionalFormat();
+
+const startedAt = computed(
+  () => formatDateTime(props.rowData?.startedAt) ?? "—",
 );
 </script>
 
