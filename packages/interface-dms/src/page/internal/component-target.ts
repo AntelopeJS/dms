@@ -80,6 +80,19 @@ export function resolveComponentTarget(
 }
 
 /**
+ * Build the id the recursive frontend component renderer assigns to a child,
+ * from the id it assigned to the child's parent.
+ *
+ * @internal
+ */
+export function childComponentClientId(
+  parentClientId: string,
+  childId: string,
+): string {
+  return `${parentClientId}-child-${childId}`;
+}
+
+/**
  * Build the id assigned by the recursive frontend component renderer.
  *
  * @internal
@@ -87,5 +100,5 @@ export function resolveComponentTarget(
 export function componentTargetClientId(
   target: ResolvedComponentTarget,
 ): string {
-  return [target.rootKey, ...target.path.map((id) => `child-${id}`)].join("-");
+  return target.path.reduce(childComponentClientId, target.rootKey);
 }
