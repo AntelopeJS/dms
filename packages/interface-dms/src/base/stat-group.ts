@@ -6,8 +6,8 @@ import { toneEnum } from "./internal/display";
 import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 
-/** One cell of a stat strip. */
-export interface StatStripItem {
+/** One cell of a stat group. */
+export interface StatGroupItem {
   /** Stable key; the position is used without one. */
   id?: string;
   /** Icon of the well; the cell has no well without one. */
@@ -29,40 +29,40 @@ export interface StatStripItem {
   to?: string;
 }
 
-/** How a stat strip lays its cells out: see `StatStripProps.layout`. */
-export const STAT_STRIP_LAYOUTS = ["joined", "cards"] as const;
+/** How a stat group lays its cells out: see `StatGroupProps.layout`. */
+export const STAT_GROUP_LAYOUTS = ["joined", "cards"] as const;
 
-export type StatStripLayout = (typeof STAT_STRIP_LAYOUTS)[number];
+export type StatGroupLayout = (typeof STAT_GROUP_LAYOUTS)[number];
 
-/** The options `StatStrip` takes. */
-export interface StatStripProps extends BaseComponentProps, BlockItemsSource {
-  items?: StatStripItem[];
+/** The options `StatGroup` takes. */
+export interface StatGroupProps extends BaseComponentProps, BlockItemsSource {
+  items?: StatGroupItem[];
   /**
    * `joined`: one card split in cells by hairlines (security status strip).
    * `cards`: one compact stat card per item (modules summary).
    */
-  layout?: StatStripLayout;
+  layout?: StatGroupLayout;
   /** Columns on wide screens (1–6); defaults to the number of items. */
   columns?: number;
-  /** Accessible name of the strip. */
+  /** Accessible name of the group. */
   label?: string;
 }
 
-const STAT_STRIP_COMPONENT_NAME = "dms-stat-strip-block";
-const STAT_STRIP_ICON = "i-ph-squares-four";
-const STAT_STRIP_DEFAULT_LAYOUT: StatStripLayout = "joined";
+const STAT_GROUP_COMPONENT_NAME = "dms-stat-group-block";
+const STAT_GROUP_ICON = "i-ph-squares-four";
+const STAT_GROUP_DEFAULT_LAYOUT: StatGroupLayout = "joined";
 
 /**
- * StatStrip — a row of headline figures, each with its icon, a mono label, a
+ * StatGroup — a row of headline figures, each with its icon, a mono label, a
  * value and a detail line, optionally linking to where it is managed.
  *
  * `options` is optional because a page is written as it is built: the editor
  * places a block before anything is configured, and writes that as the bare
- * call `StatStrip()`.
+ * call `StatGroup()`.
  *
  * @example
  * ```typescript
- * StatStrip({
+ * StatGroup({
  *   layout: "cards",
  *   items: [
  *     { icon: "i-ph-users", eyebrow: "Members", value: 8, detail: "2 pending" },
@@ -71,15 +71,15 @@ const STAT_STRIP_DEFAULT_LAYOUT: StatStripLayout = "joined";
  * })
  * ```
  */
-export function StatStrip(
-  options?: StatStripProps,
-): ComponentBuilder<StatStripProps> {
-  return new ComponentBuilder<StatStripProps>(STAT_STRIP_COMPONENT_NAME)
-    .options({ layout: STAT_STRIP_DEFAULT_LAYOUT, ...options })
-    .meta({ name: "Stat strip", icon: STAT_STRIP_ICON });
+export function StatGroup(
+  options?: StatGroupProps,
+): ComponentBuilder<StatGroupProps> {
+  return new ComponentBuilder<StatGroupProps>(STAT_GROUP_COMPONENT_NAME)
+    .options({ layout: STAT_GROUP_DEFAULT_LAYOUT, ...options })
+    .meta({ name: "Stat group", icon: STAT_GROUP_ICON });
 }
 
-const StatStripItemSchema = z.object({
+const StatGroupItemSchema = z.object({
   id: ui(z.string().optional(), { label: "Key", advanced: true }),
   icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
   tone: ui(toneEnum(ICON_TONES).optional(), {
@@ -102,18 +102,18 @@ const StatStripItemSchema = z.object({
     label: "Link",
     widget: "url",
   }),
-}) satisfies BlockOptionsFor<StatStripItem>;
+}) satisfies BlockOptionsFor<StatGroupItem>;
 
-/** The options `StatStrip` accepts. */
-export const StatStripSchema = z.object({
+/** The options `StatGroup` accepts. */
+export const StatGroupSchema = z.object({
   items: ui(
-    z.array(StatStripItemSchema).optional().describe("The cells, in order."),
+    z.array(StatGroupItemSchema).optional().describe("The cells, in order."),
     { label: "Cells", group: "content" },
   ),
   layout: ui(
     z
-      .enum(STAT_STRIP_LAYOUTS)
-      .default(STAT_STRIP_DEFAULT_LAYOUT)
+      .enum(STAT_GROUP_LAYOUTS)
+      .default(STAT_GROUP_DEFAULT_LAYOUT)
       .describe("One card split in cells, or one card per cell."),
     {
       label: "Layout",
@@ -132,21 +132,22 @@ export const StatStripSchema = z.object({
       .describe("Columns on wide screens; defaults to the number of cells."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 6 },
   ),
-  label: ui(z.string().optional().describe("Accessible name of the strip."), {
+  label: ui(z.string().optional().describe("Accessible name of the group."), {
     label: "Accessible name",
     group: "advanced",
   }),
   ...blockItemsSourceOptions(),
-}) satisfies BlockOptionsFor<StatStripProps>;
+}) satisfies BlockOptionsFor<StatGroupProps>;
 
 RegisterBlockType({
-  type: "StatStrip",
-  componentName: STAT_STRIP_COMPONENT_NAME,
-  schema: StatStripSchema,
+  type: "StatGroup",
+  componentName: STAT_GROUP_COMPONENT_NAME,
+  schema: StatGroupSchema,
   meta: {
-    name: "Stat strip",
-    icon: STAT_STRIP_ICON,
-    description: "Row of headline figures, joined in one card or as cards.",
+    name: "Stat group",
+    icon: STAT_GROUP_ICON,
+    description:
+      "Several figures or states at a glance, joined in one card or as cards.",
     group: "visualization",
   },
 });

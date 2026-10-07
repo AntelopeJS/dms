@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import DmsStatStrip, {
-  type StatStripItem,
-  type StatStripLayout,
-} from "../stat-strip/StatStrip.vue";
+import DmsStatGroup, {
+  type StatGroupItem,
+  type StatGroupLayout,
+} from "../stat-group/StatGroup.vue";
 import DmsBlockStatus, {
   type BlockEmptyText,
 } from "../../build/components/blocks/BlockStatus.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-// `StatStrip` block (interface-dms `base/stat-strip`): the generic StatStrip
+// `StatGroup` block (interface-dms `base/stat-group`): the generic StatGroup
 // fed from the block options or from `fetchUrl` (`{ items }`). Texts follow
 // the `$` i18n-key convention; numeric values are formatted for the locale.
-interface StatStripBlockProps extends DefaultComponentProps {
-  items?: StatStripItem[];
-  layout?: StatStripLayout;
+interface StatGroupBlockProps extends DefaultComponentProps {
+  items?: StatGroupItem[];
+  layout?: StatGroupLayout;
   columns?: number;
-  /** Accessible name of the strip. */
+  /** Accessible name of the group. */
   label?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
@@ -30,7 +30,7 @@ interface StatStripBlockProps extends DefaultComponentProps {
   skeletonCount?: number;
 }
 
-const props = withDefaults(defineProps<StatStripBlockProps>(), {
+const props = withDefaults(defineProps<StatGroupBlockProps>(), {
   items: () => [],
   layout: "joined",
   columns: undefined,
@@ -46,7 +46,7 @@ const DEFAULT_SKELETON_COUNT = 4;
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
 
-const { items, isPending, hasError, refresh } = useBlockItems<StatStripItem>({
+const { items, isPending, hasError, refresh } = useBlockItems<StatGroupItem>({
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
@@ -54,14 +54,14 @@ const { items, isPending, hasError, refresh } = useBlockItems<StatStripItem>({
   componentId: props.componentId,
 });
 
-function formatValue(value: StatStripItem["value"]): string {
+function formatValue(value: StatGroupItem["value"]): string {
   if (typeof value === "number") {
     return new Intl.NumberFormat(locale.value).format(value);
   }
   return processI18n(String(value ?? ""));
 }
 
-const resolvedItems = computed<StatStripItem[]>(() =>
+const resolvedItems = computed<StatGroupItem[]>(() =>
   items.value.map((item) => ({
     ...item,
     eyebrow: processI18n(item.eyebrow ?? ""),
@@ -78,7 +78,7 @@ const resolvedItems = computed<StatStripItem[]>(() =>
     state="empty"
     :empty="props.empty"
   />
-  <DmsStatStrip
+  <DmsStatGroup
     v-else
     :items="resolvedItems"
     :layout="props.layout"

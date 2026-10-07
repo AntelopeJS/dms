@@ -32,7 +32,7 @@ export * from "./resource-form-schema";
 export * from "./searchable";
 export * from "./section";
 export * from "./stack";
-export * from "./stat-strip";
+export * from "./stat-group";
 export * from "./tab";
 export * from "./table-view";
 export * from "./tenant-export-archive";

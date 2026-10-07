@@ -9,7 +9,7 @@ import {
   Meter,
   NavCardGrid,
   Section,
-  StatStrip,
+  StatGroup,
 } from "@antelopejs/interface-dms/base";
 import { GetBlockType } from "@antelopejs/interface-dms/base/block-types";
 import { TONES } from "@antelopejs/interface-dms/base/types/tone";
@@ -21,7 +21,7 @@ function declared(type: string) {
 }
 
 const LIST_BLOCKS = [
-  "StatStrip",
+  "StatGroup",
   "KeyValueList",
   "NavCardGrid",
   "ActivityFeed",
@@ -44,7 +44,7 @@ describe("[unit] interfaces/dms-base — block vocabulary", () => {
       Meter(),
       NavCardGrid(),
       Section(),
-      StatStrip(),
+      StatGroup(),
     ];
     for (const builder of builders) {
       expect(builder.serializeSync().componentName).to.match(
@@ -60,7 +60,7 @@ describe("[unit] interfaces/dms-base — block vocabulary", () => {
       ...TONES,
       "soft",
     ]);
-    expect(declared("StatStrip").config.items?.items?.properties?.tone?.enum)
+    expect(declared("StatGroup").config.items?.items?.properties?.tone?.enum)
       .to.include("muted")
       .and.not.include("accent");
   });
@@ -75,7 +75,7 @@ describe("[unit] interfaces/dms-base — block vocabulary", () => {
   });
 
   it("links with `to` and offers link buttons as `actions`", () => {
-    for (const type of ["StatStrip", "KeyValueList"]) {
+    for (const type of ["StatGroup", "KeyValueList"]) {
       const item = declared(type).config.items?.items?.properties ?? {};
       expect(item, type).to.include.keys("to").and.not.include.keys("href");
     }

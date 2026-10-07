@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { StatStripItem } from "#dms-ui/app/components/stat-strip/StatStrip.vue";
+import type { StatGroupItem } from "#dms-ui/app/components/stat-group/StatGroup.vue";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   type SecurityOverview,
@@ -17,7 +17,7 @@ const { t } = useI18n();
 const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
 const { formatDate, daysSince } = useSecurityFormat();
 
-function twoFactorItem(data: SecurityOverview): StatStripItem {
+function twoFactorItem(data: SecurityOverview): StatGroupItem {
   const methods = [...data.twoFactor.methods].sort().join(",");
   const isOn = methods.length > 0;
   return {
@@ -50,7 +50,7 @@ function backupDetail(
   return t("page.settings.security.status.codes_use");
 }
 
-function backupItem({ twoFactor }: SecurityOverview): StatStripItem {
+function backupItem({ twoFactor }: SecurityOverview): StatGroupItem {
   const isOn = twoFactor.methods.length > 0;
   const isUnsaved = attention.value.includes("backup_codes_unsaved");
   const isLow = attention.value.includes("backup_codes_low");
@@ -71,7 +71,7 @@ function backupItem({ twoFactor }: SecurityOverview): StatStripItem {
   };
 }
 
-function passwordItem(data: SecurityOverview): StatStripItem {
+function passwordItem(data: SecurityOverview): StatGroupItem {
   const base = {
     id: "password",
     to: "#password",
@@ -106,7 +106,7 @@ function passwordItem(data: SecurityOverview): StatStripItem {
   };
 }
 
-function sessionsItem(data: SecurityOverview): StatStripItem {
+function sessionsItem(data: SecurityOverview): StatGroupItem {
   const others = Math.max(0, data.activeSessions - 1);
   return {
     id: "sessions",
@@ -127,7 +127,7 @@ function sessionsItem(data: SecurityOverview): StatStripItem {
   };
 }
 
-const items = computed<StatStripItem[]>(() => {
+const items = computed<StatGroupItem[]>(() => {
   const data = overview.value;
   if (!data) return [];
   return [
@@ -164,7 +164,7 @@ onMounted(refresh);
       size="sm"
     />
   </div>
-  <DmsStatStrip
+  <DmsStatGroup
     v-else
     class="mb-7"
     layout="joined"

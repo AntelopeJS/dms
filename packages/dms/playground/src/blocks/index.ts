@@ -7,4 +7,4 @@ export * from "./key-value";
 export * from "./meters";
 export * from "./nav-cards";
 export * from "./settings";
-export * from "./stat-strip";
+export * from "./stat-group";

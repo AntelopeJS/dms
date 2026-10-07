@@ -3,10 +3,10 @@ import {
   GetBlockType,
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
-import { StatStrip } from "@antelopejs/interface-dms/base/stat-strip";
+import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
 
 const DISPLAY_BLOCKS = [
-  "StatStrip",
+  "StatGroup",
   "KeyValueList",
   "NavCardGrid",
   "EmptyState",
@@ -34,7 +34,7 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("describes the items of a list block field by field", () => {
-    const cell = declared("StatStrip").config.items?.items?.properties ?? {};
+    const cell = declared("StatGroup").config.items?.items?.properties ?? {};
 
     expect(cell.eyebrow?.optional).to.not.equal(true);
     expect(cell.tone?.enum).to.include("muted");
@@ -42,14 +42,14 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("keeps a list block's route for the advanced view", () => {
-    for (const type of ["StatStrip", "KeyValueList", "NavCardGrid"]) {
+    for (const type of ["StatGroup", "KeyValueList", "NavCardGrid"]) {
       expect(declared(type).config.fetchUrl?.ui?.advanced, type).to.equal(true);
     }
   });
 
   it("lets a fetched block say how many placeholders to draw, unset by default", () => {
     for (const type of [
-      "StatStrip",
+      "StatGroup",
       "KeyValueList",
       "NavCardGrid",
       "ActivityFeed",
@@ -62,7 +62,7 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("says what a block falls back on when an option is unset", () => {
-    expect(declared("StatStrip").defaults.layout).to.equal("joined");
+    expect(declared("StatGroup").defaults.layout).to.equal("joined");
     expect(declared("KeyValueList").defaults.card).to.equal(true);
     expect(declared("EmptyState").defaults.variant).to.equal("no-data");
     expect(declared("Banner").defaults.tone).to.equal("info");
@@ -88,9 +88,9 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
   });
 
   it("writes a placed block that is not configured yet as a valid one", () => {
-    const placed = StatStrip().serializeSync().options;
+    const placed = StatGroup().serializeSync().options;
 
     expect(placed).to.deep.equal({ layout: "joined" });
-    expect(ValidateBlockOptions("StatStrip", placed).valid).to.equal(true);
+    expect(ValidateBlockOptions("StatGroup", placed).valid).to.equal(true);
   });
 });

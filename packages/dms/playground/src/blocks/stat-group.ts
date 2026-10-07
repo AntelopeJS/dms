@@ -1,17 +1,17 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { StatStrip } from "@antelopejs/interface-dms/base";
+import { StatGroup } from "@antelopejs/interface-dms/base";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
-export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
-  displayName: "Stat strip",
+export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
+  displayName: "Stat group",
   icon: "i-ph-squares-four",
   category: blocksCategory,
   order: 0,
   description:
-    "StatStrip block: joined status strip, summary cards, live data, loading, error and empty states",
+    "StatGroup block: joined status strip, summary cards, live data, loading, error and empty states",
 }) {
-  static joined = StatStrip({
+  static joined = StatGroup({
     layout: "joined",
     label: "Security status",
     items: [
@@ -49,7 +49,7 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
     ],
   });
 
-  static cards = StatStrip({
+  static cards = StatGroup({
     layout: "cards",
     items: [
       { icon: "i-ph-squares-four", eyebrow: "Installed", value: 11 },
@@ -74,7 +74,7 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
     ],
   });
 
-  static workspace = StatStrip({
+  static workspace = StatGroup({
     layout: "joined",
     columns: 3,
     items: [
@@ -97,20 +97,20 @@ export class PageBlocksStatStrip extends PageController("blocks-stat-strip", {
     ],
   });
 
-  static live = StatStrip({
+  static live = StatGroup({
     layout: "cards",
     fetchUrl: "/api/blocks/stats",
     // The route answers 4 figures: the skeleton draws as many cells.
     skeletonCount: 4,
   });
 
-  static failing = StatStrip({
+  static failing = StatGroup({
     layout: "joined",
     columns: 2,
     fetchUrl: "/api/blocks/missing",
   });
 
-  static empty = StatStrip({
+  static empty = StatGroup({
     layout: "cards",
     fetchUrl: "/api/blocks/empty",
     empty: { title: "No invoices this month" },

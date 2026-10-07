@@ -5,9 +5,9 @@ import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSectionHeader from "#dms-ui/app/components/section-header/SectionHeader.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
-import DmsStatStrip, {
-  type StatStripItem,
-} from "#dms-ui/app/components/stat-strip/StatStrip.vue";
+import DmsStatGroup, {
+  type StatGroupItem,
+} from "#dms-ui/app/components/stat-group/StatGroup.vue";
 import type { Tone } from "#dms-ui/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
@@ -294,7 +294,7 @@ const SUMMARY_CARDS: Array<{
   { key: "beta", icon: "i-ph-flask", tone: "secondary" },
 ];
 
-const summaryCards = computed<StatStripItem[]>(() =>
+const summaryCards = computed<StatGroupItem[]>(() =>
   SUMMARY_CARDS.map(({ key, icon, tone }) => ({
     id: key,
     icon,
@@ -364,7 +364,7 @@ const summaryCards = computed<StatStripItem[]>(() =>
 
     <template v-else>
       <!-- Summary counts -->
-      <DmsStatStrip
+      <DmsStatGroup
         class="mb-6"
         layout="cards"
         :items="summaryCards"
