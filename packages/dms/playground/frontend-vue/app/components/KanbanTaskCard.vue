@@ -33,7 +33,7 @@ interface TaskCardProps {
 
 const props = defineProps<TaskCardProps>();
 
-const { locale } = useI18n();
+const { formatDate, formatPrice } = useRegionalFormat();
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: "neutral",
@@ -46,25 +46,19 @@ const completion = computed(() =>
   Math.round(Number(props.row.completion_percentage ?? 0) * 100),
 );
 
-const dueDate = computed(() => {
-  const raw = props.row.due_date;
-  if (!raw) return undefined;
-  const date = new Date(raw as string);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleDateString(locale.value, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-});
+const dueDate = computed(
+  () =>
+    formatDate(props.row.due_date || undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }) ?? undefined,
+);
 
 const price = computed(() => {
   const raw = props.row.price;
   if (raw === undefined || raw === null) return undefined;
-  return new Intl.NumberFormat(locale.value, {
-    style: "currency",
-    currency: "EUR",
-  }).format(Number(raw));
+  return String(formatPrice(Number(raw)));
 });
 </script>
 
