@@ -11,7 +11,7 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import { InterfaceFunction } from "@antelopejs/interface-core";
 import type { User } from "../auth/db";
 import type { ExportJob } from "../db/tables/exportJobs.table";
-import { MILLISECONDS_PER_DAY } from "../utils/time";
+import { MILLISECONDS_PER_DAY } from "../utils/internal/time";
 import type { ExportStatus } from "./types/export-status";
 
 /** Lifetime of a stored export, enforced by the `sweep-stale-exports` cron. */
@@ -19,8 +19,6 @@ export const EXPORT_TTL_MS = MILLISECONDS_PER_DAY;
 
 /** Query parameter carrying the job id on a delivered download link. */
 export const EXPORT_JOB_QUERY_PARAM = "exportJob";
-
-export const DEFAULT_EXPORT_HISTORY_LIMIT = 20;
 export const DEFAULT_EXPORT_FORMAT = "csv";
 export const DEFAULT_DELIVERY = "download";
 export const EMAIL_DELIVERY = "email";

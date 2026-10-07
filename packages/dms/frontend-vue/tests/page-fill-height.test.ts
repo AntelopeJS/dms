@@ -40,30 +40,58 @@ vi.mock(
   "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue",
   () => ({ default: () => null }),
 );
+vi.mock(
+  "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
+  () => ({ default: () => null }),
+);
+vi.mock(
+  "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
+  async () => {
+    const { ref } = await import("vue");
+    return { useDevReloading: () => ref(false) };
+  },
+);
 
 interface PageLayoutFixture {
   components: Record<string, { componentName: string }>;
 }
 
 const route = reactive({ path: "/tools/explorer", query: {} });
+const pageLoading = ref(false);
 const pageLayout = ref<PageLayoutFixture | null>(null);
 
-// The markup `DefaultLayout` and `pages/[...slug].vue` rendered for a
-// two-component page before `fillHeight` existed, with the stubs below.
+// The page skeleton the layout keeps after the page (shown only while the page
+// is pending after a client navigation, once a short delay passes).
+const PAGE_SKELETON_MARKUP =
+  '<div aria-hidden="true" class="dms-page-skeleton space-y-6 hidden [html[data-dms-role-preview=pending]_&amp;]:block"><!--v-if-->' +
+  '<div class="dms-card space-y-4 p-[18px]"><USkeleton class="h-3.5 w-40"></USkeleton><!--[-->' +
+  ["72%", "58%", "66%", "44%"]
+    .map(
+      (width) =>
+        `<USkeleton class="h-2.5" style="width:${width};"></USkeleton>`,
+    )
+    .join("") +
+  "<!--]--></div></div>";
+
+// The markup `DefaultLayout` and `pages/[...slug].vue` render for a
+// two-component page outside the settings area, with the stubs below.
 const FLOW_PAGE_MARKUP =
-  "<div data-dms-persistent-shell data-group><!---->" +
-  "<div data-panel><!--[--><!----><!----><!--]-->" +
+  '<div data-dms-persistent-shell storage-key="dms-dashboard" unit="px" data-group><!---->' +
+  "<div data-panel><!--[--><!----><!----><!----><!--]-->" +
   "<div data-body>" +
-  '<div class="w-full max-w-none" data-dms-page-region data-dms-page-content><!--[-->' +
-  '<section class="flex gap-4 items-start pt-6 pb-7">' +
-  '<div class="rounded-lg bg-primary/10 shrink-0 ring ring-primary/20 flex items-center justify-center size-12"><i class="text-primary"></i></div>' +
-  '<div class="flex-1 min-w-0">' +
-  '<h1 class="text-highlighted text-[22px] font-semibold leading-tight tracking-tight"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--]--></section><!--[-->' +
+  '<div class="w-full max-w-none pb-12 lg:pb-16" data-dms-page-region data-dms-page-content><!--[--><!--[--><!--[-->' +
+  '<section class="flex flex-wrap gap-x-3.5 gap-y-4 items-start pb-6">' +
+  '<div class="mt-px rounded-[9px] bg-primary/10 shrink-0 ring ring-inset ring-primary/35 flex items-center justify-center size-9"><i class="text-primary"></i></div>' +
+  '<div class="flex-1 min-w-0 md:flex-[1_1_16rem]">' +
+  '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
+  '<div class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
   '<div class="">' +
-  '<section data-component="stats" page-id="tools.explorer"></section></div>' +
+  '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
   '<div class="">' +
-  '<section data-component="explorer" page-id="tools.explorer"></section></div></div><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>';
+  '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
+  PAGE_SKELETON_MARKUP +
+  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {
@@ -126,8 +154,9 @@ function installRuntime(): void {
     showError: vi.fn(),
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
-    useDevReloading: () => ref(false),
+    useDmsPageLoading: () => pageLoading,
     useDmsRoute: () => route,
+    useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
     useHomepage: () => "/",
     usePageLayout: async () => ({ pageLayout }),
     usePageRealtime: () => ({}),
@@ -148,6 +177,10 @@ function installRuntime(): void {
       refresh: async () => {},
       refreshIfStale: async () => {},
       findMatchingRoute: () => ({
+        metadata: { fullId: "tools.explorer", hasAccess: true },
+        params: {},
+      }),
+      findMatchingRouteOrCategory: () => ({
         metadata: { fullId: "tools.explorer", hasAccess: true },
         params: {},
       }),
@@ -211,6 +244,7 @@ function expectNoFillClasses(element: Element | null | undefined) {
 
 beforeEach(() => {
   installRuntime();
+  pageLoading.value = false;
   route.path = "/tools/explorer";
   pageLayout.value = withComponents("stats", "explorer");
 });
@@ -264,7 +298,7 @@ describe("DefaultLayout with fillHeight", () => {
     );
     const region = host.querySelector("[data-dms-page-content]");
     expectClasses(region, PAGE_FILL_HEIGHT_CLASSES.region);
-    expectClasses(region, "w-full max-w-none");
+    expectClasses(region, "w-full max-w-none pb-12 lg:pb-16");
   });
 
   it("keeps the page header a plain item of that column", async () => {
@@ -274,10 +308,11 @@ describe("DefaultLayout with fillHeight", () => {
     const header = host.querySelector("[data-dms-page-content] > section");
     expect(classesOf(header)).toEqual([
       "flex",
-      "gap-4",
+      "flex-wrap",
+      "gap-x-3.5",
+      "gap-y-4",
       "items-start",
-      "pt-6",
-      "pb-7",
+      "pb-6",
     ]);
   });
 
@@ -347,6 +382,37 @@ describe("DefaultLayout with fillHeight", () => {
     host
       .querySelectorAll(".dms-page-stack > div")
       .forEach((wrapper) => expectNoFillClasses(wrapper));
+    app.unmount();
+  });
+});
+
+describe("DefaultLayout while the page loads", () => {
+  it("shows the skeleton in place of the page while the engine waits on it", async () => {
+    const app = withStubs(
+      createApp(() =>
+        h(
+          DefaultLayout,
+          { title: "Explorer" },
+          { default: () => h("section", { "data-page": "" }) },
+        ),
+      ),
+    );
+    const host = document.createElement("div");
+    app.mount(host);
+    const skeleton = () => host.querySelector(".dms-page-skeleton");
+    const pageWrapper = () => host.querySelector("[data-page]")?.parentElement;
+    expect(classesOf(skeleton())).toContain("hidden");
+    expect(classesOf(pageWrapper())).not.toContain("hidden");
+
+    pageLoading.value = true;
+    await nextTick();
+    expect(classesOf(skeleton())).not.toContain("hidden");
+    expect(classesOf(pageWrapper())).toContain("hidden");
+
+    pageLoading.value = false;
+    await nextTick();
+    expect(classesOf(skeleton())).toContain("hidden");
+    expect(classesOf(pageWrapper())).not.toContain("hidden");
     app.unmount();
   });
 });

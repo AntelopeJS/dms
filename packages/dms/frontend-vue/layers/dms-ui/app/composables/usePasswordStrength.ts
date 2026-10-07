@@ -39,13 +39,19 @@ type StrengthColor =
   | "warning"
   | "neutral";
 
+// The rules list under the field details what is missing: the field error
+// only says the password is empty or misses one of them.
+const PASSWORD_REQUIRED = { message: "$dms.field_errors.required" };
+const PASSWORD_RULES = { message: "$dms.field_errors.password_rules" };
+
 export const passwordSchema = z
-  .string()
-  .min(MIN_PASSWORD_LENGTH, { message: "" })
-  .regex(/[A-Z]/, { message: "" })
-  .regex(/\d/, { message: "" })
-  .regex(/[@$!%*?&]/, { message: "" })
-  .regex(ALLOWED_CHARS_REGEX, { message: "" });
+  .string(PASSWORD_REQUIRED)
+  .min(1, PASSWORD_REQUIRED)
+  .min(MIN_PASSWORD_LENGTH, PASSWORD_RULES)
+  .regex(/[A-Z]/, PASSWORD_RULES)
+  .regex(/\d/, PASSWORD_RULES)
+  .regex(/[@$!%*?&]/, PASSWORD_RULES)
+  .regex(ALLOWED_CHARS_REGEX, PASSWORD_RULES);
 
 export function usePasswordStrength(password: Ref<string>) {
   const { t } = useI18n();

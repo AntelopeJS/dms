@@ -1,4 +1,11 @@
 import type { ComponentInfo } from "../component";
+import { serializeActionConfirm } from "./internal/confirm-dialog";
+import { serializeActionTarget } from "./types/internal/action-target";
+import type { CustomButton } from "./types/custom-button";
+import type {
+  DefaultLayoutSerializedOptions,
+  PageHeaderButtonDeclared,
+} from "./internal/layouts";
 
 export interface DefaultLayoutOptions {
   /**
@@ -18,16 +25,51 @@ export interface DefaultLayoutOptions {
    * Defaults to `false`.
    */
   fillHeight?: boolean;
+  /**
+   * Buttons right of the page title, in order: the same buttons as a table's
+   * toolbar — a link (`page` or `external` target), a quick action
+   * (`quickAction`), a drawer, a modal, an API call or an export, with their
+   * confirmation and availability. A string `permission` names an action of
+   * the page, relative to its permission id; `permissionId` is an absolute
+   * one. A table view's own buttons join them with `placement: "header"`.
+   */
+  headerActions?: CustomButton[];
+}
+
+// A button without an id is keyed by its place in the header.
+const HEADER_BUTTON_ID_PREFIX = "header-";
+
+function declareHeaderButton(
+  button: CustomButton,
+  index: number,
+): PageHeaderButtonDeclared {
+  const { id, target, confirm, placement: _placement, ...rest } = button;
+  const declared: PageHeaderButtonDeclared = {
+    ...rest,
+    id: id ?? `${HEADER_BUTTON_ID_PREFIX}${index}`,
+    target: serializeActionTarget(target),
+  };
+  if (confirm) declared.confirm = serializeActionConfirm(confirm);
+  return declared;
+}
+
+function dashboardLayout(
+  componentName: string,
+  options: DefaultLayoutOptions,
+): ComponentInfo {
+  const { headerActions, ...rest } = options;
+  const layoutOptions: DefaultLayoutSerializedOptions = rest;
+  if (headerActions) {
+    layoutOptions.headerActions = headerActions.map(declareHeaderButton);
+  }
+  return { componentName, options: layoutOptions };
 }
 
 export function DefaultLayout(options?: DefaultLayoutOptions): ComponentInfo {
-  return {
-    componentName: "dms-default-layout",
-    options: {
-      fullWidth: true,
-      ...options,
-    },
-  };
+  return dashboardLayout("dms-default-layout", {
+    fullWidth: true,
+    ...options,
+  });
 }
 
 /**
@@ -38,6 +80,18 @@ export function FormPageLayout(
   options?: Omit<DefaultLayoutOptions, "fullWidth">,
 ): ComponentInfo {
   return DefaultLayout({ ...options, fullWidth: false });
+}
+
+/**
+ * Dashboard frame of the settings area: the settings navigation next to the
+ * page, in the one column width every settings page shares. Declared by
+ * `settingsCategory`, so its pages and sub-categories get it without naming
+ * it; a settings page declared with a layout of its own opts out.
+ */
+export function SettingsLayout(
+  options?: Omit<DefaultLayoutOptions, "fullWidth">,
+): ComponentInfo {
+  return dashboardLayout("dms-settings-layout", { ...options });
 }
 
 export function EmptyLayout(): ComponentInfo {

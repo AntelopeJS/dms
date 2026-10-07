@@ -6,5 +6,7 @@ export * from "./members";
 export * from "./notifications";
 export * from "./profile";
 export * from "./quick-actions";
+export * from "./region";
 export * from "./roles";
+export * from "./security";
 export * from "./shortcuts";

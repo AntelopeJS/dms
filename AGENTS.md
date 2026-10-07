@@ -14,8 +14,42 @@ The interface package owns its sources and builds to its own `dist`. The runtime
 imports the contracts through `@antelopejs/interface-dms/...`, never through a
 relative path, and nothing in the interface package imports the runtime. Node
 does not fall back to a directory index inside an `exports` map, so a new
-directory in the interface package needs an entry there -- `pnpm --dir
-packages/interface-dms check:exports` is the gate.
+directory with an index in the interface package needs an entry there --
+`pnpm --dir packages/interface-dms check:exports` is the gate. The `internal/`
+folders have no index and are reached file by file through `./*`.
+
+Every built file is importable through the `./*` export, as everywhere in
+AntelopeJS, so a module may import any of them by its path. Moving or renaming
+a public file under `packages/interface-dms/src` is therefore a breaking
+change, like removing an export: keep paths stable, and list such a move in the
+release notes. Moving an internal one is not.
+
+What a module must not rely on is internal. An export is public when a module
+or the playground imports it, the docs or the skills show it, or a public
+signature names it; plumbing that only the runtime or the interface itself
+calls is internal, and is classified in the commit that adds it.
+
+- Internals live in an `internal/` folder next to the public code of their
+  domain -- `page/internal/`, `base/table-view/internal/`, `src/internal/` for
+  the root files -- so the import path says so, and each one also carries
+  `/** @internal */`, which is what a module's editor shows.
+- A public file keeps only public declarations, and a public file or barrel
+  never re-exports anything from `internal/`. A barrel that needs an internal
+  file's side effect (a block registration, a slot claim) imports it bare.
+- A type a public signature names is public by definition, wherever it was
+  declared.
+- The interface proxies (`InterfaceFunction`, `RegisteringProxy`) are the
+  exception: `ImplementInterface` attaches them by walking the exports of the
+  subpath the runtime hands it, so they stay declared at that subpath, inside
+  its `internal` namespace or tagged `@internal` at the top level. That
+  namespace holds proxies only.
+- An internal symbol a module already reaches stays importable from its old
+  path and name, tagged, until a breaking release removes it.
+
+The interface publishes its TSDoc in its declarations, so the tag shows in a
+module's editor, but it is not stripped: the runtime compiles against those
+same declarations and implements or calls much of what is internal, and
+`stripInternal` would break both its build and the published barrels.
 
 ### The interface package is a singleton
 

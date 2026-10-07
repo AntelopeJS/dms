@@ -21,17 +21,17 @@ const label = computed(() =>
     type="button"
     :title="label"
     :aria-label="label"
-    class="inline-grid size-[30px] place-items-center rounded-[7px] transition-colors"
+    class="inline-grid size-7 shrink-0 place-items-center rounded-[7px] transition-colors"
     :class="
       copied
-        ? 'text-success'
-        : 'text-muted hover:bg-elevated hover:text-default'
+        ? 'text-success bg-success/10'
+        : 'text-muted hover:bg-elevated hover:text-highlighted'
     "
     @click="copy(props.value)"
   >
     <UIcon
-      :name="copied ? 'i-lucide-check' : 'i-lucide-copy'"
-      class="size-4"
+      :name="copied ? 'i-ph-check' : 'i-ph-copy'"
+      class="size-[15px]"
       :aria-hidden="true"
     />
   </button>

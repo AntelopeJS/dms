@@ -8,8 +8,7 @@ import {
 import { TENANT_SCHEMA_NAME } from "../../constants";
 import type { ExportStatus } from "../../base/types";
 import { User } from "../../auth/db/tables/users.table";
-
-export const exportJobsTableName = "export_jobs";
+import { exportJobsTableName } from "../internal/table-names";
 
 @RegisterTable(exportJobsTableName, TENANT_SCHEMA_NAME)
 export class ExportJob extends Table {

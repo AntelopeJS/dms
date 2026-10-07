@@ -7,6 +7,7 @@ import {
   h,
   reactive,
   ref,
+  watchEffect,
   type App,
 } from "vue";
 import * as z from "zod";
@@ -34,8 +35,8 @@ const LinkButton = defineComponent({
 });
 
 function installRuntime() {
-  Object.entries({ computed, ref, reactive }).forEach(([key, value]) =>
-    vi.stubGlobal(key, value),
+  Object.entries({ computed, ref, reactive, watchEffect }).forEach(
+    ([key, value]) => vi.stubGlobal(key, value),
   );
   vi.stubGlobal("useI18n", () => ({
     locale,
@@ -46,6 +47,9 @@ function installRuntime() {
     public: { dms: { mustValidateEmail: false } },
   }));
   vi.stubGlobal("useHomepage", () => "/");
+  vi.stubGlobal("useDmsApp", () => ({
+    runWithContext: (fn: () => unknown) => fn(),
+  }));
   vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("passwordSchema", z.string());
   vi.stubGlobal("usePasswordStrength", () => ({

@@ -5,7 +5,8 @@
 
 import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
-import { FORM_COMPONENT_NAME, SubmitMessageOptions } from "./form-block-schema";
+import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
+import { SubmitMessageOptions } from "./form-block-schema";
 import type { FormProps } from "./form-types";
 
 /** Which of a resource's forms: creating a row, editing one, or reading one. */
@@ -17,6 +18,9 @@ export type ResourceFormMode = (typeof RESOURCE_FORM_MODES)[number];
  * has no route segment of its own to carry an id, so the query string does.
  */
 export const QUERY_ROW_ID = "{{query.id}}";
+
+/** The row a page served under a `:id` route segment is about. */
+export const ROUTE_PARAM_ROW_ID = "{{params.id}}";
 
 /** What a form over a resource leaves open: everything but its fields and routes. */
 export interface ResourceFormOptions extends Omit<

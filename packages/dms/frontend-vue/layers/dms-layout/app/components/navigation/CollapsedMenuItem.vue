@@ -20,6 +20,12 @@ const theme = tv({
     childList: "space-y-0.5",
     collapsibleTrigger: "w-full justify-between",
     collapsibleContent: "mt-0.5 space-y-0.5",
+    // "Preview as role" only: the badge the rail puts on a locked entry's
+    // icon, and the lock a nested locked entry ends with (toned by state).
+    topLevelLock:
+      "absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-default",
+    lock: "ml-auto size-3.5 shrink-0",
+    groupLock: "size-3.5 shrink-0",
   },
   variants: {
     isTopLevel: {
@@ -32,12 +38,32 @@ const theme = tv({
     isAccent: {
       true: { topLevelButton: "text-primary", link: "text-primary" },
     },
+    // Same hatches as the expanded menu (NavigationMenu.vue): red for an
+    // entry the role could not open, orange for one it opens partially.
+    previewState: {
+      hidden: {
+        topLevelButton: "text-muted dms-hatch-locked",
+        link: "text-muted dms-hatch-locked",
+        topLevelLock: "text-error",
+        lock: "text-error",
+        groupLock: "text-error",
+      },
+      partial: {
+        topLevelButton: "dms-hatch-partial",
+        link: "dms-hatch-partial",
+        topLevelLock: "text-warning",
+        lock: "text-warning",
+        groupLock: "text-warning",
+      },
+    },
   },
 });
 </script>
 
 <script setup lang="ts">
 import { DmsLink } from "#dms/frontend-module";
+import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
+
 interface Props {
   item: DmsMenuItem;
   isTopLevel?: boolean;
@@ -53,6 +79,7 @@ const ui = computed(() =>
   theme({
     isTopLevel: props.isTopLevel,
     isAccent: props.item.variant === "accent",
+    previewState: props.item.previewState,
   }),
 );
 
@@ -90,7 +117,11 @@ function onLinkHover(): void {
   <template v-if="!hasChildren">
     <UTooltip
       v-if="isTopLevel"
-      :text="item.label"
+      :text="
+        item.previewState && item.title
+          ? `${item.label} · ${item.title}`
+          : item.label
+      "
       :content="{ side: 'right', sideOffset: 8 }"
     >
       <component
@@ -100,8 +131,13 @@ function onLinkHover(): void {
         @mouseenter="onLinkHover"
       >
         <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
+        <UIcon
+          v-if="item.previewState"
+          :name="PREVIEW_LOCK_ICON"
+          :class="ui.topLevelLock()"
+        />
         <span
-          v-if="statusClass"
+          v-else-if="statusClass"
           :class="[ui.topLevelStatusDot(), statusClass]"
         />
       </component>
@@ -113,11 +149,17 @@ function onLinkHover(): void {
       :to="item.to"
       :class="ui.link()"
       :style="{ paddingLeft }"
+      :title="item.title"
       @mouseenter="onLinkHover"
     >
       <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
       <span>{{ item.label }}</span>
-      <span v-if="statusClass" :class="[ui.statusDot(), statusClass]" />
+      <UIcon
+        v-if="item.previewState"
+        :name="PREVIEW_LOCK_ICON"
+        :class="ui.lock()"
+      />
+      <span v-else-if="statusClass" :class="[ui.statusDot(), statusClass]" />
     </component>
   </template>
 
@@ -129,8 +171,22 @@ function onLinkHover(): void {
       :content="{ side: 'right', sideOffset: 8, align: 'start' }"
       :ui="{ content: 'min-w-48 max-h-[70vh] overflow-y-auto' }"
     >
-      <button type="button" :class="ui.topLevelButton()">
+      <button
+        type="button"
+        :class="ui.topLevelButton()"
+        :title="item.title"
+        :aria-label="
+          item.previewState && item.title
+            ? `${item.label} · ${item.title}`
+            : undefined
+        "
+      >
         <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
+        <UIcon
+          v-if="item.previewState"
+          :name="PREVIEW_LOCK_ICON"
+          :class="ui.topLevelLock()"
+        />
       </button>
 
       <template #content>
@@ -161,6 +217,11 @@ function onLinkHover(): void {
           <span class="flex items-center gap-2">
             <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
             <span>{{ item.label }}</span>
+            <UIcon
+              v-if="item.previewState"
+              :name="PREVIEW_LOCK_ICON"
+              :class="ui.groupLock()"
+            />
           </span>
           <UIcon name="i-ph-caret-down-light" :class="chevronClass(open)" />
         </button>

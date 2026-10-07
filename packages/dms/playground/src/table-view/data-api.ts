@@ -30,6 +30,7 @@ import {
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
 import { Task, TaskModel, User, UserModel } from "./database";
 import { TASK_STATUSES, type TaskStatusValue } from "./status";
+import { demoAddForm } from "./form-texts";
 
 @RegisterDataController()
 export class userDataAPI extends DataController(
@@ -88,6 +89,12 @@ export class userDataAPI extends DataController(
   declare avatar: string;
 }
 
+/**
+ * The tasks behind the TableView demos. "Drawer Mode" is its one writing
+ * TableView; every other demo that writes derives a controller of its own
+ * over the same rows (`DataController(Task, {}, Controller(location,
+ * taskDataAPI))`), and read-only demos share this one.
+ */
 @RegisterDataController()
 export class taskDataAPI extends DataController(
   Task,
@@ -224,6 +231,7 @@ export class taskDataAPI extends DataController(
     type: new DefaultDataTypes.RelationType({
       placeholder: "Enter assignees",
       dataApiController: userDataAPI,
+      addForm: demoAddForm("user"),
       keyMapping: {
         label: "name",
         value: "_id",

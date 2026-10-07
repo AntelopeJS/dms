@@ -5,7 +5,7 @@ import {
   MILLISECONDS_PER_DAY,
   MILLISECONDS_PER_HOUR,
   MILLISECONDS_PER_MINUTE,
-} from "@antelopejs/interface-dms/utils/time";
+} from "@antelopejs/interface-dms/utils/internal/time";
 
 /**
  * Runtime configuration state and accessors.
@@ -51,16 +51,24 @@ export interface OAuthConfig {
    * set it when the browser-facing origin differs from the configured one.
    */
   callbackBaseUrl?: string;
+}
+
+/** Where the "New sign-in" alert reads the country a sign-in came from. */
+export interface SignInCountryConfig {
   /**
-   * Declares that one trusted reverse proxy sits in front and appends to
-   * `x-forwarded-for`.
-   *
-   * @deprecated Set {@link AuthConfig.trustedProxies} instead. Still read when
-   * `trustedProxies` is unset, as one trusted hop. The OAuth rate limit is
-   * enforced by the frontend server, which takes its own hop count from its
-   * `DMS_TRUSTED_PROXY_HOPS` environment variable.
+   * Request header a trusted reverse proxy fills with the client's ISO 3166-1
+   * alpha-2 country code, such as `CF-IPCountry` behind Cloudflare. Unset by
+   * default: any caller can write a header, so it is read only once named
+   * here, and the proxy must overwrite it on every request. Wins over the
+   * database lookup.
    */
-  trustProxy?: boolean;
+  header?: string;
+  /**
+   * Path of a MaxMind-format country database (`.mmdb`) the client address is
+   * looked up in when the header gives nothing. Defaults to the DB-IP Country
+   * Lite database shipped with the package; `false` turns the lookup off.
+   */
+  database?: string | false;
 }
 
 export interface AuthConfig {
@@ -86,6 +94,13 @@ export interface AuthConfig {
    * Too low records a proxy address; too high trusts a client-supplied entry.
    */
   trustedProxies?: number;
+  /**
+   * The country of a sign-in joins its device in the "New sign-in" check: the
+   * same browser and system signing in from another country is a new sign-in.
+   * Without a country (no header, no database entry for the address), the
+   * device alone decides.
+   */
+  signInCountry?: SignInCountryConfig;
 }
 
 export interface DmsMetaConfig {

@@ -3,26 +3,14 @@ import type { PageMetadata } from "../page";
 import { RegisterPageTopic } from "../realtime";
 import type { AxeOrientation, BaseComponentProps, EnumOption } from "./types";
 import type { HttpMethod } from "./types/http";
+import { ChartType } from "./chart-type";
+import { CHART_COMPONENT_NAME, CHART_META_BY_TYPE } from "./internal/chart";
+
+export { ChartType } from "./chart-type";
 
 export namespace ChartEvents {
   export const SEGMENT_CLICK = "DmsComponent.Chart.SegmentClick";
   export const POINT_CLICK = "DmsComponent.Chart.PointClick";
-}
-
-export enum ChartType {
-  LINE = "line",
-  AREA = "area",
-  RANGE_AREA = "rangeArea",
-  BAR = "bar",
-  COLUMN = "column",
-  SCATTER = "scatter",
-  DONUT = "donut",
-  PIE = "pie",
-  MIXED = "mixed",
-  RADAR = "radar",
-  RADIAL_BAR = "radialBar",
-  HEATMAP = "heatmap",
-  CANDLESTICK = "candlestick",
 }
 
 export type ColorName =
@@ -297,38 +285,6 @@ export type AnyChartProps =
   | PieChartProps
   | RadialBarChartProps
   | HeatmapChartProps;
-
-/** Palette metadata for one chart type. */
-export interface ChartTypeMeta {
-  name: string;
-  icon: string;
-}
-
-/** Palette name and icon for each chart type. */
-export const CHART_META_BY_TYPE: Record<ChartType, ChartTypeMeta> = {
-  [ChartType.LINE]: { name: "Line Chart", icon: "i-ph-chart-line" },
-  [ChartType.AREA]: { name: "Area Chart", icon: "i-ph-chart-line-up" },
-  [ChartType.RANGE_AREA]: {
-    name: "Range Area Chart",
-    icon: "i-ph-arrows-vertical",
-  },
-  [ChartType.BAR]: { name: "Bar Chart", icon: "i-ph-chart-bar-horizontal" },
-  [ChartType.COLUMN]: { name: "Column Chart", icon: "i-ph-chart-bar" },
-  [ChartType.SCATTER]: { name: "Scatter Chart", icon: "i-ph-chart-scatter" },
-  [ChartType.DONUT]: { name: "Donut Chart", icon: "i-ph-chart-donut" },
-  [ChartType.PIE]: { name: "Pie Chart", icon: "i-ph-chart-pie-slice" },
-  [ChartType.MIXED]: { name: "Mixed Chart", icon: "i-ph-chart-line" },
-  [ChartType.RADAR]: { name: "Radar Chart", icon: "i-ph-polygon" },
-  [ChartType.RADIAL_BAR]: {
-    name: "Radial Bar Chart",
-    icon: "i-ph-circle-half",
-  },
-  [ChartType.HEATMAP]: { name: "Heatmap", icon: "i-ph-grid-nine" },
-  [ChartType.CANDLESTICK]: { name: "Candlestick Chart", icon: "i-ph-flag" },
-};
-
-/** The frontend component every chart factory emits. */
-export const CHART_COMPONENT_NAME = "dms-chart";
 
 function normalizeChartTopics(topic: string | string[] | undefined): string[] {
   if (!topic) return [];

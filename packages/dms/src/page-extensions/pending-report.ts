@@ -1,9 +1,7 @@
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Events } from "@antelopejs/interface-core/modules";
-import {
-  GetPendingPageExtensions,
-  GetRegisteredPageIds,
-} from "@antelopejs/interface-dms/page";
+import { GetPendingPageExtensions } from "@antelopejs/interface-dms/page/internal/registry";
+import { GetRegisteredPageIds } from "@antelopejs/interface-dms/page";
 
 // A page extension names its target by id, so nothing can be checked when it is
 // declared: the page may simply belong to a module that has yet to start. The

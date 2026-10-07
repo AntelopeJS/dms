@@ -79,7 +79,7 @@ describe("[unit] pages/settings/users/quick-actions — invite a member", () => 
       displayName: "$quickActions.invite_member",
       target: {
         type: "button",
-        to: "/settings/user/members",
+        to: "/settings/workspace/members",
         component: "table",
         button: MEMBER_INVITE_BUTTON_ID,
       },

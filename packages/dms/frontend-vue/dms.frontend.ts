@@ -10,14 +10,17 @@ import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
+import accessibilityPlugin from "./layers/dms-layout/app/plugins/accessibility";
 import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
-import languageSyncPlugin from "./layers/dms-layout/app/plugins/language-sync";
+import fontPreloadPlugin from "./layers/dms-layout/app/plugins/font-preload";
+import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/permission-preview-prepaint";
+import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
-import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays.client";
+import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
 import "./layers/dms-layout/app/assets/css/main.css";
 import type {} from "./layers/dms-core/shared/types/runtime-config";
 import type {} from "./layers/dms-core/shared/types/app-config";
@@ -34,9 +37,13 @@ interface DmsPublicOptions {
   };
 }
 
-const components = import.meta.glob<VueModule>(
-  "./layers/**/app/{components,build/components}/**/*.vue",
-);
+// The build/ components are registered too, so a backend page tree can name
+// them, but they stay the layer's internals: never auto-imported, and not a
+// surface other modules should build on.
+const components = import.meta.glob<VueModule>([
+  "./layers/**/app/components/**/*.vue",
+  "./layers/**/app/build/components/**/*.vue",
+]);
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );
@@ -62,7 +69,7 @@ function componentName(path: string): string {
     /^.*\/(?:components|build\/components)\//,
     "",
   );
-  return `Dms${pascalCase(relativePath.split("/").at(-1) ?? relativePath)}`;
+  return pascalCase(relativePath.split("/").at(-1) ?? relativePath);
 }
 
 function entryName(path: string, directory: string): string {
@@ -83,6 +90,14 @@ function lazyComponent(loader: VueLoader): Component {
   return defineAsyncComponent(async () => (await loader()).default);
 }
 
+// Components that render a backend block under a name of their own: the block
+// names (`dms-xxx-block`) resolve to the same component as the template name.
+const COMPONENT_ALIASES: Record<string, string> = {
+  ActivityFeed: "ActivityFeedBlock",
+  Section: "SectionBlock",
+  FieldRow: "FieldRowBlock",
+};
+
 function registerComponents(
   sdk: Parameters<DmsFrontendModule["setup"]>[0],
 ): void {
@@ -96,7 +111,10 @@ function registerComponents(
       );
     }
     names.set(name, path);
-    sdk.registerComponent(name, lazyComponent(loader));
+    const component = lazyComponent(loader);
+    sdk.registerComponent(name, component);
+    const alias = COMPONENT_ALIASES[name];
+    if (alias) sdk.registerComponent(alias, component);
   }
 }
 
@@ -117,7 +135,7 @@ function registerCustomPages(
     const name = entryName(path, "custom-pages").replace(/\/index$/, "");
     const component = lazyComponent(loader);
     sdk.registerPage(name, component, loader);
-    sdk.registerComponent(`Dms${pascalCase(name)}`, component);
+    sdk.registerComponent(pascalCase(name), component);
   });
 }
 
@@ -146,12 +164,15 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
     }, clientOnly);
   }
   sdk.registerPlugin(colorModePlugin);
+  sdk.registerPlugin(permissionPreviewPrepaintPlugin);
+  sdk.registerPlugin(fontPreloadPlugin);
   sdk.registerPlugin(interfaceScalePlugin);
-  sdk.registerPlugin(languageSyncPlugin);
+  sdk.registerPlugin(accessibilityPlugin);
+  sdk.registerPlugin(regionalPreferencesPlugin);
   sdk.registerPlugin(seoPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
-  sdk.registerPlugin(tableViewDisplaysPlugin, clientOnly);
+  sdk.registerPlugin(tableViewDisplaysPlugin);
   registerDeferredPlugins(sdk);
 }
 
@@ -171,6 +192,7 @@ function registerMiddleware(
 }
 
 const frontendModule: DmsFrontendModule = {
+  componentPrefix: "Dms",
   setup(sdk) {
     const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
     if (runtimeDms && typeof window !== "undefined")

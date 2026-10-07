@@ -49,7 +49,8 @@ route. This optional-auth-returns-200 behavior has caused a real token-refresh b
 ## Protecting pages
 
 A page's auth comes from its `PageController` options (see **dms-pages**): `publicAccess:
-true` (no auth), `authOnly: true` (login only), default (login **and** the auto-derived page
+true` (no auth), `authOnly: true` (login only), `memberAccess: true` (every signed-in member
+holds the page, its components and actions without a role grant), default (login **and** the auto-derived page
 permission), `permission: …` (a specific `Partial<Permission> | Action`),
 `noComponentPermissions: true` (skip per-component permission derivation). Routes under a
 controller that a page or `DataController` wraps **inherit** its auth — don't re-add login

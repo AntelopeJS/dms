@@ -6,9 +6,11 @@ import type {
 import {
   TABLE_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
 } from "../../../composables/table-view/types";
 import type { FormContainerType } from "./types";
 import { buildInitialColumnVisibility } from "./utils/columnVisibility";
+import type { TableViewFormPages } from "./utils/formTexts";
 
 const BUILTIN_DISPLAYS: Record<
   string,
@@ -16,6 +18,10 @@ const BUILTIN_DISPLAYS: Record<
 > = {
   [TABLE_DISPLAY_ID]: { capabilities: { columnManagement: true } },
   [KANBAN_DISPLAY_ID]: { selfManagedData: true, capabilities: { tabs: false } },
+  // The grid's columns, listed sorted on the grouped column.
+  [GROUPED_DISPLAY_ID]: {
+    capabilities: { columnManagement: true, sorting: false },
+  },
 };
 
 const withBuiltinDefaults = (
@@ -37,10 +43,12 @@ const withBuiltinDefaults = (
 };
 
 // The per-page slugs the table view declares are resolved server-side and
-// arrive as `formPages`; the frontend never reads them.
+// arrive as `formPages`; the frontend reads only the texts of `pages`.
 export interface FormContainer {
   type: FormContainerType;
   size?: ModalSize;
+  /** Titles and descriptions of the add, edit and details forms. */
+  pages?: TableViewFormPages;
 }
 
 /**
@@ -91,10 +99,7 @@ export const useTableViewConfig = <T extends Data>(
   const listableColumns = computed(() =>
     allColumns.value
       .filter((col) => col.listable)
-      .map((col) => ({
-        ...col,
-        header: processI18n(col.header),
-      })),
+      .map((col) => ({ ...col, header: processI18n(col.header) })),
   );
 
   // Config-derived (SSR-safe; the registry is client-only): the implicit `table`
@@ -115,6 +120,7 @@ export const useTableViewConfig = <T extends Data>(
 
   const tableProps = computed<Partial<TableProps<T>>>(() => ({
     caption: processI18n(config.caption ?? ""),
+    maxHeight: config.maxHeight,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
     customNavItems: config.customNavItems,

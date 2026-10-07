@@ -14,16 +14,21 @@ import type { ModalSize } from "../types/size";
 import {
   DEFAULT_ROW_ID_FIELD,
   type FormContainer,
+  MAX_TABLE_PAGE_SIZE,
   type KanbanOptions,
   type QueryParamFilter,
   type RouteParamFilter,
+  type TableViewCardOptions,
   TABLE_DISPLAY_ID,
-  TABLE_VIEW_COMPONENT_NAME,
   type TableViewDisplayOption,
+  type TableViewExpandableComponent,
+  type TableViewExpandableOptions,
+  type TableViewQuickFilter,
   type TableViewOptions,
   type TableViewRowActionOptions,
   type TableViewTab,
 } from "./options";
+import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
 
 const DEFAULT_KANBAN_COLUMN_MAX_HEIGHT = "60vh";
 
@@ -105,11 +110,51 @@ const tabFilterSchema = z.object({
 const tabSchema = z.object({
   id: z.string(),
   label: z.string(),
-  filters: z.array(tabFilterSchema),
+  filter: ui(
+    tabFilterSchema
+      .optional()
+      .describe("Filter on one column. A tab with a link filters nothing."),
+    { label: "Filter" },
+  ),
   icon: ui(z.string().optional(), { widget: "icon" }),
   textColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
   iconColor: ui(narrowString<ColorValue>().optional(), { widget: "color" }),
+  // A page controller target is a live class: editors set a path.
+  to: ui(opaqueOption<TableViewTab["to"]>().optional(), {
+    label: "Link to",
+    widget: "url",
+  }),
+  permission: ui(
+    z.string().optional().describe("An action of this table, by name."),
+    { label: "Action", advanced: true },
+  ),
+  permissionId: ui(z.string().optional(), {
+    label: "Permission",
+    widget: "permission",
+  }),
+  countFrom: ui(opaqueOption<TableViewTab["countFrom"]>().optional(), {
+    label: "Count from",
+    hidden: true,
+  }),
+  navBadge: ui(z.boolean().optional(), {
+    label: "Navigation badge",
+    widget: "switch",
+  }),
 }) satisfies BlockOptionsFor<TableViewTab>;
+
+const quickFilterSchema = z.object({
+  field: ui(z.string(), {
+    label: "Field",
+    widget: "field",
+    fieldAspect: "filterable",
+  }),
+  label: z.string().optional(),
+  icon: ui(z.string().optional(), { widget: "icon" }),
+  allLabel: z.string().optional(),
+  mode: z
+    .enum(["is", "is_not", "include", "exclude", "array_contains_string"])
+    .optional(),
+}) satisfies BlockOptionsFor<TableViewQuickFilter>;
 
 const formContainerPageConfigSchema = z.object({
   urlSlug: z.string().optional(),
@@ -118,21 +163,34 @@ const formContainerPageConfigSchema = z.object({
   customPage: z.boolean().optional(),
 });
 
+const formContainerPageTextsSchema = z.object({
+  displayName: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const formContainerPagesSchema = <Page extends z.ZodTypeAny>(page: Page) =>
+  z
+    .object({
+      new: page.optional(),
+      edit: page.optional(),
+      details: page.optional(),
+    })
+    .optional()
+    .describe("Titles of the add, edit and details forms.");
+
 const formContainerSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("drawer") }),
+  z.object({
+    type: z.literal("drawer"),
+    pages: formContainerPagesSchema(formContainerPageTextsSchema),
+  }),
   z.object({
     type: z.literal("modal"),
     size: narrowString<ModalSize>().optional(),
+    pages: formContainerPagesSchema(formContainerPageTextsSchema),
   }),
   z.object({
     type: z.literal("page"),
-    pages: z
-      .object({
-        new: formContainerPageConfigSchema.optional(),
-        edit: formContainerPageConfigSchema.optional(),
-        view: formContainerPageConfigSchema.optional(),
-      })
-      .optional(),
+    pages: formContainerPagesSchema(formContainerPageConfigSchema),
   }),
 ]) satisfies BlockOptionsFor<FormContainer>;
 
@@ -151,23 +209,26 @@ const kanbanSchema = z.object({
     // drag, which goes stale rather than wrong when the field is not listed.
     { label: "Group by", widget: "field", fieldAspect: "filterable" },
   ),
-  cardFields: ui(z.array(z.string()).optional(), {
-    label: "Card fields",
-    widget: "field",
-    // Resolved against the table's listable columns; an unlisted field renders
-    // as nothing at all rather than reporting anything.
-    fieldAspect: "listable",
-  }),
-  cardComponent: ui(opaqueOption<KanbanOptions["cardComponent"]>().optional(), {
-    label: "Card component",
-    hidden: true,
-  }),
   draggable: ui(z.boolean().default(true), {
     label: "Drag between columns",
     widget: "switch",
   }),
   columnMaxHeight: z.string().default(DEFAULT_KANBAN_COLUMN_MAX_HEIGHT),
 }) satisfies BlockOptionsFor<KanbanOptions>;
+
+const cardSchema = z.object({
+  fields: ui(z.array(z.string()).optional(), {
+    label: "Card fields",
+    widget: "field",
+    // Resolved against the table's listable columns; an unlisted field renders
+    // as nothing at all rather than reporting anything.
+    fieldAspect: "listable",
+  }),
+  component: ui(opaqueOption<TableViewCardOptions["component"]>().optional(), {
+    label: "Card component",
+    hidden: true,
+  }),
+}) satisfies BlockOptionsFor<TableViewCardOptions>;
 
 const displaySchema = z.object({
   id: z.string(),
@@ -184,9 +245,53 @@ const displaySchema = z.object({
       search: z.boolean().optional(),
       sorting: z.boolean().optional(),
       tabs: z.boolean().optional(),
+      header: z.boolean().optional(),
     })
     .optional(),
 }) satisfies BlockOptionsFor<TableViewDisplayOption>;
+
+const expandableFieldSchema = z.union([
+  ui(z.string(), {
+    widget: "field",
+    // Read straight off the listed row: an unlisted field shows an empty value.
+    fieldAspect: "listable",
+  }),
+  z.object({
+    key: ui(z.string(), { widget: "field", fieldAspect: "listable" }),
+    label: z.string().optional(),
+  }),
+]);
+
+const expandableBehaviorShape = {
+  defaultExpanded: ui(z.enum(["none", "first", "all"]).default("none"), {
+    label: "Open on arrival",
+    widget: "segmented",
+  }),
+  single: ui(z.boolean().optional(), {
+    label: "One row at a time",
+    widget: "switch",
+  }),
+  lazyLoad: ui(z.boolean().optional(), {
+    label: "Load the row on open",
+    widget: "switch",
+  }),
+};
+
+// The band lists fields or renders a component, never both: one shape each.
+const expandableSchema = z.union([
+  z.object({
+    fields: ui(z.array(expandableFieldSchema), { label: "Detail fields" }),
+    fieldsLabel: ui(z.string().optional(), { label: "Fields heading" }),
+    ...expandableBehaviorShape,
+  }),
+  z.object({
+    component: ui(opaqueOption<TableViewExpandableComponent["component"]>(), {
+      label: "Detail component",
+      hidden: true,
+    }),
+    ...expandableBehaviorShape,
+  }),
+]) satisfies BlockOptionsFor<TableViewExpandableOptions>;
 
 /** The options `TableView` accepts, after its controller argument. */
 export const TableViewSchema = z.object({
@@ -195,6 +300,57 @@ export const TableViewSchema = z.object({
     order: 1,
     group: "content",
   }),
+  density: ui(z.enum(["default", "compact"]).optional(), {
+    label: "Density",
+    group: "appearance",
+    widget: "segmented",
+  }),
+  maxHeight: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        "Height of the rows' own scroll area, under a sticky header, e.g. 60vh.",
+      ),
+    { label: "Max height", group: "appearance" },
+  ),
+  expandable: ui(
+    expandableSchema
+      .optional()
+      .describe("A caret column opens a detail band under each row."),
+    { label: "Expandable rows", group: "features" },
+  ),
+  layout: ui(
+    z
+      .enum(["full", "compact"])
+      .optional()
+      .describe("Full dashboard grid, or the compact list of a settings page."),
+    { label: "Layout", group: "appearance", widget: "segmented" },
+  ),
+  searchPlaceholder: ui(z.string().optional(), {
+    label: "Search placeholder",
+    group: "content",
+  }),
+  quickFilters: ui(z.array(quickFilterSchema).optional(), {
+    label: "Quick filters",
+    group: "features",
+  }),
+  pageSize: ui(z.number().int().min(1).max(MAX_TABLE_PAGE_SIZE).optional(), {
+    label: "Rows per page",
+    group: "appearance",
+    widget: "number",
+    min: 1,
+    max: MAX_TABLE_PAGE_SIZE,
+  }),
+  footer: ui(
+    z
+      .object({
+        countLabel: z.string().optional(),
+        hint: z.string().optional(),
+      })
+      .optional(),
+    { label: "Footer texts", group: "content" },
+  ),
   rowIdKey: ui(z.string().default(DEFAULT_ROW_ID_FIELD), {
     label: "Row id field",
     group: "advanced",
@@ -278,6 +434,10 @@ export const TableViewSchema = z.object({
     widget: "switch",
   }),
   kanban: ui(kanbanSchema.optional(), { label: "Kanban", group: "advanced" }),
+  card: ui(cardSchema.optional(), {
+    label: "Cards",
+    group: "advanced",
+  }),
   displays: ui(z.array(displaySchema).optional(), {
     label: "Displays",
     group: "advanced",

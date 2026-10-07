@@ -8,12 +8,18 @@ import {
   ui,
 } from "./block-registry";
 import type { DataType } from "./data-types/core";
-import type { FieldGroup, FormField, FormProps } from "./form-types";
+import {
+  FORM_KINDS,
+  FORM_SAVE_MODES,
+  FORM_SECTION_NAVS,
+  type FieldGroup,
+  type FormField,
+  type FormProps,
+  type FormSection,
+} from "./form-types";
 import type { DefaultValue } from "./types";
 import { HttpMethod } from "./types/http";
-
-/** The frontend component `Form` emits. */
-export const FORM_COMPONENT_NAME = "dms-form";
+import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
 
 const FIELD_ORIENTATIONS = ["horizontal", "vertical"] as const;
 
@@ -30,6 +36,10 @@ const FormFieldSchema = ui(
       label: "Help text",
       widget: "textarea",
     }),
+    hint: ui(z.string().optional(), {
+      label: "Hint under the control",
+      widget: "textarea",
+    }),
     type: ui(
       requiredOpaqueOption<DataType>().describe("The field's data type."),
       {
@@ -43,6 +53,11 @@ const FormFieldSchema = ui(
     disabled: ui(z.boolean().optional(), {
       label: "Disabled",
       widget: "switch",
+    }),
+    readonly: ui(opaqueOption<FormField["readonly"]>().optional(), {
+      label: "Read-only",
+      widget: "json",
+      advanced: true,
     }),
     required: ui(z.boolean().optional(), {
       label: "Required",
@@ -82,6 +97,26 @@ const FieldGroupSchema = ui(
   { label: "Group" },
 );
 
+// Group first: a field's opaque type would otherwise match a group and strip its fields.
+const FormEntriesSchema = z.array(z.union([FieldGroupSchema, FormFieldSchema]));
+
+const FormSectionSchema = ui(
+  z.object({
+    id: ui(z.string().describe("Anchor of the section."), {
+      label: "Key",
+      derivedFrom: "label",
+    }),
+    label: ui(z.string(), { label: "Title" }),
+    description: ui(z.string().optional(), {
+      label: "Help text",
+      widget: "textarea",
+    }),
+    icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
+    fields: ui(FormEntriesSchema, { label: "Fields" }),
+  }) satisfies BlockOptionsFor<FormSection>,
+  { label: "Section" },
+);
+
 const SUBMIT_MESSAGES = "Custom submit messages";
 
 /**
@@ -115,11 +150,31 @@ export const FormSchema = z.object({
     widget: "textarea",
   }),
   fields: ui(
-    z
-      // Group first: a field's opaque type would otherwise match a group and strip its fields.
-      .array(z.union([FieldGroupSchema, FormFieldSchema]))
-      .describe("The fields and field groups the form renders."),
+    FormEntriesSchema.optional().describe(
+      "The fields and field groups the form renders.",
+    ),
     { label: "Fields", group: "content" },
+  ),
+  sections: ui(
+    z
+      .array(FormSectionSchema)
+      .optional()
+      .describe("The form's fields split into titled cards."),
+    { label: "Sections", group: "content" },
+  ),
+  sectionNav: ui(
+    z
+      .enum(FORM_SECTION_NAVS)
+      .optional()
+      .describe(
+        "How a sectioned form lists its sections: beside them, as chips above them, or not at all.",
+      ),
+    {
+      label: "Section navigation",
+      group: "layout",
+      widget: "segmented",
+      valueLabels: { side: "Side", jump: "Chips", none: "None" },
+    },
   ),
   // Addresses and methods: written by the builder from the table an author
   // picks in its simple view, and typed in its advanced one.
@@ -155,20 +210,54 @@ export const FormSchema = z.object({
     label: "Submit button label",
     group: "content",
   }),
-  showActions: ui(
+  saveMode: ui(
     z
-      .boolean()
+      .enum(FORM_SAVE_MODES)
       .optional()
       .describe(
-        "Show the reset and submit buttons, before the form has somewhere to submit to too.",
+        "How the form offers to save: a sticky bar while there are changes, footer buttons, none, or each change on its own.",
       ),
     {
-      label: "Show the buttons",
+      label: "Save buttons",
       group: "appearance",
-      widget: "switch",
-      initial: true,
+      widget: "select",
+      valueLabels: {
+        bar: "Save bar",
+        footer: "Footer buttons",
+        none: "None",
+        instant: "Instant",
+      },
+    },
+  ),
+  kind: ui(
+    z
+      .enum(FORM_KINDS)
+      .optional()
+      .describe(
+        "A record keeps its values once saved; an action (send, invite, run) empties after a submit.",
+      ),
+    {
+      label: "Form kind",
+      group: "behavior",
+      widget: "segmented",
+      valueLabels: { record: "Record", action: "Action" },
+    },
+  ),
+  backTo: ui(
+    z.string().optional().describe("Where Cancel leads a record form."),
+    {
+      label: "Cancel leads to",
+      group: "behavior",
+      widget: "url",
       advanced: true,
     },
+  ),
+  labelKey: ui(
+    z
+      .string()
+      .optional()
+      .describe("Field of the loaded record that ends the page's breadcrumb."),
+    { label: "Record label field", group: "data", advanced: true },
   ),
   fieldsOrientation: ui(z.enum(FIELD_ORIENTATIONS).optional(), {
     label: "Field orientation",

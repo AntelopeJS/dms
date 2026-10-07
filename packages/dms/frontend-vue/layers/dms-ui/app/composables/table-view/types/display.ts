@@ -2,11 +2,27 @@ import type { Component } from "vue";
 import type { Table } from "@tanstack/vue-table";
 import type { TableViewColumn } from "./column";
 import type { CustomRowAction } from "../../../types/row-action";
+import type { TableViewPaginationMode } from "./config";
 
 /** The built-in grid display id. */
 export const TABLE_DISPLAY_ID = "table";
 /** The built-in kanban display id. */
 export const KANBAN_DISPLAY_ID = "kanban";
+/** The built-in cards display id. */
+export const CARDS_DISPLAY_ID = "cards";
+/** The built-in grouped display id. */
+export const GROUPED_DISPLAY_ID = "grouped";
+
+/**
+ * Display ids the DMS keeps for its built-in displays: a module registers its
+ * own under `<module>:<id>`.
+ */
+export const RESERVED_TABLE_VIEW_DISPLAY_IDS = [
+  TABLE_DISPLAY_ID,
+  KANBAN_DISPLAY_ID,
+  CARDS_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
+] as const;
 
 /**
  * A row "actor" currently editing an item (realtime presence). Keyed by row id
@@ -47,6 +63,14 @@ export interface TableViewDisplayPagination {
   total: number;
   setPage: (index: number) => void;
   setPageSize: (size: number) => void;
+  /**
+   * How the rows beyond the first page are reached: with `loadMore` and
+   * `infinite`, `items` holds every row loaded so far and `loadMore()`
+   * appends the next page while `hasMore`.
+   */
+  mode: TableViewPaginationMode;
+  hasMore: boolean;
+  loadMore: () => void;
 }
 
 /**
@@ -66,7 +90,64 @@ export interface TableViewDisplayActions<T> {
   delete: (ids: string[]) => void;
   duplicate: (id: string) => void;
   details: (item: T) => void;
+  /** What a click on the row does in the grid: its default action. */
+  open: (item: T) => void;
   custom: (action: CustomRowAction) => void;
+}
+
+/**
+ * The card the `kanban` and `cards` displays draw (backend `card` option):
+ * the columns it shows, or a component drawing it whole.
+ */
+export interface TableViewCardConfig {
+  fields?: string[];
+  component?: ComponentInfo;
+}
+
+/**
+ * The props a custom card component receives, the same in the `kanban` and
+ * `cards` displays.
+ */
+export interface TableViewCardProps<T = Record<string, unknown>> {
+  /** The row the card stands for. */
+  row: T;
+  /** Its id (its `rowIdKey` value). */
+  rowId: string;
+  /** Column metadata of the table view (types, labels). */
+  columns: TableViewColumn[];
+  /** Field naming the row, if configured. */
+  labelKey?: string;
+  /** The table's row actions and their per-row predicates. */
+  actions: TableViewDisplayActions<T>;
+  /** The row is selected. */
+  selected: boolean;
+  /** Selects the row, or unselects it (`false`); toggles without a value. */
+  select: (value?: boolean) => void;
+  /** Does what a click on the row does in the grid. */
+  open: () => void;
+  /** Kanban only: the value of the column the card sits in. */
+  groupValue?: string;
+}
+
+/**
+ * The props a custom detail band receives (backend `expandable.component`):
+ * a card's, without the selection the grid row above it already shows.
+ */
+export interface TableViewExpandedRowProps<T = Record<string, unknown>> {
+  /** The row the band details: the listed one, or the one `lazyLoad` read. */
+  row: T;
+  /** Its id (its `rowIdKey` value). */
+  rowId: string;
+  /** Column metadata of the table view (types, labels). */
+  columns: TableViewColumn[];
+  /** Field naming the row, if configured. */
+  labelKey?: string;
+  /** The table's row actions and their per-row predicates. */
+  actions: TableViewDisplayActions<T>;
+  /** Does what a click on the row does in the grid. */
+  open: () => void;
+  /** Reloads the table, and with it the open bands. */
+  refresh: () => Promise<void> | void;
 }
 
 /**
@@ -126,6 +207,12 @@ export interface TableViewDisplayCapabilities {
   sorting?: boolean;
   /** Filter tabs. Default true (kanban: false). */
   tabs?: boolean;
+  /**
+   * The table's own chrome above the body: caption, actions toolbar, tabs,
+   * filters row and bulk-selection bar. Default true; a display that draws a
+   * complete interface of its own sets it to false.
+   */
+  header?: boolean;
 }
 
 /** Lightweight context passed to {@link TableViewDisplay.isAvailable}. */
@@ -135,13 +222,17 @@ export interface TableViewDisplayAvailabilityContext {
 }
 
 /**
- * A registered display ("table", "kanban", or a project/module-contributed one).
- * Registered from a `.client.ts` plugin via `registerTableViewDisplay`. Holds
+ * A registered display: a built-in one ("table", "kanban", "cards") or one a
+ * module contributes under `<module>:<id>`, registered from a universal plugin
+ * via `registerTableViewDisplay`. Holds
  * presentation only; data behaviour (selfManagedData) and chrome (capabilities)
  * live on the backend config (SSR source of truth) — see TableViewDisplayConfig.
  */
 export interface TableViewDisplay {
-  /** Stable id; matches `displays[].id` / `defaultDisplay` and the persisted preference. */
+  /**
+   * Stable id; matches `displays[].id` / `defaultDisplay` and the persisted
+   * preference. A module's display is `<module>:<id>`.
+   */
   id: string;
   /** i18n key or literal label shown in the view switcher. */
   label: string;

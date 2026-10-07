@@ -1,8 +1,22 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class modalTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/modal-mode", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewModal extends PageController(
@@ -12,11 +26,12 @@ export class PageTableViewModal extends PageController(
     icon: "i-ph-app-window",
     category: tableViewCategory,
     order: 10,
-    description: "TableView with modal mode - forms open in centered modals",
+    description:
+      "Add, edit and details forms open in a centred modal over the task list",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(modalTaskDataAPI, {
     caption: "Tasks - Modal Mode",
     labelKey: "name",
     rowActions: {
@@ -28,6 +43,6 @@ export class PageTableViewModal extends PageController(
       edit: true,
       hasSelection: true,
     },
-    formContainer: { type: "modal", size: "xl" },
+    formContainer: { type: "modal", size: "xl", pages: demoFormPages("task") },
   });
 }

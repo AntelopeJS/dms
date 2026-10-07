@@ -1,4 +1,5 @@
 import type { Ref } from "vue";
+import { useSidebarStartCollapsed } from "../../composables/general/useSidebarStartCollapsed";
 
 interface SidebarState {
   open: Ref<boolean>;
@@ -12,6 +13,9 @@ const SIDEBAR_COLLAPSED_STATE_KEY = "dms-sidebar-collapsed";
 export function useSidebarState(): SidebarState {
   return {
     open: useDmsState(SIDEBAR_OPEN_STATE_KEY, () => false),
-    collapsed: useDmsState(SIDEBAR_COLLAPSED_STATE_KEY, () => false),
+    collapsed: useDmsState(
+      SIDEBAR_COLLAPSED_STATE_KEY,
+      () => useSidebarStartCollapsed().value,
+    ),
   };
 }

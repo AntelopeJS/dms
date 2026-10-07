@@ -46,12 +46,22 @@ export interface TopListCardProps extends BaseComponentProps {
   rankColor?: ChartColorValue;
   showDelta?: boolean;
   showSparkline?: boolean;
+  /** Draws a proportional bar under each row, scaled to the largest value. */
+  showBar?: boolean;
   sparklineAccent?: ChartColorValue | "auto";
   invert?: boolean;
   badgeColor?: ChartColorValue;
   maxHeight?: string;
   staticItems?: TopListItem[];
   emptyLabel?: string;
+  /**
+   * How many placeholder rows the card draws while `fetchUrl` loads: the
+   * length the route answers (its "top N"), so a short list keeps its height
+   * when the rows land.
+   *
+   * Optional. Defaults to 10, which fills the default `maxHeight`.
+   */
+  skeletonCount?: number;
 }
 
 const TOP_LIST_CARD_COMPONENT_NAME = "dms-top-list-card";
@@ -141,6 +151,11 @@ export const TopListCardSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  showBar: ui(z.boolean().optional(), {
+    label: "Show bar",
+    group: "appearance",
+    widget: "switch",
+  }),
   showSparkline: ui(z.boolean().optional(), {
     label: "Show sparkline",
     group: "appearance",
@@ -174,6 +189,21 @@ export const TopListCardSchema = z.object({
     label: "Empty message",
     group: "content",
   }),
+  skeletonCount: ui(
+    z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe("Placeholder rows drawn while the data source loads."),
+    {
+      label: "Loading placeholders",
+      group: "data",
+      widget: "number",
+      min: 1,
+      advanced: true,
+    },
+  ),
 }) satisfies BlockOptionsFor<TopListCardProps>;
 
 RegisterBlockType({

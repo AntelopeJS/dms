@@ -7,10 +7,10 @@ import "./flow-canvas";
 import "./drawer-modal";
 import "./form";
 import "./table-view";
-import "./tree";
 import "./tabs";
 import "./grid";
 import "./chart";
+import "./blocks";
 import "./multi-component";
 import "./navigation";
 import "./stack";
@@ -19,6 +19,8 @@ import "./notification";
 import "./page-extension";
 import "./invite-extension";
 import "./quick-actions";
+import "./primitives";
+import "./foundations";
 
 /** Registers the playground's Vue frontend extensions. */
 export async function start() {

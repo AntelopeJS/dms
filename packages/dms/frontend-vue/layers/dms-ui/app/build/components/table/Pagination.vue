@@ -1,19 +1,44 @@
 <script setup lang="ts" generic="T extends Data">
-import { injectLocal } from "@vueuse/core";
+import { injectLocal, useIntersectionObserver } from "@vueuse/core";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
-import type { ShallowRef } from "vue";
+import { useTemplateRef, type ShallowRef } from "vue";
 
 import type { TableSharedData, Data } from "./Table.vue";
 import { DEFAULT_PAGE_SIZE } from "../../composables/table/constants";
+import { pageSizeOptions } from "../../composables/table/utils/pageSizeOptions";
+import { toneTextClass } from "../../utils/tone";
 
+// v2 footer band: count and page size on the left, pager on the right.
 const theme = tv({
   slots: {
-    root: "text-muted py-5 text-xs font-light",
-    base: "grid gap-4 sm:flex sm:items-center",
-    infoContainer: "flex w-full items-center justify-between",
+    root: "flex flex-wrap items-center gap-x-4 gap-y-2.5 border-t border-default bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5 text-[12.5px] text-muted",
     info: "shrink-0",
-    actions: "flex items-center",
+    count: "font-mono font-semibold tabular-nums text-default",
+    pageSize: "flex items-center gap-2",
+    pageSizeSelect: "w-[68px] font-mono",
+    separator: "h-3.5 w-px bg-(--ui-border-accented)",
+    actions: "ms-auto flex items-center gap-0.5",
+    pageInfo: "me-1.5 tabular-nums",
+    pageNumber: "font-mono font-semibold text-default",
+    // Phones get 32px touch targets (28px from sm up).
+    navButton: "text-muted hover:text-highlighted max-sm:size-8",
+    hint: "ms-auto inline-flex min-w-0 items-center gap-1.5 text-xs text-muted",
+    hintIcon: "size-3.5 shrink-0 text-dimmed",
+    // Phones wrap the hint onto a second line rather than cut it.
+    hintText: "truncate max-sm:whitespace-normal",
+    // First page on its way: the band keeps its height with placeholders.
+    placeholderCount: "h-3 w-20 rounded-[4px]",
+    placeholderPager: "ms-auto h-3 w-24 rounded-[4px]",
+    placeholderRoot: "min-h-[49px]",
+    // Figures computed over the listed rows, after the count.
+    summary: "inline-flex items-center gap-1.5 whitespace-nowrap",
+    summarySeparator: "text-dimmed",
+    summaryValue: "font-mono font-semibold tabular-nums text-default",
+    summaryPlaceholder: "h-3 w-10 rounded-[4px]",
+    legend: "flex flex-wrap items-center gap-x-3 gap-y-1",
+    legendItem: "inline-flex items-center gap-1.5",
+    legendDot: "size-2 shrink-0 rounded-full bg-current",
   },
 });
 
@@ -25,14 +50,72 @@ const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
-const pageCount = computed(() => {
-  const rowCount = tableSharedData.value?.rowCount ?? 0;
-  const pageSize =
-    tableSharedData.value?.paginationState.value.pageSize || DEFAULT_PAGE_SIZE;
-  return Math.ceil(rowCount / pageSize);
+const { t, locale } = useI18n();
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value));
+
+const rowCount = computed(() => tableSharedData.value?.rowCount ?? 0);
+const firstPageLoading = computed(
+  () => !!tableSharedData.value?.firstPageLoading,
+);
+
+const pageSize = computed({
+  get: () =>
+    tableSharedData.value?.paginationState.value.pageSize || DEFAULT_PAGE_SIZE,
+  set: (value: number) => {
+    const state = tableSharedData.value?.paginationState;
+    if (!state) return;
+    state.value = { ...state.value, pageSize: value, pageIndex: 0 };
+  },
 });
 
-const { t } = useI18n();
+const pageSizeItems = computed(() =>
+  pageSizeOptions(tableSharedData.value?.defaultPageSize, pageSize.value),
+);
+
+const pageCount = computed(() =>
+  Math.max(Math.ceil(rowCount.value / pageSize.value), 1),
+);
+
+const { processI18n } = useTranslation();
+
+// A reduced chrome drops the page size picker, and the pager while a single
+// page holds every row.
+const showPageSize = computed(
+  () => tableSharedData.value?.chrome.value.pageSize ?? true,
+);
+const showPager = computed(() => showPageSize.value || pageCount.value > 1);
+
+// "7 members": the configured count text, pluralized on the count.
+const countLabelKey = computed(() => {
+  const key = tableSharedData.value?.footer?.countLabel;
+  return key?.startsWith("$") ? key.slice(1) : key;
+});
+const summaries = computed(
+  () => tableSharedData.value?.footer?.summaries ?? [],
+);
+const legend = computed(() => tableSharedData.value?.footer?.legend ?? []);
+const legendDotClass = (color?: string) =>
+  toneTextClass(color) || "text-dimmed";
+
+// A list growing by pages (loadMore, infinite) shows how far it got and
+// how to go on, instead of the pager.
+const accumulation = computed(() => tableSharedData.value?.accumulation);
+const sentinel = useTemplateRef<HTMLElement>("sentinel");
+useIntersectionObserver(sentinel, ([entry]) => {
+  const growing = accumulation.value;
+  if (entry?.isIntersecting && growing?.hasMore && !growing.loading) {
+    growing.load();
+  }
+});
+
+const hint = computed(() => {
+  const text = tableSharedData.value?.footer?.hint;
+  return text ? processI18n(text) : undefined;
+});
+
+const currentPage = computed(
+  () => (tableSharedData.value?.paginationState.value.pageIndex || 0) + 1,
+);
 
 const uiTablePaginationVariant = tv({
   extend: tv(theme),
@@ -42,40 +125,166 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
 </script>
 
 <template>
+  <div
+    v-if="firstPageLoading"
+    aria-hidden="true"
+    :class="[uiTablePagination.root(), uiTablePagination.placeholderRoot()]"
+  >
+    <USkeleton :class="uiTablePagination.placeholderCount()" />
+    <USkeleton :class="uiTablePagination.placeholderPager()" />
+  </div>
   <nav
-    v-if="uiTablePagination"
+    v-else-if="rowCount"
     :class="uiTablePagination.root()"
     :aria-label="t('dms.pagination.label')"
   >
-    <div :class="uiTablePagination.base()">
-      <div
-        v-if="tableSharedData?.rowCount"
-        :class="uiTablePagination.infoContainer()"
-      >
-        <div :class="uiTablePagination.info()">
-          {{
-            `${t("dms.pagination.count", { count: tableSharedData?.rowCount ?? 0 })} | ${t("dms.pagination.size", { pageSize: tableSharedData?.paginationState.value.pageSize || 0 })}`
-          }}
-        </div>
-        <div :class="uiTablePagination.info()">
-          {{
-            t("dms.pagination.current_page", {
-              currentPage:
-                (tableSharedData?.paginationState.value.pageIndex || 0) + 1,
-              totalPages: pageCount,
-            })
-          }}
-        </div>
-      </div>
+    <i18n-t
+      v-if="accumulation"
+      keypath="dms.pagination.shown_of"
+      scope="global"
+      tag="span"
+      :class="uiTablePagination.info()"
+    >
+      <template #shown>
+        <span :class="uiTablePagination.count()">
+          {{ numberFormat.format(accumulation.shown) }}
+        </span>
+      </template>
+      <template #count>
+        <span :class="uiTablePagination.count()">
+          {{ numberFormat.format(rowCount) }}
+        </span>
+      </template>
+    </i18n-t>
+    <span v-else-if="countLabelKey" :class="uiTablePagination.info()">
+      {{ t(countLabelKey, { count: rowCount }, rowCount) }}
+    </span>
+    <i18n-t
+      v-else
+      keypath="dms.pagination.count"
+      scope="global"
+      tag="span"
+      :class="uiTablePagination.info()"
+    >
+      <template #count>
+        <span :class="uiTablePagination.count()">
+          {{ numberFormat.format(rowCount) }}
+        </span>
+      </template>
+    </i18n-t>
 
-      <div v-if="pageCount > 1" :class="uiTablePagination.actions()">
+    <span
+      v-for="summary in summaries"
+      :key="summary.id"
+      :class="uiTablePagination.summary()"
+    >
+      <span aria-hidden="true" :class="uiTablePagination.summarySeparator()">
+        ·
+      </span>
+      {{ summary.label }}
+      <USkeleton
+        v-if="summary.value === undefined"
+        aria-hidden="true"
+        :class="uiTablePagination.summaryPlaceholder()"
+      />
+      <span v-else :class="uiTablePagination.summaryValue()">
+        <component :is="() => summary.value" />
+      </span>
+    </span>
+
+    <span v-if="legend.length" :class="uiTablePagination.legend()">
+      <span
+        v-for="item in legend"
+        :key="item.label"
+        :class="uiTablePagination.legendItem()"
+      >
+        <span
+          aria-hidden="true"
+          :class="[uiTablePagination.legendDot(), legendDotClass(item.color)]"
+        />
+        {{ item.label }}
+      </span>
+    </span>
+
+    <template v-if="accumulation">
+      <UButton
+        v-if="accumulation.mode === 'loadMore' && accumulation.hasMore"
+        :label="t('dms.pagination.load_more')"
+        :loading="accumulation.loading"
+        icon="i-ph-arrow-down"
+        color="neutral"
+        variant="outline"
+        size="xs"
+        :class="uiTablePagination.actions()"
+        @click="accumulation.load()"
+      />
+      <div
+        v-else-if="accumulation.mode === 'infinite' && accumulation.hasMore"
+        ref="sentinel"
+        :class="uiTablePagination.actions()"
+      >
+        <UIcon
+          v-if="accumulation.loading"
+          name="i-ph-spinner"
+          class="text-dimmed size-4 animate-spin"
+        />
+      </div>
+    </template>
+
+    <span
+      v-if="showPageSize && !accumulation"
+      aria-hidden="true"
+      :class="uiTablePagination.separator()"
+    />
+
+    <span v-if="hint" :class="uiTablePagination.hint()">
+      <UIcon name="i-ph-info" :class="uiTablePagination.hintIcon()" />
+      <span :class="uiTablePagination.hintText()" :title="hint">
+        {{ hint }}
+      </span>
+    </span>
+
+    <label
+      v-if="showPageSize && !accumulation"
+      :class="uiTablePagination.pageSize()"
+    >
+      {{ t("dms.table.page_size_title") }}
+      <USelect
+        v-model="pageSize"
+        :items="pageSizeItems"
+        size="xs"
+        :class="uiTablePagination.pageSizeSelect()"
+      />
+    </label>
+
+    <div
+      v-if="showPager && !accumulation"
+      :class="uiTablePagination.actions({ class: hint ? 'ms-0' : undefined })"
+    >
+      <i18n-t
+        keypath="dms.pagination.current_page"
+        scope="global"
+        tag="span"
+        :class="uiTablePagination.pageInfo()"
+      >
+        <template #currentPage>
+          <span :class="uiTablePagination.pageNumber()">{{ currentPage }}</span>
+        </template>
+        <template #totalPages>
+          <span :class="uiTablePagination.pageNumber()">{{ pageCount }}</span>
+        </template>
+      </i18n-t>
+
+      <template v-if="pageCount > 1">
         <UButton
           :disabled="!tableSharedData?.table.getCanPreviousPage()"
           :icon="appConfig.ui.icons.chevronDoubleLeft"
           :aria-label="t('dms.pagination.first_page')"
           color="neutral"
           variant="ghost"
-          class="w-full sm:w-auto"
+          size="sm"
+          square
+          :class="uiTablePagination.navButton()"
           @click="tableSharedData?.table.firstPage()"
         />
         <UButton
@@ -84,7 +293,9 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
           :aria-label="t('dms.pagination.previous_page')"
           color="neutral"
           variant="ghost"
-          class="w-full sm:w-auto"
+          size="sm"
+          square
+          :class="uiTablePagination.navButton()"
           @click="tableSharedData?.table.previousPage()"
         />
         <UButton
@@ -93,7 +304,9 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
           :aria-label="t('dms.pagination.next_page')"
           color="neutral"
           variant="ghost"
-          class="w-full justify-end sm:w-auto"
+          size="sm"
+          square
+          :class="uiTablePagination.navButton()"
           @click="tableSharedData?.table.nextPage()"
         />
         <UButton
@@ -102,10 +315,12 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
           :aria-label="t('dms.pagination.last_page')"
           color="neutral"
           variant="ghost"
-          class="w-full justify-end sm:w-auto"
+          size="sm"
+          square
+          :class="uiTablePagination.navButton()"
           @click="tableSharedData?.table.lastPage()"
         />
-      </div>
+      </template>
     </div>
   </nav>
 </template>

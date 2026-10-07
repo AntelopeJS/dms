@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { demoFormPages } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewDrawer extends PageController(
@@ -12,7 +13,8 @@ export class PageTableViewDrawer extends PageController(
     icon: "i-ph-sidebar",
     category: tableViewCategory,
     order: 0,
-    description: "TableView with drawer mode",
+    description:
+      "Add, edit and details forms open in a side drawer next to the task list",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -28,6 +30,6 @@ export class PageTableViewDrawer extends PageController(
       edit: true,
       hasSelection: true,
     },
-    formContainer: { type: "drawer" },
+    formContainer: { type: "drawer", pages: demoFormPages("task") },
   });
 }

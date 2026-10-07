@@ -38,13 +38,13 @@ describe("dispatchQuickActionTarget", () => {
 
     dispatchQuickActionTarget({
       type: "button",
-      to: "/settings/user/members",
+      to: "/settings/workspace/members",
       component: "table",
       button: "invite",
     });
 
     expect(navigateDms).toHaveBeenCalledWith({
-      path: "/settings/user/members",
+      path: "/settings/workspace/members",
       query: {
         [QUICK_ACTION_QUERY_KEY]: QUICK_ACTION_BUTTON,
         [QUICK_ACTION_COMPONENT_KEY]: "table",

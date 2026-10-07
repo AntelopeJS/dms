@@ -4,6 +4,8 @@ const NOTIFICATION_TOPIC_PREFIX = "notifications:user:";
 const NOTIFICATION_NEW_TYPE = "notification:new";
 const NOTIFICATION_READ_TYPE = "notification:read";
 const NOTIFICATION_ALL_READ_TYPE = "notification:all-read";
+const NOTIFICATION_UNREAD_TYPE = "notification:unread";
+const NOTIFICATION_SEEN_TYPE = "notification:seen";
 
 interface IncomingPayload {
   notification?: UserNotification;
@@ -21,8 +23,13 @@ type Handler = (payload: IncomingPayload | undefined) => void | Promise<void>;
 
 export default defineDmsPlugin(() => {
   const { user, loggedIn } = useUserSession();
-  const { handleIncomingNotification, handleRemoteRead, handleRemoteAllRead } =
-    useNotifications();
+  const {
+    handleIncomingNotification,
+    handleRemoteRead,
+    handleRemoteUnread,
+    handleRemoteAllRead,
+    handleRemoteSeen,
+  } = useNotifications();
   const realtime = useUserRealtime();
 
   const handlers: Record<string, Handler> = {
@@ -33,8 +40,14 @@ export default defineDmsPlugin(() => {
     [NOTIFICATION_READ_TYPE]: async (payload) => {
       if (Array.isArray(payload?.ids)) await handleRemoteRead(payload.ids);
     },
+    [NOTIFICATION_UNREAD_TYPE]: async (payload) => {
+      if (Array.isArray(payload?.ids)) await handleRemoteUnread(payload.ids);
+    },
     [NOTIFICATION_ALL_READ_TYPE]: async () => {
       await handleRemoteAllRead();
+    },
+    [NOTIFICATION_SEEN_TYPE]: () => {
+      handleRemoteSeen();
     },
   };
 

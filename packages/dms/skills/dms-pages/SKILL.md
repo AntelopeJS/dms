@@ -1,6 +1,6 @@
 ---
 name: dms-pages
-description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Tree / Chart / Grid builders imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
+description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid builders imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
 category: dashboard
 tags: [pages, components, forms, tables, data-types, navigation]
 ---
@@ -33,7 +33,7 @@ export class RecipesPage extends PageController("recipes", {
 `options` is the `MenuOptions` shape (`@antelopejs/interface-dms/page`): `displayName`, `icon`,
 `module` and/or `category` (at least one required; a module page's explicit category must
 descend from the module's root), `urlSlug` (defaults to the id), `order`, `description`, `hidden`,
-`type`, plus auth knobs (`publicAccess`, `authOnly`, `permission`, `noComponentPermissions` —
+`type`, plus auth knobs (`publicAccess`, `authOnly`, `memberAccess`, `permission`, `noComponentPermissions` —
 see **dms-auth**). `Category(id, options)` returns a `CategoryInfo` to pass as a page's
 `category`; `RegisterModule({ id, … })` creates a module root that pages attach to via
 `module: "<id>"`. Module pages live under `MODULE_URL_PREFIX` (`/modules`), e.g.
@@ -61,11 +61,12 @@ export class SubmitRecipePage extends PageController("submit-recipe", { displayN
     ],
     submitUrl: "/api/recipes",   // a route — often declared on this same class
     submitUrlMethod: HttpMethod.post,
+    kind: "action",              // sends something new each time; omit for a record form (save bar)
   });
 }
 ```
 
-The full catalog — `Form`, `TableView`, `Tree`, the charts, layout containers, dashboard
+The full catalog — `Form`, `TableView`, the charts, layout containers, dashboard
 widgets, `CustomComponent` — plus nesting rules and the behavioral DSL (permissioned
 `.action()`s, `.watch()` reactivity) is in [REFERENCE.md](REFERENCE.md).
 
@@ -93,7 +94,7 @@ with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`).
 class-level `@ColumnGroup(id, config)`), `@Listable` / `@Sortable` from
 `@antelopejs/interface-data-api/metadata`. Read a
 real one first: `@antelopejs/interface-dms/data-controllers` (`members`); guide in
-`docs/04.components/09.data-controller.md` (+ `06.tables.md`). Database rows carry **`_id`**
+`docs/04.components/09.data-controller.md` (+ `06.tables/`). Database rows carry **`_id`**
 as the primary key — return and type it as `_id`, never alias to `id`.
 
 ## DataTypes

@@ -1,209 +1,317 @@
 <script setup lang="ts">
-import { useClipboard } from "@vueuse/core";
+import { useCopyFeedback } from "#dms-ui/app/build/composables/clipboard/useCopyFeedback";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const CSS_LOAD_DELAY_MS = 100;
 const UI_VARIABLE_PREFIX = "--ui-";
-const SKELETON_GROUP_COUNT = 3;
-const SKELETON_ITEM_COUNT = 4;
+const SKELETON_ROW_COUNT = 6;
+const ROW_CLASS =
+  "border-muted grid h-10 grid-cols-[22px_minmax(0,1.2fr)_minmax(0,1fr)_90px] items-center gap-3 ps-[18px] pe-3 text-sm transition-colors not-first:border-t max-sm:h-auto max-sm:grid-cols-[22px_minmax(0,1fr)_auto] max-sm:gap-y-0.5 max-sm:py-2";
+const EXPORT_FILE_NAME = "dms-ui-variables.css";
+const OTHER_CATEGORY = "other";
+const ALL_CATEGORIES = "all";
+
+type VariableCategory =
+  | "colors"
+  | "text"
+  | "background"
+  | "border"
+  | "radius"
+  | "shadow"
+  | typeof OTHER_CATEGORY;
+
+/** The category switch: one category, or every variable. */
+type CategoryFilter = VariableCategory | typeof ALL_CATEGORIES;
 
 interface CSSVariable {
   name: string;
   value: string;
+  category: VariableCategory;
 }
 
-const cssVariables = ref<CSSVariable[]>([]);
-const isLoading = ref(true);
-
-const processRules = (
-  rules: CSSRuleList,
-  rootStyles: CSSStyleDeclaration,
-  variablesMap: Map<string, string>,
-) => {
-  Array.from(rules).forEach((rule) => {
-    if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
-      processRules(
-        (rule as CSSGroupingRule).cssRules,
-        rootStyles,
-        variablesMap,
-      );
-    }
-
-    if (rule instanceof CSSStyleRule) {
-      Array.from(rule.style).forEach((property) => {
-        if (property.startsWith(UI_VARIABLE_PREFIX)) {
-          const value = rootStyles.getPropertyValue(property).trim();
-          if (value) {
-            variablesMap.set(property, value);
-          }
-        }
-      });
-    }
-  });
-};
-
-const getCSSVariablesFromStyleSheets = (): CSSVariable[] => {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const variablesMap = new Map<string, string>();
-
-  try {
-    Array.from(document.styleSheets).forEach((styleSheet) => {
-      try {
-        processRules(styleSheet.cssRules, rootStyles, variablesMap);
-      } catch {
-        /* ignore — cross-origin stylesheets throw on cssRules access */
-      }
-    });
-  } catch {
-    return [];
-  }
-
-  return Array.from(variablesMap, ([name, value]) => ({ name, value }));
-};
-
-const getCSSVariables = (): CSSVariable[] => {
-  try {
-    return getCSSVariablesFromStyleSheets().sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  } catch {
-    return [];
-  }
-};
-
-const categoryMap = new Map([
-  ["-color-", "Colors"],
-  ["-text", "Text"],
-  ["-bg", "Background"],
-  ["-border", "Border"],
-  ["-radius", "Radius"],
-  ["-shadow", "Shadow"],
+// First match wins: `--ui-border-…` is a border colour, `--ui-radius` a radius.
+const CATEGORY_PATTERNS: Array<[string, VariableCategory]> = [
+  ["-color-", "colors"],
+  ["-text", "text"],
+  ["-bg", "background"],
+  ["-border", "border"],
+  ["-radius", "radius"],
+  ["-shadow", "shadow"],
+];
+const CATEGORY_ORDER: VariableCategory[] = [
+  "colors",
+  "text",
+  "background",
+  "border",
+  "radius",
+  "shadow",
+  OTHER_CATEGORY,
+];
+// Colour-valued categories draw their swatch as a filled square.
+const COLOR_CATEGORIES = new Set<VariableCategory>([
+  "colors",
+  "text",
+  "background",
+  "border",
 ]);
 
-const getVariableCategory = (varName: string) => {
-  for (const [pattern, category] of categoryMap) {
-    if (varName.includes(pattern)) return category;
+/** Emits the number of variables once they are read, for the block summary. */
+const emit = defineEmits<{ loaded: [count: number] }>();
+
+const { t } = useI18n();
+const cssVariables = ref<CSSVariable[]>([]);
+const isLoading = ref(true);
+const query = ref("");
+const category = ref<CategoryFilter>(ALL_CATEGORIES);
+const clipboard = useCopyFeedback<string>();
+
+function categoryOf(name: string): VariableCategory {
+  for (const [pattern, match] of CATEGORY_PATTERNS) {
+    if (name.includes(pattern)) return match;
   }
-  return "Other";
-};
+  return OTHER_CATEGORY;
+}
 
-const groupedVariables = computed(() => {
-  const groups: Record<string, CSSVariable[]> = {};
-
-  cssVariables.value.forEach((variable) => {
-    const category = getVariableCategory(variable.name);
-    if (!groups[category]) {
-      groups[category] = [];
+function collectNames(rules: CSSRuleList, names: Set<string>): void {
+  for (const rule of Array.from(rules)) {
+    if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) {
+      collectNames((rule as CSSGroupingRule).cssRules, names);
     }
-    groups[category].push(variable);
-  });
+    if (rule instanceof CSSStyleRule) {
+      for (const property of Array.from(rule.style)) {
+        if (property.startsWith(UI_VARIABLE_PREFIX)) names.add(property);
+      }
+    }
+  }
+}
 
-  return groups;
+// Reads every `--ui-*` property the stylesheets declare, valued for the
+// current theme (the computed value on <html>).
+function readVariables(): CSSVariable[] {
+  const names = new Set<string>();
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      collectNames(sheet.cssRules, names);
+    } catch {
+      /* cross-origin stylesheets throw on cssRules access */
+    }
+  }
+  const rootStyles = getComputedStyle(document.documentElement);
+  return (
+    Array.from(names)
+      .map((name) => ({
+        name,
+        value: rootStyles.getPropertyValue(name).trim(),
+        category: categoryOf(name),
+      }))
+      .filter((variable) => variable.value !== "")
+      // Natural order, so `-50` comes before `-100` and `-400`.
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true }),
+      )
+  );
+}
+
+function refresh(): void {
+  cssVariables.value = readVariables();
+  isLoading.value = false;
+  emit("loaded", cssVariables.value.length);
+}
+
+const categoryItems = computed(() => [
+  {
+    value: ALL_CATEGORIES,
+    label: t(`page.settings.appearance.css_vars.categories.${ALL_CATEGORIES}`),
+  },
+  ...CATEGORY_ORDER.filter((id) =>
+    cssVariables.value.some((variable) => variable.category === id),
+  ).map((id) => ({
+    value: id,
+    label: t(`page.settings.appearance.css_vars.categories.${id}`),
+  })),
+]);
+
+const inCategory = computed(() =>
+  category.value === ALL_CATEGORIES
+    ? cssVariables.value
+    : cssVariables.value.filter(
+        (variable) => variable.category === category.value,
+      ),
+);
+
+const shown = computed(() => {
+  const needle = query.value.trim().toLocaleLowerCase();
+  if (!needle) return inCategory.value;
+  return inCategory.value.filter((variable) =>
+    `${variable.name} ${variable.value}`.toLocaleLowerCase().includes(needle),
+  );
 });
 
-const { copy } = useClipboard();
+function swatchStyle(variable: CSSVariable): Record<string, string> {
+  if (COLOR_CATEGORIES.has(variable.category)) {
+    return { background: `var(${variable.name})` };
+  }
+  if (variable.category === "radius") {
+    return { borderTopLeftRadius: `var(${variable.name})` };
+  }
+  if (variable.category === "shadow") {
+    return { boxShadow: `var(${variable.name})` };
+  }
+  return {};
+}
 
-const refreshVariables = () => {
-  isLoading.value = true;
-  cssVariables.value = getCSSVariables();
-  isLoading.value = false;
-};
+const copyName = (name: string) => clipboard.copyText(name, name);
+
+function exportAsCss(): void {
+  const body = cssVariables.value
+    .map((variable) => `  ${variable.name}: ${variable.value};`)
+    .join("\n");
+  const blob = new Blob([`:root {\n${body}\n}\n`], { type: "text/css" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = EXPORT_FILE_NAME;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// Values follow the theme: re-read them when the light/dark class changes.
+let themeObserver: MutationObserver | undefined;
 
 onMounted(() => {
-  setTimeout(() => {
-    refreshVariables();
-  }, CSS_LOAD_DELAY_MS);
+  setTimeout(refresh, CSS_LOAD_DELAY_MS);
+  themeObserver = new MutationObserver(refresh);
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+});
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect();
 });
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="flex items-start justify-between gap-4">
-      <div class="space-y-1">
-        <h2 class="text-default text-base font-semibold sm:text-sm">
-          {{ $t("page.settings.appearance.css_variables") }}
-        </h2>
-        <p class="text-dimmed text-base sm:text-sm">
-          {{ $t("page.settings.appearance.css_variables_description") }}
-        </p>
-      </div>
-    </section>
-
-    <div v-if="isLoading" class="space-y-6">
-      <section v-for="i in SKELETON_GROUP_COUNT" :key="i" class="space-y-3">
-        <USkeleton class="h-5 w-24" />
-        <div class="bg-default ring-default rounded-lg ring">
-          <div
-            v-for="j in SKELETON_ITEM_COUNT"
-            :key="j"
-            class="border-default flex items-center justify-between gap-4 p-3"
-            :class="{ 'border-b': j < SKELETON_ITEM_COUNT }"
-          >
-            <div class="min-w-0 flex-1 space-y-2">
-              <USkeleton class="h-4 w-48" />
-              <USkeleton class="h-3 w-64" />
-            </div>
-            <USkeleton class="size-8 shrink-0 rounded" />
-          </div>
-        </div>
-      </section>
+  <div>
+    <!-- v2 .cs-dev__tools: filter, category switch, theme hint. -->
+    <div
+      class="border-muted flex flex-wrap items-center gap-2.5 border-b bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-3.5"
+    >
+      <DmsSearchInput
+        v-model="query"
+        size="sm"
+        :placeholder="t('page.settings.appearance.css_vars.filter_placeholder')"
+        class="w-full sm:w-60"
+      />
+      <!-- Phones: the six categories wrap onto a second line. -->
+      <DmsSegmented
+        v-if="cssVariables.length"
+        v-model="category"
+        class="max-sm:h-auto max-sm:flex-wrap max-sm:[&>button]:h-6"
+        :items="categoryItems"
+        size="xs"
+        :aria-label="t('page.settings.appearance.css_vars.category_label')"
+      />
+      <span class="text-dimmed ms-auto text-xs">
+        {{ t("page.settings.appearance.css_vars.theme_hint") }}
+      </span>
     </div>
 
-    <div v-else class="space-y-6">
-      <section
-        v-for="(variables, category) in groupedVariables"
-        :key="category"
-        class="space-y-3"
+    <div v-if="isLoading" aria-busy="true">
+      <div
+        v-for="i in SKELETON_ROW_COUNT"
+        :key="i"
+        class="border-muted grid h-10 grid-cols-[22px_minmax(0,1.2fr)_minmax(0,1fr)_90px] items-center gap-3 ps-[18px] pe-3 not-first:border-t"
       >
-        <h3 class="text-highlighted text-sm font-semibold">
-          {{ category }}
-        </h3>
+        <USkeleton class="size-[18px] rounded-[5px]" />
+        <USkeleton class="h-3 w-40" />
+        <USkeleton class="h-3 w-32" />
+        <span />
+      </div>
+    </div>
 
-        <div class="bg-default ring-default rounded-lg ring">
-          <div
-            v-for="(variable, index) in variables"
-            :key="variable.name"
-            class="border-default hover:bg-muted group flex items-center justify-between gap-4 p-3 transition-colors"
-            :class="{ 'border-b': index < variables.length - 1 }"
-          >
-            <div class="min-w-0 flex-1 space-y-1">
-              <div class="flex items-center gap-2">
-                <code
-                  class="text-default font-mono text-xs font-medium break-all"
-                >
-                  {{ variable.name }}
-                </code>
-                <UButton
-                  icon="i-lucide-copy"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  square
-                  class="opacity-0 transition-opacity group-hover:opacity-100"
-                  :title="`${$t('button.copy')} ${variable.name}`"
-                  @click="copy(variable.name)"
-                />
-              </div>
-              <div class="flex items-center gap-2">
-                <code class="text-muted font-mono text-xs break-all">
-                  {{ variable.value }}
-                </code>
-              </div>
-            </div>
+    <div v-else class="max-h-[440px] overflow-y-auto">
+      <!-- v2 .cs-var: swatch, name, value, copy. Phones: the value goes
+           under the name and the copy button keeps only its icon. -->
+      <div
+        v-for="variable in shown"
+        :key="variable.name"
+        :class="[
+          ROW_CLASS,
+          clipboard.isCopied(variable.name) && 'bg-(--dms-success-tint)',
+        ]"
+      >
+        <span
+          v-if="variable.category === 'radius'"
+          class="border-muted size-[18px] border-[1.5px] border-r-0 border-b-0 max-sm:row-span-2"
+          :style="swatchStyle(variable)"
+        />
+        <span
+          v-else-if="variable.category !== 'other'"
+          class="size-[18px] rounded-[5px] shadow-[inset_0_0_0_1px_var(--ui-border-accented)] max-sm:row-span-2"
+          :style="swatchStyle(variable)"
+        />
+        <span v-else class="max-sm:row-span-2" />
+        <code
+          class="text-highlighted truncate font-mono text-xs font-[550]"
+          :title="variable.name"
+        >
+          {{ variable.name }}
+        </code>
+        <span
+          class="text-muted truncate font-mono text-xs font-medium max-sm:col-start-2 max-sm:row-start-2"
+          :title="variable.value"
+        >
+          {{ variable.value }}
+        </span>
+        <UButton
+          :icon="clipboard.iconOf(variable.name)"
+          :label="
+            clipboard.isCopied(variable.name)
+              ? t('page.settings.appearance.css_vars.copied')
+              : t('page.settings.appearance.css_vars.copy')
+          "
+          :color="clipboard.isCopied(variable.name) ? 'success' : 'neutral'"
+          variant="ghost"
+          size="xs"
+          class="justify-self-end max-sm:row-span-2"
+          :ui="{ label: 'max-sm:hidden' }"
+          :aria-label="`${t('page.settings.appearance.css_vars.copy')} ${variable.name}`"
+          @click="copyName(variable.name)"
+        />
+      </div>
 
-            <div
-              v-if="
-                variable.value.startsWith('oklch') ||
-                variable.value.startsWith('rgb') ||
-                variable.value.startsWith('#') ||
-                variable.value.startsWith('hsl')
-              "
-              class="ring-default size-8 shrink-0 rounded ring"
-              :style="{ backgroundColor: variable.value }"
-              :title="variable.value"
-            />
-          </div>
-        </div>
-      </section>
+      <p
+        v-if="shown.length === 0"
+        class="text-muted px-[18px] py-6 text-center text-[12.5px]"
+      >
+        {{ t("page.settings.appearance.css_vars.no_results") }}
+      </p>
+    </div>
+
+    <!-- v2 .cs-foot: count and export. -->
+    <div
+      class="border-default text-muted flex items-center gap-2.5 border-t bg-(--dms-bg-muted) py-2.5 ps-[18px] pe-4 text-[12.5px]"
+    >
+      <span>
+        {{
+          t("page.settings.appearance.css_vars.showing", {
+            shown: shown.length,
+            total: inCategory.length,
+          })
+        }}
+      </span>
+      <UButton
+        icon="i-ph-download-simple"
+        :label="t('page.settings.appearance.css_vars.export')"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        class="ms-auto"
+        :disabled="isLoading || cssVariables.length === 0"
+        @click="exportAsCss"
+      />
     </div>
   </div>
 </template>

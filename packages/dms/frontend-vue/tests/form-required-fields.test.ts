@@ -117,6 +117,22 @@ describe("isFieldMarkedRequired", () => {
     ).to.equal(false);
   });
 
+  it("marks a required box to tick, which only ticking fills", () => {
+    expect(
+      isFieldMarkedRequired(
+        {
+          id: "terms",
+          required: true,
+          type: "boolean",
+          component: { componentName: "dms-checkbox" },
+        },
+        none,
+        none,
+        none,
+      ),
+    ).to.equal(true);
+  });
+
   it("does not mark a disabled or hidden field, which is not validated", () => {
     const field = { id: "name", required: true };
     expect(

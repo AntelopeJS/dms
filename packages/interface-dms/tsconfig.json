@@ -4,7 +4,8 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo",
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "removeComments": false
   },
   "include": ["src/**/*.ts"]
 }

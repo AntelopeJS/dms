@@ -37,6 +37,11 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
     return UserNotificationPreferencesModel.fromDatabase(result);
   }
 
+  /** Removes the preferences of a user whose account is deleted. */
+  async purgeUser(userId: string): Promise<void> {
+    await this.table.getAll(userId, "userId").delete().run();
+  }
+
   /**
    * Creates a user's preferences, keyed by the user id so concurrent first
    * reads collide on the primary key instead of each inserting a row: the
@@ -82,6 +87,48 @@ export class UserNotificationPreferencesModel extends BasicDataModel(
       .run();
 
     return preferences;
+  }
+
+  /**
+   * Applies a partial map on top of the stored preferences in one database
+   * update, so switches saved concurrently each keep their own change.
+   */
+  async mergePreferences(
+    userId: string,
+    changes: Record<string, boolean>,
+  ): Promise<Record<string, boolean>> {
+    await this.getOrCreatePreferences(userId);
+    await this.table
+      .getAll(userId, "userId")
+      .update((row) => ({
+        preferences: row.key("preferences").merge(changes),
+        updatedAt: new Date(),
+      }))
+      .run();
+
+    const stored = await this.getByUserId(userId);
+    return stored?.preferences ?? changes;
+  }
+
+  /** When the user last opened the header bell, or undefined if never. */
+  async getNotificationsSeenAt(userId: string): Promise<Date | undefined> {
+    const seenAt = (await this.getByUserId(userId))?.notificationsSeenAt;
+    return seenAt ? new Date(seenAt) : undefined;
+  }
+
+  /**
+   * Records that the user opened the header bell now: its badge then counts
+   * only what arrives later. The read state of the notifications is left
+   * alone. Returns the date stored.
+   */
+  async markNotificationsSeen(userId: string): Promise<Date> {
+    await this.getOrCreatePreferences(userId);
+    const seenAt = new Date();
+    await this.table
+      .getAll(userId, "userId")
+      .update({ notificationsSeenAt: seenAt })
+      .run();
+    return seenAt;
   }
 
   async getOrCreatePreferences(

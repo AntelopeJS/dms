@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, reactive, watchEffect } from "vue";
+import DmsEyebrow from "../section-header/Eyebrow.vue";
+// Imported rather than resolved from the registry: a registered component is
+// a lazy chunk of its own, fetched only when the data first shows it, so the
+// trend would pop in a beat after the value.
+import DmsTrendBadge from "./internal/TrendBadge.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import {
   ABSENT_VALUE_TEXT,
@@ -33,14 +38,15 @@ interface Props extends DefaultComponentProps {
   comparisonLabel?: string;
 }
 
-// Comparison series/dot follow the neutral theme token (design --fg-tertiary)
-// instead of a hardcoded slate; re-resolved on theme changes via
-// useThemeRevision so they track light/dark mode.
+// The comparison series takes palette step 2 (v2 violet), re-resolved on
+// theme changes via useThemeRevision so it tracks light/dark mode.
+const COMPARISON_COLOR_TOKEN = "--dms-chart-2";
 const themeRevision = useThemeRevision();
 const comparisonColor = computed(() => {
   void themeRevision.value;
-  return resolveChartColor("neutral");
+  return resolveChartColor(COMPARISON_COLOR_TOKEN);
 });
+const LEGEND_KEY_CLASS = "size-2 shrink-0 rounded-[2.5px]";
 const DEFAULT_PRIMARY_LABEL_KEY = "dms.chart.legend_period";
 const DEFAULT_COMPARISON_LABEL_KEY = "dms.chart.legend_comparison";
 
@@ -147,48 +153,77 @@ const comparisonLegendLabel = computed(() =>
     : t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison"),
 );
 
-const primaryDotColor = computed(() => resolveChartColor("primary"));
+const isFirstLoad = computed(() => isLoading.value && data.value === null);
+// New inputs (a period applied) are on their way: the figures on screen still
+// belong to the previous ones, so they dim like the KPI values do.
+const isRefreshing = computed(() => isLoading.value && data.value !== null);
+
+const showTrend = computed(() => props.showDelta && delta.value !== null);
+const hasMeta = computed(
+  () => showTrend.value || !!previousFormatted.value || !!props.description,
+);
 </script>
 
 <template>
-  <DmsCard>
-    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div class="min-w-0">
-        <p class="text-muted text-sm">{{ processI18n(title) }}</p>
-        <div class="text-2xl font-semibold tracking-tight tabular-nums">
-          <USkeleton v-if="isLoading && data === null" class="h-8 w-32" />
-          <span v-else>{{ formatted }}</span>
+  <DmsCard :padded="false" class="flex min-w-0 flex-col">
+    <div class="flex flex-wrap items-start gap-3 px-4 pt-4 pb-1.5 sm:px-[18px]">
+      <div class="grid min-w-0 justify-items-start">
+        <DmsEyebrow
+          tone="muted"
+          truncate
+          class="max-w-full max-sm:whitespace-normal"
+          :label="processI18n(title)"
+        />
+        <div
+          class="text-highlighted mt-2 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
+        >
+          <USkeleton v-if="isFirstLoad" class="h-[33px] w-36" />
+          <span
+            v-else
+            class="transition-opacity"
+            :class="isRefreshing && 'opacity-55'"
+          >
+            {{ formatted }}
+          </span>
+        </div>
+        <!-- The trend line arrives with the data: its row is held meanwhile. -->
+        <div
+          v-if="isFirstLoad && showDelta"
+          class="mt-1.5 flex h-5 items-center gap-2"
+          aria-hidden="true"
+        >
+          <USkeleton class="h-4 w-14 rounded-full" />
+          <USkeleton class="h-3 w-20" />
         </div>
         <div
-          v-if="
-            (showDelta && delta !== null) || previousFormatted || description
-          "
-          class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1"
+          v-else-if="hasMeta"
+          class="mt-1.5 flex flex-wrap items-center gap-2 transition-opacity"
+          :class="isRefreshing && 'opacity-55'"
         >
-          <DmsTrendBadge v-if="showDelta && delta !== null" :delta="delta" />
-          <span v-if="previousFormatted" class="text-muted text-xs">
+          <DmsTrendBadge v-if="showTrend" :delta="delta" />
+          <span v-if="previousFormatted" class="text-dimmed text-xs">
             vs {{ previousFormatted }}
           </span>
-          <span v-else-if="description" class="text-muted text-xs">
+          <span v-else-if="description" class="text-dimmed text-xs">
             {{ processI18n(description) }}
           </span>
         </div>
       </div>
       <div
         v-if="showLegend && hasComparison"
-        class="flex items-center gap-3 text-xs"
+        class="text-muted ml-auto flex items-center gap-3.5 text-xs"
       >
         <span class="flex items-center gap-1.5">
           <span
-            class="size-2.5 rounded-full"
-            :style="{ background: primaryDotColor }"
+            :class="LEGEND_KEY_CLASS"
+            class="bg-(--dms-sparkline)"
             aria-hidden="true"
           />
           {{ primaryLegendLabel }}
         </span>
-        <span class="text-muted flex items-center gap-1.5">
+        <span class="flex items-center gap-1.5">
           <span
-            class="size-2.5 rounded-full"
+            :class="LEGEND_KEY_CLASS"
             :style="{ background: comparisonColor }"
             aria-hidden="true"
           />
@@ -196,6 +231,8 @@ const primaryDotColor = computed(() => resolveChartColor("primary"));
         </span>
       </div>
     </div>
-    <slot :series="cardSeries" :comparison-series="cardComparisonSeries" />
+    <div class="px-3.5 pt-2.5 pb-3.5 sm:pr-[18px]">
+      <slot :series="cardSeries" :comparison-series="cardComparisonSeries" />
+    </div>
   </DmsCard>
 </template>

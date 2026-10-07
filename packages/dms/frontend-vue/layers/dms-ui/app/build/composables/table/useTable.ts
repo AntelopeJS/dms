@@ -1,4 +1,5 @@
-import type { ModelRef } from "vue";
+import { mergeColumnOrder } from "./utils/columnOrder";
+import type { ModelRef, Ref } from "vue";
 import type {
   Data,
   TableEmits,
@@ -73,6 +74,14 @@ interface UseTableProps<T> {
     paginationState: ModelRef<PaginationState>;
   };
   ui: ComputedRef<TableStyleSlots>;
+  /** Adds the expander column (the table renders an `expanded` slot). */
+  expandable?: boolean;
+  /** DOM id of a row's detail band, for the caret's aria-controls. */
+  expandedRowDomId?: (rowId: string) => string;
+  /** True while the table lists archived rows (archive mode toggle on). */
+  showArchived?: Ref<boolean>;
+  /** Column header menus and resizing. Defaults to true. */
+  columnMenus?: boolean;
 }
 
 export const useTable = <T extends Data>(props: UseTableProps<T>) => {
@@ -95,23 +104,29 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     formPages: props.tableProps.formPages,
     routeParams: props.tableProps.routeParams,
     onCustomRowAction: props.tableProps.onCustomRowAction,
+    expandable: props.expandable,
+    expandedRowDomId: props.expandedRowDomId,
+    showArchived: props.showArchived,
+    columnMenus: props.columnMenus,
+    defaultSort: props.tableProps.defaultSort,
   });
 
-  states.columnOrderState.value = columns.value
+  // A saved order (the user's, a view's) is kept, completed with the
+  // columns it leaves out.
+  const declaredColumnOrder = columns.value
     .map((x) => x.id ?? "")
     .filter(Boolean);
+  states.columnOrderState.value = mergeColumnOrder(
+    states.columnOrderState.value,
+    declaredColumnOrder,
+  );
 
   watchEffect(() =>
     applyAlwaysPinned(states.columnPinningState, columns.value),
   );
 
-  const {
-    deleteFilter,
-    resetFilters,
-    deleteSorting,
-    stateHandlers,
-    stateGetters,
-  } = useTableStates(states);
+  const { deleteFilter, deleteSorting, stateHandlers, stateGetters } =
+    useTableStates(states);
 
   const isManualFiltering =
     props.tableProps.columnFiltersOptions?.manualFiltering;
@@ -140,6 +155,8 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     getPaginationRowModel: getPaginationRowModel(),
 
     columnResizeMode: "onChange" as const,
+    // A reduced chrome keeps its columns as laid out.
+    enableColumnResizing: props.columnMenus !== false,
     ...(props.tableProps.sizingOptions || {}),
 
     state: stateGetters,
@@ -175,9 +192,9 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     table,
     data: tableData,
     columns,
+    declaredColumnOrder,
     labeledColumns,
     deleteFilter,
-    resetFilters,
     deleteSorting,
   };
 };

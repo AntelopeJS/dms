@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useId } from "vue";
+import DmsFieldError from "../../field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../../composables/form/types/content-language";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
@@ -47,9 +50,20 @@ const emit = defineEmits<{
 
 const { $authFetch } = useAuthFetch();
 const { t } = useI18n();
-const toast = useToast();
 
-const { emitFormChange } = useFormField();
+// The field state UFormField hands its control, passed on to the drop zone
+// (this component takes it, so UFileUpload would not see it).
+const { emitFormChange, color, highlight, ariaAttrs } = useFormField();
+// Files refused by the field's constraints, named under the drop zone: an
+// error of this field, not a toast.
+const rejections = ref<string[]>([]);
+const rejectionId = fieldErrorId(`file-${useId()}`);
+// A refused file speaks for itself; otherwise the field's own error does.
+const dropZoneAria = computed(() =>
+  rejections.value.length
+    ? { "aria-invalid": true, "aria-describedby": rejectionId }
+    : (ariaAttrs.value ?? {}),
+);
 
 const { uploadWithProgress } = useUploadWithProgress();
 
@@ -264,21 +278,19 @@ const processFile = async (file: File) => {
 };
 
 const notifyRejected = (file: File, violation: FileConstraintViolation) => {
-  toast.add({
-    title: t("dms.form.file.rejected_title"),
-    description:
-      violation === "size"
-        ? t("dms.form.file.rejected_size", {
-            name: file.name,
-            size: maxSizeFormatted.value ?? "",
-          })
-        : t("dms.form.file.rejected_type", { name: file.name }),
-    color: "error",
-  });
+  rejections.value.push(
+    violation === "size"
+      ? t("dms.form.file.rejected_size", {
+          name: file.name,
+          size: maxSizeFormatted.value ?? "",
+        })
+      : t("dms.form.file.rejected_type", { name: file.name }),
+  );
 };
 
 watch(selectedFiles, async (value) => {
   if (!value) return;
+  rejections.value = [];
 
   const files = Array.isArray(value) ? value : [value];
 
@@ -359,19 +371,21 @@ onScopeDispose(() => {
       :multiple="multiple"
       :accept="acceptString"
       :disabled="disabled || isUploading"
+      :color="color"
+      :highlight="highlight"
+      v-bind="dropZoneAria"
     >
       <template v-if="maxSizeFormatted" #description>
-        <span class="text-muted text-sm">
-          {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
-        </span>
+        {{ $t("dms.form.file.max_size", { size: maxSizeFormatted }) }}
       </template>
     </UFileUpload>
+    <DmsFieldError :id="rejectionId" :message="rejections.join(' ')" />
 
     <div v-if="uploadingFiles.length" class="flex flex-col gap-1">
       <div
         v-for="item in uploadingFiles"
         :key="item.id"
-        class="bg-elevated flex flex-col gap-1.5 rounded-md p-2"
+        class="border-default bg-default flex flex-col gap-1.5 rounded-md border p-2 ps-2.5"
       >
         <div class="flex items-center gap-2">
           <UIcon
@@ -397,10 +411,10 @@ onScopeDispose(() => {
         </div>
         <span
           v-if="!item.error"
-          class="bg-accented h-1 w-full overflow-hidden rounded-full"
+          class="bg-accented h-[3px] w-full overflow-hidden rounded-full"
         >
           <span
-            class="bg-primary block h-full rounded-full transition-[width] duration-200"
+            class="block h-full rounded-full bg-(--dms-accent-fill) transition-[width] duration-200"
             :style="{ width: `${item.progress}%` }"
           />
         </span>
@@ -411,7 +425,7 @@ onScopeDispose(() => {
       <div
         v-for="key in uploadedKeys"
         :key="key"
-        class="bg-elevated flex items-center gap-2 rounded-md p-2"
+        class="border-default bg-default flex items-center gap-2.5 rounded-md border p-2 ps-2.5"
       >
         <template v-if="getMetadata(key)">
           <img
@@ -433,7 +447,7 @@ onScopeDispose(() => {
           <ULink
             :to="getMetadata(key)!.url"
             target="_blank"
-            class="decoration-dimmed/40 hover:decoration-muted flex-1 truncate text-sm underline"
+            class="decoration-dimmed/40 hover:decoration-muted text-muted hover:text-default flex-1 truncate text-sm font-normal underline"
             @click.prevent="openFile(key)"
           >
             {{ getMetadata(key)!.filename }}

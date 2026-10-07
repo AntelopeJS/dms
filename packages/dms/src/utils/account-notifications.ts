@@ -1,199 +1,232 @@
-import { Logging } from "@antelopejs/interface-core/logging";
+import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   AccountSubject,
-  CollaborationSubject,
-  Notification,
   SecuritySubject,
 } from "@antelopejs/interface-dms/notifications";
-import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
-import { parseUserAgent } from "./user-agent";
+import {
+  emitNotification,
+  NOTIFICATION_LINKS,
+  type NotificationDelivery,
+  type NotificationTemplate,
+} from "./notification-emitter";
+import { backupCodeUsedTone, LOW_BACKUP_CODES } from "./notification-tones";
+import { countryDisplayName } from "./sign-in-country";
+import type { SignInDevice } from "./sign-in-devices";
 
-const MESSAGES_PREFIX = "$dms.notifications.messages";
-const PROFILE_LINK = "/settings/user/profile";
-const ADMINS_LINK = "/settings/user/admins";
-
-interface NotificationTemplate {
-  icon: string;
-  subject: NotificationSubjectInfo;
-  messageId: string;
-  linkTo: string;
+function securityTemplate(
+  messageId: string,
+  icon: string,
+  tone: NotificationTemplate["tone"],
+): NotificationTemplate {
+  return {
+    icon,
+    subject: SecuritySubject,
+    messageId,
+    linkTo: NOTIFICATION_LINKS.security,
+    tone,
+  };
 }
 
 const templates = {
-  newLogin: {
-    icon: "i-ph-sign-in",
-    subject: SecuritySubject,
-    messageId: "new_login",
-    linkTo: PROFILE_LINK,
-  },
-  newLoginUnknownDevice: {
-    icon: "i-ph-sign-in",
-    subject: SecuritySubject,
-    messageId: "new_login_unknown_device",
-    linkTo: PROFILE_LINK,
-  },
-  passwordChanged: {
-    icon: "i-ph-key",
-    subject: SecuritySubject,
-    messageId: "password_changed",
-    linkTo: PROFILE_LINK,
-  },
-  loginMethodAdded: {
-    icon: "i-ph-plugs-connected",
-    subject: SecuritySubject,
-    messageId: "login_method_added",
-    linkTo: PROFILE_LINK,
-  },
-  passwordReset: {
-    icon: "i-ph-key",
-    subject: SecuritySubject,
-    messageId: "password_reset",
-    linkTo: PROFILE_LINK,
-  },
-  emailChanged: {
-    icon: "i-ph-envelope-simple",
-    subject: SecuritySubject,
-    messageId: "email_changed",
-    linkTo: PROFILE_LINK,
-  },
-  backupCodesRegenerated: {
-    icon: "i-ph-arrows-clockwise",
-    subject: SecuritySubject,
-    messageId: "backup_codes_regenerated",
-    linkTo: PROFILE_LINK,
-  },
+  newLogin: securityTemplate("new_login", "i-ph-sign-in", "warning"),
+  newLoginUnknownDevice: securityTemplate(
+    "new_login_unknown_device",
+    "i-ph-sign-in",
+    "warning",
+  ),
+  passwordChanged: securityTemplate("password_changed", "i-ph-key", "warning"),
+  loginMethodAdded: securityTemplate(
+    "login_method_added",
+    "i-ph-plugs-connected",
+    "warning",
+  ),
+  passwordReset: securityTemplate("password_reset", "i-ph-key", "warning"),
+  emailChanged: securityTemplate(
+    "email_changed",
+    "i-ph-envelope-simple",
+    "warning",
+  ),
+  backupCodesRegenerated: securityTemplate(
+    "backup_codes_regenerated",
+    "i-ph-arrows-clockwise",
+    "neutral",
+  ),
+  backupCodeUsed: securityTemplate(
+    "backup_code_used",
+    "i-ph-lifebuoy",
+    "warning",
+  ),
+  failedSignIns: securityTemplate(
+    "failed_sign_ins",
+    "i-ph-warning-octagon",
+    "error",
+  ),
   welcome: {
     icon: "i-ph-hand-waving",
     subject: AccountSubject,
     messageId: "welcome",
-    linkTo: PROFILE_LINK,
-  },
-  collaboratorJoined: {
-    icon: "i-ph-user-plus",
-    subject: CollaborationSubject,
-    messageId: "collaborator_joined",
-    linkTo: ADMINS_LINK,
+    linkTo: NOTIFICATION_LINKS.security,
+    tone: "success",
   },
 } satisfies Record<string, NotificationTemplate>;
 
 const TWO_FACTOR_METHODS: readonly string[] = ["totp", "email"];
 const DEFAULT_TWO_FACTOR_METHOD = "totp";
-const TWO_FACTOR_ICONS = {
-  enabled: "i-ph-shield-check",
-  disabled: "i-ph-shield-warning",
+const TWO_FACTOR_STATES = {
+  enabled: { icon: "i-ph-shield-check", tone: "success" },
+  disabled: { icon: "i-ph-shield-warning", tone: "warning" },
 } as const;
 
 function twoFactorTemplate(
-  state: keyof typeof TWO_FACTOR_ICONS,
+  state: keyof typeof TWO_FACTOR_STATES,
   method: string,
 ): NotificationTemplate {
   const safeMethod = TWO_FACTOR_METHODS.includes(method)
     ? method
     : DEFAULT_TWO_FACTOR_METHOD;
-  return {
-    icon: TWO_FACTOR_ICONS[state],
-    subject: SecuritySubject,
-    messageId: `two_factor_${state}_${safeMethod}`,
-    linkTo: PROFILE_LINK,
-  };
+  const { icon, tone } = TWO_FACTOR_STATES[state];
+  return securityTemplate(`two_factor_${state}_${safeMethod}`, icon, tone);
 }
 
-async function emit(
-  userId: string,
-  template: NotificationTemplate,
-  params: Record<string, string | number> = {},
-): Promise<void> {
-  try {
-    await Notification()
-      .icon(template.icon)
-      .title(`${MESSAGES_PREFIX}.${template.messageId}.title`)
-      .description(`${MESSAGES_PREFIX}.${template.messageId}.description`)
-      .linkTo(template.linkTo)
-      .subject(template.subject)
-      .params(params)
-      .build()
-      .toUser(userId);
-  } catch (error) {
-    Logging.Error(
-      `[DMS] Failed to send notification "${template.messageId}" to "${userId}": ${String(error)}`,
-    );
+/** The title naming the device, as precisely as the user agent allows. */
+function newLoginTitle(device: SignInDevice): NotificationDelivery {
+  if (device.browser && device.os) {
+    return {
+      titleKey: "title_browser_os",
+      params: { browser: device.browser, os: device.os },
+    };
   }
+  return { params: { device: device.browser || device.os } };
 }
 
-function formatDevice(userAgent: string): string | null {
-  const parsed = parseUserAgent(userAgent);
-  return (
-    [parsed.browserName, parsed.osName].filter(Boolean).join(" on ") || null
+/**
+ * Warns an account of a sign-in from a device — or a country — it never signed
+ * in from. Names the country, never the address.
+ */
+export function notifyNewLogin(
+  user: Pick<User, "_id" | "language">,
+  device: SignInDevice,
+): Promise<void> {
+  const isRecognised = Boolean(device.browser || device.os);
+  const delivery = isRecognised ? newLoginTitle(device) : {};
+  const params = { ...delivery.params };
+  if (device.country) {
+    params.country = countryDisplayName(device.country, user.language);
+  }
+  return emitNotification(
+    user._id,
+    isRecognised ? templates.newLogin : templates.newLoginUnknownDevice,
+    {
+      ...delivery,
+      params,
+      descriptionKey: device.country ? "description" : "description_no_country",
+    },
   );
 }
 
-export function notifyNewLogin(
-  userId: string,
-  userAgent: string,
-  ip: string,
-): Promise<void> {
-  const device = formatDevice(userAgent);
-  const origin = ip ? ` (${ip})` : "";
-
-  if (!device) {
-    return emit(userId, templates.newLoginUnknownDevice, { origin });
-  }
-
-  return emit(userId, templates.newLogin, { device, origin });
-}
-
 export function notifyPasswordChanged(userId: string): Promise<void> {
-  return emit(userId, templates.passwordChanged);
+  return emitNotification(userId, templates.passwordChanged);
 }
 
-export function notifyPasswordReset(userId: string): Promise<void> {
-  return emit(userId, templates.passwordReset);
+/** @param email Address the recovery link was sent to */
+export function notifyPasswordReset(
+  userId: string,
+  email: string,
+): Promise<void> {
+  return emitNotification(userId, templates.passwordReset, {
+    params: { email },
+  });
 }
 
 export function notifyLoginMethodAdded(
   userId: string,
   providerName: string,
 ): Promise<void> {
-  return emit(userId, templates.loginMethodAdded, { provider: providerName });
+  return emitNotification(userId, templates.loginMethodAdded, {
+    params: { provider: providerName },
+  });
 }
 
 export function notifyEmailChanged(
   userId: string,
   newEmail: string,
 ): Promise<void> {
-  return emit(userId, templates.emailChanged, { email: newEmail });
+  return emitNotification(userId, templates.emailChanged, {
+    params: { email: newEmail },
+  });
 }
 
 export function notifyTwoFactorEnabled(
   userId: string,
   method: string,
 ): Promise<void> {
-  return emit(userId, twoFactorTemplate("enabled", method));
+  return emitNotification(userId, twoFactorTemplate("enabled", method));
 }
 
 export function notifyTwoFactorDisabled(
   userId: string,
   method: string,
 ): Promise<void> {
-  return emit(userId, twoFactorTemplate("disabled", method));
+  return emitNotification(userId, twoFactorTemplate("disabled", method));
 }
 
-export function notifyBackupCodesRegenerated(userId: string): Promise<void> {
-  return emit(userId, templates.backupCodesRegenerated);
+const COUNT_DESCRIPTION_KEYS: Readonly<Record<number, string>> = {
+  0: "description_none",
+  1: "description_one",
+};
+
+/** @param previousCount Codes the user still held before the new set replaced them */
+export function notifyBackupCodesRegenerated(
+  userId: string,
+  previousCount: number,
+): Promise<void> {
+  return emitNotification(userId, templates.backupCodesRegenerated, {
+    params: { count: previousCount },
+    descriptionKey: COUNT_DESCRIPTION_KEYS[previousCount] ?? "description",
+  });
+}
+
+function backupCodeUsedWording(left: number): NotificationDelivery {
+  if (left === 0) {
+    return { titleKey: "title_none", descriptionKey: "description_none" };
+  }
+  return left <= LOW_BACKUP_CODES ? { descriptionKey: "description_low" } : {};
+}
+
+/** @param left Backup codes still unused after this sign-in */
+export function notifyBackupCodeUsed(
+  userId: string,
+  left: number,
+): Promise<void> {
+  return emitNotification(
+    userId,
+    { ...templates.backupCodeUsed, tone: backupCodeUsedTone(left) },
+    { ...backupCodeUsedWording(left), params: { left } },
+  );
+}
+
+/** Details of a burst of wrong passwords. */
+export interface FailedSignInsAlert {
+  count: number;
+  windowMinutes: number;
+  /** Two-factor authentication still stands between the guesser and the account. */
+  hasTwoFactor: boolean;
+}
+
+export function notifyFailedSignIns(
+  userId: string,
+  { count, windowMinutes, hasTwoFactor }: FailedSignInsAlert,
+): Promise<void> {
+  return emitNotification(userId, templates.failedSignIns, {
+    params: { count, minutes: windowMinutes },
+    descriptionKey: hasTwoFactor ? "description_two_factor" : "description",
+  });
 }
 
 export function notifyWelcome(userId: string, name: string): Promise<void> {
-  return emit(userId, templates.welcome, { name });
-}
-
-export async function notifyCollaboratorJoined(
-  ownerIds: string[],
-  name: string,
-  email: string,
-): Promise<void> {
-  await Promise.all(
-    ownerIds.map((ownerId) =>
-      emit(ownerId, templates.collaboratorJoined, { name, email }),
-    ),
+  return emitNotification(
+    userId,
+    templates.welcome,
+    name ? { params: { name } } : { titleKey: "title_anonymous" },
   );
 }

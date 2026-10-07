@@ -18,6 +18,8 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   authorizeAction,
   GATE_BYPASSABLE_ACTIONS,
+} from "@antelopejs/interface-dms/base/table-view/internal/auth";
+import {
   TableViewMeta,
   type TableViewOptions,
   type TableViewOptionsSerialized,

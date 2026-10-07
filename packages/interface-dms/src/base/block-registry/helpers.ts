@@ -1,6 +1,6 @@
 import { type ZodType, type ZodTypeAny, type ZodTypeDef, z } from "zod";
 import type { BlockOptionUi } from "./types";
-import { UI_HINTS } from "./ui";
+import { UI_HINTS } from "./internal/ui";
 
 /**
  * A string option whose declared type is narrower than `string` — a

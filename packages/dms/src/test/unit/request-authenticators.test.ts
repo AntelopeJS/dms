@@ -3,11 +3,11 @@ import { HTTPResult } from "@antelopejs/interface-api";
 import { expect } from "chai";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import {
-  type RequestAuthenticator,
-  type RequestPrincipal,
-  resolveRequestPrincipal,
+import type {
+  RequestAuthenticator,
+  RequestPrincipal,
 } from "@antelopejs/interface-dms/auth/request-authenticators";
+import { resolveRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-authenticators";
 
 const UNAUTHORIZED = 401;
 const TENANT = "credential-tenant";

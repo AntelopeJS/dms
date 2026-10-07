@@ -108,8 +108,19 @@ beforeEach(() => {
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
-  vi.stubGlobal("useFormField", () => ({ emitFormChange: vi.fn() }));
+  // Outside a UFormField: no error, no aria attributes.
+  vi.stubGlobal("useFormField", () => ({
+    emitFormChange: vi.fn(),
+    color: ref(undefined),
+    highlight: ref(undefined),
+    ariaAttrs: ref(undefined),
+  }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
+  );
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
 });
 

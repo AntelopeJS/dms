@@ -28,7 +28,9 @@ export class PublicSystemStateController extends Controller(
       // oxlint-disable-next-line typescript/no-misused-spread
       ...state,
       meta: {
-        title: meta?.title || "",
+        // The name the owner gave the platform during onboarding wins over
+        // the deployment default, which only prefills that step.
+        title: state.platform_name || meta?.title || "",
         description: meta?.description || "",
       },
     };

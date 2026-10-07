@@ -20,6 +20,8 @@ import {
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import { useKeyboardPlatform } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
+import { fieldErrorId } from "../layers/dms-core/app/composables/useFieldErrors";
 import {
   isDefinitiveMetadataFailure,
   resolveMetadataRetryDelay,
@@ -72,7 +74,7 @@ function loadImage(): ImageHarness {
     .split('<script setup lang="ts">')[1]!
     .split("</script>")[0]!;
   const source = script
-    .replace(/^import[\s\S]*?from "[^"]+";\n/gm, "")
+    .replace(/^import[\s\S]*?from "[^"]+";\r?\n/gm, "")
     .replaceAll("import.meta.env.SSR", "false")
     .replace(/^export type /gm, "type ");
   const { outputText } = transpileModule(source, {});
@@ -112,8 +114,22 @@ beforeEach(() => {
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: upload,
   }));
-  vi.stubGlobal("useFormField", () => ({ emitFormChange: vi.fn() }));
+  // Outside a UFormField: no error, no aria attributes.
+  vi.stubGlobal("useFormField", () => ({
+    emitFormChange: vi.fn(),
+    color: ref(undefined),
+    highlight: ref(undefined),
+    ariaAttrs: ref(undefined),
+  }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
+  );
+  // The script runs without its imports: hand it the paste-hint composable.
+  vi.stubGlobal("useKeyboardPlatform", useKeyboardPlatform);
+  vi.stubGlobal("fieldErrorId", fieldErrorId);
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
 });
 

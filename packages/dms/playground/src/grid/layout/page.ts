@@ -1,20 +1,21 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
-import { Tab } from "@antelopejs/interface-dms/base/tab";
 import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
+  KeyValueList,
+  type KeyValueListItem,
+} from "@antelopejs/interface-dms/base/key-value-list";
+import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
+import { Tab } from "@antelopejs/interface-dms/base/tab";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
 
-const defaultTreeProps = {
-  fetchUrl: "/api/layout-grid/files",
-  color: Color.primary,
-  size: Size.medium,
-  selectionBehavior: TreeSelectionBehavior.toggle,
-  multiple: false,
-};
+const PROJECT_FILE_ITEMS: KeyValueListItem[] = [
+  { label: "src", value: "Folder", detail: "components, utils, App.vue" },
+  { label: "public", value: "Folder", detail: "images, index.html" },
+  { label: "tests", value: "Folder", detail: "unit, e2e" },
+  { label: "package.json", value: "JSON", type: "mono" },
+  { label: "README.md", value: "Markdown", type: "mono" },
+];
 
 @RegisterPage()
 export class PageLayoutGridSimple extends PageController("layout-grid-simple", {
@@ -22,18 +23,14 @@ export class PageLayoutGridSimple extends PageController("layout-grid-simple", {
   icon: "i-ph-grid-four",
   category: pageCategory,
   order: 0,
-  description: "Grid layout with FileTree on the left and Tabs on the right",
+  description: "Grid layout with a file list on the left and Tabs on the right",
 }) {
   static grid = Grid({ gap: "1rem" }).child(
     "row1",
     GridRow()
       .child(
-        "fileTree",
-        Tree({
-          title: "File Explorer",
-          description: "Browse project files and folders",
-          ...defaultTreeProps,
-        }),
+        "fileList",
+        KeyValueList({ title: "File Explorer", items: PROJECT_FILE_ITEMS }),
       )
       .child(
         "tabs",
@@ -58,31 +55,17 @@ export class PageLayoutGridSimple extends PageController("layout-grid-simple", {
           color: Color.primary,
           size: Size.medium,
         })
+          .child("overviewPanel", Placeholder({ label: "Project Structure" }), {
+            slot: "overview",
+          })
           .child(
-            "projectTree",
-            Tree({
-              title: "Project Structure",
-              description: "Navigate through project components",
-              ...defaultTreeProps,
-            }),
-            { slot: "overview" },
-          )
-          .child(
-            "configTree",
-            Tree({
-              title: "Configuration Files",
-              description: "View and manage configuration files",
-              ...defaultTreeProps,
-            }),
+            "settingsPanel",
+            Placeholder({ label: "Configuration Files" }),
             { slot: "settings" },
           )
           .child(
-            "docsTree",
-            Tree({
-              title: "Docs Structure",
-              description: "Browse documentation files",
-              ...defaultTreeProps,
-            }),
+            "documentationPanel",
+            Placeholder({ label: "Docs Structure" }),
             { slot: "documentation" },
           ),
       ),

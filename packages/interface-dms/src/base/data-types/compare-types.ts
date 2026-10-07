@@ -12,13 +12,15 @@
 // on DataCompareMode.filter, which would ripple through every implementation.
 /* oxlint-disable anti-slop/no-chained-type-assertions */
 import type { RequestContext } from "@antelopejs/interface-api";
-import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import type {
   ValueProxy,
   ValueProxyOrValue,
 } from "@antelopejs/interface-database";
-import { assertPrimitiveValue, parseValue } from "../../utils/value-parser";
-import { isNumber } from "../../utils/type-check";
+import {
+  assertPrimitiveValue,
+  parseValue,
+} from "../../utils/internal/value-parser";
+import { isNumber } from "../../utils/internal/type-check";
 // Import from the defining leaf, not the table-view barrel: the barrel pulls
 // in the assembled routes, whose composition runs at module evaluation — and
 // this module sits on the import path of the pieces being composed.
@@ -29,16 +31,6 @@ import { isNumber } from "../../utils/type-check";
 // neither side dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { type DataCompareMode, RegisterDataCompareMode } from "./core";
-export function absolutizeJoinedSchemas(meta: DataAPIMeta): void {
-  if (meta.schemaName == null) {
-    return;
-  }
-  for (const field of Object.values(meta.fields)) {
-    if (field.joined && field.joined.schemaName == null) {
-      field.joined.schemaName = meta.schemaName;
-    }
-  }
-}
 
 export namespace DefaultDataCompareTypes {
   @RegisterDataCompareMode("is")

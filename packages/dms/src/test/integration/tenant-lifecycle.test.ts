@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/models/tenantLifecycle.model";
+import { TenantLifecycleModel } from "@antelopejs/interface-dms/db/internal/tenantLifecycle.model";
 import {
   TenantMemberModel,
   UserInviteModel,

@@ -15,10 +15,17 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
+import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type { FormProps } from "../../../composables/form/types";
 
 const SEARCH_DEBOUNCE_MS = 200;
 const ADD_NEW_VALUE = "__dms_relation_add_new__";
+
+/** Title and description of the drawer a relation picker's "add" opens. */
+interface RelationAddFormTexts {
+  displayName?: string;
+  description?: string;
+}
 
 interface RelationProps extends SelectMenuProps<T, "value", M> {
   searchUrl: string;
@@ -32,6 +39,11 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
   };
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
+  /**
+   * Title and description of the drawer the "add" entry opens; default to
+   * "New entry".
+   */
+  addFormTexts?: RelationAddFormTexts;
 }
 
 const props = withDefaults(defineProps<RelationProps>(), {
@@ -49,6 +61,7 @@ const forwardedProps = computed(() => {
     modelValue: _____,
     addForm: ______,
     addPermissionIds: _______,
+    addFormTexts: ________,
     ...rest
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
@@ -92,6 +105,7 @@ const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
 const { $authFetch } = useAuthFetch();
 const toast = useToast();
 const { t } = useI18n();
+const { processI18n } = useTranslation();
 const { hasPermission, isLoaded, fetchPermissions } = usePermissions();
 const { open: openDrawer } = useDrawer();
 const { clearGuards } = useLeaveGuard();
@@ -319,8 +333,12 @@ function openAddDrawer() {
   const formOptions = addFormOptions.value;
   if (!formOptions) return;
   const drawer = openDrawer({
-    title: t("dms.table.new_item"),
-    description: t("dms.table.new_item_description"),
+    title: props.addFormTexts?.displayName
+      ? processI18n(props.addFormTexts.displayName)
+      : t("dms.table.new_item"),
+    description: props.addFormTexts?.description
+      ? processI18n(props.addFormTexts.description)
+      : t("dms.table.new_item_description"),
     direction: "bottom",
     containerId: addContainerId,
     component: DmsForm,
@@ -405,6 +423,7 @@ const addFormOptions = computed(() => {
   <USelectMenu
     v-bind="forwarded"
     v-model:search-term="searchTerm"
+    :trailing-icon="props.trailingIcon ?? FIELD_TRIGGER_ICON"
     :model-value="props.modelValue"
     :items="displayItems as T"
     :loading="status === 'pending'"

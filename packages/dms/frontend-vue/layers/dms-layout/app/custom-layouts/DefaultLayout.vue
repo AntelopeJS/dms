@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import Container from "../build/components/layout/Container.vue";
-import PageHeader from "../build/components/layout/PageHeader.vue";
-import DashboardSidebar from "../build/components/layout/DashboardSidebar.vue";
-import DashboardHeader from "../build/components/layout/DashboardHeader.vue";
-import DashboardBanners from "../build/components/layout/DashboardBanners.vue";
+import DashboardFrame from "../build/components/layout/DashboardFrame.vue";
+import DashboardPageBody from "../build/components/layout/DashboardPageBody.vue";
+import type { LayoutHeaderAction } from "../build/components/layout/PageHeaderActionBar.vue";
 
 interface Props {
   fullWidth?: boolean;
@@ -12,6 +10,8 @@ interface Props {
   icon?: string;
   title?: string;
   description?: string;
+  /** Header buttons declared by the backend page (`headerActions`). */
+  headerActions?: LayoutHeaderAction[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,46 +21,20 @@ const props = withDefaults(defineProps<Props>(), {
   icon: "i-ph-file",
   title: undefined,
   description: undefined,
+  headerActions: () => [],
 });
-
-providePageFillHeight(toRef(props, "fillHeight"));
-
-const regionClass = computed(() =>
-  props.fillHeight ? PAGE_FILL_HEIGHT_CLASSES.region : undefined,
-);
 </script>
 
 <template>
-  <UDashboardGroup data-dms-persistent-shell>
-    <DashboardSidebar />
-
-    <UDashboardPanel>
-      <template #header>
-        <DashboardHeader />
-        <DashboardBanners />
-      </template>
-
-      <template #body>
-        <Container
-          data-dms-page-region
-          data-dms-page-content
-          :full-width="props.fullWidth"
-          :class="regionClass"
-        >
-          <PageHeader
-            v-if="props.title && !props.hideHeader"
-            :icon="props.icon || 'i-ph-file'"
-            :title="props.title"
-            :description="props.description"
-            class="pt-6 pb-7"
-          />
-          <slot />
-        </Container>
-      </template>
-
-      <template #footer>
-        <DmsAppWidgetsDock />
-      </template>
-    </UDashboardPanel>
-  </UDashboardGroup>
+  <DashboardFrame :full-width="props.fullWidth" :fill-height="props.fillHeight">
+    <DashboardPageBody
+      :hide-header="props.hideHeader"
+      :icon="props.icon"
+      :title="props.title"
+      :description="props.description"
+      :header-actions="props.headerActions"
+    >
+      <slot />
+    </DashboardPageBody>
+  </DashboardFrame>
 </template>

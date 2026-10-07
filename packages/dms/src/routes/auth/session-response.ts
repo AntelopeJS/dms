@@ -7,7 +7,8 @@ import {
   sanitizeUser,
 } from "@antelopejs/interface-dms/auth";
 import type { SessionModel, User } from "@antelopejs/interface-dms/auth/db";
-import { notifyNewLogin } from "../../utils/account-notifications";
+import type { ClientOrigin } from "../../utils/sign-in-country";
+import { recordSignIn } from "../../utils/sign-in-monitor";
 import { pickInitialTenantId } from "./pick-tenant";
 import type {
   AuthResponse,
@@ -27,7 +28,7 @@ export type LoginOutcome =
  * @param tenantId Tenant the session is scoped to
  * @param user Authenticated user
  * @param userAgent Requesting user agent
- * @param ip Requesting IP
+ * @param origin Requesting address and country
  * @returns Bearer token payload
  */
 export async function issueAuthResponse(
@@ -35,9 +36,14 @@ export async function issueAuthResponse(
   tenantId: string,
   user: User,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
 ): Promise<AuthResponse> {
-  const sessionId = await createSession(sessionModel, user._id, userAgent, ip);
+  const sessionId = await createSession(
+    sessionModel,
+    user._id,
+    userAgent,
+    origin.ip,
+  );
 
   const accessTokenData = await generateAccessToken(tenantId, user, sessionId);
   const refreshTokenData = await generateRefreshToken(
@@ -68,14 +74,14 @@ export async function issueAuthResponse(
  * @param sessionModel Sessions model
  * @param user Authenticated user
  * @param userAgent Requesting user agent
- * @param ip Requesting IP
+ * @param origin Requesting address and country
  * @returns Session, two-factor challenge, or tenant assignment handover
  */
 export async function resolveLoginOutcome(
   sessionModel: SessionModel,
   user: User,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
   preferredTenantId?: string,
 ): Promise<LoginOutcome> {
   // A login that just consumed an invitation belongs in the tenant that
@@ -103,7 +109,7 @@ export async function resolveLoginOutcome(
     };
   }
 
-  void notifyNewLogin(user._id, userAgent, ip);
+  await recordSignIn(user, userAgent, origin);
 
-  return issueAuthResponse(sessionModel, tenantId, user, userAgent, ip);
+  return issueAuthResponse(sessionModel, tenantId, user, userAgent, origin);
 }

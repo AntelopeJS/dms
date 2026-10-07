@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { computed, inject } from "vue";
-import { useApexChart } from "../../composables/chart/useApexChart";
+import { computed, inject, ref, watch } from "vue";
+import DmsEmptyState from "../empty-state/EmptyState.vue";
+import DmsChartSkeleton from "../../build/components/chart/internal/ChartSkeleton.vue";
+import {
+  chartFrameHeight,
+  useApexChart,
+} from "../../composables/chart/useApexChart";
 import type { MixedSeriesDef } from "../../composables/chart/useApexChart.types";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
@@ -77,9 +82,13 @@ interface Props extends DefaultComponentProps {
 }
 
 const DEFAULT_CHART_HEIGHT = "320px";
+const EMPTY_ICON = "i-ph-chart-line-up";
 
 const props = withDefaults(defineProps<Props>(), {
   height: DEFAULT_CHART_HEIGHT,
+  // Declared like the server schema: Vue casts a missing boolean to false.
+  showGrid: true,
+  roundedCorners: true,
   showTooltip: true,
   showLegend: true,
   smooth: true,
@@ -267,6 +276,29 @@ const apex = useApexChart(() => ({
 }));
 
 const heightInPx = computed(() => props.height);
+// Every state (placeholder, drawn chart, empty state) takes the box the drawn
+// chart occupies, so nothing moves when the data or the chart arrives.
+const frameHeight = computed(() =>
+  chartFrameHeight(props.height, isCircular.value),
+);
+
+const hasData = computed(
+  () => finalSeries.value.length > 0 || finalDonutData.value.length > 0,
+);
+// A nested chart plots its card's data, so it waits on the card's request.
+const isAwaitingData = computed(() =>
+  nestedContext ? nestedContext.isLoading : isLoading.value,
+);
+// New inputs (a period applied) are on their way: the chart on screen still
+// shows the previous ones, so it dims like the KPI values do.
+const isRefreshing = computed(() => hasData.value && isAwaitingData.value);
+
+// The host (a lazy chunk) and Apex (another one) take a moment to draw: the
+// frame keeps the chart's box and its skeleton until the host says it drew.
+const isDrawn = ref(false);
+watch(hasData, (present) => {
+  if (!present) isDrawn.value = false;
+});
 </script>
 
 <template>
@@ -274,41 +306,61 @@ const heightInPx = computed(() => props.height);
        DmsChartCard inherit its frame instead. -->
   <div
     class="dms-chart"
-    :class="nestedContext ? undefined : 'dms-card p-5 sm:p-6'"
+    :class="nestedContext ? undefined : 'dms-card p-3.5 sm:pr-[18px]'"
   >
-    <div v-if="!nestedContext && (title || description)" class="mb-3">
-      <h3 v-if="title" class="text-highlighted text-lg font-semibold">
+    <div
+      v-if="!nestedContext && (title || description)"
+      class="mb-2.5 px-1 pt-0.5"
+    >
+      <h3
+        v-if="title"
+        class="text-highlighted text-sm leading-[1.3] font-semibold tracking-[-0.01em]"
+      >
         {{ processI18n(title) }}
       </h3>
-      <p v-if="description" class="text-dimmed text-sm">
+      <p v-if="description" class="text-dimmed mt-px text-[12.5px]">
         {{ processI18n(description) }}
       </p>
     </div>
 
     <DmsClientOnly>
-      <DmsApexChartHost
-        v-if="finalSeries.length > 0 || finalDonutData.length > 0"
-        :apex-type="apex.apexType.value"
-        :height="heightInPx"
-        :options="apex.options.value"
-        :series="apex.series.value"
+      <div
+        v-if="hasData"
+        class="relative transition-opacity"
+        :class="isRefreshing && 'opacity-55'"
+        :style="{ minHeight: frameHeight }"
+        :aria-busy="isRefreshing || !isDrawn || undefined"
+      >
+        <DmsApexChartHost
+          :class="!isDrawn && 'invisible'"
+          :apex-type="apex.apexType.value"
+          :height="heightInPx"
+          :options="apex.options.value"
+          :series="apex.series.value"
+          @drawn="isDrawn = true"
+        />
+        <DmsChartSkeleton
+          v-if="!isDrawn"
+          class="absolute inset-x-0 top-0"
+          :height="frameHeight"
+          :circular="isCircular"
+        />
+      </div>
+      <DmsChartSkeleton
+        v-else-if="isAwaitingData"
+        :height="frameHeight"
+        :circular="isCircular"
       />
-      <div
-        v-else-if="isLoading"
-        class="bg-elevated/30 flex items-center justify-center rounded-md"
-        :style="{ height: heightInPx }"
-      >
-        <USkeleton class="h-full w-full" />
-      </div>
-      <div
+      <DmsEmptyState
         v-else
-        class="text-dimmed flex items-center justify-center text-sm"
-        :style="{ height: heightInPx }"
-      >
-        {{ $t("dms.chart.no_data") }}
-      </div>
+        :icon="EMPTY_ICON"
+        :title="$t('dms.chart.no_data')"
+        size="sm"
+        class="border-default place-content-center rounded-lg border border-dashed"
+        :style="{ height: frameHeight }"
+      />
       <template #fallback>
-        <USkeleton class="w-full" :style="{ height: heightInPx }" />
+        <DmsChartSkeleton :height="frameHeight" :circular="isCircular" />
       </template>
     </DmsClientOnly>
   </div>

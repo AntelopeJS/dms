@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { useFormField } from "@nuxt/ui/composables/useFormField";
 import DmsDatePicker from "./DatePicker.vue";
 
 interface DatePickerRangeProps {
+  id?: string;
   minDate?: string;
   maxDate?: string;
   disabled?: boolean;
+  /** `error` marks both ends invalid (UFormField sets it from the field). */
+  color?: string;
 }
 
 const props = defineProps<DatePickerRangeProps>();
@@ -36,12 +40,24 @@ function emitRange(start: string | undefined, end: string | undefined) {
 }
 
 const { t } = useI18n();
+
+// Both pickers show the field's error.
+const { color: fieldColor } = useFormField(
+  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
+  // `color` and `disabled` from these.
+  props as Parameters<typeof useFormField>[0],
+);
+const pickerColor = computed(() =>
+  fieldColor.value === "error" ? "error" : undefined,
+);
 </script>
 
 <template>
   <div class="flex items-center gap-2">
     <DmsDatePicker
+      :id="props.id"
       v-model="startValue"
+      :color="pickerColor"
       :min-date="props.minDate"
       :max-date="endValue || props.maxDate"
       :disabled="props.disabled"
@@ -52,6 +68,7 @@ const { t } = useI18n();
     </span>
     <DmsDatePicker
       v-model="endValue"
+      :color="pickerColor"
       :min-date="startValue || props.minDate"
       :max-date="props.maxDate"
       :disabled="props.disabled"

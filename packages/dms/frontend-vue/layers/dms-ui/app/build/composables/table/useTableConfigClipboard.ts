@@ -1,6 +1,10 @@
 import { injectLocal } from "@vueuse/core";
 import type { ShallowRef } from "vue";
-import type { Data, TableSharedData } from "../../components/table/Table.vue";
+import type {
+  Data,
+  TableDensity,
+  TableSharedData,
+} from "../../components/table/Table.vue";
 
 const CONFIG_VERSION = 1;
 const TOAST_DURATION_MS = 3000;
@@ -14,6 +18,7 @@ interface SerializedTableConfig {
   pinning: { left?: string[]; right?: string[] };
   sorting: unknown[];
   pagination: { pageIndex: number; pageSize: number };
+  density?: TableDensity;
 }
 
 const isSerializedConfig = (value: unknown): value is SerializedTableConfig => {
@@ -60,6 +65,7 @@ export const useTableConfigClipboard = <T extends Data>() => {
       pinning: data.columnPinningState.value,
       sorting: data.sortingState.value,
       pagination: data.paginationState.value,
+      density: data.densityState.value,
     };
   };
 
@@ -74,6 +80,7 @@ export const useTableConfigClipboard = <T extends Data>() => {
     data.columnPinningState.value = config.pinning;
     data.sortingState.value = config.sorting as never;
     data.paginationState.value = config.pagination;
+    if (config.density) data.densityState.value = config.density;
   };
 
   const exportConfig = async (): Promise<void> => {

@@ -14,16 +14,17 @@ export type ActionTarget =
     }
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
+  /** Runs a quick action, by its `category:id` key or bare id. */
+  | { type: "quickAction"; id: string }
   | {
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /** JSON body sent with the request. */
+      body?: Record<string, unknown>;
+      /** Field of the JSON response copied to the clipboard on success. */
+      copy?: string;
       successMessage: string;
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-      };
     }
   | {
       type: "exportJob";
@@ -39,10 +40,5 @@ export type ActionTarget =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };

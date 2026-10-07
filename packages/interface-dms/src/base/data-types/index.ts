@@ -6,6 +6,9 @@ export * from "./core";
 // compare modes as it evaluates, like them, but it imports core.ts only, so it
 // forms no cycle with this barrel and joins it as a plain re-export.
 export * from "./compare-types";
+// Field types built from the others; `default-types` re-exports them in its
+// namespace, and they import core.ts and the form schema only.
+export * from "./field-types";
 // The cycle is what registers the default data types: they declare
 // themselves through decorators, and this barrel is the only value
 // path that evaluates them. Breaking it left the registry empty and

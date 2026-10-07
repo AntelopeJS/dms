@@ -10,6 +10,13 @@ import {
   type CascaderKeyMapping,
   type CascaderNode,
 } from "../../../utils/cascader";
+import { useFormField } from "@nuxt/ui/composables/useFormField";
+import {
+  FIELD_TRIGGER_CLASS,
+  FIELD_TRIGGER_ICON,
+  FIELD_TRIGGER_INVALID_CLASS,
+  FIELD_TRIGGER_UI,
+} from "../../../build/utils/fieldTrigger";
 
 interface CascaderProps {
   searchUrl: string;
@@ -37,6 +44,16 @@ const props = withDefaults(defineProps<CascaderProps>(), {
 const emit = defineEmits<{
   "update:modelValue": [value: string | string[] | undefined];
 }>();
+
+// The field state UFormField hands its control: the error border and aria
+// attributes go on the trigger (not on the search input of the panel).
+const {
+  color: fieldColor,
+  ariaAttrs,
+  emitFormBlur,
+  emitFormChange,
+} = useFormField(props);
+const invalid = computed(() => fieldColor.value === "error");
 
 const instanceId = useId();
 const { $authFetch } = useAuthFetch();
@@ -146,11 +163,13 @@ function selectNode(node: CascaderNode) {
       ? selectedValues.value.filter((value) => value !== node.value)
       : [...selectedValues.value, node.value];
     emit("update:modelValue", next);
+    emitFormChange();
     return;
   }
   const isDeselect =
     props.deselectable && selectedValues.value[0] === node.value;
   emit("update:modelValue", isDeselect ? undefined : node.value);
+  emitFormChange();
   if (!isDeselect && node.children.length === 0) {
     open.value = false;
   }
@@ -295,7 +314,10 @@ function syncActivePathToSelection() {
 }
 
 function handleOpenChange(isOpen: boolean) {
-  if (!isOpen) return;
+  if (!isOpen) {
+    emitFormBlur();
+    return;
+  }
   searchTerm.value = "";
   if (rows.value.length === 0) {
     void execute();
@@ -346,9 +368,15 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
         color="neutral"
         variant="outline"
         :disabled="props.disabled"
-        trailing-icon="i-ph-caret-up-down"
-        class="w-full justify-between font-normal"
+        :trailing-icon="FIELD_TRIGGER_ICON"
+        :ui="FIELD_TRIGGER_UI"
+        :class="[
+          'w-full justify-between',
+          FIELD_TRIGGER_CLASS,
+          invalid && FIELD_TRIGGER_INVALID_CLASS,
+        ]"
         :aria-label="placeholderLabel"
+        v-bind="ariaAttrs"
       >
         <span v-if="triggerLabel" class="truncate">{{ triggerLabel }}</span>
         <span v-else class="text-dimmed truncate">{{ placeholderLabel }}</span>
@@ -381,7 +409,7 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
             v-else-if="rows.length === 0"
             class="text-muted w-52 px-2 py-6 text-center text-sm"
           >
-            {{ t("dms.tree.no_entries") }}
+            {{ t("dms.form.cascader.no_entries") }}
           </div>
 
           <div

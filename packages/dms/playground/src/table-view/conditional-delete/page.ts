@@ -1,8 +1,22 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class conditionalDeleteTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/conditional-delete", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewConditionalDelete extends PageController(
@@ -16,10 +30,11 @@ export class PageTableViewConditionalDelete extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(conditionalDeleteTaskDataAPI, {
     caption:
       "Tasks - Delete/Edit allowed if task is neither high priority nor completed",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       copyLink: true,

@@ -24,3 +24,52 @@ describe("[unit] notification preferences — one row per user", () => {
     for (const result of results) expect(result._id).to.equal(USER_ID);
   });
 });
+
+describe("[unit] notification preferences — per-subject merge", () => {
+  const model = GetModel(UserNotificationPreferencesModel);
+  const MERGE_USER_ID = "notification-preferences-merge-user";
+
+  after(async () => {
+    await model.table.getAll(MERGE_USER_ID, "userId").delete().run();
+  });
+
+  it("keeps every change when subjects are saved concurrently", async () => {
+    await model.getOrCreatePreferences(MERGE_USER_ID);
+    await Promise.all([
+      model.mergePreferences(MERGE_USER_ID, { "system:account": false }),
+      model.mergePreferences(MERGE_USER_ID, { "system:automation": false }),
+    ]);
+
+    const stored = await model.getOrCreatePreferences(MERGE_USER_ID);
+    expect(stored.preferences["system:account"]).to.equal(false);
+    expect(stored.preferences["system:automation"]).to.equal(false);
+    expect(stored.preferences["system:security"]).to.equal(true);
+  });
+});
+
+describe("[unit] notification preferences — bell seen date", () => {
+  const model = GetModel(UserNotificationPreferencesModel);
+  const SEEN_USER_ID = "notification-preferences-seen-user";
+
+  after(async () => {
+    await model.table.getAll(SEEN_USER_ID, "userId").delete().run();
+  });
+
+  it("has no seen date until the bell opens, then keeps the latest", async () => {
+    expect(await model.getNotificationsSeenAt(SEEN_USER_ID)).to.equal(
+      undefined,
+    );
+    const first = await model.markNotificationsSeen(SEEN_USER_ID);
+    expect(
+      (await model.getNotificationsSeenAt(SEEN_USER_ID))?.getTime(),
+    ).to.equal(first.getTime());
+
+    const preferences = await model.mergePreferences(SEEN_USER_ID, {
+      "system:account": false,
+    });
+    expect(preferences["system:account"]).to.equal(false);
+    expect(
+      (await model.getNotificationsSeenAt(SEEN_USER_ID))?.getTime(),
+    ).to.equal(first.getTime());
+  });
+});

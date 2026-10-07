@@ -1,9 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Tab, TabVariant } from "@antelopejs/interface-dms/base/tab";
-import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
+import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
 import {
   AxeOrientation,
   Color,
@@ -42,48 +39,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.primary,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "files" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "components" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "database" },
-    );
+    .child("filesPanel", Placeholder({ label: "Files" }), {
+      slot: "files",
+    })
+    .child("componentsPanel", Placeholder({ label: "Components" }), {
+      slot: "components",
+    })
+    .child("databasePanel", Placeholder({ label: "Database" }), {
+      slot: "database",
+    });
 
   static tabsLink = Tab({
     variant: TabVariant.link,
@@ -107,48 +71,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.success,
     size: Size.large,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "overview" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "analytics" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "settings" },
-    );
+    .child("overviewPanel", Placeholder({ label: "Overview" }), {
+      slot: "overview",
+    })
+    .child("analyticsPanel", Placeholder({ label: "Analytics" }), {
+      slot: "analytics",
+    })
+    .child("settingsPanel", Placeholder({ label: "Settings" }), {
+      slot: "settings",
+    });
 
   static tabsVertical = Tab({
     orientation: AxeOrientation.vertical,
@@ -173,48 +104,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.info,
     size: Size.small,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "profile" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "security" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "preferences" },
-    );
+    .child("profilePanel", Placeholder({ label: "Profile" }), {
+      slot: "profile",
+    })
+    .child("securityPanel", Placeholder({ label: "Security" }), {
+      slot: "security",
+    })
+    .child("preferencesPanel", Placeholder({ label: "Preferences" }), {
+      slot: "preferences",
+    });
 
   static tabsMinimal = Tab({
     items: [
@@ -234,48 +132,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.neutral,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "documentation" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "api" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "examples" },
-    );
+    .child("documentationPanel", Placeholder({ label: "Documentation" }), {
+      slot: "documentation",
+    })
+    .child("apiPanel", Placeholder({ label: "API Reference" }), {
+      slot: "api",
+    })
+    .child("examplesPanel", Placeholder({ label: "Examples" }), {
+      slot: "examples",
+    });
 
   static tabsColorful = Tab({
     variant: TabVariant.pill,
@@ -299,48 +164,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.success,
     size: Size.large,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "production" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "staging" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "development" },
-    );
+    .child("productionPanel", Placeholder({ label: "Production" }), {
+      slot: "production",
+    })
+    .child("stagingPanel", Placeholder({ label: "Staging" }), {
+      slot: "staging",
+    })
+    .child("developmentPanel", Placeholder({ label: "Development" }), {
+      slot: "development",
+    });
 
   static tabsCompact = Tab({
     variant: TabVariant.link,
@@ -365,48 +197,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.secondary,
     size: Size.tiny,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "all" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "active" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "archived" },
-    );
+    .child("allPanel", Placeholder({ label: "All" }), {
+      slot: "all",
+    })
+    .child("activePanel", Placeholder({ label: "Active" }), {
+      slot: "active",
+    })
+    .child("archivedPanel", Placeholder({ label: "Archived" }), {
+      slot: "archived",
+    });
 
   static tabsWorkflow = Tab({
     variant: TabVariant.pill,
@@ -431,48 +230,15 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.warning,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "configure" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "review" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "deploy" },
-    );
+    .child("configurePanel", Placeholder({ label: "Step 1: Configure" }), {
+      slot: "configure",
+    })
+    .child("reviewPanel", Placeholder({ label: "Step 2: Review" }), {
+      slot: "review",
+    })
+    .child("deployPanel", Placeholder({ label: "Step 3: Deploy" }), {
+      slot: "deploy",
+    });
 
   static tabsWithBadges = Tab({
     variant: TabVariant.pill,
@@ -510,74 +276,19 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     color: Color.primary,
     size: Size.medium,
   })
-    .child(
-      "notificationsTree",
-      Tree({
-        title: "Recent Notifications",
-        description: "12 unread notifications",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "notifications" },
-    )
-    .child(
-      "updatesTree",
-      Tree({
-        title: "Latest Updates",
-        description: "New features and improvements",
-        fetchUrl: "/api/tree/components",
-        color: Color.success,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "updates" },
-    )
-    .child(
-      "featuresTree",
-      Tree({
-        title: "Beta Features",
-        description: "Try out experimental features",
-        fetchUrl: "/api/tree/database",
-        color: Color.info,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "features" },
-    )
-    .child(
-      "documentationTree",
-      Tree({
-        title: "Documentation v2.0",
-        description: "Updated documentation",
-        fetchUrl: "/api/tree/files",
-        color: Color.neutral,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "documentation" },
-    )
-    .child(
-      "settingsTree",
-      Tree({
-        title: "Settings",
-        description: "Application configuration",
-        fetchUrl: "/api/tree/components",
-        color: Color.neutral,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "settings" },
-    );
+    .child("notificationsPanel", Placeholder({ label: "Notifications" }), {
+      slot: "notifications",
+    })
+    .child("updatesPanel", Placeholder({ label: "Updates" }), {
+      slot: "updates",
+    })
+    .child("featuresPanel", Placeholder({ label: "Features" }), {
+      slot: "features",
+    })
+    .child("documentationPanel", Placeholder({ label: "Documentation" }), {
+      slot: "documentation",
+    })
+    .child("settingsPanel", Placeholder({ label: "Settings" }), {
+      slot: "settings",
+    });
 }

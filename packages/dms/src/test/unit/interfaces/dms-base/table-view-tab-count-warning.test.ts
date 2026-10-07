@@ -23,7 +23,7 @@ const TABS: TableViewTab[] = [
   {
     id: "open",
     label: "Open",
-    filters: [{ accessorKey: "status", value: "open", mode: "is" }],
+    filter: { accessorKey: "status", value: "open", mode: "is" },
   },
 ];
 

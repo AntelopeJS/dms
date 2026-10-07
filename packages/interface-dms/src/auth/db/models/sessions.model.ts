@@ -3,12 +3,14 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
-  timingSafeEqual,
 } from "node:crypto";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { SESSIONS_TABLE_NAME, Session } from "../tables/sessions.table";
-
-export const REFRESH_TOKEN_PREDECESSOR_GRACE_MS = 15_000;
+import {
+  isImmediateRefreshTokenPredecessor,
+  hashRefreshToken,
+  hashesMatch,
+} from "../internal/sessions.model";
 
 interface UpdateResult {
   replaced?: number;
@@ -28,19 +30,6 @@ const SEAL_SEPARATOR = ".";
 const SEAL_KEY_DOMAIN = "dms-refresh-successor:";
 const LAST_ACTIVE_AT_INDEX = "lastActiveAt";
 const EPOCH_LOWER_BOUND = new Date(0);
-
-function hashRefreshToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function hashesMatch(left: string, right: string): boolean {
-  const leftBuffer = Buffer.from(left, "hex");
-  const rightBuffer = Buffer.from(right, "hex");
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
-}
 
 // The grace window must hand the current token back to a client that still
 // holds its predecessor, so the current token is sealed under a key derived
@@ -80,8 +69,7 @@ function openRefreshToken(sealed: string, predecessor: string): string | null {
 }
 
 /**
- * Whether a presented refresh token is the session's current one. A session
- * written before tokens were hashed still holds its token in plaintext.
+ * Whether a presented refresh token is the session's current one.
  *
  * @param session The session the token claims
  * @param presentedToken Token the client presented
@@ -91,29 +79,9 @@ export function isCurrentRefreshToken(
   session: Session,
   presentedToken: string,
 ): boolean {
-  const presentedHash = hashRefreshToken(presentedToken);
-  if (session.refreshTokenHash) {
-    return hashesMatch(session.refreshTokenHash, presentedHash);
-  }
   return (
-    !!session.refreshToken &&
-    hashesMatch(hashRefreshToken(session.refreshToken), presentedHash)
-  );
-}
-
-export function isImmediateRefreshTokenPredecessor(
-  session: Session,
-  presentedToken: string,
-  now: Date,
-): boolean {
-  if (!session.previousRefreshTokenHash || !session.refreshTokenRotatedAt) {
-    return false;
-  }
-  const age = now.getTime() - session.refreshTokenRotatedAt.getTime();
-  if (Math.abs(age) > REFRESH_TOKEN_PREDECESSOR_GRACE_MS) return false;
-  return hashesMatch(
-    session.previousRefreshTokenHash,
-    hashRefreshToken(presentedToken),
+    !!session.refreshTokenHash &&
+    hashesMatch(session.refreshTokenHash, hashRefreshToken(presentedToken))
   );
 }
 
@@ -121,11 +89,8 @@ function recoverSuccessor(
   session: Session,
   presentedToken: string,
 ): string | null {
-  if (session.sealedRefreshToken) {
-    return openRefreshToken(session.sealedRefreshToken, presentedToken);
-  }
-  // Rotated before tokens were sealed: the successor is still in plaintext.
-  return session.refreshToken || null;
+  if (!session.sealedRefreshToken) return null;
+  return openRefreshToken(session.sealedRefreshToken, presentedToken);
 }
 
 export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
@@ -139,13 +104,9 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     const result: unknown = await this.table
       .getAll(sessionId)
       .filter((row) =>
-        row
-          .key("refreshTokenHash")
-          .eq(hashRefreshToken(presentedToken))
-          .or(row.key("refreshToken").eq(presentedToken)),
+        row.key("refreshTokenHash").eq(hashRefreshToken(presentedToken)),
       )
       .update({
-        refreshToken: "",
         refreshTokenHash: hashRefreshToken(refreshToken),
         sealedRefreshToken: sealRefreshToken(refreshToken, presentedToken),
         previousRefreshTokenHash: hashRefreshToken(presentedToken),
@@ -171,7 +132,6 @@ export class SessionModel extends BasicDataModel(Session, SESSIONS_TABLE_NAME) {
     refreshToken: string,
   ): Promise<void> {
     await this.update(sessionId, {
-      refreshToken: "",
       refreshTokenHash: hashRefreshToken(refreshToken),
       sealedRefreshToken: null,
       previousRefreshTokenHash: null,

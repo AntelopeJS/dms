@@ -1,9 +1,23 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class kanbanCardTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/kanban-custom-card", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewKanbanCustomCard extends PageController(
@@ -18,9 +32,10 @@ export class PageTableViewKanbanCustomCard extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(kanbanCardTaskDataAPI, {
     caption: "Tasks - Kanban (Custom Card)",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       copyLink: true,
@@ -30,10 +45,11 @@ export class PageTableViewKanbanCustomCard extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    kanban: {
-      groupByField: "status",
-      cardComponent: CustomComponent("KanbanTaskCard"),
-    },
+    kanban: { groupByField: "status" },
+    // One card for both card displays: the board and the card grid hand it
+    // the same props.
+    card: { component: CustomComponent("KanbanTaskCard") },
+    displays: [{ id: "cards" }],
     defaultDisplay: "kanban",
   });
 }

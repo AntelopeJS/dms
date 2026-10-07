@@ -1,8 +1,22 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class archiveTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/archive-mode", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewArchive extends PageController(
@@ -12,13 +26,15 @@ export class PageTableViewArchive extends PageController(
     icon: "i-ph-archive",
     category: tableViewCategory,
     order: 80,
-    description: "TableView with archive mode enabled",
+    description:
+      'Archive rows instead of deleting them: archived rows leave the list and are viewed (and restored) with the "Archive" toolbar button',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(archiveTaskDataAPI, {
     caption: "Tasks - Archive Mode",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     archiveMode: true,
     rowActions: {
       add: true,

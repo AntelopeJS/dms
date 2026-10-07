@@ -21,4 +21,10 @@ export default defineConfig({
   options: {
     typeAware: true,
   },
+  rules: {
+    // `void` only silences the rule: a rejection it lets through is
+    // unhandled, and the runtime exits the process on one. A promise fired
+    // without awaiting it handles its own failure (`.catch`, try/catch).
+    "typescript/no-floating-promises": ["error", { ignoreVoid: false }],
+  },
 });

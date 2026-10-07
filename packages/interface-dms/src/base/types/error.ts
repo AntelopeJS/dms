@@ -1,4 +1,4 @@
-import { isNull, isObject } from "../../utils/type-check";
+import { isNull, isObject } from "../../utils/internal/type-check";
 
 /**
  * Error with a message property

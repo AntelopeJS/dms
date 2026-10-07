@@ -1,4 +1,5 @@
 import {
+  type ControllerClass,
   Context,
   JSONBody,
   MultiParameter,
@@ -6,6 +7,7 @@ import {
   type RequestContext,
 } from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
+import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
   type DataControllerCallbackWithOptions,
@@ -23,19 +25,20 @@ import {
   VIEW_ACTION,
   withActionCheck,
   withActionCheckOptions,
-} from "./auth";
+} from "./internal/auth";
 import {
   archiveRows,
   countWithSearch,
   downloadExport,
   getExportStatus,
   listWithSearch,
-  type RowBulkOperationParams,
   restoreRows,
   startExport,
+  summarizeWithSearch,
 } from "./data-functions";
-import { withFilePromotion } from "./files";
-import { createGuardedRoute, guardedGetRoute } from "./guards";
+import type { RowBulkOperationParams } from "./internal/data-functions";
+import { withFilePromotion } from "./internal/files";
+import { createGuardedRoute, guardedGetRoute } from "./internal/guards";
 import {
   extractBulkArgIds,
   extractFromResult,
@@ -43,8 +46,10 @@ import {
   extractSingleParamId,
   withPresenceAcquire,
   withRealtimeMutation,
-} from "./realtime";
-import { createValidatedRoute } from "./row-rules";
+} from "./internal/realtime";
+import { TableViewMeta } from "./meta";
+import type { TableViewFooterSummary } from "./options";
+import { createValidatedRoute } from "./internal/row-rules";
 
 const MAX_BATCH_COUNT_QUERIES = 50;
 
@@ -88,13 +93,16 @@ function buildBatchCountContext(
   return { ...ctx, url };
 }
 
+// The selection arrives as a repeated query parameter (`?ids=a&ids=b`): every
+// value is read, a single-value read would act on the first row only.
 const createBulkOperationRoute = (
   operationFunc: (...args: RowBulkOperationParams) => unknown,
 ): DataControllerCallback => ({
-  func: function (ctx: RequestContext, ids: string | string[]) {
+  func: function (ctx: RequestContext, ids: string[]) {
+    assert(ids.length > 0, 400, "Missing ids.");
     return operationFunc(this, ctx, ids);
   },
-  args: [Context(), Parameter("ids", "query")],
+  args: [Context(), MultiParameter("ids", "query")],
   method: "put",
 });
 
@@ -148,6 +156,59 @@ function createCountRoute(actionId: string): DataControllerCallback {
       );
     },
     args: [Context(), Parameters.List(), AuthUser()],
+    method: "get" as const,
+  };
+}
+
+/** The footer summaries a request names, refusing an id never declared. */
+function requestedSummaries(
+  thisObj: unknown,
+  ids: string[],
+): Record<string, TableViewFooterSummary> {
+  const meta = GetMetadata(
+    (thisObj as { constructor: ControllerClass }).constructor,
+    TableViewMeta,
+  );
+  const summaries: Record<string, TableViewFooterSummary> = {};
+  for (const id of ids) {
+    const summary = meta.footerSummary(id);
+    assert(summary, 400, `Unknown footer summary "${id}".`);
+    summaries[id] = summary;
+  }
+  return summaries;
+}
+
+function createSummaryRoute(actionId: string): DataControllerCallback {
+  return {
+    func: async function (
+      this: unknown,
+      ctx: RequestContext,
+      listParams: Parameters.ListParameters,
+      ids: string[],
+      user: User,
+    ) {
+      const summaries = requestedSummaries(this, ids);
+      const permissions = await authorizeAction(
+        this,
+        actionId,
+        user,
+        getRequestTenantId(ctx),
+      );
+      return summarizeWithSearch(
+        this as DataControllerCallback,
+        ctx,
+        listParams,
+        summaries,
+        user,
+        permissions,
+      );
+    },
+    args: [
+      Context(),
+      Parameters.List(),
+      MultiParameter("ids", "query"),
+      AuthUser(),
+    ],
     method: "get" as const,
   };
 }
@@ -233,6 +294,17 @@ export namespace TableViewRoutes {
     {},
     "/count/batch",
   );
+  /**
+   * `GET <location>/summary?ids=<id>`: the footer summaries a table view
+   * declared (`footer.summary`), computed over every row its filters and
+   * search list. Mount it as `summary: TableViewRoutes.Summary`; a table view
+   * declaring summaries without it gets a registration warning.
+   */
+  export const Summary = DefaultRoutes.WithOptions(
+    createSummaryRoute(LIST_ACTION),
+    {},
+    "/summary",
+  );
   export const New = withRealtimeMutation(
     { eventType: "created", extractIds: extractFromResult },
     withActionCheck(
@@ -240,12 +312,17 @@ export namespace TableViewRoutes {
       createGuardedRoute(withFilePromotion(DefaultRoutes.New), "new"),
     ),
   );
+  /**
+   * `PUT <location>/edit`: a partial update. Only the fields the body carries
+   * change: a field left out keeps its stored value, `null` (or an empty
+   * value) clears it. A mandatory field may be left out but not cleared.
+   */
   export const Edit = createEditRoute(DefaultRoutes.Edit);
   /**
    * `Edit` around another write: the permission check, guard, row rules, file
    * promotion and realtime broadcast still wrap it, so it runs only once the
    * edit is allowed. `baseRoute` takes the arguments of `DefaultRoutes.Edit`,
-   * which it typically calls to write the row.
+   * and typically calls it to write the row.
    */
   export const EditWith = createEditRoute;
   export const Delete = withRealtimeMutation(
@@ -354,6 +431,7 @@ export namespace TableViewRoutes {
     select: Select,
     count: Count,
     countBatch: CountBatch,
+    summary: Summary,
     new: New,
     edit: Edit,
     delete: Delete,

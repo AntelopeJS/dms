@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-// DMS "health hero" (design .health-hero): a status ring + value next to a
-// divided row of key metrics. Generic over any service — API health, DB
-// connection, job runner… — and reused across module overviews. Wraps DmsCard
-// so it drops straight into a page.
+// DMS "health hero" (design .status-hero): a status ring + value next to a
+// divided row of key metrics, optionally over a per-day history strip.
+// Generic over any service — API health, DB connection, job runner… — and
+// reused across module overviews. Wraps DmsCard so it drops into a page.
 type Status = "ok" | "warn" | "down" | "info";
 
 interface Metric {
@@ -15,25 +15,62 @@ interface Metric {
   tone?: "default" | "error" | "warning" | "success";
 }
 
-const props = withDefaults(
-  defineProps<{
-    statusValue: string;
-    status?: Status;
-    statusLabel?: string;
-    icon?: string;
-    metrics?: Metric[];
-  }>(),
-  {
-    status: "ok",
-    metrics: () => [],
-  },
-);
+interface StatusTone {
+  text: string;
+  dot: string;
+  tint: string;
+  line: string;
+}
 
-const RING: Record<Status, string> = {
-  ok: "border-success/45 bg-success/10 text-success",
-  warn: "border-warning/45 bg-warning/10 text-warning",
-  down: "border-error/45 bg-error/10 text-error",
-  info: "border-info/45 bg-info/10 text-info",
+interface Props {
+  statusValue: string;
+  status?: Status;
+  statusLabel?: string;
+  icon?: string;
+  metrics?: Metric[];
+  /** Mono line under the value, e.g. "Up 14 d 6 h · checked 12 s ago". */
+  since?: string;
+  /** Pulse the live dot on the ring. */
+  live?: boolean;
+  /** One status per day, oldest first (a 30-cell strip under the hero). */
+  history?: Status[];
+  /** Labels under the strip: start, summary, end. */
+  historyLabels?: string[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  status: "ok",
+  metrics: () => [],
+  live: true,
+  history: () => [],
+  historyLabels: () => [],
+});
+
+const STATUS_TONES: Record<Status, StatusTone> = {
+  ok: {
+    text: "text-success",
+    dot: "bg-success",
+    tint: "var(--dms-success-tint)",
+    line: "var(--dms-success-line)",
+  },
+  warn: {
+    text: "text-warning",
+    dot: "bg-warning",
+    tint: "var(--dms-warning-tint)",
+    line: "var(--dms-warning-line)",
+  },
+  down: {
+    text: "text-error",
+    dot: "bg-error",
+    tint: "var(--dms-error-tint)",
+    line: "var(--dms-error-line)",
+  },
+  info: {
+    text: "text-info",
+    dot: "bg-info",
+    tint: "var(--dms-info-tint)",
+    line: "var(--dms-info-line)",
+  },
 };
 
 const VALUE_TONE: Record<Status, string> = {
@@ -50,38 +87,70 @@ const METRIC_TONE: Record<NonNullable<Metric["tone"]>, string> = {
   success: "text-success",
 };
 
-const DEFAULT_ICON: Record<Status, string> = {
-  ok: "i-lucide-circle-check",
-  warn: "i-lucide-triangle-alert",
-  down: "i-lucide-circle-x",
-  info: "i-lucide-info",
+const HISTORY_CELL: Record<Status, string> = {
+  ok: "bg-success opacity-75",
+  warn: "bg-warning",
+  down: "bg-error",
+  info: "bg-info opacity-75",
 };
 
+const DEFAULT_ICON: Record<Status, string> = {
+  ok: "i-ph-check-circle",
+  warn: "i-ph-warning",
+  down: "i-ph-x-circle",
+  info: "i-ph-info",
+};
+
+const tone = computed(() => STATUS_TONES[props.status]);
 const resolvedIcon = computed(() => props.icon || DEFAULT_ICON[props.status]);
+
+// A faint status wash from the left edge (same recipe as the banner), so the
+// state reads at a glance without a coloured border.
+const cardStyle = computed(() => ({
+  "--dms-status-tint": tone.value.tint,
+  "--dms-status-line": tone.value.line,
+  background:
+    "radial-gradient(420px 180px at 0% 50%, var(--dms-status-tint), transparent 70%), var(--ui-bg)",
+}));
 </script>
 
 <template>
-  <DmsCard :padded="false" class="p-6 sm:px-7">
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-7">
+  <DmsCard
+    :padded="false"
+    class="px-4 py-[22px] sm:px-[26px]"
+    :style="cardStyle"
+  >
+    <div
+      class="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-7"
+    >
       <div class="flex shrink-0 items-center gap-4">
         <div
-          :class="RING[status]"
-          class="grid size-16 shrink-0 place-items-center rounded-full border-2"
+          :class="tone.text"
+          class="relative grid size-16 shrink-0 place-items-center rounded-full border-[1.5px] border-(--dms-status-line) bg-(--dms-status-tint) shadow-[0_0_0_6px_color-mix(in_srgb,var(--dms-status-tint)_50%,transparent)]"
         >
           <UIcon :name="resolvedIcon" class="size-[30px]" :aria-hidden="true" />
+          <span
+            class="absolute top-[3px] right-[3px] size-[11px] rounded-full shadow-[0_0_12px_currentColor] ring-[2.5px] ring-(--ui-bg)"
+            :class="tone.dot"
+            aria-hidden="true"
+          >
+            <span
+              v-if="live"
+              class="absolute inset-0 animate-ping rounded-full [animation-duration:1.8s] motion-reduce:hidden"
+              :class="tone.dot"
+            />
+          </span>
         </div>
         <div>
-          <p
-            v-if="statusLabel"
-            class="text-dimmed font-mono text-[10.5px] tracking-[0.14em] uppercase"
-          >
-            {{ statusLabel }}
-          </p>
+          <DmsEyebrow v-if="statusLabel" :label="statusLabel" />
           <p
             :class="VALUE_TONE[status]"
-            class="mt-1 text-[28px] leading-none font-semibold tracking-tight"
+            class="mt-1.5 text-[28px] leading-none font-[650] tracking-[-0.035em]"
           >
             {{ statusValue }}
+          </p>
+          <p v-if="since" class="text-dimmed mt-1.5 font-mono text-[11.5px]">
+            {{ since }}
           </p>
         </div>
       </div>
@@ -93,24 +162,57 @@ const resolvedIcon = computed(() => props.icon || DEFAULT_ICON[props.status]);
 
       <div
         v-if="metrics.length"
-        class="grid flex-1 grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4"
+        class="grid flex-1 grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-[repeat(auto-fit,minmax(96px,1fr))] lg:grid-cols-4"
       >
-        <div v-for="m in metrics" :key="m.label" class="min-w-0">
+        <div
+          v-for="(m, index) in metrics"
+          :key="m.label"
+          class="min-w-0"
+          :class="index > 0 && 'sm:border-muted sm:-ml-6 sm:border-l sm:pl-6'"
+        >
           <p
-            class="text-dimmed font-mono text-[10px] tracking-[0.12em] uppercase"
+            class="text-dimmed font-mono text-[10px] font-semibold tracking-[0.12em] uppercase"
           >
             {{ m.label }}
           </p>
           <p
             :class="METRIC_TONE[m.tone || 'default']"
-            class="mt-1.5 text-xl font-semibold tabular-nums"
+            class="mt-[7px] font-mono text-xl leading-[1.1] font-semibold tracking-[-0.03em] whitespace-nowrap tabular-nums"
           >
             {{ m.value }}
-            <span v-if="m.unit" class="text-dimmed ml-0.5 text-xs font-medium">
+            <span
+              v-if="m.unit"
+              class="text-dimmed ml-0.5 font-sans text-xs font-medium tracking-normal"
+            >
               {{ m.unit }}
             </span>
           </p>
-          <p v-if="m.sub" class="text-dimmed mt-1 text-[11px]">{{ m.sub }}</p>
+          <p v-if="m.sub" class="text-dimmed mt-1 text-[11.5px]">
+            {{ m.sub }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="history.length"
+        class="border-muted grid basis-full gap-2 border-t pt-4"
+      >
+        <div
+          class="grid h-[26px] gap-[3px]"
+          :style="{ gridTemplateColumns: `repeat(${history.length}, 1fr)` }"
+        >
+          <span
+            v-for="(day, index) in history"
+            :key="index"
+            class="rounded-[2px]"
+            :class="HISTORY_CELL[day]"
+          />
+        </div>
+        <div
+          v-if="historyLabels.length"
+          class="text-dimmed flex justify-between font-mono text-[11px]"
+        >
+          <span v-for="label in historyLabels" :key="label">{{ label }}</span>
         </div>
       </div>
     </div>

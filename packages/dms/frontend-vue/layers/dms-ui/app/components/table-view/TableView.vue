@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
 import type {
   ColumnSizingState,
+  ExpandedState,
   PaginationState,
   RowSelectionState,
   SortingState,
@@ -15,16 +16,28 @@ import {
   type QuickActionIntent,
   readQuickActionIntent,
 } from "../../types/quick-actions";
+import { registerQuickActionTarget } from "../../build/utils/quickActionTargets";
 import type {
   KanbanConfig,
   TableViewConfig,
+  TableViewExpandableConfig,
+  TableViewFooter,
+  TableViewQuickFilter,
   TableViewListResponse,
   TableViewDisplayContext,
   TableViewDisplayConfig,
+  TableViewExpandedRowProps,
+  TableViewViewsConfig,
+  TableViewGroupedConfig,
+  TableViewEmptyStatesConfig,
+  TableViewPaginationMode,
+  TableViewSourceConfig,
+  TableViewReorderConfig,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
+  GROUPED_DISPLAY_ID,
   TableViewEvents,
 } from "../../composables/table-view/types";
 import {
@@ -35,11 +48,53 @@ import { useTableRowActions } from "../../build/composables/table-view/useTableV
 import {
   buildTableDataKey,
   buildTableQuery,
+  isFilterEffective,
 } from "../../build/composables/table-view/utils/tableQuery";
 import { buildTableViewShortcuts } from "../../composables/table-view/shortcuts";
+import {
+  defaultExpandedRows,
+  type ExpandedRowMap,
+  keepListedRows,
+  nextExpandedRows,
+} from "../../build/composables/table-view/utils/expandedRows";
+import { resolveTableChrome } from "../../build/composables/table-view/utils/chrome";
+import {
+  isSameSorting,
+  isUnsortableFieldError,
+  defaultSortingState,
+  resolveDefaultSortConfig,
+  sanitizeSorting,
+  sortableColumnIds,
+  sortValueKind,
+} from "../../build/composables/table-view/utils/sortableColumns";
+import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
+import { isBulkAction } from "../../build/composables/actions/bulkSelection";
+import { selectionScopeKey } from "../../build/utils/selectionScope";
+import { readRecordId } from "../../build/composables/table-view/utils/recordLink";
+import type { CustomRowAction } from "../../types/row-action";
+import {
+  type QuickFilterItem,
+  quickFilterMode,
+  relationQuickFilterItems,
+  relationQuickFilterSource,
+  type ResolvedQuickFilter,
+  staticQuickFilterItems,
+} from "../../build/composables/table-view/utils/quickFilters";
+import { useNavBadges } from "../../build/composables/navigation/useNavBadges";
+import { resolveRowClickAction } from "../../utils/rowClickAction";
+import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 
 import UTable from "../../build/components/table/Table.vue";
-import type { TableViewSwitcherItem } from "../../build/components/table/Table.vue";
+import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
+import { buildExpandedRowProps } from "../../build/composables/table-view/utils/expandedRowProps";
+import {
+  type ExpandedRowLoadState,
+  useExpandedRowDetails,
+} from "../../build/composables/table-view/useExpandedRowDetails";
+import type {
+  TableAccumulation,
+  TableViewSwitcherItem,
+} from "../../build/components/table/Table.vue";
 import {
   defineAsyncComponent,
   type Component,
@@ -47,6 +102,23 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
+import { useTableViews } from "../../build/composables/table-view/useTableViews";
+import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
+import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
+import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import { useTableRows } from "../../build/composables/table-view/useTableRows";
+import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
+import {
+  groupedOptionsFor,
+  groupedSorting,
+  isGroupableColumn,
+} from "../../build/composables/table-view/utils/groupedRows";
+import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
+import TableViews, {
+  type TableViewItem,
+} from "../../build/components/table/Views.vue";
+import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
+import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_PRESENCE_TOPIC_PREFIX = "tableview:presence:";
@@ -72,7 +144,34 @@ interface RealtimePresenceActor {
 
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
-interface TableViewProps<T extends Data> extends TableViewConfig<T> {}
+// The backend options of a table view, declared here as well so the
+// component's runtime props never depend on resolving the imported config.
+interface TableViewProps<T extends Data> extends TableViewConfig<T> {
+  /** Expandable rows: caret column + detail band (backend `expandable`). */
+  expandable?: TableViewExpandableConfig;
+  /** Placeholder of the search field. */
+  searchPlaceholder?: string;
+  /** One-click dropdown filters of the toolbar. */
+  quickFilters?: TableViewQuickFilter[];
+  /** Rows per page while the user picked none. */
+  pageSize?: number;
+  /** How the rows beyond the first page are reached. */
+  pagination?: TableViewPaginationMode;
+  /** A `TableView.fromSource` table's route, instead of a data controller. */
+  source?: TableViewSourceConfig;
+  /** Rows ordered by hand on a number column (backend `reorder`). */
+  reorder?: TableViewReorderConfig;
+  /** Footer texts and figures: row count, hint, summaries and legend. */
+  footer?: TableViewFooter;
+  /** What the empty body says, per reason it is empty. */
+  emptyStates?: TableViewEmptyStatesConfig;
+  /** Named states of the table (backend `views`). */
+  views?: TableViewViewsConfig;
+  /** Key of the table view in its page, prefixing its URL keys. */
+  tableId?: string;
+  /** The page carries no other table view: `?view=` / `?tab=` are its own. */
+  isSoleTableView?: boolean;
+}
 
 const props = defineProps<TableViewProps<T>>();
 
@@ -126,6 +225,9 @@ const optionsForDisplay = (id: string): Record<string, unknown> | undefined =>
 const kanbanOptions = optionsForDisplay(KANBAN_DISPLAY_ID) as
   | KanbanConfig
   | undefined;
+const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
+  | TableViewGroupedConfig
+  | undefined;
 
 // Stored under the legacy "viewMode" key (free migration of "table"/"kanban");
 // clamped to the offered set so a stale/removed id never renders an un-offered display.
@@ -133,9 +235,21 @@ const persistedDisplay = getPreference<string>(
   getTablePreferenceKey("viewMode"),
   defaultDisplay,
 );
+// A default display that draws its whole interface (no table chrome, hence no
+// switcher) is the only way into the page: a saved choice cannot override it.
+const isDefaultDisplayStandalone =
+  resolvedDisplay(defaultDisplay)?.capabilities?.header === false;
 const activeDisplayId = ref<string>(
-  offeredDisplayIds.has(persistedDisplay) ? persistedDisplay : TABLE_DISPLAY_ID,
+  isDefaultDisplayStandalone
+    ? defaultDisplay
+    : offeredDisplayIds.has(persistedDisplay)
+      ? persistedDisplay
+      : TABLE_DISPLAY_ID,
 );
+
+/** A display the backend config renders by itself, with no client plugin. */
+const isConfigRenderedDisplay = (id: string): boolean =>
+  !!resolvedDisplay(id)?.component;
 
 const availableDisplays = computed<TableViewSwitcherItem[]>(() =>
   registeredDisplays.value
@@ -153,11 +267,14 @@ const availableDisplays = computed<TableViewSwitcherItem[]>(() =>
 
 // SSR-safe: capabilities + self-managed flag come from config, not the
 // client-only registry, so the chrome and list-query decision match across SSR.
-const activeCapabilities = computed(() =>
-  resolveDisplayCapabilities(
+// A hand-ordered table is listed by its position: no sort to pick.
+const reorderConfig = props.reorder;
+const activeCapabilities = computed(() => {
+  const capabilities = resolveDisplayCapabilities(
     resolvedDisplay(activeDisplayId.value)?.capabilities,
-  ),
-);
+  );
+  return reorderConfig ? { ...capabilities, sorting: false } : capabilities;
+});
 
 const isActiveDisplaySelfManaged = computed(
   () => !!resolvedDisplay(activeDisplayId.value)?.selfManagedData,
@@ -183,10 +300,12 @@ const resolveDisplayComponentRef = (
 const activeDisplayComponent = computed<Component | string | undefined>(() => {
   const id = activeDisplayId.value;
   if (id === TABLE_DISPLAY_ID || !offeredDisplayIds.has(id)) return undefined;
-  const registered = getById(id)?.component;
-  if (registered) return resolveDisplayComponentRef(registered);
+  // The instance's own component wins over the registered one: the server
+  // renders it, so the client must hydrate the same tree.
   const fromConfig = resolvedDisplay(id)?.component;
   if (fromConfig) return resolveDisplayComponentRef(fromConfig);
+  const registered = getById(id)?.component;
+  if (registered) return resolveDisplayComponentRef(registered);
   return STATIC_DISPLAY_COMPONENTS[id];
 });
 
@@ -205,23 +324,116 @@ if (
   kanbanGroupBy.value = kanbanOptions.groupByField;
 }
 
-const DEFAULT_PAGINATION: PaginationState = { pageIndex: 0, pageSize: 10 };
+const DEFAULT_DENSITY = "default";
+// The module's density is the default; the user's pick in the ⋯ menu is kept
+// with the rest of the table's state.
+const density = ref<"default" | "compact">(
+  getPreference(
+    getTablePreferenceKey("density"),
+    props.density ?? DEFAULT_DENSITY,
+  ),
+);
+
+const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGINATION: PaginationState = {
+  pageIndex: 0,
+  pageSize: props.pageSize ?? DEFAULT_PAGE_SIZE,
+};
+const resolvedChrome = resolveTableChrome(props.layout, {
+  hasCaption: !!caption,
+  isSearchable: !!props.searchable,
+  isFilterable: allColumns.some((column) => column.enableColumnFilter),
+});
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
-const pagination = ref<PaginationState>(
+const paginationState = ref<PaginationState>(
   getPreference<PaginationState>(
     getTablePreferenceKey("pagination"),
     DEFAULT_PAGINATION,
   ),
 );
 const rowSelect = ref<RowSelectionState>({});
-const defaultSortState: SortingState = defaultSort
-  ? [{ id: defaultSort.field, desc: defaultSort.desc ?? false }]
+// A column's grid header, for the sort messages.
+const columnLabel = (id: string): string => {
+  const column = allColumns.find((c) => (c.id ?? c.accessorKey) === id);
+  return column ? processI18n(column.header) : id;
+};
+
+// The list route sorts on one `@Sortable()` column and refuses any other key
+// with a 400 that would leave the table on its error panel: every sort it is
+// sent (default, saved, pasted, picked) is checked against the columns first.
+const declaredSortableIds = sortableColumnIds(allColumns);
+// Columns the route refused although declared sortable (see the recovery
+// below): a backend change since the page loaded.
+const refusedSortIds = ref<string[]>([]);
+const sortableIds = computed(
+  () =>
+    new Set(
+      [...declaredSortableIds].filter(
+        (id) => !refusedSortIds.value.includes(id),
+      ),
+    ),
+);
+
+// The grouped display's column, picked in the options menu as the kanban's
+// is: the rows of a group follow each other only when the route sorts on it.
+const groupedGroupByOptions = groupedOptions
+  ? allColumns
+      .filter(
+        (column) =>
+          column.accessorKey === groupedOptions.groupByField ||
+          (isGroupableColumn(column) &&
+            declaredSortableIds.has(column.accessorKey)),
+      )
+      .map((column) => ({
+        label: processI18n(column.header),
+        value: column.accessorKey,
+      }))
   : [];
+const groupedGroupBy = ref<string>(
+  getPreference<string>(
+    getTablePreferenceKey("groupedGroupBy"),
+    groupedOptions?.groupByField ?? "",
+  ),
+);
+if (
+  groupedOptions &&
+  !groupedGroupByOptions.some((o) => o.value === groupedGroupBy.value)
+) {
+  groupedGroupBy.value = groupedOptions.groupByField;
+}
+const activeGroupedOptions = computed<TableViewGroupedConfig | undefined>(
+  () =>
+    groupedOptions &&
+    groupedOptionsFor(groupedOptions, groupedGroupBy.value, allColumns),
+);
+// The declared default sort when the route accepts it; without one, the
+// sortable creation date, newest first, rather than the database's natural
+// order (see `resolveDefaultSortConfig`).
+const tableDefaultSort = resolveDefaultSortConfig(
+  defaultSort,
+  declaredSortableIds,
+  import.meta.env.DEV ? (message) => console.warn(message) : undefined,
+);
+const defaultSortState: SortingState = defaultSortingState(tableDefaultSort);
+// The toolbar sort menu names the default sort even when its field is not a
+// displayed column.
+const defaultSortLabel = tableDefaultSort
+  ? columnLabel(tableDefaultSort.field)
+  : undefined;
+const defaultSortKind = tableDefaultSort
+  ? sortValueKind(
+      allColumns.find((c) => (c.id ?? c.accessorKey) === tableDefaultSort.field)
+        ?.type?.id,
+    )
+  : undefined;
 const sorting = ref<SortingState>(
-  getPreference<SortingState>(
-    getTablePreferenceKey("sorting"),
-    defaultSortState,
+  sanitizeSorting(
+    getPreference<SortingState>(
+      getTablePreferenceKey("sorting"),
+      defaultSortState,
+    ),
+    declaredSortableIds,
   ),
 );
 
@@ -258,6 +470,9 @@ const columnVisibility = ref<VisibilityState>(
 const columnSizing = ref<ColumnSizingState>(
   getPreference<ColumnSizingState>(getTablePreferenceKey("columnSizing"), {}),
 );
+const columnOrder = ref<string[]>(
+  getPreference<string[]>(getTablePreferenceKey("columnOrder"), []),
+);
 const hasEmptyDefaultFilter = (defaultFilters || []).some(
   (f) => f.value === undefined || f.value === null || f.value === "",
 );
@@ -274,12 +489,67 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
+const urlScope = {
+  tableId: props.tableId,
+  isSoleTableView: props.isSoleTableView,
+};
+
+// Views: named states of the whole table, the module's and the user's own.
+const {
+  items: tableViewItems,
+  activeViewId,
+  isModified: isViewModified,
+  canSaveViews,
+  openView,
+  resetView,
+  saveView,
+  saveAsNewView,
+  deleteView,
+} = useTableViews({
+  views: props.views,
+  defaults: {
+    pinnedFilters: (defaultFilters || []).map((filter) => ({
+      accessorKey: filter.accessorKey,
+      mode: filter.mode,
+      value: filter.value,
+      pinned: true,
+      initialValue: filter.value,
+    })),
+    sorting: defaultSortState,
+    visibility: initialVisibility,
+    columnOrder: listableColumns.map(
+      (column) => column.id ?? column.accessorKey,
+    ),
+    display: offeredDisplayIds.has(defaultDisplay)
+      ? defaultDisplay
+      : TABLE_DISPLAY_ID,
+    density: props.density ?? DEFAULT_DENSITY,
+    displays: offeredDisplayIds,
+  },
+  state: {
+    columnFilters,
+    globalFilter,
+    sorting,
+    columnVisibility,
+    columnOrder,
+    display: activeDisplayId,
+    density,
+    pagination: paginationState,
+  },
+  preferenceKey: getTablePreferenceKey,
+  urlScope,
+});
+
 const ALL_TAB_ID = "all";
 
 const { t, te } = useI18n();
 
+const TAB_URL_KEY = "tab";
+const urlTab = readTableUrlKey(useDmsRoute().query, urlScope, TAB_URL_KEY);
+// A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
-  getPreference<string>(getTablePreferenceKey("activeTab"), ALL_TAB_ID),
+  urlTab.value ??
+    getPreference<string>(getTablePreferenceKey("activeTab"), ALL_TAB_ID),
 );
 
 interface ResolvedTab {
@@ -289,29 +559,38 @@ interface ResolvedTab {
   icon?: string;
   textColor?: string;
   iconColor?: string;
+  /** Link tab: the page it opens. */
+  to?: string;
+  toPage?: string;
+  countFrom?: string;
+  navBadge?: boolean;
 }
+
+// A configured "all" tab stands in for the implicit one, at its own place.
+const hasConfiguredAllTab = (tabs ?? []).some((tab) => tab.id === ALL_TAB_ID);
 
 const resolvedTabs = computed<ResolvedTab[]>(() => {
   // Tabs are a transverse-but-table-shaped concept; displays that opt out of the
   // `tabs` capability (e.g. kanban) hide them and have their own grouping.
   if (!activeCapabilities.value.tabs) return [];
   if (!tabs || tabs.length === 0) return [];
+  const implicitAll: ResolvedTab[] = hasConfiguredAllTab
+    ? []
+    : [{ id: ALL_TAB_ID, label: t("dms.table.tabs.all"), filters: [] }];
   return [
-    {
-      id: ALL_TAB_ID,
-      label: t("dms.table.tabs.all"),
-      filters: [] as TableFilter[],
-      icon: undefined,
-      textColor: undefined,
-      iconColor: undefined,
-    },
+    ...implicitAll,
     ...tabs.map((tab) => ({
       id: tab.id,
       label: processI18n(tab.label),
-      filters: tab.filters.map((f) => ({ ...f })),
+      // A link tab filters nothing: it opens another page.
+      filters: tab.filter && !tab.to ? [{ ...tab.filter }] : [],
       icon: tab.icon,
       textColor: tab.textColor,
       iconColor: tab.iconColor,
+      to: tab.to,
+      toPage: tab.toPage,
+      countFrom: tab.countFrom,
+      navBadge: tab.navBadge,
     })),
   ];
 });
@@ -323,12 +602,19 @@ const activeTabFilters = computed<TableFilter[]>(() => {
 
 watch(resolvedTabs, (next) => {
   if (next.length === 0) return;
-  if (!next.some((tab) => tab.id === activeTabId.value)) {
+  if (!next.some((tab) => !tab.to && tab.id === activeTabId.value)) {
     activeTabId.value = ALL_TAB_ID;
   }
 });
 
 const { $authFetch } = useAuthFetch();
+// The controller's routes, or a `TableView.fromSource` table's route.
+const tableRows = useTableRows<T>({
+  api: $authFetch,
+  location,
+  source: props.source,
+  columns: props.columns,
+});
 const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
@@ -356,6 +642,66 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
       value: routeParams[param] as string,
     }));
 });
+
+// Quick filters: dropdowns of the toolbar over a column's values (a select's
+// items, a boolean, the rows a relation points to), writing that column's
+// filter like the filters row does.
+const relationQuickFilterValues = ref<Record<string, QuickFilterItem[]>>({});
+// Relation values load after mount: until then their buttons hold their place.
+const relationQuickFiltersLoaded = ref(false);
+const quickFilterDefinitions = (props.quickFilters ?? []).map((filter) => {
+  const column = allColumns.find(
+    (candidate) => candidate.accessorKey === filter.field,
+  );
+  return {
+    filter,
+    column,
+    mode: quickFilterMode(column, filter.mode),
+    items: staticQuickFilterItems(column, processI18n),
+    source: relationQuickFilterSource(column),
+  };
+});
+
+const RELATION_QUICK_FILTER_LIMIT = 200;
+
+const loadRelationQuickFilters = async () => {
+  await Promise.allSettled(
+    quickFilterDefinitions
+      .filter((definition) => !definition.items && definition.source)
+      .map(async ({ filter, source }) => {
+        try {
+          const response = await $authFetch<
+            TableViewListResponse<Record<string, unknown>>
+          >(source!.url, { query: { limit: RELATION_QUICK_FILTER_LIMIT } });
+          relationQuickFilterValues.value = {
+            ...relationQuickFilterValues.value,
+            [filter.field]: relationQuickFilterItems(response.results, source!),
+          };
+        } catch {
+          // A picker the caller may not read just stays out of the toolbar.
+        }
+      }),
+  );
+  relationQuickFiltersLoaded.value = true;
+};
+
+// A quick filter with nothing to pick is left out of the toolbar; one whose
+// relation values are still loading shows disabled, holding its place.
+const resolvedQuickFilters = computed<ResolvedQuickFilter[]>(() =>
+  quickFilterDefinitions
+    .map(({ filter, column, mode, items, source }) => ({
+      field: filter.field,
+      label: processI18n(filter.label ?? column?.header ?? filter.field),
+      icon: filter.icon ?? "i-ph-funnel",
+      allLabel: filter.allLabel
+        ? processI18n(filter.allLabel)
+        : t("dms.table.quick_filter.all"),
+      mode,
+      items: items ?? relationQuickFilterValues.value[filter.field] ?? [],
+      pending: !items && !!source && !relationQuickFiltersLoaded.value,
+    }))
+    .filter((filter) => filter.items.length > 0 || filter.pending),
+);
 
 const hiddenFilters = computed<TableFilter[]>(() => [
   ...queryParamHiddenFilters.value,
@@ -397,13 +743,40 @@ const effectiveColumnFilters = computed<TableFilter[]>(() =>
 const effectiveGlobalFilter = computed(() =>
   activeCapabilities.value.search ? globalFilterDebounced.value : undefined,
 );
-const effectiveSorting = computed<SortingState>(() =>
-  activeCapabilities.value.sorting ? sorting.value : defaultSortState,
+const isGroupedDisplay = computed(
+  () => activeDisplayId.value === GROUPED_DISPLAY_ID && !!groupedOptions,
 );
+const effectiveSorting = computed<SortingState>(() => {
+  if (reorderConfig) return [{ id: reorderConfig.field, desc: false }];
+  const picked = activeCapabilities.value.sorting
+    ? sorting.value
+    : defaultSortState;
+  return sanitizeSorting(
+    isGroupedDisplay.value && activeGroupedOptions.value
+      ? groupedSorting(picked, activeGroupedOptions.value)
+      : picked,
+    sortableIds.value,
+  );
+});
+
+// A feed grows by pages (`loadMore`, `infinite`) rather than paging.
+const paginationMode = props.pagination ?? "pages";
+const { isAccumulating, requestedPagination, loadNextPage } =
+  useAccumulatedPages({
+    mode: paginationMode,
+    pagination: paginationState,
+    resetOn: [
+      effectiveSorting,
+      effectiveColumnFilters,
+      hiddenFilters,
+      effectiveGlobalFilter,
+      showArchived,
+    ],
+  });
 
 const queryRequest = computed(() =>
   buildTableQuery({
-    pagination: pagination.value,
+    pagination: requestedPagination.value,
     sorting: effectiveSorting.value,
     columnFilters: effectiveColumnFilters.value,
     hiddenFilters: hiddenFilters.value,
@@ -429,7 +802,7 @@ const tableDataKey = buildTableDataKey({
   isSelfManaged: isActiveDisplaySelfManaged.value,
 });
 
-const { data, status, error, refresh } = await useDmsAsyncData(
+const { data, status, error, refresh } = await useServerRenderedAsyncData(
   tableDataKey,
   (): Promise<TableViewListResponse<T>> => {
     // Self-managed displays (e.g. kanban) fetch their own data; skip the
@@ -437,11 +810,16 @@ const { data, status, error, refresh } = await useDmsAsyncData(
     if (isActiveDisplaySelfManaged.value) {
       return Promise.resolve(EMPTY_LIST_RESULT);
     }
-    return $authFetch<TableViewListResponse<T>>(location + "/list", {
-      query: { ...queryRequest.value, ...archiveQuery.value },
-    });
+    return tableRows.list({ ...queryRequest.value, ...archiveQuery.value });
   },
   { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
+);
+
+// Nothing listed yet (a client navigation paints before the first page
+// arrives): the table draws its skeleton, never the empty state.
+const isFirstPageLoading = computed(() => data.value === null && !error.value);
+const isListLoading = computed(
+  () => status.value === "pending" || isFirstPageLoading.value,
 );
 
 // A refused or failed list query must show as an error, never as an empty
@@ -477,6 +855,51 @@ watch(listLoadError, (message) => {
   if (message) rowSelect.value = {};
 });
 
+// Whatever sets the sort (a header, the sort menu, a pasted table config), the
+// route only ever receives a sort it accepts. A new order lists from page 1:
+// the page reached in the previous order shows unrelated rows in the new one.
+// Synchronous, so the list is queried once, with both changes.
+watch(
+  sorting,
+  (next, previous) => {
+    const sanitized = sanitizeSorting(next, sortableIds.value);
+    if (!isSameSorting(sanitized, next)) {
+      sorting.value = sanitized;
+      return;
+    }
+    const before = sanitizeSorting(previous, sortableIds.value);
+    if (
+      !isSameSorting(sanitized, before) &&
+      paginationState.value.pageIndex !== 0
+    ) {
+      paginationState.value = { ...paginationState.value, pageIndex: 0 };
+    }
+  },
+  { deep: true, flush: "sync" },
+);
+
+const toast = useToast();
+
+// The route refused the sort key anyway: a column whose `@Sortable()` was
+// removed since the page loaded. Stop sorting on it (the next query drops it)
+// and list again, with a warning, rather than leaving the table on its error
+// panel.
+watch(error, (failure) => {
+  if (!failure || !isUnsortableFieldError(failure)) return;
+  const refused = effectiveSorting.value[0]?.id;
+  if (!refused) return;
+  refusedSortIds.value = [...refusedSortIds.value, refused];
+  sorting.value = sanitizeSorting(sorting.value, sortableIds.value);
+  toast.add({
+    title: t("dms.sort.reset_title"),
+    description: t("dms.sort.reset_description", {
+      column: columnLabel(refused),
+    }),
+    color: Color.warning,
+    icon: "i-ph-warning",
+  });
+});
+
 // A non-self-managed display consumes the shared query, and nothing
 // guarantees it knows how to render a failure. While that query is in error,
 // fall back to the table body so the error panel and its retry replace the
@@ -486,48 +909,76 @@ const activeDisplayBlockedByError = computed(
 );
 
 watch(
-  [() => data.value?.total, () => pagination.value.pageSize],
+  [() => data.value?.total, () => paginationState.value.pageSize],
   ([total, pageSize]) => {
     if (total === undefined || total === null || pageSize <= 0) return;
     const maxPageIndex = Math.max(0, Math.ceil(total / pageSize) - 1);
-    if (pagination.value.pageIndex > maxPageIndex) {
-      pagination.value = { ...pagination.value, pageIndex: maxPageIndex };
+    if (paginationState.value.pageIndex > maxPageIndex) {
+      paginationState.value = {
+        ...paginationState.value,
+        pageIndex: maxPageIndex,
+      };
     }
   },
 );
 
-const tabCountsQuery = computed(() =>
-  resolvedTabs.value.map((tab) => ({
-    id: tab.id,
-    query: buildTableQuery({
-      pagination: { pageIndex: 0, pageSize: 0 },
-      sorting: [],
-      columnFilters: [],
-      hiddenFilters: [...queryParamHiddenFilters.value, ...tab.filters],
-    }),
-  })),
-);
+// A view's counter shares the tab counters' request, under its own id.
+const VIEW_COUNT_ID_PREFIX = "view:";
+const countQuery = (filters: TableFilter[], search?: string) =>
+  buildTableQuery({
+    pagination: { pageIndex: 0, pageSize: 0 },
+    sorting: [],
+    columnFilters: filters,
+    hiddenFilters: queryParamHiddenFilters.value,
+    globalFilter: search,
+  });
 
+const tabCountsQuery = computed(() => [
+  ...resolvedTabs.value
+    .filter((tab) => !tab.to)
+    .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
+  ...tableViewItems.value
+    .filter((view) => view.count)
+    .map((view) => ({
+      id: `${VIEW_COUNT_ID_PREFIX}${view.id}`,
+      query: countQuery(view.filters ?? [], view.search),
+    })),
+]);
+
+// No default: `null` until the counts arrive, so the tabs draw placeholders
+// instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useDmsAsyncData<Record<string, number>>(
+  await useServerRenderedAsyncData<Record<string, number>>(
     `table-view-${componentId}-${pageId}-tab-counts`,
     async () => {
-      if (resolvedTabs.value.length === 0) return {};
-      return await $authFetch<Record<string, number>>(
-        location + "/count/batch",
-        {
-          method: "POST",
-          body: {
-            queries: tabCountsQuery.value.map(({ id, query }) => ({
-              id,
-              query: { ...query, ...archiveQuery.value },
-            })),
-          },
-        },
+      if (tabCountsQuery.value.length === 0) return {};
+      return await tableRows.countBatch(
+        tabCountsQuery.value.map(({ id, query }) => ({
+          id,
+          query: { ...query, ...archiveQuery.value },
+        })),
       );
     },
-    { watch: [tabCountsQuery, archiveQuery], default: () => ({}) },
+    { watch: [tabCountsQuery, archiveQuery] },
   );
+
+const viewItems = computed<TableViewItem[]>(() =>
+  tableViewItems.value.map((view) => ({
+    id: view.id,
+    label: view.label,
+    icon: view.icon,
+    tone: view.tone,
+    dot: view.dot,
+    isUserView: view.isUserView,
+    count: view.count
+      ? tabCountsData.value?.[`${VIEW_COUNT_ID_PREFIX}${view.id}`]
+      : undefined,
+    countPending: !!view.count && tabCountsData.value == null,
+  })),
+);
+const viewsLayout = props.views?.layout ?? "tabs";
+const hasViews =
+  !!props.views && (props.views.items.length > 0 || canSaveViews);
 
 interface ActiveDisplayExposed {
   refresh?: () => Promise<void> | void;
@@ -554,6 +1005,75 @@ const baseQuery = computed<Record<string, unknown>>(() => {
   return { ...query, ...archiveQuery.value };
 });
 
+const { footer: resolvedFooter, refreshSummaries } = await useTableFooter({
+  footer: props.footer,
+  columns: props.columns,
+  location,
+  query: baseQuery,
+  dataKey: `table-view-${componentId}-${pageId}`,
+});
+
+const hasMoreRows = computed(
+  () => (data.value?.total ?? 0) > (shownResults.value?.length ?? 0),
+);
+const loadMoreRows = () => {
+  if (hasMoreRows.value && !isListLoading.value) loadNextPage();
+};
+const accumulation = computed<TableAccumulation | undefined>(() =>
+  isAccumulating
+    ? {
+        mode: paginationMode as TableAccumulation["mode"],
+        shown: shownResults.value?.length ?? 0,
+        hasMore: hasMoreRows.value,
+        loading: isListLoading.value,
+        load: loadMoreRows,
+      }
+    : undefined,
+);
+
+// Rows ordered by hand: moving is off while anything narrows the rows.
+const { reorderState } = useTableReorder<T>({
+  reorder: reorderConfig,
+  data,
+  rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  location,
+  api: $authFetch,
+  canEdit: computed(() => isActionEnabled(tableProps.value.rowActions?.edit)),
+  isNarrowed: computed(
+    () =>
+      effectiveColumnFilters.value.some(isFilterEffective) ||
+      !!effectiveGlobalFilter.value ||
+      activeTabFilters.value.length > 0,
+  ),
+  isGrid: computed(() => activeDisplayId.value === TABLE_DISPLAY_ID),
+  refresh: () => refresh(),
+  onError: (failure) =>
+    toast.add({
+      title: t("dms.table.reorder.error"),
+      description: resolveApiErrorMessage(failure),
+      color: Color.error,
+      icon: "i-ph-warning-circle",
+    }),
+});
+
+const { grouping, refreshCounts: refreshGroupCounts } = useGroupedRows({
+  grouped: activeGroupedOptions,
+  isActive: isGroupedDisplay,
+  columns: props.columns,
+  rows: shownResults,
+  countQuery: (filter) => ({
+    ...buildTableQuery({
+      pagination: { pageIndex: 0, pageSize: 0 },
+      sorting: [],
+      columnFilters: [...effectiveColumnFilters.value, filter],
+      hiddenFilters: hiddenFilters.value,
+      globalFilter: effectiveGlobalFilter.value,
+    }),
+    ...archiveQuery.value,
+  }),
+  countBatch: tableRows.countBatch,
+});
+
 // Only what the (unchanged) KanbanBoard needs beyond the generic context: the
 // two-way group-by ref and the raw action configs for per-row rule evaluation.
 provide(KANBAN_DISPLAY_BRIDGE_KEY, {
@@ -562,23 +1082,103 @@ provide(KANBAN_DISPLAY_BRIDGE_KEY, {
   deleteAction: tableProps.value.rowActions?.delete,
 });
 
+// A link tab counts the rows of the list it opens; a list the caller may not
+// read shows no counter.
+const linkTabCounts = ref<Record<string, number>>({});
+// The link counters load after mount: until then their tabs hold a placeholder.
+const linkTabCountsLoaded = ref(false);
+const LINK_TAB_COUNT_QUERY = { limit: 1, offset: 0 };
+
+const refreshLinkTabCounts = async () => {
+  const linked = resolvedTabs.value.filter((tab) => tab.to && tab.countFrom);
+  if (linked.length === 0) {
+    linkTabCountsLoaded.value = true;
+    return;
+  }
+  const entries = await Promise.all(
+    linked.map(async (tab) => {
+      try {
+        const response = await $authFetch<TableViewListResponse<unknown>>(
+          `${tab.countFrom}/list`,
+          { query: LINK_TAB_COUNT_QUERY },
+        );
+        return [tab.id, response.total] as const;
+      } catch {
+        return undefined;
+      }
+    }),
+  );
+  linkTabCounts.value = Object.fromEntries(
+    entries.filter((entry) => entry !== undefined),
+  );
+  linkTabCountsLoaded.value = true;
+};
+
+// Each re-read follows a change of the rows (a save, an action, a realtime
+// event) or a refresh: what summarises them elsewhere (a navigation count)
+// is told to read its figure again.
+const { notifyTableDataChanged } = useTableDataChanges();
 const refreshAll = async () => {
+  notifyTableDataChanged(location);
   await Promise.all([
     refresh(),
     refreshTabCounts(),
+    refreshLinkTabCounts(),
+    refreshGroupCounts(),
+    refreshSummaries(),
     activeDisplayRef.value?.refresh?.(),
   ]);
+};
+
+// "Preview as role": a link tab to a page the previewed role could not open
+// is drawn locked, one to a page it opens partially is drawn partially
+// locked. Never outside a preview (`entryState` is null then).
+const permissionPreview = usePermissionPreview();
+const previewSiteLayout = useSiteLayout();
+const linkTabPreviewState = (tab: ResolvedTab) => {
+  if (!tab.to || !permissionPreview.isActive.value) return null;
+  const fullId =
+    tab.toPage ??
+    previewSiteLayout.findMatchingRoute(stripQueryAndHash(tab.to))?.metadata
+      .fullId;
+  return permissionPreview.entryState(fullId);
+};
+
+const isTabCountPending = (tab: ResolvedTab): boolean => {
+  if (!tab.to) return tabCountsData.value == null;
+  return !!tab.countFrom && !linkTabCountsLoaded.value;
 };
 
 const tabsWithCount = computed(() =>
   resolvedTabs.value.map((tab) => ({
     id: tab.id,
     label: tab.label,
-    count: tabCountsData.value?.[tab.id],
+    count: tab.to ? linkTabCounts.value[tab.id] : tabCountsData.value?.[tab.id],
+    countPending: isTabCountPending(tab),
     icon: tab.icon,
     textColor: tab.textColor,
     iconColor: tab.iconColor,
+    to: tab.to,
+    previewLocked: linkTabPreviewState(tab) === "hidden",
+    previewPartial: linkTabPreviewState(tab) === "partial",
   })),
+);
+
+// A tab declared with `navBadge` keeps the navigation badge the server
+// counted for the page it stands for (the linked page, or this one) up to
+// date with its own counter; an empty badge stands for zero.
+const { setNavBadge } = useNavBadges();
+watch(
+  tabsWithCount,
+  (next) => {
+    for (const tab of next) {
+      const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
+      if (!source?.navBadge || tab.count === undefined) continue;
+      const fullId = source.to ? source.toPage : pageId;
+      if (fullId) setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "");
+    }
+  },
+  { immediate: true },
 );
 
 const { exportTable } = useTableViewExport({ componentId });
@@ -593,6 +1193,8 @@ const {
   restoreRows: restoreRowsAction,
   handleCustomButton,
   handleCustomRowAction,
+  handleBulkCustomAction,
+  runConfirmedBuiltIn,
 } = useTableRowActions<T>({
   api: $authFetch,
   location,
@@ -607,25 +1209,56 @@ const {
   componentId: componentId!,
   pageId: pageId!,
   queryParamFilters,
+  rowNavigation: {
+    rows: () => (shownResults.value ?? []) as Data[],
+    rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+  },
+  recordScope: urlScope,
+});
+
+// Custom actions offered on the selection bar. "Select all N matching"
+// hands them the table's filters instead of ids; a new query lists other
+// rows, so it ends with it.
+const bulkCustomActions = computed(() =>
+  (tableProps.value.rowActions?.custom ?? []).filter(isBulkAction),
+);
+const allMatching = ref(false);
+const runBulkAction = (action: CustomRowAction) =>
+  handleBulkCustomAction(
+    action,
+    allMatching.value
+      ? { matching: baseQuery.value, count: data.value?.total ?? 0 }
+      : { ids: selectedIds.value, count: selectedIds.value.length },
+  );
+
+// Archive mode: the toolbar carries an "Archived" toggle for callers allowed
+// to see archived rows.
+const canToggleArchived = computed(
+  () => !!archiveMode && tableProps.value.rowActions?.showArchived === true,
+);
+
+// A selection made among the rows a filter, a search or a tab listed would
+// let a bulk action reach rows no longer shown: it goes with them.
+const selectionScope = computed(() =>
+  selectionScopeKey({
+    columnFilters: effectiveColumnFilters.value,
+    hiddenFilters: hiddenFilters.value,
+    globalFilter: effectiveGlobalFilter.value,
+  }),
+);
+watch(selectionScope, () => {
+  rowSelect.value = {};
+});
+
+// A selection made among active rows means nothing among archived ones, and
+// the page reached in one list rarely exists in the other: start over.
+watch(showArchived, () => {
+  rowSelect.value = {};
+  paginationState.value = { ...paginationState.value, pageIndex: 0 };
 });
 
 const customNavItems = computed(() => {
   const items = [];
-
-  const hasViewArchivedPermission =
-    tableProps.value.rowActions?.showArchived === true;
-
-  if (archiveMode && hasViewArchivedPermission) {
-    items.push({
-      label: showArchived.value
-        ? t("dms.table.show_active")
-        : t("dms.table.show_archived"),
-      icon: showArchived.value ? "i-ph-folder-open" : "i-ph-archive",
-      onSelect: () => {
-        showArchived.value = !showArchived.value;
-      },
-    });
-  }
 
   if (enableTableExport) {
     items.push({
@@ -638,29 +1271,72 @@ const customNavItems = computed(() => {
   return items;
 });
 
-const deleteRows = (ids: string[]) =>
-  deleteRowsAction(ids, tableProps.value.rowActions?.delete);
+// Deleted, archived and restored rows leave the listed set: a selection kept
+// on them would offer bulk actions on rows no longer shown. A cancelled
+// confirmation (or a failed request) keeps the selection as it was.
+const deselectRows = (ids: string[]) => {
+  const removed = new Set(ids);
+  rowSelect.value = Object.fromEntries(
+    Object.entries(rowSelect.value).filter(([id]) => !removed.has(id)),
+  );
+};
 
-const archiveRows = (ids: string[]) =>
-  archiveRowsAction(ids, tableProps.value.rowActions?.archive);
+// From the archive, a delete is a permanent one: its confirmation says so.
+const deleteRows = async (ids: string[]) => {
+  const done = await deleteRowsAction(
+    ids,
+    tableProps.value.rowActions?.delete,
+    {
+      permanently: !!archiveMode && showArchived.value,
+    },
+  );
+  if (done) deselectRows(ids);
+};
 
-const restoreRows = (ids: string[]) =>
-  restoreRowsAction(ids, tableProps.value.rowActions?.restore);
+const archiveRows = async (ids: string[]) => {
+  if (await archiveRowsAction(ids, tableProps.value.rowActions?.archive)) {
+    deselectRows(ids);
+  }
+};
+
+const restoreRows = async (ids: string[]) => {
+  if (await restoreRowsAction(ids, tableProps.value.rowActions?.restore)) {
+    deselectRows(ids);
+  }
+};
 
 const handleExportTable = () =>
   exportTable(location, { ...queryRequest.value, ...archiveQuery.value });
 const handleExportSelection = (ids: string[]) =>
   exportTable(location, queryRequest.value, ids);
-const handleRowClick = (item: T) => openRow(item);
-const handleRowDuplicate = (itemId: string) => duplicateRow(itemId);
-const handleRowAdd = () => newRow(queryParamDefaults.value);
+// A built-in action declaring a `confirm` asks it first.
+const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
+  tableProps.value.rowActions?.[key];
+const handleRowClick = (item: T) =>
+  runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
+const handleRowDuplicate = (itemId: string) =>
+  runConfirmedBuiltIn(
+    rowActionConfig("duplicate"),
+    { [props.rowIdKey ?? ROW_ID_DEFAULT_KEY]: itemId },
+    () => duplicateRow(itemId),
+  );
+const handleRowAdd = () =>
+  runConfirmedBuiltIn(rowActionConfig("add"), undefined, () =>
+    newRow(queryParamDefaults.value),
+  );
 
 const rowIdKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
+// A source table has no realtime: its route is no data controller's.
+const realtimeLocation = tableRows.isSource ? undefined : location;
 const realtimeRowTopic = computed(() =>
-  location ? `${REALTIME_ROW_TOPIC_PREFIX}${location}` : undefined,
+  realtimeLocation
+    ? `${REALTIME_ROW_TOPIC_PREFIX}${realtimeLocation}`
+    : undefined,
 );
 const realtimePresenceTopic = computed(() =>
-  location ? `${REALTIME_PRESENCE_TOPIC_PREFIX}${location}` : undefined,
+  realtimeLocation
+    ? `${REALTIME_PRESENCE_TOPIC_PREFIX}${realtimeLocation}`
+    : undefined,
 );
 
 const presenceByRow = ref<RealtimePresenceMap>({});
@@ -687,7 +1363,8 @@ const patchRowLocal = async (id: string) => {
   const idx = data.value.results.findIndex((row) => getRowId(row) === id);
   if (idx === -1) return;
   try {
-    const fresh = await $authFetch<T>(`${location}/get`, { query: { id } });
+    const fresh = await tableRows.getRow(id);
+    if (!fresh) return;
     const next = [...data.value.results];
     next[idx] = fresh as unknown as T;
     data.value = { ...data.value, results: next };
@@ -702,6 +1379,8 @@ const realtimeEventHandlers: Record<
 > = {
   [REALTIME_EVENT_TYPE.DELETED]: (ids) => {
     removeRowsLocal(ids);
+    // Rows gone elsewhere leave the selection too, or it would count them.
+    deselectRows(ids);
     return refreshAll();
   },
   [REALTIME_EVENT_TYPE.CREATED]: () => refreshAll(),
@@ -820,6 +1499,78 @@ const presenceByRowFiltered = computed<RealtimePresenceMap>(() => {
   return result;
 });
 
+// Expandable rows: which rows are open. A newly listed set (page, filter,
+// search, sort, tab, archive view) starts from `defaultExpanded`; a refresh of
+// the same set keeps what the user opened, minus rows no longer listed.
+const expandableConfig = props.expandable;
+const expanded = ref<ExpandedRowMap>({});
+
+const rowIdsOf = (rows: T[] | undefined): string[] =>
+  (rows ?? []).map((row) => getRowId(row)).filter((id): id is string => !!id);
+
+const expandedModel = computed<ExpandedState>({
+  get: () => expanded.value,
+  set: (next) => {
+    expanded.value = nextExpandedRows(
+      expanded.value,
+      next,
+      rowIdsOf(shownResults.value),
+      expandableConfig?.single,
+    );
+  },
+});
+
+let expandedQueryKey: string | undefined;
+if (expandableConfig) {
+  watch(
+    shownResults,
+    (rows) => {
+      const queryKey = JSON.stringify([queryRequest.value, archiveQuery.value]);
+      if (queryKey === expandedQueryKey) {
+        expanded.value = keepListedRows(expanded.value, rowIdsOf(rows));
+        return;
+      }
+      expandedQueryKey = queryKey;
+      expanded.value = defaultExpandedRows(
+        rowIdsOf(rows),
+        expandableConfig.defaultExpanded,
+        expandableConfig.single,
+      );
+    },
+    { immediate: true },
+  );
+}
+
+// `lazyLoad` bands read their row when it opens; any reload of the listed
+// rows drops what they read, and the open ones read it again.
+const expandedDetails = useExpandedRowDetails<T>((id) => tableRows.getRow(id));
+if (expandableConfig?.lazyLoad) {
+  watch(shownResults, () => expandedDetails.reset());
+  watch(
+    [expanded, shownResults],
+    () =>
+      expandedDetails.ensure(
+        Object.keys(expanded.value).filter((id) => expanded.value[id]),
+      ),
+    { immediate: true },
+  );
+}
+
+const expandedRowLoadState = (id: string): ExpandedRowLoadState =>
+  expandableConfig?.lazyLoad
+    ? (expandedDetails.entryOf(id)?.state ?? "loading")
+    : "ready";
+
+// The band takes any row: its props are the table's, for the row type it lists.
+const expandedRowProps = (listed: T): TableViewExpandedRowProps => {
+  const id = getRowId(listed);
+  const read = id ? expandedDetails.entryOf(id)?.row : undefined;
+  return buildExpandedRowProps<T>(
+    read ? { ...listed, ...read } : listed,
+    displayContext.value,
+  ) as unknown as TableViewExpandedRowProps;
+};
+
 const { warnBeforeEdit } = usePresenceEditWarning();
 
 const handleRowEdit = async (item: T) => {
@@ -828,14 +1579,37 @@ const handleRowEdit = async (item: T) => {
     const others = otherEditorsForRow(itemId);
     if (others.length > 0 && !(await warnBeforeEdit(others))) return;
   }
-  return editRow(item, queryParamDefaults.value);
+  return runConfirmedBuiltIn(rowActionConfig("edit"), item, () =>
+    editRow(item, queryParamDefaults.value),
+  );
 };
 
 const EMPTY_ITEMS: T[] = [];
 
-const selectedIds = computed(() =>
-  Object.keys(rowSelect.value).filter((key) => rowSelect.value[key]),
+watch(
+  baseQuery,
+  () => {
+    allMatching.value = false;
+  },
+  { deep: true },
 );
+watch(rowSelect, (selection) => {
+  if (Object.keys(selection).length === 0) allMatching.value = false;
+});
+
+// A deep-linked action reopens on the row the URL names, listed or not.
+const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
+  (action) => action.deepLink,
+);
+const openRecordFromUrl = async () => {
+  const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
+  if (!deepLinkAction || !id) return;
+  const listed = shownResults.value?.find((row) => getRowId(row) === id);
+  const row = listed ?? (await tableRows.getRow(id).catch(() => undefined));
+  if (row) handleCustomRowAction(deepLinkAction, row as Data);
+};
+
+const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 
 const isRowActionEnabled = (
   config: boolean | RowActionConfig | undefined,
@@ -889,11 +1663,34 @@ const displaySelection = {
 
 const displayPagination = {
   setPage: (index: number) => {
-    pagination.value = { ...pagination.value, pageIndex: index };
+    paginationState.value = { ...paginationState.value, pageIndex: index };
   },
   setPageSize: (size: number) => {
-    pagination.value = { ...pagination.value, pageSize: size, pageIndex: 0 };
+    paginationState.value = {
+      ...paginationState.value,
+      pageSize: size,
+      pageIndex: 0,
+    };
   },
+};
+
+// A display opens an item the way a click opens a row of the grid: its
+// default custom action, else edit, else details.
+const builtInRowClicks: Record<"edit" | "details", (item: T) => unknown> = {
+  edit: handleRowEdit,
+  details: handleRowClick,
+};
+const openDisplayItem = (item: T) => {
+  const action = resolveRowClickAction(
+    tableProps.value.rowActions,
+    item as Record<string, unknown>,
+  );
+  if (!action) return;
+  if (typeof action === "string") {
+    void builtInRowClicks[action](item);
+    return;
+  }
+  handleCustomRowAction(action, item);
 };
 
 const displayRowActions = {
@@ -902,6 +1699,7 @@ const displayRowActions = {
   delete: deleteRows,
   duplicate: handleRowDuplicate,
   details: handleRowClick,
+  open: openDisplayItem,
   custom: handleCustomRowAction,
   canEditRow: (item: T) =>
     isRowActionEnabled(tableProps.value.rowActions?.edit, item),
@@ -920,13 +1718,16 @@ const displayContext = computed(
   (): TableViewDisplayContext<T> => ({
     items: shownResults.value ?? EMPTY_ITEMS,
     columns: props.columns,
-    loading: status.value === "pending",
+    loading: isListLoading.value,
     selection: { ids: selectedIds.value, ...displaySelection },
     pagination: {
-      pageIndex: pagination.value.pageIndex,
-      pageSize: pagination.value.pageSize,
+      pageIndex: paginationState.value.pageIndex,
+      pageSize: paginationState.value.pageSize,
       total: data.value?.total ?? 0,
       ...displayPagination,
+      mode: paginationMode,
+      hasMore: hasMoreRows.value,
+      loadMore: loadMoreRows,
     },
     actions: {
       canAdd: isActionEnabled(tableProps.value.rowActions?.add),
@@ -981,6 +1782,14 @@ const quickActionHandlers: {
   button: (intent) => pressCustomButton(intent.button),
 };
 
+function runQuickActionIntent(intent: QuickActionIntent) {
+  // Keyed by the intent's own discriminant, so the handler always matches.
+  const handler = quickActionHandlers[intent.kind] as (
+    value: QuickActionIntent,
+  ) => void;
+  handler(intent);
+}
+
 // Watched key by key rather than through the parsed intent: a fresh intent
 // object on every unrelated query change would press the button twice.
 watch(
@@ -989,18 +1798,35 @@ watch(
     QUICK_ACTION_COMPONENT_KEY,
     QUICK_ACTION_BUTTON_KEY,
   ].map((key) => () => route.query[key]),
-  async () => {
+  () => {
     const intent = readQuickActionIntent(route.query, componentId);
     if (!intent) return;
-    await clearQuickActionQuery();
-    // Keyed by the intent's own discriminant, so the handler always matches.
-    const handler = quickActionHandlers[intent.kind] as (
-      value: QuickActionIntent,
-    ) => void;
-    handler(intent);
+    // A server render only drops the query (a redirect): it opens nothing.
+    if (import.meta.env.SSR) {
+      void clearQuickActionQuery();
+      return;
+    }
+    // Run first, then drop the query: dropping it is a server visit, and a
+    // visit cut short by a navigation still settles, so awaiting it first
+    // opened the form over the page navigated to.
+    runQuickActionIntent(intent);
+    void clearQuickActionQuery();
   },
   { immediate: true },
 );
+
+// A header button of this page presses this table view's buttons in place
+// (see `runMountedQuickAction`): the modal opens on the click.
+let unregisterQuickActionTarget: (() => void) | undefined;
+onMounted(() => {
+  if (!componentId) return;
+  unregisterQuickActionTarget = registerQuickActionTarget({
+    path: route.path,
+    componentId,
+    run: runQuickActionIntent,
+  });
+});
+onBeforeUnmount(() => unregisterQuickActionTarget?.());
 
 defineShortcuts(
   buildTableViewShortcuts({
@@ -1016,13 +1842,16 @@ defineShortcuts(
 
 const tableStatePreferences = {
   sorting,
-  pagination,
+  pagination: paginationState,
   columnFilters: columnFilters,
   columnVisibility,
   filtersOpen: filtersRowOpen,
   activeTab: activeTabId,
   viewMode: activeDisplayId,
+  columnOrder,
   kanbanGroupBy,
+  groupedGroupBy,
+  density,
 } as const;
 
 Object.entries(tableStatePreferences).forEach(([key, ref]) => {
@@ -1087,7 +1916,7 @@ if (componentId) {
     TableViewEvents.ROW_SELECT,
     componentId,
     (selection) => ({
-      selectedIds: Object.keys(selection).filter((key) => selection[key]),
+      selectedIds: selectedRowIds(selection),
     }),
   );
 }
@@ -1103,10 +1932,14 @@ const checkUrlParameter = () => {
 
 onMounted(() => {
   checkUrlParameter();
+  void openRecordFromUrl();
+  void loadRelationQuickFilters();
+  void refreshLinkTabCounts();
   // The registry is client-only; once hydrated, degrade to the table display if
   // the active id is no longer available (e.g. kanban with no eligible column).
   if (
     activeDisplayId.value !== TABLE_DISPLAY_ID &&
+    !isConfigRenderedDisplay(activeDisplayId.value) &&
     !availableDisplays.value.some((d) => d.id === activeDisplayId.value)
   ) {
     activeDisplayId.value = TABLE_DISPLAY_ID;
@@ -1117,34 +1950,56 @@ onMounted(() => {
 <template>
   <UTable
     v-bind="tableProps"
-    v-model:pagination="pagination"
+    v-model:pagination="paginationState"
     v-model:global-filter="globalFilter"
     v-model:sorting="sorting"
     v-model:row-selection="rowSelect"
     v-model:column-filters="columnFilters"
     v-model:column-visibility="columnVisibility"
     v-model:column-sizing="columnSizing"
+    v-model:column-order-state="columnOrder"
     v-model:filters-row-open="filtersRowOpen"
     v-model:active-tab="activeTabId"
     v-model:active-display="activeDisplayId"
     v-model:kanban-group-by="kanbanGroupBy"
+    v-model:grouped-group-by="groupedGroupBy"
+    v-model:show-archived="showArchived"
+    v-model:expanded="expandedModel"
+    v-model:density="density"
+    :chrome="resolvedChrome"
+    :grouping="grouping"
+    :accumulation="accumulation"
+    :reorder="reorderState"
+    :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
+    :search-placeholder="props.searchPlaceholder"
+    :quick-filters="resolvedQuickFilters"
+    :footer="resolvedFooter"
+    :empty-states="props.emptyStates"
+    :default-page-size="props.pageSize"
+    :archive-toggle="canToggleArchived"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"
+    :grouped-group-by-options="groupedGroupByOptions"
     :tabs="tabsWithCount"
     :initial-column-visibility="initialVisibility"
-    :loading="status === 'pending'"
+    :loading="isListLoading"
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
     :sorting-options="{ manualSorting: true }"
+    :default-sort="tableDefaultSort"
+    :default-sort-label="defaultSortLabel"
+    :default-sort-kind="defaultSortKind"
     :global-filter-options="{ enableGlobalFilter: false }"
     :columns="listableColumns"
     :custom-nav-items="customNavItems"
     :custom-buttons="customButtons"
-    :enable-export="enableTableExport"
+    :can-export="enableTableExport"
     :on-custom-button="handleCustomButton"
     :on-custom-row-action="handleCustomRowAction"
+    :bulk-actions="bulkCustomActions"
+    v-model:all-matching="allMatching"
     :presence-by-row="presenceByRowFiltered"
     @add="handleRowAdd"
     @refresh="refreshAll"
@@ -1153,9 +2008,34 @@ onMounted(() => {
     @archive="(e) => archiveRows(e)"
     @restore="(e) => restoreRows(e)"
     @export="handleExportSelection"
+    @export-all="handleExportTable"
+    @bulk-action="runBulkAction"
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >
+    <template v-if="hasViews" #views>
+      <TableViews
+        :items="viewItems"
+        :active-id="activeViewId"
+        :layout="viewsLayout"
+        :modified="isViewModified"
+        :can-save-as="canSaveViews"
+        :divided="tabsWithCount.length === 0"
+        @open="openView"
+        @reset="resetView"
+        @save="saveView"
+        @save-as="saveAsNewView"
+        @delete="deleteView"
+      />
+    </template>
+    <template v-if="expandableConfig" #expanded="{ row }">
+      <ExpandedRowDetail
+        :row-props="expandedRowProps(row.original)"
+        :config="expandableConfig"
+        :load-state="expandedRowLoadState(row.id)"
+        @retry="expandedDetails.load(row.id)"
+      />
+    </template>
     <template
       v-if="activeDisplayComponent && !activeDisplayBlockedByError"
       #body="{ table }"

@@ -7,10 +7,11 @@ import {
   applyModuleResolution,
   calculateFullSlug,
   createCategoryFunction,
-  internal,
   resolveCategoryInfo,
+  RootCategory as createRootCategory,
   validateNotInsideSettings,
-} from "./categories";
+} from "./internal/categories";
+import { internal } from "./categories";
 import { PageMetadata } from "./metadata";
 import type {
   CategoryInfo,
@@ -20,6 +21,7 @@ import type {
   PageExtensionComponent,
   PageExtensionInfo,
 } from "./types";
+import { fireAndForget } from "../utils/fire-and-forget";
 
 interface StaticComponentField {
   key: string;
@@ -57,7 +59,7 @@ export const RegisterPage = MakeClassDecorator((cl) => {
     meta.SetComponent(key, component);
   }
 
-  void meta.Register();
+  fireAndForget(meta.Register(), "page registration");
 });
 
 function buildExtensionComponents(
@@ -97,7 +99,7 @@ function buildExtensionComponents(
  * followed by its own id — it is also the page's permission id, the one listed
  * in the roles screen and returned by `GetPermissionId(ThePageClass)` inside
  * the owning module. The DMS members page, for instance, is
- * `settings.user.members`.
+ * `settings.workspace.members`.
  *
  * Placement is declared on each component with `.before(anchor)` /
  * `.after(anchor)`, where an anchor is a static field name of the target page
@@ -116,7 +118,7 @@ function buildExtensionComponents(
  * declare, is reported and the extension is skipped.
  *
  * ```ts
- * @RegisterPageExtension("settings.user.members")
+ * @RegisterPageExtension("settings.workspace.members")
  * export class SeatQuotaExtension {
  *   static seatQuota = CustomComponent("SeatQuotaBanner")
  *     .meta({ name: "Seat quota" })
@@ -132,7 +134,7 @@ export const RegisterPageExtension = MakeClassDecorator(
       (cl as ControllerClass).name || "anonymous page extension";
     if (!targetPageId.trim()) {
       throw new Error(
-        `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.user.members".`,
+        `Page extension "${extensionName}" must name the page it extends by its full id, for example "settings.workspace.members".`,
       );
     }
 
@@ -281,7 +283,7 @@ export function RootCategory(
   // Spread options first so an explicitly-passed type wins, then default an
   // omitted type to "label". Spreading after the default would let an explicit
   // `type: undefined` clobber it.
-  return internal.RootCategory(id, {
+  return createRootCategory(id, {
     ...options,
     type: options.type ?? "label",
   });
@@ -296,7 +298,7 @@ export function RootCategory(
  * is Vue 3, whichever `@antelopejs/dms-frontend` release loads it. The loader
  * releases a module runs on are declared by the module itself, in the
  * package.json of its `sourcePath`, under `engines` keyed by the loader package
- * (`"@antelopejs/dms-frontend": ">=0.3.2 <0.4.0"`). The loader reads that file,
+ * (`"@antelopejs/dms-frontend": ">=0.4.0 <0.5.0"`). The loader reads that file,
  * with or without a backend, and refuses a module whose range excludes it; the
  * DMS passes the directory through without reading it.
  */

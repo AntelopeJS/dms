@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { relDmsAssignDataAPI } from "./data-api";
+import { demoFormPages } from "../form-texts";
 
 @RegisterPage()
 export class PageTableViewRelationDmsMember extends PageController(
@@ -11,15 +12,16 @@ export class PageTableViewRelationDmsMember extends PageController(
     displayName: "Relation · DMS Member (tenant)",
     icon: "i-ph-user-circle",
     category: tableViewCategory,
-    order: 91,
+    order: 121,
     description:
-      "Tenant-scoped relation to the REAL DMS member (memberSettingDataAPI). Same instance as the member, so the @Joined `name` label resolves in list — the omnitec scenario. Use + New to assign a member (the table starts empty: tenant rows are created at runtime, not seeded).",
+      "Tenant-scoped relation to the real DMS members (memberSettingDataAPI): their @Joined name resolves in the list. The table starts empty, as tenant rows are created at runtime: add an assignment to pick a member.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(relDmsAssignDataAPI, {
     caption: "Assignments → real DMS member (tenant-scoped)",
     labelKey: "label",
+    formContainer: { type: "page", pages: demoFormPages("member_assignment") },
     rowActions: {
       add: true,
       copyLink: false,

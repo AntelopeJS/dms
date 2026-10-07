@@ -2,15 +2,17 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import KanbanBoard from "./KanbanBoard.vue";
 import type { Data } from "../../build/components/table/Table.vue";
-import type { TableViewDisplayContext } from "../../composables/table-view/types";
+import type {
+  TableViewCardConfig,
+  TableViewDisplayContext,
+} from "../../composables/table-view/types";
 import { KANBAN_DISPLAY_BRIDGE_KEY } from "../../composables/table-view/kanban";
 
 const props = defineProps<{ context: TableViewDisplayContext<T> }>();
 
 interface KanbanDisplayOptions {
   groupByField?: string;
-  cardFields?: string[];
-  cardComponent?: ComponentInfo;
+  card?: TableViewCardConfig;
   draggable?: boolean;
   columnMaxHeight?: string;
 }
@@ -29,13 +31,7 @@ const groupByField = bridge?.groupByField ?? fallbackGroupBy;
 const rowId = (item: T): string =>
   String(get(item, props.context.rowIdKey) ?? "");
 
-const onCardClick = (item: T) => {
-  if (props.context.actions.canEdit) {
-    props.context.actions.edit(item);
-    return;
-  }
-  props.context.actions.details(item);
-};
+const onCardClick = (item: T) => props.context.actions.open(item);
 
 const onCardDelete = (item: T) => {
   const id = rowId(item);
@@ -54,8 +50,9 @@ defineExpose({ refresh: () => kanbanBoardRef.value?.refresh() });
     :columns="context.columns"
     :label-key="context.labelKey"
     :row-id-key="context.rowIdKey"
-    :card-fields="options.cardFields"
-    :card-component="options.cardComponent"
+    :card-fields="options.card?.fields"
+    :card-component="options.card?.component"
+    :card-context="context"
     :draggable="options.draggable"
     :column-page-size="context.pagination.pageSize"
     :column-max-height="options.columnMaxHeight"

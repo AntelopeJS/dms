@@ -1,8 +1,22 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class pageModeTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/page-mode", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewPage extends PageController(
@@ -12,11 +26,12 @@ export class PageTableViewPage extends PageController(
     icon: "i-ph-browser",
     category: tableViewCategory,
     order: 30,
-    description: "TableView with page mode - auto-generated URLs",
+    description:
+      "Add, edit and details forms open as full pages with their own URLs",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(pageModeTaskDataAPI, {
     caption: "Tasks - Page Mode (Auto URLs)",
     labelKey: "name",
     rowActions: {
@@ -28,6 +43,9 @@ export class PageTableViewPage extends PageController(
       edit: true,
       hasSelection: true,
     },
-    formContainer: { type: "page" },
+    formContainer: { type: "page", pages: demoFormPages("task") },
+    // Offers the built-in cards display next to the grid (display switch in
+    // the toolbar).
+    displays: [{ id: "cards" }],
   });
 }

@@ -8,7 +8,7 @@ import {
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
 
-const GROUPED_FORM_PERMISSION = "pages.form.form-grouped.form";
+const GROUPED_FORM_PERMISSION = `${pageCategory.fullId}.form-grouped.form`;
 
 @RegisterPage()
 export class PageFormWatchActions extends PageController(

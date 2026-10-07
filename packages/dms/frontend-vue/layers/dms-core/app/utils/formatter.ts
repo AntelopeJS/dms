@@ -1,3 +1,8 @@
+import {
+  currentRegionalPreferences,
+  regionalDateTimeFormat,
+  regionalDayNumber,
+} from "./regional";
 import { isNumber } from "./type-check";
 
 const DEFAULT_LOCALE = "en-US";
@@ -32,39 +37,39 @@ type RelativeTimeRule = {
   ) => string;
 };
 
-function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+/** Whether `date` fell yesterday, in the user's time zone. */
+function isYesterday(date: Date): boolean {
+  return regionalDayNumber(date) === regionalDayNumber(new Date()) - 1;
 }
 
 function formatTimeHHMM(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return regionalDateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
 }
 
 function formatShortDate(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+  return regionalDateTimeFormat(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
   }).format(date);
 }
 
-function formatTimeCompact(date: Date): string {
-  const hours = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}h${minutes}`;
-}
-
-function getYesterday(): Date {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday;
+/** "14h05" on a 24-hour clock; the locale's own time on a 12-hour one. */
+function formatTimeCompact(date: Date, locale: string): string {
+  if (currentRegionalPreferences().timeFormat === "h12") {
+    return formatTimeHHMM(date, locale);
+  }
+  const parts = regionalDateTimeFormat(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${Number(read("hour"))}h${read("minute")}`;
 }
 
 const RELATIVE_TIME_RULES: RelativeTimeRule[] = [
@@ -85,7 +90,7 @@ const RELATIVE_TIME_RULES: RelativeTimeRule[] = [
       t("common.time.hours_ago", { count: Math.floor(diffMs / TIME_UNITS.h) }),
   },
   {
-    condition: (_, targetDate) => isSameDay(targetDate, getYesterday()),
+    condition: (_, targetDate) => isYesterday(targetDate),
     format: (t, _, targetDate, locale) =>
       t("common.time.yesterday_at", {
         time: formatTimeHHMM(targetDate, locale),
@@ -110,7 +115,7 @@ export function formatRelativeTime(
   }
 
   return t("common.time.on_date", {
-    date: `${formatShortDate(targetDate, locale)} ${formatTimeCompact(targetDate)}`,
+    date: `${formatShortDate(targetDate, locale)} ${formatTimeCompact(targetDate, locale)}`,
   });
 }
 
@@ -149,7 +154,7 @@ export function formatDate(
       return null;
     }
 
-    return new Intl.DateTimeFormat(locale, formatOptions).format(validDate);
+    return regionalDateTimeFormat(locale, formatOptions).format(validDate);
   } catch {
     return null;
   }
@@ -215,40 +220,58 @@ export function formatPercentage(
   });
 }
 
+const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
+  y: "y",
+  M: "M",
+  mo: "M",
+  w: "w",
+  d: "d",
+  h: "h",
+  m: "m",
+  s: "s",
+  ms: "ms",
+};
+
+// `01:30`, `26:00:30`: hours, then minutes and seconds under 60.
+const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
+// `1h30m`, `1h 30m`, `1h:30m` (what `formatTimeSpan` writes), `1.5h`.
+const UNIT_SPAN = /^(?:\d+(?:\.\d+)?(?:ms|mo|[Mmwydhs])[\s:]*)+$/;
+const UNIT_SPAN_PART = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
+
+function readClockSpan(text: string): number | undefined {
+  const match = CLOCK_SPAN.exec(text);
+  if (!match) return undefined;
+  const [, hours, minutes, seconds] = match;
+  return (
+    Number(hours) * TIME_UNITS.h +
+    Number(minutes) * TIME_UNITS.m +
+    Number(seconds ?? 0) * TIME_UNITS.s
+  );
+}
+
+function readUnitSpan(text: string): number | undefined {
+  if (!UNIT_SPAN.test(text)) return undefined;
+  let total = 0;
+  for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
+    total += Number.parseFloat(amount!) * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+  }
+  return total;
+}
+
+/**
+ * A duration typed in, in milliseconds: a clock duration (`01:30`,
+ * `26:00:30`) or units (`1h30m`, `1h 30m`, `1.5h`), or `undefined` for a
+ * text that is neither.
+ */
+export function readTimeSpan(value: string): number | undefined {
+  const text = value.trim();
+  if (!text) return undefined;
+  return readClockSpan(text) ?? readUnitSpan(text);
+}
+
 export function parseTimeSpan(value: string | number): number {
   if (isNumber(value)) return Number(value);
-  const normalizedValue = value.trim();
-  if (!normalizedValue) return 0;
-
-  const UNIT_MAP: Record<string, keyof typeof TIME_UNITS> = {
-    y: "y",
-    M: "M",
-    mo: "M",
-    w: "w",
-    d: "d",
-    h: "h",
-    m: "m",
-    s: "s",
-    ms: "ms",
-  };
-
-  let totalMs = 0;
-  const regex = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
-
-  let match;
-  while ((match = regex.exec(normalizedValue)) !== null) {
-    const rawValue = match[1];
-    const unit = match[2];
-    if (!rawValue || !unit) continue;
-
-    const canonicalUnit = UNIT_MAP[unit];
-    if (!canonicalUnit || !(canonicalUnit in TIME_UNITS)) continue;
-
-    const numValue = Number.parseFloat(rawValue);
-    totalMs += numValue * TIME_UNITS[canonicalUnit as keyof typeof TIME_UNITS];
-  }
-
-  return totalMs;
+  return readTimeSpan(value) ?? 0;
 }
 
 const DEFAULT_SEPARATOR = ":";

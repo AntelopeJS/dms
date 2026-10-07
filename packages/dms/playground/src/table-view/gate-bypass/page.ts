@@ -4,12 +4,15 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { gateDemoInvoiceAPI } from "./data-api";
+import { demoFormPages } from "../form-texts";
 
 // Recovery-surface demo: suspend the tenant with
 // POST /playground/gate-demo/toggle, then reload. This page stays reachable
 // (page-level flag) and its first table keeps serving rows (controller-level
 // flag), while the second table's routes stay gated and must surface an
-// explicit error — never an empty table.
+// explicit error — never an empty table. The second table only reads: the
+// tasks are written from the "Drawer Mode" demo, the one writing TableView of
+// taskDataAPI.
 @RegisterPage()
 export class PageTableViewGateBypass extends PageController(
   "table-view-gate-bypass",
@@ -17,7 +20,7 @@ export class PageTableViewGateBypass extends PageController(
     displayName: "Gate Bypass",
     icon: "i-ph-lock-open",
     category: tableViewCategory,
-    order: 130,
+    order: 150,
     description: "TableView kept readable while a tenant access gate denies",
     bypassTenantAccessGate: true,
   },
@@ -26,11 +29,14 @@ export class PageTableViewGateBypass extends PageController(
   static invoices = TableView(gateDemoInvoiceAPI, {
     caption: "Invoices (bypasses the gate)",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("invoice") },
     bypassTenantAccessGate: true,
   });
 
   static tasks = TableView(taskDataAPI, {
     caption: "Tasks (still gated)",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
+    rowActions: { add: false, duplicate: false, edit: false, delete: false },
   });
 }

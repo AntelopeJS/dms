@@ -4,23 +4,23 @@ import {
   type DataControllerCallback,
   DefaultRoutes,
 } from "@antelopejs/interface-data-api";
-import type { Parameters } from "@antelopejs/interface-data-api/components";
-import { GetModel } from "@antelopejs/interface-database-decorators";
 import {
-  InviteResolutionsModel,
-  type UserInvite,
-  UserInviteModel,
-} from "@antelopejs/interface-dms/db";
-import { internal } from "@antelopejs/interface-dms/invite-extensions";
+  type Parameters,
+  Validation,
+} from "@antelopejs/interface-data-api/components";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
+import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
+import {
+  CollectInviteExtensionEdits,
+  NotifyInviteExtensionUpdates,
+  ReadInviteExtensionFields,
+} from "@antelopejs/interface-dms/invite-extensions/internal/edit";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
-
-function parseEditBody(body: Buffer): unknown {
-  return JSON.parse(body.toString());
-}
 
 /**
  * The invitation about to be edited. One with a decision already taken is
@@ -56,7 +56,7 @@ export const inviteGetRoute: DataControllerCallback = {
     );
     return {
       ...row,
-      ...internal.ReadInviteExtensionFields(invite?.extensions),
+      ...ReadInviteExtensionFields(invite?.extensions),
     };
   },
 };
@@ -73,7 +73,7 @@ export async function editPendingInvite(
   body: unknown,
   writeRow: () => Promise<unknown>,
 ): Promise<void> {
-  const edits = internal.CollectInviteExtensionEdits(body);
+  const edits = CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
 
   await writeRow();
@@ -82,7 +82,7 @@ export async function editPendingInvite(
   await GetModel(UserInviteModel, tenantId).update(inviteId, {
     extensions: { ...invite.extensions, ...edits },
   });
-  await internal.NotifyInviteExtensionUpdates(invite.extensions, edits, {
+  await NotifyInviteExtensionUpdates(invite.extensions, edits, {
     tenantId,
     email: invite.email,
     inviteId,
@@ -100,7 +100,7 @@ const editInviteWithExtensions: DataControllerCallback = {
     return editPendingInvite(
       getRequestTenantId(ctx),
       String(params.id),
-      parseEditBody(body),
+      Validation.ParseBody(body),
       () => DefaultRoutes.Edit.func.call(this, ctx, params, body),
     );
   },

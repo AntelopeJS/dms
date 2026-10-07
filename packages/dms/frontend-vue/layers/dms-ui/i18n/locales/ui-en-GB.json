@@ -15,18 +15,24 @@
       "load_error_message": "Something went wrong while loading this data.",
       "load_error_retry": "Try again",
       "new_row": "New entry",
-      "new_item": "New Item",
-      "new_item_description": "Create a new item in this table",
-      "view_item": "View Details",
-      "view_item_description": "View detailed information about this item",
-      "edit_item": "Edit Item",
-      "edit_item_description": "Modify the information of this item",
+      "new_item": "New entry",
+      "new_item_description": "Fill in its fields, then save.",
+      "new_item_in": "Added to {caption} once saved.",
+      "view_item": "Entry details",
+      "view_item_description": "Every field of this entry, read-only.",
+      "view_item_in": "An entry of {caption}, read-only.",
+      "edit_item": "Edit entry",
+      "edit_item_description": "Change its fields, then save.",
+      "edit_item_in": "Changes are saved to {caption}.",
       "search_placeholder": "Search...",
       "options_title": "Table options",
       "filters_title": "Filters",
       "columns_title": "Columns",
       "sort_title": "Sort",
       "page_size_title": "Page size",
+      "density_title": "Density",
+      "density_default": "Default",
+      "density_compact": "Compact",
       "export_config": "Export configuration",
       "import_config": "Import configuration",
       "import_config_title": "Import configuration",
@@ -41,19 +47,28 @@
       "filter_accessor": "Columns to filter",
       "filter_comparator": "Comparison mode",
       "filter_value": "Enter a value",
-      "delete_filters": "Delete filters",
+      "clear_filters": "Clear filters",
+      "clear_search": "Clear search",
+      "clear_filters_and_search": "Clear filters and search",
       "add_filter": "Add a filter",
       "between_separator": "and",
       "link_copied": "Link copied!",
-      "delete_rows": "{count} items deleted",
+      "delete_rows": "{count} item deleted | {count} items deleted",
       "delete_error": "Failed to delete items",
-      "delete_confirm_title": "Confirm deletion",
-      "delete_confirm_description": "Are you sure you want to delete {count} item(s)? This action cannot be undone.",
-      "delete_confirm_button": "Delete",
-      "archive_rows": "{count} items archived",
+      "delete_confirm_title": "Delete this item? | Delete {count} items?",
+      "delete_confirm_description": "The selected item will be deleted. This action cannot be undone. | The {count} selected items will be deleted. This action cannot be undone.",
+      "delete_confirm_button": "Delete | Delete {count} items",
+      "delete_permanently_confirm_title": "Permanently delete this archived item? | Permanently delete {count} archived items?",
+      "delete_permanently_confirm_description": "The selected item will be removed for good: it cannot be restored. | The {count} selected items will be removed for good: they cannot be restored.",
+      "delete_permanently_confirm_button": "Delete permanently | Delete {count} permanently",
+      "archive_confirm_title": "Archive this item? | Archive {count} items?",
+      "archive_confirm_description": "The selected item will be hidden from the list until it is restored. | The {count} selected items will be hidden from the list until they are restored.",
+      "archive_confirm_button": "Archive | Archive {count} items",
+      "archive_rows": "{count} item archived | {count} items archived",
       "archive_error": "Failed to archive items",
-      "restore_rows": "{count} items restored",
+      "restore_rows": "{count} item restored | {count} items restored",
       "restore_error": "Failed to restore items",
+      "bulk_skipped": "{count} selected item was skipped: its row rules do not allow this action, or it was already done. | {count} selected items were skipped: their row rules do not allow this action, or it was already done.",
       "duplicate_rows": "{count} items duplicated",
       "duplicate_error": "Failed to duplicate items",
       "compare_mode": {
@@ -90,6 +105,20 @@
       "action_view_archived": "View archived items",
       "show_active": "Show active items",
       "show_archived": "Show archived items",
+      "archived": "Archived",
+      "archive_toggle": "Archive",
+      "archived_count": "{count} archived",
+      "archive_strip_title": "Viewing archived items.",
+      "archive_strip_description": "They are hidden from the regular list until restored.",
+      "archived_empty_title": "No archived items",
+      "archived_empty_message": "Items you archive show up here.",
+      "delete_permanently": "Delete permanently",
+      "row_selection_count": "{count} of {total} selected",
+      "row_selection_count_only": "{count} selected",
+      "select_page": "Select the whole page",
+      "clear_selection": "Clear selection",
+      "expand_row": "Expand row",
+      "collapse_row": "Collapse row",
       "tabs": {
         "all": "All"
       },
@@ -107,15 +136,70 @@
       "kanban": {
         "group_by": "Group by",
         "load_more": "Load more",
+        "load_more_count": "Load {count} more",
+        "locked": "Locked",
         "move_error": "Failed to move the card",
         "no_columns": "No eligible column to group by",
         "move_success": "Card moved to “{column}”"
       },
-      "view_mode_title": "View mode"
+      "view_mode_title": "View mode",
+      "view_mode_cards": "Cards",
+      "quick_filter": {
+        "all": "All",
+        "clear": "Clear {label}"
+      },
+      "cell": {
+        "now": "Now",
+        "by": "{date} · by {name}",
+        "copy": "Copy",
+        "copied": "Copied to the clipboard"
+      },
+      "bulk_refused": {
+        "delete": "This item couldn’t be deleted. | These {count} items couldn’t be deleted.",
+        "archive": "This item couldn’t be archived. | These {count} items couldn’t be archived.",
+        "restore": "This item couldn’t be restored. | These {count} items couldn’t be restored."
+      },
+      "bulk_partial": {
+        "delete": "{failed} of {total} items couldn’t be deleted.",
+        "archive": "{failed} of {total} items couldn’t be archived.",
+        "restore": "{failed} of {total} items couldn’t be restored."
+      },
+      "bulk_refused_reason": "Its rules don’t allow this action, or it was already done. | Their rules don’t allow this action, or it was already done.",
+      "view_mode_grouped": "Grouped",
+      "views": {
+        "title": "Views",
+        "modified": "Changed since the view was opened",
+        "reset": "Reset",
+        "save": "Save",
+        "save_as": "Save as new view",
+        "save_current": "Save current view",
+        "delete": "Delete view",
+        "save_as_title": "Save as a new view",
+        "save_as_description": "Keep the current filters, search, sort, columns and display under a name. Only you will see it.",
+        "save_as_confirm": "Save view",
+        "name_label": "Name",
+        "name_placeholder": "e.g. My open tickets",
+        "unavailable_title": "This view is not available",
+        "unavailable_description": "The link opens a view that does not exist or belongs to someone else: the table shows its default view."
+      },
+      "grouped": {
+        "none": "No value",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "week_of": "Week of {date}"
+      },
+      "all_matching_selected": "All {count} row selected | All {count} rows selected",
+      "select_all_matching": "Select all {count} matching",
+      "reorder": {
+        "column": "Order",
+        "move": "Drag to reorder, or use the arrow keys",
+        "disabled": "Clear the search, filters and tab to reorder",
+        "error": "The new order could not be saved"
+      }
     },
     "table_form": {
-      "edit_title": "Edit item",
-      "new_title": "Add item",
+      "edit_title": "Edit entry",
+      "new_title": "New entry",
       "view_title": "View details",
       "updated_at": "Last updated",
       "created_at": "Created"
@@ -128,10 +212,32 @@
       "first_page": "First page",
       "previous_page": "Previous page",
       "next_page": "Next page",
-      "last_page": "Last page"
+      "last_page": "Last page",
+      "shown_of": "{shown} of {count}",
+      "load_more": "Load more"
     },
     "sort": {
-      "no_sorting": "No sorting applied"
+      "no_sorting": "No sorting applied",
+      "reset_title": "Sorting turned off",
+      "reset_description": "This list can no longer be sorted by {column}.",
+      "default_sort": "Default sort",
+      "sorted_by": "Sorted by:",
+      "default_suffix": "default",
+      "reset_default": "Reset to default sort",
+      "direction": {
+        "number": {
+          "asc": "lowest → highest",
+          "desc": "highest → lowest"
+        },
+        "date": {
+          "asc": "oldest → newest",
+          "desc": "newest → oldest"
+        },
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        }
+      }
     },
     "button": {
       "copy": "Copy",
@@ -151,11 +257,6 @@
       "refresh_data": "Refresh data",
       "export_data": "Export data"
     },
-    "tree": {
-      "load_error_title": "Loading Error",
-      "load_error_message": "Unable to load child items",
-      "no_entries": "No items to display"
-    },
     "form": {
       "success_title": "Success",
       "success_message": "Data has been successfully saved",
@@ -172,6 +273,7 @@
       "error_missing_fields": "Missing required fields",
       "error_fill_all_fields": "Please fill in all required fields",
       "required_legend": "Required fields",
+      "unsaved_changes": "Unsaved changes",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
       "select_date": "Select date",
@@ -184,11 +286,14 @@
         "search_placeholder": "Search...",
         "no_results": "No results found",
         "selected_count": "{count} selected",
-        "partial_results": "Showing first {shown} of {total} items"
+        "partial_results": "Showing first {shown} of {total} items",
+        "no_entries": "No items to display"
       },
       "input": {
         "show_password": "Show password",
-        "hide_password": "Hide password"
+        "hide_password": "Hide password",
+        "show": "Show",
+        "hide": "Hide"
       },
       "validation": {
         "password_mismatch": "Passwords do not match",
@@ -230,8 +335,8 @@
       "image": {
         "add": "Add",
         "drop_hint": "or drop here",
-        "gallery_hint": "Drag & drop · paste ⌘V · drag to reorder",
-        "single_prompt": "Drop an image, paste (⌘V) or browse",
+        "gallery_hint": "Drag & drop · paste {shortcut} · drag to reorder",
+        "single_prompt": "Drop an image, paste ({shortcut}) or browse",
         "single_hint": "Single image",
         "formats_any": "Any image format",
         "upload_failed": "Upload failed",
@@ -280,6 +385,50 @@
           "cancel": "Cancel"
         },
         "character_count": "{count} characters"
+      },
+      "sections": {
+        "nav": "Sections",
+        "changed": "Unsaved changes",
+        "invalid": "No errors | 1 field to fix | {count} fields to fix"
+      },
+      "error_summary": {
+        "title": "No field to fix | 1 field needs your attention | {count} fields need your attention"
+      },
+      "repeater": {
+        "add": "Add a row",
+        "move": "Move row {row} (arrow keys)",
+        "remove": "Remove row {row}",
+        "count": "No rows | 1 row | {count} rows"
+      },
+      "key_value": {
+        "key": "Name",
+        "value": "Value",
+        "count": "No entries | 1 entry | {count} entries"
+      },
+      "secret": {
+        "show": "Show",
+        "hide": "Hide",
+        "rotate": "Rotate…",
+        "rotate_title": "Rotate this secret?",
+        "rotate_description": "A new secret replaces this one. Whatever still uses the current one stops working until it gets the new one.",
+        "rotate_confirm": "Rotate",
+        "rotated": "A new secret replaces the previous one."
+      },
+      "tags": {
+        "invalid_email": "{value} isn’t a valid email address. | {value} aren’t valid email addresses.",
+        "remove": "Remove {value}"
+      },
+      "code": {
+        "completion_footer": "↵ insert · Esc close",
+        "complete": "complete",
+        "position": "Ln {line}, Col {column}"
+      },
+      "field_notes": {
+        "changed": "Changed",
+        "was": "was",
+        "was_empty": "was empty",
+        "default": "Module default:",
+        "use_default": "Use default"
       }
     },
     "chart": {
@@ -314,38 +463,26 @@
           "condition": "Only when enableRowDelete is enabled"
         }
       },
-      "tree": {
-        "arrowdown": {
-          "description": "Navigate down"
-        },
-        "arrowup": {
-          "description": "Navigate up"
-        },
-        "enter": {
-          "description": "Select node"
-        },
-        "space": {
-          "description": "Select node"
-        },
-        "home": {
-          "description": "Go to first node"
-        },
-        "end": {
-          "description": "Go to last node"
-        },
-        "escape": {
-          "description": "Deselect all nodes",
-          "condition": "Only when nodes are selected and no dialog is open"
-        },
-        "shift_a": {
-          "description": "Select all nodes recursively",
-          "condition": "Only when multiple is enabled"
-        }
-      },
       "tab": {
         "shift_letter": {
           "description": "Navigate to tab with defined shortcut",
           "condition": "Dynamically generated from item.shortcut property"
+        }
+      },
+      "global": {
+        "meta_k": {
+          "description": "Open command palette"
+        },
+        "slash": {
+          "description": "Focus the navigation search",
+          "condition": "The settings menu search on settings pages, the module search on Modules"
+        },
+        "meta_slash": {
+          "description": "Focus the page's own search",
+          "condition": "Settings pages with a search of their own, such as this one"
+        },
+        "escape": {
+          "description": "Close dialogs, menus and the palette"
         }
       }
     },
@@ -360,12 +497,13 @@
       },
       "subjects": {
         "general": "General",
+        "general_desc": "Important messages from the platform and your workspace administrators. Always on, so nothing essential is missed",
         "security": "Security alerts",
         "security_desc": "Sign-ins, password, email and two-factor changes on your account",
         "account": "Account",
-        "account_desc": "Important updates about your account",
+        "account_desc": "Your roles, your ownership and other important changes to your account",
         "collaboration": "Collaboration",
-        "collaboration_desc": "Invitations and new collaborators joining the platform",
+        "collaboration_desc": "Invitations, members joining or leaving, and role permission changes",
         "automation": "Automation",
         "automation_desc": "Notifications sent by automation procedures",
         "updates": "Module updates",
@@ -375,7 +513,8 @@
         "module_one_updates": "Threat reports",
         "module_one_updates_desc": "Updates on security threats and vulnerabilities",
         "module_two_notifications": "Shipment updates",
-        "module_two_notifications_desc": "Updates on shipping and inventory"
+        "module_two_notifications_desc": "Updates on shipping and inventory",
+        "updates_badge": "Developer mode"
       },
       "preferences": {
         "success": "Notification preferences updated",
@@ -386,60 +525,109 @@
       },
       "messages": {
         "new_login": {
-          "title": "New sign-in to your account",
-          "description": "A new sign-in to your account was detected from {device}{origin}. If this wasn't you, change your password immediately."
+          "title": "New sign-in from {device}",
+          "description": "Country: {country}. Not you? Change your password, then sign out the other sessions in Security.",
+          "title_browser_os": "New sign-in from {browser} on {os}",
+          "description_no_country": "Not you? Change your password, then sign out the other sessions in Security."
         },
         "new_login_unknown_device": {
-          "title": "New sign-in to your account",
-          "description": "A new sign-in to your account was detected{origin}. If this wasn't you, change your password immediately."
+          "title": "New sign-in from an unrecognised device",
+          "description": "Country: {country}. Not you? Change your password, then sign out the other sessions in Security.",
+          "description_no_country": "Not you? Change your password, then sign out the other sessions in Security."
         },
         "password_changed": {
-          "title": "Your password was changed",
-          "description": "Your account password was just changed. If you didn't make this change, reset your password and contact an administrator."
+          "title": "Password changed",
+          "description": "Not you? Use “Forgot password” on the sign-in page, then review your active sessions in Security."
         },
         "login_method_added": {
-          "title": "New sign-in method added",
-          "description": "Signing in with {provider} has just been linked to your account. If you did not do this, change your password immediately."
+          "title": "{provider} sign-in linked",
+          "description": "You can now sign in with {provider}. Not you? Change your password and review your sign-in methods in Security."
         },
         "password_reset": {
-          "title": "Your password was reset",
-          "description": "Your password was reset using the password recovery flow. If you didn't request this, contact an administrator immediately."
+          "title": "Password reset with an email link",
+          "description": "The link was sent to {email}. Not you? Someone can read that mailbox: secure it first, then reset your password again."
         },
         "email_changed": {
-          "title": "Your email address was changed",
-          "description": "The email address for your account was changed to {email}. If you didn't make this change, contact an administrator immediately."
+          "title": "Sign-in email changed to {email}",
+          "description": "You now sign in with this address; the previous one no longer works. Not you? Ask a workspace owner to lock the account."
         },
         "two_factor_enabled_totp": {
-          "title": "Two-factor authentication enabled",
-          "description": "Two-factor authentication via an authenticator app is now active on your account."
+          "title": "Two-factor authentication on",
+          "description": "Sign-ins now ask for a code from your authenticator app. Keep your backup codes somewhere safe."
         },
         "two_factor_enabled_email": {
-          "title": "Two-factor authentication enabled",
-          "description": "Two-factor authentication via email is now active on your account."
+          "title": "Two-factor authentication on",
+          "description": "Sign-ins now ask for a code sent by email. Keep your backup codes somewhere safe."
         },
         "two_factor_disabled_totp": {
-          "title": "Two-factor authentication disabled",
-          "description": "Two-factor authentication via an authenticator app was turned off. If you didn't make this change, secure your account immediately."
+          "title": "Two-factor authentication turned off",
+          "description": "Sign-ins no longer ask for a code. Not you? Turn it back on in Security and change your password."
         },
         "two_factor_disabled_email": {
-          "title": "Two-factor authentication disabled",
-          "description": "Two-factor authentication via email was turned off. If you didn't make this change, secure your account immediately."
+          "title": "Two-factor authentication turned off",
+          "description": "Sign-ins no longer ask for a code. Not you? Turn it back on in Security and change your password."
         },
         "backup_codes_regenerated": {
-          "title": "Your backup codes were regenerated",
-          "description": "A new set of two-factor backup codes was generated. Your previous backup codes no longer work."
+          "title": "New backup codes generated",
+          "description": "Your previous {count} codes no longer work. Save the new ones away from your phone.",
+          "description_one": "Your previous code no longer works. Save the new ones away from your phone.",
+          "description_none": "Your previous codes no longer work. Save the new ones away from your phone."
         },
         "welcome": {
-          "title": "Welcome aboard",
-          "description": "Welcome, {name}! Your account is ready. Take a moment to review your profile and security settings."
+          "title": "Welcome, {name}",
+          "description": "Your account is ready. Take two minutes to protect it: turn on two-factor authentication in Security.",
+          "title_anonymous": "Welcome"
         },
         "collaborator_joined": {
-          "title": "A new collaborator joined",
-          "description": "{name} ({email}) accepted their invitation and joined the platform."
+          "title": "{name} joined the workspace",
+          "description": "{email} accepted the invitation. Give them the right roles in Members."
         },
         "module_updates": {
-          "title": "Module updates available",
-          "description": "New versions available: {modules}. Update the versions in antelope.config.ts or run 'ajs project modules update' to apply them."
+          "title": "Updates available for {count} modules",
+          "description": "New versions available: {modules}. Update the versions in antelope.config.ts or run 'ajs project modules update' to apply them.",
+          "title_one": "Update available for {count} module"
+        },
+        "backup_code_used": {
+          "title": "A backup code was used to sign in — {left} left",
+          "title_none": "Your last backup code was used to sign in",
+          "description": "If it was you, there is nothing to do. Not you? Change your password and generate new backup codes in Security.",
+          "description_low": "You are running out: generate new backup codes in Security now. Not you? Change your password too.",
+          "description_none": "You have no backup codes left: generate new ones in Security now, or you could lock yourself out. Not you? Change your password too."
+        },
+        "failed_sign_ins": {
+          "title": "{count} failed sign-in attempts on your account",
+          "description": "Someone entered a wrong password in the last {minutes} minutes. Don't recognise this? Change your password and turn on two-factor authentication in Security.",
+          "description_two_factor": "Someone entered a wrong password in the last {minutes} minutes; two-factor authentication still stood in the way. Don't recognise this? Change your password in Security."
+        },
+        "roles_changed": {
+          "title": "Your roles are now {roles}",
+          "title_one": "Your role is now {roles}",
+          "title_none": "You no longer have any role",
+          "description": "{actor} changed your roles, and your access changed with them. See what you can open now in Settings."
+        },
+        "ownership_granted": {
+          "title": "You are now a workspace owner",
+          "description": "{actor} made you an owner: you hold every permission and can manage members, invitations and roles. Start in Members."
+        },
+        "ownership_removed": {
+          "title": "You are no longer a workspace owner",
+          "description": "{actor} removed your owner rights. You keep only the permissions of your roles: see what you can open now in Settings."
+        },
+        "invite_accepted": {
+          "title": "{name} accepted your invitation",
+          "description": "{email} is now a member of the workspace. Check they have the right roles in Members."
+        },
+        "invite_expired": {
+          "title": "Your invitation to {email} expired",
+          "description": "Nobody accepted it in time. Still needed? Send a new one from Invitations."
+        },
+        "member_removed": {
+          "title": "{name} was removed from the workspace by {actor}",
+          "description": "{email} can no longer open this workspace; their records stay. Review who has access in Members."
+        },
+        "role_permissions_changed": {
+          "title": "{actor} changed the permissions of “{role}”",
+          "description": "Members with this role got the new access right away. Review the role in Roles."
         }
       }
     },
@@ -462,6 +650,62 @@
       "concurrent_edit_banner_description": "Another user saved changes while you were editing. Saving now will overwrite their changes.",
       "concurrent_edit_banner_discard": "Discard and refresh",
       "concurrent_edit_banner_keep": "Keep editing"
+    },
+    "check_list": {
+      "state": {
+        "ok": "met",
+        "warn": "warning",
+        "error": "not met",
+        "pending": "not met yet",
+        "info": "note"
+      }
+    },
+    "password_rules": {
+      "head": "{met} of {total} met",
+      "verdict": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "almost": "Almost there",
+        "strong": "Strong"
+      }
+    },
+    "list_row": {
+      "unread": "Unread"
+    },
+    "activity_feed": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "empty_title": "No activity yet",
+      "error_title": "Activity could not be loaded",
+      "error_description": "Check your connection, then try again.",
+      "retry": "Try again"
+    },
+    "leave_guard": {
+      "title": "Discard unsaved changes?",
+      "description": "You’ll lose your changes if you leave without saving.",
+      "keep_editing": "Keep editing",
+      "discard": "Discard changes"
+    },
+    "save_bar": {
+      "unsaved": "Unsaved changes",
+      "discard": "Discard",
+      "save": "Save changes",
+      "saving": "Saving",
+      "saved": "Saved",
+      "instant": "Saved instantly",
+      "instant_hint": "Changes on this page are saved as soon as you make them",
+      "not_saved": "Not saved",
+      "retry": "Retry"
+    },
+    "blocks": {
+      "empty": "Nothing to show yet",
+      "load_error": "Couldn't load this block",
+      "load_error_hint": "Check your connection, then try again.",
+      "retry": "Try again"
+    },
+    "action_error": {
+      "forbidden": "You don’t have permission to do this.",
+      "generic": "Something went wrong and the action couldn’t be completed. Try again."
     }
   }
 }

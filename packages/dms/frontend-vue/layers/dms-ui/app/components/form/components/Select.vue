@@ -8,6 +8,7 @@
   "
 >
 import { useForwardPropsEmits } from "reka-ui";
+import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type {
   SelectProps,
   SelectEmits,
@@ -77,6 +78,7 @@ function handleUpdateModelValue(value: unknown) {
 <template>
   <USelect
     v-bind="forwarded as Record<string, unknown>"
+    :trailing-icon="props.trailingIcon ?? FIELD_TRIGGER_ICON"
     :model-value="props.modelValue as SelectProps<T, VK, M>['modelValue']"
     @update:model-value="handleUpdateModelValue as (value: unknown) => void"
   >

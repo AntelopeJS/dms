@@ -142,8 +142,12 @@ async function buildIdsExportQuery(
       // payload or a filter tuple, none of which the type system sees.
       // oxlint-disable-next-line anti-slop/no-chained-type-assertions
       const archiveValue = archiveConstraint[0] as unknown as boolean;
+      // "ne" also matches rows whose archive field was never written.
+      const isNotEqual = archiveConstraint[1] === "ne";
       query = query.filter((row: ValueProxy<Record<string, unknown>>) =>
-        row.key(archiveField).eq(archiveValue),
+        isNotEqual
+          ? row.key(archiveField).ne(archiveValue)
+          : row.key(archiveField).eq(archiveValue),
       );
     }
   }
@@ -381,6 +385,28 @@ export async function fetchRowForGuard(
   return row;
 }
 
+// A rule names table fields, computed ones included (an invitation's `status`
+// is a getter over `expiresAt`): read each row the way the list reads it
+// before evaluating the rule, so the server and the screen judge the same
+// values. The raw columns stay underneath for fields the read leaves out.
+async function readRuleRow(
+  controller: any,
+  controllerMetadata: DataAPIMeta,
+  model: ReturnType<typeof Query.GetModel>,
+  row: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  try {
+    const read = await Query.ReadProperties(
+      controller,
+      controllerMetadata,
+      (model.constructor as any).fromDatabase(row),
+    );
+    return { ...row, ...(read as Record<string, unknown>) };
+  } catch {
+    return row;
+  }
+}
+
 export async function validateRowsAgainstRule(
   controller: any,
   ids: string[],
@@ -401,7 +427,12 @@ export async function validateRowsAgainstRule(
   const rejectedIds: string[] = [];
 
   for (const row of rows) {
-    const rowData = row as Record<string, unknown>;
+    const rowData = await readRuleRow(
+      controller,
+      controllerMetadata,
+      model,
+      row as Record<string, unknown>,
+    );
     const rowId = String(rowData[idField]);
 
     if (evaluateRowActionRule(rule, rowData)) {
@@ -421,6 +452,11 @@ export async function validateRowsAgainstRule(
 
   return { eligibleIds, rejectedIds };
 }
+
+// The rows the write reached: an id with no row is not counted, so the caller
+// can tell how many of its selection were left untouched.
+const updatedRowCount = (updated: unknown, ids: string[]): number =>
+  typeof updated === "number" ? updated : ids.length;
 
 export async function archiveRows(
   controller: any,
@@ -444,11 +480,11 @@ export async function archiveRows(
     return { success: true, archivedCount: 0 };
   }
 
-  await model.table.getAll(idArray, idField).update({
+  const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: true,
   } as any);
 
-  return { success: true, archivedCount: idArray.length };
+  return { success: true, archivedCount: updatedRowCount(updated, idArray) };
 }
 
 export async function restoreRows(
@@ -473,15 +509,17 @@ export async function restoreRows(
     return { success: true, restoredCount: 0 };
   }
 
-  await model.table.getAll(idArray, idField).update({
+  const updated = await model.table.getAll(idArray, idField).update({
     [archiveField]: false,
   } as any);
 
-  return { success: true, restoredCount: idArray.length };
+  return { success: true, restoredCount: updatedRowCount(updated, idArray) };
 }
 
 export const listWithSearch = listWithSearchFunc;
 export const countWithSearch = countWithSearchFunc;
+export { summarizeWithSearch } from "./footer-summary";
+export { resolveBulkRowIds } from "./bulk-selection";
 
 export namespace internal {
   export const PublishMutation = publishTableViewMutation;

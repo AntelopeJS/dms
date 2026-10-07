@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import * as z from "zod";
+import { nextTick, useTemplateRef } from "vue";
 import type { FormSubmitEvent } from "@nuxt/ui";
-import { useWindowSize } from "@vueuse/core";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import DmsOtpInput from "#dms-ui/app/build/components/form/OtpInput.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import AuthResendCode from "../../build/components/AuthResendCode.vue";
+import { useAuthFormError } from "../../build/composables/useAuthFormError";
+import { codeEntryError } from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
+const { processApiMessage } = useTranslation();
 const { t } = useI18n();
 const toast = useToast();
-const { width } = useWindowSize();
+const dmsApp = useDmsApp();
 const homepage = useHomepage();
 const { $authFetch } = useAuthFetch();
+const { formError, showFormError, clearFormError, showError } =
+  useAuthFormError();
 
 if (!route.query.id) {
   throw createError({
@@ -18,22 +26,31 @@ if (!route.query.id) {
   });
 }
 
-const MOBILE_BREAKPOINT = 375;
 const PIN_LENGTH = 6;
+// Refusals of the typed code: shown under the cells, not above the form.
+const CODE_ERRORS = {
+  "error.invalid_token": "token",
+  "error.token_expired": "token",
+} as const;
 const COOLDOWN_DURATION = 60;
-
-const computedSize = computed(() => {
-  return width.value < MOBILE_BREAKPOINT ? "lg" : "xl";
-});
 
 const isLoading = ref(false);
 const form = useTemplateRef("form");
+const codeInput = useTemplateRef<{ focus: () => void }>("codeInput");
+const codeError = ref<string>();
 
-const schema = z.object({
-  pin: z.string().array().length(PIN_LENGTH),
-});
-type Schema = z.output<typeof schema>;
-const state = reactive<Partial<Schema>>({});
+interface CodeState {
+  pin?: string[];
+}
+const state = reactive<CodeState>({});
+
+// Typing a new code clears the refusal of the previous one.
+watch(
+  () => state.pin,
+  (digits) => {
+    if (digits?.some(Boolean)) codeError.value = undefined;
+  },
+);
 
 const { cooldown, startCooldown } = useCooldown(COOLDOWN_DURATION);
 
@@ -41,29 +58,48 @@ onMounted(() => {
   startCooldown();
 });
 
-async function onSubmit(event: FormSubmitEvent<Schema>) {
+async function onSubmit(event: FormSubmitEvent<CodeState>) {
+  // An empty or partial code is flagged under the cells, not sent.
+  const missing = codeEntryError(event.data.pin, PIN_LENGTH);
+  if (missing) {
+    codeError.value = processApiMessage(missing);
+    codeInput.value?.focus();
+    return;
+  }
   try {
     isLoading.value = true;
+    clearFormError();
+    codeError.value = undefined;
     await $authFetch("/api/auth/verify-email", {
       method: "POST",
       body: {
-        token: event.data.pin.join(""),
+        token: (event.data.pin ?? []).join(""),
         user_id: route.query.id as string,
       },
     });
 
-    navigateDms(homepage);
+    await dmsApp.runWithContext(() => navigateDms(homepage));
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.validate.error_title",
+    const isCodeError = await showError(error, "page.validate.error_title", {
+      fields: ["token"],
+      codes: CODE_ERRORS,
+      show: (_field, message) => {
+        codeError.value = message;
+      },
     });
+    if (isCodeError) state.pin = [];
   } finally {
     isLoading.value = false;
   }
+  // The cells are disabled while the request runs: focus them once enabled.
+  if (codeError.value) {
+    await nextTick();
+    codeInput.value?.focus();
+  }
 }
 
-function onUpdatePin(value: string[]) {
-  if (value.length !== PIN_LENGTH) return;
+function onUpdatePin(value: string[] | undefined) {
+  if ((value ?? []).join("").length !== PIN_LENGTH) return;
 
   form.value?.submit();
 }
@@ -81,9 +117,7 @@ async function requestEmailValidation() {
       color: "success",
     });
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.validate.error_title",
-    });
+    showFormError(error, "page.validate.error_title");
   } finally {
     isLoading.value = false;
   }
@@ -91,61 +125,48 @@ async function requestEmailValidation() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.validate.title") }}
-      </h1>
+  <StageCard
+    icon="i-ph-envelope-simple-open"
+    :title="$t('page.validate.title')"
+    :description="$t('page.validate.description')"
+  >
+    <UForm
+      ref="form"
+      :state="state"
+      novalidate
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+    >
+      <AuthFormAlert :error="formError" />
 
-      <p class="text-muted pb-7 text-sm font-normal">
-        {{ $t("page.validate.description") }}
-      </p>
+      <DmsOtpInput
+        ref="codeInput"
+        :label="$t('page.auth.code.label')"
+        size="xl"
+        is-split
+        is-centered
+        v-model="state.pin"
+        :error="codeError"
+        :length="PIN_LENGTH"
+        :disabled="isLoading"
+        is-otp
+        @update:model-value="onUpdatePin"
+      />
 
-      <UForm
-        ref="form"
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
-      >
-        <div class="flex items-center justify-center">
-          <UPinInput
-            v-model="state.pin"
-            :length="PIN_LENGTH"
-            :size="computedSize"
-            type="text"
-            otp
-            @update:model-value="onUpdatePin"
-          />
-        </div>
+      <UButton
+        :loading="isLoading"
+        :label="$t('page.validate.submit')"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
 
-        <div class="flex justify-center">
-          <UButton
-            v-if="cooldown === 0"
-            :label="$t('page.validate.request_validation')"
-            :loading="isLoading"
-            color="primary"
-            variant="ghost"
-            size="sm"
-            type="button"
-            @click="requestEmailValidation()"
-          />
-
-          <UButton
-            v-else
-            :label="
-              $t('page.validate.request_validation_in', {
-                time: cooldown,
-              })
-            "
-            :loading="isLoading"
-            color="neutral"
-            variant="link"
-            size="sm"
-            disabled
-          />
-        </div>
-      </UForm>
-    </DmsCard>
-  </div>
+    <AuthResendCode
+      :cooldown="cooldown"
+      :disabled="isLoading"
+      @resend="requestEmailValidation"
+    />
+  </StageCard>
 </template>

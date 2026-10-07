@@ -84,6 +84,7 @@ export function openDynamicContainer<Result, Options extends ContainerOptions>(
 
   return {
     result,
+    patch: (patch) => instance.patch(patch),
     close: (value?: Result) => {
       if (opened) {
         instance.close(value);

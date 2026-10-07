@@ -56,7 +56,8 @@ export class PageModulesDemo extends PageController(
     icon: "i-ph-puzzle-piece",
     category: notificationCategory,
     order: 10,
-    description: "Demonstrate notification categories from external modules",
+    description:
+      "Send notifications under the categories other modules declare",
   },
   FormPageLayout(),
 ) {
@@ -65,6 +66,8 @@ export class PageModulesDemo extends PageController(
     description: "Simulate a security alert notification",
     submitUrl: "/api/notification/module-one",
     submitUrlMethod: HttpMethod.post,
+    kind: "action",
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",
@@ -80,6 +83,8 @@ export class PageModulesDemo extends PageController(
     description: "Simulate a logistics notification",
     submitUrl: "/api/notification/module-two",
     submitUrlMethod: HttpMethod.post,
+    kind: "action",
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",
@@ -96,6 +101,8 @@ export class PageModulesDemo extends PageController(
       "Send a shared notification to all users - when one reads it, all see it as read",
     submitUrl: "/api/notification/broadcast-all",
     submitUrlMethod: HttpMethod.post,
+    kind: "action",
+    successMessage: "$demo.notifications.sent",
     fields: [
       {
         id: "trigger",

@@ -29,6 +29,7 @@ import {
   RelMemberModel,
   RelUser,
 } from "./database";
+import { demoAddForm } from "../form-texts";
 
 @RegisterDataController()
 export class relDeptDataAPI extends DataController(
@@ -113,6 +114,7 @@ export class relAssignDataAPI extends DataController(
     name: "Dept (by _id)",
     type: new DefaultDataTypes.RelationType({
       dataApiController: relDeptDataAPI,
+      addForm: demoAddForm("department"),
       keyMapping: { label: "name", value: "_id" },
     }),
     order: 1,
@@ -127,6 +129,7 @@ export class relAssignDataAPI extends DataController(
     name: "Dept (by code)",
     type: new DefaultDataTypes.RelationType({
       dataApiController: relDeptDataAPI,
+      addForm: demoAddForm("department"),
       index: "code",
       keyMapping: { label: "name", value: "code" },
     }),
@@ -142,6 +145,7 @@ export class relAssignDataAPI extends DataController(
     name: "Member (by _id)",
     type: new DefaultDataTypes.RelationType({
       dataApiController: relMemberDataAPI,
+      addForm: demoAddForm("member"),
       keyMapping: { label: "name", value: "_id" },
     }),
     order: 3,
@@ -156,6 +160,7 @@ export class relAssignDataAPI extends DataController(
     name: "Member (by userId)",
     type: new DefaultDataTypes.RelationType({
       dataApiController: relMemberDataAPI,
+      addForm: demoAddForm("member"),
       index: "userId",
       keyMapping: { label: "name", value: "userId" },
     }),

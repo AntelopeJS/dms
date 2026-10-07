@@ -1,5 +1,9 @@
 import { internal } from "./internal";
-import type { NotificationData, SendOptions } from "./types";
+import type { DeliveryOptions, NotificationData, SendOptions } from "./types";
+
+function deliveryOf(options: SendOptions): DeliveryOptions {
+  return { dedupe: options.dedupe };
+}
 
 export class SendableNotification {
   private readonly data: NotificationData;
@@ -8,7 +12,11 @@ export class SendableNotification {
     this.data = Object.freeze({ ...data }) as NotificationData;
   }
 
-  /** Sends to one recipient, optionally deduplicating a stable event key. */
+  /**
+   * Sends to one recipient, optionally deduplicating a stable event key. A
+   * repeat of what the recipient received in the last 10 seconds is dropped
+   * unless `dedupe: false` (see {@link DeliveryOptions}).
+   */
   async toUser(userId: string, options: SendOptions = {}): Promise<void> {
     await this.requireIdempotencySupport(options);
     await internal.SendToUser(
@@ -16,6 +24,7 @@ export class SendableNotification {
       this.data,
       undefined,
       options.idempotencyKey,
+      deliveryOf(options),
     );
   }
 
@@ -26,6 +35,7 @@ export class SendableNotification {
       this.data,
       options.readScope,
       options.idempotencyKey,
+      deliveryOf(options),
     );
   }
 
@@ -45,6 +55,7 @@ export class SendableNotification {
       this.data,
       options.readScope,
       options.idempotencyKey,
+      deliveryOf(options),
     );
   }
 
@@ -54,6 +65,7 @@ export class SendableNotification {
       this.data,
       options.readScope,
       options.idempotencyKey,
+      deliveryOf(options),
     );
   }
 

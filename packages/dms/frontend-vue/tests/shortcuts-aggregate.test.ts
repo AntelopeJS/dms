@@ -16,18 +16,25 @@ vi.mock("#shortcuts-aggregated", () => ({
   ],
 }));
 
+const registered = vi.hoisted((): Array<[string, unknown]> => []);
+
+vi.mock(
+  "../layers/dms-ui/app/build/composables/shortcuts/useShortcutRegistry",
+  () => ({
+    useShortcutRegistry: () => ({
+      registerShortcut: (component: string, shortcut: unknown) =>
+        registered.push([component, shortcut]),
+    }),
+  }),
+);
+
 describe("the shortcuts plugin", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("registers every module's registry from the aggregate, not only dms-ui's", async () => {
-    const registered: Array<[string, unknown]> = [];
     vi.stubGlobal("defineDmsPlugin", (setup: () => void) => setup);
-    vi.stubGlobal("useShortcutRegistry", () => ({
-      registerShortcut: (component: string, shortcut: unknown) =>
-        registered.push([component, shortcut]),
-    }));
     const { default: setup } = await import(
       "../layers/dms-ui/app/plugins/shortcuts"
     );

@@ -6,6 +6,7 @@ import type {
   DefaultValue,
   EnumOption,
   HttpMethod,
+  Tone,
 } from "./types";
 export namespace FormEvents {
   export const SUBMIT = "DmsComponent.Form.Submit";
@@ -21,14 +22,45 @@ export namespace FormFunctions {
   export const SET_FIELD_REQUIRED = "DmsComponent.Form.SetFieldRequired";
 }
 
+/** A pill shown beside a read-only field's value. */
+export interface FormFieldBadge {
+  /** i18n key or literal. */
+  label: string;
+  tone: Tone;
+}
+
+/** A link shown beside a read-only field's value: where it is changed. */
+export interface FormFieldLink {
+  /** i18n key or literal. */
+  label: string;
+  to: string;
+}
+
+/** A field shown, not edited, with what tells why or where to change it. */
+export interface FormFieldReadonly {
+  badge?: FormFieldBadge;
+  link?: FormFieldLink;
+}
+
 export interface FormField {
   id: string;
   label?: string;
   description?: string;
+  /** A grey help line under the control (i18n key or literal). */
+  hint?: string;
   type: DataType;
   inputComponent?: ComponentInfoSerialized;
   disabled?: boolean;
+  /**
+   * The value is shown, not edited: `true`, or with a pill (`badge`) and a
+   * link to where it is changed (`link`).
+   */
+  readonly?: boolean | FormFieldReadonly;
   required?: boolean;
+  /**
+   * The value of a new record. On a loaded one, a field holding something
+   * else offers "Use default", showing it.
+   */
   defaultValue?: DefaultValue;
   localized?: boolean;
 }
@@ -69,10 +101,64 @@ export function isFieldGroupSerialized(
   return "fields" in item && Array.isArray(item.fields);
 }
 
+/** How a form offers to save: see `FormProps.saveMode`. */
+export const FORM_SAVE_MODES = ["bar", "footer", "none", "instant"] as const;
+
+export type FormSaveMode = (typeof FORM_SAVE_MODES)[number];
+
+/** How a sectioned form lists its sections: see `FormProps.sectionNav`. */
+export const FORM_SECTION_NAVS = ["side", "jump", "none"] as const;
+
+export type FormSectionNav = (typeof FORM_SECTION_NAVS)[number];
+
+/**
+ * A titled part of a form: one card of fields, reached from the form's
+ * section navigation. Every section saves with the rest of the form.
+ */
+export interface FormSection {
+  /** Anchor of the section, unique within the form. */
+  id: string;
+  /** Title of the section's card and of its entry in the navigation. */
+  label: string;
+  description?: string;
+  /** Icon of the section's entry in the side navigation. */
+  icon?: string;
+  fields: FormFieldOrGroup[];
+}
+
+/** A section as the client reads it: the entries of the form it holds. */
+export interface FormSectionSerialized extends Omit<FormSection, "fields"> {
+  /** Ids of the entries of the form's `fields` the section holds, in order. */
+  fieldIds: string[];
+}
+
+/** What a form edits: see `FormProps.kind`. */
+export const FORM_KINDS = ["record", "action"] as const;
+
+export type FormKind = (typeof FORM_KINDS)[number];
+
+/** The options `Form` takes. */
 export interface FormProps extends BaseComponentProps {
   title?: string;
   description?: string;
-  fields: FormFieldOrGroup[];
+  /**
+   * The form's fields and groups. Beside `sections`, they come first, outside
+   * any section.
+   */
+  fields?: FormFieldOrGroup[];
+  /**
+   * The form's fields split into titled cards, on one page and saved together:
+   * a navigation leads to each (see `sectionNav`), and marks the sections
+   * holding unsaved changes or invalid values.
+   */
+  sections?: FormSection[];
+  /**
+   * How a sectioned form lists its sections. `side`: a list beside the
+   * sections that follows the scroll (a row of chips on a narrow screen);
+   * `jump`: a row of chips above them; `none`: no navigation. Defaults to
+   * `side` from three sections, `none` below.
+   */
+  sectionNav?: FormSectionNav;
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   submitUrl?: string;
@@ -85,10 +171,33 @@ export interface FormProps extends BaseComponentProps {
    */
   submitLabel?: string;
   /**
-   * Whether the reset and submit buttons show. Left out, they show once the
-   * form has somewhere to submit to and something to fill in.
+   * How the form offers to save. `bar` (the default): a sticky bar that shows
+   * while there are unsaved changes, names them and offers Discard and Save.
+   * `footer`: the buttons in the form's footer. `none`: no buttons, the form
+   * is read or saved by something else. `instant`: no buttons, each change
+   * saves on its own — the changed field alone, sent to `submitUrl` (which
+   * must accept a partial body), a pick at once and a text once typing
+   * pauses; a refused save is put back, with a retry. An `action` form saves
+   * with the bar instead. In a drawer or a modal, `bar` and `footer` both use
+   * the container's footer.
    */
-  showActions?: boolean;
+  saveMode?: FormSaveMode;
+  /**
+   * What the form edits. `record` (the default): a record, a settings page,
+   * a table view's form; it keeps its values once saved, and offers Cancel
+   * while clean when it has somewhere to go back to (`backTo`, or the drawer
+   * or modal it sits in). `action`: a form that does something each time it
+   * is sent — send a message, invite someone, run a job; its buttons are
+   * Reset and its `submitLabel`, shown once a value changes (in a drawer or
+   * a modal, Cancel and the held submit show before that), and it empties
+   * after a successful submit.
+   */
+  kind?: FormKind;
+  /**
+   * Where Cancel leads a `record` form placed on a page; without it the form
+   * offers no Cancel. Table views set it on their form pages, to the list.
+   */
+  backTo?: string;
   fieldsOrientation?: "horizontal" | "vertical";
   /**
    * Path to navigate to after a successful submit. Supports the same token
@@ -114,10 +223,22 @@ export interface FormProps extends BaseComponentProps {
    * picked up. See `interfaces/dms/component-slots`.
    */
   slotId?: string;
+  /**
+   * Field of the loaded row that names it. On a page, the breadcrumb ends
+   * with its value ("… › Tasks › Write the docs") once the form has loaded.
+   * Table views set it on their edit and details pages from their own
+   * `labelKey`.
+   */
+  labelKey?: string;
 }
 
-export interface FormPropsSerialized extends Omit<FormProps, "fields"> {
+export interface FormPropsSerialized extends Omit<
+  FormProps,
+  "fields" | "sections"
+> {
+  /** Every entry of the form: its own, then each section's. */
   fields: FormFieldOrGroupSerialized[];
+  sections?: FormSectionSerialized[];
   schema?: ReturnType<typeof zodToJsonSchema>;
 }
 

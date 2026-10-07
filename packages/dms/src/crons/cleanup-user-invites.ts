@@ -2,13 +2,13 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { CROSS_INSTANCE } from "@antelopejs/interface-database";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import cron, { type ScheduledTask } from "node-cron";
-import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import { type UserInvite, UserInviteModel } from "@antelopejs/interface-dms/db";
 import {
   completeInviteResolution,
   decideInvite,
 } from "@antelopejs/interface-dms/invite-resolution";
-import { getRowInstance } from "@antelopejs/interface-dms/utils/row-instance";
+import { getRowInstance } from "@antelopejs/interface-dms/utils/internal/row-instance";
 
 export const CLEANUP_USER_INVITES_CRON_NAME = "cleanup-user-invites";
 const CLEANUP_USER_INVITES_SCHEDULE = "0 3 * * *";

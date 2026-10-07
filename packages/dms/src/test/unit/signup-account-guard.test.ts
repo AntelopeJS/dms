@@ -94,7 +94,7 @@ async function attemptSignup(
         token,
       },
       USER_AGENT,
-      IP,
+      { ip: IP },
     );
   } catch (error) {
     return { error, updatedUsers };

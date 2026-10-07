@@ -16,6 +16,13 @@ export interface ReadonlyBehavior {
   view?: ReadonlyBehaviorMode;
 }
 
+/** The display a column's cells are drawn with (backend `ColumnDisplay`). */
+export interface TableViewColumnDisplay {
+  /** Id of the frontend data type drawing the cells. */
+  type: string;
+  options?: Record<string, unknown>;
+}
+
 export interface TableViewColumn {
   id: string;
   header: string;
@@ -36,4 +43,11 @@ export interface TableViewColumn {
   enableColumnFilter?: boolean;
   /** Wrap grid cell content without a line limit; omitted keeps the theme default. */
   cellWrap?: boolean;
+  /** Default grid column width in px (TanStack `size`). */
+  size?: number;
+  /**
+   * Data type the grid draws this column's cells with, instead of `type`
+   * (which keeps driving forms and filters).
+   */
+  display?: TableViewColumnDisplay;
 }

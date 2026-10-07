@@ -1,5 +1,4 @@
-import type { FieldGroupSerialized, FormBuilder } from "../base/form";
-import type { WatchAction } from "../base/types/watch";
+import type { FormBuilder } from "../base/form";
 import type { ZodType, ZodTypeDef } from "zod";
 import type { PlacementSide } from "../component";
 import type { TenantMember } from "../db";
@@ -18,13 +17,6 @@ export interface InviteExtensionPlacement {
    * equal orders fall back to the extension key — never to module start order.
    */
   order?: number;
-}
-
-/** Resolved placement of a registered extension. */
-export interface ResolvedInvitePlacement {
-  side: PlacementSide;
-  anchorField?: string;
-  order: number;
 }
 
 /** The invitation an extension's payload is being delivered for. */
@@ -77,11 +69,6 @@ export type InviteCleanupHandler<T> = (
   context: InviteCleanupContext,
 ) => MaybePromise<void>;
 
-export interface InviteDeliveryOptions {
-  /** Retains durable work by propagating contributor failures after all callbacks run. */
-  retryOnFailure?: boolean;
-}
-
 export interface InviteExtensionOptions<T> {
   /**
    * Namespace of the extension, on the invite row and on the form fields it
@@ -128,44 +115,5 @@ export interface InviteExtensionOptions<T> {
   placement?: InviteExtensionPlacement;
 }
 
-/**
- * A registration as the registry holds it: placement resolved, payload type
- * erased. The object itself is the handle — it is what the registering proxy
- * hands back to unregister when the extending module stops.
- */
-export interface InviteExtensionInfo {
-  key: string;
-  component: FormBuilder;
-  schema: ZodType<unknown, ZodTypeDef, unknown>;
-  onAccept: InviteAcceptHandler<unknown>;
-  onCleanup?: InviteCleanupHandler<unknown>;
-  /** Unset reads as `true`, as it does on the options. */
-  editable?: boolean;
-  onUpdate?: InviteUpdateHandler<unknown>;
-  label?: string;
-  description?: string;
-  placement: ResolvedInvitePlacement;
-  /** The module that registered the extension, undefined when unresolved. */
-  moduleId?: string;
-}
-
 /** Payloads stored on an invitation, keyed by extension key. */
 export type InviteExtensionPayloads = Record<string, unknown>;
-
-/**
- * One extension's contribution to the invite form, serialized once when it
- * registers: the block of fields, the JSON-schema entries the browser
- * validates them against, and the watches the contributed form declared —
- * all keyed by the prefixed field ids the merged form uses.
- */
-export interface InviteFieldContribution {
-  key: string;
-  side: PlacementSide;
-  anchorField?: string;
-  order: number;
-  editable: boolean;
-  group: FieldGroupSerialized;
-  properties: Record<string, unknown>;
-  requiredProperties: string[];
-  watchActions: WatchAction[];
-}

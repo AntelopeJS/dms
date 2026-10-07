@@ -395,21 +395,39 @@
     "showing_entries": "Affiché {shown} sur {total}"
   },
   "dms": {
+    "field_errors": {
+      "required": "Ce champ est obligatoire.",
+      "invalid": "Cette valeur n’est pas valide.",
+      "invalid_email": "Saisissez une adresse e-mail valide.",
+      "too_long": "Cette valeur est trop longue.",
+      "too_short": "Cette valeur est trop courte.",
+      "too_small": "Cette valeur est trop petite.",
+      "too_large": "Cette valeur est trop grande.",
+      "with_values": "{message} : {values}",
+      "code_incomplete": "Saisissez tous les chiffres du code.",
+      "password_rules": "Le mot de passe ne respecte pas toutes les règles.",
+      "invalid_duration": "Saisissez une durée comme 1h30m ou 01:30.",
+      "range_incomplete": "Choisissez aussi la fin de la période.",
+      "invalid_json": "Ce JSON n’est pas valide.",
+      "key_missing": "Donnez un nom à chaque valeur.",
+      "key_duplicate": "Chaque nom ne peut apparaître qu’une fois."
+    },
     "confirm": {
-      "unsaved_changes_title": "Modifications non sauvegardées",
-      "unsaved_changes_description": "Vous avez des modifications non sauvegardées. Êtes-vous sûr de vouloir quitter ? Vos modifications seront perdues.",
-      "discard": "Abandonner",
-      "stay": "Rester",
       "confirm": "Confirmer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "esc_hint": "pour annuler",
+      "type_to_confirm": "Saisissez {text} pour confirmer",
+      "type_mismatch": "Le texte ne correspond pas. Saisissez exactement {text}.",
+      "close": "Fermer",
+      "esc_close_hint": "pour fermer"
     },
     "date": {
       "undefined": "Inconnue"
     },
     "components": {
       "tableview": "📄 TableView",
-      "tree": "🎋 Arbre",
-      "tab": "🗂️ Onglet"
+      "tab": "🗂️ Onglet",
+      "global": "🌐 Global"
     },
     "chart": {
       "no_data": "Aucune donnée",
@@ -442,6 +460,27 @@
         "previous-period": "vs période précédente",
         "previous-year": "vs année précédente",
         "custom": "Personnalisé"
+      },
+      "compare_options": {
+        "none": "Aucune comparaison",
+        "previous-period": "Période précédente",
+        "previous-year": "Année précédente",
+        "custom": "Personnalisée"
+      },
+      "popover": {
+        "dialog_aria": "Choisir la période",
+        "presets": "Préréglages",
+        "custom_range": "Plage personnalisée",
+        "start": "Début",
+        "end": "Fin",
+        "compare_to": "Comparer à",
+        "cancel": "Annuler",
+        "apply": "Appliquer",
+        "vs": "vs",
+        "days": "{count} jour | {count} jours",
+        "hours": "{count} heure | {count} heures",
+        "previous_month": "Mois précédent",
+        "next_month": "Mois suivant"
       }
     }
   }

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { SelectMenuItem } from "@nuxt/ui";
 import { refDebounced } from "@vueuse/core";
+import {
+  formErrorsInjectionKey,
+  formInputsInjectionKey,
+  useFormField,
+} from "@nuxt/ui/composables/useFormField";
 
 const SEARCH_DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 3;
@@ -32,6 +37,8 @@ interface AddressAutocompleteConfig {
 }
 
 interface AddressProps {
+  /** Id of the street input, the first part: what the field's label names. */
+  id?: string;
   placeholder?: Partial<Record<keyof AddressValue, string>>;
   autocomplete?: AddressAutocompleteConfig;
   disabled?: boolean;
@@ -62,6 +69,93 @@ const defaultAddress: AddressValue = {
 
 const safeModelValue = computed(() => modelValue.value ?? defaultAddress);
 
+/* -------------------------------------------------------------------------- */
+/* Field state: which parts show the field's error                            */
+/* -------------------------------------------------------------------------- */
+
+// The parts the address type requires (see AddressType in interface-dms).
+const REQUIRED_PARTS = new Set<keyof AddressValue>([
+  "streetName",
+  "postalCode",
+  "city",
+  "countryCode",
+]);
+
+// Taken here so the sub-inputs do not each pick up the whole field's error:
+// each part shows its own.
+const {
+  name: fieldName,
+  ariaAttrs,
+  emitFormBlur,
+  emitFormInput,
+} = useFormField();
+const formErrors = inject(formErrorsInjectionKey, null);
+const formInputs = inject(formInputsInjectionKey, null);
+
+const PARTS = Object.keys(defaultAddress) as Array<keyof AddressValue>;
+const FIRST_PART: keyof AddressValue = "streetName";
+
+/**
+ * The id of a part's control: the street takes the field's, which its label
+ * names, the others `<field>.<part>`, the name their errors go under.
+ */
+function partId(part: keyof AddressValue): string | undefined {
+  const base = props.id ?? fieldName.value;
+  if (!base) return undefined;
+  return part === FIRST_PART ? base : `${base}.${part}`;
+}
+
+// Each part is an input of the form, so an error a server raises on one
+// (`address.postalCode`) lands on it rather than being dropped.
+onMounted(() => {
+  const name = fieldName.value;
+  if (!name || !formInputs) return;
+  for (const part of PARTS) {
+    formInputs.value[`${name}.${part}`] = { id: partId(part) };
+  }
+});
+onBeforeUnmount(() => {
+  const name = fieldName.value;
+  if (!name || !formInputs) return;
+  for (const part of PARTS) delete formInputs.value[`${name}.${part}`];
+});
+
+/** Whether a required part is still empty. */
+function isPartMissing(part: keyof AddressValue): boolean {
+  return REQUIRED_PARTS.has(part) && !safeModelValue.value[part]?.trim();
+}
+
+/**
+ * Whether a part shows the error border: it has an error of its own
+ * (`<field>.<part>`), or the address as a whole was refused: left empty
+ * while required, the required parts still empty; refused as it is (a
+ * server's verdict), every part.
+ */
+function isPartInvalid(part: keyof AddressValue): boolean {
+  const name = fieldName.value;
+  if (!name || !formErrors?.value.length) return false;
+  const errorNames = new Set(formErrors.value.map((error) => error.name));
+  if (errorNames.has(`${name}.${part}`)) return true;
+  if (!errorNames.has(name)) return false;
+  return PARTS.some(isPartMissing) ? isPartMissing(part) : true;
+}
+
+/** The props marking one part invalid, as UFormField marks an input. */
+function partState(part: keyof AddressValue) {
+  if (!isPartInvalid(part)) return {};
+  return { color: "error" as const, highlight: true, ...ariaAttrs.value };
+}
+
+const root = useTemplateRef<HTMLElement>("root");
+
+// The address is left when focus leaves all of its parts, not each one: a
+// part left for the next must not flag the parts not reached yet.
+function onFocusOut(event: FocusEvent) {
+  const next = event.relatedTarget as Node | null;
+  if (next && root.value?.contains(next)) return;
+  emitFormBlur();
+}
+
 const updateField = <K extends keyof AddressValue>(
   field: K,
   value: AddressValue[K],
@@ -70,6 +164,7 @@ const updateField = <K extends keyof AddressValue>(
     ...safeModelValue.value,
     [field]: value,
   };
+  emitFormInput();
 };
 
 const patchFields = (patch: Partial<AddressValue>) => {
@@ -77,6 +172,7 @@ const patchFields = (patch: Partial<AddressValue>) => {
     ...safeModelValue.value,
     ...patch,
   };
+  emitFormInput();
 };
 
 /* -------------------------------------------------------------------------- */
@@ -418,10 +514,12 @@ const streetPlaceholder = computed(() => {
 </script>
 
 <template>
-  <div class="grid gap-3">
+  <div ref="root" class="grid gap-3" @focusout="onFocusOut">
     <div class="relative grid gap-1.5">
       <UInput
         v-model="streetModel"
+        v-bind="partState('streetName')"
+        :id="partId('streetName')"
         :icon="autocompleteEnabled ? 'i-ph-magnifying-glass' : undefined"
         :placeholder="streetPlaceholder"
         :disabled="props.disabled"
@@ -450,6 +548,8 @@ const streetPlaceholder = computed(() => {
       <div class="grid gap-1.5">
         <UInput
           :model-value="safeModelValue.houseNumber"
+          v-bind="partState('houseNumber')"
+          :id="partId('houseNumber')"
           :placeholder="placeholders.houseNumber"
           :disabled="props.disabled"
           @update:model-value="updateField('houseNumber', $event)"
@@ -458,6 +558,8 @@ const streetPlaceholder = computed(() => {
       <div class="grid gap-1.5">
         <UInput
           :model-value="safeModelValue.boxNumber"
+          v-bind="partState('boxNumber')"
+          :id="partId('boxNumber')"
           :placeholder="placeholders.boxNumber"
           :disabled="props.disabled"
           @update:model-value="updateField('boxNumber', $event)"
@@ -468,6 +570,8 @@ const streetPlaceholder = computed(() => {
     <div class="grid gap-1.5">
       <UInput
         :model-value="safeModelValue.addressLine2"
+        v-bind="partState('addressLine2')"
+        :id="partId('addressLine2')"
         :placeholder="placeholders.addressLine2"
         :disabled="props.disabled"
         @update:model-value="updateField('addressLine2', $event)"
@@ -478,6 +582,8 @@ const streetPlaceholder = computed(() => {
       <div class="grid gap-1.5">
         <UInput
           :model-value="safeModelValue.postalCode"
+          v-bind="partState('postalCode')"
+          :id="partId('postalCode')"
           :placeholder="placeholders.postalCode"
           :disabled="props.disabled"
           @update:model-value="updateField('postalCode', $event)"
@@ -486,6 +592,8 @@ const streetPlaceholder = computed(() => {
       <div class="grid gap-1.5">
         <UInput
           :model-value="safeModelValue.city"
+          v-bind="partState('city')"
+          :id="partId('city')"
           :placeholder="placeholders.city"
           :disabled="props.disabled"
           @update:model-value="updateField('city', $event)"
@@ -496,6 +604,8 @@ const streetPlaceholder = computed(() => {
     <div class="grid gap-1.5">
       <UInput
         :model-value="safeModelValue.countrySubdivision"
+        v-bind="partState('countrySubdivision')"
+        :id="partId('countrySubdivision')"
         :placeholder="placeholders.countrySubdivision"
         :disabled="props.disabled"
         @update:model-value="updateField('countrySubdivision', $event)"
@@ -506,6 +616,8 @@ const streetPlaceholder = computed(() => {
       <USelectMenu
         v-model:search-term="countrySearchTerm"
         :model-value="safeModelValue.countryCode"
+        v-bind="partState('countryCode')"
+        :id="partId('countryCode')"
         :items="countryOptions"
         :placeholder="placeholders.countryCode"
         :disabled="props.disabled"

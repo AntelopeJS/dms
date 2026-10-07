@@ -18,8 +18,9 @@ import {
   type UploadConstraints,
 } from "@antelopejs/interface-file-storage";
 import { z } from "zod";
-import { parseValue } from "../../utils/value-parser";
-import { isString } from "../../utils/type-check";
+import type { ComponentInfoSerialized } from "../../component";
+import { parseValue } from "../../utils/internal/value-parser";
+import { isString } from "../../utils/internal/type-check";
 import { GetAttachmentValidationMetadata } from "../../attachments";
 import { Form, FormComponents } from "../form-schema";
 // Import from the defining leaf, not the table-view barrel: the barrel pulls
@@ -32,13 +33,58 @@ import { Form, FormComponents } from "../form-schema";
 // neither side dereferences the other while it evaluates.
 // oxlint-disable-next-line import/no-cycle
 import { TableViewMeta } from "../table-view/meta";
-import type { TreeNode } from "../tree";
+import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
-import {
-  absolutizeJoinedSchemas,
-  DefaultDataCompareTypes,
-} from "./compare-types";
+import * as FieldTypes from "./field-types";
+import { absolutizeJoinedSchemas } from "./internal/compare-types";
+import { DefaultDataCompareTypes } from "./compare-types";
+/** How a `SelectType` shows its options. */
+export const SELECT_DISPLAYS = [
+  "dropdown",
+  "cards",
+  "segmented",
+  "radio",
+] as const;
+
+export type SelectDisplay = (typeof SELECT_DISPLAYS)[number];
+
+/** How a `BooleanType` shows its value. */
+export const BOOLEAN_DISPLAYS = ["switch", "checkbox", "card"] as const;
+
+export type BooleanDisplay = (typeof BOOLEAN_DISPLAYS)[number];
+
+// Displays picking one value only: a select picking several shows cards.
+const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>(["segmented", "radio"]);
+
+type SelectInputOptions = FormComponents.SelectOptions;
+
+// The input each display of a select renders.
+const SELECT_INPUTS: Record<
+  SelectDisplay,
+  (options: SelectInputOptions) => ComponentInfoSerialized
+> = {
+  dropdown: (options) => FormComponents.InputSelect(options),
+  cards: ({ items, multiple }) =>
+    FormComponents.InputChoiceCards({ items, multiple }),
+  segmented: ({ items }) => FormComponents.InputSegmentedSelect({ items }),
+  radio: ({ items }) => FormComponents.InputRadioGroup({ items }),
+};
+
+type BooleanInputOptions = FormComponents.BooleanCardOptions;
+
+// The input each display of a boolean renders.
+const BOOLEAN_INPUTS: Record<
+  BooleanDisplay,
+  (options: BooleanInputOptions) => ComponentInfoSerialized
+> = {
+  switch: ({ label, description }) =>
+    FormComponents.InputSwitch({ label, description }),
+  checkbox: ({ label, description }) =>
+    FormComponents.InputCheckbox({ label, description }),
+  card: (options) => FormComponents.InputBooleanCard(options),
+};
+
 export namespace DefaultDataTypes {
   export type NumberTypeOptions = {
     min?: number;
@@ -54,10 +100,19 @@ export namespace DefaultDataTypes {
     minLength?: number;
     textarea?: boolean;
     rows?: number;
+    /**
+     * A value to read and copy, not to edit (a webhook URL): shown read-only
+     * with a copy button.
+     */
+    copyable?: boolean;
     fallback?: string;
   };
 
   export type DateTypeOptions = {
+    /**
+     * A span of dates: the value is `{ start, end }`, end on or after start.
+     * A pair `[start, end]` is read too and validates to the same object.
+     */
     range?: boolean;
     multiple?: boolean;
     minDate?: string;
@@ -66,6 +121,19 @@ export namespace DefaultDataTypes {
   };
 
   export type BooleanTypeOptions = {
+    /**
+     * `switch` (default), `checkbox` (required, it must be ticked: an
+     * agreement), or `card`: a bordered row with an icon, a title (`label`)
+     * and a text (`description`), for a choice that deserves more than a bare
+     * switch.
+     */
+    display?: BooleanDisplay;
+    /** Icon of the card. */
+    icon?: string;
+    /** Text beside the switch or the box, or the card's title. */
+    label?: string;
+    /** Text under the label, in the control. */
+    description?: string;
     fallback?: string;
   };
 
@@ -74,6 +142,13 @@ export namespace DefaultDataTypes {
     placeholder?: string;
     multiple?: boolean;
     deselectable?: boolean;
+    /**
+     * `dropdown` (default); `cards`, a card per option with its `description`
+     * (one or several picked); `segmented`, the options side by side; `radio`,
+     * a list of radio buttons. `segmented` and `radio` pick one: a `multiple`
+     * select shows cards instead.
+     */
+    display?: SelectDisplay;
     fallback?: string;
   };
 
@@ -103,19 +178,6 @@ export namespace DefaultDataTypes {
   export type PhoneTypeOptions = {
     placeholder?: string;
     requiredPrefix?: boolean;
-    fallback?: string;
-  };
-
-  export type TreeTypeOptions = {
-    items?: TreeNode[];
-    fetchUrl?: string;
-    placeholder?: string;
-    multiple?: boolean;
-    fallback?: string;
-  };
-
-  export type PermissionsTypeOptions = {
-    fetchUrl?: string;
     fallback?: string;
   };
 
@@ -191,6 +253,20 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
+      if (this.options.copyable) {
+        return FormComponents.InputCopyableText({
+          placeholder: this.options.placeholder,
+        });
+      }
+      return this.editableInputComponent();
+    }
+
+    // A filter is typed in, even on a value the form only shows.
+    override filterComponents() {
+      return { default: this.editableInputComponent() };
+    }
+
+    private editableInputComponent() {
       if (this.options.textarea) {
         return FormComponents.InputTextarea({
           placeholder: this.options.placeholder,
@@ -219,6 +295,15 @@ export namespace DefaultDataTypes {
       return schema;
     }
   }
+
+  /** Before or after an instant: `less_than` / `greater_than` on a date. */
+  const INSTANT_COMPARISONS: Record<
+    string,
+    (stored: ValueProxy<Date>, instant: Date) => ValueProxyOrValue<boolean>
+  > = {
+    greater_than: (stored, instant) => stored.gt(instant),
+    less_than: (stored, instant) => stored.lt(instant),
+  };
 
   @RegisterDataType("date")
   export class DateType extends DataType {
@@ -264,7 +349,21 @@ export namespace DefaultDataTypes {
       if (mode === "is_between") {
         return this.dayRangeFilter(proxy, value);
       }
+      const compareInstant = INSTANT_COMPARISONS[mode];
+      if (compareInstant) {
+        return compareInstant(proxy as ValueProxy<Date>, this.instant(value));
+      }
       return super.filter(context, proxy, key, value, mode, row);
+    }
+
+    // A stored date is a date: comparing it with the instant's milliseconds,
+    // as the generic number comparison does, matches every row or none.
+    private instant(value: string): Date {
+      const parsed = parseValue(value);
+      if (!(parsed instanceof Date)) {
+        throw new Error(`Date filter expects a date value. Got: ${value}`);
+      }
+      return parsed;
     }
 
     private startOfUtcDay(date: Date): Date {
@@ -338,6 +437,41 @@ export namespace DefaultDataTypes {
     }
 
     getValidation() {
+      if (this.options.range) {
+        // A range is `{ start, end }`, the date picker's shape; a pair of
+        // dates `[start, end]` is still read, and validates to the same
+        // object. Each date gets its own schema: one shared instance would
+        // serialize as a JSON Schema `$ref`, which the form rebuilds as
+        // "anything".
+        return z
+          .union([
+            z.tuple([this.singleDateValidation(), this.singleDateValidation()]),
+            z.object({
+              start: this.singleDateValidation(),
+              end: this.singleDateValidation(),
+            }),
+          ])
+          .transform((range) =>
+            Array.isArray(range) ? { start: range[0], end: range[1] } : range,
+          )
+          .refine((range) => range.start <= range.end, {
+            message: "The range must end on or after its start",
+            path: ["end"],
+          });
+      }
+
+      if (this.options.multiple) {
+        return z.array(this.singleDateValidation());
+      }
+
+      return this.singleDateValidation();
+    }
+
+    private singleDateValidation(): z.ZodType<
+      Date,
+      z.ZodTypeDef,
+      string | Date
+    > {
       let singleDateSchema: z.ZodType<Date, z.ZodTypeDef, string | Date> = z
         .union([
           z
@@ -363,10 +497,6 @@ export namespace DefaultDataTypes {
         });
       }
 
-      if (this.options.range || this.options.multiple) {
-        return z.array(singleDateSchema);
-      }
-
       return singleDateSchema;
     }
   }
@@ -387,7 +517,8 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return FormComponents.InputSwitch();
+      const { display = "switch", icon, label, description } = this.options;
+      return BOOLEAN_INPUTS[display]({ icon, label, description });
     }
 
     override filterComponents() {
@@ -432,7 +563,18 @@ export namespace DefaultDataTypes {
     }
 
     protected defaultInputComponent() {
-      return FormComponents.InputSelect(this.options);
+      const { display = "dropdown", ...options } = this.options;
+      const shown =
+        options.multiple && SINGLE_PICK_DISPLAYS.has(display)
+          ? "cards"
+          : display;
+      return SELECT_INPUTS[shown](options);
+    }
+
+    // A filter picks from a dropdown, whatever the form shows.
+    override filterComponents() {
+      const { display: _display, ...options } = this.options;
+      return { default: FormComponents.InputSelect(options) };
     }
 
     getValidation() {
@@ -617,34 +759,6 @@ export namespace DefaultDataTypes {
     }
   }
 
-  @RegisterDataType("tree")
-  export class TreeType extends DataType {
-    constructor(public readonly options: TreeTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.InputTree({
-        items: this.options.items || [],
-        fetchUrl: this.options.fetchUrl,
-        multiple: this.options.multiple,
-        placeholder: this.options.placeholder,
-      });
-    }
-
-    getValidation() {
-      if (this.options.multiple) {
-        return z.array(z.string());
-      }
-
-      return z.string();
-    }
-  }
-
   @RegisterDataType("relation")
   export class RelationType<T extends ControllerClass> extends DataType {
     constructor(
@@ -686,6 +800,12 @@ export namespace DefaultDataTypes {
          * join.
          */
         filterOnly?: boolean;
+        /**
+         * Title and description of the drawer the picker's "add" entry
+         * opens, e.g. "New user". `$`-prefixed: i18n keys. Default to "New
+         * entry".
+         */
+        addForm?: FormContainerPageTexts;
       },
     ) {
       super(
@@ -722,6 +842,7 @@ export namespace DefaultDataTypes {
         keyMapping: this.options.keyMapping,
         addForm: addOptions?.addForm,
         addPermissionIds: addOptions?.addPermissionIds,
+        addFormTexts: this.options.addForm,
       });
     }
 
@@ -998,27 +1119,6 @@ export namespace DefaultDataTypes {
     }
   }
 
-  @RegisterDataType("permissions")
-  export class PermissionsType extends DataType {
-    constructor(public readonly options: PermissionsTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.PermissionsTree({
-        fetchUrl: this.options.fetchUrl,
-      });
-    }
-
-    getValidation() {
-      return z.array(z.string());
-    }
-  }
-
   @RegisterDataType("rich_text")
   export class RichTextType extends DataType {
     constructor(public readonly options: RichTextTypeOptions = {}) {
@@ -1282,4 +1382,21 @@ export namespace DefaultDataTypes {
       });
     }
   }
+
+  // The field types of `field-types.ts`, under the namespace modules use.
+  export const ArrayType = FieldTypes.ArrayType;
+  export type ArrayType = FieldTypes.ArrayType;
+  export type ArrayTypeOptions = FieldTypes.ArrayTypeOptions;
+  export const KeyValueType = FieldTypes.KeyValueType;
+  export type KeyValueType = FieldTypes.KeyValueType;
+  export type KeyValueTypeOptions = FieldTypes.KeyValueTypeOptions;
+  export const SecretType = FieldTypes.SecretType;
+  export type SecretType = FieldTypes.SecretType;
+  export type SecretTypeOptions = FieldTypes.SecretTypeOptions;
+  export const CodeType = FieldTypes.CodeType;
+  export type CodeType = FieldTypes.CodeType;
+  export type CodeTypeOptions = FieldTypes.CodeTypeOptions;
+  export const TagsType = FieldTypes.TagsType;
+  export type TagsType = FieldTypes.TagsType;
+  export type TagsTypeOptions = FieldTypes.TagsTypeOptions;
 }

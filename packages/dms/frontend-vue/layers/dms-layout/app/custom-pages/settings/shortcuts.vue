@@ -1,136 +1,189 @@
 <script setup lang="ts">
+import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import { useShortcutRegistry } from "#dms-ui/app/build/composables/shortcuts/useShortcutRegistry";
 import KeyboardShortcut from "../../build/components/pages/settings/shortcut/KeyboardShortcut.vue";
+import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
+import { usePageHeaderActions } from "../../composables/layout/usePageHeaderActions";
+import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
+import {
+  keyboardKeyLabel,
+  type KeyboardPlatform,
+  useKeyboardPlatform,
+} from "#dms-ui/app/composables/global/keyboardPlatform";
 
-const SKELETON_SECTION_COUNT = 3;
-const META_KEYBOARD_TOKEN = "$keyboard.meta";
-const META_KEY_LABELS = {
-  mac: "⌘",
-  other: "Ctrl",
-};
+interface ShortcutGroupView {
+  key: string;
+  title: string;
+  description: string;
+  shortcuts: ShortcutMetadata[];
+}
 
-// Per-group accent icon (design panel-title pill). Keyed by the lowercased
-// component name; falls back to a keyboard glyph for unknown groups.
-const GROUP_ICONS: Record<string, string> = {
-  global: "i-ph-command",
-  tab: "i-ph-browsers",
-  tableview: "i-ph-table",
-  tree: "i-ph-tree-structure",
-  form: "i-ph-note-pencil",
-};
+const I18N_PREFIX = "$";
+const KEYBOARD_I18N_PREFIX = "$keyboard.";
+const GROUP_I18N = "page.settings.shortcuts.groups";
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { getRegistry } = useShortcutRegistry();
 const shortcuts: Ref<ComponentShortcuts[]> = getRegistry();
 
-const sortedShortcuts = computed(() => {
-  return shortcuts.value.map((componentShortcuts: ComponentShortcuts) => ({
-    ...componentShortcuts,
-    shortcuts: [...componentShortcuts.shortcuts].sort((a, b) => {
-      return a.key.join("+").localeCompare(b.key.join("+"));
-    }),
-  }));
+// The layout the dashboard detected (the one every other hint uses); the
+// header switch previews the other one on this page only.
+const { platform: detectedPlatform, isMac } = useKeyboardPlatform();
+const platform = ref<KeyboardPlatform>(detectedPlatform.value);
+watch(detectedPlatform, (next) => {
+  platform.value = next;
 });
+const query = ref("");
 
-function isMacPlatform(): boolean {
-  if (typeof window === "undefined") return false;
-  const navAny = window.navigator as Navigator & {
-    userAgentData?: { platform?: string };
-  };
-  const platform =
-    navAny.userAgentData?.platform ?? window.navigator.platform ?? "";
-  return /Mac/i.test(platform);
+const platformItems = computed(() => [
+  {
+    value: "mac",
+    label: t("page.settings.shortcuts.os_mac"),
+    icon: "i-ph-apple-logo",
+  },
+  {
+    value: "other",
+    label: t("page.settings.shortcuts.os_other"),
+    icon: "i-ph-windows-logo",
+  },
+]);
+
+usePageHeaderActions(() =>
+  h(DmsSegmented, {
+    items: platformItems.value,
+    modelValue: platform.value,
+    size: "xs",
+    ariaLabel: t("page.settings.shortcuts.layout_label"),
+    "onUpdate:modelValue": (value: string | number | undefined) => {
+      if (value !== undefined) platform.value = value as KeyboardPlatform;
+    },
+  }),
+);
+
+function translate(token: string): string {
+  if (token.startsWith(I18N_PREFIX)) return t(token.slice(I18N_PREFIX.length));
+  return token.toUpperCase();
 }
 
-function getMetaKeyLabel(): string {
-  return isMacPlatform() ? META_KEY_LABELS.mac : META_KEY_LABELS.other;
-}
-
-function attemptTranslation(toTranslate: string): string {
-  if (toTranslate === META_KEYBOARD_TOKEN) {
-    return getMetaKeyLabel();
+/**
+ * A `$keyboard.*` key takes the platform's label when it has one (⌘, Ctrl,
+ * ⇧…, shared with every other hint); any other keeps its translated name.
+ */
+function keyLabel(token: string): string {
+  if (token.startsWith(KEYBOARD_I18N_PREFIX)) {
+    const key = token.slice(KEYBOARD_I18N_PREFIX.length);
+    const label = keyboardKeyLabel(key, platform.value);
+    if (label !== key) return label;
   }
-  if (toTranslate.startsWith("$")) {
-    return t(toTranslate.slice(1));
-  }
-  return toTranslate.toUpperCase();
+  return translate(token);
 }
 
 function groupKey(component: string): string {
-  return component.replace(/^\$/, "").toLowerCase();
+  return component.replace(/^\$/, "").split(".").pop()!.toLowerCase();
 }
 
-function groupIcon(component: string): string {
-  return GROUP_ICONS[groupKey(component)] ?? "i-ph-keyboard";
+function groupText(component: string, field: "title" | "description"): string {
+  const key = `${GROUP_I18N}.${groupKey(component)}.${field}`;
+  if (te(key)) return t(key);
+  return field === "title" ? translate(component) : "";
 }
 
-// Group title keeps its natural case (e.g. "TableView"), unlike keys/labels.
-function groupTitle(component: string): string {
-  return component.startsWith("$") ? t(component.slice(1)) : component;
+function matchesQuery(shortcut: ShortcutMetadata, needle: string): boolean {
+  const haystack = [
+    translate(shortcut.descriptionKey),
+    shortcut.condition ? translate(shortcut.condition.descriptionKey) : "",
+    ...shortcut.key.map(keyLabel),
+  ];
+  return haystack.some((text) => text.toLocaleLowerCase().includes(needle));
 }
+
+const groups = computed<ShortcutGroupView[]>(() => {
+  const needle = query.value.trim().toLocaleLowerCase();
+  return shortcuts.value
+    .map((group) => ({
+      key: group.component,
+      title: groupText(group.component, "title"),
+      description: groupText(group.component, "description"),
+      shortcuts: group.shortcuts.filter(
+        (shortcut) => !needle || matchesQuery(shortcut, needle),
+      ),
+    }))
+    .filter((group) => group.shortcuts.length > 0);
+});
+
+const shortcutCount = computed(() =>
+  shortcuts.value.reduce((total, group) => total + group.shortcuts.length, 0),
+);
+
+const detectedLabel = computed(() =>
+  isMac.value
+    ? t("page.settings.shortcuts.os_mac")
+    : t("page.settings.shortcuts.os_other"),
+);
 </script>
 
+<!-- Rendered on the server too: the list is static, and the platform comes
+     from the cookie both sides read, so only the key labels can change once
+     the browser has detected its own layout. -->
 <template>
-  <DmsClientOnly>
-    <div class="space-y-5 pb-16">
-      <DmsCard
-        v-for="(componentShortcuts, componentIndex) in sortedShortcuts"
-        :key="componentIndex"
-        as="section"
-        :padded="false"
-        class="overflow-hidden"
-      >
-        <div class="border-default flex items-center gap-3 border-b px-5 py-4">
-          <span
-            class="bg-primary/10 ring-primary/20 text-primary flex size-[34px] shrink-0 items-center justify-center rounded-md ring"
-          >
-            <UIcon
-              :name="groupIcon(componentShortcuts.component)"
-              class="size-[17px]"
-            />
-          </span>
-          <h2 class="text-highlighted text-[17px] font-semibold tracking-tight">
-            {{ groupTitle(componentShortcuts.component) }}
-          </h2>
-        </div>
-
-        <div class="p-2">
-          <div
-            v-for="(shortcut, shortcutIndex) in componentShortcuts.shortcuts"
-            :key="shortcutIndex"
-            class="hover:bg-default flex items-center justify-between gap-4 rounded-md px-4 py-3.5 transition-colors"
-            :class="{ 'border-muted border-t': shortcutIndex > 0 }"
-          >
-            <span class="text-muted text-sm">
-              {{ attemptTranslation(shortcut.descriptionKey) }}
-            </span>
-
-            <KeyboardShortcut :keys="shortcut.key.map(attemptTranslation)" />
-          </div>
-        </div>
-      </DmsCard>
+  <div>
+    <div class="mb-7 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <!-- "/" stays with the settings menu search (SettingsNav): this page's
+        own search takes ⌘ / or Ctrl /, its hint drawn for the layout picked
+        in the header. -->
+      <DmsSearchInput
+        id="shortcuts-search"
+        v-model="query"
+        :placeholder="t('page.settings.shortcuts.search_placeholder')"
+        shortcut="page"
+        :hint-platform="platform"
+        class="w-full max-w-[420px]"
+      />
+      <span class="text-muted inline-flex items-center gap-1.5 text-xs">
+        <UIcon name="i-ph-info" class="size-3.5 shrink-0" />
+        {{
+          t("page.settings.shortcuts.detected", {
+            os: detectedLabel,
+            count: shortcutCount,
+            groups: shortcuts.length,
+          })
+        }}
+      </span>
     </div>
 
-    <template #fallback>
-      <div class="space-y-5 pb-16">
-        <DmsCard
-          v-for="i in SKELETON_SECTION_COUNT"
-          :key="i"
-          as="section"
-          :padded="false"
-          class="overflow-hidden"
+    <DmsSection
+      v-for="group in groups"
+      :key="group.key"
+      :title="group.title"
+      :description="group.description"
+    >
+      <template #badge>
+        <span
+          :class="[
+            MONO_CHIP_CLASS,
+            'bg-elevated text-dimmed text-[10.5px] font-semibold',
+          ]"
         >
-          <div
-            class="border-default flex items-center gap-3 border-b px-5 py-4"
-          >
-            <USkeleton class="size-[34px] rounded-md" />
-            <USkeleton class="h-5 w-28" />
-          </div>
-          <div class="space-y-2 p-2">
-            <USkeleton class="h-11 w-full rounded-md" />
-            <USkeleton class="h-11 w-full rounded-md" />
-          </div>
-        </DmsCard>
-      </div>
-    </template>
-  </DmsClientOnly>
+          {{ group.shortcuts.length }}
+        </span>
+      </template>
+
+      <DmsFieldRow
+        v-for="(shortcut, index) in group.shortcuts"
+        :key="`${group.key}-${index}`"
+        :label="translate(shortcut.descriptionKey)"
+        :description="
+          shortcut.condition
+            ? translate(shortcut.condition.descriptionKey)
+            : undefined
+        "
+      >
+        <KeyboardShortcut :keys="shortcut.key.map(keyLabel)" />
+      </DmsFieldRow>
+    </DmsSection>
+
+    <p v-if="query && groups.length === 0" class="text-muted text-[13px]">
+      {{ t("page.settings.shortcuts.no_results") }}
+    </p>
+  </div>
 </template>

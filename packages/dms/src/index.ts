@@ -34,7 +34,11 @@ import {
   getFrontendConfig,
   getHtmlRenderConfig,
 } from "./config";
-import { registerDmsCrons } from "./crons";
+import {
+  CLEANUP_USER_INVITES_CRON_NAME,
+  registerDmsCrons,
+  runCleanupUserInvites,
+} from "./crons";
 import { runSweepStaleExports } from "./crons/sweep-stale-exports";
 import {
   startModuleUpdateWatcher,
@@ -42,13 +46,17 @@ import {
 } from "./dev/module-update-notifications";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
+import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
 import {
   cancelScheduledBroadcast,
   closeDevReloadStreams,
 } from "./implementations/dms/dev-reload";
 import { publishDevBootstrapCredential } from "./implementations/dms/dev-handshake";
 import { initFrontendBootstrapSecret } from "./implementations/dms/frontend-bootstrap";
-import { cancelPendingMenuNotifications } from "./implementations/dms/page";
+import {
+  cancelMissingCategoryCheck,
+  cancelPendingMenuNotifications,
+} from "./implementations/dms/page";
 import {
   configureRealtime,
   type RealtimeConfig,
@@ -61,8 +69,9 @@ import {
 } from "./page-extensions/pending-report";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
+import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
 import { ensureDefaultTenantExists } from "./utils";
-import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 
 export * from "./config";
 
@@ -83,6 +92,7 @@ export async function construct(config: Config): Promise<void> {
 
   registerTenantDeletedCleanup();
   registerInviteExtensionCleanup();
+  registerWorkspaceNotifications();
 
   await implementInterfaces();
   await registerDmsFrontend();
@@ -219,7 +229,6 @@ async function registerDmsFrontend(): Promise<void> {
       },
       oauth: {
         relaySecret: deriveOAuthRelaySecret(),
-        trustProxy: authConfig.oauth?.trustProxy ?? false,
       },
     },
   };
@@ -229,6 +238,7 @@ async function registerDmsFrontend(): Promise<void> {
     name: "@antelopejs/dms-frontend-vue",
     sourcePath: path.join(__dirname, "../frontend-vue"),
     renderer: { name: "vue", version: "3" },
+    authEstablishEndpoints: [SESSION_HANDOFF_ENDPOINT],
   });
 }
 
@@ -238,6 +248,7 @@ async function registerDmsFrontend(): Promise<void> {
  */
 function cancelDeferredNotifications(): void {
   cancelPendingMenuNotifications();
+  cancelMissingCategoryCheck();
   cancelScheduledBroadcast();
   cancelPendingExtensionReport();
 }
@@ -254,6 +265,11 @@ export async function start(): Promise<void> {
   await SettleHook(Hook.DATABASE_INITIALIZED);
   await runSweepStaleExports();
   cronTasks = registerDmsCrons();
+  // Invitations that expired while no process ran are settled now, not at
+  // the next 3 a.m. run: their inviters hear about it the same day.
+  void runCleanupUserInvites().catch((error: unknown) => {
+    Logging.Error(`Cron '${CLEANUP_USER_INVITES_CRON_NAME}' failed:`, error);
+  });
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();

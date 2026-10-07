@@ -2,6 +2,16 @@
   "navigation": {
     "goToHomepage": "Aller à la page d'accueil"
   },
+  "header": {
+    "home": "Accueil",
+    "open_sidebar": "Ouvrir le menu latéral",
+    "close_sidebar": "Fermer le menu latéral",
+    "expand_sidebar": "Déplier le menu latéral",
+    "collapse_sidebar": "Replier le menu latéral",
+    "add_favorite": "Ajouter aux favoris",
+    "remove_favorite": "Retirer des favoris",
+    "show_path": "Afficher les pages parentes"
+  },
   "menu": {
     "favorites": "Favoris",
     "modules": "Modules",
@@ -20,6 +30,7 @@
     "roles": "Rôles",
     "general": "Général",
     "appearance": "Apparence",
+    "region": "Langue et région",
     "preset_store": "Magasin de préréglages",
     "module_store": "Magasin de modules",
     "component_store": "Magasin de composants",
@@ -27,17 +38,12 @@
       "pages": "Pages",
       "modules": "Modules",
       "settings": "Paramètres"
-    }
+    },
+    "security": "Sécurité"
   },
   "footer": {
     "french": "Français",
     "english": "Anglais"
-  },
-  "builder": {
-    "button": "Builder",
-    "title": "Builder — éditeur no-code",
-    "description": "Une façon 100 % no-code de configurer votre DMS — pages, tables, formulaires et logique — sans écrire une seule ligne de code.",
-    "soon": "Bientôt disponible"
   },
   "quickActions": {
     "title": "Actions rapides",
@@ -60,6 +66,11 @@
       "copyUrl": "Copier l'URL de la page",
       "urlCopied": "URL copiée dans le presse-papiers",
       "copyFailed": "La copie a échoué"
+    },
+    "footer": {
+      "navigate": "Naviguer",
+      "open": "Ouvrir",
+      "close": "Fermer"
     }
   },
   "notification": {
@@ -77,37 +88,117 @@
     },
     "settings": {
       "title": "Paramètres",
-      "intro": "Gérez et personnalisez les paramètres de votre application.",
+      "intro": "Votre profil, votre sécurité et vos préférences, ainsi que les personnes et les rôles de cet espace.",
       "description": {
         "notifications": "Configurez vos préférences de notifications pour rester informé de manière optimale",
-        "shortcuts": "Explorer les différents raccourcis du DMS pour améliorer votre productivité",
-        "members": "Gérer les membres et leurs permissions",
-        "invites": "Consulter, renvoyer ou annuler les invitations d'utilisateurs en attente",
-        "roles": "Gérer les permissions et les groupes d'utilisateurs pour un contrôle d'accès optimal",
+        "shortcuts": "Allez plus vite sans la souris. Les raccourcis agissent selon leur contexte — jamais pendant la saisie dans un champ.",
+        "members": "Les personnes qui ont accès à cet espace, leurs rôles et les invitations en attente de réponse.",
+        "invites": "Les invitations en attente de réponse : renvoyez-les, partagez leur lien ou révoquez-les.",
+        "roles": "Ce que chaque rôle peut voir et faire. Un membre qui a plusieurs rôles cumule toutes leurs permissions.",
         "general": "Modifications des informations générales de votre plateforme",
-        "appearance": "Personnalisez et adaptez l'apparence de votre dashboard selon vos préférences pour une expérience plus intuitive et agréable",
+        "appearance": "Thème et densité pour ce navigateur. Les autres appareils gardent leur propre choix.",
+        "region": "La langue dans laquelle le tableau de bord vous parle, votre fuseau horaire et l'écriture des dates et heures. Vous suit sur tous vos appareils.",
         "preset_store": "Découvrez les préréglages disponibles",
         "module_store": "Découvrez les modules disponibles",
         "component_store": "Découvrez les composants disponibles"
       },
+      "region": {
+        "invalid_time_zone": "Ce fuseau horaire n’est pas reconnu. Choisissez-en un dans la liste.",
+        "auto": "Automatique",
+        "language_block_title": "Langue",
+        "language_block_description": "Votre langue préférée pour l'affichage du tableau de bord. Enregistrée dès que vous la choisissez.",
+        "language_title": "Langue de l'application",
+        "language_description": "Menus, libellés et e-mails de la plateforme. Le contenu que vous créez n'est pas traduit.",
+        "time_block_title": "Date et heure",
+        "time_block_description": "L'affichage des dates et heures dans les tableaux, les notifications et l'activité. Enregistré sur votre compte : tous vos appareils le suivent.",
+        "time_zone_title": "Fuseau horaire",
+        "time_zone_description": "Les dates et heures du tableau de bord s'affichent dans ce fuseau horaire.",
+        "time_zone_auto": "Automatique ({zone})",
+        "time_zone_search": "Rechercher une ville ou une région…",
+        "week_start_title": "Premier jour de la semaine",
+        "time_format_title": "Format de l'heure",
+        "time_24": "24 heures",
+        "time_12": "12 heures",
+        "date_format_title": "Format de date",
+        "date_auto_hint": "Automatique laisse chaque écran choisir ce qui se lit le mieux.",
+        "preview_title": "Aperçu",
+        "preview_description": "L'affichage des dates, heures et nombres avec ces réglages, en {zone}.",
+        "format_date": "Date",
+        "format_datetime": "Date et heure",
+        "format_time": "Heure",
+        "format_number": "Nombre",
+        "week_start_hint": "Les calendriers et sélecteurs de date commencent la semaine ce jour-là. Automatique suit la langue.",
+        "time_format_hint": "Comment les heures sont écrites. Automatique suit la langue.",
+        "date_format_hint": "Comment les dates complètes sont écrites. Automatique laisse chaque écran choisir la forme la plus lisible.",
+        "weekday_monday": "Lundi",
+        "weekday_sunday": "Dimanche",
+        "weekday_saturday": "Samedi",
+        "date_numeric": "31/12/2026",
+        "date_text": "31 déc. 2026"
+      },
       "notifications": {
-        "preferences_title": "Configuration",
-        "preferences_description": "Adaptez vos préférences de notifications",
-        "system_label": "Système",
-        "system_description": "Mise à jour système, Nouvelle connexion, Invitation admin acceptée,...",
-        "module_label": "Module",
-        "module_description": "Autoriser les modules à vous envoyer des notifications",
-        "list_title": "Liste de vos notifications",
-        "list_description": "Consultez toutes les notifications récentes de votre compte pour rester informé",
-        "no_notifications": "Aucune notification à afficher",
-        "mark_all_read": "Tout vu",
-        "delete_all": "Tout supprimer",
-        "confirm_mark_all_read_title": "Tout marquer comme lu ?",
-        "confirm_mark_all_read_description": "Cette action marquera toutes vos notifications comme lues. Cette action est irréversible.",
-        "confirm_delete_all_title": "Supprimer toutes les notifications ?",
-        "confirm_delete_all_description": "Cette action supprimera définitivement toutes vos notifications. Cette action est irréversible.",
-        "mark_all_read_success": "Toutes les notifications ont été marquées comme lues",
-        "delete_all_success": "Toutes les notifications ont été supprimées"
+        "description": "Choisissez ce qui vous parvient et rattrapez ce qui s’est passé dans vos espaces de travail.",
+        "preferences_title": "Préférences",
+        "preferences_description": "Personnalisez vos préférences de notification. Chaque interrupteur s’enregistre seul — rien d’autre ne change pendant ce temps.",
+        "column_subject": "Sujet",
+        "column_in_app": "Dans l’app",
+        "column_email": "E-mail",
+        "column_state": "État d’enregistrement",
+        "soon": "Bientôt",
+        "category_switch": "Toutes les notifications {name}",
+        "category_count": "{count} sur {total} actives",
+        "locked_hint": "Requis pour la sécurité du compte",
+        "email_hint": "Seules les notifications dans l’app sont disponibles aujourd’hui. L’envoi par e-mail arrive bientôt.",
+        "save_failed_on": "Échec de l’enregistrement — l’interrupteur a été réactivé.",
+        "save_failed_off": "Échec de l’enregistrement — l’interrupteur a été désactivé à nouveau.",
+        "save_failed_many": "Échec de l’enregistrement — les interrupteurs ont été rétablis.",
+        "retry": "Réessayer",
+        "inbox_title": "Boîte de réception",
+        "inbox_description": "Consultez les notifications récentes de votre compte pour rester informé.",
+        "filter_label": "Filtrer les notifications",
+        "tab_all": "Toutes",
+        "tab_unread": "Non lues",
+        "mark_all_read": "Tout marquer comme lu",
+        "delete_all": "Tout supprimer…",
+        "day_today": "Aujourd’hui",
+        "day_week": "Plus tôt cette semaine",
+        "day_older": "Plus ancien",
+        "unread": "Non lue",
+        "mark_read": "Marquer lu",
+        "mark_unread": "Marquer non lu",
+        "delete": "Supprimer",
+        "delete_one": "Supprimer la notification",
+        "empty_title": "Vous êtes à jour",
+        "empty_description": "Les nouvelles notifications arrivent ici. Choisissez ce que vous recevez dans les préférences ci-dessus.",
+        "loading_more": "Chargement des notifications plus anciennes · {count} de plus",
+        "load_more": "Charger les notifications plus anciennes · {count} de plus",
+        "mark_all_read_toast": "{count} notification marquée comme lue | {count} notifications marquées comme lues",
+        "undo": "Annuler",
+        "delete_all_title": "Supprimer {count} notification ? | Supprimer les {count} notifications ?",
+        "delete_all_description": "Votre boîte de réception sera vidée. Cette action est irréversible. Vos préférences ne changent pas.",
+        "delete_all_description_unread": "Votre boîte de réception sera vidée, y compris {count} notification non lue. Cette action est irréversible. Vos préférences ne changent pas. | Votre boîte de réception sera vidée, y compris {count} notifications non lues. Cette action est irréversible. Vos préférences ne changent pas.",
+        "delete_all_confirm": "Supprimer {count} notification | Supprimer {count} notifications",
+        "cancel": "Annuler",
+        "unread_badge": "{count} notification non lue | {count} notifications non lues",
+        "search_placeholder": "Rechercher dans les notifications",
+        "search_clear": "Effacer la recherche",
+        "category_label": "Filtrer par catégorie",
+        "category_all": "Toutes les catégories",
+        "status_label": "État de lecture",
+        "tab_read": "Lues",
+        "result_count": "{count} notification | {count} notifications",
+        "result_matching": "{count} résultat | {count} résultats",
+        "clear_filters": "Effacer les filtres",
+        "mark_matching_read": "Marquer {count} comme lue | Marquer {count} comme lues",
+        "delete_matching": "Supprimer {count}…",
+        "delete_matching_title": "Supprimer {count} notification correspondante ? | Supprimer les {count} notifications correspondantes ?",
+        "delete_matching_description": "Seules les notifications qui correspondent à votre recherche et à vos filtres sont supprimées ; les autres restent. Cette action est irréversible.",
+        "no_match_title": "Aucune notification ne correspond à ces filtres",
+        "no_match_title_query": "Aucune notification ne correspond à « {query} »",
+        "no_match_description": "La recherche porte sur les titres, les descriptions et les noms. Essayez un autre mot ou une autre catégorie, ou effacez les filtres.",
+        "search_short": "Rechercher…",
+        "mark_all_read_done": "Toutes les notifications sont marquées comme lues",
+        "delete_all_done": "Votre boîte de réception est vide"
       },
       "general": {
         "title": "Paramètres généraux",
@@ -117,15 +208,27 @@
         "table": {
           "caption": "Liste des membres"
         },
+        "form": {
+          "new_title": "Nouveau membre",
+          "new_description": "Les rôles et le statut de propriétaire avec lesquels il rejoint l’espace.",
+          "edit_title": "Modifier les rôles",
+          "edit_description": "Ses rôles décident de ce qu’il peut voir et faire. Plusieurs rôles se cumulent.",
+          "view_title": "Détails du membre",
+          "view_description": "Ses rôles, son statut de propriétaire et son activité, en lecture seule.",
+          "roles_hint_none": "Aucun rôle : il garde seulement ce que tout membre peut faire."
+        },
         "column": {
           "name": "Nom et prénom",
           "email": "Email",
           "roles": "Rôles",
           "tenant_owner": "Propriétaire",
-          "joined_at": "Date d'arrivée",
+          "joined_at": "Arrivée",
           "created_at": "Date de création",
           "updated_at": "Date de modification",
-          "connected": "Connecté"
+          "connected": "Connecté",
+          "member": "Membre",
+          "last_active": "Dernière activité",
+          "two_factor": "Double facteur"
         },
         "placeholder": {
           "name": "Entrer nom et prénom",
@@ -138,58 +241,139 @@
           "joined_at": "Date à laquelle l'utilisateur a rejoint",
           "created_at": "Date de création du compte utilisateur",
           "updated_at": "Dernière modification",
-          "connected": "Statut de connexion de l'utilisateur"
+          "connected": "Statut de connexion de l'utilisateur",
+          "last_active": "Dernière utilisation du tableau de bord par le membre"
         },
         "status": {
           "online": "En ligne",
           "offline": "Hors ligne"
         },
         "invite": {
-          "button": "Inviter",
-          "title": "Inviter un utilisateur",
-          "description": "Saisissez l'adresse e-mail de la personne à inviter et cliquez sur 'Envoyer l'invitation' pour lui accorder l'accès.",
-          "submit": "Envoyer l'invitation",
-          "success": "Invitation envoyée avec succès",
-          "email_failed": "Invitation créée, mais l'e-mail n'a pas pu être envoyé. Renvoyez-la depuis la liste des invitations en attente une fois l'envoi des e-mails rétabli.",
-          "already_member": "Cet utilisateur est déjà enregistré",
+          "button": "Inviter des membres",
+          "title": "Inviter des membres",
+          "description": "Ils recevront un e-mail avec un lien pour rejoindre l’espace. Il reste valable 7 jours.",
+          "submit": "Envoyer les invitations",
+          "success": "Invitations envoyées",
+          "email_failed": "Certains e-mails d'invitation n'ont pas pu être envoyés. Les invitations ont bien été créées : renvoyez-les depuis la liste des invitations en attente une fois l'envoi des e-mails rétabli.",
+          "already_member": "Déjà membre de cet espace",
           "field": {
             "email": "Adresse e-mail",
             "firstname": "Prénom",
             "lastname": "Nom",
-            "name_description": "Requis lorsque la validation e-mail est ignorée, optionnel sinon",
-            "roles": "Rôle(s)",
+            "name_description": "Facultatif. Ils pourront le modifier en rejoignant l’espace.",
+            "roles": "Rôles",
             "roles_description": "Rôles à attribuer à l'utilisateur invité",
-            "language": "Langue",
-            "tenant_owner": "Propriétaire",
-            "tenant_owner_description": "Accorder un accès complet sans restrictions de permissions",
+            "language": "Langue de l’invitation",
+            "tenant_owner": "Rendre propriétaire de l’espace",
+            "tenant_owner_description": "Les propriétaires ont toutes les permissions, y compris la facturation, les rôles et le retrait de membres. Les rôles ci-dessus sont ignorés. Un espace peut avoir plusieurs propriétaires.",
             "skip_email_validation": "Ignorer la validation e-mail",
-            "skip_email_validation_description": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son adresse e-mail et son prénom et son nom doivent être renseignés"
+            "skip_email_validation_description": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son adresse e-mail et son prénom et son nom doivent être renseignés",
+            "emails": "Adresses e-mail",
+            "emails_description": "Collez une liste pour inviter plusieurs personnes avec les mêmes rôles.",
+            "language_description": "La langue de l’e-mail et de leur compte.",
+            "name": "Nom"
           },
           "placeholder": {
             "email": "utilisateur{'@'}exemple.com",
             "firstname": "Prénom",
             "lastname": "Nom",
-            "roles": "Sélectionner un ou plusieurs rôles"
+            "roles": "Sélectionner un ou plusieurs rôles",
+            "emails": "Ajoutez des adresses, séparées par une virgule",
+            "name": "Nicolas Petit"
           },
           "roles_required": "Au moins un rôle est requis lorsque l'utilisateur n'est pas propriétaire",
           "firstname_required": "Le prénom est requis lorsque la validation e-mail est ignorée",
-          "lastname_required": "Le nom est requis lorsque la validation e-mail est ignorée"
+          "lastname_required": "Le nom est requis lorsque la validation e-mail est ignorée",
+          "header_button": "Inviter des membres",
+          "partial_title": "Invitations envoyées : {sent}",
+          "partial_description": "{count} adresse ignorée : déjà membre ou refusée. | {count} adresses ignorées : déjà membres ou refusées.",
+          "roles_owner_hint": "Les propriétaires ont toutes les permissions : les rôles sont ignorés.",
+          "roles_hint_empty": "Choisissez au moins un rôle.",
+          "roles_hint": "{roles} : {count} permissions sur {total}.",
+          "compare_roles": "Comparer les rôles",
+          "no_roles": "Aucun rôle pour l’instant. Créez-en un dans Rôles et permissions.",
+          "emails_required": "Ajoutez au moins une adresse e-mail",
+          "emails_too_many": "Invitez au plus 50 personnes à la fois",
+          "skip_validation_single_email": "La validation e-mail ne peut être ignorée que pour une personne à la fois",
+          "failed": "L’invitation n’a pas pu être envoyée"
         },
         "action": {
-          "validate_email": "Valider l'e-mail",
+          "validate_email": "Marquer comme vérifié",
           "validate_email_success": "E-mail validé avec succès",
-          "validate_email_confirm_title": "Valider l'e-mail",
-          "validate_email_confirm_description": "Êtes-vous sûr de vouloir valider manuellement l'adresse e-mail de cet utilisateur ?"
+          "validate_email_confirm_title": "Marquer l’e-mail de {name} comme vérifié ?",
+          "validate_email_confirm_description": "Cette personne n’aura pas à confirmer son adresse. Ne le faites que si vous savez qu’elle lui appartient.",
+          "change_roles": "Modifier les rôles",
+          "resend_verification": "Renvoyer l’e-mail de vérification",
+          "resend_verification_success": "E-mail de vérification envoyé",
+          "validate_email_menu": "Marquer l’e-mail comme vérifié…",
+          "make_owner_menu": "Rendre propriétaire…",
+          "make_owner": "Rendre propriétaire",
+          "make_owner_confirm_title": "Rendre {name} propriétaire ?",
+          "make_owner_confirm_description": "Les propriétaires ont toutes les permissions, y compris la facturation, les rôles et le retrait de membres.",
+          "make_owner_success": "Rôle de propriétaire attribué",
+          "remove_owner_menu": "Retirer le rôle de propriétaire…",
+          "remove_owner": "Retirer le rôle de propriétaire",
+          "remove_owner_confirm_title": "Retirer le rôle de propriétaire de {name} ?",
+          "remove_owner_confirm_description": "Cette personne garde ses rôles et perd les permissions réservées aux propriétaires.",
+          "remove_owner_success": "Rôle de propriétaire retiré",
+          "remove": "Retirer de l’espace…"
         },
         "error": {
           "user_not_found": "Utilisateur introuvable",
           "last_owner": "Impossible de retirer le dernier propriétaire. Au moins un propriétaire doit rester.",
           "last_owner_delete": "Impossible de supprimer tous les propriétaires. Au moins un propriétaire doit rester."
+        },
+        "tabs": {
+          "members": "Membres",
+          "invites": "Invitations"
+        },
+        "filter": {
+          "all_roles": "Tous les rôles",
+          "role": "Rôle"
+        },
+        "search_members": "Rechercher des membres",
+        "owner": "Propriétaire",
+        "no_role": "Aucun rôle",
+        "you": "Vous",
+        "email_not_verified": "E-mail non vérifié",
+        "active_now": "Actif maintenant",
+        "never_signed_in": "Jamais connecté",
+        "two_factor_on": "Activé",
+        "two_factor_off": "Désactivé",
+        "footer_count": "Aucun membre | {count} membre | {count} membres",
+        "last_active_hint": "« Dernière activité » est la dernière utilisation du tableau de bord.",
+        "confirm": {
+          "close": "Fermer"
+        },
+        "remove": {
+          "title_other": "Retirer {name} de l’espace ?",
+          "title_self": "Quitter l’espace ?",
+          "description_other": "Cette personne est déconnectée de l’espace immédiatement et perd l’accès à ses données. Son compte et ses autres espaces ne sont pas affectés.",
+          "description_self": "Vous perdez l’accès à cet espace immédiatement. Votre compte et vos autres espaces ne sont pas affectés.",
+          "impact_roles": "Rôles retirés",
+          "impact_records": "Les enregistrements créés sont conservés",
+          "confirm": "Retirer le membre",
+          "success": "Membre retiré",
+          "last_owner_self_title": "Vous êtes le seul propriétaire",
+          "last_owner_other_title": "{name} est le seul propriétaire",
+          "last_owner_description": "Au moins un propriétaire doit rester. Rendez d’abord un autre membre propriétaire, puis retirez celui-ci ou son rôle de propriétaire."
+        },
+        "two_factor": {
+          "totp": "Application d’authentification",
+          "email": "Code par e-mail"
         }
       },
       "invites": {
         "table": {
           "caption": "Invitations en attente"
+        },
+        "form": {
+          "new_title": "Nouvelle invitation",
+          "new_description": "Qui inviter, avec quels rôles et dans quelle langue.",
+          "edit_title": "Modifier l’invitation",
+          "edit_description": "Le nom, les rôles et la langue que la personne invitée reçoit en acceptant.",
+          "view_title": "Détails de l’invitation",
+          "view_description": "À qui elle s’adresse, ses rôles et son expiration, en lecture seule."
         },
         "column": {
           "email": "E-mail",
@@ -201,7 +385,9 @@
           "skip_email_validation": "Ignorer la validation e-mail",
           "status": "Statut",
           "created_at": "Envoyée le",
-          "expires_at": "Expire le"
+          "expires_at": "Expire le",
+          "sent": "Envoyée",
+          "expires": "Expire"
         },
         "placeholder": {
           "email": "email{'@'}exemple.com",
@@ -218,17 +404,33 @@
           "resend": "Renvoyer",
           "resend_success": "Invitation renvoyée avec succès",
           "resend_email_failed": "Invitation renouvelée, mais l'e-mail n'a pas pu être envoyé. Réessayez une fois l'envoi des e-mails rétabli.",
-          "resend_confirm_title": "Renvoyer l'invitation",
-          "resend_confirm_description": "Un nouveau lien d'invitation sera généré et envoyé à l'utilisateur. L'ancien lien sera invalidé.",
+          "resend_confirm_title": "Renvoyer l’invitation à {email} ?",
+          "resend_confirm_description": "Un nouveau lien est envoyé et le précédent cesse de fonctionner.",
           "cancel": "Annuler l'invitation",
           "cancel_success": "Invitation annulée avec succès",
           "cancel_confirm_title": "Annuler l'invitation",
-          "cancel_confirm_description": "Êtes-vous sûr de vouloir annuler cette invitation ? Le lien d'invitation ne fonctionnera plus."
+          "cancel_confirm_description": "Êtes-vous sûr de vouloir annuler cette invitation ? Le lien d'invitation ne fonctionnera plus.",
+          "copy_link": "Copier le lien",
+          "copy_link_success": "Lien d’invitation copié",
+          "edit": "Modifier l’invitation",
+          "revoke": "Révoquer",
+          "revoke_confirm_title": "Révoquer l’invitation à {email} ?",
+          "revoke_confirm_description": "Le lien cesse de fonctionner immédiatement. Vous pourrez l’inviter à nouveau plus tard.",
+          "revoke_success": "Invitation révoquée",
+          "remove": "Supprimer",
+          "remove_confirm_title": "Supprimer l’invitation expirée à {email} ?",
+          "remove_confirm_description": "Elle disparaît de la liste. Vous pourrez l’inviter à nouveau plus tard.",
+          "remove_success": "Invitation supprimée"
         },
         "error": {
           "not_found": "Invitation introuvable",
-          "resolved": "Cette invitation a déjà été acceptée ou annulée"
-        }
+          "resolved": "Cette invitation a déjà été acceptée ou annulée",
+          "expired": "Cette invitation a expiré"
+        },
+        "search": "Rechercher des invitations",
+        "sent_by": "{date} · par {name}",
+        "footer_count": "Aucune invitation | {count} invitation | {count} invitations",
+        "expiry_hint": "Les invitations expirent 7 jours après leur envoi."
       },
       "roles": {
         "table": {
@@ -248,6 +450,104 @@
           "permissions": "Permissions assignées à ce rôle",
           "created_at": "Date de création du rôle",
           "updated_at": "Dernière modification"
+        },
+        "editor": {
+          "new_role": "Nouveau rôle",
+          "list_title": "Rôles",
+          "list_members": "Membres",
+          "search_roles": "Rechercher un rôle",
+          "no_role_match": "Aucun rôle ne correspond à cette recherche.",
+          "owner": "Propriétaire",
+          "owner_summary": "Toutes les {total} · verrouillé",
+          "permission_summary": "{count} permissions sur {total}",
+          "invites": "{count} invitation | {count} invitations",
+          "untitled": "Rôle sans nom",
+          "unsaved": "Pas encore enregistré",
+          "foot_prefix": "Attribuez les rôles depuis",
+          "foot_link": "Membres",
+          "members_count": "aucun membre | {count} membre | {count} membres",
+          "more_actions": "Autres actions sur le rôle",
+          "duplicate": "Dupliquer le rôle",
+          "delete": "Supprimer le rôle",
+          "copy_name": "{name} (copie)",
+          "field_name": "Nom du rôle",
+          "field_description": "Description",
+          "optional": "Facultatif",
+          "placeholder_name": "ex. Support",
+          "placeholder_description": "Ce que font les membres ayant ce rôle",
+          "search_permissions": "Rechercher une permission, ex. « export »",
+          "expand_level": "Déplier un niveau",
+          "expand_level_hint": "Déplier un niveau : ouvre le niveau le moins profond de l’arbre qui n’est pas entièrement ouvert",
+          "collapse_level": "Replier un niveau",
+          "collapse_level_hint": "Replier un niveau : ferme le niveau le plus profond de l’arbre qui a une ligne ouverte",
+          "depth": "niveau {level}/{total}",
+          "depth_hint": "{level} niveaux sur {total} entièrement ouverts",
+          "expand": "Déplier",
+          "collapse": "Replier",
+          "of_selected": "sur {total} sélectionnées",
+          "matches": "résultat | résultats",
+          "in_areas": "dans {count} zone | dans {count} zones",
+          "tree_label": "Permissions",
+          "change_added": "Ajoutée",
+          "change_removed": "Retirée",
+          "requires": "Nécessite {name}",
+          "auto_added": "{name} ajoutée automatiquement",
+          "auto_added_many": "{count} ajoutées automatiquement",
+          "not_grantable": "Vous n’avez pas cette permission, vous ne pouvez donc pas l’accorder.",
+          "search_empty": "Aucune permission ne correspond à « {query} ».",
+          "no_permissions": "Aucune permission n’est encore enregistrée.",
+          "changed_name": "nom",
+          "changed_description": "description",
+          "changed_added": "{count} permission ajoutée | {count} permissions ajoutées",
+          "changed_removed": "{count} permission retirée | {count} permissions retirées",
+          "applies_to": "s’applique à {names} au prochain chargement de page",
+          "applies_to_count": "s’applique à {count} membres au prochain chargement de page",
+          "owner_title": "Les propriétaires ont toutes les permissions",
+          "owner_description": "Y compris la facturation, les rôles et le retrait de membres. Ce rôle ne peut être ni modifié ni supprimé. Nommez un propriétaire depuis Membres.",
+          "open_members": "Ouvrir Membres",
+          "delete_title": "Supprimer {name} ?",
+          "delete_unused": "Personne n’a ce rôle. La suppression est définitive.",
+          "delete_in_use": "{count} membre ou invitation en attente a encore ce rôle et perdra ses permissions, sauf si vous le déplacez vers un autre rôle. | {count} membres ou invitations en attente ont encore ce rôle et perdront ses permissions, sauf si vous les déplacez vers un autre rôle.",
+          "reassign_label": "Les déplacer vers",
+          "reassign_none": "Aucun rôle",
+          "delete_confirm": "Supprimer le rôle",
+          "cancel": "Annuler",
+          "saved": "Rôle enregistré",
+          "created": "Rôle créé",
+          "duplicated": "Rôle dupliqué",
+          "deleted": "Rôle supprimé"
+        },
+        "preview": {
+          "button": "Aperçu en tant que {role}",
+          "region_label": "Aperçu d'un rôle",
+          "previewing": "Aperçu de",
+          "as": "en tant que",
+          "this_page": "cette page",
+          "search_pages": "Rechercher une page…",
+          "pick_page": "Page à prévisualiser",
+          "unsaved_included": "modifications non enregistrées incluses",
+          "page_hidden": "Page masquée pour {role}",
+          "out_of_scope": "{count} permission hors de votre propre accès n'est pas affichée | {count} permissions hors de votre propre accès ne sont pas affichées",
+          "failed": "L'aperçu n'a pas pu être mis à jour",
+          "loading": "Mise à jour de l'aperçu",
+          "exit": "Quitter l'aperçu",
+          "veil_hidden": "Masqué pour {role}",
+          "veil_readonly": "Lecture seule",
+          "veil_limited": "Limité",
+          "veil_withheld": "Retiré pour ce rôle : {actions}",
+          "menu_hidden": "Masqué pour {role}",
+          "menu_partial": "Accès partiel pour {role} : certains blocs ou actions sont masqués",
+          "veil_partial": "Accès partiel",
+          "page_partial": "Accès partiel pour {role}"
+        },
+        "error": {
+          "not_found": "Ce rôle n’existe plus.",
+          "name_required": "Donnez un nom au rôle.",
+          "name_taken": "Un autre rôle porte déjà ce nom.",
+          "ungrantable": "Vous ne pouvez pas accorder des permissions que vous n’avez pas vous-même.",
+          "in_use": "Des membres ou des invitations en attente ont encore ce rôle.",
+          "invalid_reassign": "Choisissez un autre rôle vers lequel déplacer ses membres.",
+          "not_created": "Le rôle n’a pas pu être créé."
         }
       },
       "appearance": {
@@ -265,19 +565,277 @@
         "scale_normal_hint": "Par défaut",
         "scale_large_hint": "Spacieux · grands écrans",
         "css_variables": "Variables CSS",
-        "css_variables_description": "Liste de toutes les variables CSS utilisées dans le design system"
+        "css_variables_description": "Liste de toutes les variables CSS utilisées dans le design system",
+        "system_hint": "Suit le réglage de votre système",
+        "light_hint": "Surfaces claires",
+        "dark_hint": "Repose les yeux",
+        "sidebar_title": "Barre latérale",
+        "sidebar_description": "Vous pouvez aussi la replier à tout moment avec le bouton à côté du fil d'Ariane.",
+        "sidebar_start_collapsed": "Démarrer avec la barre latérale repliée",
+        "sidebar_start_collapsed_hint": "Affiche seulement les icônes, avec les libellés au survol. Pratique sur les petits écrans.",
+        "developer_title": "Développeur",
+        "developer_description": "Les variables de design utilisées par l'interface, pour créer des modules assortis.",
+        "css_vars": {
+          "count": "{count} variables",
+          "filter_placeholder": "Filtrer les variables",
+          "category_label": "Groupe de variables",
+          "theme_hint": "Valeurs du thème actuel",
+          "copy": "Copier",
+          "copied": "Copié",
+          "showing": "{shown} sur {total} affichées",
+          "export": "Exporter en CSS",
+          "no_results": "Aucune variable ne correspond à ce filtre.",
+          "categories": {
+            "all": "Toutes",
+            "colors": "Couleurs",
+            "text": "Texte",
+            "background": "Fond",
+            "border": "Bordure",
+            "radius": "Rayon",
+            "shadow": "Ombre",
+            "other": "Autres"
+          }
+        },
+        "accessibility": {
+          "title": "Accessibilité",
+          "description": "Des écrans plus calmes, plus nets et plus lisibles sur cet appareil. La densité ci-dessus agrandit le texte.",
+          "reduce_motion": "Réduire les animations",
+          "reduce_motion_hint": "Désactive les animations et transitions, les pulsations en direct et l'animation des graphiques. Automatique suit le réglage de votre système.",
+          "motion_auto": "Automatique",
+          "motion_on": "Activé",
+          "motion_off": "Désactivé",
+          "increase_contrast": "Augmenter le contraste",
+          "increase_contrast_hint": "Texte secondaire plus foncé et bordures plus marquées, en thème clair comme sombre.",
+          "underline_links": "Toujours souligner les liens",
+          "underline_links_hint": "Souligne les liens du contenu et des tableaux, pour ne pas compter que sur la couleur. Les menus et boutons ne changent pas."
+        }
       },
       "shortcuts": {
         "title": "Raccourcis clavier",
-        "intro": "Raccourcis clavier disponibles pour les composants"
+        "intro": "Raccourcis clavier disponibles pour les composants",
+        "search_placeholder": "Rechercher un raccourci, ex. « actualiser » ou « palette »",
+        "detected": "{os} détecté · {count} raccourcis dans {groups} groupes",
+        "os_mac": "macOS",
+        "os_other": "Windows et Linux",
+        "layout_label": "Disposition du clavier",
+        "no_results": "Aucun raccourci ne correspond à votre recherche.",
+        "groups": {
+          "global": {
+            "title": "Global",
+            "description": "Partout dans le tableau de bord."
+          },
+          "tableview": {
+            "title": "Tableaux",
+            "description": "Toute page de liste quand le tableau a le focus."
+          },
+          "tab": {
+            "title": "Onglets",
+            "description": "Pages découpées en onglets."
+          }
+        }
+      },
+      "shell": {
+        "search_placeholder": "Rechercher un réglage",
+        "all_settings": "Tous les réglages",
+        "account": "Compte",
+        "workspace": "Espace de travail",
+        "no_results": "Aucun réglage ne correspond à votre recherche.",
+        "member_invitations": "Invitations des membres",
+        "pending_invitations": "Aucune invitation en attente | {count} invitation en attente | {count} invitations en attente"
+      },
+      "overview": {
+        "your_account": "Votre compte",
+        "edit_profile": "Modifier le profil",
+        "owner": "Propriétaire",
+        "two_factor": "Double authentification",
+        "two_factor_off": "Désactivée",
+        "backup_codes": "Codes de secours",
+        "backup_codes_ready": "Générés",
+        "backup_codes_missing": "Non générés",
+        "language": "Langue",
+        "account_description": "Vous seul pouvez les voir et les modifier.",
+        "workspace_description": "Partagés par tous les membres de l'espace de travail.",
+        "other_description": "Réglages ajoutés par les modules et les projets.",
+        "activity": {
+          "title": "Activité récente du compte",
+          "empty_title": "Aucune activité récente",
+          "empty_description": "Les connexions et les modifications de votre compte s'afficheront ici.",
+          "this_device": "Cet appareil",
+          "device": "{browser} sur {os}",
+          "device_single": "{device}",
+          "as_owner": "En tant que propriétaire",
+          "invited_by": "Invitation de {name}",
+          "method": {
+            "totp": "Application d'authentification",
+            "email": "Code par e-mail"
+          },
+          "event": {
+            "signed_in": "Nouvelle connexion",
+            "signed_in_on": "Connexion depuis {device}",
+            "password_changed": "Mot de passe modifié",
+            "password_reset": "Mot de passe réinitialisé",
+            "email_changed": "E-mail de connexion modifié",
+            "two_factor_enabled": "Double authentification activée",
+            "two_factor_disabled": "Double authentification désactivée",
+            "backup_codes_generated": "Nouveaux codes de secours générés",
+            "login_method_added": "Connexion {provider} associée",
+            "login_method_added_unnamed": "Méthode de connexion associée",
+            "account_created": "Compte créé",
+            "workspace_joined": "Arrivée dans {workspace}",
+            "workspace_joined_unnamed": "Arrivée dans un espace de travail",
+            "invite_sent": "Invitation envoyée à {email}",
+            "invite_sent_unnamed": "Invitation envoyée",
+            "collaborator_joined": "{name} a rejoint l'espace de travail",
+            "collaborator_joined_unnamed": "Un collaborateur a rejoint l'espace de travail"
+          }
+        },
+        "name": "Nom",
+        "email": "E-mail",
+        "role": "Rôle",
+        "member": "Membre",
+        "two_factor_on_short": "Activée"
       }
     }
   },
   "modules": {
     "title": "Modules",
-    "intro": "Parcourez les modules disponibles sur cette plateforme.",
-    "empty": "Aucun module ne vous est accessible pour le moment.",
-    "open": "Ouvrir le module"
+    "intro": "Tout ce qui est installé sur cette plateforme et ce que fait chaque module en ce moment.",
+    "open": "Ouvrir",
+    "owner_badge": "Propriétaires de la plateforme",
+    "refresh": "Actualiser",
+    "empty": {
+      "title": "Aucun module n’est encore installé",
+      "description": "Les modules s’ajoutent au projet avec la CLI AntelopeJS, puis apparaissent ici après un redémarrage."
+    },
+    "summary": {
+      "installed": "Installés",
+      "updates": "Mises à jour",
+      "attention": "À surveiller",
+      "beta": "En bêta"
+    },
+    "installed": {
+      "title": "Installés",
+      "description": "L’état et un relevé en direct de chaque module. Ouvrez un module pour reprendre là où vous en étiez."
+    },
+    "store": {
+      "title": "Store de modules",
+      "description": "Les modules AntelopeJS officiels qui ne sont pas installés sur cette plateforme.",
+      "soon": "Bientôt",
+      "banner": {
+        "title": "Bientôt disponible",
+        "description": "Parcourez et installez les modules officiels du catalogue AntelopeJS directement depuis votre tableau de bord."
+      },
+      "search_placeholder": "Rechercher dans le store",
+      "category_label": "Catégorie du store",
+      "available_soon": "Bientôt disponible",
+      "install": "Installer",
+      "install_soon": "Bientôt disponible",
+      "command_label": "Commande d’installation",
+      "no_result": {
+        "title": "Aucun module du store ne correspond à « {query} »",
+        "title_filtered": "Aucun module du store ne correspond à ces filtres"
+      },
+      "all_installed": {
+        "title": "Tous les modules officiels sont installés",
+        "description": "Les nouveaux modules du catalogue AntelopeJS apparaîtront ici."
+      },
+      "category": {
+        "ai": "IA",
+        "business": "Business",
+        "content": "Contenu",
+        "data": "Données",
+        "developer": "Développement",
+        "growth": "Croissance",
+        "operations": "Opérations"
+      },
+      "catalog": {
+        "ai": {
+          "title": "Assistant IA",
+          "description": "Un agent de code qui inspecte vos modules et modifie le projet, pour le développement."
+        },
+        "api": {
+          "title": "API",
+          "description": "Catalogue des routes, journaux des requêtes et statistiques de trafic de votre API."
+        },
+        "automation": {
+          "title": "Automatisation",
+          "description": "Des procédures visuelles faites de déclencheurs, d’actions et de nœuds de données."
+        },
+        "builder": {
+          "title": "Builder",
+          "description": "Modifie les pages, tableaux et formulaires du projet, en n’écrivant que du code qui compile."
+        },
+        "cicd": {
+          "title": "Publication",
+          "description": "Versions, environnements et déploiements de votre projet via git."
+        },
+        "database": {
+          "title": "Base de données",
+          "description": "Schémas, explorateur de données, diagramme et espace de requêtes AQL."
+        },
+        "lang": {
+          "title": "Traductions",
+          "description": "Langues, couverture des traductions et matrice clé par langue."
+        },
+        "mailing": {
+          "title": "Mailing",
+          "description": "Modèles d’e-mails avec éditeur par blocs, journal d’envois et métriques de délivrance."
+        },
+        "marketing": {
+          "title": "Marketing",
+          "description": "Analytique de trafic sans cookie, entonnoirs de conversion avec tests A/B et cartes de clics."
+        },
+        "media": {
+          "title": "Médias",
+          "description": "Médiathèque avec dossiers, permissions par dossier et déclinaisons d’images."
+        },
+        "saas": {
+          "title": "SaaS",
+          "description": "Offres, espaces de travail, facturation Stripe et cycle de vie client."
+        }
+      }
+    },
+    "sort": {
+      "label": "Tri",
+      "recent": "Utilisés récemment",
+      "name": "A–Z"
+    },
+    "search": {
+      "placeholder": "Rechercher un module"
+    },
+    "category": {
+      "label": "Catégorie",
+      "all": "Tous"
+    },
+    "category_other": "Autres",
+    "status": {
+      "live": "Actif",
+      "beta": "Bêta",
+      "update": "Mise à jour",
+      "attention": "Attention"
+    },
+    "update_available": "mise à jour disponible",
+    "no_result": {
+      "title": "Aucun module installé ne correspond à « {query} »",
+      "title_filtered": "Aucun module installé ne correspond à ces filtres",
+      "lives_in": "« {page} » se trouve dans le module {module}.",
+      "lives_in_section": "« {page} » se trouve dans le module {module}, sous {section}.",
+      "palette": "La palette de commandes ({shortcut}) cherche dans toutes les pages de tous les modules.",
+      "clear": "Effacer la recherche",
+      "open_page": "Ouvrir {module} › {page}"
+    },
+    "error": {
+      "title": "Impossible de charger les modules",
+      "description": "La requête vers {endpoint} a échoué ({reason}). Les modules installés continuent de fonctionner ; seule cette liste est touchée.",
+      "reason_status": "HTTP {status}",
+      "reason_network": "aucune réponse",
+      "retry": "Réessayer"
+    },
+    "forbidden": {
+      "title": "Seuls les propriétaires de la plateforme gèrent les modules",
+      "description": "Les modules sont installés, ouverts et attribués par les propriétaires de cette plateforme. Demandez à l’un d’eux si vous avez besoin d’un module.",
+      "back": "Retour à l’espace de travail"
+    }
   },
   "emails": {
     "admin_invite": {
@@ -294,5 +852,23 @@
       "expires_in": "{days} jours",
       "footer": "Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet e-mail."
     }
+  },
+  "empty_layout": {
+    "theme_toggle": "Changer de thème",
+    "footer": {
+      "documentation": "Documentation",
+      "website": "Site web",
+      "language": "Langue",
+      "github_star": "Star",
+      "github_star_label": "Mettre une étoile à AntelopeJS DMS sur GitHub"
+    }
+  },
+  "error": {
+    "page": {
+      "eyebrow": "Erreur {code}"
+    }
+  },
+  "widgets_dock": {
+    "show": "Afficher les widgets"
   }
 }

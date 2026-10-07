@@ -11,20 +11,33 @@ import {
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMember, TenantMemberModel } from "../db";
 import { TenantScopedModel } from "../tenant-scoped-model";
-import { User, UserModel } from "../auth/db";
+import { User } from "../auth/db";
 import { DefaultDataTypes } from "../base/data-types/default-types";
-import { StatusType } from "../base/data-types/status-type";
 import { Searchable } from "../base/searchable";
-import { Column, Exported, Select, TableViewRoutes } from "../base/table-view";
+import {
+  Column,
+  DefaultDisplays,
+  Exported,
+  Select,
+  TableViewRoutes,
+} from "../base/table-view";
 import { ReadonlyBehaviorType } from "../base/types";
 import { getRequestTenantId } from "../request-tenant";
 import { runTenantLifecycleOperation } from "../tenant-lifecycle";
 import { roleSettingDataAPI } from "./roles";
 
-const CONNECTED_THRESHOLD_MS = 5 * 60 * 1000;
+const ROLE_KEY_MAPPING = { label: "name", value: "_id" } as const;
+
+/** "Active now" lasts this long after the member's last request. */
+const ACTIVE_NOW_MS = 5 * 60 * 1000;
+
+const SYSTEM_MANAGED_FIELD = {
+  edit: ReadonlyBehaviorType.hidden,
+  view: ReadonlyBehaviorType.disabled,
+  new: ReadonlyBehaviorType.hidden,
+};
 
 const admittedMemberCreation: DataControllerCallback = {
   ...TableViewRoutes.New,
@@ -60,21 +73,39 @@ export class memberSettingDataAPI extends DataController(
   @Searchable()
   @Exported()
   @Column({
-    name: "$page.settings.members.column.name",
+    name: "$page.settings.members.column.member",
     type: new DefaultDataTypes.StringType({
       placeholder: "$page.settings.members.placeholder.name",
     }),
     filterable: true,
+    size: 260,
+    // Avatar, name, a "You" tag, the unverified-email badge and the address.
+    display: new DefaultDisplays.IdentityDisplay({
+      avatarField: "avatar",
+      subtitleField: "email",
+      selfField: "userId",
+      selfLabel: "$page.settings.members.you",
+      badges: [
+        {
+          field: "isValidated",
+          equals: false,
+          label: "$page.settings.members.email_not_verified",
+          tone: "warning",
+        },
+      ],
+    }),
   })
   @Sortable({ noIndex: true })
   @Joined({ table: User, localKey: "userId", remoteField: "name" })
   declare name: string;
 
   /**
-   * User avatar exposed on the `select` endpoint so relation pickers targeting
-   * DMS members can render it (see `RelationType.keyMapping.avatar`).
+   * User avatar, on the `select` endpoint so relation pickers targeting DMS
+   * members can render it (see `RelationType.keyMapping.avatar`), and in the
+   * list for the members page.
    */
   @Select(["userId"])
+  @Listable(["userId"])
   @Joined({ table: User, localKey: "userId", remoteField: "avatar" })
   declare avatar: DefaultDataTypes.ImageValue | null;
 
@@ -88,6 +119,8 @@ export class memberSettingDataAPI extends DataController(
       placeholder: "$page.settings.members.placeholder.email",
     }),
     filterable: true,
+    // Drawn under the name, in the member cell.
+    isVisible: false,
   })
   @Sortable({ noIndex: true })
   @Joined({ table: User, localKey: "userId", remoteField: "email" })
@@ -100,12 +133,20 @@ export class memberSettingDataAPI extends DataController(
       multiple: true,
       placeholder: "$page.settings.members.placeholder.roles",
       dataApiController: roleSettingDataAPI,
-      keyMapping: {
-        label: "name",
-        value: "_id",
-      },
+      keyMapping: ROLE_KEY_MAPPING,
     }),
     description: "$page.settings.members.description.roles",
+    filterable: true,
+    size: 140,
+    // An owner holds every permission: one crown pill replaces the roles.
+    display: new DefaultDisplays.PillsDisplay({
+      exclusive: {
+        field: "isTenantOwner",
+        label: "$page.settings.members.owner",
+        icon: "i-ph-crown",
+      },
+      emptyLabel: "$page.settings.members.no_role",
+    }),
   })
   @Access(AccessMode.ReadWrite)
   declare roleIds: string[];
@@ -116,9 +157,61 @@ export class memberSettingDataAPI extends DataController(
     name: "$page.settings.members.column.tenant_owner",
     type: new DefaultDataTypes.BooleanType(),
     description: "$page.settings.members.description.tenant_owner",
+    // Drawn as the crown pill of the roles cell.
+    isVisible: false,
   })
   @Access(AccessMode.ReadWrite)
   declare isTenantOwner: boolean;
+
+  /**
+   * Last time the member used the dashboard, from `User.lastActiveAt`. `null`
+   * for a member who never signed in.
+   */
+  @Listable(["userId"])
+  @Exported()
+  @Column({
+    name: "$page.settings.members.column.last_active",
+    type: new DefaultDataTypes.DateType(),
+    description: "$page.settings.members.description.last_active",
+    readonlyBehavior: SYSTEM_MANAGED_FIELD,
+    size: 130,
+    display: new DefaultDisplays.RelativeDateDisplay({
+      nowWithinMs: ACTIVE_NOW_MS,
+      nowLabel: "$page.settings.members.active_now",
+      emptyLabel: "$page.settings.members.never_signed_in",
+      emptyTone: "warning",
+    }),
+  })
+  @Sortable({ noIndex: true })
+  @Joined({ table: User, localKey: "userId", remoteField: "lastActiveAt" })
+  declare lastActiveAt: Date | null;
+
+  /**
+   * Second factors the member enabled (`totp`, `email`); empty when two-factor
+   * authentication is off. The secrets themselves never leave the user row.
+   */
+  @Listable(["userId"])
+  @Column({
+    name: "$page.settings.members.column.two_factor",
+    type: new DefaultDataTypes.SelectType({
+      multiple: true,
+      items: [
+        { value: "totp", label: "$page.settings.members.two_factor.totp" },
+        { value: "email", label: "$page.settings.members.two_factor.email" },
+      ],
+    }),
+    readonlyBehavior: SYSTEM_MANAGED_FIELD,
+    size: 100,
+    display: new DefaultDisplays.IndicatorDisplay({
+      onLabel: "$page.settings.members.two_factor_on",
+      offLabel: "$page.settings.members.two_factor_off",
+      onIcon: "i-ph-shield-check",
+      offIcon: "i-ph-shield",
+    }),
+  })
+  @Access(AccessMode.ReadOnly)
+  @Joined({ table: User, localKey: "userId", remoteField: "twoFactorMethods" })
+  declare twoFactorMethods: string[] | null;
 
   @Listable()
   @Exported()
@@ -126,6 +219,7 @@ export class memberSettingDataAPI extends DataController(
     name: "$page.settings.members.column.joined_at",
     type: new DefaultDataTypes.DateType(),
     description: "$page.settings.members.description.joined_at",
+    size: 130,
     readonlyBehavior: {
       edit: ReadonlyBehaviorType.disabled,
       view: ReadonlyBehaviorType.disabled,
@@ -140,28 +234,4 @@ export class memberSettingDataAPI extends DataController(
   @Exported()
   @Joined({ table: User, localKey: "userId", remoteField: "isValidated" })
   declare isValidated: boolean;
-
-  @Listable(["userId"])
-  @Column({
-    name: "$page.settings.members.column.connected",
-    type: new StatusType(),
-    description: "$page.settings.members.description.connected",
-  })
-  @Access(AccessMode.ReadOnly)
-  get connected(): PromiseLike<boolean> {
-    return (
-      GetModel(UserModel)
-        // The source and the target do not overlap, so this cannot be one
-        // assertion: the value reaches here through a decorator, a JWT
-        // payload or a filter tuple, none of which the type system sees.
-        // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-        .get((this as unknown as { table: { userId: string } }).table.userId)
-        .then(
-          (u) =>
-            !!u &&
-            new Date(u.updatedAt).getTime() >
-              Date.now() - CONNECTED_THRESHOLD_MS,
-        )
-    );
-  }
 }

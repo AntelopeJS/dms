@@ -3,13 +3,30 @@ import { ChartColumn, ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
-import { Tab } from "@antelopejs/interface-dms/base/tab";
 import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
+  KeyValueList,
+  type KeyValueListItem,
+} from "@antelopejs/interface-dms/base/key-value-list";
+import { Tab } from "@antelopejs/interface-dms/base/tab";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { multiComponentCategory } from "./category";
+
+const PROJECT_FILE_ITEMS: KeyValueListItem[] = [
+  { label: "src", value: "Folder", detail: "components, utils, index.ts" },
+  { label: "docs", value: "Folder", detail: "guides, reference" },
+  { label: "package.json", value: "JSON", type: "mono" },
+  { label: "README.md", value: "Markdown", type: "mono" },
+];
+
+const DOCUMENTATION_ITEMS: KeyValueListItem[] = [
+  {
+    label: "Getting started",
+    value: "guides/getting-started.md",
+    type: "mono",
+  },
+  { label: "Configuration", value: "guides/configuration.md", type: "mono" },
+  { label: "API reference", value: "reference/api.md", type: "mono" },
+];
 
 @RegisterPage()
 export class PageMultiComponent extends PageController("multi-component", {
@@ -17,17 +34,13 @@ export class PageMultiComponent extends PageController("multi-component", {
   icon: "i-ph-layout",
   category: multiComponentCategory,
   order: 0,
-  description: "Complex page with Tree, Forms, Charts in a grid layout",
+  description:
+    "Two key / value lists, two forms and two charts sharing one grid layout",
 }) {
   static mainGrid = (() => {
-    const fileTree = Tree({
+    const fileList = KeyValueList({
       title: "File Explorer",
-      description: "Browse project files and folders",
-      fetchUrl: "/api/tree/data",
-      color: Color.primary,
-      size: Size.medium,
-      selectionBehavior: TreeSelectionBehavior.toggle,
-      multiple: true,
+      items: PROJECT_FILE_ITEMS,
     });
 
     const profileForm = Form({
@@ -133,13 +146,9 @@ export class PageMultiComponent extends PageController("multi-component", {
         ),
     );
 
-    const documentationTree = Tree({
+    const documentationList = KeyValueList({
       title: "Documentation",
-      description: "Browse documentation files",
-      fetchUrl: "/api/tree/data",
-      color: Color.info,
-      size: Size.medium,
-      selectionBehavior: TreeSelectionBehavior.toggle,
+      items: DOCUMENTATION_ITEMS,
     });
 
     const tabsComponent = Tab({
@@ -171,11 +180,13 @@ export class PageMultiComponent extends PageController("multi-component", {
       .child("profileForm", profileForm, { slot: "profile" })
       .child("settingsForm", settingsForm, { slot: "settings" })
       .child("chartsGrid", chartsGrid, { slot: "analytics" })
-      .child("documentationTree", documentationTree, { slot: "documentation" });
+      .child("documentationList", documentationList, {
+        slot: "documentation",
+      });
 
     return Grid({ gap: "1.5rem" }).child(
       "mainRow",
-      GridRow().child("fileTree", fileTree).child("tabs", tabsComponent),
+      GridRow().child("fileList", fileList).child("tabs", tabsComponent),
     );
   })();
 }

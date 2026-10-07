@@ -1,24 +1,42 @@
 <script setup lang="ts">
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
+import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
+import type { UserNotification } from "../../../composables/notification/useNotifications";
+import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
+import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 const MAX_DISPLAYED_COUNT = 99;
+// Placeholder rows while the list loads: enough to fill the list's height.
+const POPOVER_SKELETON_LINES = [
+  "mt-[3px] mb-[5px] h-2.5 w-2/5",
+  "my-1 h-2 w-11/12",
+  "my-1 h-2 w-3/5",
+  "mt-2 h-2 w-14",
+];
+const SKELETON_ROW_COUNT = 4;
+const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
 const { t, locale } = useI18n();
 const { loggedIn } = useUserSession();
 const { processI18n } = useTranslation();
 const {
   unreadCount,
+  unseenCount,
   notifications,
   hasMore,
-  fetchUnreadCount,
+  fetchBellCounts,
   fetchNotifications,
-  markAllAsRead,
+  markAsRead,
+  markAllSeen,
 } = useNotifications();
+const { setNavBadge } = useNavBadges();
 const isOpen = ref(false);
 const sentinel = ref<HTMLElement | null>(null);
-const hasBeenOpened = ref(false);
+// Each opening reloads the list from its first page: until it answers, the
+// popover shows placeholder rows, never "No notifications".
+const isListLoading = ref(false);
 
 const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   sentinel,
@@ -26,14 +44,36 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
   hasMore,
 );
 
-const refreshUnreadCount = () =>
-  settleWidgetRequest(fetchUnreadCount, () => {
+// The sender's tone (a warning, a success) colours the icon well, as in the
+// inbox; untoned notifications keep the accent until read.
+const iconWellTone = (notification: UserNotification) => {
+  const tone = resolveNotificationTone(notification);
+  return tone === "neutral" ? "muted" : tone;
+};
+
+const formatCount = (count: number) =>
+  count > MAX_DISPLAYED_COUNT ? `${MAX_DISPLAYED_COUNT}+` : String(count);
+
+// The bell's badge counts what arrived since it was last opened (unseen);
+// opening it resets the badge but leaves the notifications unread.
+const displayedCount = computed(() => formatCount(unseenCount.value));
+
+// The bell is on every page, so it keeps the unread badge of the
+// Notifications entry in the navigation current between two menu loads:
+// that one counts what is still unread, seen or not.
+watch(unreadCount, (count) => {
+  setNavBadge(NOTIFICATIONS_SETTINGS_PAGE, count > 0 ? formatCount(count) : "");
+});
+
+const refreshCounts = () =>
+  settleWidgetRequest(fetchBellCounts, () => {
     unreadCount.value = 0;
+    unseenCount.value = 0;
   });
 
 const handleNotificationEvent = async () => {
   if (!isOpen.value) {
-    await refreshUnreadCount();
+    await refreshCounts();
   }
 };
 
@@ -43,27 +83,20 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
   if (submitUrl && submitUrl.includes("/api/notification/")) {
     if (!isOpen.value) {
-      await refreshUnreadCount();
+      await refreshCounts();
     }
   }
 };
 
-const markNotificationsAsRead = async () => {
-  if (hasBeenOpened.value) {
-    await settleWidgetRequest(markAllAsRead);
-    hasBeenOpened.value = false;
-  }
-};
-
-const handleBeforeUnload = () => {
-  if (hasBeenOpened.value) {
-    navigator.sendBeacon("/api/settings/user/notifications/mark-all-read");
-  }
+// Seeing is not reading: the notifications stay unread until opened or
+// marked read, in the popover or the inbox.
+const markSeen = async () => {
+  if (unseenCount.value > 0) await settleWidgetRequest(markAllSeen);
 };
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  await refreshUnreadCount();
+  await refreshCounts();
 
   window.addEventListener(
     NotificationEvents.NOTIFICATION_RECEIVED,
@@ -73,7 +106,6 @@ onMounted(async () => {
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
   );
-  window.addEventListener("beforeunload", handleBeforeUnload);
 });
 
 onUnmounted(() => {
@@ -87,23 +119,30 @@ onUnmounted(() => {
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
   );
-  window.removeEventListener("beforeunload", handleBeforeUnload);
 });
 
 watch(isOpen, async (isNowOpen) => {
   if (isNowOpen) {
-    hasBeenOpened.value = true;
-    await settleWidgetRequest(() => fetchNotifications(true));
+    isListLoading.value = true;
+    await Promise.all([
+      markSeen(),
+      settleWidgetRequest(() => fetchNotifications(true)),
+    ]);
+    isListLoading.value = false;
     await nextTick();
     setupObserver();
   } else {
     disconnectObserver();
-    await markNotificationsAsRead();
+    // What arrived while the list was open showed at its top: seen too.
+    await markSeen();
   }
 });
 
 const handleNotificationClick = async (notification: UserNotification) => {
   isOpen.value = false;
+  if (!notification.isRead) {
+    await settleWidgetRequest(() => markAsRead(notification._id));
+  }
   if (notification.linkTo) {
     await navigateDms(notification.linkTo);
   }
@@ -118,27 +157,31 @@ const goToNotifications = () => {
 <template>
   <UPopover
     v-model:open="isOpen"
-    :ui="{ content: 'w-[460px]' }"
-    :popper="{ placement: 'bottom-end' }"
+    :ui="{ content: 'w-[460px] max-w-[calc(100vw-1rem)]' }"
+    :content="{ align: 'end', collisionPadding: 8 }"
   >
-    <UButton
-      icon="i-ph-bell-light"
-      variant="ghost"
-      color="neutral"
-      class="relative"
-      :ui="{ leadingIcon: 'size-[18px]' }"
+    <UTooltip
+      :text="$t('notification.dropdown.title')"
+      :content="{ side: 'bottom', sideOffset: 6 }"
     >
-      <span
-        v-if="unreadCount > 0"
-        class="bg-error absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-(--ui-bg)"
+      <UButton
+        icon="i-ph-bell-light"
+        :aria-label="$t('notification.dropdown.title')"
+        variant="ghost"
+        color="neutral"
+        class="text-muted hover:text-highlighted data-[state=open]:text-highlighted relative"
+        :ui="{ leadingIcon: 'size-[18px]' }"
       >
-        {{
-          unreadCount > MAX_DISPLAYED_COUNT
-            ? `${MAX_DISPLAYED_COUNT}+`
-            : unreadCount
-        }}
-      </span>
-    </UButton>
+        <!-- Floats over the button's corner (nothing moves) and fades in
+             (starting style) once the count, fetched after mount, is back. -->
+        <span
+          v-if="unseenCount > 0"
+          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted) transition-opacity duration-200 starting:opacity-0"
+        >
+          {{ displayedCount }}
+        </span>
+      </UButton>
+    </UTooltip>
 
     <template #content>
       <div class="p-4">
@@ -151,7 +194,24 @@ const goToNotifications = () => {
         <USeparator class="-mx-4 mt-2 w-[calc(100%+2rem)]" />
 
         <div
-          v-if="notifications.length === 0"
+          v-if="isListLoading && notifications.length === 0"
+          aria-hidden="true"
+          class="-mr-2 -ml-2 max-h-96 overflow-hidden"
+        >
+          <!-- The lines sit where a card's title, two lines of message and
+            its time do. -->
+          <DmsRowSkeleton
+            v-for="n in SKELETON_ROW_COUNT"
+            :key="n"
+            class="p-4"
+            well="size-10 rounded-[10px]"
+            :lines="POPOVER_SKELETON_LINES"
+            lines-class=""
+          />
+        </div>
+
+        <div
+          v-else-if="notifications.length === 0"
           class="text-dimmed py-6 text-center text-sm"
         >
           {{ $t("notification.dropdown.no_notifications") }}
@@ -159,7 +219,7 @@ const goToNotifications = () => {
 
         <div
           v-else
-          class="-mr-2 -ml-2 max-h-96 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="-mr-2 -ml-2 max-h-96 [scrollbar-width:none] overflow-y-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <NotificationCard
             v-for="notification in notifications"
@@ -169,31 +229,27 @@ const goToNotifications = () => {
             @click="handleNotificationClick(notification)"
           >
             <template #icon>
-              <div
-                :class="[
-                  'flex size-10 items-center justify-center rounded-lg',
-                  notification.isRead ? 'bg-accented' : 'bg-primary/10',
-                ]"
-              >
-                <UIcon
-                  :name="notification.icon"
-                  :class="[
-                    'size-5',
-                    notification.isRead ? 'text-muted' : 'text-primary',
-                  ]"
-                />
-              </div>
+              <DmsIconWell
+                :icon="notification.icon"
+                :tone="iconWellTone(notification)"
+                size="xl"
+              />
             </template>
 
             <template #title>
               <div class="text-highlighted mb-0.5 text-xs font-medium">
-                {{ processI18n(notification.title, notification.params) }}
+                {{ processI18n(notification.title ?? "", notification.params) }}
               </div>
             </template>
 
             <template #description>
               <div class="text-dimmed line-clamp-2 text-xs">
-                {{ processI18n(notification.description, notification.params) }}
+                {{
+                  processI18n(
+                    notification.description ?? "",
+                    notification.params,
+                  )
+                }}
               </div>
               <div class="text-muted mt-1 text-[10px]">
                 {{ formatRelativeTime(notification.createdAt, t, locale) }}
@@ -208,15 +264,13 @@ const goToNotifications = () => {
             </template>
           </NotificationCard>
 
-          <div
-            v-if="hasMore"
-            ref="sentinel"
-            class="flex h-4 items-center justify-center"
-          >
-            <UIcon
+          <div v-if="hasMore" ref="sentinel" class="min-h-4">
+            <DmsRowSkeleton
               v-if="isLoadingMore"
-              name="i-ph-spinner"
-              class="size-4 animate-spin"
+              class="p-4"
+              well="size-10 rounded-[10px]"
+              :lines="['h-2.5 w-2/5', 'h-2 w-4/5']"
+              lines-class="space-y-2 pt-1"
             />
           </div>
         </div>

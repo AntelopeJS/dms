@@ -17,6 +17,11 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import Sidebar from "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue";
 import { addActiveStateToMenuItem } from "../layers/dms-core/app/utils/menu";
 
+vi.mock(
+  "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue",
+  () => ({ default: { render: () => null } }),
+);
+
 const route = reactive({ path: "/modules/automation/runs", query: {} });
 let app: App;
 let host: HTMLDivElement;
@@ -59,6 +64,11 @@ function installRuntime() {
   vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
     ref(initial()),
+  );
+  vi.stubGlobal(
+    "useDmsCookie",
+    (_key: string, options: { default: () => unknown }) =>
+      ref(options.default()),
   );
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: ref({}),

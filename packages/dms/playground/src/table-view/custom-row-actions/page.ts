@@ -1,8 +1,22 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+@RegisterDataController()
+class customRowActionsTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/custom-row-actions", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewCustomRowActions extends PageController(
@@ -16,9 +30,10 @@ export class PageTableViewCustomRowActions extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(customRowActionsTaskDataAPI, {
     caption: "Tasks - Custom Row Actions",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     defaultSort: { field: "due_date", desc: true },
     rowActions: {
       add: true,

@@ -17,7 +17,9 @@ import {
   buildAdminInviteSubject,
   resolveAdminInviteLanguage,
 } from "../../utils/admin-invite-email";
-import { isObject } from "@antelopejs/interface-dms/utils/type-check";
+import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
+import { recordUserActivity } from "../../utils/user-activity";
+import { generateSecret } from "./token-secret";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -73,12 +75,6 @@ const EmailValidationTemplate = RegisterHtmlTemplate<EmailValidationData>(
 const AdminInviteTemplate =
   RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
 
-function generateSecret(key: string) {
-  const secret = getAuthConfig().jwtSecret;
-  const session = 1;
-  return `${session}:${key}:${secret}`;
-}
-
 /**
  * Common validation logic for user tokens
  * @param data Token data with tenantId, id, and raw token
@@ -104,7 +100,7 @@ async function validateUserToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  userModel.update(data.id, user).catch(() => {});
+  recordUserActivity(userModel, user);
 
   if (checkEmailValidation) {
     const config = getAuthConfig();
@@ -580,8 +576,6 @@ export async function sendAdminInviteEmail(
   Logging.Info(`[DMS-AUTH] Invite email sent to "${email}"`);
 }
 
-export {
-  notifyCollaboratorJoined as NotifyCollaboratorJoined,
-  notifyWelcome as NotifyWelcome,
-} from "../../utils/account-notifications";
+export { notifyWelcome as NotifyWelcome } from "../../utils/account-notifications";
+export { notifyCollaboratorJoined as NotifyCollaboratorJoined } from "../../utils/workspace-notifications";
 export { parseUserAgent as ParseUserAgent } from "../../utils/user-agent";

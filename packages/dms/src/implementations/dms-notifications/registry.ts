@@ -18,9 +18,26 @@ export function getRegisteredSubjects(): NotificationSubjectInfo[] {
   return Array.from(subjectRegistry.values());
 }
 
-export function isSubjectRegistered(
-  categoryId: string,
-  subjectId: string,
-): boolean {
-  return subjectRegistry.has(`${categoryId}:${subjectId}`);
+/** Category stances under which a subject's own `forbidden` locks its switch. */
+const LOCKING_CATEGORY_PERMISSIONS: ReadonlySet<string | undefined> = new Set([
+  "default",
+  "forbidden",
+]);
+
+/**
+ * Whether users are kept from turning a subject off: the subject declares
+ * `forbidden` and its category `default` or `forbidden` (see the
+ * categories-and-subjects guide).
+ */
+export function isSubjectLocked(subject: NotificationSubjectInfo): boolean {
+  return (
+    subject.togglePermission === "forbidden" &&
+    LOCKING_CATEGORY_PERMISSIONS.has(subject.category.togglePermission)
+  );
+}
+
+export function findSubjectByPreferenceKey(
+  key: string,
+): NotificationSubjectInfo | undefined {
+  return subjectRegistry.get(key);
 }

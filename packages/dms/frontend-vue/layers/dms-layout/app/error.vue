@@ -1,36 +1,46 @@
 <script setup lang="ts">
 import type { DmsErrorData } from "#dms/frontend-module";
+import StageCard, {
+  type StageCardTone,
+} from "./build/components/layout/StageCard.vue";
+import EmptyLayout from "./custom-layouts/EmptyLayout.vue";
 
-const ERROR_CONFIGS: Record<
-  number,
-  { icon: string; titleKey: string; descriptionKey: string; color: string }
-> = {
+interface ErrorConfig {
+  icon: string;
+  titleKey: string;
+  descriptionKey: string;
+  tone: StageCardTone;
+}
+
+const ERROR_CONFIGS: Record<number, ErrorConfig> = {
   404: {
     icon: "i-ph-magnifying-glass",
     titleKey: "error.404.title",
     descriptionKey: "error.404.description",
-    color: "primary",
+    tone: "primary",
   },
   401: {
-    icon: "i-ph-lock",
+    icon: "i-ph-lock-simple",
     titleKey: "error.401.title",
     descriptionKey: "error.401.description",
-    color: "orange",
+    tone: "warning",
   },
   403: {
     icon: "i-ph-prohibition",
     titleKey: "error.403.title",
     descriptionKey: "error.403.description",
-    color: "red",
+    tone: "warning",
   },
 };
 
-const DEFAULT_ERROR_CONFIG = {
+const DEFAULT_ERROR_CONFIG: ErrorConfig = {
   icon: "i-ph-warning-circle",
   titleKey: "error.500.title",
   descriptionKey: "error.500.description",
-  color: "red",
+  tone: "error",
 };
+
+const RECOVERING_ICON = "i-ph-spinner-gap";
 
 const DEFAULT_STATUS_CODE = 500;
 
@@ -52,24 +62,31 @@ const { loggedIn, reconcileSession, redirectToAuth } = useSessionRecovery();
 
 const isRecovering = ref(false);
 
+const statusCode = computed(
+  () => props.error.statusCode || DEFAULT_STATUS_CODE,
+);
+
 const visibleErrorMessage = computed(() =>
-  STATUSES_WITHOUT_ERROR_MESSAGE.has(
-    props.error.statusCode || DEFAULT_STATUS_CODE,
-  )
+  STATUSES_WITHOUT_ERROR_MESSAGE.has(statusCode.value)
     ? undefined
     : props.error.message,
 );
 
-const errorConfig = computed(() => {
-  const statusCode = props.error.statusCode || DEFAULT_STATUS_CODE;
-  const config = ERROR_CONFIGS[statusCode] || DEFAULT_ERROR_CONFIG;
-  return {
-    icon: config.icon,
-    title: t(config.titleKey),
-    description: t(config.descriptionKey),
-    color: config.color,
-  };
-});
+const errorConfig = computed(
+  () => ERROR_CONFIGS[statusCode.value] || DEFAULT_ERROR_CONFIG,
+);
+
+const title = computed(() =>
+  isRecovering.value
+    ? t("error.recovering.title")
+    : t(errorConfig.value.titleKey),
+);
+
+const description = computed(() =>
+  isRecovering.value
+    ? t("error.recovering.description")
+    : t(errorConfig.value.descriptionKey),
+);
 
 const handleError = async () => {
   clearError();
@@ -98,66 +115,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center p-4">
-    <header class="mb-10">
-      <DmsAppLogo class="h-20 w-auto" />
-    </header>
+  <EmptyLayout>
+    <StageCard
+      :icon="isRecovering ? RECOVERING_ICON : errorConfig.icon"
+      :tone="isRecovering ? 'neutral' : errorConfig.tone"
+      :eyebrow="$t('error.page.eyebrow', { code: statusCode })"
+      :title="title"
+      :description="description"
+      :icon-class="isRecovering ? 'animate-spin' : undefined"
+    >
+      <p
+        v-if="!isRecovering && visibleErrorMessage"
+        class="border-default text-muted mt-4 rounded-md border bg-(--dms-bg-muted) px-3 py-2 font-mono text-xs break-words"
+      >
+        {{ visibleErrorMessage }}
+      </p>
 
-    <DmsCard variant="elevated" class="w-full max-w-md">
-      <div class="flex flex-col items-center text-center">
-        <div class="text-muted mb-4 text-6xl font-bold tracking-tight">
-          {{ error.statusCode || DEFAULT_STATUS_CODE }}
-        </div>
-
-        <div
-          class="mb-6 flex size-20 items-center justify-center rounded-full"
-          :class="`bg-${errorConfig.color}-50 dark:bg-${errorConfig.color}-950`"
-        >
-          <Icon
-            :name="isRecovering ? 'i-ph-spinner-gap' : errorConfig.icon"
-            class="size-10"
-            :class="[
-              `text-${errorConfig.color}-500`,
-              isRecovering ? 'animate-spin' : '',
-            ]"
-          />
-        </div>
-
-        <h1 class="text-highlighted mb-2 text-2xl font-bold">
-          {{ isRecovering ? $t("error.recovering.title") : errorConfig.title }}
-        </h1>
-
-        <p class="text-muted mb-6">
-          {{
-            isRecovering
-              ? $t("error.recovering.description")
-              : errorConfig.description
-          }}
-        </p>
-
-        <p
-          v-if="!isRecovering && visibleErrorMessage"
-          class="text-dimmed mb-6 text-sm"
-        >
-          {{ visibleErrorMessage }}
-        </p>
-
-        <div v-if="!isRecovering" class="flex gap-3">
-          <UButton
-            :label="$t('button.go_home')"
-            color="primary"
-            size="lg"
-            @click="handleError"
-          />
-          <UButton
-            :label="$t('button.go_back')"
-            color="neutral"
-            variant="outline"
-            size="lg"
-            @click="router.back()"
-          />
-        </div>
+      <div v-if="!isRecovering" class="mt-[22px] grid gap-2 sm:grid-cols-2">
+        <UButton
+          :label="$t('button.go_home')"
+          icon="i-ph-house"
+          size="lg"
+          class="justify-center"
+          @click="handleError"
+        />
+        <UButton
+          :label="$t('button.go_back')"
+          icon="i-ph-arrow-left"
+          color="neutral"
+          variant="outline"
+          size="lg"
+          class="justify-center"
+          @click="router.back()"
+        />
       </div>
-    </DmsCard>
-  </div>
+    </StageCard>
+  </EmptyLayout>
 </template>

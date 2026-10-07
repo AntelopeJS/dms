@@ -15,6 +15,7 @@
  * measured one.
  */
 import type { ChartSeries } from "./chart";
+import { headline, measuredValues } from "./internal/query-response";
 
 /** One measured group: what it is, and what was measured. */
 export interface SeriesPoint {
@@ -58,12 +59,14 @@ export interface ChartCardData extends ComparedFigure {
   comparisonSeries?: ChartSeries[];
 }
 
+/** What `kpiCardData` hands a `KpiCard`: its figure and the sparkline behind it. */
 export interface KpiCardData extends ComparedFigure {
   /** Absent when no group was measured; see `headline`. */
   value?: number;
   sparkline?: number[];
 }
 
+/** One group of a `TopListCard`, with its change over the preceding period. */
 export interface TopListEntry {
   id: string | number;
   title: string;
@@ -71,11 +74,10 @@ export interface TopListEntry {
   delta?: number | null;
 }
 
+/** What `topListData` hands a `TopListCard`: one entry per measured group. */
 export interface TopListData {
   items: TopListEntry[];
 }
-
-const DEFAULT_MEASURE: SeriesMeasure = "sum";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -88,50 +90,6 @@ const BUCKET_EPOCH_LAST = Date.UTC(2100, 0, 1);
 
 const ISO_DATE_END = 10;
 const ISO_MINUTE_END = 16;
-
-const total = (values: number[]): number =>
-  values.reduce((running, value) => running + value, 0);
-
-const HEADLINE_BY_MEASURE: Record<SeriesMeasure, (values: number[]) => number> =
-  {
-    count: total,
-    sum: total,
-    avg: (values) => total(values) / values.length,
-    min: (values) => Math.min(...values),
-    max: (values) => Math.max(...values),
-  };
-
-/** What the calculation actually measured, unmeasured groups dropped. */
-function measuredValues(points: SeriesPoint[]): number[] {
-  return points
-    .map((point) => point.y)
-    .filter((value): value is number => value !== null);
-}
-
-/**
- * The figure a card shows above its chart, or nothing when there is none.
- *
- * Unmeasured groups are dropped rather than read as zero: a minimum or an
- * average taken over invented zeroes is wrong in a way no reader can see. With
- * nothing left to measure the answer is `undefined`, and every caller leaves the
- * field out of its response instead of writing a figure the query never gave.
- *
- * Counts and sums add up; a minimum or a maximum over groups is the minimum or
- * maximum of the group figures. An average is the average of the group averages,
- * which is not the average over all the rows — the two differ whenever the groups
- * are not the same size, and computing the real one would mean a second query.
- * Said here because a card showing it should not imply otherwise.
- */
-export function headline(
-  points: SeriesPoint[],
-  measure: SeriesMeasure = DEFAULT_MEASURE,
-): number | undefined {
-  const values = measuredValues(points);
-  if (values.length === 0) {
-    return undefined;
-  }
-  return HEADLINE_BY_MEASURE[measure](values);
-}
 
 /** The share a figure gained or lost against the one before it. */
 function variation(current: number, previous: number): number | undefined {

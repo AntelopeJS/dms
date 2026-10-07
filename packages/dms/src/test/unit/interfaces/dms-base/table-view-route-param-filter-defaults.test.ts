@@ -29,7 +29,7 @@ import {
   RegisterPage,
   RootPageController,
 } from "@antelopejs/interface-dms/page";
-import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/registry";
+import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as realtimeInterface from "@antelopejs/interface-dms/realtime";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -40,6 +40,7 @@ import {
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view/options";
+import { derivedController } from "../../../helpers/derived-controller";
 
 const TABLE = "route-param-filter-documents";
 const LOCATION = "/api/route-param-filter-defaults";
@@ -75,6 +76,10 @@ class DocumentAPI extends DataController(
 const ROUTE_FILTER = { id: { field: "_instance" } };
 const QUERY_FILTER = { status: { field: "status" } };
 
+// One controller per writing TableView, each derived from DocumentAPI.
+const documentAPI = (suffix: string) =>
+  derivedController(Document, DocumentAPI, `${LOCATION}-${suffix}`);
+
 const detailTable = TableView(DocumentAPI, {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
@@ -82,30 +87,30 @@ const detailTable = TableView(DocumentAPI, {
   realtime: false,
 });
 
-const namedParamTable = TableView(DocumentAPI, {
+const namedParamTable = TableView(documentAPI("named-param"), {
   formContainer: { type: "page" },
   routeParamFilters: { workspace: { field: "_instance" } },
   realtime: false,
 });
 
-const deepTable = TableView(DocumentAPI, {
+const deepTable = TableView(documentAPI("deep"), {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,
 });
 
-const topLevelTable = TableView(DocumentAPI, {
+const topLevelTable = TableView(documentAPI("top-level"), {
   formContainer: { type: "page" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,
 });
 
-const unfilteredTable = TableView(DocumentAPI, {
+const unfilteredTable = TableView(documentAPI("unfiltered"), {
   formContainer: { type: "page" },
   realtime: false,
 });
 
-const drawerTable = TableView(DocumentAPI, {
+const drawerTable = TableView(documentAPI("drawer"), {
   formContainer: { type: "drawer" },
   routeParamFilters: ROUTE_FILTER,
   realtime: false,

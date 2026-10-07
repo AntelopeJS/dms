@@ -1,5 +1,87 @@
 {
   "demo": {
+    "forms": {
+      "task": {
+        "new_title": "New task",
+        "new_description": "Name it, set its status and priority, then assign people.",
+        "edit_title": "Edit task",
+        "edit_description": "Change its status, priority, due date or assignees.",
+        "view_title": "Task details",
+        "view_description": "Every field of the task, read-only."
+      },
+      "user": {
+        "new_title": "New user",
+        "new_description": "Their name, email address and avatar.",
+        "edit_title": "Edit user",
+        "edit_description": "Change their name, email address or avatar.",
+        "view_title": "User details",
+        "view_description": "Name, email address and avatar, read-only."
+      },
+      "order": {
+        "new_title": "New order",
+        "new_description": "Customer, items, shipping and payment.",
+        "edit_title": "Edit order",
+        "edit_description": "Change its status, shipping address, carrier or payment.",
+        "view_title": "Order details",
+        "view_description": "Customer, items, shipping and payment, read-only."
+      },
+      "invoice": {
+        "new_title": "New invoice",
+        "new_description": "A reference and an amount.",
+        "edit_title": "Edit invoice",
+        "edit_description": "Change its reference or amount.",
+        "view_title": "Invoice details",
+        "view_description": "Reference and amount, read-only."
+      },
+      "contact": {
+        "new_title": "New contact",
+        "new_description": "Identity, contact details, social links and address, one section each.",
+        "edit_title": "Edit contact",
+        "edit_description": "Change their identity, contact details, social links or address.",
+        "view_title": "Contact details",
+        "view_description": "Every section of the contact, read-only."
+      },
+      "category": {
+        "new_title": "New category",
+        "new_description": "Its name and, to nest it, a parent category.",
+        "edit_title": "Edit category",
+        "edit_description": "Rename it, move it under another parent or mark it inactive.",
+        "view_title": "Category details",
+        "view_description": "Name, parent and status, read-only."
+      },
+      "product": {
+        "new_title": "New product",
+        "new_description": "Its name, its category and the leaf categories it belongs to.",
+        "edit_title": "Edit product",
+        "edit_description": "Rename it or change its categories.",
+        "view_title": "Product details",
+        "view_description": "Name and categories, read-only."
+      },
+      "assignment": {
+        "new_title": "New assignment",
+        "new_description": "A department and a member, each picked by id and by key.",
+        "edit_title": "Edit assignment",
+        "edit_description": "Change its departments or members.",
+        "view_title": "Assignment details",
+        "view_description": "Departments and members, read-only."
+      },
+      "member_assignment": {
+        "new_title": "New assignment",
+        "new_description": "A label, a workspace member and a demo member.",
+        "edit_title": "Edit assignment",
+        "edit_description": "Change its label or the members it links.",
+        "view_title": "Assignment details",
+        "view_description": "Label and members, read-only."
+      },
+      "department": {
+        "new_title": "New department",
+        "new_description": "Its code and its name."
+      },
+      "member": {
+        "new_title": "New member",
+        "new_description": "The demo member’s name and user id."
+      }
+    },
     "widgets": {
       "status": {
         "label": "System status",
@@ -20,6 +102,39 @@
         "title": "Module widget demo",
         "description": "Only visible inside the demo module"
       }
+    },
+    "notifications": {
+      "sent": "Notification sent. Open the bell to see it.",
+      "dms_update": {
+        "title": "A new version of the AntelopeJS DMS is out",
+        "description": "See what changed on the Modules page before you update."
+      },
+      "hosting_promo": {
+        "title": "30% off AntelopeJS hosting until the end of the month",
+        "description": "Compare the plans on antelopejs.com and pick yours."
+      },
+      "security_alert": {
+        "title": "Suspicious sign-in attempt from {ip}",
+        "description": "Not you? Change your password in Security."
+      },
+      "shipment": {
+        "title": "Package {package} has shipped",
+        "description": "It should arrive within 3 working days: make sure someone can take it in."
+      },
+      "maintenance": {
+        "title": "Maintenance on Sunday from 2:00 to 2:30 a.m.",
+        "description": "The dashboard will be unavailable meanwhile: save your work before then."
+      }
+    },
+    "job_runs": {
+      "count": "{count} run | {count} runs",
+      "rerun_title": "Re-run {count} run? | Re-run {count} runs?",
+      "rerun_description": "They start again from their first step.",
+      "rerun_confirm": "Re-run",
+      "rerun_done": "{count} run restarted | {count} runs restarted",
+      "empty_filtered_title": "No run matches “{search}”",
+      "empty_filtered_description": "Try another procedure name, or clear the filters.",
+      "empty_docs": "Open the automation docs"
     }
   }
 }

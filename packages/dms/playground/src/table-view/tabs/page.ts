@@ -1,9 +1,16 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
 import { TASK_STATUSES } from "../status";
+import { demoFormPages } from "../form-texts";
 
 const statusTabs = TASK_STATUSES.map((status) => ({
   id: status.value,
@@ -11,10 +18,15 @@ const statusTabs = TASK_STATUSES.map((status) => ({
   icon: status.icon,
   iconColor: status.iconColor,
   textColor: status.textColor,
-  filters: [
-    { accessorKey: "status", value: status.value, mode: "is" as const },
-  ],
+  filter: { accessorKey: "status", value: status.value, mode: "is" },
 }));
+
+@RegisterDataController()
+class tabsTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/tabs", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewTabs extends PageController(
@@ -29,9 +41,10 @@ export class PageTableViewTabs extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(tabsTaskDataAPI, {
     caption: "Tasks - Tabs",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       copyLink: true,
@@ -54,7 +67,7 @@ export class PageTableViewTabs extends PageController(
         icon: "i-ph-fire",
         iconColor: "error",
         textColor: "error",
-        filters: [{ accessorKey: "priority", value: "high", mode: "is" }],
+        filter: { accessorKey: "priority", value: "high", mode: "is" },
       },
     ],
   });

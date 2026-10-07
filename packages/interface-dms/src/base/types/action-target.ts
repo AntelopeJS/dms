@@ -18,15 +18,29 @@ export type ActionTarget =
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   | {
+      type: "quickAction";
+      /**
+       * Key of the quick action to run: `category:id`, or the bare id when no
+       * other category uses it. The action is left out for users the quick
+       * action is not served to.
+       */
+      id: string;
+    }
+  | {
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /**
+       * JSON body sent with the request. The values of the action's confirm
+       * `fields` are merged into it, the input winning.
+       */
+      body?: Record<string, unknown>;
+      /**
+       * Field of the JSON response copied to the clipboard on success (a
+       * share link, a token).
+       */
+      copy?: string;
       successMessage: string;
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-      };
     }
   | {
       type: "exportJob";
@@ -42,11 +56,6 @@ export type ActionTarget =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };
 
@@ -67,15 +76,29 @@ export type ActionTargetSerialized =
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   | {
+      type: "quickAction";
+      /**
+       * Key of the quick action to run: `category:id`, or the bare id when no
+       * other category uses it. The action is left out for users the quick
+       * action is not served to.
+       */
+      id: string;
+    }
+  | {
       type: "api";
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+      /**
+       * JSON body sent with the request. The values of the action's confirm
+       * `fields` are merged into it, the input winning.
+       */
+      body?: Record<string, unknown>;
+      /**
+       * Field of the JSON response copied to the clipboard on success (a
+       * share link, a token).
+       */
+      copy?: string;
       successMessage: string;
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
-      };
     }
   | {
       type: "exportJob";
@@ -91,10 +114,5 @@ export type ActionTargetSerialized =
         successMessage?: string;
         errorTitle?: string;
         retry?: string;
-      };
-      confirm?: {
-        title: string;
-        description: string;
-        confirmColor?: "primary" | "error" | "warning";
       };
     };

@@ -1,3 +1,6 @@
+import { useDevReloadHolder } from "../build/composables/dev-reload/useDevReloadHolder";
+import { openDevReloadStream } from "../build/utils/dev-reload-stream";
+
 const RELOAD_ENDPOINT_PATH = "/dms/dev/reload";
 
 function resolveBackendBase(): string | null {
@@ -10,8 +13,8 @@ function resolveBackendBase(): string | null {
 /**
  * Dev-only: turn the backend's `reload` stream into a soft refresh.
  *
- * All the waiting lives in the dev-reload coordinator (see `useDevReload`), so
- * this plugin and the `useDmsDevReload().awaitRoute` module frontends call
+ * All the waiting lives in the dev-reload coordinator (see `useDevReloadHolder`), so
+ * this plugin and the `useDevReload().awaitRoute` module frontends call
  * share one route-readiness loop and one in-flight refresh.
  */
 export default defineDmsPlugin(() => {

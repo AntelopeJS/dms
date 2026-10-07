@@ -21,7 +21,7 @@ import {
   type ComponentInfo,
   type ComponentInfoSerialized,
 } from "../component";
-import { ResolveComponentSlots } from "../component-slots";
+import { ResolveComponentSlots } from "../internal/component-slots";
 import { RoleModel, TenantMemberModel } from "../db";
 import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
 import {
@@ -32,24 +32,33 @@ import {
   UnregisterPermission,
 } from "../permissions";
 import { getRequestTenantId } from "../request-tenant";
-import { AssertTenantAccess, gateAllowsSurface } from "../tenant-access";
-import {
-  type NativeUploadFieldRegistration,
-  SignUploadToken,
-  internal as uploadInternal,
-} from "../uploads";
+import { AssertTenantAccess } from "../tenant-access";
+import { gateAllowsSurface } from "../internal/tenant-access";
+import type { NativeUploadFieldRegistration } from "../internal/uploads";
+import { SignUploadToken, internal as uploadInternal } from "../uploads";
 // Categories resolve controller classes through PageMetadata; neither module
 // dereferences the other during evaluation.
-// oxlint-disable-next-line import/no-cycle
-import { internal, isInsideModule, resolveCategoryInfo } from "./categories";
-import { type ComponentTreeNode, collectComponentTree } from "./component-tree";
+// oxlint-disable import/no-cycle
+import { internal, isInsideModule } from "./categories";
+import {
+  resolveCategoryInfo,
+  resolveInheritedLayout,
+} from "./internal/categories";
+// oxlint-enable import/no-cycle
+import type { ComponentTreeNode } from "./component-tree";
+import { collectComponentTree } from "./internal/component-tree";
 import {
   assembleLayoutComponents,
   type PageExtensionEntry,
-} from "./extension-assembly";
-import { collectExtensionErrors } from "./extension-validation";
-import { FormPageRouteConflictError } from "./form-page-routes";
+} from "./internal/extension-assembly";
+import { collectExtensionErrors } from "./internal/extension-validation";
+import { PageDeclarationConflictError } from "./declaration-conflict";
 import { type ComponentNodeMap, filterComponents } from "./layout-filter";
+import {
+  filterLayoutHeaderActions,
+  withComponentHeaderButtons,
+} from "./internal/layout-filter";
+import { withTableViewPlacements } from "./internal/table-view-ids";
 import {
   pageExtensions,
   pageLayoutHandlers,
@@ -59,7 +68,7 @@ import {
   permissionMap,
   runAsPageExtensionOwner,
   syncTargetExtensions,
-} from "./registry";
+} from "./internal/registry";
 import {
   type MenuOptions,
   type PageExtensionComponent,
@@ -71,12 +80,12 @@ import {
 import {
   PageRegistration,
   type RouteCallbackContext,
-} from "./page-registration";
+} from "./internal/page-registration";
 import {
   isPageInsideModule,
   logModuleRouteGated,
   RequestTenantIdProperty,
-} from "./metadata-helpers";
+} from "./internal/metadata-helpers";
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 
@@ -226,16 +235,17 @@ export class PageMetadata {
       hidden: menuOptions.hidden || resolvedCategory?.hidden,
       publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
       authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
+      memberAccess: menuOptions.memberAccess || resolvedCategory?.memberAccess,
       bypassTenantAccessGate:
         menuOptions.bypassTenantAccessGate ||
         resolvedCategory?.bypassTenantAccessGate,
     };
 
-    if (!pageLayout) {
-      pageLayout = DefaultLayout();
-    }
-
-    this.layout = pageLayout;
+    this.layout =
+      pageLayout ??
+      menuOptions.layout ??
+      resolveInheritedLayout(resolvedCategory) ??
+      DefaultLayout();
     this.pageInfo = pageInfo;
   }
 
@@ -450,7 +460,7 @@ export class PageMetadata {
       id: pageInfo.fullId,
       title: pageInfo.displayName,
       icon: pageInfo.icon,
-      defaultGranted: pageInfo.publicAccess,
+      defaultGranted: pageInfo.publicAccess || pageInfo.memberAccess,
       ...(pageInfo.permission as Partial<Permission> | undefined),
     };
 
@@ -556,26 +566,54 @@ export class PageMetadata {
     // Upload tokens are already baked into the cached layout: each form
     // stamped its own fields when it serialized, at registration
     // (`SignUploadToken` in interfaces/dms/uploads).
+    const loadPermissions = async (): Promise<Set<string>> => {
+      if (!user) return new Set<string>();
+      const roleIds = (await memberModel.getByUser(user._id))?.roleIds ?? [];
+      return GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel);
+    };
+
+    // Header actions declaring a permission are filtered on every page, even
+    // one skipping component permissions: they name their own requirement.
+    const context = { tenantId, user };
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
-      return { ...layout, components };
+      return {
+        ...layout,
+        layout: withComponentHeaderButtons(
+          await filterLayoutHeaderActions(
+            layout.layout,
+            loadPermissions,
+            context,
+            this.pagePermissionId,
+          ),
+          components,
+        ),
+        components: withTableViewPlacements(components),
+      };
     }
 
-    const roleIds = user
-      ? ((await memberModel.getByUser(user._id))?.roleIds ?? [])
-      : [];
-    const permissions = user
-      ? await GetEffectiveUserPermissions(user, tenantId, roleIds, roleModel)
-      : new Set<string>();
+    const permissions = await loadPermissions();
+    const servedComponents = await filterComponents(
+      components,
+      this.pagePermissionId,
+      permissions,
+      this.componentMap,
+      context,
+    );
 
     return {
       ...layout,
-      components: await filterComponents(
-        components,
-        this.pagePermissionId,
-        permissions,
-        this.componentMap,
-        { tenantId, user },
+      // A component's header buttons are added once it was filtered: the
+      // ones the caller may not press are gone already.
+      layout: withComponentHeaderButtons(
+        await filterLayoutHeaderActions(
+          layout.layout,
+          async () => permissions,
+          context,
+          this.pagePermissionId,
+        ),
+        servedComponents,
       ),
+      components: withTableViewPlacements(servedComponents),
     };
   }
 
@@ -591,9 +629,13 @@ export class PageMetadata {
   }
 
   private actionPermissions(component: Component): Permission[] {
+    const grantsMembers = this.pageInfo?.memberAccess === true;
     return Object.values(component.actions)
       .map((action) => action.toPermission())
-      .filter((permission): permission is Permission => !!permission);
+      .filter((permission): permission is Permission => !!permission)
+      .map((permission) =>
+        grantsMembers ? { ...permission, defaultGranted: true } : permission,
+      );
   }
 
   /**
@@ -755,6 +797,7 @@ export class PageMetadata {
         title: component.metadata.name,
         icon: component.metadata.icon,
         description: component.metadata.description,
+        defaultGranted: this.pageInfo?.memberAccess,
       });
     }
 
@@ -791,10 +834,10 @@ export class PageMetadata {
     try {
       node.component.onPageCreated(this);
     } catch (error) {
-      // …except a route two components both claim: the page cannot honour both
-      // declarations, and carrying on would publish one of them at an address
-      // the other answers.
-      if (error instanceof FormPageRouteConflictError) throw error;
+      // …except what two components both claim (a form route, the writing
+      // TableView of a controller): the page cannot honour both declarations,
+      // and carrying on would silently serve one of them in place of the other.
+      if (error instanceof PageDeclarationConflictError) throw error;
       Logging.Error(
         `[dms] component "${node.permissionId}" failed its onCreated hook on page "${this.pageInfo?.fullId}": ${String(error)}`,
       );
@@ -903,7 +946,7 @@ export class PageMetadata {
           contribution.component,
           this.extensionComponentPath(contribution),
         );
-        if (error instanceof FormPageRouteConflictError) throw error;
+        if (error instanceof PageDeclarationConflictError) throw error;
         Logging.Error(
           `[dms] page extension "${info.extensionName}" could not register component "${contribution.key}" on page "${info.targetFullId}": ${String(error)}`,
         );

@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import type { FormProps } from "../../composables/form/types";
-import type { FormFieldValue } from "../../composables/form/types/value";
+import type { FormProps } from "../../composables/form/types/props";
+import type {
+  FormData,
+  FormFieldValue,
+} from "../../composables/form/types/value";
+import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
+  type FormServerFieldError,
   formShowsActions,
+  isAcceptanceField,
   isFieldMarkedRequired,
 } from "../../composables/form/useForm";
 import {
@@ -12,6 +18,47 @@ import {
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
+import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
+import DmsSaveBar from "../save-bar/SaveBar.vue";
+import type { ZodErrorMap } from "zod";
+import {
+  formIssueMessage,
+  REQUIRED_MESSAGE,
+} from "#dms-core/app/composables/useFormValidation";
+import { validateFormState } from "../../build/composables/form/formValidation";
+import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
+import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
+import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
+import { formSaveMode } from "../../build/composables/form/formFooter";
+import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
+import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
+import {
+  FORM_ENTRY_CONTEXT_KEY,
+  fieldErrorPattern,
+} from "../../build/composables/form/formEntryContext";
+import {
+  FORM_LAYOUT_CLASSES,
+  FORM_SURFACE_CLASSES,
+  type FormSurface,
+  SECTION_LAYOUT_CLASSES,
+} from "../../build/composables/form/formLayout";
+import {
+  entryFieldIds,
+  errorFieldId,
+  invalidFieldIds,
+  layoutSections,
+  type FormErrorRef,
+  type FormSectionState,
+  resolveSectionNav,
+  sectionState,
+} from "../../build/composables/form/formSections";
+import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/useControlError";
+import { useInstantForm } from "../../build/composables/form/useInstantForm";
+import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
+import DmsFormEntries from "../../build/components/form/FormEntries.vue";
+import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
+import DmsFormRequiredLegend from "../../build/components/form/FormRequiredLegend.vue";
+import DmsFormSections from "../../build/components/form/FormSections.vue";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -21,26 +68,161 @@ const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
 const REALTIME_GET_SEGMENT = "/get";
 const REALTIME_EVENT_UPDATED = "updated";
 
-// `showActions` left out has to read as left out: Vue casts an absent boolean
-// prop to `false`, which would hide the buttons of every form not asking for
-// them.
-const props = withDefaults(defineProps<FormProps>(), {
-  showActions: undefined,
-});
+const props = defineProps<FormProps>();
 const form = useTemplateRef("form");
 
 // Inside a DynamicModal/DynamicDrawer the container already provides the
 // surface, so skip the DmsCard wrapper to avoid a nested, detached card.
 const inFormContainer = inject("dmsFormContainer", false);
-const FormWrapper = inFormContainer ? "div" : resolveComponent("DmsCard");
+// Inside a framed DmsSection the section card is the surface: the fields
+// become its rows (v2 .st-row) instead of a card nested in a card.
+const inSection = !inFormContainer && inject(DMS_SECTION_SURFACE_KEY, false);
+// A sectioned form is no card either: each of its sections is one.
+const hasSections = !!props.sections?.length;
+const FormWrapper =
+  inFormContainer || inSection || hasSections
+    ? "div"
+    : resolveComponent("DmsCard");
 
-const { processI18n } = useTranslation();
+const { processI18n, processApiMessage } = useTranslation();
+
+// Server errors stay on their field until its value changes (UForm only
+// re-validates a field once it was left, and its schema knows nothing of
+// them): the value each field's were raised against, by field id.
+const serverErrorValues = new Map<string, string>();
+
+/** The control of a field, by its id, inside this form only. */
+function fieldControl(name: string | undefined): HTMLElement | null {
+  const element = form.value?.$el as HTMLElement | undefined;
+  if (!name || !element?.querySelector) return null;
+  return element.querySelector<HTMLElement>(`[id="${CSS.escape(name)}"]`);
+}
+
+/** The names a field's errors go under: its own, and one per language. */
+function errorNames(field: FormField): string[] {
+  if (!field.localized) return [field.id];
+  return [field.id, ...locales.value.map((lang) => `${field.id}.${lang.code}`)];
+}
+
+// Where a keyboard user starts in a composite control: a calendar's current
+// day (the one cell of its grid in the tab order), not the year buttons
+// above the grid.
+const PREFERRED_FOCUS =
+  "[data-reka-calendar-cell-trigger][tabindex='0'], [role='grid'] [tabindex='0']";
+const FOCUSABLE =
+  "input:not([type='hidden']):not([disabled]):not([tabindex='-1']), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
+
+/** The row of a field (its `UFormField`), by the name it validates under. */
+function fieldRow(name: string | undefined): HTMLElement | null {
+  const element = form.value?.$el as HTMLElement | undefined;
+  if (!name || !element?.querySelector) return null;
+  return element.querySelector<HTMLElement>(
+    `[data-field="${CSS.escape(name)}"]`,
+  );
+}
+
+/**
+ * Resolves once UForm is done with a submit: while it validates, it disables
+ * every control, and a disabled control cannot take focus.
+ */
+async function formSettled(): Promise<void> {
+  await nextTick();
+  if (!form.value?.loading) return;
+  await new Promise<void>((resolve) => {
+    const stop = watch(
+      () => form.value?.loading,
+      (busy) => {
+        if (busy) return;
+        stop();
+        resolve();
+      },
+    );
+  });
+  await nextTick();
+}
+
+/**
+ * Focuses the control an error names (the part of a field it names, or the
+ * field), or its first focusable part (a pill group, a picker trigger); a
+ * field with nothing to focus is scrolled into view.
+ */
+async function focusField(name: string | undefined): Promise<void> {
+  await formSettled();
+  const fieldId = errorFieldId(name, allFieldIds.value) ?? name;
+  const control = fieldControl(name) ?? fieldControl(fieldId);
+  const row = fieldRow(fieldId);
+  const target = control?.matches(FOCUSABLE)
+    ? control
+    : (control?.querySelector<HTMLElement>(PREFERRED_FOCUS) ??
+      control?.querySelector<HTMLElement>(FOCUSABLE) ??
+      row?.querySelector<HTMLElement>(FOCUSABLE));
+  if (target) {
+    target.focus();
+    return;
+  }
+  row?.scrollIntoView({ block: "center" });
+}
+
+/**
+ * A refused submit: its field errors go under the fields, the first focused.
+ *
+ * @returns Whether any landed on a field this form renders
+ */
+function showFieldErrors(errors: FormServerFieldError[]): boolean {
+  const target = form.value;
+  if (!target) return false;
+  // A refused submit replaces every error; a field saved on its own (an
+  // instant form) replaces its own only.
+  if (!isInstant) {
+    target.setErrors([]);
+    serverErrorValues.clear();
+  }
+  for (const error of errors) placeServerError(target, error);
+  const shown = errors.filter(
+    (error) => target.getErrors(fieldErrorPattern(error.name)).length,
+  );
+  for (const error of shown) {
+    serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
+  }
+  showsErrorSummary.value = shown.length > 0;
+  void focusField(target.errors[0]?.name);
+  return shown.length > 0;
+}
+
+/**
+ * Puts a server error under its field, replacing that field's: on the part
+ * it names (an address's street) when the field's control declares it, on
+ * the whole field otherwise.
+ */
+function placeServerError(
+  target: NonNullable<typeof form.value>,
+  error: FormServerFieldError,
+): void {
+  const scope = fieldErrorPattern(error.name);
+  target.setErrors([{ ...error, name: error.path ?? error.name }], scope);
+  if (!error.path || target.getErrors(error.path).length) return;
+  target.setErrors([error], scope);
+}
+
+/** A submit the client-side validation stopped: focus the first bad field. */
+function onValidationError(event: { errors: Array<{ name?: string }> }): void {
+  showsErrorSummary.value = true;
+  void focusField(event.errors[0]?.name);
+}
+
+// Once a submit is refused, the form lists what to fix above its fields
+// until it is saved.
+const showsErrorSummary = ref(false);
+
 const {
   loading,
   state,
   initialValues,
+  isSameFieldValue,
   validationSchema,
   onSubmit: handleSubmit,
+  submitChanges,
+  reportSubmitError,
   reset,
   fetchData,
   fields,
@@ -51,26 +233,105 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
-} = useForm(props);
+} = useForm(props, { showFieldErrors, onSaved: markFormClean });
+
+watch(
+  state,
+  (current) => {
+    for (const [name, value] of serverErrorValues) {
+      if (JSON.stringify(current[name]) === value) continue;
+      serverErrorValues.delete(name);
+      form.value?.clear(fieldErrorPattern(name));
+    }
+  },
+  { deep: true },
+);
+
+const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
 const showActions = computed(() => formShowsActions(props, toValue(allFields)));
+const saveMode = formSaveMode(props.saveMode, props.kind);
+// An instant form saves each change on its own: no save bar, no footer.
+const isInstant = saveMode === "instant";
 
-const { addGuard } = useLeaveGuard();
-const { confirm } = useConfirm();
-const { t } = useI18n();
+// zod words its own messages in English ("String must contain at least 1
+// character(s)"): the issues a schema leaves unworded get the dashboard's.
+// A part left blank (an address's country) is missing, whatever its type
+// would say of a short or absent value: worded as the hand-built forms do.
+const issueErrorMap: ZodErrorMap = (issue, context) => ({
+  message: processApiMessage(formIssueMessage(issue, context.data)),
+});
+
+/**
+ * The validation schema, as a Standard Schema validating with that map: a
+ * required field left empty, whatever its type, gets the one "required"
+ * message (see `validateFormState`).
+ */
+const localizedSchema = computed(() => {
+  const schema = validationSchema.value;
+  const validationFields = toValue(allFields).map((field) => ({
+    id: field.id,
+    type: field.type,
+    localized: field.localized,
+    required: isFieldRequired(field),
+    acceptance: isAcceptanceField(field),
+  }));
+  return {
+    "~standard": {
+      version: 1 as const,
+      vendor: "dms",
+      validate: (value: unknown) =>
+        validateFormState(schema, value as Record<string, unknown>, {
+          fields: validationFields,
+          requiredMessage: processApiMessage(REQUIRED_MESSAGE),
+          locale: locale.value,
+          parseParams: { errorMap: issueErrorMap },
+          controlErrors,
+        }),
+    },
+  };
+});
+
+// What controls refuse of what was typed into them, by field id: a field
+// error of its own, checked again as soon as it is reported or withdrawn.
+const controlErrors = reactive(new Map<string, string>());
+provide(FORM_CONTROL_ERRORS_KEY, {
+  report(fieldId, message) {
+    if (message) controlErrors.set(fieldId, processApiMessage(message));
+    else controlErrors.delete(fieldId);
+    void form.value?.validate({ name: fieldId, silent: true });
+  },
+});
+
+/**
+ * A control that tells UForm nothing (a picker, a tree, a rich-text editor)
+ * still gets its error refreshed as its value changes: once a field shows an
+ * error, each change re-validates it, so the message clears once fixed.
+ */
+const fieldValueSnapshots = new Map<string, string>();
+watch(
+  state,
+  (current) => {
+    for (const field of toValue(allFields)) {
+      const snapshot = JSON.stringify(current[field.id]) ?? "";
+      const previous = fieldValueSnapshots.get(field.id);
+      fieldValueSnapshots.set(field.id, snapshot);
+      if (previous === undefined || previous === snapshot) continue;
+      if (!form.value || serverErrorValues.has(field.id)) continue;
+      const pattern = fieldErrorPattern(field.id);
+      if (!form.value.getErrors(pattern).length) continue;
+      void form.value.validate({ name: errorNames(field), silent: true });
+    }
+  },
+  { deep: true, immediate: true },
+);
+
+const { t, locale, locales } = useI18n();
 
 const submitButtonLabel = computed(() =>
   props.submitLabel
     ? processI18n(props.submitLabel)
     : t("dms.button.save_changes"),
-);
-
-const isDirty = ref(false);
-watch(
-  () => form.value?.dirty,
-  (dirty) => {
-    if (dirty !== undefined) isDirty.value = dirty;
-  },
 );
 
 watch(disabledFields, (newDisabled, oldDisabled) => {
@@ -93,25 +354,129 @@ watch(hiddenFields, (newHidden, oldHidden) => {
   }
 });
 
-async function unsavedChangesGuard() {
-  if (submitSucceeded.value || !isDirty.value) {
-    return true;
-  }
+// The drawer or modal this form sits in, even when a component of the
+// caller's wraps it (only the container's root gets `containerId`).
+const container = inject(DMS_CONTAINER_KEY, undefined);
+const containerId = props.containerId ?? container?.id;
 
-  return await confirm({
-    title: t("dms.confirm.unsaved_changes_title"),
-    description: t("dms.confirm.unsaved_changes_description"),
-    confirmLabel: t("dms.confirm.discard"),
-    cancelLabel: t("dms.confirm.stay"),
-    confirmColor: "error",
-  });
+/** The value of every field, by id: what "unsaved changes" compares. */
+function fieldValues(): Record<string, unknown> {
+  return Object.fromEntries(
+    toValue(allFields).map((field) => [field.id, state.value[field.id]]),
+  );
 }
 
-if (props.containerId) {
-  addGuard(props.containerId, unsavedChangesGuard);
-} else {
-  const { registerGuard } = usePageLeaveGuard();
-  registerGuard(unsavedChangesGuard);
+// Dirty while a field's value differs from the one the form loaded or last
+// saved; putting the original value back makes it clean again.
+const formDirty = useFormDirty(fieldValues);
+// Until the user acts on the form, a control settling its value (a picker
+// mapping what was loaded, an editor normalising its markup) sets the
+// starting point instead of reading as a change.
+let isTouched = false;
+watch(
+  fieldValues,
+  () => {
+    if (!isTouched) formDirty.markClean();
+  },
+  { deep: true },
+);
+const TOUCH_EVENTS = ["pointerdown", "keydown", "input", "paste", "drop"];
+function markTouched(): void {
+  isTouched = true;
+}
+onMounted(() => {
+  const element = form.value?.$el as HTMLElement | undefined;
+  for (const type of TOUCH_EVENTS) {
+    element?.addEventListener?.(type, markTouched, { capture: true });
+  }
+});
+
+/** The current values become the saved ones: nothing left unsaved. */
+function markFormClean(): void {
+  isTouched = false;
+  showsErrorSummary.value = false;
+  formDirty.markClean();
+  instantSave?.start();
+}
+
+/** Discard: every field back to the value it opened with. */
+function discardChanges(): void {
+  reset(form.value);
+  markFormClean();
+}
+
+const changedFields = computed(() =>
+  toValue(allFields).filter(
+    (field) =>
+      !isSameFieldValue(
+        field,
+        state.value[field.id],
+        formDirty.baseline.value[field.id],
+      ),
+  ),
+);
+// Only a form someone can save has unsaved changes to speak of.
+const canSave = showActions;
+const isDirty = computed(
+  () => canSave.value && !isInstant && changedFields.value.length > 0,
+);
+
+useUnsavedChanges({ dirty: isDirty, containerId, element: form });
+
+// A form offers Cancel while clean when it has somewhere to go back to: its
+// drawer or modal, or `backTo` on a page. An action form (send, invite, run)
+// saves from its footer band, never from the floating bar.
+const isActionForm = props.kind === "action";
+const canCancel = inFormContainer || !!container || !!props.backTo;
+const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
+
+/** Validates one field alone: whether it holds no error. */
+async function isFieldValid(field: FormField): Promise<boolean> {
+  await form.value?.validate({ name: errorNames(field), silent: true });
+  return !form.value?.getErrors(fieldErrorPattern(field.id)).length;
+}
+
+const instantSave = isInstant
+  ? useInstantForm({
+      state,
+      fields: allFields,
+      isTouched: () => isTouched,
+      isFieldValid,
+      submit: (changes) => submitChanges(changes as FormData),
+      onRefused: reportSubmitError,
+    })
+  : undefined;
+
+// A page whose form saves as it goes says so once, in its header; a drawer
+// or a modal has no header of its own.
+if (instantSave && !inFormContainer && !container) {
+  useInstantSaveHeader(() => instantSave.state.value);
+}
+const hasChangeableFields = computed(() =>
+  toValue(allFields).some(
+    (field) => !isFieldDisabled(field) && !isFieldHidden(field),
+  ),
+);
+
+const router = useDmsRouter();
+const route = useDmsRoute();
+/**
+ * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
+ * form for the page the user came from (its list, when opened from one), or
+ * its `backTo` when the form was opened directly.
+ */
+function cancelForm(): void {
+  if (container) {
+    void container.close();
+    return;
+  }
+  const navigation = (window as { navigation?: { canGoBack?: boolean } })
+    .navigation;
+  if (navigation?.canGoBack ?? window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  if (props.backTo) void router.push(props.backTo);
 }
 
 const validators = new Set<FormValidator>();
@@ -158,7 +523,7 @@ allFields.value.forEach((field) => {
 });
 
 if (props.fetchUrl) {
-  const { data: fetchedFormData } = await useDmsAsyncData(
+  const formLoad = await useDmsAsyncData(
     `form-${props.componentId}-${props.pageId}`,
     async () => ({
       values: await fetchData(),
@@ -166,7 +531,15 @@ if (props.fetchUrl) {
     }),
   );
 
-  const payload = fetchedFormData.value;
+  // The load is cached under this key, and outlives a drawer or modal: a
+  // reopening would show the values of the previous one, stale if the row
+  // changed since (here or elsewhere). Marked idle once read, every mounting
+  // fetches the row again.
+  onMounted(() => {
+    formLoad.status.value = "idle";
+  });
+
+  const payload = formLoad.data.value;
   if (payload) {
     if (payload.values && Object.keys(payload.values).length > 0) {
       Object.assign(state.value, payload.values);
@@ -177,34 +550,51 @@ if (props.fetchUrl) {
   }
 }
 
-const sectionClass = computed(() =>
-  props.fieldsOrientation === "vertical"
-    ? "flex flex-col gap-2"
-    : "grid grid-cols-1 gap-2 sm:grid-cols-[min(50%,--spacing(80))_auto]",
-);
+// Loaded (or filled with its defaults): this is what the form starts from.
+markFormClean();
 
-function resolveFieldComponent(field: FormField) {
-  if (!field.component.componentName) {
-    return null;
+// A form page about one row names it at the end of the breadcrumb. Set once
+// mounted: the header renders before the page, the server-rendered one too.
+if (props.labelKey && !inFormContainer) {
+  const { setLabel } = usePageRecordLabel();
+  const labelKey = props.labelKey;
+  onMounted(() => {
+    setLabel(
+      route.path,
+      formatRecordLabel(initialValues.value[labelKey], locale.value),
+    );
+  });
+}
+
+const isHorizontal = props.fieldsOrientation !== "vertical";
+const surface: FormSurface = inFormContainer
+  ? "container"
+  : hasSections
+    ? "sections"
+    : inSection
+      ? "section"
+      : "card";
+const surfaceClasses = FORM_SURFACE_CLASSES[surface];
+// Clip, not hidden: the card rounds the footer band without becoming the
+// scroll container the sticky footer would stick to.
+const wrapperProps =
+  FormWrapper === "div" ? {} : { padded: false, class: "overflow-clip" };
+
+/** Row classes: a section card's, or the form's own orientation's. */
+function layoutClasses(inSectionCard: boolean) {
+  if ((inSectionCard || inSection) && isHorizontal) {
+    return SECTION_LAYOUT_CLASSES;
   }
-
-  return (
-    resolveDmsComponent(field.component.componentName) ||
-    field.component.componentName
-  );
+  return FORM_LAYOUT_CLASSES[isHorizontal ? "horizontal" : "vertical"];
 }
 
 function isFieldDisabled(field: FormField): boolean {
-  if (field.disabled) return true;
+  if (field.disabled || field.readonly) return true;
   return disabledFields.value?.has(field.id) ?? false;
 }
 
 function isFieldHidden(field: FormField): boolean {
   return hiddenFields.value?.has(field.id) ?? false;
-}
-
-function isGroupVisible(group: { fields: FormField[] }): boolean {
-  return group.fields.some((field) => !isFieldHidden(field));
 }
 
 function isFieldRequired(field: FormField): boolean {
@@ -216,17 +606,119 @@ function isFieldRequired(field: FormField): boolean {
   );
 }
 
-function isGroupRequired(group: { fields: FormField[] }): boolean {
-  return group.fields.some(isFieldRequired);
-}
-
 const hasRequiredFields = computed(() =>
   toValue(allFields).some(isFieldRequired),
 );
 
-function shouldShowDisplay(field: FormField): boolean {
-  return isFieldDisabled(field) && !!field.type;
-}
+provide(FORM_ENTRY_CONTEXT_KEY, {
+  state,
+  initialValues,
+  loading,
+  componentId: props.componentId,
+  pageId: props.pageId,
+  routeParams: props.routeParams,
+  layoutClasses,
+  isFieldHidden,
+  isFieldDisabled,
+  isFieldRequired,
+  showsChanges: !isInstant && !isActionForm,
+  isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
+  baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
+  fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",
+  retrySave: () => instantSave?.retry(),
+});
+
+const sectionsLayout = computed(() =>
+  hasSections ? layoutSections(fields.value, props.sections ?? []) : undefined,
+);
+const sectionNav = resolveSectionNav(
+  props.sectionNav,
+  props.sections?.length ?? 0,
+);
+
+// The fields the form shows an error on, from UForm's own list: what the
+// validation summary and the sections' counts read.
+const invalidFields = computed<ReadonlySet<string>>(() => {
+  const errors: readonly FormErrorRef[] = form.value?.errors ?? [];
+  return new Set(invalidFieldIds(errors, allFieldIds.value));
+});
+// An instant form has nothing unsaved to mark: each change is saved.
+const changedFieldIds = computed(
+  () => new Set(isInstant ? [] : changedFields.value.map((field) => field.id)),
+);
+const sectionStates = computed<Record<string, FormSectionState>>(() =>
+  Object.fromEntries(
+    (sectionsLayout.value?.sections ?? []).map((section) => [
+      section.id,
+      sectionState(section, changedFieldIds.value, invalidFields.value),
+    ]),
+  ),
+);
+
+/** What the form names a field by: its label, or its group's. */
+const fieldLabels = computed(() => {
+  const labels = new Map<string, string>();
+  for (const entry of fields.value) {
+    const fieldsOfEntry = isFieldGroup(entry) ? entry.fields : [entry];
+    for (const field of fieldsOfEntry) {
+      const label = field.label || entry.label || field.id;
+      labels.set(field.id, processI18n(label));
+    }
+  }
+  return labels;
+});
+
+const sectionOfField = computed(() => {
+  const owners = new Map<string, string>();
+  for (const section of sectionsLayout.value?.sections ?? []) {
+    for (const id of section.fieldIds) owners.set(id, section.label);
+  }
+  return owners;
+});
+
+watch(invalidFields, (invalid) => {
+  if (invalid.size === 0) showsErrorSummary.value = false;
+});
+
+// One entry per row to fix: the unlabelled fields of a group share its
+// label, and its first invalid field stands for them.
+const errorSummaryItems = computed(() => {
+  if (!showsErrorSummary.value) return [];
+  const items = [...invalidFields.value].map((id) => {
+    const section = sectionOfField.value.get(id);
+    return {
+      id,
+      label: fieldLabels.value.get(id) ?? id,
+      section: section ? processI18n(section) : undefined,
+    };
+  });
+  return items.filter(
+    (item, index) =>
+      items.findIndex(
+        (other) => other.label === item.label && other.section === item.section,
+      ) === index,
+  );
+});
+
+// The save bar names what changed: the sections holding a change, or the
+// fields whose value moved off the one the form loaded (or last saved — a
+// successful submit snapshots it).
+const formElementId = `dms-form-${props.componentId}`;
+const changedFieldLabels = computed<string[]>(() => {
+  if (!usesSaveBar) return [];
+  const layout = sectionsLayout.value;
+  if (!layout)
+    return changedFields.value.map((field) => field.label || field.id);
+  const leadIds = new Set(layout.lead.flatMap(entryFieldIds));
+  return [
+    ...changedFields.value
+      .filter((field) => leadIds.has(field.id))
+      .map((field) => field.label || field.id),
+    ...layout.sections
+      .filter((section) => sectionStates.value[section.id]?.dirty)
+      .map((section) => section.label),
+  ];
+});
 
 interface RealtimeFormContext {
   location: string;
@@ -324,6 +816,8 @@ const handleDiscardAndRefresh = async () => {
   if (fresh && Object.keys(fresh).length > 0) {
     Object.assign(state.value, fresh);
   }
+  // The refreshed row is the new starting point: nothing unsaved.
+  markFormClean();
   showConcurrentEditBanner.value = false;
 };
 
@@ -350,227 +844,111 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <component :is="FormWrapper">
+  <component :is="FormWrapper" v-bind="wrapperProps">
+    <!-- novalidate: the form words every error itself, under its field; no
+      browser bubble from a native required or type="email" control. -->
     <UForm
+      :id="formElementId"
+      novalidate
       ref="form"
       :state
-      :schema="validationSchema"
+      :schema="localizedSchema"
       :disabled="allFields.every((field) => field.disabled)"
       @submit="onSubmit"
+      @error="onValidationError"
     >
-      <UAlert
-        v-if="showConcurrentEditBanner"
-        color="warning"
-        icon="i-ph-warning"
-        :title="$t('dms.realtime.concurrent_edit_banner_title')"
-        :description="$t('dms.realtime.concurrent_edit_banner_description')"
-        :actions="[
-          {
-            label: $t('dms.realtime.concurrent_edit_banner_discard'),
-            color: 'warning',
-            onClick: handleDiscardAndRefresh,
-          },
-          {
-            label: $t('dms.realtime.concurrent_edit_banner_keep'),
-            variant: 'outline',
-            color: 'neutral',
-            onClick: handleKeepEditing,
-          },
-        ]"
-        class="mb-4"
-      />
+      <header v-if="props.title" :class="surfaceClasses.head">
+        <h2
+          class="text-highlighted text-[17px]/[1.3] font-[650] tracking-[-0.02em]"
+        >
+          {{ processI18n(props.title) }}
+        </h2>
+        <p v-if="props.description" class="text-muted mt-0.5 text-[13px]">
+          {{ processI18n(props.description) }}
+        </p>
+      </header>
 
-      <template v-if="props.title">
-        <section class="space-y-1">
-          <h2 class="text-highlighted text-2xl font-semibold sm:text-xl">
-            {{ processI18n(props.title) }}
-          </h2>
+      <div :class="surfaceClasses.body">
+        <UAlert
+          v-if="showConcurrentEditBanner"
+          color="warning"
+          icon="i-ph-warning"
+          :title="$t('dms.realtime.concurrent_edit_banner_title')"
+          :description="$t('dms.realtime.concurrent_edit_banner_description')"
+          :actions="[
+            {
+              label: $t('dms.realtime.concurrent_edit_banner_discard'),
+              color: 'warning',
+              onClick: handleDiscardAndRefresh,
+            },
+            {
+              label: $t('dms.realtime.concurrent_edit_banner_keep'),
+              variant: 'outline',
+              color: 'neutral',
+              onClick: handleKeepEditing,
+            },
+          ]"
+          class="mt-4"
+        />
 
-          <p v-if="props.description" class="text-dimmed text-base sm:text-sm">
-            {{ processI18n(props.description) }}
-          </p>
-        </section>
+        <DmsFormErrorSummary
+          v-if="errorSummaryItems.length"
+          :items="errorSummaryItems"
+          :class="hasSections ? 'mb-5' : 'mt-4'"
+          @select="focusField"
+        />
 
-        <USeparator class="my-6" />
-      </template>
-
-      <div class="space-y-6">
-        <template v-for="(item, index) in fields" :key="`field-${index}`">
-          <template v-if="isFieldGroup(item)">
-            <section v-if="isGroupVisible(item)" :class="sectionClass">
-              <div>
-                <label
-                  class="text-default block text-base font-semibold sm:text-sm"
-                >
-                  {{ processI18n(item.label || "") }}
-                  <span
-                    v-if="isGroupRequired(item)"
-                    class="text-error ms-0.5"
-                    aria-hidden="true"
-                  >
-                    *
-                  </span>
-                </label>
-                <p v-if="item.description" class="text-dimmed text-xs">
-                  {{ processI18n(item.description || "") }}
-                </p>
-              </div>
-
-              <div
-                :class="[
-                  'flex gap-2',
-                  item.orientation === 'vertical'
-                    ? 'flex-col'
-                    : 'flex-col sm:flex-row',
-                ]"
-              >
-                <template v-for="field in item.fields" :key="field.id">
-                  <template v-if="!isFieldHidden(field)">
-                    <DmsLocalizedField
-                      v-if="field.component.componentName && field.localized"
-                      v-model="
-                        state[field.id] as Record<string, string> | undefined
-                      "
-                      :field
-                      :initial-values="initialValues"
-                      :loading
-                      :component-id="props.componentId"
-                      :page-id="props.pageId"
-                      class="flex-1"
-                    />
-
-                    <UFormField
-                      v-else-if="
-                        field.component.componentName && !field.localized
-                      "
-                      :name="field.id"
-                      class="flex-1"
-                    >
-                      <DmsDisplay
-                        v-if="shouldShowDisplay(field)"
-                        :model-value="state[field.id]"
-                        :type="field.type"
-                        :loading
-                        class="w-full"
-                        v-bind="field.component.options || {}"
-                      />
-                      <Component
-                        :is="resolveFieldComponent(field)"
-                        v-else
-                        :id="field.id"
-                        v-model="state[field.id]"
-                        :initial-value="initialValues?.[field.id]"
-                        :loading
-                        :disabled="isFieldDisabled(field)"
-                        :component-id="props.componentId"
-                        :page-id="props.pageId"
-                        :route-params="props.routeParams"
-                        class="w-full"
-                        :class="{ 'opacity-75': isFieldDisabled(field) }"
-                        v-bind="field.component.options || {}"
-                      />
-                    </UFormField>
-                  </template>
-                </template>
-              </div>
-            </section>
+        <DmsFormSections
+          v-if="sectionsLayout"
+          :layout="sectionsLayout"
+          :nav="sectionNav"
+          :states="sectionStates"
+          :form-id="formElementId"
+        >
+          <!-- A page form's state is in the page header's pill; a drawer or
+            a modal has no header: the side list says it. -->
+          <template
+            v-if="instantSave && (inFormContainer || container)"
+            #nav-footer
+          >
+            <DmsSaveStatus
+              :state="instantSave.state.value"
+              class="px-2.5"
+              @retry="instantSave.retry"
+            />
           </template>
-
-          <template v-else-if="!isFieldHidden(item)">
-            <section :class="sectionClass">
-              <div>
-                <label
-                  :for="item.id"
-                  class="text-default block text-base font-semibold sm:text-sm"
-                >
-                  {{ processI18n(item.label || "") }}
-                  <span
-                    v-if="isFieldRequired(item)"
-                    class="text-error ms-0.5"
-                    aria-hidden="true"
-                  >
-                    *
-                  </span>
-                </label>
-                <p v-if="item.description" class="text-dimmed text-xs">
-                  {{ processI18n(item.description || "") }}
-                </p>
-              </div>
-
-              <DmsLocalizedField
-                v-if="item.component.componentName && item.localized"
-                v-model="state[item.id] as Record<string, string> | undefined"
-                :field="item"
-                :initial-values="initialValues"
-                :loading
-                :component-id="props.componentId"
-                :page-id="props.pageId"
-              />
-
-              <UFormField
-                v-else-if="item.component.componentName && !item.localized"
-                :name="item.id"
-              >
-                <DmsDisplay
-                  v-if="shouldShowDisplay(item)"
-                  :model-value="state[item.id]"
-                  :type="item.type"
-                  :loading
-                  class="w-full"
-                  v-bind="item.component.options || {}"
-                />
-                <Component
-                  :is="resolveFieldComponent(item)"
-                  v-else
-                  :id="item.id"
-                  v-model="state[item.id]"
-                  :initial-value="initialValues?.[item.id]"
-                  :loading
-                  :disabled="isFieldDisabled(item)"
-                  :component-id="props.componentId"
-                  :page-id="props.pageId"
-                  :route-params="props.routeParams"
-                  class="w-full"
-                  :class="{ 'opacity-75': isFieldDisabled(item) }"
-                  v-bind="item.component.options || {}"
-                />
-              </UFormField>
-            </section>
-          </template>
-
-          <USeparator
-            v-if="
-              props.fieldsOrientation !== 'horizontal' &&
-              (isFieldGroup(item) ? isGroupVisible(item) : !isFieldHidden(item))
-            "
+          <DmsFormRequiredLegend
+            v-if="hasRequiredFields"
+            :class="surfaceClasses.legend"
+          />
+        </DmsFormSections>
+        <template v-else>
+          <DmsFormEntries :entries="fields" />
+          <DmsFormRequiredLegend
+            v-if="hasRequiredFields"
+            :class="surfaceClasses.legend"
           />
         </template>
       </div>
 
-      <p v-if="hasRequiredFields" class="text-dimmed mt-6 text-xs">
-        <span class="text-error" aria-hidden="true">*</span>
-        {{ $t("dms.form.required_legend") }}
-      </p>
-
-      <template v-if="showActions">
-        <section class="mt-6 flex justify-end gap-2">
-          <UButton
-            :label="$t('dms.button.reset')"
-            :loading="loading || isAnyFieldLoading"
-            variant="outline"
-            color="neutral"
-            type="reset"
-            size="lg"
-            @click="reset(form)"
-          />
-          <UButton
-            :label="submitButtonLabel"
-            :loading="loading || isAnyFieldLoading"
-            type="submit"
-            size="lg"
-          />
-        </section>
-      </template>
+      <!-- One bar for every form (see `saveBarState`): the v2 floating bar
+        on a page, the footer band of a card, a drawer or a modal. It holds
+        its place while hidden, so its showing up never moves anything. -->
+      <DmsSaveBar
+        v-if="canSave && !isInstant"
+        :variant="usesSaveBar ? 'floating' : 'band'"
+        :kind="props.kind"
+        :dirty="isDirty"
+        :saving="loading || isAnyFieldLoading"
+        :changes="changedFieldLabels"
+        :form="formElementId"
+        :save-label="usesSaveBar ? props.submitLabel : submitButtonLabel"
+        :cancellable="canCancel"
+        :resettable="hasChangeableFields"
+        :class="usesSaveBar ? 'mx-3 mb-3' : surfaceClasses.foot"
+        @discard="discardChanges"
+        @cancel="cancelForm"
+      />
     </UForm>
   </component>
 </template>

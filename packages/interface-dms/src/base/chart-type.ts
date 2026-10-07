@@ -1,0 +1,15 @@
+export enum ChartType {
+  LINE = "line",
+  AREA = "area",
+  RANGE_AREA = "rangeArea",
+  BAR = "bar",
+  COLUMN = "column",
+  SCATTER = "scatter",
+  DONUT = "donut",
+  PIE = "pie",
+  MIXED = "mixed",
+  RADAR = "radar",
+  RADIAL_BAR = "radialBar",
+  HEATMAP = "heatmap",
+  CANDLESTICK = "candlestick",
+}

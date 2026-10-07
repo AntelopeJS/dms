@@ -7,8 +7,55 @@ import { FormEvents } from "./types/events";
 import type { FormData, FormFieldValue } from "./types/value";
 import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
-import { resolveResponseToast } from "../../utils/responseWarning";
+import { resolveResponseToast } from "../../build/utils/responseWarning";
+import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
+
+/** A toast a submit response asks for, on top of the success one. */
+interface FormSubmitNotice {
+  title: string;
+  description?: string;
+  /** Toast color; `info` by default. */
+  color?: string;
+  /** i18n parameters of the texts; a numeric `count` pluralizes them. */
+  params?: Record<string, unknown>;
+}
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
+import {
+  type ApiFieldError,
+  apiErrorText,
+  resolveFieldErrors,
+} from "#dms-core/app/composables/useFieldErrors";
+import { isBlankValue } from "#dms-core/app/composables/useFormValidation";
+import {
+  isPlainObject,
+  sameFormValue,
+} from "../../build/composables/unsaved-changes/formValue";
+
+/** A server error shown under its field, translated. */
+export interface FormServerFieldError {
+  /** The field id. */
+  name: string;
+  message: string;
+  /** The values of the field the error names (addresses of a list…). */
+  values?: string[];
+  /** The part of the field it names (`address.streetName`), if any. */
+  path?: string;
+}
+
+export interface UseFormOptions {
+  /**
+   * Shows server errors under their fields (and focuses the first one): a
+   * submit refused for a field never shows a toast. Returns whether any
+   * landed on a rendered field; the toast shows otherwise.
+   */
+  showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
+  /**
+   * Called once a submit succeeded and the values are the saved ones (or
+   * back to the opening ones for an `action` form), before any redirect:
+   * the form has nothing unsaved from there on.
+   */
+  onSaved?: () => void;
+}
 
 interface FormResetTarget {
   clear?: () => void;
@@ -30,19 +77,17 @@ export function cloneFormValue(
 }
 
 /**
- * Whether a form shows its reset and submit buttons.
- *
- * Asked for, they show whatever else holds — a form placed in the builder shows
- * them before it has somewhere to submit to. Left to the form, they show once
- * it has an address and a field someone can fill in.
+ * Whether a form offers to save: once it has an address and a field someone
+ * can fill in, unless its `saveMode` is `none`.
  */
 export function formShowsActions(
-  options: { showActions?: boolean; submitUrl?: string },
+  options: Pick<FormProps, "saveMode" | "submitUrl">,
   fields: ReadonlyArray<{ disabled?: boolean }>,
 ): boolean {
   return (
-    options.showActions ??
-    (!!options.submitUrl && !fields.every((field) => field.disabled))
+    options.saveMode !== "none" &&
+    !!options.submitUrl &&
+    !fields.every((field) => field.disabled)
   );
 }
 
@@ -88,30 +133,6 @@ function createBaseValidationSchema(
   } catch {
     return z.object({});
   }
-}
-
-function processFieldI18n(
-  field: FormField,
-  processI18n: (key: string) => string,
-): FormField {
-  const opts = field.component.options as ComponentOptionsData | undefined;
-  if (!opts) return field;
-
-  const placeholder = isString(opts.placeholder)
-    ? processI18n(opts.placeholder)
-    : undefined;
-
-  const items = Array.isArray(opts.items)
-    ? (opts.items as { label?: string }[]).map((item) => ({
-        ...item,
-        label: isString(item.label) ? processI18n(item.label) : item.label,
-      }))
-    : opts.items;
-
-  return {
-    ...field,
-    component: { ...field.component, options: { ...opts, placeholder, items } },
-  };
 }
 
 // `{{params.id}}` takes the bare name, which on a route repeating a placeholder
@@ -197,25 +218,148 @@ function processBeforeStateMappers(
   return result;
 }
 
-function collectSubmitData(
-  event: FormSubmitEvent<FormData>,
-  allFields: FormField[],
-  submitDefaults: unknown,
+/**
+ * The value a cleared field is submitted as: `[]` for a field holding a list
+ * (a multiple select, tree, relation, date or file), `null` for any other.
+ * The stored value tells which, whatever the control emitted on clearing.
+ */
+export function clearedFieldValue(initial: unknown): FormFieldValue {
+  return Array.isArray(initial) ? [] : null;
+}
+
+/**
+ * Whether a control's value means its field was emptied: no value, a blank
+ * text (an emptied editor's markup or a cleared number included) or a plain
+ * object whose parts are all blank (an address nobody filled). A list is not:
+ * an empty list is the value of an emptied list. Nor is a file or another
+ * instance, whatever its own properties.
+ */
+export function isClearedFieldValue(value: unknown, type?: string): boolean {
+  if (Array.isArray(value)) return false;
+  const isInstance =
+    typeof value === "object" &&
+    value !== null &&
+    !(value instanceof Date) &&
+    !isPlainObject(value);
+  return !isInstance && isBlankValue(value, type);
+}
+
+/**
+ * A localized value as submitted: each emptied language as `""`, the way the
+ * localized field holds a language nobody filled, whatever its editor emitted.
+ */
+export function localizedSubmitValue(value: unknown, type?: string): unknown {
+  if (!isPlainObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([locale, text]) => [
+      locale,
+      typeof text === "string" && isBlankValue(text, type) ? "" : text,
+    ]),
+  );
+}
+
+// A localized field keeps its languages even emptied, never `null`: the
+// database stores it as one value per language and cannot read a `null` back.
+function isClearedField(field: SubmitField, value: unknown): boolean {
+  if (field.localized) return value === undefined;
+  return isClearedFieldValue(value, field.type);
+}
+
+function submittedFieldValue(field: SubmitField, value: unknown): unknown {
+  return field.localized ? localizedSubmitValue(value, field.type) : value;
+}
+
+/** A field as `collectSubmitData` reads it. */
+export type SubmitField = Pick<
+  FormField,
+  "id" | "type" | "disabled" | "localized"
+> &
+  Partial<Pick<FormField, "component">>;
+
+/** Whether a field holds the same value on both sides. */
+export type FieldValueComparer = (
+  field: SubmitField,
+  left: unknown,
+  right: unknown,
+) => boolean;
+
+/**
+ * Compares the values of a field as its data type does (see
+ * `DataType.isSameValue`), deeply by value for a type that does not say.
+ */
+export function createFieldValueComparer(
+  getDataType: (type: string) => DataType | undefined,
+): FieldValueComparer {
+  return (field, left, right) => {
+    const compare = field.type
+      ? getDataType(field.type)?.isSameValue
+      : undefined;
+    return compare
+      ? compare(left, right, field.component?.options)
+      : sameFormValue(left, right);
+  };
+}
+
+const defaultFieldValueComparer: FieldValueComparer = (_field, left, right) =>
+  sameFormValue(left, right);
+
+/** What `collectSubmitData` needs to know of the form besides its values. */
+export interface SubmitDataContext {
+  /** The values the form loaded (or last saved, or its field defaults). */
+  initialValues?: Record<string, unknown>;
+  /** Values the form always submits under its fields' (resolved tokens). */
+  submitDefaults?: Record<string, unknown>;
+  /** Fields a watch action disabled. */
+  disabled?: Set<string>;
+  /**
+   * Send only the fields whose value differs from `initialValues`: an edit of
+   * a loaded record must not write back a value someone else changed since.
+   */
+  onlyChanged?: boolean;
+  /**
+   * How a field's value compares with its initial one under `onlyChanged`
+   * (by default deeply, by value).
+   */
+  isSameValue?: FieldValueComparer;
+}
+
+/**
+ * The body a submit sends.
+ *
+ * Every field holding a value is sent. A field its control emptied (left
+ * `undefined`, or holding a blank text, see `isClearedFieldValue`) is sent as
+ * its empty value (`clearedFieldValue`) when it started with a value: an
+ * endpoint merging the body into the stored row would otherwise keep the value
+ * the user removed. A localized field is sent with its emptied languages as
+ * `""` (`localizedSubmitValue`). A field that started empty and is still empty is not sent,
+ * so a create form sends no `null` for the fields nobody touched, nor an edit
+ * form for values the row never had. A disabled field is never cleared: the
+ * user cannot have emptied it. With `onlyChanged`, a field still holding the
+ * value it loaded is left out.
+ */
+export function collectSubmitData(
+  data: Record<string, unknown>,
+  fields: ReadonlyArray<SubmitField>,
+  context: SubmitDataContext = {},
 ): FormData {
   const fieldData: FormData = {};
+  const isSameValue = context.isSameValue ?? defaultFieldValueComparer;
 
-  for (const field of allFields) {
-    const rawValue = event.data[field.id];
-    if (rawValue !== undefined) {
-      const unwrappedValue = unref(rawValue);
-      if (unwrappedValue !== undefined) {
-        fieldData[field.id] = unwrappedValue;
-      }
+  for (const field of fields) {
+    const value = unref(data[field.id]) as FormFieldValue | undefined;
+    const initial = context.initialValues?.[field.id];
+    if (context.onlyChanged && isSameValue(field, value, initial)) continue;
+    if (!isClearedField(field, value)) {
+      fieldData[field.id] = submittedFieldValue(field, value) as FormFieldValue;
+      continue;
     }
+    if (field.disabled || context.disabled?.has(field.id)) continue;
+    if (isBlankValue(initial, field.type)) continue;
+    fieldData[field.id] = clearedFieldValue(initial);
   }
 
   return {
-    ...(submitDefaults as FormData),
+    ...(context.submitDefaults as FormData | undefined),
     ...fieldData,
   };
 }
@@ -299,6 +443,20 @@ export function buildValidationSchema(
 // missing, so marking it required would only suggest an action that does not
 // exist.
 const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
+// ...unless it is a box to tick: required, it is an agreement ("I accept the
+// terms") left missing until ticked.
+const ACCEPTANCE_COMPONENTS = new Set(["dms-checkbox"]);
+
+/** Whether a field is a box to tick, which only `true` fills when required. */
+export function isAcceptanceField(
+  field: Pick<FormField, "type"> & Partial<Pick<FormField, "component">>,
+): boolean {
+  return (
+    !!field.type &&
+    ALWAYS_FILLED_FIELD_TYPES.has(field.type) &&
+    ACCEPTANCE_COMPONENTS.has(field.component?.componentName ?? "")
+  );
+}
 
 /**
  * Whether the form marks a field as required: declared so, or made so by a
@@ -306,14 +464,17 @@ const ALWAYS_FILLED_FIELD_TYPES = new Set(["boolean"]);
  * does not validate inactive fields, nor a type that always holds a value.
  */
 export function isFieldMarkedRequired(
-  field: Pick<FormField, "id" | "required" | "disabled" | "type">,
+  field: Pick<FormField, "id" | "required" | "disabled" | "type"> &
+    Partial<Pick<FormField, "component" | "readonly">>,
   disabled: Set<string> | undefined,
   hidden: Set<string> | undefined,
   required: Set<string> | undefined,
 ): boolean {
-  if (field.disabled || disabled?.has(field.id) || hidden?.has(field.id))
-    return false;
-  if (field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type)) return false;
+  if (field.disabled || field.readonly) return false;
+  if (disabled?.has(field.id) || hidden?.has(field.id)) return false;
+  const isAlwaysFilled =
+    !!field.type && ALWAYS_FILLED_FIELD_TYPES.has(field.type);
+  if (isAlwaysFilled && !isAcceptanceField(field)) return false;
   return !!field.required || (required?.has(field.id) ?? false);
 }
 
@@ -355,10 +516,32 @@ function watchFieldChanges(
   );
 }
 
-export const useForm = (props: FormProps) => {
+/**
+ * The errors of a refused submit the form shows under its fields: only the
+ * fields it shows (neither hidden nor disabled) can carry one, anything else
+ * is a toast.
+ */
+export function resolveFormFieldErrors(
+  error: unknown,
+  fields: ReadonlyArray<Pick<FormField, "id" | "disabled">>,
+  inactive: { disabled?: Set<string>; hidden?: Set<string> } = {},
+): ApiFieldError[] {
+  const shown = fields
+    .filter(
+      (field) =>
+        !field.disabled &&
+        !inactive.disabled?.has(field.id) &&
+        !inactive.hidden?.has(field.id),
+    )
+    .map((field) => field.id);
+  return resolveFieldErrors(error, { fields: shown }).fields;
+}
+
+export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const toast = useToast();
   const { $authFetch } = useAuthFetch();
   const { getDataType } = useDataTypes();
+  const isSameFieldValue = createFieldValueComparer(getDataType);
   const { processI18n, processApiMessage } = useTranslation();
   const route = useDmsRoute();
 
@@ -445,6 +628,12 @@ export const useForm = (props: FormProps) => {
     return url.includes("{{") ? undefined : url;
   });
 
+  // A form that loaded a record and does not create one (a duplicate posts
+  // the loaded values as a new row) updates it: only its changes are sent.
+  const isRecordUpdate = computed(
+    () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
+  );
+
   const fetchData = async () => {
     if (!props.fetchUrl) return undefined;
 
@@ -509,10 +698,65 @@ export const useForm = (props: FormProps) => {
     );
   };
 
+  const { t } = useI18n();
+
+  // A notice text: an i18n key (`$`) pluralized on a numeric `count` param.
+  const noticeText = (value: string, params?: Record<string, unknown>) => {
+    if (!value.startsWith("$")) return value;
+    const count = params?.count;
+    return typeof count === "number"
+      ? t(value.slice(1), params ?? {}, count)
+      : t(value.slice(1), params ?? {});
+  };
+
+  /**
+   * A submit response may carry a `notice` the server words for this
+   * submission (some of a batch skipped, a partial success): shown as a toast
+   * of its own next to the success one.
+   */
+  const showSubmitNotice = (response: FormSubmitResponse | undefined) => {
+    const notice = (response as { notice?: FormSubmitNotice } | undefined)
+      ?.notice;
+    if (!notice?.title) return;
+    toast.add({
+      title: noticeText(notice.title, notice.params),
+      description: notice.description
+        ? noticeText(notice.description, notice.params)
+        : undefined,
+      color: (notice.color as Color | undefined) ?? Color.info,
+    });
+  };
+
   const resolveSubmitErrorDescription = (error: EventError) => {
     if (props.errorMessage) return processI18n(props.errorMessage);
-    if (isString(error.data)) return processApiMessage(error.data);
+    const text = apiErrorText(error);
+    if (text) return processApiMessage(text);
     return processI18n("$dms.form.error_unknown");
+  };
+
+  /** Puts a refused submit's field errors under their fields, if any. */
+  const showServerFieldErrors = (error: unknown): boolean => {
+    if (!options.showFieldErrors) return false;
+    const fieldErrors = resolveFormFieldErrors(error, allFields.value, {
+      disabled: disabledFields.value,
+      hidden: hiddenFields.value,
+    });
+    if (fieldErrors.length === 0) return false;
+    return options.showFieldErrors(
+      fieldErrors.map((entry) => ({
+        name: entry.field,
+        // An error naming values of the field (addresses of a list) lists
+        // them: the field shows which ones to fix.
+        message: entry.values?.length
+          ? t("dms.field_errors.with_values", {
+              message: processApiMessage(entry.message),
+              values: entry.values.join(", "),
+            })
+          : processApiMessage(entry.message),
+        values: entry.values,
+        path: entry.path,
+      })),
+    );
   };
 
   const showSubmitErrorToast = (error: EventError) => {
@@ -523,13 +767,31 @@ export const useForm = (props: FormProps) => {
     });
   };
 
+  /** Puts every field back to the value it opened with. */
+  const restoreInitialValues = (): void => {
+    const restored = computeResetState(state.value, initialValues.value);
+    Object.assign(
+      state.value,
+      processBeforeStateMappers(
+        restored as FormData,
+        props.fields,
+        getDataType,
+      ),
+    );
+  };
+
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
     plainData: FormData,
   ) => {
     showSubmitSuccessToast(response);
+    showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
-    initialValues.value = snapshotFormState(state.value);
+    // A form sending something new each time starts over from the values it
+    // opened with; any other keeps what it saved as its new starting point.
+    if (props.kind === "action") restoreInitialValues();
+    else initialValues.value = snapshotFormState(state.value);
+    options.onSaved?.();
     if (props.redirectOnSuccess) {
       const target = replaceUrlVariables(
         props.redirectOnSuccess,
@@ -547,6 +809,41 @@ export const useForm = (props: FormProps) => {
     });
   };
 
+  /** Sends a body to the submit URL, through the form's submit events. */
+  const sendSubmit = async (
+    submitUrl: string,
+    body: FormData,
+  ): Promise<FormSubmitResponse | undefined> => {
+    let submitResponse: FormSubmitResponse | undefined;
+    await executeSubmit(
+      () =>
+        $authFetch<FormSubmitResponse>(submitUrl, {
+          method: props.submitUrlMethod || "PUT",
+          body,
+          headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
+        }).then((res) => {
+          submitResponse = res;
+          return res;
+        }),
+      {
+        startPayload: { data: body },
+        successPayload: (response) => ({ data: body, response, submitUrl }),
+        errorPayload: (error) => ({
+          data: body,
+          error: (error as EventError).data || (error as EventError).message,
+        }),
+      },
+    );
+    return submitResponse;
+  };
+
+  /** A refused save: under its field when it names one, else a toast. */
+  const reportSubmitError = (error: unknown): void => {
+    if (!showServerFieldErrors(error)) {
+      showSubmitErrorToast(error as EventError);
+    }
+  };
+
   const onSubmit = async (event: FormSubmitEvent<FormData>) => {
     const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
     if ("missing" in target) {
@@ -556,59 +853,57 @@ export const useForm = (props: FormProps) => {
       if (target.missing === "token") showUnresolvedTargetToast();
       return;
     }
-    const submitUrl = target.url;
-    const plainData = collectSubmitData(
-      event,
-      allFields.value,
-      effectiveSubmitDefaults.value,
-    );
+    const plainData = collectSubmitData(event.data, allFields.value, {
+      initialValues: initialValues.value,
+      submitDefaults: effectiveSubmitDefaults.value,
+      disabled: disabledFields.value,
+      onlyChanged: isRecordUpdate.value,
+      isSameValue: isSameFieldValue,
+    });
 
     loading.value = true;
     try {
-      let submitResponse: FormSubmitResponse | undefined;
-      await executeSubmit(
-        () =>
-          $authFetch<FormSubmitResponse>(submitUrl, {
-            method: props.submitUrlMethod || "PUT",
-            body: plainData,
-            headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
-          }).then((res) => {
-            submitResponse = res;
-            return res;
-          }),
-        {
-          startPayload: { data: plainData },
-          successPayload: (response) => ({
-            data: plainData,
-            response,
-            submitUrl,
-          }),
-          errorPayload: (error) => ({
-            data: plainData,
-            error: (error as EventError).data || (error as EventError).message,
-          }),
-        },
-      );
+      const response = await sendSubmit(target.url, plainData);
       submitSucceeded.value = true;
-      await handleSubmitSuccess(submitResponse, plainData);
+      await handleSubmitSuccess(response, plainData);
     } catch (error) {
-      showSubmitErrorToast(error as EventError);
+      reportSubmitError(error);
     } finally {
       loading.value = false;
     }
   };
 
+  /**
+   * Saves some fields at once, alone (the instant save of a form): sent to
+   * `submitUrl` with the form's `submitDefaults`, a cleared field as its
+   * empty value, without the success toast of a submit. Rejects when the
+   * server refuses them, for the caller to put the values back before
+   * `reportSubmitError` says why.
+   */
+  const submitChanges = async (changes: FormData): Promise<void> => {
+    const target = resolveSubmitTarget(props.submitUrl, buildUrlContext());
+    if ("missing" in target) {
+      showUnresolvedTargetToast();
+      throw new Error(`Form submit target: missing ${target.missing}`);
+    }
+    const changedFields = allFields.value.filter(
+      (field) => field.id in changes,
+    );
+    const body = collectSubmitData(changes, changedFields, {
+      initialValues: initialValues.value,
+      submitDefaults: effectiveSubmitDefaults.value,
+      disabled: disabledFields.value,
+    });
+    await sendSubmit(target.url, body);
+    initialValues.value = {
+      ...initialValues.value,
+      ...(snapshotFormState(changes) as FormData),
+    };
+  };
+
   const reset = (form: FormResetTarget | null): void => {
     form?.clear?.();
-    const restored = computeResetState(state.value, initialValues.value);
-    Object.assign(
-      state.value,
-      processBeforeStateMappers(
-        restored as FormData,
-        props.fields,
-        getDataType,
-      ),
-    );
+    restoreInitialValues();
     sendComponentEvent(FormEvents.RESET, props.componentId, {});
   };
 
@@ -616,8 +911,11 @@ export const useForm = (props: FormProps) => {
     loading,
     state,
     initialValues,
+    isSameFieldValue,
     validationSchema,
     onSubmit,
+    submitChanges,
+    reportSubmitError,
     reset,
     fetchData,
     fields,

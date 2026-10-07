@@ -1,4 +1,5 @@
 import type { ActionTarget } from "./action-target";
+import type { ActionConfirm } from "#dms-core/app/types/confirm-dialog";
 
 export type CustomButtonVariant = "solid" | "outline" | "ghost" | "link";
 
@@ -10,8 +11,15 @@ export interface CustomButton {
   variant?: CustomButtonVariant;
   color?: ColorValue;
   target: ActionTarget;
+  /** Asked before the target runs: a fixed dialog, or `{ from }`. */
+  confirm?: ActionConfirm;
   /** Set by the server when the button cannot be pressed for this request. */
   disabled?: boolean;
   /** Why the button is disabled, shown in its tooltip. May be an i18n key. */
   disabledReason?: string;
+  /**
+   * `header`: drawn in the page header (the server adds it there) instead of
+   * the toolbar; still pressed by id by a quick action.
+   */
+  placement?: "toolbar" | "header";
 }

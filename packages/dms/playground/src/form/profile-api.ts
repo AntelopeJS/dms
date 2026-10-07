@@ -135,13 +135,19 @@ export class ProfileAPIController extends Controller("/api/profile") {
     stored: Profile,
     updates: Partial<Profile>,
   ): Partial<Profile> {
+    // Each form of the page submits its own fields only: one it leaves out
+    // keeps its stored value, one it sends empty (`null`) is cleared.
     return {
       ...updates,
       _id: DEFAULT_PROFILE_ID,
-      birthDate: updates.birthDate
-        ? new Date(updates.birthDate)
-        : stored.birthDate,
-      vacationDates: updates.vacationDates || stored.vacationDates,
+      birthDate:
+        "birthDate" in updates
+          ? updates.birthDate && new Date(updates.birthDate)
+          : stored.birthDate,
+      vacationDates:
+        "vacationDates" in updates
+          ? updates.vacationDates
+          : stored.vacationDates,
       updatedAt: new Date(),
     };
   }

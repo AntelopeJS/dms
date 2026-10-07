@@ -9,6 +9,7 @@ import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { rotateDemoProjectStatuses } from "./dynamic-provider";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 interface RotateResult {
   statuses: string[];
@@ -26,7 +27,10 @@ export class NavigationDemoController extends Controller(
     @AuthUser() _user: User,
   ): Promise<RotateResult> {
     const statuses = rotateDemoProjectStatuses();
-    void NotifyMenuChanged(getRequestTenantId(requestContext));
+    fireAndForget(
+      NotifyMenuChanged(getRequestTenantId(requestContext)),
+      "menu change notification",
+    );
     return { statuses };
   }
 }

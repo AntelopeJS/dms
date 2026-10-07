@@ -25,7 +25,7 @@ export default defineConfig({
         installCommand: ["pnpm build", "pnpm --dir playground build"],
       },
       config: {
-        homepage: "/form/form-simple",
+        homepage: "/examples/overview",
         meta: {
           title: "AntelopeJS",
           description: "AntelopeJS DMS playground",
@@ -39,6 +39,11 @@ export default defineConfig({
           // flow fail with a 500. Development value: a real deployment must
           // supply its own.
           jwtSecret: "dev",
+          // The DB-IP database is only downloaded when a release is packed,
+          // and the playground's sign-ins come from a local address no
+          // database places in a country anyway: without this, every start
+          // warns about the missing file.
+          signInCountry: { database: false },
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
       },
@@ -56,7 +61,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/mongodb",
-        version: "^1.4.0",
+        version: "^1.4.2",
       },
       config: {
         url: process.env.MONGO_URL ?? "mongodb://localhost:27017",

@@ -452,6 +452,14 @@ defineExpose(flow);
   fill-opacity: 0.55;
 }
 
+/* On a phone the 200px overview would cover most of the canvas it maps:
+   it hides below the Nuxt UI `sm` breakpoint (fit view / zoom remain). */
+@media (max-width: 639.98px) {
+  .dms-flow-canvas .vue-flow__minimap {
+    display: none;
+  }
+}
+
 /* Panels (toolbar/inspector slots) inherit the app typography. */
 .dms-flow-canvas .vue-flow__panel {
   margin: 12px;

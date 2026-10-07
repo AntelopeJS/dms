@@ -7,8 +7,13 @@ import type {
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
 import type { RowActionRule } from "../types/row-action";
+import type { TableViewFooterSummary } from "./options";
+import type {
+  FooterSummaryValues,
+  RowBulkOperationParams,
+} from "./internal/data-functions";
 
-// @internal
+/** @internal */
 export const listWithSearch = InterfaceFunction<
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
@@ -24,7 +29,7 @@ export const listWithSearch = InterfaceFunction<
   }>
 >();
 
-// @internal
+/** @internal */
 export const countWithSearch =
   InterfaceFunction<
     (
@@ -36,7 +41,41 @@ export const countWithSearch =
     ) => Promise<{ total: number }>
   >();
 
-// @internal
+/** @internal */
+export const summarizeWithSearch = InterfaceFunction<
+  // A published contract: the runtime calls this positionally.
+  // oxlint-disable-next-line eslint/max-params
+  (
+    thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
+    ctx: RequestContext,
+    listParams: Parameters.ListParameters,
+    summaries: Record<string, TableViewFooterSummary>,
+    user?: User,
+    permissions?: Set<string>,
+  ) => Promise<FooterSummaryValues>
+>();
+
+/**
+ * The ids of the rows a bulk custom action runs on, from inside its route on
+ * the table's data controller (`this`): the `ids` the selection sent, or —
+ * after "Select all N matching" (`allMatching=true`) — every row the table's
+ * filters, search and archive view match. Either way it refuses (403) a
+ * caller without the table's `list` permission; the route still checks the
+ * permission of the action itself. The matching rows are capped (see
+ * `MAX_BULK_MATCHING_ROWS`).
+ */
+export const resolveBulkRowIds =
+  InterfaceFunction<
+    (thisObj: unknown, ctx: RequestContext, user: User) => Promise<string[]>
+  >();
+
+/** The most rows "Select all N matching" hands a bulk action at once. */
+export const MAX_BULK_MATCHING_ROWS = 10_000;
+
+/** Query flag of a bulk request covering every matching row. */
+export const BULK_ALL_MATCHING_KEY = "allMatching";
+
+/** @internal */
 export const startExport = InterfaceFunction<
   // A published contract: the runtime calls this positionally and every
   // implementing module declares the same shape, so an options object
@@ -53,7 +92,7 @@ export const startExport = InterfaceFunction<
   ) => { jobId: string; format: string; extension: string }
 >();
 
-// @internal
+/** @internal */
 export const getExportStatus = InterfaceFunction<
   (
     thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
@@ -67,7 +106,7 @@ export const getExportStatus = InterfaceFunction<
   }
 >();
 
-// @internal
+/** @internal */
 export const downloadExport =
   InterfaceFunction<
     (
@@ -78,13 +117,7 @@ export const downloadExport =
     ) => void
   >();
 
-export type RowBulkOperationParams = [
-  thisObj: DataControllerCallback | DataControllerCallbackWithOptions,
-  ctx: RequestContext,
-  ids: string | string[],
-];
-
-// @internal
+/** @internal */
 export const archiveRows = InterfaceFunction<
   (...args: RowBulkOperationParams) => {
     success: boolean;
@@ -92,7 +125,7 @@ export const archiveRows = InterfaceFunction<
   }
 >();
 
-// @internal
+/** @internal */
 export const restoreRows = InterfaceFunction<
   (...args: RowBulkOperationParams) => {
     success: boolean;
@@ -105,7 +138,7 @@ interface RuleValidationResult {
   rejectedIds: string[];
 }
 
-// @internal
+/** @internal */
 export const validateRowsAgainstRule =
   InterfaceFunction<
     (
@@ -117,7 +150,7 @@ export const validateRowsAgainstRule =
     ) => Promise<RuleValidationResult>
   >();
 
-// @internal
+/** @internal */
 export const fetchRowForGuard =
   InterfaceFunction<
     (

@@ -21,29 +21,29 @@ describe("series stroke styles", () => {
   it("preserves scalar defaults and comparison defaults when omitted", () => {
     expect(strokeFor()).toEqual({
       curve: "smooth",
-      width: 3,
+      width: 2.5,
       lineCap: "round",
     });
     expect(
       strokeFor({ series: [PLAIN, PLAIN], comparisonSeriesCount: 1 }),
-    ).toMatchObject({ width: [3, 1.5], dashArray: [0, 4] });
+    ).toMatchObject({ width: [2.5, 1.75], dashArray: [0, 5] });
   });
 
   it("keeps styles attached through reactive reorder, insertion and removal", () => {
     const series = ref([PLAIN, STYLED]);
     const chart = useApexChart(() => ({ type: "line", series: series.value }));
     expect(chart.options.value.stroke).toMatchObject({
-      width: [3, 2],
+      width: [2.5, 2],
       dashArray: [0, 6],
     });
     series.value = [STYLED, PLAIN];
     expect(chart.options.value.stroke).toMatchObject({
-      width: [2, 3],
+      width: [2, 2.5],
       dashArray: [6, 0],
     });
     series.value = [PLAIN, STYLED, PLAIN];
     expect(chart.options.value.stroke).toMatchObject({
-      width: [3, 2, 3],
+      width: [2.5, 2, 2.5],
       dashArray: [0, 6, 0],
     });
     series.value = [STYLED];
@@ -72,7 +72,7 @@ describe("series stroke styles", () => {
         strokeWidth: 8,
         comparisonSeriesCount: 1,
       }),
-    ).toMatchObject({ width: [2, 8], dashArray: [6, 4] });
+    ).toMatchObject({ width: [2, 8], dashArray: [6, 5] });
   });
 
   it.each(["solid", "dimmed"] as const)(
@@ -84,7 +84,7 @@ describe("series stroke styles", () => {
           comparisonSeriesCount: 1,
           comparisonStyle,
         }),
-      ).toMatchObject({ width: [3, 2], dashArray: [0, 6] });
+      ).toMatchObject({ width: [2.5, 2], dashArray: [0, 6] });
     },
   );
 
@@ -96,7 +96,7 @@ describe("series stroke styles", () => {
           { ...PLAIN, strokeDashArray: 3 },
         ],
       }),
-    ).toMatchObject({ width: [5, 3], dashArray: [0, 3] });
+    ).toMatchObject({ width: [5, 2.5], dashArray: [0, 3] });
   });
 
   it("preserves styles when mixed definitions project type and color", () => {
@@ -110,7 +110,7 @@ describe("series stroke styles", () => {
       ],
     }));
     expect(chart.options.value.stroke).toMatchObject({
-      width: [3, 2],
+      width: [2.5, 2],
       dashArray: [0, 6],
     });
     expect(chart.series.value).toEqual([

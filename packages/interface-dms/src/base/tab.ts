@@ -46,6 +46,13 @@ export interface TabProps extends BaseComponentProps {
   unmountOnHide?: boolean;
   persistState?: boolean;
   stateKey?: string;
+  /**
+   * A module route answering `{ [slot]: string | number }` in one request:
+   * the badge of each tab it names (a count of a record's related rows),
+   * replacing its static `badge`. Fetched again when one of the tab set's
+   * `watchActions` fires. Shown like a table view's tab counts.
+   */
+  badgesUrl?: string;
 }
 
 const TAB_COMPONENT_NAME = "dms-tab";
@@ -92,6 +99,13 @@ const TabItemSchema = z.object({
 
 /** The options `Tab` accepts. */
 export const TabSchema = z.object({
+  badgesUrl: ui(
+    z
+      .string()
+      .optional()
+      .describe("Route answering the badge of each tab, by slot."),
+    { label: "Badges from", group: "data", widget: "url", advanced: true },
+  ),
   items: ui(z.array(TabItemSchema).describe("The tabs, in display order."), {
     label: "Tabs",
     group: "content",

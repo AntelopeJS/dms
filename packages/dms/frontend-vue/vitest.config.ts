@@ -9,6 +9,12 @@ export default defineConfig({
       "#dms-core": resolve(__dirname, "layers/dms-core"),
       "#dms-ui": resolve(__dirname, "layers/dms-ui"),
       "#dms-layout": resolve(__dirname, "layers/dms-layout"),
+      // Mocked by the tests that reach it: the engine runs in the generated
+      // application, not under Vitest.
+      "#dms/frontend-module": resolve(
+        __dirname,
+        "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts",
+      ),
       "#shortcuts-aggregated": resolve(
         __dirname,
         "layers/dms-ui/app/config/shortcuts-registry.ts",

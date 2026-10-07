@@ -1,3 +1,4 @@
+import type { ClientOrigin } from "../../../utils/sign-in-country";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import {
   announceRegistration,
@@ -15,6 +16,7 @@ import { getEnabledOAuthProvider, resolveOAuthPolicy } from "./config";
 import { resolveOAuthUser } from "./identity-resolution";
 import { assertValidOAuthState } from "./state";
 import { exchangeCodeForAccessToken } from "./token-exchange";
+import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const HTTP_FORBIDDEN = 403;
 const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
@@ -38,7 +40,7 @@ const EMAIL_NOT_VERIFIED_MESSAGE = "error.oauth.email_not_verified";
  * @param providerId Provider handling the callback
  * @param body Callback payload relayed by the browser-facing layer
  * @param userAgent Requesting user agent
- * @param ip Requesting IP
+ * @param origin Requesting address and country
  * @returns Session, two-factor challenge, or tenant assignment handover
  */
 /** One OAuth return trip. */
@@ -48,7 +50,7 @@ export interface OAuthCallbackInput {
   providerId: string;
   body: unknown;
   userAgent: string;
-  ip: string;
+  origin: ClientOrigin;
 }
 
 export async function oauthCallback({
@@ -57,7 +59,7 @@ export async function oauthCallback({
   providerId,
   body,
   userAgent,
-  ip,
+  origin,
 }: OAuthCallbackInput): Promise<LoginOutcome> {
   const payload = assertValidation(body, (v) =>
     authSchema.oauthCallback.parse(v),
@@ -94,7 +96,10 @@ export async function oauthCallback({
   });
 
   if (wasCreated && !isRegistration) {
-    void notifyLoginMethodAdded(user._id, enabled.provider.displayName);
+    fireAndForget(
+      notifyLoginMethodAdded(user._id, enabled.provider.displayName),
+      "login method added notification",
+    );
   }
 
   if (resolvedInvite) {
@@ -108,7 +113,7 @@ export async function oauthCallback({
     sessionModel,
     user,
     userAgent,
-    ip,
+    origin,
     resolvedInvite?.tenantId,
   );
 }

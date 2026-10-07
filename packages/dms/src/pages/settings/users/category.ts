@@ -5,8 +5,10 @@ import { Category, settingsCategory } from "@antelopejs/interface-dms/page";
 // seven of them import the barrel that imports them back.
 export const userCategory = Category("user", {
   category: settingsCategory,
-  displayName: "$menu.user_settings",
+  displayName: "$page.settings.shell.account",
+  description: "$page.settings.overview.account_description",
   urlSlug: "user",
   icon: "i-ph-users",
   order: 1,
+  memberAccess: true,
 });

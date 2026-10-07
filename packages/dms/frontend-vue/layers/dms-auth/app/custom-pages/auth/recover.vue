@@ -1,11 +1,26 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
-
-const MIN_VALID_PASSWORD_SCORE = 4;
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthBackLink from "../../build/components/AuthBackLink.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../build/composables/useAuthFormError";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
+const dmsApp = useDmsApp();
 const { $authFetch } = useAuthFetch();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 if (!route.query.token || !route.query.email) {
   throw createError({
@@ -16,24 +31,22 @@ if (!route.query.token || !route.query.email) {
 }
 
 const isLoading = ref(false);
-const isPasswordVisible = ref(false);
 
-const schema = z.object({
+const fields = z.object({
   password: passwordSchema,
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 
 const state = reactive<Partial<Schema>>({
   password: undefined,
 });
-
-const { strength, score, color } = usePasswordStrength(
-  computed(() => state.password || ""),
-);
+useLiveFormErrors(form, state);
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     isLoading.value = true;
+    clearFormError();
     await $authFetch("/api/auth/reset-password", {
       method: "POST",
       body: {
@@ -43,10 +56,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       },
     });
 
-    navigateDms("/auth/recover-success");
+    await dmsApp.runWithContext(() => navigateDms("/auth/recover-success"));
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.forgot.error_title",
+    // A refused password shows under its field; an expired link above the form.
+    await showError(error, "page.forgot.error_title", {
+      fields: ["password"],
+      form,
     });
   } finally {
     isLoading.value = false;
@@ -55,70 +70,37 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.recover.title") }}
-      </h1>
+  <StageCard
+    icon="i-ph-password"
+    :title="$t('page.recover.title')"
+    :description="$t('page.recover.description')"
+  >
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      novalidate
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
+    >
+      <AuthFormAlert :error="formError" />
 
-      <p class="text-muted wrap pb-7 text-sm font-normal">
-        {{ $t("page.recover.description") }}
-      </p>
+      <AuthNewPasswordField
+        v-model="state.password"
+        :label="$t('page.recover.new_password')"
+      />
 
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
-      >
-        <div class="flex flex-col gap-4">
-          <UFormField
-            :error="state.password && color !== 'success'"
-            :label="$t('form.password.label')"
-            name="password"
-          >
-            <UInput
-              v-model="state.password"
-              :color="color"
-              :type="isPasswordVisible ? 'text' : 'password'"
-              :aria-invalid="score < MIN_VALID_PASSWORD_SCORE"
-              aria-describedby="password-strength"
-              class="w-full"
-            >
-              <template #trailing>
-                <UButton
-                  :icon="
-                    isPasswordVisible ? 'i-lucide-eye-off' : 'i-lucide-eye'
-                  "
-                  :aria-label="
-                    isPasswordVisible ? 'Hide password' : 'Show password'
-                  "
-                  :aria-pressed="isPasswordVisible"
-                  aria-controls="password"
-                  color="neutral"
-                  square
-                  size="xs"
-                  variant="ghost"
-                  @click="isPasswordVisible = !isPasswordVisible"
-                />
-              </template>
-            </UInput>
-          </UFormField>
+      <UButton
+        :label="$t('page.recover.submit')"
+        :loading="isLoading"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
 
-          <DmsPasswordStrength
-            :color="color"
-            :score="score"
-            :strength="strength"
-          />
-        </div>
-
-        <UButton
-          :label="$t('button.continue')"
-          :loading="isLoading"
-          type="submit"
-          block
-        />
-      </UForm>
-    </DmsCard>
-  </div>
+    <AuthBackLink to="/auth" :label="$t('button.back_to_login')" />
+  </StageCard>
 </template>

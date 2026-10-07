@@ -1,5 +1,9 @@
 import type { ZodTypeAny } from "zod";
-import { cloneDefault, collectDefaults, describeOptions } from "./describe";
+import {
+  cloneDefault,
+  collectDefaults,
+  describeOptions,
+} from "./internal/describe";
 import type { BlockTypeDefinition, BlockTypeDescriptor } from "./types";
 
 const DEFINITIONS = new Map<string, BlockTypeDefinition>();
@@ -98,15 +102,18 @@ export interface BlockOptionIssue {
   message: string;
 }
 
+/** The options satisfy the block type's schema. */
 export interface BlockValidationOk {
   valid: true;
 }
 
+/** The options break the block type's schema, at each of `issues`. */
 export interface BlockValidationFailed {
   valid: false;
   issues: BlockOptionIssue[];
 }
 
+/** What {@link ValidateBlockOptions} answers. */
 export type BlockValidation = BlockValidationOk | BlockValidationFailed;
 
 /**

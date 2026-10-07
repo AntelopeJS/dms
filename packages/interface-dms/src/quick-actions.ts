@@ -68,6 +68,7 @@ export interface QuickActionInfo {
   target: QuickActionTarget;
 }
 
+/** @internal */
 export namespace internal {
   export const RegisterQuickActionCategory = new RegisteringProxy<
     (info: QuickActionCategoryInfo) => void

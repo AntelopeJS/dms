@@ -11,11 +11,19 @@ import {
   buildKanbanColumns,
   type KanbanColumnDef,
 } from "../../composables/table-view/kanban";
+import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
+import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
+import {
+  buildCardProps,
+  cardFieldColumns,
+} from "../../build/composables/table-view/utils/card";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
 const DEFAULT_ROW_ID_KEY = "_id";
 const NEUTRAL_DOT_COLOR = "var(--ui-color-neutral-400)";
+// Placeholder cards per column while the board's first pages load.
+const SKELETON_CARD_COUNT = 3;
 
 interface BoardCellState {
   items: T[];
@@ -32,6 +40,14 @@ interface KanbanBoardProps {
   rowIdKey?: string;
   cardFields?: string[];
   cardComponent?: ComponentInfo;
+  /**
+   * What a custom card is handed besides its row: the table's actions and
+   * selection (see `TableViewCardProps`).
+   */
+  cardContext?: Pick<
+    TableViewDisplayContext<T>,
+    "columns" | "labelKey" | "rowIdKey" | "actions" | "selection"
+  >;
   draggable?: boolean;
   /** Items fetched per column, shared with the table page size preference */
   columnPageSize?: number;
@@ -112,7 +128,7 @@ const boardColumnsKey = computed(() =>
 // `refresh` is assigned below and only called once setup has completed.
 defineExpose({ refresh: () => refresh() });
 
-const { data, status, refresh } = await useDmsAsyncData(
+const { data, status, refresh } = await useServerRenderedAsyncData(
   `kanban-${props.componentId}-${props.pageId}-${instanceId}`,
   async () => {
     const pages = await Promise.all(
@@ -123,6 +139,12 @@ const { data, status, refresh } = await useDmsAsyncData(
     );
   },
   { watch: [boardColumnsKey, () => props.baseQuery, pageSize] },
+);
+
+// Nothing fetched yet (a client navigation paints first): the columns hold
+// placeholder cards and counts rather than an empty board.
+const isBoardLoading = computed(
+  () => data.value === null && status.value !== "error",
 );
 
 watch(
@@ -163,6 +185,11 @@ const hasMore = (col: KanbanColumnDef): boolean => {
   return !!cell && cell.items.length < cell.total;
 };
 
+const remainingCount = (col: KanbanColumnDef): number => {
+  const cell = cells.value[col.value];
+  return cell ? Math.max(cell.total - cell.items.length, 0) : 0;
+};
+
 const isActionAllowedForItem = (
   action: boolean | RowActionConfig | undefined,
   item: T,
@@ -176,7 +203,7 @@ const isActionAllowedForItem = (
 const isDragEnabled = computed(
   () =>
     (props.draggable ?? true) &&
-    normalizeActionConfig(props.editAction).isEnabled,
+    normalizeActionConfig(props.editAction).isEnabled === true,
 );
 
 const canDragItem = (item: T): boolean =>
@@ -184,6 +211,11 @@ const canDragItem = (item: T): boolean =>
 
 const canDeleteItem = (item: T): boolean =>
   isActionAllowedForItem(props.deleteAction, item);
+
+// A card its row rule keeps in place says so with a lock, on a board where
+// the others move.
+const isItemLocked = (item: T): boolean =>
+  isDragEnabled.value && !canDragItem(item);
 
 interface DraggableChangeEvent {
   added?: { element: T; newIndex: number };
@@ -321,17 +353,36 @@ const onColumnChange = async (
   }
 };
 
+// A custom card gets the props a card of the cards display gets, plus the
+// value of the column it sits in.
+const customCardProps = (item: T, groupValue: string) => ({
+  ...props.cardComponent?.options,
+  ...(props.cardContext ? buildCardProps(item, props.cardContext) : {}),
+  groupValue,
+});
+
 const customCardComponent = computed(() => {
   const componentName = props.cardComponent?.componentName;
   if (!componentName) return undefined;
   return resolveDmsComponent(componentName) || componentName;
 });
 
+// The cards grid's fields; the column a card sits in already says its group.
 const cardColumns = computed(() =>
-  (props.cardFields ?? [])
-    .map((field) => props.columns.find((col) => col.accessorKey === field))
-    .filter((col): col is TableViewColumn => !!col),
+  cardFieldColumns(props.columns, props.cardFields, {
+    labelKey: props.labelKey,
+    rowIdKey: props.rowIdKey ?? DEFAULT_ROW_ID_KEY,
+    others: [groupByField.value],
+  }),
 );
+
+// The id line only adds something when the title is a label, not the id.
+const getCardId = (item: T): string | undefined => {
+  if (!props.labelKey) return undefined;
+  const label = get(item, props.labelKey);
+  if (label === undefined || label === null || label === "") return undefined;
+  return getRowId(item);
+};
 
 const getCardTitle = (item: T): string => {
   if (props.labelKey) {
@@ -371,43 +422,76 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
   <div>
     <div
       v-if="boardColumns.length === 0"
-      class="text-muted mt-4 text-center text-sm"
+      class="text-muted px-[18px] py-8 text-center text-sm"
     >
       {{ t("dms.table.kanban.no_columns") }}
     </div>
 
-    <div v-else class="mt-4 flex items-start gap-4 overflow-x-auto pb-2">
+    <!-- v2 board: 240px columns on a muted band, inside the table card. -->
+    <div
+      v-else
+      class="flex items-start gap-3 overflow-x-auto px-[18px] pt-4 pb-[18px]"
+    >
       <div
         v-for="col in boardColumns"
         :key="col.value"
-        class="border-default bg-muted/40 flex w-72 shrink-0 flex-col rounded-lg border"
+        class="border-default flex w-60 shrink-0 flex-col rounded-[10px] border bg-(--dms-bg-muted)/70"
       >
         <div
-          class="border-default flex items-center gap-2 border-b px-3 py-2.5"
+          class="border-default flex h-10 items-center gap-2 border-b ps-3 pe-2"
         >
           <span
             class="size-2 shrink-0 rounded-full"
-            :style="{ backgroundColor: dotColor(col.color) }"
+            :style="{
+              backgroundColor: dotColor(col.color),
+              boxShadow: `0 0 0 3px color-mix(in srgb, ${dotColor(col.color)} 12%, transparent)`,
+            }"
           />
-          <span class="truncate text-sm font-semibold">{{ col.label }}</span>
-          <UBadge
-            color="neutral"
-            variant="soft"
-            size="sm"
-            class="ml-auto shrink-0"
+          <span class="text-highlighted truncate text-[13px] font-semibold">
+            {{ col.label }}
+          </span>
+          <USkeleton
+            v-if="isBoardLoading && !cells[col.value]"
+            aria-hidden="true"
+            class="ms-auto h-[16.5px] w-5 shrink-0 rounded-[5px]"
+          />
+          <span
+            v-else
+            class="bg-elevated text-muted ms-auto shrink-0 rounded-[5px] px-1.5 font-mono text-[11px] font-semibold tabular-nums"
           >
             {{ cells[col.value]?.total ?? 0 }}
-          </UBadge>
+          </span>
         </div>
 
         <div
           class="flex flex-col overflow-y-auto p-2"
           :style="{ maxHeight: columnMaxHeight ?? DEFAULT_COLUMN_MAX_HEIGHT }"
         >
-          <USkeleton
-            v-if="status === 'pending' && !cells[col.value]"
-            class="h-20 w-full"
-          />
+          <div
+            v-if="isBoardLoading && !cells[col.value]"
+            aria-hidden="true"
+            class="flex min-h-16 flex-col gap-2"
+          >
+            <div
+              v-for="n in SKELETON_CARD_COUNT"
+              :key="n"
+              class="border-default grid gap-2 rounded-lg border bg-(--dms-surface-card) px-3 pt-2.5 pb-[11px] shadow-xs"
+            >
+              <div class="-mb-0.5 flex min-h-5 items-center">
+                <USkeleton class="h-2.5 w-10" />
+              </div>
+              <div class="flex h-[17px] items-center">
+                <USkeleton class="h-3 w-3/4" />
+              </div>
+              <div
+                v-for="fieldColumn in cardColumns"
+                :key="fieldColumn.id"
+                class="-mt-0.5 flex h-[18px] items-center"
+              >
+                <USkeleton class="h-2.5 w-1/2" />
+              </div>
+            </div>
+          </div>
 
           <Draggable
             v-else
@@ -418,7 +502,8 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
             filter=".kanban-card-locked"
             :prevent-on-filter="false"
             class="flex min-h-16 flex-col gap-2"
-            ghost-class="opacity-50"
+            ghost-class="dms-kanban-ghost"
+            drag-class="dms-kanban-drag"
             @change="
               (event: DraggableChangeEvent) => onColumnChange(col, event)
             "
@@ -428,38 +513,58 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
                 <component
                   :is="customCardComponent"
                   v-if="customCardComponent"
-                  :item="element"
                   :columns="columns"
-                  :group-value="col.value"
-                  v-bind="cardComponent?.options ?? {}"
+                  v-bind="customCardProps(element, col.value)"
                   @edit="emit('card-click', element)"
                   @delete="emit('card-delete', element)"
                 />
+                <!-- v2 card: id line (with its delete or lock), title, fields. -->
                 <div
                   v-else
-                  class="border-default hover:border-primary group cursor-pointer rounded-lg border bg-(--dms-surface-card) p-3 transition-colors"
+                  class="border-default group hover:border-primary/35 grid cursor-pointer gap-2 rounded-lg border bg-(--dms-surface-card) px-3 pt-2.5 pb-[11px] text-[12.5px] shadow-xs transition-colors"
                   @click="emit('card-click', element)"
                 >
-                  <div class="flex items-start justify-between gap-2">
-                    <p class="truncate text-sm font-semibold">
-                      {{ getCardTitle(element) }}
-                    </p>
+                  <div
+                    v-if="
+                      getCardId(element) ||
+                      canDeleteItem(element) ||
+                      isItemLocked(element)
+                    "
+                    class="-mb-0.5 flex min-h-5 items-center gap-2"
+                  >
+                    <span
+                      v-if="getCardId(element)"
+                      class="text-muted truncate font-mono text-[11.5px] font-medium"
+                    >
+                      #{{ getCardId(element) }}
+                    </span>
+                    <UIcon
+                      v-if="isItemLocked(element)"
+                      name="i-ph-lock-simple"
+                      class="text-dimmed ms-auto size-[13px] shrink-0"
+                      :aria-label="t('dms.table.kanban.locked')"
+                    />
                     <UButton
-                      v-if="canDeleteItem(element)"
+                      v-else-if="canDeleteItem(element)"
                       icon="i-ph-trash"
                       color="error"
                       variant="ghost"
                       size="xs"
                       square
-                      class="-mt-1 -mr-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                      class="-my-1 ms-auto -me-1.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                       :aria-label="t('dms.button.delete')"
                       @click.stop="emit('card-delete', element)"
                     />
                   </div>
+                  <p
+                    class="text-highlighted truncate text-[13px] leading-[1.3] font-semibold"
+                  >
+                    {{ getCardTitle(element) }}
+                  </p>
                   <div
                     v-for="fieldColumn in cardColumns"
                     :key="fieldColumn.id"
-                    class="text-muted mt-1.5 truncate text-xs"
+                    class="text-muted -mt-0.5 truncate text-[12px]"
                   >
                     <FieldValue :column="fieldColumn" :item="element" />
                   </div>
@@ -471,7 +576,11 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
 
         <div v-if="hasMore(col)" class="px-2 pb-2">
           <UButton
-            :label="t('dms.table.kanban.load_more')"
+            :label="
+              t('dms.table.kanban.load_more_count', {
+                count: remainingCount(col),
+              })
+            "
             :loading="cells[col.value]?.loadingMore"
             color="neutral"
             variant="ghost"
@@ -484,3 +593,25 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
     </div>
   </div>
 </template>
+
+<style>
+/* SortableJS takes a single class name per state, hence plain CSS here.
+   v2 drop target: a dashed, accent-tinted slot where the card will land. */
+.dms-kanban-ghost {
+  min-height: 58px;
+  border: 1.5px dashed color-mix(in srgb, var(--ui-primary) 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-primary) 10%, transparent);
+}
+.dms-kanban-ghost > * {
+  visibility: hidden;
+}
+/* The card being dragged tilts and lifts on an accent ring. */
+.dms-kanban-drag > * {
+  transform: rotate(-2deg);
+  border-color: var(--ui-primary);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--ui-primary);
+}
+</style>

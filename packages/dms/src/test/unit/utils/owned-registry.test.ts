@@ -3,7 +3,7 @@ import {
   type ModuleExecutionContext,
   RunWithModuleContext,
 } from "@antelopejs/interface-core/modules";
-import { OwnedRegistry } from "@antelopejs/interface-dms/utils/owned-registry";
+import { OwnedRegistry } from "@antelopejs/interface-dms/utils/internal/owned-registry";
 import { expect } from "chai";
 
 function generation(module: string, index: number): ModuleExecutionContext {

@@ -5,10 +5,7 @@ import {
 } from "./useTableViewConfig";
 import type { FormProps } from "../../../composables/form/types";
 import type { QueryParamFilters } from "../../../composables/table-view/types";
-import type {
-  LocationQuery,
-  LocationQueryValue,
-} from "#dms/frontend-module";
+import type { LocationQuery, LocationQueryValue } from "#dms/frontend-module";
 import {
   TableRowAction,
   FormContainerType,
@@ -16,9 +13,36 @@ import {
 } from "./types";
 import DmsForm from "../../../components/form/Form.vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { ActionTarget } from "../../../composables/table-view/types/action-target";
+import {
+  type ActionConfirm,
+  isConfirmFrom,
+} from "#dms-core/app/types/confirm-dialog";
+import { useActionConfirm } from "../confirm/useActionConfirm";
+import { useActionTargets } from "../actions/useActionTargets";
+import { bulkSelectionQuery, withQuery } from "../actions/bulkSelection";
+import type { RowNavigationSource } from "../actions/rowNavigation";
+import type { TableUrlScope } from "./utils/views";
 import { TableViewEvents } from "../../../composables/table-view/types";
-import { resolveResponseToast } from "../../../utils/responseWarning";
+import {
+  bulkActionConfirm,
+  bulkActionOutcome,
+  bulkActionQuery,
+  bulkActionShortfall,
+  type BulkActionKind,
+  type BulkActionOutcome,
+  type ConfirmedBulkAction,
+} from "./utils/bulkActions";
+import { resolveActionError } from "../confirm/actionError";
+import {
+  ConfirmActionError,
+  type ConfirmOptions,
+  type ConfirmPartialOutcome,
+  type ConfirmValues,
+} from "../../../composables/confirm/types";
+import {
+  resolveFormContainerTexts,
+  type TableViewFormKind,
+} from "./utils/formTexts";
 
 const DEFAULT_ROW_ID_KEY = "_id";
 const DEFAULT_MODAL_SIZE = "xl";
@@ -48,27 +72,40 @@ interface TableRowActionsConfig {
   componentId: string;
   pageId: string;
   queryParamFilters?: QueryParamFilters;
+  /** The rows a row's drawer or modal steps through (J / K). */
+  rowNavigation?: RowNavigationSource;
+  /** Where a `deepLink` action writes its open row in the URL. */
+  recordScope?: TableUrlScope;
 }
 
 interface BulkActionConfig {
-  endpoint: string;
+  kind: BulkActionKind;
   method: HttpMethod;
   queryKey: string;
   successKey: string;
   errorKey: string;
 }
 
+/** Runs a confirmed action from inside its dialog (see `onConfirm`). */
+type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
+
+const ROW_URL_PLACEHOLDER = /\{[^}]+\}/;
+/** Options of a delete: from the archive, it is a permanent one. */
+interface DeleteRowsOptions {
+  permanently?: boolean;
+}
+
 export const useTableRowActions = <T extends Data>(
   config: TableRowActionsConfig,
 ) => {
   const toast = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { confirm } = useConfirm();
-  const { processI18n, processApiMessage } = useTranslation();
+  const { confirmAction } = useActionConfirm();
+  const { processI18n } = useTranslation();
   const { open: openModal } = useModal();
   const { open: openDrawer } = useDrawer();
   const route = useDmsRoute();
-  const { runJob: runExportJob } = useExportJob();
 
   const getContainerType = () =>
     config.formContainer?.type ?? DEFAULT_FORM_CONTAINER_TYPE;
@@ -90,44 +127,43 @@ export const useTableRowActions = <T extends Data>(
     return Object.keys(forwarded).length > 0 ? forwarded : undefined;
   };
 
-  const handleApiError = (error: unknown, defaultMessage: string) => {
-    const err = error as Record<string, unknown>;
-    const errData = err?.data as Record<string, unknown> | string | undefined;
-    const message =
-      (typeof errData === "object" ? errData?.message : errData) ||
-      err?.message ||
-      defaultMessage;
+  /**
+   * Toasts a failed action that has no dialog to show it in: `title` names
+   * what failed, the description is the server's message when it is meant
+   * for users, else a translated fallback (never a raw error line).
+   */
+  const handleApiError = (error: unknown, title?: string) => {
     toast.add({
       color: Color.error,
-      title: t("dms.form.error_title"),
-      description: processApiMessage(String(message)),
+      icon: "i-ph-warning-circle",
+      title: title || t("dms.form.error_title"),
+      description: resolveActionError(error, t),
     });
   };
 
-  const buildContainerTitle = (
-    action: TableRowAction,
-    item: T | undefined,
-    titleKey: string,
-  ): string => {
-    const titleParts: string[] = [];
+  /** The form a row action opens: a duplicate opens the add form. */
+  const formKindOf = (action: TableRowAction): TableViewFormKind => {
+    if (action === TableRowAction.edit) return "edit";
+    if (action === TableRowAction.view) return "view";
+    return "new";
+  };
 
-    if (
-      item &&
-      config.labelKey &&
-      (action === TableRowAction.edit || action === TableRowAction.view)
-    ) {
-      const label = item[config.labelKey];
-      if (label) {
-        titleParts.push(String(label));
-      }
-    }
-
-    if (config.caption) {
-      titleParts.push(processI18n(config.caption));
-    }
-
-    titleParts.push(t(titleKey));
-    return titleParts.join(" - ");
+  const buildContainerTexts = (action: TableRowAction, item: T | undefined) => {
+    const kind = formKindOf(action);
+    return resolveFormContainerTexts(
+      {
+        kind,
+        pages: config.formContainer?.pages,
+        caption: config.caption,
+        recordLabel:
+          item && config.labelKey && kind !== "new"
+            ? get(item, config.labelKey)
+            : undefined,
+        locale: locale.value,
+      },
+      processI18n,
+      t,
+    );
   };
 
   const buildContainerIds = (action: TableRowAction, itemId?: string) => {
@@ -165,7 +201,7 @@ export const useTableRowActions = <T extends Data>(
 
   const openModalContainer = (
     title: string,
-    descriptionKey: string,
+    description: string,
     containerId: string,
     componentIdSuffix: string,
     pageIdSuffix: string,
@@ -181,7 +217,7 @@ export const useTableRowActions = <T extends Data>(
 
     const modal = openModal({
       title,
-      description: t(descriptionKey),
+      description,
       size,
       containerId,
       component: DmsForm,
@@ -203,7 +239,7 @@ export const useTableRowActions = <T extends Data>(
 
   const openDrawerContainer = (
     title: string,
-    descriptionKey: string,
+    description: string,
     containerId: string,
     componentIdSuffix: string,
     pageIdSuffix: string,
@@ -213,7 +249,7 @@ export const useTableRowActions = <T extends Data>(
   ) => {
     const drawer = openDrawer({
       title,
-      description: t(descriptionKey),
+      description,
       containerId,
       component: DmsForm,
       componentOptions: {
@@ -245,14 +281,13 @@ export const useTableRowActions = <T extends Data>(
     action: TableRowAction;
     item?: T;
     itemId?: string;
-    titleKey: string;
-    descriptionKey: string;
     fetchUrl?: string;
     submitDefaults?: Record<string, unknown>;
   }
 
   interface ResolvedFormContainer {
     title: string;
+    description: string;
     containerId: string;
     componentIdSuffix: string;
     pageIdSuffix: string;
@@ -269,7 +304,6 @@ export const useTableRowActions = <T extends Data>(
     action: TableRowAction,
     item: T | undefined,
     itemId: string | undefined,
-    titleKey: string,
     formComponent: ComponentInfo<FormProps>,
   ): ResolvedFormContainer => {
     const { containerId, componentIdSuffix, pageIdSuffix } = buildContainerIds(
@@ -277,7 +311,7 @@ export const useTableRowActions = <T extends Data>(
       itemId,
     );
     return {
-      title: buildContainerTitle(action, item, titleKey),
+      ...buildContainerTexts(action, item),
       containerId,
       componentIdSuffix,
       pageIdSuffix,
@@ -290,12 +324,12 @@ export const useTableRowActions = <T extends Data>(
     resolved: ResolvedFormContainer,
     containerConfig: FormContainerConfig,
   ) => {
-    const { descriptionKey, fetchUrl, submitDefaults } = containerConfig;
+    const { fetchUrl, submitDefaults } = containerConfig;
 
     const handler = containerHandlers[containerType];
     return handler?.(
       resolved.title,
-      descriptionKey,
+      resolved.description,
       resolved.containerId,
       resolved.componentIdSuffix,
       resolved.pageIdSuffix,
@@ -315,7 +349,6 @@ export const useTableRowActions = <T extends Data>(
       containerConfig.action,
       containerConfig.item,
       containerConfig.itemId,
-      containerConfig.titleKey,
       formComponent,
     );
 
@@ -338,8 +371,6 @@ export const useTableRowActions = <T extends Data>(
       action: TableRowAction.view,
       item,
       itemId,
-      titleKey: "dms.table.view_item",
-      descriptionKey: "dms.table.view_item_description",
       fetchUrl: `${config.location}/get?id=${itemId}&action=details`,
     });
   };
@@ -365,8 +396,6 @@ export const useTableRowActions = <T extends Data>(
       action: TableRowAction.edit,
       item,
       itemId,
-      titleKey: "dms.table.edit_item",
-      descriptionKey: "dms.table.edit_item_description",
       submitDefaults,
     });
   };
@@ -384,8 +413,6 @@ export const useTableRowActions = <T extends Data>(
 
     return createFormContainer({
       action: TableRowAction.new,
-      titleKey: "dms.table.new_item",
-      descriptionKey: "dms.table.new_item_description",
       submitDefaults,
     });
   };
@@ -403,8 +430,6 @@ export const useTableRowActions = <T extends Data>(
     return createFormContainer({
       action: TableRowAction.duplicate,
       itemId,
-      titleKey: "dms.table.new_item",
-      descriptionKey: "dms.table.new_item_description",
       fetchUrl: `${config.location}/get?id=${itemId}&action=duplicate`,
     });
   };
@@ -499,325 +524,276 @@ export const useTableRowActions = <T extends Data>(
     },
   });
 
-  const performBulkAction = async (
+  /**
+   * Sends a bulk request; resolves how many of the rows it reached. A failed
+   * request rejects, for the caller to show where the user is looking.
+   */
+  const requestBulkAction = async (
+    ids: string[],
+    bulkConfig: BulkActionConfig,
+    values: ConfirmValues = {},
+  ): Promise<BulkActionOutcome> => {
+    const hasValues = Object.keys(values).length > 0;
+    const response = await bulkAction.execute(
+      () =>
+        config.api(`${config.location}/${bulkConfig.kind}`, {
+          method: bulkConfig.method,
+          query: bulkActionQuery(bulkConfig.queryKey, ids),
+          // The values of the confirmation's fields go with the request.
+          ...(hasValues ? { body: values } : {}),
+        }),
+      {
+        startPayload: { ids },
+        successPayload: () => ({ ids }),
+        errorPayload: (error) => ({ ids, error: getErrorPayload(error) }),
+      },
+    );
+    return bulkActionOutcome(response, ids.length);
+  };
+
+  /** Toasts what a bulk action changed, and refreshes the table. */
+  const reportBulkSuccess = (
+    processed: number,
+    actionConfig: boolean | RowActionConfig | undefined,
+    bulkConfig: BulkActionConfig,
+    description?: string,
+  ) => {
+    const { successMessage } = normalizeActionConfig(actionConfig);
+    toast.add({
+      color: description ? Color.warning : Color.success,
+      title: successMessage
+        ? processI18n(successMessage, { count: processed })
+        : t(bulkConfig.successKey, { count: processed }, processed),
+      description,
+    });
+    config.refreshCallback?.();
+  };
+
+  /**
+   * The `onConfirm` of a bulk action's dialog: the request runs inside it,
+   * so a refusal stays on screen, the dialog open for a retry or a cancel.
+   * Rows a row rule refuses are left out by the server: when none went the
+   * dialog says so (an error), when only some did the rest is done, the
+   * table refreshed, and the dialog sums up what was refused.
+   */
+  const bulkActionRun =
+    (
+      ids: string[],
+      actionConfig: boolean | RowActionConfig | undefined,
+      bulkConfig: BulkActionConfig,
+    ): ConfirmedRun =>
+    async (values: ConfirmValues): Promise<void | ConfirmPartialOutcome> => {
+      const outcome = await requestBulkAction(ids, bulkConfig, values);
+      const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
+      if (outcome.processed === 0 && shortfall) {
+        throw new ConfirmActionError(shortfall);
+      }
+      reportBulkSuccess(outcome.processed, actionConfig, bulkConfig);
+      if (shortfall) return { partial: shortfall };
+    };
+
+  /**
+   * A bulk action without a dialog (a restore): its outcome is toasted, an
+   * error when the request failed or no row went through.
+   */
+  const performDirectBulkAction = async (
     ids: string[],
     actionConfig: boolean | RowActionConfig | undefined,
     bulkConfig: BulkActionConfig,
-  ) => {
-    const normalized = normalizeActionConfig(actionConfig);
-    if (!normalized.isEnabled) return;
-
+  ): Promise<boolean> => {
+    let outcome: BulkActionOutcome;
     try {
-      await bulkAction.execute(
-        () =>
-          config.api(`${config.location}/${bulkConfig.endpoint}`, {
-            method: bulkConfig.method,
-            query: { [bulkConfig.queryKey]: ids },
-          }),
-        {
-          startPayload: { ids },
-          successPayload: () => ({ ids }),
-          errorPayload: (error) => ({ ids, error: getErrorPayload(error) }),
-        },
-      );
-
-      toast.add({
-        color: Color.success,
-        title: t(bulkConfig.successKey, { count: ids.length }),
-      });
-
-      config.refreshCallback?.();
+      outcome = await requestBulkAction(ids, bulkConfig);
     } catch (error) {
       handleApiError(error, t(bulkConfig.errorKey));
+      return false;
     }
+    const shortfall = bulkActionShortfall(bulkConfig.kind, outcome, t);
+    if (outcome.processed === 0) {
+      toast.add({
+        color: Color.error,
+        icon: "i-ph-warning-circle",
+        title: shortfall?.title ?? t(bulkConfig.errorKey),
+        description: shortfall?.description,
+      });
+      return false;
+    }
+    reportBulkSuccess(
+      outcome.processed,
+      actionConfig,
+      bulkConfig,
+      shortfall && `${shortfall.title} ${shortfall.description ?? ""}`.trim(),
+    );
+    return true;
   };
 
+  /**
+   * The confirmation a bulk action declares (`confirm`), for the rows it
+   * reaches: a `from` dialog is worded for one row, so several rows keep the
+   * generic confirmation. Undefined when none applies.
+   */
+  // A `from` URL naming a row (`{id}`, `{_id}`…) is worded for that row
+  // alone; one naming none receives the rows as `?ids=`, one or several, like
+  // the `from` of a bulk custom action.
+  const declaredBulkConfirm = (
+    actionConfig: boolean | RowActionConfig | undefined,
+    ids: string[],
+  ): ActionConfirm | undefined => {
+    const declared = normalizeActionConfig(actionConfig).confirm;
+    if (!declared || !isConfirmFrom(declared)) return declared;
+    if (ROW_URL_PLACEHOLDER.test(declared.from)) {
+      return ids.length === 1 ? declared : undefined;
+    }
+    return {
+      from: withQuery(
+        declared.from,
+        bulkSelectionQuery({ ids, count: ids.length }),
+      ),
+    };
+  };
+
+  /** Asks the declared confirmation of a bulk action, running it inside. */
+  const askDeclaredBulkConfirm = (
+    declared: ActionConfirm,
+    ids: string[],
+    fallback: Partial<ConfirmOptions>,
+    run: ConfirmedRun,
+  ): Promise<boolean> =>
+    confirmAction(declared, {
+      urlParams: {
+        id: ids[0],
+        [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: ids[0],
+      },
+      // A fixed dialog names the rows it reaches.
+      row: { count: ids.length },
+      fallback,
+      run,
+    });
+
+  /**
+   * Asks before a bulk action, then runs it from inside the dialog: the
+   * action's declared `confirm` (the server's own wording for a single row
+   * with `{ from }`), else the generic confirmation, toned for the action
+   * and counting the rows it reaches. Resolves whether rows went (false when
+   * the user cancelled, or gave up after a failure), so a caller keeps its
+   * selection otherwise.
+   */
+  const confirmBulkAction = async (
+    ids: string[],
+    actionConfig: boolean | RowActionConfig | undefined,
+    action: ConfirmedBulkAction,
+    bulkConfig: BulkActionConfig,
+  ): Promise<boolean> => {
+    const fallback = bulkActionConfirm(action, ids.length, t);
+    const run = bulkActionRun(ids, actionConfig, bulkConfig);
+    const declared = declaredBulkConfirm(actionConfig, ids);
+    if (declared) return askDeclaredBulkConfirm(declared, ids, fallback, run);
+    return confirm({ ...fallback, onConfirm: run });
+  };
+
+  const DELETE_CONFIG: BulkActionConfig = {
+    kind: "delete",
+    method: HttpMethod.delete,
+    queryKey: "id",
+    successKey: "dms.table.delete_rows",
+    errorKey: "dms.table.delete_error",
+  };
+
+  const ARCHIVE_CONFIG: BulkActionConfig = {
+    kind: "archive",
+    method: HttpMethod.put,
+    queryKey: "ids",
+    successKey: "dms.table.archive_rows",
+    errorKey: "dms.table.archive_error",
+  };
+
+  const RESTORE_CONFIG: BulkActionConfig = {
+    kind: "restore",
+    method: HttpMethod.put,
+    queryKey: "ids",
+    successKey: "dms.table.restore_rows",
+    errorKey: "dms.table.restore_error",
+  };
+
+  /**
+   * Deletes rows once confirmed; resolves whether they went (false when the
+   * user cancelled or the request failed), so a caller keeps its selection.
+   */
   const deleteRows = async (
     ids: string[],
     deleteConfig: boolean | RowActionConfig | undefined,
-  ) => {
-    const isConfirmed = await confirm({
-      title: t("dms.table.delete_confirm_title"),
-      description: t("dms.table.delete_confirm_description", {
-        count: ids.length,
-      }),
-      confirmLabel: t("dms.table.delete_confirm_button"),
-      confirmColor: "error",
-    });
-    if (!isConfirmed) return;
-
-    return performBulkAction(ids, deleteConfig, {
-      endpoint: "delete",
-      method: HttpMethod.delete,
-      queryKey: "id",
-      successKey: "dms.table.delete_rows",
-      errorKey: "dms.table.delete_error",
-    });
+    options: DeleteRowsOptions = {},
+  ): Promise<boolean> => {
+    if (!normalizeActionConfig(deleteConfig).isEnabled) return false;
+    const action = options.permanently ? "deletePermanently" : "delete";
+    return confirmBulkAction(ids, deleteConfig, action, DELETE_CONFIG);
   };
 
   const archiveRows = async (
     ids: string[],
     archiveConfig: boolean | RowActionConfig | undefined,
-  ) =>
-    performBulkAction(ids, archiveConfig, {
-      endpoint: "archive",
-      method: HttpMethod.put,
-      queryKey: "ids",
-      successKey: "dms.table.archive_rows",
-      errorKey: "dms.table.archive_error",
-    });
+  ): Promise<boolean> => {
+    if (!normalizeActionConfig(archiveConfig).isEnabled) return false;
+    return confirmBulkAction(ids, archiveConfig, "archive", ARCHIVE_CONFIG);
+  };
 
+  // Restoring takes nothing away: it asks only when it declares a
+  // confirmation, else it runs at once and its outcome is toasted.
   const restoreRows = async (
     ids: string[],
     restoreConfig: boolean | RowActionConfig | undefined,
-  ) =>
-    performBulkAction(ids, restoreConfig, {
-      endpoint: "restore",
-      method: HttpMethod.put,
-      queryKey: "ids",
-      successKey: "dms.table.restore_rows",
-      errorKey: "dms.table.restore_error",
-    });
-
-  const handleApiTarget = async (
-    target: ActionTarget & { type: "api" },
-    url: string,
-  ) => {
-    if (target.confirm) {
-      const isConfirmed = await confirm({
-        title: processI18n(target.confirm.title),
-        description: processI18n(target.confirm.description),
-        confirmColor: target.confirm.confirmColor,
-      });
-      if (!isConfirmed) return;
-    }
-
-    try {
-      const response = await config.api(url, {
-        method: target.method || HttpMethod.post,
-      });
-      toast.add(
-        resolveResponseToast(
-          response,
-          { color: Color.success, title: processI18n(target.successMessage) },
-          { processI18n, processApiMessage },
-        ),
+  ): Promise<boolean> => {
+    if (!normalizeActionConfig(restoreConfig).isEnabled) return false;
+    const declared = declaredBulkConfirm(restoreConfig, ids);
+    if (declared) {
+      return askDeclaredBulkConfirm(
+        declared,
+        ids,
+        {
+          confirmLabel: t("dms.button.restore"),
+          color: "primary",
+          icon: "i-ph-arrow-counter-clockwise",
+        },
+        bulkActionRun(ids, restoreConfig, RESTORE_CONFIG),
       );
-      config.refreshCallback?.();
-    } catch (error: unknown) {
-      handleApiError(error, t("dms.form.error_unknown"));
     }
+    return performDirectBulkAction(ids, restoreConfig, RESTORE_CONFIG);
   };
 
-  const handleExportJobTarget = async (
-    target: ActionTarget & { type: "exportJob" },
-    url: string,
-    rowData?: Data,
-  ) => {
-    if (target.confirm) {
-      const isConfirmed = await confirm({
-        title: processI18n(target.confirm.title),
-        description: processI18n(target.confirm.description),
-        confirmColor: target.confirm.confirmColor,
+  /**
+   * Runs a built-in action (edit, details, duplicate, add…) after the
+   * confirmation it declares, if any.
+   */
+  const runConfirmedBuiltIn = async (
+    actionConfig: boolean | RowActionConfig | undefined,
+    rowData: Data | undefined,
+    proceed: () => unknown,
+  ): Promise<void> => {
+    const declared = normalizeActionConfig(actionConfig).confirm;
+    if (declared) {
+      const id = rowData
+        ? getItemId(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)
+        : undefined;
+      const isConfirmed = await confirmAction(declared, {
+        row: rowData,
+        urlParams: { id },
       });
       if (!isConfirmed) return;
     }
-    const labels = target.labels
-      ? {
-          title: target.labels.title
-            ? processI18n(target.labels.title)
-            : undefined,
-          exporting: target.labels.exporting
-            ? processI18n(target.labels.exporting)
-            : undefined,
-          downloading: target.labels.downloading
-            ? processI18n(target.labels.downloading)
-            : undefined,
-          successTitle: target.labels.successTitle
-            ? processI18n(target.labels.successTitle)
-            : undefined,
-          successMessage: target.labels.successMessage
-            ? processI18n(target.labels.successMessage)
-            : undefined,
-          errorTitle: target.labels.errorTitle
-            ? processI18n(target.labels.errorTitle)
-            : undefined,
-          retry: target.labels.retry
-            ? processI18n(target.labels.retry)
-            : undefined,
-        }
-      : undefined;
-    const statusUrlTemplate = target.statusUrl;
-    const downloadUrlTemplate = target.downloadUrl;
-    const interpolate = (template: string, ticket: ExportJobTicket): string =>
-      interpolateUrl(template, { ...(rowData ?? {}), jobId: ticket.jobId });
-    await runExportJob({
-      startUrl: url,
-      startMethod: target.method ?? "POST",
-      statusUrl: statusUrlTemplate
-        ? (ticket) => interpolate(statusUrlTemplate, ticket)
-        : undefined,
-      downloadUrl: downloadUrlTemplate
-        ? (ticket) => interpolate(downloadUrlTemplate, ticket)
-        : undefined,
-      labels,
-    });
+    await proceed();
   };
 
-  const handleComponentTarget = (
-    target: ActionTarget & { type: "modal" | "drawer" },
-    title: string,
-    description: string,
-    containerId: string,
-    rowData?: Data,
-  ) => {
-    const componentName = target.component?.componentName;
-    if (!componentName) {
-      return;
-    }
-    const vueComponent = resolveDmsComponent(componentName) || componentName;
-
-    const componentOptions = {
-      ...target.component?.options,
+  const { handleCustomButton, handleCustomRowAction, handleBulkCustomAction } =
+    useActionTargets({
+      api: config.api,
       pageId: config.pageId,
       componentId: config.componentId,
-      containerId,
-      rowData,
-    };
-
-    if (target.type === "modal") {
-      const modal = openModal({
-        title,
-        description,
-        size: (target as ActionTarget & { type: "modal" }).size,
-        containerId,
-        component: vueComponent as Component,
-        componentOptions: {
-          ...componentOptions,
-          onSuccessCallback: () => {
-            modal.close();
-            config.refreshCallback?.();
-          },
-        },
-      });
-      return;
-    }
-
-    const drawer = openDrawer({
-      title,
-      description,
-      containerId,
-      component: vueComponent as Component,
-      componentOptions: {
-        ...componentOptions,
-        onSuccessCallback: () => {
-          drawer.close();
-          config.refreshCallback?.();
-        },
-      },
+      refreshCallback: config.refreshCallback,
+      handleApiError,
+      rowNavigation: config.rowNavigation,
+      recordScope: config.recordScope,
+      rowIdKey: config.rowIdKey,
     });
-  };
-
-  type TargetHandler = (
-    target: ActionTarget,
-    label: string,
-    rowData?: Data,
-  ) => Promise<void> | void;
-
-  const targetHandlers: Record<string, TargetHandler> = {
-    page: (target, _label, rowData) => {
-      const pageTarget = target as ActionTarget & { type: "page" };
-      const url = rowData
-        ? interpolateUrl(pageTarget.url, rowData)
-        : pageTarget.url;
-      navigateDms(url);
-    },
-    external: (target, _label, rowData) => {
-      const externalTarget = target as ActionTarget & { type: "external" };
-      const url = rowData
-        ? interpolateUrl(externalTarget.url, rowData)
-        : externalTarget.url;
-      if (typeof window === "undefined" || !url) return;
-      if (externalTarget.newTab) {
-        window.open(url, "_blank", "noopener,noreferrer");
-        return;
-      }
-      window.location.href = url;
-    },
-    api: async (target, _label, rowData) => {
-      const apiTarget = target as ActionTarget & { type: "api" };
-      const url = rowData
-        ? interpolateUrl(apiTarget.url, rowData)
-        : apiTarget.url;
-      await handleApiTarget(apiTarget, url);
-    },
-    exportJob: async (target, _label, rowData) => {
-      const jobTarget = target as ActionTarget & { type: "exportJob" };
-      const url = rowData
-        ? interpolateUrl(jobTarget.url, rowData)
-        : jobTarget.url;
-      await handleExportJobTarget(jobTarget, url, rowData);
-    },
-    modal: (target, label, rowData) => {
-      const title = processI18n((target as { title?: string }).title || label);
-      const description = processI18n(
-        (target as { description?: string }).description || "",
-      );
-      const containerId = `${config.pageId}-${config.componentId}-${target.type}`;
-      handleComponentTarget(
-        target as ActionTarget & { type: "modal" },
-        title,
-        description,
-        containerId,
-        rowData,
-      );
-    },
-    drawer: (target, label, rowData) => {
-      const title = processI18n((target as { title?: string }).title || label);
-      const description = processI18n(
-        (target as { description?: string }).description || "",
-      );
-      const containerId = `${config.pageId}-${config.componentId}-${target.type}`;
-      handleComponentTarget(
-        target as ActionTarget & { type: "drawer" },
-        title,
-        description,
-        containerId,
-        rowData,
-      );
-    },
-  };
-
-  const handleActionTarget = async (
-    target: ActionTarget,
-    label: string,
-    rowData?: Data,
-  ) => {
-    const handler = targetHandlers[target.type];
-    if (handler) {
-      await handler(target, label, rowData);
-    }
-  };
-
-  // Reached for a disabled button only through a quick action, which presses
-  // it by id: the reason is told instead of the target being opened.
-  const handleCustomButton = (button: CustomButton) => {
-    if (button.disabled) {
-      toast.add({
-        color: Color.warning,
-        title: processI18n(button.label),
-        description: button.disabledReason
-          ? processI18n(button.disabledReason)
-          : undefined,
-      });
-      return;
-    }
-    handleActionTarget(button.target, button.label);
-  };
-
-  const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    handleActionTarget(action.target, action.label, rowData);
-  };
 
   return {
     createFormContainer,
@@ -831,6 +807,8 @@ export const useTableRowActions = <T extends Data>(
     restoreRows,
     handleCustomButton,
     handleCustomRowAction,
+    handleBulkCustomAction,
     handleApiError,
+    runConfirmedBuiltIn,
   };
 };

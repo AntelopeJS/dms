@@ -13,6 +13,10 @@ import {
   pagesCategory,
 } from "@antelopejs/interface-dms/page";
 import {
+  clearPageMetadata,
+  revokePageExtension,
+} from "@antelopejs/interface-dms/page/internal/categories";
+import {
   categoryIdentity,
   dynamicMenuProviderIdentity,
   isSamePageRegistration,
@@ -20,7 +24,7 @@ import {
   pageExtensions,
   pageIdentity,
   stampPageRegistration,
-} from "@antelopejs/interface-dms/page/registry";
+} from "@antelopejs/interface-dms/page/internal/registry";
 import { RegisterModule } from "@antelopejs/interface-dms/page/roots";
 import type {
   DynamicMenuProviderInfo,
@@ -116,7 +120,7 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     const pageInfo = await registerPage("pri-boundary");
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.not.equal(undefined);
 
-    pageInterfaceInternal.clearPageMetadata(pageInfo.fullId, viewOf(pageInfo));
+    clearPageMetadata(pageInfo.fullId, viewOf(pageInfo));
 
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.equal(undefined);
   });
@@ -126,7 +130,7 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     const stale = buildPageInfo("pri-superseded");
     stampPageRegistration(stale);
 
-    pageInterfaceInternal.clearPageMetadata(pageInfo.fullId, viewOf(stale));
+    clearPageMetadata(pageInfo.fullId, viewOf(stale));
 
     expect(GetPageLayoutBySlug(pageInfo.fullSlug)).to.not.equal(undefined);
   });
@@ -244,7 +248,7 @@ describe("[unit] implementations/dms/page — teardown across the boundary", () 
     };
     pageInterfaceInternal.RegisterPageExtension.register(info);
 
-    pageInterfaceInternal.revokePageExtension(viewOf(info));
+    revokePageExtension(viewOf(info));
 
     expect(pageExtensions.get(target.fullId)).to.equal(undefined);
   });

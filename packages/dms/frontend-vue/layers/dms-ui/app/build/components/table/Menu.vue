@@ -7,6 +7,7 @@ import TableMenuSort from "./MenuSort.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import TableMenuImport from "./MenuImport.vue";
 import TableMenuViewMode from "./MenuViewMode.vue";
+import TableMenuDensity from "./MenuDensity.vue";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
@@ -36,7 +37,14 @@ const appConfig = useDmsAppConfig() as DmsAppConfig & {
 };
 
 const menuViews: Record<
-  "root" | "filters" | "columns" | "sort" | "page" | "import" | "viewMode",
+  | "root"
+  | "filters"
+  | "columns"
+  | "sort"
+  | "page"
+  | "density"
+  | "import"
+  | "viewMode",
   { title: string; root?: boolean; component: Component }
 > = {
   root: {
@@ -59,6 +67,10 @@ const menuViews: Record<
   page: {
     title: t("dms.table.page_size_title"),
     component: TableMenuPage,
+  },
+  density: {
+    title: t("dms.table.density_title"),
+    component: TableMenuDensity,
   },
   import: {
     title: t("dms.table.import_config_title"),

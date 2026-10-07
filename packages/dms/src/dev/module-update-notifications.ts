@@ -17,6 +17,8 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const NPM_VIEW_TIMEOUT_MS = 30_000;
 const UPDATES_SUBJECT_ID = "updates";
 const UPDATES_ICON = "i-ph-arrow-circle-up";
+/** An update is a useful action, never an urgent one. */
+const UPDATES_TONE = "primary";
 const MESSAGE_PREFIX = "$dms.notifications.messages.module_updates";
 const MODULE_LIST_SEPARATOR = ", ";
 const PACKAGE_SOURCE_TYPE = "package";
@@ -46,6 +48,7 @@ function ensureUpdatesSubject(): NotificationSubjectInfo {
     category: SystemCategory,
     labelKey: "dms.notifications.subjects.updates",
     descriptionKey: "dms.notifications.subjects.updates_desc",
+    badgeKey: "dms.notifications.subjects.updates_badge",
     togglePermission: "default",
   });
   return updatesSubject;
@@ -147,9 +150,10 @@ export async function notifyOutdatedModules(
   }
   await Notification()
     .icon(UPDATES_ICON)
-    .title(`${MESSAGE_PREFIX}.title`)
+    .title(`${MESSAGE_PREFIX}.${modules.length === 1 ? "title_one" : "title"}`)
     .description(`${MESSAGE_PREFIX}.description`)
     .subject(ensureUpdatesSubject())
+    .tone(UPDATES_TONE)
     .params({ count: modules.length, modules: moduleList })
     .build()
     .toUsersIdempotently(userIds, eventId);

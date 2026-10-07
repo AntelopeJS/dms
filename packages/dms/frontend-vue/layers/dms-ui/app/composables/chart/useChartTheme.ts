@@ -1,7 +1,10 @@
 const DEFAULT_COLOR_NAME = "primary";
 const SAFE_HEX_FALLBACK = "#7c3aed";
 const MUTED_FALLBACK = "#6b7280";
-const CHART_GRID_COLOR = "rgba(148, 163, 184, 0.25)";
+const GRID_FALLBACK = "rgba(148, 163, 184, 0.25)";
+const SURFACE_FALLBACK = "#ffffff";
+const MONO_FONT_FALLBACK = "ui-monospace, monospace";
+const MONO_FONT_VARIABLE = "--font-mono";
 const HEX_PREFIXES = ["#", "rgb", "hsl"];
 const SHADE_TOKEN =
   /^(primary|secondary|success|info|warning|error|neutral|accent)-(50|[1-9]00|950)$/;
@@ -9,12 +12,11 @@ const CSS_VARIABLE = /^--[\w-]+$/;
 const CSS_VARIABLE_FUNCTION = /^var\((--[\w-]+)\)$/;
 const COLOR_CHANNEL_MAX = 255;
 const DEFAULT_PALETTE = [
-  "primary",
-  "success",
-  "info",
-  "warning",
-  "error",
-  "secondary",
+  "--dms-chart-1",
+  "--dms-chart-2",
+  "--dms-chart-3",
+  "--dms-chart-4",
+  "--dms-chart-5",
 ];
 
 const COLOR_NAME_TO_VAR: Record<string, string> = {
@@ -52,12 +54,24 @@ function toApexColor(color: string, fallback: string): string {
   context.fillRect(0, 0, 1, 1);
   const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
   if (!alpha) return fallback;
+  // Apex reads the alpha of an rgba() series colour as its fill opacity,
+  // overriding fill.opacity and gradient stops, so opaque colours stay rgb().
+  if (alpha === COLOR_CHANNEL_MAX) return `rgb(${red}, ${green}, ${blue})`;
   return `rgba(${red}, ${green}, ${blue}, ${alpha / COLOR_CHANNEL_MAX})`;
+}
+
+/**
+ * The root class (light / dark) is part of the cache key: a page without a
+ * mounted chart has no theme observer to clear the cache when it flips, so a
+ * chart mounted afterwards would otherwise read the other theme's colours.
+ */
+function themeCacheScope(): string {
+  return document.documentElement?.className ?? "";
 }
 
 function probeCssColor(varName: string, fallback: string): string {
   if (typeof document === "undefined" || !document.body) return fallback;
-  const cacheKey = `${varName}:${fallback}`;
+  const cacheKey = `${themeCacheScope()}:${varName}:${fallback}`;
   const cached = colorProbeCache.get(cacheKey);
   if (cached) return cached;
   const probe = document.createElement("div");
@@ -114,6 +128,41 @@ export function readThemeHighlighted(): string {
   return readCssVariable("--ui-text-highlighted", "#ffffff");
 }
 
+/** Horizontal grid lines (v2 --chart-grid). */
 export function readThemeBorder(): string {
-  return CHART_GRID_COLOR;
+  return readCssVariable("--dms-chart-grid", GRID_FALLBACK);
+}
+
+/** Axis labels and quiet chart text. */
+export function readThemeDimmed(): string {
+  return readCssVariable("--ui-text-dimmed", MUTED_FALLBACK);
+}
+
+/** Crosshair and other hairlines one notch above the grid. */
+export function readThemeBorderAccented(): string {
+  return readCssVariable("--ui-border-accented", GRID_FALLBACK);
+}
+
+/** Card surface, used to ring markers and separate stacked segments. */
+export function readThemeSurface(): string {
+  return readCssVariable("--ui-bg", SURFACE_FALLBACK);
+}
+
+/** Band behind radial tracks and empty donut rings. */
+export function readThemeTrack(): string {
+  return readCssVariable("--dms-bg-muted", GRID_FALLBACK);
+}
+
+/**
+ * The mono font stack for SVG text: Apex writes it into a presentation
+ * attribute, which cannot resolve `var()`.
+ */
+export function readThemeMonoFont(): string {
+  if (typeof document === "undefined" || !document.documentElement) {
+    return MONO_FONT_FALLBACK;
+  }
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue?.(MONO_FONT_VARIABLE)
+    ?.trim();
+  return value || MONO_FONT_FALLBACK;
 }

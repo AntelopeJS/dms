@@ -1,27 +1,45 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../build/composables/useAuthFormError";
+import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 import { ACCOUNTS_LIST_ROUTE } from "../../utils/accountsFlow";
 
 const route = useDmsRoute();
 const homepage = useHomepage();
 const dmsApp = useDmsApp();
+const { metaTitle } = useSystemState();
 const { links: extraLinks } = useAuthLinks("login");
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 useOAuthErrorToast();
 
 const isLoading = ref(false);
-const isPasswordVisible = ref(false);
 
 const cameFromAccounts = computed(() => isFromAccountsList(route.query));
 
-const schema = z.object({
+const fields = z.object({
   email: z.string().email(),
   password: z.string().nonempty(),
   keep_login: z.boolean().optional(),
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({});
+useLiveFormErrors(form, state);
 
 function isTwoFactorRequired(
   response: unknown,
@@ -67,6 +85,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
   try {
     isLoading.value = true;
+    clearFormError();
 
     const response = await $fetch("/auth/login", {
       method: "POST",
@@ -89,113 +108,119 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       usePostLoginRedirect(redirectUrl || homepage),
     );
   } catch (error: unknown) {
-    await dmsApp.runWithContext(() =>
-      useApiError(error, {
-        title: "page.auth.error_title",
-      }),
-    );
+    // Wrong credentials name no field: they stay above the form.
+    await showError(error, "page.auth.error_title", {
+      fields: ["email", "password"],
+      form,
+    });
     isLoading.value = false;
   }
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg">
-    <DmsCard
-      as="section"
-      variant="elevated"
-      :padded="false"
-      class="p-6 sm:p-12"
+  <StageCard :title="$t('page.auth.login_title')">
+    <template #description>
+      <i18n-t
+        v-if="metaTitle"
+        keypath="page.auth.login_subtitle_workspace"
+        tag="span"
+        scope="global"
+      >
+        <template #workspace>
+          <b>{{ metaTitle }}</b>
+        </template>
+      </i18n-t>
+      <template v-else>{{ $t("page.auth.login_subtitle") }}</template>
+    </template>
+
+    <DmsOAuthButtons />
+
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      novalidate
+      class="mt-5 grid gap-4"
+      @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
-      <h1 class="pb-11 text-xl font-bold sm:text-2xl">
-        {{ $t("page.auth.login_title") }}
-      </h1>
+      <AuthFormAlert :error="formError" />
 
-      <DmsOAuthButtons />
+      <UFormField :label="$t('form.email.label')" name="email">
+        <UInput
+          v-model="state.email"
+          type="email"
+          autocomplete="email"
+          :placeholder="$t('page.auth.email_placeholder')"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
 
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
+      <UFormField
+        :label="$t('form.password.label')"
+        name="password"
+        :ui="{ hint: 'font-sans text-[12.5px]' }"
       >
-        <UFormField :label="$t('form.email.label')" name="email">
-          <UInput v-model="state.email" class="w-full" />
-        </UFormField>
+        <template #hint>
+          <DmsLink to="/auth/forgot" :class="AUTH_LINK_CLASS">
+            {{ $t("form.password.recover") }}
+          </DmsLink>
+        </template>
 
-        <UFormField :label="$t('form.password.label')" name="password">
-          <template #hint>
-            <DmsLink
-              to="/auth/forgot"
-              tabindex="-1"
-              class="text-primary text-sm"
-            >
-              {{ $t("form.password.recover") }}
-            </DmsLink>
-          </template>
+        <DmsPasswordInput
+          v-model="state.password"
+          size="lg"
+          autocomplete="current-password"
+          placeholder="••••••••"
+        />
+      </UFormField>
 
-          <UInput
-            v-model="state.password"
-            :type="isPasswordVisible ? 'text' : 'password'"
-            class="w-full"
-          >
-            <template #trailing>
-              <UButton
-                :icon="isPasswordVisible ? 'i-ph-eye-slash' : 'i-ph-eye'"
-                square
-                size="xs"
-                variant="ghost"
-                color="neutral"
-                type="button"
-                tabindex="-1"
-                @click="isPasswordVisible = !isPasswordVisible"
-              />
-            </template>
-          </UInput>
-        </UFormField>
+      <UFormField name="keep_login">
+        <UCheckbox
+          v-model="state.keep_login"
+          :label="$t('page.auth.keep_login')"
+        />
+      </UFormField>
 
-        <UFormField name="keep_login">
-          <UCheckbox
-            v-model="state.keep_login"
-            :label="$t('page.auth.keep_login')"
-          />
-        </UFormField>
+      <div class="grid gap-2">
+        <UButton
+          :loading="isLoading"
+          :label="$t('button.login')"
+          type="submit"
+          size="lg"
+          class="justify-center"
+          block
+        />
 
-        <div class="grid gap-2">
-          <UButton
-            :loading="isLoading"
-            :label="$t('button.login')"
-            type="submit"
-            block
-          />
-
-          <UButton
-            v-if="cameFromAccounts"
-            :label="$t('page.auth.back_to_accounts')"
-            icon="i-ph-arrow-left"
-            color="neutral"
-            variant="ghost"
-            :disabled="isLoading"
-            :to="ACCOUNTS_LIST_ROUTE"
-            type="button"
-            block
-          />
-        </div>
-      </UForm>
-
-      <div
-        v-if="extraLinks.length"
-        class="mt-6 flex flex-col items-center gap-2"
-      >
-        <DmsLink
-          v-for="link in extraLinks"
-          :key="link.id"
-          :to="link.to"
-          class="text-primary text-sm"
-        >
-          {{ $t(link.label) }}
-        </DmsLink>
+        <UButton
+          v-if="cameFromAccounts"
+          :label="$t('page.auth.back_to_accounts')"
+          icon="i-ph-arrow-left"
+          color="neutral"
+          variant="ghost"
+          :disabled="isLoading"
+          :to="ACCOUNTS_LIST_ROUTE"
+          type="button"
+          class="justify-center"
+          block
+        />
       </div>
-    </DmsCard>
-  </div>
+    </UForm>
+
+    <div
+      v-if="extraLinks.length"
+      class="mt-5 flex flex-col items-center gap-2 text-[13px]"
+    >
+      <DmsLink
+        v-for="link in extraLinks"
+        :key="link.id"
+        :to="link.to"
+        :class="AUTH_LINK_CLASS"
+      >
+        {{ $t(link.label) }}
+      </DmsLink>
+    </div>
+  </StageCard>
 </template>

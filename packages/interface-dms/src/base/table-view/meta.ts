@@ -17,7 +17,9 @@ import {
   LocalizationModifier,
 } from "@antelopejs/interface-database-decorators";
 import type { Component, ComponentBuilder } from "../../component";
-import { isString } from "../../utils/type-check";
+import { isString } from "../../utils/internal/type-check";
+import type { ColumnDisplay } from "./column-display";
+import { serializeColumnDisplay } from "./internal/column-display";
 // Through the barrel, not core: the default data types register themselves by
 // decorator, and this value import is what evaluates them. serializeType below
 // reads the registry they fill, so importing the definitions alone would leave
@@ -41,6 +43,7 @@ import {
 } from "../types";
 import type { TableViewGuards } from "../types/guards";
 import type {
+  TableViewFooterSummary,
   TableViewOptions,
   TableViewOptionsSerialized,
   TableViewRowActionOptions,
@@ -57,6 +60,7 @@ class WeakRefList<T extends object> {
   private readonly refs = new Set<WeakRef<T>>();
 
   public add(value: T): void {
+    if (this.live().includes(value)) return;
     this.refs.add(new WeakRef(value));
   }
 
@@ -92,7 +96,47 @@ export interface ColumnOptions {
   group?: string;
   /** Wrap grid cell content without a line limit. Omit to keep single-line clipping. */
   cellWrap?: boolean;
+  /**
+   * Default width of the grid column, in px (150 when omitted). The grid
+   * spreads any room left between its columns in proportion.
+   */
+  size?: number;
+  /**
+   * How table cells (and expanded-row fields) draw the value: a registered
+   * {@link ColumnDisplay} and its typed options. The column keeps `type` for
+   * its forms, filters, validation and exports. The frontend formatter also
+   * receives the row, so a display can compose sibling fields.
+   * @example new DefaultDisplays.IdentityDisplay({ subtitleField: "email" })
+   */
+  display?: ColumnDisplay<object>;
 }
+
+/**
+ * Whether a TableView built over a controller writes through its data routes
+ * (`write`: at least one of add, duplicate, edit, delete, archive or restore
+ * is enabled) or only reads them (`read`).
+ */
+export type TableViewAccess = "read" | "write";
+
+/** A data type of the same class whose options can change on their own. */
+function copyDataType(type: DataType): DataType {
+  const copy = Object.create(Object.getPrototypeOf(type) as object) as DataType;
+  return Object.assign(copy, type, {
+    options: type.options && { ...type.options },
+  });
+}
+
+// A footer summary's id: its index among the controller's summaries.
+const FOOTER_SUMMARY_ID = /^\d+$/;
+
+// The actions of a table view that change rows through the data routes.
+const WRITE_ACTION_IDS = new Set([
+  "add",
+  "edit",
+  "delete",
+  "archive",
+  "restore",
+]);
 
 export class TableViewMeta {
   public static key = Symbol();
@@ -103,6 +147,11 @@ export class TableViewMeta {
   public readonly columns: Record<string, ColumnOptions> = {};
   public readonly groups: Record<string, ColumnGroupConfig> = {};
   public archiveField?: string;
+  /**
+   * Row rules the data routes enforce on every write: those of the writing
+   * TableView over the controller (archive-mode defaults included), unless
+   * set explicitly with `setControllerRowActionRules`.
+   */
   public controllerRowActionRules?: TableViewRowActionOptions<any>;
   public controllerGuards?: TableViewGuards<any>;
   public bypassTenantAccessGate = false;
@@ -112,20 +161,61 @@ export class TableViewMeta {
   private readonly componentBuilderRefs = new WeakRefList<
     ComponentBuilder<TableViewOptionsSerialized>
   >();
+  private readonly readOnlyBuilders = new WeakSet<
+    ComponentBuilder<TableViewOptionsSerialized>
+  >();
   private readonly resourceFormRefs = new WeakRefList<FormBuilder>();
 
   /**
+   * A controller derived from this one (`DataController(Table, {},
+   * Controller("/b", Parent))`) starts with its columns, groups, options and
+   * archive field. The TableViews and forms built over the parent stay the
+   * parent's: the derived controller serves its own.
+   */
+  public inherit(parent: TableViewMeta): void {
+    // Each column gets its own copy of its type: a file column's type carries
+    // the attachment field of the controller it saves through, stamped when a
+    // form over that controller is built, and the two controllers save
+    // through different routes.
+    for (const [key, column] of Object.entries(parent.columns)) {
+      this.columns[key] = { ...column, type: copyDataType(column.type) };
+    }
+    Object.assign(this.groups, parent.groups);
+    this.options = { ...parent.options };
+    this.archiveField = parent.archiveField;
+  }
+
+  /**
    * Every live TableView built on this controller, in build order. Several
-   * pages may mount their own TableView over the same data routes.
+   * pages may mount their own TableView over the same data routes, only one
+   * of which writes (see `writingComponentBuilders`).
    */
   public get componentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
     return this.componentBuilderRefs.live();
   }
 
+  /**
+   * The live TableViews of `componentBuilders` that write through the data
+   * routes. A page mounts one at most: `TableView()` refuses a second one.
+   */
+  public get writingComponentBuilders(): ComponentBuilder<TableViewOptionsSerialized>[] {
+    return this.componentBuilders.filter(
+      (builder) => !this.readOnlyBuilders.has(builder),
+    );
+  }
+
+  /**
+   * Records a TableView built on this controller (once per builder). A
+   * component standing in for one -- a custom editor carrying the table's
+   * actions -- is recorded the same way, as a writer by default.
+   */
   public addComponentBuilder(
     builder: ComponentBuilder<TableViewOptionsSerialized>,
+    access: TableViewAccess = "write",
   ): void {
     this.componentBuilderRefs.add(builder);
+    if (access === "read") this.readOnlyBuilders.add(builder);
+    else this.readOnlyBuilders.delete(builder);
   }
 
   /**
@@ -143,21 +233,29 @@ export class TableViewMeta {
 
   /**
    * Every live component that submits to this controller's write routes: its
-   * TableViews and its `new` / `edit` forms (ResourceForm blocks, and the
-   * forms a page-mode TableView mounts on its form sub-pages). A file one of
-   * them staged is one those routes may save.
+   * writing TableView and its `new` / `edit` forms (ResourceForm blocks, and
+   * the forms a page-mode TableView mounts on its form sub-pages). A file one
+   * of them staged is one those routes may save.
    */
   public get writingComponents(): Component[] {
-    return [...this.componentBuilders, ...this.resourceFormBuilders];
+    return [...this.writingComponentBuilders, ...this.resourceFormBuilders];
   }
 
   /**
    * The permission id `actionId` carries on each TableView of this controller
-   * that a page mounts. The data routes are shared by all of them, so holding
-   * any one of these ids is what authorizes the action.
+   * that a page mounts, without duplicates: holding any one of them is what
+   * authorizes the action on the data routes. A write action is guarded by
+   * the writing TableView alone, so a read-only TableView sharing the
+   * controller grants reads only. Empty when no mounted table view declares
+   * the action.
    */
   public actionPermissionIds(actionId: string): string[] {
-    const ids = this.componentBuilders
+    const writers = this.writingComponentBuilders;
+    const builders =
+      WRITE_ACTION_IDS.has(actionId) && writers.length > 0
+        ? writers
+        : this.componentBuilders;
+    const ids = builders
       .map((builder) => builder.getAction(actionId)?.permissionId)
       .filter((id): id is string => !!id);
     return [...new Set(ids)];
@@ -330,6 +428,8 @@ export class TableViewMeta {
             enableSorting: meta.sortable !== undefined,
             enableColumnFilter: !!options.filterable,
             cellWrap: options.cellWrap,
+            size: options.size,
+            display: serializeColumnDisplay(options.display),
             defaultValue: options.defaultValue,
             accessMode: meta.mode,
             readonlyBehavior:
@@ -349,6 +449,28 @@ export class TableViewMeta {
 
   public setGroup(id: string, config: ColumnGroupConfig) {
     this.groups[id] = config;
+  }
+
+  // Footer summaries every table view over the controller declared, by id:
+  // the `summary` route computes the ones a request names, and never a
+  // figure a table did not declare.
+  private readonly footerSummaries: TableViewFooterSummary<any>[] = [];
+
+  /** Records footer summaries; the ids the `summary` route knows them by. */
+  public registerFooterSummaries<T extends Record<string, unknown>>(
+    summaries: TableViewFooterSummary<T>[],
+  ): string[] {
+    return summaries.map((summary) => {
+      this.footerSummaries.push(summary as TableViewFooterSummary<any>);
+      return String(this.footerSummaries.length - 1);
+    });
+  }
+
+  /** A footer summary by the id `registerFooterSummaries` gave it. */
+  public footerSummary(id: string): TableViewFooterSummary<any> | undefined {
+    return FOOTER_SUMMARY_ID.test(id)
+      ? this.footerSummaries[Number(id)]
+      : undefined;
   }
 
   public setOptions(options: TableViewOptions<any>) {
@@ -387,10 +509,13 @@ export const Column = MakeMethodAndPropertyDecorator(
         required: false,
       });
 
-      Validator(async (value) => {
-        const result = await zodSchema.safeParseAsync(value);
-        return result.success;
-      })(target, key, descriptor ?? {});
+      // The parse result rather than its success flag: the data API writes
+      // the parsed value, so a date sent as text is stored as a date.
+      Validator((value) => zodSchema.safeParseAsync(value))(
+        target,
+        key,
+        descriptor ?? {},
+      );
     }
 
     if (options.filterable) {
@@ -428,15 +553,3 @@ export const Exported = MakeMethodAndPropertyDecorator(
     return Listable(requiredFields, "export")(target, key, descriptor ?? {});
   },
 );
-
-export const getTableViewMetaFor = (target: unknown): TableViewMeta =>
-  GetMetadata(
-    (target as { constructor: ControllerClass }).constructor,
-    TableViewMeta,
-  );
-
-export const getControllerLocation = (target: unknown): string =>
-  GetMetadata(
-    (target as { constructor: ControllerClass }).constructor,
-    ControllerMeta,
-  ).location;

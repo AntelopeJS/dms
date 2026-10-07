@@ -5,27 +5,36 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type {
+  DeliveryOptions,
   NotificationCategoryInfo,
   NotificationData,
   NotificationSubjectInfo,
   ReadScope,
 } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
-import { UserNotificationsModel } from "../../db/models/userNotifications.model";
+import {
+  UserNotificationsModel,
+  buildNewUserNotification,
+} from "../../db/models/userNotifications.model";
+import type { UserNotification } from "../../db/tables/userNotifications.table";
 import { getRealtimeBroker } from "../../realtime/current";
 import { buildUserNotificationTopic } from "../../realtime/registry";
 import { runInBatches } from "../../utils/run-in-batches";
 import {
-  categoryRegistry,
-  isSubjectRegistered,
-  subjectRegistry,
-} from "./registry";
+  DUPLICATE_WINDOW_MS,
+  duplicateIds,
+  isWithinDuplicateWindow,
+} from "./delivery-dedupe";
+import { hasNotificationTitle } from "./delivery-guard";
+import { categoryRegistry, isSubjectLocked, subjectRegistry } from "./registry";
 
 export * from "./registry";
 
 const NOTIFICATION_NEW_EVENT = "notification:new";
 const NOTIFICATION_READ_EVENT = "notification:read";
 const NOTIFICATION_ALL_READ_EVENT = "notification:all-read";
+const NOTIFICATION_UNREAD_EVENT = "notification:unread";
+const NOTIFICATION_SEEN_EVENT = "notification:seen";
 const NOTIFICATION_SEND_BATCH_SIZE = 20;
 const NOTIFICATION_RECIPIENT_PAGE_SIZE = 500;
 
@@ -60,10 +69,97 @@ export async function publishNotificationsRead(
   await publishNotificationEvent(userId, NOTIFICATION_READ_EVENT, { ids });
 }
 
+/** Tells the user's open tabs these notifications are unread again. */
+export async function publishNotificationsUnread(
+  userId: string,
+  ids: string[],
+): Promise<void> {
+  await publishNotificationEvent(userId, NOTIFICATION_UNREAD_EVENT, { ids });
+}
+
+/** Refuses a notification without a title, which would store an empty row. */
+function isDeliverable(data: NotificationData, recipient: string): boolean {
+  if (hasNotificationTitle(data)) return true;
+  Logging.Error(
+    `[DMS] Notification without a title not delivered (subject "${data.subject?.id}", recipient ${recipient})`,
+  );
+  return false;
+}
+
+/**
+ * Stores a delivery unless the same notification (recipient, title,
+ * description, params, link, category, subject, tone and icon) reached this
+ * user within the duplicate window: in the window before, or in this one,
+ * where the database refuses the second row.
+ */
+async function storeUnlessDuplicate(
+  userId: string,
+  data: NotificationData,
+  groupId?: string,
+): Promise<UserNotification | undefined> {
+  const notificationsModel = GetModel(UserNotificationsModel);
+  const now = new Date();
+  const ids = duplicateIds(userId, data, now);
+  const previous = await notificationsModel.get(ids.previous);
+  const created =
+    previous && isWithinDuplicateWindow(previous.createdAt, now)
+      ? undefined
+      : await notificationsModel.createUnlessDuplicate(
+          buildNewUserNotification(userId, data, groupId),
+          ids.current,
+        );
+  if (!created) {
+    Logging.Debug(
+      `[DMS] Notification "${data.title}" to "${userId}" skipped: the same one was sent less than ${DUPLICATE_WINDOW_MS / 1000}s ago`,
+    );
+  }
+  return created;
+}
+
+/** How one delivery is stored. */
+interface StoreOptions {
+  groupId?: string;
+  idempotencyKey?: string;
+  /** Drop a repeat within the duplicate window. */
+  dedupe: boolean;
+}
+
+// A keyed delivery is stored once per key already; any other is kept from
+// repeating itself within the duplicate window, unless the sender opted out.
+async function store(
+  userId: string,
+  data: NotificationData,
+  { groupId, idempotencyKey, dedupe }: StoreOptions,
+): Promise<UserNotification | undefined> {
+  const notificationsModel = GetModel(UserNotificationsModel);
+  if (idempotencyKey !== undefined) {
+    return notificationsModel.createIdempotently(
+      userId,
+      data,
+      idempotencyKey,
+      groupId,
+    );
+  }
+  if (dedupe) return storeUnlessDuplicate(userId, data, groupId);
+  return notificationsModel.create(
+    buildNewUserNotification(userId, data, groupId),
+  );
+}
+
 export async function publishAllNotificationsRead(
   userId: string,
 ): Promise<void> {
   await publishNotificationEvent(userId, NOTIFICATION_ALL_READ_EVENT);
+}
+
+/** Tells the user's open tabs the bell was opened: their badges reset. */
+export async function publishNotificationsSeen(
+  userId: string,
+  seenAt: Date,
+): Promise<void> {
+  await publishNotificationEvent(userId, NOTIFICATION_SEEN_EVENT, {
+    seenAt: seenAt.toISOString(),
+  });
 }
 
 export namespace internal {
@@ -116,20 +212,21 @@ export namespace internal {
     return `${categoryId}:${subjectId}`;
   };
 
+  // A locked subject is delivered whatever the stored preference says: one
+  // saved before the lock, or through a route that did not check it, must
+  // not mute a mandatory notice.
   async function canSendNotification(
     userId: string,
     categoryId: string,
     subjectId: string,
   ): Promise<boolean> {
-    const isRegistered = isSubjectRegistered(categoryId, subjectId);
-
-    if (!isRegistered) {
-      return false;
-    }
+    const preferenceKey = buildPreferenceKey(categoryId, subjectId);
+    const subject = subjectRegistry.get(preferenceKey);
+    if (!subject) return false;
+    if (isSubjectLocked(subject)) return true;
 
     const preferencesModel = GetModel(UserNotificationPreferencesModel);
     const preferences = await preferencesModel.getOrCreatePreferences(userId);
-    const preferenceKey = buildPreferenceKey(categoryId, subjectId);
     return preferences.preferences?.[preferenceKey] ?? true;
   }
 
@@ -138,7 +235,10 @@ export namespace internal {
     data: NotificationData,
     groupId?: string,
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
+    if (!isDeliverable(data, `"${userId}"`)) return;
+
     const isAllowed = await canSendNotification(
       userId,
       data.subject.category.id,
@@ -149,26 +249,11 @@ export namespace internal {
       return;
     }
 
-    const notificationsModel = GetModel(UserNotificationsModel);
-    const created =
-      idempotencyKey !== undefined
-        ? await notificationsModel.createIdempotently(
-            userId,
-            data,
-            idempotencyKey,
-            groupId,
-          )
-        : await notificationsModel.create({
-            userId,
-            icon: data.icon,
-            title: data.title,
-            description: data.description,
-            categoryId: data.subject.category.id,
-            subjectId: data.subject.id,
-            linkTo: data.linkTo,
-            groupId,
-            params: data.params,
-          });
+    const created = await store(userId, data, {
+      groupId,
+      idempotencyKey,
+      dedupe: delivery.dedupe !== false,
+    });
 
     if (!created) return;
     await publishNotificationEvent(userId, NOTIFICATION_NEW_EVENT, {
@@ -181,21 +266,26 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
+    if (!isDeliverable(data, `list of ${userIds.length}`)) return;
     const groupId = buildGroupId(readScope, idempotencyKey);
-    await sendToUsersWithGroupId(userIds, data, groupId, idempotencyKey);
+    await sendToUsersWithGroupId(userIds, data, {
+      groupId,
+      idempotencyKey,
+      dedupe: delivery.dedupe !== false,
+    });
   }
 
   async function sendToUsersWithGroupId(
     userIds: string[],
     data: NotificationData,
-    groupId: string | undefined,
-    idempotencyKey?: string,
+    { groupId, idempotencyKey, dedupe }: StoreOptions,
   ): Promise<void> {
     const uniqueUserIds = [...new Set(userIds)];
 
     await runInBatches(uniqueUserIds, NOTIFICATION_SEND_BATCH_SIZE, (userId) =>
-      SendToUser(userId, data, groupId, idempotencyKey),
+      SendToUser(userId, data, groupId, idempotencyKey, { dedupe }),
     );
   }
 
@@ -204,8 +294,9 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
-    if (roleIds.length === 0) {
+    if (roleIds.length === 0 || !isDeliverable(data, "roles")) {
       return;
     }
 
@@ -215,7 +306,7 @@ export namespace internal {
       return;
     }
 
-    await SendToUsers(userIds, data, readScope, idempotencyKey);
+    await SendToUsers(userIds, data, readScope, idempotencyKey, delivery);
   }
 
   async function collectUserIdsWithRoles(roleIds: string[]): Promise<string[]> {
@@ -242,7 +333,9 @@ export namespace internal {
     data: NotificationData,
     readScope: ReadScope = "individual",
     idempotencyKey?: string,
+    delivery: DeliveryOptions = {},
   ): Promise<void> {
+    if (!isDeliverable(data, "everyone")) return;
     const userModel = GetModel(UserModel);
     const groupId = buildGroupId(readScope, idempotencyKey);
     let offset = 0;
@@ -253,8 +346,7 @@ export namespace internal {
       await sendToUsersWithGroupId(
         users.map((user) => user._id),
         data,
-        groupId,
-        idempotencyKey,
+        { groupId, idempotencyKey, dedupe: delivery.dedupe !== false },
       );
       if (users.length < NOTIFICATION_RECIPIENT_PAGE_SIZE) break;
       offset += NOTIFICATION_RECIPIENT_PAGE_SIZE;

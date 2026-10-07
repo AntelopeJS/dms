@@ -1,6 +1,6 @@
 import { ValueProxy } from "@antelopejs/interface-database";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
-import { getRowInstance } from "../../utils/row-instance";
+import { getRowInstance } from "../../utils/internal/row-instance";
 import { TenantMember, tenantMembersTableName } from "../tables";
 
 export class TenantMemberModel extends BasicDataModel(

@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import DmsFieldError from "../../field-error/FieldError.vue";
+import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../../composables/form/types/content-language";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
+import { useKeyboardPlatform } from "../../../composables/global/keyboardPlatform";
 import {
   type FileFieldConstraints,
   matchMimetype,
@@ -66,9 +69,14 @@ const emit = defineEmits<{
 }>();
 
 const { $authFetch } = useAuthFetch();
-const { emitFormChange } = useFormField();
+// The field state UFormField hands its control: the drop zone shows the
+// field's error border and carries its aria attributes.
+const { emitFormChange, color: fieldColor, ariaAttrs } = useFormField();
+const hasFieldError = computed(() => fieldColor.value === "error");
 const { t } = useI18n();
-const toast = useToast();
+const { formatShortcut } = useKeyboardPlatform();
+/** The paste key the hints mention: "⌘V" on macOS, "Ctrl V" elsewhere. */
+const pasteShortcut = computed(() => formatShortcut(["meta", "v"]));
 const { uploadWithProgress } = useUploadWithProgress();
 const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
 const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
@@ -91,6 +99,17 @@ const detailAltInputId = `${fieldId}-alt-detail`;
 const items = ref<GalleryItem[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 const isDraggingOver = ref(false);
+
+// One border state at a time: a plain element merges no classes, so two
+// border colours would be settled by stylesheet order, not by intent.
+const dropZoneClass = computed(() => {
+  if (isDraggingOver.value) {
+    return "border-primary text-primary border-solid bg-(--dms-accent-tint) shadow-[0_0_0_6px_var(--dms-accent-tint)]";
+  }
+  return invalid.value
+    ? "border-error hover:border-error"
+    : "border-(--dms-border-top) hover:border-primary";
+});
 const dragItemId = ref<string | null>(null);
 const dragOverItemId = ref<string | null>(null);
 const detailItemId = ref<string | null>(null);
@@ -353,23 +372,37 @@ const createItemFromFile = (file: File): GalleryItem => ({
   progress: 0,
 });
 
+// Pictures refused by the field's constraints (size, type, count), named
+// under the field: an error of this field, not a toast.
+const rejections = ref<string[]>([]);
+const rejectionId = fieldErrorId(`${fieldId}-rejection`);
+
+// The field red: its own error, or a picture it just refused.
+const invalid = computed(
+  () => hasFieldError.value || rejections.value.length > 0,
+);
+
+// Once the field gets an error of its own (a refused submit), it says what
+// is wrong: the refusal of an earlier pick no longer stacks under it.
+watch(hasFieldError, (isInvalid) => {
+  if (isInvalid) rejections.value = [];
+});
+
 const notifyRejected = (file: File, reason: "size" | "mimetype") => {
   const maxSize = props.constraints?.maxSize;
-  toast.add({
-    title: t("dms.form.image.rejected_title"),
-    description:
-      reason === "size"
-        ? t("dms.form.image.rejected_size", {
-            name: file.name,
-            size: maxSize ? formatFileSize(maxSize) : "",
-          })
-        : t("dms.form.image.rejected_type", { name: file.name }),
-    color: "error",
-  });
+  rejections.value.push(
+    reason === "size"
+      ? t("dms.form.image.rejected_size", {
+          name: file.name,
+          size: maxSize ? formatFileSize(maxSize) : "",
+        })
+      : t("dms.form.image.rejected_type", { name: file.name }),
+  );
 };
 
 const addFiles = (files: FileList | File[] | null) => {
   if (props.disabled || !files?.length) return;
+  rejections.value = [];
 
   const accepted: File[] = [];
   for (const file of Array.from(files)) {
@@ -394,11 +427,7 @@ const addFiles = (files: FileList | File[] | null) => {
   const admitted = accepted.slice(0, room);
   const dropped = accepted.length - admitted.length;
   if (dropped > 0) {
-    toast.add({
-      title: t("dms.form.image.rejected_title"),
-      description: t("dms.form.image.rejected_max", { count: dropped }),
-      color: "error",
-    });
+    rejections.value.push(t("dms.form.image.rejected_max", { count: dropped }));
   }
 
   const newItems = admitted.map(createItemFromFile);
@@ -579,20 +608,32 @@ onBeforeUnmount(() => {
       :accept="acceptString"
       :multiple="multiple"
       class="sr-only"
+      tabindex="-1"
+      :aria-invalid="rejections.length > 0 || undefined"
+      :aria-describedby="rejections.length ? rejectionId : undefined"
       @change="onFileInputChange"
     />
 
     <div v-if="multiple" class="flex flex-col gap-3">
+      <!-- A phone-narrow field still gets two tiles a row instead of one
+        full-width square. A class, not a multi-line style attribute: the
+        server and the browser serialise such an attribute differently, which
+        Vue reports as a hydration mismatch. -->
+      <!-- The gallery carries the field's state: a full one has no "Add"
+        tile left to show it. -->
       <div
-        class="grid gap-3"
-        style="grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr))"
+        class="grid grid-cols-[repeat(auto-fill,minmax(min(8.25rem,calc(50%-0.375rem)),1fr))] gap-3"
+        role="group"
+        v-bind="items.length ? ariaAttrs : undefined"
       >
         <div
           v-for="item in items"
           :key="item.id"
           class="group relative aspect-square cursor-pointer overflow-hidden rounded-xl shadow-sm transition-transform"
           :class="{
-            'ring-warning ring-2': item.principal && item.status === 'done',
+            'ring-error ring-2': invalid,
+            'ring-primary ring-2':
+              !invalid && item.principal && item.status === 'done',
             'opacity-40': dragItemId === item.id,
             'scale-95': dragOverItemId === item.id && dragItemId !== item.id,
           }"
@@ -622,7 +663,7 @@ onBeforeUnmount(() => {
 
           <span
             v-if="item.principal && item.status === 'done'"
-            class="bg-warning absolute top-1.5 left-1.5 z-[3] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm"
+            class="absolute top-1.5 left-1.5 z-[3] inline-flex items-center gap-1 rounded-full bg-(--dms-accent-fill) px-2 py-0.5 text-[11px] font-semibold text-(--dms-accent-on-fill) shadow-sm"
           >
             <UIcon name="i-lucide-star" class="size-3" />
             {{ t("dms.form.image.principal") }}
@@ -641,7 +682,7 @@ onBeforeUnmount(() => {
                 size="xs"
                 color="neutral"
                 variant="solid"
-                class="hover:text-warning bg-white/90 text-neutral-600 shadow-sm backdrop-blur-sm hover:bg-white"
+                class="bg-white/90 text-neutral-600 shadow-sm backdrop-blur-sm hover:bg-white hover:text-(--ui-color-primary-700)"
                 @click.stop="setPrincipal(item.id)"
               />
             </UTooltip>
@@ -717,11 +758,9 @@ onBeforeUnmount(() => {
         <button
           v-if="!isFull && !disabled"
           type="button"
-          class="border-default text-dimmed hover:border-primary hover:bg-primary/5 hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed transition-colors"
-          :class="{
-            'border-primary bg-primary/5 text-primary border-solid':
-              isDraggingOver,
-          }"
+          class="text-muted hover:text-primary flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-(--dms-bg-field) transition-colors hover:bg-(--dms-accent-tint)"
+          :class="dropZoneClass"
+          v-bind="ariaAttrs"
           @click="openFilePicker"
           @dragover.prevent="isDraggingOver = true"
           @dragleave="isDraggingOver = false"
@@ -739,7 +778,8 @@ onBeforeUnmount(() => {
 
       <p class="text-dimmed flex items-center gap-1.5 text-xs">
         <UIcon name="i-lucide-image" class="size-3.5" />
-        {{ t("dms.form.image.gallery_hint") }} · {{ formatsHint }}
+        {{ t("dms.form.image.gallery_hint", { shortcut: pasteShortcut }) }} ·
+        {{ formatsHint }}
       </p>
     </div>
 
@@ -747,11 +787,9 @@ onBeforeUnmount(() => {
       <button
         v-if="!singleItem"
         type="button"
-        class="border-default text-dimmed hover:border-primary hover:bg-primary/5 hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed transition-colors"
-        :class="{
-          'border-primary bg-primary/5 text-primary border-solid':
-            isDraggingOver,
-        }"
+        class="text-muted hover:text-primary flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-(--dms-bg-field) px-4 py-3 text-center transition-colors hover:bg-(--dms-accent-tint)"
+        :class="dropZoneClass"
+        v-bind="ariaAttrs"
         :disabled="disabled"
         @click="openFilePicker"
         @dragover.prevent="isDraggingOver = true"
@@ -760,7 +798,7 @@ onBeforeUnmount(() => {
       >
         <UIcon name="i-lucide-upload" class="size-6" />
         <span class="text-[13px] font-medium">
-          {{ t("dms.form.image.single_prompt") }}
+          {{ t("dms.form.image.single_prompt", { shortcut: pasteShortcut }) }}
         </span>
         <span class="text-[11px]">
           {{ t("dms.form.image.single_hint") }} · {{ formatsHint }}
@@ -770,7 +808,12 @@ onBeforeUnmount(() => {
       <div v-else class="flex flex-col gap-4 sm:flex-row sm:items-stretch">
         <div
           class="group relative aspect-[4/3] w-full flex-none overflow-hidden rounded-xl shadow-sm sm:w-58"
-          :class="{ 'ring-primary ring-2': isDraggingOver }"
+          :class="{
+            'ring-primary ring-2': isDraggingOver,
+            'ring-error ring-2': !isDraggingOver && invalid,
+          }"
+          role="group"
+          v-bind="ariaAttrs"
           @dragover.prevent="isDraggingOver = true"
           @dragleave="isDraggingOver = false"
           @drop.prevent="onDrop"
@@ -927,7 +970,7 @@ onBeforeUnmount(() => {
             />
             <span
               v-if="detailItem.principal"
-              class="bg-warning absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm"
+              class="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-(--dms-accent-fill) px-2 py-0.5 text-[11px] font-semibold text-(--dms-accent-on-fill) shadow-sm"
             >
               <UIcon name="i-lucide-star" class="size-3" />
               {{ t("dms.form.image.principal") }}
@@ -957,7 +1000,7 @@ onBeforeUnmount(() => {
                     ? t('dms.form.image.principal_current')
                     : t('dms.form.image.set_principal')
                 "
-                color="warning"
+                color="primary"
                 variant="subtle"
                 size="sm"
                 :disabled="detailItem.principal"
@@ -975,5 +1018,10 @@ onBeforeUnmount(() => {
         </div>
       </template>
     </UModal>
+    <DmsFieldError
+      :id="rejectionId"
+      class="mt-2"
+      :message="rejections.join(' ')"
+    />
   </div>
 </template>

@@ -1,15 +1,22 @@
+<script setup lang="ts">
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+</script>
+
 <template>
-  <div class="mx-auto max-w-md">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.forgot.title_success") }}
-      </h1>
-
-      <p class="text-muted pb-7 text-sm font-normal">
-        {{ $t("page.forgot.description_success") }}
-      </p>
-
-      <UButton :label="$t('button.continue')" to="/auth" block />
-    </DmsCard>
-  </div>
+  <StageCard
+    icon="i-ph-check"
+    tone="success"
+    :title="$t('page.forgot.title_success')"
+    :description="$t('page.forgot.description_success')"
+  >
+    <UButton
+      :label="$t('page.forgot.sign_in_button')"
+      trailing-icon="i-ph-arrow-right"
+      :ui="{ trailingIcon: 'ms-0' }"
+      to="/auth"
+      size="lg"
+      class="mt-[22px] justify-center"
+      block
+    />
+  </StageCard>
 </template>

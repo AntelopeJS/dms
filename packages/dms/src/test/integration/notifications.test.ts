@@ -132,8 +132,13 @@ describe("Notification idempotency (MongoDB adapter)", () => {
   });
 
   it("preserves unkeyed create results and physical deletion", async () => {
+    // Two different messages: an identical one within the duplicate window
+    // is not stored again (see the next case).
     await sendable.toUser(USER);
-    await sendable.toUser(USER);
+    await new SendableNotification({
+      ...data,
+      params: { amount: 200 },
+    }).toUser(USER);
     const rows = await model.getByUserId(USER);
     assert.equal(rows.length, 2);
     assert.equal(rows[0].title, data.title);
@@ -142,6 +147,63 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.equal(await model.table.get(rows[0]._id).run(), undefined);
     await model.deleteAll(USER);
     assert.equal((await model.table.run()).length, 0);
+  });
+
+  it("stores an identical unkeyed message sent twice in a row once", async () => {
+    await sendable.toUser(USER);
+    await sendable.toUser(USER);
+    assert.equal((await model.getByUserId(USER)).length, 1);
+  });
+
+  it("keeps a message worded alike but filed under another subject", async () => {
+    const otherSubject = { ...data.subject, id: "budget-forecast" };
+    internal.RegisterNotificationSubject.register(otherSubject);
+    try {
+      await sendable.toUser(USER);
+      await new SendableNotification({ ...data, subject: otherSubject }).toUser(
+        USER,
+      );
+      await new SendableNotification({ ...data, tone: "error" }).toUser(USER);
+      assert.equal((await model.getByUserId(USER)).length, 3);
+    } finally {
+      internal.RegisterNotificationSubject.unregister(otherSubject);
+    }
+  });
+
+  it("finds and updates a row whose title and params start with `$`", async () => {
+    const title = "$dms.notifications.messages.budget.title";
+    const since = new Date(Date.now() - 60_000);
+    await new SendableNotification({
+      ...data,
+      title,
+      params: { amount: 100, owner: "$finance", note: "$draft" },
+    }).toUser(USER);
+
+    const [row] = await model.findMatching(
+      USER,
+      title,
+      { owner: "$finance" },
+      since,
+    );
+    assert.ok(row);
+    assert.deepEqual(
+      await model.findMatching(USER, title, { owner: "$sales" }, since),
+      [],
+    );
+
+    await model.update(row._id, { params: { amount: 200, owner: "$finance" } });
+    const updated = await model.get(row._id);
+    assert.equal(updated?.title, title);
+    assert.deepEqual(updated?.params, { amount: 200, owner: "$finance" });
+    assert.equal(updated?.isRead, false);
+  });
+
+  it("stores every send of a sender that turned deduplication off", async () => {
+    await sendable.toUser(USER, { dedupe: false });
+    await sendable.toUser(USER, { dedupe: false });
+    await sendable.toUsers([USER, OTHER_USER], { dedupe: false });
+    assert.equal((await model.getByUserId(USER)).length, 3);
+    assert.equal((await model.getByUserId(OTHER_USER)).length, 1);
   });
 
   it("retains a dismissed receipt and excludes it from all visible reads", async () => {

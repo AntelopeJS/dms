@@ -4,69 +4,75 @@ import { Logging } from "@antelopejs/interface-core/logging";
 import { DataAPIMeta } from "@antelopejs/interface-data-api/metadata";
 import { ComponentBuilder } from "../../component";
 import { GetPermissionId, PageMetadata } from "../../page";
-import { claimFormPageRoute } from "../../page/form-page-routes";
-import { HasPermission } from "../../permissions";
+import { claimFormPageRoute } from "../../page/internal/form-page-routes";
+import { resolveInheritedLayout } from "../../page/internal/categories";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
-import type {
-  CustomButton,
-  CustomButtonSerialized,
-} from "../types/custom-button";
-import type { RowActionConfig, RowActionRule } from "../types/row-action";
-import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
-import { TableViewMeta } from "./meta";
+import { hasSearchableFields } from "../internal/searchable";
+import { type TableViewAccess, TableViewMeta } from "./meta";
+import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
+import { registerTableViewPageTopics } from "./internal/realtime";
 import {
-  KANBAN_DISPLAY_ID,
-  TABLE_DISPLAY_ID,
-  TABLE_VIEW_COMPONENT_NAME,
-  type TableViewOptions,
-  type TableViewOptionsSerialized,
-  type TableViewRowActionOptions,
-  type TableViewRowActionOptionsSerialized,
-} from "./options";
-import { registerTableViewPageTopics } from "./realtime";
-import { resourceForm, stampAttachmentFields } from "./resource-form";
+  adaptRowActions,
+  resolveCustomButtons,
+  resolveCustomRowActions,
+  resolveTableViewGrants,
+} from "./internal/request-filter";
+import { resourceForm, stampAttachmentFields } from "./internal/resource-form";
 import { TableViewRoutes } from "./routes";
-import { extractRuleFromConfig } from "./row-rules";
 import {
   applyFormPageSubmitDefaults,
   applyFormRedirect,
-  applyPermissionToAction,
   buildFilterSubmitDefaults,
   buildFormPageUrls,
   buildFormRedirectUrl,
-  resolveCustomButtons,
   FORM_PAGE_DEFINITIONS,
   FORM_PAGE_KINDS,
+  formPageConfig,
   type FormPageKind,
   formPageSlug,
   formRouteKey,
   joinPageSlug,
-  mergeControllerRule,
+  registerTableViewActions,
+  resolveFormPageTexts,
+  serializeCustomButtons,
+  serializeExpandable,
+  serializeRowActions,
   serializeTableViewDisplays,
-  ROW_SCOPED_FORM_PAGE_KINDS,
-  TableViewFunctions,
-  validateKanbanField,
+} from "./internal/factory-helpers";
+import { TableViewFunctions } from "./factory-helpers";
+import {
+  declaresCounters,
+  resolveTableViewTabs,
+  serializeTableViewTabs,
   warnIfTabsLackCountBatch,
-} from "./factory-helpers";
+} from "./internal/tabs";
+import { declareTabNavBadges } from "./internal/nav-badges";
+import {
+  resolveTableViewViews,
+  serializeTableViewViews,
+} from "./internal/views";
+import {
+  serializeEmptyStates,
+  serializeFooter,
+  warnIfSummaryLacksRoute,
+} from "./internal/footer";
+import { claimWritingTableView, tableViewAccess } from "./internal/writer";
+import { tableViewFromSource } from "./source";
+import {
+  assertRowScopedFormSlugs,
+  validateTableViewOptions,
+} from "./internal/validation";
+import { fireAndForget } from "../../utils/fire-and-forget";
+
 export function TableView<T extends ControllerClass>(
   controller: T,
   options: TableViewOptions<InstanceType<T>> = {},
 ): ComponentBuilder<TableViewOptionsSerialized> {
   const meta = GetMetadata(controller, TableViewMeta);
-  meta.setOptions(options);
-
-  if (options.rowActions) {
-    const hasRules = Object.values(options.rowActions).some(
-      (config) =>
-        typeof config === "object" && config !== null && "rule" in config,
-    );
-    if (hasRules && !meta.controllerRowActionRules) {
-      meta.setControllerRowActionRules(options.rowActions);
-    }
-  }
 
   if (options.guards && !meta.controllerGuards) {
     meta.setControllerGuards(options.guards);
@@ -92,7 +98,14 @@ export function TableView<T extends ControllerClass>(
   warnIfTabsLackCountBatch(
     controller,
     config.location,
-    (options.tabs?.length ?? 0) > 0,
+    declaresCounters(options),
+    endpoints,
+  );
+
+  warnIfSummaryLacksRoute(
+    controller,
+    config.location,
+    options.footer,
     endpoints,
   );
 
@@ -115,94 +128,34 @@ export function TableView<T extends ControllerClass>(
     );
   }
 
-  if (options.kanban) {
-    validateKanbanField(controller.name, meta, options.kanban.groupByField);
-    for (const field of options.kanban.cardFields ?? []) {
-      if (!meta.columns[field]) {
-        throw new Error(
-          `TableView kanban cardFields on ${controller.name} references unknown column "${field}"`,
-        );
-      }
-    }
-  }
+  validateTableViewOptions(controller.name, meta, options);
 
-  if (options.defaultDisplay) {
-    const knownDisplayIds = new Set<string>([
-      TABLE_DISPLAY_ID,
-      ...(options.kanban ? [KANBAN_DISPLAY_ID] : []),
-      ...(options.displays?.map((display) => display.id) ?? []),
-    ]);
-    if (!knownDisplayIds.has(options.defaultDisplay)) {
-      throw new Error(
-        `TableView on ${controller.name} defaults to display "${options.defaultDisplay}" which is not declared in displays`,
-      );
-    }
-  }
+  const serializedExpandable = serializeExpandable(
+    controller.name,
+    meta,
+    options.expandable,
+  );
 
-  const filterSubmitDefaults = buildFilterSubmitDefaults(options);
-
-  const newForm = resourceForm(controller, "new", {
-    submitDefaults: filterSubmitDefaults,
-    slotId: options.formSlots?.new,
-  });
-  const editForm = resourceForm(controller, "edit", {
-    submitDefaults: filterSubmitDefaults,
-    slotId: options.formSlots?.edit,
-  });
-  const viewForm = resourceForm(controller, "view", {
-    slotId: options.formSlots?.view,
-  });
-
-  const serializeActionTarget = (
-    target: CustomButton["target"],
-  ): CustomButtonSerialized["target"] => {
-    if (
-      target.type === "page" ||
-      target.type === "external" ||
-      target.type === "api" ||
-      target.type === "exportJob"
-    ) {
-      return target;
-    }
-    return {
-      ...target,
-      component: target.component.serializeSync(),
-    };
+  const capabilities = {
+    hasNewForm: meta.getFormFields("new").length > 0,
+    hasEditForm: meta.getFormFields("edit").length > 0,
+    hasDeleteEndpoint: !!endpoints.delete,
+    archiveMode: !!options.archiveMode,
   };
+  const access = tableViewAccess(options.rowActions, capabilities);
+  const isWriting = access === "write";
+  const forms = buildTableViewForms(controller, options, access);
+  const { new: newForm, edit: editForm, view: viewForm } = forms;
 
   const declaredCustomButtons = options.customButtons;
-  const serializedCustomButtons: CustomButtonSerialized[] | undefined =
-    declaredCustomButtons?.map(
-      ({ permission: _permission, availability: _availability, ...btn }) => ({
-        ...btn,
-        target: serializeActionTarget(btn.target),
-      }),
-    );
-
-  const serializeRowActions = (
-    rowActions: TableViewRowActionOptions<InstanceType<T>>,
-  ): TableViewRowActionOptionsSerialized => ({
-    delete: rowActions.delete as boolean | RowActionConfig | undefined,
-    archive: rowActions.archive as boolean | RowActionConfig | undefined,
-    restore: rowActions.restore as boolean | RowActionConfig | undefined,
-    duplicate: rowActions.duplicate as boolean | RowActionConfig | undefined,
-    details: rowActions.details as boolean | RowActionConfig | undefined,
-    edit: rowActions.edit as boolean | RowActionConfig | undefined,
-    copyLink: rowActions.copyLink as boolean | RowActionConfig | undefined,
-    add: rowActions.add as boolean | RowActionConfig | undefined,
-    hasSelection: rowActions.hasSelection,
-    custom: rowActions.custom?.map((action) => ({
-      label: action.label,
-      icon: action.icon,
-      rule: action.rule as RowActionRule | undefined,
-      target: serializeActionTarget(action.target),
-      isVisible: action.isVisible,
-      isDefault: action.isDefault,
-    })),
-  });
-
-  const serializedRowActions: TableViewRowActionOptionsSerialized | undefined =
-    options.rowActions ? serializeRowActions(options.rowActions) : undefined;
+  const serializedCustomButtons = serializeCustomButtons(declaredCustomButtons);
+  const serializedRowActions = options.rowActions
+    ? serializeRowActions(options.rowActions)
+    : undefined;
+  // Kept for the per-request filter, whose `options` are the serialized ones.
+  const declaredCustomRowActions = options.rowActions?.custom;
+  const declaredTabs = options.tabs;
+  const declaredViews = options.views;
 
   const isPageMode =
     options.formContainer === undefined ||
@@ -213,72 +166,30 @@ export function TableView<T extends ControllerClass>(
   // The table view embeds its new/edit/view forms synchronously into its own
   // options, so it is the async host that claims their upload tokens.
   builder.transformOptions(StampUploadFieldTokens);
-  for (const { id, permission } of declaredCustomButtons ?? []) {
-    if (id) builder.button(id, { permission });
+  for (const { id, permission, permissionId } of declaredCustomButtons ?? []) {
+    if (id) builder.button(id, { permission, permissionId });
   }
+  declareTabNavBadges(builder, options.tabs, controller);
 
-  builder.action(LIST_ACTION, {
-    title: "$dms.table.action_list",
-    icon: "i-ph-list",
+  // Declared from what the controller offers, a read-only TableView's write
+  // actions included: they keep guarding the write routes of a controller no
+  // TableView writes through.
+  registerTableViewActions(builder, {
+    ...capabilities,
+    hasViewForm: !!viewForm,
+    isExportEnabled,
   });
-  builder.action(SELECT_ACTION, {
-    title: "$dms.table.action_select",
-    icon: "i-ph-magnifying-glass",
-    description: "$dms.table.action_select_description",
-    defaultGranted: true,
-  });
-  if (newForm) {
-    builder.action("add", {
-      title: "$dms.table.action_add",
-      icon: "i-ph-plus",
-    });
-  }
-  if (editForm) {
-    builder.action("edit", {
-      title: "$dms.table.action_edit",
-      icon: "i-ph-pencil",
-    });
-  }
-  if (viewForm) {
-    builder.action(VIEW_ACTION, {
-      title: "$dms.table.action_view",
-      icon: "i-ph-eye",
-    });
-  }
-  if (endpoints.delete) {
-    builder.action("delete", {
-      title: "$dms.table.action_delete",
-      icon: "i-ph-trash",
-    });
-  }
-  if (options.archiveMode) {
-    builder.action("archive", {
-      title: "$dms.table.action_archive",
-      icon: "i-ph-archive",
-    });
-    builder.action("restore", {
-      title: "$dms.table.action_restore",
-      icon: "i-ph-arrow-counter-clockwise",
-    });
-    builder.action("viewArchived", {
-      title: "$dms.table.action_view_archived",
-      icon: "i-ph-eye-closed",
-    });
-  }
-  if (isExportEnabled) {
-    builder.action("export", {
-      title: "$dms.table.action_export",
-      icon: "i-ph-download-simple",
-    });
-  }
 
-  meta.addComponentBuilder(builder);
+  recordTableView(meta, builder, access, options);
 
   builder
     .options({
       ...config,
       rowActions: serializedRowActions,
       caption: options.caption,
+      density: options.density,
+      maxHeight: options.maxHeight,
+      expandable: serializedExpandable,
       enableTableExport: isExportEnabled,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,
@@ -289,8 +200,18 @@ export function TableView<T extends ControllerClass>(
       routeParamFilters: options.routeParamFilters,
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
-      tabs: options.tabs,
-      displays: serializeTableViewDisplays(options.displays, options.kanban),
+      tabs: serializeTableViewTabs(options.tabs),
+      views: serializeTableViewViews(options.views),
+      layout: options.layout,
+      searchable: hasSearchableFields(controller),
+      searchPlaceholder: options.searchPlaceholder,
+      quickFilters: options.quickFilters,
+      pageSize: options.pageSize,
+      pagination: options.pagination,
+      reorder: options.reorder,
+      footer: serializeFooter(controller.name, meta, options.footer),
+      emptyStates: serializeEmptyStates(options.emptyStates),
+      displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
       formComponents: {
         new: newForm ? newForm.serializeSync() : undefined,
@@ -314,6 +235,13 @@ export function TableView<T extends ControllerClass>(
           : undefined;
 
       const tableViewPermissionId = GetPermissionId(builder);
+
+      if (tableViewPermissionId && isWriting) {
+        claimWritingTableView(meta, controller.name, {
+          owner: tableViewPermissionId,
+          page: parentPage,
+        });
+      }
 
       if (options.realtime !== false) {
         registerTableViewPageTopics(parentInfo.fullId, config.location);
@@ -343,24 +271,11 @@ export function TableView<T extends ControllerClass>(
         ),
       });
 
-      for (const kind of ROW_SCOPED_FORM_PAGE_KINDS) {
-        const declared = customPages?.[kind]?.urlSlug;
-        if (declared && !declared.includes(":id")) {
-          throw new Error(
-            `TableView formContainer.pages.${kind}.urlSlug must contain :id placeholder. Got: ${declared}`,
-          );
-        }
-      }
-
-      const forms: Record<FormPageKind, FormBuilder | undefined> = {
-        new: newForm,
-        edit: editForm,
-        view: viewForm,
-      };
+      assertRowScopedFormSlugs(customPages);
 
       const registerFormPage = (kind: FormPageKind) => {
         const form = forms[kind];
-        if (!form || customPages?.[kind]?.customPage) return;
+        if (!form || formPageConfig(kind, customPages)?.customPage) return;
 
         const definition = FORM_PAGE_DEFINITIONS[kind];
         const urlSlug = formPageSlug(kind, routeKey, customPages);
@@ -377,27 +292,35 @@ export function TableView<T extends ControllerClass>(
           fullSlug,
         });
 
+        const texts = resolveFormPageTexts(kind, customPages);
+
         const FormController = class extends parentPage.target {};
         const formMeta = new PageMetadata(FormController as ControllerClass);
         formMeta.SetInfo(
           id,
           fullSlug,
           {
-            displayName:
-              customPages?.[kind]?.displayName || definition.displayName,
-            description:
-              customPages?.[kind]?.description || definition.description,
+            displayName: texts.displayName,
+            description: texts.description,
             category: parentInfo,
             urlSlug,
             hidden: true,
             permission: builder.getAction(definition.action),
           },
-          FormPageLayout(),
+          resolveInheritedLayout(parentInfo) ?? FormPageLayout(),
         );
         const frame = { pageSlug: parentInfo.fullSlug, formSlug: fullSlug };
         if (definition.submitsFilterDefaults) {
           applyFormPageSubmitDefaults(form, options, frame);
         }
+        // The edit and details pages end their breadcrumb with the row's
+        // label once the form has loaded it.
+        if (kind !== "new" && options.labelKey) {
+          form.mergeOptions({ labelKey: options.labelKey });
+        }
+        // A record's form page: Cancel leads back to the list while there
+        // is nothing to save, as in a drawer or a modal.
+        form.mergeOptions({ backTo: `/${parentInfo.fullSlug}` });
         if (definition.redirectsOnSubmit) {
           applyFormRedirect(
             form,
@@ -406,7 +329,7 @@ export function TableView<T extends ControllerClass>(
           );
         }
         formMeta.SetComponent("form", form);
-        void formMeta.Register();
+        fireAndForget(formMeta.Register(), "table view form registration");
 
         if (options.realtime === false) return;
         registerTableViewPageTopics(
@@ -420,105 +343,26 @@ export function TableView<T extends ControllerClass>(
       }
     })
     .onFilter(async (permissions, options, permissionId, context) => {
-      const hasAddPermission = await HasPermission(
-        permissions,
-        `${permissionId}.add`,
-      );
-      const hasEditPermission = await HasPermission(
-        permissions,
-        `${permissionId}.edit`,
-      );
-      const hasDeletePermission = await HasPermission(
-        permissions,
-        `${permissionId}.delete`,
-      );
-      const hasViewPermission = await HasPermission(
-        permissions,
-        `${permissionId}.view`,
-      );
-      const hasArchivePermission = await HasPermission(
-        permissions,
-        `${permissionId}.archive`,
-      );
-      const hasRestorePermission = await HasPermission(
-        permissions,
-        `${permissionId}.restore`,
-      );
-      const hasViewArchivedPermission = await HasPermission(
-        permissions,
-        `${permissionId}.viewArchived`,
-      );
+      const grants = await resolveTableViewGrants(permissions, permissionId);
 
       const adaptedFormComponents = {
-        new: hasAddPermission ? options.formComponents.new : undefined,
-        edit: hasEditPermission ? options.formComponents.edit : undefined,
-        view: hasViewPermission ? options.formComponents.view : undefined,
+        new: grants.add ? options.formComponents.new : undefined,
+        edit: grants.edit ? options.formComponents.edit : undefined,
+        view: grants.view ? options.formComponents.view : undefined,
       };
 
-      const adaptedRowActions: TableViewRowActionOptionsSerialized = {
-        add: applyPermissionToAction(hasAddPermission, options.rowActions?.add),
-        edit: applyPermissionToAction(
-          hasEditPermission,
-          options.rowActions?.edit,
+      const adaptedRowActions = adaptRowActions({
+        rowActions: options.rowActions,
+        archiveMode: options.archiveMode,
+        grants,
+        custom: await resolveCustomRowActions(
+          permissions,
+          declaredCustomRowActions,
+          options.rowActions?.custom,
+          permissionId,
         ),
-        duplicate: applyPermissionToAction(
-          hasAddPermission,
-          options.rowActions?.duplicate,
-        ),
-        delete: applyPermissionToAction(
-          hasDeletePermission,
-          options.rowActions?.delete,
-        ),
-        archive: options.archiveMode
-          ? applyPermissionToAction(
-              hasArchivePermission,
-              options.rowActions?.archive,
-            )
-          : undefined,
-        restore: options.archiveMode
-          ? applyPermissionToAction(
-              hasRestorePermission,
-              options.rowActions?.restore,
-            )
-          : undefined,
-        showArchived: options.archiveMode
-          ? hasViewArchivedPermission
-          : undefined,
-        details: applyPermissionToAction(
-          hasViewPermission,
-          options.rowActions?.details,
-        ),
-        copyLink: applyPermissionToAction(
-          hasViewPermission,
-          options.rowActions?.copyLink,
-        ),
-        hasSelection: options.rowActions?.hasSelection,
-        custom: options.rowActions?.custom,
-      };
-
-      const controllerRules = meta.controllerRowActionRules;
-      if (controllerRules) {
-        for (const actionName of [
-          "edit",
-          "delete",
-          "archive",
-          "restore",
-        ] as const) {
-          adaptedRowActions[actionName] = mergeControllerRule(
-            adaptedRowActions[actionName],
-            extractRuleFromConfig(controllerRules, actionName),
-          );
-        }
-      }
-
-      const editHasNoRules =
-        adaptedRowActions.edit === true ||
-        (typeof adaptedRowActions.edit === "object" &&
-          !adaptedRowActions.edit.rule);
-
-      if (editHasNoRules) {
-        adaptedRowActions.details = false;
-      }
+        controllerRules: meta.controllerRowActionRules,
+      });
 
       const adaptedCustomButtons = await resolveCustomButtons(
         permissions,
@@ -528,15 +372,89 @@ export function TableView<T extends ControllerClass>(
         context,
       );
 
+      const adaptedTabs = await resolveTableViewTabs(
+        permissions,
+        declaredTabs,
+        options.tabs,
+        permissionId,
+      );
+
+      const adaptedViews = await resolveTableViewViews(
+        permissions,
+        declaredViews,
+        options.views,
+        permissionId,
+      );
+
       return {
         ...options,
+        // The export routes refuse a caller without the action: its toolbar
+        // entry is left out too, like the add/edit/delete buttons.
+        enableTableExport: options.enableTableExport && grants.export,
         formComponents: adaptedFormComponents,
         rowActions: adaptedRowActions,
         customButtons: adaptedCustomButtons,
+        tabs: adaptedTabs,
+        views: adaptedViews,
       };
     });
 
   return builder;
+}
+
+/**
+ * A read-only table view over a module's own route, without a data
+ * controller: see {@link tableViewFromSource}.
+ */
+TableView.fromSource = tableViewFromSource;
+
+/**
+ * The forms a table view opens. A read-only one opens no form that submits:
+ * its files are none the write routes should accept, and it has no form page
+ * to register.
+ */
+function buildTableViewForms<T extends ControllerClass>(
+  controller: T,
+  options: TableViewOptions<InstanceType<T>>,
+  access: TableViewAccess,
+): Record<FormPageKind, FormBuilder | undefined> {
+  const viewForm = resourceForm(controller, "view", {
+    slotId: options.formSlots?.view,
+  });
+  if (access === "read")
+    return { new: undefined, edit: undefined, view: viewForm };
+  const submitDefaults = buildFilterSubmitDefaults(options);
+  return {
+    new: resourceForm(controller, "new", {
+      submitDefaults,
+      slotId: options.formSlots?.new,
+    }),
+    edit: resourceForm(controller, "edit", {
+      submitDefaults,
+      slotId: options.formSlots?.edit,
+    }),
+    view: viewForm,
+  };
+}
+
+/**
+ * Record a table view on its controller. The writing one's options and rules,
+ * archive-mode defaults included, are the ones the data routes apply to every
+ * write; a read-only one's options stand in only while none writes.
+ */
+function recordTableView<T extends ControllerClass>(
+  meta: TableViewMeta,
+  builder: ComponentBuilder<TableViewOptionsSerialized>,
+  access: TableViewAccess,
+  options: TableViewOptions<InstanceType<T>>,
+): void {
+  meta.addComponentBuilder(builder, access);
+  if (access === "write") {
+    meta.setControllerRowActionRules(options.rowActions ?? {});
+  } else if (meta.writingComponentBuilders.length > 0) {
+    return;
+  }
+  meta.setOptions(options);
 }
 
 declare module "../types/watch" {

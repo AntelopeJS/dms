@@ -1,8 +1,24 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthBackLink from "../../build/components/AuthBackLink.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../build/composables/useAuthFormError";
+import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
 const route = useDmsRoute();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const token = computed(() => (route.query.token as string) || "");
 
@@ -21,14 +37,22 @@ const backToLoginTarget = computed(() => ({
 
 const isLoading = ref(false);
 
-const schema = z.object({
-  code: z.string().min(1),
+// Codes are issued in uppercase and compared by hash: normalise what was typed.
+const fields = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((code) => code.toUpperCase()),
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({ code: undefined });
+useLiveFormErrors(form, state);
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   isLoading.value = true;
+  clearFormError();
   try {
     await $fetch("/auth/verify-2fa", {
       method: "POST",
@@ -41,8 +65,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
     await usePostLoginRedirect();
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.backup.error_title",
+    // A wrong code shows under the field; an expired sign-in above the form.
+    await showError(error, "page.backup.error_title", {
+      fields: ["code"],
+      codes: { "error.invalid_backup_code": "code" },
+      form,
     });
   } finally {
     isLoading.value = false;
@@ -51,48 +78,55 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-xl">
-    <DmsCard variant="elevated" :padded="false" class="grid gap-7 p-7 sm:p-12">
-      <div>
-        <h1 class="pb-5 text-2xl font-bold">
-          {{ $t("page.backup.title") }}
-        </h1>
-        <p class="text-muted text-sm font-normal">
-          {{ $t("page.backup.description") }}
-        </p>
-      </div>
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
+  <StageCard
+    icon="i-ph-key"
+    :title="$t('page.backup.title')"
+    :description="$t('page.backup.description')"
+  >
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      novalidate
+      class="mt-[22px] grid gap-4"
+      @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
+    >
+      <AuthFormAlert :error="formError" />
+
+      <UFormField
+        :label="$t('page.backup.code')"
+        :help="$t('page.backup.code_help')"
+        name="code"
       >
-        <UFormField
-          class="text-sm font-medium"
-          :label="$t('page.backup.code')"
-          name="code"
-        >
-          <UInput
-            v-model="state.code"
-            :loading="isLoading"
-            class="h-9 w-full"
-            type="text"
-          />
-        </UFormField>
-        <div class="flex flex-col gap-4">
-          <UButton :loading="isLoading" type="submit" block>
-            {{ $t("button.continue") }}
-          </UButton>
-          <div class="flex flex-col gap-2 text-center">
-            <DmsLink :to="twoFactorTarget" class="text-muted text-sm">
-              {{ $t("page.2fa.back_to_2fa") }}
-            </DmsLink>
-            <DmsLink :to="backToLoginTarget" class="text-muted text-sm">
-              {{ $t("button.back_to_login") }}
-            </DmsLink>
-          </div>
-        </div>
-      </UForm>
-    </DmsCard>
-  </div>
+        <UInput
+          v-model="state.code"
+          :disabled="isLoading"
+          autocomplete="one-time-code"
+          spellcheck="false"
+          placeholder="ABCD1234"
+          size="lg"
+          class="w-full"
+          :ui="{ base: 'font-mono tracking-[0.08em] uppercase' }"
+        />
+      </UFormField>
+
+      <UButton
+        :loading="isLoading"
+        :label="$t('page.2fa.verify')"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
+
+    <p class="text-muted mt-5 text-center text-[13px]">
+      <DmsLink :to="twoFactorTarget" :class="AUTH_LINK_CLASS">
+        {{ $t("page.2fa.back_to_2fa") }}
+      </DmsLink>
+    </p>
+
+    <AuthBackLink :to="backToLoginTarget" :label="$t('button.back_to_login')" />
+  </StageCard>
 </template>

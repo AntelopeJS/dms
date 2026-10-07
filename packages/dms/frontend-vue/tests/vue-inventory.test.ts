@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const EXPECTED_VUE_FILES = 144;
+const EXPECTED_VUE_FILES = 264;
 
 function walk(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -20,12 +20,16 @@ function ownership(path: string): string | undefined {
     [/\/app\/error\.vue$/, "inertia-error-page"],
     [/\/app\/emails\/.*\.vue$/, "server-email-template"],
   ];
-  return owners.find(([pattern]) => pattern.test(path))?.[1];
+  // Forward slashes on every OS, so the patterns also match Windows paths.
+  const normalized = path.replaceAll("\\", "/");
+  return owners.find(([pattern]) => pattern.test(normalized))?.[1];
 }
 
 describe("Vue source inventory", () => {
   it("contains only Vue frontend source files", () => {
-    const files = walk(join(process.cwd(), "layers"));
+    const files = walk(join(process.cwd(), "layers")).map((path) =>
+      path.replaceAll("\\", "/"),
+    );
     expect(files.filter((path) => path.includes("/server/"))).toEqual([]);
   });
 
@@ -37,7 +41,7 @@ describe("Vue source inventory", () => {
     expect(files.filter((path) => !ownership(path))).toEqual([]);
     expect(
       files.filter((path) => ownership(path) === "server-email-template"),
-    ).toHaveLength(8);
+    ).toHaveLength(10);
   });
 
   it("exposes entries for the frontend adapter", () => {
@@ -52,18 +56,29 @@ describe("Vue source inventory", () => {
       '"./layers/**/app/custom-layouts/**/*.vue"',
     );
     expect(frontendModule).toContain('"./layers/**/app/error.vue"');
+    expect(frontendModule).toContain('componentPrefix: "Dms"');
     expect(frontendModule).toContain(
-      "sdk.registerComponent(`Dms${pascalCase(name)}`, component)",
+      "sdk.registerComponent(pascalCase(name), component)",
     );
+    for (const [name, alias] of [
+      ["ActivityFeed", "ActivityFeedBlock"],
+      ["Section", "SectionBlock"],
+      ["FieldRow", "FieldRowBlock"],
+    ]) {
+      expect(frontendModule).toContain(`${name}: "${alias}"`);
+    }
     expect(frontendModule).toContain('.replace(/\\/index$/, "")');
     expect(frontendModule).toContain(
       "sdk.registerErrorPage(lazyComponent(loader), loader)",
     );
 
-    const entries = walk(join(root, "layers")).filter(
-      (path) =>
-        path.includes("/app/custom-pages/") || path.endsWith("/app/error.vue"),
-    );
+    const entries = walk(join(root, "layers"))
+      .map((path) => path.replaceAll("\\", "/"))
+      .filter(
+        (path) =>
+          path.includes("/app/custom-pages/") ||
+          path.endsWith("/app/error.vue"),
+      );
     expect(entries).not.toHaveLength(0);
     expect(
       entries.every((path) => path.endsWith(".vue") && statSync(path).isFile()),

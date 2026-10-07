@@ -1,4 +1,5 @@
 import { camelize, capitalize, type Component } from "vue";
+import { resolveDmsComponent as resolveRegisteredComponent } from "#dms/frontend-module";
 
 function normalizeComponentName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -24,35 +25,31 @@ function findRegistryKey(
 }
 
 /**
- * Resolve a DMS component by name from the Vue app's global registry.
- * All frontend module components are registered globally as lazy async chunks,
- * so this only returns a loader reference — the component code is fetched
- * when it first renders. Lookup tolerates PascalCase, kebab-case and
- * lowercase variants, matching what backend data may contain.
+ * Resolve a component by its full registered name, prefix included, through
+ * the frontend engine's registry, as a lazy loader: the component code is
+ * fetched when it first renders. Names are compared normalized (a leading
+ * `lazy` and every non-alphanumeric character dropped, case ignored), so
+ * PascalCase, kebab-case and lowercase variants from backend data all match.
  */
 export function resolveDmsComponent(name?: string): Component | undefined {
   if (!name) return undefined;
 
-  // _context is a private Vue API, but it is the only runtime view of the
-  // global registry; the DMS preloader reads it the same way.
-  const components = useDmsApp().vueApp._context.components;
-  const key = findRegistryKey(name, components);
+  const component = resolveRegisteredComponent(name);
 
-  if (!key && import.meta.env.DEV) {
+  if (!component && import.meta.env.DEV) {
     console.warn(
-      `[resolveDmsComponent] No globally registered component matches "${name}". ` +
-        "Check the componentName sent by the backend and that the component's " +
-        "directory is declared with global: true.",
+      `[resolveDmsComponent] No registered component matches "${name}". ` +
+        "Check the componentName sent by the backend and the name the " +
+        "frontend module registers it under.",
     );
   }
 
-  return key ? components[key] : undefined;
+  return component;
 }
 
 /**
- * Resolve the canonical registered name of a DMS component. The DMS app's
- * preloadComponents()/prefetchComponents() look components up by their exact
- * registered name, so backend-provided variants must go through this first.
+ * Resolve the canonical registered name of a component in the Vue app's
+ * global registry, for APIs that take an exact registered name.
  */
 export function resolveDmsComponentName(name?: string): string | undefined {
   if (!name) return undefined;

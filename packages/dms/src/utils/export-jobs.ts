@@ -20,7 +20,7 @@ import {
 } from "@antelopejs/interface-dms/html-render";
 import { stringify } from "csv-stringify/sync";
 import { getClientBaseUrl } from "../config";
-import { ExportJobModel } from "@antelopejs/interface-dms/db/models/exportJobs.model";
+import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
 import { runInBatches } from "./run-in-batches";
 import {
@@ -33,7 +33,7 @@ import {
   EXPORT_TTL_MS,
   type StreamedExport,
 } from "@antelopejs/interface-dms/base/export-jobs";
-import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/time";
+import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 
 // The contract declares the vocabulary and the defaults; re-exported here so a
 // caller inside the module reaches the whole export surface from one place.
@@ -49,11 +49,11 @@ export type {
 export {
   DEFAULT_DELIVERY,
   DEFAULT_EXPORT_FORMAT,
-  DEFAULT_EXPORT_HISTORY_LIMIT,
   EMAIL_DELIVERY,
   EXPORT_JOB_QUERY_PARAM,
   EXPORT_TTL_MS,
 } from "@antelopejs/interface-dms/base/export-jobs";
+export { DEFAULT_EXPORT_HISTORY_LIMIT } from "@antelopejs/interface-dms/base/internal/export-jobs";
 const EXPORT_TMP_PREFIX = "dms-export-";
 const EXPORT_STORAGE_PREFIX = "table-view-exports";
 const READ_URL_EXPIRES_IN_SEC = 60 * 60;
@@ -304,6 +304,21 @@ export async function sweepStaleExportsAllTenants(
   const tenants = await tenantModel.getAll();
   await runInBatches(tenants, TENANT_SWEEP_BATCH_SIZE, (tenant) =>
     sweepStaleExportsForTenant(tenant._id, ttlMs),
+  );
+}
+
+/**
+ * Deletes the export jobs a user started in a tenant, their stored files
+ * first: an account deletion leaves none behind.
+ */
+export async function deleteUserExportsInTenant(
+  tenantId: string,
+  userId: string,
+): Promise<void> {
+  const model = GetModel(ExportJobModel, tenantId);
+  const records = await model.table.getAll(userId, "userId").run();
+  await runInBatches(records, EXPORT_DELETE_BATCH_SIZE, (record) =>
+    removeExportRecord(model, record),
   );
 }
 

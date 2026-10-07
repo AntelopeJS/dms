@@ -1,12 +1,29 @@
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
+import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
+import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
+import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
+import {
+  type AuthFormHandle,
+  useAuthFormError,
+} from "../../build/composables/useAuthFormError";
+import { AUTH_LINK_CLASS } from "../../build/utils/authStyles";
+import {
+  focusFirstFormError,
+  useLiveFormErrors,
+  useLocalizedSchema,
+} from "#dms-core/app/composables/useFormValidation";
 
-const MIN_VALID_PASSWORD_SCORE = 4;
+const MIN_NAME_LENGTH = 2;
 
 const { locale, locales, setLocale } = useI18n();
 const config = useDmsRuntimeConfig();
 const homepage = useHomepage();
+const dmsApp = useDmsApp();
+const { formError, clearFormError, showError } = useAuthFormError();
+const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
 const queryToken = computed(() => route.query.token as string);
@@ -29,26 +46,24 @@ if (invitationLanguage && invitationLanguage.code !== locale.value) {
 }
 
 const isLoading = ref(false);
-const isPasswordVisible = ref(false);
 
-const schema = z.object({
+const fields = z.object({
   email: z.string().email(),
-  name: z.string().min(2),
+  name: z.string().trim().min(MIN_NAME_LENGTH),
   password: passwordSchema,
 });
-type Schema = z.output<typeof schema>;
+type Schema = z.output<typeof fields>;
+const schema = useLocalizedSchema(fields);
 const state = reactive<Partial<Schema>>({
   email: queryEmail.value,
   name: queryName.value,
 });
-
-const { strength, score, color } = usePasswordStrength(
-  computed(() => state.password || ""),
-);
+useLiveFormErrors(form, state);
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   try {
     isLoading.value = true;
+    clearFormError();
 
     await $fetch("/auth/signup", {
       method: "POST",
@@ -59,12 +74,18 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       },
     });
 
-    await usePostLoginRedirect(
-      config.public.dms.mustValidateEmail ? "/auth/validate" : homepage,
+    await dmsApp.runWithContext(() =>
+      usePostLoginRedirect(
+        config.public.dms.mustValidateEmail ? "/auth/validate" : homepage,
+      ),
     );
   } catch (error: unknown) {
-    useApiError(error, {
-      title: "page.signup.error_title",
+    // A refused value (an address already used) shows under its field;
+    // anything else above the form.
+    await showError(error, "page.signup.error_title", {
+      fields: ["name", "email", "password"],
+      codes: { "error.email_already_used": "email" },
+      form,
     });
   } finally {
     isLoading.value = false;
@@ -73,97 +94,81 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <div v-if="!hasInvitationToken" class="mx-auto max-w-md">
-    <DmsCard
-      variant="elevated"
-      :padded="false"
-      class="p-6 sm:p-12"
-      data-testid="signup-invalid-invitation"
+  <StageCard
+    v-if="!hasInvitationToken"
+    icon="i-ph-link-break"
+    tone="warning"
+    :title="$t('page.signup.invalid_invitation_title')"
+    :description="$t('page.signup.invalid_invitation_description')"
+    data-testid="signup-invalid-invitation"
+  >
+    <UButton
+      :label="$t('button.login')"
+      to="/auth"
+      size="lg"
+      class="mt-[22px] justify-center"
+      block
+    />
+  </StageCard>
+
+  <StageCard
+    v-else
+    :title="$t('page.signup.create_account_title')"
+    :description="$t('page.signup.description')"
+  >
+    <DmsOAuthButtons />
+
+    <UForm
+      ref="form"
+      :schema="schema"
+      :state="state"
+      novalidate
+      class="mt-5 grid gap-4"
+      @submit="onSubmit"
+      @error="focusFirstFormError($event.errors)"
     >
-      <UIcon
-        name="i-ph-link-break"
-        class="text-warning mb-4 size-10"
-        :aria-hidden="true"
+      <AuthFormAlert :error="formError" />
+
+      <UFormField :label="$t('form.name.label')" name="name">
+        <UInput
+          v-model="state.name"
+          autocomplete="name"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField :label="$t('form.email.label')" name="email">
+        <UInput
+          v-model="state.email"
+          type="email"
+          icon="i-ph-envelope-simple"
+          size="lg"
+          class="w-full"
+          disabled
+        />
+      </UFormField>
+
+      <AuthNewPasswordField
+        v-model="state.password"
+        :label="$t('form.password.label')"
       />
-      <h1 class="pb-5 text-2xl font-bold">
-        {{ $t("page.signup.invalid_invitation_title") }}
-      </h1>
-      <p class="text-muted pb-7 text-sm font-normal">
-        {{ $t("page.signup.invalid_invitation_description") }}
-      </p>
-      <UButton :label="$t('button.login')" to="/auth" block />
-    </DmsCard>
-  </div>
 
-  <div v-else class="mx-auto max-w-xl">
-    <DmsCard variant="elevated" :padded="false" class="p-6 sm:p-12">
-      <h1 class="pb-11 text-xl font-bold sm:text-2xl">
-        {{ $t("page.signup.create_account_title") }}
-      </h1>
+      <UButton
+        :label="$t('page.signup.submit')"
+        :loading="isLoading"
+        type="submit"
+        size="lg"
+        class="justify-center"
+        block
+      />
+    </UForm>
 
-      <DmsOAuthButtons />
-
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-7"
-        @submit="onSubmit"
-      >
-        <UFormField :label="$t('form.name.label')" name="name">
-          <UInput v-model="state.name" class="w-full" />
-        </UFormField>
-
-        <UFormField :label="$t('form.email.label')" name="email">
-          <UInput v-model="state.email" type="email" class="w-full" disabled />
-        </UFormField>
-
-        <UFormField :label="$t('form.password.label')" name="password">
-          <UInput
-            v-model="state.password"
-            :color="color"
-            :type="isPasswordVisible ? 'text' : 'password'"
-            :aria-invalid="score < MIN_VALID_PASSWORD_SCORE"
-            aria-describedby="password-strength"
-            class="w-full"
-          >
-            <template #trailing>
-              <UButton
-                :icon="isPasswordVisible ? 'i-ph-eye-slash' : 'i-ph-eye'"
-                :aria-label="
-                  isPasswordVisible ? 'Hide password' : 'Show password'
-                "
-                :aria-pressed="isPasswordVisible"
-                color="neutral"
-                square
-                size="xs"
-                variant="ghost"
-                aria-controls="password"
-                @click="isPasswordVisible = !isPasswordVisible"
-              />
-            </template>
-          </UInput>
-        </UFormField>
-
-        <DmsPasswordStrength
-          :color="color"
-          :score="score"
-          :strength="strength"
-        />
-
-        <UButton
-          :label="$t('button.continue')"
-          :loading="isLoading"
-          type="submit"
-          block
-        />
-
-        <div class="flex justify-center gap-1 text-center text-sm">
-          <p>{{ $t("page.auth.already_have") }}</p>
-          <DmsLink to="/auth" class="text-primary font-medium">
-            {{ $t("button.login") }}
-          </DmsLink>
-        </div>
-      </UForm>
-    </DmsCard>
-  </div>
+    <p class="text-muted mt-5 text-center text-[13px]">
+      {{ $t("page.auth.already_have") }}
+      <DmsLink to="/auth" :class="AUTH_LINK_CLASS">
+        {{ $t("button.login") }}
+      </DmsLink>
+    </p>
+  </StageCard>
 </template>

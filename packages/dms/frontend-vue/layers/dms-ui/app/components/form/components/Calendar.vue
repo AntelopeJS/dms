@@ -4,6 +4,9 @@ import type {
   CalendarSlots,
 } from "@nuxt/ui/components/Calendar.vue";
 import { useForwardPropsEmits } from "reka-ui";
+import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
+import { useFormField } from "@nuxt/ui/composables/useFormField";
+import { FIELD_RING_INVALID_CLASS } from "../../../build/utils/fieldTrigger";
 import {
   parseDate,
   fromDate,
@@ -35,7 +38,14 @@ type DateValue =
   | null
   | undefined;
 
-const props = defineProps<CalendarProps<R, M>>();
+interface DmsCalendarProps extends CalendarProps<R, M> {
+  /** Earliest day that can be picked (ISO date). */
+  minDate?: string;
+  /** Latest day that can be picked (ISO date). */
+  maxDate?: string;
+}
+
+const props = defineProps<DmsCalendarProps>();
 const emits = defineEmits<{
   "update:modelValue": [
     value:
@@ -49,6 +59,8 @@ const emits = defineEmits<{
   "update:startValue": [date: CalendarDate | undefined];
 }>();
 defineSlots<CalendarSlots>();
+
+const { weekStartsOn } = useUserRegionalPreferences();
 
 function convertIsoStringToCalendarDate(value: string): CalendarDate {
   return parseDate(value.split("T")[0]!);
@@ -96,15 +108,49 @@ function convertModelValue(value: DateValue): DateValue {
   return value;
 }
 
-const convertedProps = computed(() => ({
-  ...props,
-  modelValue: convertModelValue(props.modelValue as DateValue),
-}));
+// An inline calendar has no border: an invalid field rings it.
+const {
+  color: fieldColor,
+  ariaAttrs,
+  emitFormChange,
+} = useFormField(
+  // Its props typing knows only Nuxt UI colours and sizes; it reads `id`,
+  // `color` and `disabled` from these.
+  props as Parameters<typeof useFormField>[0],
+);
+const invalid = computed(() => fieldColor.value === "error");
+
+function toBoundDate(value: string | undefined): CalendarDate | undefined {
+  return value ? convertIsoStringToCalendarDate(value) : undefined;
+}
+
+const convertedProps = computed(() => {
+  const { minDate: _minDate, maxDate: _maxDate, ...calendarProps } = props;
+  return {
+    ...calendarProps,
+    color:
+      (calendarProps.color as string) === "error"
+        ? undefined
+        : calendarProps.color,
+    modelValue: convertModelValue(calendarProps.modelValue as DateValue),
+  };
+});
+
+// Bound on the calendar itself: forwarding only passes props this component
+// was given, and the bounds arrive as `minDate` / `maxDate`.
+const minValue = computed(() => props.minValue ?? toBoundDate(props.minDate));
+const maxValue = computed(() => props.maxValue ?? toBoundDate(props.maxDate));
 
 type EmitEvent = string;
 type EmitValue = unknown;
 
 const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
+  forwardEmit(event, value);
+  // After the update: the field re-validates its new value.
+  if (event === "update:modelValue") emitFormChange();
+};
+
+function forwardEmit(event: EmitEvent, value: EmitValue): void {
   if (event === "update:modelValue" && value) {
     if (Array.isArray(value)) {
       const isoStrings = (value as CalendarDate[]).map((date) =>
@@ -131,7 +177,7 @@ const wrappedEmits = (event: EmitEvent, value: EmitValue) => {
     const forwardEvent = emits as (event: string, ...args: unknown[]) => void;
     forwardEvent(event, value);
   }
-};
+}
 
 const forwarded = useForwardPropsEmits(
   convertedProps,
@@ -140,5 +186,11 @@ const forwarded = useForwardPropsEmits(
 </script>
 
 <template>
-  <UCalendar v-bind="forwarded" />
+  <UCalendar
+    v-bind="{ ...forwarded, ...ariaAttrs }"
+    :week-starts-on="props.weekStartsOn ?? weekStartsOn"
+    :min-value="minValue"
+    :max-value="maxValue"
+    :class="invalid && FIELD_RING_INVALID_CLASS"
+  />
 </template>

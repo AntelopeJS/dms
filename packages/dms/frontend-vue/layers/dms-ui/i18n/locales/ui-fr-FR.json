@@ -15,18 +15,24 @@
       "load_error_message": "Une erreur est survenue lors du chargement de ces données.",
       "load_error_retry": "Réessayer",
       "new_row": "Nouvelle entrée",
-      "new_item": "Nouvel élément",
-      "new_item_description": "Créer un nouvel élément dans ce tableau",
-      "view_item": "Voir les détails",
-      "view_item_description": "Afficher les informations détaillées de cet élément",
-      "edit_item": "Modifier l'élément",
-      "edit_item_description": "Modifier les informations de cet élément",
+      "new_item": "Nouvelle entrée",
+      "new_item_description": "Remplissez ses champs, puis enregistrez.",
+      "new_item_in": "Ajoutée à « {caption} » une fois enregistrée.",
+      "view_item": "Détails de l’entrée",
+      "view_item_description": "Tous les champs de cette entrée, en lecture seule.",
+      "view_item_in": "Une entrée de « {caption} », en lecture seule.",
+      "edit_item": "Modifier l’entrée",
+      "edit_item_description": "Modifiez ses champs, puis enregistrez.",
+      "edit_item_in": "Les modifications sont enregistrées dans « {caption} ».",
       "search_placeholder": "Rechercher...",
       "options_title": "Options de la table",
       "filters_title": "Filtres",
       "columns_title": "Colonnes",
       "sort_title": "Trier",
       "page_size_title": "Taille des pages",
+      "density_title": "Densité",
+      "density_default": "Normale",
+      "density_compact": "Compacte",
       "export_config": "Exporter la configuration",
       "import_config": "Importer une configuration",
       "import_config_title": "Importer une configuration",
@@ -41,19 +47,28 @@
       "filter_accessor": "Colonnes à filtrer",
       "filter_comparator": "Mode de comparaison",
       "filter_value": "Saisir une valeur",
-      "delete_filters": "Supprimer les filtres",
+      "clear_filters": "Effacer les filtres",
+      "clear_search": "Effacer la recherche",
+      "clear_filters_and_search": "Effacer les filtres et la recherche",
       "add_filter": "Ajouter un filtre",
       "between_separator": "et",
       "link_copied": "Lien copié !",
-      "delete_rows": "{count} éléments supprimés",
+      "delete_rows": "{count} élément supprimé | {count} éléments supprimés",
       "delete_error": "Échec de la suppression des éléments",
-      "delete_confirm_title": "Confirmer la suppression",
-      "delete_confirm_description": "Êtes-vous sûr de vouloir supprimer {count} élément(s) ? Cette action est irréversible.",
-      "delete_confirm_button": "Supprimer",
-      "archive_rows": "{count} éléments archivés",
+      "delete_confirm_title": "Supprimer cet élément ? | Supprimer {count} éléments ?",
+      "delete_confirm_description": "L'élément sélectionné sera supprimé. Cette action est irréversible. | Les {count} éléments sélectionnés seront supprimés. Cette action est irréversible.",
+      "delete_confirm_button": "Supprimer | Supprimer {count} éléments",
+      "delete_permanently_confirm_title": "Supprimer définitivement cet élément archivé ? | Supprimer définitivement {count} éléments archivés ?",
+      "delete_permanently_confirm_description": "L'élément sélectionné sera supprimé pour de bon : il ne pourra pas être restauré. | Les {count} éléments sélectionnés seront supprimés pour de bon : ils ne pourront pas être restaurés.",
+      "delete_permanently_confirm_button": "Supprimer définitivement | Supprimer {count} définitivement",
+      "archive_confirm_title": "Archiver cet élément ? | Archiver {count} éléments ?",
+      "archive_confirm_description": "L'élément sélectionné sera masqué de la liste jusqu'à sa restauration. | Les {count} éléments sélectionnés seront masqués de la liste jusqu'à leur restauration.",
+      "archive_confirm_button": "Archiver | Archiver {count} éléments",
+      "archive_rows": "{count} élément archivé | {count} éléments archivés",
       "archive_error": "Échec de l'archivage des éléments",
-      "restore_rows": "{count} éléments restaurés",
+      "restore_rows": "{count} élément restauré | {count} éléments restaurés",
       "restore_error": "Échec de la restauration des éléments",
+      "bulk_skipped": "{count} élément sélectionné a été ignoré : ses règles n'autorisent pas cette action, ou elle était déjà faite. | {count} éléments sélectionnés ont été ignorés : leurs règles n'autorisent pas cette action, ou elle était déjà faite.",
       "duplicate_rows": "{count} éléments dupliqués",
       "duplicate_error": "Échec de la duplication des éléments",
       "compare_mode": {
@@ -90,6 +105,20 @@
       "action_view_archived": "Voir les éléments archivés",
       "show_active": "Voir les éléments actifs",
       "show_archived": "Voir les éléments archivés",
+      "archived": "Archivés",
+      "archive_toggle": "Archives",
+      "archived_count": "{count} archivés",
+      "archive_strip_title": "Éléments archivés.",
+      "archive_strip_description": "Ils restent masqués de la liste habituelle jusqu’à leur restauration.",
+      "archived_empty_title": "Aucun élément archivé",
+      "archived_empty_message": "Les éléments que vous archivez apparaissent ici.",
+      "delete_permanently": "Supprimer définitivement",
+      "row_selection_count": "{count} sur {total} sélectionnés",
+      "row_selection_count_only": "{count} sélectionné | {count} sélectionnés",
+      "select_page": "Sélectionner toute la page",
+      "clear_selection": "Effacer la sélection",
+      "expand_row": "Déplier la ligne",
+      "collapse_row": "Replier la ligne",
       "tabs": {
         "all": "Tous"
       },
@@ -107,15 +136,70 @@
       "kanban": {
         "group_by": "Grouper par",
         "load_more": "Charger plus",
+        "load_more_count": "Charger {count} de plus",
+        "locked": "Verrouillé",
         "move_error": "Impossible de déplacer la carte",
         "no_columns": "Aucune colonne éligible pour le groupage",
         "move_success": "Carte déplacée vers « {column} »"
       },
-      "view_mode_title": "Mode d'affichage"
+      "view_mode_title": "Mode d'affichage",
+      "view_mode_cards": "Cartes",
+      "quick_filter": {
+        "all": "Tous",
+        "clear": "Effacer {label}"
+      },
+      "cell": {
+        "now": "Maintenant",
+        "by": "{date} · par {name}",
+        "copy": "Copier",
+        "copied": "Copié dans le presse-papiers"
+      },
+      "bulk_refused": {
+        "delete": "Cet élément n’a pas pu être supprimé. | Ces {count} éléments n’ont pas pu être supprimés.",
+        "archive": "Cet élément n’a pas pu être archivé. | Ces {count} éléments n’ont pas pu être archivés.",
+        "restore": "Cet élément n’a pas pu être restauré. | Ces {count} éléments n’ont pas pu être restaurés."
+      },
+      "bulk_partial": {
+        "delete": "{failed} élément sur {total} n’a pas pu être supprimé. | {failed} éléments sur {total} n’ont pas pu être supprimés.",
+        "archive": "{failed} élément sur {total} n’a pas pu être archivé. | {failed} éléments sur {total} n’ont pas pu être archivés.",
+        "restore": "{failed} élément sur {total} n’a pas pu être restauré. | {failed} éléments sur {total} n’ont pas pu être restaurés."
+      },
+      "bulk_refused_reason": "Ses règles n’autorisent pas cette action, ou elle a déjà été effectuée. | Leurs règles n’autorisent pas cette action, ou elle a déjà été effectuée.",
+      "view_mode_grouped": "Groupé",
+      "views": {
+        "title": "Vues",
+        "modified": "Modifiée depuis l'ouverture de la vue",
+        "reset": "Réinitialiser",
+        "save": "Enregistrer",
+        "save_as": "Enregistrer comme nouvelle vue",
+        "save_current": "Enregistrer la vue actuelle",
+        "delete": "Supprimer la vue",
+        "save_as_title": "Enregistrer comme nouvelle vue",
+        "save_as_description": "Conservez les filtres, la recherche, le tri, les colonnes et l'affichage actuels sous un nom. Vous seul la verrez.",
+        "save_as_confirm": "Enregistrer la vue",
+        "name_label": "Nom",
+        "name_placeholder": "ex. Mes tickets ouverts",
+        "unavailable_title": "Cette vue n'est pas disponible",
+        "unavailable_description": "Le lien ouvre une vue qui n'existe pas ou qui appartient à quelqu'un d'autre : le tableau affiche sa vue par défaut."
+      },
+      "grouped": {
+        "none": "Sans valeur",
+        "today": "Aujourd'hui",
+        "yesterday": "Hier",
+        "week_of": "Semaine du {date}"
+      },
+      "all_matching_selected": "La {count} ligne sélectionnée | Les {count} lignes sélectionnées",
+      "select_all_matching": "Sélectionner les {count} correspondantes",
+      "reorder": {
+        "column": "Ordre",
+        "move": "Glisser pour réordonner, ou utiliser les flèches",
+        "disabled": "Effacez la recherche, les filtres et l’onglet pour réordonner",
+        "error": "Le nouvel ordre n’a pas pu être enregistré"
+      }
     },
     "table_form": {
-      "edit_title": "Modifier l'élément",
-      "new_title": "Ajouter un élément",
+      "edit_title": "Modifier l’entrée",
+      "new_title": "Nouvelle entrée",
       "view_title": "Consulter les détails",
       "updated_at": "Date de mise à jour",
       "created_at": "Date de création"
@@ -128,10 +212,32 @@
       "first_page": "Première page",
       "previous_page": "Page précédente",
       "next_page": "Page suivante",
-      "last_page": "Dernière page"
+      "last_page": "Dernière page",
+      "shown_of": "{shown} sur {count}",
+      "load_more": "Afficher plus"
     },
     "sort": {
-      "no_sorting": "Aucun tri n'est appliqué"
+      "no_sorting": "Aucun tri n'est appliqué",
+      "reset_title": "Tri désactivé",
+      "reset_description": "Cette liste ne peut plus être triée par {column}.",
+      "default_sort": "Tri par défaut",
+      "sorted_by": "Trié par :",
+      "default_suffix": "par défaut",
+      "reset_default": "Revenir au tri par défaut",
+      "direction": {
+        "number": {
+          "asc": "du plus petit au plus grand",
+          "desc": "du plus grand au plus petit"
+        },
+        "date": {
+          "asc": "du plus ancien au plus récent",
+          "desc": "du plus récent au plus ancien"
+        },
+        "text": {
+          "asc": "A → Z",
+          "desc": "Z → A"
+        }
+      }
     },
     "button": {
       "copy": "Copier",
@@ -151,11 +257,6 @@
       "refresh_data": "Actualiser les données",
       "export_data": "Exporter les données"
     },
-    "tree": {
-      "load_error_title": "Erreur de chargement",
-      "load_error_message": "Impossible de charger les éléments enfants",
-      "no_entries": "Aucun élément à afficher"
-    },
     "form": {
       "success_title": "Succès",
       "success_message": "Les données ont été enregistrées avec succès",
@@ -172,6 +273,7 @@
       "error_missing_fields": "Champs requis manquants",
       "error_fill_all_fields": "Veuillez remplir tous les champs requis",
       "required_legend": "Champs requis",
+      "unsaved_changes": "Modifications non enregistrées",
       "error_not_submitted": "Le formulaire n'a pas été soumis",
       "fetch_error_title": "Échec de la récupération des données",
       "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
@@ -185,11 +287,14 @@
         "search_placeholder": "Rechercher...",
         "no_results": "Aucun résultat",
         "selected_count": "{count} sélectionné(s)",
-        "partial_results": "Affichage des {shown} premiers éléments sur {total}"
+        "partial_results": "Affichage des {shown} premiers éléments sur {total}",
+        "no_entries": "Aucun élément à afficher"
       },
       "input": {
         "show_password": "Afficher le mot de passe",
-        "hide_password": "Masquer le mot de passe"
+        "hide_password": "Masquer le mot de passe",
+        "show": "Afficher",
+        "hide": "Masquer"
       },
       "validation": {
         "password_mismatch": "Les mots de passe ne correspondent pas",
@@ -231,8 +336,8 @@
       "image": {
         "add": "Ajouter",
         "drop_hint": "ou glisser ici",
-        "gallery_hint": "Glisser-déposer · coller ⌘V · réordonner par glissé",
-        "single_prompt": "Glisser une image, coller (⌘V) ou parcourir",
+        "gallery_hint": "Glisser-déposer · coller {shortcut} · réordonner par glissé",
+        "single_prompt": "Glisser une image, coller ({shortcut}) ou parcourir",
         "single_hint": "Une seule image",
         "formats_any": "Tous formats d'image",
         "upload_failed": "Échec de l'envoi",
@@ -281,6 +386,50 @@
           "cancel": "Annuler"
         },
         "character_count": "{count} caractères"
+      },
+      "sections": {
+        "nav": "Sections",
+        "changed": "Modifications non enregistrées",
+        "invalid": "Aucune erreur | 1 champ à corriger | {count} champs à corriger"
+      },
+      "error_summary": {
+        "title": "Aucun champ à corriger | 1 champ demande votre attention | {count} champs demandent votre attention"
+      },
+      "repeater": {
+        "add": "Ajouter une ligne",
+        "move": "Déplacer la ligne {row} (flèches)",
+        "remove": "Supprimer la ligne {row}",
+        "count": "Aucune ligne | 1 ligne | {count} lignes"
+      },
+      "key_value": {
+        "key": "Nom",
+        "value": "Valeur",
+        "count": "Aucune entrée | 1 entrée | {count} entrées"
+      },
+      "secret": {
+        "show": "Afficher",
+        "hide": "Masquer",
+        "rotate": "Renouveler…",
+        "rotate_title": "Renouveler ce secret ?",
+        "rotate_description": "Un nouveau secret remplace celui-ci. Ce qui utilise encore l’actuel cesse de fonctionner tant qu’il n’a pas reçu le nouveau.",
+        "rotate_confirm": "Renouveler",
+        "rotated": "Un nouveau secret remplace le précédent."
+      },
+      "tags": {
+        "invalid_email": "{value} n’est pas une adresse e-mail valide. | {value} ne sont pas des adresses e-mail valides.",
+        "remove": "Retirer {value}"
+      },
+      "code": {
+        "completion_footer": "↵ insérer · Échap fermer",
+        "complete": "compléter",
+        "position": "Ln {line}, Col {column}"
+      },
+      "field_notes": {
+        "changed": "Modifié",
+        "was": "avant :",
+        "was_empty": "vide avant",
+        "default": "Valeur par défaut du module :",
+        "use_default": "Utiliser la valeur par défaut"
       }
     },
     "chart": {
@@ -315,38 +464,26 @@
           "condition": "Uniquement quand enableRowDelete est activé"
         }
       },
-      "tree": {
-        "arrowdown": {
-          "description": "Naviguer vers le bas"
-        },
-        "arrowup": {
-          "description": "Naviguer vers le haut"
-        },
-        "enter": {
-          "description": "Sélectionner le nœud"
-        },
-        "space": {
-          "description": "Sélectionner le nœud"
-        },
-        "home": {
-          "description": "Aller au premier nœud"
-        },
-        "end": {
-          "description": "Aller au dernier nœud"
-        },
-        "escape": {
-          "description": "Désélectionner tous les nœuds",
-          "condition": "Uniquement quand des nœuds sont sélectionnés et qu'aucune fenêtre n'est ouverte"
-        },
-        "shift_a": {
-          "description": "Sélectionner tous les nœuds récursivement",
-          "condition": "Uniquement quand multiple est activé"
-        }
-      },
       "tab": {
         "shift_letter": {
           "description": "Naviguer vers l'onglet avec le raccourci défini",
           "condition": "Généré dynamiquement depuis la propriété item.shortcut"
+        }
+      },
+      "global": {
+        "meta_k": {
+          "description": "Ouvrir la palette de commandes"
+        },
+        "slash": {
+          "description": "Aller à la recherche de navigation",
+          "condition": "La recherche du menu des paramètres sur les pages de paramètres, celle des modules sur Modules"
+        },
+        "meta_slash": {
+          "description": "Aller à la recherche propre à la page",
+          "condition": "Pages de paramètres qui ont leur propre recherche, comme celle-ci"
+        },
+        "escape": {
+          "description": "Fermer les dialogues, les menus et la palette"
         }
       }
     },
@@ -361,12 +498,13 @@
       },
       "subjects": {
         "general": "Général",
+        "general_desc": "Messages importants de la plateforme et des administrateurs de votre espace. Toujours activé, pour ne rien manquer d'essentiel",
         "security": "Alertes de sécurité",
         "security_desc": "Connexions, mot de passe, e-mail et double authentification de votre compte",
         "account": "Compte",
-        "account_desc": "Mises à jour importantes concernant votre compte",
+        "account_desc": "Vos rôles, vos droits de propriétaire et les autres changements importants de votre compte",
         "collaboration": "Collaboration",
-        "collaboration_desc": "Invitations et arrivée de nouveaux collaborateurs sur la plateforme",
+        "collaboration_desc": "Invitations, arrivées et départs de membres, et modifications des permissions des rôles",
         "automation": "Automatisation",
         "automation_desc": "Notifications envoyées par les procédures d'automatisation",
         "updates": "Mises à jour des modules",
@@ -376,7 +514,8 @@
         "module_one_updates": "Rapports de menaces",
         "module_one_updates_desc": "Mises à jour sur les menaces et vulnérabilités de sécurité",
         "module_two_notifications": "Suivi des expéditions",
-        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire"
+        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire",
+        "updates_badge": "Mode développeur"
       },
       "preferences": {
         "success": "Préférences de notification mises à jour",
@@ -387,60 +526,109 @@
       },
       "messages": {
         "new_login": {
-          "title": "Nouvelle connexion à votre compte",
-          "description": "Une nouvelle connexion à votre compte a été détectée depuis {device}{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+          "title": "Nouvelle connexion depuis {device}",
+          "description": "Pays : {country}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "title_browser_os": "Nouvelle connexion depuis {browser} sur {os}",
+          "description_no_country": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "new_login_unknown_device": {
-          "title": "Nouvelle connexion à votre compte",
-          "description": "Une nouvelle connexion à votre compte a été détectée{origin}. Si ce n'était pas vous, changez votre mot de passe immédiatement."
+          "title": "Connexion depuis un appareil non reconnu",
+          "description": "Pays : {country}. Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité.",
+          "description_no_country": "Ce n'était pas vous ? Changez votre mot de passe, puis déconnectez les autres sessions dans Sécurité."
         },
         "password_changed": {
-          "title": "Votre mot de passe a été modifié",
-          "description": "Le mot de passe de votre compte vient d'être modifié. Si vous n'êtes pas à l'origine de ce changement, réinitialisez votre mot de passe et contactez un administrateur."
+          "title": "Mot de passe modifié",
+          "description": "Ce n'était pas vous ? Utilisez « Mot de passe oublié » sur la page de connexion, puis vérifiez vos sessions actives dans Sécurité."
         },
         "login_method_added": {
-          "title": "Nouvelle méthode de connexion ajoutée",
-          "description": "La connexion via {provider} vient d'être liée à votre compte. Si vous n'êtes pas à l'origine de ce liage, changez votre mot de passe immédiatement."
+          "title": "Connexion {provider} liée",
+          "description": "Vous pouvez désormais vous connecter avec {provider}. Ce n'était pas vous ? Changez votre mot de passe et vérifiez vos méthodes de connexion dans Sécurité."
         },
         "password_reset": {
-          "title": "Votre mot de passe a été réinitialisé",
-          "description": "Votre mot de passe a été réinitialisé via la procédure de récupération. Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement un administrateur."
+          "title": "Mot de passe réinitialisé par lien e-mail",
+          "description": "Le lien a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
         },
         "email_changed": {
-          "title": "Votre adresse e-mail a été modifiée",
-          "description": "L'adresse e-mail de votre compte a été remplacée par {email}. Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement un administrateur."
+          "title": "E-mail de connexion changé pour {email}",
+          "description": "Vous vous connectez désormais avec cette adresse ; l'ancienne ne fonctionne plus. Ce n'était pas vous ? Demandez à un propriétaire de l'espace de bloquer le compte."
         },
         "two_factor_enabled_totp": {
           "title": "Double authentification activée",
-          "description": "La double authentification via une application d'authentification est désormais active sur votre compte."
+          "description": "Chaque connexion demande désormais un code de votre application d'authentification. Gardez vos codes de secours en lieu sûr."
         },
         "two_factor_enabled_email": {
           "title": "Double authentification activée",
-          "description": "La double authentification par e-mail est désormais active sur votre compte."
+          "description": "Chaque connexion demande désormais un code envoyé par e-mail. Gardez vos codes de secours en lieu sûr."
         },
         "two_factor_disabled_totp": {
           "title": "Double authentification désactivée",
-          "description": "La double authentification via une application d'authentification a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+          "description": "La connexion ne demande plus de code. Ce n'était pas vous ? Réactivez-la dans Sécurité et changez votre mot de passe."
         },
         "two_factor_disabled_email": {
           "title": "Double authentification désactivée",
-          "description": "La double authentification par e-mail a été désactivée. Si vous n'êtes pas à l'origine de ce changement, sécurisez immédiatement votre compte."
+          "description": "La connexion ne demande plus de code. Ce n'était pas vous ? Réactivez-la dans Sécurité et changez votre mot de passe."
         },
         "backup_codes_regenerated": {
-          "title": "Vos codes de secours ont été régénérés",
-          "description": "Un nouveau jeu de codes de secours pour la double authentification a été généré. Vos anciens codes de secours ne fonctionnent plus."
+          "title": "Nouveaux codes de secours générés",
+          "description": "Vos {count} anciens codes ne fonctionnent plus. Conservez les nouveaux ailleurs que sur votre téléphone.",
+          "description_one": "Votre ancien code ne fonctionne plus. Conservez les nouveaux ailleurs que sur votre téléphone.",
+          "description_none": "Vos anciens codes ne fonctionnent plus. Conservez les nouveaux ailleurs que sur votre téléphone."
         },
         "welcome": {
-          "title": "Bienvenue",
-          "description": "Bienvenue, {name} ! Votre compte est prêt. Prenez un moment pour vérifier votre profil et vos paramètres de sécurité."
+          "title": "Bienvenue, {name}",
+          "description": "Votre compte est prêt. Prenez deux minutes pour le protéger : activez la double authentification dans Sécurité.",
+          "title_anonymous": "Bienvenue"
         },
         "collaborator_joined": {
-          "title": "Un nouveau collaborateur a rejoint la plateforme",
-          "description": "{name} ({email}) a accepté son invitation et a rejoint la plateforme."
+          "title": "{name} a rejoint l'espace",
+          "description": "{email} a accepté l'invitation. Attribuez-lui les bons rôles dans Membres."
         },
         "module_updates": {
-          "title": "Mises à jour de modules disponibles",
-          "description": "Nouvelles versions disponibles : {modules}. Mettez à jour les versions dans antelope.config.ts ou lancez « ajs project modules update » pour les appliquer."
+          "title": "Mises à jour disponibles pour {count} modules",
+          "description": "Nouvelles versions disponibles : {modules}. Mettez à jour les versions dans antelope.config.ts ou lancez « ajs project modules update » pour les appliquer.",
+          "title_one": "Mise à jour disponible pour {count} module"
+        },
+        "backup_code_used": {
+          "title": "Un code de secours a servi à vous connecter — il en reste {left}",
+          "title_none": "Votre dernier code de secours a servi à vous connecter",
+          "description": "Si c'était vous, rien à faire. Ce n'était pas vous ? Changez votre mot de passe et générez de nouveaux codes de secours dans Sécurité.",
+          "description_low": "Il vous en reste peu : générez dès maintenant de nouveaux codes de secours dans Sécurité. Ce n'était pas vous ? Changez aussi votre mot de passe.",
+          "description_none": "Il ne vous reste aucun code de secours : générez-en de nouveaux dans Sécurité dès maintenant pour ne pas risquer de perdre l'accès. Ce n'était pas vous ? Changez aussi votre mot de passe."
+        },
+        "failed_sign_ins": {
+          "title": "{count} tentatives de connexion échouées sur votre compte",
+          "description": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe et activez la double authentification dans Sécurité.",
+          "description_two_factor": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes ; la double authentification a tout de même barré la route. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe dans Sécurité."
+        },
+        "roles_changed": {
+          "title": "Vos rôles sont désormais : {roles}",
+          "title_one": "Votre rôle est désormais : {roles}",
+          "title_none": "Vous n'avez plus aucun rôle",
+          "description": "{actor} a modifié vos rôles, et vos accès avec. Voyez ce que vous pouvez ouvrir désormais dans Paramètres."
+        },
+        "ownership_granted": {
+          "title": "Vous êtes désormais propriétaire de l'espace",
+          "description": "{actor} vous a donné le rôle de propriétaire : vous avez toutes les permissions et pouvez gérer les membres, les invitations et les rôles. Commencez par Membres."
+        },
+        "ownership_removed": {
+          "title": "Vous n'êtes plus propriétaire de l'espace",
+          "description": "{actor} vous a retiré les droits de propriétaire. Vous ne gardez que les permissions de vos rôles : voyez ce que vous pouvez ouvrir désormais dans Paramètres."
+        },
+        "invite_accepted": {
+          "title": "{name} a accepté votre invitation",
+          "description": "{email} fait désormais partie de l'espace. Vérifiez ses rôles dans Membres."
+        },
+        "invite_expired": {
+          "title": "Votre invitation à {email} a expiré",
+          "description": "Personne ne l'a acceptée à temps. Toujours d'actualité ? Envoyez-en une nouvelle depuis Invitations."
+        },
+        "member_removed": {
+          "title": "{actor} a retiré {name} de l'espace",
+          "description": "{email} ne peut plus ouvrir cet espace ; ses données restent en place. Vérifiez qui a accès dans Membres."
+        },
+        "role_permissions_changed": {
+          "title": "{actor} a modifié les permissions de « {role} »",
+          "description": "Les membres qui ont ce rôle ont reçu les nouveaux accès immédiatement. Vérifiez le rôle dans Rôles."
         }
       }
     },
@@ -463,6 +651,62 @@
       "concurrent_edit_banner_description": "Un autre utilisateur a enregistré des modifications pendant votre édition. Enregistrer maintenant écrasera ses modifications.",
       "concurrent_edit_banner_discard": "Annuler et actualiser",
       "concurrent_edit_banner_keep": "Continuer l'édition"
+    },
+    "check_list": {
+      "state": {
+        "ok": "respectée",
+        "warn": "avertissement",
+        "error": "non respectée",
+        "pending": "pas encore respectée",
+        "info": "note"
+      }
+    },
+    "password_rules": {
+      "head": "{met} sur {total} respectées",
+      "verdict": {
+        "weak": "Faible",
+        "fair": "Moyen",
+        "almost": "Presque",
+        "strong": "Robuste"
+      }
+    },
+    "list_row": {
+      "unread": "Non lu"
+    },
+    "activity_feed": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "empty_title": "Aucune activité pour l'instant",
+      "error_title": "Impossible de charger l'activité",
+      "error_description": "Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    },
+    "leave_guard": {
+      "title": "Abandonner les modifications non enregistrées ?",
+      "description": "Vous perdrez vos modifications si vous quittez sans enregistrer.",
+      "keep_editing": "Continuer l’édition",
+      "discard": "Abandonner les modifications"
+    },
+    "save_bar": {
+      "unsaved": "Modifications non enregistrées",
+      "discard": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement",
+      "saved": "Enregistré",
+      "instant": "Enregistré instantanément",
+      "instant_hint": "Les modifications de cette page sont enregistrées dès que vous les faites",
+      "not_saved": "Non enregistré",
+      "retry": "Réessayer"
+    },
+    "blocks": {
+      "empty": "Rien à afficher pour l'instant",
+      "load_error": "Impossible de charger ce bloc",
+      "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    },
+    "action_error": {
+      "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",
+      "generic": "Une erreur est survenue et l’action n’a pas pu aboutir. Réessayez."
     }
   }
 }

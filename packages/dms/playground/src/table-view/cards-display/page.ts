@@ -1,9 +1,25 @@
+import { Controller } from "@antelopejs/interface-api";
+import {
+  DataController,
+  RegisterDataController,
+} from "@antelopejs/interface-data-api";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
+import { Task } from "../database";
+import { demoFormPages } from "../form-texts";
+
+const TASK_CARDS_DISPLAY_ID = "playground:task-cards";
+
+@RegisterDataController()
+class cardsTaskDataAPI extends DataController(
+  Task,
+  {},
+  Controller("/api/tasks/cards-display", taskDataAPI),
+) {}
 
 @RegisterPage()
 export class PageTableViewCardsDisplay extends PageController(
@@ -18,9 +34,10 @@ export class PageTableViewCardsDisplay extends PageController(
   },
   DefaultLayout({ fullWidth: true }),
 ) {
-  static table = TableView(taskDataAPI, {
+  static table = TableView(cardsTaskDataAPI, {
     caption: "Tasks - Cards (Custom Display)",
     labelKey: "name",
+    formContainer: { type: "page", pages: demoFormPages("task") },
     rowActions: {
       add: true,
       delete: { isVisible: true },
@@ -29,10 +46,15 @@ export class PageTableViewCardsDisplay extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    // The display *type* (label, icon, capabilities, component) is registered on
-    // the client in playground/frontend-vue/app/plugins/table-view-cards-display.client.ts.
-    // Here we opt this table view into it and provide the SSR-renderable component.
-    displays: [{ id: "cards", component: CustomComponent("TaskCardsDisplay") }],
-    defaultDisplay: "cards",
+    // The display *type* (label, icon, component) is registered by
+    // playground/frontend-vue/app/plugins/table-view-cards-display.ts. Here we
+    // opt this table view into it and provide the SSR-renderable component.
+    displays: [
+      {
+        id: TASK_CARDS_DISPLAY_ID,
+        component: CustomComponent("TaskCardsDisplay"),
+      },
+    ],
+    defaultDisplay: TASK_CARDS_DISPLAY_ID,
   });
 }

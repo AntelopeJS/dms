@@ -17,6 +17,8 @@ import randomstring from "randomstring";
 import { getAuthConfig } from "../../config";
 import { generateAuthKey } from "../../utils/auth-key";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import type { ClientOrigin } from "../../utils/sign-in-country";
+import { rememberSignInDevice } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
 import { consumeInvite, resolveValidInvite } from "./invite";
 import { issueAuthResponse } from "./session-response";
@@ -163,7 +165,7 @@ export async function signup(
   sessionModel: SessionModel,
   body: unknown,
   userAgent: string,
-  ip: string,
+  origin: ClientOrigin,
 ): Promise<AuthResponse> {
   const { name, email, password, token, lang } = assertValidation(body, (v) =>
     authSchema.signup.parse(v),
@@ -203,12 +205,13 @@ export async function signup(
   }
 
   await announceRegistration(userModel, refreshedUser, tenantId);
+  await rememberSignInDevice(refreshedUser._id, userAgent, origin);
 
   return issueAuthResponse(
     sessionModel,
     tenantId,
     refreshedUser,
     userAgent,
-    ip,
+    origin,
   );
 }

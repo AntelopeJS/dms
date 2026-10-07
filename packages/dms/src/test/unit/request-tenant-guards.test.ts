@@ -9,8 +9,8 @@ import {
   RegisterTenantAccessGate,
   internal as tenantAccessInternal,
 } from "@antelopejs/interface-dms/tenant-access";
+import { authenticateRequestPrincipal } from "@antelopejs/interface-dms/auth/internal/request-principal";
 import {
-  authenticateRequestPrincipal,
   authenticateRequestUser,
   type RequestAuthenticator,
 } from "@antelopejs/interface-dms/auth";

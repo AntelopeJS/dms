@@ -15,7 +15,7 @@ it("spaces the blocks of a tab the way the page spaces its own", () => {
   );
   expect(sourceOf("dms-ui/app/components/tab/Tab.vue")).toMatch(
     new RegExp(
-      `<div class="[^"]*\\b${BLOCK_SPACING}\\b[^"]*">\\s*<slot :name="item.slot" />`,
+      `<div class="[^"]*\\b${BLOCK_SPACING}\\b[^"]*"[^>]*>\\s*<slot :name="item.slot" />`,
     ),
   );
 });

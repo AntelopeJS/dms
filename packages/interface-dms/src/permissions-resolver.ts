@@ -15,6 +15,7 @@ export interface PermissionsResolverInfo {
   order: number;
 }
 
+/** @internal */
 export namespace internal {
   export const RegisterPermissionsResolver = new RegisteringProxy<
     (info: PermissionsResolverInfo) => void

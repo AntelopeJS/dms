@@ -27,9 +27,10 @@ const props = withDefaults(defineProps<HStackProps>(), {
       alignItems: alignmentMap[props.alignment],
       justifyContent: distributionMap[props.distribution],
       gap: props.spacing,
+      '--dms-stack-gap': props.spacing,
       flexWrap: props.wrap ? 'wrap' : 'nowrap',
     }"
-    class="w-full"
+    class="dms-hstack w-full"
   >
     <slot />
   </div>

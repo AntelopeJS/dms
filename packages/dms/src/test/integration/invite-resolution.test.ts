@@ -3,7 +3,7 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { z } from "zod";
 import { listenersFor, type MemberAddedEvent } from "../../automation/events";
 import { runCleanupUserInvites } from "../../crons/cleanup-user-invites";
-import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/models/inviteResolutions.model";
+import { InviteResolutionsModel } from "@antelopejs/interface-dms/db/internal/inviteResolutions.model";
 import type { InviteResolution } from "@antelopejs/interface-dms/db/tables/inviteResolutions.table";
 import {
   TenantMemberModel,
@@ -17,7 +17,10 @@ import {
   type TenantDeletionContext,
   UnregisterHook,
 } from "@antelopejs/interface-dms/hooks";
-import { internal as extensions } from "@antelopejs/interface-dms/invite-extensions/registry";
+import {
+  applyInviteExtension,
+  clearInviteExtensions,
+} from "@antelopejs/interface-dms/invite-extensions/internal/registry";
 import {
   assertInviteReady,
   completeInviteResolution,
@@ -85,12 +88,12 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    extensions.clearInviteExtensions();
+    clearInviteExtensions();
     failCleanup = false;
     failAccept = false;
     cleaned = new Set();
     accepted = new Set();
-    extensions.applyInviteExtension({
+    applyInviteExtension({
       key: "test",
       component: Form({ fields: [] }),
       schema: z.object({ value: z.string() }),
@@ -134,7 +137,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
     invite = row;
   });
 
-  afterEach(() => extensions.clearInviteExtensions());
+  afterEach(() => clearInviteExtensions());
 
   it("chooses one outcome under simultaneous acceptance and cancellation", async () => {
     const results = await Promise.allSettled([
@@ -333,7 +336,7 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       invite,
       reason: "cancelled",
     });
-    extensions.clearInviteExtensions();
+    clearInviteExtensions();
     await assert.rejects(
       completeInviteResolution(resolution),
       /awaits extensions/,

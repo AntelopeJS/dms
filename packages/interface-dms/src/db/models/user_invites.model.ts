@@ -1,6 +1,6 @@
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import { normalizeEmail } from "../../auth/db/models/users.model";
-import { getRowInstance } from "../../utils/row-instance";
+import { getRowInstance } from "../../utils/internal/row-instance";
 import {
   USER_INVITES_TABLE_NAME,
   UserInvite,

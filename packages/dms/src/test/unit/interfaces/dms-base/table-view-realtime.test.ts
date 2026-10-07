@@ -17,7 +17,7 @@ import {
   extractSingleParamId,
   withPresenceAcquire,
   withRealtimeMutation,
-} from "@antelopejs/interface-dms/base/table-view/realtime";
+} from "@antelopejs/interface-dms/base/table-view/internal/realtime";
 
 // A table view reaches the DMS through two interface functions the DMS
 // implements, never through a callback the DMS left in the interface: the core

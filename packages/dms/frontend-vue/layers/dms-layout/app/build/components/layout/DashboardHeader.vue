@@ -3,8 +3,23 @@ import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import NotificationPopover from "../notification/NotificationPopover.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
+import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
 
-const BUILDER_POPOVER_OPEN_DELAY_MS = 80;
+const HOME_ICON = "i-ph-house-light";
+/** Breadcrumb slot of the folded middle crumbs on small screens. */
+const MOBILE_ELLIPSIS_SLOT = "ellipsis";
+/** v2 toolbar buttons: muted until hovered or open. */
+const TOOLBAR_BUTTON_CLASS =
+  "text-muted hover:text-highlighted data-[state=open]:text-highlighted";
+/** The crumb naming a row keeps the row's own case (crumbs capitalize). */
+const RECORD_CRUMB_LABEL_CLASS = "first-letter:normal-case";
+// Nuxt UI types an item's `ui` as every breadcrumb slot at once; only the
+// label is restyled here.
+const RECORD_CRUMB_UI = {
+  linkLabel: RECORD_CRUMB_LABEL_CLASS,
+} as NonNullable<BreadcrumbItem["ui"]>;
+/** v2: every icon-only toolbar button names itself in a tooltip below it. */
+const TOOLTIP_CONTENT = { side: "bottom", sideOffset: 6 } as const;
 
 const { t } = useI18n();
 const appConfig = useDmsAppConfig();
@@ -14,9 +29,8 @@ const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
 // core has no knowledge of any specific module.
 const { actions: registeredActions } = useHeaderActions();
 
-// The builder button is the one exception: it exists in the chrome whether or
-// not a module backs it, so the action that claims it drives it instead of
-// being rendered as another icon beside it.
+// The builder button keeps its fixed slot first in the toolbar, and only
+// exists when a module (the Builder) registers the action that drives it.
 const builderAction = computed(() =>
   registeredActions.value.find((action) => action.id === BUILDER_ACTION_ID),
 );
@@ -24,38 +38,19 @@ const headerActions = computed(() =>
   registeredActions.value.filter((action) => action.id !== BUILDER_ACTION_ID),
 );
 
-const { user } = useCurrentUser();
-const { logout } = useLogout();
-
-const userMenuOptions = computed<DropdownMenuItem[][]>(() => [
-  [
-    {
-      label: user.value?.name,
-      type: "label" as const,
-    },
-  ],
-  [
-    ...ACCOUNT_MENU_ENTRIES.map((entry) => ({
-      label: t(entry.labelKey),
-      icon: entry.icon,
-      to: entry.to,
-    })),
-    {
-      label: t("button.logout"),
-      icon: "i-ph-sign-out-light",
-      color: "error",
-      onSelect: () => {
-        void logout();
-      },
-    },
-  ],
-]);
+const sidebarToggleLabel = computed(() =>
+  sidebarCollapsed.value
+    ? t("header.expand_sidebar")
+    : t("header.collapse_sidebar"),
+);
 
 const route = useDmsRoute();
 const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const { processI18n } = useTranslation();
 const favoritePages = useFavoritePages();
+// The row an edit or details page is about names its last crumb.
+const { label: recordLabel } = usePageRecordLabel();
 
 const currentPageInfo = computed((): FavoritePage | null => {
   const matchedRoute = siteLayout.findMatchingRoute(route.path);
@@ -82,6 +77,12 @@ const isCurrentPageFavorite = computed(() => {
   return favoritePages.isFavorite(currentPageInfo.value.path);
 });
 
+const favoriteLabel = computed(() =>
+  isCurrentPageFavorite.value
+    ? t("header.remove_favorite")
+    : t("header.add_favorite"),
+);
+
 const toggleCurrentPageFavorite = () => {
   if (!currentPageInfo.value) {
     return;
@@ -90,7 +91,9 @@ const toggleCurrentPageFavorite = () => {
 };
 
 const breadcrumb = computed((): BreadcrumbItem[] => {
-  const base: BreadcrumbItem[] = [{ label: "home", to: homepage || "/" }];
+  const base: BreadcrumbItem[] = [
+    { icon: HOME_ICON, to: homepage || "/", "aria-label": t("header.home") },
+  ];
 
   // The path only: with the query, the last segment ("data?table=x") matched
   // no route and the current page dropped out of the breadcrumb.
@@ -100,7 +103,7 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
 
   const paths = route.path.split("/").filter((path) => path);
 
-  return base.concat(
+  const crumbs = base.concat(
     paths
       .map((path, index): BreadcrumbItem | null => {
         const to = `/${paths.slice(0, index + 1).join("/")}`;
@@ -124,6 +127,17 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
       })
       .filter((item) => item !== null),
   );
+
+  // Written as the row has it: an email address keeps its lowercase.
+  const last = crumbs.at(-1);
+  if (recordLabel.value && last && crumbs.length > 1) {
+    crumbs[crumbs.length - 1] = {
+      ...last,
+      label: recordLabel.value,
+      ui: RECORD_CRUMB_UI,
+    };
+  }
+  return crumbs;
 });
 
 const mobileBreadcrumb = computed(
@@ -132,10 +146,12 @@ const mobileBreadcrumb = computed(
       return breadcrumb.value;
     }
 
+    // The middle crumbs fold into a "…" menu (see the `#ellipsis` slot) so a
+    // deep page still fits a phone without losing the way back up.
     return [
-      { icon: "i-ph-house-light", to: "/" },
+      breadcrumb.value[0]!,
       {
-        icon: "i-ph-dots-three-light",
+        slot: MOBILE_ELLIPSIS_SLOT,
         children: breadcrumb.value.slice(1, -1).map((x) => ({
           label: x.label,
           to: x.to,
@@ -153,36 +169,37 @@ const mobileBreadcrumb = computed(
       <template #leading>
         <UButton
           class="lg:hidden"
+          :class="TOOLBAR_BUTTON_CLASS"
           color="neutral"
           variant="ghost"
           :icon="
             sidebarOpen ? appConfig.ui.icons.close : appConfig.ui.icons.menu
           "
-          :aria-label="sidebarOpen ? 'Close sidebar' : 'Open sidebar'"
+          :aria-label="
+            sidebarOpen ? t('header.close_sidebar') : t('header.open_sidebar')
+          "
           :ui="{ leadingIcon: 'size-[18px]' }"
           @click="sidebarOpen = !sidebarOpen"
         />
-        <UButton
-          class="hidden lg:flex"
-          color="neutral"
-          variant="ghost"
-          :icon="
-            sidebarCollapsed
-              ? appConfig.ui.icons.panelOpen
-              : appConfig.ui.icons.panelClose
-          "
-          :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-          :ui="{ leadingIcon: 'size-[18px]' }"
-          @click="sidebarCollapsed = !sidebarCollapsed"
-        />
-
-        <UButton
-          :icon="isCurrentPageFavorite ? 'i-ph-star-fill' : 'i-ph-star-light'"
-          variant="ghost"
-          :color="isCurrentPageFavorite ? 'primary' : 'neutral'"
-          :disabled="!currentPageInfo"
-          :ui="{ leadingIcon: 'size-[18px]' }"
-          @click="toggleCurrentPageFavorite"
+        <UTooltip :text="sidebarToggleLabel" :content="TOOLTIP_CONTENT">
+          <UButton
+            class="hidden lg:flex"
+            :class="TOOLBAR_BUTTON_CLASS"
+            color="neutral"
+            variant="ghost"
+            :icon="
+              sidebarCollapsed
+                ? appConfig.ui.icons.panelOpen
+                : appConfig.ui.icons.panelClose
+            "
+            :aria-label="sidebarToggleLabel"
+            :ui="{ leadingIcon: 'size-[18px]' }"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          />
+        </UTooltip>
+        <span
+          aria-hidden="true"
+          class="mx-1.5 hidden h-[18px] w-px bg-(--ui-border) lg:block"
         />
       </template>
 
@@ -191,86 +208,91 @@ const mobileBreadcrumb = computed(
           :items="breadcrumb"
           :ui="{ linkLabel: 'first-letter:uppercase' }"
           class="hidden md:block"
-        />
+        >
+          <template #separator>
+            <span class="text-dimmed text-xs">/</span>
+          </template>
+        </UBreadcrumb>
+
+        <UTooltip :text="favoriteLabel" :content="TOOLTIP_CONTENT">
+          <UButton
+            :icon="isCurrentPageFavorite ? 'i-ph-star-fill' : 'i-ph-star-light'"
+            variant="ghost"
+            size="sm"
+            :color="isCurrentPageFavorite ? 'primary' : 'neutral'"
+            :class="isCurrentPageFavorite ? undefined : TOOLBAR_BUTTON_CLASS"
+            :disabled="!currentPageInfo"
+            :aria-label="favoriteLabel"
+            :aria-pressed="isCurrentPageFavorite"
+            :ui="{ leadingIcon: 'size-4' }"
+            @click="toggleCurrentPageFavorite"
+          />
+        </UTooltip>
       </template>
 
       <template #right>
-        <UButton
+        <UTooltip
           v-if="builderAction"
-          :icon="builderAction.icon || 'i-ph-hammer-light'"
-          variant="ghost"
-          :color="builderAction.isActive?.() ? 'primary' : 'neutral'"
-          :title="builderAction.label"
-          :aria-label="builderAction.label"
-          :ui="{ leadingIcon: 'size-[18px]' }"
-          @click="builderAction.onSelect()"
-        />
-
-        <UPopover
-          v-else
-          mode="hover"
-          :open-delay="BUILDER_POPOVER_OPEN_DELAY_MS"
-          :content="{ align: 'end', side: 'bottom' }"
-          :ui="{ content: 'w-72' }"
+          :text="builderAction.label"
+          :content="TOOLTIP_CONTENT"
         >
           <UButton
-            icon="i-ph-hammer-light"
+            :icon="builderAction.icon || 'i-ph-hammer-light'"
             variant="ghost"
-            color="neutral"
-            :title="t('builder.button')"
-            :aria-label="t('builder.button')"
+            :color="builderAction.isActive?.() ? 'primary' : 'neutral'"
+            :class="
+              builderAction.isActive?.() ? undefined : TOOLBAR_BUTTON_CLASS
+            "
+            :aria-label="builderAction.label"
             :ui="{ leadingIcon: 'size-[18px]' }"
+            @click="builderAction.onSelect()"
           />
+        </UTooltip>
 
-          <template #content>
-            <div class="flex flex-col gap-2 p-4">
-              <div class="flex items-center justify-between gap-2">
-                <p class="text-highlighted text-sm font-semibold">
-                  {{ t("builder.title") }}
-                </p>
-                <UBadge color="primary" variant="subtle" size="sm">
-                  {{ t("builder.soon") }}
-                </UBadge>
-              </div>
-              <p class="text-muted text-xs leading-relaxed">
-                {{ t("builder.description") }}
-              </p>
-            </div>
-          </template>
-        </UPopover>
-
-        <UButton
+        <UTooltip
           v-for="action in headerActions"
           :key="action.id"
-          :icon="action.icon"
-          variant="ghost"
-          color="neutral"
-          :title="action.label"
-          :aria-label="action.label"
-          :ui="{ leadingIcon: 'size-[18px]' }"
-          @click="action.onSelect?.()"
-        />
+          :text="action.label"
+          :content="TOOLTIP_CONTENT"
+        >
+          <UButton
+            :icon="action.icon"
+            variant="ghost"
+            color="neutral"
+            :class="TOOLBAR_BUTTON_CLASS"
+            :aria-label="action.label"
+            :ui="{ leadingIcon: 'size-[18px]' }"
+            @click="action.onSelect?.()"
+          />
+        </UTooltip>
 
         <QuickActionsPopover />
 
         <NotificationPopover />
-
-        <UDropdownMenu :items="userMenuOptions" :ui="{ content: 'w-48' }" arrow>
-          <UButton
-            icon="i-ph-user-light"
-            variant="ghost"
-            color="neutral"
-            :ui="{ leadingIcon: 'size-[18px]' }"
-          />
-        </UDropdownMenu>
       </template>
     </UDashboardNavbar>
 
-    <div class="border-default border-b px-6 py-2 md:hidden">
+    <!-- Same side padding as the navbar above, so the home icon lines up
+         with its buttons. -->
+    <div class="border-default border-b px-3 py-2 sm:px-4 md:hidden">
       <UBreadcrumb
         :items="mobileBreadcrumb"
         :ui="{ linkLabel: 'first-letter:uppercase' }"
-      />
+      >
+        <template #ellipsis="{ item }">
+          <UDropdownMenu :items="item.children" :content="{ align: 'start' }">
+            <UButton
+              icon="i-ph-dots-three-light"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              class="-my-1"
+              :class="TOOLBAR_BUTTON_CLASS"
+              :aria-label="t('header.show_path')"
+            />
+          </UDropdownMenu>
+        </template>
+      </UBreadcrumb>
     </div>
   </div>
 </template>

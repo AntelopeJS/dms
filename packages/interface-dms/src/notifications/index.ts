@@ -2,6 +2,7 @@ import { NotificationBuilder } from "./builder";
 import { internal } from "./internal";
 
 export { internal };
+export * from "./types";
 import type {
   NotificationCategoryInfo,
   NotificationSubjectInfo,
@@ -45,6 +46,7 @@ export const SystemCategory = NotificationCategory("system", {
 export const GeneralSubject = NotificationSubject("general", {
   category: SystemCategory,
   labelKey: "dms.notifications.subjects.general",
+  descriptionKey: "dms.notifications.subjects.general_desc",
   togglePermission: "forbidden",
 });
 

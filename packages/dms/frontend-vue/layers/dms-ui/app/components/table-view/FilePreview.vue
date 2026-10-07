@@ -43,7 +43,7 @@ onMounted(async () => {
       v-else
       :to="metadata.url"
       target="_blank"
-      class="decoration-dimmed/40 hover:decoration-muted flex items-center gap-1 truncate underline"
+      class="decoration-dimmed/40 hover:decoration-muted text-muted hover:text-default flex items-center gap-1 truncate font-normal underline"
       @click.stop
     >
       <span class="truncate">{{ metadata.filename }}</span>
