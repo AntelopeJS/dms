@@ -79,7 +79,7 @@ async function welcomeStats(): Promise<WelcomeStat[]> {
   ];
 }
 
-/** Live figures of the welcome page's stat strip, counted at request time. */
+/** Live figures of the welcome page's stat group, counted at request time. */
 export class PlaygroundWelcomeApiController extends Controller(
   "/api/playground-welcome",
 ) {

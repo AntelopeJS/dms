@@ -109,7 +109,7 @@ export const blockFetchUrlMethodOption = () =>
   });
 
 /**
- * The options a list block (StatStrip, KeyValueList, NavCardGrid,
+ * The options a list block (StatGroup, KeyValueList, NavCardGrid,
  * ActivityFeed) reads its items from a route with. The route answers
  * `{ items: [...] }` in the block's own item shape, which replaces the static
  * `items`.
@@ -126,7 +126,7 @@ export interface BlockItemsSource {
    * keeps its height when the items land. A count, not a height, so it holds
    * at every width.
    *
-   * Optional. Defaults to `columns`, or 4 (StatStrip); 5 (KeyValueList);
+   * Optional. Defaults to `columns`, or 4 (StatGroup); 5 (KeyValueList);
    * `columns`, or 3 (NavCardGrid); `maxItems`, or 3 (ActivityFeed).
    */
   skeletonCount?: number;

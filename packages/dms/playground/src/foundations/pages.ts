@@ -47,7 +47,7 @@ export class PageFoundationsLists extends PageController(
   {
     displayName: "Lists & data",
     description:
-      "DmsListRow (unread, current, meta, trailing actions, bare, sizes), DmsActivityItem, DmsKeyValueList and DmsStatStrip",
+      "DmsListRow (unread, current, meta, trailing actions, bare, sizes), DmsActivityItem, DmsKeyValueList and DmsStatGroup",
     icon: "i-ph-list-bullets",
     category: foundationsCategory,
     order: 20,

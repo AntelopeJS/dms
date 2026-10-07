@@ -27,7 +27,7 @@ import "./placeholder";
 import "./resource-form-schema";
 import "./section";
 import "./stack";
-import "./stat-strip";
+import "./stat-group";
 import "./tab";
 import "./table-view/schema";
 import "./top-list-card";

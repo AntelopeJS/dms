@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import DmsIconWell from "../icon-well/IconWell.vue";
+import DmsStatCell from "../../build/components/stat/StatCell.vue";
 import DmsEyebrow from "../section-header/Eyebrow.vue";
 // Imported rather than resolved from the registry: a registered component is
 // a lazy chunk of its own, fetched only when the data first shows it, so the
@@ -22,7 +22,10 @@ import type { DefaultComponentProps } from "../../../../dms-core/app/types/compo
 
 interface Props extends DefaultComponentProps {
   title: string;
-  /** "stat" = compact horizontal row: icon well, label + value, delta. */
+  /**
+   * "stat" = the compact stat card (a StatGroup `cards` cell): icon well,
+   * label + value, delta.
+   */
   variant?: "default" | "stat";
   description?: string;
   icon?: string;
@@ -127,64 +130,50 @@ const isStat = computed(() => props.variant === "stat");
 </script>
 
 <template>
-  <DmsCard
+  <DmsStatCell
     v-if="isStat"
-    :padded="false"
-    class="flex items-center gap-3.5 px-4 py-3.5"
+    :eyebrow="processI18n(title)"
+    :icon="resolvedIcon"
+    :loading="isFirstLoad"
+    :refreshing="isRefreshing"
     :aria-busy="isFirstLoad"
   >
-    <USkeleton v-if="isFirstLoad" class="size-10 shrink-0 rounded-[10px]" />
-    <DmsIconWell v-else :icon="resolvedIcon" size="xl" />
-    <div class="grid min-w-0 flex-1 gap-[3px]">
-      <DmsEyebrow
-        tone="muted"
-        truncate
-        class="max-sm:whitespace-normal"
-        :label="processI18n(title)"
-      />
-      <USkeleton v-if="isFirstLoad" class="h-[22px] w-24" />
-      <p
-        v-else
-        class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"
-        :class="isRefreshing && 'opacity-55'"
+    <template #value>
+      <span
+        v-if="formattedParts.unit && formattedParts.unitIsPrefix"
+        class="text-muted mr-0.5 text-[0.6em] font-medium"
       >
-        <span
-          v-if="formattedParts.unit && formattedParts.unitIsPrefix"
-          class="text-muted mr-0.5 text-[0.6em] font-medium"
-        >
-          {{ formattedParts.unit }}
-        </span>
-        <span>{{ formattedParts.value }}</span>
-        <span
-          v-if="formattedParts.unit && !formattedParts.unitIsPrefix"
-          class="text-muted ml-0.5 text-[0.6em] font-medium"
-        >
-          {{ formattedParts.unit }}
-        </span>
-      </p>
-    </div>
+        {{ formattedParts.unit }}
+      </span>
+      <span>{{ formattedParts.value }}</span>
+      <span
+        v-if="formattedParts.unit && !formattedParts.unitIsPrefix"
+        class="text-muted ml-0.5 text-[0.6em] font-medium"
+      >
+        {{ formattedParts.unit }}
+      </span>
+    </template>
     <!-- With no change to show (no comparison period), the trend's line
          keeps its place: toggling a comparison never resizes the card. -->
-    <div
-      v-if="showDelta || hasSparkline"
-      class="ml-auto grid shrink-0 justify-items-end gap-1"
-    >
-      <DmsTrendBadge
-        v-if="showTrend"
-        :delta="delta"
-        :invert="invert"
-        variant="text"
-      />
-      <span v-else-if="showDelta" class="h-4" aria-hidden="true" />
-      <div v-if="hasSparkline" class="h-6 w-16">
-        <DmsSparkline
-          :values="sparkline"
-          :accent="resolvedSparklineAccent"
-          :aria-label="processI18n(title)"
+    <template v-if="showDelta || hasSparkline" #aside>
+      <div class="ml-auto grid shrink-0 justify-items-end gap-1">
+        <DmsTrendBadge
+          v-if="showTrend"
+          :delta="delta"
+          :invert="invert"
+          variant="text"
         />
+        <span v-else-if="showDelta" class="h-4" aria-hidden="true" />
+        <div v-if="hasSparkline" class="h-6 w-16">
+          <DmsSparkline
+            :values="sparkline"
+            :accent="resolvedSparklineAccent"
+            :aria-label="processI18n(title)"
+          />
+        </div>
       </div>
-    </div>
-  </DmsCard>
+    </template>
+  </DmsStatCell>
 
   <DmsCard
     v-else

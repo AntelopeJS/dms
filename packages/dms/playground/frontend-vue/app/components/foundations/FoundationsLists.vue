@@ -57,7 +57,7 @@ const SECURITY_STATS = [
     value: "On",
     detail: "Authenticator app",
     detailTone: "success",
-    href: "#stat-strip",
+    href: "#stat-group",
   },
   {
     icon: "i-ph-key",
@@ -365,28 +365,28 @@ const MODULE_STATS = [
     </ShowcaseSection>
 
     <ShowcaseSection
-      id="stat-strip"
-      title="DmsStatStrip"
+      id="stat-group"
+      title="DmsStatGroup"
       description="A row of figures: one card split by hairlines (joined, security status) or one compact card per figure (cards, modules summary)."
       :columns="1"
     >
       <ShowcaseDemo
         label="layout='joined' · icon · eyebrow · value · detail · detailTone · href"
       >
-        <DmsStatStrip :items="[...SECURITY_STATS]" label="Security status" />
+        <DmsStatGroup :items="[...SECURITY_STATS]" label="Security status" />
       </ShowcaseDemo>
       <ShowcaseDemo label="layout='cards' · tone">
-        <DmsStatStrip :items="[...MODULE_STATS]" layout="cards" />
+        <DmsStatGroup :items="[...MODULE_STATS]" layout="cards" />
       </ShowcaseDemo>
       <ShowcaseDemo
         label="layout='joined' · :columns='2' · loading (with items: labels stay)"
       >
-        <DmsStatStrip :items="[...SECURITY_STATS]" :columns="2" loading />
+        <DmsStatGroup :items="[...SECURITY_STATS]" :columns="2" loading />
       </ShowcaseDemo>
       <ShowcaseDemo
         label="layout='cards' · loading without items (skeletonCount=4)"
       >
-        <DmsStatStrip layout="cards" loading :skeleton-count="4" />
+        <DmsStatGroup layout="cards" loading :skeleton-count="4" />
       </ShowcaseDemo>
     </ShowcaseSection>
   </div>

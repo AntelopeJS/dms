@@ -33,10 +33,10 @@ vi.mock(
   }),
 );
 
-const StatStrip = defineComponent({
+const StatGroup = defineComponent({
   props: { loading: Boolean },
   setup: (props) => () =>
-    h("div", { "data-strip": props.loading ? "loading" : "ready" }),
+    h("div", { "data-group": props.loading ? "loading" : "ready" }),
 });
 
 const EmptyState = defineComponent({
@@ -63,7 +63,7 @@ async function mount(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/security/SecurityStatus.vue"
   );
   app = createApp(SecurityStatus);
-  app.component("DmsStatStrip", StatStrip);
+  app.component("DmsStatGroup", StatGroup);
   app.component("DmsEmptyState", EmptyState);
   app.mount(host);
   await nextTick();
@@ -88,7 +88,7 @@ afterEach(() => {
 
 it("loads while the security summary is on its way", async () => {
   await mount();
-  expect(host.querySelector("[data-strip]")?.getAttribute("data-strip")).toBe(
+  expect(host.querySelector("[data-group]")?.getAttribute("data-group")).toBe(
     "loading",
   );
   expect(host.textContent).not.toContain("dms.table.load_error_title");
@@ -97,7 +97,7 @@ it("loads while the security summary is on its way", async () => {
 it("says a failed summary failed, with a retry, instead of loading forever", async () => {
   isUnavailable.value = true;
   await mount();
-  expect(host.querySelector("[data-strip]")).toBeNull();
+  expect(host.querySelector("[data-group]")).toBeNull();
   expect(host.textContent).toContain("dms.table.load_error_title");
 
   refresh.mockClear();

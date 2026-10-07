@@ -29,7 +29,7 @@ export interface UseBlockItemsReturn<T> {
 }
 
 /**
- * The items a list block (StatStrip, KeyValueList, NavCardGrid) renders:
+ * The items a list block (StatGroup, KeyValueList, NavCardGrid) renders:
  * either the static ones of its options, or the `items` its `fetchUrl`
  * answers with — refetched when a watched event changes the block's state,
  * like the KPI and top-list cards.

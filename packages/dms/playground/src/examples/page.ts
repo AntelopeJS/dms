@@ -6,7 +6,7 @@ import {
   KeyValueList,
   NavCardGrid,
   Section,
-  StatStrip,
+  StatGroup,
   VStack,
 } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -131,7 +131,7 @@ export class ExamplesOverviewPage extends PageController(
     icon: "i-ph-hand-waving",
   });
 
-  static stats = StatStrip({
+  static stats = StatGroup({
     layout: "cards",
     columns: 4,
     fetchUrl: "/api/playground-welcome/stats",

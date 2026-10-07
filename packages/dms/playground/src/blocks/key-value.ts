@@ -1,5 +1,5 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { Card, KeyValueList, StatStrip } from "@antelopejs/interface-dms/base";
+import { Card, KeyValueList, StatGroup } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
 import { blocksCategory } from "./category";
 
@@ -144,7 +144,7 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
   })
     .child(
       "stats",
-      StatStrip({
+      StatGroup({
         layout: "joined",
         items: [
           { eyebrow: "Orders", value: 1284, detail: "+4% vs August" },
