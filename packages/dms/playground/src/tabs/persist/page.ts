@@ -1,11 +1,8 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Tab } from "@antelopejs/interface-dms/base/tab";
-import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
+import { componentsPanel, databasePanel, filesPanel } from "../panels";
 
 @RegisterPage()
 export class PageTabsPersist extends PageController("tabs-persist", {
@@ -20,17 +17,17 @@ export class PageTabsPersist extends PageController("tabs-persist", {
     stateKey: "activeTab",
     items: [
       {
-        label: "Persistent Tree 1",
+        label: "Files",
         icon: "i-ph-book-open",
         slot: "persistent1",
       },
       {
-        label: "Persistent Tree 2",
+        label: "Components",
         icon: "i-ph-code",
         slot: "persistent2",
       },
       {
-        label: "Persistent Tree 3",
+        label: "Database",
         icon: "i-ph-lightning",
         slot: "persistent3",
       },
@@ -38,46 +35,7 @@ export class PageTabsPersist extends PageController("tabs-persist", {
     color: Color.primary,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent1" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent2" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent3" },
-    );
+    .child("filesPanel", filesPanel(), { slot: "persistent1" })
+    .child("componentsPanel", componentsPanel(), { slot: "persistent2" })
+    .child("databasePanel", databasePanel(), { slot: "persistent3" });
 }

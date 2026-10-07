@@ -1,11 +1,66 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Tab } from "@antelopejs/interface-dms/base/tab";
-import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
+import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { Form } from "@antelopejs/interface-dms/base/form";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
+
+const profileForm = Form({
+  title: "Profile",
+  description: "Type a value, switch tabs and come back: it is still here",
+  fields: [
+    {
+      id: "fullName",
+      label: "Full Name",
+      type: new DefaultDataTypes.StringType({ placeholder: "Jane Doe" }),
+    },
+    {
+      id: "email",
+      label: "Email",
+      type: new DefaultDataTypes.EmailType({
+        placeholder: "jane.doe@example.com",
+      }),
+    },
+  ],
+});
+
+const notesForm = Form({
+  title: "Notes",
+  description: "Draft text is kept while the tab is hidden",
+  fields: [
+    {
+      id: "notes",
+      label: "Notes",
+      type: new DefaultDataTypes.StringType({
+        placeholder: "Write a few lines...",
+        textarea: true,
+      }),
+    },
+  ],
+});
+
+const preferencesForm = Form({
+  title: "Preferences",
+  description: "Toggles keep their state across tab switches",
+  fields: [
+    {
+      id: "newsletter",
+      label: "Subscribe to the newsletter",
+      type: new DefaultDataTypes.BooleanType(),
+    },
+    {
+      id: "theme",
+      label: "Theme",
+      type: new DefaultDataTypes.SelectType({
+        items: [
+          { label: "Light", value: "light" },
+          { label: "Dark", value: "dark" },
+          { label: "System", value: "system" },
+        ],
+      }),
+    },
+  ],
+});
 
 @RegisterPage()
 export class PageTabsKeepAlive extends PageController("tabs-keep-alive", {
@@ -13,70 +68,32 @@ export class PageTabsKeepAlive extends PageController("tabs-keep-alive", {
   icon: "i-ph-memory",
   category: pageCategory,
   order: 10,
-  description: "Tabs that keep components mounted when switching",
+  description:
+    "Tabs that keep their forms mounted: values typed in one tab survive switching",
 }) {
   static tabsKeepAlive = Tab({
-    unmountOnHide: false, // Components will NOT be unmounted when hidden (keep alive behavior)
+    unmountOnHide: false,
     items: [
       {
-        label: "Persistent Tree 1",
-        icon: "i-ph-floppy-disk",
+        label: "Profile",
+        icon: "i-ph-user",
         slot: "persistent1",
       },
       {
-        label: "Persistent Tree 2",
-        icon: "i-ph-memory",
+        label: "Notes",
+        icon: "i-ph-note-pencil",
         slot: "persistent2",
       },
       {
-        label: "Persistent Tree 3",
-        icon: "i-ph-database",
+        label: "Preferences",
+        icon: "i-ph-sliders",
         slot: "persistent3",
       },
     ],
     color: Color.primary,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "This tree stays mounted even when switching tabs",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent1" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "State is preserved when switching tabs",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent2" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Remains in memory for faster switching",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "persistent3" },
-    );
+    .child("profileForm", profileForm, { slot: "persistent1" })
+    .child("notesForm", notesForm, { slot: "persistent2" })
+    .child("preferencesForm", preferencesForm, { slot: "persistent3" });
 }

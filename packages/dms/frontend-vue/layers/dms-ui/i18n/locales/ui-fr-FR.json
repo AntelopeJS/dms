@@ -257,11 +257,6 @@
       "refresh_data": "Actualiser les données",
       "export_data": "Exporter les données"
     },
-    "tree": {
-      "load_error_title": "Erreur de chargement",
-      "load_error_message": "Impossible de charger les éléments enfants",
-      "no_entries": "Aucun élément à afficher"
-    },
     "form": {
       "success_title": "Succès",
       "success_message": "Les données ont été enregistrées avec succès",
@@ -292,7 +287,8 @@
         "search_placeholder": "Rechercher...",
         "no_results": "Aucun résultat",
         "selected_count": "{count} sélectionné(s)",
-        "partial_results": "Affichage des {shown} premiers éléments sur {total}"
+        "partial_results": "Affichage des {shown} premiers éléments sur {total}",
+        "no_entries": "Aucun élément à afficher"
       },
       "input": {
         "show_password": "Afficher le mot de passe",
@@ -466,34 +462,6 @@
         "delete": {
           "description": "Supprimer la ligne survolée",
           "condition": "Uniquement quand enableRowDelete est activé"
-        }
-      },
-      "tree": {
-        "arrowdown": {
-          "description": "Naviguer vers le bas"
-        },
-        "arrowup": {
-          "description": "Naviguer vers le haut"
-        },
-        "enter": {
-          "description": "Sélectionner le nœud"
-        },
-        "space": {
-          "description": "Sélectionner le nœud"
-        },
-        "home": {
-          "description": "Aller au premier nœud"
-        },
-        "end": {
-          "description": "Aller au dernier nœud"
-        },
-        "escape": {
-          "description": "Désélectionner tous les nœuds",
-          "condition": "Uniquement quand des nœuds sont sélectionnés et qu'aucune fenêtre n'est ouverte"
-        },
-        "shift_a": {
-          "description": "Sélectionner tous les nœuds récursivement",
-          "condition": "Uniquement quand multiple est activé"
         }
       },
       "tab": {

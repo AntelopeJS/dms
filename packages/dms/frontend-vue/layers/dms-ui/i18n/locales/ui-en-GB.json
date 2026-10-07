@@ -257,11 +257,6 @@
       "refresh_data": "Refresh data",
       "export_data": "Export data"
     },
-    "tree": {
-      "load_error_title": "Loading Error",
-      "load_error_message": "Unable to load child items",
-      "no_entries": "No items to display"
-    },
     "form": {
       "success_title": "Success",
       "success_message": "Data has been successfully saved",
@@ -291,7 +286,8 @@
         "search_placeholder": "Search...",
         "no_results": "No results found",
         "selected_count": "{count} selected",
-        "partial_results": "Showing first {shown} of {total} items"
+        "partial_results": "Showing first {shown} of {total} items",
+        "no_entries": "No items to display"
       },
       "input": {
         "show_password": "Show password",
@@ -465,34 +461,6 @@
         "delete": {
           "description": "Delete hovered row",
           "condition": "Only when enableRowDelete is enabled"
-        }
-      },
-      "tree": {
-        "arrowdown": {
-          "description": "Navigate down"
-        },
-        "arrowup": {
-          "description": "Navigate up"
-        },
-        "enter": {
-          "description": "Select node"
-        },
-        "space": {
-          "description": "Select node"
-        },
-        "home": {
-          "description": "Go to first node"
-        },
-        "end": {
-          "description": "Go to last node"
-        },
-        "escape": {
-          "description": "Deselect all nodes",
-          "condition": "Only when nodes are selected and no dialog is open"
-        },
-        "shift_a": {
-          "description": "Select all nodes recursively",
-          "condition": "Only when multiple is enabled"
         }
       },
       "tab": {

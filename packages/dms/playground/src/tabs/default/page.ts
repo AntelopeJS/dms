@@ -1,11 +1,8 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Tab } from "@antelopejs/interface-dms/base/tab";
-import {
-  Tree,
-  TreeSelectionBehavior,
-} from "@antelopejs/interface-dms/base/tree";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
+import { componentsPanel, databasePanel, filesPanel } from "../panels";
 
 @RegisterPage()
 export class PageTabsBasic extends PageController("tabs-basic", {
@@ -13,7 +10,7 @@ export class PageTabsBasic extends PageController("tabs-basic", {
   icon: "i-ph-squares-four",
   category: pageCategory,
   order: 0,
-  description: "The plainest tabs: each tab holds a tree",
+  description: "The plainest tabs: each tab holds a key / value list",
 }) {
   static tabs = Tab({
     items: [
@@ -36,48 +33,9 @@ export class PageTabsBasic extends PageController("tabs-basic", {
     color: Color.primary,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "files" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "components" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description: "Explore database structure",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "database" },
-    );
+    .child("filesPanel", filesPanel(), { slot: "files" })
+    .child("componentsPanel", componentsPanel(), { slot: "components" })
+    .child("databasePanel", databasePanel(), { slot: "database" });
 
   static tabsWithShortcuts = Tab({
     items: [
@@ -103,47 +61,7 @@ export class PageTabsBasic extends PageController("tabs-basic", {
     color: Color.success,
     size: Size.medium,
   })
-    .child(
-      "filesTree",
-      Tree({
-        title: "File Explorer",
-        description: "Browse project files - Press Shift+F to switch here",
-        fetchUrl: "/api/tree/files",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "files" },
-    )
-    .child(
-      "componentsTree",
-      Tree({
-        title: "Component Tree",
-        description: "View component hierarchy - Press Shift+C to switch here",
-        fetchUrl: "/api/tree/components",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "components" },
-    )
-    .child(
-      "databaseTree",
-      Tree({
-        title: "Database Schema",
-        description:
-          "Explore database structure - Press Shift+D to switch here",
-        fetchUrl: "/api/tree/database",
-        color: Color.primary,
-        size: Size.medium,
-        multiple: false,
-        selectionBehavior: TreeSelectionBehavior.toggle,
-        lazyLoad: true,
-      }),
-      { slot: "database" },
-    );
+    .child("filesPanel", filesPanel(), { slot: "files" })
+    .child("componentsPanel", componentsPanel(), { slot: "components" })
+    .child("databasePanel", databasePanel(), { slot: "database" });
 }

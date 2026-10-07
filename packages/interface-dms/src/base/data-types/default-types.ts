@@ -34,7 +34,6 @@ import { Form, FormComponents } from "../form-schema";
 // oxlint-disable-next-line import/no-cycle
 import { TableViewMeta } from "../table-view/meta";
 import type { FormContainerPageTexts } from "../table-view/options";
-import type { TreeNode } from "../tree";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
 import * as FieldTypes from "./field-types";
@@ -179,19 +178,6 @@ export namespace DefaultDataTypes {
   export type PhoneTypeOptions = {
     placeholder?: string;
     requiredPrefix?: boolean;
-    fallback?: string;
-  };
-
-  export type TreeTypeOptions = {
-    items?: TreeNode[];
-    fetchUrl?: string;
-    placeholder?: string;
-    multiple?: boolean;
-    fallback?: string;
-  };
-
-  export type PermissionsTypeOptions = {
-    fetchUrl?: string;
     fallback?: string;
   };
 
@@ -773,34 +759,6 @@ export namespace DefaultDataTypes {
     }
   }
 
-  @RegisterDataType("tree")
-  export class TreeType extends DataType {
-    constructor(public readonly options: TreeTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.InputTree({
-        items: this.options.items || [],
-        fetchUrl: this.options.fetchUrl,
-        multiple: this.options.multiple,
-        placeholder: this.options.placeholder,
-      });
-    }
-
-    getValidation() {
-      if (this.options.multiple) {
-        return z.array(z.string());
-      }
-
-      return z.string();
-    }
-  }
-
   @RegisterDataType("relation")
   export class RelationType<T extends ControllerClass> extends DataType {
     constructor(
@@ -1158,27 +1116,6 @@ export namespace DefaultDataTypes {
         countrySubdivision: z.string().optional(),
         countryCode: z.string().length(2),
       });
-    }
-  }
-
-  @RegisterDataType("permissions")
-  export class PermissionsType extends DataType {
-    constructor(public readonly options: PermissionsTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.PermissionsTree({
-        fetchUrl: this.options.fetchUrl,
-      });
-    }
-
-    getValidation() {
-      return z.array(z.string());
     }
   }
 

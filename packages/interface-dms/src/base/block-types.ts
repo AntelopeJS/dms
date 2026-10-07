@@ -31,7 +31,6 @@ import "./stat-strip";
 import "./tab";
 import "./table-view/schema";
 import "./top-list-card";
-import "./tree";
 
 // Declared data sources travel with the block types: a builder reading the
 // catalog needs both to know what a block may be pointed at.

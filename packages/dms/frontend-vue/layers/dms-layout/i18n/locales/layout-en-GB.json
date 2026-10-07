@@ -624,10 +624,6 @@
             "title": "Tables",
             "description": "Any list page when the table has focus."
           },
-          "tree": {
-            "title": "Trees",
-            "description": "Folders, categories and permission trees."
-          },
           "tab": {
             "title": "Tabs",
             "description": "Pages split into tabs."

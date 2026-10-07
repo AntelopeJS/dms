@@ -19,32 +19,10 @@ const TAG_ITEMS = [
   { label: "On sale", value: "sale" },
 ];
 
-const DEPARTMENT_TREE = [
-  {
-    label: "Engineering",
-    value: "eng",
-    children: [
-      { label: "Frontend", value: "eng-frontend" },
-      { label: "Backend", value: "eng-backend" },
-    ],
-  },
-  {
-    label: "Sales",
-    value: "sales",
-    children: [{ label: "Inside sales", value: "sales-inside" }],
-  },
-];
-
-const PERMISSIONS = [
-  {
-    id: "articles",
-    label: "Articles",
-    children: [
-      { id: "articles.read", label: "Read" },
-      { id: "articles.write", label: "Write" },
-    ],
-  },
-  { id: "billing", label: "Billing" },
+const DEPARTMENT_ITEMS = [
+  { label: "Engineering / Frontend", value: "eng-frontend" },
+  { label: "Engineering / Backend", value: "eng-backend" },
+  { label: "Sales / Inside sales", value: "sales-inside" },
 ];
 
 /**
@@ -282,17 +260,8 @@ export class PageFormRequired extends PageController(
       {
         id: "department",
         label: "Department",
-        description: "A tree",
-        type: new DefaultDataTypes.TreeType({ items: DEPARTMENT_TREE }),
-        required: true,
-      },
-      {
-        id: "permissions",
-        label: "Permissions",
-        type: new DefaultDataTypes.PermissionsType(),
-        inputComponent: FormComponents.PermissionsTree({
-          permissions: PERMISSIONS,
-        }),
+        description: "A select with grouped labels",
+        type: new DefaultDataTypes.SelectType({ items: DEPARTMENT_ITEMS }),
         required: true,
       },
       {

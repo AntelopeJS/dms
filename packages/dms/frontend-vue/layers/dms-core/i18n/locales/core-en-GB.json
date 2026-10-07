@@ -426,7 +426,6 @@
     },
     "components": {
       "tableview": "📄 TableView",
-      "tree": "🎋 Tree",
       "tab": "🗂️ Tab",
       "global": "🌐 Global"
     },

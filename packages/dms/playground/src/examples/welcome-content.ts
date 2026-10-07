@@ -56,13 +56,6 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
       "A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.",
     to: "/charts/chart-dashboard",
   },
-  {
-    icon: "i-ph-tree-structure",
-    title: "Tree",
-    description:
-      "Static and fetched trees with selection, colors, sizes and variants.",
-    to: "/tree/tree-default",
-  },
 ];
 
 /** The dashboard around the demos: navigation, modules, settings, internals. */

@@ -96,9 +96,9 @@ const identity = (label: string) => label;
 const anyone = () => true;
 
 /**
- * The original roles form (`dms-ui` `form/components/PermissionsTree.vue`,
- * the `PermissionsType` field of the roles table), kept here verbatim in
- * behaviour as the reference the editor must store the same ids as.
+ * The roles form the editor replaced (the `PermissionsTree` field, since
+ * removed), kept here verbatim in behaviour: roles it saved must read the same
+ * in the editor, so the editor has to store the same ids as it did.
  */
 const original = {
   findNodeById(
@@ -147,7 +147,7 @@ const original = {
     remainingIds = remainingIds.filter((id) => !ancestorsToRemove.includes(id));
     return remainingIds;
   },
-  /** Checkbox value of `PermissionsTreeNode.vue`. */
+  /** Checkbox value of the original form's tree node. */
   checkbox(selected: string[], node: RolePermissionNode) {
     if (node.children && node.children.length > 0) {
       const descendantIds = original

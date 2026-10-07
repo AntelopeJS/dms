@@ -15,9 +15,8 @@ export const libraryCategory = RootCategory("library", {
 // `urlSlug: "/"` so it stays transparent in page URLs
 // (e.g. /grid/layout-grid-simple, not /layout/grid/layout-grid-simple).
 // The library reads from the building blocks to the plumbing: design system,
-// layout, then the page components (table view 30, form 40, charts 50,
-// tree 60, in their own category.ts), dynamic navigation (70), system and
-// internals.
+// layout, then the page components (table view 30, form 40, charts 50, in
+// their own category.ts), dynamic navigation (70), system and internals.
 
 // Every component built or reworked for the v2 design: the themed Nuxt UI
 // primitives, the generic DMS Vue components (foundations) and the blocks a
