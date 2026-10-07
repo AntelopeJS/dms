@@ -1,7 +1,7 @@
 import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { applyConfig } from "../../config";
-import { AddOwnedFrontendModule } from "../../implementations/dms/page";
+import { AddFrontendModule } from "../../implementations/dms/page";
 import { createClient } from "../helpers/http";
 
 const BOOTSTRAP_HEADER = "x-dms-bootstrap";
@@ -57,7 +57,7 @@ describe("[integration] dms frontend endpoints", () => {
 
   before(() => {
     client = createClient();
-    AddOwnedFrontendModule({
+    AddFrontendModule({
       name: "@antelopejs/dms-frontend-vue",
       sourcePath: `${process.cwd()}/frontend-vue`,
       renderer: { name: "test-renderer", version: "1.1.0" },

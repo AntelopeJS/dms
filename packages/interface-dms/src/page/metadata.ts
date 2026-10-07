@@ -4,7 +4,7 @@ import {
   RegisterRoute,
   UnregisterRoute,
 } from "@antelopejs/interface-api";
-import { GetMetadata, GetResponsibleModule } from "@antelopejs/interface-core";
+import { GetMetadata } from "@antelopejs/interface-core";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { Model } from "@antelopejs/interface-database-decorators";
 import type { UploadConstraints } from "@antelopejs/interface-file-storage";
@@ -150,14 +150,6 @@ export class PageMetadata {
    * without issuing a request.
    */
   public guardOptions?: TenantGuardOptions;
-  /**
-   * The AntelopeJS module that registered the page. The frontend module it
-   * added owns the page's component tree, so its private components resolve
-   * there.
-   *
-   * @internal
-   */
-  public ownerModule?: string;
 
   private layoutRef?: PageLayout;
   private ownComponents: Record<string, ComponentInfoSerialized> = {};
@@ -321,7 +313,6 @@ export class PageMetadata {
    * later extensions would graft themselves onto.
    */
   private publish(pageInfo: PageInfo): void {
-    this.ownerModule = GetResponsibleModule();
     const previous = pageMetadataByFullId.get(pageInfo.fullId);
     pageMetadataByFullId.set(pageInfo.fullId, this);
     this.registration.track(() => {

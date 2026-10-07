@@ -56,13 +56,14 @@ describe("Vue source inventory", () => {
       '"./layers/**/app/custom-layouts/**/*.vue"',
     );
     expect(frontendModule).toContain('"./layers/**/app/error.vue"');
-    expect(frontendModule).toMatch(
-      /sdk\.registerComponent\(\s*`Dms\$\{pascalCase\(name\)\}`,\s*component,\s*PRIVATE_COMPONENT,\s*\)/,
+    expect(frontendModule).toContain('componentPrefix: "Dms"');
+    expect(frontendModule).toContain(
+      "sdk.registerComponent(pascalCase(name), component)",
     );
     for (const [name, alias] of [
-      ["DmsActivityFeed", "DmsActivityFeedBlock"],
-      ["DmsSection", "DmsSectionBlock"],
-      ["DmsFieldRow", "DmsFieldRowBlock"],
+      ["ActivityFeed", "ActivityFeedBlock"],
+      ["Section", "SectionBlock"],
+      ["FieldRow", "FieldRowBlock"],
     ]) {
       expect(frontendModule).toContain(`${name}: "${alias}"`);
     }
@@ -95,7 +96,7 @@ describe("Vue source inventory", () => {
       "utf8",
     );
     expect(frontendModule).toContain("defineAsyncComponent");
-    expect(frontendModule).toContain("sortedEntries(registeredComponents)");
+    expect(frontendModule).toContain("sortedEntries(components)");
     expect(frontendModule).toContain(
       "Duplicate component name ${name}: ${previousPath}, ${path}",
     );

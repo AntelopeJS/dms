@@ -37,35 +37,13 @@ interface DmsPublicOptions {
   };
 }
 
-const components = import.meta.glob<VueModule>(
+// The build/ components are registered too, so a backend page tree can name
+// them, but they stay the layer's internals: never auto-imported, and not a
+// surface other modules should build on.
+const components = import.meta.glob<VueModule>([
   "./layers/**/app/components/**/*.vue",
-);
-// The build/ components a DMS backend page tree names, registered private so
-// they resolve on the DMS's own pages only. Every other build/ component is
-// imported by path, so it is never registered.
-const backendPageComponents = import.meta.glob<VueModule>([
-  "./layers/dms-layout/app/build/components/pages/settings/members/MemberRolePicker.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxDisplay.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/notification/NotificationPreferencesForm.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfileAccountData.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfilePersonalInfo.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfilePreferencesSummary.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/profile/ProfileSecuritySummary.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/region/RegionFormatPreview.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/region/RegionTimeZoneInput.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityEmail.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityPassword.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityStatus.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/security/SecurityTwoFactor.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceAccessibility.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceDeveloper.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceScale.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceSidebar.vue",
-  "./layers/dms-layout/app/build/components/pages/settings/theme/AppearanceTheme.vue",
+  "./layers/**/app/build/components/**/*.vue",
 ]);
-const registeredComponents = { ...components, ...backendPageComponents };
-const PRIVATE_COMPONENT = { private: true };
 const customPages = import.meta.glob<VueModule>(
   "./layers/**/app/custom-pages/**/*.vue",
 );
@@ -91,7 +69,7 @@ function componentName(path: string): string {
     /^.*\/(?:components|build\/components)\//,
     "",
   );
-  return `Dms${pascalCase(relativePath.split("/").at(-1) ?? relativePath)}`;
+  return pascalCase(relativePath.split("/").at(-1) ?? relativePath);
 }
 
 function entryName(path: string, directory: string): string {
@@ -115,16 +93,16 @@ function lazyComponent(loader: VueLoader): Component {
 // Components that render a backend block under a name of their own: the block
 // names (`dms-xxx-block`) resolve to the same component as the template name.
 const COMPONENT_ALIASES: Record<string, string> = {
-  DmsActivityFeed: "DmsActivityFeedBlock",
-  DmsSection: "DmsSectionBlock",
-  DmsFieldRow: "DmsFieldRowBlock",
+  ActivityFeed: "ActivityFeedBlock",
+  Section: "SectionBlock",
+  FieldRow: "FieldRowBlock",
 };
 
 function registerComponents(
   sdk: Parameters<DmsFrontendModule["setup"]>[0],
 ): void {
   const names = new Map<string, string>();
-  for (const [path, loader] of sortedEntries(registeredComponents)) {
+  for (const [path, loader] of sortedEntries(components)) {
     const name = componentName(path);
     const previousPath = names.get(name);
     if (previousPath) {
@@ -134,10 +112,6 @@ function registerComponents(
     }
     names.set(name, path);
     const component = lazyComponent(loader);
-    if (path in backendPageComponents) {
-      sdk.registerComponent(name, component, PRIVATE_COMPONENT);
-      continue;
-    }
     sdk.registerComponent(name, component);
     const alias = COMPONENT_ALIASES[name];
     if (alias) sdk.registerComponent(alias, component);
@@ -161,11 +135,7 @@ function registerCustomPages(
     const name = entryName(path, "custom-pages").replace(/\/index$/, "");
     const component = lazyComponent(loader);
     sdk.registerPage(name, component, loader);
-    sdk.registerComponent(
-      `Dms${pascalCase(name)}`,
-      component,
-      PRIVATE_COMPONENT,
-    );
+    sdk.registerComponent(pascalCase(name), component);
   });
 }
 
@@ -222,6 +192,7 @@ function registerMiddleware(
 }
 
 const frontendModule: DmsFrontendModule = {
+  componentPrefix: "Dms",
   setup(sdk) {
     const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
     if (runtimeDms && typeof window !== "undefined")
