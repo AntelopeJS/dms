@@ -46,7 +46,7 @@ function openDatabase(file: string): CountryLookup | null {
     return new Reader<CountryResponse>(readFileSync(file));
   } catch (error) {
     Logging.Warn(
-      `[DMS] No sign-in country database at "${file}": sign-ins are told apart by device only (${String(error)})`,
+      `[DMS] No sign-in country database at "${file}": sign-ins are told apart by device only. Run \`pnpm run country-database\` in the DMS package to fetch it, or set \`auth.signInCountry.database: false\` to turn the lookup off (${String(error)})`,
     );
     return null;
   }

@@ -237,35 +237,87 @@ export async function userCanAccessPage(
 }
 
 // Keyed on the category id rather than a registration: the category is what
-// is missing, so there is nothing else to key on. Never forgotten, so a module
-// whose category unregisters before its own pages on every hot reload reports
-// it once rather than on each reload.
+// is missing, so there is nothing else to key on. Never forgotten, so a
+// category that stays missing across hot reloads is reported once rather than
+// on each reload.
 const warnedMissingCategories = new Set<string>();
+// Categories seen missing since the last check, and the timer that checks
+// them once registrations settle.
+const suspectedMissingCategories = new Set<string>();
+let missingCategoryCheck: NodeJS.Timeout | undefined;
+// Same window as the reload broadcast (`dev-reload.ts`): a hot reload's
+// unregister and register bursts land within it.
+const MISSING_CATEGORY_SETTLE_MS = 250;
 
 // Entries outliving or preceding their category are shown at its parent's
 // level (see `buildChildrenWithAccess`), so the menu no longer shows that
-// something is missing: the log has to.
-function warnMissingCategory(
-  categoryFullId: string,
-  entryFullIds: string[],
-): void {
+// something is missing: the log has to. Not on the spot, though: a hot reload
+// or a stop unregisters a category before the pages under it, and a module may
+// register a page before its category, so the entries are only orphans if the
+// category is still missing once registrations settle.
+function suspectMissingCategory(categoryFullId: string): void {
   if (warnedMissingCategories.has(categoryFullId)) return;
-  warnedMissingCategories.add(categoryFullId);
-  const entries = entryFullIds.map((fullId) => `"${fullId}"`).join(", ");
-  Logging.Warn(
-    `[dms] category "${categoryFullId}" is not registered but ${entries} hang under it: the menu shows them at its parent's level.`,
+  suspectedMissingCategories.add(categoryFullId);
+  missingCategoryCheck ??= setTimeout(
+    reportMissingCategories,
+    MISSING_CATEGORY_SETTLE_MS,
   );
+  missingCategoryCheck.unref();
+}
+
+function findTreeNode(fullId: string): SiteLayoutTree | undefined {
+  let node: SiteLayoutTree | undefined = navigationTree;
+  for (const part of fullId.split(".")) {
+    node = node?.children[part];
+  }
+  return node;
+}
+
+/**
+ * Warns about every suspected category that is still missing while entries
+ * hang under it. Runs on its own once registrations settle; exported so tests
+ * need not wait for it.
+ */
+export function reportMissingCategories(): void {
+  clearTimeout(missingCategoryCheck);
+  missingCategoryCheck = undefined;
+  for (const categoryFullId of suspectedMissingCategories) {
+    const node = findTreeNode(categoryFullId);
+    const heldKeys = node ? Object.keys(node.children) : [];
+    if (
+      categoryFullId in categoriesByFullId ||
+      !node ||
+      !isContainerWithoutEntry(node) ||
+      heldKeys.length === 0
+    ) {
+      continue;
+    }
+    warnedMissingCategories.add(categoryFullId);
+    const entries = heldKeys
+      .map((key) => `"${categoryFullId}.${key}"`)
+      .join(", ");
+    Logging.Warn(
+      `[dms] category "${categoryFullId}" is not registered but ${entries} hang under it: the menu shows them at its parent's level.`,
+    );
+  }
+  suspectedMissingCategories.clear();
+}
+
+/** Drops a pending missing-category check, which would otherwise outlive teardown. */
+export function cancelMissingCategoryCheck(): void {
+  clearTimeout(missingCategoryCheck);
+  missingCategoryCheck = undefined;
+  suspectedMissingCategories.clear();
 }
 
 function ensureContainer(
   level: Record<string, SiteLayoutTree>,
   containerFullId: string,
-  entryFullId: string,
 ): SiteLayoutTree {
   const key = containerFullId.slice(containerFullId.lastIndexOf(".") + 1);
   const isRegistered =
     Boolean(level[key]?.fullId) || containerFullId in categoriesByFullId;
-  if (!isRegistered) warnMissingCategory(containerFullId, [entryFullId]);
+  if (!isRegistered) suspectMissingCategory(containerFullId);
   level[key] ??= {
     displayName: "none",
     children: {},
@@ -284,11 +336,7 @@ function addToTree(newPageInfo: PageInfo | CategoryInfo) {
 
   for (let i = 0; i < parts.length - 1; i++) {
     const containerFullId = parts.slice(0, i + 1).join(".");
-    currentLevel = ensureContainer(
-      currentLevel,
-      containerFullId,
-      newPageInfo.fullId,
-    ).children;
+    currentLevel = ensureContainer(currentLevel, containerFullId).children;
   }
 
   const lastPart = parts[parts.length - 1];
@@ -405,10 +453,7 @@ function removeFromTree(fullId: string) {
   if (heldKeys.length > 0) {
     // Still holds registered descendants: blank the entry so nothing shows it,
     // and keep it as the container they hang from.
-    warnMissingCategory(
-      fullId,
-      heldKeys.map((heldKey) => `${fullId}.${heldKey}`),
-    );
+    suspectMissingCategory(fullId);
     currentLevel[key] = {
       ...target,
       displayName: "none",
