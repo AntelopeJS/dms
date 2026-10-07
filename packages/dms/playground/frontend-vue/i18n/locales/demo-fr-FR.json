@@ -135,6 +135,15 @@
       "empty_filtered_title": "Aucune exécution ne correspond à « {search} »",
       "empty_filtered_description": "Essayez un autre nom de procédure, ou effacez les filtres.",
       "empty_docs": "Ouvrir la documentation automation"
+    },
+    "side_panel": {
+      "toggle": "Afficher le panneau latéral de démo",
+      "title": "Démo de panneau latéral",
+      "close": "Fermer le panneau latéral",
+      "description": "Ancré par le DMS à droite de chaque page : la page se réduit pour lui faire de la place. Faites glisser le bord gauche pour le redimensionner ; sous le point de rupture lg, il glisse par-dessus la page.",
+      "mounted_at": "Monté à",
+      "current_page": "Page courante",
+      "draft_placeholder": "Saisissez un brouillon puis naviguez : il reste."
     }
   }
 }
