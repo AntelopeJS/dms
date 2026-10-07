@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.6.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.6...v0.6.0)
+
+### 🚀 Enhancements
+
+- **dms:** Port the v2 design across the dashboard ([#119](https://github.com/AntelopeJS/dms/pull/119))
+
+### 🩹 Fixes
+
+- **interface-dms:** ⚠️  Release the breaking changes of #119 as 0.4.0 ([#166](https://github.com/AntelopeJS/dms/pull/166), [#119](https://github.com/AntelopeJS/dms/issues/119))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.3.6 ([73dd6c0](https://github.com/AntelopeJS/dms/commit/73dd6c0))
+- **release:** @antelopejs/interface-dms v0.4.0 ([8f7b8ce](https://github.com/AntelopeJS/dms/commit/8f7b8ce))
+
+#### ⚠️ Breaking Changes
+
+- **interface-dms:** ⚠️  Release the breaking changes of #119 as 0.4.0 ([#166](https://github.com/AntelopeJS/dms/pull/166), [#119](https://github.com/AntelopeJS/dms/issues/119))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven <maxime@altab.be>
+
 ## v0.5.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.5.5...v0.5.6)
