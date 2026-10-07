@@ -34,7 +34,6 @@ import { Form, FormComponents } from "../form-schema";
 // oxlint-disable-next-line import/no-cycle
 import { TableViewMeta } from "../table-view/meta";
 import type { FormContainerPageTexts } from "../table-view/options";
-import type { TreeNode } from "../tree";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
 import * as FieldTypes from "./field-types";
@@ -179,14 +178,6 @@ export namespace DefaultDataTypes {
   export type PhoneTypeOptions = {
     placeholder?: string;
     requiredPrefix?: boolean;
-    fallback?: string;
-  };
-
-  export type TreeTypeOptions = {
-    items?: TreeNode[];
-    fetchUrl?: string;
-    placeholder?: string;
-    multiple?: boolean;
     fallback?: string;
   };
 
@@ -762,34 +753,6 @@ export namespace DefaultDataTypes {
     getValidation() {
       if (this.options.requiredPrefix) {
         return z.string().regex(/^\+[1-9]\d{1,14}$/);
-      }
-
-      return z.string();
-    }
-  }
-
-  @RegisterDataType("tree")
-  export class TreeType extends DataType {
-    constructor(public readonly options: TreeTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.InputTree({
-        items: this.options.items || [],
-        fetchUrl: this.options.fetchUrl,
-        multiple: this.options.multiple,
-        placeholder: this.options.placeholder,
-      });
-    }
-
-    getValidation() {
-      if (this.options.multiple) {
-        return z.array(z.string());
       }
 
       return z.string();

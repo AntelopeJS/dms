@@ -109,10 +109,6 @@ interface ImageOptions {
   storage?: string;
 }
 
-interface TreeOptions {
-  multiple?: boolean;
-}
-
 function createLinkRenderer(options: LinkRendererOptions) {
   return (value: unknown, _locale: string) => {
     if (!value || !isString(value)) return String(value);
@@ -776,22 +772,6 @@ const registerLinkTypes = (registerDataType: (dataType: DataType) => void) => {
   });
 };
 
-const registerTreeType = (registerDataType: (dataType: DataType) => void) => {
-  registerDataType({
-    id: "tree",
-    formatter: {
-      default: (value: unknown, _locale: string, options: unknown) => {
-        const { t } = useI18n();
-        const opts = options as TreeOptions | undefined;
-        if (opts?.multiple && Array.isArray(value)) {
-          return t("dms.form.relation.selected_count", { count: value.length });
-        }
-        return value;
-      },
-    },
-  });
-};
-
 const registerRelationType = (
   registerDataType: (dataType: DataType) => void,
 ) => {
@@ -857,7 +837,6 @@ export function registerDefaultDataTypes() {
   registerAddressType(registerDataType);
   registerImageType(registerDataType);
   registerLinkTypes(registerDataType);
-  registerTreeType(registerDataType);
   registerRelationType(registerDataType);
   registerCascaderRelationType(registerDataType);
   registerFileType(registerDataType);

@@ -1,6 +1,6 @@
 ---
 name: dms-pages
-description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Tree / Chart / Grid builders imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
+description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid builders imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
 category: dashboard
 tags: [pages, components, forms, tables, data-types, navigation]
 ---
@@ -66,7 +66,7 @@ export class SubmitRecipePage extends PageController("submit-recipe", { displayN
 }
 ```
 
-The full catalog — `Form`, `TableView`, `Tree`, the charts, layout containers, dashboard
+The full catalog — `Form`, `TableView`, the charts, layout containers, dashboard
 widgets, `CustomComponent` — plus nesting rules and the behavioral DSL (permissioned
 `.action()`s, `.watch()` reactivity) is in [REFERENCE.md](REFERENCE.md).
 

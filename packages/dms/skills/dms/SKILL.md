@@ -28,7 +28,7 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   loading the DMS via `antelope.config.ts`, registering *its own* pages and data — **dms-project**.
   Rarer: a **distributable module** (like `dms-database`) — **dms-module**. Same APIs; only packaging.
 - **Pages are classes; UI is data.** A page extends `PageController(id, opts)` decorated with
-  `@RegisterPage()`. Its **static fields are components** — `Form`, `TableView`, `Tree`, `Chart*`,
+  `@RegisterPage()`. Its **static fields are components** — `Form`, `TableView`, `Chart*`,
   `Grid`, `KpiCard`, … — fluent builders producing a **serializable description**, not live UI: the
   frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.

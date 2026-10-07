@@ -274,44 +274,20 @@ export class PageFormProfileEdit extends PageController(
       {
         id: "department",
         label: "Department",
-        description: "Select your department from the organizational tree",
-        type: new DefaultDataTypes.TreeType({
+        description: "Select your department",
+        type: new DefaultDataTypes.SelectType({
           items: [
-            {
-              label: "Engineering",
-              value: "eng",
-              children: [
-                { label: "Frontend", value: "eng-frontend" },
-                { label: "Backend", value: "eng-backend" },
-                { label: "DevOps", value: "eng-devops" },
-                { label: "Mobile", value: "eng-mobile" },
-              ],
-            },
-            {
-              label: "Product",
-              value: "product",
-              children: [
-                { label: "Product Management", value: "product-pm" },
-                { label: "Product Design", value: "product-design" },
-              ],
-            },
-            {
-              label: "Marketing",
-              value: "marketing",
-              children: [
-                { label: "Content", value: "marketing-content" },
-                { label: "Growth", value: "marketing-growth" },
-                { label: "Brand", value: "marketing-brand" },
-              ],
-            },
-            {
-              label: "Sales",
-              value: "sales",
-              children: [
-                { label: "Enterprise", value: "sales-enterprise" },
-                { label: "SMB", value: "sales-smb" },
-              ],
-            },
+            { label: "Engineering / Frontend", value: "eng-frontend" },
+            { label: "Engineering / Backend", value: "eng-backend" },
+            { label: "Engineering / DevOps", value: "eng-devops" },
+            { label: "Engineering / Mobile", value: "eng-mobile" },
+            { label: "Product / Product Management", value: "product-pm" },
+            { label: "Product / Product Design", value: "product-design" },
+            { label: "Marketing / Content", value: "marketing-content" },
+            { label: "Marketing / Growth", value: "marketing-growth" },
+            { label: "Marketing / Brand", value: "marketing-brand" },
+            { label: "Sales / Enterprise", value: "sales-enterprise" },
+            { label: "Sales / SMB", value: "sales-smb" },
           ],
           placeholder: "Select department...",
         }),

@@ -19,20 +19,10 @@ const TAG_ITEMS = [
   { label: "On sale", value: "sale" },
 ];
 
-const DEPARTMENT_TREE = [
-  {
-    label: "Engineering",
-    value: "eng",
-    children: [
-      { label: "Frontend", value: "eng-frontend" },
-      { label: "Backend", value: "eng-backend" },
-    ],
-  },
-  {
-    label: "Sales",
-    value: "sales",
-    children: [{ label: "Inside sales", value: "sales-inside" }],
-  },
+const DEPARTMENT_ITEMS = [
+  { label: "Engineering / Frontend", value: "eng-frontend" },
+  { label: "Engineering / Backend", value: "eng-backend" },
+  { label: "Sales / Inside sales", value: "sales-inside" },
 ];
 
 /**
@@ -270,8 +260,8 @@ export class PageFormRequired extends PageController(
       {
         id: "department",
         label: "Department",
-        description: "A tree",
-        type: new DefaultDataTypes.TreeType({ items: DEPARTMENT_TREE }),
+        description: "A select with grouped labels",
+        type: new DefaultDataTypes.SelectType({ items: DEPARTMENT_ITEMS }),
         required: true,
       },
       {

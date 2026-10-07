@@ -77,11 +77,11 @@ export const GridChildSchema = z.object({
  * ```typescript
  * Grid({ gap: '1rem' })
  *   .child('row1', GridRow()
- *     .child('col1', Tree(...))
- *     .child('col2', Tree(...))
+ *     .child('col1', Card(...))
+ *     .child('col2', Card(...))
  *   )
  *   .child('row2', GridRow()
- *     .child('col1', Tree(...))
+ *     .child('col1', Card(...))
  *   )
  * ```
  */
@@ -109,8 +109,8 @@ export function Grid(options?: GridOptions): ComponentBuilder<GridOptions> {
  * @example
  * ```typescript
  * GridRow()
- *   .child('item1', Tree(...))
- *   .child('item2', Tree(...))
+ *   .child('item1', Card(...))
+ *   .child('item2', Card(...))
  * ```
  */
 export function GridRow(): ComponentBuilder {

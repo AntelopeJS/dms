@@ -9,7 +9,6 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import { getDataTypeId } from "./data-types/core";
 import type { DefaultDataTypes } from "./data-types/default-types";
 import type { FormContainerPageTexts } from "./table-view/options";
-import type { TreeNode } from "./tree";
 import type { AxeOrientation, EnumOption } from "./types";
 import { FORM_COMPONENT_NAME } from "./internal/form-block-schema";
 import {
@@ -360,13 +359,6 @@ export namespace FormComponents {
     deselectable?: boolean;
   }
 
-  export interface TreeOptions {
-    items?: TreeNode[];
-    fetchUrl?: string;
-    placeholder?: string;
-    multiple?: boolean;
-  }
-
   export interface RelationOptions {
     placeholder?: string;
     searchUrl: string;
@@ -710,14 +702,6 @@ export namespace FormComponents {
     options?: DatePickerRangeOptions,
   ): ComponentInfoSerialized<DatePickerRangeOptions> {
     return new ComponentBuilder<DatePickerRangeOptions>("dms-date-picker-range")
-      .options(options)
-      .serializeSync();
-  }
-
-  export function InputTree<T extends TreeOptions>(
-    options: T,
-  ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-input-tree")
       .options(options)
       .serializeSync();
   }

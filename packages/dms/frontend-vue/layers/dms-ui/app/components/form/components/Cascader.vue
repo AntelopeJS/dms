@@ -409,7 +409,7 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
             v-else-if="rows.length === 0"
             class="text-muted w-52 px-2 py-6 text-center text-sm"
           >
-            {{ t("dms.tree.no_entries") }}
+            {{ t("dms.form.cascader.no_entries") }}
           </div>
 
           <div

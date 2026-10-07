@@ -628,10 +628,6 @@
             "title": "Tableaux",
             "description": "Toute page de liste quand le tableau a le focus."
           },
-          "tree": {
-            "title": "Arborescences",
-            "description": "Dossiers, catégories et arbres de permissions."
-          },
           "tab": {
             "title": "Onglets",
             "description": "Pages découpées en onglets."

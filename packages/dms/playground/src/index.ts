@@ -7,7 +7,6 @@ import "./flow-canvas";
 import "./drawer-modal";
 import "./form";
 import "./table-view";
-import "./tree";
 import "./tabs";
 import "./grid";
 import "./chart";
