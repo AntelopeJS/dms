@@ -4,6 +4,7 @@ import DashboardSidebar from "./DashboardSidebar.vue";
 import DashboardHeader from "./DashboardHeader.vue";
 import DashboardBanners from "./DashboardBanners.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
+import DashboardSidePanelOutlet from "./DashboardSidePanelOutlet.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 
 // Sidebar sizes are in px (the v2 240px sidebar). The storage key changed with
@@ -93,5 +94,7 @@ const regionAttrs = computed(() =>
         <DmsAppWidgetsDock />
       </template>
     </UDashboardPanel>
+
+    <DashboardSidePanelOutlet />
   </UDashboardGroup>
 </template>

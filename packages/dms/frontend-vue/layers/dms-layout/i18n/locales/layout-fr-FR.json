@@ -870,5 +870,8 @@
   },
   "widgets_dock": {
     "show": "Afficher les widgets"
+  },
+  "side_panel": {
+    "resize": "Redimensionner le panneau"
   }
 }

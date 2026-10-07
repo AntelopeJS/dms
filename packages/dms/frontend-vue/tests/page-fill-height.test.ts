@@ -91,7 +91,9 @@ const FLOW_PAGE_MARKUP =
   '<div class="">' +
   '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
   PAGE_SKELETON_MARKUP +
-  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
+  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div>" +
+  // The side panel outlet, empty on the server.
+  "<!--v-if--></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {

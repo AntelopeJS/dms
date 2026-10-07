@@ -866,5 +866,8 @@
   },
   "widgets_dock": {
     "show": "Show the widgets"
+  },
+  "side_panel": {
+    "resize": "Resize the panel"
   }
 }
