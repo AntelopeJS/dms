@@ -12,7 +12,6 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import { RegisterDataController } from "@antelopejs/interface-data-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 import {
   type ConfirmDialogSerialized,
   TableViewMeta,
@@ -40,7 +39,6 @@ import {
 import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import {
-  GetCategoryPermissionIds,
   type PermissionPreviewGrants,
   type PermissionPreviewPage,
   type PreviewPageLossCheck,
@@ -52,7 +50,6 @@ import {
   roleEditorSchema,
   rolePreviewSchema,
 } from "../../../validation/role-editor.schema";
-import { mapPermissionTreeToPermissionNodes } from "./permission-tree-nodes";
 import type {
   RoleEditorCapabilities,
   RoleEditorPermissionNode,
@@ -319,15 +316,6 @@ export class RolesSettingsController extends PageController("roles", {
   description: "$page.settings.description.roles",
 }) {
   static table = rolesEditor;
-
-  /** Tree of the `PermissionsType` field in the role pickers' add form. */
-  @Get("permissions-tree")
-  async getPermissionsTree(): Promise<FormComponents.PermissionsTreeNode[]> {
-    return mapPermissionTreeToPermissionNodes(
-      await GetPermissions(),
-      GetCategoryPermissionIds(),
-    );
-  }
 
   /**
    * Roles with their member, invitation and permission counts, the tenant

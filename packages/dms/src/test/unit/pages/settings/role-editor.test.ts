@@ -17,7 +17,7 @@ import {
   summarizeOwners,
   summarizeRoles,
 } from "../../../../pages/settings/users/role-editor";
-import { mapPermissionTreeToPermissionNodes } from "../../../../pages/settings/users/permission-tree-nodes";
+import { mapPermissionTree } from "../../../../pages/settings/users/permission-tree-nodes";
 
 const NOW = new Date("2026-06-01T00:00:00Z");
 const TOMORROW = new Date("2026-06-02T00:00:00Z");
@@ -81,7 +81,7 @@ describe("[unit] pages/settings/users/role-editor", () => {
       ]);
     });
 
-    it("offers the same nodes, in the same shape, as the original roles form", () => {
+    it("offers the nodes the permission tree mapping lifts, in the same shape", () => {
       const permission = (id: string, extra = {}) => ({
         data: { id, title: id, ...extra },
         children: {},
@@ -136,7 +136,12 @@ describe("[unit] pages/settings/users/role-editor", () => {
         }));
 
       expect(shape(mapRoleEditorTree(tree))).to.deep.equal(
-        shape(mapPermissionTreeToPermissionNodes(tree)),
+        shape(
+          mapPermissionTree<Shape>(tree, (permission, children) => ({
+            id: permission.id,
+            children,
+          })),
+        ),
       );
       expect(collectPermissionIds(mapRoleEditorTree(tree))).to.deep.equal([
         "pages",

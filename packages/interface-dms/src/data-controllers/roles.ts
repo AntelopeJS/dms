@@ -11,6 +11,7 @@ import {
 import { Role, RoleModel } from "../db";
 import { TenantScopedModel } from "../tenant-scoped-model";
 import { DefaultDataTypes } from "../base/data-types/default-types";
+import { TagsType } from "../base/data-types/field-types";
 import { Searchable } from "../base/searchable";
 import { Column, Exported, Select, TableViewRoutes } from "../base/table-view";
 import { ReadonlyBehaviorType } from "../base/types";
@@ -49,9 +50,8 @@ export class roleSettingDataAPI extends DataController(
   @Listable()
   @Column({
     name: "$page.settings.roles.column.permissions",
-    type: new DefaultDataTypes.PermissionsType({
-      fetchUrl: "/settings/workspace/roles/permissions-tree",
-    }),
+    // Edited in the roles editor only, which sends the granted ids.
+    type: new TagsType(),
     description: "$page.settings.roles.description.permissions",
     defaultValue: [],
   })

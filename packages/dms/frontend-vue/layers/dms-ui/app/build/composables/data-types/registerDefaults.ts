@@ -58,7 +58,6 @@ const LINK_ICON_NAME = "i-ph-arrow-up-right-light";
 const DEFAULT_RELATION_LABEL_KEY = "name";
 const RELATION_BADGES_CLASS = "inline-flex flex-wrap items-center gap-1";
 const RELATION_BADGE_CLASS = "max-w-40";
-const PERMISSION_SEPARATOR = ".";
 
 interface LinkRendererOptions {
   hrefPrefix?: string;
@@ -267,20 +266,6 @@ function formatAddress(value: unknown): string {
     countryName,
   ].filter(Boolean);
   return parts.join(", ");
-}
-
-function countLeafPermissions(value: string[]): number {
-  const parentIds = new Set<string>();
-  for (const id of value) {
-    const parts = id.split(PERMISSION_SEPARATOR);
-    let prefix = "";
-    for (let i = 0; i < parts.length - 1; i++) {
-      const segment = parts[i] ?? "";
-      prefix = i === 0 ? segment : `${prefix}${PERMISSION_SEPARATOR}${segment}`;
-      parentIds.add(prefix);
-    }
-  }
-  return value.filter((id) => !parentIds.has(id)).length;
 }
 
 function renderRelationBadge(label: string, title?: string) {
@@ -807,22 +792,6 @@ const registerTreeType = (registerDataType: (dataType: DataType) => void) => {
   });
 };
 
-const registerPermissionsType = (
-  registerDataType: (dataType: DataType) => void,
-) => {
-  registerDataType({
-    id: "permissions",
-    formatter: {
-      default: (value: unknown, _locale: string) => {
-        const { t } = useI18n();
-        if (!Array.isArray(value)) return value;
-        const leafCount = countLeafPermissions(value as string[]);
-        return t("dms.form.relation.selected_count", { count: leafCount });
-      },
-    },
-  });
-};
-
 const registerRelationType = (
   registerDataType: (dataType: DataType) => void,
 ) => {
@@ -889,7 +858,6 @@ export function registerDefaultDataTypes() {
   registerImageType(registerDataType);
   registerLinkTypes(registerDataType);
   registerTreeType(registerDataType);
-  registerPermissionsType(registerDataType);
   registerRelationType(registerDataType);
   registerCascaderRelationType(registerDataType);
   registerFileType(registerDataType);

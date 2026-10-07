@@ -2,7 +2,6 @@ import type {
   Permission,
   PermissionTree,
 } from "@antelopejs/interface-dms/permissions";
-import type { FormComponents } from "@antelopejs/interface-dms/base/form";
 
 const UNTITLED_PERMISSION_LABEL = "Unknown Permission";
 
@@ -76,24 +75,4 @@ function isHeadingOverNothing(
 /** Label of a permission, for one registered without a title. */
 export function permissionLabel(permission: Permission): string {
   return permission.title ?? UNTITLED_PERMISSION_LABEL;
-}
-
-/**
- * Map the registered permission tree to the nodes of the `PermissionsType`
- * form field (see {@link mapPermissionTree} for the lifting rules).
- */
-export function mapPermissionTreeToPermissionNodes(
-  permissionTree: Record<string, PermissionTree>,
-  categoryIds: ReadonlySet<string> = NO_CATEGORIES,
-): FormComponents.PermissionsTreeNode[] {
-  return mapPermissionTree<FormComponents.PermissionsTreeNode>(
-    permissionTree,
-    (permission, children) => ({
-      id: permission.id,
-      label: permissionLabel(permission),
-      icon: permission.icon,
-      children,
-    }),
-    categoryIds,
-  );
 }

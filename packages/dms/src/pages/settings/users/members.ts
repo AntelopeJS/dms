@@ -415,7 +415,9 @@ export function memberInviteResponse(
 }
 
 /** The tenant's roles as the role pickers offer them. */
-async function loadRoleOptions(tenantId: string): Promise<InviteRoleOptions> {
+export async function loadRoleOptions(
+  tenantId: string,
+): Promise<InviteRoleOptions> {
   const roles = await GetModel(RoleModel, tenantId).getAll();
   return buildInviteRoleOptions(
     roles,

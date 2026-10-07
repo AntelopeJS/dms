@@ -21,19 +21,37 @@ const ROLES_FIELD_ID = "roleIds";
 /** Roles the "Change roles" form offers, a route of the members page. */
 const MEMBER_ROLE_OPTIONS_URL = "/settings/workspace/members/role-options";
 
-// The roles as pills, each with what it grants, like the invite form; inert
-// while the member is an owner, and none is a valid choice. The form reads
-// `multiple` and `keyMapping` to load the roles as ids.
-const ROLE_PICKER = CustomComponent("DmsMemberRolePicker")
-  .options({
+/** Where a roles picker of an edit form reads its roles, and its owner flag. */
+export interface EditRolePickerOptions {
+  /** Route answering the roles on offer (`InviteRoleOptions`). */
+  rolesUrl: string;
+  /** Boolean field of the same form making the holder an owner. */
+  ownerField: string;
+}
+
+/**
+ * The roles as pills, each with what it grants, like the invite form; inert
+ * while the holder is an owner, and none is a valid choice. The form reads
+ * `multiple` and `keyMapping` to load the roles as ids.
+ */
+export function editRolePicker({
+  rolesUrl,
+  ownerField,
+}: EditRolePickerOptions) {
+  return CustomComponent("DmsMemberRolePicker").options({
     multiple: true,
     keyMapping: { label: "name", value: "_id" },
-    rolesUrl: MEMBER_ROLE_OPTIONS_URL,
+    rolesUrl,
     rolesPageUrl: ROLES_PAGE_PATH,
-    ownerField: "isTenantOwner",
+    ownerField,
     allowEmpty: true,
-  })
-  .serializeSync();
+  });
+}
+
+const ROLE_PICKER = editRolePicker({
+  rolesUrl: MEMBER_ROLE_OPTIONS_URL,
+  ownerField: "isTenantOwner",
+}).serializeSync();
 
 function withRolePicker(
   item: FormFieldOrGroupSerialized,

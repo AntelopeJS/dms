@@ -3,7 +3,33 @@ import type {
   Permission,
   PermissionTree,
 } from "@antelopejs/interface-dms/permissions";
-import { mapPermissionTreeToPermissionNodes } from "../../../../pages/settings/users/permission-tree-nodes";
+import {
+  mapPermissionTree,
+  permissionLabel,
+} from "../../../../pages/settings/users/permission-tree-nodes";
+
+interface LabelledNode {
+  id: string;
+  label: string;
+  icon?: string;
+  children?: LabelledNode[];
+}
+
+function mapToLabelledNodes(
+  tree: Record<string, PermissionTree>,
+  categoryIds?: ReadonlySet<string>,
+): LabelledNode[] {
+  return mapPermissionTree<LabelledNode>(
+    tree,
+    (permission, children) => ({
+      id: permission.id,
+      label: permissionLabel(permission),
+      icon: permission.icon,
+      children,
+    }),
+    categoryIds,
+  );
+}
 
 function registered(
   id: string,
@@ -27,7 +53,7 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       }),
     };
 
-    expect(mapPermissionTreeToPermissionNodes(tree)).to.deep.equal([
+    expect(mapToLabelledNodes(tree)).to.deep.equal([
       {
         id: "pages",
         label: "pages",
@@ -52,9 +78,10 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       }),
     };
 
-    expect(
-      mapPermissionTreeToPermissionNodes(tree).map((node) => node.id),
-    ).to.deep.equal(["media.upload", "media.folders.manage"]);
+    expect(mapToLabelledNodes(tree).map((node) => node.id)).to.deep.equal([
+      "media.upload",
+      "media.folders.manage",
+    ]);
   });
 
   it("lifts a permission registered three levels below any registered id", () => {
@@ -62,7 +89,7 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       a: unregistered({ b: unregistered({ c: registered("a.b.c") }) }),
     };
 
-    expect(mapPermissionTreeToPermissionNodes(tree)).to.deep.equal([
+    expect(mapToLabelledNodes(tree)).to.deep.equal([
       { id: "a.b.c", label: "a.b.c", icon: undefined, children: undefined },
     ]);
   });
@@ -74,7 +101,7 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       }),
     };
 
-    const [root] = mapPermissionTreeToPermissionNodes(tree);
+    const [root] = mapToLabelledNodes(tree);
 
     expect(root.id).to.equal("a");
     expect(root.children?.map((node) => node.id)).to.deep.equal(["a.b.c"]);
@@ -89,7 +116,7 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
       ),
     };
 
-    expect(mapPermissionTreeToPermissionNodes(tree)).to.deep.equal([]);
+    expect(mapToLabelledNodes(tree)).to.deep.equal([]);
   });
 
   describe("categories", () => {
@@ -104,25 +131,22 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
 
     it("leaves out a category whose permissions below are all hidden", () => {
       expect(
-        mapPermissionTreeToPermissionNodes(
-          publicOnly,
-          new Set(["pages", "library"]),
-        ).map((node) => node.id),
+        mapToLabelledNodes(publicOnly, new Set(["pages", "library"])).map(
+          (node) => node.id,
+        ),
       ).to.deep.equal(["library"]);
     });
 
     it("keeps a page whose components are all hidden", () => {
       expect(
-        mapPermissionTreeToPermissionNodes(publicOnly).map((node) => node.id),
+        mapToLabelledNodes(publicOnly).map((node) => node.id),
       ).to.deep.equal(["pages", "library"]);
     });
 
     it("keeps a category with nothing registered below it", () => {
       const tree = { projects: registered("projects") };
 
-      expect(
-        mapPermissionTreeToPermissionNodes(tree, new Set(["projects"])),
-      ).to.deep.equal([
+      expect(mapToLabelledNodes(tree, new Set(["projects"]))).to.deep.equal([
         {
           id: "projects",
           label: "projects",

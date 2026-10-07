@@ -35,18 +35,6 @@ const DEPARTMENT_TREE = [
   },
 ];
 
-const PERMISSIONS = [
-  {
-    id: "articles",
-    label: "Articles",
-    children: [
-      { id: "articles.read", label: "Read" },
-      { id: "articles.write", label: "Write" },
-    ],
-  },
-  { id: "billing", label: "Billing" },
-];
-
 /**
  * Every field type the generic form renders, each one required, plus a few
  * constraints: submitting it empty shows how each control flags a missing
@@ -284,15 +272,6 @@ export class PageFormRequired extends PageController(
         label: "Department",
         description: "A tree",
         type: new DefaultDataTypes.TreeType({ items: DEPARTMENT_TREE }),
-        required: true,
-      },
-      {
-        id: "permissions",
-        label: "Permissions",
-        type: new DefaultDataTypes.PermissionsType(),
-        inputComponent: FormComponents.PermissionsTree({
-          permissions: PERMISSIONS,
-        }),
         required: true,
       },
       {

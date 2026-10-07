@@ -13,7 +13,7 @@ import { resetDatabase } from "../helpers/db";
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
-const PERMISSIONS_TREE = "/settings/workspace/roles/permissions-tree";
+const PERMISSIONS_TREE = "/settings/workspace/roles/editor-tree";
 const NOTIFICATIONS = "/settings/user/notifications";
 const PERSONAL_SLUGS = [
   "/settings/user/profile",

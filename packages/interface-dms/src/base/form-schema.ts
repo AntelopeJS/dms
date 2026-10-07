@@ -367,18 +367,6 @@ export namespace FormComponents {
     multiple?: boolean;
   }
 
-  export interface PermissionsTreeNode {
-    id: string;
-    label: string;
-    icon?: string;
-    children?: PermissionsTreeNode[];
-  }
-
-  export interface PermissionsTreeOptions {
-    permissions?: PermissionsTreeNode[];
-    fetchUrl?: string;
-  }
-
   export interface RelationOptions {
     placeholder?: string;
     searchUrl: string;
@@ -738,14 +726,6 @@ export namespace FormComponents {
     options?: T,
   ): ComponentInfoSerialized<T> {
     return new ComponentBuilder<T>("dms-input-address")
-      .options(options)
-      .serializeSync();
-  }
-
-  export function PermissionsTree<T extends PermissionsTreeOptions>(
-    options: T,
-  ): ComponentInfoSerialized<T> {
-    return new ComponentBuilder<T>("dms-permissions-tree")
       .options(options)
       .serializeSync();
   }

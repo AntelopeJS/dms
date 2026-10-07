@@ -68,12 +68,17 @@ import {
   MembersSettingsController,
   membersTableAddAction,
   ROLE_QUICK_FILTER,
+  loadRoleOptions,
 } from "./members";
+import { editRolePicker } from "./member-roles-field";
+import type { InviteRoleOptions } from "./member-role-options";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HTTP_NOT_FOUND = 404;
 const HTTP_GONE = 410;
 const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
+/** Roles the invitation's edit form offers, a route of the invites page. */
+const INVITE_ROLE_OPTIONS_URL = `${INVITES_PAGE_PATH}/role-options`;
 
 /** A pending invitation's signup link, for the inviter to share by hand. */
 export interface InviteLinkResponse {
@@ -150,6 +155,12 @@ export class inviteSettingDataAPI extends DataController(
         label: "name",
         value: "_id",
       },
+    }),
+    // The pills of the members' "Change roles" form, not a relation picker:
+    // its "add" entry would create a role outside the roles editor.
+    inputComponent: editRolePicker({
+      rolesUrl: INVITE_ROLE_OPTIONS_URL,
+      ownerField: "asTenantOwner",
     }),
     filterable: true,
     size: 130,
@@ -431,6 +442,14 @@ export class InvitesSettingsController extends PageController("invites", {
       ],
     },
   });
+
+  @Get("/role-options")
+  inviteRoleOptions(
+    @Context() ctx: RequestContext,
+    @AuthUserWithPermission(InvitesSettingsController) _user: User,
+  ): Promise<InviteRoleOptions> {
+    return loadRoleOptions(getRequestTenantId(ctx));
+  }
 
   @Post("/:id/resend")
   resendInvite(

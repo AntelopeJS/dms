@@ -190,11 +190,6 @@ export namespace DefaultDataTypes {
     fallback?: string;
   };
 
-  export type PermissionsTypeOptions = {
-    fetchUrl?: string;
-    fallback?: string;
-  };
-
   export type RichTextTypeOptions = {
     placeholder?: string;
     fallback?: string;
@@ -1158,27 +1153,6 @@ export namespace DefaultDataTypes {
         countrySubdivision: z.string().optional(),
         countryCode: z.string().length(2),
       });
-    }
-  }
-
-  @RegisterDataType("permissions")
-  export class PermissionsType extends DataType {
-    constructor(public readonly options: PermissionsTypeOptions = {}) {
-      super(
-        [DefaultDataCompareTypes.Include, DefaultDataCompareTypes.Exclude],
-        DefaultDataCompareTypes.Include,
-        options,
-      );
-    }
-
-    protected defaultInputComponent() {
-      return FormComponents.PermissionsTree({
-        fetchUrl: this.options.fetchUrl,
-      });
-    }
-
-    getValidation() {
-      return z.array(z.string());
     }
   }
 
