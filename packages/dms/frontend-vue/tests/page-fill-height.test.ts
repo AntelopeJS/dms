@@ -44,6 +44,13 @@ vi.mock(
   "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
   () => ({ default: () => null }),
 );
+vi.mock(
+  "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
+  async () => {
+    const { ref } = await import("vue");
+    return { useDevReloading: () => ref(false) };
+  },
+);
 
 interface PageLayoutFixture {
   components: Record<string, { componentName: string }>;
@@ -147,7 +154,6 @@ function installRuntime(): void {
     showError: vi.fn(),
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
-    useDevReloading: () => ref(false),
     useDmsPageLoading: () => pageLoading,
     useDmsRoute: () => route,
     useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
