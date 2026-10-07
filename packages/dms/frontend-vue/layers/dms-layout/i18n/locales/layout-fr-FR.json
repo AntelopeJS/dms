@@ -70,7 +70,24 @@
     "footer": {
       "navigate": "Naviguer",
       "open": "Ouvrir",
-      "close": "Fermer"
+      "close": "Fermer",
+      "send": "Envoyer",
+      "askAi": "Demander à l'IA",
+      "backToSearch": "Retour à la recherche"
+    },
+    "assistant": {
+      "placeholder": "Posez une question sur votre espace de travail…",
+      "ask": "Demander à l'assistant « {query} »",
+      "askShort": "Demander à l'assistant",
+      "send": "Demander « {prompt} »",
+      "suggestions": "Essayez de demander",
+      "noResults": "Aucun résultat pour « {query} »",
+      "noResultsHint": "Vérifiez l'orthographe, ou laissez l'assistant chercher.",
+      "emptyPrompt": "Saisissez une question, puis appuyez sur Entrée pour l'envoyer.",
+      "loading": "L'assistant répond…",
+      "failed": "L'assistant n'a pas pu répondre. Modifiez la question pour réessayer.",
+      "modeAssistant": "Mode assistant. Saisissez une question et appuyez sur Entrée. Tab revient à la recherche.",
+      "modeSearch": "Mode recherche."
     }
   },
   "notification": {
