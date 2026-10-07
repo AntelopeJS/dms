@@ -6,6 +6,7 @@ import StageCard from "../../../../dms-layout/app/build/components/layout/StageC
 import AuthBackLink from "../../build/components/AuthBackLink.vue";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
+import DmsHiddenUsername from "#dms-ui/app/build/components/form/HiddenUsername.vue";
 import {
   type AuthFormHandle,
   useAuthFormError,
@@ -85,6 +86,8 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       @error="focusFirstFormError($event.errors)"
     >
       <AuthFormAlert :error="formError" />
+
+      <DmsHiddenUsername :username="route.query.email as string" />
 
       <AuthNewPasswordField
         v-model="state.password"

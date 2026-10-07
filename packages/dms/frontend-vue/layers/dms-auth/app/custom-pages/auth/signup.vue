@@ -5,6 +5,7 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
 import AuthFormAlert from "../../build/components/AuthFormAlert.vue";
 import AuthNewPasswordField from "../../build/components/AuthNewPasswordField.vue";
+import DmsHiddenUsername from "#dms-ui/app/build/components/form/HiddenUsername.vue";
 import {
   type AuthFormHandle,
   useAuthFormError,
@@ -148,6 +149,8 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
           disabled
         />
       </UFormField>
+
+      <DmsHiddenUsername :username="state.email" />
 
       <AuthNewPasswordField
         v-model="state.password"

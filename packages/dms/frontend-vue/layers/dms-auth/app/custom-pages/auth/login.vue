@@ -151,7 +151,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         <UInput
           v-model="state.email"
           type="email"
-          autocomplete="email"
+          autocomplete="username"
           :placeholder="$t('page.auth.email_placeholder')"
           size="lg"
           class="w-full"

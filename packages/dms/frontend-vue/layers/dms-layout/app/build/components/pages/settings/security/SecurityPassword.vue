@@ -12,6 +12,7 @@ import {
   useSessionHandoff,
 } from "../../../../composables/security/useSessionHandoff";
 import DmsPasswordInput from "#dms-ui/app/build/components/form/PasswordInput.vue";
+import DmsHiddenUsername from "#dms-ui/app/build/components/form/HiddenUsername.vue";
 import PasswordRules from "#dms-ui/app/components/check-list/PasswordRules.vue";
 import { useFormDirty } from "#dms-ui/app/composables/unsaved-changes/useFormDirty";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
@@ -240,6 +241,8 @@ async function submit(): Promise<void> {
           </template>
         </DmsListRow>
       </template>
+
+      <DmsHiddenUsername :username="overview?.email" />
 
       <SecurityPanelField
         v-if="hasPassword"
