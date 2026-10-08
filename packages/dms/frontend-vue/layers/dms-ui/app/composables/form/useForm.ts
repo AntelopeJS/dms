@@ -62,8 +62,8 @@ export interface UseFormOptions {
   showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
   /**
    * Called once a submit succeeded and the values are the saved ones (or
-   * back to the opening ones for an `action` form), before any redirect:
-   * the form has nothing unsaved from there on.
+   * back to the opening ones for an `action` form), before the success event
+   * goes out and any redirect: the form has nothing unsaved from there on.
    */
   onSaved?: () => void;
 }
@@ -751,6 +751,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     );
   };
 
+  /** A submit the server accepted: nothing is left unsaved. */
+  const markSubmitSaved = (): void => {
+    submitSucceeded.value = true;
+    // A form sending something new each time starts over from the values it
+    // opened with; any other keeps what it saved as its new starting point.
+    if (props.kind === "action") restoreInitialValues();
+    else initialValues.value = snapshotFormState(state.value);
+    options.onSaved?.();
+  };
+
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
     plainData: FormData,
@@ -758,11 +768,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     showSubmitSuccessToast(response);
     showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
-    // A form sending something new each time starts over from the values it
-    // opened with; any other keeps what it saved as its new starting point.
-    if (props.kind === "action") restoreInitialValues();
-    else initialValues.value = snapshotFormState(state.value);
-    options.onSaved?.();
     if (props.redirectOnSuccess) {
       const target = replaceUrlVariables(
         props.redirectOnSuccess,
@@ -780,10 +785,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
-  /** Sends a body to the submit URL, through the form's submit events. */
+  /**
+   * Sends a body to the submit URL, through the form's submit events.
+   * `onAccepted` runs once the server took it, before the success event goes
+   * out: what watches that event (a form page's way back to its list) finds
+   * the form with nothing unsaved, and leaves it without asking.
+   */
   const sendSubmit = async (
     submitUrl: string,
     body: FormData,
+    onAccepted?: () => void,
   ): Promise<FormSubmitResponse | undefined> => {
     let submitResponse: FormSubmitResponse | undefined;
     await executeSubmit(
@@ -794,6 +805,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
           headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
         }).then((res) => {
           submitResponse = res;
+          onAccepted?.();
           return res;
         }),
       {
@@ -834,8 +846,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
     loading.value = true;
     try {
-      const response = await sendSubmit(target.url, plainData);
-      submitSucceeded.value = true;
+      const response = await sendSubmit(target.url, plainData, markSubmitSaved);
       await handleSubmitSuccess(response, plainData);
     } catch (error) {
       reportSubmitError(error);
