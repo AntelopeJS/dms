@@ -1,5 +1,6 @@
 import {
   computed,
+  onBeforeUnmount,
   onMounted,
   ref,
   watch,
@@ -16,6 +17,7 @@ import {
   hasUrlVariables,
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
+import { onPageBlocksRefresh } from "../../utils/blockRefresh";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -162,6 +164,16 @@ function useResolvedFetchUrl<T>(
   );
 }
 
+// Mounted only: the page refresh is a browser event, and a block the server
+// renders has nothing to refetch.
+function subscribePageRefresh(onRefresh: () => void): void {
+  let unsubscribe: (() => void) | undefined;
+  onMounted(() => {
+    unsubscribe = onPageBlocksRefresh(onRefresh);
+  });
+  onBeforeUnmount(() => unsubscribe?.());
+}
+
 export function useChartFetch<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
@@ -251,10 +263,11 @@ export function useChartFetch<T>(
   };
   const scheduleRefresh = () => scheduleRefreshWith(true);
 
-  // A realtime event means the data behind unchanged inputs moved, so it has
-  // to bypass the deduplication above. The inputs did not change, so the
-  // values on screen stay current until the new answer replaces them.
-  const refreshFromRealtime = () => {
+  // A realtime event or a page refresh (refreshPageBlocks) means the data
+  // behind unchanged inputs moved, so it has to bypass the deduplication
+  // above. The inputs did not change, so the values on screen stay current
+  // until the new answer replaces them.
+  const refreshSameInputs = () => {
     runner.lastInputs = null;
     scheduleRefreshWith(false);
   };
@@ -277,7 +290,8 @@ export function useChartFetch<T>(
       scheduleRefresh,
     );
     onMounted(fetchOnMount);
-    subscribeRealtimeTopics(options.realtimeTopic, refreshFromRealtime);
+    subscribeRealtimeTopics(options.realtimeTopic, refreshSameInputs);
+    subscribePageRefresh(refreshSameInputs);
   } else if (typeof options.staticData === "function") {
     watch(
       () => readStaticData(options.staticData),

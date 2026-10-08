@@ -14,6 +14,7 @@ import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePe
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import { runMountedQuickAction } from "#dms-ui/app/build/utils/quickActionTargets";
 import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
+import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
 import {
   dispatchQuickActionTarget,
   findServedQuickAction,
@@ -60,11 +61,14 @@ const router = useDmsRouter();
 const { $authFetch } = useAuthFetch();
 
 // The page header runs a declared button's target as a table runs its
-// toolbar buttons: confirmation, drawer, modal, API call, export, link.
+// toolbar buttons: confirmation, drawer, modal, API call, export, link. A
+// button that changed something (an API call, a form it opened) changes the
+// record the page shows: its blocks read their data again.
 const { handleCustomButton } = useActionTargets({
   api: $authFetch,
   componentId: "page-header",
   pageId: siteLayout.findMatchingRoute(route.path)?.metadata?.fullId ?? "page",
+  refreshCallback: refreshPageBlocks,
   handleApiError: (error, title) => useApiError(error, { title }),
 });
 

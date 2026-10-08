@@ -37,8 +37,9 @@ export interface UseBlockItemsReturn<T> {
 /**
  * The items a list block (StatGroup, KeyValueList, NavCardGrid) renders:
  * either the static ones of its options, or the `items` its `fetchUrl`
- * answers with — refetched when a watched event changes the block's state,
- * like the KPI and top-list cards.
+ * answers with — refetched when a watched event changes the block's state or
+ * the page asks its blocks to refresh (refreshPageBlocks), like the KPI and
+ * top-list cards.
  */
 export function useBlockItems<T>(
   options: UseBlockItemsOptions<T>,
