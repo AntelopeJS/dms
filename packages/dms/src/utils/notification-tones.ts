@@ -11,8 +11,11 @@
 
 import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 
-/** At or below this many backup codes left, the alert asks for new ones. */
-export const LOW_BACKUP_CODES = 2;
+/**
+ * At or below this many backup codes left, the alert asks for new ones: the
+ * sign-in notification and the Security page agree on it.
+ */
+export const LOW_BACKUP_CODES = 3;
 
 /**
  * Running low on backup codes is a risk to act on now: the alert turns from

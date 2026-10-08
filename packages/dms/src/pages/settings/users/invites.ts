@@ -68,10 +68,10 @@ import {
   MembersSettingsController,
   membersTableAddAction,
   ROLE_QUICK_FILTER,
-  loadRoleOptions,
 } from "./members";
 import { editRolePicker } from "./member-roles-field";
-import type { InviteRoleOptions } from "./member-role-options";
+import { declarePermissionWarning } from "./permission-warnings";
+import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HTTP_NOT_FOUND = 404;
@@ -317,12 +317,12 @@ export class InvitesSettingsController extends PageController("invites", {
         icon: MEMBERS_TAB_ICON,
         to: MembersSettingsController,
         countFrom: memberSettingDataAPI,
-        navBadge: true,
       },
       {
         id: "all",
         label: "$page.settings.members.tabs.invites",
         icon: INVITES_TAB_ICON,
+        navBadge: true,
       },
     ],
     // Modules edit the data they attached through `RegisterInviteExtension`
@@ -503,3 +503,15 @@ export class InvitesSettingsController extends PageController("invites", {
     await completeInviteResolution(resolution);
   }
 }
+
+const invitesTableEditAction =
+  InvitesSettingsController.table.getAction("edit");
+if (!invitesTableEditAction) {
+  throw new Error("Invites table is expected to register an 'edit' action");
+}
+// Editing a pending invitation can give it any role or make the invitee an
+// owner, like inviting (see the members table's add action).
+declarePermissionWarning(
+  invitesTableEditAction,
+  "$page.settings.roles.warning.invites",
+);

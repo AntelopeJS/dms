@@ -1,6 +1,6 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
-import { unref } from "vue";
+import { onMounted, unref } from "vue";
 import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { FormEvents } from "./types/events";
@@ -458,32 +458,35 @@ function watchFieldChanges(
   ) => void,
 ): void {
   if (!componentId) return;
+  const id = componentId;
   const previousValuesJson: Record<string, string> = {};
 
-  watch(
-    () => state.value,
-    (newState) => {
-      for (const fieldId of Object.keys(newState)) {
-        if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
+  // From mount, once `useWatch` listens: the values the form starts from
+  // (defaults, loaded row) reach the watch rules too, not only later edits.
+  onMounted(() => {
+    watch(() => state.value, sendChanges, { deep: true, immediate: true });
+  });
 
-        let newJson: string;
-        try {
-          newJson = JSON.stringify(newState[fieldId]);
-        } catch {
-          newJson = String(newState[fieldId]);
-        }
-        if (newJson !== previousValuesJson[fieldId]) {
-          sendComponentEvent(FormEvents.FIELD_CHANGE, componentId, {
-            fieldId,
-            value: newState[fieldId],
-            formValues: newState,
-          });
-          previousValuesJson[fieldId] = newJson;
-        }
+  function sendChanges(newState: Record<string, unknown>): void {
+    for (const fieldId of Object.keys(newState)) {
+      if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
+
+      let newJson: string;
+      try {
+        newJson = JSON.stringify(newState[fieldId]);
+      } catch {
+        newJson = String(newState[fieldId]);
       }
-    },
-    { deep: true },
-  );
+      if (newJson !== previousValuesJson[fieldId]) {
+        sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
+          fieldId,
+          value: newState[fieldId],
+          formValues: newState,
+        });
+        previousValuesJson[fieldId] = newJson;
+      }
+    }
+  }
 }
 
 /**

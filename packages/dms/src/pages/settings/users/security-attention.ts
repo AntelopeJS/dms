@@ -1,3 +1,4 @@
+import { LOW_BACKUP_CODES } from "../../../utils/notification-tones";
 import type { TwoFactorStatus } from "./two-factor-operations";
 
 /** Something on the Security page that needs the user's attention. */
@@ -5,9 +6,6 @@ export type SecurityAttention =
   | "two_factor_off"
   | "backup_codes_unsaved"
   | "backup_codes_low";
-
-/** Backup codes left at or below which the user is told to make new ones. */
-const LOW_BACKUP_CODES = 3;
 
 interface AttentionRule {
   id: SecurityAttention;
