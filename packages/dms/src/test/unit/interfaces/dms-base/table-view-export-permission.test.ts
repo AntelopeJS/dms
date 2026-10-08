@@ -17,6 +17,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const TABLE = "export-permission-rows";
 const COMPONENT_PERMISSION_ID = "pages.export-demo.table";
@@ -38,10 +39,15 @@ async function servedOptions(
   const { options } = builder.serializeSync();
   const filter = builder.onFilterCallback;
   if (!filter || !options) throw new Error("table view without a filter");
-  return filter(new Set(permissions), options, COMPONENT_PERMISSION_ID, {
-    tenantId: "export-tenant",
-    user: undefined,
-  });
+  return filter(
+    new Set(withPermissionAncestors(permissions)),
+    options,
+    COMPONENT_PERMISSION_ID,
+    {
+      tenantId: "export-tenant",
+      user: undefined,
+    },
+  );
 }
 
 describe("[unit] interfaces/dms-base/table-view — export follows its permission", () => {

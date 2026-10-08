@@ -3,6 +3,7 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
+import { permissionIdAncestors } from "./internal/permission-ids";
 import { ApplyPermissionsResolvers } from "./permissions-resolver";
 
 export interface Permission {
@@ -57,13 +58,9 @@ export function UnmarkModuleScopedPermission(id: string): void {
 }
 
 export function IsModuleScopedPermission(id: string): boolean {
-  let current = id;
-  for (;;) {
-    if (moduleScopedPermissionIds.has(current)) return true;
-    const separatorIndex = current.lastIndexOf(".");
-    if (separatorIndex <= 0) return false;
-    current = current.slice(0, separatorIndex);
-  }
+  return [id, ...permissionIdAncestors(id)].some((candidate) =>
+    moduleScopedPermissionIds.has(candidate),
+  );
 }
 export const GetPermission =
   InterfaceFunction<(id: string) => Permission | undefined>();
@@ -114,6 +111,12 @@ export async function GetEffectiveUserPermissions(
   return ApplyPermissionsResolvers(user._id, tenantId, basePermissions);
 }
 
+/**
+ * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
+ * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
+ * it sits under) are held too — a table's delete action grants nothing
+ * without its table and its page.
+ */
 export async function HasPermission(
   permissions: Set<string>,
   permissionId: string,
@@ -125,7 +128,26 @@ export async function HasPermission(
   // in userCanAccessPage/computeEntryAccess (implementations/dms/page.ts).
   if (IsModuleScopedPermission(permissionId)) return false;
   const permission = await GetPermission(permissionId);
-  return permissions.has(permissionId) || permission?.defaultGranted || false;
+  if (permission?.defaultGranted) return true;
+  if (!permissions.has(permissionId)) return false;
+  return holdsAncestors(permissions, permissionId);
+}
+
+// The role routes store a grant with every id it sits under, but a role saved
+// before they did, or a set a resolver reshaped, may lack some. An ancestor
+// counts as held when granted, `defaultGranted`, or not a registered
+// permission at all (a page declaring `permission: { id: "mailing.access" }`
+// has no `mailing` above it).
+async function holdsAncestors(
+  permissions: Set<string>,
+  permissionId: string,
+): Promise<boolean> {
+  for (const ancestorId of permissionIdAncestors(permissionId)) {
+    if (permissions.has(ancestorId)) continue;
+    const ancestor = await GetPermission(ancestorId);
+    if (ancestor && !ancestor.defaultGranted) return false;
+  }
+  return true;
 }
 
 /** Whether `permissions` grants at least one of `permissionIds`. */

@@ -33,6 +33,8 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
   denyingTenantGate,
   registerTestPage,
+  type PageAccessModels,
+  stubExactPermissionModels,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
 
@@ -122,7 +124,13 @@ async function actionsFor(
   grantedPermissions: string[],
   tenantId = ALLOWED_TENANT,
 ): Promise<QuickActionTargetPayload> {
-  const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
+  return actionsServedTo(stubPageAccessModels(grantedPermissions), tenantId);
+}
+
+async function actionsServedTo(
+  { memberModel, roleModel }: PageAccessModels,
+  tenantId = ALLOWED_TENANT,
+): Promise<QuickActionTargetPayload> {
   const payload = await buildSiteLayoutPayload(
     { _id: "qb-member" } as User,
     memberModel,
@@ -226,7 +234,10 @@ describe("[unit] implementations/dms/quick-actions — button targets", () => {
   });
 
   it("is left out for a caller who cannot reach the page, whatever the button allows", async () => {
-    const actions = await actionsFor(["pages.qb-gated.table.add"]);
+    // A role saved before the role routes completed it: the button's id alone.
+    const actions = await actionsServedTo(
+      stubExactPermissionModels(["pages.qb-gated.table.add"]),
+    );
 
     expect(actions).to.not.have.property(actionKey("qb-gated"));
   });

@@ -17,6 +17,7 @@ import {
   internal as pageInterfaceInternal,
 } from "@antelopejs/interface-dms/page";
 import type { TenantAccessGateInfo } from "@antelopejs/interface-dms/tenant-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 export interface PageAccessModels {
   memberModel: TenantMemberModel;
@@ -25,17 +26,28 @@ export interface PageAccessModels {
 
 /**
  * Minimal member/role models for the page-visibility unit tests: the member
- * always belongs to one role, and that role grants exactly `grantedPermissions`.
+ * always belongs to one role, and that role grants `grantedPermissions` as the
+ * role routes store them, with every id they sit under.
  */
 export function stubPageAccessModels(
   grantedPermissions: string[],
+): PageAccessModels {
+  return stubExactPermissionModels(withPermissionAncestors(grantedPermissions));
+}
+
+/**
+ * Like {@link stubPageAccessModels}, but the role grants exactly `permissions`:
+ * a role saved before the role routes completed its permissions.
+ */
+export function stubExactPermissionModels(
+  permissions: string[],
 ): PageAccessModels {
   return {
     memberModel: {
       getByUser: async () => ({ roleIds: ["role-1"] }),
     } as unknown as TenantMemberModel,
     roleModel: {
-      getBy: async () => [{ permissions: grantedPermissions }],
+      getBy: async () => [{ permissions }],
     } as unknown as RoleModel,
   };
 }

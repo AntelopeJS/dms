@@ -22,6 +22,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const LABEL_ID = "pv-label";
 const LABEL_FULL_ID = `pages.${LABEL_ID}`;
@@ -42,7 +43,7 @@ async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {
     memberModel,
     roleModel,
     tenantId: TENANT,
-    previewPermissions: new Set(permissions),
+    previewPermissions: new Set(withPermissionAncestors(permissions)),
   });
   return access.hiddenEntries;
 }
@@ -131,12 +132,14 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
       memberModel,
       roleModel,
       tenantId: TENANT,
-      previewPermissions: new Set([
-        LABEL_FULL_ID,
-        PAGE_FULL_ID,
-        TARGET_FULL_ID,
-        ENTRY_PERMISSION,
-      ]),
+      previewPermissions: new Set(
+        withPermissionAncestors([
+          LABEL_FULL_ID,
+          PAGE_FULL_ID,
+          TARGET_FULL_ID,
+          ENTRY_PERMISSION,
+        ]),
+      ),
       pageLoses: async (page) => page.fullId === TARGET_FULL_ID,
     });
     expect(access.partialEntries).to.include.members([

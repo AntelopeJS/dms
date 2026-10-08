@@ -20,6 +20,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 // A preview resolves the layout the viewer is served on every page of the
 // menu: a bounded number at once, and once per viewer whatever set is
@@ -62,7 +63,7 @@ async function preview(permissions: string[]): Promise<void> {
     memberModel,
     roleModel,
     tenantId: TENANT,
-    previewPermissions: new Set(permissions),
+    previewPermissions: new Set(withPermissionAncestors(permissions)),
     pageLoses: async () => false,
   });
 }
