@@ -20,6 +20,7 @@ import {
 import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
+import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -40,6 +41,7 @@ interface TenantTokenInput {
   tenantId: string;
   id: string;
   rawToken: string;
+  sessionId?: string;
 }
 
 interface TokenResult {
@@ -87,7 +89,12 @@ async function validateUserToken(
   checkEmailValidation: boolean = false,
 ): Promise<User> {
   const userModel = GetModel(UserModel);
-  const user = await userModel.get(data.id);
+  // The session is read alongside the user, so checking it costs no extra
+  // round trip; which session counts is settled from the verified payload.
+  const [user, session] = await Promise.all([
+    userModel.get(data.id),
+    loadTokenSession(data.sessionId),
+  ]);
 
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
@@ -95,7 +102,12 @@ async function validateUserToken(
 
   try {
     const secret = generateSecret(user.authKey);
-    verifySessionToken(data.rawToken, secret, ACCESS_TOKEN_PURPOSE);
+    const payload = verifySessionToken(
+      data.rawToken,
+      secret,
+      ACCESS_TOKEN_PURPOSE,
+    );
+    assertTokenSessionAlive(payload.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
@@ -198,8 +210,9 @@ const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
 
 /**
  * Whether a request carries a bearer token the DMS no longer accepts: expired,
- * signed with a rotated key, or naming a user that is gone. `IfAuthUser` reads
- * such a request as anonymous; this tells it apart from one that sent nothing.
+ * signed with a rotated key, bound to a signed-out session, or naming a user
+ * that is gone. `IfAuthUser` reads such a request as anonymous; this tells it
+ * apart from one that sent nothing.
  * An unvalidated e-mail is not a rejection — the token itself is still good.
  *
  * @param authorization The raw `authorization` header, possibly absent
@@ -483,6 +496,7 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "forgotPasswordToken",
   "authKey",
   "twoFactorSecret",
+  "twoFactorPendingSecret",
   "twoFactorBackupCodes",
   "twoFactorEmailCode",
   "twoFactorEmailCodeRequestedAt",
