@@ -185,6 +185,7 @@ function installRuntime(): void {
         params: {},
       }),
     }),
+    useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
   };
   Object.entries(runtime).forEach(([name, value]) =>

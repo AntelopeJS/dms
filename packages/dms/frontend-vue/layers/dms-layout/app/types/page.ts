@@ -170,4 +170,6 @@ export interface ResolvedComponentInfo<T = object> {
 export interface PageLayout {
   components: Record<string, ComponentInfo>;
   layout: ComponentInfo;
+  /** The page declares components and the viewer may see none of them. */
+  allComponentsHidden?: boolean;
 }
