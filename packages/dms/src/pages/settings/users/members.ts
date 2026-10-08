@@ -12,7 +12,6 @@ import { GetModel, Model } from "@antelopejs/interface-database-decorators";
 import type { Action } from "@antelopejs/interface-dms/component";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import {
-  RoleModel,
   type TenantMember,
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
@@ -25,7 +24,6 @@ import {
   RegisterPage,
   workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
-import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -37,11 +35,11 @@ import type {
   ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
-import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
 import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
+import { declarePermissionWarning } from "./permission-warnings";
 import {
   type InviteFormDefaults,
   memberInviteForm,
@@ -64,10 +62,7 @@ import {
   requireMember,
   setMemberOwnership,
 } from "./member-management";
-import {
-  buildInviteRoleOptions,
-  type InviteRoleOptions,
-} from "./member-role-options";
+import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 import {
   announceMemberEdit,
   announceMemberRemovals,
@@ -390,6 +385,17 @@ export const membersTableAddAction = requireMembersTableAction("add");
 const membersTableEditAction = requireMembersTableAction("edit");
 const membersTableDeleteAction = requireMembersTableAction("delete");
 
+// Changing roles and ownership, or inviting with any role, lets the holder
+// make themselves an owner. Intended, so the roles editor says it instead.
+declarePermissionWarning(
+  membersTableEditAction,
+  "$page.settings.roles.warning.members",
+);
+declarePermissionWarning(
+  membersTableAddAction,
+  "$page.settings.roles.warning.invites",
+);
+
 function inviteRedirectPath(results: InviteEmailResult[]): string {
   const hasPendingInvite = results.some(
     (result) => result.outcome === "invited",
@@ -412,18 +418,6 @@ export function memberInviteResponse(
     response.warning = INVITE_EMAIL_FAILED_WARNING;
   }
   return response;
-}
-
-/** The tenant's roles as the role pickers offer them. */
-export async function loadRoleOptions(
-  tenantId: string,
-): Promise<InviteRoleOptions> {
-  const roles = await GetModel(RoleModel, tenantId).getAll();
-  return buildInviteRoleOptions(
-    roles,
-    await GetPermissions(),
-    GetCategoryPermissionIds(),
-  );
 }
 
 @RegisterPage()

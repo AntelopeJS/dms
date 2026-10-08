@@ -48,6 +48,7 @@ function isExpanded(node: RolePermissionNode): boolean {
         "
         :expanded="isExpanded(node)"
         :controls="childrenElementId(node.id)"
+        :hidden-warnings="props.context.warningsBelowOf(node)"
         expandable
         @toggle="(checked) => props.context.toggle(node.id, checked)"
         @toggle-expanded="props.context.toggleExpanded(node.id)"

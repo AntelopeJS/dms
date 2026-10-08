@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
+import RolePermissionWarning from "./RolePermissionWarning.vue";
 import {
   highlightSegments,
   type PermissionChange,
@@ -31,6 +32,8 @@ interface RolePermissionLeafProps {
   controls?: string;
   /** Selected permissions of the subtree, shown by a collapsible row. */
   count?: SelectionCount;
+  /** Warnings of the selected permissions a closed row hides. */
+  hiddenWarnings?: string[];
 }
 
 const props = withDefaults(defineProps<RolePermissionLeafProps>(), {
@@ -43,6 +46,7 @@ const props = withDefaults(defineProps<RolePermissionLeafProps>(), {
   expanded: false,
   controls: undefined,
   count: undefined,
+  hiddenWarnings: () => [],
 });
 
 const emit = defineEmits<{
@@ -100,7 +104,6 @@ const ui = computed(() =>
 
 const label = computed(() => processI18n(props.node.label));
 const segments = computed(() => highlightSegments(label.value, props.query));
-
 const CHANGE_CLASSES: Record<"added" | "removed", string> = {
   added: "text-warning",
   removed: "text-error",
@@ -187,10 +190,19 @@ function onRowClick(): void {
           <UIcon name="i-ph-check" class="size-[11px]" />
           {{ props.autoAddedHint }}
         </span>
+        <RolePermissionWarning
+          v-if="props.hiddenWarnings.length > 0"
+          :warnings="props.hiddenWarnings"
+          compact
+        />
       </div>
       <div v-if="props.node.description" :class="ui.description()">
         {{ processI18n(props.node.description) }}
       </div>
+      <RolePermissionWarning
+        v-if="props.node.warning"
+        :warnings="[props.node.warning]"
+      />
     </div>
     <span class="flex min-w-0 items-center gap-3">
       <span :class="ui.id()" :title="props.node.id">{{ props.node.id }}</span>

@@ -86,6 +86,10 @@
       "no_content_title": "Aucun contenu disponible",
       "no_content_message": "Cette page n'a pas encore été configurée. Veuillez contacter l'administrateur."
     },
+    "no_visible_blocks": {
+      "title": "Rien à afficher pour vous ici",
+      "description": "Votre rôle ne vous permet de voir aucune partie de cette page. Demandez l’accès à un propriétaire de l’espace."
+    },
     "settings": {
       "title": "Paramètres",
       "intro": "Votre profil, votre sécurité et vos préférences, ainsi que les personnes et les rôles de cet espace.",
@@ -288,6 +292,7 @@
           "partial_title": "Invitations envoyées : {sent}",
           "partial_description": "{count} adresse ignorée : déjà membre ou refusée. | {count} adresses ignorées : déjà membres ou refusées.",
           "roles_owner_hint": "Les propriétaires ont toutes les permissions : les rôles sont ignorés.",
+          "roles_owner_level": "{roles} revient à un accès de propriétaire : qui l’a peut se nommer propriétaire. | {roles} reviennent à un accès de propriétaire : qui les a peut se nommer propriétaire.",
           "roles_hint_empty": "Choisissez au moins un rôle.",
           "roles_hint": "{roles} : {count} permissions sur {total}.",
           "compare_roles": "Comparer les rôles",
@@ -493,6 +498,9 @@
           "requires": "Nécessite {name}",
           "auto_added": "{name} ajoutée automatiquement",
           "auto_added_many": "{count} ajoutées automatiquement",
+          "owner_level": "Accès propriétaire",
+          "owner_level_title": "Ce rôle revient à un accès de propriétaire",
+          "owner_level_description": "Avec {names}, toute personne qui a ce rôle peut se nommer propriétaire ou s’accorder n’importe quelle permission.",
           "not_grantable": "Vous n’avez pas cette permission, vous ne pouvez donc pas l’accorder.",
           "search_empty": "Aucune permission ne correspond à « {query} ».",
           "no_permissions": "Aucune permission n’est encore enregistrée.",
@@ -548,6 +556,13 @@
           "in_use": "Des membres ou des invitations en attente ont encore ce rôle.",
           "invalid_reassign": "Choisissez un autre rôle vers lequel déplacer ses membres.",
           "not_created": "Le rôle n’a pas pu être créé."
+        },
+        "warning": {
+          "members": "Toute personne ayant cet accès peut modifier les rôles de n’importe quel membre et nommer n’importe qui propriétaire, elle-même comprise. Cela revient à un accès de propriétaire.",
+          "invites": "Toute personne ayant cet accès peut inviter quelqu’un, ou modifier une invitation en attente, avec n’importe quel rôle ou comme propriétaire. Cela revient à un accès de propriétaire.",
+          "roles": "Toute personne ayant cet accès peut modifier ce que chaque rôle accorde, y compris le sien. Cela revient à un accès de propriétaire.",
+          "roles_add": "Toute personne ayant cet accès peut créer un rôle qui accorde n’importe quelle permission, y compris toutes. Cela revient à un accès de propriétaire.",
+          "roles_delete": "Toute personne ayant cet accès peut supprimer un rôle et déplacer ses membres vers n’importe quel autre rôle, y compris un rôle plus fort. Cela revient à un accès de propriétaire."
         }
       },
       "appearance": {

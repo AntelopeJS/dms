@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { tv } from "tailwind-variants";
+import RolePermissionWarning from "./RolePermissionWarning.vue";
 import {
   childrenElementId,
   type PermissionArea,
@@ -14,9 +15,13 @@ interface RolePermissionAreaProps {
   state: SelectionState;
   isExpanded: boolean;
   disabled: boolean;
+  /** Warnings of the selected permissions a closed area hides. */
+  hiddenWarnings?: string[];
 }
 
-const props = defineProps<RolePermissionAreaProps>();
+const props = withDefaults(defineProps<RolePermissionAreaProps>(), {
+  hiddenWarnings: () => [],
+});
 const emit = defineEmits<{
   toggle: [checked: boolean];
   "toggle-expanded": [];
@@ -32,7 +37,6 @@ const childrenId = computed(() => childrenElementId(props.area.node.id));
 const subtitle = computed(() =>
   processI18n(props.area.node.description ?? props.area.section ?? ""),
 );
-
 // v2 .cs-parea: caret, tri-state box, icon tile, title over its subtitle and
 // the "n/m" count with its bar; the count turns accent when complete. The
 // row reads the editor's width (@container/editor): the hover id goes under
@@ -111,6 +115,16 @@ const ui = computed(() => theme({ completion: completion.value }));
         >
           {{ subtitle }}
         </small>
+        <RolePermissionWarning
+          v-if="props.area.node.warning"
+          :warnings="[props.area.node.warning]"
+        />
+        <RolePermissionWarning
+          v-if="props.hiddenWarnings.length > 0"
+          :warnings="props.hiddenWarnings"
+          compact
+          class="mt-1"
+        />
       </button>
       <span :class="ui.count()">
         <span

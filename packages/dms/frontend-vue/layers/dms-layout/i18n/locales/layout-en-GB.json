@@ -86,6 +86,10 @@
       "no_content_title": "No content available",
       "no_content_message": "This page has not been configured yet. Please contact the administrator."
     },
+    "no_visible_blocks": {
+      "title": "Nothing to show for you here",
+      "description": "Your role doesn’t let you see any part of this page. Ask a workspace owner for access."
+    },
     "settings": {
       "title": "Settings",
       "intro": "Your profile, security and preferences, and the people and roles of this workspace.",
@@ -284,6 +288,7 @@
           "partial_title": "Invitations sent: {sent}",
           "partial_description": "{count} address was skipped: already a member or refused. | {count} addresses were skipped: already members or refused.",
           "roles_owner_hint": "Owners have every permission: the roles are ignored.",
+          "roles_owner_level": "{roles} amounts to owner-level access: whoever holds it can make themselves an owner. | {roles} amount to owner-level access: whoever holds them can make themselves an owner.",
           "roles_hint_empty": "Pick at least one role.",
           "roles_hint": "{roles}: {count} of {total} permissions.",
           "compare_roles": "Compare roles",
@@ -489,6 +494,9 @@
           "requires": "Requires {name}",
           "auto_added": "{name} added automatically",
           "auto_added_many": "{count} added automatically",
+          "owner_level": "Owner-level access",
+          "owner_level_title": "This role amounts to owner-level access",
+          "owner_level_description": "Through {names}, anyone holding it can make themselves an owner or grant themselves any permission.",
           "not_grantable": "You don’t hold this permission, so you can’t grant it.",
           "search_empty": "No permission matches “{query}”.",
           "no_permissions": "No permission is registered yet.",
@@ -544,6 +552,13 @@
           "in_use": "Members or pending invites still hold this role.",
           "invalid_reassign": "Pick another role to move its members to.",
           "not_created": "The role could not be created."
+        },
+        "warning": {
+          "members": "Anyone with this access can change any member’s roles and make anyone an owner, themselves included. It amounts to owner-level access.",
+          "invites": "Anyone with this access can invite people, or change pending invitations, with any role or as owners. It amounts to owner-level access.",
+          "roles": "Anyone with this access can change what every role grants, their own included. It amounts to owner-level access.",
+          "roles_add": "Anyone with this access can create a role that grants any permission, everything included. It amounts to owner-level access.",
+          "roles_delete": "Anyone with this access can delete a role and move its members to any other role, a stronger one included. It amounts to owner-level access."
         }
       },
       "appearance": {
