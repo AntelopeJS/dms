@@ -27,13 +27,19 @@ import type { AuthResponse } from "./types";
 const VALIDATION_TOKEN_LENGTH = 6;
 const DEFAULT_LANGUAGE = "en";
 
+/**
+ * The invitation link reached the invitee through that very mailbox, so the
+ * address is proven unless this instance asks for its own validation round.
+ * Leaving it unvalidated where nothing validates would stick the account
+ * with a check it can never pass.
+ */
 function buildValidationFields(invite: UserInvite) {
   const config = getAuthConfig();
   const shouldValidate =
     config.mustValidateEmail && !invite.skipEmailValidation;
 
   return {
-    isValidated: invite.skipEmailValidation || false,
+    isValidated: !shouldValidate,
     validationToken: shouldValidate
       ? randomstring.generate({
           length: VALIDATION_TOKEN_LENGTH,
