@@ -87,6 +87,7 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
 });

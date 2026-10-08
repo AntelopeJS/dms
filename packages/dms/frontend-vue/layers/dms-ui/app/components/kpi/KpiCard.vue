@@ -79,6 +79,7 @@ const staticData = computed<KpiCardResponse | null>(() => {
 const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   periodScope: props.periodScope,
   staticData: () => staticData.value,
   watchSource: () => watchKey.value,

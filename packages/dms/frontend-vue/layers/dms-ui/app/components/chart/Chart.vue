@@ -132,6 +132,7 @@ const isNested = computed(() => !!nestedContext);
 const { data, isLoading } = useChartFetch<ChartResponse>({
   fetchUrl: isNested.value ? undefined : props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   periodScope: props.periodScope,
   realtimeTopic: props.realtimeTopic,
   staticData: null,

@@ -12,9 +12,15 @@ export interface BlockItemsResponse<T> {
 export interface UseBlockItemsOptions<T> {
   /** The items written in the block's options (read reactively). */
   items: () => T[] | undefined;
-  /** Route answering `{ items }`; when set it replaces the static items. */
+  /**
+   * Route answering `{ items }`; when set it replaces the static items. Its
+   * `{{params.X}}` and `{{query.X}}` tokens are filled from the page URL, and
+   * nothing is requested while one has no value (see useChartFetch).
+   */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** The parameters of the page route (the block's `routeParams` prop). */
+  routeParams?: () => Record<string, string> | undefined;
   watchActions?: WatchAction[];
   componentId?: string;
 }
@@ -49,6 +55,7 @@ export function useBlockItems<T>(
   >({
     fetchUrl: options.fetchUrl,
     fetchUrlMethod: options.fetchUrlMethod,
+    routeParams: options.routeParams,
     watchSource: () => watchKey.value,
   });
 
