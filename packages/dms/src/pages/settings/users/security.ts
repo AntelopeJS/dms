@@ -29,13 +29,14 @@ import {
   requestEmailChange,
 } from "./email-change";
 import {
+  confirmEmailSetup,
   confirmTotpSetup,
   disableTwoFactorMethod,
-  enableEmailMethod,
   getTwoFactorStatus,
   markBackupCodesSaved,
   regenerateBackupCodes,
   requestTwoFactorEmailCode,
+  startEmailSetup,
   startTotpSetup,
 } from "./two-factor-operations";
 import { securityAttention } from "./security-attention";
@@ -154,7 +155,15 @@ export class SecuritySettingsController extends PageController("security", {
     @JSONBody() body: unknown,
     @Model(UserModel) userModel: UserModel,
   ) {
-    return enableEmailMethod(this.user, body, userModel);
+    return startEmailSetup(this.user, body, userModel);
+  }
+
+  @Post("/two-factor/confirm-email")
+  confirmEmail(
+    @JSONBody() body: unknown,
+    @Model(UserModel) userModel: UserModel,
+  ) {
+    return confirmEmailSetup(this.user, body, userModel);
   }
 
   @Post("/two-factor/disable")

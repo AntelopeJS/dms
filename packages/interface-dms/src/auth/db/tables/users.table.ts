@@ -154,6 +154,14 @@ export class User extends Table.with(HashModifier) {
   @Field("string")
   declare twoFactorPendingSecret: string | null;
 
+  /**
+   * Time step (30-second window) of the last authenticator code accepted: a
+   * code from that step or an earlier one is refused, so each code works
+   * once. Unset until a code is accepted.
+   */
+  @Field("number")
+  declare twoFactorTotpLastStep?: number | null;
+
   @Field(["string"])
   declare twoFactorBackupCodes: string[];
 
@@ -168,6 +176,7 @@ export class User extends Table.with(HashModifier) {
   @Field("date")
   declare twoFactorBackupCodesSavedAt: Date | null;
 
+  /** Hash of the last code emailed for two-factor, never the code itself. */
   @Field("string")
   declare twoFactorEmailCode: string | null;
 

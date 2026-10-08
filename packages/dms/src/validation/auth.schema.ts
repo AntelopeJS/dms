@@ -41,6 +41,10 @@ export const authSchema = {
   forgot: z.object({
     email: z.string().email(),
   }),
+  validateInviteToken: z.object({
+    token: z.string().max(MAX_INVITE_TOKEN_LENGTH),
+    email: z.string().email(),
+  }),
   validateForgotPasswordToken: z.object({
     token: z.string(),
     email: z.string().email(),
@@ -59,6 +63,9 @@ export const authSchema = {
     token: z.string(),
   }),
   confirmTotp: z.object({
+    code: z.string(),
+  }),
+  confirmEmailMethod: z.object({
     code: z.string(),
   }),
   disableTwoFactor: z.object({

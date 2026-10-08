@@ -27,6 +27,15 @@
       "error_title": "Erreur de création de compte",
       "invalid_invitation_title": "Ce lien d'invitation est invalide ou incomplet",
       "invalid_invitation_description": "Rouvrez le lien de votre e-mail d'invitation, ou demandez au propriétaire de l'espace de travail de vous envoyer une nouvelle invitation. Vous avez déjà un compte ? Connectez-vous.",
+      "checking_invitation": "Vérification de votre invitation…",
+      "invitation_expired_title": "Cette invitation a expiré",
+      "invitation_expired_description": "Demandez à la personne qui vous a invité de vous envoyer une nouvelle invitation. Vous avez déjà un compte ? Connectez-vous.",
+      "invitation_revoked_title": "Cette invitation a été révoquée",
+      "invitation_revoked_description": "La personne qui vous a invité l'a annulée. Si vous avez toujours besoin d'un accès, demandez-lui une nouvelle invitation.",
+      "invitation_replaced_title": "Cette invitation a été remplacée par un e-mail plus récent",
+      "invitation_replaced_description": "Une invitation plus récente a été envoyée à cette adresse, et seul son lien fonctionne. Ouvrez le dernier e-mail d'invitation, ou demandez à la personne qui vous a invité de vous le renvoyer.",
+      "invitation_used_title": "Cette invitation a déjà été utilisée",
+      "invitation_used_description": "Un compte a déjà été créé avec cette invitation. Connectez-vous pour continuer.",
       "description": "Vous avez été invité. Choisissez votre nom et un mot de passe pour nous rejoindre.",
       "submit": "Créer mon compte"
     },
@@ -55,8 +64,8 @@
       "title_success": "Mot de passe modifié",
       "title_forget": "Mot de passe oublié",
       "description_success": "Votre mot de passe a été réinitialisé. Connectez-vous avec votre nouveau mot de passe.",
-      "description_validation": "Nous avons envoyé un code à 6 chiffres à {email}. Saisissez-le pour choisir un nouveau mot de passe.",
-      "description_forget": "Saisissez l'adresse e-mail de votre compte. Nous vous enverrons un code à 6 chiffres pour réinitialiser votre mot de passe.",
+      "description_validation": "Nous avons envoyé un code à 6 caractères à {email}. Saisissez-le pour choisir un nouveau mot de passe.",
+      "description_forget": "Saisissez l'adresse e-mail de votre compte. Nous vous enverrons un code à 6 caractères pour réinitialiser votre mot de passe.",
       "error_title": "Erreur de réinitialisation",
       "title_inbox": "Consultez votre boîte mail",
       "send_code": "Envoyer le code",
@@ -368,7 +377,8 @@
           "add_method": "Ajouter une méthode",
           "add_named": "Ajouter « {method} »",
           "password_prompt": "Confirmez votre mot de passe pour ajouter une méthode de connexion.",
-          "password_continue": "Continuer"
+          "password_continue": "Continuer",
+          "email_setup_description": "Nous avons envoyé un code à 6 chiffres à {email}. Saisissez-le pour activer les codes par e-mail."
         },
         "backup": {
           "title": "Codes de secours",
@@ -415,6 +425,7 @@
           "email_already_used": "Cette adresse e-mail est déjà utilisée par un autre compte.",
           "invalid_2fa_code": "Ce code de vérification est invalide ou a expiré.",
           "rate_limited": "Patientez une minute avant de demander un autre code.",
+          "email_change_too_many_attempts": "Trop de codes erronés. Demandez-en un nouveau.",
           "no_backup_codes": "Vous n'avez aucun code de secours.",
           "session_not_found": "Cette session n'existe plus."
         }
@@ -442,6 +453,7 @@
       "identity_malformed": "Le fournisseur a renvoyé une identité inexploitable, réessayez."
     },
     "rate_limited": "Trop de tentatives, réessayez dans une minute.",
-    "too_many_sign_in_attempts": "Trop de tentatives de connexion. Réessayez dans quelques minutes."
+    "too_many_sign_in_attempts": "Trop de tentatives de connexion. Réessayez dans quelques minutes.",
+    "too_many_2fa_attempts": "Trop de codes erronés. Revenez en arrière et reconnectez-vous avec votre mot de passe."
   }
 }

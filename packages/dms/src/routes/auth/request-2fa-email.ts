@@ -4,9 +4,12 @@ import {
   validateTwoFactorToken,
 } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
-import randomstring from "randomstring";
+import {
+  assertEmailCodeNotRateLimited,
+  issueEmailCode,
+} from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
-import { TWO_FACTOR_RATE_LIMIT_MS } from "./constants";
+import { assertTwoFactorChallengeOpen } from "./two-factor-throttle";
 
 type Request2FAEmailResult = { success: boolean };
 
@@ -26,19 +29,10 @@ export async function request2FAEmail(
     "error.2fa_email_not_enabled",
   );
 
-  const isRateLimited =
-    user.twoFactorEmailCodeRequestedAt &&
-    Date.now() - new Date(user.twoFactorEmailCodeRequestedAt).getTime() <
-      TWO_FACTOR_RATE_LIMIT_MS;
-  assert(!isRateLimited, 429, "error.rate_limited");
+  await assertTwoFactorChallengeOpen(user._id, token);
+  assertEmailCodeNotRateLimited(user);
 
-  const code = randomstring.generate({
-    length: 6,
-    charset: "numeric",
-  });
-
-  user.twoFactorEmailCode = code;
-  user.twoFactorEmailCodeRequestedAt = new Date();
+  const code = issueEmailCode(user);
   await userModel.update(user);
 
   await send2FAEmail(user, code);

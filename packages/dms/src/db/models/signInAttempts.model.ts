@@ -69,13 +69,76 @@ export class SignInAttemptsModel extends BasicDataModel(
     }
   }
 
-  /** Forgets the failed attempts once the right password is given. */
-  async clearFailures(userId: string): Promise<void> {
+  private async deleteRecorded(
+    userId: string,
+    kind: SignInAttemptKind,
+  ): Promise<void> {
     await this.table
       .getAll(userId, "userId")
-      .filter((row) => row.key("kind").eq("failed"))
+      .filter((row) => row.key("kind").eq(kind))
       .delete()
       .run();
+  }
+
+  private twoFactorAttempts(userId: string, challenge: string) {
+    return this.table
+      .getAll(userId, "userId")
+      .filter((row) => row.key("kind").eq("two_factor"))
+      .filter((row) => row.key("challenge").eq(challenge));
+  }
+
+  /**
+   * Counts a code tried against a two-factor challenge. Recorded before the
+   * code is checked, so concurrent tries on several instances share one
+   * budget: the n-th insert always counts at least n.
+   *
+   * @returns The tries made against this challenge, this one included
+   */
+  async recordTwoFactorAttempt(
+    userId: string,
+    challenge: string,
+    now: Date,
+  ): Promise<number> {
+    await this.table
+      .insert({ userId, kind: "two_factor", challenge, createdAt: now })
+      .run();
+    return this.twoFactorAttempts(userId, challenge).count().run();
+  }
+
+  /** The tries made against a two-factor challenge so far. */
+  countTwoFactorAttempts(userId: string, challenge: string): Promise<number> {
+    return this.twoFactorAttempts(userId, challenge).count().run();
+  }
+
+  /** Forgets the failed attempts once the right password is given. */
+  async clearFailures(userId: string): Promise<void> {
+    await this.deleteRecorded(userId, "failed");
+  }
+
+  /**
+   * Counts a try of the reset code sent at `requestedAt`. Recorded before the
+   * code is compared, so concurrent tries on several instances share one
+   * budget: the n-th insert always counts at least n.
+   *
+   * @returns The tries of that code so far, this one included
+   */
+  async recordResetCodeAttempt(
+    userId: string,
+    requestedAt: Date,
+    now: Date,
+  ): Promise<number> {
+    await this.table
+      .insert({ userId, kind: "reset_code", createdAt: now })
+      .run();
+    return this.recordedSince(userId, requestedAt, "reset_code").count().run();
+  }
+
+  /**
+   * Forgets the reset-code tries once the right code is given, or a new code
+   * replaces the one they were counted against.
+   */
+  async clearResetCodeAttempts(userId: string): Promise<void> {
+    await this.deleteRecorded(userId, "reset_code");
   }
 
   async pruneBefore(userId: string, before: Date): Promise<void> {

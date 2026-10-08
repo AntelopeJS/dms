@@ -11,12 +11,17 @@ import type {
   SessionModel,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import { verifyTOTP } from "2fa";
 import { notifyBackupCodeUsed } from "../../utils/account-notifications";
 import type { ClientOrigin } from "../../utils/sign-in-country";
 import { recordSignIn } from "../../utils/sign-in-monitor";
+import {
+  acceptTotpCode,
+  consumeEmailCode,
+  emailCodeMatches,
+  isEmailCodeExpired,
+} from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
-import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "./constants";
+import { claimTwoFactorAttempt } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
@@ -32,7 +37,7 @@ const verifyMethods: Record<
   VerifyMethod,
   (params: VerifyMethodParams) => Promise<void>
 > = {
-  async totp({ user, code }) {
+  async totp({ user, code, userModel }) {
     assert(
       user.twoFactorMethods?.includes("totp"),
       401,
@@ -40,7 +45,7 @@ const verifyMethods: Record<
     );
     assert(user.twoFactorSecret, 401, "error.2fa_not_configured");
     assert(
-      verifyTOTP(user.twoFactorSecret, code),
+      await acceptTotpCode(userModel, user, user.twoFactorSecret, code),
       401,
       "error.invalid_2fa_code",
     );
@@ -53,16 +58,10 @@ const verifyMethods: Record<
       "error.2fa_method_not_enabled",
     );
     assert(user.twoFactorEmailCode, 401, "error.2fa_code_expired");
+    assert(!isEmailCodeExpired(user), 401, "error.2fa_code_expired");
+    assert(emailCodeMatches(user, code), 401, "error.invalid_2fa_code");
 
-    const isExpired =
-      !user.twoFactorEmailCodeRequestedAt ||
-      Date.now() - new Date(user.twoFactorEmailCodeRequestedAt).getTime() >
-        TWO_FACTOR_EMAIL_CODE_LIFETIME_MS;
-    assert(!isExpired, 401, "error.2fa_code_expired");
-    assert(user.twoFactorEmailCode === code, 401, "error.invalid_2fa_code");
-
-    user.twoFactorEmailCode = null;
-    user.twoFactorEmailCodeRequestedAt = null;
+    consumeEmailCode(user);
     await userModel.update(user);
   },
 
@@ -95,6 +94,7 @@ export async function verify2FA(
 
   const verifier = verifyMethods[method as VerifyMethod];
   assert(verifier, 400, "error.invalid_2fa_method");
+  await claimTwoFactorAttempt(user._id, token);
   await verifier({ user, code, userModel });
   if (method === "backup") {
     fireAndForget(

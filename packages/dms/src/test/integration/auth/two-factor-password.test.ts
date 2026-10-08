@@ -6,6 +6,7 @@ import {
   registerUser,
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
+import { captureEmails } from "../../helpers/emails";
 
 // Adding a second factor asks for the account password, and the profile's
 // copies of the two-factor routes, which asked for nothing, are gone.
@@ -20,6 +21,9 @@ const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 describe("[integration] auth/adding a two-factor method", () => {
   let user: RegisteredUser;
   let client: AxiosInstance;
+
+  // Adding email codes sends the first one.
+  before(captureEmails);
 
   beforeEach(async () => {
     await resetDatabase();
