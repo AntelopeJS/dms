@@ -65,6 +65,13 @@ export const modulesCategory = RootPageController(
   DefaultLayout(),
 );
 
+/**
+ * The settings root, whose page is the settings overview. Every member opens
+ * it (`memberAccess`): each of them holds account settings, and the overview
+ * lists only the pages its caller can open. The pages declared under it keep
+ * their own grant — a page does not pass `memberAccess` on to the pages filed
+ * under it, only a category does.
+ */
 export const settingsCategory = RootPageController("settings", {
   displayName: "$page.settings.title",
   description: "$page.settings.intro",
@@ -72,6 +79,7 @@ export const settingsCategory = RootPageController("settings", {
   icon: "i-ph-gear",
   order: 3,
   noComponentPermissions: true,
+  memberAccess: true,
   layout: SettingsLayout(),
 });
 

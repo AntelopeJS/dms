@@ -171,8 +171,10 @@ export interface MenuOptions {
    * the grant is implied. Unlike `authOnly`, the tenant access gate still
    * applies and the permission ids still exist.
    *
-   * Inherited by the pages of a flagged category. Meant for personal surfaces
-   * every member owns: their profile, security, notifications and preferences.
+   * Inherited by the pages of a flagged category, not by the pages declared
+   * under a flagged page: the settings root is open to every member, the
+   * workspace pages under it are not. Meant for personal surfaces every member
+   * owns: their profile, security, notifications and preferences.
    */
   memberAccess?: boolean;
   type?: MenuItemType;
@@ -333,6 +335,12 @@ export interface PageExtensionInfo {
 export interface PageLayout<T = unknown> {
   components: Record<string, ComponentInfoSerialized<T>>;
   layout?: ComponentInfo<T>;
+  /**
+   * Set when the page declares components and the caller may see none of
+   * them, so the browser can say so rather than draw a blank page. A page
+   * declaring no component at all never carries it.
+   */
+  allComponentsHidden?: true;
 }
 
 export type PageLayoutHandler = (

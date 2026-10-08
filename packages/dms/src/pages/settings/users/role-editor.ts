@@ -20,6 +20,8 @@ export interface RoleEditorPermissionNode {
   description?: string;
   /** Permissions this one needs; granting it grants them too. */
   dependencies?: string[];
+  /** What granting it really allows (see `declarePermissionWarning`). */
+  warning?: string;
   children?: RoleEditorPermissionNode[];
 }
 
@@ -81,11 +83,13 @@ export interface RoleSummarySource {
 
 /**
  * Map the registered permission tree to the roles editor nodes; `categoryIds`
- * leaves out the headings over nothing (see `mapPermissionTree`).
+ * leaves out the headings over nothing, `entryIds` keeps the pages filed under
+ * an entry every member holds (see `mapPermissionTree`).
  */
 export function mapRoleEditorTree(
   permissionTree: Record<string, PermissionTree>,
   categoryIds?: ReadonlySet<string>,
+  entryIds?: ReadonlySet<string>,
 ): RoleEditorPermissionNode[] {
   return mapPermissionTree<RoleEditorPermissionNode>(
     permissionTree,
@@ -98,15 +102,25 @@ export function mapRoleEditorTree(
       children,
     }),
     categoryIds,
+    entryIds,
   );
 }
 
 /**
  * Id of the settings root (`settingsCategory`), stable like the interface's
- * own check of it. The roles editor lists it last: the sidebar shows it in
- * its footer, after every other section.
+ * own check of it. The roles editor lists what it holds last: the sidebar
+ * shows it in its footer, after every other section.
  */
 export const SETTINGS_ROOT_PERMISSION_ID = "settings";
+
+// Every member holds the root itself, so the editor lists the entries under
+// it at its level (see `mapPermissionTree`).
+function isUnderSettingsRoot(node: RoleEditorPermissionNode): boolean {
+  return (
+    node.id === SETTINGS_ROOT_PERMISSION_ID ||
+    node.id.startsWith(`${SETTINGS_ROOT_PERMISSION_ID}.`)
+  );
+}
 
 /**
  * Siblings in menu order: what is not a menu entry (components, actions)
@@ -140,7 +154,7 @@ function orderBranch(
 
 /**
  * Order an editor tree like the main menu (see `GetMenuOrder`), every level
- * down, with the settings root moved last.
+ * down, with the settings moved last.
  */
 export function orderRoleEditorTree(
   nodes: RoleEditorPermissionNode[],
@@ -148,8 +162,8 @@ export function orderRoleEditorTree(
 ): RoleEditorPermissionNode[] {
   const ordered = orderBranch(nodes, menuOrder);
   return [
-    ...ordered.filter((node) => node.id !== SETTINGS_ROOT_PERMISSION_ID),
-    ...ordered.filter((node) => node.id === SETTINGS_ROOT_PERMISSION_ID),
+    ...ordered.filter((node) => !isUnderSettingsRoot(node)),
+    ...ordered.filter(isUnderSettingsRoot),
   ];
 }
 

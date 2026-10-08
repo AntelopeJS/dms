@@ -223,6 +223,26 @@ describe("[unit] pages/settings/users/role-editor", () => {
       ]);
     });
 
+    it("keeps the settings last once the root every member holds is lifted out", () => {
+      const tree = [
+        node("settings.workspace", [node("settings.workspace.members")]),
+        node("pages", [node("pages.home")]),
+      ];
+      const menuOrder = new Map(
+        [
+          "settings.workspace",
+          "settings.workspace.members",
+          "pages",
+          "pages.home",
+        ].map((id, position) => [id, position]),
+      );
+
+      expect(ids(orderRoleEditorTree(tree, menuOrder))).to.deep.equal([
+        ["pages", ["pages.home"]],
+        ["settings.workspace", ["settings.workspace.members"]],
+      ]);
+    });
+
     it("puts components before the sub-pages of a page", () => {
       const tree = [
         node("pages.nested", [

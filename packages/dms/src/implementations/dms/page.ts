@@ -426,6 +426,20 @@ export function GetCategoryPermissionIds(): Set<string> {
   );
 }
 
+/**
+ * Permission ids of every registered menu entry, pages and categories alike,
+ * as opposed to the components and actions declared on a page. A permission
+ * editor uses them to keep listing the entries filed under one every member
+ * holds (the settings root).
+ */
+export function GetMenuEntryPermissionIds(): Set<string> {
+  return new Set(
+    [...Object.values(pagesBySlug), ...Object.values(categoriesByFullId)].map(
+      (entry) => resolvePagePermissionId(entry.permission, entry.fullId),
+    ),
+  );
+}
+
 // Deleting the node outright would take its whole subtree with it: a category
 // unregistering dropped every page other modules had registered under it from
 // the sidebar, while those pages stayed in the registry and kept serving. Drop
@@ -1936,7 +1950,7 @@ async function addAccessToTree(
   isRoot: boolean,
   dynamic: DynamicChildren,
 ): Promise<SiteLayoutTree> {
-  const hasAccess = isRoot ? true : await computeEntryAccess(node, context);
+  const isGranted = isRoot ? true : await computeEntryAccess(node, context);
 
   const childrenWithAccess = await buildChildrenWithAccess(
     node,
@@ -1947,21 +1961,36 @@ async function addAccessToTree(
   // Redacted like the flat registries: an unreachable branch keeps its shape
   // so its accessible descendants stay addressable, but stops carrying what
   // it is called and what it holds.
-  const visible = hasAccess ? node : redactPresentation(node);
+  const visible = isGranted ? node : redactPresentation(node);
 
   const dynamicChildren = dynamic.get(node.fullId);
-  if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
-    return { ...visible, hasAccess, children: childrenWithAccess };
-  }
   const children = dynamicChildren
     ? mergeDynamicChildren(node.fullId, childrenWithAccess, dynamicChildren)
     : childrenWithAccess;
+  const hasAccess = isGranted && (isRoot || leadsSomewhere(node, children));
+  if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
+    return { ...visible, hasAccess, children };
+  }
   return {
     ...visible,
     hasAccess,
     children,
     childrenOrders: sortChildIdsByOrder(children),
   };
+}
+
+// A group opens no page of its own: granted, but with none of its entries
+// reachable, the menu would draw an entry that a click does nothing on. The
+// permission preview locks such a group (`aggregatePreviewMenu`); the member
+// it previews is not served it either. Its name stays, since it was granted.
+function leadsSomewhere(
+  node: SiteLayoutTree,
+  children: Record<string, SiteLayoutTree>,
+): boolean {
+  return (
+    !!node.layoutUrl ||
+    Object.values(children).some((child) => child.hasAccess !== false)
+  );
 }
 
 // The container `addToTree` creates for a missing category, or the one

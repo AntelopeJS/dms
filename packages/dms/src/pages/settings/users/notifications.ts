@@ -11,10 +11,8 @@ import {
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel, Model } from "@antelopejs/interface-database-decorators";
-import {
-  AuthTenantMember,
-  AuthUserWithPermission,
-} from "@antelopejs/interface-dms/guards";
+import { AuthUser } from "@antelopejs/interface-dms/auth";
+import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -265,9 +263,11 @@ export class NotificationsSettingsController extends PageController(
 export class NotificationsApiController extends Controller(
   "/settings/user/notifications",
 ) {
-  // A user's own notifications are not tenant data: the header bell polls
-  // them on every page, including the billing page a blocked tenant needs.
-  @AuthTenantMember({ bypassTenantAccessGate: true })
+  // A user's own notifications are not tenant data: no membership and no
+  // tenant access gate. The header bell polls them on every page, including
+  // the billing page a blocked tenant needs, and a member removed from their
+  // workspace still reads the notification telling them so.
+  @AuthUser()
   declare user: User;
 
   @Get("/preferences")

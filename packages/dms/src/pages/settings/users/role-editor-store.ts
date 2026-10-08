@@ -8,6 +8,7 @@ import {
   TenantMemberModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import {
   GetCategoryPermissionIds,
+  GetMenuEntryPermissionIds,
   GetMenuOrder,
 } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils/notification-rules";
@@ -23,6 +25,10 @@ import {
   type RoleEditorInput,
   roleDeleteSchema,
 } from "../../../validation/role-editor.schema";
+import {
+  applyPermissionWarnings,
+  resolvePermissionWarnings,
+} from "./permission-warnings";
 import {
   collectPermissionIds,
   countRoleHolders,
@@ -57,15 +63,20 @@ export interface RoleEditorActor {
 
 /**
  * The roles editor tree built from the permissions registered right now,
- * ordered like the main menu.
+ * ordered like the main menu, with the warnings declared on them.
  */
 export async function loadRoleEditorTree(): Promise<
   RoleEditorPermissionNode[]
 > {
-  return orderRoleEditorTree(
-    mapRoleEditorTree(await GetPermissions(), GetCategoryPermissionIds()),
+  const tree = orderRoleEditorTree(
+    mapRoleEditorTree(
+      await GetPermissions(),
+      GetCategoryPermissionIds(),
+      GetMenuEntryPermissionIds(),
+    ),
     GetMenuOrder(),
   );
+  return applyPermissionWarnings(tree, resolvePermissionWarnings());
 }
 
 async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
@@ -124,6 +135,9 @@ async function assertNameAvailable(
   );
 }
 
+// A permission is stored with every id it sits under, whoever sent the set:
+// the editor grants them together, and a bare API call must not store a
+// table's delete without its page.
 async function insertRole(
   tenantId: string,
   input: RoleEditorInput,
@@ -132,7 +146,7 @@ async function insertRole(
   const [roleId] = await GetModel(RoleModel, tenantId).insert({
     name: input.name,
     description: input.description,
-    permissions: [...new Set(input.permissions)],
+    permissions: withPermissionAncestors(input.permissions),
     createdAt: now,
     updatedAt: now,
   });
@@ -156,7 +170,10 @@ export interface RoleUpdateResult {
   permissionsChanged: boolean;
 }
 
-/** Rename a role, change its description and its permissions. */
+/**
+ * Rename a role, change its description and its permissions, completed like
+ * a new role's (see `insertRole`).
+ */
 export async function updateRole(
   actor: RoleEditorActor,
   roleId: string,
@@ -164,7 +181,7 @@ export async function updateRole(
 ): Promise<RoleUpdateResult> {
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, input.name, roleId);
-  const permissions = [...new Set(input.permissions)];
+  const permissions = withPermissionAncestors(input.permissions);
   const permissionsChanged = !haveSameMembers(
     role.permissions ?? [],
     permissions,

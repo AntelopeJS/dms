@@ -138,6 +138,17 @@ function resolveWritePermission(
   return "__native_upload_disabled__";
 }
 
+// Only a page that declared components has hidden them all: one declaring
+// none has nothing to explain.
+function hiddenComponentsFlag(
+  declared: Record<string, ComponentInfoSerialized>,
+  served: Record<string, ComponentInfoSerialized>,
+): Pick<PageLayout, "allComponentsHidden"> {
+  const hidesAll =
+    Object.keys(declared).length > 0 && Object.keys(served).length === 0;
+  return hidesAll ? { allComponentsHidden: true } : {};
+}
+
 export class PageMetadata {
   public static key = Symbol();
 
@@ -235,7 +246,13 @@ export class PageMetadata {
       hidden: menuOptions.hidden || resolvedCategory?.hidden,
       publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
       authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
-      memberAccess: menuOptions.memberAccess || resolvedCategory?.memberAccess,
+      // A category opens its pages to every member. A page standing as the
+      // parent (the settings root) opens only itself: the pages filed under
+      // it keep needing their own grant.
+      memberAccess:
+        menuOptions.memberAccess ||
+        (typeof menuOptions.category !== "function" &&
+          resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
         menuOptions.bypassTenantAccessGate ||
         resolvedCategory?.bypassTenantAccessGate,
@@ -614,6 +631,7 @@ export class PageMetadata {
         servedComponents,
       ),
       components: withTableViewPlacements(servedComponents),
+      ...hiddenComponentsFlag(components, servedComponents),
     };
   }
 
