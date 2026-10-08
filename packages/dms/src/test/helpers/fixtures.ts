@@ -64,7 +64,9 @@ export async function updateUserByEmail(
   if (!user) {
     throw new Error(`User not found: ${email}`);
   }
-  await model.update(user._id, update);
+  // Saved whole: a partial update rewrites the hashed fields' stored state and
+  // loses the password.
+  await model.update(Object.assign(user, update));
 }
 
 export interface GeneralSettingsSeed {

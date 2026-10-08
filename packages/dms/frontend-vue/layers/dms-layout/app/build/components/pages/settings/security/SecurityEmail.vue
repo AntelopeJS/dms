@@ -21,6 +21,8 @@ const CODE_ERRORS = {
   "error.invalid_token": "code",
   "error.token_expired": "code",
 } as const;
+// Too many wrong codes: the change is dropped and a new code must be asked.
+const CODE_BURNT = "error.email_change_too_many_attempts";
 const FORGOT_PASSWORD_PATH = "/auth/forgot";
 const INVALID_CURRENT_PASSWORD = "error.invalid_current_password";
 const EMAIL_ALREADY_USED = "error.email_already_used";
@@ -39,7 +41,7 @@ const toast = useToast();
 const { $authFetch } = useAuthFetch();
 const { refresh: refreshSession } = useCurrentUser();
 const { overview, refresh } = useSecurityOverview();
-const { errorMessage } = useSecurityFormat();
+const { errorMessage, errorCode } = useSecurityFormat();
 const { processApiMessage } = useTranslation();
 
 const isEditing = ref(false);
@@ -218,6 +220,10 @@ async function confirmCode(code: string): Promise<void> {
       title: errorMessage(error, "page.settings.security.email.error"),
       color: "error",
     });
+    if (errorCode(error) === CODE_BURNT) {
+      isCodeOpen.value = false;
+      await refresh();
+    }
   } finally {
     isConfirming.value = false;
   }
