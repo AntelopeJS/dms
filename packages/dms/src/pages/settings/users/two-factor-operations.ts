@@ -2,7 +2,6 @@
 // routes, so both URL families keep one behaviour.
 
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
-import { send2FAEmail } from "@antelopejs/interface-dms/auth";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { generateGoogleQR, generateUrl } from "2fa";
 import {
@@ -12,11 +11,10 @@ import {
 } from "../../../utils/account-notifications";
 import {
   acceptTotpCode,
-  assertEmailCodeNotRateLimited,
   consumeEmailCode,
   emailCodeMatches,
   isEmailCodeExpired,
-  issueEmailCode,
+  sendNewEmailCode,
   type TwoFactorMethod,
   verifyTwoFactorCode,
 } from "../../../utils/two-factor-codes";
@@ -199,16 +197,11 @@ export async function confirmTotpSetup(
 const isEmailSetupPending = (user: User): boolean =>
   !methodsOf(user).includes("email") && !!user.twoFactorEmailCode;
 
-async function sendEmailCode(user: User, userModel: UserModel): Promise<void> {
-  assertEmailCodeNotRateLimited(user);
-  const code = issueEmailCode(user);
-  await userModel.update(user);
-  await send2FAEmail(user, code);
-}
-
 /**
  * Emails a code to the account address; the method turns on only once that
- * code comes back, so a mistyped address cannot lock the user out.
+ * code comes back, so a mistyped address cannot lock the user out. A setup
+ * reopened while its code is still valid sends none: that code still works,
+ * and asking for another one waits out the resend limit.
  *
  * @param user The signed-in user
  * @param body `{ currentPassword }`, unless the account has no password
@@ -220,7 +213,9 @@ export async function startEmailSetup(
   userModel: UserModel,
 ): Promise<SuccessResult> {
   await assertMayAddMethod(user, body, userModel);
-  await sendEmailCode(user, userModel);
+  if (!isEmailSetupPending(user) || isEmailCodeExpired(user)) {
+    await sendNewEmailCode(userModel, user);
+  }
   return { success: true };
 }
 
@@ -381,6 +376,6 @@ export async function requestTwoFactorEmailCode(
     HTTP_BAD_REQUEST,
     "error.2fa_email_not_enabled",
   );
-  await sendEmailCode(user, userModel);
+  await sendNewEmailCode(userModel, user);
   return { success: true };
 }

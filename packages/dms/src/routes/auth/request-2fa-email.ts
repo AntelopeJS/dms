@@ -1,13 +1,7 @@
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
-import {
-  send2FAEmail,
-  validateTwoFactorToken,
-} from "@antelopejs/interface-dms/auth";
+import { validateTwoFactorToken } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
-import {
-  assertEmailCodeNotRateLimited,
-  issueEmailCode,
-} from "../../utils/two-factor-codes";
+import { sendNewEmailCode } from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
 import { assertTwoFactorChallengeOpen } from "./two-factor-throttle";
 
@@ -30,12 +24,7 @@ export async function request2FAEmail(
   );
 
   await assertTwoFactorChallengeOpen(user._id, token);
-  assertEmailCodeNotRateLimited(user);
-
-  const code = issueEmailCode(user);
-  await userModel.update(user);
-
-  await send2FAEmail(user, code);
+  await sendNewEmailCode(userModel, user);
 
   return { success: true };
 }

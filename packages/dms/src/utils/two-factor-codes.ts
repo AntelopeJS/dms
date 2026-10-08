@@ -3,6 +3,7 @@
 // code is stored hashed and expires, an authenticator code works once.
 
 import { assert } from "@antelopejs/interface-api-util";
+import { send2FAEmail } from "@antelopejs/interface-dms/auth";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { generateCode as generateTotpCode } from "2fa";
 import {
@@ -34,16 +35,21 @@ export function assertEmailCodeNotRateLimited(
 }
 
 /**
- * Replaces the user's emailed code; the caller saves the user and sends the
- * returned code, which is never stored in clear.
- *
- * @returns The code to email
+ * Emails the user a new code, at most once a minute, and saves it hashed.
+ * The code and the start of the wait are stored only once the email left: a
+ * failed send throws and leaves the previous code, and no wait.
  */
-export function issueEmailCode(user: User, now = Date.now()): string {
+export async function sendNewEmailCode(
+  userModel: UserModel,
+  user: User,
+  now = Date.now(),
+): Promise<void> {
+  assertEmailCodeNotRateLimited(user, now);
   const code = generateCode();
+  await send2FAEmail(user, code);
   user.twoFactorEmailCode = hashCode(user._id, code);
   user.twoFactorEmailCodeRequestedAt = new Date(now);
-  return code;
+  await userModel.update(user);
 }
 
 export function isEmailCodeExpired(user: User, now = Date.now()): boolean {
