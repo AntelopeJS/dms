@@ -42,7 +42,7 @@ async function filterComponentInfo(
     );
   }
 
-  filtered.options = filterRequiredPermissionWatches(
+  filtered.options = await filterRequiredPermissionWatches(
     filtered.options,
     permissions,
   );
@@ -50,10 +50,15 @@ async function filterComponentInfo(
   return filtered;
 }
 
-function filterRequiredPermissionWatches(
+/**
+ * The watch actions the caller may run: one gated by `requirePermission` is
+ * kept only when the caller holds that permission as everywhere else (an
+ * owner's `*` and the permission's ancestors included).
+ */
+async function filterRequiredPermissionWatches(
   options: unknown,
   permissions: Set<string>,
-): typeof options {
+): Promise<typeof options> {
   if (!options || typeof options !== "object") {
     return options;
   }
@@ -63,11 +68,16 @@ function filterRequiredPermissionWatches(
   if (!Array.isArray(opts.watchActions) || opts.watchActions.length === 0) {
     return options;
   }
+  const granted = await Promise.all(
+    opts.watchActions.map(
+      async (w) =>
+        !w.requirePermission ||
+        (await HasPermission(permissions, w.requirePermission)),
+    ),
+  );
   return {
     ...opts,
-    watchActions: opts.watchActions.filter(
-      (w) => !w.requirePermission || permissions.has(w.requirePermission),
-    ),
+    watchActions: opts.watchActions.filter((_, index) => granted[index]),
   };
 }
 
