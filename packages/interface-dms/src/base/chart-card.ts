@@ -15,6 +15,10 @@ export interface ChartCardProps extends BaseComponentProps {
   title: string;
   description?: string;
   icon?: string;
+  /**
+   * Where the data is read from. `{{params.X}}` and `{{query.X}}` name the
+   * page URL, as in `BlockItemsSource.fetchUrl`.
+   */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
