@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.4.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.4.0...v0.4.1)
+
+### 🚀 Enhancements
+
+- **dms:** Resolve route tokens in block data URLs and refresh page blocks after an action ([#170](https://github.com/AntelopeJS/dms/pull/170))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.6.0 ([bdce838](https://github.com/AntelopeJS/dms/commit/bdce838))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.4.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.3.6...v0.4.0)
