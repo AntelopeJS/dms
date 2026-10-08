@@ -599,6 +599,10 @@
           "description": "Someone entered a wrong password in the last {minutes} minutes. Don't recognise this? Change your password and turn on two-factor authentication in Security.",
           "description_two_factor": "Someone entered a wrong password in the last {minutes} minutes; two-factor authentication still stood in the way. Don't recognise this? Change your password in Security."
         },
+        "two_factor_lockout": {
+          "title": "{count} wrong two-factor codes on your account",
+          "description": "Someone gave your password, then {count} wrong two-factor codes within {minutes} minutes; codes are refused for a while. Don't recognise this? Your password is known: change it in Security."
+        },
         "roles_changed": {
           "title": "Your roles are now {roles}",
           "title_one": "Your role is now {roles}",

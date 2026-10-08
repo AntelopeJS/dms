@@ -21,7 +21,7 @@ import {
   isEmailCodeExpired,
 } from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
-import { claimTwoFactorAttempt } from "./two-factor-throttle";
+import { answerTwoFactorChallenge } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
@@ -94,8 +94,9 @@ export async function verify2FA(
 
   const verifier = verifyMethods[method as VerifyMethod];
   assert(verifier, 400, "error.invalid_2fa_method");
-  await claimTwoFactorAttempt(user._id, token);
-  await verifier({ user, code, userModel });
+  await answerTwoFactorChallenge(user._id, token, () =>
+    verifier({ user, code, userModel }),
+  );
   if (method === "backup") {
     fireAndForget(
       notifyBackupCodeUsed(user._id, user.twoFactorBackupCodes?.length ?? 0),

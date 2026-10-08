@@ -16,6 +16,14 @@ export interface RenderedEmail {
 export const renderedEmails: RenderedEmail[] = [];
 
 /**
+ * Set by a test to have every email fail before it leaves, as a mail outage
+ * does; the test sets it back once done. The failure is raised where the
+ * email is rendered: the DMS module's `Send` calls are routed to the
+ * harness's nodemailer module, which a test cannot replace.
+ */
+export const emailOutage = { isOn: false };
+
+/**
  * The harness has no render service, and the test mailbox needs the network:
  * emails are kept as the props they were rendered from, and every send
  * succeeds. Flows that await their email (two-factor codes) then answer.
@@ -25,6 +33,7 @@ export function captureEmails(): void {
     { GenerateHtml },
     {
       GenerateHtml: async (template: HtmlTemplateRef, props: unknown) => {
+        if (emailOutage.isOn) throw new Error("Email outage");
         renderedEmails.push({
           template: template.name,
           props: props as Record<string, unknown>,

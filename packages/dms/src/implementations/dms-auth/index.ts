@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -310,10 +311,16 @@ export function generateTwoFactorToken(
   user: User,
 ): TokenResult {
   const secret = generateSecret(user.authKey);
+  // The token is the challenge its tries are counted against. Its claims are
+  // signed to the second: without an id of its own, two sign-ins in the same
+  // second would share one token, one budget of tries and one session.
   const token = sign(
     { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
     secret,
-    { expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000) },
+    {
+      expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
+      jwtid: randomUUID(),
+    },
   );
 
   return { token, expiresIn: TWO_FACTOR_TOKEN_LIFETIME_MS };

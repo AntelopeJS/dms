@@ -13,13 +13,15 @@ export const signInAttemptsTableName = "sign_in_attempts";
 /**
  * `failed`: a wrong password. `alerted`: the user was told about a burst of
  * them. `reset_code`: a password-reset code was tried. `two_factor`: a code
- * was tried against a two-factor challenge.
+ * was tried against a two-factor challenge. `two_factor_used`: a two-factor
+ * challenge opened its session, and opens no other.
  */
 export type SignInAttemptKind =
   | "failed"
   | "alerted"
   | "reset_code"
-  | "two_factor";
+  | "two_factor"
+  | "two_factor_used";
 
 /**
  * Failed password attempts, password-reset and two-factor code tries, kept in
@@ -39,7 +41,7 @@ export class SignInAttempt extends Table {
   @Field("string")
   declare kind: SignInAttemptKind;
 
-  /** Hash of the two-factor challenge a `two_factor` try was made against. */
+  /** Hash of the two-factor challenge a `two_factor` try or a use refers to. */
   @Field("string")
   declare challenge?: string;
 

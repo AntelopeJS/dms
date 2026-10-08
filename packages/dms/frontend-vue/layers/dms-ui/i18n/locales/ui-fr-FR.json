@@ -600,6 +600,10 @@
           "description": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe et activez la double authentification dans Sécurité.",
           "description_two_factor": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes ; la double authentification a tout de même barré la route. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe dans Sécurité."
         },
+        "two_factor_lockout": {
+          "title": "{count} codes de double authentification erronés sur votre compte",
+          "description": "Quelqu'un a saisi votre mot de passe, puis {count} codes de double authentification erronés en moins de {minutes} minutes ; les codes sont refusés pour un temps. Vous ne reconnaissez pas ces tentatives ? Votre mot de passe est connu : changez-le dans Sécurité."
+        },
         "roles_changed": {
           "title": "Vos rôles sont désormais : {roles}",
           "title_one": "Votre rôle est désormais : {roles}",
