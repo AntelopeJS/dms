@@ -1,5 +1,5 @@
 import type { LocationQueryValue } from "#dms/frontend-module";
-import { replaceUrlVariables } from "../../../composables/form/useForm";
+import { replaceUrlVariables } from "../../utils/urlVariables";
 
 type RouteQuery = Record<string, LocationQueryValue | LocationQueryValue[]>;
 

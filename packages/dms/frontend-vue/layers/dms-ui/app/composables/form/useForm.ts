@@ -9,6 +9,17 @@ import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
+import {
+  type ReplaceUrlVariablesContext,
+  hasUrlVariables,
+  replaceUrlVariables,
+  resolveUrlVariables,
+} from "../../build/utils/urlVariables";
+
+export {
+  type ReplaceUrlVariablesContext,
+  replaceUrlVariables,
+} from "../../build/utils/urlVariables";
 
 /** A toast a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
@@ -135,47 +146,6 @@ function createBaseValidationSchema(
   }
 }
 
-// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
-// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
-// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
-// table view (see extractRouteParams).
-const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
-
-export interface ReplaceUrlVariablesContext {
-  routeParams?: Record<string, string>;
-  routeQuery: Record<string, unknown>;
-  response?: Record<string, unknown>;
-}
-
-export function replaceUrlVariables(
-  url: string,
-  context: ReplaceUrlVariablesContext,
-): string {
-  let processedUrl = url.replace(
-    PARAM_TOKEN,
-    (match, key) => context.routeParams?.[key] || match,
-  );
-
-  processedUrl = processedUrl.replace(/\{\{query\.(\w+)\}\}/g, (match, key) => {
-    const value = context.routeQuery[key];
-    return typeof value === "string" ? value : match;
-  });
-
-  if (context.response) {
-    processedUrl = processedUrl.replace(
-      /\{\{response\.(\w+)\}\}/g,
-      (match, key) => {
-        const value = context.response?.[key];
-        return typeof value === "string" || typeof value === "number"
-          ? String(value)
-          : match;
-      },
-    );
-  }
-
-  return processedUrl;
-}
-
 /** Where a submit goes, or what it lacks to go anywhere. */
 export type SubmitTarget = { url: string } | { missing: "url" | "token" };
 
@@ -191,8 +161,8 @@ export function resolveSubmitTarget(
   context: ReplaceUrlVariablesContext,
 ): SubmitTarget {
   if (!submitUrl) return { missing: "url" };
-  const url = replaceUrlVariables(submitUrl, context);
-  return url.includes("{{") ? { missing: "token" } : { url };
+  const url = resolveUrlVariables(submitUrl, context);
+  return url === undefined ? { missing: "token" } : { url };
 }
 
 function processBeforeStateMappers(
@@ -376,9 +346,9 @@ export function resolveSubmitDefaults(
 
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(submitDefaults)) {
-    if (typeof value === "string" && value.includes("{{")) {
-      const replaced = replaceUrlVariables(value, context);
-      if (replaced.includes("{{")) continue;
+    if (typeof value === "string" && hasUrlVariables(value)) {
+      const replaced = resolveUrlVariables(value, context);
+      if (replaced === undefined) continue;
       resolved[key] = replaced;
     } else {
       resolved[key] = value;
@@ -622,11 +592,9 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
   );
 
-  const resolvedFetchUrl = computed(() => {
-    if (!props.fetchUrl) return undefined;
-    const url = replaceUrlVariables(props.fetchUrl, buildUrlContext());
-    return url.includes("{{") ? undefined : url;
-  });
+  const resolvedFetchUrl = computed(() =>
+    resolveUrlVariables(props.fetchUrl, buildUrlContext()),
+  );
 
   // A form that loaded a record and does not create one (a duplicate posts
   // the loaded values as a new row) updates it: only its changes are sent.
@@ -638,11 +606,11 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     if (!props.fetchUrl) return undefined;
 
     try {
-      const processedUrl = replaceUrlVariables(
+      const processedUrl = resolveUrlVariables(
         props.fetchUrl,
         buildUrlContext(),
       );
-      if (processedUrl.includes("{{")) return undefined;
+      if (processedUrl === undefined) return undefined;
 
       const fetchedData = await $authFetch<FormFetchResponse>(processedUrl, {
         method: props.fetchUrlMethod || "GET",

@@ -108,6 +108,7 @@ const staticData = computed<TopListCardResponse | null>(() =>
 const { data, isLoading } = useChartFetch<TopListCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   periodScope: props.periodScope,
   staticData: () => staticData.value,
   watchSource: () => watchKey.value,

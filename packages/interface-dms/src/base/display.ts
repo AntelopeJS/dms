@@ -115,6 +115,17 @@ export const blockFetchUrlMethodOption = () =>
  * `items`.
  */
 export interface BlockItemsSource {
+  /**
+   * The route the items are read from. It may name the page it is shown on:
+   * `{{params.X}}` is filled with the route parameter `X` of the page URL
+   * (`{{params.id}}` on a detail page whose slug is `:id`; `{{params.id:1}}`
+   * for the first of a repeated name), `{{query.X}}` with its query parameter
+   * `X`. The block reads it again when they change, and requests nothing
+   * while a token has no value: it shows its empty state instead.
+   *
+   * Read again, keeping the items on screen, when the page asks its blocks to
+   * refresh: see {@link BlockFunctions.REFRESH_PAGE}.
+   */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   /** Shown when there is nothing to list. */
@@ -155,3 +166,24 @@ export const blockItemsSourceOptions = () => ({
     },
   ),
 });
+
+/**
+ * The watch functions every block can name in `.watch()`.
+ *
+ * `REFRESH_PAGE` asks every block of the page that reads its data from a
+ * route (StatGroup, KeyValueList, NavCardGrid, ActivityFeed, KpiCard,
+ * TopListCard, Meter, the charts, a `Tab`'s `badgesUrl`) to read it again,
+ * without remounting it: a form changing the record a detail page shows
+ * declares `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)`.
+ * The page header's buttons do it on their own once they changed something,
+ * and a frontend component calls `refreshPageBlocks()` for the same effect.
+ */
+export namespace BlockFunctions {
+  export const REFRESH_PAGE = "DmsComponent.Block.RefreshPage";
+}
+
+declare module "./types/watch" {
+  interface WatchFunctionParamMap {
+    [BlockFunctions.REFRESH_PAGE]: undefined;
+  }
+}

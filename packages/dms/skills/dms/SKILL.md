@@ -32,6 +32,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `Grid`, `KpiCard`, … — fluent builders producing a **serializable description**, not live UI: the
   frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
+  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL;
+  nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
+  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.

@@ -65,7 +65,8 @@ export interface MeterProps extends BaseComponentProps {
    * Endpoint answering an object with any of `{ value, max, segments, hint,
    * valueLabel }`, for figures that change per request (seats used, quota
    * left). A meter is one measure, so unlike the list blocks it reads an
-   * object rather than `{ items }`.
+   * object rather than `{ items }`. `{{params.X}}` and `{{query.X}}` name
+   * the page URL, as in `BlockItemsSource.fetchUrl`.
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
