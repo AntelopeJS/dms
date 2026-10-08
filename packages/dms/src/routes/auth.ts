@@ -75,6 +75,11 @@ export class AuthController extends Controller("/api/auth") {
     );
   }
 
+  @Post("/validate-invite-token")
+  validateInviteToken(@JSONBody() body: unknown): Promise<void> {
+    return authRoutes.validateInviteToken(body);
+  }
+
   @Post("/login")
   login(
     @JSONBody() body: unknown,
@@ -180,6 +185,6 @@ export class AuthController extends Controller("/api/auth") {
 
   @Post("/reset-password")
   resetPassword(@JSONBody() body: unknown): Promise<void> {
-    return authRoutes.resetPassword(this.userModel, body);
+    return authRoutes.resetPassword(this.userModel, this.sessionModel, body);
   }
 }

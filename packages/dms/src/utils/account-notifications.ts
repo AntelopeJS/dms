@@ -128,7 +128,7 @@ export function notifyPasswordChanged(userId: string): Promise<void> {
   return emitNotification(userId, templates.passwordChanged);
 }
 
-/** @param email Address the recovery link was sent to */
+/** @param email Address the reset code was sent to */
 export function notifyPasswordReset(
   userId: string,
   email: string,

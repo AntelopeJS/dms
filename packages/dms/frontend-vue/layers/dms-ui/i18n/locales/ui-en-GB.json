@@ -544,8 +544,8 @@
           "description": "You can now sign in with {provider}. Not you? Change your password and review your sign-in methods in Security."
         },
         "password_reset": {
-          "title": "Password reset with an email link",
-          "description": "The link was sent to {email}. Not you? Someone can read that mailbox: secure it first, then reset your password again."
+          "title": "Password reset with an email code",
+          "description": "The code was sent to {email}. Not you? Someone can read that mailbox: secure it first, then reset your password again."
         },
         "email_changed": {
           "title": "Sign-in email changed to {email}",

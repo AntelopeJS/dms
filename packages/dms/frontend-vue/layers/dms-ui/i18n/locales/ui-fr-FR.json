@@ -545,8 +545,8 @@
           "description": "Vous pouvez désormais vous connecter avec {provider}. Ce n'était pas vous ? Changez votre mot de passe et vérifiez vos méthodes de connexion dans Sécurité."
         },
         "password_reset": {
-          "title": "Mot de passe réinitialisé par lien e-mail",
-          "description": "Le lien a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
+          "title": "Mot de passe réinitialisé par code e-mail",
+          "description": "Le code a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
         },
         "email_changed": {
           "title": "E-mail de connexion changé pour {email}",
