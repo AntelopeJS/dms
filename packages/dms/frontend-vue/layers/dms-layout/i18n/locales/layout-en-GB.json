@@ -10,7 +10,8 @@
     "collapse_sidebar": "Collapse sidebar",
     "add_favorite": "Add to favorites",
     "remove_favorite": "Remove from favorites",
-    "show_path": "Show the parent pages"
+    "show_path": "Show the parent pages",
+    "more_actions": "More actions"
   },
   "menu": {
     "favorites": "Favorites",

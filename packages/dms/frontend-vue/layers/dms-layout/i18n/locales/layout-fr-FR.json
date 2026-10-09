@@ -10,7 +10,8 @@
     "collapse_sidebar": "Replier le menu latéral",
     "add_favorite": "Ajouter aux favoris",
     "remove_favorite": "Retirer des favoris",
-    "show_path": "Afficher les pages parentes"
+    "show_path": "Afficher les pages parentes",
+    "more_actions": "Plus d’actions"
   },
   "menu": {
     "favorites": "Favoris",

@@ -72,6 +72,9 @@ beforeEach(() => {
     reactive({ path: MEMBERS_PATH, query: {} }),
   );
   vi.stubGlobal("useDmsRouter", () => ({ replace: routerReplace }));
+  vi.stubGlobal("useDmsState", (_key: string, initial: () => unknown) =>
+    ref(initial()),
+  );
   vi.stubGlobal("useSiteLayout", () => ({
     quickActions: ref(null),
     findMatchingRoute: () => ({ metadata: { layoutUrl: MEMBERS_PATH } }),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ButtonProps } from "@nuxt/ui";
+import type { ButtonProps, DropdownMenuItem } from "@nuxt/ui";
 import {
   QUICK_ACTION_ADD,
   QUICK_ACTION_BUTTON,
@@ -13,8 +13,18 @@ import type { ActionTarget } from "#dms-ui/app/composables/table-view/types/acti
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { PREVIEW_LOCK_ICON } from "#dms-ui/app/build/utils/permissionPreview";
 import { runMountedQuickAction } from "#dms-ui/app/build/utils/quickActionTargets";
-import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
-import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
+import { useRecordActions } from "#dms-ui/app/build/composables/actions/useRecordActions";
+import {
+  type RecordActionState,
+  recordActionState,
+} from "#dms-ui/app/build/utils/recordConditions";
+import type {
+  RecordAction,
+  RecordActionFields,
+} from "#dms-ui/app/types/record-action";
+import { usePageRecord } from "#dms-core/app/build/composables/page/usePageRecord";
+import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
+import { replaceUrlVariables } from "#dms-ui/app/build/utils/urlVariables";
 import {
   dispatchQuickActionTarget,
   findServedQuickAction,
@@ -26,9 +36,14 @@ import {
  * the header): a button the layout declares carries its `target`; one a
  * component places there names the component, which runs it. Buttons behind
  * a permission the user lacks never reach the client.
+ *
+ * On a page whose header loads a record (`header.fetchUrl`), its `when` and
+ * `unavailableWhen` read that record, and a `menuGroup` puts it in the
+ * header's "More actions" menu.
  */
 export interface LayoutHeaderAction
-  extends Partial<Omit<CustomButton, "id" | "color" | "variant">> {
+  extends Partial<Omit<CustomButton, "id" | "color" | "variant">>,
+    RecordActionFields {
   id: string;
   color?: ButtonProps["color"];
   variant?: ButtonProps["variant"];
@@ -45,6 +60,10 @@ interface PageHeaderActionBarProps {
 interface ResolvedHeaderAction {
   id: string;
   button: ButtonProps;
+  /** The menu group it is drawn in, rather than as a button. */
+  menuGroup?: string;
+  /** Under its label, in the menu. */
+  description?: string;
   /** Why the button is disabled, shown in a tooltip. */
   disabledReason?: string;
   /** "Preview as role" only: the role would not be shown this button. */
@@ -58,19 +77,25 @@ const siteLayout = useSiteLayout();
 const { quickActions } = siteLayout;
 const route = useDmsRoute();
 const router = useDmsRouter();
-const { $authFetch } = useAuthFetch();
+const routeParams = () =>
+  siteLayout.findMatchingRoute(route.path)?.params as
+    | Record<string, string>
+    | undefined;
+// The record the page header loaded, when it loads one: the actions read
+// their conditions on it, and their targets its fields.
+const { record } = usePageRecord();
 
 // The page header runs a declared button's target as a table runs its
 // toolbar buttons: confirmation, drawer, modal, API call, export, link. A
 // button that changed something (an API call, a form it opened) changes the
-// record the page shows: its blocks read their data again.
-const { handleCustomButton } = useActionTargets({
-  api: $authFetch,
+// record the page shows: its blocks, and the header, read their data again.
+const { runRecordAction, urlContext } = useRecordActions({
   componentId: "page-header",
   pageId: siteLayout.findMatchingRoute(route.path)?.metadata?.fullId ?? "page",
-  refreshCallback: refreshPageBlocks,
-  handleApiError: (error, title) => useApiError(error, { title }),
+  routeParams,
 });
+const runAction = (action: LayoutHeaderAction) =>
+  runRecordAction(action as RecordAction, record.value);
 
 // Pressed in place by the component of this page, so what it opens shows on
 // the click. Only a component not mounted (yet) gets it the way a quick
@@ -99,14 +124,17 @@ const defaultVariant = (
 ): ButtonProps["variant"] =>
   !color || color === "neutral" ? "outline" : "solid";
 
-function baseButton(action: LayoutHeaderAction): ButtonProps {
+function baseButton(
+  action: LayoutHeaderAction,
+  state: RecordActionState,
+): ButtonProps {
   const color = action.color ?? "neutral";
   return {
     color,
     variant: action.variant ?? defaultVariant(color),
     icon: action.icon,
     label: action.label ? processI18n(action.label) : undefined,
-    disabled: action.disabled,
+    disabled: state.isDisabled,
   };
 }
 
@@ -128,10 +156,19 @@ const LINK_TARGETS: Partial<
   },
 };
 
+// A link names the page's route tokens, and the record's fields once loaded.
+function linkUrl(url: string): string {
+  const routed = replaceUrlVariables(url, urlContext());
+  return record.value ? interpolateUrl(routed, record.value) : routed;
+}
+
 function linkProps(action: LayoutHeaderAction): ButtonProps | undefined {
   const { target } = action;
   if (action.confirm || !target) return undefined;
-  return LINK_TARGETS[target.type]?.(target as LinkTarget);
+  const link = LINK_TARGETS[target.type];
+  if (!link) return undefined;
+  const linkTarget = target as LinkTarget;
+  return link({ ...linkTarget, url: linkUrl(linkTarget.url) });
 }
 
 function resolveQuickActionButton(
@@ -150,7 +187,7 @@ function resolveQuickActionButton(
       label: base.label || processI18n(quickAction.displayName),
       onClick: () =>
         action.confirm
-          ? handleCustomButton(action as CustomButton)
+          ? runAction(action)
           : dispatchQuickActionTarget(quickAction.target),
     },
   };
@@ -159,11 +196,27 @@ function resolveQuickActionButton(
 function resolveAction(
   action: LayoutHeaderAction,
 ): ResolvedHeaderAction | null {
-  const base = baseButton(action);
-  const disabledReason =
-    action.disabled && action.disabledReason
-      ? processI18n(action.disabledReason)
-      : undefined;
+  const state = recordActionState(action as RecordAction, record.value);
+  if (!state.isVisible) return null;
+  const resolved = resolveButton(action, baseButton(action, state));
+  if (!resolved) return null;
+  return {
+    ...resolved,
+    menuGroup: action.menuGroup,
+    description: action.description
+      ? processI18n(action.description)
+      : undefined,
+    disabledReason:
+      state.isDisabled && state.disabledReason
+        ? processI18n(state.disabledReason)
+        : undefined,
+  };
+}
+
+function resolveButton(
+  action: LayoutHeaderAction,
+  base: ButtonProps,
+): ResolvedHeaderAction | null {
   if (action.componentId) {
     const { componentId, buttonId } = action;
     return {
@@ -172,7 +225,6 @@ function resolveAction(
         ...base,
         onClick: () => pressComponentButton(componentId, buttonId),
       },
-      disabledReason,
     };
   }
   if (!action.target) return null;
@@ -183,11 +235,8 @@ function resolveAction(
     id: action.id,
     button: {
       ...base,
-      ...(linkProps(action) ?? {
-        onClick: () => handleCustomButton(action as CustomButton),
-      }),
+      ...(linkProps(action) ?? { onClick: () => runAction(action) }),
     },
-    disabledReason,
   };
 }
 
@@ -222,10 +271,50 @@ const resolved = computed(() =>
     .filter((action): action is ResolvedHeaderAction => action !== null)
     .map(lockForPreview),
 );
+const buttons = computed(() =>
+  resolved.value.filter((action) => !action.menuGroup),
+);
+
+// A menu entry reads as its button: its link, its click, its reason (or its
+// description) under its label.
+function menuItem(action: ResolvedHeaderAction): DropdownMenuItem {
+  const { button } = action;
+  const { onClick } = button;
+  return {
+    label: button.label,
+    icon: button.icon,
+    color: button.color === "neutral" ? undefined : button.color,
+    disabled: button.disabled,
+    description:
+      action.previewLocked ?? action.disabledReason ?? action.description,
+    to: button.to,
+    target: button.target,
+    class: button.class,
+    onSelect:
+      typeof onClick === "function"
+        ? (event: Event) => onClick(event as MouseEvent)
+        : undefined,
+  };
+}
+
+// The "More actions" menu: one list per `menuGroup`, in the order their
+// first action is declared, set apart by a separator.
+const menu = computed<DropdownMenuItem[][]>(() => {
+  const groups = new Map<string, DropdownMenuItem[]>();
+  for (const action of resolved.value) {
+    if (!action.menuGroup) continue;
+    const group = groups.get(action.menuGroup) ?? [];
+    group.push(menuItem(action));
+    groups.set(action.menuGroup, group);
+  }
+  return [...groups.values()];
+});
+const MENU_CONTENT = { align: "end" } as const;
+const MENU_ICON = "i-ph-dots-three-outline";
 </script>
 
 <template>
-  <template v-for="action in resolved" :key="action.id">
+  <template v-for="action in buttons" :key="action.id">
     <!-- A disabled button fires no pointer event: the tooltip hangs on a
       focusable wrapper, so the reason also reaches keyboard users. -->
     <UTooltip v-if="action.previewLocked" :text="action.previewLocked">
@@ -238,4 +327,12 @@ const resolved = computed(() =>
     </UTooltip>
     <UButton v-else v-bind="action.button" />
   </template>
+  <UDropdownMenu v-if="menu.length > 0" :items="menu" :content="MENU_CONTENT">
+    <UButton
+      color="neutral"
+      variant="outline"
+      :icon="MENU_ICON"
+      :aria-label="t('header.more_actions')"
+    />
+  </UDropdownMenu>
 </template>

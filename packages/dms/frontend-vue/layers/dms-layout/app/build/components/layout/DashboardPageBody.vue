@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { defineComponent } from "vue";
 import PageHeader from "./PageHeader.vue";
+import RecordPageHeader from "./RecordPageHeader.vue";
 import PageHeaderActionsOutlet from "./PageHeaderActionsOutlet.vue";
 import PageSkeleton from "./PageSkeleton.vue";
 import type { LayoutHeaderAction } from "./PageHeaderActionBar.vue";
 import { providePageHeaderActions } from "../../../composables/layout/usePageHeaderActions";
+import type { PageHeaderSource } from "#dms-ui/app/types/page-header";
 
 interface Props {
   hideHeader?: boolean;
@@ -13,6 +15,8 @@ interface Props {
   description?: string;
   /** Header buttons declared by the backend page (`headerActions`). */
   headerActions?: LayoutHeaderAction[];
+  /** The record the header shows (`header`): a detail page's. */
+  header?: PageHeaderSource;
   /** Space between the page header and the page. */
   headerClass?: string;
 }
@@ -23,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
   headerActions: () => [],
+  header: undefined,
   headerClass: "pb-6",
 });
 
@@ -38,6 +43,9 @@ const PageRendered = defineComponent({
   },
 });
 
+// A header driven by a record is keyed on its route: another source mounts
+// another header, which fetches its own record.
+
 // After a client navigation the skeleton stands in for the page until its
 // chunk (and its setup) resolves, so the old page is never kept on screen.
 const isPageLoading = useDmsPageLoading();
@@ -50,8 +58,21 @@ const PAGE_SLOT_CLASS =
 </script>
 
 <template>
+  <RecordPageHeader
+    v-if="props.header?.fetchUrl && !props.hideHeader"
+    :key="props.header.fetchUrl"
+    :source="props.header"
+    :icon="props.icon || 'i-ph-file'"
+    :title="props.title"
+    :description="props.description"
+    :class="props.headerClass"
+  >
+    <template #actions>
+      <PageHeaderActionsOutlet :actions="props.headerActions" />
+    </template>
+  </RecordPageHeader>
   <PageHeader
-    v-if="props.title && !props.hideHeader"
+    v-else-if="props.title && !props.hideHeader"
     :icon="props.icon || 'i-ph-file'"
     :title="props.title"
     :description="props.description"

@@ -2,6 +2,7 @@
 import DashboardFrame from "../build/components/layout/DashboardFrame.vue";
 import DashboardPageBody from "../build/components/layout/DashboardPageBody.vue";
 import type { LayoutHeaderAction } from "../build/components/layout/PageHeaderActionBar.vue";
+import type { PageHeaderSource } from "#dms-ui/app/types/page-header";
 import SettingsShell from "../build/components/pages/settings/shell/SettingsShell.vue";
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   description?: string;
   /** Header buttons declared by the backend page (`headerActions`). */
   headerActions?: LayoutHeaderAction[];
+  /** The record the header shows, read from its route (`header`). */
+  header?: PageHeaderSource;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
   headerActions: () => [],
+  header: undefined,
 });
 </script>
 
@@ -33,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
         :title="props.title"
         :description="props.description"
         :header-actions="props.headerActions"
+        :header="props.header"
         header-class="pb-5"
       >
         <slot />
