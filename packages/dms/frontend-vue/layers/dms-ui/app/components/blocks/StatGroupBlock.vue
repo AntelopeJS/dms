@@ -8,13 +8,23 @@ import DmsBlockStatus, {
   type BlockEmptyText,
 } from "../../build/components/blocks/BlockStatus.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 
 // `StatGroup` block (interface-dms `base/stat-group`): the generic StatGroup
 // fed from the block options or from `fetchUrl` (`{ items }`). Texts follow
-// the `$` i18n-key convention; numeric values are formatted for the locale.
+// the `$` i18n-key convention or are composed texts; numeric values are
+// formatted for the locale.
+interface StatGroupBlockItem
+  extends Omit<StatGroupItem, "eyebrow" | "value" | "detail"> {
+  eyebrow: BlockText;
+  value: BlockText | number;
+  detail?: BlockText;
+}
+
 interface StatGroupBlockProps extends DefaultComponentProps {
-  items?: StatGroupItem[];
+  items?: StatGroupBlockItem[];
   layout?: StatGroupLayout;
   columns?: number;
   /** Accessible name of the group. */
@@ -43,31 +53,24 @@ const props = withDefaults(defineProps<StatGroupBlockProps>(), {
 
 const DEFAULT_SKELETON_COUNT = 4;
 
-const { locale } = useI18n();
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
-const { items, isPending, hasError, refresh } = useBlockItems<StatGroupItem>({
-  items: () => props.items,
-  fetchUrl: props.fetchUrl,
-  fetchUrlMethod: props.fetchUrlMethod,
-  routeParams: () => props.routeParams,
-  watchActions: props.watchActions,
-  componentId: props.componentId,
-});
-
-function formatValue(value: StatGroupItem["value"]): string {
-  if (typeof value === "number") {
-    return new Intl.NumberFormat(locale.value).format(value);
-  }
-  return processI18n(String(value ?? ""));
-}
+const { items, isPending, hasError, refresh } =
+  useBlockItems<StatGroupBlockItem>({
+    items: () => props.items,
+    fetchUrl: props.fetchUrl,
+    fetchUrlMethod: props.fetchUrlMethod,
+    routeParams: () => props.routeParams,
+    watchActions: props.watchActions,
+    componentId: props.componentId,
+  });
 
 const resolvedItems = computed<StatGroupItem[]>(() =>
   items.value.map((item) => ({
     ...item,
-    eyebrow: processI18n(item.eyebrow ?? ""),
-    value: formatValue(item.value),
-    detail: item.detail ? processI18n(item.detail) : undefined,
+    eyebrow: processText(item.eyebrow),
+    value: processText(item.value),
+    detail: item.detail ? processText(item.detail) : undefined,
   })),
 );
 </script>
@@ -88,6 +91,6 @@ const resolvedItems = computed<StatGroupItem[]>(() =>
     :skeleton-count="
       props.skeletonCount ?? props.columns ?? DEFAULT_SKELETON_COUNT
     "
-    :label="props.label ? processI18n(props.label) : undefined"
+    :label="props.label ? processText(props.label) : undefined"
   />
 </template>
