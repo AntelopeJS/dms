@@ -4,6 +4,7 @@ import type {
   CustomButtonAvailability,
   CustomButtonSerialized,
 } from "../types/custom-button";
+import type { RecordActionFields } from "../types/record-action";
 import type { DefaultLayoutOptions } from "../layouts";
 
 /**
@@ -14,10 +15,8 @@ import type { DefaultLayoutOptions } from "../layouts";
  *
  * @internal
  */
-export interface PageHeaderButtonSerialized extends Omit<
-  CustomButtonSerialized,
-  "id" | "target"
-> {
+export interface PageHeaderButtonSerialized
+  extends Omit<CustomButtonSerialized, "id" | "target">, RecordActionFields {
   /** Key of the button in the header. */
   id: string;
   target?: ActionTargetSerialized;

@@ -10,6 +10,7 @@
  * the helpers its schema needs — `ui`, `narrowString`, `opaqueOption` — have to
  * be reachable from the same place.
  */
+import "./action-list";
 import "./activity-feed";
 import "./banner";
 import "./card";

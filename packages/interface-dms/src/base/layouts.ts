@@ -1,7 +1,8 @@
 import type { ComponentInfo } from "../component";
 import { serializeActionConfirm } from "./internal/confirm-dialog";
 import { serializeActionTarget } from "./types/internal/action-target";
-import type { CustomButton } from "./types/custom-button";
+import type { PageHeaderSource } from "./page-header";
+import type { RecordAction } from "./types/record-action";
 import type {
   DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
@@ -26,21 +27,50 @@ export interface DefaultLayoutOptions {
    */
   fillHeight?: boolean;
   /**
+   * Drives the page header from a record, for a detail page: the route of
+   * `fetchUrl` answers its title, avatar, status, badges and meta line, and
+   * the record the `when` / `unavailableWhen` conditions of `headerActions`
+   * read. The header shows placeholders until it lands and keeps the page's
+   * own title if the route fails; read again after each header action.
+   *
+   * @example
+   * ```typescript
+   * DefaultLayout({
+   *   header: { fetchUrl: "/api/workspaces/{{params.id}}/header" },
+   *   headerActions: [
+   *     {
+   *       label: "$saas.wd.suspend",
+   *       menuGroup: "danger",
+   *       color: "error",
+   *       when: { not: { field: "status", equals: "suspended" } },
+   *       target: { type: "api", url: "/api/workspaces/{{params.id}}/suspend", successMessage: "$saas.wd.suspended" },
+   *       confirm: { from: "/api/workspaces/{{params.id}}/suspend/impact" },
+   *     },
+   *   ],
+   * })
+   * ```
+   */
+  header?: PageHeaderSource;
+  /**
    * Buttons right of the page title, in order: the same buttons as a table's
    * toolbar — a link (`page` or `external` target), a quick action
    * (`quickAction`), a drawer, a modal, an API call or an export, with their
    * confirmation and availability. A string `permission` names an action of
    * the page, relative to its permission id; `permissionId` is an absolute
    * one. A table view's own buttons join them with `placement: "header"`.
+   *
+   * With `header.fetchUrl`, each one may follow the record the header shows
+   * (`when`, `unavailableWhen`) and sit in its "More actions" menu
+   * (`menuGroup`): see {@link RecordAction}.
    */
-  headerActions?: CustomButton[];
+  headerActions?: RecordAction[];
 }
 
 // A button without an id is keyed by its place in the header.
 const HEADER_BUTTON_ID_PREFIX = "header-";
 
 function declareHeaderButton(
-  button: CustomButton,
+  button: RecordAction,
   index: number,
 ): PageHeaderButtonDeclared {
   const { id, target, confirm, placement: _placement, ...rest } = button;

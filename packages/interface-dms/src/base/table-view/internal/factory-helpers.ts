@@ -74,14 +74,27 @@ export function applyFormRedirect<T>(
 }
 
 /**
- * Custom buttons as the options carry them: their permission and availability
- * stay server-side, applied per request.
+ * A button as the options carry it: its declaration without what stays
+ * server-side, its target and confirmation serialized.
  *
  * @internal
  */
-export function serializeCustomButtons(
-  buttons: CustomButton[] | undefined,
-): CustomButtonSerialized[] | undefined {
+export type ServedButton<B extends CustomButton> = Omit<
+  B,
+  "target" | "permission" | "permissionId" | "availability" | "confirm"
+> &
+  CustomButtonSerialized;
+
+/**
+ * Custom buttons as the options carry them: their permission and availability
+ * stay server-side, applied per request. Any field a button adds (an
+ * action's conditions) is carried as declared.
+ *
+ * @internal
+ */
+export function serializeCustomButtons<B extends CustomButton>(
+  buttons: B[] | undefined,
+): ServedButton<B>[] | undefined {
   return buttons?.map(
     ({
       permission: _permission,
@@ -90,10 +103,10 @@ export function serializeCustomButtons(
       confirm,
       ...btn
     }) => {
-      const served: CustomButtonSerialized = {
+      const served = {
         ...btn,
         target: serializeActionTarget(btn.target),
-      };
+      } as ServedButton<B>;
       if (confirm) served.confirm = serializeActionConfirm(confirm);
       return served;
     },

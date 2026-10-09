@@ -6,6 +6,7 @@
 import "./data-types/default-types";
 import "./data-types/status-type";
 
+export * from "./action-list";
 export * from "./activity-feed";
 export * from "./block-types";
 export * from "./data-sources";
@@ -26,6 +27,7 @@ export * from "./kpi-card";
 export * from "./layouts";
 export * from "./meter";
 export * from "./nav-card-grid";
+export * from "./page-header";
 export * from "./period-selector";
 export * from "./placeholder";
 export * from "./resource-form-schema";

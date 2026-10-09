@@ -186,17 +186,19 @@ export function adaptRowActions({
  *
  * @internal
  */
-export async function resolveCustomButtons(
+export async function resolveCustomButtons<
+  T extends CustomButtonSerialized = CustomButtonSerialized,
+>(
   permissions: Set<string>,
   declaredButtons: CustomButton[] | undefined,
-  serializedButtons: CustomButtonSerialized[] | undefined,
+  serializedButtons: T[] | undefined,
   componentPermissionId: string,
   context: ComponentFilterContext,
-): Promise<CustomButtonSerialized[] | undefined> {
+): Promise<T[] | undefined> {
   if (!declaredButtons || !serializedButtons) {
     return serializedButtons;
   }
-  const kept: CustomButtonSerialized[] = [];
+  const kept: T[] = [];
   for (const [index, serialized] of serializedButtons.entries()) {
     const declared = declaredButtons[index];
     if (

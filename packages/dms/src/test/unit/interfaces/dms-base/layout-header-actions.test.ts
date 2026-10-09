@@ -70,6 +70,47 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
     ]);
   });
 
+  it("carries the record source and the record conditions of its buttons", () => {
+    const layout = DefaultLayout({
+      header: { fetchUrl: "/api/workspaces/{{params.id}}/header" },
+      headerActions: [
+        {
+          label: "$suspend",
+          color: "error",
+          menuGroup: "danger",
+          description: "$suspend_description",
+          when: { not: { field: "status", equals: "suspended" } },
+          unavailableWhen: {
+            field: "status",
+            equals: "cancelled",
+            reason: "$cancelled",
+          },
+          target: { type: "api", url: "/suspend", successMessage: "$done" },
+        },
+      ],
+    });
+
+    expect(layout.options).to.deep.include({
+      header: { fetchUrl: "/api/workspaces/{{params.id}}/header" },
+    });
+    expect(actionsOf(layout.options)).to.deep.equal([
+      {
+        id: "header-0",
+        label: "$suspend",
+        color: "error",
+        menuGroup: "danger",
+        description: "$suspend_description",
+        when: { not: { field: "status", equals: "suspended" } },
+        unavailableWhen: {
+          field: "status",
+          equals: "cancelled",
+          reason: "$cancelled",
+        },
+        target: { type: "api", url: "/suspend", successMessage: "$done" },
+      },
+    ]);
+  });
+
   it("keeps the full-width default next to the buttons", () => {
     const layout = DefaultLayout({ headerActions: [] });
     expect(layout.options).to.deep.equal({
