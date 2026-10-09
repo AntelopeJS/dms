@@ -89,7 +89,6 @@ export const PaletteStub = defineComponent({
                 (event.target as HTMLInputElement).value,
               ),
           }),
-          slots.close?.({ ui: { close: () => "close" } }),
           groups.length
             ? groups.flatMap((group) =>
                 group.items!.map((item) => renderItem(group, item)),

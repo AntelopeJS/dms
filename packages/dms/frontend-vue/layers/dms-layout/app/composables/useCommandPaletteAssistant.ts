@@ -53,8 +53,8 @@ export interface CommandPaletteAssistant {
   /** Unique key: dedup on `register` (upsert) and target of `unregister`. */
   id: string;
   /**
-   * Name of the assistant, shown in the input's scope chip, the answer frame
-   * and the "Ask" items. A `$`-prefixed value resolves as an i18n key.
+   * Name of the assistant, shown in the answer frame and as the header of the
+   * "Ask" items. A `$`-prefixed value resolves as an i18n key.
    */
   label: string;
   /** Icon name of the assistant mode: the input's lead icon and the items' well. */

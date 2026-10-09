@@ -79,25 +79,6 @@ function close(): void {
     :title="t('commandPalette.dialog.title')"
     :description="t('commandPalette.dialog.description')"
   >
-    <!-- The input's trailing slot: the assistant scope chip, then the close
-         button the slot replaces. -->
-    <template v-if="assistant" #close="{ ui }">
-      <span
-        v-if="isAssistantMode"
-        class="text-secondary inline-flex h-6.5 shrink-0 items-center rounded-[7px] bg-(--dms-assistant-tint) px-2 text-xs font-semibold whitespace-nowrap"
-      >
-        {{ assistant.label }}
-      </span>
-      <UButton
-        :icon="appConfig.ui.icons.close"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('commandPalette.footer.close')"
-        :class="ui.close()"
-        @click="close"
-      />
-    </template>
-
     <template v-if="assistant" #empty>
       <CommandPaletteAssistantAnswer
         v-if="answer"
