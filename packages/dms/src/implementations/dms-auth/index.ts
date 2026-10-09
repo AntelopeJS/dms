@@ -509,6 +509,7 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "authKey",
   "twoFactorSecret",
   "twoFactorPendingSecret",
+  "twoFactorTotpLastStep",
   "twoFactorBackupCodes",
   "twoFactorEmailCode",
   "twoFactorEmailCodeRequestedAt",
