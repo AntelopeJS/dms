@@ -115,8 +115,9 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
-    // Gives the status pill its room within the table's width budget.
-    size: 172,
+    // Email, roles and sent date truncate: they give the status pill and the
+    // French row actions their room on a 1440px screen.
+    size: 160,
     display: new DefaultDisplays.IdentityDisplay({
       icon: "i-ph-envelope-simple",
     }),
@@ -164,7 +165,7 @@ export class inviteSettingDataAPI extends DataController(
       ownerField: "asTenantOwner",
     }),
     filterable: true,
-    size: 130,
+    size: 122,
     display: new DefaultDisplays.PillsDisplay({
       exclusive: {
         field: "asTenantOwner",
@@ -209,7 +210,7 @@ export class inviteSettingDataAPI extends DataController(
       view: ReadonlyBehaviorType.disabled,
       new: ReadonlyBehaviorType.hidden,
     },
-    size: 120,
+    size: 110,
     display: new DefaultDisplays.RelativeDateDisplay({
       style: "day",
       tone: "dimmed",
