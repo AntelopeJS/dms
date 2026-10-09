@@ -893,5 +893,8 @@
     "star": "Star on GitHub",
     "later": "Later",
     "close": "Don't show again"
+  },
+  "side_panel": {
+    "resize": "Resize the panel"
   }
 }
