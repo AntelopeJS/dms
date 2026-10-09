@@ -55,7 +55,6 @@ describe("[unit] e-mail normalization — lookups and writes share one form", ()
       language: "en",
       roleIds: [],
       asTenantOwner: false,
-      skipEmailValidation: false,
     });
 
     const stored = await inviteModel.get(inviteId);

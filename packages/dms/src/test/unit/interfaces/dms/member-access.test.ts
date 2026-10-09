@@ -8,6 +8,7 @@ import {
   PageMetadata,
   pagesCategory,
   RegisterPage,
+  settingsCategory,
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import { HasPermission } from "@antelopejs/interface-dms/permissions";
@@ -21,6 +22,8 @@ const PAGE_ID = `${CATEGORY_ID}.ma-inbox`;
 const COMPONENT_ID = `${PAGE_ID}.feed`;
 const ACTION_ID = `${COMPONENT_ID}.archive`;
 const GRANTED_PAGE_ID = "pages.ma-granted";
+const SETTINGS_PAGE_ID = "settings.ma-billing";
+const NESTED_PAGE_ID = `${PAGE_ID}.ma-archive`;
 const NO_PERMISSIONS = new Set<string>();
 
 function settle(): Promise<void> {
@@ -64,7 +67,23 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
     }) {
       static feed = feed();
     }
-    for (const page of [InboxPage, GrantedPage]) {
+
+    // Declared on the settings root itself, which opens to every member
+    // with `"self"`: the pages under it keep their own grant.
+    class SettingsPage extends PageController("ma-billing", {
+      displayName: "Billing",
+      category: settingsCategory,
+    }) {
+      static feed = feed();
+    }
+
+    class NestedPage extends PageController("ma-archive", {
+      displayName: "Archive",
+      category: InboxPage,
+    }) {
+      static feed = feed();
+    }
+    for (const page of [InboxPage, GrantedPage, SettingsPage, NestedPage]) {
       RegisterPage()(page);
       cleanups.push(() => unregisterPage(page));
     }
@@ -85,6 +104,21 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
     for (const id of [GRANTED_PAGE_ID, `${GRANTED_PAGE_ID}.feed`]) {
       expect(await HasPermission(NO_PERMISSIONS, id), id).to.equal(false);
     }
+  });
+
+  it("opens the settings root alone to every member", () => {
+    const { pageInfo } = GetMetadata(settingsCategory, PageMetadata);
+    expect(pageInfo?.memberAccess).to.equal("self");
+  });
+
+  it("keeps requiring a grant on a page declared under the settings root", async () => {
+    for (const id of [SETTINGS_PAGE_ID, `${SETTINGS_PAGE_ID}.feed`]) {
+      expect(await HasPermission(NO_PERMISSIONS, id), id).to.equal(false);
+    }
+  });
+
+  it("passes `true` from a page to the pages filed under it", async () => {
+    expect(await HasPermission(NO_PERMISSIONS, NESTED_PAGE_ID)).to.equal(true);
   });
 
   it("leaves the member-held permissions out of the role editor", () => {

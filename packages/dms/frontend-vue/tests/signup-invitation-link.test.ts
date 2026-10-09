@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   computed,
   createApp,
+  nextTick,
   defineComponent,
   h,
   reactive,
@@ -20,6 +21,8 @@ const locale = ref("en");
 const setLocale = vi.fn(async (code: string) => {
   locale.value = code;
 });
+const authFetch = vi.fn();
+const FORM_TITLE = "page.signup.create_account_title";
 
 const Passthrough = defineComponent({
   inheritAttrs: false,
@@ -51,6 +54,7 @@ function installRuntime() {
     runWithContext: (fn: () => unknown) => fn(),
   }));
   vi.stubGlobal("useDmsRoute", () => route);
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("passwordSchema", z.string());
   vi.stubGlobal("usePasswordStrength", () => ({
     strength: ref([]),
@@ -79,9 +83,21 @@ function mountSignup(query: Record<string, unknown>) {
   app.mount(host);
 }
 
+/** Let the invitation check the page starts on mount settle. */
+async function settle() {
+  await Promise.resolve();
+  await nextTick();
+}
+
+function refusal(code: string) {
+  return { statusCode: 400, data: code };
+}
+
 beforeEach(() => {
   locale.value = "en";
   setLocale.mockClear();
+  authFetch.mockReset();
+  authFetch.mockResolvedValue(undefined);
   installRuntime();
   host = document.createElement("div");
 });
@@ -103,15 +119,68 @@ it.each([{}, { token: "" }, { token: ["a", "b"] }])(
     expect(host.querySelector('a[href="/auth"]')?.textContent).toBe(
       "button.login",
     );
+    expect(authFetch).not.toHaveBeenCalled();
   },
 );
 
-it("shows the signup form for an invitation link with its token", () => {
+it("shows the signup form once the server accepts the invitation", async () => {
   mountSignup({ token: "invite-token", email: "new@local.test" });
+  expect(
+    host.querySelector('[data-testid="signup-checking-invitation"]'),
+  ).not.toBe(null);
+  expect(host.textContent).not.toContain("page.signup.submit");
+
+  await settle();
+
+  expect(authFetch).toHaveBeenCalledWith("/api/auth/validate-invite-token", {
+    method: "POST",
+    body: { token: "invite-token", email: "new@local.test" },
+  });
   expect(host.querySelector('[data-testid="signup-invalid-invitation"]')).toBe(
     null,
   );
-  expect(host.textContent).toContain("page.signup.create_account_title");
+  expect(host.textContent).toContain(FORM_TITLE);
+  expect(host.textContent).toContain("page.signup.submit");
+});
+
+it.each([
+  ["error.invite_revoked", "page.signup.invitation_revoked"],
+  ["error.invite_replaced", "page.signup.invitation_replaced"],
+  ["error.invite_expired", "page.signup.invitation_expired"],
+  ["error.invite_used", "page.signup.invitation_used"],
+  ["error.invalid_token", "page.signup.invalid_invitation"],
+])(
+  "says why a refused invitation link (%s) cannot sign up, instead of the form",
+  async (code, notice) => {
+    authFetch.mockRejectedValue(refusal(code));
+    mountSignup({ token: "stale-token", email: "new@local.test" });
+
+    await settle();
+
+    expect(
+      host.querySelector('[data-testid="signup-invalid-invitation"]'),
+    ).not.toBe(null);
+    expect(host.textContent).toContain(`${notice}_title`);
+    expect(host.textContent).toContain(`${notice}_description`);
+    expect(host.textContent).not.toContain("page.signup.submit");
+    expect(host.querySelector('a[href="/auth"]')?.textContent).toBe(
+      "button.login",
+    );
+  },
+);
+
+// A check that could not run proves nothing: the signup itself still refuses
+// a stale invitation, so the form stays usable.
+it("keeps the form when the invitation check fails for another reason", async () => {
+  authFetch.mockRejectedValue({ statusCode: 500 });
+  mountSignup({ token: "invite-token", email: "new@local.test" });
+
+  await settle();
+
+  expect(host.querySelector('[data-testid="signup-invalid-invitation"]')).toBe(
+    null,
+  );
+  expect(host.textContent).toContain("page.signup.submit");
 });
 
 it("opens in the language the invitation was written in", () => {

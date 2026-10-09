@@ -267,9 +267,16 @@ export interface TableViewTab {
    * page for a filter tab, the linked page for a link tab (which then needs a
    * page controller `to` and a data controller `countFrom`). Counted on the
    * server when the menu loads, with the caller's own `list` permission; a
-   * count of zero shows no badge.
+   * count of zero shows no badge. `true` draws it neutral; `{ tone }` draws
+   * it in that tone (`{ tone: "warning" }` for a tab of rows to check).
    */
-  navBadge?: boolean;
+  navBadge?: boolean | TableViewTabNavBadge;
+}
+
+/** A tab's navigation badge drawn in a tone (see `TableViewTab.navBadge`). */
+export interface TableViewTabNavBadge {
+  /** Neutral when absent. */
+  tone?: Tone;
 }
 
 /** A tab as it reaches the client: link targets resolved to paths. */
@@ -292,8 +299,9 @@ export interface TableViewTabSerialized extends Omit<
  *   filters, sort, refresh, the ⋯ table menu, column header menus and a
  *   footer with the page size picker.
  * - `"compact"`: the list of a settings page — tabs, an always-open search
- *   field, quick filters and custom buttons; no caption, filters row, sort
- *   menu, refresh, ⋯ menu, column menus nor page size picker.
+ *   field, quick filters, custom buttons and a footer with the page size
+ *   picker; no caption, filters row, sort menu, refresh, ⋯ menu nor column
+ *   menus.
  *
  * Either way a control shows only when it means something: the search when
  * the controller has `@Searchable` fields, the filters when a column is

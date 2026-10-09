@@ -140,6 +140,10 @@ interface BaseChartProps extends BaseComponentProps {
   width?: number;
   showTooltip?: boolean;
   showLegend?: boolean;
+  /**
+   * Where the data is read from. `{{params.X}}` and `{{query.X}}` name the
+   * page URL, as in `BlockItemsSource.fetchUrl`.
+   */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;

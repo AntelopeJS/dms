@@ -225,3 +225,29 @@ it("waits for the form's values before showing the pills", async () => {
   await mountPicker({ loading: true });
   expect(host.querySelectorAll("button[data-value]")).toHaveLength(0);
 });
+
+it("warns while a picked role amounts to owner-level access, not for an owner", async () => {
+  authFetch.mockResolvedValue({
+    ...ROLE_OPTIONS,
+    roles: ROLE_OPTIONS.roles.map((role) =>
+      role._id === "admin"
+        ? { ...role, warnings: ["$page.settings.roles.warning.members"] }
+        : role,
+    ),
+  });
+  const warning = () =>
+    host.querySelector("[data-role-owner-level]")?.textContent?.trim();
+  await mountPicker({ ownerField: "isTenantOwner" });
+
+  await toggle("Finance");
+  expect(warning()).toBeUndefined();
+
+  await toggle("Admin");
+  expect(warning()).toBe(
+    "page.settings.members.invite.roles_owner_level Admin",
+  );
+
+  formState.value = { isTenantOwner: true };
+  await flush();
+  expect(warning()).toBeUndefined();
+});

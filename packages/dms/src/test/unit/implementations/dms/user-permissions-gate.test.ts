@@ -16,6 +16,7 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import {
   denyingTenantGate,
@@ -191,8 +192,9 @@ describe("[unit] implementations/dms/page — permissions under a tenant gate", 
       [RECOVERY_FULL_ID, PRODUCT_FULL_ID],
       ALLOWED_TENANT,
     );
+    // Whole as the role stores it, the category both pages sit under included.
     expect(granted.sort()).to.deep.equal(
-      [RECOVERY_FULL_ID, PRODUCT_FULL_ID].sort(),
+      withPermissionAncestors([RECOVERY_FULL_ID, PRODUCT_FULL_ID]).sort(),
     );
   });
 

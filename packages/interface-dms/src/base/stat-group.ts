@@ -4,7 +4,9 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { type BlockItemsSource, blockItemsSourceOptions } from "./display";
 import { toneEnum } from "./internal/display";
 import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
+import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
+import type { BlockText } from "./types/composed-text";
 
 /** One cell of a stat group. */
 export interface StatGroupItem {
@@ -17,12 +19,20 @@ export interface StatGroupItem {
    * cards layout.
    */
   tone?: IconTone;
-  /** Mono label above the value; `$`-prefixed for an i18n key. */
-  eyebrow: string;
-  /** The figure or the short state; a number is formatted for the locale. */
-  value: string | number;
-  /** One line under the value. */
-  detail?: string;
+  /**
+   * Mono label above the value; `$`-prefixed for an i18n key, or a
+   * `ComposedText`.
+   */
+  eyebrow: BlockText;
+  /**
+   * The figure or the short state; a number is formatted for the locale, and
+   * a `ComposedText` composes an amount, a date or a count in the
+   * reader's language (`{ key: "saas.stats.mrr", params: { amount: { type:
+   * "money", value: 92200, currency: "EUR" } } }`).
+   */
+  value: BlockText | number;
+  /** One line under the value: a string or a `ComposedText`. */
+  detail?: BlockText;
   /** Tone of the detail line (`neutral` = muted). */
   detailTone?: Tone;
   /** Route, `#anchor` or URL the whole cell links to. */
@@ -86,14 +96,17 @@ const StatGroupItemSchema = z.object({
     label: "Tone",
     widget: "select",
   }),
-  eyebrow: ui(z.string().describe("Mono label above the value."), {
+  eyebrow: ui(blockTextSchema().describe("Mono label above the value."), {
     label: "Label",
+    widget: "text",
   }),
   value: ui(
-    z.union([z.string(), z.number()]).describe("The figure or the state."),
-    { label: "Value" },
+    z
+      .union([blockTextSchema(), z.number()])
+      .describe("The figure or the state."),
+    { label: "Value", widget: "text" },
   ),
-  detail: ui(z.string().optional(), { label: "Detail" }),
+  detail: ui(blockTextSchema().optional(), { label: "Detail", widget: "text" }),
   detailTone: ui(toneEnum(TONES).optional(), {
     label: "Detail tone",
     widget: "select",

@@ -3,7 +3,9 @@ import { z } from "zod";
 import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { blockActionsOption, type BlockLinkAction } from "./display";
 import { toneEnum } from "./internal/display";
+import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
+import type { BlockText } from "./types/composed-text";
 import type { Tone } from "./types/tone";
 
 /** The tones a banner washes with. */
@@ -25,9 +27,14 @@ export type BannerSize = (typeof BANNER_SIZES)[number];
 
 /** The options `Banner` takes. */
 export interface BannerProps extends BaseComponentProps {
-  /** `$`-prefixed for an i18n key, like every text of the block. */
-  title?: string;
-  description?: string;
+  /**
+   * `$`-prefixed for an i18n key, like every text of the block, or a
+   * `ComposedText` composed in the reader's language ("Payment failed, retry
+   * {date}").
+   */
+  title?: BlockText;
+  /** A string or a `ComposedText`, like `title`. */
+  description?: BlockText;
   tone?: BannerTone;
   /** Overrides the tone's icon. */
   icon?: string;
@@ -71,15 +78,19 @@ export function Banner(options?: BannerProps): ComponentBuilder<BannerProps> {
   return new ComponentBuilder<BannerProps>(BANNER_COMPONENT_NAME)
     .options({ ...BANNER_DEFAULTS, ...options })
     .meta({
-      name: options?.title || "Banner",
+      name: (typeof options?.title === "string" && options.title) || "Banner",
       icon: options?.icon || BANNER_ICON,
     });
 }
 
 /** The options `Banner` accepts. */
 export const BannerSchema = z.object({
-  title: ui(z.string().optional(), { label: "Title", group: "content" }),
-  description: ui(z.string().optional(), {
+  title: ui(blockTextSchema().optional(), {
+    label: "Title",
+    group: "content",
+    widget: "text",
+  }),
+  description: ui(blockTextSchema().optional(), {
     label: "Description",
     group: "content",
     widget: "textarea",

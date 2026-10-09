@@ -132,10 +132,10 @@ beforeAll(async () => {
 
 afterEach(() => app?.unmount());
 
-function mountTree() {
+function mountTree(tree = TREE, selection = new Set<string>()) {
   const host = document.createElement("div");
-  const index = helpers.buildPermissionIndex(TREE);
-  const areas = helpers.buildPermissionAreas(TREE, (label) => label);
+  const index = helpers.buildPermissionIndex(tree);
+  const areas = helpers.buildPermissionAreas(tree, (label) => label);
   const expanded = ref(new Set<string>());
   const toggles: Array<[string, boolean]> = [];
   app = createApp({
@@ -143,7 +143,6 @@ function mountTree() {
       h(RolePermissionTree, {
         areas,
         index,
-        selection: new Set<string>(),
         saved: new Set<string>(),
         autoAdded: new Map(),
         expanded: expanded.value,
@@ -151,6 +150,7 @@ function mountTree() {
         query: "",
         canGrant: () => true,
         readonly: false,
+        selection,
         onToggle: (id: string, checked: boolean) => toggles.push([id, checked]),
         "onToggle-area": (id: string) => {
           const next = new Set(expanded.value);
@@ -292,10 +292,19 @@ const slotStub = defineComponent({
       h("div", slots.default?.()),
 });
 
-function mountEditor() {
+// DmsBanner: its title and description as text.
+const BannerStub = defineComponent({
+  props: { title: String, description: String },
+  setup:
+    (props, { attrs }) =>
+    () =>
+      h("div", attrs, `${props.title} ${props.description}`),
+});
+
+function mountEditor(tree = TREE, selection = new Set<string>()) {
   const host = document.createElement("div");
-  const index = helpers.buildPermissionIndex(TREE);
-  const areas = helpers.buildPermissionAreas(TREE, (label) => label);
+  const index = helpers.buildPermissionIndex(tree);
+  const areas = helpers.buildPermissionAreas(tree, (label) => label);
   app = createApp({
     setup: () => () =>
       h(RoleEditor, {
@@ -304,7 +313,7 @@ function mountEditor() {
         members: [],
         areas,
         index,
-        selection: new Set<string>(),
+        selection,
         saved: new Set<string>(),
         autoAdded: new Map(),
         totalPermissions: index.allIds.length,
@@ -328,6 +337,7 @@ function mountEditor() {
   app.component("DmsMeter", stub("span"));
   app.component("DmsIconWell", stub("span"));
   app.component("DmsSaveBar", stub("div"));
+  app.component("DmsBanner", BannerStub);
   app.mount(host);
   return { host };
 }
@@ -466,5 +476,89 @@ describe("role editor level buttons", () => {
     await nextTick();
     expect(openIds(host)).toEqual(["pages.form", "settings.user"]);
     expect(levelButton(host, "collapse").disabled).toBe(false);
+  });
+});
+
+const WARNING = "$page.settings.roles.warning.members";
+const WARNED_TREE: RolePermissionNode[] = [
+  {
+    id: "settings",
+    label: "Settings",
+    children: [
+      {
+        id: "settings.members",
+        label: "Members",
+        children: [
+          {
+            id: "settings.members.table",
+            label: "Members table",
+            children: [
+              { id: "settings.members.table.list", label: "List" },
+              {
+                id: "settings.members.table.edit",
+                label: "Edit",
+                warning: WARNING,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+const WITHOUT_EDIT = [
+  "settings",
+  "settings.members",
+  "settings.members.table",
+  "settings.members.table.list",
+];
+const ALL_WARNED = new Set([...WITHOUT_EDIT, "settings.members.table.edit"]);
+
+const textOf = (host: HTMLElement, selector: string) =>
+  [...host.querySelectorAll(selector)].map((element) =>
+    element.textContent?.trim(),
+  );
+
+describe("owner-level warnings in the roles editor", () => {
+  it("shows a permission's warning on its row, ticked or not", async () => {
+    const { host } = mountTree(WARNED_TREE);
+    caretOf(host, "settings.members").click();
+    await nextTick();
+    caretOf(host, "settings.members.table").click();
+    await nextTick();
+
+    expect(
+      textOf(
+        rowOf(host, "settings.members.table.edit"),
+        "[data-permission-warning]",
+      ),
+    ).toEqual([WARNING]);
+    expect(
+      host.querySelectorAll("[data-permission-warning-below]"),
+    ).toHaveLength(0);
+  });
+
+  it("flags the closed row hiding a warned permission a parent ticked", async () => {
+    const { host } = mountTree(WARNED_TREE, ALL_WARNED);
+    const below = (id: string) =>
+      rowOf(host, id).querySelector("[data-permission-warning-below]");
+    expect(below("settings.members")?.getAttribute("title")).toBe(WARNING);
+
+    caretOf(host, "settings.members").click();
+    await nextTick();
+    expect(below("settings.members")).toBeNull();
+    expect(below("settings.members.table")).not.toBeNull();
+  });
+
+  it("sums up in the editor the warned permissions the role holds", () => {
+    const { host } = mountEditor(WARNED_TREE, ALL_WARNED);
+    expect(textOf(host, "[data-role-owner-level]")).toEqual([
+      "page.settings.roles.editor.owner_level_title page.settings.roles.editor.owner_level_description Members › Edit",
+    ]);
+  });
+
+  it("says nothing while the role holds none of them", () => {
+    const { host } = mountEditor(WARNED_TREE, new Set(WITHOUT_EDIT));
+    expect(host.querySelector("[data-role-owner-level]")).toBeNull();
   });
 });

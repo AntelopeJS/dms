@@ -17,9 +17,10 @@ const MENU_ACTIONS_WIDTH = 91;
 const LABEL_PADDING = 20;
 const LABEL_ICON = 16;
 const LABEL_CHARACTER = 6.5;
+// The French labels, the longest ("Resend", "Revoke" in English).
 const RESEND_BUTTON =
-  LABEL_PADDING + LABEL_ICON + "Resend".length * LABEL_CHARACTER;
-const REVOKE_BUTTON = LABEL_PADDING + "Revoke".length * LABEL_CHARACTER;
+  LABEL_PADDING + LABEL_ICON + "Renvoyer".length * LABEL_CHARACTER;
+const REVOKE_BUTTON = LABEL_PADDING + "Révoquer".length * LABEL_CHARACTER;
 // Edit and Copy link (icons), Resend and Revoke (labelled).
 const INVITE_ACTIONS_WIDTH =
   CELL_GUTTERS +

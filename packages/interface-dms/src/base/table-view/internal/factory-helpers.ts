@@ -198,10 +198,17 @@ export function registerTableViewActions<T>(
       icon: "i-ph-plus",
     });
   }
+  // An action depends on the permission guarding what it reads. The edit
+  // form loads its row through the view route: without the view it opens
+  // empty, and a value saved from it replaces one it never showed. An export
+  // writes its own `@Exported` fields, which may go past the columns the list
+  // shows. A delete reads nothing and depends on nothing.
+  const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : undefined;
   if (capabilities.hasEditForm) {
     builder.action("edit", {
       title: "$dms.table.action_edit",
       icon: "i-ph-pencil",
+      dependencies: readsRow,
     });
   }
   if (capabilities.hasViewForm) {
@@ -234,6 +241,7 @@ export function registerTableViewActions<T>(
     builder.action("export", {
       title: "$dms.table.action_export",
       icon: "i-ph-download-simple",
+      dependencies: readsRow,
     });
   }
 }

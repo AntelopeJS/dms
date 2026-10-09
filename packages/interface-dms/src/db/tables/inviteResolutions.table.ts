@@ -20,6 +20,13 @@ export class InviteResolution extends Table {
   @Field("string") declare reason: InviteResolutionReason;
   @Field("string") declare userId: string | null;
   @Field("any") declare invite: UserInvite;
+  /**
+   * The retired invitation's token, lifted out of the snapshot so a stale
+   * link can be told why it stopped working. Absent on older decisions.
+   */
+  @Index({ crossInstance: true })
+  @Field("string")
+  declare inviteToken?: string;
   @Field("any") declare replacement: UserInvite | null;
   @Field(["string"]) declare extensionKeys: string[];
   @Field("string") declare revision: string;

@@ -42,7 +42,6 @@ function inviteThroughMembersRoute() {
       emails: [INVITEE_EMAIL],
       language: "en",
       asTenantOwner: true,
-      skipEmailValidation: false,
     },
     { tenantId: WORKSPACE_ID, userId: "inviter", name: "Inviter" },
     undefined,

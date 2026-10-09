@@ -14,6 +14,7 @@ const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
 const PERMISSIONS_TREE = "/settings/workspace/roles/editor-tree";
+const SETTINGS_OVERVIEW = "/settings";
 const NOTIFICATIONS = "/settings/user/notifications";
 const PERSONAL_SLUGS = [
   "/settings/user/profile",
@@ -99,6 +100,30 @@ describe("[integration] a member without a role and their own settings", () => {
     });
     expect(saved.status, JSON.stringify(saved.data)).to.equal(HTTP_OK);
     expect(saved.data[PREFERENCE_KEY]).to.equal(false);
+  });
+
+  it("opens the settings overview, its account summary and its activity", async () => {
+    for (const path of [
+      `${SETTINGS_OVERVIEW}/pagelayout`,
+      `${SETTINGS_OVERVIEW}/account-summary`,
+      `${SETTINGS_OVERVIEW}/activity`,
+    ]) {
+      const response = await member.get(path);
+      expect(
+        response.status,
+        `${path}: ${JSON.stringify(response.data)}`,
+      ).to.equal(HTTP_OK);
+    }
+  });
+
+  it("is served the settings overview named, so its breadcrumb is translated", async () => {
+    const response = await member.get("/dms/sitelayout");
+    const overview = response.data.siteLayout.pages[SETTINGS_OVERVIEW] as {
+      hasAccess: boolean;
+      displayName: string;
+    };
+    expect(overview.hasAccess).to.equal(true);
+    expect(overview.displayName).to.equal("$page.settings.title");
   });
 
   it("sees the account pages in the navigation and not the workspace ones", async () => {

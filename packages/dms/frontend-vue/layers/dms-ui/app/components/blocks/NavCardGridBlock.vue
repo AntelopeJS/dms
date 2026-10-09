@@ -30,6 +30,9 @@ interface NavCardGridItem {
   stateTone?: Tone;
   tag?: string;
   readout?: string[];
+  /** The page's navigation badge (a category's cards), in the top corner. */
+  badge?: string;
+  badgeTone?: Tone;
 }
 
 interface NavCardGridBlockProps extends DefaultComponentProps {
@@ -87,6 +90,7 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
 });
@@ -124,10 +128,16 @@ const cards = computed(() =>
 // v2 .sx-grid: cards closing on a state line run a tighter rhythm, the whole
 // grid at once so the rows stay aligned.
 const hasStates = computed(() => cards.value.some((card) => !!card.state));
+// A category the viewer opens no page of is left out, title included, as the
+// navigation leaves out an empty group: the settings overview of a member
+// without a role shows no Workspace section. `empty` shows a message instead.
+const isLeftOut = computed(
+  () => !!props.categoryId && !props.empty && cards.value.length === 0,
+);
 </script>
 
 <template>
-  <section>
+  <section v-if="!isLeftOut">
     <DmsSectionHeader
       v-if="props.title || props.description"
       class="mb-3"
@@ -189,6 +199,8 @@ const hasStates = computed(() => cards.value.some((card) => !!card.state));
             :state="card.state"
             :state-tone="card.stateTone"
             :tag="card.tag"
+            :badge="card.badge"
+            :badge-tone="card.badgeTone"
             :readout="card.readout"
             :class="hasStates && 'gap-2.5'"
           />

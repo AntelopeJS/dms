@@ -9,11 +9,39 @@ import type {
   UserNotification,
 } from "../../../../../composables/notification/useNotifications";
 
-/** Notifications without a tone stand out in `primary` until read. */
+/**
+ * Notifications without a tone stand out in `primary` until read. Mirrors
+ * the server's `resolveNotificationTone` (`src/utils/notification-tones.ts`),
+ * which weighs the unread badge of the bell and the navigation with it; a
+ * test holds the two together.
+ */
 export const resolveNotificationTone = (
   notification: UserNotification,
 ): NotificationTone =>
   notification.tone ?? (notification.isRead ? "neutral" : "primary");
+
+/** Strongest first, as the server ranks the tones of the unread badge. */
+const UNREAD_TONE_ORDER: NotificationTone[] = [
+  "error",
+  "warning",
+  "primary",
+  "success",
+  "neutral",
+];
+
+/**
+ * The unread badge's tone once `incoming` arrives: an unread notification can
+ * only strengthen it, so the stronger of the current tone and its own, as
+ * the server would weigh the whole feed.
+ */
+export const unreadToneWith = (
+  current: NotificationTone | undefined,
+  incoming: UserNotification,
+): NotificationTone | undefined => {
+  if (incoming.isRead) return current;
+  const tones = new Set([current, resolveNotificationTone(incoming)]);
+  return UNREAD_TONE_ORDER.find((tone) => tones.has(tone));
+};
 
 /** Inbox sections, newest first. */
 export type NotificationDayGroupKey = RelativeDayBucket;
@@ -64,13 +92,21 @@ export const MATRIX_CONTAINER_CLASS = "@container/matrix";
 /**
  * v2 .cs-matrix grid: subject, in-app, email, state. Under 672px of matrix
  * the state column goes; under 448px (phones) only the subject and in-app
- * columns remain.
+ * columns remain. The email column fits its header on one line, the label
+ * and its "Soon" badge, in French too.
  */
 export const MATRIX_GRID_CLASS =
-  "grid grid-cols-[minmax(0,1fr)_80px_96px_168px] items-center gap-x-3 px-[18px] @max-2xl/matrix:grid-cols-[minmax(0,1fr)_80px_96px] @max-2xl/matrix:[&>:nth-child(4)]:hidden @max-md/matrix:grid-cols-[minmax(0,1fr)_60px] @max-md/matrix:[&>:nth-child(n+3)]:hidden";
+  "grid grid-cols-[minmax(0,1fr)_80px_120px_168px] items-center gap-x-3 px-[18px] @max-2xl/matrix:grid-cols-[minmax(0,1fr)_80px_120px] @max-2xl/matrix:[&>:nth-child(4)]:hidden @max-md/matrix:grid-cols-[minmax(0,1fr)_60px] @max-md/matrix:[&>:nth-child(n+3)]:hidden";
 
-/** The subject's indent under its category, dropped where only two columns remain. */
-export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[42px] @max-md/matrix:pl-0";
+/**
+ * The subject's indent under its category: past the caret and the icon
+ * well, under the category's title. Dropped where only two columns remain.
+ */
+export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[66px] @max-md/matrix:pl-0";
+
+/** Id of the element holding a category's subjects, for `aria-controls`. */
+export const categorySubjectsElementId = (categoryId: string) =>
+  `notification-category-subjects-${categoryId}`;
 
 /** v2 .cs-mod: the mono module / source tag. */
 export const SOURCE_TAG_CLASS = `${MONO_TAG_CLASS} inline-flex h-[18px] items-center border border-accented whitespace-nowrap text-muted`;

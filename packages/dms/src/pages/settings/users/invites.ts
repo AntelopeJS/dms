@@ -29,7 +29,11 @@ import {
   loadInviteForAction,
 } from "@antelopejs/interface-dms/invite-resolution";
 import { inviteeDisplayName } from "@antelopejs/interface-dms/invites";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  RegisterPage,
+  workspaceSettingsCategory,
+} from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -68,12 +72,14 @@ import {
   MembersSettingsController,
   membersTableAddAction,
   ROLE_QUICK_FILTER,
-  loadRoleOptions,
 } from "./members";
 import { editRolePicker } from "./member-roles-field";
-import type { InviteRoleOptions } from "./member-role-options";
+import { declarePermissionWarning } from "./permission-warnings";
+import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Between Members (1) and Roles (3) in the workspace settings.
+const INVITES_PAGE_ORDER = 2;
 const HTTP_NOT_FOUND = 404;
 const HTTP_GONE = 410;
 const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
@@ -115,7 +121,9 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
-    size: 180,
+    // Email, roles and sent date truncate: they give the status pill and the
+    // French row actions their room on a 1440px screen.
+    size: 160,
     display: new DefaultDisplays.IdentityDisplay({
       icon: "i-ph-envelope-simple",
     }),
@@ -163,7 +171,7 @@ export class inviteSettingDataAPI extends DataController(
       ownerField: "asTenantOwner",
     }),
     filterable: true,
-    size: 130,
+    size: 122,
     display: new DefaultDisplays.PillsDisplay({
       exclusive: {
         field: "asTenantOwner",
@@ -197,15 +205,6 @@ export class inviteSettingDataAPI extends DataController(
   @Access(AccessMode.ReadWrite)
   declare language: string;
 
-  @Exported()
-  @Column({
-    name: "$page.settings.invites.column.skip_email_validation",
-    type: new DefaultDataTypes.BooleanType(),
-    description: "$page.settings.invites.description.skip_email_validation",
-  })
-  @Access(AccessMode.ReadWrite)
-  declare skipEmailValidation: boolean;
-
   @Listable()
   @Exported()
   @Sortable()
@@ -217,7 +216,7 @@ export class inviteSettingDataAPI extends DataController(
       view: ReadonlyBehaviorType.disabled,
       new: ReadonlyBehaviorType.hidden,
     },
-    size: 120,
+    size: 110,
     display: new DefaultDisplays.RelativeDateDisplay({
       style: "day",
       tone: "dimmed",
@@ -268,7 +267,9 @@ export class inviteSettingDataAPI extends DataController(
       onlineColor: "warning",
       offlineColor: "neutral",
     }),
-    size: 110,
+    // Room for the longest pill, the French "En attente" (98px), beside the
+    // cell's 28px of gutters.
+    size: 128,
   })
   @Access(AccessMode.ReadOnly)
   get status(): boolean {
@@ -287,12 +288,14 @@ const inviteApiTarget = (action: string) =>
 const PENDING = { field: "status", equals: true } as const;
 const EXPIRED = { field: "status", equals: false } as const;
 
-// Nested under Members: its URL and breadcrumb go through Members, and the
-// settings navigation lists it right after Members.
+// Next to Members rather than under it, like its permission: a role holding
+// the invitations alone reaches them without crossing a Members page it
+// cannot see. The settings navigation lists it right after Members.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$page.settings.shell.member_invitations",
-  category: MembersSettingsController,
+  category: workspaceSettingsCategory,
+  order: INVITES_PAGE_ORDER,
   permission: { id: INVITES_PERMISSION_ID },
   icon: "i-ph-envelope-simple",
   description: "$page.settings.description.invites",
@@ -300,7 +303,13 @@ export class InvitesSettingsController extends PageController("invites", {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
-    formContainer: { type: "page", pages: memberListFormPages("invites") },
+    // "Edit invitation" opens over the list, like the members' "Change
+    // roles": the address in the title, the roles as the invite form's pills.
+    formContainer: {
+      type: "modal",
+      size: "md",
+      pages: memberListFormPages("invites"),
+    },
     layout: MEMBER_LISTS_LAYOUT,
     searchPlaceholder: "$page.settings.invites.search",
     quickFilters: [{ field: "roles_ids", ...ROLE_QUICK_FILTER }],
@@ -308,7 +317,6 @@ export class InvitesSettingsController extends PageController("invites", {
     defaultSort: { field: "createdAt", desc: true },
     footer: {
       countLabel: "$page.settings.invites.footer_count",
-      hint: "$page.settings.invites.expiry_hint",
     },
     tabs: [
       {
@@ -317,12 +325,12 @@ export class InvitesSettingsController extends PageController("invites", {
         icon: MEMBERS_TAB_ICON,
         to: MembersSettingsController,
         countFrom: memberSettingDataAPI,
-        navBadge: true,
       },
       {
         id: "all",
         label: "$page.settings.members.tabs.invites",
         icon: INVITES_TAB_ICON,
+        navBadge: true,
       },
     ],
     // Modules edit the data they attached through `RegisterInviteExtension`
@@ -503,3 +511,15 @@ export class InvitesSettingsController extends PageController("invites", {
     await completeInviteResolution(resolution);
   }
 }
+
+const invitesTableEditAction =
+  InvitesSettingsController.table.getAction("edit");
+if (!invitesTableEditAction) {
+  throw new Error("Invites table is expected to register an 'edit' action");
+}
+// Editing a pending invitation can give it any role or make the invitee an
+// owner, like inviting (see the members table's add action).
+declarePermissionWarning(
+  invitesTableEditAction,
+  "$page.settings.roles.warning.invites",
+);

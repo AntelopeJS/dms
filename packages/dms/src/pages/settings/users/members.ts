@@ -12,7 +12,6 @@ import { GetModel, Model } from "@antelopejs/interface-database-decorators";
 import type { Action } from "@antelopejs/interface-dms/component";
 import { memberSettingDataAPI } from "@antelopejs/interface-dms/data-controllers";
 import {
-  RoleModel,
   type TenantMember,
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
@@ -25,7 +24,6 @@ import {
   RegisterPage,
   workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
-import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { clearPlatformOwnerOnMemberRemoval } from "@antelopejs/interface-dms/tenant-ownership";
 import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -37,11 +35,11 @@ import type {
   ConfirmDialogSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
 import { isSaasMode } from "@antelopejs/interface-dms/utils/saas-mode";
-import { GetCategoryPermissionIds } from "../../../implementations/dms/page";
 import { requestEmailVerification } from "../../../routes/auth/request-email-verification";
 import { memberInviteSchema } from "../../../validation/member-invite.schema";
 import { memberOwnershipSchema } from "../../../validation/member-ownership.schema";
 import { MEMBER_EDIT_FORM_SLOT_ID } from "./member-roles-field";
+import { declarePermissionWarning } from "./permission-warnings";
 import {
   type InviteFormDefaults,
   memberInviteForm,
@@ -64,10 +62,7 @@ import {
   requireMember,
   setMemberOwnership,
 } from "./member-management";
-import {
-  buildInviteRoleOptions,
-  type InviteRoleOptions,
-} from "./member-role-options";
+import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 import {
   announceMemberEdit,
   announceMemberRemovals,
@@ -80,7 +75,7 @@ RegisterDataController()(memberSettingDataAPI);
 // Redirect targets for the invite form: an existing user is added straight to
 // the members list, a new email lands as a pending invite.
 export const MEMBERS_PAGE_PATH = "/settings/workspace/members";
-export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
+export const INVITES_PAGE_PATH = "/settings/workspace/invites";
 /** Data API of the invitations list, whose total the Invitations tab shows. */
 export const INVITES_API_LOCATION = "/api/tables/admin-invites";
 
@@ -104,10 +99,10 @@ export const INVITES_PERMISSION_ID = "settings.workspace.invites";
  * The reduced grid both lists of the members page share: no caption (the page
  * header names it), the Members / Invitations link tabs up in the header band,
  * an open search field and a role filter, sortable headers, the row menu and a
- * footer with the count.
+ * footer with the count and the page size picker.
  */
 export const MEMBER_LISTS_LAYOUT = "compact";
-export const MEMBER_LISTS_PAGE_SIZE = 25;
+export const MEMBER_LISTS_PAGE_SIZE = 10;
 export const MEMBERS_TAB_ICON = "i-ph-users";
 export const INVITES_TAB_ICON = "i-ph-envelope-simple";
 
@@ -225,7 +220,6 @@ export const membersTable = TableView(memberSettingDataAPI, {
   defaultSort: { field: "name" },
   footer: {
     countLabel: "$page.settings.members.footer_count",
-    hint: "$page.settings.members.last_active_hint",
   },
   tabs: [
     {
@@ -390,6 +384,17 @@ export const membersTableAddAction = requireMembersTableAction("add");
 const membersTableEditAction = requireMembersTableAction("edit");
 const membersTableDeleteAction = requireMembersTableAction("delete");
 
+// Changing roles and ownership, or inviting with any role, lets the holder
+// make themselves an owner. Intended, so the roles editor says it instead.
+declarePermissionWarning(
+  membersTableEditAction,
+  "$page.settings.roles.warning.members",
+);
+declarePermissionWarning(
+  membersTableAddAction,
+  "$page.settings.roles.warning.invites",
+);
+
 function inviteRedirectPath(results: InviteEmailResult[]): string {
   const hasPendingInvite = results.some(
     (result) => result.outcome === "invited",
@@ -412,18 +417,6 @@ export function memberInviteResponse(
     response.warning = INVITE_EMAIL_FAILED_WARNING;
   }
   return response;
-}
-
-/** The tenant's roles as the role pickers offer them. */
-export async function loadRoleOptions(
-  tenantId: string,
-): Promise<InviteRoleOptions> {
-  const roles = await GetModel(RoleModel, tenantId).getAll();
-  return buildInviteRoleOptions(
-    roles,
-    await GetPermissions(),
-    GetCategoryPermissionIds(),
-  );
 }
 
 @RegisterPage()

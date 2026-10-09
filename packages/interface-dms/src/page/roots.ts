@@ -65,6 +65,13 @@ export const modulesCategory = RootPageController(
   DefaultLayout(),
 );
 
+/**
+ * The settings root, whose page is the settings overview. Every member opens
+ * it (`memberAccess: "self"`): each of them holds account settings, and the
+ * overview lists only the pages its caller can open. `"self"` keeps that to
+ * the root: a page a project files directly under it (billing, say) keeps
+ * needing its own grant.
+ */
 export const settingsCategory = RootPageController("settings", {
   displayName: "$page.settings.title",
   description: "$page.settings.intro",
@@ -72,6 +79,7 @@ export const settingsCategory = RootPageController("settings", {
   icon: "i-ph-gear",
   order: 3,
   noComponentPermissions: true,
+  memberAccess: "self",
   layout: SettingsLayout(),
 });
 

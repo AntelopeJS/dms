@@ -26,6 +26,7 @@ import {
   type BlockItems,
   loadAccountSummary,
 } from "./overview/account-summary";
+import { ACCOUNT_ACTIVITY_LIMIT } from "./users/account-activity";
 import { userCategory } from "./users/category";
 import { extractSessionId } from "./users/profile-helpers";
 
@@ -33,7 +34,6 @@ const TEXTS = "$page.settings.overview";
 const ACCOUNT_SUMMARY_URL = "/settings/account-summary";
 const ACTIVITY_URL = "/settings/activity";
 const PROFILE_PATH = "/settings/user/profile";
-const ACTIVITY_ROWS = 6;
 // Wide enough for a label and its value side by side: below two of them,
 // the cards stack.
 const SUMMARY_COLUMN_WIDTH = "20rem";
@@ -69,7 +69,10 @@ export class SettingsIndexPage extends settingsCategory {
           ActivityFeed({
             title: `${TEXTS}.activity.title`,
             fetchUrl: ACTIVITY_URL,
-            maxItems: ACTIVITY_ROWS,
+            maxItems: ACCOUNT_ACTIVITY_LIMIT,
+            // The account card beside it sets the row's height; the entries
+            // scroll inside.
+            fillHeight: true,
             empty: {
               title: `${TEXTS}.activity.empty_title`,
               description: `${TEXTS}.activity.empty_description`,

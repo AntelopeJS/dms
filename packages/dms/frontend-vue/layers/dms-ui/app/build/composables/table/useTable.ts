@@ -134,7 +134,13 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
 
   const tableConfig = shallowRef({
     data: tableData,
-    columns: columns.value,
+    // Read on each update rather than once: labelled row actions are sized on
+    // the rows listed, which a table opened by client-side navigation only
+    // receives after it is set up. A copy taken then keeps the width of an
+    // empty list, and the rows' buttons are cut.
+    get columns() {
+      return columns.value;
+    },
 
     ...stateHandlers,
 

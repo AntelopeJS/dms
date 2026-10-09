@@ -40,7 +40,7 @@ describe("TableView layout", () => {
     expect(resolveTableChrome("full", everything).search).toBe("toggle");
   });
 
-  it("reduces the compact layout to an open search field", () => {
+  it("reduces the compact layout to an open search field and the page size picker", () => {
     expect(resolveTableChrome("compact", everything)).toEqual({
       caption: false,
       search: "field",
@@ -49,7 +49,7 @@ describe("TableView layout", () => {
       refresh: false,
       menu: false,
       columnMenus: false,
-      pageSize: false,
+      pageSize: true,
     });
   });
 

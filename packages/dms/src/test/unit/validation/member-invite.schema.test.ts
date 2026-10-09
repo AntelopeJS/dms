@@ -12,12 +12,12 @@ const basePayload = {
 };
 
 describe("[unit] validation/member-invite.schema", () => {
-  it("accepts a payload without names when email validation is not skipped", () => {
+  it("accepts a payload without names", () => {
     const result = memberInviteSchema.safeParse(basePayload);
     expect(result.success).to.equal(true);
   });
 
-  it("accepts optional names when email validation is not skipped", () => {
+  it("accepts optional names", () => {
     const result = memberInviteSchema.safeParse({
       ...basePayload,
       firstname: "Ada",
@@ -26,43 +26,7 @@ describe("[unit] validation/member-invite.schema", () => {
     expect(result.success).to.equal(true);
   });
 
-  it("rejects a payload without names when email validation is skipped", () => {
-    const result = memberInviteSchema.safeParse({
-      ...basePayload,
-      skipEmailValidation: true,
-    });
-    expect(result.success).to.equal(false);
-    const paths = result.success
-      ? []
-      : result.error.issues.map((issue) => issue.path.join("."));
-    expect(paths).to.include("firstname");
-    expect(paths).to.include("lastname");
-  });
-
-  it("rejects a missing lastname alone when email validation is skipped", () => {
-    const result = memberInviteSchema.safeParse({
-      ...basePayload,
-      skipEmailValidation: true,
-      firstname: "Ada",
-    });
-    expect(result.success).to.equal(false);
-    const paths = result.success
-      ? []
-      : result.error.issues.map((issue) => issue.path.join("."));
-    expect(paths).to.deep.equal(["lastname"]);
-  });
-
-  it("accepts names with skipped email validation", () => {
-    const result = memberInviteSchema.safeParse({
-      ...basePayload,
-      skipEmailValidation: true,
-      firstname: "Ada",
-      lastname: "Lovelace",
-    });
-    expect(result.success).to.equal(true);
-  });
-
-  it("accepts an empty firstname when email validation is not skipped", () => {
+  it("accepts an empty firstname", () => {
     const result = memberInviteSchema.safeParse({
       ...basePayload,
       firstname: "",
@@ -70,18 +34,18 @@ describe("[unit] validation/member-invite.schema", () => {
     expect(result.success).to.equal(true);
   });
 
-  it("rejects an empty firstname when email validation is skipped", () => {
+  // An invite signup always validates the address: a caller still sending the
+  // retired switch gets neither the names nor the single address it imposed.
+  it("ignores a retired skipEmailValidation flag", () => {
     const result = memberInviteSchema.safeParse({
       ...basePayload,
+      emails: ["ada@test.local", "grace@test.local"],
       skipEmailValidation: true,
-      firstname: "",
-      lastname: "Lovelace",
     });
-    expect(result.success).to.equal(false);
-    const paths = result.success
-      ? []
-      : result.error.issues.map((issue) => issue.path.join("."));
-    expect(paths).to.deep.equal(["firstname"]);
+    expect(result.success).to.equal(true);
+    if (result.success) {
+      expect(result.data).to.not.have.property("skipEmailValidation");
+    }
   });
 
   it("still requires at least one role for non-owners", () => {
@@ -91,18 +55,16 @@ describe("[unit] validation/member-invite.schema", () => {
     });
     expect(result.success).to.equal(false);
   });
-  it("treats a whitespace-only name as missing when validation is skipped", () => {
+
+  it("trims a whitespace-only name to nothing", () => {
     const result = memberInviteSchema.safeParse({
       ...basePayload,
-      skipEmailValidation: true,
       firstname: "   ",
-      lastname: "Lovelace",
     });
-    expect(result.success).to.equal(false);
-    const paths = result.success
-      ? []
-      : result.error.issues.map((issue) => issue.path.join("."));
-    expect(paths).to.deep.equal(["firstname"]);
+    expect(result.success).to.equal(true);
+    if (result.success) {
+      expect(result.data.firstname).to.equal("");
+    }
   });
 
   it("trims the names it accepts", () => {

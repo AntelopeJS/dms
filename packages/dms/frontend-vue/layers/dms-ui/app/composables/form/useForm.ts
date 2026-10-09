@@ -1,6 +1,6 @@
 import type { FormSubmitEvent } from "@nuxt/ui";
 import { z } from "zod";
-import { unref } from "vue";
+import { onMounted, unref } from "vue";
 import type { FormProps, FormFetchResponse, FormSubmitResponse } from "./types";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { FormEvents } from "./types/events";
@@ -9,6 +9,17 @@ import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
+import {
+  type ReplaceUrlVariablesContext,
+  hasUrlVariables,
+  replaceUrlVariables,
+  resolveUrlVariables,
+} from "../../build/utils/urlVariables";
+
+export {
+  type ReplaceUrlVariablesContext,
+  replaceUrlVariables,
+} from "../../build/utils/urlVariables";
 
 /** A toast a submit response asks for, on top of the success one. */
 interface FormSubmitNotice {
@@ -51,8 +62,8 @@ export interface UseFormOptions {
   showFieldErrors?: (errors: FormServerFieldError[]) => boolean;
   /**
    * Called once a submit succeeded and the values are the saved ones (or
-   * back to the opening ones for an `action` form), before any redirect:
-   * the form has nothing unsaved from there on.
+   * back to the opening ones for an `action` form), before the success event
+   * goes out and any redirect: the form has nothing unsaved from there on.
    */
   onSaved?: () => void;
 }
@@ -135,47 +146,6 @@ function createBaseValidationSchema(
   }
 }
 
-// `{{params.id}}` takes the bare name, which on a route repeating a placeholder
-// is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
-// a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
-// table view (see extractRouteParams).
-const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
-
-export interface ReplaceUrlVariablesContext {
-  routeParams?: Record<string, string>;
-  routeQuery: Record<string, unknown>;
-  response?: Record<string, unknown>;
-}
-
-export function replaceUrlVariables(
-  url: string,
-  context: ReplaceUrlVariablesContext,
-): string {
-  let processedUrl = url.replace(
-    PARAM_TOKEN,
-    (match, key) => context.routeParams?.[key] || match,
-  );
-
-  processedUrl = processedUrl.replace(/\{\{query\.(\w+)\}\}/g, (match, key) => {
-    const value = context.routeQuery[key];
-    return typeof value === "string" ? value : match;
-  });
-
-  if (context.response) {
-    processedUrl = processedUrl.replace(
-      /\{\{response\.(\w+)\}\}/g,
-      (match, key) => {
-        const value = context.response?.[key];
-        return typeof value === "string" || typeof value === "number"
-          ? String(value)
-          : match;
-      },
-    );
-  }
-
-  return processedUrl;
-}
-
 /** Where a submit goes, or what it lacks to go anywhere. */
 export type SubmitTarget = { url: string } | { missing: "url" | "token" };
 
@@ -191,8 +161,8 @@ export function resolveSubmitTarget(
   context: ReplaceUrlVariablesContext,
 ): SubmitTarget {
   if (!submitUrl) return { missing: "url" };
-  const url = replaceUrlVariables(submitUrl, context);
-  return url.includes("{{") ? { missing: "token" } : { url };
+  const url = resolveUrlVariables(submitUrl, context);
+  return url === undefined ? { missing: "token" } : { url };
 }
 
 function processBeforeStateMappers(
@@ -376,9 +346,9 @@ export function resolveSubmitDefaults(
 
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(submitDefaults)) {
-    if (typeof value === "string" && value.includes("{{")) {
-      const replaced = replaceUrlVariables(value, context);
-      if (replaced.includes("{{")) continue;
+    if (typeof value === "string" && hasUrlVariables(value)) {
+      const replaced = resolveUrlVariables(value, context);
+      if (replaced === undefined) continue;
       resolved[key] = replaced;
     } else {
       resolved[key] = value;
@@ -488,32 +458,35 @@ function watchFieldChanges(
   ) => void,
 ): void {
   if (!componentId) return;
+  const id = componentId;
   const previousValuesJson: Record<string, string> = {};
 
-  watch(
-    () => state.value,
-    (newState) => {
-      for (const fieldId of Object.keys(newState)) {
-        if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
+  // From mount, once `useWatch` listens: the values the form starts from
+  // (defaults, loaded row) reach the watch rules too, not only later edits.
+  onMounted(() => {
+    watch(() => state.value, sendChanges, { deep: true, immediate: true });
+  });
 
-        let newJson: string;
-        try {
-          newJson = JSON.stringify(newState[fieldId]);
-        } catch {
-          newJson = String(newState[fieldId]);
-        }
-        if (newJson !== previousValuesJson[fieldId]) {
-          sendComponentEvent(FormEvents.FIELD_CHANGE, componentId, {
-            fieldId,
-            value: newState[fieldId],
-            formValues: newState,
-          });
-          previousValuesJson[fieldId] = newJson;
-        }
+  function sendChanges(newState: Record<string, unknown>): void {
+    for (const fieldId of Object.keys(newState)) {
+      if (INTERNAL_STATE_KEYS.has(fieldId)) continue;
+
+      let newJson: string;
+      try {
+        newJson = JSON.stringify(newState[fieldId]);
+      } catch {
+        newJson = String(newState[fieldId]);
       }
-    },
-    { deep: true },
-  );
+      if (newJson !== previousValuesJson[fieldId]) {
+        sendComponentEvent(FormEvents.FIELD_CHANGE, id, {
+          fieldId,
+          value: newState[fieldId],
+          formValues: newState,
+        });
+        previousValuesJson[fieldId] = newJson;
+      }
+    }
+  }
 }
 
 /**
@@ -622,11 +595,9 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     resolveSubmitDefaults(props.submitDefaults, buildUrlContext()),
   );
 
-  const resolvedFetchUrl = computed(() => {
-    if (!props.fetchUrl) return undefined;
-    const url = replaceUrlVariables(props.fetchUrl, buildUrlContext());
-    return url.includes("{{") ? undefined : url;
-  });
+  const resolvedFetchUrl = computed(() =>
+    resolveUrlVariables(props.fetchUrl, buildUrlContext()),
+  );
 
   // A form that loaded a record and does not create one (a duplicate posts
   // the loaded values as a new row) updates it: only its changes are sent.
@@ -638,11 +609,11 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     if (!props.fetchUrl) return undefined;
 
     try {
-      const processedUrl = replaceUrlVariables(
+      const processedUrl = resolveUrlVariables(
         props.fetchUrl,
         buildUrlContext(),
       );
-      if (processedUrl.includes("{{")) return undefined;
+      if (processedUrl === undefined) return undefined;
 
       const fetchedData = await $authFetch<FormFetchResponse>(processedUrl, {
         method: props.fetchUrlMethod || "GET",
@@ -780,6 +751,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     );
   };
 
+  /** A submit the server accepted: nothing is left unsaved. */
+  const markSubmitSaved = (): void => {
+    submitSucceeded.value = true;
+    // A form sending something new each time starts over from the values it
+    // opened with; any other keeps what it saved as its new starting point.
+    if (props.kind === "action") restoreInitialValues();
+    else initialValues.value = snapshotFormState(state.value);
+    options.onSaved?.();
+  };
+
   const handleSubmitSuccess = async (
     response: FormSubmitResponse | undefined,
     plainData: FormData,
@@ -787,11 +768,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     showSubmitSuccessToast(response);
     showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
-    // A form sending something new each time starts over from the values it
-    // opened with; any other keeps what it saved as its new starting point.
-    if (props.kind === "action") restoreInitialValues();
-    else initialValues.value = snapshotFormState(state.value);
-    options.onSaved?.();
     if (props.redirectOnSuccess) {
       const target = replaceUrlVariables(
         props.redirectOnSuccess,
@@ -809,10 +785,16 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     });
   };
 
-  /** Sends a body to the submit URL, through the form's submit events. */
+  /**
+   * Sends a body to the submit URL, through the form's submit events.
+   * `onAccepted` runs once the server took it, before the success event goes
+   * out: what watches that event (a form page's way back to its list) finds
+   * the form with nothing unsaved, and leaves it without asking.
+   */
   const sendSubmit = async (
     submitUrl: string,
     body: FormData,
+    onAccepted?: () => void,
   ): Promise<FormSubmitResponse | undefined> => {
     let submitResponse: FormSubmitResponse | undefined;
     await executeSubmit(
@@ -823,6 +805,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
           headers: { [CONTENT_LANGUAGE_HEADER]: "*" },
         }).then((res) => {
           submitResponse = res;
+          onAccepted?.();
           return res;
         }),
       {
@@ -863,8 +846,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
 
     loading.value = true;
     try {
-      const response = await sendSubmit(target.url, plainData);
-      submitSucceeded.value = true;
+      const response = await sendSubmit(target.url, plainData, markSubmitSaved);
       await handleSubmitSuccess(response, plainData);
     } catch (error) {
       reportSubmitError(error);

@@ -44,6 +44,7 @@ describe("[unit] interfaces/dms-base — list and settings blocks in the catalog
       "fetchUrl",
       "groupByDay",
       "maxItems",
+      "fillHeight",
       "skeletonCount",
       "actions",
     );

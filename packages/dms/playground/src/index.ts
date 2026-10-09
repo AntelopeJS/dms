@@ -17,7 +17,6 @@ import "./stack";
 import "./nested";
 import "./notification";
 import "./page-extension";
-import "./invite-extension";
 import "./quick-actions";
 import "./primitives";
 import "./foundations";

@@ -2,6 +2,7 @@
 import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
+import DmsModalEscHint from "../../build/components/modal/ModalEscHint.vue";
 import {
   ConfirmActionError,
   type ConfirmBodyRender,
@@ -454,16 +455,14 @@ function handleCancel() {
 
     <template #footer>
       <div class="flex w-full items-center justify-end gap-2">
-        <span
-          class="text-dimmed me-auto hidden items-center gap-1.5 text-xs sm:flex"
-        >
-          <UKbd value="Esc" size="sm" />
-          {{
+        <DmsModalEscHint
+          class="max-sm:hidden"
+          :label="
             $t(
-              isSettled ? "dms.confirm.esc_close_hint" : "dms.confirm.esc_hint",
+              isSettled ? 'dms.confirm.esc_close_hint' : 'dms.confirm.esc_hint',
             )
-          }}
-        </span>
+          "
+        />
         <UButton
           :label="
             isSettled

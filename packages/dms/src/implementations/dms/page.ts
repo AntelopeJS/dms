@@ -41,6 +41,7 @@ import {
   clearPageMetadata,
   revokePageExtension,
 } from "@antelopejs/interface-dms/page/internal/categories";
+import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
 import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
   GetEffectiveUserPermissions,
@@ -422,6 +423,20 @@ export function GetCategoryPermissionIds(): Set<string> {
   return new Set(
     Object.values(categoriesByFullId).map((category) =>
       resolvePagePermissionId(category.permission, category.fullId),
+    ),
+  );
+}
+
+/**
+ * Permission ids of every registered menu entry, pages and categories alike,
+ * as opposed to the components and actions declared on a page. A permission
+ * editor uses them to keep listing the entries filed under one every member
+ * holds (the settings root).
+ */
+export function GetMenuEntryPermissionIds(): Set<string> {
+  return new Set(
+    [...Object.values(pagesBySlug), ...Object.values(categoriesByFullId)].map(
+      (entry) => resolvePagePermissionId(entry.permission, entry.fullId),
     ),
   );
 }
@@ -1125,8 +1140,8 @@ async function findRegisteredEntriesHiddenByPreview(
   ];
   const hidden: string[] = [];
   for (const entry of entries) {
-    if (!(await computeEntryAccess(entry, real))) continue;
-    if (!(await computeEntryAccess(entry, preview))) hidden.push(entry.fullId);
+    if (!(await listsEntry(entry, real))) continue;
+    if (!(await listsEntry(entry, preview))) hidden.push(entry.fullId);
   }
   return hidden;
 }
@@ -1522,7 +1537,26 @@ async function aggregatePreviewMenuStates(
       if (losing.has(target)) losesInside.add(entry);
     }
   }
-  return aggregatePreviewMenu(nodes, denied, losesInside);
+  return aggregatePreviewMenu(
+    nodes,
+    denied,
+    losesInside,
+    await findUniversalPreviewPages(pagesByFullId, contexts.real),
+  );
+}
+
+// The pages a set holding nothing still opens (`defaultGranted`): no role
+// changes them, so the preview judges them on their own page only.
+async function findUniversalPreviewPages(
+  pagesByFullId: Map<string, PageInfo>,
+  real: RequestAccessContext,
+): Promise<Set<string>> {
+  const empty = buildPreviewAccessContext(new Set(), real);
+  const universal = new Set<string>();
+  for (const [fullId, page] of pagesByFullId) {
+    if (await computeEntryAccess(page, empty)) universal.add(fullId);
+  }
+  return universal;
 }
 
 /**
@@ -1592,6 +1626,7 @@ interface NavigationEntry extends Partial<
     | "category"
     | "isModuleRoot"
     | "bypassTenantAccessGate"
+    | "layoutUrl"
   >
 > {
   fullId: string;
@@ -1936,7 +1971,7 @@ async function addAccessToTree(
   isRoot: boolean,
   dynamic: DynamicChildren,
 ): Promise<SiteLayoutTree> {
-  const hasAccess = isRoot ? true : await computeEntryAccess(node, context);
+  const isGranted = isRoot ? true : await computeEntryAccess(node, context);
 
   const childrenWithAccess = await buildChildrenWithAccess(
     node,
@@ -1947,21 +1982,71 @@ async function addAccessToTree(
   // Redacted like the flat registries: an unreachable branch keeps its shape
   // so its accessible descendants stay addressable, but stops carrying what
   // it is called and what it holds.
-  const visible = hasAccess ? node : redactPresentation(node);
+  const visible = isGranted ? node : redactPresentation(node);
 
   const dynamicChildren = dynamic.get(node.fullId);
-  if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
-    return { ...visible, hasAccess, children: childrenWithAccess };
-  }
   const children = dynamicChildren
     ? mergeDynamicChildren(node.fullId, childrenWithAccess, dynamicChildren)
     : childrenWithAccess;
+  const hasAccess =
+    isGranted &&
+    (isRoot ||
+      (leadsSomewhere(node, children) &&
+        !(await hidesEveryBlock(node, context))));
+  if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
+    return { ...visible, hasAccess, children };
+  }
   return {
     ...visible,
     hasAccess,
     children,
     childrenOrders: sortChildIdsByOrder(children),
   };
+}
+
+// A group opens no page of its own: granted, but with none of its entries
+// reachable, the menu would draw an entry that a click does nothing on. The
+// permission preview locks such a group (`aggregatePreviewMenu`); the member
+// it previews is not served it either. Its name stays, since it was granted.
+function leadsSomewhere(
+  node: SiteLayoutTree,
+  children: Record<string, SiteLayoutTree>,
+): boolean {
+  return !!node.layoutUrl || Object.values(children).some(reachesPage);
+}
+
+// An entry left out of the menu still leads to the pages nested under it that
+// keep their own entries.
+function reachesPage(node: SiteLayoutTree): boolean {
+  return (
+    node.hasAccess !== false || Object.values(node.children).some(reachesPage)
+  );
+}
+
+// A page showing the caller none of the blocks it declares is no menu entry:
+// it would only open on "nothing to show for you" (`allComponentsHidden`).
+// It stays reachable by its URL, and the pages nested under it keep their own
+// entries. A page declaring no block (a module page rendering its own
+// content) is never left out this way.
+async function hidesEveryBlock(
+  entry: NavigationEntry,
+  context: RequestAccessContext,
+): Promise<boolean> {
+  if (!entry.layoutUrl) return false;
+  const effective = selectEntryContext(entry, context);
+  if (effective.isOwner) return false;
+  const page = pageMetadataByFullId.get(entry.fullId);
+  return (await page?.HidesEveryComponent(effective.permissions)) ?? false;
+}
+
+// Whether the menu draws an entry: one the caller may open, and that shows
+// them something. The permission preview locks what the set would not list.
+async function listsEntry(
+  entry: NavigationEntry,
+  context: RequestAccessContext,
+): Promise<boolean> {
+  if (!(await computeEntryAccess(entry, context))) return false;
+  return !(await hidesEveryBlock(entry, context));
 }
 
 // The container `addToTree` creates for a missing category, or the one

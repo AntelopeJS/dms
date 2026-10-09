@@ -1,8 +1,10 @@
 import { assertValidation } from "@antelopejs/interface-api-util";
+import { GetModel } from "@antelopejs/interface-database-decorators";
 import { sendEmailForgotEmail } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import randomstring from "randomstring";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import { SignInAttemptsModel } from "../../db/models/signInAttempts.model";
 import { authSchema } from "../../validation/auth.schema";
 
 const RATE_LIMIT_MS = 60 * 1000;
@@ -33,6 +35,7 @@ export async function forgotPassword(
   user.forgotPasswordRequestedAt = new Date();
 
   await userModel.update(user);
+  await GetModel(SignInAttemptsModel).clearResetCodeAttempts(user._id);
 
   fireAndForget(
     sendEmailForgotEmail(user),

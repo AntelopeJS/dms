@@ -5,18 +5,13 @@ import {
   TenantMemberModel,
   type UserInvite,
 } from "@antelopejs/interface-dms/db";
-import {
-  announceRegistration,
-  sendEmailValidationEmail,
-} from "@antelopejs/interface-dms/auth";
+import { announceRegistration } from "@antelopejs/interface-dms/auth";
 import type {
   SessionModel,
+  User,
   UserModel,
 } from "@antelopejs/interface-dms/auth/db";
-import randomstring from "randomstring";
-import { getAuthConfig } from "../../config";
 import { generateAuthKey } from "../../utils/auth-key";
-import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import type { ClientOrigin } from "../../utils/sign-in-country";
 import { rememberSignInDevice } from "../../utils/sign-in-monitor";
 import { authSchema } from "../../validation/auth.schema";
@@ -24,25 +19,25 @@ import { consumeInvite, resolveValidInvite } from "./invite";
 import { issueAuthResponse } from "./session-response";
 import type { AuthResponse } from "./types";
 
-const VALIDATION_TOKEN_LENGTH = 6;
 const DEFAULT_LANGUAGE = "en";
 
-function buildValidationFields(invite: UserInvite) {
-  const config = getAuthConfig();
-  const shouldValidate =
-    config.mustValidateEmail && !invite.skipEmailValidation;
+type ValidationFields = Pick<
+  User,
+  "isValidated" | "validationToken" | "validationRequestedAt"
+>;
 
-  return {
-    isValidated: invite.skipEmailValidation || false,
-    validationToken: shouldValidate
-      ? randomstring.generate({
-          length: VALIDATION_TOKEN_LENGTH,
-          capitalization: "uppercase",
-        })
-      : undefined,
-    validationRequestedAt: shouldValidate ? new Date() : undefined,
-  };
-}
+/**
+ * An invitation signup is the address's validation, whatever
+ * `auth.mustValidateEmail` says: the link reached the invitee through that
+ * very mailbox, and an admin who copied it by hand vouches for the address. A
+ * second round would only mail the invitee what the invitation already
+ * proved. A draft taken over drops the token of the round it had started.
+ */
+const INVITE_SIGNUP_VALIDATION: ValidationFields = {
+  isValidated: true,
+  validationToken: null,
+  validationRequestedAt: null,
+};
 
 /**
  * The language a signup account starts in: the one the invitee chose on the
@@ -69,7 +64,6 @@ async function createNewUser(
   userModel: UserModel,
   { name, email, password, lang, invite }: SignupAccount,
 ) {
-  const validation = buildValidationFields(invite);
   const result = await userModel.insert({
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -77,7 +71,7 @@ async function createNewUser(
     email: email.toLowerCase(),
     password,
     authKey: generateAuthKey(),
-    ...validation,
+    ...INVITE_SIGNUP_VALIDATION,
     owner: false,
     language: signupLanguage(lang, invite),
   });
@@ -89,16 +83,16 @@ async function overwriteUnvalidatedUser(
   existingUser: NonNullable<Awaited<ReturnType<UserModel["get"]>>>,
   { name, email, password, lang, invite }: SignupAccount,
 ) {
-  const validation = buildValidationFields(invite);
   existingUser.createdAt = new Date();
   existingUser.updatedAt = new Date();
   existingUser.name = name;
   existingUser.email = email.toLowerCase();
   existingUser.password = password;
   existingUser.authKey = generateAuthKey();
-  existingUser.validationToken = validation.validationToken as string;
-  existingUser.validationRequestedAt = validation.validationRequestedAt as Date;
-  existingUser.isValidated = validation.isValidated;
+  existingUser.isValidated = INVITE_SIGNUP_VALIDATION.isValidated;
+  existingUser.validationToken = INVITE_SIGNUP_VALIDATION.validationToken;
+  existingUser.validationRequestedAt =
+    INVITE_SIGNUP_VALIDATION.validationRequestedAt;
   existingUser.language = signupLanguage(lang, invite);
 
   await userModel.update(existingUser);
@@ -171,8 +165,6 @@ export async function signup(
     authSchema.signup.parse(v),
   );
 
-  const config = getAuthConfig();
-
   // The invitation is settled first so that a caller holding no invitation
   // learns nothing: taking the account first answers an anonymous prober,
   // whose bogus token then draws one refusal for a known address and another
@@ -194,15 +186,6 @@ export async function signup(
 
   const refreshedUser = await userModel.get(user._id);
   assert(refreshedUser, 500, `New user not found : \nID:${user._id}`);
-
-  const shouldSendValidation =
-    config.mustValidateEmail && !existingInvite.skipEmailValidation;
-  if (shouldSendValidation) {
-    fireAndForget(
-      sendEmailValidationEmail(refreshedUser),
-      `validation email to "${refreshedUser.email}"`,
-    );
-  }
 
   await announceRegistration(userModel, refreshedUser, tenantId);
   await rememberSignInDevice(refreshedUser._id, userAgent, origin);

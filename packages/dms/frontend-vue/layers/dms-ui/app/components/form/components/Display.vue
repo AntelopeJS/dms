@@ -8,6 +8,10 @@ interface DisplayProps {
 }
 
 const props = defineProps<DisplayProps>();
+// The field's options, spread on the display as on its input: the
+// formatter reads them as a table cell does (a status' labels and tones,
+// a select's items).
+const options = useAttrs();
 
 const { getDataType } = useDataTypes();
 const { locale, t } = useI18n();
@@ -29,7 +33,7 @@ const formattedValue = computed(() => {
   if (isEmptyValue(props.modelValue)) return EMPTY_FALLBACK;
   const formatter = dataType.value?.formatter?.default;
   if (!formatter) return String(props.modelValue);
-  return formatter(props.modelValue, locale.value, props);
+  return formatter(props.modelValue, locale.value, options);
 });
 
 const isVNodeValue = computed(() => isVNode(formattedValue.value));

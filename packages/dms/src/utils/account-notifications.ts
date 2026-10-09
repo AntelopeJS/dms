@@ -61,6 +61,11 @@ const templates = {
     "i-ph-warning-octagon",
     "error",
   ),
+  twoFactorLockout: securityTemplate(
+    "two_factor_lockout",
+    "i-ph-shield-warning",
+    "error",
+  ),
   welcome: {
     icon: "i-ph-hand-waving",
     subject: AccountSubject,
@@ -128,7 +133,7 @@ export function notifyPasswordChanged(userId: string): Promise<void> {
   return emitNotification(userId, templates.passwordChanged);
 }
 
-/** @param email Address the recovery link was sent to */
+/** @param email Address the reset code was sent to */
 export function notifyPasswordReset(
   userId: string,
   email: string,
@@ -220,6 +225,29 @@ export function notifyFailedSignIns(
   return emitNotification(userId, templates.failedSignIns, {
     params: { count, minutes: windowMinutes },
     descriptionKey: hasTwoFactor ? "description_two_factor" : "description",
+  });
+}
+
+/** Details of a burst of two-factor codes that reached the account's limit. */
+export interface TwoFactorLockoutAlert {
+  count: number;
+  windowMinutes: number;
+}
+
+/**
+ * Warns that someone gave the account's password, then too many two-factor
+ * codes.
+ *
+ * @param burstId Identity of the burst, so it is reported once
+ */
+export function notifyTwoFactorLockout(
+  userId: string,
+  { count, windowMinutes }: TwoFactorLockoutAlert,
+  burstId: string,
+): Promise<void> {
+  return emitNotification(userId, templates.twoFactorLockout, {
+    params: { count, minutes: windowMinutes },
+    idempotencyKey: `two-factor-lockout:${burstId}`,
   });
 }
 

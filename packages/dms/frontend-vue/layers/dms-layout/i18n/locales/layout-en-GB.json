@@ -100,6 +100,10 @@
       "no_content_title": "No content available",
       "no_content_message": "This page has not been configured yet. Please contact the administrator."
     },
+    "no_visible_blocks": {
+      "title": "Nothing to show for you here",
+      "description": "Your role doesn’t let you see any part of this page. Ask a workspace owner for access."
+    },
     "settings": {
       "title": "Settings",
       "intro": "Your profile, security and preferences, and the people and roles of this workspace.",
@@ -161,6 +165,8 @@
         "soon": "Soon",
         "category_switch": "All {name} notifications",
         "category_count": "{count} of {total} on",
+        "category_expand": "Show {name} notifications",
+        "category_collapse": "Hide {name} notifications",
         "locked_hint": "Required for account safety",
         "email_hint": "Only in-app notifications are available today. Email delivery is on the way.",
         "save_failed_on": "Couldn’t save — the switch was turned back on.",
@@ -275,8 +281,6 @@
             "language": "Invitation language",
             "tenant_owner": "Make workspace owner",
             "tenant_owner_description": "Owners have every permission, including billing, roles and removing members. Roles above are ignored. A workspace can have several owners.",
-            "skip_email_validation": "Skip email validation",
-            "skip_email_validation_description": "If enabled, the invited user will not need to verify their email address and their first and last name must be provided",
             "emails": "Email addresses",
             "emails_description": "Paste a list to invite several people with the same roles.",
             "language_description": "The language of the email and of their account.",
@@ -291,20 +295,18 @@
             "name": "Nicolas Petit"
           },
           "roles_required": "At least one role is required when the user is not an owner",
-          "firstname_required": "First name is required when email validation is skipped",
-          "lastname_required": "Last name is required when email validation is skipped",
           "already_member": "Already a member of this workspace",
           "header_button": "Invite members",
           "partial_title": "Invitations sent: {sent}",
           "partial_description": "{count} address was skipped: already a member or refused. | {count} addresses were skipped: already members or refused.",
           "roles_owner_hint": "Owners have every permission: the roles are ignored.",
+          "roles_owner_level": "{roles} amounts to owner-level access: whoever holds it can make themselves an owner. | {roles} amount to owner-level access: whoever holds them can make themselves an owner.",
           "roles_hint_empty": "Pick at least one role.",
           "roles_hint": "{roles}: {count} of {total} permissions.",
           "compare_roles": "Compare roles",
           "no_roles": "No role yet. Create one in Roles & permissions.",
           "emails_required": "Add at least one email address",
           "emails_too_many": "Invite at most 50 people at a time",
-          "skip_validation_single_email": "Email validation can only be skipped for one person at a time",
           "failed": "The invitation could not be sent"
         },
         "action": {
@@ -351,7 +353,6 @@
         "two_factor_on": "On",
         "two_factor_off": "Off",
         "footer_count": "No members | {count} member | {count} members",
-        "last_active_hint": "“Last active” is the last time they used the dashboard.",
         "confirm": {
           "close": "Close"
         },
@@ -392,7 +393,6 @@
           "roles": "Roles",
           "owner": "Owner",
           "language": "Language",
-          "skip_email_validation": "Skip email validation",
           "status": "Status",
           "created_at": "Sent at",
           "expires_at": "Expires at",
@@ -402,9 +402,6 @@
         "placeholder": {
           "email": "email{'@'}example.com",
           "roles": "Select roles"
-        },
-        "description": {
-          "skip_email_validation": "If enabled, the invited user will not need to verify their email"
         },
         "status": {
           "pending": "Pending",
@@ -439,8 +436,7 @@
         },
         "search": "Search invitations",
         "sent_by": "{date} · by {name}",
-        "footer_count": "No invitations | {count} invitation | {count} invitations",
-        "expiry_hint": "Invitations expire 7 days after they’re sent."
+        "footer_count": "No invitations | {count} invitation | {count} invitations"
       },
       "roles": {
         "table": {
@@ -503,6 +499,9 @@
           "requires": "Requires {name}",
           "auto_added": "{name} added automatically",
           "auto_added_many": "{count} added automatically",
+          "owner_level": "Owner-level access",
+          "owner_level_title": "This role amounts to owner-level access",
+          "owner_level_description": "Through {names}, anyone holding it can make themselves an owner or grant themselves any permission.",
           "not_grantable": "You don’t hold this permission, so you can’t grant it.",
           "search_empty": "No permission matches “{query}”.",
           "no_permissions": "No permission is registered yet.",
@@ -558,6 +557,13 @@
           "in_use": "Members or pending invites still hold this role.",
           "invalid_reassign": "Pick another role to move its members to.",
           "not_created": "The role could not be created."
+        },
+        "warning": {
+          "members": "Anyone with this access can change any member’s roles and make anyone an owner, themselves included. It amounts to owner-level access.",
+          "invites": "Anyone with this access can invite people, or change pending invitations, with any role or as owners. It amounts to owner-level access.",
+          "roles": "Anyone with this access can change what every role grants, their own included. It amounts to owner-level access.",
+          "roles_add": "Anyone with this access can create a role that grants any permission, everything included. It amounts to owner-level access.",
+          "roles_delete": "Anyone with this access can delete a role and move its members to any other role, a stronger one included. It amounts to owner-level access."
         }
       },
       "appearance": {
@@ -880,5 +886,12 @@
   },
   "widgets_dock": {
     "show": "Show the widgets"
+  },
+  "github_star_prompt": {
+    "title": "Enjoying the AntelopeJS DMS?",
+    "description": "The DMS is open source. If it helped you today, a GitHub star helps other developers find it.",
+    "star": "Star on GitHub",
+    "later": "Later",
+    "close": "Don't show again"
   }
 }

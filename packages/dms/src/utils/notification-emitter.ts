@@ -12,7 +12,7 @@ export const NOTIFICATION_LINKS = {
   settings: "/settings",
   security: "/settings/user/security",
   members: "/settings/workspace/members",
-  invites: "/settings/workspace/members/invites",
+  invites: "/settings/workspace/invites",
   roles: "/settings/workspace/roles",
 } as const;
 

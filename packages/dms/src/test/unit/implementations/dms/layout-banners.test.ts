@@ -18,6 +18,7 @@ import { internal as pageInterfaceInternal } from "@antelopejs/interface-dms/pag
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { LayoutBannerSerialized } from "../../../../implementations/dms/layout-banners";
 import {
@@ -90,6 +91,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         dismissible: false,
         icon: undefined,
         text: "$banner.always",
+        actions: undefined,
         component: undefined,
         props: undefined,
       },
@@ -188,7 +190,10 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
 
     expect(await bannerKeys(DENIED_TENANT)).to.deep.equal(["suspended"]);
     expect(seen?.isTenantAccessDenied).to.equal(true);
-    expect([...(seen?.permissions ?? [])]).to.deep.equal([GRANTED_PERMISSION]);
+    // The role's own set, as the role routes store it: the page and its category.
+    expect([...(seen?.permissions ?? [])].sort()).to.deep.equal(
+      withPermissionAncestors([GRANTED_PERMISSION]).sort(),
+    );
     expect(await bannerKeys()).to.deep.equal([]);
   });
 
@@ -232,6 +237,95 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
 
     expect(await bannerKeys()).to.deep.equal([]);
   });
+
+  it("serves a composed text and its buttons as registered", async () => {
+    const text = {
+      key: "banner.maintenance",
+      params: { date: { type: "date" as const, value: "2026-10-10" } },
+    };
+    const actions = [{ label: "$banner.details", to: "/status" }];
+    disposers.push(
+      RegisterLayoutBanner({
+        key: "composed",
+        variant: "info",
+        text,
+        actions,
+      }),
+    );
+
+    const [banner] = await bannersFor();
+    expect(banner?.text).to.deep.equal(text);
+    expect(banner?.actions).to.deep.equal(actions);
+  });
+
+  it("builds the content of a resolved banner per request", async () => {
+    const seen: string[] = [];
+    disposers.push(
+      RegisterLayoutBanner({
+        key: "past-due",
+        variant: "error",
+        resolve: async ({ tenantId }) => {
+          seen.push(tenantId);
+          if (tenantId !== TENANT) return undefined;
+          return {
+            text: {
+              key: "saas.banner.past_due",
+              params: {
+                amount: { type: "money", value: 2900, currency: "EUR" },
+              },
+            },
+            actions: [{ label: "$saas.banner.pay", to: "/billing?pay=1" }],
+          };
+        },
+      }),
+    );
+
+    expect(await bannersFor()).to.deep.equal([
+      {
+        key: "past-due",
+        variant: "error",
+        order: 0,
+        dismissible: false,
+        icon: undefined,
+        text: {
+          key: "saas.banner.past_due",
+          params: { amount: { type: "money", value: 2900, currency: "EUR" } },
+        },
+        actions: [{ label: "$saas.banner.pay", to: "/billing?pay=1" }],
+      },
+    ]);
+    expect(await bannerKeys("another-tenant")).to.deep.equal([]);
+    expect(seen).to.deep.equal([TENANT, "another-tenant"]);
+  });
+
+  it("hides a resolved banner whose resolver throws, hangs or answers no text", async () => {
+    disposers.push(
+      RegisterLayoutBanner({
+        key: "throws",
+        variant: "info",
+        resolve: () => {
+          throw new Error("boom");
+        },
+      }),
+      RegisterLayoutBanner({
+        key: "empty",
+        variant: "info",
+        resolve: () => ({ text: "" }),
+      }),
+      RegisterLayoutBanner({
+        key: "hangs",
+        variant: "info",
+        resolve: () => new Promise(() => undefined),
+      }),
+      RegisterLayoutBanner({
+        key: "healthy",
+        variant: "info",
+        resolve: () => ({ text: "$banner.ok" }),
+      }),
+    );
+
+    expect(await bannerKeys()).to.deep.equal(["healthy"]);
+  }).timeout(RESOLVER_TIMEOUT_MS * 3);
 
   it("replaces a banner re-registered under the same key, and drops it on dispose", async () => {
     RegisterLayoutBanner({ key: "same", variant: "info", text: "first" });

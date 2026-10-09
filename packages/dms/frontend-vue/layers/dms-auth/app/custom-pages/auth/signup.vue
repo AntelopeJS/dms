@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTemplateRef } from "vue";
+import { onMounted, useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
@@ -15,14 +15,70 @@ import {
   useLiveFormErrors,
   useLocalizedSchema,
 } from "#dms-core/app/composables/useFormValidation";
+import { resolveApiErrorMessage } from "#dms-core/app/composables/useApiError";
 
 const MIN_NAME_LENGTH = 2;
+
+/** Why an invitation link cannot open the signup form. */
+type ClosedInvitation = "invalid" | "expired" | "revoked" | "replaced" | "used";
+type InvitationState = "checking" | "open" | ClosedInvitation;
+
+interface ClosedInvitationNotice {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+// The refusals the server gives a link it would not sign up with.
+const CLOSED_INVITATION_CODES: Record<string, ClosedInvitation> = {
+  "error.invalid_token": "invalid",
+  "error.invite_expired": "expired",
+  "error.invite_revoked": "revoked",
+  "error.invite_replaced": "replaced",
+  "error.invite_used": "used",
+};
+
+const CLOSED_INVITATION_NOTICES: Record<
+  ClosedInvitation,
+  ClosedInvitationNotice
+> = {
+  invalid: {
+    icon: "i-ph-link-break",
+    title: "page.signup.invalid_invitation_title",
+    description: "page.signup.invalid_invitation_description",
+  },
+  expired: {
+    icon: "i-ph-hourglass",
+    title: "page.signup.invitation_expired_title",
+    description: "page.signup.invitation_expired_description",
+  },
+  revoked: {
+    icon: "i-ph-prohibit",
+    title: "page.signup.invitation_revoked_title",
+    description: "page.signup.invitation_revoked_description",
+  },
+  replaced: {
+    icon: "i-ph-envelope-simple",
+    title: "page.signup.invitation_replaced_title",
+    description: "page.signup.invitation_replaced_description",
+  },
+  used: {
+    icon: "i-ph-user-check",
+    title: "page.signup.invitation_used_title",
+    description: "page.signup.invitation_used_description",
+  },
+};
+
+function closedInvitationOf(error: unknown): ClosedInvitation | undefined {
+  return CLOSED_INVITATION_CODES[resolveApiErrorMessage(error)];
+}
 
 const { locale, locales, setLocale } = useI18n();
 const config = useDmsRuntimeConfig();
 const homepage = useHomepage();
 const dmsApp = useDmsApp();
 const { formError, clearFormError, showError } = useAuthFormError();
+const { $authFetch } = useAuthFetch();
 const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
@@ -34,6 +90,34 @@ const queryName = computed(() => route.query.name as string | undefined);
 const hasInvitationToken = computed(
   () => typeof queryToken.value === "string" && queryToken.value !== "",
 );
+
+const invitationState = ref<InvitationState>(
+  hasInvitationToken.value ? "checking" : "invalid",
+);
+const closedInvitation = computed(() =>
+  invitationState.value in CLOSED_INVITATION_NOTICES
+    ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
+    : undefined,
+);
+
+// A revoked, replaced or expired link says so as the page opens, rather than
+// after the whole form was filled. The server answers with the very check the
+// signup runs; any other failure leaves the form to the signup to settle.
+async function checkInvitation(): Promise<void> {
+  try {
+    await $authFetch("/api/auth/validate-invite-token", {
+      method: "POST",
+      body: { token: queryToken.value, email: queryEmail.value },
+    });
+    invitationState.value = "open";
+  } catch (error: unknown) {
+    invitationState.value = closedInvitationOf(error) ?? "open";
+  }
+}
+
+onMounted(() => {
+  if (invitationState.value === "checking") void checkInvitation();
+});
 
 // The invitation link carries the language the invitee was invited in: the
 // page opens in it, and the footer switcher still lets them pick another one
@@ -80,6 +164,12 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       ),
     );
   } catch (error: unknown) {
+    // The invitation can be retired while the form is open.
+    const closed = closedInvitationOf(error);
+    if (closed) {
+      invitationState.value = closed;
+      return;
+    }
     // A refused value (an address already used) shows under its field;
     // anything else above the form.
     await showError(error, "page.signup.error_title", {
@@ -95,11 +185,11 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
 
 <template>
   <StageCard
-    v-if="!hasInvitationToken"
-    icon="i-ph-link-break"
+    v-if="closedInvitation"
+    :icon="closedInvitation.icon"
     tone="warning"
-    :title="$t('page.signup.invalid_invitation_title')"
-    :description="$t('page.signup.invalid_invitation_description')"
+    :title="$t(closedInvitation.title)"
+    :description="$t(closedInvitation.description)"
     data-testid="signup-invalid-invitation"
   >
     <UButton
@@ -110,6 +200,16 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
       block
     />
   </StageCard>
+
+  <StageCard
+    v-else-if="invitationState === 'checking'"
+    icon="i-ph-spinner"
+    icon-class="animate-spin"
+    tone="neutral"
+    :title="$t('page.signup.create_account_title')"
+    :description="$t('page.signup.checking_invitation')"
+    data-testid="signup-checking-invitation"
+  />
 
   <StageCard
     v-else

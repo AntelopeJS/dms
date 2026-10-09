@@ -30,6 +30,7 @@ const { state: watchState } = useWatch(
 );
 const { data: fetchedBadges } = useChartFetch<TabBadges>({
   fetchUrl: props.badgesUrl,
+  routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
 });
 const { locale } = useI18n();

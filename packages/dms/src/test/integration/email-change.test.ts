@@ -11,6 +11,7 @@ import {
   registerUser,
 } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { findUserByEmail, updateUserByEmail } from "../helpers/fixtures";
 
 // Changing the sign-in email proves the new address with a code sent there,
 // and warns the current one; the account moves only once the code comes back.
@@ -21,6 +22,8 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_TOO_MANY_REQUESTS = 429;
 const CODE_TEMPLATE = "EmailChangeVerification";
 const NOTICE_TEMPLATE = "EmailChangeNotice";
+const MAX_CODE_ATTEMPTS = 5;
+const TOO_MANY_ATTEMPTS = "error.email_change_too_many_attempts";
 const POLL_INTERVAL_MS = 20;
 const POLL_ATTEMPTS = 50;
 
@@ -90,6 +93,9 @@ describe("[integration] sign-in email change", () => {
       currentPassword: user.password,
     });
 
+  const confirm = (code: string) =>
+    client.post(`${SECURITY}/email/confirm`, { code });
+
   before(captureRenderedEmails);
 
   beforeEach(async () => {
@@ -132,6 +138,46 @@ describe("[integration] sign-in email change", () => {
   it("sends the codes at most once a minute", async () => {
     await request();
     expect((await request()).status).to.equal(HTTP_TOO_MANY_REQUESTS);
+  });
+
+  it("keeps the once-a-minute limit through a cancel", async () => {
+    await request();
+    await client.delete(`${SECURITY}/email/pending`);
+    expect((await request()).status).to.equal(HTTP_TOO_MANY_REQUESTS);
+  });
+
+  it("sends one code a minute to an address, whatever the account", async () => {
+    await request();
+    const other = await registerUser();
+    const otherRequest = await authorizedClient(other.accessToken).post(
+      `${SECURITY}/email`,
+      { email: newEmail, currentPassword: other.password },
+    );
+    expect(otherRequest.status).to.equal(HTTP_TOO_MANY_REQUESTS);
+  });
+
+  it("burns the code after too many tries, the right one included", async () => {
+    await request();
+    const code = await codeSentTo(newEmail);
+    const wrong = code === "000000" ? "000001" : "000000";
+    for (let attempt = 1; attempt < MAX_CODE_ATTEMPTS; attempt++) {
+      expect((await confirm(wrong)).status).to.equal(HTTP_BAD_REQUEST);
+    }
+    const burnt = await confirm(wrong);
+    expect(burnt.status).to.equal(HTTP_TOO_MANY_REQUESTS);
+    expect(burnt.data).to.equal(TOO_MANY_ATTEMPTS);
+
+    expect((await confirm(code)).status).to.equal(HTTP_BAD_REQUEST);
+    expect(await currentEmail()).to.equal(user.email);
+    expect((await client.get(SECURITY)).data.pendingEmail).to.equal(null);
+  });
+
+  it("marks the new address validated: the code proves it", async () => {
+    await updateUserByEmail(user.email, { isValidated: false });
+    await request();
+    const confirmed = await confirm(await codeSentTo(newEmail));
+    expect(confirmed.status, JSON.stringify(confirmed.data)).to.equal(HTTP_OK);
+    expect((await findUserByEmail(newEmail)).isValidated).to.equal(true);
   });
 
   it("drops a cancelled change", async () => {

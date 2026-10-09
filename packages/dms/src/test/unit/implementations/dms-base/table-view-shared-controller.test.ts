@@ -9,6 +9,7 @@ import {
   TableViewMeta,
   type TableViewOptionsSerialized,
 } from "@antelopejs/interface-dms/base/table-view";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const ARCHIVE_FIELD = "archived";
 const VIEW_ARCHIVED_ACTION = "viewArchived";
@@ -122,7 +123,7 @@ describe("[unit] implementations/dms-base — data controller shared by several 
       instance,
       requestShowingArchived(),
       undefined,
-      new Set([ARCHIVING_TABLE_PERMISSION]),
+      new Set(withPermissionAncestors([ARCHIVING_TABLE_PERMISSION])),
       {},
     );
     expect(filters).to.have.property(ARCHIVE_FIELD);
