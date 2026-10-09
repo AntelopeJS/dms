@@ -1,6 +1,7 @@
 import { type Component, defineAsyncComponent } from "vue";
 import type { DmsFrontendModule } from "#dms/frontend-module";
 import appWidgetDemoPlugin from "./app/plugins/app-widget-demo";
+import commandPaletteAssistantDemoPlugin from "./app/plugins/command-palette-assistant-demo.client";
 import dmsPageSetupDemoPlugin from "./app/plugins/dms-page-setup-demo.client";
 import sidePanelDemoPlugin from "./app/plugins/side-panel-demo";
 import sidebarWidgetDemoPlugin from "./app/plugins/sidebar-widget-demo";
@@ -20,6 +21,7 @@ function componentName(path: string): string {
 const playgroundFrontend: DmsFrontendModule = {
   setup(sdk) {
     sdk.registerPlugin(appWidgetDemoPlugin);
+    sdk.registerPlugin(commandPaletteAssistantDemoPlugin, { clientOnly: true });
     sdk.registerPlugin(dmsPageSetupDemoPlugin, { clientOnly: true });
     sdk.registerPlugin(sidePanelDemoPlugin);
     sdk.registerPlugin(sidebarWidgetDemoPlugin);

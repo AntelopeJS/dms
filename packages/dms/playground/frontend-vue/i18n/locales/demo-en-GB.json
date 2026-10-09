@@ -128,6 +128,23 @@
       "empty_filtered_description": "Try another procedure name, or clear the filters.",
       "empty_docs": "Open the automation docs"
     },
+    "assistant": {
+      "label": "Assistant",
+      "placeholder": "Ask the demo assistant anything…",
+      "suggestions": {
+        "churn": "Which customers churned last month?",
+        "block": "Add a “Top customers” block to this page",
+        "order": "Why is order #10482 still pending?"
+      },
+      "answer": {
+        "eyebrow": "Read-only demo",
+        "echo": "You asked: “{prompt}”. This demo assistant only echoes the question; a real module answers it here, or hands it off to its own interface.",
+        "open": "Open the overview",
+        "copy": "Copy the question",
+        "copied": "Question copied",
+        "copyFailed": "Copy failed"
+      }
+    },
     "side_panel": {
       "toggle": "Toggle the demo side panel",
       "title": "Side panel demo",

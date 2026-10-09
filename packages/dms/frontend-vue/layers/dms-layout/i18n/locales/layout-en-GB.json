@@ -70,7 +70,21 @@
     "footer": {
       "navigate": "Navigate",
       "open": "Open",
-      "close": "Close"
+      "close": "Close",
+      "send": "Send",
+      "askAi": "Ask AI",
+      "backToSearch": "Back to search"
+    },
+    "assistant": {
+      "placeholder": "Ask anything about your workspace…",
+      "ask": "Ask the assistant “{query}”",
+      "send": "Ask “{prompt}”",
+      "suggestions": "Try asking",
+      "emptyPrompt": "Type a question, then press Enter to send it.",
+      "loading": "The assistant is answering…",
+      "failed": "The assistant could not answer. Edit the question to try again.",
+      "modeAssistant": "Assistant mode. Type a question and press Enter. Tab returns to search.",
+      "modeSearch": "Search mode."
     }
   },
   "notification": {

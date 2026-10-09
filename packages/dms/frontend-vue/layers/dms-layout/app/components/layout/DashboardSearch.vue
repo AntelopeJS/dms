@@ -1,7 +1,59 @@
 <script setup lang="ts">
+import { computed, nextTick, useTemplateRef } from "vue";
+import CommandPaletteAssistantAnswer from "../../build/components/layout/CommandPaletteAssistantAnswer.vue";
+import { ASSISTANT_MODE_KEY } from "../../build/composables/command-palette/assistantGroups";
+import { useCommandPaletteAssistantMode } from "../../build/composables/command-palette/useCommandPaletteAssistantMode";
+
 const { t } = useI18n();
-const { groups } = useCommandPaletteGroups();
+const appConfig = useDmsAppConfig();
+const { groups: sourceGroups } = useCommandPaletteGroups();
 const fuse = COMMAND_PALETTE_FUSE_OPTIONS;
+const {
+  isOpen,
+  searchTerm,
+  assistant,
+  isAssistantMode,
+  answer,
+  groups,
+  announcement,
+  setMode,
+  onInputKeydown,
+} = useCommandPaletteAssistantMode(sourceGroups);
+
+const footerRef = useTemplateRef<HTMLElement>("footer");
+const input = { onKeydown: onInputKeydown };
+// The halo eases between the accent ring and the violet assistant ring.
+const MODAL_TRANSITION_CLASS = "transition-shadow duration-300";
+// In assistant mode, the empty slot holds the DMS's own padded states.
+const ASSISTANT_EMPTY_CLASS = "p-0 text-start";
+const SEARCH_UI = { modal: MODAL_TRANSITION_CLASS };
+const ASSISTANT_UI = {
+  modal: `${MODAL_TRANSITION_CLASS} shadow-[var(--dms-shadow-cmdk),var(--dms-assistant-halo)]`,
+  input: "[&_input]:caret-secondary [&_[data-slot=leadingIcon]]:text-secondary",
+  empty: ASSISTANT_EMPTY_CLASS,
+};
+
+const paletteUi = computed(() =>
+  isAssistantMode.value ? ASSISTANT_UI : SEARCH_UI,
+);
+
+/** Brings focus back to the prompt after the control that held it goes away. */
+async function focusInput(): Promise<void> {
+  await nextTick();
+  footerRef.value
+    ?.closest('[role="dialog"]')
+    ?.querySelector<HTMLInputElement>("input")
+    ?.focus();
+}
+
+function switchMode(): void {
+  setMode(isAssistantMode.value ? "search" : "assistant");
+  void focusInput();
+}
+
+function close(): void {
+  isOpen.value = false;
+}
 </script>
 
 <template>
@@ -9,26 +61,76 @@ const fuse = COMMAND_PALETTE_FUSE_OPTIONS;
        leaving these props out exposes those raw keys as the dialog's
        accessible name. -->
   <UDashboardSearch
+    v-model:open="isOpen"
+    v-model:search-term="searchTerm"
     :groups="groups"
     :fuse="fuse"
+    :color-mode="!isAssistantMode"
+    :input="input"
+    :icon="isAssistantMode ? assistant?.icon : undefined"
+    :placeholder="isAssistantMode ? assistant?.placeholder : undefined"
+    :ui="paletteUi"
     :title="t('commandPalette.dialog.title')"
     :description="t('commandPalette.dialog.description')"
   >
+    <template v-if="assistant && isAssistantMode" #empty>
+      <CommandPaletteAssistantAnswer
+        v-if="answer"
+        :key="answer.id"
+        :label="assistant.label"
+        :icon="assistant.icon"
+        :component="assistant.answerComponent"
+        :prompt="answer.prompt"
+        :close="close"
+      />
+      <p v-else class="text-muted px-6 py-8 text-center text-sm">
+        {{ t("commandPalette.assistant.emptyPrompt") }}
+      </p>
+    </template>
+
     <!-- v2 footer band: the keys that drive the palette. -->
     <template #footer>
-      <span class="inline-flex items-center gap-1.5">
-        <UKbd value="↑" size="sm" />
-        <UKbd value="↓" size="sm" />
-        {{ t("commandPalette.footer.navigate") }}
+      <span ref="footer" class="sr-only" aria-live="polite">
+        {{ announcement }}
       </span>
-      <span class="inline-flex items-center gap-1.5">
+      <span v-if="isAssistantMode" class="inline-flex items-center gap-1.5">
         <UKbd value="↵" size="sm" />
-        {{ t("commandPalette.footer.open") }}
+        {{ t("commandPalette.footer.send") }}
       </span>
+      <template v-else>
+        <span class="inline-flex items-center gap-1.5">
+          <UKbd value="↑" size="sm" />
+          <UKbd value="↓" size="sm" />
+          {{ t("commandPalette.footer.navigate") }}
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <UKbd value="↵" size="sm" />
+          {{ t("commandPalette.footer.open") }}
+        </span>
+      </template>
       <span class="inline-flex items-center gap-1.5">
         <UKbd value="Esc" size="sm" />
         {{ t("commandPalette.footer.close") }}
       </span>
+      <UButton
+        v-if="assistant"
+        class="text-muted hover:text-secondary ms-auto gap-1.5 px-2 py-0.5 text-xs hover:bg-(--dms-assistant-tint)"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :icon="isAssistantMode ? appConfig.ui.icons.search : assistant.icon"
+        :ui="{ leadingIcon: isAssistantMode ? undefined : 'text-secondary' }"
+        data-slot="assistantToggle"
+        @mousedown.prevent
+        @click="switchMode"
+      >
+        {{
+          isAssistantMode
+            ? t("commandPalette.footer.backToSearch")
+            : t("commandPalette.footer.askAi")
+        }}
+        <UKbd :value="ASSISTANT_MODE_KEY" size="sm" />
+      </UButton>
     </template>
   </UDashboardSearch>
 </template>
