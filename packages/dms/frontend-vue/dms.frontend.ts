@@ -17,6 +17,7 @@ import fontPreloadPlugin from "./layers/dms-layout/app/plugins/font-preload";
 import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/permission-preview-prepaint";
 import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-preferences";
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
+import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
@@ -170,6 +171,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(accessibilityPlugin);
   sdk.registerPlugin(regionalPreferencesPlugin);
   sdk.registerPlugin(seoPlugin);
+  sdk.registerPlugin(sidePanelHostPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
   sdk.registerPlugin(tableViewDisplaysPlugin);

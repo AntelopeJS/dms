@@ -1,13 +1,18 @@
 import type { Ref } from "vue";
-import { useLocalStorage } from "@vueuse/core";
 import {
   resolveSidePanelWidthBounds,
   type SidePanel,
   type SidePanelWidthBounds,
 } from "../../../composables/useAppSidePanels";
+import {
+  clampSidePanelWidth,
+  readSidePanelPreferences,
+  storedSidePanelWidth,
+  storeSidePanelWidth,
+  useSidePanelDragWidth,
+  useSidePanelPreferences,
+} from "./sidePanelState";
 
-/** @internal */
-export const SIDE_PANEL_WIDTH_STORAGE_PREFIX = "dms-side-panel-width:";
 /** @internal */
 export const SIDE_PANEL_KEYBOARD_STEP_PX = 16;
 
@@ -38,51 +43,54 @@ export interface SidePanelWidth {
   reset: () => void;
 }
 
-function clamp(width: number, bounds: SidePanelWidthBounds): number {
-  return Math.round(
-    Math.min(bounds.maxWidth, Math.max(bounds.minWidth, width)),
-  );
-}
-
 /**
- * The width of a docked side panel and the handlers of its resize handle:
- * dragging, the arrow / Home / End keys, and a reset to the default width.
- * The width is kept in local storage per panel id, written once a change
- * settles rather than on every pointer move.
+ * The width of a side panel and the handlers of its resize handle: dragging,
+ * the arrow / Home / End keys, and a reset to the default width. The width is
+ * kept per panel id in the side panel cookie, written once a change settles;
+ * while the handle is dragged, the shared drag width moves the page with it.
  *
  * @internal
  */
 export function useSidePanelWidth(panel: SidePanel): SidePanelWidth {
   const bounds = resolveSidePanelWidthBounds(panel);
-  const storedWidth = useLocalStorage<number>(
-    `${SIDE_PANEL_WIDTH_STORAGE_PREFIX}${panel.id}`,
-    bounds.defaultWidth,
+  const preferences = useSidePanelPreferences();
+  const dragWidth = useSidePanelDragWidth();
+  const width = computed(
+    () =>
+      dragWidth.value ??
+      storedSidePanelWidth(
+        readSidePanelPreferences(preferences.value),
+        panel.id,
+        bounds,
+      ),
   );
-  const width = ref(clamp(Number(storedWidth.value), bounds));
-  const isDragging = ref(false);
   let dragStart: DragStart | null = null;
 
   function commit(next: number): void {
-    width.value = clamp(next, bounds);
-    storedWidth.value = width.value;
+    storeSidePanelWidth(
+      preferences,
+      panel.id,
+      clampSidePanelWidth(next, bounds),
+    );
   }
 
   function startDrag(event: PointerEvent, renderedWidth: number): void {
     event.preventDefault();
     dragStart = { x: event.clientX, width: renderedWidth };
-    isDragging.value = true;
+    dragWidth.value = clampSidePanelWidth(renderedWidth, bounds);
   }
 
   function drag(event: PointerEvent): void {
     if (dragStart === null) return;
-    width.value = clamp(dragStart.width + dragStart.x - event.clientX, bounds);
+    const next = dragStart.width + dragStart.x - event.clientX;
+    dragWidth.value = clampSidePanelWidth(next, bounds);
   }
 
   function endDrag(): void {
     if (dragStart === null) return;
     dragStart = null;
-    isDragging.value = false;
     commit(width.value);
+    dragWidth.value = null;
   }
 
   function resizeFromKey(event: KeyboardEvent): void {
@@ -95,7 +103,7 @@ export function useSidePanelWidth(panel: SidePanel): SidePanelWidth {
   return {
     width,
     bounds,
-    isDragging,
+    isDragging: computed(() => dragWidth.value !== null),
     startDrag,
     drag,
     endDrag,

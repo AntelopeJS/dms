@@ -4,8 +4,11 @@ import DashboardSidebar from "./DashboardSidebar.vue";
 import DashboardHeader from "./DashboardHeader.vue";
 import DashboardBanners from "./DashboardBanners.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
-import DashboardSidePanelOutlet from "./DashboardSidePanelOutlet.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
+import {
+  sidePanelWidthStyle,
+  useActiveSidePanel,
+} from "../../composables/layout/sidePanelState";
 
 // Sidebar sizes are in px (the v2 240px sidebar). The storage key changed with
 // the unit, so a width saved in % is not read back as px.
@@ -24,6 +27,9 @@ const DOCK_CLEARANCE_CLASS =
 // One 40px chip plus its 8px gap per widget, the 10px inset and a 12px margin.
 const DOCK_CHIP_REM = 3;
 const DOCK_EDGE_REM = 1.375;
+// The open side panel is rendered once for the app (`SidePanelHost`), fixed on
+// the right; from `lg` the frame keeps its width free so the page shrinks.
+const SIDE_PANEL_ROOM_CLASS = "lg:end-[min(var(--dms-side-panel-width),60vw)]";
 const dockHeight = (chips: number): string =>
   `${chips * DOCK_CHIP_REM + DOCK_EDGE_REM}rem`;
 
@@ -61,6 +67,17 @@ const regionAttrs = computed(() =>
       }
     : {},
 );
+
+const { panel: sidePanel, width: sidePanelWidth } = useActiveSidePanel();
+// Bound as attributes so a frame without a panel renders no empty `style`.
+const groupAttrs = computed(() =>
+  sidePanel.value
+    ? {
+        class: SIDE_PANEL_ROOM_CLASS,
+        style: sidePanelWidthStyle(sidePanelWidth.value),
+      }
+    : {},
+);
 </script>
 
 <template>
@@ -68,6 +85,7 @@ const regionAttrs = computed(() =>
     data-dms-persistent-shell
     :storage-key="DASHBOARD_STORAGE_KEY"
     :unit="DASHBOARD_SIZE_UNIT"
+    v-bind="groupAttrs"
   >
     <DashboardSidebar />
 
@@ -94,7 +112,5 @@ const regionAttrs = computed(() =>
         <DmsAppWidgetsDock />
       </template>
     </UDashboardPanel>
-
-    <DashboardSidePanelOutlet />
   </UDashboardGroup>
 </template>

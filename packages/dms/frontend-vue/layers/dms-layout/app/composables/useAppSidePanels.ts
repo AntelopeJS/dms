@@ -1,40 +1,23 @@
 /**
  * A panel docked on the right of the dashboard. Unlike a free overlay (see
- * {@link useAppOverlay}), the DMS owns the placement: from `lg` the panel sits
- * next to the page, which shrinks to make room, behind a resize handle whose
- * width is remembered per panel; below `lg` it slides over the page as a sheet
- * above a backdrop. The module only declares its component and when it is open.
+ * {@link useAppOverlay}), the DMS owns the placement and the state: from `lg`
+ * the panel sits next to the page, which shrinks to make room, behind a resize
+ * handle; below `lg` it slides over the page as a sheet above a backdrop. The
+ * module only declares its component; it opens and closes the panel through
+ * {@link useSidePanel}.
  *
- * Only one side panel shows at a time: the one opened last. A panel opened
- * while another is showing takes its place; closing it brings back the one it
- * covered, if that one is still open.
- *
- * Because a panel carries callables (`isOpen`, `onClose`), it must be
- * registered from CLIENT context (a `.client` plugin or component setup):
- * function values are not part of the SSR payload, so a server-side
- * registration would arrive on the client stripped. `useAppSidePanels`
- * defensively drops such entries, so a stray server-side registration degrades
- * to "panel not shown" rather than a runtime crash.
+ * A registration is plain data, so it may run from a universal plugin: the
+ * server renders an open panel in place, and a reload shows it without the
+ * page jumping.
  */
 export interface SidePanel {
-  /** Unique key: dedup on `register` (upsert) and target of `unregister`. */
+  /** Unique key: dedup on `register` (upsert), target of `unregister`, and the id `useSidePanel` opens. */
   id: string;
   /**
    * Name of a global component rendered inside the panel. It fills the panel's
    * height and scrolls its own content.
    */
   component: string;
-  /**
-   * Whether the panel is open. Evaluated inside a `computed`, so the panel
-   * follows any reactive state read here.
-   */
-  isOpen: () => boolean;
-  /**
-   * Asks the module to close the panel: called when the user dismisses the
-   * small-screen sheet (backdrop click or Escape). Without it, the sheet only
-   * closes when `isOpen` turns false.
-   */
-  onClose?: () => void;
   /**
    * Accessible name of the panel landmark. Resolved through the DMS i18n
    * convention: a plain literal, or an i18n key when prefixed with "$".
@@ -56,8 +39,7 @@ export interface SidePanelWidthBounds {
 }
 
 interface UseAppSidePanelsReturn {
-  panels: ComputedRef<SidePanel[]>;
-  openPanels: ComputedRef<SidePanel[]>;
+  panels: Readonly<Ref<SidePanel[]>>;
 }
 
 const SIDE_PANELS_STATE_KEY = "dms:side-panels";
@@ -69,24 +51,9 @@ function useSidePanelState() {
   return useDmsState<SidePanel[]>(SIDE_PANELS_STATE_KEY, () => []);
 }
 
-function isPanelRenderable(panel: SidePanel): boolean {
-  return (
-    typeof panel.isOpen === "function" && typeof panel.component === "string"
-  );
-}
-
-function isPanelOpen(panel: SidePanel): boolean {
-  try {
-    return panel.isOpen();
-  } catch (error) {
-    console.error(`[side-panels] panel "${panel.id}" failed to report`, error);
-    return false;
-  }
-}
-
 /**
  * Registers a {@link SidePanel}, replacing any panel registered under the same
- * `id`. Call it from client context, inside the DMS app.
+ * `id`. Call it inside the DMS app, from a universal plugin.
  */
 export function registerSidePanel(panel: SidePanel): void {
   const panels = useSidePanelState();
@@ -121,17 +88,9 @@ export function resolveSidePanelWidthBounds(
 }
 
 /**
- * The registered side panels, in registration order, and those currently
- * open. Read by the dashboard frame; modules normally only need
- * `registerSidePanel` and `unregisterSidePanel`.
+ * The registered side panels, in registration order. Read by the dashboard;
+ * modules normally only need `registerSidePanel` and {@link useSidePanel}.
  */
 export function useAppSidePanels(): UseAppSidePanelsReturn {
-  const state = useSidePanelState();
-  const panels = computed<SidePanel[]>(() =>
-    state.value.filter(isPanelRenderable),
-  );
-  const openPanels = computed<SidePanel[]>(() =>
-    panels.value.filter(isPanelOpen),
-  );
-  return { panels, openPanels };
+  return { panels: useSidePanelState() };
 }

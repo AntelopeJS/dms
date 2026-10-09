@@ -91,9 +91,7 @@ const FLOW_PAGE_MARKUP =
   '<div class="">' +
   '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
   PAGE_SKELETON_MARKUP +
-  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div>" +
-  // The side panel outlet, empty on the server.
-  "<!--v-if--></div>";
+  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {
@@ -156,6 +154,8 @@ function installRuntime(): void {
     showError: vi.fn(),
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
+    useDmsCookie: <T>(_name: string, options: { default?: () => T } = {}) =>
+      ref(options.default?.()),
     useDmsPageLoading: () => pageLoading,
     useDmsRoute: () => route,
     useDmsState: <T>(_key: string, init?: () => T) => ref(init?.()),
@@ -188,6 +188,7 @@ function installRuntime(): void {
       }),
     }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
+    useUserSession: () => ({ loggedIn: ref(true) }),
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),
