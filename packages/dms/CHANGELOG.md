@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.0...v0.7.1)
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.0 ([edc6f6d](https://github.com/AntelopeJS/dms/commit/edc6f6d))
+
 ## v0.7.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.6.2...v0.7.0)
