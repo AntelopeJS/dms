@@ -11,7 +11,8 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 
 // A table's edit form loads its row through the view route: a role holding
 // the edit without the view opened the form empty. The edit declares the
-// view as a dependency, and a saved role is completed with it.
+// view as a dependency, and so does the export, which writes fields past the
+// columns; a saved role is completed with them.
 
 const PAGE = "prq-crm.contacts";
 const TABLE = `${PAGE}.table`;
@@ -33,6 +34,7 @@ const REGISTERED = [
   { id: "prq-audit", title: "Audit" },
   { id: AUDIT_PAGE, title: "Log" },
   { id: AUDIT_TABLE, title: "Table" },
+  { id: `${AUDIT_TABLE}.list`, title: "List" },
   { id: AUDIT_VIEW, title: "View", dependencies: [`${AUDIT_TABLE}.list`] },
 ];
 
@@ -42,7 +44,7 @@ const TABLE_CAPABILITIES = {
   hasViewForm: true,
   hasDeleteEndpoint: true,
   archiveMode: false,
-  isExportEnabled: false,
+  isExportEnabled: true,
 };
 
 function tableActions(hasViewForm: boolean) {
@@ -99,23 +101,35 @@ describe("[unit] interfaces/dms/internal/permission-requirements", () => {
     expect(completed).to.not.include(EDIT);
   });
 
-  it("keeps the wildcard and ids nothing registered", async () => {
+  it("keeps the wildcard and ids nothing registered, without making up their parents", async () => {
     expect(
-      await withRequiredPermissions(["*", "legacy.permission"]),
-    ).to.have.members(["*", "legacy.permission", "legacy"]);
+      await withRequiredPermissions(["*", "does.not.exist"]),
+    ).to.have.members(["*", "does.not.exist"]);
+  });
+
+  it("adds the registered ancestors of an id nothing registers", async () => {
+    expect(
+      await withRequiredPermissions([`${TABLE}.retired-action`]),
+    ).to.have.members([`${TABLE}.retired-action`, TABLE, PAGE, "prq-crm"]);
   });
 });
 
-describe("[unit] interfaces/dms-base/table-view — the edit action needs the view", () => {
-  it("declares the view as a dependency of the edit", () => {
+describe("[unit] interfaces/dms-base/table-view — the actions that read a row need the view", () => {
+  it("declares the view as a dependency of the edit and the export", () => {
     const permissions = tableActions(true);
     expect(permissions.edit?.dependencies).to.deep.equal([VIEW]);
+    expect(permissions.export?.dependencies).to.deep.equal([VIEW]);
     expect(permissions.view?.dependencies).to.equal(undefined);
+  });
+
+  it("leaves the delete free, since it reads nothing", () => {
+    expect(tableActions(true).delete?.dependencies).to.equal(undefined);
   });
 
   it("declares none when the table has no view form to read the row", () => {
     const permissions = tableActions(false);
     expect(permissions.edit?.dependencies).to.equal(undefined);
+    expect(permissions.export?.dependencies).to.equal(undefined);
     expect(permissions).to.not.have.property("view");
   });
 });

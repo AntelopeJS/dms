@@ -8,21 +8,29 @@ import { permissionIdAncestors } from "./permission-ids";
  * what those need in turn. What a role is stored with, whichever route saved
  * it, as the roles editor grants it.
  *
+ * Only registered permissions are added: an id nothing registers (a module
+ * not loaded right now, a typo) is kept as given, but no parent is made up
+ * from its dotted path — `does.not.exist` must not bring a `does` that a
+ * module could register later.
+ *
  * @internal
  */
 export async function withRequiredPermissions(
   permissions: string[],
 ): Promise<string[]> {
-  const required = new Set<string>();
-  const pending = [...permissions];
+  const required = new Set(permissions);
+  const pending = [...required];
   for (let id = pending.shift(); id !== undefined; id = pending.shift()) {
-    if (required.has(id)) continue;
-    required.add(id);
     const permission = await GetPermission(id);
-    pending.push(
+    const needed = [
       ...permissionIdAncestors(id),
       ...(permission?.dependencies ?? []),
-    );
+    ];
+    for (const neededId of needed) {
+      if (required.has(neededId) || !(await GetPermission(neededId))) continue;
+      required.add(neededId);
+      pending.push(neededId);
+    }
   }
   return [...required];
 }

@@ -118,12 +118,23 @@ export async function GetEffectiveUserPermissions(
 /**
  * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
  * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
- * it sits under) are held too — a table's delete action grants nothing
- * without its table and its page.
+ * it sits under) and `dependencies` are held too — a table's delete action
+ * grants nothing without its table and its page, its edit nothing without
+ * the view that loads the row.
  */
 export async function HasPermission(
   permissions: Set<string>,
   permissionId: string,
+): Promise<boolean> {
+  return grantsPermission(permissions, permissionId, new Set());
+}
+
+// `checked` holds the ids already on the dependency path, so a dependency
+// cycle declared by a module ends instead of recursing forever.
+async function grantsPermission(
+  permissions: Set<string>,
+  permissionId: string,
+  checked: Set<string>,
 ): Promise<boolean> {
   if (permissions.has("*")) return true;
   // Module permissions are owner-only regardless of role grants. This covers
@@ -134,7 +145,11 @@ export async function HasPermission(
   const permission = await GetPermission(permissionId);
   if (permission?.defaultGranted) return true;
   if (!permissions.has(permissionId)) return false;
-  return holdsAncestors(permissions, permissionId);
+  checked.add(permissionId);
+  return (
+    (await holdsAncestors(permissions, permissionId)) &&
+    holdsDependencies(permissions, permission, checked)
+  );
 }
 
 // The role routes store a grant with every id it sits under, but a role saved
@@ -150,6 +165,23 @@ async function holdsAncestors(
     if (permissions.has(ancestorId)) continue;
     const ancestor = await GetPermission(ancestorId);
     if (ancestor && !ancestor.defaultGranted) return false;
+  }
+  return true;
+}
+
+// A dependency counts like an ancestor: granted with its own ancestors and
+// dependencies, `defaultGranted`, or not a registered permission at all.
+async function holdsDependencies(
+  permissions: Set<string>,
+  permission: Permission | undefined,
+  checked: Set<string>,
+): Promise<boolean> {
+  for (const dependencyId of permission?.dependencies ?? []) {
+    if (checked.has(dependencyId)) continue;
+    if (!(await GetPermission(dependencyId))) continue;
+    if (!(await grantsPermission(permissions, dependencyId, checked))) {
+      return false;
+    }
   }
   return true;
 }

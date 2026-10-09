@@ -17,6 +17,12 @@ const MEMBER_PAGE = "hpa-account.profile";
 const MEMBER_CATEGORY = "hpa-account";
 const CUSTOM_ID_PAGE = "hpa-mailing.access";
 const FULL_CHAIN = [CATEGORY, PAGE, TABLE, DELETE];
+const VIEW = `${TABLE}.view`;
+const EDIT = `${TABLE}.edit`;
+const CYCLE_A = `${TABLE}.cycle-a`;
+const CYCLE_B = `${TABLE}.cycle-b`;
+const ORPHAN_DEPENDENT = `${TABLE}.orphan-dependent`;
+const TABLE_CHAIN = [CATEGORY, PAGE, TABLE];
 
 const REGISTERED = [
   { id: CATEGORY, title: "Library" },
@@ -27,6 +33,11 @@ const REGISTERED = [
   { id: MEMBER_CATEGORY, title: "Account", defaultGranted: true },
   { id: MEMBER_PAGE, title: "Profile" },
   { id: CUSTOM_ID_PAGE, title: "Mailing" },
+  { id: VIEW, title: "View" },
+  { id: EDIT, title: "Edit", dependencies: [VIEW] },
+  { id: CYCLE_A, title: "Cycle A", dependencies: [CYCLE_B] },
+  { id: CYCLE_B, title: "Cycle B", dependencies: [CYCLE_A] },
+  { id: ORPHAN_DEPENDENT, title: "Orphan", dependencies: ["hpa-gone.view"] },
 ];
 
 describe("[unit] interfaces/dms/permissions — HasPermission requires the ancestors", () => {
@@ -78,6 +89,48 @@ describe("[unit] interfaces/dms/permissions — HasPermission requires the ances
 
   it("keeps granting everything to the owner wildcard", async () => {
     expect(await HasPermission(new Set(["*"]), DELETE)).to.equal(true);
+  });
+});
+
+describe("[unit] interfaces/dms/permissions — HasPermission requires the dependencies", () => {
+  before(() => {
+    ImplementInterface(permissionsInterface, permissionsImpl);
+    for (const permission of REGISTERED) {
+      permissionsInterface.RegisterPermission(permission.id, permission);
+    }
+  });
+
+  after(() => {
+    for (const { id } of REGISTERED) {
+      permissionsInterface.UnregisterPermission(id);
+    }
+  });
+
+  it("refuses an edit stored without the view that loads its row", async () => {
+    expect(await HasPermission(new Set([...TABLE_CHAIN, EDIT]), EDIT)).to.equal(
+      false,
+    );
+  });
+
+  it("grants an edit held with its view", async () => {
+    expect(
+      await HasPermission(new Set([...TABLE_CHAIN, EDIT, VIEW]), EDIT),
+    ).to.equal(true);
+  });
+
+  it("ends on a dependency cycle", async () => {
+    expect(
+      await HasPermission(new Set([...TABLE_CHAIN, CYCLE_A, CYCLE_B]), CYCLE_A),
+    ).to.equal(true);
+  });
+
+  it("counts an unregistered dependency as held", async () => {
+    expect(
+      await HasPermission(
+        new Set([...TABLE_CHAIN, ORPHAN_DEPENDENT]),
+        ORPHAN_DEPENDENT,
+      ),
+    ).to.equal(true);
   });
 });
 
