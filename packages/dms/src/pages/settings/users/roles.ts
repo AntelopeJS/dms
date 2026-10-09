@@ -65,6 +65,7 @@ import {
   type RoleEditorActor,
   updateRole,
 } from "./role-editor-store";
+import { declarePermissionWarning } from "./permission-warnings";
 import {
   classifyPreviewBlocks,
   collectPreviewLayout,
@@ -128,6 +129,16 @@ const listAction = requireEditorAction("list");
 const addAction = requireEditorAction("add");
 const editAction = requireEditorAction("edit");
 const deleteAction = requireEditorAction("delete");
+
+// Editing roles lets the holder grant their own role every permission;
+// adding one hands any permission to a new role, and deleting one moves its
+// holders to any other role.
+declarePermissionWarning(editAction, "$page.settings.roles.warning.roles");
+declarePermissionWarning(addAction, "$page.settings.roles.warning.roles_add");
+declarePermissionWarning(
+  deleteAction,
+  "$page.settings.roles.warning.roles_delete",
+);
 
 async function resolveActor(
   ctx: RequestContext,
@@ -312,7 +323,7 @@ export class RolesSettingsController extends PageController("roles", {
   displayName: "$menu.roles",
   category: workspaceSettingsCategory,
   icon: "i-ph-key",
-  order: 2,
+  order: 3,
   description: "$page.settings.description.roles",
 }) {
   static table = rolesEditor;

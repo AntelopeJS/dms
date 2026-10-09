@@ -82,7 +82,6 @@ describe("Pending invite edit with extension payloads (MongoDB adapter)", () => 
       roles_ids: [],
       asTenantOwner: false,
       expiresAt: new Date(Date.now() + FUTURE_MS),
-      skipEmailValidation: false,
       extensions: {
         scope: { access: "all" } satisfies ScopeSlice,
         frozen: { value: "kept" },

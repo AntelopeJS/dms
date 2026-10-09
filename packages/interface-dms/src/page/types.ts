@@ -151,6 +151,13 @@ export interface ModuleInfo {
   };
 }
 
+/**
+ * How an entry opens to every signed-in member without a role grant (see
+ * `MenuOptions.memberAccess`): `true` for the entry and everything declared
+ * under it, `"self"` for the entry alone.
+ */
+export type MemberAccess = boolean | "self";
+
 export interface MenuOptions {
   displayName: string;
   category?: CategoryInfo | ControllerClass;
@@ -171,10 +178,14 @@ export interface MenuOptions {
    * the grant is implied. Unlike `authOnly`, the tenant access gate still
    * applies and the permission ids still exist.
    *
-   * Inherited by the pages of a flagged category. Meant for personal surfaces
-   * every member owns: their profile, security, notifications and preferences.
+   * `true` is inherited by everything declared under the entry, page or
+   * category. `"self"` opens the entry alone: what is declared under it keeps
+   * needing its own grant. The settings root is `"self"`, so every member opens
+   * the settings overview while the workspace pages under it stay gated.
+   * Meant for personal surfaces every member owns: their profile, security,
+   * notifications and preferences.
    */
-  memberAccess?: boolean;
+  memberAccess?: MemberAccess;
   type?: MenuItemType;
   validation?: PageValidation;
   setupId?: string;
@@ -333,6 +344,12 @@ export interface PageExtensionInfo {
 export interface PageLayout<T = unknown> {
   components: Record<string, ComponentInfoSerialized<T>>;
   layout?: ComponentInfo<T>;
+  /**
+   * Set when the page declares components and the caller may see none of
+   * them, so the browser can say so rather than draw a blank page. A page
+   * declaring no component at all never carries it.
+   */
+  allComponentsHidden?: true;
 }
 
 export type PageLayoutHandler = (

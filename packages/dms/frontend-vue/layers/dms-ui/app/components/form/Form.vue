@@ -57,6 +57,11 @@ import { useInstantForm } from "../../build/composables/form/useInstantForm";
 import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
 import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vue";
+import DmsFormLoadError from "../../build/components/form/FormLoadError.vue";
+import {
+  type FormRecordLoad,
+  trackFormRecordLoad,
+} from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "../../build/components/form/FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
 
@@ -506,7 +511,7 @@ function setFieldLoading(id: string, isLoading: boolean): void {
 const isAnyFieldLoading = computed(() => fieldLoadingStates.value.size > 0);
 
 function onSubmit(event: Parameters<typeof handleSubmit>[0]) {
-  if (!runValidators()) return;
+  if (loadFailure.value || !runValidators()) return;
   handleSubmit(event);
 }
 
@@ -522,6 +527,7 @@ allFields.value.forEach((field) => {
   ) as FormFieldValue;
 });
 
+let recordLoad: FormRecordLoad | undefined;
 if (props.fetchUrl) {
   const formLoad = await useDmsAsyncData(
     `form-${props.componentId}-${props.pageId}`,
@@ -539,15 +545,23 @@ if (props.fetchUrl) {
     formLoad.status.value = "idle";
   });
 
-  const payload = formLoad.data.value;
-  if (payload) {
+  recordLoad = trackFormRecordLoad(formLoad, (payload) => {
     if (payload.values && Object.keys(payload.values).length > 0) {
       Object.assign(state.value, payload.values);
     }
     if (payload.initial && payload.initial !== initialValues.value) {
       initialValues.value = { ...initialValues.value, ...payload.initial };
     }
-  }
+  });
+}
+
+const loadFailure = computed(() => recordLoad?.failure.value ?? null);
+const isRetryingLoad = computed(() => recordLoad?.retrying.value ?? false);
+
+/** Load the record again after a failure; it is what the form starts from. */
+async function retryRecordLoad(): Promise<void> {
+  await recordLoad?.retry();
+  if (!recordLoad?.failure.value) markFormClean();
 }
 
 // Loaded (or filled with its defaults): this is what the form starts from.
@@ -868,7 +882,15 @@ onUnmounted(async () => {
         </p>
       </header>
 
-      <div :class="surfaceClasses.body">
+      <div v-if="loadFailure" :class="surfaceClasses.body">
+        <DmsFormLoadError
+          :failure="loadFailure"
+          :retrying="isRetryingLoad"
+          @retry="retryRecordLoad"
+        />
+      </div>
+
+      <div v-else :class="surfaceClasses.body">
         <UAlert
           v-if="showConcurrentEditBanner"
           color="warning"
@@ -935,7 +957,7 @@ onUnmounted(async () => {
         on a page, the footer band of a card, a drawer or a modal. It holds
         its place while hidden, so its showing up never moves anything. -->
       <DmsSaveBar
-        v-if="canSave && !isInstant"
+        v-if="canSave && !isInstant && !loadFailure"
         :variant="usesSaveBar ? 'floating' : 'band'"
         :kind="props.kind"
         :dirty="isDirty"

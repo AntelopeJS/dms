@@ -276,6 +276,13 @@
       "unsaved_changes": "Unsaved changes",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
+      "load_error": {
+        "error_title": "Couldn't load this entry",
+        "error_description": "Check your connection, then try again. Nothing can be saved until the entry loads.",
+        "forbidden_title": "You can't view this entry",
+        "forbidden_description": "Your role doesn't let you view this entry, so the form can't open on its current values. Ask an administrator for access.",
+        "retry": "Try again"
+      },
       "select_date": "Select date",
       "relation": {
         "selected_count": "{count} selected",
@@ -489,11 +496,7 @@
     "notifications": {
       "categories": {
         "system": "System",
-        "system_desc": "Core system notifications and security alerts",
-        "module_one": "Security",
-        "module_one_desc": "Security monitoring and threat detection",
-        "module_two": "Logistics",
-        "module_two_desc": "Shipping, inventory and supply chain updates"
+        "system_desc": "Core system notifications and security alerts"
       },
       "subjects": {
         "general": "General",
@@ -508,12 +511,6 @@
         "automation_desc": "Notifications sent by automation procedures",
         "updates": "Module updates",
         "updates_desc": "Available updates for the project's Antelope modules (development mode)",
-        "module_one_alerts": "Security alerts",
-        "module_one_alerts_desc": "Critical security events requiring immediate attention",
-        "module_one_updates": "Threat reports",
-        "module_one_updates_desc": "Updates on security threats and vulnerabilities",
-        "module_two_notifications": "Shipment updates",
-        "module_two_notifications_desc": "Updates on shipping and inventory",
         "updates_badge": "Developer mode"
       },
       "preferences": {
@@ -544,8 +541,8 @@
           "description": "You can now sign in with {provider}. Not you? Change your password and review your sign-in methods in Security."
         },
         "password_reset": {
-          "title": "Password reset with an email link",
-          "description": "The link was sent to {email}. Not you? Someone can read that mailbox: secure it first, then reset your password again."
+          "title": "Password reset with an email code",
+          "description": "The code was sent to {email}. Not you? Someone can read that mailbox: secure it first, then reset your password again."
         },
         "email_changed": {
           "title": "Sign-in email changed to {email}",
@@ -598,6 +595,10 @@
           "title": "{count} failed sign-in attempts on your account",
           "description": "Someone entered a wrong password in the last {minutes} minutes. Don't recognise this? Change your password and turn on two-factor authentication in Security.",
           "description_two_factor": "Someone entered a wrong password in the last {minutes} minutes; two-factor authentication still stood in the way. Don't recognise this? Change your password in Security."
+        },
+        "two_factor_lockout": {
+          "title": "{count} wrong two-factor codes on your account",
+          "description": "Someone gave your password, then {count} wrong two-factor codes within {minutes} minutes; codes are refused for a while. Don't recognise this? Your password is known: change it in Security."
         },
         "roles_changed": {
           "title": "Your roles are now {roles}",
@@ -678,7 +679,8 @@
       "empty_title": "No activity yet",
       "error_title": "Activity could not be loaded",
       "error_description": "Check your connection, then try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "list_label": "Activity"
     },
     "leave_guard": {
       "title": "Discard unsaved changes?",

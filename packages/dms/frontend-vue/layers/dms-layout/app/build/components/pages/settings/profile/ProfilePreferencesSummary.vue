@@ -11,6 +11,7 @@ const {
   regionSummary,
   notificationsSummary,
   hasUnread,
+  notificationsTone,
   appearanceSummary,
   placeholders,
 } = useProfilePreferences();
@@ -44,7 +45,7 @@ const {
     <ProfileSummaryRow
       v-if="rows.notifications.visible"
       :icon="hasUnread ? 'i-ph-bell-ringing' : 'i-ph-bell'"
-      :tone="hasUnread ? 'warning' : 'muted'"
+      :tone="notificationsTone"
       :lead="t(`${KEY}.notifications_title`)"
       :loading="notificationsSummary === undefined"
       :placeholder="placeholders.notifications"

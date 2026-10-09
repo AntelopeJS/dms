@@ -6,6 +6,8 @@ export interface RolePermissionNode {
   description?: string;
   /** Permissions this one needs; granting it grants them too. */
   dependencies?: string[];
+  /** What granting it really allows, beyond its label (an i18n key). */
+  warning?: string;
   children?: RolePermissionNode[];
 }
 

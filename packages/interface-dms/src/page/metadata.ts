@@ -26,6 +26,7 @@ import { RoleModel, TenantMemberModel } from "../db";
 import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
 import {
   GetEffectiveUserPermissions,
+  HasPermission,
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
@@ -58,6 +59,10 @@ import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
 } from "./internal/layout-filter";
+import {
+  inheritedMemberAccess,
+  opensToMembers,
+} from "./internal/member-access";
 import { withTableViewPlacements } from "./internal/table-view-ids";
 import {
   pageExtensions,
@@ -136,6 +141,17 @@ function resolveWritePermission(
       "__native_upload_disabled__"
     );
   return "__native_upload_disabled__";
+}
+
+// Only a page that declared components has hidden them all: one declaring
+// none has nothing to explain.
+function hiddenComponentsFlag(
+  declared: Record<string, ComponentInfoSerialized>,
+  served: Record<string, ComponentInfoSerialized>,
+): Pick<PageLayout, "allComponentsHidden"> {
+  const hidesAll =
+    Object.keys(declared).length > 0 && Object.keys(served).length === 0;
+  return hidesAll ? { allComponentsHidden: true } : {};
 }
 
 export class PageMetadata {
@@ -235,7 +251,9 @@ export class PageMetadata {
       hidden: menuOptions.hidden || resolvedCategory?.hidden,
       publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
       authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
-      memberAccess: menuOptions.memberAccess || resolvedCategory?.memberAccess,
+      memberAccess:
+        menuOptions.memberAccess ||
+        inheritedMemberAccess(resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
         menuOptions.bypassTenantAccessGate ||
         resolvedCategory?.bypassTenantAccessGate,
@@ -404,6 +422,27 @@ export class PageMetadata {
   }
 
   /**
+   * Whether the page declares blocks and `permissions` grants none of them:
+   * the layout it serves would then be `allComponentsHidden`, by the same
+   * per-block check. A page declaring none (a module page rendering its own
+   * content), or serving its blocks to whoever opens it, hides nothing.
+   *
+   * @internal Read by the menu, which leaves such a page out.
+   */
+  public async HidesEveryComponent(permissions: Set<string>): Promise<boolean> {
+    if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
+      return false;
+    }
+    const keys = Object.keys(this.layoutRef?.components ?? {});
+    if (keys.length === 0) return false;
+    for (const key of keys) {
+      const permissionId = this.componentPermissionId(key);
+      if (await HasPermission(permissions, permissionId)) return false;
+    }
+    return true;
+  }
+
+  /**
    * Wait until the page has serialized its own components — and until the
    * registration that ends up owning them is the current one: a registration
    * starting while this waits installs its own gate, and a run released by the
@@ -460,7 +499,8 @@ export class PageMetadata {
       id: pageInfo.fullId,
       title: pageInfo.displayName,
       icon: pageInfo.icon,
-      defaultGranted: pageInfo.publicAccess || pageInfo.memberAccess,
+      defaultGranted:
+        pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
       ...(pageInfo.permission as Partial<Permission> | undefined),
     };
 
@@ -614,6 +654,7 @@ export class PageMetadata {
         servedComponents,
       ),
       components: withTableViewPlacements(servedComponents),
+      ...hiddenComponentsFlag(components, servedComponents),
     };
   }
 
@@ -629,7 +670,7 @@ export class PageMetadata {
   }
 
   private actionPermissions(component: Component): Permission[] {
-    const grantsMembers = this.pageInfo?.memberAccess === true;
+    const grantsMembers = opensToMembers(this.pageInfo?.memberAccess);
     return Object.values(component.actions)
       .map((action) => action.toPermission())
       .filter((permission): permission is Permission => !!permission)
@@ -797,7 +838,7 @@ export class PageMetadata {
         title: component.metadata.name,
         icon: component.metadata.icon,
         description: component.metadata.description,
-        defaultGranted: this.pageInfo?.memberAccess,
+        defaultGranted: opensToMembers(this.pageInfo?.memberAccess),
       });
     }
 

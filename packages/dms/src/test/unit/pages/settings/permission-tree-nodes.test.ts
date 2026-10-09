@@ -119,6 +119,98 @@ describe("[unit] pages/settings/users/permission-tree-nodes", () => {
     expect(mapToLabelledNodes(tree)).to.deep.equal([]);
   });
 
+  describe("under an entry every member holds", () => {
+    // The settings root as registered: every member holds the root and the
+    // account pages, the workspace pages still take a role.
+    const settings = {
+      settings: registered(
+        "settings",
+        {
+          user: registered(
+            "settings.user",
+            {
+              profile: registered(
+                "settings.user.profile",
+                { form: registered("settings.user.profile.form") },
+                { defaultGranted: true },
+              ),
+            },
+            { defaultGranted: true },
+          ),
+          workspace: registered("settings.workspace", {
+            members: registered("settings.workspace.members", {
+              table: registered("settings.workspace.members.table"),
+            }),
+          }),
+        },
+        { defaultGranted: true },
+      ),
+    };
+    const entryIds = new Set([
+      "settings",
+      "settings.user",
+      "settings.user.profile",
+      "settings.workspace",
+      "settings.workspace.members",
+    ]);
+
+    it("lifts the menu entries filed under it that still take a grant", () => {
+      const nodes = mapPermissionTree<LabelledNode>(
+        settings,
+        (permission, children) => ({
+          id: permission.id,
+          label: permissionLabel(permission),
+          children,
+        }),
+        new Set(["settings.user", "settings.workspace"]),
+        entryIds,
+      );
+
+      expect(nodes).to.deep.equal([
+        {
+          id: "settings.workspace",
+          label: "settings.workspace",
+          children: [
+            {
+              id: "settings.workspace.members",
+              label: "settings.workspace.members",
+              children: [
+                {
+                  id: "settings.workspace.members.table",
+                  label: "settings.workspace.members.table",
+                  children: undefined,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("still hides the components hanging off it", () => {
+      const tree = {
+        login: registered(
+          "pages.login",
+          { form: registered("pages.login.form") },
+          { defaultGranted: true },
+        ),
+      };
+
+      expect(
+        mapPermissionTree<LabelledNode>(
+          tree,
+          (permission, children) => ({
+            id: permission.id,
+            label: permissionLabel(permission),
+            children,
+          }),
+          new Set(),
+          new Set(["pages.login"]),
+        ),
+      ).to.deep.equal([]);
+    });
+  });
+
   describe("categories", () => {
     // The built-in Pages root in a project filing its pages under a root of
     // its own: only the public sign-in pages are left below it.

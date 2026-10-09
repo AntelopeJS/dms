@@ -114,24 +114,21 @@ describe("[unit] pages/settings/users members page", () => {
       expect(issuePaths({ ...invitePayload, emails })).to.include("emails");
     });
 
-    it("accepts a full name in place of the name parts when skipping validation", () => {
-      const result = memberInviteSchema.safeParse({
-        ...invitePayload,
-        emails: ["ada@test.local"],
-        skipEmailValidation: true,
-        name: "Ada Lovelace",
-      });
-      expect(result.success).to.equal(true);
+    it("accepts several addresses without a name", () => {
+      expect(issuePaths(invitePayload)).to.deep.equal([]);
     });
 
-    it("refuses to skip validation for several addresses", () => {
-      expect(
-        issuePaths({
-          ...invitePayload,
-          skipEmailValidation: true,
-          name: "Ada Lovelace",
-        }),
-      ).to.deep.equal(["emails"]);
+    // An invite signup always validates the address: the retired switch no
+    // longer limits the invitation to one named person.
+    it("ignores a retired skipEmailValidation flag sent with several addresses", () => {
+      const result = memberInviteSchema.safeParse({
+        ...invitePayload,
+        skipEmailValidation: true,
+      });
+      expect(result.success).to.equal(true);
+      if (result.success) {
+        expect(result.data).to.not.have.property("skipEmailValidation");
+      }
     });
   });
 

@@ -67,7 +67,7 @@ const METHODS: MethodConfig[] = [
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
-const { overview, attention, refresh } = useSecurityOverview();
+const { overview, attention, attentionToneOf, refresh } = useSecurityOverview();
 const { formatDate, errorMessage } = useSecurityFormat();
 
 const isProcessing = ref(false);
@@ -81,6 +81,8 @@ const {
   reveal: revealCodes,
 } = useRevealedBackupCodes(computed(() => user.value?._id));
 const isRemoveOpen = ref(false);
+const isEmailSetupOpen = ref(false);
+const emailSetupCodeError = ref<string>();
 const totpCodeError = ref<string>();
 const removeCodeError = ref<string>();
 const regenerateCodeError = ref<string>();
@@ -112,6 +114,10 @@ const isUnsaved = computed(() =>
   attention.value.includes("backup_codes_unsaved"),
 );
 const isLow = computed(() => attention.value.includes("backup_codes_low"));
+// The backup codes row and its pill, in the tone the server gives them.
+const backupTone = computed(() =>
+  attentionToneOf(["backup_codes_low", "backup_codes_unsaved"]),
+);
 
 const addItems = computed<DropdownMenuItem[]>(() =>
   addableMethods.value.map((method) => ({
@@ -256,22 +262,38 @@ async function confirmTotp(code: string): Promise<void> {
   );
 }
 
-async function enableEmail(currentPassword?: string): Promise<void> {
+// Like the app, email codes turn on only once a code proves they arrive: a
+// mistyped address would otherwise lock the user out at the next sign-in.
+async function startEmail(currentPassword?: string): Promise<void> {
+  await run(
+    async () => {
+      await $authFetch(`${TWO_FACTOR_URL}/enable-email`, {
+        method: "POST",
+        body: { currentPassword },
+      });
+      leavePasswordDialog(() => (isEmailSetupOpen.value = true));
+    },
+    "page.settings.two_factor.setup_error",
+    passwordRefusal,
+  );
+}
+
+async function confirmEmail(code: string): Promise<void> {
   await run(
     async () => {
       const response = await $authFetch<MethodEnabledResponse>(
-        `${TWO_FACTOR_URL}/enable-email`,
-        { method: "POST", body: { currentPassword } },
+        `${TWO_FACTOR_URL}/confirm-email`,
+        { method: "POST", body: { code } },
       );
-      leavePasswordDialog();
+      isEmailSetupOpen.value = false;
       toast.add({
         title: t("page.settings.two_factor.enable_success"),
         color: "success",
       });
       showCodes(response.backupCodes);
     },
-    "page.settings.two_factor.setup_error",
-    passwordRefusal,
+    INVALID_CODE_KEY,
+    codeRefusal(emailSetupCodeError),
   );
 }
 
@@ -280,7 +302,7 @@ const ADD_HANDLERS: Record<
   (currentPassword?: string) => Promise<void>
 > = {
   totp: startTotp,
-  email: enableEmail,
+  email: startEmail,
 };
 
 // Adding a method asks for the account password first, so a borrowed
@@ -440,22 +462,18 @@ async function markSaved(): Promise<void> {
 
       <DmsFieldRow v-if="isOn" id="backup-codes" class="scroll-mt-6">
         <template #label>
-          <DmsListRow
-            bare
-            icon="i-ph-key"
-            :tone="isUnsaved || isLow ? 'warning' : 'muted'"
-          >
+          <DmsListRow bare icon="i-ph-key" :tone="backupTone ?? 'muted'">
             {{ t("page.settings.security.backup.title") }}
             <UBadge
-              v-if="isUnsaved || isLow"
-              color="warning"
+              v-if="backupTone"
+              :color="backupTone"
               variant="subtle"
               size="sm"
               icon="i-ph-warning"
               :label="
-                isUnsaved
-                  ? t('page.settings.security.backup.not_saved')
-                  : t('page.settings.security.backup.running_low')
+                isLow
+                  ? t('page.settings.security.backup.running_low')
+                  : t('page.settings.security.backup.not_saved')
               "
             />
             <template #meta>
@@ -553,6 +571,24 @@ async function markSaved(): Promise<void> {
       :account="email"
       :loading="isProcessing"
       @confirm="confirmTotp"
+    />
+    <SecurityCodeModal
+      v-model:open="isEmailSetupOpen"
+      v-model:error="emailSetupCodeError"
+      :title="t('page.settings.two_factor.email_enable')"
+      :description="
+        t('page.settings.security.two_factor.email_setup_description', {
+          email,
+        })
+      "
+      icon="i-ph-envelope-simple"
+      tone="primary"
+      :code-label="t('page.settings.security.two_factor.code_label_email')"
+      :confirm-label="t('page.settings.security.totp.submit')"
+      :loading="isProcessing"
+      can-send-email-code
+      @confirm="confirmEmail"
+      @send-code="sendEmailCode"
     />
     <SecurityBackupCodesModal
       v-model:open="isCodesOpen"

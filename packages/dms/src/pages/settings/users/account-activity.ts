@@ -7,7 +7,7 @@ import type { TenantMember, UserInvite } from "@antelopejs/interface-dms/db";
 import type { UserNotification } from "../../../db";
 
 /** Entries the card shows at most. */
-export const ACCOUNT_ACTIVITY_LIMIT = 6;
+export const ACCOUNT_ACTIVITY_LIMIT = 20;
 
 /**
  * Two records of one event (the session a sign-in opened and its security

@@ -43,6 +43,20 @@ export const DMS_TONE_SOFT: Record<Tone, string> = {
   info: "bg-info/12 text-info",
 };
 
+/**
+ * The solid fills of the v2 badges (the `solid` variant's theme): a count
+ * floating over an icon, where a tint would let the icon show through.
+ */
+export const DMS_TONE_SOLID: Record<Tone, string> = {
+  neutral: "bg-inverted text-inverted",
+  primary: "bg-(--dms-accent-fill) text-(--dms-accent-on-fill)",
+  secondary: "bg-(--ui-color-secondary-400) text-(--ui-color-secondary-950)",
+  success: "bg-(--ui-color-success-500) text-(--ui-color-success-950)",
+  warning: "bg-(--ui-color-warning-400) text-(--ui-color-warning-950)",
+  error: "bg-(--ui-color-error-500) text-white",
+  info: "bg-(--ui-color-info-400) text-(--ui-color-info-950)",
+};
+
 /** Tone as a text color only. */
 export const DMS_TONE_TEXT: Record<Tone, string> = {
   neutral: "text-muted",
@@ -71,4 +85,12 @@ export const DMS_TONE_OUTLINE: Record<Tone, string> = {
  */
 export function toneTextClass(tone: string | undefined): string {
   return tone && isDmsTone(tone) ? DMS_TONE_TEXT[tone] : "";
+}
+
+/**
+ * A tone drawn as an icon well's: neutral, or no tone, is the quiet `muted`
+ * well. A summary row coloured by a navigation badge's tone reads it so.
+ */
+export function iconWellToneOf(tone: Tone | undefined): Tone | "muted" {
+  return !tone || tone === "neutral" ? "muted" : tone;
 }

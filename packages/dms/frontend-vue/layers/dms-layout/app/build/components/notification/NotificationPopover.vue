@@ -5,6 +5,7 @@ import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBad
 import { settleWidgetRequest } from "./widgetRequest";
 import type { UserNotification } from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
+import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
 
 const MAX_DISPLAYED_COUNT = 99;
@@ -23,13 +24,12 @@ const { loggedIn } = useUserSession();
 const { processI18n } = useTranslation();
 const {
   unreadCount,
-  unseenCount,
+  unreadTone,
   notifications,
   hasMore,
   fetchBellCounts,
   fetchNotifications,
   markAsRead,
-  markAllSeen,
 } = useNotifications();
 const { setNavBadge } = useNavBadges();
 const isOpen = ref(false);
@@ -46,36 +46,35 @@ const { isLoadingMore, setupObserver, disconnectObserver } = useInfiniteScroll(
 
 // The sender's tone (a warning, a success) colours the icon well, as in the
 // inbox; untoned notifications keep the accent until read.
-const iconWellTone = (notification: UserNotification) => {
-  const tone = resolveNotificationTone(notification);
-  return tone === "neutral" ? "muted" : tone;
-};
+const iconWellTone = (notification: UserNotification) =>
+  iconWellToneOf(resolveNotificationTone(notification));
 
 const formatCount = (count: number) =>
   count > MAX_DISPLAYED_COUNT ? `${MAX_DISPLAYED_COUNT}+` : String(count);
 
-// The bell's badge counts what arrived since it was last opened (unseen);
-// opening it resets the badge but leaves the notifications unread.
-const displayedCount = computed(() => formatCount(unseenCount.value));
+// The bell's badge counts what is unread, in the tone of the most important
+// unread notification; opening the bell changes neither.
+const displayedCount = computed(() => formatCount(unreadCount.value));
+const badgeToneClass = computed(
+  () => DMS_TONE_SOLID[unreadTone.value ?? "neutral"],
+);
 
-// The bell is on every page, so it keeps the unread badge of the
-// Notifications entry in the navigation current between two menu loads:
-// that one counts what is still unread, seen or not.
-watch(unreadCount, (count) => {
-  setNavBadge(NOTIFICATIONS_SETTINGS_PAGE, count > 0 ? formatCount(count) : "");
+// The bell is on every page, so it keeps the badge of the Notifications
+// entry in the navigation current between two menu loads: the same count,
+// in the same tone.
+watch([unreadCount, unreadTone], ([count, tone]) => {
+  setNavBadge(
+    NOTIFICATIONS_SETTINGS_PAGE,
+    count > 0 ? formatCount(count) : "",
+    tone,
+  );
 });
 
 const refreshCounts = () =>
   settleWidgetRequest(fetchBellCounts, () => {
     unreadCount.value = 0;
-    unseenCount.value = 0;
+    unreadTone.value = undefined;
   });
-
-const handleNotificationEvent = async () => {
-  if (!isOpen.value) {
-    await refreshCounts();
-  }
-};
 
 const handleFormSubmitSuccess = async (event: Event) => {
   const customEvent = event as CustomEvent;
@@ -88,20 +87,10 @@ const handleFormSubmitSuccess = async (event: Event) => {
   }
 };
 
-// Seeing is not reading: the notifications stay unread until opened or
-// marked read, in the popover or the inbox.
-const markSeen = async () => {
-  if (unseenCount.value > 0) await settleWidgetRequest(markAllSeen);
-};
-
 onMounted(async () => {
   if (!loggedIn.value) return;
   await refreshCounts();
 
-  window.addEventListener(
-    NotificationEvents.NOTIFICATION_RECEIVED,
-    handleNotificationEvent as EventListener,
-  );
   window.addEventListener(
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
@@ -112,10 +101,6 @@ onUnmounted(() => {
   disconnectObserver();
 
   window.removeEventListener(
-    NotificationEvents.NOTIFICATION_RECEIVED,
-    handleNotificationEvent as EventListener,
-  );
-  window.removeEventListener(
     FormEvents.SUBMIT_SUCCESS,
     handleFormSubmitSuccess as EventListener,
   );
@@ -124,17 +109,12 @@ onUnmounted(() => {
 watch(isOpen, async (isNowOpen) => {
   if (isNowOpen) {
     isListLoading.value = true;
-    await Promise.all([
-      markSeen(),
-      settleWidgetRequest(() => fetchNotifications(true)),
-    ]);
+    await settleWidgetRequest(() => fetchNotifications(true));
     isListLoading.value = false;
     await nextTick();
     setupObserver();
   } else {
     disconnectObserver();
-    // What arrived while the list was open showed at its top: seen too.
-    await markSeen();
   }
 });
 
@@ -175,8 +155,10 @@ const goToNotifications = () => {
         <!-- Floats over the button's corner (nothing moves) and fades in
              (starting style) once the count, fetched after mount, is back. -->
         <span
-          v-if="unseenCount > 0"
-          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--dms-accent-fill) px-1 text-[10px] leading-none font-semibold text-(--dms-accent-on-fill) ring-2 ring-(--ui-bg-muted) transition-opacity duration-200 starting:opacity-0"
+          v-if="unreadCount > 0"
+          data-bell-badge
+          :class="badgeToneClass"
+          class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-semibold ring-2 ring-(--ui-bg-muted) transition-opacity duration-200 starting:opacity-0"
         >
           {{ displayedCount }}
         </span>

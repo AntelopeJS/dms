@@ -18,6 +18,7 @@ import { internal as pageInterfaceInternal } from "@antelopejs/interface-dms/pag
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { LayoutBannerSerialized } from "../../../../implementations/dms/layout-banners";
 import {
@@ -189,7 +190,10 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
 
     expect(await bannerKeys(DENIED_TENANT)).to.deep.equal(["suspended"]);
     expect(seen?.isTenantAccessDenied).to.equal(true);
-    expect([...(seen?.permissions ?? [])]).to.deep.equal([GRANTED_PERMISSION]);
+    // The role's own set, as the role routes store it: the page and its category.
+    expect([...(seen?.permissions ?? [])].sort()).to.deep.equal(
+      withPermissionAncestors([GRANTED_PERMISSION]).sort(),
+    );
     expect(await bannerKeys()).to.deep.equal([]);
   });
 

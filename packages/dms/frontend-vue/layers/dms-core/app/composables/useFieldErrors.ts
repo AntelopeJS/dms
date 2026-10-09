@@ -126,7 +126,8 @@ const FIELD_PREFIXED_MESSAGE = /^([\w.]+):\s+(.+)$/s;
 const BARE_I18N_KEY = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/i;
 const LIST_SEPARATOR = /\s*,\s*/;
 
-function statusOf(error: unknown): number | undefined {
+/** The HTTP status of a fetch error; undefined for a network failure. */
+export function apiErrorStatus(error: unknown): number | undefined {
   if (typeof error !== "object" || error === null) return undefined;
   const { statusCode, status, response } = error as FetchErrorLike;
   return statusCode ?? status ?? response?.status;
@@ -321,7 +322,7 @@ export function resolveFieldErrors<F extends string>(
   error: unknown,
   options: ResolveFieldErrorsOptions<F>,
 ): FieldErrorResolution {
-  const status = statusOf(error);
+  const status = apiErrorStatus(error);
   if (!isClientError(status)) return { fields: [], hasUnmatched: true };
   const body = bodyOf(error);
   const mapped = lookupCode(codeOf(body), options.codes);

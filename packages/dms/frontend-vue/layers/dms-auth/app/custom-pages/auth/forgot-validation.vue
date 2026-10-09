@@ -124,6 +124,9 @@ async function requestForgotPassword() {
     });
 
     startCooldown();
+    // The refusal was about the previous code: the new one starts clean.
+    clearFormError();
+    codeError.value = undefined;
 
     toast.add({
       title: t("page.validate.request_sended"),

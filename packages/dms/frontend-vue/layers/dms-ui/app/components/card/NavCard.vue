@@ -6,12 +6,14 @@ import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
 import type { Tone } from "../../types/tone";
 import { MONO_TAG_CLASS } from "../../build/utils/monoChip";
+import { navBadgeClass } from "../../build/utils/navBadge";
 
 // Navigation tile (v2 .navcard): an icon well + title + description rendered
 // as a clickable card linking elsewhere (settings overview, a module's home),
 // optionally closed by the target's live state (v2 .sx-state, pinned to the
 // bottom so the states of a row line up) or a mono readout (v2
-// .module-tile__viz). A tag follows the title (v2 .sx-mod).
+// .module-tile__viz). A tag follows the title (v2 .sx-mod); the target's
+// navigation badge sits in the top corner, drawn as the settings nav draws it.
 //
 // Built on a bare <DmsAutoLink> rather than <ULink> on purpose: ULink's theme
 // injects its own `rounded-md` which would override the .dms-card radius.
@@ -34,6 +36,10 @@ interface NavCardProps {
   statePending?: boolean;
   /** Small uppercase mono tag after the title (module tag: "SAAS"). */
   tag?: string;
+  /** The target's navigation badge ("3"), in the card's top corner. */
+  badge?: string;
+  /** Tone of the badge; neutral grey when absent. */
+  badgeTone?: Tone;
   /** Mono readout lines under the description (module tile). */
   readout?: string[];
 }
@@ -46,6 +52,8 @@ const props = withDefaults(defineProps<NavCardProps>(), {
   state: undefined,
   stateTone: "neutral",
   tag: undefined,
+  badge: undefined,
+  badgeTone: undefined,
   readout: undefined,
 });
 const attrs = useAttrs();
@@ -55,6 +63,7 @@ const theme = tv({
     root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
     title: "text-highlighted min-w-0 truncate text-sm font-[650]",
     tag: `${MONO_TAG_CLASS} bg-elevated shrink-0 text-dimmed`,
+    badge: "shrink-0",
     arrow:
       "text-dimmed group-hover:text-primary ms-auto size-4 shrink-0 -translate-x-[3px] opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100",
     description: "text-muted text-[13px] leading-normal",
@@ -78,6 +87,12 @@ const passthrough = computed(() => {
       <h3 :class="ui.title()">{{ props.title }}</h3>
       <span v-if="props.tag" :class="ui.tag()">{{ props.tag }}</span>
       <UIcon name="i-ph-arrow-right" :class="ui.arrow()" :aria-hidden="true" />
+      <span
+        v-if="props.badge"
+        :class="ui.badge({ class: navBadgeClass(props.badgeTone) })"
+      >
+        {{ props.badge }}
+      </span>
     </div>
 
     <p v-if="props.description" :class="ui.description()">

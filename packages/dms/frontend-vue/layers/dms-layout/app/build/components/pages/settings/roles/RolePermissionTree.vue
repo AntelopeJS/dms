@@ -12,6 +12,7 @@ import {
   type PermissionIndex,
   type PermissionRowContext,
   type PermissionSearchHit,
+  selectedWarningsBelow,
   type SelectionState,
 } from "./role-permissions";
 import type { RolePermissionNode } from "./role-types";
@@ -67,6 +68,12 @@ function autoAddedHintOf(id: string): string | undefined {
   return t("page.settings.roles.editor.auto_added", { name: label });
 }
 
+// Only a closed row hides them: an open one shows its children's own.
+function warningsBelowOf(node: RolePermissionNode): string[] {
+  if (props.expanded.has(node.id)) return [];
+  return selectedWarningsBelow(props.index, node.id, props.selection);
+}
+
 function isDisabled(node: RolePermissionNode): boolean {
   if (props.readonly) return true;
   return stateOf(node) === false && !props.canGrant(node.id);
@@ -88,6 +95,7 @@ const rowContext = computed<PermissionRowContext>(() => ({
   changeOf,
   requiresOf,
   autoAddedHintOf,
+  warningsBelowOf,
   isDisabled,
   disabledHint: t("page.settings.roles.editor.not_grantable"),
   toggle: (id, checked) => emit("toggle", id, checked),
@@ -162,6 +170,7 @@ function opensSection(position: number): boolean {
           :state="stateOf(area.node)"
           :is-expanded="props.expanded.has(area.node.id)"
           :disabled="isDisabled(area.node)"
+          :hidden-warnings="warningsBelowOf(area.node)"
           @toggle="(checked) => emit('toggle', area.node.id, checked)"
           @toggle-expanded="emit('toggle-area', area.node.id)"
         >

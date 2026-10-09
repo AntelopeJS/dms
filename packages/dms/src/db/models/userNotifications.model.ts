@@ -7,9 +7,12 @@ import type {
 } from "@antelopejs/interface-dms/notifications/types";
 import { runInBatches } from "../../utils/run-in-batches";
 import { UserNotification, userNotificationsTableName } from "../tables";
+import type { NavBadgeCount } from "@antelopejs/interface-dms/component";
+import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
+import { combineNavBadgeCounts } from "@antelopejs/interface-dms/page/internal/nav-badges";
+import { resolveNotificationTone } from "../../utils/notification-tones";
 import {
   applyFeedFilter,
-  applyUnseenFilter,
   type NotificationFeedFilter,
 } from "./notification-feed-filter";
 
@@ -51,8 +54,17 @@ export interface UserNotificationFacets {
 export interface UserNotificationCounts {
   all: number;
   unread: number;
-  /** Unread notifications that arrived since the bell last opened (whole feed only). */
-  unseen?: number;
+  /**
+   * The tone of the most important unread notification, which the unread
+   * badge takes (whole feed only); absent when nothing is unread.
+   */
+  unreadTone?: Tone;
+}
+
+/** How many of a user's unread notifications store one tone. */
+interface UnreadToneCount {
+  tone: NotificationTone | null;
+  count: number;
 }
 
 /** What a "mark all as read" pass changed, and the handle that undoes it. */
@@ -313,11 +325,34 @@ export class UserNotificationsModel extends BasicDataModel(
   }
 
   /**
-   * What the header bell counts: the unread notifications created after
-   * `seenAt`, when the user last opened it (all of them without a date).
+   * What the unread badge shows, on the Notifications entry of the menu and
+   * on the header bell: how many notifications are unread, in the tone of the
+   * most important of them, as the inbox draws it. One query: the unread rows
+   * are counted per stored tone.
    */
-  async countUnseen(userId: string, seenAt?: Date): Promise<number> {
-    return applyUnseenFilter(this.unreadFeed(userId), seenAt).count().run();
+  async unreadBadge(userId: string): Promise<NavBadgeCount> {
+    const perTone: UnreadToneCount[] = await this.unreadFeed(userId)
+      .group("tone", (rows, tone) => ({ tone, count: rows.count() }))
+      .run();
+    return combineNavBadgeCounts(
+      perTone.map(({ tone, count }) => ({
+        count,
+        tone: resolveNotificationTone(tone, false),
+      })),
+    );
+  }
+
+  /** The whole feed's totals, with the tone of its unread badge. */
+  async countFeedWithUnreadTone(
+    userId: string,
+  ): Promise<UserNotificationCounts> {
+    const [all, unread] = await Promise.all([
+      this.visibleFeed(userId).count().run(),
+      this.unreadBadge(userId),
+    ]);
+    return unread.tone
+      ? { all, unread: unread.count, unreadTone: unread.tone }
+      : { all, unread: unread.count };
   }
 
   async markAsRead(id: string): Promise<void> {

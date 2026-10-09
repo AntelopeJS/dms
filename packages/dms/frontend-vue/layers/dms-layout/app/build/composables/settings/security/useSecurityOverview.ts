@@ -1,4 +1,5 @@
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
+import type { Tone } from "#dms-ui/app/types/tone";
 
 /** Base URL of the Security page API. */
 export const SECURITY_ENDPOINT = "/settings/user/security";
@@ -29,6 +30,13 @@ export interface SecurityOverview {
   activeSessions: number;
   /** What needs the user's attention, most important first. */
   attention: SecurityAttention[];
+  /**
+   * The strongest tone of `attention`, which the navigation badge takes;
+   * null when nothing needs attention.
+   */
+  attentionTone: Tone | null;
+  /** The tone of each item of `attention`. */
+  attentionTones: Partial<Record<SecurityAttention, Tone>>;
 }
 
 /** What the API returns to enrol an authenticator app. */
@@ -47,11 +55,23 @@ export type SecurityAttention =
   | "backup_codes_unsaved"
   | "backup_codes_low";
 
+/** Strongest first, as the server ranks the attention tones. */
+const ATTENTION_TONE_ORDER: Tone[] = [
+  "error",
+  "warning",
+  "primary",
+  "secondary",
+  "success",
+  "info",
+  "neutral",
+];
+
 /**
  * Shared Security summary: the status strip, every Security block and the
  * profile pointer card read the same state, and any change refreshes it for
  * all of them. It also keeps the navigation badge of the Security page, the
- * count of what needs attention, in sync after a change.
+ * count of what needs attention in the tone the server gives it, in sync
+ * after a change.
  */
 export function useSecurityOverview() {
   const overview = useDmsState<SecurityOverview | null>(
@@ -68,6 +88,22 @@ export function useSecurityOverview() {
   const attention = computed<SecurityAttention[]>(
     () => overview.value?.attention ?? [],
   );
+  const attentionTone = computed<Tone | undefined>(
+    () => overview.value?.attentionTone ?? undefined,
+  );
+
+  /**
+   * The strongest tone the server gives to those of `items` that need
+   * attention; undefined when none does. A block concerned by several items
+   * (the backup codes: unsaved, running low) is drawn in it.
+   */
+  function attentionToneOf(items: SecurityAttention[]): Tone | undefined {
+    const tones = overview.value?.attentionTones ?? {};
+    const present = items
+      .map((item) => tones[item])
+      .filter((tone): tone is Tone => !!tone);
+    return ATTENTION_TONE_ORDER.find((tone) => present.includes(tone));
+  }
 
   async function refresh(): Promise<void> {
     try {
@@ -78,8 +114,19 @@ export function useSecurityOverview() {
       return;
     }
     const count = attention.value.length;
-    setNavBadge(SECURITY_PAGE_ID, count > 0 ? String(count) : "");
+    setNavBadge(
+      SECURITY_PAGE_ID,
+      count > 0 ? String(count) : "",
+      attentionTone.value,
+    );
   }
 
-  return { overview, attention, isUnavailable, refresh };
+  return {
+    overview,
+    attention,
+    attentionTone,
+    attentionToneOf,
+    isUnavailable,
+    refresh,
+  };
 }

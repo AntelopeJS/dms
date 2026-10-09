@@ -1,6 +1,8 @@
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
+import type { NotificationTone } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationsModel } from "../../../db/models/userNotifications.model";
+import { resolveNotificationTone } from "../../../utils/notification-tones";
 
 const USER_ID = "notification-inbox-user";
 const OTHER_USER_ID = "notification-inbox-other-user";
@@ -117,21 +119,80 @@ describe("[unit] user notifications — inbox filters, counts and undo", () => {
     });
   });
 
-  it("counts as unseen the unread rows created after the bell opened", async () => {
-    const before = await seed(USER_ID, "before");
-    const readBefore = await seed(USER_ID, "read before");
-    await model.markAsRead(readBefore);
-    expect(await model.countUnseen(USER_ID)).to.equal(1);
+  describe("unread badge", () => {
+    async function seedToned(
+      title: string,
+      tone?: NotificationTone,
+    ): Promise<string> {
+      const created = await model.create({
+        userId: USER_ID,
+        icon: "i-ph-bell",
+        title,
+        description: "",
+        categoryId: CATEGORY_ID,
+        subjectId: SUBJECT_ID,
+        tone,
+      });
+      return created._id;
+    }
 
-    const seenAt = new Date();
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    const after = await seed(USER_ID, "after");
-    expect(await model.countUnseen(USER_ID, seenAt)).to.equal(1);
+    it("counts the unread rows in the tone of the most important one", async () => {
+      await seedToned("info", "neutral");
+      await seedToned("good news", "success");
+      const risk = await seedToned("risk", "error");
+      await seedToned("not you?", "warning");
+      await model.markAsRead(await seedToned("read risk", "error"));
 
-    // Seeing is not reading: both stay unread.
-    expect(await model.countUnread(USER_ID)).to.equal(2);
-    await model.markAsRead(after);
-    expect(await model.countUnseen(USER_ID, seenAt)).to.equal(0);
-    expect((await model.get(before))?.isRead).to.equal(false);
+      expect(await model.unreadBadge(USER_ID)).to.deep.equal({
+        count: 4,
+        tone: "error",
+      });
+
+      await model.markAsRead(risk);
+      expect(await model.unreadBadge(USER_ID)).to.deep.equal({
+        count: 3,
+        tone: "warning",
+      });
+    });
+
+    it("weighs an untoned unread row as the inbox draws it", async () => {
+      await seedToned("info", "neutral");
+      const untoned = await seedToned("untoned");
+      const tone = resolveNotificationTone(null, false);
+
+      expect(await model.unreadBadge(USER_ID)).to.deep.equal({
+        count: 2,
+        tone,
+      });
+      expect(tone).to.equal("primary");
+
+      await model.markAsRead(untoned);
+      expect(await model.unreadBadge(USER_ID)).to.deep.equal({
+        count: 1,
+        tone: "neutral",
+      });
+    });
+
+    it("shows no badge once every notification is read", async () => {
+      await seedToned("risk", "error");
+      await model.markAllAsRead(USER_ID);
+
+      expect(await model.unreadBadge(USER_ID)).to.deep.equal({ count: 0 });
+      expect(await model.countFeedWithUnreadTone(USER_ID)).to.deep.equal({
+        all: 1,
+        unread: 0,
+      });
+    });
+
+    it("gives the whole feed's totals with the unread tone", async () => {
+      await seedToned("good news", "success");
+      await model.markAsRead(await seedToned("read risk", "error"));
+
+      expect(await model.countFeedWithUnreadTone(USER_ID)).to.deep.equal({
+        all: 2,
+        unread: 1,
+        unreadTone: "success",
+      });
+    });
   });
 });

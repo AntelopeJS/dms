@@ -18,14 +18,13 @@ import {
 } from "@antelopejs/interface-file-storage";
 import {
   normalizeEmail,
-  type User,
   type UserModel,
 } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { generateKey, verifyTOTP } from "2fa";
+import { generateKey } from "2fa";
 import { decode } from "jsonwebtoken";
 import randomstring from "randomstring";
-import { TWO_FACTOR_EMAIL_CODE_LIFETIME_MS } from "../../../routes/auth/constants";
+
 export const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 8;
 const TOTP_KEY_LENGTH = 20;
@@ -190,32 +189,6 @@ export function generateBackupCodes(): BackupCodes {
     hashed.push(crypto.createHash("sha256").update(code).digest("hex"));
   }
   return { plaintext, hashed };
-}
-
-type TwoFactorMethod = "totp" | "email";
-
-const USER_CODE_VERIFIERS: Record<
-  TwoFactorMethod,
-  (user: User, code: string) => boolean
-> = {
-  totp: (user, code) =>
-    !!(user.twoFactorSecret && verifyTOTP(user.twoFactorSecret, code)),
-  email: (user, code) => {
-    if (!user.twoFactorEmailCode) return false;
-    const isExpired =
-      !user.twoFactorEmailCodeRequestedAt ||
-      Date.now() - new Date(user.twoFactorEmailCodeRequestedAt).getTime() >
-        TWO_FACTOR_EMAIL_CODE_LIFETIME_MS;
-    return !isExpired && user.twoFactorEmailCode === code;
-  },
-};
-
-export function verifyUserCode(
-  user: User,
-  code: string,
-  method: TwoFactorMethod,
-): boolean {
-  return USER_CODE_VERIFIERS[method](user, code);
 }
 
 export interface SessionResponse {

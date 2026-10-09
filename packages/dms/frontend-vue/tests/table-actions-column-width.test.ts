@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { computed, h, ref, watch } from "vue";
+import {
+  computed,
+  h,
+  nextTick,
+  reactive,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+} from "vue";
+import { useTable } from "../layers/dms-ui/app/build/composables/table/useTable";
 import { useTableColumns } from "../layers/dms-ui/app/build/composables/table/useTableColumns";
 import * as ruleEvaluator from "../layers/dms-core/app/utils/row-action-rule-evaluator";
 import * as colors from "../layers/dms-core/app/types/color";
@@ -46,6 +56,9 @@ beforeEach(() => {
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("watch", watch);
+  vi.stubGlobal("watchEffect", watchEffect);
+  vi.stubGlobal("shallowRef", shallowRef);
+  vi.stubGlobal("isFunction", (value: unknown) => typeof value === "function");
   vi.stubGlobal("h", h);
   vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
@@ -82,4 +95,41 @@ it("sizes an empty list's actions as a row with no values, through the rules", (
   // Resend alone shows on a row without a status; a pending row adds Revoke.
   expect(empty).toBeLessThan(pending!);
   expect(empty).toBe(actionsColumnSize([{ _id: "1" }]));
+});
+
+// A table opened by client-side navigation (the members page's Invitations
+// tab) is set up before its first page arrives: the actions column must grow
+// to the rows' buttons once they are listed, not keep the empty list's width.
+it("resizes the table's actions column once the rows arrive", async () => {
+  const tableProps = reactive({
+    data: [] as Row[],
+    columns: [{ accessorKey: "email", header: "Email" }],
+    rowActions,
+  });
+  const { table } = useTable<Row>({
+    tableProps: tableProps as never,
+    emits: (() => undefined) as never,
+    ui: computed(() => ({}) as never),
+    states: {
+      globalFilterState: ref(""),
+      columnFiltersState: ref([]),
+      columnOrderState: ref([]),
+      columnVisibilityState: ref({}),
+      columnPinningState: ref({}),
+      columnSizingState: ref({}),
+      rowSelectionState: ref({}),
+      sortingState: ref([]),
+      expandedState: ref({}),
+      paginationState: ref({ pageIndex: 0, pageSize: 10 }),
+    } as never,
+  });
+  const emptyWidth = table.getColumn("actions")!.getSize();
+
+  tableProps.data = [{ _id: "1", status: true }];
+  await nextTick();
+
+  expect(table.getColumn("actions")!.getSize()).toBe(
+    actionsColumnSize([{ _id: "1", status: true }]),
+  );
+  expect(table.getColumn("actions")!.getSize()).toBeGreaterThan(emptyWidth);
 });

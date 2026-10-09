@@ -50,6 +50,8 @@ export interface PermissionRowContext {
   changeOf: (id: string) => PermissionChange;
   requiresOf: (node: RolePermissionNode) => string[];
   autoAddedHintOf: (id: string) => string | undefined;
+  /** Warnings a closed row hides (see `selectedWarningsBelow`). */
+  warningsBelowOf: (node: RolePermissionNode) => string[];
   isDisabled: (node: RolePermissionNode) => boolean;
   disabledHint: string;
   toggle: (id: string, checked: boolean) => void;
@@ -289,25 +291,36 @@ export function selectionState(count: SelectionCount): SelectionState {
   return count.selected === count.total ? true : "indeterminate";
 }
 
-/**
- * The ids a dotted permission id sits under, itself first: `a.b.c` gives
- * `a.b.c`, `a.b` and `a`. Granting follows the ids, not the tree, exactly as
- * the original roles form did: a registered `media.upload` lifted to the top
- * of the tree still grants `media` with it.
- */
-export function idPrefixes(id: string): string[] {
-  const parts = id.split(".");
-  return parts.map((_, position) =>
-    parts.slice(0, parts.length - position).join("."),
+/** The permissions a node declares it needs, as far as the tree knows them. */
+function dependenciesOf(index: PermissionIndex, id: string): string[] {
+  return (index.nodes.get(id)?.dependencies ?? []).filter((dependency) =>
+    index.nodes.has(dependency),
   );
 }
 
 /**
- * Grant a node's whole subtree with every id it sits under (a component
- * needs its page, a page its category), as the original roles form stored
- * it. Ids the user may not grant are skipped. Declared dependencies are shown
- * on the rows but not added: nothing enforces them, and the original form
- * never stored them either.
+ * Ids a set of permissions needs, the set included: the nodes above each one
+ * and the permissions each one depends on, with what those need in turn.
+ */
+function requiredIds(index: PermissionIndex, ids: string[]): Set<string> {
+  const required = new Set<string>();
+  const pending = [...ids];
+  for (let id = pending.shift(); id !== undefined; id = pending.shift()) {
+    if (required.has(id)) continue;
+    required.add(id);
+    pending.push(...ancestorIds(index, id), ...dependenciesOf(index, id));
+  }
+  return required;
+}
+
+/**
+ * Grant a node's whole subtree with everything it needs: every node above it
+ * (a component needs its page, a page its category) and the permissions it
+ * depends on (a table's edit needs its view, which loads the row). The tree
+ * nests by id, so the nodes above are the registered ids it sits under; the
+ * server completes a saved role the same way, with the unregistered rest (a
+ * lifted `media.upload` gets `media` there). Ids the user may not grant are
+ * skipped.
  */
 export function grantPermission(
   index: PermissionIndex,
@@ -316,25 +329,48 @@ export function grantPermission(
   canGrant: (permissionId: string) => boolean,
 ): PermissionGrant {
   const subtree = new Set(index.subtrees.get(id) ?? [id]);
-  const wanted = new Set([...subtree, ...idPrefixes(id)]);
+  const wanted = requiredIds(index, [...subtree]);
   const added = [...wanted].filter(
     (wantedId) => !selection.has(wantedId) && canGrant(wantedId),
   );
   return {
     selection: new Set([...selection, ...added]),
-    autoAdded: added.filter(
-      (addedId) => !subtree.has(addedId) && index.nodes.has(addedId),
-    ),
+    autoAdded: added.filter((addedId) => !subtree.has(addedId)),
   };
 }
 
 /**
- * Revoke a node's subtree. An id it sits under that is a node with children
- * goes too when none of its descendants is left once the subtree is gone: a
- * page is granted for its components. Same rule as the original roles form,
- * which judges every ancestor against that one state, before any ancestor
- * is dropped: an ancestor above one dropped this way still saw it selected,
- * and stays.
+ * The selected nodes that depend on a removed one, with their subtrees added
+ * to `removed`, until none is left: a table's edit goes with its view, which
+ * the server would otherwise put back when the role is saved. Returns the
+ * nodes taken this way.
+ */
+function removeDependents(
+  index: PermissionIndex,
+  selection: Set<string>,
+  removed: Set<string>,
+): string[] {
+  const dependents: string[] = [];
+  const dependsOnRemoved = (id: string) =>
+    !removed.has(id) &&
+    dependenciesOf(index, id).some((dependency) => removed.has(dependency));
+  for (let next = [...selection].find(dependsOnRemoved); next; ) {
+    dependents.push(next);
+    for (const descendant of index.subtrees.get(next) ?? [next]) {
+      removed.add(descendant);
+    }
+    next = [...selection].find(dependsOnRemoved);
+  }
+  return dependents;
+}
+
+/**
+ * Revoke a node's subtree, and what depends on it. A node above them goes
+ * too when none of its descendants is left once they are gone: a page is
+ * granted for its components. Same rule as the original roles form, which
+ * judges every ancestor against that one state, before any ancestor is
+ * dropped: an ancestor above one dropped this way still saw it selected, and
+ * stays.
  */
 export function revokePermission(
   index: PermissionIndex,
@@ -342,15 +378,16 @@ export function revokePermission(
   id: string,
 ): Set<string> {
   const removed = new Set(index.subtrees.get(id) ?? [id]);
+  const dependents = removeDependents(index, selection, removed);
   const remaining = new Set(
     [...selection].filter((kept) => !removed.has(kept)),
   );
-  const emptied = idPrefixes(id).filter((ancestor) => {
+  const judged = new Set(
+    [id, ...dependents].flatMap((revoked) => ancestorIds(index, revoked)),
+  );
+  const emptied = [...judged].filter((ancestor) => {
     const descendants = (index.subtrees.get(ancestor) ?? []).slice(1);
-    return (
-      descendants.length > 0 &&
-      !descendants.some((descendant) => remaining.has(descendant))
-    );
+    return !descendants.some((descendant) => remaining.has(descendant));
   });
   for (const ancestor of emptied) remaining.delete(ancestor);
   return remaining;
@@ -406,6 +443,48 @@ export function searchPermissions(
       node,
       areaId: areaIdOf(index, areaIds, node.id),
     }));
+}
+
+function warningOf(index: PermissionIndex, id: string): string | undefined {
+  return index.nodes.get(id)?.warning;
+}
+
+/**
+ * Distinct warnings of the selected permissions below a node, itself
+ * excluded: what a closed row hides once a parent ticked them.
+ */
+export function selectedWarningsBelow(
+  index: PermissionIndex,
+  id: string,
+  selection: Set<string>,
+): string[] {
+  const descendants = (index.subtrees.get(id) ?? []).slice(1);
+  const warnings = descendants
+    .filter((descendant) => selection.has(descendant))
+    .map((descendant) => warningOf(index, descendant))
+    .filter((warning): warning is string => Boolean(warning));
+  return [...new Set(warnings)];
+}
+
+/**
+ * The selected permissions that carry a warning, in tree order, each named
+ * under its area ("Members › Edit") so a summary can list them.
+ */
+export function selectedWarningLabels(
+  index: PermissionIndex,
+  areas: PermissionArea[],
+  selection: Set<string>,
+  translate: (label: string) => string,
+): string[] {
+  const areaIds = new Set(areas.map((area) => area.node.id));
+  return index.allIds
+    .filter((id) => selection.has(id) && warningOf(index, id))
+    .map((id) => {
+      const areaId = areaIdOf(index, areaIds, id);
+      const labels = [index.nodes.get(id)?.label ?? id];
+      if (areaId !== id) labels.unshift(index.nodes.get(areaId)?.label ?? "");
+      return joinPath(labels.map((label) => translate(label)));
+    });
 }
 
 /** Joins path labels the way the editor shows them. */

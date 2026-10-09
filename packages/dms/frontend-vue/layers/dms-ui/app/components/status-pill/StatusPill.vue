@@ -70,8 +70,13 @@ const theme = tv({
   },
   variants: {
     variant: {
-      soft: { root: "rounded-full" },
-      outline: { root: "rounded-full border bg-transparent" },
+      // A pill wider than its cell keeps its shape: the label gives way
+      // with an ellipsis instead of the pill being cut at the cell's edge.
+      soft: { root: "max-w-full rounded-full", label: "min-w-0 truncate" },
+      outline: {
+        root: "max-w-full rounded-full border bg-transparent",
+        label: "min-w-0 truncate",
+      },
       // A state line may run long: it wraps like text instead of a pill.
       text: { root: "whitespace-normal" },
     },

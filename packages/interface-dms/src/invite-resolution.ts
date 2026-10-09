@@ -60,7 +60,6 @@ function replacementContent(invite: UserInvite | null | undefined): unknown {
       invite.language,
       invite.roles_ids,
       invite.asTenantOwner,
-      invite.skipEmailValidation,
       invite.extensions,
     ]),
   );

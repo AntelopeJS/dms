@@ -70,11 +70,17 @@ export const memberInviteForm = Form({
         keyMapping: { label: "name", value: "_id" },
       }),
       // Pills with each role's permission count instead of a relation picker:
-      // the inviter compares roles while choosing them.
+      // the inviter compares roles while choosing them. Inert while the
+      // invitee is made an owner, as on the "Change roles" form.
       inputComponent: CustomComponent("DmsMemberRolePicker")
-        .options({ rolesUrl: INVITE_ROLES_URL, rolesPageUrl: ROLES_PAGE_PATH })
+        .options({
+          rolesUrl: INVITE_ROLES_URL,
+          rolesPageUrl: ROLES_PAGE_PATH,
+          ownerField: "asTenantOwner",
+        })
         .serializeSync(),
-      required: true,
+      // Required unless the invitee is made an owner (see the watchers).
+      required: false,
     },
     {
       id: "language",
@@ -111,15 +117,6 @@ export const memberInviteForm = Form({
       required: true,
       defaultValue: false,
     },
-    {
-      id: "skipEmailValidation",
-      label: "$page.settings.members.invite.field.skip_email_validation",
-      description:
-        "$page.settings.members.invite.field.skip_email_validation_description",
-      type: new DefaultDataTypes.BooleanType(),
-      required: false,
-      defaultValue: false,
-    },
   ],
   fieldsOrientation: "vertical",
   // Modules attach their own fields here through `RegisterInviteExtension`.
@@ -133,20 +130,14 @@ export const memberInviteForm = Form({
   // existing users land on different pages.
   redirectOnSuccess: "{{response.redirectPath}}",
 })
-  // Owners hold every permission, so the roles stay visible but inert.
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
-    params: { targetField: "roles", setDisabled: true },
+  // Owners hold every permission: no role is asked of them. The picker greys
+  // the roles itself (`ownerField`), as disabling the field would swap it for
+  // a read-only display of the role ids.
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
+    params: { targetField: "roles", setRequired: false },
     onParam: whenFieldIs("asTenantOwner", true),
   })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
-    params: { targetField: "roles", setDisabled: false },
+  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
+    params: { targetField: "roles", setRequired: true },
     onParam: whenFieldIs("asTenantOwner", false),
-  })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
-    params: { targetField: "name", setRequired: true },
-    onParam: whenFieldIs("skipEmailValidation", true),
-  })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
-    params: { targetField: "name", setRequired: false },
-    onParam: whenFieldIs("skipEmailValidation", false),
   });

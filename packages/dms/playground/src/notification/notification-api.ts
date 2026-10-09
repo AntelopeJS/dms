@@ -87,4 +87,19 @@ export class NotificationAPIController extends Controller("/api/notification") {
 
     return { success: true, message: "Hosting promo notification sent!" };
   }
+
+  @Post("broadcast-all")
+  async broadcastToAll() {
+    const notification = Notification()
+      .icon("i-ph-wrench")
+      .title(`${DEMO_MESSAGES}.maintenance.title`)
+      .description(`${DEMO_MESSAGES}.maintenance.description`)
+      .linkTo("/settings/user/notifications")
+      .subject(GeneralSubject)
+      .build();
+
+    await notification.broadcast();
+
+    return { success: true, message: "Broadcast sent to all users!" };
+  }
 }

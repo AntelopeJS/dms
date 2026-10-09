@@ -14,6 +14,7 @@ import {
   type PermissionArea,
   type PermissionIndex,
   searchPermissions,
+  selectedWarningLabels,
 } from "./role-permissions";
 import {
   ROLE_DESCRIPTION_MAX_LENGTH,
@@ -91,6 +92,11 @@ const hits = computed(() =>
 );
 const hitAreaCount = computed(
   () => new Set((hits.value ?? []).map((hit) => hit.areaId)).size,
+);
+// The permissions of the role that amount to owner-level access, however
+// they were ticked (a parent grants its whole subtree).
+const ownerLevelLabels = computed(() =>
+  selectedWarningLabels(props.index, props.areas, props.selection, processI18n),
 );
 const selectedCount = computed(
   () => props.index.allIds.filter((id) => props.selection.has(id)).length,
@@ -341,6 +347,21 @@ function toggleArea(id: string): void {
           </span>
         </template>
       </div>
+    </div>
+
+    <div v-if="ownerLevelLabels.length > 0" class="px-[18px] pt-3">
+      <DmsBanner
+        size="sm"
+        tone="warning"
+        icon="i-ph-warning"
+        :title="t('page.settings.roles.editor.owner_level_title')"
+        :description="
+          t('page.settings.roles.editor.owner_level_description', {
+            names: ownerLevelLabels.join(', '),
+          })
+        "
+        data-role-owner-level
+      />
     </div>
 
     <RolePermissionTree

@@ -30,6 +30,19 @@ export class InviteResolutionsModel extends BasicDataModel(
     return this.get(decisionId(tenantId, inviteId));
   }
 
+  /**
+   * Finds the decision that retired the invitation holding this token. Read
+   * through a cross-instance model: a link carries no tenant.
+   */
+  async getForToken(token: string): Promise<InviteResolution | undefined> {
+    const row = await this.table
+      .getAll(token, "inviteToken")
+      .nth(0)
+      .default(undefined)
+      .run();
+    return row ? InviteResolutionsModel.fromDatabase(row) : undefined;
+  }
+
   /** Reads the canonical decision even after a lost insert acknowledgement. */
   async decide(input: InviteDecision): Promise<InviteResolution> {
     const { tenantId, invite, reason, userId, replacement, extensionKeys } =
@@ -40,6 +53,7 @@ export class InviteResolutionsModel extends BasicDataModel(
       await this.insert({
         tenantId,
         invite,
+        inviteToken: invite.token,
         reason,
         extensionKeys,
         _id: id,

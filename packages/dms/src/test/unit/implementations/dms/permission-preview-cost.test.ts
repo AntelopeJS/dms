@@ -20,6 +20,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import { stubPageAccessModels } from "../../../helpers/page-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 // A preview resolves the layout the viewer is served on every page of the
 // menu: a bounded number at once, and once per viewer whatever set is
@@ -34,6 +35,9 @@ const PAGE_IDS = Array.from(
   { length: PAGE_COUNT },
   (_, index) => `pages.pv-cost-${index}`,
 );
+// With its block: a page showing none of its blocks is no menu entry, and the
+// preview reads no layout for it.
+const PAGE_GRANTS = PAGE_IDS.map((id) => `${id}.block`);
 
 let running = 0;
 let peak = 0;
@@ -62,7 +66,7 @@ async function preview(permissions: string[]): Promise<void> {
     memberModel,
     roleModel,
     tenantId: TENANT,
-    previewPermissions: new Set(permissions),
+    previewPermissions: new Set(withPermissionAncestors(permissions)),
     pageLoses: async () => false,
   });
 }
@@ -96,12 +100,12 @@ describe("[unit] implementations/dms/page — permission preview cost", () => {
   });
 
   it("reads the viewer's layouts a few at a time, then not again for another set", async () => {
-    await preview(PAGE_IDS);
+    await preview(PAGE_GRANTS);
     const firstReads = reads;
     expect(firstReads).to.be.at.least(PAGE_COUNT);
     expect(peak).to.be.at.most(MAX_CONCURRENT_PAGES);
 
-    await preview([...PAGE_IDS, "pv-cost.another-grant"]);
+    await preview([...PAGE_GRANTS, "pv-cost.another-grant"]);
     expect(reads).to.equal(firstReads);
   });
 });

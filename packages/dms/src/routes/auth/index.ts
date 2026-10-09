@@ -14,5 +14,6 @@ export * from "./signup";
 export * from "./switch-tenant";
 export * from "./types";
 export * from "./validate-forgot-password-token";
+export * from "./validate-invite-token";
 export * from "./verify-2fa";
 export * from "./verify-email";

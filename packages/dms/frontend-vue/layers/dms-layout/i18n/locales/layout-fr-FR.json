@@ -86,6 +86,10 @@
       "no_content_title": "Aucun contenu disponible",
       "no_content_message": "Cette page n'a pas encore été configurée. Veuillez contacter l'administrateur."
     },
+    "no_visible_blocks": {
+      "title": "Rien à afficher pour vous ici",
+      "description": "Votre rôle ne vous permet de voir aucune partie de cette page. Demandez l’accès à un propriétaire de l’espace."
+    },
     "settings": {
       "title": "Paramètres",
       "intro": "Votre profil, votre sécurité et vos préférences, ainsi que les personnes et les rôles de cet espace.",
@@ -147,6 +151,8 @@
         "soon": "Bientôt",
         "category_switch": "Toutes les notifications {name}",
         "category_count": "{count} sur {total} actives",
+        "category_expand": "Afficher les notifications {name}",
+        "category_collapse": "Masquer les notifications {name}",
         "locked_hint": "Requis pour la sécurité du compte",
         "email_hint": "Seules les notifications dans l’app sont disponibles aujourd’hui. L’envoi par e-mail arrive bientôt.",
         "save_failed_on": "Échec de l’enregistrement — l’interrupteur a été réactivé.",
@@ -266,8 +272,6 @@
             "language": "Langue de l’invitation",
             "tenant_owner": "Rendre propriétaire de l’espace",
             "tenant_owner_description": "Les propriétaires ont toutes les permissions, y compris la facturation, les rôles et le retrait de membres. Les rôles ci-dessus sont ignorés. Un espace peut avoir plusieurs propriétaires.",
-            "skip_email_validation": "Ignorer la validation e-mail",
-            "skip_email_validation_description": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son adresse e-mail et son prénom et son nom doivent être renseignés",
             "emails": "Adresses e-mail",
             "emails_description": "Collez une liste pour inviter plusieurs personnes avec les mêmes rôles.",
             "language_description": "La langue de l’e-mail et de leur compte.",
@@ -282,19 +286,17 @@
             "name": "Nicolas Petit"
           },
           "roles_required": "Au moins un rôle est requis lorsque l'utilisateur n'est pas propriétaire",
-          "firstname_required": "Le prénom est requis lorsque la validation e-mail est ignorée",
-          "lastname_required": "Le nom est requis lorsque la validation e-mail est ignorée",
           "header_button": "Inviter des membres",
           "partial_title": "Invitations envoyées : {sent}",
           "partial_description": "{count} adresse ignorée : déjà membre ou refusée. | {count} adresses ignorées : déjà membres ou refusées.",
           "roles_owner_hint": "Les propriétaires ont toutes les permissions : les rôles sont ignorés.",
+          "roles_owner_level": "{roles} revient à un accès de propriétaire : qui l’a peut se nommer propriétaire. | {roles} reviennent à un accès de propriétaire : qui les a peut se nommer propriétaire.",
           "roles_hint_empty": "Choisissez au moins un rôle.",
           "roles_hint": "{roles} : {count} permissions sur {total}.",
           "compare_roles": "Comparer les rôles",
           "no_roles": "Aucun rôle pour l’instant. Créez-en un dans Rôles et permissions.",
           "emails_required": "Ajoutez au moins une adresse e-mail",
           "emails_too_many": "Invitez au plus 50 personnes à la fois",
-          "skip_validation_single_email": "La validation e-mail ne peut être ignorée que pour une personne à la fois",
           "failed": "L’invitation n’a pas pu être envoyée"
         },
         "action": {
@@ -341,7 +343,6 @@
         "two_factor_on": "Activé",
         "two_factor_off": "Désactivé",
         "footer_count": "Aucun membre | {count} membre | {count} membres",
-        "last_active_hint": "« Dernière activité » est la dernière utilisation du tableau de bord.",
         "confirm": {
           "close": "Fermer"
         },
@@ -382,7 +383,6 @@
           "roles": "Rôles",
           "owner": "Propriétaire",
           "language": "Langue",
-          "skip_email_validation": "Ignorer la validation e-mail",
           "status": "Statut",
           "created_at": "Envoyée le",
           "expires_at": "Expire le",
@@ -392,9 +392,6 @@
         "placeholder": {
           "email": "email{'@'}exemple.com",
           "roles": "Sélectionner des rôles"
-        },
-        "description": {
-          "skip_email_validation": "Si activé, l'utilisateur invité n'aura pas besoin de vérifier son e-mail"
         },
         "status": {
           "pending": "En attente",
@@ -429,8 +426,7 @@
         },
         "search": "Rechercher des invitations",
         "sent_by": "{date} · par {name}",
-        "footer_count": "Aucune invitation | {count} invitation | {count} invitations",
-        "expiry_hint": "Les invitations expirent 7 jours après leur envoi."
+        "footer_count": "Aucune invitation | {count} invitation | {count} invitations"
       },
       "roles": {
         "table": {
@@ -493,6 +489,9 @@
           "requires": "Nécessite {name}",
           "auto_added": "{name} ajoutée automatiquement",
           "auto_added_many": "{count} ajoutées automatiquement",
+          "owner_level": "Accès propriétaire",
+          "owner_level_title": "Ce rôle revient à un accès de propriétaire",
+          "owner_level_description": "Avec {names}, toute personne qui a ce rôle peut se nommer propriétaire ou s’accorder n’importe quelle permission.",
           "not_grantable": "Vous n’avez pas cette permission, vous ne pouvez donc pas l’accorder.",
           "search_empty": "Aucune permission ne correspond à « {query} ».",
           "no_permissions": "Aucune permission n’est encore enregistrée.",
@@ -548,6 +547,13 @@
           "in_use": "Des membres ou des invitations en attente ont encore ce rôle.",
           "invalid_reassign": "Choisissez un autre rôle vers lequel déplacer ses membres.",
           "not_created": "Le rôle n’a pas pu être créé."
+        },
+        "warning": {
+          "members": "Toute personne ayant cet accès peut modifier les rôles de n’importe quel membre et nommer n’importe qui propriétaire, elle-même comprise. Cela revient à un accès de propriétaire.",
+          "invites": "Toute personne ayant cet accès peut inviter quelqu’un, ou modifier une invitation en attente, avec n’importe quel rôle ou comme propriétaire. Cela revient à un accès de propriétaire.",
+          "roles": "Toute personne ayant cet accès peut modifier ce que chaque rôle accorde, y compris le sien. Cela revient à un accès de propriétaire.",
+          "roles_add": "Toute personne ayant cet accès peut créer un rôle qui accorde n’importe quelle permission, y compris toutes. Cela revient à un accès de propriétaire.",
+          "roles_delete": "Toute personne ayant cet accès peut supprimer un rôle et déplacer ses membres vers n’importe quel autre rôle, y compris un rôle plus fort. Cela revient à un accès de propriétaire."
         }
       },
       "appearance": {
@@ -870,5 +876,12 @@
   },
   "widgets_dock": {
     "show": "Afficher les widgets"
+  },
+  "github_star_prompt": {
+    "title": "Vous appréciez AntelopeJS DMS ?",
+    "description": "Le DMS est open source. S'il vous a aidé aujourd'hui, une étoile GitHub aide d'autres développeurs à le découvrir.",
+    "star": "Mettre une étoile sur GitHub",
+    "later": "Plus tard",
+    "close": "Ne plus afficher"
   }
 }

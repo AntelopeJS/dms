@@ -21,7 +21,6 @@ export interface SignupOptions {
   lang?: string;
   owner?: boolean;
   roles_ids?: string[];
-  skipEmailValidation?: boolean;
 }
 
 function randomEmail(): string {
@@ -38,7 +37,6 @@ export async function registerUser(
     email,
     owner: options.owner,
     roles_ids: options.roles_ids,
-    skipEmailValidation: options.skipEmailValidation ?? true,
   });
 
   const client = createClient();

@@ -35,7 +35,7 @@ const LAYOUT_CHROME: Record<TableViewLayout, ResolvedTableChrome> = {
     pageSize: true,
   },
   // The list of a settings page: tabs, an open search field, quick filters,
-  // sortable headers, the row menu and a short footer.
+  // sortable headers, the row menu and a footer with the page size picker.
   compact: {
     caption: false,
     search: "field",
@@ -44,7 +44,7 @@ const LAYOUT_CHROME: Record<TableViewLayout, ResolvedTableChrome> = {
     refresh: false,
     menu: false,
     columnMenus: false,
-    pageSize: false,
+    pageSize: true,
   },
 };
 

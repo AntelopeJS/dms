@@ -277,6 +277,13 @@
       "error_not_submitted": "Le formulaire n'a pas été soumis",
       "fetch_error_title": "Échec de la récupération des données",
       "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+      "load_error": {
+        "error_title": "Impossible de charger cet élément",
+        "error_description": "Vérifiez votre connexion, puis réessayez. Rien ne peut être enregistré tant que l'élément n'est pas chargé.",
+        "forbidden_title": "Vous ne pouvez pas voir cet élément",
+        "forbidden_description": "Votre rôle ne vous permet pas de voir cet élément, le formulaire ne peut donc pas s'ouvrir sur ses valeurs actuelles. Demandez l'accès à un administrateur.",
+        "retry": "Réessayer"
+      },
       "select_date": "Sélectionner une date",
       "relation": {
         "selected_count": "{count} sélectionné(s)",
@@ -490,11 +497,7 @@
     "notifications": {
       "categories": {
         "system": "Système",
-        "system_desc": "Notifications système et alertes de sécurité",
-        "module_one": "Sécurité",
-        "module_one_desc": "Surveillance et détection des menaces",
-        "module_two": "Logistique",
-        "module_two_desc": "Expéditions, inventaire et chaîne d'approvisionnement"
+        "system_desc": "Notifications système et alertes de sécurité"
       },
       "subjects": {
         "general": "Général",
@@ -509,12 +512,6 @@
         "automation_desc": "Notifications envoyées par les procédures d'automatisation",
         "updates": "Mises à jour des modules",
         "updates_desc": "Mises à jour disponibles des modules Antelope du projet (mode développement)",
-        "module_one_alerts": "Alertes de sécurité",
-        "module_one_alerts_desc": "Événements critiques nécessitant une attention immédiate",
-        "module_one_updates": "Rapports de menaces",
-        "module_one_updates_desc": "Mises à jour sur les menaces et vulnérabilités de sécurité",
-        "module_two_notifications": "Suivi des expéditions",
-        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire",
         "updates_badge": "Mode développeur"
       },
       "preferences": {
@@ -545,8 +542,8 @@
           "description": "Vous pouvez désormais vous connecter avec {provider}. Ce n'était pas vous ? Changez votre mot de passe et vérifiez vos méthodes de connexion dans Sécurité."
         },
         "password_reset": {
-          "title": "Mot de passe réinitialisé par lien e-mail",
-          "description": "Le lien a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
+          "title": "Mot de passe réinitialisé par code e-mail",
+          "description": "Le code a été envoyé à {email}. Ce n'était pas vous ? Quelqu'un a accès à cette boîte mail : sécurisez-la d'abord, puis réinitialisez à nouveau votre mot de passe."
         },
         "email_changed": {
           "title": "E-mail de connexion changé pour {email}",
@@ -599,6 +596,10 @@
           "title": "{count} tentatives de connexion échouées sur votre compte",
           "description": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe et activez la double authentification dans Sécurité.",
           "description_two_factor": "Quelqu'un a saisi un mauvais mot de passe ces {minutes} dernières minutes ; la double authentification a tout de même barré la route. Vous ne reconnaissez pas ces tentatives ? Changez votre mot de passe dans Sécurité."
+        },
+        "two_factor_lockout": {
+          "title": "{count} codes de double authentification erronés sur votre compte",
+          "description": "Quelqu'un a saisi votre mot de passe, puis {count} codes de double authentification erronés en moins de {minutes} minutes ; les codes sont refusés pour un temps. Vous ne reconnaissez pas ces tentatives ? Votre mot de passe est connu : changez-le dans Sécurité."
         },
         "roles_changed": {
           "title": "Vos rôles sont désormais : {roles}",
@@ -679,7 +680,8 @@
       "empty_title": "Aucune activité pour l'instant",
       "error_title": "Impossible de charger l'activité",
       "error_description": "Vérifiez votre connexion, puis réessayez.",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "list_label": "Activité"
     },
     "leave_guard": {
       "title": "Abandonner les modifications non enregistrées ?",

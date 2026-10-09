@@ -24,7 +24,7 @@ export class MembersQuotaExtension {
  * The same seat-quota slot on the invitations page, so both workspace member
  * pages carry it, as dms-saas does.
  */
-@RegisterPageExtension("settings.workspace.members.invites")
+@RegisterPageExtension("settings.workspace.invites")
 export class InvitesQuotaExtension {
   static seatQuota = Placeholder({
     label:

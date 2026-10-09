@@ -11,21 +11,21 @@ import {
   ref,
   watch,
   type App,
+  type Ref,
 } from "vue";
 import NotificationPopover from "../layers/dms-layout/app/build/components/notification/NotificationPopover.vue";
 
 const HTTP_FORBIDDEN = 403;
 const UNREAD_COUNT = 4;
-const UNSEEN_COUNT = 2;
+const NOTIFICATIONS_PAGE = "settings.user.notifications";
 
 interface NotificationsStub {
-  unreadCount: ReturnType<typeof ref<number>>;
-  unseenCount: ReturnType<typeof ref<number>>;
-  notifications: ReturnType<typeof ref<unknown[]>>;
+  unreadCount: Ref<number>;
+  unreadTone: Ref<string | undefined>;
+  notifications: Ref<unknown[]>;
   fetchBellCounts: ReturnType<typeof vi.fn>;
   fetchNotifications: ReturnType<typeof vi.fn>;
   markAsRead: ReturnType<typeof vi.fn>;
-  markAllSeen: ReturnType<typeof vi.fn>;
 }
 
 const UNREAD_NOTIFICATION = {
@@ -47,6 +47,7 @@ let app: App;
 let host: HTMLDivElement;
 let errorHandler: ReturnType<typeof vi.fn>;
 let notifications: NotificationsStub;
+let state: Map<string, Ref<unknown>>;
 
 function forbidden(): Promise<never> {
   return Promise.reject(
@@ -99,7 +100,10 @@ function installRuntime(): void {
     onMounted,
     onUnmounted,
   }).forEach(([key, value]) => vi.stubGlobal(key, value));
-  vi.stubGlobal("useDmsState", <T>(_key: string, init: () => T) => ref(init()));
+  vi.stubGlobal("useDmsState", (key: string, init: () => unknown) => {
+    if (!state.has(key)) state.set(key, ref(init()));
+    return state.get(key);
+  });
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key, locale: "en" }));
   vi.stubGlobal("useUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("useTranslation", () => ({
@@ -149,22 +153,32 @@ async function closePopover(): Promise<void> {
   await nextTick();
 }
 
+function badge(): HTMLElement | null {
+  return host.querySelector("[data-bell-badge]");
+}
+
 function badgeText(): string {
-  return host.querySelector("[data-trigger] span")?.textContent?.trim() ?? "";
+  return badge()?.textContent?.trim() ?? "";
+}
+
+/** The badge the bell keeps on the Notifications entry of the navigation. */
+function menuBadge(): unknown {
+  const badges = state.get("dms-nav-badges")?.value as
+    | Record<string, unknown>
+    | undefined;
+  return badges?.[NOTIFICATIONS_PAGE];
 }
 
 beforeEach(() => {
   errorHandler = vi.fn();
+  state = new Map();
   notifications = {
     unreadCount: ref(0),
-    unseenCount: ref(0),
+    unreadTone: ref(undefined),
     notifications: ref([]),
     fetchBellCounts: vi.fn(),
     fetchNotifications: vi.fn(),
     markAsRead: vi.fn(),
-    markAllSeen: vi.fn(async () => {
-      notifications.unseenCount.value = 0;
-    }),
   };
   vi.spyOn(console, "warn").mockImplementation(() => {});
   installRuntime();
@@ -177,38 +191,74 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it("badges the unseen notifications, not every unread one", async () => {
+it("badges every unread notification, in the tone of the most important", async () => {
   notifications.fetchBellCounts.mockImplementation(async () => {
     notifications.unreadCount.value = UNREAD_COUNT;
-    notifications.unseenCount.value = UNSEEN_COUNT;
+    notifications.unreadTone.value = "error";
   });
   await mountPopover();
-  expect(badgeText()).toBe(String(UNSEEN_COUNT));
+  expect(badgeText()).toBe(String(UNREAD_COUNT));
+  expect(badge()!.className).toContain("bg-(--ui-color-error-500) text-white");
+});
+
+it("shows the same count and tone as the Notifications entry", async () => {
+  notifications.fetchBellCounts.mockImplementation(async () => {
+    notifications.unreadCount.value = UNREAD_COUNT;
+    notifications.unreadTone.value = "warning";
+  });
+  await mountPopover();
+  expect(menuBadge()).toEqual({ label: String(UNREAD_COUNT), tone: "warning" });
+  expect(badge()!.className).toContain("bg-(--ui-color-warning-400)");
+
+  // A new unread error turns both red.
+  notifications.unreadCount.value = UNREAD_COUNT + 1;
+  notifications.unreadTone.value = "error";
+  await nextTick();
+  expect(badgeText()).toBe(String(UNREAD_COUNT + 1));
+  expect(badge()!.className).toContain("bg-(--ui-color-error-500)");
+  expect(menuBadge()).toEqual({
+    label: String(UNREAD_COUNT + 1),
+    tone: "error",
+  });
+});
+
+it("draws an untoned count in the accent, and hides the badge at zero", async () => {
+  notifications.fetchBellCounts.mockImplementation(async () => {
+    notifications.unreadCount.value = 1;
+    notifications.unreadTone.value = "primary";
+  });
+  await mountPopover();
+  expect(badge()!.className).toContain("bg-(--dms-accent-fill)");
+
+  notifications.unreadCount.value = 0;
+  notifications.unreadTone.value = undefined;
+  await nextTick();
+  expect(badge()).toBeNull();
+  expect(menuBadge()).toEqual({ label: "" });
 });
 
 it("hides the badge instead of failing the page when the count is refused", async () => {
   notifications.unreadCount.value = UNREAD_COUNT;
-  notifications.unseenCount.value = UNSEEN_COUNT;
+  notifications.unreadTone.value = "error";
   notifications.fetchBellCounts.mockImplementation(forbidden);
   await mountPopover();
   await vi.waitFor(() => expect(console.warn).toHaveBeenCalled());
   expect(errorHandler).not.toHaveBeenCalled();
   expect(notifications.unreadCount.value).toBe(0);
-  expect(notifications.unseenCount.value).toBe(0);
+  expect(notifications.unreadTone.value).toBeUndefined();
   expect(badgeText()).toBe("");
 });
 
-it("marks the notifications seen on open, and never read on close", async () => {
+it("keeps the count when opened and closed: opening marks nothing", async () => {
   const sendBeacon = vi.fn();
   vi.stubGlobal("navigator", { sendBeacon });
   notifications.unreadCount.value = UNREAD_COUNT;
-  notifications.unseenCount.value = UNSEEN_COUNT;
+  notifications.unreadTone.value = "warning";
   notifications.notifications.value = [UNREAD_NOTIFICATION];
   await mountPopover();
 
   await openPopover();
-  await vi.waitFor(() => expect(notifications.markAllSeen).toHaveBeenCalled());
-  expect(badgeText()).toBe("");
+  expect(badgeText()).toBe(String(UNREAD_COUNT));
   expect(host.querySelector(".bg-primary")).not.toBeNull();
 
   await closePopover();
@@ -216,23 +266,7 @@ it("marks the notifications seen on open, and never read on close", async () => 
   expect(notifications.markAsRead).not.toHaveBeenCalled();
   expect(sendBeacon).not.toHaveBeenCalled();
   expect(notifications.unreadCount.value).toBe(UNREAD_COUNT);
-});
-
-it("does not mark seen again when nothing new arrived", async () => {
-  await mountPopover();
-  await openPopover();
-  await closePopover();
-  expect(notifications.markAllSeen).not.toHaveBeenCalled();
-});
-
-it("marks seen on close what arrived while the list was open", async () => {
-  await mountPopover();
-  await openPopover();
-  notifications.unseenCount.value = 1;
-  await closePopover();
-  await vi.waitFor(() =>
-    expect(notifications.markAllSeen).toHaveBeenCalledTimes(1),
-  );
+  expect(badgeText()).toBe(String(UNREAD_COUNT));
 });
 
 it("marks a notification read when it is clicked", async () => {
