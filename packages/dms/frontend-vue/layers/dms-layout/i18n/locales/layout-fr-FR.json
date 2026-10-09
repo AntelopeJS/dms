@@ -883,5 +883,8 @@
     "star": "Mettre une étoile sur GitHub",
     "later": "Plus tard",
     "close": "Ne plus afficher"
+  },
+  "side_panel": {
+    "resize": "Redimensionner le panneau"
   }
 }

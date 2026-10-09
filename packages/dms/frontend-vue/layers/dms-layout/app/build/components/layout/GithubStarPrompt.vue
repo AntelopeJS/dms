@@ -34,13 +34,14 @@ const isShown = computed(
        width, rising into place like a toast. The buttons take the card's
        full width, so the longer French label still fits beside "Later".
        On a phone it tightens and drops the icon, so the text runs the full
-       width and covers less of the page. -->
+       width and covers less of the page. From `lg` it stays clear of an
+       open side panel, whose width the dashboard frame sets. -->
   <div
     v-if="isShown"
     role="dialog"
     :aria-labelledby="TITLE_ID"
     :aria-describedby="DESCRIPTION_ID"
-    class="bg-default ring-accented fixed inset-x-3 bottom-3 z-50 rounded-(--dms-radius-card) p-3 shadow-(--dms-shadow-pop) ring transition duration-300 ease-out motion-reduce:transition-none sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[380px] sm:p-3.5 sm:ps-4 starting:translate-y-4 starting:opacity-0"
+    class="bg-default ring-accented fixed inset-x-3 bottom-3 z-50 rounded-(--dms-radius-card) p-3 shadow-(--dms-shadow-pop) ring transition duration-300 ease-out motion-reduce:transition-none sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[380px] sm:p-3.5 sm:ps-4 lg:right-[calc(min(var(--dms-side-panel-width,0px),60vw)+1.25rem)] starting:translate-y-4 starting:opacity-0"
   >
     <div class="flex items-start gap-3 pe-6">
       <DmsIconWell icon="i-ph-star" size="sm" class="max-sm:hidden" />

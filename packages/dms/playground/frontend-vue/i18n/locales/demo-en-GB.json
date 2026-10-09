@@ -127,6 +127,15 @@
       "empty_filtered_title": "No run matches “{search}”",
       "empty_filtered_description": "Try another procedure name, or clear the filters.",
       "empty_docs": "Open the automation docs"
+    },
+    "side_panel": {
+      "toggle": "Toggle the demo side panel",
+      "title": "Side panel demo",
+      "close": "Close the side panel",
+      "description": "Docked by the DMS on the right of every page: the page shrinks to make room. Drag the left edge to resize it; below the lg breakpoint it slides over the page instead.",
+      "mounted_at": "Mounted at",
+      "current_page": "Current page",
+      "draft_placeholder": "Type a draft, then navigate: it stays."
     }
   }
 }

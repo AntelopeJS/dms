@@ -1,11 +1,24 @@
+/**
+ * An icon-only button in the dashboard header. Either `onSelect` runs on
+ * click, or `sidePanelId` makes the button toggle that side panel: the DMS then
+ * derives the click and the engaged state from {@link useSidePanel}, and the
+ * action is plain data that a universal plugin may register.
+ */
 export interface HeaderAction {
   id: string;
   icon: string;
+  /** Tooltip and accessible name: a plain literal, or an i18n key when prefixed with "$". */
   label: string;
-  onSelect: () => void;
+  /** Run on click. Required unless `sidePanelId` is set, which it overrides. */
+  onSelect?: () => void;
+  /** The side panel this button opens and closes (see `registerSidePanel`). */
+  sidePanelId?: string;
   order?: number;
   isVisible?: () => boolean;
-  /** Renders the button as engaged — a toggle that is currently on. */
+  /**
+   * Renders the button as engaged — a toggle that is currently on. Derived
+   * from the side panel when `sidePanelId` is set.
+   */
   isActive?: () => boolean;
 }
 
@@ -20,13 +33,14 @@ export const BUILDER_ACTION_ID = "dms-builder-edit";
 // can register an action without a build-time dependency on this layer: it just
 // pushes to useDmsState(HEADER_ACTIONS_STATE_KEY).
 //
-// Because actions carry callables (onSelect/isVisible), they must be registered
-// from CLIENT context (a `.client` plugin or component setup): function values
-// are not part of the SSR payload, so a server-side registration would arrive on
-// the client with its callbacks stripped. `registerHeaderAction` calls useDmsState,
-// so it must run inside the DMS app context. `useHeaderActions` defensively drops
-// any entry whose onSelect was lost, so a stray server-side registration
-// degrades to "button not shown" rather than a runtime crash.
+// An action that carries callables (onSelect/isVisible/isActive) must be
+// registered from CLIENT context (a `.client` plugin or component setup):
+// function values are not part of the SSR payload, so a server-side
+// registration would arrive on the client with its callbacks stripped.
+// `useHeaderActions` defensively drops any entry left with neither an onSelect
+// nor a sidePanelId, so a stray server-side registration degrades to "button
+// not shown" rather than a runtime crash. A side panel action is plain data
+// and may be registered from a universal plugin.
 const HEADER_ACTIONS_STATE_KEY = "dms:header-actions";
 const DEFAULT_ORDER = 100;
 
@@ -35,8 +49,11 @@ function actionOrder(action: HeaderAction): number {
 }
 
 function isActionRenderable(action: HeaderAction): boolean {
-  if (typeof action.onSelect !== "function") return false;
-  if (!action.isVisible) return true;
+  const isSelectable =
+    typeof action.onSelect === "function" ||
+    typeof action.sidePanelId === "string";
+  if (!isSelectable) return false;
+  if (typeof action.isVisible !== "function") return true;
   return action.isVisible();
 }
 
@@ -44,6 +61,10 @@ function useHeaderActionState() {
   return useDmsState<HeaderAction[]>(HEADER_ACTIONS_STATE_KEY, () => []);
 }
 
+/**
+ * Registers a {@link HeaderAction}, replacing any action registered under the
+ * same `id`. Call it inside the DMS app.
+ */
 export function registerHeaderAction(action: HeaderAction): void {
   const actions = useHeaderActionState();
   const existingIndex = actions.value.findIndex(
@@ -60,6 +81,7 @@ export function registerHeaderAction(action: HeaderAction): void {
   actions.value = next;
 }
 
+/** The visible header actions, sorted by `order`. Read by the header. */
 export function useHeaderActions() {
   const actions = useHeaderActionState();
   const visibleActions = computed<HeaderAction[]>(() =>

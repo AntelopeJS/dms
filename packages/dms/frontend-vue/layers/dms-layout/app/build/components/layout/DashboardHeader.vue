@@ -3,6 +3,7 @@ import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
 import NotificationPopover from "../notification/NotificationPopover.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
+import { useHeaderActionControls } from "../../composables/layout/useHeaderActionControls";
 import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
 
 const HOME_ICON = "i-ph-house-light";
@@ -37,6 +38,11 @@ const builderAction = computed(() =>
 const headerActions = computed(() =>
   registeredActions.value.filter((action) => action.id !== BUILDER_ACTION_ID),
 );
+const {
+  isToggle: isActionToggle,
+  isActive: isActionActive,
+  select: selectAction,
+} = useHeaderActionControls();
 
 const sidebarToggleLabel = computed(() =>
   sidebarCollapsed.value
@@ -233,36 +239,44 @@ const mobileBreadcrumb = computed(
       <template #right>
         <UTooltip
           v-if="builderAction"
-          :text="builderAction.label"
+          :text="processI18n(builderAction.label)"
           :content="TOOLTIP_CONTENT"
         >
           <UButton
             :icon="builderAction.icon || 'i-ph-hammer-light'"
             variant="ghost"
-            :color="builderAction.isActive?.() ? 'primary' : 'neutral'"
+            :color="isActionActive(builderAction) ? 'primary' : 'neutral'"
             :class="
-              builderAction.isActive?.() ? undefined : TOOLBAR_BUTTON_CLASS
+              isActionActive(builderAction) ? undefined : TOOLBAR_BUTTON_CLASS
             "
-            :aria-label="builderAction.label"
+            :aria-label="processI18n(builderAction.label)"
+            :aria-pressed="
+              isActionToggle(builderAction)
+                ? isActionActive(builderAction)
+                : undefined
+            "
             :ui="{ leadingIcon: 'size-[18px]' }"
-            @click="builderAction.onSelect()"
+            @click="selectAction(builderAction)"
           />
         </UTooltip>
 
         <UTooltip
           v-for="action in headerActions"
           :key="action.id"
-          :text="action.label"
+          :text="processI18n(action.label)"
           :content="TOOLTIP_CONTENT"
         >
           <UButton
             :icon="action.icon"
             variant="ghost"
-            color="neutral"
-            :class="TOOLBAR_BUTTON_CLASS"
-            :aria-label="action.label"
+            :color="isActionActive(action) ? 'primary' : 'neutral'"
+            :class="isActionActive(action) ? undefined : TOOLBAR_BUTTON_CLASS"
+            :aria-label="processI18n(action.label)"
+            :aria-pressed="
+              isActionToggle(action) ? isActionActive(action) : undefined
+            "
             :ui="{ leadingIcon: 'size-[18px]' }"
-            @click="action.onSelect?.()"
+            @click="selectAction(action)"
           />
         </UTooltip>
 
