@@ -19,6 +19,12 @@ export interface ActionDefinition {
   title: string;
   icon?: string;
   description?: string;
+  /**
+   * Other actions of the same component this one needs, by id: a table's
+   * `edit` needs its `view`, the read that loads the row into the form. The
+   * roles editor grants them with it, and a role is saved with them.
+   */
+  dependencies?: string[];
   defaultGranted?: boolean;
 }
 
@@ -33,10 +39,14 @@ export class Action {
     actionComponents.set(this, component);
   }
 
-  get permissionId(): string | undefined {
+  private get componentPermissionId(): string | undefined {
     const component = actionComponents.get(this);
     if (!component) return undefined;
-    const componentPermissionId = getPermissionIdRef.get(component);
+    return getPermissionIdRef.get(component);
+  }
+
+  get permissionId(): string | undefined {
+    const componentPermissionId = this.componentPermissionId;
     if (!componentPermissionId) {
       return undefined;
     }
@@ -44,13 +54,16 @@ export class Action {
   }
 
   toPermission(): Permission | undefined {
-    const id = this.permissionId;
-    if (!id) return undefined;
+    const componentPermissionId = this.componentPermissionId;
+    if (!componentPermissionId) return undefined;
     return {
-      id,
+      id: `${componentPermissionId}.${this.id}`,
       title: this.definition.title,
       icon: this.definition.icon,
       description: this.definition.description,
+      dependencies: this.definition.dependencies?.map(
+        (actionId) => `${componentPermissionId}.${actionId}`,
+      ),
       defaultGranted: this.definition.defaultGranted,
     };
   }

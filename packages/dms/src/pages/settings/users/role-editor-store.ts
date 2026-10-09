@@ -8,7 +8,7 @@ import {
   TenantMemberModel,
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
-import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
 import { GetPermissions } from "@antelopejs/interface-dms/permissions";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
@@ -135,9 +135,10 @@ async function assertNameAvailable(
   );
 }
 
-// A permission is stored with every id it sits under, whoever sent the set:
-// the editor grants them together, and a bare API call must not store a
-// table's delete without its page.
+// A permission is stored with every id it sits under and every permission
+// it depends on, whoever sent the set: the editor grants them together, and
+// a bare API call must not store a table's delete without its page, or its
+// edit without the view that loads the row.
 async function insertRole(
   tenantId: string,
   input: RoleEditorInput,
@@ -146,7 +147,7 @@ async function insertRole(
   const [roleId] = await GetModel(RoleModel, tenantId).insert({
     name: input.name,
     description: input.description,
-    permissions: withPermissionAncestors(input.permissions),
+    permissions: await withRequiredPermissions(input.permissions),
     createdAt: now,
     updatedAt: now,
   });
@@ -181,7 +182,7 @@ export async function updateRole(
 ): Promise<RoleUpdateResult> {
   const role = await requireRole(actor.tenantId, roleId);
   await assertNameAvailable(actor.tenantId, input.name, roleId);
-  const permissions = withPermissionAncestors(input.permissions);
+  const permissions = await withRequiredPermissions(input.permissions);
   const permissionsChanged = !haveSameMembers(
     role.permissions ?? [],
     permissions,

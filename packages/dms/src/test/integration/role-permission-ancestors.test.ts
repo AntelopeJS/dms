@@ -8,7 +8,9 @@ import { resetDatabase } from "../helpers/db";
 
 // A permission is worth nothing without the ones it sits under: the role
 // routes store a grant with every id above it, and a role stored without
-// them — saved before the routes completed it — is refused the action.
+// them — saved before the routes completed it — is refused the action. A
+// table's edit is stored with its view too, the read its form loads the row
+// through.
 
 const ROLES = "/settings/workspace/roles";
 const ROLES_TABLE = "/api/tables/roles";
@@ -16,6 +18,8 @@ const ROLES_PAGE = "settings.workspace.roles";
 const ROLES_TABLE_COMPONENT = `${ROLES_PAGE}.table`;
 const LIST_ACTION = `${ROLES_TABLE_COMPONENT}.list`;
 const DELETE_ACTION = `${ROLES_TABLE_COMPONENT}.delete`;
+const EDIT_ACTION = `${ROLES_TABLE_COMPONENT}.edit`;
+const VIEW_ACTION = `${ROLES_TABLE_COMPONENT}.view`;
 const DELETE_ANCESTORS = [
   ROLES_TABLE_COMPONENT,
   ROLES_PAGE,
@@ -94,6 +98,57 @@ describe("[integration] role permissions and their ancestors", () => {
       DELETE_ACTION,
       ...DELETE_ANCESTORS,
     ]);
+  });
+
+  it("stores a table's edit with its view, whichever route saved it", async () => {
+    const created = await owner.post(`${ROLES}/create`, {
+      name: "Edits roles",
+      permissions: [EDIT_ACTION],
+    });
+    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    expect(await storedPermissions(created.data.id)).to.include.members([
+      EDIT_ACTION,
+      VIEW_ACTION,
+      ...DELETE_ANCESTORS,
+    ]);
+
+    const emptied = await owner.post(`${ROLES}/create`, { name: "Empty" });
+    const updated = await owner.put(`${ROLES}/${emptied.data.id}`, {
+      name: "Empty",
+      permissions: [EDIT_ACTION],
+    });
+    expect(updated.status, JSON.stringify(updated.data)).to.be.oneOf([
+      HTTP_OK,
+      HTTP_NO_CONTENT,
+    ]);
+    expect(await storedPermissions(emptied.data.id)).to.include(VIEW_ACTION);
+
+    const written = await owner.post(`${ROLES_TABLE}/new`, {
+      name: "Edits through the table",
+      permissions: [EDIT_ACTION],
+    });
+    expect(written.status, JSON.stringify(written.data)).to.equal(HTTP_OK);
+    const role = await GetModel(RoleModel, DEFAULT_TENANT_ID).getByName(
+      "Edits through the table",
+    );
+    expect(role?.permissions).to.include(VIEW_ACTION);
+  });
+
+  it("lets a role saved with a table's edit load the row its form edits", async () => {
+    const created = await owner.post(`${ROLES}/create`, {
+      name: "Edits roles",
+      permissions: [EDIT_ACTION],
+    });
+    expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    const member = authorizedClient(
+      (await registerUser({ roles_ids: [created.data.id] })).accessToken,
+    );
+
+    const row = await member.get(`${ROLES_TABLE}/get`, {
+      params: { id: created.data.id },
+    });
+    expect(row.status, JSON.stringify(row.data)).to.equal(HTTP_OK);
+    expect(row.data).to.include({ name: "Edits roles" });
   });
 
   it("refuses an action to a stored role missing the ids it sits under", async () => {

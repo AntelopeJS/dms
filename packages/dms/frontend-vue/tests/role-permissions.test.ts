@@ -65,7 +65,12 @@ const TREE: RolePermissionNode[] = [
                 label: "Roles list",
                 children: [
                   { id: "settings.user.roles.table.list", label: "List" },
-                  { id: "settings.user.roles.table.edit", label: "Edit" },
+                  {
+                    id: "settings.user.roles.table.edit",
+                    label: "Edit",
+                    dependencies: ["settings.user.roles.table.view"],
+                  },
+                  { id: "settings.user.roles.table.view", label: "View" },
                 ],
               },
             ],
@@ -195,6 +200,15 @@ function seeded(seed: number): () => number {
 
 const sorted = (ids: Iterable<string>) => [...new Set(ids)].sort();
 
+function withoutDependencies(
+  nodes: RolePermissionNode[],
+): RolePermissionNode[] {
+  return nodes.map(({ dependencies: _dependencies, children, ...node }) => ({
+    ...node,
+    ...(children ? { children: withoutDependencies(children) } : {}),
+  }));
+}
+
 describe("role permissions", () => {
   const index = buildPermissionIndex(TREE);
 
@@ -227,7 +241,7 @@ describe("role permissions", () => {
     expect(parents.has("settings.user")).toBe(false);
   });
 
-  it("grants a permission with the nodes above it, not its dependencies", () => {
+  it("grants a permission with the nodes above it and what it depends on", () => {
     const grant = grantPermission(
       index,
       new Set(),
@@ -238,13 +252,38 @@ describe("role permissions", () => {
       "pages",
       "pages.sales",
       "pages.sales.orders",
+      "pages.sales.orders.read",
       "pages.sales.orders.refund",
     ]);
     expect(sorted(grant.autoAdded)).toEqual([
       "pages",
       "pages.sales",
       "pages.sales.orders",
+      "pages.sales.orders.read",
     ]);
+  });
+
+  it("grants a table's view with its edit, where the form loads the row", () => {
+    const grant = grantPermission(
+      index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    );
+    expect(grant.selection.has("settings.user.roles.table.view")).toBe(true);
+    expect(grant.autoAdded).toContain("settings.user.roles.table.view");
+    expect(grant.selection.has("settings.user.roles.table.list")).toBe(false);
+  });
+
+  it("leaves a dependency the user may not grant", () => {
+    const grant = grantPermission(
+      index,
+      new Set(),
+      "pages.sales.orders.refund",
+      (id) => id !== "pages.sales.orders.read",
+    );
+    expect(grant.selection.has("pages.sales.orders.read")).toBe(false);
+    expect(grant.selection.has("pages.sales.orders.refund")).toBe(true);
   });
 
   it("leaves the unregistered id a lifted permission sits under to the server", () => {
@@ -268,18 +307,35 @@ describe("role permissions", () => {
     expect(grant.selection.has("pages.sales.orders.read")).toBe(true);
   });
 
-  it("revokes ancestors left without descendants, never dependents", () => {
+  it("revokes what depends on a revoked permission, then the emptied ancestors", () => {
     const all = new Set(index.allIds);
     const afterRead = revokePermission(index, all, "pages.sales.orders.read");
-    expect(afterRead.has("pages.sales.orders.refund")).toBe(true);
-    expect(afterRead.has("pages.sales.orders")).toBe(true);
-    const afterBoth = revokePermission(
+    expect(afterRead.has("pages.sales.orders.refund")).toBe(false);
+    expect(afterRead.has("pages.sales.orders")).toBe(false);
+    expect(afterRead.has("pages.sales")).toBe(true);
+    const afterRefund = revokePermission(
       index,
-      afterRead,
+      all,
       "pages.sales.orders.refund",
     );
-    expect(afterBoth.has("pages.sales.orders")).toBe(false);
-    expect(afterBoth.has("pages.sales")).toBe(true);
+    expect(afterRefund.has("pages.sales.orders.read")).toBe(true);
+    expect(afterRefund.has("pages.sales.orders")).toBe(true);
+  });
+
+  it("revokes a table's edit with its view", () => {
+    const granted = grantPermission(
+      index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    ).selection;
+    const revoked = revokePermission(
+      index,
+      new Set([...granted, "settings.user.roles.table.list"]),
+      "settings.user.roles.table.view",
+    );
+    expect(revoked.has("settings.user.roles.table.edit")).toBe(false);
+    expect(revoked.has("settings.user.roles.table.list")).toBe(true);
   });
 
   it("judges every ancestor before dropping any, like the original form", () => {
@@ -341,8 +397,11 @@ describe("role permissions", () => {
   });
 
   it("stores what the original form stored for the same clicks", () => {
+    // The original form knew no dependencies: the editor matches it on a
+    // tree that declares none.
+    const plain = buildPermissionIndex(withoutDependencies(TREE));
     const random = seeded(20261001);
-    const ids = index.allIds;
+    const ids = plain.allIds;
     for (let run = 0; run < 200; run++) {
       // Start from arbitrary saved roles, legacy and unknown ids included.
       const start = ids.filter(() => random() < 0.3);
@@ -351,15 +410,15 @@ describe("role permissions", () => {
       let after = new Set(start);
       for (let click = 0; click < 12; click++) {
         const id = ids[Math.floor(random() * ids.length)]!;
-        const node = index.nodes.get(id)!;
+        const node = plain.nodes.get(id)!;
         const originalState = original.checkbox(before, node);
-        expect(checkboxState(index, id, after)).toBe(originalState);
+        expect(checkboxState(plain, id, after)).toBe(originalState);
         before = original.check(before, node, clickedValue(originalState));
-        after = editorClick(index, after, id);
+        after = editorClick(plain, after, id);
         // Bar the unregistered ids the original form added above a lifted
         // node (`media`), which the server now adds when the role is saved.
         const known = before.filter(
-          (kept) => index.nodes.has(kept) || start.includes(kept),
+          (kept) => plain.nodes.has(kept) || start.includes(kept),
         );
         expect(sorted(after)).toEqual(sorted(known));
       }

@@ -41,6 +41,7 @@ import {
   clearPageMetadata,
   revokePageExtension,
 } from "@antelopejs/interface-dms/page/internal/categories";
+import { pageMetadataByFullId } from "@antelopejs/interface-dms/page/internal/registry";
 import { isPermissionGated } from "@antelopejs/interface-dms/internal/permission-gate";
 import {
   GetEffectiveUserPermissions,
@@ -1139,8 +1140,8 @@ async function findRegisteredEntriesHiddenByPreview(
   ];
   const hidden: string[] = [];
   for (const entry of entries) {
-    if (!(await computeEntryAccess(entry, real))) continue;
-    if (!(await computeEntryAccess(entry, preview))) hidden.push(entry.fullId);
+    if (!(await listsEntry(entry, real))) continue;
+    if (!(await listsEntry(entry, preview))) hidden.push(entry.fullId);
   }
   return hidden;
 }
@@ -1625,6 +1626,7 @@ interface NavigationEntry extends Partial<
     | "category"
     | "isModuleRoot"
     | "bypassTenantAccessGate"
+    | "layoutUrl"
   >
 > {
   fullId: string;
@@ -1986,7 +1988,11 @@ async function addAccessToTree(
   const children = dynamicChildren
     ? mergeDynamicChildren(node.fullId, childrenWithAccess, dynamicChildren)
     : childrenWithAccess;
-  const hasAccess = isGranted && (isRoot || leadsSomewhere(node, children));
+  const hasAccess =
+    isGranted &&
+    (isRoot ||
+      (leadsSomewhere(node, children) &&
+        !(await hidesEveryBlock(node, context))));
   if (!dynamicChildren && !holdsContainerWithoutEntry(node)) {
     return { ...visible, hasAccess, children };
   }
@@ -2006,10 +2012,41 @@ function leadsSomewhere(
   node: SiteLayoutTree,
   children: Record<string, SiteLayoutTree>,
 ): boolean {
+  return !!node.layoutUrl || Object.values(children).some(reachesPage);
+}
+
+// An entry left out of the menu still leads to the pages nested under it that
+// keep their own entries (Member invitations under Members).
+function reachesPage(node: SiteLayoutTree): boolean {
   return (
-    !!node.layoutUrl ||
-    Object.values(children).some((child) => child.hasAccess !== false)
+    node.hasAccess !== false || Object.values(node.children).some(reachesPage)
   );
+}
+
+// A page showing the caller none of the blocks it declares is no menu entry:
+// it would only open on "nothing to show for you" (`allComponentsHidden`).
+// It stays reachable by its URL, and the pages nested under it keep their own
+// entries. A page declaring no block (a module page rendering its own
+// content) is never left out this way.
+async function hidesEveryBlock(
+  entry: NavigationEntry,
+  context: RequestAccessContext,
+): Promise<boolean> {
+  if (!entry.layoutUrl) return false;
+  const effective = selectEntryContext(entry, context);
+  if (effective.isOwner) return false;
+  const page = pageMetadataByFullId.get(entry.fullId);
+  return (await page?.HidesEveryComponent(effective.permissions)) ?? false;
+}
+
+// Whether the menu draws an entry: one the caller may open, and that shows
+// them something. The permission preview locks what the set would not list.
+async function listsEntry(
+  entry: NavigationEntry,
+  context: RequestAccessContext,
+): Promise<boolean> {
+  if (!(await computeEntryAccess(entry, context))) return false;
+  return !(await hidesEveryBlock(entry, context));
 }
 
 // The container `addToTree` creates for a missing category, or the one

@@ -2,6 +2,7 @@
 import { withoutTrailingSlash } from "ufo";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
+import { firstNestedPage } from "../build/utils/categoryPages";
 
 defineOptions({ inheritAttrs: false });
 
@@ -192,6 +193,21 @@ if (import.meta.env.DEV) {
 }
 
 const { pageLayout } = await usePageLayout();
+
+// A page showing the viewer none of its blocks, with a page nested under it
+// they can open (Member invitations under Members), leads there rather than
+// to "nothing to show for you". The menu leaves such a page out already.
+async function leaveEmptyPage(): Promise<void> {
+  if (pageLayout.value?.allComponentsHidden !== true) return;
+  const fullId = pagelayoutMetadata.value?.fullId;
+  const nested = fullId
+    ? firstNestedPage(siteLayout.siteLayoutTree.value, fullId)
+    : undefined;
+  if (nested) await navigateDms(nested.fullSlug, { replace: true });
+}
+
+await leaveEmptyPage();
+watch(pageLayout, leaveEmptyPage);
 
 watch(pageLayout, (layout) => preloadPageLayoutComponents(layout), {
   immediate: true,

@@ -38,6 +38,8 @@ const EMPTY_TITLE_KEY = "page.no_visible_blocks.title";
 const EMPTY_DESCRIPTION_KEY = "page.no_visible_blocks.description";
 
 const pageLayout = ref<PageLayoutFixture | null>(null);
+const siteLayoutTree = ref<Record<string, unknown> | undefined>(undefined);
+const navigateDms = vi.fn();
 
 const EmptyState: FunctionalComponent<{
   title: string;
@@ -74,7 +76,7 @@ function installRuntime(): void {
     createError: vi.fn(),
     defineDmsPageMeta: vi.fn(),
     firstAccessiblePagePath: vi.fn(),
-    navigateDms: vi.fn(),
+    navigateDms,
     preloadPageLayoutComponents: vi.fn(),
     providePageRealtime: vi.fn(),
     resolveDmsComponent: () => "div",
@@ -98,6 +100,7 @@ function installRuntime(): void {
     }),
     useSiteLayout: () => ({
       siteLayout: ref({ pages: {} }),
+      siteLayoutTree,
       loadingError: ref(null),
       loadSiteLayout: async () => {},
       refreshIfStale: async () => {},
@@ -119,8 +122,39 @@ async function renderPage(): Promise<HTMLElement> {
 }
 
 beforeEach(() => {
+  siteLayoutTree.value = undefined;
+  navigateDms.mockClear();
   installRuntime();
 });
+
+/** The menu tree with the page, and a page nested under it. */
+function treeWithNestedPage(nestedHasAccess: boolean) {
+  const nested = {
+    id: "invites",
+    fullId: "examples.overview.invites",
+    fullSlug: "/examples/overview/invites",
+    layoutUrl: "/examples/overview/invites/pagelayout",
+    hasAccess: nestedHasAccess,
+    children: {},
+    childrenOrders: [],
+  };
+  const overview = {
+    id: "overview",
+    fullId: "examples.overview",
+    fullSlug: "/examples/overview",
+    layoutUrl: "/examples/overview/pagelayout",
+    hasAccess: false,
+    children: { invites: nested },
+    childrenOrders: ["invites"],
+  };
+  const examples = {
+    id: "examples",
+    fullId: "examples",
+    children: { overview },
+    childrenOrders: ["overview"],
+  };
+  return { children: { examples }, childrenOrders: ["examples"] };
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -135,6 +169,22 @@ describe("a page served without any of its blocks", () => {
     expect(empty?.textContent).toContain(EMPTY_TITLE_KEY);
     expect(empty?.textContent).toContain(EMPTY_DESCRIPTION_KEY);
     expect(host.querySelector(".dms-page-stack")).toBeNull();
+  });
+
+  it("leads to a page nested under it the viewer can open", async () => {
+    pageLayout.value = { components: {}, allComponentsHidden: true };
+    siteLayoutTree.value = treeWithNestedPage(true);
+    await renderPage();
+    expect(navigateDms).toHaveBeenCalledWith("/examples/overview/invites", {
+      replace: true,
+    });
+  });
+
+  it("stays put when no nested page is open to the viewer", async () => {
+    pageLayout.value = { components: {}, allComponentsHidden: true };
+    siteLayoutTree.value = treeWithNestedPage(false);
+    await renderPage();
+    expect(navigateDms).not.toHaveBeenCalled();
   });
 
   it("draws the blocks it was served instead", async () => {

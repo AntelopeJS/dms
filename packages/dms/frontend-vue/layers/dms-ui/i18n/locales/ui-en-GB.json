@@ -276,6 +276,13 @@
       "unsaved_changes": "Unsaved changes",
       "fetch_error_title": "Failed to fetch data",
       "fetch_error_unknown": "An unexpected error occurred. Please try again later.",
+      "load_error": {
+        "error_title": "Couldn't load this entry",
+        "error_description": "Check your connection, then try again. Nothing can be saved until the entry loads.",
+        "forbidden_title": "You can't view this entry",
+        "forbidden_description": "Your role doesn't let you view this entry, so the form can't open on its current values. Ask an administrator for access.",
+        "retry": "Try again"
+      },
       "select_date": "Select date",
       "relation": {
         "selected_count": "{count} selected",

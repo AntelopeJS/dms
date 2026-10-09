@@ -99,19 +99,22 @@ function convertToTreeItems(node: SiteLayoutTree): NavigationMenuItem[][] {
 }
 
 // Module roots are only ever direct children of the `modules` category, so the
-// same walk serves the root menu and a module's own menu.
+// same walk serves the root menu and a module's own menu. A page left out of
+// the menu (refused, or showing the viewer none of its blocks) hands its
+// place to the pages nested under it that the viewer can open.
 function convertChildrenToItems(node: SiteLayoutTree): NavigationMenuItem[] {
-  return node.childrenOrders
-    .map((nodeId) => {
-      const item = node.children[nodeId]!;
+  return node.childrenOrders.flatMap((nodeId): NavigationMenuItem[] => {
+    const item = node.children[nodeId]!;
 
-      if (item.isModuleRoot || item.hasAccess === false) {
-        return null;
-      }
+    if (item.isModuleRoot) {
+      return [];
+    }
+    if (item.hasAccess === false) {
+      return item.layoutUrl ? convertChildrenToItems(item) : [];
+    }
 
-      return buildNavigationItem(item, convertChildrenToItems(item));
-    })
-    .filter((item) => item !== null) as NavigationMenuItem[];
+    return [buildNavigationItem(item, convertChildrenToItems(item))];
+  });
 }
 
 const MODULE_PAGES_GROUP_ID = "module-pages";

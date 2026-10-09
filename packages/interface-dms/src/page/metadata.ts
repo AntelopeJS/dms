@@ -26,6 +26,7 @@ import { RoleModel, TenantMemberModel } from "../db";
 import { AuthUserWithPermission, type TenantGuardOptions } from "../guards";
 import {
   GetEffectiveUserPermissions,
+  HasPermission,
   MarkModuleScopedPermission,
   type Permission,
   RegisterPermission,
@@ -418,6 +419,27 @@ export class PageMetadata {
    */
   public AcceptsExtensions(): boolean {
     return this.ownComponentsReady && !this.detached;
+  }
+
+  /**
+   * Whether the page declares blocks and `permissions` grants none of them:
+   * the layout it serves would then be `allComponentsHidden`, by the same
+   * per-block check. A page declaring none (a module page rendering its own
+   * content), or serving its blocks to whoever opens it, hides nothing.
+   *
+   * @internal Read by the menu, which leaves such a page out.
+   */
+  public async HidesEveryComponent(permissions: Set<string>): Promise<boolean> {
+    if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
+      return false;
+    }
+    const keys = Object.keys(this.layoutRef?.components ?? {});
+    if (keys.length === 0) return false;
+    for (const key of keys) {
+      const permissionId = this.componentPermissionId(key);
+      if (await HasPermission(permissions, permissionId)) return false;
+    }
+    return true;
   }
 
   /**

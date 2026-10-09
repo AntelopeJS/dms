@@ -277,6 +277,13 @@
       "error_not_submitted": "Le formulaire n'a pas été soumis",
       "fetch_error_title": "Échec de la récupération des données",
       "fetch_error_unknown": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+      "load_error": {
+        "error_title": "Impossible de charger cet élément",
+        "error_description": "Vérifiez votre connexion, puis réessayez. Rien ne peut être enregistré tant que l'élément n'est pas chargé.",
+        "forbidden_title": "Vous ne pouvez pas voir cet élément",
+        "forbidden_description": "Votre rôle ne vous permet pas de voir cet élément, le formulaire ne peut donc pas s'ouvrir sur ses valeurs actuelles. Demandez l'accès à un administrateur.",
+        "retry": "Réessayer"
+      },
       "select_date": "Sélectionner une date",
       "relation": {
         "selected_count": "{count} sélectionné(s)",

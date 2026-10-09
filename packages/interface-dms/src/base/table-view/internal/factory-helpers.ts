@@ -199,9 +199,12 @@ export function registerTableViewActions<T>(
     });
   }
   if (capabilities.hasEditForm) {
+    // The edit form loads its row through the view route: without the view
+    // it opens empty, and a value saved from it replaces one it never showed.
     builder.action("edit", {
       title: "$dms.table.action_edit",
       icon: "i-ph-pencil",
+      dependencies: capabilities.hasViewForm ? [VIEW_ACTION] : undefined,
     });
   }
   if (capabilities.hasViewForm) {

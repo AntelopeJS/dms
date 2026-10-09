@@ -11,6 +11,10 @@ export interface Permission {
   title: string;
   icon?: string;
   description?: string;
+  /**
+   * Permission ids this one needs to be of any use. The roles editor grants
+   * them with it, and a role is saved with them and the ids they sit under.
+   */
   dependencies?: string[];
   defaultGranted?: boolean;
 }

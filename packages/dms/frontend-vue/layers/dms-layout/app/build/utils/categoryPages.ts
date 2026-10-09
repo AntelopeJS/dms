@@ -42,3 +42,17 @@ export function listPagesAmong(
 export function listCategoryPages(category: SiteLayoutTree): SiteLayoutTree[] {
   return listPagesAmong(orderedChildren(category), category.fullSlug);
 }
+
+/**
+ * The first page nested under the page `fullId` that the viewer can open:
+ * where that page leads when it shows them none of its blocks (Member
+ * invitations under Members).
+ */
+export function firstNestedPage(
+  root: SiteLayoutTree | undefined,
+  fullId: string,
+): SiteLayoutTree | undefined {
+  const node = findTreeNode(root, fullId);
+  if (!node) return undefined;
+  return listPagesAmong(orderedChildren(node), node.fullSlug)[0];
+}
