@@ -267,8 +267,6 @@
             "language": "Invitation language",
             "tenant_owner": "Make workspace owner",
             "tenant_owner_description": "Owners have every permission, including billing, roles and removing members. Roles above are ignored. A workspace can have several owners.",
-            "skip_email_validation": "Skip email validation",
-            "skip_email_validation_description": "If enabled, the invited user will not need to verify their email address and their first and last name must be provided",
             "emails": "Email addresses",
             "emails_description": "Paste a list to invite several people with the same roles.",
             "language_description": "The language of the email and of their account.",
@@ -283,8 +281,6 @@
             "name": "Nicolas Petit"
           },
           "roles_required": "At least one role is required when the user is not an owner",
-          "firstname_required": "First name is required when email validation is skipped",
-          "lastname_required": "Last name is required when email validation is skipped",
           "already_member": "Already a member of this workspace",
           "header_button": "Invite members",
           "partial_title": "Invitations sent: {sent}",
@@ -297,7 +293,6 @@
           "no_roles": "No role yet. Create one in Roles & permissions.",
           "emails_required": "Add at least one email address",
           "emails_too_many": "Invite at most 50 people at a time",
-          "skip_validation_single_email": "Email validation can only be skipped for one person at a time",
           "failed": "The invitation could not be sent"
         },
         "action": {
@@ -384,7 +379,6 @@
           "roles": "Roles",
           "owner": "Owner",
           "language": "Language",
-          "skip_email_validation": "Skip email validation",
           "status": "Status",
           "created_at": "Sent at",
           "expires_at": "Expires at",
@@ -394,9 +388,6 @@
         "placeholder": {
           "email": "email{'@'}example.com",
           "roles": "Select roles"
-        },
-        "description": {
-          "skip_email_validation": "If enabled, the invited user will not need to verify their email"
         },
         "status": {
           "pending": "Pending",

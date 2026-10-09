@@ -33,11 +33,11 @@ function acceptLegacySingleEmail(payload: unknown): unknown {
   return { ...record, [EMAILS_KEY]: [email] };
 }
 
-// Trimmed and bounded: whitespace alone satisfies the requiredness rule below
-// while `inviteeDisplayName` drops it, so the invitation would go out
-// nameless; and the value is persisted, then carried in the signup link's
-// `name` query parameter. An empty string means "not provided" (the client
-// sends "" when the field is touched then cleared).
+// Trimmed and bounded: whitespace alone would pass for a name while
+// `inviteeDisplayName` drops it, so the invitation would go out nameless; and
+// the value is persisted, then carried in the signup link's `name` query
+// parameter. An empty string means "not provided" (the client sends "" when
+// the field is touched then cleared).
 const inviteNamePart = z.string().trim().max(INVITE_NAME_MAX_LENGTH);
 
 const memberInviteObjectSchema = z.object({
@@ -51,59 +51,17 @@ const memberInviteObjectSchema = z.object({
   roles: z.array(z.string()).optional(),
   language: z.string(),
   asTenantOwner: z.boolean(),
-  skipEmailValidation: z.boolean().default(false),
 });
-
-type MemberInviteObject = z.infer<typeof memberInviteObjectSchema>;
-
-function addIssue(ctx: z.RefinementCtx, path: string, message: string): void {
-  ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
-}
-
-/**
- * Skipping the email check creates a usable account on the spot, so the
- * invitation has to name one person.
- */
-function requireNamesWhenValidationSkipped(
-  data: MemberInviteObject,
-  ctx: z.RefinementCtx,
-): void {
-  if (!data.skipEmailValidation) return;
-  if (data.emails.length > 1) {
-    addIssue(
-      ctx,
-      EMAILS_KEY,
-      "$page.settings.members.invite.skip_validation_single_email",
-    );
-  }
-  if (data.name) return;
-  if (!data.firstname) {
-    addIssue(
-      ctx,
-      "firstname",
-      "$page.settings.members.invite.firstname_required",
-    );
-  }
-  if (!data.lastname) {
-    addIssue(
-      ctx,
-      "lastname",
-      "$page.settings.members.invite.lastname_required",
-    );
-  }
-}
 
 export const memberInviteSchema = z.preprocess(
   acceptLegacySingleEmail,
-  memberInviteObjectSchema
-    .refine(
-      (data) => data.asTenantOwner || (data.roles && data.roles.length > 0),
-      {
-        message: "$page.settings.members.invite.roles_required",
-        path: ["roles"],
-      },
-    )
-    .superRefine(requireNamesWhenValidationSkipped),
+  memberInviteObjectSchema.refine(
+    (data) => data.asTenantOwner || (data.roles && data.roles.length > 0),
+    {
+      message: "$page.settings.members.invite.roles_required",
+      path: ["roles"],
+    },
+  ),
 );
 
 export type MemberInvitePayload = z.infer<typeof memberInviteSchema>;

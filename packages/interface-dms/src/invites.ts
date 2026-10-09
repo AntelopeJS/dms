@@ -31,6 +31,10 @@ export interface InviteUserToTenantOptions {
   language?: string;
   roleIds?: string[];
   asTenantOwner?: boolean;
+  /**
+   * @deprecated Invite signups always validate the email; this has no effect
+   * and will be removed in a future breaking release.
+   */
   skipEmailValidation?: boolean;
   /** Opt-in: dispatch `sendAdminInviteEmail` after the invite row is created. */
   sendEmail?: boolean;
@@ -188,7 +192,11 @@ export interface CreateUserInviteTokenOptions {
   language: string;
   roleIds: string[];
   asTenantOwner: boolean;
-  skipEmailValidation: boolean;
+  /**
+   * @deprecated Invite signups always validate the email; this has no effect
+   * and will be removed in a future breaking release.
+   */
+  skipEmailValidation?: boolean;
   /** Id of the user who sends the invitation; `null` when nobody signed in did. */
   invitedBy?: string | null;
   extensions?: InviteExtensionPayloads;
@@ -275,7 +283,7 @@ function buildInviteSnapshot(
     token: randomstring.generate({ length: INVITE_TOKEN_LENGTH }),
     asTenantOwner: options.asTenantOwner,
     expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * MILLISECONDS_PER_DAY),
-    skipEmailValidation: options.skipEmailValidation,
+    skipEmailValidation: options.skipEmailValidation ?? false,
     invitedBy: options.invitedBy ?? null,
     extensions: options.extensions ?? null,
   });

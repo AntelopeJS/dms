@@ -197,15 +197,6 @@ export class inviteSettingDataAPI extends DataController(
   @Access(AccessMode.ReadWrite)
   declare language: string;
 
-  @Exported()
-  @Column({
-    name: "$page.settings.invites.column.skip_email_validation",
-    type: new DefaultDataTypes.BooleanType(),
-    description: "$page.settings.invites.description.skip_email_validation",
-  })
-  @Access(AccessMode.ReadWrite)
-  declare skipEmailValidation: boolean;
-
   @Listable()
   @Exported()
   @Sortable()

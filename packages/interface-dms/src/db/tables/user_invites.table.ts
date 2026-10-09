@@ -55,6 +55,10 @@ export class UserInvite extends Table {
   @Field("string")
   declare creationResolutionId?: string;
 
+  /**
+   * @deprecated Invite signups always validate the email; this has no effect
+   * and will be removed in a future breaking release.
+   */
   @Field("boolean")
   declare skipEmailValidation: boolean;
 

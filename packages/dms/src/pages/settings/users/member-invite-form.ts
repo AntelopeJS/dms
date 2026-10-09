@@ -117,15 +117,6 @@ export const memberInviteForm = Form({
       required: true,
       defaultValue: false,
     },
-    {
-      id: "skipEmailValidation",
-      label: "$page.settings.members.invite.field.skip_email_validation",
-      description:
-        "$page.settings.members.invite.field.skip_email_validation_description",
-      type: new DefaultDataTypes.BooleanType(),
-      required: false,
-      defaultValue: false,
-    },
   ],
   fieldsOrientation: "vertical",
   // Modules attach their own fields here through `RegisterInviteExtension`.
@@ -149,12 +140,4 @@ export const memberInviteForm = Form({
   .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
     params: { targetField: "roles", setRequired: true },
     onParam: whenFieldIs("asTenantOwner", false),
-  })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
-    params: { targetField: "name", setRequired: true },
-    onParam: whenFieldIs("skipEmailValidation", true),
-  })
-  .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_REQUIRED, {
-    params: { targetField: "name", setRequired: false },
-    onParam: whenFieldIs("skipEmailValidation", false),
   });

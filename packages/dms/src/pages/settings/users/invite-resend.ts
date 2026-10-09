@@ -41,7 +41,6 @@ export async function resendPendingInvite(
     language: existingInvite.language,
     roleIds: existingInvite.roles_ids,
     asTenantOwner: existingInvite.asTenantOwner,
-    skipEmailValidation: existingInvite.skipEmailValidation,
     // Resending re-creates the row, so the module payloads have to be
     // carried over or the invitee would join without them — and the
     // displaced row must not read as an invitation that was retired.
