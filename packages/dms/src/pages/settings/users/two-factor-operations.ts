@@ -2,16 +2,23 @@
 // routes, so both URL families keep one behaviour.
 
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
-import { send2FAEmail } from "@antelopejs/interface-dms/auth";
 import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
-import { generateGoogleQR, generateUrl, verifyTOTP } from "2fa";
-import randomstring from "randomstring";
-import { TWO_FACTOR_RATE_LIMIT_MS } from "../../../routes/auth/constants";
+import { generateGoogleQR, generateUrl } from "2fa";
 import {
   notifyBackupCodesRegenerated,
   notifyTwoFactorDisabled,
   notifyTwoFactorEnabled,
 } from "../../../utils/account-notifications";
+import {
+  acceptTotpCode,
+  assertEmailCodeNotRateLimited,
+  consumeEmailCode,
+  emailCodeMatches,
+  isEmailCodeExpired,
+  sendNewEmailCode,
+  type TwoFactorMethod,
+  verifyTwoFactorCode,
+} from "../../../utils/two-factor-codes";
 import { authSchema } from "../../../validation/auth.schema";
 import { securitySchema } from "../../../validation/security.schema";
 import { assertCurrentPasswordIfSet } from "./current-password";
@@ -20,16 +27,11 @@ import {
   DMS_ISSUER,
   generateBackupCodes,
   generateTotpSecret,
-  verifyUserCode,
 } from "./profile-helpers";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
-type TwoFactorMethod = "totp" | "email";
-
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;
-const HTTP_TOO_MANY_REQUESTS = 429;
-const EMAIL_CODE_LENGTH = 6;
 const QR_MODULE_SIZE = 6;
 // Quiet zone in modules: scanners need it, even on a dark page.
 const QR_MARGIN = 3;
@@ -177,7 +179,7 @@ export async function confirmTotpSetup(
   );
   assert(user.twoFactorPendingSecret, HTTP_BAD_REQUEST, "error.totp_not_setup");
   assert(
-    verifyTOTP(user.twoFactorPendingSecret, code),
+    await acceptTotpCode(userModel, user, user.twoFactorPendingSecret, code),
     HTTP_UNAUTHORIZED,
     "error.invalid_2fa_code",
   );
@@ -192,18 +194,59 @@ export async function confirmTotpSetup(
   return { success: true, backupCodes };
 }
 
+// Email codes are being set up: a code went out, the method is not on yet.
+const isEmailSetupPending = (user: User): boolean =>
+  !methodsOf(user).includes("email") && !!user.twoFactorEmailCode;
+
 /**
+ * Emails a code to the account address; the method turns on only once that
+ * code comes back, so a mistyped address cannot lock the user out. A setup
+ * reopened while its code is still valid sends none: that code still works,
+ * and asking for another one waits out the resend limit.
+ *
  * @param user The signed-in user
  * @param body `{ currentPassword }`, unless the account has no password
  * @param userModel Model the user is written to
+ */
+export async function startEmailSetup(
+  user: User,
+  body: unknown,
+  userModel: UserModel,
+): Promise<SuccessResult> {
+  const needsCode = !isEmailSetupPending(user) || isEmailCodeExpired(user);
+  // Before the password: a wait that only the right password reached would
+  // tell a guess was right.
+  if (needsCode) assertEmailCodeNotRateLimited(user);
+  await assertMayAddMethod(user, body, userModel);
+  if (needsCode) await sendNewEmailCode(userModel, user);
+  return { success: true };
+}
+
+/**
+ * @param user The signed-in user
+ * @param body `{ code }` received at the account address
+ * @param userModel Model the user is written to
  * @returns Success, with backup codes when a new set was issued
  */
-export async function enableEmailMethod(
+export async function confirmEmailSetup(
   user: User,
   body: unknown,
   userModel: UserModel,
 ): Promise<MethodEnabledResult> {
-  await assertMayAddMethod(user, body, userModel);
+  const { code } = assertValidation(body, (value) =>
+    authSchema.confirmEmailMethod.parse(value),
+  );
+  assert(
+    user.twoFactorEmailCode && !isEmailCodeExpired(user),
+    HTTP_BAD_REQUEST,
+    "error.2fa_code_expired",
+  );
+  assert(
+    emailCodeMatches(user, code),
+    HTTP_UNAUTHORIZED,
+    "error.invalid_2fa_code",
+  );
+  consumeEmailCode(user);
   const backupCodes = enableMethod(user, "email");
   await userModel.update(user);
   fireAndForget(
@@ -237,7 +280,7 @@ export async function disableTwoFactorMethod(
     authSchema.disableTwoFactor.parse(value),
   );
   assert(
-    verifyUserCode(user, code, method),
+    await verifyTwoFactorCode(userModel, user, method, code),
     HTTP_UNAUTHORIZED,
     "error.invalid_2fa_code",
   );
@@ -253,9 +296,17 @@ export async function disableTwoFactorMethod(
   return { success: true };
 }
 
-function isValidCodeForAnyMethod(user: User, code: string): boolean {
-  const methods = methodsOf(user) as TwoFactorMethod[];
-  return methods.some((method) => verifyUserCode(user, code, method));
+// One method after the other: a code that passes is used up, so it must not
+// be tried against a second method once one accepted it.
+async function isValidCodeForAnyMethod(
+  userModel: UserModel,
+  user: User,
+  code: string,
+): Promise<boolean> {
+  for (const method of methodsOf(user) as TwoFactorMethod[]) {
+    if (await verifyTwoFactorCode(userModel, user, method, code)) return true;
+  }
+  return false;
 }
 
 /**
@@ -276,7 +327,7 @@ export async function regenerateBackupCodes(
   );
   assert(methodsOf(user).length > 0, HTTP_BAD_REQUEST, "error.2fa_not_enabled");
   assert(
-    isValidCodeForAnyMethod(user, code),
+    await isValidCodeForAnyMethod(userModel, user, code),
     HTTP_UNAUTHORIZED,
     "error.invalid_2fa_code",
   );
@@ -313,7 +364,8 @@ export async function markBackupCodesSaved(
 }
 
 /**
- * Emails a one-time code, at most once per rate-limit window.
+ * Emails a one-time code, at most once per rate-limit window: for the email
+ * method, or again for its pending setup.
  *
  * @param user The signed-in user
  * @param userModel Model the user is written to
@@ -323,22 +375,10 @@ export async function requestTwoFactorEmailCode(
   userModel: UserModel,
 ): Promise<SuccessResult> {
   assert(
-    methodsOf(user).includes("email"),
+    methodsOf(user).includes("email") || isEmailSetupPending(user),
     HTTP_BAD_REQUEST,
     "error.2fa_email_not_enabled",
   );
-  const isRateLimited =
-    !!user.twoFactorEmailCodeRequestedAt &&
-    Date.now() - new Date(user.twoFactorEmailCodeRequestedAt).getTime() <
-      TWO_FACTOR_RATE_LIMIT_MS;
-  assert(!isRateLimited, HTTP_TOO_MANY_REQUESTS, "error.rate_limited");
-  const code = randomstring.generate({
-    length: EMAIL_CODE_LENGTH,
-    charset: "numeric",
-  });
-  user.twoFactorEmailCode = code;
-  user.twoFactorEmailCodeRequestedAt = new Date();
-  await userModel.update(user);
-  await send2FAEmail(user, code);
+  await sendNewEmailCode(userModel, user);
   return { success: true };
 }

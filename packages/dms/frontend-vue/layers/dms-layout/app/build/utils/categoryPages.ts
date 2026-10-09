@@ -24,8 +24,7 @@ const isOpenablePage = (node: SiteLayoutTree): boolean =>
 
 /**
  * The pages the viewer can open among `nodes` and under them, in menu order,
- * each one followed by the pages nested under it (Member invitations under
- * Members). The page answering at `landingSlug` leads to the others rather
+ * each one followed by the pages nested under it. The page answering at `landingSlug` leads to the others rather
  * than being one of them.
  */
 export function listPagesAmong(

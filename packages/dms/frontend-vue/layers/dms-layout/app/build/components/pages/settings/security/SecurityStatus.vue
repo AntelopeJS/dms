@@ -14,7 +14,9 @@ const METHODS_LABEL_KEYS: Record<string, string> = {
 const SKELETON_COUNT = 4;
 
 const { t } = useI18n();
-const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
+const { overview, attention, attentionToneOf, isUnavailable, refresh } =
+  useSecurityOverview();
+const BACKUP_ATTENTION = ["backup_codes_low", "backup_codes_unsaved"] as const;
 const { formatDate, daysSince } = useSecurityFormat();
 
 function twoFactorItem(data: SecurityOverview): StatGroupItem {
@@ -53,12 +55,11 @@ function backupDetail(
 function backupItem({ twoFactor }: SecurityOverview): StatGroupItem {
   const isOn = twoFactor.methods.length > 0;
   const isUnsaved = attention.value.includes("backup_codes_unsaved");
-  const isLow = attention.value.includes("backup_codes_low");
   return {
     id: "backup-codes",
     to: "#backup-codes",
     icon: "i-ph-key",
-    tone: isOn && (isUnsaved || isLow) ? "warning" : "muted",
+    tone: (isOn && attentionToneOf([...BACKUP_ATTENTION])) || "muted",
     eyebrow: t("page.settings.security.status.backup_codes"),
     value: isOn
       ? t("page.settings.security.codes_left", {

@@ -11,10 +11,8 @@ import {
 } from "@antelopejs/interface-api";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel, Model } from "@antelopejs/interface-database-decorators";
-import {
-  AuthTenantMember,
-  AuthUserWithPermission,
-} from "@antelopejs/interface-dms/guards";
+import { AuthUser } from "@antelopejs/interface-dms/auth";
+import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -46,7 +44,6 @@ import {
   isSubjectLocked,
   publishAllNotificationsRead,
   publishNotificationsRead,
-  publishNotificationsSeen,
   publishNotificationsUnread,
 } from "../../../implementations/dms-notifications";
 import {
@@ -244,7 +241,8 @@ export class NotificationsSettingsController extends PageController(
     icon: "i-ph-sliders-horizontal",
   });
 
-  // The navigation counts the user's own unread notifications.
+  // The navigation counts the user's own unread notifications, in the tone
+  // of the most important one, as the header bell does.
   static inbox = Section({
     title: `${NOTIFICATION_TEXTS}.inbox_title`,
     description: `${NOTIFICATION_TEXTS}.inbox_description`,
@@ -253,7 +251,7 @@ export class NotificationsSettingsController extends PageController(
     .child("table", notificationInboxTable())
     .navBadge({
       count: (_ctx, user) =>
-        GetModel(UserNotificationsModel).countUnread(user._id),
+        GetModel(UserNotificationsModel).unreadBadge(user._id),
     });
 
   @AuthUserWithPermission(
@@ -265,9 +263,11 @@ export class NotificationsSettingsController extends PageController(
 export class NotificationsApiController extends Controller(
   "/settings/user/notifications",
 ) {
-  // A user's own notifications are not tenant data: the header bell polls
-  // them on every page, including the billing page a blocked tenant needs.
-  @AuthTenantMember({ bypassTenantAccessGate: true })
+  // A user's own notifications are not tenant data: no membership and no
+  // tenant access gate. The header bell polls them on every page, including
+  // the billing page a blocked tenant needs, and a member removed from their
+  // workspace still reads the notification telling them so.
+  @AuthUser()
   declare user: User;
 
   @Get("/preferences")
@@ -349,27 +349,20 @@ export class NotificationsApiController extends Controller(
   /**
    * Totals of the All and Unread inbox tabs, for the feed the search,
    * category and subject narrow (the read state does not change them).
-   * For the whole feed, `unseen` adds what the header bell counts: the
-   * unread notifications that arrived since it was last opened.
+   * For the whole feed, `unreadTone` adds the tone of the unread badge the
+   * header bell and the navigation show.
    */
   @Get("/counts")
   async getCounts(
     @Context() context: RequestContext,
     @Model(UserNotificationsModel)
     notificationsModel: UserNotificationsModel,
-    @Model(UserNotificationPreferencesModel)
-    preferencesModel: UserNotificationPreferencesModel,
   ): Promise<UserNotificationCounts> {
     const filter = readFeedFilter(context);
     if (isNarrowedFeed(filter)) {
       return await notificationsModel.countFilteredFeed(this.user._id, filter);
     }
-    const seenAt = await preferencesModel.getNotificationsSeenAt(this.user._id);
-    const [counts, unseen] = await Promise.all([
-      notificationsModel.countFeed(this.user._id),
-      notificationsModel.countUnseen(this.user._id, seenAt),
-    ]);
-    return { ...counts, unseen };
+    return await notificationsModel.countFeedWithUnreadTone(this.user._id);
   }
 
   /**
@@ -416,35 +409,6 @@ export class NotificationsApiController extends Controller(
       confirmLabel: `${NOTIFICATION_TEXTS}.delete_all_confirm`,
       cancelLabel: `${NOTIFICATION_TEXTS}.cancel`,
     });
-  }
-
-  /** What the header bell counts on its own: see {@link getCounts}. */
-  @Get("/unseen-count")
-  async getUnseenCount(
-    @Model(UserNotificationsModel)
-    notificationsModel: UserNotificationsModel,
-    @Model(UserNotificationPreferencesModel)
-    preferencesModel: UserNotificationPreferencesModel,
-  ) {
-    const seenAt = await preferencesModel.getNotificationsSeenAt(this.user._id);
-    const count = await notificationsModel.countUnseen(this.user._id, seenAt);
-    return { count };
-  }
-
-  /**
-   * The user opened the header bell: its badge resets, and counts again
-   * what arrives later. Seeing is not reading: the notifications stay
-   * unread until opened or marked read.
-   */
-  @Put("/seen")
-  async markSeen(
-    @Model(UserNotificationPreferencesModel)
-    preferencesModel: UserNotificationPreferencesModel,
-  ) {
-    const seenAt = await preferencesModel.markNotificationsSeen(this.user._id);
-    await publishNotificationsSeen(this.user._id, seenAt);
-
-    return { success: true, seenAt };
   }
 
   /**

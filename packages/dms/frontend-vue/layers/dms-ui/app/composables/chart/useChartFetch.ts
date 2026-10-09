@@ -1,13 +1,33 @@
-import { onMounted, ref, watch, type Ref } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+  type ComputedRef,
+  type Ref,
+} from "vue";
 import {
   appendPeriodToUrl,
   usePeriodScope,
 } from "../../../../dms-core/app/composables/period/usePeriodScope";
 import type { PeriodState } from "../../../../dms-core/app/composables/period/types";
 import { useRealtimeTopic } from "../../../../dms-core/app/composables/realtime/useRealtimeTopic";
+import {
+  hasUrlVariables,
+  resolveUrlVariables,
+} from "../../build/utils/urlVariables";
+import { onPageBlocksRefresh } from "../../utils/blockRefresh";
 
 export interface UseChartFetchOptions<T> {
+  /**
+   * Where the data is read from. `{{params.X}}` is filled from `routeParams`
+   * and `{{query.X}}` from the page URL's query, again when they change;
+   * nothing is requested while a token is left without a value.
+   */
   fetchUrl?: string;
+  /** The parameters of the page route (a block's `routeParams` prop). */
+  routeParams?: () => Record<string, string> | undefined;
   fetchUrlMethod?: string;
   periodScope?: string;
   realtimeTopic?: string | string[];
@@ -46,6 +66,13 @@ function buildFinalUrl(
   return appendPeriodToUrl(url, scopeState);
 }
 
+/** What one fetch requests. */
+interface FetchRequest {
+  url: string | undefined;
+  method: string | undefined;
+  periodScope: string | undefined;
+}
+
 interface FetchRunner {
   hasFetchedOnce: boolean;
   /** Inputs the last fetch was started for, to collapse duplicate triggers. */
@@ -61,16 +88,16 @@ type AuthFetcher = <T>(
 
 async function runFetch<T>(
   authFetch: AuthFetcher,
-  options: UseChartFetchOptions<T>,
+  request: FetchRequest,
   scopeState: PeriodState | null,
   runner: FetchRunner,
   data: Ref<T | null>,
   isLoading: Ref<boolean>,
   error: Ref<unknown>,
 ): Promise<void> {
-  if (!options.fetchUrl) return;
-  if (options.periodScope && !scopeState) return;
-  const url = buildFinalUrl(options.fetchUrl, scopeState, options.periodScope);
+  if (!request.url) return;
+  if (request.periodScope && !scopeState) return;
+  const url = buildFinalUrl(request.url, scopeState, request.periodScope);
   if (!url) return;
   if (runner.activeAbort) runner.activeAbort.abort();
   const controller = new AbortController();
@@ -79,7 +106,7 @@ async function runFetch<T>(
   error.value = null;
   try {
     const response = await authFetch<T>(url, {
-      method: options.fetchUrlMethod || DEFAULT_HTTP_METHOD,
+      method: request.method || DEFAULT_HTTP_METHOD,
       signal: controller.signal,
     });
     if (runner.activeAbort !== controller) return;
@@ -119,6 +146,34 @@ function subscribeRealtimeTopics(
   }
 }
 
+/**
+ * The URL to request: `fetchUrl` with its tokens filled, or `undefined` while
+ * one has no value. Only a URL naming a token reads the route.
+ */
+function useResolvedFetchUrl<T>(
+  options: UseChartFetchOptions<T>,
+): ComputedRef<string | undefined> {
+  const { fetchUrl } = options;
+  if (!fetchUrl || !hasUrlVariables(fetchUrl)) return computed(() => fetchUrl);
+  const route = useDmsRoute();
+  return computed(() =>
+    resolveUrlVariables(fetchUrl, {
+      routeParams: options.routeParams?.(),
+      routeQuery: route.query as Record<string, unknown>,
+    }),
+  );
+}
+
+// Mounted only: the page refresh is a browser event, and a block the server
+// renders has nothing to refetch.
+function subscribePageRefresh(onRefresh: () => void): void {
+  let unsubscribe: (() => void) | undefined;
+  onMounted(() => {
+    unsubscribe = onPageBlocksRefresh(onRefresh);
+  });
+  onBeforeUnmount(() => unsubscribe?.());
+}
+
 export function useChartFetch<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
@@ -130,7 +185,8 @@ export function useChartFetch<T>(
   // period-scoped card renders server-side with no scope and no data. Start
   // in the loading state so consumers show a skeleton instead of a hard zero
   // for the whole hydrate-then-fetch window.
-  const isLoading = ref(Boolean(options.fetchUrl));
+  const resolvedUrl = useResolvedFetchUrl(options);
+  const isLoading = ref(Boolean(resolvedUrl.value));
   const error = ref<unknown>(null);
   const scopeState = usePeriodScope(options.periodScope);
   const { $authFetch } = useAuthFetch();
@@ -144,7 +200,11 @@ export function useChartFetch<T>(
   const performFetch = () =>
     runFetch(
       $authFetch as AuthFetcher,
-      options,
+      {
+        url: resolvedUrl.value,
+        method: options.fetchUrlMethod,
+        periodScope: options.periodScope,
+      },
       scopeState.value,
       runner,
       data,
@@ -159,7 +219,7 @@ export function useChartFetch<T>(
   };
 
   const currentInputs = () =>
-    `${scopeState.value?.key ?? ""}|${JSON.stringify(options.watchSource?.() ?? null)}`;
+    `${resolvedUrl.value}|${scopeState.value?.key ?? ""}|${JSON.stringify(options.watchSource?.() ?? null)}`;
 
   const fetchScheduledInputs = () => {
     runner.pendingTimer = null;
@@ -182,7 +242,7 @@ export function useChartFetch<T>(
     const hadPending = runner.pendingTimer !== null;
     if (runner.pendingTimer) clearTimeout(runner.pendingTimer);
     runner.pendingTimer = null;
-    if (options.periodScope && !scopeState.value) {
+    if (!resolvedUrl.value || (options.periodScope && !scopeState.value)) {
       settleCancelledRefresh(hadPending);
       return;
     }
@@ -203,10 +263,11 @@ export function useChartFetch<T>(
   };
   const scheduleRefresh = () => scheduleRefreshWith(true);
 
-  // A realtime event means the data behind unchanged inputs moved, so it has
-  // to bypass the deduplication above. The inputs did not change, so the
-  // values on screen stay current until the new answer replaces them.
-  const refreshFromRealtime = () => {
+  // A realtime event or a page refresh (refreshPageBlocks) means the data
+  // behind unchanged inputs moved, so it has to bypass the deduplication
+  // above. The inputs did not change, so the values on screen stay current
+  // until the new answer replaces them.
+  const refreshSameInputs = () => {
     runner.lastInputs = null;
     scheduleRefreshWith(false);
   };
@@ -225,11 +286,12 @@ export function useChartFetch<T>(
 
   if (options.fetchUrl) {
     watch(
-      () => [scopeState.value?.key, options.watchSource?.()],
+      () => [resolvedUrl.value, scopeState.value?.key, options.watchSource?.()],
       scheduleRefresh,
     );
     onMounted(fetchOnMount);
-    subscribeRealtimeTopics(options.realtimeTopic, refreshFromRealtime);
+    subscribeRealtimeTopics(options.realtimeTopic, refreshSameInputs);
+    subscribePageRefresh(refreshSameInputs);
   } else if (typeof options.staticData === "function") {
     watch(
       () => readStaticData(options.staticData),

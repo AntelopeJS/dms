@@ -56,6 +56,13 @@ export interface ActivityFeedProps
   groupByDay?: boolean;
   /** Shows at most this many entries; `skeletonCount` never exceeds it. */
   maxItems?: number;
+  /**
+   * The card fills its grid cell instead of growing with its entries, which
+   * scroll inside it under a fixed head: the cards beside it in the row set
+   * the row's height. Once the cells stack, the list scrolls past a height
+   * of its own. Defaults to `false`.
+   */
+  fillHeight?: boolean;
   /** Link buttons in the card head ("View all"). */
   actions?: BlockLinkAction[];
   /** Mono titles and details (paths, queries, request logs). */
@@ -145,6 +152,15 @@ export const ActivityFeedSchema = z.object({
     widget: "number",
     min: 1,
   }),
+  fillHeight: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Fills the grid cell, the entries scrolling inside, rather than growing with them.",
+      ),
+    { label: "Fill the cell", group: "appearance", widget: "switch" },
+  ),
   actions: blockActionsOption("Link buttons in the card head."),
   ...blockItemsSourceOptions(),
   mono: ui(z.boolean().optional(), {

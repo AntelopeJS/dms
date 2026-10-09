@@ -3,6 +3,8 @@ export type SecurityDialogTone = "primary" | "error" | "warning";
 </script>
 
 <script setup lang="ts">
+import DmsModalEscHint from "#dms-ui/app/build/components/modal/ModalEscHint.vue";
+
 interface SecurityDialogFrameProps {
   title: string;
   icon: string;
@@ -51,12 +53,10 @@ const { t } = useI18n();
     <template #footer>
       <!-- Phones: no Esc hint (no keyboard) and the buttons may wrap. -->
       <div class="flex w-full flex-wrap items-center justify-end gap-2">
-        <span
-          class="text-dimmed me-auto flex items-center gap-1.5 text-xs max-sm:hidden"
-        >
-          <UKbd value="Esc" size="sm" />
-          {{ t("page.settings.security.esc_to_cancel") }}
-        </span>
+        <DmsModalEscHint
+          class="max-sm:hidden"
+          :label="t('page.settings.security.esc_to_cancel')"
+        />
         <UButton
           color="neutral"
           variant="outline"

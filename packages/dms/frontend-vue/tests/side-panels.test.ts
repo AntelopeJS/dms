@@ -53,6 +53,10 @@ vi.mock(
   () => ({ default: () => null }),
 );
 vi.mock(
+  "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue",
+  () => ({ default: () => null }),
+);
+vi.mock(
   "../layers/dms-layout/app/build/components/layout/RolePreviewBar.vue",
   () => ({ default: () => null }),
 );

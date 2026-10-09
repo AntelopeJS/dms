@@ -16,7 +16,7 @@ import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 const MS_PER_MINUTE = 60 * 1000;
 /** Attempts older than this are pruned; they no longer weigh in any window. */
-const ATTEMPT_RETENTION_MS = 24 * 60 * MS_PER_MINUTE;
+export const ATTEMPT_RETENTION_MS = 24 * 60 * MS_PER_MINUTE;
 
 function logFailure(what: string, userId: string, error: unknown): void {
   Logging.Error(`[DMS] Could not ${what} for "${userId}": ${String(error)}`);

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { HTTPResult } from "@antelopejs/interface-api";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -20,6 +21,7 @@ import {
 import { isObject } from "@antelopejs/interface-dms/utils/internal/type-check";
 import { recordUserActivity } from "../../utils/user-activity";
 import { generateSecret } from "./token-secret";
+import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
 const HTTP_FORBIDDEN = 403;
@@ -29,7 +31,7 @@ const INVALID_USER_ERROR = "Invalid user";
 const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
 const NO_JWT_TOKEN_ERROR = "No jwt token provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
-const INVALID_TWO_FACTOR_TOKEN_ERROR = "Invalid 2FA token";
+const INVALID_TWO_FACTOR_TOKEN_ERROR = "error.invalid_2fa_token";
 const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
@@ -40,6 +42,7 @@ interface TenantTokenInput {
   tenantId: string;
   id: string;
   rawToken: string;
+  sessionId?: string;
 }
 
 interface TokenResult {
@@ -87,7 +90,12 @@ async function validateUserToken(
   checkEmailValidation: boolean = false,
 ): Promise<User> {
   const userModel = GetModel(UserModel);
-  const user = await userModel.get(data.id);
+  // The session is read alongside the user, so checking it costs no extra
+  // round trip; which session counts is settled from the verified payload.
+  const [user, session] = await Promise.all([
+    userModel.get(data.id),
+    loadTokenSession(data.sessionId),
+  ]);
 
   if (!user) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
@@ -95,7 +103,12 @@ async function validateUserToken(
 
   try {
     const secret = generateSecret(user.authKey);
-    verifySessionToken(data.rawToken, secret, ACCESS_TOKEN_PURPOSE);
+    const payload = verifySessionToken(
+      data.rawToken,
+      secret,
+      ACCESS_TOKEN_PURPOSE,
+    );
+    assertTokenSessionAlive(payload.sessionId, session, user);
   } catch (error: unknown) {
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
@@ -198,8 +211,9 @@ const BEARER_SCHEME = /^Bearer\s+(\S+)$/i;
 
 /**
  * Whether a request carries a bearer token the DMS no longer accepts: expired,
- * signed with a rotated key, or naming a user that is gone. `IfAuthUser` reads
- * such a request as anonymous; this tells it apart from one that sent nothing.
+ * signed with a rotated key, bound to a signed-out session, or naming a user
+ * that is gone. `IfAuthUser` reads such a request as anonymous; this tells it
+ * apart from one that sent nothing.
  * An unvalidated e-mail is not a rejection — the token itself is still good.
  *
  * @param authorization The raw `authorization` header, possibly absent
@@ -297,10 +311,16 @@ export function generateTwoFactorToken(
   user: User,
 ): TokenResult {
   const secret = generateSecret(user.authKey);
+  // The token is the challenge its tries are counted against. Its claims are
+  // signed to the second: without an id of its own, two sign-ins in the same
+  // second would share one token, one budget of tries and one session.
   const token = sign(
     { id: user._id, tenantId, purpose: TWO_FACTOR_TOKEN_PURPOSE },
     secret,
-    { expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000) },
+    {
+      expiresIn: Math.floor(TWO_FACTOR_TOKEN_LIFETIME_MS / 1000),
+      jwtid: randomUUID(),
+    },
   );
 
   return { token, expiresIn: TWO_FACTOR_TOKEN_LIFETIME_MS };
@@ -316,66 +336,71 @@ export function generateTenantAssignmentToken(user: User): TokenResult {
   return { token, expiresIn: TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS };
 }
 
-interface TenantAssignmentDecoded {
-  id?: string;
-  purpose?: string;
+interface PurposeTokenClaims {
+  id: string;
+  purpose: string;
 }
 
-interface TwoFactorDecoded {
-  id: string;
+interface TwoFactorClaims extends PurposeTokenClaims {
   tenantId: string;
-  purpose?: string;
+}
+
+interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
+  claims: T;
+  user: User;
+}
+
+function isSignedFor(token: string, user: User): boolean {
+  try {
+    verify(token, generateSecret(user.authKey));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// One refusal whatever failed: an unknown user answered apart from a bad
+// signature would tell which user ids exist, and the token library's own
+// messages ("jwt expired", "invalid signature") stay out of the answer. The
+// user is read before the signature is checked because the secret derives
+// from their key.
+async function verifyPurposeToken<T extends PurposeTokenClaims>(
+  token: string,
+  purpose: string,
+  refusal: string,
+): Promise<VerifiedPurposeToken<T>> {
+  const claims = decode(token);
+  if (
+    !claims ||
+    typeof claims === "string" ||
+    claims.purpose !== purpose ||
+    typeof claims.id !== "string"
+  ) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
+  }
+  const user = await GetModel(UserModel).get(claims.id);
+  if (!user || !isSignedFor(token, user)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
+  }
+  return { claims: claims as T, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
-  const result = decode(token) as TenantAssignmentDecoded | null;
-
-  if (!result || result.purpose !== TENANT_ASSIGNMENT_PURPOSE || !result.id) {
-    throw new HTTPResult(
-      HTTP_UNAUTHORIZED,
-      INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR,
-    );
-  }
-
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    verify(token, secret);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
-
-  return { id: result.id, user };
+  const { claims, user } = await verifyPurposeToken(
+    token,
+    TENANT_ASSIGNMENT_PURPOSE,
+    INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR,
+  );
+  return { id: claims.id, user };
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const result = decode(token) as TwoFactorDecoded;
-
-  if (result.purpose !== TWO_FACTOR_TOKEN_PURPOSE) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
-  }
-
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    verify(token, secret);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
-
-  return { ...result, user };
+  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+    token,
+    TWO_FACTOR_TOKEN_PURPOSE,
+    INVALID_TWO_FACTOR_TOKEN_ERROR,
+  );
+  return { ...claims, user };
 }
 
 interface TwoFactorEmailData {
@@ -483,6 +508,8 @@ const BUILTIN_SENSITIVE_USER_KEYS: string[] = [
   "forgotPasswordToken",
   "authKey",
   "twoFactorSecret",
+  "twoFactorPendingSecret",
+  "twoFactorTotpLastStep",
   "twoFactorBackupCodes",
   "twoFactorEmailCode",
   "twoFactorEmailCodeRequestedAt",

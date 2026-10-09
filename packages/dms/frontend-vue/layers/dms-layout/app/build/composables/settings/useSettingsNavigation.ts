@@ -17,6 +17,8 @@ export interface SettingsNavPage {
   to: string;
   /** Badge the server counted or the page declared for its entry. */
   badge?: string;
+  /** The tone of a counted badge; neutral when absent. */
+  badgeTone?: MenuItemBadgeTone;
   /** Dot the page declared for its entry. */
   status?: MenuItemStatus;
 }
@@ -36,6 +38,7 @@ const toNavPage = (node: SiteLayoutTree): SettingsNavPage => ({
   icon: node.icon || DEFAULT_SETTINGS_ICON,
   to: node.fullSlug,
   badge: node.badge,
+  badgeTone: node.badgeTone,
   status: node.status,
 });
 

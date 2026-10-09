@@ -3,9 +3,10 @@ import { AttemptLimiter } from "../../utils/attempt-limiter";
 
 const HTTP_TOO_MANY_REQUESTS = 429;
 const TOO_MANY_ATTEMPTS_MESSAGE = "error.too_many_sign_in_attempts";
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+/** The window sign-in failures are counted over. */
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 /** Wrong passwords one address (account) may take per window. */
-const FAILURES_PER_ACCOUNT = 10;
+export const FAILURES_PER_ACCOUNT = 10;
 /** Failed sign-ins one client address may make per window, all accounts. */
 const FAILURES_PER_CLIENT = 50;
 const MAX_TRACKED_KEYS = 10_000;

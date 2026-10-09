@@ -87,6 +87,56 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(result.valid).to.equal(false);
   });
 
+  it("accepts a composed text wherever a block text goes", () => {
+    const mrr = {
+      key: "saas.stats.mrr",
+      params: {
+        amount: { type: "money", value: 92200, currency: "EUR" },
+        since: { type: "relative", value: "2026-10-01T00:00:00Z" },
+        plan: { key: "$saas.plans.business" },
+        seats: { type: "count", value: 3 },
+      },
+      plural: "seats",
+    };
+
+    expect(
+      ValidateBlockOptions("StatGroup", {
+        items: [{ eyebrow: mrr, value: mrr, detail: mrr }],
+      }).valid,
+    ).to.equal(true);
+    expect(
+      ValidateBlockOptions("KeyValueList", {
+        items: [{ label: mrr, value: mrr, detail: mrr }],
+      }).valid,
+    ).to.equal(true);
+    expect(
+      ValidateBlockOptions("Banner", { title: mrr, description: mrr }).valid,
+    ).to.equal(true);
+  });
+
+  it("keeps describing a block text as a text field to the page builder", () => {
+    const cell = declared("StatGroup").config.items?.items?.properties ?? {};
+
+    expect(cell.value?.ui?.widget).to.equal("text");
+    expect(declared("Banner").config.title?.ui?.widget).to.equal("text");
+  });
+
+  it("refuses a composed text parameter of an unknown type", () => {
+    const result = ValidateBlockOptions("StatGroup", {
+      items: [
+        {
+          eyebrow: "MRR",
+          value: {
+            key: "saas.stats.mrr",
+            params: { amount: { type: "bitcoin", value: 1 } },
+          },
+        },
+      ],
+    });
+
+    expect(result.valid).to.equal(false);
+  });
+
   it("writes a placed block that is not configured yet as a valid one", () => {
     const placed = StatGroup().serializeSync().options;
 

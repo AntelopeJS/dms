@@ -22,6 +22,7 @@ import {
   registerTestPage,
   stubPageAccessModels,
 } from "../../../helpers/page-access";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const LABEL_ID = "pv-label";
 const LABEL_FULL_ID = `pages.${LABEL_ID}`;
@@ -31,6 +32,10 @@ const TARGET_SLUG = "/pv-target";
 const ENTRY_PERMISSION = "pv.entry-permission";
 const OPEN_ENTRY_FULL_ID = `${LABEL_FULL_ID}.open-entry`;
 const GUARDED_ENTRY_FULL_ID = `${LABEL_FULL_ID}.guarded-entry`;
+// A page every member opens (`memberAccess: "self"`, like the settings
+// overview), holding a page that needs a grant.
+const MEMBER_PAGE_FULL_ID = "pages.pv-member";
+const MEMBER_CHILD_FULL_ID = `${MEMBER_PAGE_FULL_ID}.pv-member-child`;
 const TENANT = "pv-tenant";
 // A platform owner reaches every entry: the preview compares all of them.
 const OWNER = { _id: "pv-owner", owner: true } as User;
@@ -42,7 +47,7 @@ async function hiddenEntriesFor(permissions: string[]): Promise<string[]> {
     memberModel,
     roleModel,
     tenantId: TENANT,
-    previewPermissions: new Set(permissions),
+    previewPermissions: new Set(withPermissionAncestors(permissions)),
   });
   return access.hiddenEntries;
 }
@@ -79,6 +84,20 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
           displayName: "Preview target",
           category: pagesCategory,
           hidden: true,
+        }),
+      ),
+    );
+    const memberPage = PageController("pv-member", {
+      displayName: "Preview member page",
+      category: pagesCategory,
+      memberAccess: "self",
+    });
+    cleanups.push(await registerTestPage(memberPage));
+    cleanups.push(
+      await registerTestPage(
+        PageController("pv-member-child", {
+          displayName: "Preview member child",
+          category: memberPage,
         }),
       ),
     );
@@ -131,12 +150,14 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
       memberModel,
       roleModel,
       tenantId: TENANT,
-      previewPermissions: new Set([
-        LABEL_FULL_ID,
-        PAGE_FULL_ID,
-        TARGET_FULL_ID,
-        ENTRY_PERMISSION,
-      ]),
+      previewPermissions: new Set(
+        withPermissionAncestors([
+          LABEL_FULL_ID,
+          PAGE_FULL_ID,
+          TARGET_FULL_ID,
+          ENTRY_PERMISSION,
+        ]),
+      ),
       pageLoses: async (page) => page.fullId === TARGET_FULL_ID,
     });
     expect(access.partialEntries).to.include.members([
@@ -146,6 +167,20 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
     ]);
     expect(access.partialEntries).to.not.include(PAGE_FULL_ID);
     expect(access.hiddenEntries).to.not.include(LABEL_FULL_ID);
+  });
+
+  it("never locks a page every member opens for an entry refused under it", async () => {
+    const { memberModel, roleModel } = stubPageAccessModels([]);
+    const access = await resolvePermissionPreviewAccess({
+      user: OWNER,
+      memberModel,
+      roleModel,
+      tenantId: TENANT,
+      previewPermissions: new Set(),
+    });
+    expect(access.hiddenEntries).to.include(MEMBER_CHILD_FULL_ID);
+    expect(access.hiddenEntries).to.not.include(MEMBER_PAGE_FULL_ID);
+    expect(access.partialEntries).to.not.include(MEMBER_PAGE_FULL_ID);
   });
 
   it("refuses a group whose every entry the set is refused", async () => {

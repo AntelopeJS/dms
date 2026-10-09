@@ -3,6 +3,7 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
+import { permissionIdAncestors } from "./internal/permission-ids";
 import { ApplyPermissionsResolvers } from "./permissions-resolver";
 
 export interface Permission {
@@ -10,6 +11,10 @@ export interface Permission {
   title: string;
   icon?: string;
   description?: string;
+  /**
+   * Permission ids this one needs to be of any use. The roles editor grants
+   * them with it, and a role is saved with them and the ids they sit under.
+   */
   dependencies?: string[];
   defaultGranted?: boolean;
 }
@@ -57,13 +62,9 @@ export function UnmarkModuleScopedPermission(id: string): void {
 }
 
 export function IsModuleScopedPermission(id: string): boolean {
-  let current = id;
-  for (;;) {
-    if (moduleScopedPermissionIds.has(current)) return true;
-    const separatorIndex = current.lastIndexOf(".");
-    if (separatorIndex <= 0) return false;
-    current = current.slice(0, separatorIndex);
-  }
+  return [id, ...permissionIdAncestors(id)].some((candidate) =>
+    moduleScopedPermissionIds.has(candidate),
+  );
 }
 export const GetPermission =
   InterfaceFunction<(id: string) => Permission | undefined>();
@@ -114,9 +115,26 @@ export async function GetEffectiveUserPermissions(
   return ApplyPermissionsResolvers(user._id, tenantId, basePermissions);
 }
 
+/**
+ * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
+ * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
+ * it sits under) and `dependencies` are held too — a table's delete action
+ * grants nothing without its table and its page, its edit nothing without
+ * the view that loads the row.
+ */
 export async function HasPermission(
   permissions: Set<string>,
   permissionId: string,
+): Promise<boolean> {
+  return grantsPermission(permissions, permissionId, new Set());
+}
+
+// `checked` holds the ids already on the dependency path, so a dependency
+// cycle declared by a module ends instead of recursing forever.
+async function grantsPermission(
+  permissions: Set<string>,
+  permissionId: string,
+  checked: Set<string>,
 ): Promise<boolean> {
   if (permissions.has("*")) return true;
   // Module permissions are owner-only regardless of role grants. This covers
@@ -125,7 +143,47 @@ export async function HasPermission(
   // in userCanAccessPage/computeEntryAccess (implementations/dms/page.ts).
   if (IsModuleScopedPermission(permissionId)) return false;
   const permission = await GetPermission(permissionId);
-  return permissions.has(permissionId) || permission?.defaultGranted || false;
+  if (permission?.defaultGranted) return true;
+  if (!permissions.has(permissionId)) return false;
+  checked.add(permissionId);
+  return (
+    (await holdsAncestors(permissions, permissionId)) &&
+    holdsDependencies(permissions, permission, checked)
+  );
+}
+
+// The role routes store a grant with every id it sits under, but a role saved
+// before they did, or a set a resolver reshaped, may lack some. An ancestor
+// counts as held when granted, `defaultGranted`, or not a registered
+// permission at all (a page declaring `permission: { id: "mailing.access" }`
+// has no `mailing` above it).
+async function holdsAncestors(
+  permissions: Set<string>,
+  permissionId: string,
+): Promise<boolean> {
+  for (const ancestorId of permissionIdAncestors(permissionId)) {
+    if (permissions.has(ancestorId)) continue;
+    const ancestor = await GetPermission(ancestorId);
+    if (ancestor && !ancestor.defaultGranted) return false;
+  }
+  return true;
+}
+
+// A dependency counts like an ancestor: granted with its own ancestors and
+// dependencies, `defaultGranted`, or not a registered permission at all.
+async function holdsDependencies(
+  permissions: Set<string>,
+  permission: Permission | undefined,
+  checked: Set<string>,
+): Promise<boolean> {
+  for (const dependencyId of permission?.dependencies ?? []) {
+    if (checked.has(dependencyId)) continue;
+    if (!(await GetPermission(dependencyId))) continue;
+    if (!(await grantsPermission(permissions, dependencyId, checked))) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /** Whether `permissions` grants at least one of `permissionIds`. */

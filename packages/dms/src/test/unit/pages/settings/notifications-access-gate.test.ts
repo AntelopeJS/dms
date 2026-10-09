@@ -1,6 +1,5 @@
 import {
   ControllerMeta,
-  HTTPResult,
   type RequestContext,
   computeParameter,
 } from "@antelopejs/interface-api";
@@ -21,7 +20,6 @@ const DENIED_TENANT = "notifications-gate-tenant";
 const MEMBER_ID = "notifications-gate-member";
 const OUTSIDER_ID = "notifications-gate-outsider";
 const AUTH_KEY = "notifications-gate-key";
-const HTTP_FORBIDDEN = 403;
 const gate = denyingTenantGate("notifications-gate", DENIED_TENANT);
 
 function context(token: string): RequestContext {
@@ -82,13 +80,10 @@ describe("[unit] pages/settings/users/notifications — tenant access gate", () 
     expect(user._id).to.equal(MEMBER_ID);
   });
 
-  it("still refuses a user who is not a member of the tenant", async () => {
-    try {
-      await resolveControllerUser(outsiderToken);
-      expect.fail("Expected the membership check to refuse");
-    } catch (error) {
-      expect(error).to.be.instanceOf(HTTPResult);
-      expect((error as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
-    }
+  // A member removed from the tenant still reads the notification telling
+  // them so: their notifications are theirs, not the tenant's.
+  it("serves a user who is not a member of the tenant their own notifications", async () => {
+    const user = (await resolveControllerUser(outsiderToken)) as User;
+    expect(user._id).to.equal(OUTSIDER_ID);
   });
 });

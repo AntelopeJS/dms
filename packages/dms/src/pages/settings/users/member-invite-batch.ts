@@ -73,7 +73,6 @@ function buildInviteOptions(
     language: payload.language,
     roleIds: payload.roles ?? [],
     asTenantOwner: payload.asTenantOwner,
-    skipEmailValidation: payload.skipEmailValidation,
     sendEmail: true,
     awaitEmailDelivery: true,
     inviterName: sender.name,

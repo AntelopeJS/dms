@@ -7,6 +7,8 @@ import {
   ui,
 } from "../block-registry";
 import type { ColorValue } from "../types";
+import { toneEnum } from "../internal/display";
+import { TONES } from "../types/tone";
 import type { CustomButton } from "../types/custom-button";
 import type { TableViewGuards } from "../types/guards";
 import type { CustomRowAction, RowActionRule } from "../types/row-action";
@@ -136,10 +138,13 @@ const tabSchema = z.object({
     label: "Count from",
     hidden: true,
   }),
-  navBadge: ui(z.boolean().optional(), {
-    label: "Navigation badge",
-    widget: "switch",
-  }),
+  navBadge: ui(
+    z
+      .union([z.boolean(), z.object({ tone: toneEnum(TONES).optional() })])
+      .optional()
+      .describe("`true`, or `{ tone }` to draw the badge in a tone."),
+    { label: "Navigation badge", widget: "switch" },
+  ),
 }) satisfies BlockOptionsFor<TableViewTab>;
 
 const quickFilterSchema = z.object({

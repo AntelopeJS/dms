@@ -55,6 +55,8 @@ import {
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import type { TableViewOptionsSerialized } from "@antelopejs/interface-dms/base/table-view";
+import { ResolveComponentSlots } from "@antelopejs/interface-dms/internal/component-slots";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Form,
@@ -63,6 +65,7 @@ import {
   type FormPropsSerialized,
   isFieldGroupSerialized,
 } from "@antelopejs/interface-dms/base/form";
+import { InvitesSettingsController } from "../../../../pages/settings/users/invites";
 import { captureWarnings } from "../../../helpers/logging";
 
 const TENANT = "ie-tenant";
@@ -355,6 +358,23 @@ describe("[unit] interfaces/dms/invite-extensions — RegisterInviteExtension", 
       expect(fields.map((field) => field.disabled === true)).to.deep.equal([
         false,
       ]);
+    });
+
+    // The invitations table edits a row in a modal, whose form travels inside
+    // the table's own options rather than as a page of its own: the slot has
+    // to resolve there too.
+    it("reaches the edit form the invitations table opens in a modal", async () => {
+      register(recordingExtension("billing", "costCenter").options);
+
+      const table = InvitesSettingsController.table.serializeSync()
+        .options as TableViewOptionsSerialized;
+      const resolved = await ResolveComponentSlots(table);
+      const editForm = resolved.formComponents.edit
+        ?.options as FormPropsSerialized;
+
+      expect(table.formContainer?.type).to.equal("modal");
+      expect(table.formPages).to.equal(undefined);
+      expect(fieldIds(editForm.fields)).to.include("billing__costCenter");
     });
 
     it("prefills the fields with the stored payloads, under their prefixed ids", () => {

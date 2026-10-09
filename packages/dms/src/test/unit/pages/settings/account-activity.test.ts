@@ -33,6 +33,8 @@ const SECRETS = [
 ];
 
 const at = (iso: string) => new Date(iso);
+/** A cap below the events the merge test builds, so it drops the oldest. */
+const SHORT_LIMIT = 6;
 
 function user(overrides: Partial<User> = {}): User {
   return {
@@ -220,6 +222,7 @@ describe("account activity", () => {
         ],
         currentSessionId: "s1",
       }),
+      SHORT_LIMIT,
     );
     expect(events.map((event) => event.type)).to.deep.equal([
       "session_started",
@@ -229,7 +232,7 @@ describe("account activity", () => {
       "password_changed",
       "backup_codes_generated",
     ]);
-    expect(events).to.have.length(ACCOUNT_ACTIVITY_LIMIT);
+    expect(events).to.have.length(SHORT_LIMIT);
     expect(events[0]).to.deep.include({
       current: true,
       browser: "Chrome 150.0",
@@ -244,6 +247,20 @@ describe("account activity", () => {
     expect(new Set(events.map((event) => event.id)).size).to.equal(
       events.length,
     );
+  });
+
+  it("shows the latest 20 events by default", () => {
+    const sessions = Array.from({ length: 25 }, (_, index) =>
+      session(
+        `s${index}`,
+        new Date(Date.UTC(2026, 8, 1 + index, 9)).toISOString(),
+      ),
+    );
+    const events = buildAccountActivity(sources({ sessions }));
+    expect(ACCOUNT_ACTIVITY_LIMIT).to.equal(20);
+    expect(events).to.have.length(ACCOUNT_ACTIVITY_LIMIT);
+    expect(events[0]?.date).to.deep.equal(at("2026-09-25T09:00:00Z"));
+    expect(events.at(-1)?.date).to.deep.equal(at("2026-09-06T09:00:00Z"));
   });
 
   it("keeps one entry per event across its records", () => {

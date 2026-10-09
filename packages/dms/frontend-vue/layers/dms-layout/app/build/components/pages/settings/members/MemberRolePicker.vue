@@ -20,6 +20,8 @@ interface RoleOption {
   _id: string;
   name: string;
   permissionIds: string[];
+  /** Set when what the role grants amounts to owner-level access. */
+  warnings?: string[];
 }
 
 interface RoleOptionsResponse {
@@ -77,8 +79,7 @@ const isOwner = computed(
   () => !!props.ownerField && formState?.value?.[props.ownerField] === true,
 );
 const isInert = computed(() => props.disabled || isOwner.value);
-// Without an owner field (the invite form), the form disables the roles for
-// an owner only.
+// Without an owner field, the form disables the roles for an owner only.
 const showsOwnerHint = computed(() =>
   props.ownerField ? isOwner.value : props.disabled,
 );
@@ -102,6 +103,19 @@ const roleItems = computed<ChipGroupItem[]>(() =>
 const selectedRoles = computed(() =>
   options.value.roles.filter((role) => selectedIds.value.has(role._id)),
 );
+// An owner holds every permission anyway: no warning then.
+const ownerLevelWarning = computed(() => {
+  if (isOwner.value) return undefined;
+  const names = selectedRoles.value
+    .filter((role) => (role.warnings?.length ?? 0) > 0)
+    .map((role) => role.name);
+  if (names.length === 0) return undefined;
+  return t(
+    "page.settings.members.invite.roles_owner_level",
+    { roles: names.join(" + ") },
+    names.length,
+  );
+});
 const grantedCount = computed(
   () => new Set(selectedRoles.value.flatMap((role) => role.permissionIds)).size,
 );
@@ -179,6 +193,14 @@ function toggle(roleId: string) {
       <ULink v-if="props.rolesPageUrl" :to="props.rolesPageUrl" class="ms-1">
         {{ t("page.settings.members.invite.compare_roles") }}
       </ULink>
+    </p>
+    <p
+      v-if="ownerLevelWarning"
+      class="text-warning flex items-start gap-1.5 text-xs"
+      data-role-owner-level
+    >
+      <UIcon name="i-ph-warning" class="mt-px size-3.5 shrink-0" />
+      <span>{{ ownerLevelWarning }}</span>
     </p>
   </div>
 </template>

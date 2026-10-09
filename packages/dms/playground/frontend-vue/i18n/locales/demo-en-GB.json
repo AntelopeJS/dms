@@ -113,14 +113,6 @@
         "title": "30% off AntelopeJS hosting until the end of the month",
         "description": "Compare the plans on antelopejs.com and pick yours."
       },
-      "security_alert": {
-        "title": "Suspicious sign-in attempt from {ip}",
-        "description": "Not you? Change your password in Security."
-      },
-      "shipment": {
-        "title": "Package {package} has shipped",
-        "description": "It should arrive within 3 working days: make sure someone can take it in."
-      },
       "maintenance": {
         "title": "Maintenance on Sunday from 2:00 to 2:30 a.m.",
         "description": "The dashboard will be unavailable meanwhile: save your work before then."

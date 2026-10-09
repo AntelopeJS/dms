@@ -30,6 +30,7 @@ import type {
   PageExtensionInfo,
   PageInfo,
 } from "../types";
+import { opensToMembers } from "./member-access";
 import { ROOT_SLUG } from "./types";
 // The proxies and isInsideModule are only read inside function bodies; see
 // the matching import in ../categories.
@@ -263,7 +264,8 @@ export function createCategoryFunction(
     id: categoryInfo.fullId,
     title: categoryInfo.displayName,
     icon: categoryInfo.icon,
-    defaultGranted: categoryInfo.publicAccess || categoryInfo.memberAccess,
+    defaultGranted:
+      categoryInfo.publicAccess || opensToMembers(categoryInfo.memberAccess),
     // oxlint-disable-next-line typescript/no-misused-spread
     ...categoryInfo.permission,
   };

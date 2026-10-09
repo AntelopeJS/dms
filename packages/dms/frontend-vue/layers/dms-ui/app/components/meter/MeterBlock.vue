@@ -76,6 +76,7 @@ const { state: watchState } = useWatch(
 const { data, isLoading, error, refresh } = useChartFetch<MeterResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
 });
 

@@ -19,6 +19,7 @@ import {
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const TABLE = "shared-controller-rows";
 
@@ -123,7 +124,9 @@ describe("[unit] interfaces/dms-base/table-view — controllers shared by severa
     });
 
     it("admits a caller holding the action on any one of the tables", async () => {
-      const permissions = new Set(["pages.page-mode.table.list"]);
+      const permissions = new Set(
+        withPermissionAncestors(["pages.page-mode.table.list"]),
+      );
       expect(
         await permissionsInterface.HasAnyPermission(permissions, [
           "pages.page-extension.content.tasks.list",

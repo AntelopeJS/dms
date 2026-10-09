@@ -6,6 +6,7 @@ import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
 } from "@antelopejs/interface-dms/page/internal/layout-filter";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
@@ -98,7 +99,13 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
   it("leaves out the buttons whose permission the caller lacks, an action of the page by name", async () => {
     const filtered = await filterLayoutHeaderActions(
       layout,
-      async () => new Set(["pages.billing.export", "pages.ledger.view"]),
+      async () =>
+        new Set(
+          withPermissionAncestors([
+            "pages.billing.export",
+            "pages.ledger.view",
+          ]),
+        ),
       CONTEXT,
       "pages.billing",
     );
@@ -115,7 +122,7 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
   it("refuses a button naming an action when the page has no permission id", async () => {
     const filtered = await filterLayoutHeaderActions(
       layout,
-      async () => new Set(["pages.billing.export"]),
+      async () => new Set(withPermissionAncestors(["pages.billing.export"])),
       CONTEXT,
       undefined,
     );

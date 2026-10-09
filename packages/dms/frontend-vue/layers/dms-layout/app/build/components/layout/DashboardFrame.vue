@@ -3,6 +3,7 @@ import Container from "./Container.vue";
 import DashboardSidebar from "./DashboardSidebar.vue";
 import DashboardHeader from "./DashboardHeader.vue";
 import DashboardBanners from "./DashboardBanners.vue";
+import GithubStarPrompt from "./GithubStarPrompt.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 import {
@@ -112,5 +113,7 @@ const groupAttrs = computed(() =>
         <DmsAppWidgetsDock />
       </template>
     </UDashboardPanel>
+
+    <GithubStarPrompt />
   </UDashboardGroup>
 </template>

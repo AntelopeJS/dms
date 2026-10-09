@@ -358,6 +358,13 @@ const fillingComponentId = computed(() =>
   fillHeight.value ? components.value.at(-1)?.id : undefined,
 );
 
+// The server leaves out the blocks the viewer may not see, and says when that
+// left nothing of a page that declares some. Never while the layout loads.
+const { t } = useI18n();
+const hidesEveryBlock = computed(
+  () => pageLayout.value?.allComponentsHidden === true,
+);
+
 // --- Live-edit highlight ---------------------------------------------------
 // When the active page's layout changes in place (DMS dev hot-reload, same
 // route), animate the components that changed. Added/removed components are
@@ -472,7 +479,15 @@ if (import.meta.env.DEV) {
 </script>
 
 <template>
+  <div v-if="hidesEveryBlock" class="dms-card overflow-hidden">
+    <DmsEmptyState
+      variant="no-access"
+      :title="t('page.no_visible_blocks.title')"
+      :description="t('page.no_visible_blocks.description')"
+    />
+  </div>
   <TransitionGroup
+    v-else
     tag="div"
     name="dms-fresh"
     class="dms-page-stack space-y-6"

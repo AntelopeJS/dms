@@ -27,6 +27,7 @@ import {
 } from "@antelopejs/interface-dms/page";
 import { GetPendingPageExtensions } from "@antelopejs/interface-dms/page/internal/registry";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
@@ -89,7 +90,9 @@ function grantedTo(permissions: string[]): LayoutCaller {
       getByUser: async () => ({ roleIds: ["pe-role"] }),
     } as unknown as TenantMemberModel,
     roleModel: {
-      getBy: async () => [{ permissions }],
+      getBy: async () => [
+        { permissions: withPermissionAncestors(permissions) },
+      ],
     } as unknown as RoleModel,
   };
 }

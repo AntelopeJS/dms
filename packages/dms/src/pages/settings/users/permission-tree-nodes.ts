@@ -16,7 +16,13 @@ export type PermissionNodeFactory<TNode extends PermissionNodeShape<TNode>> = (
   children: TNode[] | undefined,
 ) => TNode;
 
-const NO_CATEGORIES: ReadonlySet<string> = new Set();
+const NO_IDS: ReadonlySet<string> = new Set();
+
+/** The menu's permissions a mapping tells apart (see `mapPermissionTree`). */
+interface MenuPermissionIds {
+  categoryIds: ReadonlySet<string>;
+  entryIds: ReadonlySet<string>;
+}
 
 /**
  * Map the registered permission tree to the nodes a permission editor renders.
@@ -24,9 +30,12 @@ const NO_CATEGORIES: ReadonlySet<string> = new Set();
  * The tree is keyed by id segment, so a registered `media.upload` hangs under a
  * `media` node that carries no permission when `media` itself is not
  * registered. Such a node is not rendered, but its descendants are lifted to
- * its level instead of being dropped with it. A `defaultGranted` node hides its
- * whole subtree: under a public page, that subtree is component permissions
- * nobody needs to grant.
+ * its level instead of being dropped with it. A `defaultGranted` node hides
+ * what hangs off it: under a public page, its component permissions nobody
+ * needs to grant. A menu entry filed under it is another matter: when
+ * `entryIds` names it, it is lifted to the node's level like the children of
+ * an unregistered node — the settings root is held by every member, the
+ * workspace pages under it still need a role.
  *
  * `categoryIds` names the permissions of the registered categories. A category
  * with permissions below it, every one of them hidden that way, is a heading
@@ -39,27 +48,53 @@ const NO_CATEGORIES: ReadonlySet<string> = new Set();
 export function mapPermissionTree<TNode extends PermissionNodeShape<TNode>>(
   permissionTree: Record<string, PermissionTree>,
   createNode: PermissionNodeFactory<TNode>,
-  categoryIds: ReadonlySet<string> = NO_CATEGORIES,
+  categoryIds: ReadonlySet<string> = NO_IDS,
+  entryIds: ReadonlySet<string> = NO_IDS,
 ): TNode[] {
-  return Object.values(permissionTree).flatMap((node) =>
-    mapPermissionTreeNode(node, createNode, categoryIds),
+  const menu: MenuPermissionIds = { categoryIds, entryIds };
+  return mapBranch(permissionTree, createNode, menu);
+}
+
+function mapBranch<TNode extends PermissionNodeShape<TNode>>(
+  branch: Record<string, PermissionTree>,
+  createNode: PermissionNodeFactory<TNode>,
+  menu: MenuPermissionIds,
+): TNode[] {
+  return Object.values(branch).flatMap((node) =>
+    mapPermissionTreeNode(node, createNode, menu),
   );
 }
 
 function mapPermissionTreeNode<TNode extends PermissionNodeShape<TNode>>(
   node: PermissionTree,
   createNode: PermissionNodeFactory<TNode>,
-  categoryIds: ReadonlySet<string>,
+  menu: MenuPermissionIds,
 ): TNode[] {
   if (!node.data) {
-    return mapPermissionTree(node.children, createNode, categoryIds);
+    return mapBranch(node.children, createNode, menu);
   }
-  if (node.data.defaultGranted) return [];
+  if (node.data.defaultGranted) {
+    return liftFiledEntries(node.children, createNode, menu);
+  }
 
-  const children = mapPermissionTree(node.children, createNode, categoryIds);
+  const children = mapBranch(node.children, createNode, menu);
   if (children.length > 0) return [createNode(node.data, children)];
-  if (isHeadingOverNothing(node.data.id, node, categoryIds)) return [];
+  if (isHeadingOverNothing(node.data.id, node, menu.categoryIds)) return [];
   return [createNode(node.data, undefined)];
+}
+
+// Below a node every member holds, keeps only the menu entries: the rest is
+// its own components and actions.
+function liftFiledEntries<TNode extends PermissionNodeShape<TNode>>(
+  branch: Record<string, PermissionTree>,
+  createNode: PermissionNodeFactory<TNode>,
+  menu: MenuPermissionIds,
+): TNode[] {
+  return Object.values(branch).flatMap((node) => {
+    if (!node.data) return liftFiledEntries(node.children, createNode, menu);
+    if (!menu.entryIds.has(node.data.id)) return [];
+    return mapPermissionTreeNode(node, createNode, menu);
+  });
 }
 
 // Called once nothing below the node is left to render: when it had

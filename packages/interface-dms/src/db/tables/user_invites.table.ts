@@ -55,9 +55,6 @@ export class UserInvite extends Table {
   @Field("string")
   declare creationResolutionId?: string;
 
-  @Field("boolean")
-  declare skipEmailValidation: boolean;
-
   /**
    * Id of the user who sent the invitation, or last resent it. `null` for an
    * invitation created outside a signed-in request (an import, a module).

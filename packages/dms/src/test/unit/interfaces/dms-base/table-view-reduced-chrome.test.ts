@@ -31,6 +31,7 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { resolveCustomRowActions } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
 import { resolveTableViewTabs } from "@antelopejs/interface-dms/base/table-view/internal/tabs";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 
 const TABLE = "reduced-chrome-orders";
 const LOCATION = "/api/reduced-chrome-orders";
@@ -433,7 +434,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     const served = async (held: string[]) =>
       (
         await resolveTableViewTabs(
-          new Set(held),
+          new Set(withPermissionAncestors(held)),
           declared,
           serialized,
           "pages.t.table",

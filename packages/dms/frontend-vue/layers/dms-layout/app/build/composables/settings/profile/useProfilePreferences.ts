@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { useUniqueLocales } from "#dms-core/app/composables/translation/useUniqueLocales";
 import { formatDate } from "#dms-core/app/utils/formatter";
+import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import { useAccessibilityPreferences } from "../../../../composables/general/useAccessibilityPreferences";
 import { useColorModePreference } from "../../../../composables/general/useColorModePreference";
 import { useInterfaceScale } from "../../../../composables/general/useInterfaceScale";
@@ -118,7 +119,7 @@ export function useProfilePreferences() {
 
   const notificationPreferences = useNotificationPreferences();
   const { subjects } = useNotificationCatalog();
-  const { unreadCount, areCountsLoaded } = useNotifications();
+  const { unreadCount, unreadTone, areCountsLoaded } = useNotifications();
   const isNotificationsLoading = computed(
     () => notificationPreferences.isLoading.value || !areCountsLoaded.value,
   );
@@ -131,6 +132,11 @@ export function useProfilePreferences() {
   });
   const hasUnread = computed(
     () => !isNotificationsLoading.value && unreadCount.value > 0,
+  );
+  // The well takes the unread badge's tone, the bell's and the navigation's,
+  // which the server weighs; quiet when nothing is unread.
+  const notificationsTone = computed(() =>
+    hasUnread.value ? iconWellToneOf(unreadTone.value) : "muted",
   );
 
   const colorMode = useColorModePreference();
@@ -192,6 +198,7 @@ export function useProfilePreferences() {
     regionSummary,
     notificationsSummary,
     hasUnread,
+    notificationsTone,
     appearanceSummary,
     placeholders,
   };

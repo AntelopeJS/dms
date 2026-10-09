@@ -1,4 +1,5 @@
 import { NotificationEvents } from "./types/events";
+import { unreadToneWith } from "../../build/components/pages/settings/notification/notificationDisplay";
 
 /** Icon well colour a sender may set on a notification. */
 export type NotificationTone =
@@ -25,13 +26,14 @@ export interface UserNotification {
 }
 
 /**
- * The whole feed's totals, with what the header bell counts: the unread
- * notifications that arrived since it was last opened.
+ * The whole feed's totals, with the tone of the unread badge (the header
+ * bell, the Notifications entry): the most important unread notification's,
+ * which the server weighs as the inbox draws it.
  */
 interface FeedCounts {
   all: number;
   unread: number;
-  unseen?: number;
+  unreadTone?: NotificationTone;
 }
 
 const API_BASE = "/settings/user/notifications";
@@ -42,17 +44,14 @@ const buildListUrl = (offset: number) =>
   `${API_BASE}/list?limit=${NOTIFICATIONS_PAGE_SIZE}&offset=${offset}`;
 
 /**
- * Shared notification state of the header bell (unseen count, popover feed)
- * and of the settings navigation (unread count); the settings inbox is a
+ * Shared notification state of the header bell (unread count and tone,
+ * popover feed) and of the settings navigation; the settings inbox is a
  * table view of its own (`dms:inbox`), which lists the feed again when these
  * counts change.
  *
- * Seen and read are two states. The bell's badge (`unseenCount`) counts the
- * unread notifications that arrived since the bell last opened, and opening
- * it resets the badge (`markAllSeen`). A notification becomes read only when
- * it is opened or marked read; `unreadCount` (the whole feed's unread total)
- * feeds the Notifications entry of the settings navigation and its overview
- * card.
+ * The bell and the Notifications entry show the same badge: `unreadCount`,
+ * the whole feed's unread total, in `unreadTone`. Opening the bell changes
+ * neither; a notification leaves the count once opened or marked read.
  */
 export const useNotifications = () => {
   const { $authFetch } = useAuthFetch();
@@ -61,9 +60,9 @@ export const useNotifications = () => {
     "notifications-unread-count",
     () => 0,
   );
-  const unseenCount = useDmsState<number>(
-    "notifications-unseen-count",
-    () => 0,
+  const unreadTone = useDmsState<NotificationTone | undefined>(
+    "notifications-unread-tone",
+    () => undefined,
   );
   // Whether the counts have been asked once, answered or not: until then,
   // a 0 unread is not known to be true.
@@ -125,13 +124,13 @@ export const useNotifications = () => {
     );
   };
 
-  /** Takes the whole feed's unread and unseen totals. */
+  /** Takes the whole feed's unread total and its tone. */
   const applyFeedCounts = (counts: FeedCounts) => {
     unreadCount.value = counts.unread;
-    if (typeof counts.unseen === "number") unseenCount.value = counts.unseen;
+    unreadTone.value = counts.unread > 0 ? counts.unreadTone : undefined;
   };
 
-  /** Loads the bell's unseen count and the whole feed's unread count. */
+  /** Loads the whole feed's unread count and tone, the bell's badge. */
   const fetchBellCounts = async () => {
     try {
       const counts = await $authFetch<FeedCounts>(`${API_BASE}/counts`);
@@ -139,15 +138,6 @@ export const useNotifications = () => {
     } finally {
       areCountsLoaded.value = true;
     }
-  };
-
-  /**
-   * The bell was opened: its badge resets, and counts again what arrives
-   * later. The notifications stay unread.
-   */
-  const markAllSeen = async () => {
-    unseenCount.value = 0;
-    await $authFetch(`${API_BASE}/seen`, { method: "PUT" });
   };
 
   const fetchUnreadPreview = async () => {
@@ -231,14 +221,10 @@ export const useNotifications = () => {
     emitCount();
   };
 
-  /** The bell was opened in another tab: this one's badge resets too. */
-  const handleRemoteSeen = () => {
-    unseenCount.value = 0;
-  };
-
   /**
-   * A notification pushed in real time: the bell counts it as new (unseen)
-   * and unread, and lists it first.
+   * A notification pushed in real time: listed first, counted unread, and its
+   * tone weighed into the badge's here, without asking the server again — a
+   * broadcast would otherwise have every open tab fetch the counts at once.
    */
   const handleIncomingNotification = (incoming: UserNotification) => {
     const isAlreadyKnown = notifications.value.some(
@@ -247,10 +233,8 @@ export const useNotifications = () => {
     if (isAlreadyKnown) return;
     notifications.value = [incoming, ...notifications.value];
     unreadPreview.value = [incoming, ...unreadPreview.value];
-    if (!incoming.isRead) {
-      unreadCount.value += 1;
-      unseenCount.value += 1;
-    }
+    if (!incoming.isRead) unreadCount.value += 1;
+    unreadTone.value = unreadToneWith(unreadTone.value, incoming);
     sendComponentEvent(
       NotificationEvents.NOTIFICATION_RECEIVED,
       NOTIFICATION_COMPONENT_ID,
@@ -261,7 +245,7 @@ export const useNotifications = () => {
 
   return {
     unreadCount,
-    unseenCount,
+    unreadTone,
     areCountsLoaded,
     unreadPreview,
     notifications,
@@ -271,12 +255,10 @@ export const useNotifications = () => {
     fetchNotifications,
     markAsRead,
     markAsUnread,
-    markAllSeen,
     deleteNotification,
     handleIncomingNotification,
     handleRemoteRead,
     handleRemoteUnread,
     handleRemoteAllRead,
-    handleRemoteSeen,
   };
 };

@@ -2,10 +2,12 @@
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import type { NotificationCategory } from "../../../../composables/notification/useNotificationCatalog";
 import { useNotificationPreferences } from "../../../../composables/notification/useNotificationPreferences";
+import { useNotificationGroupsOpen } from "../../../../composables/notification/useNotificationGroupsOpen";
 import { useInstantSaveHeader } from "../../../../../composables/layout/useInstantSaveHeader";
 import NotificationMatrixCategory from "./NotificationMatrixCategory.vue";
 import NotificationMatrixSubject from "./NotificationMatrixSubject.vue";
 import {
+  categorySubjectsElementId,
   MATRIX_CONTAINER_CLASS,
   MATRIX_GRID_CLASS,
 } from "./notificationDisplay";
@@ -29,6 +31,7 @@ const {
   retry,
   load,
 } = useNotificationPreferences();
+const { isOpen, toggleOpen } = useNotificationGroupsOpen();
 
 const visibleCategories = computed(() =>
   categories.value.filter((category) => subjectsOf(category.id).length > 0),
@@ -90,7 +93,7 @@ onMounted(load);
           {{ t("page.settings.notifications.column_in_app") }}
         </span>
         <span
-          class="flex items-center justify-center gap-1.5"
+          class="flex items-center justify-center gap-1.5 whitespace-nowrap"
           role="columnheader"
         >
           {{ t("page.settings.notifications.column_email") }}
@@ -147,17 +150,29 @@ onMounted(load);
           :total="subjectsOf(category.id).length"
           :disabled="toggleableSubjectsOf(category).length === 0"
           :first="index === 0"
+          :expanded="isOpen(category.id)"
+          :controls="categorySubjectsElementId(category.id)"
           @toggle="(enabled) => toggleCategory(category, enabled)"
+          @toggle-expanded="toggleOpen(category.id)"
         />
-        <NotificationMatrixSubject
-          v-for="subject in subjectsOf(category.id)"
-          :key="`${category.id}:${subject.id}`"
-          :subject="subject"
-          :enabled="isEnabled(subject)"
-          :state="rowState(subject)"
-          @toggle="(enabled) => toggleSubject(subject, enabled)"
-          @retry="retry"
-        />
+        <UCollapsible
+          :open="isOpen(category.id)"
+          :ui="{ content: 'motion-reduce:animate-none' }"
+        >
+          <template #content>
+            <div :id="categorySubjectsElementId(category.id)" role="rowgroup">
+              <NotificationMatrixSubject
+                v-for="subject in subjectsOf(category.id)"
+                :key="`${category.id}:${subject.id}`"
+                :subject="subject"
+                :enabled="isEnabled(subject)"
+                :state="rowState(subject)"
+                @toggle="(enabled) => toggleSubject(subject, enabled)"
+                @retry="retry"
+              />
+            </div>
+          </template>
+        </UCollapsible>
       </template>
     </div>
 

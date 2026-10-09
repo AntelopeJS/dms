@@ -5,7 +5,9 @@ import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 
 type BannerTone = "info" | "success" | "warning" | "error" | "primary";
 
@@ -14,8 +16,9 @@ type BannerTone = "info" | "success" | "warning" | "error" | "primary";
 // Dismissals live in a cookie (like the dashboard banners) so the server
 // render already leaves a dismissed banner out instead of flashing it.
 interface BannerBlockProps extends Partial<DefaultComponentProps> {
-  title?: string;
-  description?: string;
+  /** A string (`$` for an i18n key) or a composed text. */
+  title?: BlockText;
+  description?: BlockText;
   tone?: BannerTone;
   /** Overrides the tone's icon. */
   icon?: string;
@@ -56,7 +59,7 @@ const TONE_ICONS: Record<BannerTone, string> = {
 
 useWatch(props.watchActions || [], props.componentId);
 
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 const dismissed = useDmsCookie<string[]>(DISMISSED_COOKIE, {
   default: () => [],
   maxAge: DISMISSED_MAX_AGE_S,
@@ -91,9 +94,9 @@ function dismiss(): void {
 <template>
   <DmsBanner
     v-if="isVisible"
-    :title="props.title ? processI18n(props.title) : undefined"
+    :title="props.title ? processText(props.title) : undefined"
     :description="
-      props.description ? processI18n(props.description) : undefined
+      props.description ? processText(props.description) : undefined
     "
     :icon="props.icon ?? TONE_ICONS[props.tone]"
     :tone="props.tone"

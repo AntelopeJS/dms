@@ -27,6 +27,7 @@ import {
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
 import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
+import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import type { TenantTokenInput } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
@@ -98,7 +99,9 @@ async function layoutChildren(permissions: string[]): Promise<LayoutChild[]> {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,
     {
-      getBy: async () => [{ permissions }],
+      getBy: async () => [
+        { permissions: withPermissionAncestors(permissions) },
+      ],
     } as unknown as RoleModel,
     TENANT,
   );
@@ -378,7 +381,9 @@ async function sharedLayout(permissions: string[]) {
       getByUser: async () => ({ roleIds: ["cc-role"] }),
     } as unknown as TenantMemberModel,
     {
-      getBy: async () => [{ permissions }],
+      getBy: async () => [
+        { permissions: withPermissionAncestors(permissions) },
+      ],
     } as unknown as RoleModel,
     TENANT,
   );

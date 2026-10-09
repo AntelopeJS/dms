@@ -12,7 +12,11 @@ import {
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import { Parameters } from "@antelopejs/interface-data-api/components";
-import type { ComponentBuilder, NavBadgeSource } from "../../../component";
+import type {
+  ComponentBuilder,
+  NavBadgeCount,
+  NavBadgeSource,
+} from "../../../component";
 import type { User } from "../../../auth/db";
 import { getRequestTenantId } from "../../../request-tenant";
 import { authorizeAction, LIST_ACTION } from "./auth";
@@ -76,6 +80,14 @@ async function countRows(
   return total;
 }
 
+/** The tab's count in the tone its `navBadge` declares; a bare count without one. */
+function withTabTone(
+  tab: TableViewTab,
+): (count: number) => number | NavBadgeCount {
+  const tone = typeof tab.navBadge === "object" ? tab.navBadge.tone : undefined;
+  return (count) => (tone ? { count, tone } : count);
+}
+
 /**
  * The badge a `navBadge` tab publishes: a filter tab counts its table for its
  * own page, a link tab counts its `countFrom` controller for the page it links
@@ -88,7 +100,8 @@ function navBadgeSourceOf(
 ): NavBadgeSource | undefined {
   if (!tab.to) {
     return {
-      count: (ctx, user) => countRows(controller, ctx, user, tab.filter),
+      count: (ctx, user) =>
+        countRows(controller, ctx, user, tab.filter).then(withTabTone(tab)),
     };
   }
   const { to, countFrom } = tab;
@@ -100,7 +113,8 @@ function navBadgeSourceOf(
   }
   return {
     page: to,
-    count: (ctx, user) => countRows(countFrom, ctx, user, undefined),
+    count: (ctx, user) =>
+      countRows(countFrom, ctx, user, undefined).then(withTabTone(tab)),
   };
 }
 

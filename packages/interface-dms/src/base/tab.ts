@@ -50,7 +50,13 @@ export interface TabProps extends BaseComponentProps {
    * A module route answering `{ [slot]: string | number }` in one request:
    * the badge of each tab it names (a count of a record's related rows),
    * replacing its static `badge`. Fetched again when one of the tab set's
-   * `watchActions` fires. Shown like a table view's tab counts.
+   * `watchActions` fires, or when the page asks its blocks to refresh (see
+   * `BlockFunctions.REFRESH_PAGE`). Shown like a table view's tab counts.
+   *
+   * It may name the record of the page: `{{params.X}}` is filled with the
+   * route parameter `X` of the page URL (`/api/customers/{{params.id}}/counts`
+   * on a detail page), `{{query.X}}` with its query parameter `X`. Nothing is
+   * requested while a token has no value: the static badges show.
    */
   badgesUrl?: string;
 }

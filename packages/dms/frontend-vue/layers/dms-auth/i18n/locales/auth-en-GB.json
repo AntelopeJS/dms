@@ -27,6 +27,15 @@
       "error_title": "Account creation error",
       "invalid_invitation_title": "This invitation link is invalid or incomplete",
       "invalid_invitation_description": "Open the link from your invitation email again, or ask the workspace owner to send you a new invitation. Already have an account? Log in.",
+      "checking_invitation": "Checking your invitation…",
+      "invitation_expired_title": "This invitation has expired",
+      "invitation_expired_description": "Ask the person who invited you to send you a new invitation. Already have an account? Log in.",
+      "invitation_revoked_title": "This invitation was revoked",
+      "invitation_revoked_description": "The person who invited you cancelled it. If you still need access, ask them for a new invitation.",
+      "invitation_replaced_title": "This invitation was replaced by a newer email",
+      "invitation_replaced_description": "A newer invitation was sent to this address, and only its link works. Open the latest invitation email, or ask the person who invited you to send it again.",
+      "invitation_used_title": "This invitation was already used",
+      "invitation_used_description": "An account was already created with this invitation. Log in to continue.",
       "description": "You've been invited. Choose your name and a password to join.",
       "submit": "Create my account"
     },
@@ -55,8 +64,8 @@
       "title_success": "Password changed",
       "title_forget": "Forgot password",
       "description_success": "Your password has been reset. Sign in with your new password.",
-      "description_validation": "We sent a 6-digit code to {email}. Enter it to choose a new password.",
-      "description_forget": "Enter the e-mail address of your account. We'll send you a 6-digit code to reset your password.",
+      "description_validation": "We sent a 6-character code to {email}. Enter it to choose a new password.",
+      "description_forget": "Enter the e-mail address of your account. We'll send you a 6-character code to reset your password.",
       "error_title": "Reset error",
       "title_inbox": "Check your inbox",
       "send_code": "Send the code",
@@ -368,7 +377,8 @@
           "add_method": "Add method",
           "add_named": "Add {method}",
           "password_prompt": "Confirm your password to add a sign-in method.",
-          "password_continue": "Continue"
+          "password_continue": "Continue",
+          "email_setup_description": "We sent a 6-digit code to {email}. Enter it to turn on email codes."
         },
         "backup": {
           "title": "Backup codes",
@@ -415,6 +425,7 @@
           "email_already_used": "This email address is already used by another account.",
           "invalid_2fa_code": "That verification code is invalid or has expired.",
           "rate_limited": "Please wait a minute before asking for another code.",
+          "email_change_too_many_attempts": "Too many wrong codes. Ask for a new one.",
           "no_backup_codes": "You have no backup codes.",
           "session_not_found": "This session no longer exists."
         }
@@ -442,6 +453,11 @@
       "identity_malformed": "The provider returned an unusable identity, please try again."
     },
     "rate_limited": "Too many attempts, please try again in a minute.",
-    "too_many_sign_in_attempts": "Too many sign-in attempts. Please try again in a few minutes."
+    "too_many_sign_in_attempts": "Too many sign-in attempts. Please try again in a few minutes.",
+    "too_many_2fa_attempts": "Too many wrong codes. Go back and sign in again with your password.",
+    "too_many_2fa_attempts_account": "Too many wrong codes on this account. Wait up to an hour, then sign in again.",
+    "2fa_challenge_used": "This verification is already complete. Sign in again with your password.",
+    "invalid_2fa_token": "This verification has expired or is invalid. Sign in again with your password.",
+    "too_many_current_password_attempts": "Too many wrong passwords. Wait 15 minutes, then try again."
   }
 }

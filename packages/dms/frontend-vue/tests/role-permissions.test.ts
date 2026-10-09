@@ -10,13 +10,14 @@ import {
   expandOneLevel,
   grantPermission,
   highlightSegments,
-  idPrefixes,
   nextCollapseDepth,
   nextExpandDepth,
   openDepth,
   type PermissionIndex,
   revokePermission,
   searchPermissions,
+  selectedWarningLabels,
+  selectedWarningsBelow,
   selectionState,
 } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-permissions";
 import type { RolePermissionNode } from "../layers/dms-layout/app/build/components/pages/settings/roles/role-types";
@@ -56,15 +57,20 @@ const TREE: RolePermissionNode[] = [
         label: "User settings",
         children: [
           {
-            id: "settings.workspace.roles",
+            id: "settings.user.roles",
             label: "Roles",
             children: [
               {
-                id: "settings.workspace.roles.table",
+                id: "settings.user.roles.table",
                 label: "Roles list",
                 children: [
-                  { id: "settings.workspace.roles.table.list", label: "List" },
-                  { id: "settings.workspace.roles.table.edit", label: "Edit" },
+                  { id: "settings.user.roles.table.list", label: "List" },
+                  {
+                    id: "settings.user.roles.table.edit",
+                    label: "Edit",
+                    dependencies: ["settings.user.roles.table.view"],
+                  },
+                  { id: "settings.user.roles.table.view", label: "View" },
                 ],
               },
             ],
@@ -194,6 +200,15 @@ function seeded(seed: number): () => number {
 
 const sorted = (ids: Iterable<string>) => [...new Set(ids)].sort();
 
+function withoutDependencies(
+  nodes: RolePermissionNode[],
+): RolePermissionNode[] {
+  return nodes.map(({ dependencies: _dependencies, children, ...node }) => ({
+    ...node,
+    ...(children ? { children: withoutDependencies(children) } : {}),
+  }));
+}
+
 describe("role permissions", () => {
   const index = buildPermissionIndex(TREE);
 
@@ -217,25 +232,16 @@ describe("role permissions", () => {
     // without children (`media.upload.form`, `examples`) never open.
     expect(levels).toEqual([
       ["pages.sales", "settings.user"],
-      [
-        "pages.sales.orders",
-        "settings.workspace.roles",
-        "settings.user.profile",
-      ],
-      ["settings.workspace.roles.table"],
+      ["pages.sales.orders", "settings.user.roles", "settings.user.profile"],
+      ["settings.user.roles.table"],
     ]);
-    expect(parents.get("settings.workspace.roles.table")).toBe(
-      "settings.workspace.roles",
+    expect(parents.get("settings.user.roles.table")).toBe(
+      "settings.user.roles",
     );
     expect(parents.has("settings.user")).toBe(false);
   });
 
-  it("lists the ids a permission sits under", () => {
-    expect(idPrefixes("a.b.c")).toEqual(["a.b.c", "a.b", "a"]);
-    expect(idPrefixes("pages")).toEqual(["pages"]);
-  });
-
-  it("grants a permission with the ids it sits under, not its dependencies", () => {
+  it("grants a permission with the nodes above it and what it depends on", () => {
     const grant = grantPermission(
       index,
       new Set(),
@@ -246,23 +252,47 @@ describe("role permissions", () => {
       "pages",
       "pages.sales",
       "pages.sales.orders",
+      "pages.sales.orders.read",
       "pages.sales.orders.refund",
     ]);
     expect(sorted(grant.autoAdded)).toEqual([
       "pages",
       "pages.sales",
       "pages.sales.orders",
+      "pages.sales.orders.read",
     ]);
   });
 
-  it("grants the unregistered id a lifted permission sits under", () => {
+  it("grants a table's view with its edit, where the form loads the row", () => {
+    const grant = grantPermission(
+      index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    );
+    expect(grant.selection.has("settings.user.roles.table.view")).toBe(true);
+    expect(grant.autoAdded).toContain("settings.user.roles.table.view");
+    expect(grant.selection.has("settings.user.roles.table.list")).toBe(false);
+  });
+
+  it("leaves a dependency the user may not grant", () => {
+    const grant = grantPermission(
+      index,
+      new Set(),
+      "pages.sales.orders.refund",
+      (id) => id !== "pages.sales.orders.read",
+    );
+    expect(grant.selection.has("pages.sales.orders.read")).toBe(false);
+    expect(grant.selection.has("pages.sales.orders.refund")).toBe(true);
+  });
+
+  it("leaves the unregistered id a lifted permission sits under to the server", () => {
     const grant = grantPermission(index, new Set(), "media.upload", anyone);
+    // `media` is no node of the tree: the server adds it when the role is saved.
     expect(sorted(grant.selection)).toEqual([
-      "media",
       "media.upload",
       "media.upload.form",
     ]);
-    // Not a node: no "added automatically" hint to label.
     expect(grant.autoAdded).toEqual([]);
   });
 
@@ -277,18 +307,35 @@ describe("role permissions", () => {
     expect(grant.selection.has("pages.sales.orders.read")).toBe(true);
   });
 
-  it("revokes ancestors left without descendants, never dependents", () => {
+  it("revokes what depends on a revoked permission, then the emptied ancestors", () => {
     const all = new Set(index.allIds);
     const afterRead = revokePermission(index, all, "pages.sales.orders.read");
-    expect(afterRead.has("pages.sales.orders.refund")).toBe(true);
-    expect(afterRead.has("pages.sales.orders")).toBe(true);
-    const afterBoth = revokePermission(
+    expect(afterRead.has("pages.sales.orders.refund")).toBe(false);
+    expect(afterRead.has("pages.sales.orders")).toBe(false);
+    expect(afterRead.has("pages.sales")).toBe(true);
+    const afterRefund = revokePermission(
       index,
-      afterRead,
+      all,
       "pages.sales.orders.refund",
     );
-    expect(afterBoth.has("pages.sales.orders")).toBe(false);
-    expect(afterBoth.has("pages.sales")).toBe(true);
+    expect(afterRefund.has("pages.sales.orders.read")).toBe(true);
+    expect(afterRefund.has("pages.sales.orders")).toBe(true);
+  });
+
+  it("revokes a table's edit with its view", () => {
+    const granted = grantPermission(
+      index,
+      new Set(),
+      "settings.user.roles.table.edit",
+      anyone,
+    ).selection;
+    const revoked = revokePermission(
+      index,
+      new Set([...granted, "settings.user.roles.table.list"]),
+      "settings.user.roles.table.view",
+    );
+    expect(revoked.has("settings.user.roles.table.edit")).toBe(false);
+    expect(revoked.has("settings.user.roles.table.list")).toBe(true);
   });
 
   it("judges every ancestor before dropping any, like the original form", () => {
@@ -297,18 +344,18 @@ describe("role permissions", () => {
       new Set([
         "settings",
         "settings.user",
-        "settings.workspace.roles",
-        "settings.workspace.roles.table",
-        "settings.workspace.roles.table.list",
+        "settings.user.roles",
+        "settings.user.roles.table",
+        "settings.user.roles.table.list",
       ]),
-      "settings.workspace.roles.table.list",
+      "settings.user.roles.table.list",
     );
-    // Only `settings.workspace.roles.table` is judged emptied: the ancestors above
+    // Only `settings.user.roles.table` is judged emptied: the ancestors above
     // it still saw it selected, so they stay.
     expect(sorted(next)).toEqual([
       "settings",
       "settings.user",
-      "settings.workspace.roles",
+      "settings.user.roles",
     ]);
   });
 
@@ -349,9 +396,12 @@ describe("role permissions", () => {
     ).toBe(false);
   });
 
-  it("stores exactly what the original form stored for the same clicks", () => {
+  it("stores what the original form stored for the same clicks", () => {
+    // The original form knew no dependencies: the editor matches it on a
+    // tree that declares none.
+    const plain = buildPermissionIndex(withoutDependencies(TREE));
     const random = seeded(20261001);
-    const ids = index.allIds;
+    const ids = plain.allIds;
     for (let run = 0; run < 200; run++) {
       // Start from arbitrary saved roles, legacy and unknown ids included.
       const start = ids.filter(() => random() < 0.3);
@@ -360,12 +410,17 @@ describe("role permissions", () => {
       let after = new Set(start);
       for (let click = 0; click < 12; click++) {
         const id = ids[Math.floor(random() * ids.length)]!;
-        const node = index.nodes.get(id)!;
+        const node = plain.nodes.get(id)!;
         const originalState = original.checkbox(before, node);
-        expect(checkboxState(index, id, after)).toBe(originalState);
+        expect(checkboxState(plain, id, after)).toBe(originalState);
         before = original.check(before, node, clickedValue(originalState));
-        after = editorClick(index, after, id);
-        expect(sorted(after)).toEqual(sorted(before));
+        after = editorClick(plain, after, id);
+        // Bar the unregistered ids the original form added above a lifted
+        // node (`media`), which the server now adds when the role is saved.
+        const known = before.filter(
+          (kept) => plain.nodes.has(kept) || start.includes(kept),
+        );
+        expect(sorted(after)).toEqual(sorted(known));
       }
     }
   });
@@ -409,11 +464,7 @@ describe("role permissions", () => {
       expect.arrayContaining([
         ["settings", "", "settings"],
         ["settings.user", "Settings", "settings.user"],
-        [
-          "settings.workspace.roles",
-          "Settings › User settings",
-          "settings.user",
-        ],
+        ["settings.user.roles", "Settings › User settings", "settings.user"],
       ]),
     );
   });
@@ -455,15 +506,15 @@ describe("permission tree levels", () => {
         "pages.sales.orders",
         "settings.user",
         "settings.user.profile",
-        "settings.workspace.roles",
+        "settings.user.roles",
       ],
       [
         "pages.sales",
         "pages.sales.orders",
         "settings.user",
         "settings.user.profile",
-        "settings.workspace.roles",
-        "settings.workspace.roles.table",
+        "settings.user.roles",
+        "settings.user.roles.table",
       ],
     ]);
     expect(openDepth(levels, expanded)).toBe(3);
@@ -487,33 +538,33 @@ describe("permission tree levels", () => {
 
   it("fills the shallowest incomplete depth of a tree opened by hand", () => {
     // One area and one of its rows opened by hand, the other area closed.
-    let expanded = open("settings.user", "settings.workspace.roles");
+    let expanded = open("settings.user", "settings.user.roles");
     expect(openDepth(levels, expanded)).toBe(0);
     expect(nextExpandDepth(levels, expanded)).toBe(1);
     expanded = expandOneLevel(levels, expanded);
     expect(sorted(expanded)).toEqual([
       "pages.sales",
       "settings.user",
-      "settings.workspace.roles",
+      "settings.user.roles",
     ]);
     expect(nextExpandDepth(levels, expanded)).toBe(2);
     // Depth 3 is opened by hand, but depth 2 is still incomplete: it comes first.
     expanded = open(
       "pages.sales",
       "settings.user",
-      "settings.workspace.roles",
-      "settings.workspace.roles.table",
+      "settings.user.roles",
+      "settings.user.roles.table",
     );
     expect(nextExpandDepth(levels, expanded)).toBe(2);
     expect(openDepth(levels, expanded)).toBe(1);
   });
 
   it("collapses the deepest depth shown open, not a hidden open row", () => {
-    // `settings.workspace.roles.table` is open but hidden under a closed area.
+    // `settings.user.roles.table` is open but hidden under a closed area.
     const expanded = open(
       "pages.sales",
-      "settings.workspace.roles",
-      "settings.workspace.roles.table",
+      "settings.user.roles",
+      "settings.user.roles.table",
     );
     expect(nextCollapseDepth(levels, expanded)).toBe(1);
     // The hidden open rows below that depth close with it.
@@ -535,5 +586,76 @@ describe("permission tree levels", () => {
     expect(nextExpandDepth(flat, open())).toBeNull();
     expect(nextCollapseDepth(flat, open())).toBeNull();
     expect(openDepth(flat, open())).toBe(0);
+  });
+});
+
+describe("owner-level warnings", () => {
+  const WARNING = "$warning.members";
+  const WARNED: RolePermissionNode[] = [
+    {
+      id: "settings",
+      label: "Settings",
+      children: [
+        {
+          id: "settings.members",
+          label: "Members",
+          children: [
+            {
+              id: "settings.members.table",
+              label: "Members table",
+              children: [
+                { id: "settings.members.table.list", label: "List" },
+                {
+                  id: "settings.members.table.edit",
+                  label: "Edit",
+                  warning: WARNING,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+  const index = buildPermissionIndex(WARNED);
+  const areas = buildPermissionAreas(WARNED, (label) => label);
+
+  it("tells a closed row the warnings of what it holds selected", () => {
+    const granted = grantPermission(
+      index,
+      new Set(),
+      "settings.members",
+      () => true,
+    ).selection;
+
+    expect(selectedWarningsBelow(index, "settings.members", granted)).toEqual([
+      WARNING,
+    ]);
+    expect(
+      selectedWarningsBelow(index, "settings.members.table.edit", granted),
+    ).toEqual([]);
+    expect(
+      selectedWarningsBelow(
+        index,
+        "settings.members",
+        new Set(["settings.members", "settings.members.table.list"]),
+      ),
+    ).toEqual([]);
+  });
+
+  it("names the selected warned permissions under their area", () => {
+    const granted = grantPermission(
+      index,
+      new Set(),
+      "settings",
+      () => true,
+    ).selection;
+
+    expect(
+      selectedWarningLabels(index, areas, granted, (label) => label),
+    ).toEqual(["Members › Edit"]);
+    expect(
+      selectedWarningLabels(index, areas, new Set(), (label) => label),
+    ).toEqual([]);
   });
 });

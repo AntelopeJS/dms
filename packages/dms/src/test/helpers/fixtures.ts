@@ -14,7 +14,6 @@ export interface UserInviteSeed {
   roles_ids?: string[];
   language?: string;
   owner?: boolean;
-  skipEmailValidation?: boolean;
   lifetimeMs?: number;
 }
 
@@ -42,7 +41,6 @@ export async function seedUserInvite(
     expiresAt: new Date(
       Date.now() + (invite.lifetimeMs ?? MILLISECONDS_IN_HOUR),
     ),
-    skipEmailValidation: invite.skipEmailValidation ?? true,
   });
   return { token, email: invite.email };
 }
@@ -64,7 +62,9 @@ export async function updateUserByEmail(
   if (!user) {
     throw new Error(`User not found: ${email}`);
   }
-  await model.update(user._id, update);
+  // Saved whole: a partial update rewrites the hashed fields' stored state and
+  // loses the password.
+  await model.update(Object.assign(user, update));
 }
 
 export interface GeneralSettingsSeed {

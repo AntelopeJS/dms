@@ -69,6 +69,7 @@ const watchKey = computed(() => JSON.stringify(watchState.value));
 const { data, isLoading } = useChartFetch<ChartCardResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  routeParams: () => props.routeParams,
   periodScope: props.periodScope,
   watchSource: () => watchKey.value,
 });

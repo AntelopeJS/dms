@@ -77,6 +77,14 @@ describe("[unit] pages/settings/users/role-preview", () => {
         ...sanitizePreviewPermissions(["*", "a", "", "a", "b"]),
       ]).to.deep.equal(["a", "b"]);
     });
+
+    it("previews the ids a permission sits under, as saving stores them", () => {
+      expect([...sanitizePreviewPermissions(["a.b.c"])]).to.deep.equal([
+        "a.b.c",
+        "a.b",
+        "a",
+      ]);
+    });
   });
 
   describe("permission tree lookups", () => {

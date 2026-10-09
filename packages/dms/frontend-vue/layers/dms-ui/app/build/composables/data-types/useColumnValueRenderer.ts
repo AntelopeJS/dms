@@ -45,8 +45,10 @@ export function useColumnValueRenderer() {
   const { locale } = useI18n();
 
   // A display also reads the column's own type options (`typeOptions`): a
-  // select's items name the values it draws. A display declared without
-  // options reads them at the top level, as it always did.
+  // select's items name the values it draws; and the column's own type id
+  // (`columnType`), so it can write the value as the column would (an amount
+  // under `two_line`). A display declared without options reads the type
+  // options at the top level, as it always did.
   const resolveRenderer = (column: RenderableColumn) => {
     const typeOptions = column.type?.inputComponent?.options as
       | Record<string, unknown>
@@ -56,7 +58,7 @@ export function useColumnValueRenderer() {
     const displayOptions = column.display.options ?? typeOptions;
     return {
       typeId: column.display.type,
-      options: { ...displayOptions, typeOptions },
+      options: { ...displayOptions, typeOptions, columnType: column.type?.id },
     };
   };
 

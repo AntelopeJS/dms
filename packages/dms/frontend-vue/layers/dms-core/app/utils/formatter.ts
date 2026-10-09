@@ -119,6 +119,55 @@ export function formatRelativeTime(
   });
 }
 
+interface RelativeUnit {
+  unit: Intl.RelativeTimeFormatUnit;
+  ms: number;
+  /** The unit applies below this distance. */
+  below: number;
+}
+
+// Months and years by their average length: a distance, not a calendar span.
+const MONTH_MS = 30 * TIME_UNITS.d;
+const YEAR_MS = 365 * TIME_UNITS.d;
+
+const RELATIVE_UNITS: RelativeUnit[] = [
+  { unit: "minute", ms: TIME_UNITS.m, below: TIME_UNITS.h },
+  { unit: "hour", ms: TIME_UNITS.h, below: TIME_UNITS.d },
+  { unit: "day", ms: TIME_UNITS.d, below: TIME_UNITS.w },
+  { unit: "week", ms: TIME_UNITS.w, below: MONTH_MS },
+  { unit: "month", ms: MONTH_MS, below: YEAR_MS },
+  { unit: "year", ms: YEAR_MS, below: Number.POSITIVE_INFINITY },
+];
+
+export interface RelativeDistanceOptions {
+  /** `long` ("in 3 hours") by default; `short` ("in 3 hr.") for tight cells. */
+  style?: Intl.RelativeTimeFormatStyle;
+  /** The instant the distance is measured from; defaults to now. */
+  now?: number;
+}
+
+/**
+ * "in 3 days", "tomorrow", "2 hours ago": the distance between `date` and
+ * now, past or future, in the largest unit that keeps it a whole number. Not
+ * capitalised, so it reads inside a sentence.
+ */
+export function formatRelativeDistance(
+  date: string | number | Date,
+  locale: string,
+  { style = "long", now = Date.now() }: RelativeDistanceOptions = {},
+): string {
+  const deltaMs = new Date(date).getTime() - now;
+  const distance = Math.abs(deltaMs);
+  const unit =
+    RELATIVE_UNITS.find((candidate) => distance < candidate.below) ??
+    RELATIVE_UNITS[RELATIVE_UNITS.length - 1]!;
+  const value = Math.round(deltaMs / unit.ms);
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto", style }).format(
+    value,
+    unit.unit,
+  );
+}
+
 const defaultDateFormatterOptions: Intl.DateTimeFormatOptions = {
   year: "numeric",
   month: "long",
