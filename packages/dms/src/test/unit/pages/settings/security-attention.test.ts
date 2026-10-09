@@ -2,6 +2,7 @@ import { expect } from "chai";
 import {
   securityAttention,
   securityAttentionBadge,
+  securityAttentionTones,
 } from "../../../../pages/settings/users/security-attention";
 import type { TwoFactorStatus } from "../../../../pages/settings/users/two-factor-operations";
 import { LOW_BACKUP_CODES } from "../../../../utils/notification-tones";
@@ -72,5 +73,18 @@ describe("[unit] settings/security — attention and its navigation badge", () =
       count: 2,
       tone: "error",
     });
+  });
+
+  it("gives each attention item its own tone, for the blocks it concerns", () => {
+    const lowAndUnsaved = status({
+      backupCodesLeft: LOW_BACKUP_CODES,
+      backupCodesSavedAt: null,
+    });
+
+    expect(securityAttentionTones(lowAndUnsaved)).to.deep.equal({
+      backup_codes_low: "error",
+      backup_codes_unsaved: "warning",
+    });
+    expect(securityAttentionTones(SECURE)).to.deep.equal({});
   });
 });

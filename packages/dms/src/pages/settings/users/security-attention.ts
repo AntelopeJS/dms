@@ -65,6 +65,18 @@ export function securityAttention(
 }
 
 /**
+ * The tone of each item of {@link securityAttention}: the Security page draws
+ * each block it concerns in it, as the navigation badge draws the strongest.
+ */
+export function securityAttentionTones(
+  twoFactor: TwoFactorStatus,
+): Partial<Record<SecurityAttention, NotificationTone>> {
+  return Object.fromEntries(
+    applyingRules(twoFactor).map(({ id, tone }) => [id, tone]),
+  );
+}
+
+/**
  * The navigation badge of the Security page: one per item of
  * {@link securityAttention}, in the strongest of their tones.
  */

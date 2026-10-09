@@ -67,7 +67,7 @@ const METHODS: MethodConfig[] = [
 const { t } = useI18n();
 const toast = useToast();
 const { $authFetch } = useAuthFetch();
-const { overview, attention, refresh } = useSecurityOverview();
+const { overview, attention, attentionToneOf, refresh } = useSecurityOverview();
 const { formatDate, errorMessage } = useSecurityFormat();
 
 const isProcessing = ref(false);
@@ -114,6 +114,10 @@ const isUnsaved = computed(() =>
   attention.value.includes("backup_codes_unsaved"),
 );
 const isLow = computed(() => attention.value.includes("backup_codes_low"));
+// The backup codes row and its pill, in the tone the server gives them.
+const backupTone = computed(() =>
+  attentionToneOf(["backup_codes_low", "backup_codes_unsaved"]),
+);
 
 const addItems = computed<DropdownMenuItem[]>(() =>
   addableMethods.value.map((method) => ({
@@ -458,22 +462,18 @@ async function markSaved(): Promise<void> {
 
       <DmsFieldRow v-if="isOn" id="backup-codes" class="scroll-mt-6">
         <template #label>
-          <DmsListRow
-            bare
-            icon="i-ph-key"
-            :tone="isUnsaved || isLow ? 'warning' : 'muted'"
-          >
+          <DmsListRow bare icon="i-ph-key" :tone="backupTone ?? 'muted'">
             {{ t("page.settings.security.backup.title") }}
             <UBadge
-              v-if="isUnsaved || isLow"
-              color="warning"
+              v-if="backupTone"
+              :color="backupTone"
               variant="subtle"
               size="sm"
               icon="i-ph-warning"
               :label="
-                isUnsaved
-                  ? t('page.settings.security.backup.not_saved')
-                  : t('page.settings.security.backup.running_low')
+                isLow
+                  ? t('page.settings.security.backup.running_low')
+                  : t('page.settings.security.backup.not_saved')
               "
             />
             <template #meta>

@@ -35,6 +35,8 @@ export interface SecurityOverview {
    * null when nothing needs attention. Absent from an older backend.
    */
   attentionTone?: Tone | null;
+  /** The tone of each item of `attention`. Absent from an older backend. */
+  attentionTones?: Partial<Record<SecurityAttention, Tone>>;
 }
 
 /** What the API returns to enrol an authenticator app. */
@@ -52,6 +54,17 @@ export type SecurityAttention =
   | "two_factor_off"
   | "backup_codes_unsaved"
   | "backup_codes_low";
+
+/** Strongest first, as the server ranks the attention tones. */
+const ATTENTION_TONE_ORDER: Tone[] = [
+  "error",
+  "warning",
+  "primary",
+  "secondary",
+  "success",
+  "info",
+  "neutral",
+];
 
 /**
  * Shared Security summary: the status strip, every Security block and the
@@ -79,6 +92,19 @@ export function useSecurityOverview() {
     () => overview.value?.attentionTone ?? undefined,
   );
 
+  /**
+   * The strongest tone the server gives to those of `items` that need
+   * attention; undefined when none does. A block concerned by several items
+   * (the backup codes: unsaved, running low) is drawn in it.
+   */
+  function attentionToneOf(items: SecurityAttention[]): Tone | undefined {
+    const tones = overview.value?.attentionTones ?? {};
+    const present = items
+      .map((item) => tones[item])
+      .filter((tone): tone is Tone => !!tone);
+    return ATTENTION_TONE_ORDER.find((tone) => present.includes(tone));
+  }
+
   async function refresh(): Promise<void> {
     try {
       overview.value = await $authFetch<SecurityOverview>(SECURITY_ENDPOINT);
@@ -95,5 +121,12 @@ export function useSecurityOverview() {
     );
   }
 
-  return { overview, attention, attentionTone, isUnavailable, refresh };
+  return {
+    overview,
+    attention,
+    attentionTone,
+    attentionToneOf,
+    isUnavailable,
+    refresh,
+  };
 }

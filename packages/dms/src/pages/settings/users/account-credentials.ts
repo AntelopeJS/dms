@@ -30,6 +30,7 @@ import {
   type SecurityAttention,
   securityAttention,
   securityAttentionBadge,
+  securityAttentionTones,
 } from "./security-attention";
 
 const HTTP_FORBIDDEN = 403;
@@ -53,6 +54,8 @@ export interface SecurityOverview {
    * `attention`; null when nothing needs attention.
    */
   attentionTone: Tone | null;
+  /** The tone of each item of `attention`. */
+  attentionTones: Partial<Record<SecurityAttention, Tone>>;
 }
 
 /** The body the frontend server posts to `endpoint` to reopen the session. */
@@ -258,5 +261,6 @@ export async function getSecurityOverview(
     activeSessions: sessions.length,
     attention: securityAttention(twoFactor),
     attentionTone: securityAttentionBadge(twoFactor).tone ?? null,
+    attentionTones: securityAttentionTones(twoFactor),
   };
 }
