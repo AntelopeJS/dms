@@ -37,6 +37,11 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Shows at most this many entries. */
   maxItems?: number;
   /**
+   * Fills its grid cell instead of growing with its entries, which scroll
+   * under the fixed head: the cards beside it set the row's height.
+   */
+  fillHeight?: boolean;
+  /**
    * Placeholder rows while `fetchUrl` loads: the length the source usually
    * answers, never more than `maxItems`. Optional. Defaults to `maxItems`,
    * or 3.
@@ -59,6 +64,7 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   fetchUrlMethod: undefined,
   groupByDay: true,
   maxItems: undefined,
+  fillHeight: false,
   skeletonCount: undefined,
   actions: () => [],
   empty: undefined,
@@ -137,6 +143,32 @@ const skeletonDays = computed<number[][]>(() => {
   }
   return days;
 });
+
+// Filling its cell, the body is the scroll area: sized to nothing
+// (`contain: size`), it leaves the row's height to the cards beside it and
+// stretches to it. Once the grid stacks its cells (`--dms-grid-tracks: 1`,
+// see grid/columns.ts) no neighbour sets that height: the list takes its own,
+// capped like a top-list card's (24rem, about six entries under their day
+// separators). Focusable, so the keyboard scrolls it too; its ring is drawn
+// inside, where the card's clipped edge cannot hide it.
+const scrollArea = computed(() =>
+  props.fillHeight
+    ? {
+        class:
+          "h-full overflow-y-auto overscroll-contain [scrollbar-width:thin] contain-size focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--dms-accent-line) [@container_style(--dms-grid-tracks:1)]:h-auto [@container_style(--dms-grid-tracks:1)]:max-h-[24rem] [@container_style(--dms-grid-tracks:1)]:contain-none",
+        role: "region",
+        tabindex: 0,
+        "aria-label": props.title
+          ? processI18n(props.title)
+          : t("dms.activity_feed.list_label"),
+      }
+    : {},
+);
+// Inside the scroll area, a day's separator stays on top of its entries.
+const dayHeadClass = computed(
+  () => props.fillHeight && "sticky top-0 z-[1] bg-(--dms-surface-card)",
+);
+
 const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
 const wrapperProps = computed(() =>
   props.card
@@ -161,91 +193,94 @@ const wrapperProps = computed(() =>
       />
     </template>
 
-    <!-- Rows at the loaded rows' boxes (a 18px title line over a 16px meta
-         line beside the 30px well), split by the same hairlines. -->
-    <div v-if="isFirstLoad" class="py-1" aria-busy="true">
-      <div v-for="(day, dayIndex) in skeletonDays" :key="dayIndex">
-        <div
-          v-if="props.groupByDay"
-          class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
-        >
-          <USkeleton class="my-[1.5px] h-2.5 w-24" />
-        </div>
-        <div class="divide-y divide-(--ui-border-muted)">
-          <DmsRowSkeleton
-            v-for="row in day"
-            :key="row"
-            class="px-[18px] py-2.5"
-            well="size-[30px] rounded-lg"
-            :lines="[
-              `my-[3px] h-3 ${SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]}`,
-              'my-[3px] h-2.5 w-1/3',
-            ]"
-            lines-class="grid gap-px"
-          />
+    <div v-bind="scrollArea">
+      <!-- Rows at the loaded rows' boxes (a 18px title line over a 16px meta
+           line beside the 30px well), split by the same hairlines. -->
+      <div v-if="isFirstLoad" class="py-1" aria-busy="true">
+        <div v-for="(day, dayIndex) in skeletonDays" :key="dayIndex">
+          <div
+            v-if="props.groupByDay"
+            class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
+          >
+            <USkeleton class="my-[1.5px] h-2.5 w-24" />
+          </div>
+          <div class="divide-y divide-(--ui-border-muted)">
+            <DmsRowSkeleton
+              v-for="row in day"
+              :key="row"
+              class="px-[18px] py-2.5"
+              well="size-[30px] rounded-lg"
+              :lines="[
+                `my-[3px] h-3 ${SKELETON_TITLE_WIDTHS[row % SKELETON_TITLE_WIDTHS.length]}`,
+                'my-[3px] h-2.5 w-1/3',
+              ]"
+              lines-class="grid gap-px"
+            />
+          </div>
         </div>
       </div>
-    </div>
 
-    <DmsEmptyState
-      v-else-if="hasError"
-      variant="error"
-      size="sm"
-      :title="t('dms.activity_feed.error_title')"
-      :description="t('dms.activity_feed.error_description')"
-      :actions="[
-        {
-          label: t('dms.activity_feed.retry'),
-          icon: 'i-ph-arrow-clockwise',
-          color: 'neutral',
-          variant: 'outline',
-          onClick: () => refresh(),
-        },
-      ]"
-    />
+      <DmsEmptyState
+        v-else-if="hasError"
+        variant="error"
+        size="sm"
+        :title="t('dms.activity_feed.error_title')"
+        :description="t('dms.activity_feed.error_description')"
+        :actions="[
+          {
+            label: t('dms.activity_feed.retry'),
+            icon: 'i-ph-arrow-clockwise',
+            color: 'neutral',
+            variant: 'outline',
+            onClick: () => refresh(),
+          },
+        ]"
+      />
 
-    <DmsEmptyState
-      v-else-if="!entries.length"
-      icon="i-ph-tray"
-      size="sm"
-      :title="
-        props.empty
-          ? processI18n(props.empty.title)
-          : t('dms.activity_feed.empty_title')
-      "
-      :description="
-        props.empty?.description
-          ? processI18n(props.empty.description)
-          : undefined
-      "
-    />
+      <DmsEmptyState
+        v-else-if="!entries.length"
+        icon="i-ph-tray"
+        size="sm"
+        :title="
+          props.empty
+            ? processI18n(props.empty.title)
+            : t('dms.activity_feed.empty_title')
+        "
+        :description="
+          props.empty?.description
+            ? processI18n(props.empty.description)
+            : undefined
+        "
+      />
 
-    <div v-else class="py-1">
-      <section v-for="day in days" :key="day.key">
-        <!-- v2 .feed__day: "Today · Sep 29" and a hairline to the edge. -->
-        <div
-          v-if="props.groupByDay && day.name"
-          class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
-        >
-          <DmsEyebrow as="h3">
-            <b class="text-muted font-semibold">{{ day.name }}</b>
-            {{ day.date ? ` · ${day.date}` : "" }}
-          </DmsEyebrow>
-        </div>
-        <DmsActivityItem
-          v-for="(item, index) in day.items"
-          :key="item.id ?? `${day.key}-${index}`"
-          :icon="item.icon"
-          :icon-color="item.tone ?? 'neutral'"
-          :title="textOf(item, item.title)"
-          :subtitle="metaOf(item)"
-          :trailing="trailingOf(item)"
-          :unread="item.unread"
-          :mono="props.mono"
-          :to="item.to"
-          :interactive="!!item.to"
-        />
-      </section>
+      <div v-else class="py-1">
+        <section v-for="day in days" :key="day.key">
+          <!-- v2 .feed__day: "Today · Sep 29" and a hairline to the edge. -->
+          <div
+            v-if="props.groupByDay && day.name"
+            class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
+            :class="dayHeadClass"
+          >
+            <DmsEyebrow as="h3">
+              <b class="text-muted font-semibold">{{ day.name }}</b>
+              {{ day.date ? ` · ${day.date}` : "" }}
+            </DmsEyebrow>
+          </div>
+          <DmsActivityItem
+            v-for="(item, index) in day.items"
+            :key="item.id ?? `${day.key}-${index}`"
+            :icon="item.icon"
+            :icon-color="item.tone ?? 'neutral'"
+            :title="textOf(item, item.title)"
+            :subtitle="metaOf(item)"
+            :trailing="trailingOf(item)"
+            :unread="item.unread"
+            :mono="props.mono"
+            :to="item.to"
+            :interactive="!!item.to"
+          />
+        </section>
+      </div>
     </div>
   </component>
 </template>

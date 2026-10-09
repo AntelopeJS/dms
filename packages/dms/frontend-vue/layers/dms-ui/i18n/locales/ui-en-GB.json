@@ -682,7 +682,8 @@
       "empty_title": "No activity yet",
       "error_title": "Activity could not be loaded",
       "error_description": "Check your connection, then try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "list_label": "Activity"
     },
     "leave_guard": {
       "title": "Discard unsaved changes?",
