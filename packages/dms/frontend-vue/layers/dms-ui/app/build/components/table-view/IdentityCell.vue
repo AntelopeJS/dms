@@ -5,7 +5,9 @@ import { useFileReadUrls } from "../../../composables/useFileReadUrls";
 /**
  * The `identity` cell of a table: an avatar (or an icon tile), a name with an
  * optional "You" tag and status badges, and a secondary line (an address).
- * Rendered by the `identity` data type, which reads the extras off the row.
+ * A row without a name may stand as a muted `emptyLabel` and an `emptyIcon`
+ * tile ("Automatic" and a robot). Rendered by the `identity` data type, which
+ * reads the extras off the row.
  */
 interface IdentityCellBadge {
   label: string;
@@ -18,6 +20,8 @@ interface IdentityCellProps {
   title?: string;
   /** Secondary line under the title. */
   subtitle?: string;
+  /** Text classes of the secondary line (its tone). */
+  subtitleClass?: string;
   /** Image value (`{ key }`, resolved through the file API) or a URL. */
   avatar?: { key: string; alt?: string } | string | null;
   /** Icon drawn in a tile instead of an avatar. */
@@ -30,17 +34,24 @@ interface IdentityCellProps {
   badges?: IdentityCellBadge[];
   /** Storage the avatar's file key lives in. */
   storage?: string;
+  /** Name drawn, muted, when there is no title. */
+  emptyLabel?: string;
+  /** Icon tile drawn when there is no title; `icon` otherwise. */
+  emptyIcon?: string;
 }
 
 const props = withDefaults(defineProps<IdentityCellProps>(), {
   title: "",
   subtitle: "",
+  subtitleClass: "text-dimmed",
   avatar: null,
   icon: undefined,
   selfId: undefined,
   selfLabel: undefined,
   badges: () => [],
   storage: undefined,
+  emptyLabel: undefined,
+  emptyIcon: undefined,
 });
 
 const { user } = useCurrentUser();
@@ -49,7 +60,22 @@ const { getUrl, resolve } = useFileReadUrls(props.storage);
 const MAX_INITIALS = 2;
 const INITIALS_SPLIT = /[\s.@_-]+/;
 
+const isEmpty = computed(
+  () => !props.title && !!(props.emptyLabel || props.emptyIcon),
+);
 const label = computed(() => props.title || props.subtitle);
+const name = computed(() =>
+  isEmpty.value && props.emptyLabel ? props.emptyLabel : label.value,
+);
+const tileIcon = computed(() =>
+  isEmpty.value ? (props.emptyIcon ?? props.icon) : props.icon,
+);
+// Without a title the subtitle stands as the name, unless an empty label does.
+const hasSubtitleLine = computed(
+  () =>
+    !!props.subtitle &&
+    (!!props.title || (isEmpty.value && !!props.emptyLabel)),
+);
 const isSelf = computed(
   () => !!props.selfId && props.selfId === user.value?._id,
 );
@@ -79,10 +105,10 @@ const initials = computed(() =>
     ellipsis, the full label in their tooltip), then the name. -->
   <div class="flex min-w-0 items-center gap-2.5">
     <span
-      v-if="props.icon"
+      v-if="tileIcon"
       class="bg-accented text-toned grid size-7 shrink-0 place-items-center rounded-[7px]"
     >
-      <UIcon :name="props.icon" class="size-3.5" />
+      <UIcon :name="tileIcon" class="size-3.5" />
     </span>
     <UAvatar
       v-else
@@ -94,9 +120,10 @@ const initials = computed(() =>
     />
     <div class="min-w-0">
       <span
-        class="text-highlighted flex min-w-0 items-center gap-1.5 leading-[1.3] font-semibold"
+        class="flex min-w-0 items-center gap-1.5 leading-[1.3]"
+        :class="isEmpty ? 'text-muted' : 'text-highlighted font-semibold'"
       >
-        <span class="truncate" :title="label">{{ label }}</span>
+        <span class="truncate" :title="name">{{ name }}</span>
         <span
           v-if="isSelf && props.selfLabel"
           class="text-dimmed shrink-0 font-mono text-[10px] font-semibold tracking-[0.06em] uppercase"
@@ -116,8 +143,10 @@ const initials = computed(() =>
         />
       </span>
       <span
-        v-if="props.title && props.subtitle"
-        class="text-dimmed block truncate text-xs leading-[1.2]"
+        v-if="hasSubtitleLine"
+        class="block truncate text-xs leading-[1.2]"
+        :class="props.subtitleClass"
+        :title="props.subtitle"
       >
         {{ props.subtitle }}
       </span>
