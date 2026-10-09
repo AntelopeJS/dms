@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.5.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.4.2...v0.5.0)
+
+### 🚀 Enhancements
+
+- **layout:** Dock module side panels next to the page ([#168](https://github.com/AntelopeJS/dms/pull/168))
+- **command-palette:** Add an assistant mode a frontend module can provide ([#169](https://github.com/AntelopeJS/dms/pull/169))
+
+### 🩹 Fixes
+
+- **dms:** ⚠️  Harden auth and account flows, require permission ancestors, open settings to members ([#172](https://github.com/AntelopeJS/dms/pull/172))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.6.2 ([c2f3269](https://github.com/AntelopeJS/dms/commit/c2f3269))
+- **release:** @antelopejs/dms v0.7.0 ([f8cc120](https://github.com/AntelopeJS/dms/commit/f8cc120))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** ⚠️  Harden auth and account flows, require permission ancestors, open settings to members ([#172](https://github.com/AntelopeJS/dms/pull/172))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven ([@mwesto](http://github.com/mwesto))
+
 ## v0.4.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.4.1...v0.4.2)
