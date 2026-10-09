@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.7.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.6.2...v0.7.0)
+
+### 🚀 Enhancements
+
+- **layout:** Dock module side panels next to the page ([#168](https://github.com/AntelopeJS/dms/pull/168))
+- **command-palette:** Add an assistant mode a frontend module can provide ([#169](https://github.com/AntelopeJS/dms/pull/169))
+
+### 🩹 Fixes
+
+- **dms:** ⚠️  Harden auth and account flows, require permission ancestors, open settings to members ([#172](https://github.com/AntelopeJS/dms/pull/172))
+
+#### ⚠️ Breaking Changes
+
+- **dms:** ⚠️  Harden auth and account flows, require permission ancestors, open settings to members ([#172](https://github.com/AntelopeJS/dms/pull/172))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Maxime Westhoven <maxime@altab.be>
+
 ## v0.6.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.6.1...v0.6.2)
