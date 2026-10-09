@@ -45,6 +45,10 @@ vi.mock(
   () => ({ default: () => null }),
 );
 vi.mock(
+  "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue",
+  () => ({ default: () => null }),
+);
+vi.mock(
   "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
   async () => {
     const { ref } = await import("vue");
@@ -91,7 +95,7 @@ const FLOW_PAGE_MARKUP =
   '<div class="">' +
   '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
   PAGE_SKELETON_MARKUP +
-  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div></div>";
+  "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div><!----></div>";
 
 function withComponents(...ids: string[]): PageLayoutFixture {
   return {
