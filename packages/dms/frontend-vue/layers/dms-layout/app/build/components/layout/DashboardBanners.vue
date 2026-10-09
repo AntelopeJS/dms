@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import DmsBlockActions from "#dms-ui/app/build/components/blocks/BlockActions.vue";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
+
 /**
  * Stacks the global layout banners under the dashboard header, on every page
  * of the dashboard layout. Each banner carries its own live-region role, so a
- * banner appearing after a navigation is announced as well.
+ * banner appearing after a navigation is announced as well. A text is a
+ * string or a composed text, written in the reader's language, followed by
+ * the banner's link buttons.
  */
 const { banners, dismiss } = useLayoutBanners();
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
 // Rows read as tinted bands (design .banner strip): no ring, the colour kept
 // for the icon and the hairline between stacked rows.
@@ -63,7 +68,16 @@ const entries = computed(() =>
             v-if="banner.component"
             v-bind="banner.props"
           />
-          <template v-else>{{ processI18n(banner.text ?? "") }}</template>
+          <template v-else>{{ processText(banner.text) }}</template>
+        </template>
+        <template v-if="!banner.component && banner.actions?.length" #actions>
+          <DmsBlockActions
+            :actions="banner.actions"
+            size="xs"
+            lead-position="last"
+            :lead-color="presentation.color"
+            rest-variant="ghost"
+          />
         </template>
       </UAlert>
     </div>
