@@ -456,6 +456,8 @@
     "too_many_sign_in_attempts": "Trop de tentatives de connexion. Réessayez dans quelques minutes.",
     "too_many_2fa_attempts": "Trop de codes erronés. Revenez en arrière et reconnectez-vous avec votre mot de passe.",
     "too_many_2fa_attempts_account": "Trop de codes erronés sur ce compte. Patientez jusqu'à une heure, puis reconnectez-vous.",
-    "2fa_challenge_used": "Cette vérification est déjà validée. Reconnectez-vous avec votre mot de passe."
+    "2fa_challenge_used": "Cette vérification est déjà validée. Reconnectez-vous avec votre mot de passe.",
+    "invalid_2fa_token": "Cette vérification a expiré ou n'est pas valide. Reconnectez-vous avec votre mot de passe.",
+    "too_many_current_password_attempts": "Trop de mots de passe erronés. Patientez 15 minutes, puis réessayez."
   }
 }

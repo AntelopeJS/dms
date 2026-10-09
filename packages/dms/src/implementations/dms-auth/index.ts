@@ -31,7 +31,7 @@ const INVALID_USER_ERROR = "Invalid user";
 const EMAIL_NOT_VALIDATED_ERROR = "Email not validated";
 const NO_JWT_TOKEN_ERROR = "No jwt token provided";
 const INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR = "Invalid tenant assignment token";
-const INVALID_TWO_FACTOR_TOKEN_ERROR = "Invalid 2FA token";
+const INVALID_TWO_FACTOR_TOKEN_ERROR = "error.invalid_2fa_token";
 const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
@@ -336,66 +336,71 @@ export function generateTenantAssignmentToken(user: User): TokenResult {
   return { token, expiresIn: TENANT_ASSIGNMENT_TOKEN_LIFETIME_MS };
 }
 
-interface TenantAssignmentDecoded {
-  id?: string;
-  purpose?: string;
+interface PurposeTokenClaims {
+  id: string;
+  purpose: string;
 }
 
-interface TwoFactorDecoded {
-  id: string;
+interface TwoFactorClaims extends PurposeTokenClaims {
   tenantId: string;
-  purpose?: string;
+}
+
+interface VerifiedPurposeToken<T extends PurposeTokenClaims> {
+  claims: T;
+  user: User;
+}
+
+function isSignedFor(token: string, user: User): boolean {
+  try {
+    verify(token, generateSecret(user.authKey));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// One refusal whatever failed: an unknown user answered apart from a bad
+// signature would tell which user ids exist, and the token library's own
+// messages ("jwt expired", "invalid signature") stay out of the answer. The
+// user is read before the signature is checked because the secret derives
+// from their key.
+async function verifyPurposeToken<T extends PurposeTokenClaims>(
+  token: string,
+  purpose: string,
+  refusal: string,
+): Promise<VerifiedPurposeToken<T>> {
+  const claims = decode(token);
+  if (
+    !claims ||
+    typeof claims === "string" ||
+    claims.purpose !== purpose ||
+    typeof claims.id !== "string"
+  ) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
+  }
+  const user = await GetModel(UserModel).get(claims.id);
+  if (!user || !isSignedFor(token, user)) {
+    throw new HTTPResult(HTTP_UNAUTHORIZED, refusal);
+  }
+  return { claims: claims as T, user };
 }
 
 export async function validateTenantAssignmentToken(token: string) {
-  const result = decode(token) as TenantAssignmentDecoded | null;
-
-  if (!result || result.purpose !== TENANT_ASSIGNMENT_PURPOSE || !result.id) {
-    throw new HTTPResult(
-      HTTP_UNAUTHORIZED,
-      INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR,
-    );
-  }
-
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    verify(token, secret);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
-
-  return { id: result.id, user };
+  const { claims, user } = await verifyPurposeToken(
+    token,
+    TENANT_ASSIGNMENT_PURPOSE,
+    INVALID_TENANT_ASSIGNMENT_TOKEN_ERROR,
+  );
+  return { id: claims.id, user };
 }
 
 export async function validateTwoFactorToken(token: string) {
-  const result = decode(token) as TwoFactorDecoded;
-
-  if (result.purpose !== TWO_FACTOR_TOKEN_PURPOSE) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_TWO_FACTOR_TOKEN_ERROR);
-  }
-
-  const userModel = GetModel(UserModel);
-  const user = await userModel.get(result.id);
-
-  if (!user) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, INVALID_USER_ERROR);
-  }
-
-  try {
-    const secret = generateSecret(user.authKey);
-    verify(token, secret);
-  } catch (error: unknown) {
-    throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
-  }
-
-  return { ...result, user };
+  const { claims, user } = await verifyPurposeToken<TwoFactorClaims>(
+    token,
+    TWO_FACTOR_TOKEN_PURPOSE,
+    INVALID_TWO_FACTOR_TOKEN_ERROR,
+  );
+  return { ...claims, user };
 }
 
 interface TwoFactorEmailData {

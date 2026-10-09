@@ -21,6 +21,7 @@ import {
   isEmailCodeExpired,
 } from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
+import { firstIssueMessage } from "../../validation/issue-message";
 import { answerTwoFactorChallenge } from "./two-factor-throttle";
 import type { AuthResponse } from "./types";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
@@ -84,8 +85,10 @@ export async function verify2FA(
   userAgent: string,
   origin: ClientOrigin,
 ): Promise<AuthResponse> {
-  const { token, code, method } = assertValidation(body, (v) =>
-    authSchema.verify2FA.parse(v),
+  const { token, code, method } = assertValidation(
+    body,
+    (v) => authSchema.verify2FA.parse(v),
+    firstIssueMessage,
   );
 
   const twoFactorPayload = await validateTwoFactorToken(token);

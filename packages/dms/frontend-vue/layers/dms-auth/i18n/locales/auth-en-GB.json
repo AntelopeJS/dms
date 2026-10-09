@@ -456,6 +456,8 @@
     "too_many_sign_in_attempts": "Too many sign-in attempts. Please try again in a few minutes.",
     "too_many_2fa_attempts": "Too many wrong codes. Go back and sign in again with your password.",
     "too_many_2fa_attempts_account": "Too many wrong codes on this account. Wait up to an hour, then sign in again.",
-    "2fa_challenge_used": "This verification is already complete. Sign in again with your password."
+    "2fa_challenge_used": "This verification is already complete. Sign in again with your password.",
+    "invalid_2fa_token": "This verification has expired or is invalid. Sign in again with your password.",
+    "too_many_current_password_attempts": "Too many wrong passwords. Wait 15 minutes, then try again."
   }
 }

@@ -3,7 +3,11 @@
 // the account moves only once the code comes back.
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
-import type { User, UserModel } from "@antelopejs/interface-dms/auth/db";
+import {
+  normalizeEmail,
+  type User,
+  type UserModel,
+} from "@antelopejs/interface-dms/auth/db";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { MILLISECONDS_PER_HOUR } from "@antelopejs/interface-dms/utils/internal/time";
 import { getAuthConfig } from "../../../config";
@@ -107,11 +111,13 @@ export async function requestEmailChange(
   const { email, currentPassword } = assertValidation(body, (value) =>
     securitySchema.changeEmail.parse(value),
   );
+  const now = Date.now();
+  // Before the password: a wait that only the right password reached would
+  // tell a guess was right.
+  await assertMayRequest(user._id, normalizeEmail(email), now);
   await assertCurrentPassword(userModel, user, currentPassword);
   const available = await assertEmailAvailable(userModel, email, user._id);
   assert(available !== user.email, HTTP_BAD_REQUEST, "error.email_unchanged");
-  const now = Date.now();
-  await assertMayRequest(user._id, available, now);
 
   const code = generateCode();
   await GetModel(UserEmailChangesModel).replacePending({

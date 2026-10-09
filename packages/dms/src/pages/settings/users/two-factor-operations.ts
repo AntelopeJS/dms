@@ -11,6 +11,7 @@ import {
 } from "../../../utils/account-notifications";
 import {
   acceptTotpCode,
+  assertEmailCodeNotRateLimited,
   consumeEmailCode,
   emailCodeMatches,
   isEmailCodeExpired,
@@ -212,10 +213,12 @@ export async function startEmailSetup(
   body: unknown,
   userModel: UserModel,
 ): Promise<SuccessResult> {
+  const needsCode = !isEmailSetupPending(user) || isEmailCodeExpired(user);
+  // Before the password: a wait that only the right password reached would
+  // tell a guess was right.
+  if (needsCode) assertEmailCodeNotRateLimited(user);
   await assertMayAddMethod(user, body, userModel);
-  if (!isEmailSetupPending(user) || isEmailCodeExpired(user)) {
-    await sendNewEmailCode(userModel, user);
-  }
+  if (needsCode) await sendNewEmailCode(userModel, user);
   return { success: true };
 }
 

@@ -5,6 +5,13 @@ import { passwordSchema } from "./password";
 const MAX_OAUTH_EXCHANGE_VALUE_LENGTH = 2048;
 const MAX_LANGUAGE_TAG_LENGTH = 35;
 const MAX_INVITE_TOKEN_LENGTH = 256;
+const INVALID_2FA_TOKEN = "error.invalid_2fa_token";
+
+// The sign-in step answers with message keys (see firstIssueMessage): the
+// two-factor page translates them, and shows a refused code under its cells.
+const twoFactorToken = z
+  .string({ message: INVALID_2FA_TOKEN })
+  .min(1, INVALID_2FA_TOKEN);
 
 export const authSchema = {
   signup: z.object({
@@ -54,14 +61,20 @@ export const authSchema = {
     email: z.string().email(),
     password: passwordSchema,
   }),
-  verify2FA: z.object({
-    token: z.string(),
-    code: z.string(),
-    method: z.enum(["totp", "email", "backup"]),
-  }),
-  request2FAEmail: z.object({
-    token: z.string(),
-  }),
+  verify2FA: z.object(
+    {
+      token: twoFactorToken,
+      code: z.string({ message: "error.invalid_2fa_code" }),
+      method: z.enum(["totp", "email", "backup"], {
+        message: "error.invalid_2fa_method",
+      }),
+    },
+    { message: INVALID_2FA_TOKEN },
+  ),
+  request2FAEmail: z.object(
+    { token: twoFactorToken },
+    { message: INVALID_2FA_TOKEN },
+  ),
   confirmTotp: z.object({
     code: z.string(),
   }),

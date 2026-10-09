@@ -14,19 +14,22 @@ export const signInAttemptsTableName = "sign_in_attempts";
  * `failed`: a wrong password. `alerted`: the user was told about a burst of
  * them. `reset_code`: a password-reset code was tried. `two_factor`: a code
  * was tried against a two-factor challenge. `two_factor_used`: a two-factor
- * challenge opened its session, and opens no other.
+ * challenge opened its session, and opens no other. `current_password`: a
+ * signed-in session gave the account password again (Security page, account
+ * deletion).
  */
 export type SignInAttemptKind =
   | "failed"
   | "alerted"
   | "reset_code"
   | "two_factor"
-  | "two_factor_used";
+  | "two_factor_used"
+  | "current_password";
 
 /**
- * Failed password attempts, password-reset and two-factor code tries, kept in
- * the database rather than in memory so every instance behind a load balancer
- * counts the same burst.
+ * Failed password attempts, password re-checks, password-reset and two-factor
+ * code tries, kept in the database rather than in memory so every instance
+ * behind a load balancer counts the same burst.
  */
 @RegisterTable(signInAttemptsTableName, CORE_SCHEMA_NAME)
 export class SignInAttempt extends Table {

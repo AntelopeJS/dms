@@ -208,6 +208,35 @@ export class SignInAttemptsModel extends BasicDataModel(
     await this.deleteRecorded(userId, "reset_code");
   }
 
+  /**
+   * Counts the account password given again by a signed-in session. Recorded
+   * before the password is compared, so concurrent tries on several instances
+   * share one budget: the n-th insert always counts at least n.
+   *
+   * @param since Start of the window the tries are counted over
+   * @returns The tries since `since`, this one included
+   */
+  async recordCurrentPasswordAttempt(
+    userId: string,
+    since: Date,
+    now: Date,
+  ): Promise<number> {
+    await this.table
+      .insert({ userId, kind: "current_password", createdAt: now })
+      .run();
+    return this.countCurrentPasswordAttempts(userId, since);
+  }
+
+  /** The account password re-checks made since `since`. */
+  countCurrentPasswordAttempts(userId: string, since: Date): Promise<number> {
+    return this.recordedSince(userId, since, "current_password").count().run();
+  }
+
+  /** Forgets the password re-checks once the right password is given. */
+  async clearCurrentPasswordAttempts(userId: string): Promise<void> {
+    await this.deleteRecorded(userId, "current_password");
+  }
+
   async pruneBefore(userId: string, before: Date): Promise<void> {
     await this.table
       .getAll(userId, "userId")

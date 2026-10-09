@@ -3,6 +3,7 @@ import { validateTwoFactorToken } from "@antelopejs/interface-dms/auth";
 import type { UserModel } from "@antelopejs/interface-dms/auth/db";
 import { sendNewEmailCode } from "../../utils/two-factor-codes";
 import { authSchema } from "../../validation/auth.schema";
+import { firstIssueMessage } from "../../validation/issue-message";
 import { assertTwoFactorChallengeOpen } from "./two-factor-throttle";
 
 type Request2FAEmailResult = { success: boolean };
@@ -11,8 +12,10 @@ export async function request2FAEmail(
   userModel: UserModel,
   body: unknown,
 ): Promise<Request2FAEmailResult> {
-  const { token } = assertValidation(body, (v) =>
-    authSchema.request2FAEmail.parse(v),
+  const { token } = assertValidation(
+    body,
+    (v) => authSchema.request2FAEmail.parse(v),
+    firstIssueMessage,
   );
 
   const { user } = await validateTwoFactorToken(token);
