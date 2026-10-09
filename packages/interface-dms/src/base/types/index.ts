@@ -1,6 +1,7 @@
 export * from "./base-component-props";
 export * from "./button";
 export * from "./color";
+export * from "./composed-text";
 export * from "./component-input";
 export * from "./confirm-dialog";
 export * from "./custom-button";
