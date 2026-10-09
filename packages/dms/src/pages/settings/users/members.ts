@@ -99,10 +99,10 @@ export const INVITES_PERMISSION_ID = "settings.workspace.invites";
  * The reduced grid both lists of the members page share: no caption (the page
  * header names it), the Members / Invitations link tabs up in the header band,
  * an open search field and a role filter, sortable headers, the row menu and a
- * footer with the count.
+ * footer with the count and the page size picker.
  */
 export const MEMBER_LISTS_LAYOUT = "compact";
-export const MEMBER_LISTS_PAGE_SIZE = 25;
+export const MEMBER_LISTS_PAGE_SIZE = 10;
 export const MEMBERS_TAB_ICON = "i-ph-users";
 export const INVITES_TAB_ICON = "i-ph-envelope-simple";
 

@@ -43,7 +43,8 @@ export interface TableViewTab {
 
 /**
  * How much a table draws around its rows (backend `layout`): the full
- * dashboard grid, or the compact list of a settings page.
+ * dashboard grid, or the compact list of a settings page (no caption,
+ * refresh, ⋯ menu nor column menus; the footer keeps the page size picker).
  */
 export type TableViewLayout = "full" | "compact";
 

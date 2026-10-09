@@ -292,8 +292,9 @@ export interface TableViewTabSerialized extends Omit<
  *   filters, sort, refresh, the ⋯ table menu, column header menus and a
  *   footer with the page size picker.
  * - `"compact"`: the list of a settings page — tabs, an always-open search
- *   field, quick filters and custom buttons; no caption, filters row, sort
- *   menu, refresh, ⋯ menu, column menus nor page size picker.
+ *   field, quick filters, custom buttons and a footer with the page size
+ *   picker; no caption, filters row, sort menu, refresh, ⋯ menu nor column
+ *   menus.
  *
  * Either way a control shows only when it means something: the search when
  * the controller has `@Searchable` fields, the filters when a column is
