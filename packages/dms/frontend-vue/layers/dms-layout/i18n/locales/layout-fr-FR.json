@@ -151,6 +151,8 @@
         "soon": "Bientôt",
         "category_switch": "Toutes les notifications {name}",
         "category_count": "{count} sur {total} actives",
+        "category_expand": "Afficher les notifications {name}",
+        "category_collapse": "Masquer les notifications {name}",
         "locked_hint": "Requis pour la sécurité du compte",
         "email_hint": "Seules les notifications dans l’app sont disponibles aujourd’hui. L’envoi par e-mail arrive bientôt.",
         "save_failed_on": "Échec de l’enregistrement — l’interrupteur a été réactivé.",

@@ -151,6 +151,8 @@
         "soon": "Soon",
         "category_switch": "All {name} notifications",
         "category_count": "{count} of {total} on",
+        "category_expand": "Show {name} notifications",
+        "category_collapse": "Hide {name} notifications",
         "locked_hint": "Required for account safety",
         "email_hint": "Only in-app notifications are available today. Email delivery is on the way.",
         "save_failed_on": "Couldn’t save — the switch was turned back on.",

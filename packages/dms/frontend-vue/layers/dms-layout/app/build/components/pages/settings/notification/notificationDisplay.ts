@@ -64,13 +64,21 @@ export const MATRIX_CONTAINER_CLASS = "@container/matrix";
 /**
  * v2 .cs-matrix grid: subject, in-app, email, state. Under 672px of matrix
  * the state column goes; under 448px (phones) only the subject and in-app
- * columns remain.
+ * columns remain. The email column fits its header on one line, the label
+ * and its "Soon" badge, in French too.
  */
 export const MATRIX_GRID_CLASS =
-  "grid grid-cols-[minmax(0,1fr)_80px_96px_168px] items-center gap-x-3 px-[18px] @max-2xl/matrix:grid-cols-[minmax(0,1fr)_80px_96px] @max-2xl/matrix:[&>:nth-child(4)]:hidden @max-md/matrix:grid-cols-[minmax(0,1fr)_60px] @max-md/matrix:[&>:nth-child(n+3)]:hidden";
+  "grid grid-cols-[minmax(0,1fr)_80px_120px_168px] items-center gap-x-3 px-[18px] @max-2xl/matrix:grid-cols-[minmax(0,1fr)_80px_120px] @max-2xl/matrix:[&>:nth-child(4)]:hidden @max-md/matrix:grid-cols-[minmax(0,1fr)_60px] @max-md/matrix:[&>:nth-child(n+3)]:hidden";
 
-/** The subject's indent under its category, dropped where only two columns remain. */
-export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[42px] @max-md/matrix:pl-0";
+/**
+ * The subject's indent under its category: past the caret and the icon
+ * well, under the category's title. Dropped where only two columns remain.
+ */
+export const MATRIX_SUBJECT_INDENT_CLASS = "pl-[66px] @max-md/matrix:pl-0";
+
+/** Id of the element holding a category's subjects, for `aria-controls`. */
+export const categorySubjectsElementId = (categoryId: string) =>
+  `notification-category-subjects-${categoryId}`;
 
 /** v2 .cs-mod: the mono module / source tag. */
 export const SOURCE_TAG_CLASS = `${MONO_TAG_CLASS} inline-flex h-[18px] items-center border border-accented whitespace-nowrap text-muted`;
