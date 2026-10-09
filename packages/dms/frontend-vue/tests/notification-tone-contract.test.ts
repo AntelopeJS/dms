@@ -1,6 +1,9 @@
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { resolveNotificationTone as resolveOnServer } from "../../src/utils/notification-tones";
-import { resolveNotificationTone as resolveInInbox } from "../layers/dms-layout/app/build/components/pages/settings/notification/notificationDisplay";
+import {
+  resolveNotificationTone as resolveInInbox,
+  unreadToneWith,
+} from "../layers/dms-layout/app/build/components/pages/settings/notification/notificationDisplay";
 import type {
   NotificationTone,
   UserNotification,
@@ -48,4 +51,20 @@ it("resolves every stored tone, read or not, as the server does", () => {
 
 it("draws an untoned unread notification in primary", () => {
   expect(resolveInInbox(row(null, false))).toBe("primary");
+});
+
+describe("the unread badge's tone when a notification arrives", () => {
+  it("takes the stronger of the current tone and the new notification's", () => {
+    expect(unreadToneWith("warning", row("error", false))).toBe("error");
+    expect(unreadToneWith("error", row("success", false))).toBe("error");
+    expect(unreadToneWith("success", row(null, false))).toBe("primary");
+  });
+
+  it("takes the new notification's tone when nothing was unread", () => {
+    expect(unreadToneWith(undefined, row("warning", false))).toBe("warning");
+  });
+
+  it("keeps the current tone for a notification that arrives read", () => {
+    expect(unreadToneWith("success", row("error", true))).toBe("success");
+  });
 });

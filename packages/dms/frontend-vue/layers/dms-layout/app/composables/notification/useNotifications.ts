@@ -1,4 +1,5 @@
 import { NotificationEvents } from "./types/events";
+import { unreadToneWith } from "../../build/components/pages/settings/notification/notificationDisplay";
 
 /** Icon well colour a sender may set on a notification. */
 export type NotificationTone =
@@ -221,10 +222,11 @@ export const useNotifications = () => {
   };
 
   /**
-   * A notification pushed in real time: listed first and counted unread at
-   * once, then the counts are asked again for the tone the server weighs.
+   * A notification pushed in real time: listed first, counted unread, and its
+   * tone weighed into the badge's here, without asking the server again — a
+   * broadcast would otherwise have every open tab fetch the counts at once.
    */
-  const handleIncomingNotification = async (incoming: UserNotification) => {
+  const handleIncomingNotification = (incoming: UserNotification) => {
     const isAlreadyKnown = notifications.value.some(
       (n) => n._id === incoming._id,
     );
@@ -232,13 +234,13 @@ export const useNotifications = () => {
     notifications.value = [incoming, ...notifications.value];
     unreadPreview.value = [incoming, ...unreadPreview.value];
     if (!incoming.isRead) unreadCount.value += 1;
+    unreadTone.value = unreadToneWith(unreadTone.value, incoming);
     sendComponentEvent(
       NotificationEvents.NOTIFICATION_RECEIVED,
       NOTIFICATION_COMPONENT_ID,
       { notification: incoming },
     );
     emitCount();
-    await fetchBellCounts();
   };
 
   return {

@@ -31,9 +31,8 @@ export default defineDmsPlugin(() => {
   const realtime = useUserRealtime();
 
   const handlers: Record<string, Handler> = {
-    [NOTIFICATION_NEW_TYPE]: async (payload) => {
-      if (payload?.notification)
-        await handleIncomingNotification(payload.notification);
+    [NOTIFICATION_NEW_TYPE]: (payload) => {
+      if (payload?.notification) handleIncomingNotification(payload.notification);
     },
     [NOTIFICATION_READ_TYPE]: async (payload) => {
       if (Array.isArray(payload?.ids)) await handleRemoteRead(payload.ids);

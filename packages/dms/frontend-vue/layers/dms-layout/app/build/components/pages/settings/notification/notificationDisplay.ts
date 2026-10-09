@@ -20,6 +20,29 @@ export const resolveNotificationTone = (
 ): NotificationTone =>
   notification.tone ?? (notification.isRead ? "neutral" : "primary");
 
+/** Strongest first, as the server ranks the tones of the unread badge. */
+const UNREAD_TONE_ORDER: NotificationTone[] = [
+  "error",
+  "warning",
+  "primary",
+  "success",
+  "neutral",
+];
+
+/**
+ * The unread badge's tone once `incoming` arrives: an unread notification can
+ * only strengthen it, so the stronger of the current tone and its own, as
+ * the server would weigh the whole feed.
+ */
+export const unreadToneWith = (
+  current: NotificationTone | undefined,
+  incoming: UserNotification,
+): NotificationTone | undefined => {
+  if (incoming.isRead) return current;
+  const tones = new Set([current, resolveNotificationTone(incoming)]);
+  return UNREAD_TONE_ORDER.find((tone) => tones.has(tone));
+};
+
 /** Inbox sections, newest first. */
 export type NotificationDayGroupKey = RelativeDayBucket;
 
