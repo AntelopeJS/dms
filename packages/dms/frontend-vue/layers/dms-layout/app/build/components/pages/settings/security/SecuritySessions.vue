@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
+import DmsModalEscHint from "#dms-ui/app/build/components/modal/ModalEscHint.vue";
 import { useSecurityFormat } from "../../../../composables/settings/security/useSecurityFormat";
 import {
   SECURITY_ENDPOINT,
@@ -340,10 +341,10 @@ onMounted(loadSessions);
       </template>
       <template #footer>
         <div class="flex w-full items-center justify-end gap-2">
-          <span class="text-dimmed me-auto flex items-center gap-1.5 text-xs">
-            <UKbd value="Esc" size="sm" />
-            {{ t("page.settings.security.esc_to_cancel") }}
-          </span>
+          <DmsModalEscHint
+            class="max-sm:hidden"
+            :label="t('page.settings.security.esc_to_cancel')"
+          />
           <UButton
             color="neutral"
             variant="outline"
