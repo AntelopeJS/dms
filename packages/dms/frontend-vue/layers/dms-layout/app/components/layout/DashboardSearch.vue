@@ -24,24 +24,18 @@ const footerRef = useTemplateRef<HTMLElement>("footer");
 const input = { onKeydown: onInputKeydown };
 // The halo eases between the accent ring and the violet assistant ring.
 const MODAL_TRANSITION_CLASS = "transition-shadow duration-300";
-// With an assistant, the empty slot holds the DMS's own padded states.
+// In assistant mode, the empty slot holds the DMS's own padded states.
 const ASSISTANT_EMPTY_CLASS = "p-0 text-start";
 const SEARCH_UI = { modal: MODAL_TRANSITION_CLASS };
-const SEARCH_WITH_ASSISTANT_UI = {
-  ...SEARCH_UI,
-  empty: ASSISTANT_EMPTY_CLASS,
-};
 const ASSISTANT_UI = {
   modal: `${MODAL_TRANSITION_CLASS} shadow-[var(--dms-shadow-cmdk),var(--dms-assistant-halo)]`,
   input: "[&_input]:caret-secondary [&_[data-slot=leadingIcon]]:text-secondary",
   empty: ASSISTANT_EMPTY_CLASS,
 };
 
-const paletteUi = computed(() => {
-  if (!assistant.value) return SEARCH_UI;
-  return isAssistantMode.value ? ASSISTANT_UI : SEARCH_WITH_ASSISTANT_UI;
-});
-const query = computed(() => searchTerm.value.trim());
+const paletteUi = computed(() =>
+  isAssistantMode.value ? ASSISTANT_UI : SEARCH_UI,
+);
 
 /** Brings focus back to the prompt after the control that held it goes away. */
 async function focusInput(): Promise<void> {
@@ -79,7 +73,7 @@ function close(): void {
     :title="t('commandPalette.dialog.title')"
     :description="t('commandPalette.dialog.description')"
   >
-    <template v-if="assistant" #empty>
+    <template v-if="assistant && isAssistantMode" #empty>
       <CommandPaletteAssistantAnswer
         v-if="answer"
         :key="answer.id"
@@ -89,35 +83,7 @@ function close(): void {
         :prompt="answer.prompt"
         :close="close"
       />
-      <div
-        v-else-if="!isAssistantMode && query"
-        class="text-muted grid justify-items-center gap-1.5 px-6 pt-9 pb-7 text-center text-sm"
-      >
-        <UIcon
-          :name="appConfig.ui.icons.search"
-          class="text-dimmed mb-1.5 size-6.5"
-        />
-        <strong class="text-highlighted text-[13.5px] font-semibold">
-          {{ t("commandPalette.assistant.noResults", { query }) }}
-        </strong>
-        <span>{{ t("commandPalette.assistant.noResultsHint") }}</span>
-        <UButton
-          class="mt-3"
-          color="secondary"
-          variant="soft"
-          size="sm"
-          :icon="assistant.icon"
-          @mousedown.prevent
-          @click="switchMode"
-        >
-          {{ t("commandPalette.assistant.askShort") }}
-          <UKbd :value="ASSISTANT_MODE_KEY" size="sm" />
-        </UButton>
-      </div>
-      <p
-        v-else-if="isAssistantMode"
-        class="text-muted px-6 py-8 text-center text-sm"
-      >
+      <p v-else class="text-muted px-6 py-8 text-center text-sm">
         {{ t("commandPalette.assistant.emptyPrompt") }}
       </p>
     </template>

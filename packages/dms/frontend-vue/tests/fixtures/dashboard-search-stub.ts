@@ -16,24 +16,12 @@ function matchingItems(
   );
 }
 
-/**
- * Nuxt UI's filtering order: matched groups run their `postFilter` first, the
- * filter-ignoring groups after them, and a group left without items is dropped.
- */
 function filterGroups(
   groups: CommandPaletteGroup[],
   term: string,
 ): CommandPaletteGroup[] {
-  const ordered = [
-    ...groups.filter((group) => !group.ignoreFilter),
-    ...groups.filter((group) => group.ignoreFilter),
-  ];
-  return ordered
-    .map((group) => {
-      const items = matchingItems(group, term);
-      if (!items.length) return { ...group, items: [] };
-      return { ...group, items: group.postFilter?.(term, items) ?? items };
-    })
+  return groups
+    .map((group) => ({ ...group, items: matchingItems(group, term) }))
     .filter((group) => group.items.length);
 }
 
@@ -76,6 +64,7 @@ export const PaletteStub = defineComponent({
           role: "dialog",
           "data-open": String(props.open),
           "data-color-mode": String(props.colorMode),
+          "data-empty-slot": String(!!slots.empty),
         },
         [
           h("input", {

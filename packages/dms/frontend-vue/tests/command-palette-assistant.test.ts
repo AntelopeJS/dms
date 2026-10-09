@@ -260,12 +260,24 @@ describe("command palette assistant mode", () => {
     ]);
   });
 
-  it("offers the assistant from the empty state when nothing matches", async () => {
-    await type("invoicez");
+  it("adds no Ask item while the search is empty", async () => {
+    await type("  ");
     expect(items("dms-assistant-ask")).toEqual([]);
-    expect(host.textContent).toContain(
-      "commandPalette.assistant.noResults:invoicez",
-    );
+  });
+
+  it("leaves the Ask item alone when nothing matches", async () => {
+    await type("invoicez");
+    expect(items("navigation")).toEqual([]);
+    expect(items("dms-assistant-ask")).toEqual([
+      "commandPalette.assistant.ask:invoicez",
+    ]);
+  });
+
+  it("keeps Nuxt UI's empty state in search mode", async () => {
+    expect(dialog().dataset.emptySlot).toBe("false");
+    pressTab();
+    await nextTick();
+    expect(dialog().dataset.emptySlot).toBe("true");
   });
 
   it("answers the asked query through the module's component", async () => {

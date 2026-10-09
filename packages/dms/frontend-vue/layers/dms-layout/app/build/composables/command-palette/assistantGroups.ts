@@ -9,8 +9,8 @@ export const ASSISTANT_SUGGESTIONS_GROUP_ID = "dms-assistant-suggestions";
 /** @internal The hint shown on the item that Tab also reaches. */
 export const ASSISTANT_MODE_KEY = "Tab";
 
-// The assistant's items take the violet AI accent instead of the primary one,
-// on the row and on its icon well.
+// The assistant's items take the violet accent instead of the primary one, on
+// the row and on its icon well.
 const ASSISTANT_ITEM_CLASS = [
   "data-highlighted:before:bg-(--dms-assistant-tint)",
   "[&_[data-slot=itemLeadingIcon]]:border-(--dms-assistant-line)",
@@ -62,57 +62,32 @@ function assistantItem(
   };
 }
 
-function trackResults(
-  group: CommandPaletteGroup,
-  markResults: (count: number) => void,
-): CommandPaletteGroup {
-  const { postFilter } = group;
-
-  return {
-    ...group,
-    postFilter: (searchTerm, items) => {
-      const filtered = postFilter?.(searchTerm, items) ?? items;
-      markResults(filtered.length);
-      return filtered;
-    },
-  };
-}
-
 /**
- * Appends the "Ask the assistant “query”" group after the search groups. The
- * palette only runs a group's `postFilter` when the group has matches, and
- * runs the filter-ignoring group appended here after every matched group: the
- * ask group therefore knows whether anything matched, and hides itself when
- * nothing did, so the empty state can offer the assistant instead.
+ * Appends the "Ask the assistant “query”" group after the search groups once
+ * the query is non-empty. The group ignores the palette's filter, so the item
+ * stays listed whatever matched, and is the only, highlighted item when
+ * nothing did: Enter then asks.
  *
  * @internal
  */
 export function appendAssistantAskGroup(
   groups: CommandPaletteGroup[],
+  query: string,
   options: AssistantAskGroupOptions,
 ): CommandPaletteGroup[] {
-  let hasResults = false;
-  const markResults = (count: number) => {
-    hasResults ||= count > 0;
-  };
+  if (!query) return groups;
+
+  const item = assistantItem(options.askLabel(query), options.icon, () =>
+    options.onAsk(query),
+  );
   const askGroup: CommandPaletteGroup = {
     id: ASSISTANT_ASK_GROUP_ID,
     label: options.label,
     ignoreFilter: true,
-    items: [{ label: options.label }],
-    postFilter: (searchTerm) => {
-      const hadResults = hasResults;
-      hasResults = false;
-      const query = searchTerm.trim();
-      if (!hadResults || !query) return [];
-      const item = assistantItem(options.askLabel(query), options.icon, () =>
-        options.onAsk(query),
-      );
-      return [{ ...item, kbds: [ASSISTANT_MODE_KEY] }];
-    },
+    items: [{ ...item, kbds: [ASSISTANT_MODE_KEY] }],
   };
 
-  return [...groups.map((group) => trackResults(group, markResults)), askGroup];
+  return [...groups, askGroup];
 }
 
 function promptGroup(

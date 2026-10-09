@@ -182,8 +182,8 @@ function assistantModeGroups(
 /**
  * The groups the palette renders: the sources' groups untouched while no
  * assistant is registered, the same groups followed by the "Ask the
- * assistant" item in search mode, and the prompt and suggestions in assistant
- * mode — none once an answer is shown, which the empty slot renders.
+ * assistant" item once a search is typed, and the prompt and suggestions in
+ * assistant mode — none once an answer is shown, which the empty slot renders.
  *
  * @internal
  */
@@ -195,7 +195,7 @@ export function buildPaletteGroups(
   if (!assistant) return sourceGroups;
   if (context.isAssistantMode) return assistantModeGroups(assistant, context);
 
-  return appendAssistantAskGroup(sourceGroups, {
+  return appendAssistantAskGroup(sourceGroups, context.prompt, {
     label: assistant.label,
     icon: assistant.icon,
     askLabel: (query) =>
