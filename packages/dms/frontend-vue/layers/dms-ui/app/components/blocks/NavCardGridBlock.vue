@@ -30,6 +30,9 @@ interface NavCardGridItem {
   stateTone?: Tone;
   tag?: string;
   readout?: string[];
+  /** The page's navigation badge (a category's cards), in the top corner. */
+  badge?: string;
+  badgeTone?: Tone;
 }
 
 interface NavCardGridBlockProps extends DefaultComponentProps {
@@ -196,6 +199,8 @@ const isLeftOut = computed(
             :state="card.state"
             :state-tone="card.stateTone"
             :tag="card.tag"
+            :badge="card.badge"
+            :badge-tone="card.badgeTone"
             :readout="card.readout"
             :class="hasStates && 'gap-2.5'"
           />

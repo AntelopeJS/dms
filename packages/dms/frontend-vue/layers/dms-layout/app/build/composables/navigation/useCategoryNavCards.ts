@@ -14,9 +14,9 @@ export interface CategoryNavCard {
   icon: string;
   to: string;
   /** The page's navigation badge, as the menu shows it. */
-  state?: string;
+  badge?: string;
   /** The badge's tone, as the menu draws it. */
-  stateTone?: Tone;
+  badgeTone?: Tone;
 }
 
 /**
@@ -42,8 +42,8 @@ export function useCategoryNavCards(categoryId: () => string | undefined) {
         description: page.description,
         icon: page.icon || DEFAULT_PAGE_ICON,
         to: page.fullSlug,
-        state: badge?.label,
-        stateTone: badge?.tone,
+        badge: badge?.label,
+        badgeTone: badge?.tone,
       };
     });
   });

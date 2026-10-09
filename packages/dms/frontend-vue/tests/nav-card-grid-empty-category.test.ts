@@ -6,7 +6,15 @@ import NavCardGridBlock from "../layers/dms-ui/app/components/blocks/NavCardGrid
 // The settings overview of a member without a role: the Workspace grid lists
 // the workspace pages they can open, and they open none.
 
-const categoryCards = ref<Array<{ id: string; title: string; to: string }>>([]);
+const categoryCards = ref<
+  Array<{
+    id: string;
+    title: string;
+    to: string;
+    badge?: string;
+    badgeTone?: string;
+  }>
+>([]);
 
 // Hoisted with the mocks below, which render through it.
 const { stub } = vi.hoisted(() => ({
@@ -15,9 +23,14 @@ const { stub } = vi.hoisted(() => ({
     return {
       default: vue.defineComponent({
         inheritAttrs: false,
-        props: ["title", "state"],
+        props: ["title", "state", "badge", "badgeTone"],
         setup: (props) => () =>
-          vue.h(tag, { [attribute]: props.title ?? props.state ?? "" }),
+          vue.h(tag, {
+            [attribute]: props.title ?? props.state ?? "",
+            "data-badge": props.badge,
+            "data-badge-tone": props.badgeTone,
+            "data-state": props.state,
+          }),
       }),
     };
   },
@@ -130,4 +143,21 @@ it("says what the page asks for when there is nothing to list", () => {
     empty: { title: "Nothing here" },
   });
   expect(container.querySelector("[data-status]")).not.toBeNull();
+});
+
+it("hands each card its page's badge for the corner, not as a state line", () => {
+  categoryCards.value = [
+    {
+      id: "settings.user.security",
+      title: "$menu.security",
+      to: "/settings/user/security",
+      badge: "1",
+      badgeTone: "warning",
+    },
+  ];
+  const container = mountGrid({ categoryId: "settings.user" });
+  const card = container.querySelector("[data-card]") as HTMLElement;
+  expect(card.dataset.badge).toBe("1");
+  expect(card.dataset.badgeTone).toBe("warning");
+  expect(card.dataset.state).toBeUndefined();
 });

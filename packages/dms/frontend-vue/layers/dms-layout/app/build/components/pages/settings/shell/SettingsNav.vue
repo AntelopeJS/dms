@@ -2,7 +2,7 @@
 import { tv } from "tailwind-variants";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
-import { DMS_TONE_SOFT } from "#dms-ui/app/build/utils/tone";
+import { navBadgeClass } from "#dms-ui/app/build/utils/navBadge";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 import {
   findActiveSettingsPath,
@@ -28,8 +28,7 @@ const theme = tv({
     item: "flex h-8 shrink-0 items-center gap-2.5 rounded-md px-2.5 text-[13.5px] font-medium whitespace-nowrap text-muted transition-colors hover:bg-elevated hover:text-highlighted max-lg:border max-lg:border-default",
     itemIcon: "size-[17px] shrink-0",
     itemLabel: "min-w-0 truncate",
-    trailBadge:
-      "ms-auto hidden rounded-full px-1.5 font-mono text-[10.5px] font-semibold tabular-nums lg:inline",
+    trailBadge: "ms-auto hidden lg:inline",
     trailDot: "ms-auto hidden size-[7px] shrink-0 rounded-full lg:block",
     empty: "hidden px-2.5 text-[12.5px] text-muted lg:block",
     previewLock: "ms-auto size-3.5 shrink-0",
@@ -121,8 +120,8 @@ watch(() => route.path, revealActiveItem, { flush: "post" });
 // its tone, as a status pill is.
 const { navBadgeOf } = useNavBadges();
 const badgeOf = (page: SettingsNavPage) => navBadgeOf(page);
-const badgeToneClass = (page: SettingsNavPage): string =>
-  DMS_TONE_SOFT[badgeOf(page)?.tone ?? "neutral"];
+const badgeClass = (page: SettingsNavPage): string =>
+  navBadgeClass(badgeOf(page)?.tone);
 
 // "Preview as role": a settings page the role could not open stays listed,
 // locked, so the preview shows what the role loses; one it opens without all
@@ -212,7 +211,7 @@ const previewStateLabel = (
         />
         <span
           v-else-if="badgeOf(page)"
-          :class="ui.trailBadge({ class: badgeToneClass(page) })"
+          :class="ui.trailBadge({ class: badgeClass(page) })"
         >
           {{ badgeOf(page)?.label }}
         </span>

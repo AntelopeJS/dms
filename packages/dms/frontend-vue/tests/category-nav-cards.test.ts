@@ -72,7 +72,7 @@ it("makes a card of each page the viewer can open, in menu order", () => {
     title: "$settings.user.profile",
     icon: "i-ph-user",
     to: "/settings/user/profile",
-    state: undefined,
+    badge: undefined,
   });
 });
 
@@ -82,18 +82,21 @@ it("shows the navigation badge, a fresher count first", () => {
     "settings.user.security": { label: "2", tone: "error" },
   };
   const { cards } = useCategoryNavCards(() => "settings.user");
-  expect(cards.value.map((card) => card.state)).toEqual([
+  expect(cards.value.map((card) => card.badge)).toEqual([
     undefined,
     "2",
     undefined,
   ]);
-  expect(cards.value[1]?.stateTone).toBe("error");
+  expect(cards.value[1]?.badgeTone).toBe("error");
 });
 
 it("draws the served badge in the tone the server gave it", () => {
   const { cards } = useCategoryNavCards(() => "settings.user");
-  expect(cards.value[2]).toMatchObject({ state: "4", stateTone: "warning" });
-  expect(cards.value[1]).toMatchObject({ state: "1", stateTone: undefined });
+  expect(cards.value[2]).toMatchObject({ badge: "4", badgeTone: "warning" });
+  expect(cards.value[1]).toMatchObject({ badge: "1", badgeTone: undefined });
+  // The badge is the card's corner pill, not the live state line under the
+  // description that a fetched card closes on.
+  expect(cards.value[2]).not.toHaveProperty("state");
 });
 
 it("lists nothing for a category the site layout does not hold", () => {
