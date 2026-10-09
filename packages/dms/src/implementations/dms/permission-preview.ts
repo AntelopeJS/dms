@@ -96,18 +96,29 @@ export interface PreviewMenuStates {
   partial: string[];
 }
 
+/** What the menu aggregation reads besides the menu itself. */
+interface PreviewMenuReadings {
+  denied: ReadonlySet<string>;
+  losesInside: ReadonlySet<string>;
+  universal: ReadonlySet<string>;
+}
+
 function aggregateNode(
   node: PreviewMenuNode,
-  denied: ReadonlySet<string>,
-  losesInside: ReadonlySet<string>,
+  readings: PreviewMenuReadings,
   states: Map<string, PreviewEntryAccess>,
 ): PreviewEntryAccess {
+  const { denied, losesInside, universal } = readings;
   const children = node.children.map((child) =>
-    aggregateNode(child, denied, losesInside, states),
+    aggregateNode(child, readings, states),
   );
   let access: PreviewEntryAccess;
   if (denied.has(node.fullId)) {
     access = "denied";
+  } else if (node.opensPage && universal.has(node.fullId)) {
+    // Every member opens this page whatever their role: the entries under it
+    // carry their own state.
+    access = losesInside.has(node.fullId) ? "partial" : "full";
   } else if (
     !node.opensPage &&
     children.length > 0 &&
@@ -136,17 +147,24 @@ function aggregateNode(
  *   entries, refused or partial itself;
  * - `full`: the set keeps everything the viewer has there.
  *
+ * A page every member opens whatever their role (`defaultGranted`: the
+ * settings overview) is judged on its own page only: no role changes it, so
+ * an entry refused under it never draws it partial.
+ *
  * @param denied Entries the set cannot open, as access alone decides.
  * @param losesInside Pages (and dynamic entries, by their target page) the set
  *   opens with fewer blocks or actions than the viewer.
+ * @param universal Entries a set holding nothing still opens.
  */
 export function aggregatePreviewMenu(
   nodes: PreviewMenuNode[],
   denied: ReadonlySet<string>,
   losesInside: ReadonlySet<string>,
+  universal: ReadonlySet<string> = new Set(),
 ): PreviewMenuStates {
   const states = new Map<string, PreviewEntryAccess>();
-  for (const node of nodes) aggregateNode(node, denied, losesInside, states);
+  const readings = { denied, losesInside, universal };
+  for (const node of nodes) aggregateNode(node, readings, states);
   const hidden = new Set(denied);
   for (const [fullId, access] of states) {
     if (access === "denied") hidden.add(fullId);

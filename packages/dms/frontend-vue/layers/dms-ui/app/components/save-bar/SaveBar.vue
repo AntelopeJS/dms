@@ -5,6 +5,7 @@ import {
   type FormKind,
   saveBarState,
 } from "../../build/composables/form/formFooter";
+import { trackFloatingSaveBar } from "../../build/composables/form/floatingSaveBars";
 import DmsUnsavedStatus from "../../build/components/form/UnsavedStatus.vue";
 
 /**
@@ -107,6 +108,9 @@ const ui = computed(() =>
   theme({ variant: props.variant, hidden: state.value.isHidden }),
 );
 const buttons = computed(() => BUTTONS[props.variant]);
+trackFloatingSaveBar(
+  () => props.variant === "floating" && !state.value.isHidden,
+);
 
 // Empty while there is nothing to save: the hidden bar keeps its line.
 const statusText = computed(() => {

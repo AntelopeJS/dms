@@ -90,6 +90,34 @@ describe("[unit] implementations/dms/permission-preview — menu aggregation", (
     });
   });
 
+  it("judges a page every member opens on its own page, not on what it holds", () => {
+    const result = aggregatePreviewMenu(
+      MENU,
+      new Set(["settings.users.members", "settings.users.roles"]),
+      new Set(),
+      new Set(["settings"]),
+    );
+    expect([...result.hidden].sort()).to.deep.equal([
+      "settings.users",
+      "settings.users.members",
+      "settings.users.roles",
+    ]);
+    expect(result.partial).to.deep.equal([]);
+  });
+
+  it("still draws a page every member opens partial when it loses a block", () => {
+    const result = aggregatePreviewMenu(
+      MENU,
+      new Set(["settings.users.roles"]),
+      new Set(["settings"]),
+      new Set(["settings"]),
+    );
+    expect([...result.partial].sort()).to.deep.equal([
+      "settings",
+      "settings.users",
+    ]);
+  });
+
   it("keeps an entry refused by access refused, whatever it holds", () => {
     expect(states(["pages.sales"], ["pages.sales.orders"])).to.deep.equal({
       hidden: ["pages.sales"],

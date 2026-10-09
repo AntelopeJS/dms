@@ -1536,7 +1536,26 @@ async function aggregatePreviewMenuStates(
       if (losing.has(target)) losesInside.add(entry);
     }
   }
-  return aggregatePreviewMenu(nodes, denied, losesInside);
+  return aggregatePreviewMenu(
+    nodes,
+    denied,
+    losesInside,
+    await findUniversalPreviewPages(pagesByFullId, contexts.real),
+  );
+}
+
+// The pages a set holding nothing still opens (`defaultGranted`): no role
+// changes them, so the preview judges them on their own page only.
+async function findUniversalPreviewPages(
+  pagesByFullId: Map<string, PageInfo>,
+  real: RequestAccessContext,
+): Promise<Set<string>> {
+  const empty = buildPreviewAccessContext(new Set(), real);
+  const universal = new Set<string>();
+  for (const [fullId, page] of pagesByFullId) {
+    if (await computeEntryAccess(page, empty)) universal.add(fullId);
+  }
+  return universal;
 }
 
 /**

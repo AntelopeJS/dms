@@ -69,7 +69,10 @@ beforeEach(() => {
   Object.entries({ computed, onMounted }).forEach(([key, value]) =>
     vi.stubGlobal(key, value),
   );
-  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  vi.stubGlobal("useI18n", () => ({
+    t: (key: string) => key,
+    locale: ref("en-GB"),
+  }));
   host = document.createElement("div");
   document.body.append(host);
   app = createApp(ProfileSecuritySummary);
@@ -106,5 +109,13 @@ it("is quiet when nothing needs attention", async () => {
   expect(wellTone()).toBe("muted");
   expect(host.querySelector("[data-icon]")?.getAttribute("data-icon")).toBe(
     "i-ph-shield-check",
+  );
+});
+
+it("names every point that needs attention, not only the first", async () => {
+  show(["backup_codes_low", "backup_codes_unsaved"], "error");
+  await nextTick();
+  expect(host.textContent).toContain(
+    "page.settings.profile.security_attention — page.settings.security.attention.backup_codes_low and page.settings.security.attention.backup_codes_unsaved.",
   );
 });

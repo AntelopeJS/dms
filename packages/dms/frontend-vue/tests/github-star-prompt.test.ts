@@ -13,6 +13,7 @@ import {
 } from "vue";
 import GithubStarPrompt from "../layers/dms-layout/app/build/components/layout/GithubStarPrompt.vue";
 import EmptyLayout from "../layers/dms-layout/app/custom-layouts/EmptyLayout.vue";
+import SaveBar from "../layers/dms-ui/app/components/save-bar/SaveBar.vue";
 import {
   GITHUB_STAR_PROMPT_DELAY_MS,
   GITHUB_STAR_PROMPT_KEYS,
@@ -257,6 +258,42 @@ describe("GithubStarPrompt", () => {
     expect(prompt()).toBeNull();
 
     toasts.value = [];
+    await nextTick();
+    expect(prompt()).not.toBeNull();
+  });
+
+  it("steps aside while a floating save bar is shown", async () => {
+    seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
+    vi.stubGlobal("useTranslation", () => ({
+      processI18n: (text: string) => text,
+    }));
+    const dirty = ref(false);
+    const variant = ref<"floating" | "band">("floating");
+    await mount(
+      defineComponent({
+        setup: () => () => [
+          h(GithubStarPrompt),
+          h(SaveBar, { dirty: dirty.value, variant: variant.value }),
+        ],
+      }),
+    );
+    // Nothing to save: the bar keeps its place, hidden.
+    expect(prompt()).not.toBeNull();
+
+    dirty.value = true;
+    await nextTick();
+    expect(prompt()).toBeNull();
+
+    // A form card's footer band is not the bar sticking to the bottom.
+    variant.value = "band";
+    await nextTick();
+    expect(prompt()).not.toBeNull();
+
+    variant.value = "floating";
+    await nextTick();
+    expect(prompt()).toBeNull();
+
+    dirty.value = false;
     await nextTick();
     expect(prompt()).not.toBeNull();
   });

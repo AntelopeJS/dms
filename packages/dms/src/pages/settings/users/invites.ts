@@ -115,7 +115,8 @@ export class inviteSettingDataAPI extends DataController(
       placeholder: "$page.settings.invites.placeholder.email",
     }),
     filterable: true,
-    size: 180,
+    // Gives the status pill its room within the table's width budget.
+    size: 172,
     display: new DefaultDisplays.IdentityDisplay({
       icon: "i-ph-envelope-simple",
     }),
@@ -259,7 +260,9 @@ export class inviteSettingDataAPI extends DataController(
       onlineColor: "warning",
       offlineColor: "neutral",
     }),
-    size: 110,
+    // Room for the longest pill, the French "En attente" (98px), beside the
+    // cell's 28px of gutters.
+    size: 128,
   })
   @Access(AccessMode.ReadOnly)
   get status(): boolean {
