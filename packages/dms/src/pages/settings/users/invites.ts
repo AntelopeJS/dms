@@ -300,7 +300,13 @@ export class InvitesSettingsController extends PageController("invites", {
   static table = TableView(inviteSettingDataAPI, {
     caption: "$page.settings.invites.table.caption",
     labelKey: "email",
-    formContainer: { type: "page", pages: memberListFormPages("invites") },
+    // "Edit invitation" opens over the list, like the members' "Change
+    // roles": the address in the title, the roles as the invite form's pills.
+    formContainer: {
+      type: "modal",
+      size: "md",
+      pages: memberListFormPages("invites"),
+    },
     layout: MEMBER_LISTS_LAYOUT,
     searchPlaceholder: "$page.settings.invites.search",
     quickFilters: [{ field: "roles_ids", ...ROLE_QUICK_FILTER }],
