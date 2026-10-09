@@ -2,15 +2,21 @@
 /**
  * Demo body of a docked side panel (see `registerSidePanel`). The DMS docks it
  * on the right of every page and shrinks the page to make room; the panel
- * follows navigations without remounting, which the draft and the mount time
- * below make visible.
+ * follows navigations, across layouts too, without remounting, which the draft
+ * and the mount time below make visible.
  */
-import { useSidePanelDemoOpen } from "../composables/useSidePanelDemo";
+import { useSidePanelDemo } from "../composables/useSidePanelDemo";
 
-const isOpen = useSidePanelDemoOpen();
+const PENDING_MOUNT_TIME = "…";
+
+const { close } = useSidePanelDemo();
 const route = useDmsRoute();
 const draft = ref("");
-const mountedAt = new Date().toLocaleTimeString();
+// Read once mounted: the server render and the hydration must agree.
+const mountedAt = ref(PENDING_MOUNT_TIME);
+onMounted(() => {
+  mountedAt.value = new Date().toLocaleTimeString();
+});
 </script>
 
 <template>
@@ -30,7 +36,7 @@ const mountedAt = new Date().toLocaleTimeString();
         color="neutral"
         size="sm"
         :aria-label="$t('demo.side_panel.close')"
-        @click="isOpen = false"
+        @click="close"
       />
     </header>
 
