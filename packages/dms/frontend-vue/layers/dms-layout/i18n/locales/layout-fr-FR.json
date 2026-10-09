@@ -346,7 +346,6 @@
         "two_factor_on": "Activé",
         "two_factor_off": "Désactivé",
         "footer_count": "Aucun membre | {count} membre | {count} membres",
-        "last_active_hint": "« Dernière activité » est la dernière utilisation du tableau de bord.",
         "confirm": {
           "close": "Fermer"
         },

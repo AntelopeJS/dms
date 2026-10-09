@@ -342,7 +342,6 @@
         "two_factor_on": "On",
         "two_factor_off": "Off",
         "footer_count": "No members | {count} member | {count} members",
-        "last_active_hint": "“Last active” is the last time they used the dashboard.",
         "confirm": {
           "close": "Close"
         },

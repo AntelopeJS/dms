@@ -220,7 +220,6 @@ export const membersTable = TableView(memberSettingDataAPI, {
   defaultSort: { field: "name" },
   footer: {
     countLabel: "$page.settings.members.footer_count",
-    hint: "$page.settings.members.last_active_hint",
   },
   tabs: [
     {
