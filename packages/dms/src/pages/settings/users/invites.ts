@@ -29,7 +29,11 @@ import {
   loadInviteForAction,
 } from "@antelopejs/interface-dms/invite-resolution";
 import { inviteeDisplayName } from "@antelopejs/interface-dms/invites";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  RegisterPage,
+  workspaceSettingsCategory,
+} from "@antelopejs/interface-dms/page";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TenantScopedModel } from "@antelopejs/interface-dms/tenant-scoped-model";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
@@ -74,6 +78,8 @@ import { declarePermissionWarning } from "./permission-warnings";
 import { type InviteRoleOptions, loadRoleOptions } from "./member-role-options";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Between Members (1) and Roles (3) in the workspace settings.
+const INVITES_PAGE_ORDER = 2;
 const HTTP_NOT_FOUND = 404;
 const HTTP_GONE = 410;
 const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
@@ -282,12 +288,14 @@ const inviteApiTarget = (action: string) =>
 const PENDING = { field: "status", equals: true } as const;
 const EXPIRED = { field: "status", equals: false } as const;
 
-// Nested under Members: its URL and breadcrumb go through Members, and the
-// settings navigation lists it right after Members.
+// Next to Members rather than under it, like its permission: a role holding
+// the invitations alone reaches them without crossing a Members page it
+// cannot see. The settings navigation lists it right after Members.
 @RegisterPage()
 export class InvitesSettingsController extends PageController("invites", {
   displayName: "$page.settings.shell.member_invitations",
-  category: MembersSettingsController,
+  category: workspaceSettingsCategory,
+  order: INVITES_PAGE_ORDER,
   permission: { id: INVITES_PERMISSION_ID },
   icon: "i-ph-envelope-simple",
   description: "$page.settings.description.invites",

@@ -8,7 +8,7 @@ const ALL_PAGES = {
   "settings.user.security": "/settings/user/security",
   "settings.user.notifications": "/settings/user/notifications",
   "settings.workspace.members": "/settings/workspace/members",
-  "settings.workspace.members.invites": "/settings/workspace/members/invites",
+  "settings.workspace.invites": "/settings/workspace/invites",
 };
 const PROFILE_ONLY = { "settings.user.profile": "/settings/user/profile" };
 const EVENT_DATE = "2026-09-30T10:00:00.000Z";
@@ -125,7 +125,7 @@ describe("[unit] settings overview — account activity feed", () => {
       "/settings/user/security#two-factor",
       "/settings/workspace/members",
       "/settings/workspace/members",
-      "/settings/workspace/members/invites",
+      "/settings/workspace/invites",
     ]);
   });
 

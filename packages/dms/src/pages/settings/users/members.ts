@@ -75,7 +75,7 @@ RegisterDataController()(memberSettingDataAPI);
 // Redirect targets for the invite form: an existing user is added straight to
 // the members list, a new email lands as a pending invite.
 export const MEMBERS_PAGE_PATH = "/settings/workspace/members";
-export const INVITES_PAGE_PATH = `${MEMBERS_PAGE_PATH}/invites`;
+export const INVITES_PAGE_PATH = "/settings/workspace/invites";
 /** Data API of the invitations list, whose total the Invitations tab shows. */
 export const INVITES_API_LOCATION = "/api/tables/admin-invites";
 

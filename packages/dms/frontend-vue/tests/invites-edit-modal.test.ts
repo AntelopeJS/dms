@@ -37,7 +37,7 @@ const i18n = createI18n({
 const t = i18n.global.t as (...args: unknown[]) => string;
 
 const INVITE = { _id: "invite-1", email: "zz-invitee@example.com" };
-const INVITES_PAGE = "/settings/workspace/members/invites";
+const INVITES_PAGE = "/settings/workspace/invites";
 
 const modal = { close: vi.fn() };
 const openModal = vi.fn(() => modal);
@@ -57,7 +57,7 @@ async function invitesRowActions() {
     api: vi.fn() as never,
     location: "/api/tables/admin-invites",
     componentId: "table",
-    pageId: "settings.workspace.members.invites",
+    pageId: "settings.workspace.invites",
     labelKey: "email",
     formContainer: {
       type: "modal",

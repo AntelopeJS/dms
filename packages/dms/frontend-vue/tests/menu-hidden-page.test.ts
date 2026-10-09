@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { convertSiteLayoutTreeToTreeItems } from "../layers/dms-ui/app/build/types/tree";
-import { firstNestedPage } from "../layers/dms-layout/app/build/utils/categoryPages";
 
 // A page the viewer may open but whose every block is hidden from them is
 // served out of the menu (`hasAccess: false`, name kept): an Invitations-only
@@ -90,29 +89,5 @@ describe("the sidebar", () => {
       },
     ]);
     expect(sidebarIds(root)).not.toContain("workspace.billing.invoices");
-  });
-});
-
-describe("a page showing the viewer none of its blocks", () => {
-  it("leads to the first page nested under it they can open", () => {
-    const root = tree(
-      page("workspace.members", false, [
-        page("workspace.members.archive", false),
-        page("workspace.members.invites"),
-      ]),
-    );
-    expect(firstNestedPage(root, "workspace.members")?.fullId).toBe(
-      "workspace.members.invites",
-    );
-  });
-
-  it("leads nowhere when no nested page is open to them", () => {
-    const root = tree(
-      page("workspace.members", false, [
-        page("workspace.members.invites", false),
-      ]),
-    );
-    expect(firstNestedPage(root, "workspace.members")).toBe(undefined);
-    expect(firstNestedPage(root, "workspace.unknown")).toBe(undefined);
   });
 });

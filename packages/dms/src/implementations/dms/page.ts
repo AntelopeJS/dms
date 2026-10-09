@@ -2016,7 +2016,7 @@ function leadsSomewhere(
 }
 
 // An entry left out of the menu still leads to the pages nested under it that
-// keep their own entries (Member invitations under Members).
+// keep their own entries.
 function reachesPage(node: SiteLayoutTree): boolean {
   return (
     node.hasAccess !== false || Object.values(node.children).some(reachesPage)

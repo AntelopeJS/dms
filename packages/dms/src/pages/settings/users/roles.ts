@@ -323,7 +323,7 @@ export class RolesSettingsController extends PageController("roles", {
   displayName: "$menu.roles",
   category: workspaceSettingsCategory,
   icon: "i-ph-key",
-  order: 2,
+  order: 3,
   description: "$page.settings.description.roles",
 }) {
   static table = rolesEditor;

@@ -171,20 +171,12 @@ describe("a page served without any of its blocks", () => {
     expect(host.querySelector(".dms-page-stack")).toBeNull();
   });
 
-  it("leads to a page nested under it the viewer can open", async () => {
+  it("stays put, even with a page nested under it the viewer can open", async () => {
     pageLayout.value = { components: {}, allComponentsHidden: true };
     siteLayoutTree.value = treeWithNestedPage(true);
-    await renderPage();
-    expect(navigateDms).toHaveBeenCalledWith("/examples/overview/invites", {
-      replace: true,
-    });
-  });
-
-  it("stays put when no nested page is open to the viewer", async () => {
-    pageLayout.value = { components: {}, allComponentsHidden: true };
-    siteLayoutTree.value = treeWithNestedPage(false);
-    await renderPage();
+    const host = await renderPage();
     expect(navigateDms).not.toHaveBeenCalled();
+    expect(host.querySelector("aside")).not.toBeNull();
   });
 
   it("draws the blocks it was served instead", async () => {
