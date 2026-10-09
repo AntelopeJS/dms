@@ -8,13 +8,24 @@ import DmsBlockStatus, {
   type BlockEmptyText,
 } from "../../build/components/blocks/BlockStatus.vue";
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
+import { isComposedText } from "../../../../dms-core/app/utils/composedText";
 
 // `KeyValueList` block (interface-dms `base/key-value-list`): label / value
 // rows (v2 .c-dl), static or from `fetchUrl` (`{ items }`), in a card by
-// default. Labels, details and text values follow the `$` i18n convention.
+// default. Labels, details and text values follow the `$` i18n convention or
+// are composed texts.
+interface KeyValueListBlockItem
+  extends Omit<KeyValueItem, "label" | "value" | "detail"> {
+  label: BlockText;
+  value?: BlockText | number | null;
+  detail?: BlockText;
+}
+
 interface KeyValueListBlockProps extends DefaultComponentProps {
-  items?: KeyValueItem[];
+  items?: KeyValueListBlockItem[];
   dense?: boolean;
   columns?: number;
   currency?: string;
@@ -50,30 +61,39 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
 
 const TRANSLATED_TYPES = new Set([undefined, "text", "status", "link"]);
 
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
-const { items, isPending, hasError, refresh } = useBlockItems<KeyValueItem>({
-  items: () => props.items,
-  fetchUrl: props.fetchUrl,
-  fetchUrlMethod: props.fetchUrlMethod,
-  routeParams: () => props.routeParams,
-  watchActions: props.watchActions,
-  componentId: props.componentId,
-});
+const { items, isPending, hasError, refresh } =
+  useBlockItems<KeyValueListBlockItem>({
+    items: () => props.items,
+    fetchUrl: props.fetchUrl,
+    fetchUrlMethod: props.fetchUrlMethod,
+    routeParams: () => props.routeParams,
+    watchActions: props.watchActions,
+    componentId: props.componentId,
+  });
+
+// A composed value already says how each of its parameters is written, so it
+// is composed whatever the row's type; a plain one is translated only where
+// the type draws text.
+function resolveValue(item: KeyValueListBlockItem): KeyValueItem["value"] {
+  if (isComposedText(item.value)) return processText(item.value);
+  if (typeof item.value === "string" && TRANSLATED_TYPES.has(item.type)) {
+    return processText(item.value);
+  }
+  return item.value as KeyValueItem["value"];
+}
 
 const resolvedItems = computed<KeyValueItem[]>(() =>
   items.value.map((item) => ({
     ...item,
-    label: processI18n(item.label ?? ""),
-    detail: item.detail ? processI18n(item.detail) : undefined,
-    value:
-      typeof item.value === "string" && TRANSLATED_TYPES.has(item.type)
-        ? processI18n(item.value)
-        : item.value,
+    label: processText(item.label),
+    detail: item.detail ? processText(item.detail) : undefined,
+    value: resolveValue(item),
   })),
 );
 const title = computed(() =>
-  props.title ? processI18n(props.title) : undefined,
+  props.title ? processText(props.title) : undefined,
 );
 const isEmpty = computed(
   () => !isPending.value && !hasError.value && resolvedItems.value.length === 0,
