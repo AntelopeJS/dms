@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.6.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.6.1...v0.6.2)
+
+### 🚀 Enhancements
+
+- **dms:** Compose block texts client-side with typed params and resolve layout banners per request ([#173](https://github.com/AntelopeJS/dms/pull/173))
+- **dms:** Compose table cell sub-lines and add the two_line display and empty identities ([#175](https://github.com/AntelopeJS/dms/pull/175))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.4.2 ([7b08bc2](https://github.com/AntelopeJS/dms/commit/7b08bc2))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.6.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.6.0...v0.6.1)

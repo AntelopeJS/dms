@@ -1,3 +1,6 @@
+import type { BlockText } from "#dms-core/app/types/composed-text";
+import type { BlockAction } from "#dms-ui/app/build/components/blocks/BlockActions.vue";
+
 export type MenuItemType = "label" | "link";
 // MenuItemVariant / MenuItemStatus / MenuItemQuery live in dms-core, the layer
 // that renders them: this one only consumes them.
@@ -103,7 +106,10 @@ export interface LayoutBanner {
   order: number;
   dismissible: boolean;
   icon?: string;
-  text?: string;
+  /** A string (`$` for an i18n key) or a composed text. */
+  text?: BlockText;
+  /** Link buttons after the text; the last one leads. */
+  actions?: BlockAction[];
   component?: string;
   props?: Record<string, unknown>;
 }
