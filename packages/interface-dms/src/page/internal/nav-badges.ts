@@ -8,13 +8,6 @@ import { PageMetadata } from "../metadata";
 import { pageMetadataByFullId } from "./registry";
 
 /**
- * Page full id → the navigation badge shown next to its entry.
- *
- * @internal
- */
-export type NavBadges = Record<string, string>;
-
-/**
  * A page's navigation badge as the menu serves it: the label, and its tone
  * when it is not neutral.
  *
@@ -171,23 +164,4 @@ export async function ResolveNavBadgeEntries(
       tone && tone !== NEUTRAL_TONE ? { badge, tone } : { badge };
   }
   return badges;
-}
-
-/**
- * {@link ResolveNavBadgeEntries} without the tones.
- *
- * @internal Kept for a DMS built before the badges carried a tone.
- */
-export async function ResolveNavBadges(
-  ctx: RequestContext,
-  user: User,
-  pageFullIds: Set<string>,
-): Promise<NavBadges> {
-  const entries = await ResolveNavBadgeEntries(ctx, user, pageFullIds);
-  return Object.fromEntries(
-    Object.entries(entries).map(([pageFullId, { badge }]) => [
-      pageFullId,
-      badge,
-    ]),
-  );
 }
