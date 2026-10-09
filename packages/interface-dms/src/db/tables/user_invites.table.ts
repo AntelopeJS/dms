@@ -56,13 +56,6 @@ export class UserInvite extends Table {
   declare creationResolutionId?: string;
 
   /**
-   * @deprecated Invite signups always validate the email; this has no effect
-   * and will be removed in a future breaking release.
-   */
-  @Field("boolean")
-  declare skipEmailValidation: boolean;
-
-  /**
    * Id of the user who sent the invitation, or last resent it. `null` for an
    * invitation created outside a signed-in request (an import, a module).
    */

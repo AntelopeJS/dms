@@ -14,7 +14,6 @@ export interface UserInviteSeed {
   roles_ids?: string[];
   language?: string;
   owner?: boolean;
-  skipEmailValidation?: boolean;
   lifetimeMs?: number;
 }
 
@@ -42,7 +41,6 @@ export async function seedUserInvite(
     expiresAt: new Date(
       Date.now() + (invite.lifetimeMs ?? MILLISECONDS_IN_HOUR),
     ),
-    skipEmailValidation: invite.skipEmailValidation ?? true,
   });
   return { token, email: invite.email };
 }

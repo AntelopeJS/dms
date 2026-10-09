@@ -61,7 +61,6 @@ async function signUpThroughInvite(scenario: SignupScenario): Promise<User> {
   // or a signup left to its validation round would read as validated.
   const { token } = await seedUserInvite({
     email: scenario.email,
-    skipEmailValidation: false,
   });
 
   await signup(

@@ -33,7 +33,6 @@ async function seedInvite(expiresAt: Date): Promise<UserInvite> {
     roles_ids: [],
     asTenantOwner: false,
     expiresAt,
-    skipEmailValidation: false,
     extensions: null,
   });
   const invite = await invites.get(INVITE_ID);
@@ -96,7 +95,6 @@ describe("[integration] auth/validate-invite-token", () => {
       language: "en",
       roleIds: [],
       asTenantOwner: false,
-      skipEmailValidation: false,
       replacesInvite: invite,
       replacementReason: "resent",
     });

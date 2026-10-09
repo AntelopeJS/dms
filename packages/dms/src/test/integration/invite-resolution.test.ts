@@ -55,7 +55,6 @@ function inviteFixture(source: UserInvite): UserInvite {
     asTenantOwner: source.asTenantOwner,
     expiresAt: source.expiresAt,
     creationResolutionId: source.creationResolutionId,
-    skipEmailValidation: source.skipEmailValidation,
     extensions: source.extensions,
   };
 }
@@ -129,7 +128,6 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       roles_ids: ["initial-role"],
       asTenantOwner: false,
       expiresAt: new Date(Date.now() + FUTURE_MS),
-      skipEmailValidation: false,
       extensions: { test: { value: "snapshot" } },
     });
     const row = await invites.get("original-invite");
@@ -300,7 +298,6 @@ describe("Invite terminal decisions (MongoDB adapter)", () => {
       language: "en",
       roleIds: ["replacement-role"],
       asTenantOwner: false,
-      skipEmailValidation: false,
       replacesInvite: invite,
       extensions: invite.extensions ?? undefined,
     };

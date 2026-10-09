@@ -42,7 +42,6 @@ async function createTenantProducers(tenantId: string): Promise<void> {
     language: "en",
     roleIds: [],
     asTenantOwner: false,
-    skipEmailValidation: false,
   });
   assert.ok(
     await GetModel(TenantMemberModel, tenantId).getByUser("shared-member"),
@@ -253,7 +252,6 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
         language: "en",
         roleIds: [],
         asTenantOwner: false,
-        skipEmailValidation: false,
       }).catch((error: unknown) => {
         refusal = error;
       });
@@ -316,7 +314,6 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
           language: "en",
           roleIds: [],
           asTenantOwner: false,
-          skipEmailValidation: false,
         }),
         /closed/,
       );
@@ -337,7 +334,6 @@ describe("Tenant lifecycle admission (MongoDB adapter)", () => {
       language: "en",
       roleIds: [],
       asTenantOwner: false,
-      skipEmailValidation: false,
     });
     const invite = await GetModel(UserInviteModel, TENANT).get(
       created.inviteId,
