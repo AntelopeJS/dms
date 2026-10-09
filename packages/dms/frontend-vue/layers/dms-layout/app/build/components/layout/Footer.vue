@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { SelectItem } from "@nuxt/ui";
+import {
+  GITHUB_REPOSITORY,
+  GITHUB_REPOSITORY_URL,
+} from "../../utils/github-repository";
 
 const EXTERNAL_LINK_PATTERN = /^https?:\/\//;
-const GITHUB_REPOSITORY = "AntelopeJS/dms";
-const GITHUB_REPOSITORY_URL = `https://github.com/${GITHUB_REPOSITORY}`;
 const GITHUB_REPOSITORY_API = `https://api.github.com/repos/${GITHUB_REPOSITORY}`;
 const GITHUB_STARS_CACHE_KEY = "dms-github-stars";
 // GitHub allows 60 anonymous API calls an hour per visitor: the count is

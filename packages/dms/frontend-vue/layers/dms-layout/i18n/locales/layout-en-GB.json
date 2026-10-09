@@ -872,5 +872,12 @@
   },
   "widgets_dock": {
     "show": "Show the widgets"
+  },
+  "github_star_prompt": {
+    "title": "Enjoying the AntelopeJS DMS?",
+    "description": "The DMS is open source. If it helped you today, a GitHub star helps other developers find it.",
+    "star": "Star on GitHub",
+    "later": "Later",
+    "close": "Don't show again"
   }
 }

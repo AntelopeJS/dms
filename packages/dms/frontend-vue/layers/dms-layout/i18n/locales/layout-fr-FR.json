@@ -876,5 +876,12 @@
   },
   "widgets_dock": {
     "show": "Afficher les widgets"
+  },
+  "github_star_prompt": {
+    "title": "Vous appréciez AntelopeJS DMS ?",
+    "description": "Le DMS est open source. S'il vous a aidé aujourd'hui, une étoile GitHub aide d'autres développeurs à le découvrir.",
+    "star": "Mettre une étoile sur GitHub",
+    "later": "Plus tard",
+    "close": "Ne plus afficher"
   }
 }
