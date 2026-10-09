@@ -12,9 +12,9 @@ export const ASSISTANT_MODE_KEY = "Tab";
 // The assistant's items take the violet AI accent instead of the primary one,
 // on the row and on its icon well.
 const ASSISTANT_ITEM_CLASS = [
-  "data-highlighted:before:bg-(--dms-ai-tint)",
-  "[&_[data-slot=itemLeadingIcon]]:border-(--dms-ai-line)",
-  "[&_[data-slot=itemLeadingIcon]]:bg-(--dms-ai-tint)",
+  "data-highlighted:before:bg-(--dms-assistant-tint)",
+  "[&_[data-slot=itemLeadingIcon]]:border-(--dms-assistant-line)",
+  "[&_[data-slot=itemLeadingIcon]]:bg-(--dms-assistant-tint)",
   "[&_[data-slot=itemLeadingIcon]]:text-secondary",
 ].join(" ");
 

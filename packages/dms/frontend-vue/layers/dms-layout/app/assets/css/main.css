@@ -200,9 +200,9 @@
        and tints its surfaces and lines with the same violet. Plain rgb():
        Chromium fringes the anti-aliased edge of an oklab colour-mix border
        with its complementary yellow. */
-    --dms-halo-ai: 0 0 0 6px rgb(124 58 237 / 0.1);
-    --dms-ai-tint: rgb(124 58 237 / 0.08);
-    --dms-ai-line: rgb(124 58 237 / 0.3);
+    --dms-assistant-halo: 0 0 0 6px rgb(124 58 237 / 0.1);
+    --dms-assistant-tint: rgb(124 58 237 / 0.08);
+    --dms-assistant-line: rgb(124 58 237 / 0.3);
     /* Base surfaces (v2 --shadow-card/-pop/-modal, --overlay, --glow-accent):
      cards, floating panels (menus, popovers, toasts), modals and drawers,
      their backdrop, and the ring of a selected card. */
@@ -320,9 +320,9 @@
     --dms-shadow-cmdk:
       0 50px 140px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
     --dms-halo-accent: 0 0 0 8px rgb(77 217 230 / 0.07);
-    --dms-halo-ai: 0 0 0 8px rgb(167 139 250 / 0.09);
-    --dms-ai-tint: rgb(167 139 250 / 0.12);
-    --dms-ai-line: rgb(167 139 250 / 0.4);
+    --dms-assistant-halo: 0 0 0 8px rgb(167 139 250 / 0.09);
+    --dms-assistant-tint: rgb(167 139 250 / 0.12);
+    --dms-assistant-line: rgb(167 139 250 / 0.4);
     --dms-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
     --dms-shadow-pop: 0 16px 40px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.2);
     --dms-shadow-modal:

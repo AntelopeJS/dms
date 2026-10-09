@@ -32,7 +32,7 @@ const SEARCH_WITH_ASSISTANT_UI = {
   empty: ASSISTANT_EMPTY_CLASS,
 };
 const ASSISTANT_UI = {
-  modal: `${MODAL_TRANSITION_CLASS} shadow-[var(--dms-shadow-cmdk),var(--dms-halo-ai)]`,
+  modal: `${MODAL_TRANSITION_CLASS} shadow-[var(--dms-shadow-cmdk),var(--dms-assistant-halo)]`,
   input: "[&_input]:caret-secondary [&_[data-slot=leadingIcon]]:text-secondary",
   empty: ASSISTANT_EMPTY_CLASS,
 };
@@ -84,7 +84,7 @@ function close(): void {
     <template v-if="assistant" #close="{ ui }">
       <span
         v-if="isAssistantMode"
-        class="text-secondary inline-flex h-6.5 shrink-0 items-center rounded-[7px] bg-(--dms-ai-tint) px-2 text-xs font-semibold whitespace-nowrap"
+        class="text-secondary inline-flex h-6.5 shrink-0 items-center rounded-[7px] bg-(--dms-assistant-tint) px-2 text-xs font-semibold whitespace-nowrap"
       >
         {{ assistant.label }}
       </span>
@@ -167,7 +167,7 @@ function close(): void {
       </span>
       <UButton
         v-if="assistant"
-        class="text-muted hover:text-secondary ms-auto gap-1.5 px-2 py-0.5 text-xs hover:bg-(--dms-ai-tint)"
+        class="text-muted hover:text-secondary ms-auto gap-1.5 px-2 py-0.5 text-xs hover:bg-(--dms-assistant-tint)"
         color="neutral"
         variant="ghost"
         size="xs"

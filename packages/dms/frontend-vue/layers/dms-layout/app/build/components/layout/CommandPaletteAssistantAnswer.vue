@@ -37,7 +37,7 @@ onErrorCaptured((error) => {
 
 <template>
   <section
-    class="text-toned m-1.5 rounded-xl border border-(--dms-ai-line) bg-(--dms-ai-tint) px-4 py-3.5 text-left text-sm/relaxed"
+    class="text-toned m-1.5 rounded-xl border border-(--dms-assistant-line) bg-(--dms-assistant-tint) px-4 py-3.5 text-left text-sm/relaxed"
     :aria-label="props.label"
     :aria-busy="isLoading"
     data-slot="assistantAnswer"
@@ -66,7 +66,7 @@ onErrorCaptured((error) => {
           <USkeleton
             v-for="width in SKELETON_WIDTHS"
             :key="width"
-            :class="['h-3 bg-(--dms-ai-tint)', width]"
+            :class="['h-3 bg-(--dms-assistant-tint)', width]"
           />
         </div>
       </template>
