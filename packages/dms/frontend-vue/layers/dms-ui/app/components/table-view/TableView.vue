@@ -33,6 +33,7 @@ import type {
   TableViewPaginationMode,
   TableViewSourceConfig,
   TableViewReorderConfig,
+  TableViewTab,
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
@@ -563,7 +564,7 @@ interface ResolvedTab {
   to?: string;
   toPage?: string;
   countFrom?: string;
-  navBadge?: boolean;
+  navBadge?: TableViewTab["navBadge"];
 }
 
 // A configured "all" tab stands in for the implicit one, at its own place.
@@ -1175,7 +1176,11 @@ watch(
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
       if (!source?.navBadge || tab.count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
-      if (fullId) setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "");
+      const tone =
+        typeof source.navBadge === "object" ? source.navBadge.tone : undefined;
+      if (fullId) {
+        setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "", tone);
+      }
     }
   },
   { immediate: true },

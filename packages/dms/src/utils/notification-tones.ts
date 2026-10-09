@@ -36,3 +36,19 @@ export function backupCodeUsedTone(left: number): NotificationTone {
 export function rolesChangedTone(roleCount: number): NotificationTone {
   return roleCount === 0 ? "warning" : "neutral";
 }
+
+/**
+ * The tone a notification is listed with, its icon well's: the sender's, or
+ * for an untoned one `primary` while unread and `neutral` once read. The
+ * unread badge takes the strongest tone of the unread rows through this, and
+ * the inbox mirrors it (`notificationDisplay.ts`), so both agree.
+ *
+ * @param tone The tone the row stores, null when the sender set none
+ * @param isRead Whether the row is read
+ */
+export function resolveNotificationTone(
+  tone: NotificationTone | null | undefined,
+  isRead: boolean,
+): NotificationTone {
+  return tone ?? (isRead ? "neutral" : "primary");
+}

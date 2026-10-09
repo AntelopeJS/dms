@@ -267,9 +267,16 @@ export interface TableViewTab {
    * page for a filter tab, the linked page for a link tab (which then needs a
    * page controller `to` and a data controller `countFrom`). Counted on the
    * server when the menu loads, with the caller's own `list` permission; a
-   * count of zero shows no badge.
+   * count of zero shows no badge. `true` draws it neutral; `{ tone }` draws
+   * it in that tone (`{ tone: "warning" }` for a tab of rows to check).
    */
-  navBadge?: boolean;
+  navBadge?: boolean | TableViewTabNavBadge;
+}
+
+/** A tab's navigation badge drawn in a tone (see `TableViewTab.navBadge`). */
+export interface TableViewTabNavBadge {
+  /** Neutral when absent. */
+  tone?: Tone;
 }
 
 /** A tab as it reaches the client: link targets resolved to paths. */

@@ -10,6 +10,7 @@ import type {
   WatchFunctionParams,
 } from "./base/types/watch";
 import { ComponentId } from "./base/types/watch";
+import type { Tone } from "./base/types/tone";
 import type { PageMetadata } from "./page";
 import type { Permission } from "./permissions";
 import type { MaybePromise } from "./types";
@@ -84,6 +85,17 @@ export interface ComponentButton {
 }
 
 /**
+ * A navigation badge's count with the tone it is drawn in: `error` for what
+ * needs acting on now, `warning` for what to check, `primary` for an action
+ * available, `success` for good news. Without a tone, or `neutral`, the badge
+ * keeps its grey look.
+ */
+export interface NavBadgeCount {
+  count: number;
+  tone?: Tone;
+}
+
+/**
  * A count a component publishes as the navigation badge of a page, read when
  * the menu loads (see {@link Component.navBadge}). A table view's tab declared
  * with `navBadge` publishes one.
@@ -91,8 +103,12 @@ export interface ComponentButton {
 export interface NavBadgeSource {
   /** The page the badge goes to; the component's own page when absent. */
   page?: ControllerClass;
-  /** The count for the caller of `ctx`; it throws when the caller may not read it. */
-  count: (ctx: RequestContext, user: User) => Promise<number>;
+  /**
+   * The count for the caller of `ctx`: a number, drawn neutral, or a
+   * {@link NavBadgeCount} that also gives its tone. It throws when the caller
+   * may not read it.
+   */
+  count: (ctx: RequestContext, user: User) => Promise<number | NavBadgeCount>;
 }
 
 /**
@@ -677,8 +693,17 @@ export class ComponentBuilder<T = unknown> extends Component<T> {
    * page, or `source.page`. The DMS counts it per caller when it serves the
    * menu, for the pages the caller can open; a count that throws (a caller
    * who may not read it) or is zero shows no badge, and a page's static
-   * `MenuOptions.badge` wins over it. The first count published for a page is
-   * the one shown.
+   * `MenuOptions.badge` wins over it. The counts published for one page add
+   * up, drawn in the strongest of their tones (error, warning, primary,
+   * success, then neutral).
+   *
+   * @example
+   * component.navBadge({
+   *   count: async (_ctx, user) => {
+   *     const overdue = await countOverdue(user._id);
+   *     return { count: overdue, tone: "error" };
+   *   },
+   * });
    */
   navBadge(source: NavBadgeSource): this {
     this._navBadges.push(source);

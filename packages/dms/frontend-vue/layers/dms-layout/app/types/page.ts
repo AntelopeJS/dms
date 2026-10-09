@@ -86,6 +86,8 @@ export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   childrenOrders: string[];
   layoutUrl?: string;
   hasAccess?: boolean;
+  /** The tone of a `badge` the server counted (`navBadge`); neutral when absent. */
+  badgeTone?: MenuItemBadgeTone;
 };
 // Mirror of LayoutBannerVariant from @antelopejs/interface-dms/layout-banners.
 export type LayoutBannerVariant = "info" | "warning" | "error";

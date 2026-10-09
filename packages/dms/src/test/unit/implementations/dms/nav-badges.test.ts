@@ -25,6 +25,7 @@ import * as permissionsInterface from "@antelopejs/interface-dms/permissions";
 import * as permissionsResolverInterface from "@antelopejs/interface-dms/permissions-resolver";
 import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access";
 import type { User } from "@antelopejs/interface-dms/auth/db";
+import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { Section } from "@antelopejs/interface-dms/base/section";
 import {
@@ -40,6 +41,10 @@ const REQUEST = {
 
 const counting = (count: number): NavBadgeSource => ({
   count: async () => count,
+});
+
+const toned = (count: number, tone: Tone): NavBadgeSource => ({
+  count: async () => ({ count, tone }),
 });
 
 function publishing(
@@ -82,6 +87,28 @@ class PageNbFailing extends PageController("nb-failing", {
   });
 }
 
+class PageNbToned extends PageController("nb-toned", {
+  displayName: "Toned",
+  category: pagesCategory,
+}) {
+  static table = publishing("NbTonedTable", toned(2, "warning"));
+}
+
+class PageNbCombined extends PageController("nb-combined", {
+  displayName: "Combined",
+  category: pagesCategory,
+}) {
+  static section = Section()
+    .child(
+      "first",
+      publishing("NbCombinedFirst", toned(1, "success"), counting(3)),
+    )
+    .child(
+      "second",
+      publishing("NbCombinedSecond", toned(2, "error"), toned(0, "error")),
+    );
+}
+
 class PageNbStatic extends PageController("nb-static", {
   displayName: "Static",
   category: pagesCategory,
@@ -101,10 +128,15 @@ async function registerPage(
   return registerTestPage(page);
 }
 
-async function badgesFor(
+interface ServedBadge {
+  badge?: string;
+  badgeTone?: Tone;
+}
+
+async function servedBadgesFor(
   grantedPermissions: string[],
   requestContext: RequestContext | null = REQUEST,
-): Promise<Record<string, string | undefined>> {
+): Promise<Record<string, ServedBadge>> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
   const payload = await buildSiteLayoutPayload(
     USER,
@@ -115,7 +147,20 @@ async function badgesFor(
   );
   const pages = payload.siteLayoutTree.children.pages?.children ?? {};
   return Object.fromEntries(
-    Object.values(pages).map((page) => [page.fullId, page.badge]),
+    Object.values(pages).map((page) => {
+      const { badge, badgeTone } = page as ServedBadge;
+      return [page.fullId, { badge, badgeTone }];
+    }),
+  );
+}
+
+async function badgesFor(
+  grantedPermissions: string[],
+  requestContext: RequestContext | null = REQUEST,
+): Promise<Record<string, string | undefined>> {
+  const served = await servedBadgesFor(grantedPermissions, requestContext);
+  return Object.fromEntries(
+    Object.entries(served).map(([fullId, { badge }]) => [fullId, badge]),
   );
 }
 
@@ -132,6 +177,8 @@ describe("[unit] implementations/dms/page — navigation badges", () => {
       await registerPage(PageNbInvites, { section: PageNbInvites.section }),
       await registerPage(PageNbFailing, { table: PageNbFailing.table }),
       await registerPage(PageNbStatic, { table: PageNbStatic.table }),
+      await registerPage(PageNbToned, { table: PageNbToned.table }),
+      await registerPage(PageNbCombined, { section: PageNbCombined.section }),
     );
   });
 
@@ -144,13 +191,48 @@ describe("[unit] implementations/dms/page — navigation badges", () => {
     "pages.nb-invites",
     "pages.nb-failing",
     "pages.nb-static",
+    "pages.nb-toned",
+    "pages.nb-combined",
   ];
 
   it("shows the count a page publishes for itself, nested or not, but not zero", async () => {
     const badges = await badgesFor(ALL_PAGES);
 
-    expect(badges["pages.nb-members"]).to.equal("7");
+    expect(badges["pages.nb-toned"]).to.equal("2");
     expect(badges["pages.nb-invites"]).to.equal(undefined);
+  });
+
+  it("adds up the counts several components publish for one page", async () => {
+    const badges = await badgesFor(ALL_PAGES);
+
+    expect(badges["pages.nb-members"]).to.equal("16");
+  });
+
+  it("serves a bare count without a tone, drawn neutral", async () => {
+    const served = await servedBadgesFor(ALL_PAGES);
+
+    expect(served["pages.nb-members"]).to.deep.equal({
+      badge: "16",
+      badgeTone: undefined,
+    });
+  });
+
+  it("serves the tone a count gives next to it", async () => {
+    const served = await servedBadgesFor(ALL_PAGES);
+
+    expect(served["pages.nb-toned"]).to.deep.equal({
+      badge: "2",
+      badgeTone: "warning",
+    });
+  });
+
+  it("draws the counts of one page in the strongest tone of those that count", async () => {
+    const served = await servedBadgesFor(ALL_PAGES);
+
+    expect(served["pages.nb-combined"]).to.deep.equal({
+      badge: "6",
+      badgeTone: "error",
+    });
   });
 
   it("keeps a page's declared badge, and drops a count that fails", async () => {

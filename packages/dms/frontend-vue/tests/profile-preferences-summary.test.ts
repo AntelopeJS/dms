@@ -214,6 +214,7 @@ describe("access gating", () => {
 // The section itself: its composable with every data source stubbed.
 const navPages = ref<{ fullId: string; to: string }[]>([]);
 const unreadCount = ref(0);
+const unreadTone = ref<string | undefined>(undefined);
 const bellPending = ref(true);
 const preferencesLoading = ref(true);
 const colorMode = ref<"light" | "dark" | "system">("dark");
@@ -278,6 +279,7 @@ vi.mock(
   () => ({
     useNotifications: () => ({
       unreadCount,
+      unreadTone,
       areCountsLoaded: {
         get value() {
           return !bellPending.value;
@@ -396,6 +398,7 @@ beforeEach(() => {
     { fullId: "settings.user.appearance", to: "/settings/user/appearance" },
   ];
   unreadCount.value = 0;
+  unreadTone.value = undefined;
   bellPending.value = true;
   preferencesLoading.value = true;
   colorMode.value = "dark";
@@ -445,6 +448,7 @@ describe("Preferences & access section", () => {
     expect(skeletonRows()).toBe(2);
 
     unreadCount.value = 3;
+    unreadTone.value = "error";
     bellPending.value = false;
     resolveAccess({
       roles: ["Admin"],
@@ -465,12 +469,32 @@ describe("Preferences & access section", () => {
         "Dark theme · normal density · increased contrast on",
       ),
     ]);
-    // Unread notifications turn the bell amber.
+    // The bell takes the unread badge's tone, as the server weighs it.
     expect(
       host
         .querySelector("[data-icon='i-ph-bell-ringing']")
         ?.getAttribute("data-tone"),
-    ).toBe("warning");
+    ).toBe("error");
+  });
+
+  it("colours the notifications row with the unread badge's tone, quiet without unread", async () => {
+    preferencesLoading.value = false;
+    bellPending.value = false;
+    unreadCount.value = 2;
+    unreadTone.value = "warning";
+    await mountSection();
+    const bellTone = () =>
+      host.querySelector("[data-icon^='i-ph-bell']")?.getAttribute("data-tone");
+    expect(bellTone()).toBe("warning");
+
+    unreadTone.value = "neutral";
+    await flush();
+    expect(bellTone()).toBe("muted");
+
+    unreadCount.value = 0;
+    unreadTone.value = undefined;
+    await flush();
+    expect(bellTone()).toBe("muted");
   });
 
   it("hides the rows of pages the user cannot open and keeps Your access informative", async () => {

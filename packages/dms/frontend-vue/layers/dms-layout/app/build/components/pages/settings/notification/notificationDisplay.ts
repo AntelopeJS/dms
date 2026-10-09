@@ -9,7 +9,12 @@ import type {
   UserNotification,
 } from "../../../../../composables/notification/useNotifications";
 
-/** Notifications without a tone stand out in `primary` until read. */
+/**
+ * Notifications without a tone stand out in `primary` until read. Mirrors
+ * the server's `resolveNotificationTone` (`src/utils/notification-tones.ts`),
+ * which weighs the unread badge of the bell and the navigation with it; a
+ * test holds the two together.
+ */
 export const resolveNotificationTone = (
   notification: UserNotification,
 ): NotificationTone =>

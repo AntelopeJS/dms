@@ -3,12 +3,19 @@ import {
   SECURITY_PAGE_PATH,
   useSecurityOverview,
 } from "../../../../composables/settings/security/useSecurityOverview";
+import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
 const { t } = useI18n();
-const { overview, attention, isUnavailable, refresh } = useSecurityOverview();
+const { overview, attention, attentionTone, isUnavailable, refresh } =
+  useSecurityOverview();
 
 const needsAttention = computed(() => attention.value.length > 0);
+// The well takes the tone of the Security page's navigation badge, as the
+// server weighs what needs attention; quiet when nothing does.
+const wellTone = computed(() =>
+  overview.value ? iconWellToneOf(attentionTone.value) : "muted",
+);
 
 const facts = computed(() => {
   const data = overview.value;
@@ -44,7 +51,7 @@ onMounted(refresh);
          with what needs attention there. -->
   <ProfileSummaryRow
     :icon="needsAttention ? 'i-ph-shield-warning' : 'i-ph-shield-check'"
-    :tone="needsAttention ? 'warning' : overview ? 'success' : 'muted'"
+    :tone="wellTone"
     :loading="!overview && !isUnavailable"
     :placeholder="placeholder"
     :to="SECURITY_PAGE_PATH"

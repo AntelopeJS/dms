@@ -7,6 +7,7 @@ import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
 import type { FormProps } from "../../form/types";
 import type { TableProps, TableFilter } from "../../../types/table";
+import type { Tone } from "../../../types/tone";
 import type { BlockAction } from "../../../build/components/blocks/BlockActions.vue";
 
 export interface QueryParamFilter {
@@ -37,8 +38,16 @@ export interface TableViewTab {
   toPage?: string;
   /** Data API location whose row total a link tab shows. */
   countFrom?: string;
-  /** Keeps the nav badge of the page it stands for up to date. */
-  navBadge?: boolean;
+  /**
+   * Keeps the nav badge of the page it stands for up to date; `{ tone }`
+   * draws it in that tone.
+   */
+  navBadge?: boolean | TableViewTabNavBadge;
+}
+
+/** A tab's nav badge drawn in a tone (interface-dms `TableViewTabNavBadge`). */
+export interface TableViewTabNavBadge {
+  tone?: Tone;
 }
 
 /**

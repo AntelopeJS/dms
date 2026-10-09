@@ -50,13 +50,16 @@ const VARIANT_CLASSES: Record<MenuItemVariant, MenuVariantClasses> = {
 
 const STATUS_DOT_ICON = "i-ph-circle-fill";
 const STATUS_DOT_SIZE = "size-1.5";
-/** v2 nav trail badge: a small neutral pill with a mono count. */
+/**
+ * v2 nav trail badge: a small soft pill with a mono count, in the tone the
+ * count carries (neutral grey without one).
+ */
 const MENU_BADGE_PROPS = {
-  color: "neutral",
   variant: "soft",
   size: "sm",
   class: "font-mono tabular-nums",
 } as const;
+const DEFAULT_BADGE_TONE: MenuItemBadgeTone = "neutral";
 
 /** The per-item slot classes Nuxt UI accepts on a navigation menu item. */
 type MenuItemUi = NonNullable<DmsMenuItem["ui"]>;
@@ -110,11 +113,18 @@ function buildItemUi(
     : undefined;
 }
 
-// A plain badge value (a page's `badge`) gets the v2 look; a badge already
-// given as props is the caller's own choice.
-function resolveMenuBadge(badge: DmsMenuItem["badge"]): DmsMenuItem["badge"] {
+// A plain badge value (a page's `badge`) gets the v2 look in its tone; a
+// badge already given as props is the caller's own choice.
+function resolveMenuBadge(
+  badge: DmsMenuItem["badge"],
+  tone: MenuItemBadgeTone | undefined,
+): DmsMenuItem["badge"] {
   if (typeof badge === "string" || typeof badge === "number") {
-    return { ...MENU_BADGE_PROPS, label: String(badge) };
+    return {
+      ...MENU_BADGE_PROPS,
+      color: tone ?? DEFAULT_BADGE_TONE,
+      label: String(badge),
+    };
   }
   return badge;
 }
@@ -177,8 +187,8 @@ const { badges: navBadges } = useNavBadges();
 function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
   const live =
     item.fullId === undefined ? undefined : navBadges.value[item.fullId];
-  if (live === undefined) return item.badge;
-  return live || undefined;
+  if (live === undefined) return resolveMenuBadge(item.badge, item.badgeTone);
+  return live.label ? resolveMenuBadge(live.label, live.tone) : undefined;
 }
 
 // A status dot lands in the trailing slot, which a parent entry already uses for
@@ -187,7 +197,7 @@ function badgeOf(item: DmsMenuItem): DmsMenuItem["badge"] {
 function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
   const variant = VARIANT_CLASSES[item.variant ?? "default"];
   const hasChildren = (item.children?.length ?? 0) > 0;
-  const badge = resolveMenuBadge(badgeOf(item));
+  const badge = badgeOf(item);
   const statusClass =
     item.status && !hasChildren && !badge
       ? MENU_STATUS_TEXT_CLASSES[item.status]

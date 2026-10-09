@@ -6,6 +6,19 @@ export type MenuItemVariant = "default" | "accent";
 /** Semantic state dot of a menu entry, mirroring `MenuItemStatus` in the backend. */
 export type MenuItemStatus = "success" | "warning" | "error" | "neutral";
 
+/**
+ * Tone of a counted menu badge, mirroring `Tone` in the backend: the server
+ * serves it as `badgeTone` next to `badge`; neutral when absent.
+ */
+export type MenuItemBadgeTone =
+  | "neutral"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "error"
+  | "info";
+
 /** Query parameters carried by a menu entry's link. */
 export type MenuItemQuery = Record<string, string>;
 
@@ -27,6 +40,8 @@ export interface DmsMenuItem extends NavigationMenuItem {
   fullId?: string;
   variant?: MenuItemVariant;
   status?: MenuItemStatus;
+  /** The tone of the entry's counted `badge`. */
+  badgeTone?: MenuItemBadgeTone;
   /**
    * Set by "Preview as role" only, on an entry the previewed role could not
    * open: the menu draws it hatched and locked. Never set outside a preview.

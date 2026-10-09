@@ -39,7 +39,7 @@ import {
   startEmailSetup,
   startTotpSetup,
 } from "./two-factor-operations";
-import { securityAttention } from "./security-attention";
+import { securityAttentionBadge } from "./security-attention";
 
 /**
  * The account's sign-in security: password, sign-in email, two-factor and
@@ -62,7 +62,7 @@ export class SecuritySettingsController extends PageController("security", {
     })
     .navBadge({
       count: (_ctx, user) =>
-        Promise.resolve(securityAttention(getTwoFactorStatus(user)).length),
+        Promise.resolve(securityAttentionBadge(getTwoFactorStatus(user))),
     });
 
   static passwordComponent = CustomComponent("DmsSecurityPassword").meta({

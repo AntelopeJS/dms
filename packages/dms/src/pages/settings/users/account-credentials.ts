@@ -25,9 +25,11 @@ import {
   type TwoFactorStatus,
 } from "./two-factor-operations";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
+import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import {
   type SecurityAttention,
   securityAttention,
+  securityAttentionBadge,
 } from "./security-attention";
 
 const HTTP_FORBIDDEN = 403;
@@ -46,6 +48,11 @@ export interface SecurityOverview {
   activeSessions: number;
   /** What needs the user's attention, most important first. */
   attention: SecurityAttention[];
+  /**
+   * The tone the Security page's navigation badge takes, the strongest of
+   * `attention`; null when nothing needs attention.
+   */
+  attentionTone: Tone | null;
 }
 
 /** The body the frontend server posts to `endpoint` to reopen the session. */
@@ -250,5 +257,6 @@ export async function getSecurityOverview(
     twoFactor,
     activeSessions: sessions.length,
     attention: securityAttention(twoFactor),
+    attentionTone: securityAttentionBadge(twoFactor).tone ?? null,
   };
 }

@@ -53,6 +53,7 @@ function buildNavigationItem(
     variant: item.variant,
     status: item.status,
     badge: item.badge,
+    badgeTone: item.badgeTone,
     children: children.length > 0 ? children : undefined,
   };
 }

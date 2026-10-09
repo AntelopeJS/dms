@@ -1,5 +1,6 @@
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
+import type { Tone } from "#dms-ui/app/types/tone";
 import { findTreeNode, listCategoryPages } from "../../utils/categoryPages";
 
 const DEFAULT_PAGE_ICON = "i-ph-file";
@@ -14,6 +15,8 @@ export interface CategoryNavCard {
   to: string;
   /** The page's navigation badge, as the menu shows it. */
   state?: string;
+  /** The badge's tone, as the menu draws it. */
+  stateTone?: Tone;
 }
 
 /**
@@ -24,21 +27,25 @@ export interface CategoryNavCard {
  */
 export function useCategoryNavCards(categoryId: () => string | undefined) {
   const siteLayout = useSiteLayout();
-  const { badges } = useNavBadges();
+  const { navBadgeOf } = useNavBadges();
   const cards = computed<CategoryNavCard[]>(() => {
     const id = categoryId();
     const category = id
       ? findTreeNode(siteLayout.siteLayoutTree.value, id)
       : undefined;
     if (!category) return [];
-    return listCategoryPages(category).map((page) => ({
-      id: page.fullId,
-      title: page.displayName,
-      description: page.description,
-      icon: page.icon || DEFAULT_PAGE_ICON,
-      to: page.fullSlug,
-      state: (badges.value[page.fullId] ?? page.badge) || undefined,
-    }));
+    return listCategoryPages(category).map((page) => {
+      const badge = navBadgeOf(page);
+      return {
+        id: page.fullId,
+        title: page.displayName,
+        description: page.description,
+        icon: page.icon || DEFAULT_PAGE_ICON,
+        to: page.fullSlug,
+        state: badge?.label,
+        stateTone: badge?.tone,
+      };
+    });
   });
   return { cards };
 }

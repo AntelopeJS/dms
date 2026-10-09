@@ -90,7 +90,7 @@ describe("[integration] a member removed from their workspace", () => {
   });
 
   it("is served what the header bell polls", async () => {
-    for (const path of ["unseen-count", "unread-count", "unread-preview"]) {
+    for (const path of ["counts", "unread-count", "unread-preview"]) {
       await expectOk(removed.get(`${NOTIFICATIONS}/${path}`));
     }
   });
