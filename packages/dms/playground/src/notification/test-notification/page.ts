@@ -101,4 +101,23 @@ export class PageNotificationTest extends PageController(
       },
     ],
   });
+
+  static broadcastAllForm = Form({
+    title: "Broadcast to All (shared)",
+    description:
+      "Send a shared notification to all users - when one reads it, all see it as read",
+    submitUrl: "/api/notification/broadcast-all",
+    submitLabel: "Send broadcast",
+    kind: "action",
+    submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
+    fields: [
+      {
+        id: "trigger",
+        label: "Trigger",
+        type: new DefaultDataTypes.StringType(),
+        defaultValue: "System announcement",
+      },
+    ],
+  });
 }

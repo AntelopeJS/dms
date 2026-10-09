@@ -489,11 +489,7 @@
     "notifications": {
       "categories": {
         "system": "System",
-        "system_desc": "Core system notifications and security alerts",
-        "module_one": "Security",
-        "module_one_desc": "Security monitoring and threat detection",
-        "module_two": "Logistics",
-        "module_two_desc": "Shipping, inventory and supply chain updates"
+        "system_desc": "Core system notifications and security alerts"
       },
       "subjects": {
         "general": "General",
@@ -508,12 +504,6 @@
         "automation_desc": "Notifications sent by automation procedures",
         "updates": "Module updates",
         "updates_desc": "Available updates for the project's Antelope modules (development mode)",
-        "module_one_alerts": "Security alerts",
-        "module_one_alerts_desc": "Critical security events requiring immediate attention",
-        "module_one_updates": "Threat reports",
-        "module_one_updates_desc": "Updates on security threats and vulnerabilities",
-        "module_two_notifications": "Shipment updates",
-        "module_two_notifications_desc": "Updates on shipping and inventory",
         "updates_badge": "Developer mode"
       },
       "preferences": {

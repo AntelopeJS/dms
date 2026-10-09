@@ -490,11 +490,7 @@
     "notifications": {
       "categories": {
         "system": "Système",
-        "system_desc": "Notifications système et alertes de sécurité",
-        "module_one": "Sécurité",
-        "module_one_desc": "Surveillance et détection des menaces",
-        "module_two": "Logistique",
-        "module_two_desc": "Expéditions, inventaire et chaîne d'approvisionnement"
+        "system_desc": "Notifications système et alertes de sécurité"
       },
       "subjects": {
         "general": "Général",
@@ -509,12 +505,6 @@
         "automation_desc": "Notifications envoyées par les procédures d'automatisation",
         "updates": "Mises à jour des modules",
         "updates_desc": "Mises à jour disponibles des modules Antelope du projet (mode développement)",
-        "module_one_alerts": "Alertes de sécurité",
-        "module_one_alerts_desc": "Événements critiques nécessitant une attention immédiate",
-        "module_one_updates": "Rapports de menaces",
-        "module_one_updates_desc": "Mises à jour sur les menaces et vulnérabilités de sécurité",
-        "module_two_notifications": "Suivi des expéditions",
-        "module_two_notifications_desc": "Mises à jour sur les expéditions et l'inventaire",
         "updates_badge": "Mode développeur"
       },
       "preferences": {
