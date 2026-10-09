@@ -59,6 +59,10 @@ import {
   filterLayoutHeaderActions,
   withComponentHeaderButtons,
 } from "./internal/layout-filter";
+import {
+  inheritedMemberAccess,
+  opensToMembers,
+} from "./internal/member-access";
 import { withTableViewPlacements } from "./internal/table-view-ids";
 import {
   pageExtensions,
@@ -247,13 +251,9 @@ export class PageMetadata {
       hidden: menuOptions.hidden || resolvedCategory?.hidden,
       publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
       authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
-      // A category opens its pages to every member. A page standing as the
-      // parent (the settings root) opens only itself: the pages filed under
-      // it keep needing their own grant.
       memberAccess:
         menuOptions.memberAccess ||
-        (typeof menuOptions.category !== "function" &&
-          resolvedCategory?.memberAccess),
+        inheritedMemberAccess(resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
         menuOptions.bypassTenantAccessGate ||
         resolvedCategory?.bypassTenantAccessGate,
@@ -499,7 +499,8 @@ export class PageMetadata {
       id: pageInfo.fullId,
       title: pageInfo.displayName,
       icon: pageInfo.icon,
-      defaultGranted: pageInfo.publicAccess || pageInfo.memberAccess,
+      defaultGranted:
+        pageInfo.publicAccess || opensToMembers(pageInfo.memberAccess),
       ...(pageInfo.permission as Partial<Permission> | undefined),
     };
 
@@ -669,7 +670,7 @@ export class PageMetadata {
   }
 
   private actionPermissions(component: Component): Permission[] {
-    const grantsMembers = this.pageInfo?.memberAccess === true;
+    const grantsMembers = opensToMembers(this.pageInfo?.memberAccess);
     return Object.values(component.actions)
       .map((action) => action.toPermission())
       .filter((permission): permission is Permission => !!permission)
@@ -837,7 +838,7 @@ export class PageMetadata {
         title: component.metadata.name,
         icon: component.metadata.icon,
         description: component.metadata.description,
-        defaultGranted: this.pageInfo?.memberAccess,
+        defaultGranted: opensToMembers(this.pageInfo?.memberAccess),
       });
     }
 

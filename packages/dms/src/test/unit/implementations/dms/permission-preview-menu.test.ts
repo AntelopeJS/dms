@@ -32,8 +32,8 @@ const TARGET_SLUG = "/pv-target";
 const ENTRY_PERMISSION = "pv.entry-permission";
 const OPEN_ENTRY_FULL_ID = `${LABEL_FULL_ID}.open-entry`;
 const GUARDED_ENTRY_FULL_ID = `${LABEL_FULL_ID}.guarded-entry`;
-// A page every member opens (`memberAccess`, like the settings overview),
-// holding a page that needs a grant.
+// A page every member opens (`memberAccess: "self"`, like the settings
+// overview), holding a page that needs a grant.
 const MEMBER_PAGE_FULL_ID = "pages.pv-member";
 const MEMBER_CHILD_FULL_ID = `${MEMBER_PAGE_FULL_ID}.pv-member-child`;
 const TENANT = "pv-tenant";
@@ -90,7 +90,7 @@ describe("[unit] implementations/dms/page — permission preview of the menu", (
     const memberPage = PageController("pv-member", {
       displayName: "Preview member page",
       category: pagesCategory,
-      memberAccess: true,
+      memberAccess: "self",
     });
     cleanups.push(await registerTestPage(memberPage));
     cleanups.push(

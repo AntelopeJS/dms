@@ -68,7 +68,8 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
       static feed = feed();
     }
 
-    // Declared on the settings root itself, which every member opens.
+    // Declared on the settings root itself, which opens to every member
+    // with `"self"`: the pages under it keep their own grant.
     class SettingsPage extends PageController("ma-billing", {
       displayName: "Billing",
       category: settingsCategory,
@@ -105,9 +106,9 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
     }
   });
 
-  it("opens the settings root to every member", () => {
+  it("opens the settings root alone to every member", () => {
     const { pageInfo } = GetMetadata(settingsCategory, PageMetadata);
-    expect(pageInfo?.memberAccess).to.equal(true);
+    expect(pageInfo?.memberAccess).to.equal("self");
   });
 
   it("keeps requiring a grant on a page declared under the settings root", async () => {
@@ -116,8 +117,8 @@ describe("[unit] interfaces/dms/page — memberAccess", () => {
     }
   });
 
-  it("does not pass the flag from a page to the pages filed under it", async () => {
-    expect(await HasPermission(NO_PERMISSIONS, NESTED_PAGE_ID)).to.equal(false);
+  it("passes `true` from a page to the pages filed under it", async () => {
+    expect(await HasPermission(NO_PERMISSIONS, NESTED_PAGE_ID)).to.equal(true);
   });
 
   it("leaves the member-held permissions out of the role editor", () => {

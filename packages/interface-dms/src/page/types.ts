@@ -151,6 +151,13 @@ export interface ModuleInfo {
   };
 }
 
+/**
+ * How an entry opens to every signed-in member without a role grant (see
+ * `MenuOptions.memberAccess`): `true` for the entry and everything declared
+ * under it, `"self"` for the entry alone.
+ */
+export type MemberAccess = boolean | "self";
+
 export interface MenuOptions {
   displayName: string;
   category?: CategoryInfo | ControllerClass;
@@ -171,12 +178,14 @@ export interface MenuOptions {
    * the grant is implied. Unlike `authOnly`, the tenant access gate still
    * applies and the permission ids still exist.
    *
-   * Inherited by the pages of a flagged category, not by the pages declared
-   * under a flagged page: the settings root is open to every member, the
-   * workspace pages under it are not. Meant for personal surfaces every member
-   * owns: their profile, security, notifications and preferences.
+   * `true` is inherited by everything declared under the entry, page or
+   * category. `"self"` opens the entry alone: what is declared under it keeps
+   * needing its own grant. The settings root is `"self"`, so every member opens
+   * the settings overview while the workspace pages under it stay gated.
+   * Meant for personal surfaces every member owns: their profile, security,
+   * notifications and preferences.
    */
-  memberAccess?: boolean;
+  memberAccess?: MemberAccess;
   type?: MenuItemType;
   validation?: PageValidation;
   setupId?: string;
