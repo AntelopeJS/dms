@@ -426,8 +426,7 @@
         },
         "search": "Rechercher des invitations",
         "sent_by": "{date} · par {name}",
-        "footer_count": "Aucune invitation | {count} invitation | {count} invitations",
-        "expiry_hint": "Les invitations expirent 7 jours après leur envoi."
+        "footer_count": "Aucune invitation | {count} invitation | {count} invitations"
       },
       "roles": {
         "table": {

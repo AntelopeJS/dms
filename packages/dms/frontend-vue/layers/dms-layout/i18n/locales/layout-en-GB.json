@@ -422,8 +422,7 @@
         },
         "search": "Search invitations",
         "sent_by": "{date} · by {name}",
-        "footer_count": "No invitations | {count} invitation | {count} invitations",
-        "expiry_hint": "Invitations expire 7 days after they’re sent."
+        "footer_count": "No invitations | {count} invitation | {count} invitations"
       },
       "roles": {
         "table": {

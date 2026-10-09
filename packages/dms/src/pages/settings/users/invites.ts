@@ -305,7 +305,6 @@ export class InvitesSettingsController extends PageController("invites", {
     defaultSort: { field: "createdAt", desc: true },
     footer: {
       countLabel: "$page.settings.invites.footer_count",
-      hint: "$page.settings.invites.expiry_hint",
     },
     tabs: [
       {
