@@ -32,11 +32,11 @@ export interface SecurityOverview {
   attention: SecurityAttention[];
   /**
    * The strongest tone of `attention`, which the navigation badge takes;
-   * null when nothing needs attention. Absent from an older backend.
+   * null when nothing needs attention.
    */
-  attentionTone?: Tone | null;
-  /** The tone of each item of `attention`. Absent from an older backend. */
-  attentionTones?: Partial<Record<SecurityAttention, Tone>>;
+  attentionTone: Tone | null;
+  /** The tone of each item of `attention`. */
+  attentionTones: Partial<Record<SecurityAttention, Tone>>;
 }
 
 /** What the API returns to enrol an authenticator app. */
