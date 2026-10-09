@@ -2,7 +2,8 @@ import { defineAsyncComponent, h } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import MonoCell from "../../components/table/MonoCell.vue";
-import { readRowField, stringOf, toneClass, type Row } from "./cellHelpers";
+import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { readRowField, readSubline, toneClass, type Row } from "./cellHelpers";
 
 const Sparkline = defineAsyncComponent(
   () => import("../../../components/chart/internal/Sparkline.vue"),
@@ -21,6 +22,8 @@ interface SelectItemOption {
 interface StatusPillOptions {
   tones?: Record<string, string>;
   subField?: string;
+  /** Tone of the line under the pill when the row gives none. */
+  subTone?: string;
   liveValues?: string[];
   /** The column's own type options: a select's items name the pill. */
   typeOptions?: { items?: SelectItemOption[] };
@@ -28,10 +31,12 @@ interface StatusPillOptions {
 
 /**
  * `status_pill`: a tinted pill led by a dot, in the tone the value maps to,
- * with an optional line under it in the same tone (a failure's cause).
+ * with an optional line under it (a failure's cause, a composed "retry Oct
+ * 10") in the row's tone, else `subTone`, else the pill's.
  */
 function renderStatusPill(value: unknown, options: unknown, row: Row) {
   const { processI18n } = useTranslation();
+  const { processText } = useComposedText();
   const opts = (options ?? {}) as StatusPillOptions;
   const key = String(value);
   const item = opts.typeOptions?.items?.find(
@@ -44,14 +49,23 @@ function renderStatusPill(value: unknown, options: unknown, row: Row) {
     icon: item?.icon,
     dot: opts.liveValues?.includes(key) ? "live" : "static",
   });
-  const sub = stringOf(readRowField(row, opts.subField));
+  const sub = readSubline(readRowField(row, opts.subField), {
+    processText,
+    isStringTranslated: true,
+  });
   if (!sub) return pill;
   return h("span", { class: "flex min-w-0 flex-col items-start gap-0.5" }, [
     pill,
     h(
       "span",
-      { class: ["max-w-full truncate text-xs", toneClass(tone, "muted")] },
-      processI18n(sub),
+      {
+        class: [
+          "max-w-full truncate text-xs",
+          toneClass(sub.tone ?? opts.subTone ?? tone, "muted"),
+        ],
+        title: sub.text,
+      },
+      sub.text,
     ),
   ]);
 }

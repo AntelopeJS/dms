@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
+  type CellSublineValue,
   ColumnDisplay,
   type ColumnOptions,
   DefaultDisplays,
@@ -110,6 +111,79 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     }
     // @ts-expect-error a progress needs its total
     new DefaultDisplays.ProgressDisplay({ doneField: "done" });
+  });
+
+  it("serializes the composed sub-line options, the two-line display and an empty identity", () => {
+    const cases: Array<[ColumnDisplay<object>, object]> = [
+      [
+        new DefaultDisplays.StatusPillDisplay({
+          tones: { open: "info", uncollectible: "error" },
+          subField: "statusDetail",
+          subTone: "muted",
+        }),
+        {
+          type: "status_pill",
+          options: {
+            tones: { open: "info", uncollectible: "error" },
+            subField: "statusDetail",
+            subTone: "muted",
+          },
+        },
+      ],
+      [
+        new DefaultDisplays.TwoLineDisplay({
+          primaryField: "renewalSummary",
+          subField: "renewalDate",
+          emptyLabel: "$saas.workspaces.no_renewal",
+        }),
+        {
+          type: "two_line",
+          options: {
+            primaryField: "renewalSummary",
+            subField: "renewalDate",
+            emptyLabel: "$saas.workspaces.no_renewal",
+          },
+        },
+      ],
+      [
+        new DefaultDisplays.IdentityDisplay({
+          emptyLabel: "$saas.credit_notes.automatic",
+          emptyIcon: "i-ph-robot",
+          subtitleTone: "muted",
+        }),
+        {
+          type: "identity",
+          options: {
+            emptyLabel: "$saas.credit_notes.automatic",
+            emptyIcon: "i-ph-robot",
+            subtitleTone: "muted",
+          },
+        },
+      ],
+    ];
+    for (const [display, serialized] of cases) {
+      expect(serializeColumnDisplay(display)).to.deep.equal(serialized);
+    }
+  });
+
+  it("types a sub-line as a text, a composed text or a text with its tone", () => {
+    const sublines: CellSublineValue[] = [
+      "Due Oct 28",
+      { key: "$saas.invoice.sub_state.written_off" },
+      {
+        text: {
+          key: "$saas.invoice.sub_state.retry",
+          params: {
+            date: { type: "date", value: "2026-10-10", format: "day" },
+          },
+        },
+        tone: "error",
+      },
+    ];
+    // @ts-expect-error a sub-line's tone is a cell tone
+    const wrongTone: CellSublineValue = { text: "Late", tone: "danger" };
+    expect(sublines).to.have.length(3);
+    expect(wrongTone).to.not.equal(undefined);
   });
 
   it("serializes no display to nothing", () => {

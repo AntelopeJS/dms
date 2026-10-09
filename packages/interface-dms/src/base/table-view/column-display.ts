@@ -3,6 +3,7 @@ import {
   type ClassDecorator,
   MakeClassDecorator,
 } from "@antelopejs/interface-core/decorators";
+import type { BlockText } from "../types/composed-text";
 import type { Tone } from "../types/tone";
 import { displayIds } from "./internal/column-display";
 
@@ -64,6 +65,41 @@ export type CellTone =
   | "info"
   | "primary";
 
+/**
+ * A cell's secondary line as a row field holds it, with the tone that row
+ * gives it: "Payment failed · retry Oct 10" in `error`, "Due Oct 28" in
+ * `muted`. The server picks the text and the tone per row; the column only
+ * names the field.
+ *
+ * @example
+ * ```ts
+ * @Listable(["status", "attemptCount", "nextPaymentAttemptAt"])
+ * get statusDetail(): CellSubline | null {
+ *   if (this.status !== "open" || !this.nextPaymentAttemptAt) return null;
+ *   const date = this.nextPaymentAttemptAt.toISOString();
+ *   return {
+ *     text: {
+ *       key: "$saas.invoice.sub_state.retry",
+ *       params: { date: { type: "date", value: date, format: "day" } },
+ *     },
+ *     tone: "error",
+ *   };
+ * }
+ * ```
+ */
+export interface CellSubline {
+  /** The line: a string (`$`-prefixed for an i18n key) or a composed text. */
+  text: BlockText;
+  /** Tone of the line; the display's own tone when left out. */
+  tone?: CellTone;
+}
+
+/**
+ * What a row field drawn as a cell's secondary line holds: a text, or a text
+ * and its tone. Nothing (`null`, `""`) draws no line.
+ */
+export type CellSublineValue = BlockText | CellSubline;
+
 export namespace DefaultDisplays {
   /** A badge an identity cell shows when a field of the row matches. */
   export interface IdentityBadge {
@@ -84,8 +120,14 @@ export namespace DefaultDisplays {
     avatarField?: string;
     /** Icon drawn in a tile instead of an avatar. */
     icon?: string;
-    /** Row field drawn as the secondary line. */
+    /**
+     * Row field drawn as the secondary line: a string, drawn as written (an
+     * address, an id), or a `ComposedText` or {@link CellSubline}
+     * composed in the reader's language.
+     */
     subtitleField?: string;
+    /** Tone of the secondary line when the row gives none. Defaults to `dimmed`. */
+    subtitleTone?: CellTone;
     /** Row field holding the user id that marks the signed-in user's row. */
     selfField?: string;
     /** Tag of the signed-in user's row ("You"). `$`-prefixed: an i18n key. */
@@ -93,11 +135,19 @@ export namespace DefaultDisplays {
     badges?: IdentityBadge[];
     /** File storage the avatar is read from. */
     storage?: string;
+    /**
+     * Name drawn, muted, for a row without a value ("Automatic" for a credit
+     * note no operator issued). `$`-prefixed: an i18n key.
+     */
+    emptyLabel?: string;
+    /** Icon drawn in a tile for a row without a value (`i-ph-robot`). */
+    emptyIcon?: string;
   }
 
   /**
    * Avatar or icon tile, the value as the name, a "You" tag on the signed-in
-   * user's row, badges and a secondary line, all read off the row.
+   * user's row, badges and a secondary line, all read off the row; an empty
+   * label and icon for a row without a value.
    */
   @RegisterDisplay("identity")
   export class IdentityDisplay extends ColumnDisplay<IdentityDisplayOptions> {}
@@ -181,8 +231,14 @@ export namespace DefaultDisplays {
      * @example { healthy: "success", degraded: "warning", failing: "error" }
      */
     tones: Record<string, Tone>;
-    /** Row field drawn under the pill, in its tone (the failure's cause). */
+    /**
+     * Row field drawn under the pill (the failure's cause): a string
+     * (`$`-prefixed for an i18n key), a `ComposedText` or a
+     * {@link CellSubline} carrying its own tone.
+     */
     subField?: string;
+    /** Tone of the line under the pill when the row gives none; the pill's by default. */
+    subTone?: CellTone;
     /** A pulsing dot for these values (a run in progress). */
     liveValues?: string[];
   }
@@ -190,6 +246,31 @@ export namespace DefaultDisplays {
   /** A status as a tinted pill led by a dot, with an optional line under it. */
   @RegisterDisplay("status_pill")
   export class StatusPillDisplay extends ColumnDisplay<StatusPillDisplayOptions> {}
+
+  export interface TwoLineDisplayOptions {
+    /**
+     * Row field holding the primary line, a string (`$`-prefixed for an i18n
+     * key) or a `ComposedText`, drawn in place of the column's value
+     * ("Renews in 3 days" over a `renewsAt` date column). Without it the
+     * primary line is the column's value, written by the column's own data
+     * type (an amount, a date, a select's label) or composed when the value
+     * is a `ComposedText`.
+     */
+    primaryField?: string;
+    /** Row field holding the secondary line: a {@link CellSublineValue}. */
+    subField?: string;
+    /** Tone of the secondary line when the row gives none. Defaults to `muted`. */
+    subTone?: CellTone;
+    /** Text drawn for an empty primary line. `$`-prefixed: an i18n key. Defaults to "—". */
+    emptyLabel?: string;
+  }
+
+  /**
+   * A primary line over a secondary one, without an avatar: a plan over its
+   * price per seat, an amount over what it means, a reason over its memo.
+   */
+  @RegisterDisplay("two_line")
+  export class TwoLineDisplay extends ColumnDisplay<TwoLineDisplayOptions> {}
 
   export interface ProgressDisplayOptions {
     /** Row field holding the number of items done. */

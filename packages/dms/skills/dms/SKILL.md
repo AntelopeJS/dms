@@ -39,6 +39,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
   browser writes in the reader's language: StatGroup / KeyValueList / Banner texts and layout
   banners (`RegisterLayoutBanner({ resolve })` → `{ text, actions }`) take it; never format text server-side.
+  A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
+  `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
+  `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row.
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.

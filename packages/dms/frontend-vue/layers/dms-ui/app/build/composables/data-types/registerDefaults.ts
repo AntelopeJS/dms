@@ -10,11 +10,14 @@ import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
 import {
   isSet,
   readRowField,
+  readSubline,
   type Row,
   stringOf,
   toneClass,
 } from "./cellHelpers";
 import { registerMetricCellTypes } from "./metricCells";
+import { registerTwoLineCellType } from "./twoLineCell";
+import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import IdentityCell from "../../components/table-view/IdentityCell.vue";
 import {
@@ -381,10 +384,15 @@ interface IdentityOptions {
   avatarField?: string;
   icon?: string;
   subtitleField?: string;
+  subtitleTone?: string;
   selfField?: string;
   selfLabel?: string;
   badges?: IdentityBadgeOption[];
   storage?: string;
+  /** Name drawn, muted, for a row without a value. */
+  emptyLabel?: string;
+  /** Icon tile of a row without a value. */
+  emptyIcon?: string;
 }
 
 const matchesBadge = (badge: IdentityBadgeOption, value: unknown): boolean =>
@@ -394,17 +402,28 @@ const matchesBadge = (badge: IdentityBadgeOption, value: unknown): boolean =>
 
 /**
  * `identity`: avatar or icon tile, the value as the name, a "You" tag on the
- * signed-in user's row, badges and a secondary line, all read off the row.
+ * signed-in user's row, badges and a secondary line (an address as written,
+ * or a composed text in its tone), all read off the row; `emptyLabel` and
+ * `emptyIcon` stand for a row without a value.
  */
 function renderIdentity(value: unknown, options: unknown, row: Row) {
   const { processI18n } = useTranslation();
+  const { processText } = useComposedText();
   const opts = (options ?? {}) as IdentityOptions;
   const badges = (opts.badges ?? [])
     .filter((badge) => matchesBadge(badge, readRowField(row, badge.field)))
     .map((badge) => ({ label: processI18n(badge.label), color: badge.tone }));
+  // An address or an id is data: only a composed text is translated.
+  const subtitle = readSubline(readRowField(row, opts.subtitleField), {
+    processText,
+    isStringTranslated: false,
+  });
   return h(IdentityCell, {
     title: stringOf(value) ?? "",
-    subtitle: stringOf(readRowField(row, opts.subtitleField)) ?? "",
+    subtitle: subtitle?.text ?? "",
+    subtitleClass: toneClass(subtitle?.tone ?? opts.subtitleTone, "dimmed"),
+    emptyLabel: opts.emptyLabel ? processI18n(opts.emptyLabel) : undefined,
+    emptyIcon: opts.emptyIcon,
     avatar: readRowField(row, opts.avatarField) as
       | { key: string }
       | string
@@ -843,5 +862,6 @@ export function registerDefaultDataTypes() {
   registerDisplayOnlyTypes(registerDataType);
   registerCellTypes(registerDataType);
   registerMetricCellTypes(registerDataType);
+  registerTwoLineCellType(registerDataType);
   registerFieldTypes(registerDataType);
 }
