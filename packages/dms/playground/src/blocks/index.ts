@@ -6,5 +6,7 @@ export * from "./feedback";
 export * from "./key-value";
 export * from "./meters";
 export * from "./nav-cards";
+export * from "./record";
+export * from "./record-api";
 export * from "./settings";
 export * from "./stat-group";

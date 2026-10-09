@@ -35,6 +35,10 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
+  A detail page drives its header from its record with `DefaultLayout({ header: { fetchUrl } })`
+  (title, avatar, status, badges, meta line); `headerActions` and an `ActionList` block take
+  `when` / `unavailableWhen` conditions on that record (`{ field, equals | in | truthy }`, `all`,
+  `any`, `not`), re-read after each action, and `menuGroup` files a button in "More actions".
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.
