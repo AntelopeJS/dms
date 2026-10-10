@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
 import DmsAutoLink from "../link/AutoLink.vue";
+import DmsCopyButton from "../copy/CopyButton.vue";
 import { DMS_TONE_TEXT } from "../../build/utils/tone";
 import type { Tone } from "../../types/tone";
 
@@ -36,6 +37,10 @@ export interface KeyValueItem {
   currency?: string;
   /** This value alone is still loading: a skeleton stands in for it. */
   loading?: boolean;
+  /** Draws a button copying the value as it is shown. */
+  copy?: boolean;
+  /** Text the copy button copies instead of the shown value; implies `copy`. */
+  copyValue?: string;
 }
 
 interface KeyValueListProps {
@@ -156,6 +161,14 @@ function valueClass(item: KeyValueItem): string[] {
   return ["wrap-anywhere", color, TYPE_CLASSES[type] ?? ""];
 }
 
+// An empty value shows a dash, which is not worth copying.
+function copyTextOf(item: KeyValueItem): string | undefined {
+  if (item.copyValue) return item.copyValue;
+  if (!item.copy) return undefined;
+  const formatted = format(item);
+  return formatted === EMPTY_VALUE ? undefined : formatted;
+}
+
 function keyOf(item: KeyValueItem, index: number): string {
   return item.id ?? `${index}-${item.label}`;
 }
@@ -216,6 +229,12 @@ function keyOf(item: KeyValueItem, index: number): string {
               {{ item.detail }}
             </span>
           </template>
+          <!-- -my-1: the button is taller than a dense row's text line. -->
+          <DmsCopyButton
+            v-if="!props.loading && !item.loading && copyTextOf(item)"
+            :value="copyTextOf(item)!"
+            class="-my-1"
+          />
         </dd>
       </div>
     </template>

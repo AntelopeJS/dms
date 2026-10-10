@@ -17,6 +17,8 @@ interface TableDataKeyConfig {
   query: unknown;
   archiveQuery: unknown;
   isSelfManaged: boolean;
+  /** The resolved URL of a `TableView.fromSource` table. */
+  sourceUrl?: string;
 }
 
 const NO_VALUE_COMPARE_MODES = new Set(["is_empty", "is_not_empty"]);
@@ -72,4 +74,5 @@ export const buildTableDataKey = (config: TableDataKeyConfig): string =>
     query: config.query,
     archiveQuery: config.archiveQuery,
     isSelfManaged: config.isSelfManaged,
+    sourceUrl: config.sourceUrl,
   })}`;

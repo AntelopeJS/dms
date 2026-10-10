@@ -153,6 +153,29 @@
       "mounted_at": "Mounted at",
       "current_page": "Current page",
       "draft_placeholder": "Type a draft, then navigate: it stays."
+    },
+    "blocks": {
+      "activity": {
+        "order_paid": "Order {order} paid",
+        "files_changed": "{count} file changed | {count} files changed",
+        "missing_keys": "no translation key missing | {count} translation key missing | {count} translation keys missing",
+        "amount": "{amount}"
+      },
+      "meter": {
+        "seats_hint": "{used} in use · {free} free",
+        "members": "{count} member | {count} members",
+        "pending_invites": "{count} pending invite | {count} pending invites",
+        "storage_hint": "{used} of {total} GB"
+      },
+      "nav": {
+        "seats_used": "{used} of {total} seats used",
+        "payment_failed": "Payment failed on {date}",
+        "billing": "Billing",
+        "connectors_degraded": "no connector degraded | {count} connector degraded | {count} connectors degraded"
+      },
+      "top_list": {
+        "last_visit": "Last visit {at}"
+      }
     }
   }
 }

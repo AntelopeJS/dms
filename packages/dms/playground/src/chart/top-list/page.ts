@@ -1,9 +1,25 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { PeriodSelector, TopListCard } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
+import type { ComposedText } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
 
 const SCOPE_ID = "demo-top-list";
+const MINUTE_MS = 60 * 1000;
+
+// Written once, when the page registers: the relative time is measured from
+// the backend start, and composed in the reader's language when drawn.
+function lastVisit(minutesAgo: number): ComposedText {
+  return {
+    key: "demo.blocks.top_list.last_visit",
+    params: {
+      at: {
+        type: "relative",
+        value: new Date(Date.now() - minutesAgo * MINUTE_MS).toISOString(),
+      },
+    },
+  };
+}
 
 @RegisterPage()
 export class PageChartTopList extends PageController("chart-top-list", {
@@ -117,24 +133,28 @@ export class PageChartTopList extends PageController("chart-top-list", {
             {
               id: 1,
               title: "Page d'accueil",
+              description: lastVisit(3),
               value: 18420,
               sparkline: [10, 12, 14, 13, 15, 18],
             },
             {
               id: 2,
               title: "Catalogue",
+              description: lastVisit(12),
               value: 12200,
               sparkline: [10, 11, 11, 10, 12, 12],
             },
             {
               id: 3,
               title: "Blog",
+              description: lastVisit(45),
               value: 8900,
               sparkline: [12, 10, 9, 9, 10, 9],
             },
             {
               id: 4,
               title: "Contact",
+              description: lastVisit(180),
               value: 4100,
               sparkline: [4, 4, 4, 5, 4, 4],
             },

@@ -153,6 +153,29 @@
       "mounted_at": "Monté à",
       "current_page": "Page courante",
       "draft_placeholder": "Saisissez un brouillon puis naviguez : il reste."
+    },
+    "blocks": {
+      "activity": {
+        "order_paid": "Commande {order} payée",
+        "files_changed": "{count} fichier modifié | {count} fichiers modifiés",
+        "missing_keys": "aucune clé de traduction manquante | {count} clé de traduction manquante | {count} clés de traduction manquantes",
+        "amount": "{amount}"
+      },
+      "meter": {
+        "seats_hint": "{used} utilisés · {free} libres",
+        "members": "{count} membre | {count} membres",
+        "pending_invites": "{count} invitation en attente | {count} invitations en attente",
+        "storage_hint": "{used} sur {total} Go"
+      },
+      "nav": {
+        "seats_used": "{used} sur {total} sièges utilisés",
+        "payment_failed": "Paiement refusé le {date}",
+        "billing": "Facturation",
+        "connectors_degraded": "aucun connecteur dégradé | {count} connecteur dégradé | {count} connecteurs dégradés"
+      },
+      "top_list": {
+        "last_visit": "Dernière visite {at}"
+      }
     }
   }
 }

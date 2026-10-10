@@ -39,6 +39,26 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
 });
 const emit = defineEmits<DynamicDrawerEmits>();
 
+// A side drawer is a sheet as wide as a side panel by default (see
+// `useAppSidePanels`), never wider than the window less the drawer's gutter.
+// Its own padding is the gutter: the containers drop theirs.
+const SIDE_DIRECTIONS: readonly DrawerDirection[] = ["left", "right"];
+const SIDE_DRAWER_CONTENT = "w-[440px]";
+const SIDE_CONTAINER_CLASS = "px-0 sm:px-0 lg:px-0";
+const EDGE_CONTAINER_CLASS = "max-sm:px-0";
+
+const isSide = computed(() => SIDE_DIRECTIONS.includes(props.direction));
+const containerClass = computed(() =>
+  isSide.value ? SIDE_CONTAINER_CLASS : EDGE_CONTAINER_CLASS,
+);
+const drawerUi = computed(() => ({
+  ...(isSide.value && { content: SIDE_DRAWER_CONTENT }),
+  header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
+  // The scroll area's bottom padding: a form's sticky footer sits flush
+  // with the drawer's edge (see Form.vue).
+  container: "[--dms-form-foot-pb:1rem]",
+}));
+
 // Let a DmsForm rendered in the body drop its DmsCard (the drawer is the surface).
 provide("dmsFormContainer", true);
 
@@ -104,19 +124,17 @@ function onContentResolve() {
     :description="description"
     :title="title"
     :dismissible="false"
-    :ui="{
-      header: 'border-b border-default flex shrink-0 items-center gap-4 pb-4',
-      // The scroll area's bottom padding: a form's sticky footer sits flush
-      // with the drawer's edge (see Form.vue).
-      container: '[--dms-form-foot-pb:1rem]',
-    }"
+    :ui="drawerUi"
     @close:prevent="tryClose"
   >
     <template #header>
       <!-- Same container as the body so the title aligns with the form. On
         phones the drawer's own padding is the 16px gutter: the container
         drops its own. -->
-      <UContainer class="flex w-full flex-1 items-start gap-3 max-sm:px-0">
+      <UContainer
+        class="flex w-full flex-1 items-start gap-3"
+        :class="containerClass"
+      >
         <DmsIconWell v-if="icon" :icon="icon" :tone="color" />
         <div v-if="headerComponent" class="min-w-0 flex-1">
           <VisuallyHidden>
@@ -157,7 +175,7 @@ function onContentResolve() {
       </UContainer>
     </template>
     <template #body>
-      <UContainer class="max-sm:px-0">
+      <UContainer :class="containerClass">
         <Suspense @pending="onContentPending" @resolve="onContentResolve">
           <component
             :is="component"

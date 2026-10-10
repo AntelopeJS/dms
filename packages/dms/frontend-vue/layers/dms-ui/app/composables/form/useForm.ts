@@ -13,6 +13,7 @@ import {
   type ReplaceUrlVariablesContext,
   hasUrlVariables,
   replaceUrlVariables,
+  resolveTextVariables,
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
 
@@ -347,7 +348,7 @@ export function resolveSubmitDefaults(
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(submitDefaults)) {
     if (typeof value === "string" && hasUrlVariables(value)) {
-      const replaced = resolveUrlVariables(value, context);
+      const replaced = resolveTextVariables(value, context);
       if (replaced === undefined) continue;
       resolved[key] = replaced;
     } else {

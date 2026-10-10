@@ -35,6 +35,17 @@ describe("page-mode form redirect", () => {
     ).toEqual({ path: "/workspaces/ws-42" });
   });
 
+  // The page path the router hands over is already percent-encoded: the path
+  // sent back is the one the page was reached at.
+  it("sends back an encoded page path as it was", () => {
+    expect(
+      resolveFormSuccessTarget(
+        EDIT_REDIRECT,
+        routeOf(EDIT_PATTERN, "/workspaces/ws%2042/invoiceTable/inv-7/edit"),
+      ),
+    ).toEqual({ path: "/workspaces/ws%2042" });
+  });
+
   it("carries back the declared query params only", () => {
     expect(
       resolveFormSuccessTarget(
