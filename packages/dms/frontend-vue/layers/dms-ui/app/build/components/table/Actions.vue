@@ -424,6 +424,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
           variant="ghost"
           size="sm"
           square
+          :aria-label="t('dms.table.search_open')"
           :class="uiTableActions.trigger()"
           @click="toggleSearch"
         />
@@ -433,7 +434,8 @@ const uiTableActions = computed(() => uiTableActionsVariant());
             v-if="searchActive"
             ref="searchInputRef"
             v-model="tableSharedData!.globalFilterState.value"
-            :placeholder="t('dms.table.search_placeholder')"
+            :placeholder="searchPlaceholderText"
+            :aria-label="searchPlaceholderText"
             icon="i-ph-magnifying-glass"
             size="sm"
             class="w-full"

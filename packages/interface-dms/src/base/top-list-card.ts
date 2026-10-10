@@ -12,7 +12,9 @@ import {
   type ValueFormat,
   type ValuePrecision,
 } from "./chart";
+import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps, EnumOption } from "./types";
+import type { BlockText } from "./types/composed-text";
 import { HttpMethod } from "./types/http";
 
 export interface TopListItemAvatar {
@@ -22,8 +24,14 @@ export interface TopListItemAvatar {
 
 export interface TopListItem {
   id: string | number;
-  title: string;
-  description?: string;
+  /** Row title: a literal, a `$`-prefixed i18n key, or a `ComposedText`. */
+  title: BlockText;
+  /**
+   * Dimmed line under the title, like the title: a `ComposedText` writes
+   * "3 min ago" in the reader's language (`{ key: "api.last_call", params:
+   * { at: { type: "relative", value: "2026-10-10T08:00:00Z" } } }`).
+   */
+  description?: BlockText;
   value: number;
   delta?: number | null;
   sparkline?: number[];
@@ -90,8 +98,8 @@ export function TopListCard(
 
 const TopListItemSchema = z.object({
   id: z.union([z.string(), z.number()]),
-  title: z.string(),
-  description: z.string().optional(),
+  title: blockTextSchema(),
+  description: blockTextSchema().optional(),
   value: z.number(),
   delta: z.number().nullable().optional(),
   sparkline: z.array(z.number()).optional(),

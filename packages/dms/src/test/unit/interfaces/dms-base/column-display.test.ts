@@ -100,6 +100,10 @@ describe("[unit] interfaces/dms-base — column displays", () => {
         new DefaultDisplays.DurationDisplay({ unit: "s" }),
         { type: "duration", options: { unit: "s" } },
       ],
+      [
+        new DefaultDisplays.StatusPillDisplay({ toneField: "httpTone" }),
+        { type: "status_pill", options: { toneField: "httpTone" } },
+      ],
       [new DefaultDisplays.BytesDisplay(), { type: "bytes" }],
       [
         new DefaultDisplays.MonoDisplay({ copy: true }),
@@ -109,6 +113,14 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     for (const [display, serialized] of cases) {
       expect(serializeColumnDisplay(display)).to.deep.equal(serialized);
     }
+    const locales: Array<string | DefaultDisplays.PillItem> = [
+      "en",
+      { label: "fr", tone: "success", variant: "soft" },
+      { label: "de", variant: "outline" },
+    ];
+    // @ts-expect-error a pill has no dashed variant
+    const dashed: DefaultDisplays.PillItem = { label: "it", variant: "dashed" };
+    expect([...locales, dashed]).to.have.length(4);
     // @ts-expect-error a progress needs its total
     new DefaultDisplays.ProgressDisplay({ doneField: "done" });
   });

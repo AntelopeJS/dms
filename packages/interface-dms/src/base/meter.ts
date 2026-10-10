@@ -11,7 +11,9 @@ import {
   blockRealtimeTopicOption,
 } from "./display";
 import { toneEnum } from "./internal/display";
+import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps, EnumOption } from "./types";
+import type { BlockText } from "./types/composed-text";
 import type { HttpMethod } from "./types/http";
 import { TONES } from "./types/tone";
 import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
@@ -35,16 +37,20 @@ export type MeterSize = (typeof METER_SIZES)[number];
 export interface MeterSegment {
   value: number;
   tone?: MeterTone;
-  /** Legend text ("6 members"). */
-  label?: string;
+  /**
+   * Legend text ("6 members"): a literal, a `$`-prefixed i18n key, or a
+   * `ComposedText` (`{ key: "media.storage.files", params: { count: { type:
+   * "count", value: 6 } } }`).
+   */
+  label?: BlockText;
 }
 
 /** The options `Meter` takes. */
 export interface MeterProps extends BaseComponentProps {
   /** Name of the measure ("Seats"). */
   label?: string;
-  /** Dimmed note after the label ("8 in use · 2 free"). */
-  hint?: string;
+  /** Dimmed note after the label ("8 in use · 2 free"); a `BlockText`. */
+  hint?: BlockText;
   /** Filled amount; ignored when `segments` is set. */
   value?: number;
   /** Total the bar stands for. Defaults to 100. */
@@ -55,8 +61,8 @@ export interface MeterProps extends BaseComponentProps {
   legend?: boolean;
   /** Value text right of the label. Defaults to `fraction`. */
   format?: MeterFormat;
-  /** Replaces the formatted value text. */
-  valueLabel?: string;
+  /** Replaces the formatted value text; a `BlockText`. */
+  valueLabel?: BlockText;
   /** Fill tone of a single value. Defaults to `primary`. */
   tone?: MeterTone;
   /** Percent of `max` from which the fill turns warning. */
@@ -130,7 +136,7 @@ const MeterSegmentSchema = z.object({
     label: "Tone",
     widget: "select",
   }),
-  label: ui(z.string().optional(), { label: "Legend" }),
+  label: ui(blockTextSchema().optional(), { label: "Legend", widget: "text" }),
 }) satisfies BlockOptionsFor<MeterSegment>;
 
 /** The options `Meter` accepts. */
@@ -139,7 +145,11 @@ export const MeterSchema = z.object({
     label: "Label",
     group: "content",
   }),
-  hint: ui(z.string().optional(), { label: "Hint", group: "content" }),
+  hint: ui(blockTextSchema().optional(), {
+    label: "Hint",
+    group: "content",
+    widget: "text",
+  }),
   value: ui(z.number().optional().describe("Filled amount."), {
     label: "Value",
     group: "data",
@@ -165,9 +175,10 @@ export const MeterSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  valueLabel: ui(z.string().optional(), {
+  valueLabel: ui(blockTextSchema().optional(), {
     label: "Custom value text",
     group: "content",
+    widget: "text",
   }),
   tone: ui(toneEnum(METER_TONES).optional(), {
     label: "Tone",

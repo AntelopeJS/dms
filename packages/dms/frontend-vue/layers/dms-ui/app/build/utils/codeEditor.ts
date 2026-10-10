@@ -35,7 +35,7 @@ import {
   placeholder as placeholderText,
   tooltips,
 } from "@codemirror/view";
-import { tags } from "@lezer/highlight";
+import { CODE_PALETTE } from "./codePalette";
 
 /** A suggestion of the autocomplete (interface-dms `CodeCompletion`). */
 export interface CodeEditorCompletion {
@@ -84,18 +84,7 @@ const LANGUAGES: Record<string, () => Extension> = {
   javascript: () => javascript(),
 };
 
-// The query console's palette, read from the theme's variables so light and
-// dark follow the app.
-const HIGHLIGHT = HighlightStyle.define([
-  { tag: [tags.keyword, tags.operatorKeyword], color: "var(--ui-primary)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "var(--ui-success)" },
-  { tag: [tags.number, tags.bool, tags.null], color: "var(--ui-warning)" },
-  { tag: [tags.comment], color: "var(--ui-text-dimmed)", fontStyle: "italic" },
-  { tag: [tags.propertyName, tags.attributeName], color: "var(--ui-info)" },
-  { tag: [tags.function(tags.variableName)], color: "var(--ui-primary)" },
-  { tag: [tags.tagName], color: "var(--ui-primary)" },
-  { tag: [tags.invalid], color: "var(--ui-error)" },
-]);
+const HIGHLIGHT = HighlightStyle.define(CODE_PALETTE);
 
 const THEME = EditorView.theme({
   "&": {

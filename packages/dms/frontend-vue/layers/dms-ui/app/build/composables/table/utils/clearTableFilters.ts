@@ -21,6 +21,12 @@ export interface TableNarrowingState {
    * search neither narrows the rows nor needs offering to clear.
    */
   searchApplies?: Ref<boolean>;
+  /**
+   * Filters the table applies without showing them (the page URL's
+   * `queryParamFilters`) narrow the rows: they count as filters, though no
+   * clear action reaches them.
+   */
+  hiddenFiltersApply?: Ref<boolean>;
 }
 
 /** What a clear would change. */
@@ -57,9 +63,11 @@ export const clearableTableFilters = (
   search: hasSearch(state),
 });
 
-/** The rows are narrowed by a search or a filter chip. */
+/** The rows are narrowed by a search, a filter chip or a hidden filter. */
 export const isTableNarrowed = (state: TableNarrowingState): boolean =>
-  hasSearch(state) || state.columnFilters.value.some(isFilterEffective);
+  hasSearch(state) ||
+  state.columnFilters.value.some(isFilterEffective) ||
+  !!state.hiddenFiltersApply?.value;
 
 /** i18n key of a clear action, naming what it clears. */
 export const clearTableFiltersLabelKey = (

@@ -2,7 +2,8 @@
 import { useClipboard } from "@vueuse/core";
 
 // A value in the mono font (an id, a key, a slug), with a button copying it
-// that shows on hover.
+// that shows on hover. The root is a block flex box held to its cell's
+// width: an inline one grows with the value, which then never truncates.
 
 interface Props {
   value: string;
@@ -27,7 +28,7 @@ const copyValue = async () => {
 </script>
 
 <template>
-  <span class="group/mono inline-flex min-w-0 items-center gap-1">
+  <span class="group/mono flex max-w-full min-w-0 items-center gap-1">
     <span class="text-toned truncate font-mono" :title="props.value">
       {{ props.value }}
     </span>

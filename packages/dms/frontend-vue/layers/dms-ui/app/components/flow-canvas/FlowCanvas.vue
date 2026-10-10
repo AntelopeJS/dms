@@ -29,7 +29,9 @@ import { computed, useId, useSlots } from "vue";
 //   Delete/Backspace remove the selection. Both paths only *emit* the
 //   `delete-nodes` intent — the badge for its own node, Delete/Backspace for
 //   the whole selection — the wrapper never mutates the consumer's
-//   `nodes`/`edges`; the consumer applies the removal.
+//   `nodes`/`edges`; the consumer applies the removal. `deleteBadge: false`
+//   hides the badge and keeps the keyboard path, for a consumer that draws
+//   its own delete control.
 // - `zoomReadout` adds a live zoom percentage to the control bar that doubles
 //   as a reset-to-100% button.
 //
@@ -120,6 +122,11 @@ interface Props {
    */
   deleteKeyCode?: DeleteKeyCode;
   /**
+   * Draw the delete badge on selected nodes while `deletableNodes` is on.
+   * `false` leaves the keyboard path alone. Defaults to `true`.
+   */
+  deleteBadge?: boolean;
+  /**
    * Add a live zoom percentage / reset-to-100% control to the control bar.
    * It renders inside the bar, so it requires `controls` to be enabled.
    */
@@ -141,6 +148,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: "100%",
   deletableNodes: false,
   deleteKeyCode: undefined,
+  deleteBadge: true,
   zoomReadout: false,
 });
 
@@ -198,7 +206,7 @@ const zoomPercent = computed(() =>
 // Project each selected node's top-right corner from flow space to screen
 // space through the live viewport transform, so badges track pan/zoom/drag.
 const deleteAffordances = computed<DeleteAffordance[]>(() => {
-  if (!props.deletableNodes) return [];
+  if (!props.deletableNodes || !props.deleteBadge) return [];
   const {
     x: panX,
     y: panY,
@@ -295,7 +303,10 @@ defineExpose(flow);
       <slot />
     </VueFlow>
 
-    <div v-if="deletableNodes" class="dms-flow-canvas__delete-layer">
+    <div
+      v-if="deletableNodes && deleteBadge"
+      class="dms-flow-canvas__delete-layer"
+    >
       <button
         v-for="affordance in deleteAffordances"
         :key="affordance.id"

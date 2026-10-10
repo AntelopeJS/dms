@@ -51,7 +51,13 @@ export class PageBlocksMeters extends PageController("blocks-meters", {
           Meter({
             card: true,
             label: "Storage",
-            hint: "38.2 of 50 GB",
+            hint: {
+              key: "demo.blocks.meter.storage_hint",
+              params: {
+                used: { type: "number", value: 38.2 },
+                total: { type: "number", value: 50 },
+              },
+            },
             value: 76.4,
             max: 100,
             format: "percent",

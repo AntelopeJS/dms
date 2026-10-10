@@ -4,7 +4,9 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { type BlockItemsSource, blockItemsSourceOptions } from "./display";
 import { toneEnum } from "./internal/display";
 import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
+import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
+import type { BlockText } from "./types/composed-text";
 import type { CategoryInfo } from "../page/types";
 import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
@@ -12,21 +14,24 @@ import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 export interface NavCardItem {
   /** Stable key; the target is used without one. */
   id?: string;
-  /** `$`-prefixed for an i18n key, like every text of the card. */
-  title: string;
-  description?: string;
+  /**
+   * `$`-prefixed for an i18n key, or a `ComposedText`, like every text of
+   * the card.
+   */
+  title: BlockText;
+  description?: BlockText;
   icon: string;
   iconTone?: IconTone;
   /** Route, `#anchor` or URL. */
   to: string;
   /** Live state of the target, in mono at the bottom ("3 unread"). */
-  state?: string;
+  state?: BlockText;
   /** Tone of the state line (`neutral` = dimmed). */
   stateTone?: Tone;
   /** Small uppercase tag after the title (the module a page comes from). */
-  tag?: string;
+  tag?: BlockText;
   /** Mono readout lines under the description. */
-  readout?: string[];
+  readout?: BlockText[];
 }
 
 /** The options `NavCardGrid` takes. */
@@ -106,8 +111,8 @@ export function NavCardGrid(
 
 const NavCardItemSchema = z.object({
   id: ui(z.string().optional(), { label: "Key", advanced: true }),
-  title: ui(z.string(), { label: "Title" }),
-  description: ui(z.string().optional(), {
+  title: ui(blockTextSchema(), { label: "Title", widget: "text" }),
+  description: ui(blockTextSchema().optional(), {
     label: "Description",
     widget: "textarea",
   }),
@@ -120,13 +125,15 @@ const NavCardItemSchema = z.object({
     label: "Link",
     widget: "url",
   }),
-  state: ui(z.string().optional(), { label: "State" }),
+  state: ui(blockTextSchema().optional(), { label: "State", widget: "text" }),
   stateTone: ui(toneEnum(TONES).optional(), {
     label: "State tone",
     widget: "select",
   }),
-  tag: ui(z.string().optional(), { label: "Tag" }),
-  readout: ui(z.array(z.string()).optional(), { label: "Readout lines" }),
+  tag: ui(blockTextSchema().optional(), { label: "Tag", widget: "text" }),
+  readout: ui(z.array(blockTextSchema()).optional(), {
+    label: "Readout lines",
+  }),
 }) satisfies BlockOptionsFor<NavCardItem>;
 
 /** The options `NavCardGrid` accepts. */

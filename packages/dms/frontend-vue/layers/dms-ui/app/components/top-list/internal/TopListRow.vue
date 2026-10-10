@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { TopListItem } from "../../../composables/chart/types";
+import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 // Imported rather than resolved from the registry: a registered component is
 // a lazy chunk of its own, fetched only when the data first shows it, so the
 // trend would pop in a beat after the row.
@@ -31,11 +32,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const PERCENT_UNIT = "%";
 
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
-const titleDisplay = computed(() => processI18n(props.item.title));
+const titleDisplay = computed(() => processText(props.item.title));
 const descriptionDisplay = computed(() =>
-  props.item.description ? processI18n(props.item.description) : "",
+  props.item.description ? processText(props.item.description) : "",
 );
 
 const hasSparklineData = computed(

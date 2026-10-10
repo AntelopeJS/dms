@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from "vue";
 import ShowcaseDemo from "./ShowcaseDemo.vue";
 import ShowcaseSection from "./ShowcaseSection.vue";
 
@@ -101,6 +102,32 @@ const MODULE_STATS = [
     tone: "success",
   },
 ] as const;
+
+const WEBHOOKS = [
+  {
+    value: "orders",
+    label: "Order created",
+    sublabel: "https://hooks.acme.example/orders",
+    icon: "i-ph-shopping-cart",
+  },
+  {
+    value: "invoices",
+    label: "Invoice paid",
+    sublabel: "https://hooks.acme.example/billing",
+    icon: "i-ph-invoice",
+  },
+  {
+    value: "members",
+    label: "Member joined",
+    sublabel: "https://hooks.acme.example/members",
+    icon: "i-ph-user-plus",
+  },
+];
+
+const selectedWebhookId = ref<string | number>("orders");
+const selectedWebhook = computed(() =>
+  WEBHOOKS.find((hook) => hook.value === selectedWebhookId.value),
+);
 </script>
 
 <template>
@@ -387,6 +414,30 @@ const MODULE_STATS = [
         label="layout='cards' · loading without items (skeletonCount=4)"
       >
         <DmsStatGroup layout="cards" loading :skeleton-count="4" />
+      </ShowcaseDemo>
+    </ShowcaseSection>
+
+    <ShowcaseSection
+      id="master-detail"
+      title="DmsMasterDetail"
+      description="A selectable list beside its detail. The panes sit side by side from 64rem of the component's own width and stack below it: open the side panel from the header to narrow the page."
+      :columns="1"
+    >
+      <ShowcaseDemo label="items · v-model · listLabel · #default">
+        <DmsMasterDetail
+          v-model="selectedWebhookId"
+          :items="WEBHOOKS"
+          list-label="Webhooks"
+        >
+          <div class="grid gap-1 p-5">
+            <p class="text-highlighted text-sm font-semibold">
+              {{ selectedWebhook?.label }}
+            </p>
+            <p class="text-muted font-mono text-xs">
+              {{ selectedWebhook?.sublabel }}
+            </p>
+          </div>
+        </DmsMasterDetail>
       </ShowcaseDemo>
     </ShowcaseSection>
   </div>
