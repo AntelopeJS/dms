@@ -24,6 +24,7 @@ import {
 } from "./chart";
 import { AxeOrientation } from "./types";
 import { HttpMethod } from "./types/http";
+import { blockRealtimeTopicOption } from "./display";
 
 const COMPARISON_STYLES = ["dashed", "solid", "dimmed"] as const;
 const CHART_CURVES = ["smooth", "straight", "stepline"] as const;
@@ -134,12 +135,7 @@ const baseChartShape = {
     label: "Period scope",
     group: "advanced",
   }),
-  // A topic is a name the backend publishes under, which only its code knows.
-  realtimeTopic: ui(z.union([z.string(), z.array(z.string())]).optional(), {
-    label: "Realtime topics",
-    group: "data",
-    advanced: true,
-  }),
+  realtimeTopic: blockRealtimeTopicOption(),
   rawOptions: ui(z.array(keyValueSchema).optional(), {
     label: "Raw chart options",
     group: "advanced",

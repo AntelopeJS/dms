@@ -7,6 +7,8 @@ import {
   blockFetchUrlMethodOption,
   blockFetchUrlOption,
   type BlockLinkAction,
+  blockPeriodScopeOption,
+  blockRealtimeTopicOption,
 } from "./display";
 import { toneEnum } from "./internal/display";
 import { blockTextSchema } from "./internal/composed-text";
@@ -14,6 +16,7 @@ import type { BaseComponentProps, EnumOption } from "./types";
 import type { BlockText } from "./types/composed-text";
 import type { HttpMethod } from "./types/http";
 import { TONES } from "./types/tone";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /**
  * Fill tones of a meter: the semantic tones plus `soft`, the pale primary of
@@ -76,6 +79,16 @@ export interface MeterProps extends BaseComponentProps {
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
+  /**
+   * Id of the `PeriodSelector` the figures follow, as in
+   * `BlockItemsSource.periodScope`.
+   */
+  periodScope?: string;
+  /**
+   * Topics whose events make the meter read `fetchUrl` again, as in
+   * `BlockItemsSource.realtimeTopic`.
+   */
+  realtimeTopic?: string | string[];
   /** Wraps the meter in a padded card. Defaults to `false`. */
   card?: boolean;
   /** Link buttons under the bar, on the right ("Manage members"). */
@@ -106,12 +119,15 @@ const DEFAULT_ICON = "i-ph-gauge";
  * ```
  */
 export function Meter(options?: MeterProps): ComponentBuilder<MeterProps> {
-  return new ComponentBuilder<MeterProps>(METER_COMPONENT_NAME)
-    .options({ ...options })
-    .meta({
-      name: options?.label || "Meter",
-      icon: DEFAULT_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<MeterProps>(METER_COMPONENT_NAME)
+      .options({ ...options })
+      .meta({
+        name: options?.label || "Meter",
+        icon: DEFAULT_ICON,
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 const MeterSegmentSchema = z.object({
@@ -188,8 +204,10 @@ export const MeterSchema = z.object({
     group: "appearance",
     widget: "segmented",
   }),
-  fetchUrl: blockFetchUrlOption("Where the figures come from."),
+  fetchUrl: blockFetchUrlOption("Where the figures come from.", "periodScope"),
   fetchUrlMethod: blockFetchUrlMethodOption(),
+  periodScope: blockPeriodScopeOption(),
+  realtimeTopic: blockRealtimeTopicOption(),
   card: blockCardOption(false),
   actions: blockActionsOption("Link buttons under the bar."),
 }) satisfies BlockOptionsFor<MeterProps>;

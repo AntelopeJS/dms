@@ -19,6 +19,10 @@ export interface UseBlockItemsOptions<T> {
    */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector whose period `fetchUrl` is requested with. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** The parameters of the page route (the block's `routeParams` prop). */
   routeParams?: () => Record<string, string> | undefined;
   watchActions?: WatchAction[];
@@ -35,11 +39,12 @@ export interface UseBlockItemsReturn<T> {
 }
 
 /**
- * The items a list block (StatGroup, KeyValueList, NavCardGrid) renders:
- * either the static ones of its options, or the `items` its `fetchUrl`
- * answers with — refetched when a watched event changes the block's state or
- * the page asks its blocks to refresh (refreshPageBlocks), like the KPI and
- * top-list cards.
+ * The items a list block (StatGroup, KeyValueList, NavCardGrid, ActivityFeed)
+ * renders: either the static ones of its options, or the `items` its
+ * `fetchUrl` answers with — refetched when its period scope changes, a
+ * watched event changes the block's state, one of its realtime topics fires,
+ * or the page asks its blocks to refresh (refreshPageBlocks), like the KPI
+ * and top-list cards.
  */
 export function useBlockItems<T>(
   options: UseBlockItemsOptions<T>,
@@ -56,6 +61,8 @@ export function useBlockItems<T>(
   >({
     fetchUrl: options.fetchUrl,
     fetchUrlMethod: options.fetchUrlMethod,
+    periodScope: options.periodScope,
+    realtimeTopic: options.realtimeTopic,
     routeParams: options.routeParams,
     watchSource: () => watchKey.value,
   });

@@ -11,6 +11,7 @@ import { TONES, type Tone } from "./types/tone";
 import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
 import type { BlockText } from "./types/composed-text";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /**
  * How a value is drawn: `text` plain, `status` a tinted pill, `money` a
@@ -102,12 +103,15 @@ const KEY_VALUE_LIST_DEFAULTS = { card: true, columns: 1 } as const;
 export function KeyValueList(
   options?: KeyValueListProps,
 ): ComponentBuilder<KeyValueListProps> {
-  return new ComponentBuilder<KeyValueListProps>(KEY_VALUE_LIST_COMPONENT_NAME)
-    .options({ ...KEY_VALUE_LIST_DEFAULTS, ...options })
-    .meta({
-      name: options?.title || "Key / value list",
-      icon: KEY_VALUE_LIST_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<KeyValueListProps>(KEY_VALUE_LIST_COMPONENT_NAME)
+      .options({ ...KEY_VALUE_LIST_DEFAULTS, ...options })
+      .meta({
+        name: options?.title || "Key / value list",
+        icon: KEY_VALUE_LIST_ICON,
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 const KeyValueListItemSchema = z.object({

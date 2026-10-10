@@ -1,6 +1,8 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { StatGroup } from "@antelopejs/interface-dms/base";
+import { PeriodSelector, StatGroup } from "@antelopejs/interface-dms/base";
 import { blocksCategory } from "./category";
+
+const LIVE_PERIOD_SCOPE = "blocks-stat-group-period";
 
 @RegisterPage()
 export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
@@ -9,7 +11,7 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
   category: blocksCategory,
   order: 0,
   description:
-    "StatGroup block: joined status strip, summary cards, live data, loading, error and empty states",
+    "StatGroup block: joined status strip, summary cards, live data following a period selector, loading, error and empty states",
 }) {
   static joined = StatGroup({
     layout: "joined",
@@ -97,9 +99,19 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
     ],
   });
 
+  static livePeriod = PeriodSelector({
+    id: LIVE_PERIOD_SCOPE,
+    align: "right",
+    presets: ["last-7-days", "last-30-days", "this-month", "this-quarter"],
+    comparisons: ["none"],
+    defaultPreset: "this-month",
+  });
+
+  // Follows the selector above: the route scales its figures to the period.
   static live = StatGroup({
     layout: "cards",
     fetchUrl: "/api/blocks/stats",
+    periodScope: LIVE_PERIOD_SCOPE,
     // The route answers 4 figures: the skeleton draws as many cells.
     skeletonCount: 4,
   });

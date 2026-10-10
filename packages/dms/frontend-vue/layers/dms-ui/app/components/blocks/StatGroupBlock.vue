@@ -31,6 +31,10 @@ interface StatGroupBlockProps extends DefaultComponentProps {
   label?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Shown when there is nothing to list. */
   empty?: BlockEmptyText;
   /**
@@ -47,6 +51,8 @@ const props = withDefaults(defineProps<StatGroupBlockProps>(), {
   label: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   empty: undefined,
   skeletonCount: undefined,
 });
@@ -60,6 +66,8 @@ const { items, isPending, hasError, refresh } =
     items: () => props.items,
     fetchUrl: props.fetchUrl,
     fetchUrlMethod: props.fetchUrlMethod,
+    periodScope: props.periodScope,
+    realtimeTopic: props.realtimeTopic,
     routeParams: () => props.routeParams,
     watchActions: props.watchActions,
     componentId: props.componentId,

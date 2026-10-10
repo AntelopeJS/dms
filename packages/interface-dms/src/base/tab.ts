@@ -6,6 +6,8 @@ import type { EnumOption } from "./types/enum-option";
 import { Color } from "./types/color";
 import { AxeOrientation } from "./types/orientation";
 import { Size } from "./types/size";
+import { blockRealtimeTopicOption } from "./display";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 export namespace TabEvents {
   export const TAB_CHANGE = "DmsComponent.Tab.Change";
@@ -59,6 +61,11 @@ export interface TabProps extends BaseComponentProps {
    * requested while a token has no value: the static badges show.
    */
   badgesUrl?: string;
+  /**
+   * Topics whose events make the tab set read `badgesUrl` again, as in
+   * `BlockItemsSource.realtimeTopic`.
+   */
+  realtimeTopic?: string | string[];
 }
 
 const TAB_COMPONENT_NAME = "dms-tab";
@@ -70,12 +77,15 @@ const TAB_COMPONENT_NAME = "dms-tab";
  * on every edit — so a block with nothing set yet has to be a legal call.
  */
 export const Tab = (options?: TabProps): ComponentBuilder<TabProps> => {
-  return new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
-    .options({ ...options } as TabProps)
-    .meta({
-      name: "Tabs",
-      icon: "i-ph-tabs",
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<TabProps>(TAB_COMPONENT_NAME)
+      .options({ ...options } as TabProps)
+      .meta({
+        name: "Tabs",
+        icon: "i-ph-tabs",
+      }),
+    options?.realtimeTopic,
+  );
 };
 
 const BadgeSchema = z.object({
@@ -112,6 +122,7 @@ export const TabSchema = z.object({
       .describe("Route answering the badge of each tab, by slot."),
     { label: "Badges from", group: "data", widget: "url", advanced: true },
   ),
+  realtimeTopic: blockRealtimeTopicOption(),
   items: ui(z.array(TabItemSchema).describe("The tabs, in display order."), {
     label: "Tabs",
     group: "content",

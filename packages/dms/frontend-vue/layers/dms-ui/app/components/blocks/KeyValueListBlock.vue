@@ -35,6 +35,10 @@ interface KeyValueListBlockProps extends DefaultComponentProps {
   card?: boolean;
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Shown when there is nothing to list. */
   empty?: BlockEmptyText;
   /**
@@ -53,6 +57,8 @@ const props = withDefaults(defineProps<KeyValueListBlockProps>(), {
   card: true,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   empty: undefined,
   // A fetched list's length is unknown until it lands: draw the rows a record
   // card usually lists (customer, ids, status, amounts, dates), not a stub.
@@ -68,6 +74,8 @@ const { items, isPending, hasError, refresh } =
     items: () => props.items,
     fetchUrl: props.fetchUrl,
     fetchUrlMethod: props.fetchUrlMethod,
+    periodScope: props.periodScope,
+    realtimeTopic: props.realtimeTopic,
     routeParams: () => props.routeParams,
     watchActions: props.watchActions,
     componentId: props.componentId,

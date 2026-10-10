@@ -1,17 +1,36 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Card, KeyValueList, StatGroup } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
+import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
-export class PageBlocksKeyValue extends PageController("blocks-key-value", {
-  displayName: "Key / value & card",
-  icon: "i-ph-list-dashes",
-  category: blocksCategory,
-  order: 10,
-  description:
-    "KeyValueList block (every value type, copy buttons, columns, dense, live data) and the Card container block",
-}) {
+export class PageBlocksKeyValue extends PageController(
+  "blocks-key-value",
+  {
+    displayName: "Key / value & card",
+    icon: "i-ph-list-dashes",
+    category: blocksCategory,
+    order: 10,
+    description:
+      'KeyValueList block (every value type, copy buttons, columns, dense, live data refreshed over realtime: "Update the live facts" bumps them 2 s later and publishes on their topic) and the Card container block',
+  },
+  DefaultLayout({
+    headerActions: [
+      {
+        label: "Update the live facts",
+        icon: "i-ph-broadcast",
+        target: {
+          type: "api",
+          url: "/api/blocks/facts/bump",
+          method: "POST",
+          successMessage: "Update started; Live facts refreshes when it lands",
+        },
+      },
+    ],
+  }),
+) {
   static summaries = Grid({ gap: "1rem", minColumnWidth: "320px" }).child(
     "row",
     GridRow()
@@ -70,6 +89,8 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
         KeyValueList({
           title: "Live facts",
           fetchUrl: "/api/blocks/facts",
+          // Read again on each bump of the form below, over SSE.
+          realtimeTopic: FACTS_DEMO_TOPIC,
           // The route answers 5 rows: the skeleton draws as many.
           skeletonCount: 5,
         }),

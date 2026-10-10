@@ -47,6 +47,22 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     }
   });
 
+  it("lets a fetched block follow a period scope and realtime topics", () => {
+    for (const type of [
+      "StatGroup",
+      "KeyValueList",
+      "NavCardGrid",
+      "ActivityFeed",
+      "Meter",
+    ]) {
+      const { config } = declared(type);
+      expect(config.fetchUrl?.ui?.periodOption, type).to.equal("periodScope");
+      expect(config.periodScope?.optional, type).to.equal(true);
+      expect(config.realtimeTopic?.ui?.advanced, type).to.equal(true);
+    }
+    expect(declared("Tab").config.realtimeTopic?.optional).to.equal(true);
+  });
+
   it("lets a fetched block say how many placeholders to draw, unset by default", () => {
     for (const type of [
       "StatGroup",

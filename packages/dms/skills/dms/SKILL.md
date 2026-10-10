@@ -34,7 +34,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
   A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
-  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
+  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves;
+  `periodScope` binds a card, chart, list block or `Meter` to a `PeriodSelector`, and
+  `realtimeTopic` re-fetches a chart, list block, `Meter` or `Tab` badges on each `PublishMessage`.
   A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
   `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
   browser writes in the reader's language: StatGroup / KeyValueList / Banner / NavCardGrid /
