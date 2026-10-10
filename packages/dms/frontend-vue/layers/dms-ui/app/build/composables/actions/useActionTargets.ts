@@ -211,7 +211,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
     return run.target.type === "modal"
       ? openModal({ ...options, size: run.target.size })
-      : openDrawer(options);
+      : openDrawer({ ...options, direction: run.target.direction });
   };
 
   // A container opened on a listed row steps through the rows shown (its

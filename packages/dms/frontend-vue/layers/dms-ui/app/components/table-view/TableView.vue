@@ -47,7 +47,6 @@ import {
 } from "../../composables/table-view/kanban";
 import { useTableRowActions } from "../../build/composables/table-view/useTableViewRowActions";
 import {
-  buildTableDataKey,
   buildTableQuery,
   isFilterEffective,
 } from "../../build/composables/table-view/utils/tableQuery";
@@ -118,7 +117,10 @@ import { readTableUrlKey } from "../../build/composables/table-view/utils/views"
 import TableViews, {
   type TableViewItem,
 } from "../../build/components/table/Views.vue";
-import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
+import {
+  useTableCountsData,
+  useTableListData,
+} from "../../build/composables/table-view/useTableListData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
@@ -609,14 +611,18 @@ watch(resolvedTabs, (next) => {
 });
 
 const { $authFetch } = useAuthFetch();
+const route = useDmsRoute();
 // The controller's routes, or a `TableView.fromSource` table's route.
 const tableRows = useTableRows<T>({
   api: $authFetch,
   location,
   source: props.source,
   columns: props.columns,
+  route: () => ({
+    routeParams: props.routeParams,
+    routeQuery: route.query as Record<string, unknown>,
+  }),
 });
-const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
 
@@ -788,33 +794,14 @@ const archiveQuery = computed(() =>
   archiveMode ? { showArchived: showArchived.value } : {},
 );
 
-const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
-  results: [],
-  total: 0,
-  offset: 0,
-  limit: 0,
-};
-
-const tableDataKey = buildTableDataKey({
+const { data, status, error, refresh } = await useTableListData<T>({
   componentId,
   pageId,
-  query: queryRequest.value,
-  archiveQuery: archiveQuery.value,
-  isSelfManaged: isActiveDisplaySelfManaged.value,
+  rows: tableRows,
+  query: queryRequest,
+  archiveQuery,
+  isSelfManaged: isActiveDisplaySelfManaged,
 });
-
-const { data, status, error, refresh } = await useServerRenderedAsyncData(
-  tableDataKey,
-  (): Promise<TableViewListResponse<T>> => {
-    // Self-managed displays (e.g. kanban) fetch their own data; skip the
-    // shared list query for them.
-    if (isActiveDisplaySelfManaged.value) {
-      return Promise.resolve(EMPTY_LIST_RESULT);
-    }
-    return tableRows.list({ ...queryRequest.value, ...archiveQuery.value });
-  },
-  { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
-);
 
 // Nothing listed yet (a client navigation paints before the first page
 // arrives): the table draws its skeleton, never the empty state.
@@ -949,19 +936,13 @@ const tabCountsQuery = computed(() => [
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useServerRenderedAsyncData<Record<string, number>>(
-    `table-view-${componentId}-${pageId}-tab-counts`,
-    async () => {
-      if (tabCountsQuery.value.length === 0) return {};
-      return await tableRows.countBatch(
-        tabCountsQuery.value.map(({ id, query }) => ({
-          id,
-          query: { ...query, ...archiveQuery.value },
-        })),
-      );
-    },
-    { watch: [tabCountsQuery, archiveQuery] },
-  );
+  await useTableCountsData<T>({
+    componentId,
+    pageId,
+    rows: tableRows,
+    queries: tabCountsQuery,
+    archiveQuery,
+  });
 
 const viewItems = computed<TableViewItem[]>(() =>
   tableViewItems.value.map((view) => ({

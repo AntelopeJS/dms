@@ -1,9 +1,14 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import { computed } from "vue";
 import type {
   TableViewColumn,
   TableViewListResponse,
   TableViewSourceConfig,
 } from "../../../composables/table-view/types";
+import {
+  type ReplaceUrlVariablesContext,
+  resolveUrlVariables,
+} from "../../utils/urlVariables";
 
 type Query = Record<string, unknown>;
 
@@ -20,6 +25,11 @@ export interface TableRowsOptions {
   /** A `TableView.fromSource` table's route, instead of a controller. */
   source?: TableViewSourceConfig;
   columns: TableViewColumn[];
+  /**
+   * The page route a source's `fetchUrl` names: its parameters and query,
+   * read again on every request.
+   */
+  route?: () => ReplaceUrlVariablesContext;
 }
 
 const FILTER_PREFIX = "filter_";
@@ -27,6 +37,7 @@ const SEARCH_KEY = "search";
 const SORT_KEYS = ["sortKey", "sortDirection"];
 const PAGE_KEYS = ["offset", "limit"];
 const DESCENDING = "desc";
+const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
@@ -107,26 +118,51 @@ export function processSourceRows<T extends Record<string, unknown>>(
   };
 }
 
+/** A page with no rows: what a source shows while its URL is unresolved. */
+function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
+  return {
+    results: [],
+    total: 0,
+    offset: Number(query.offset) || 0,
+    limit: Number(query.limit) || 0,
+  };
+}
+
 /**
  * Where a table view reads its rows: its data controller's routes, or the
  * route of a `TableView.fromSource` table — which answers `{ results, total }`
  * for the part of the query it handles. A route answering every row leaves
  * the rest to the browser; a route answering one page is taken as it is.
+ *
+ * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
+ * while one has no value nothing is requested and the list is empty.
+ * `sourceUrl` is the URL requested, for the caller to list again when it
+ * changes.
  */
 export function useTableRows<T extends Record<string, unknown>>(
   options: TableRowsOptions,
 ) {
   const { api, location, source, columns } = options;
 
+  const sourceUrl = computed(() =>
+    source
+      ? resolveUrlVariables(
+          source.fetchUrl,
+          options.route?.() ?? NO_ROUTE_VALUES,
+        )
+      : undefined,
+  );
+
   const listFromSource = async (
     sourceConfig: TableViewSourceConfig,
     query: Query,
   ): Promise<TableViewListResponse<T>> => {
+    const url = sourceUrl.value;
+    if (!url) return emptySourcePage(query);
     const { capabilities } = sourceConfig;
-    const response = await api<{ results: T[]; total: number }>(
-      sourceConfig.fetchUrl,
-      { query: sourceRouteQuery(query, capabilities) },
-    );
+    const response = await api<{ results: T[]; total: number }>(url, {
+      query: sourceRouteQuery(query, capabilities),
+    });
     if (capabilities.paginate) {
       return {
         ...response,
@@ -171,5 +207,5 @@ export function useTableRows<T extends Record<string, unknown>>(
       ? Promise.resolve(undefined)
       : api<T>(`${location}/get`, { query: { id } });
 
-  return { isSource: !!source, list, countBatch, getRow };
+  return { isSource: !!source, sourceUrl, list, countBatch, getRow };
 }

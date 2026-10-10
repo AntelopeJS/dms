@@ -15,6 +15,7 @@ import "./banner";
 import "./card";
 import "./internal/chart-schemas";
 import "./chart-card";
+import "./code-block";
 import "./empty-state";
 import "./form-block-schema";
 import "./grid";

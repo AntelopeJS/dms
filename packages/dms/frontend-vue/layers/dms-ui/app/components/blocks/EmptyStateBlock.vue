@@ -4,6 +4,7 @@ import DmsEmptyState, {
   type EmptyStateSize,
   type EmptyStateVariant,
 } from "../empty-state/EmptyState.vue";
+import DmsCodeSnippet from "../code-snippet/CodeSnippet.vue";
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
@@ -15,6 +16,13 @@ import type { DefaultComponentProps } from "../../../../dms-core/app/types/compo
 // .c-empty placed on a page — a first-run screen, a "nothing here yet" panel
 // — with link actions. In a card by default. Texts follow the `$` i18n-key
 // convention.
+/** A snippet under the text (interface-dms `EmptyStateCode`). */
+interface EmptyStateCode {
+  content: string;
+  language?: string;
+  copy?: boolean;
+}
+
 interface EmptyStateBlockProps extends Partial<DefaultComponentProps> {
   title?: string;
   description?: string;
@@ -25,6 +33,8 @@ interface EmptyStateBlockProps extends Partial<DefaultComponentProps> {
   hatched?: boolean;
   size?: EmptyStateSize;
   actions?: BlockAction[];
+  /** A snippet between the text and the actions. */
+  code?: EmptyStateCode;
   /** Card surface around it; off when it sits inside a Card block. */
   card?: boolean;
 }
@@ -38,6 +48,7 @@ const props = withDefaults(defineProps<EmptyStateBlockProps>(), {
   hatched: false,
   size: "md",
   actions: () => [],
+  code: undefined,
   card: true,
 });
 
@@ -61,6 +72,13 @@ const description = computed(() =>
       :hatched="props.hatched"
       :size="props.size"
     >
+      <template v-if="props.code" #content>
+        <DmsCodeSnippet
+          :code="props.code.content"
+          :language="props.code.language"
+          :copy="props.code.copy ?? true"
+        />
+      </template>
       <template v-if="props.actions.length" #actions>
         <DmsBlockActions :actions="props.actions" size="sm" />
       </template>
