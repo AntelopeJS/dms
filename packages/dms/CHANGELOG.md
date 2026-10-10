@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.2...v0.7.3)
+
+### 🩹 Fixes
+
+- **dms-ui:** Declare @lezer/common, which the code highlighter imports ([#192](https://github.com/AntelopeJS/dms/pull/192))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.1...v0.7.2)
