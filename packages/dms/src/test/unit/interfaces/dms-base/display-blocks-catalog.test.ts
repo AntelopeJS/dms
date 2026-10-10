@@ -87,6 +87,21 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(result.valid).to.equal(false);
   });
 
+  it("accepts a copy button on a key / value row", () => {
+    const valid = (item: Record<string, unknown>) =>
+      ValidateBlockOptions("KeyValueList", {
+        items: [
+          { label: "Endpoint", value: "https://api.example.com", ...item },
+        ],
+      }).valid;
+
+    expect(valid({ copy: true })).to.equal(true);
+    expect(valid({ copyValue: "https://cdn.example.com/a.webp" })).to.equal(
+      true,
+    );
+    expect(valid({ copy: "yes" })).to.equal(false);
+  });
+
   it("accepts a composed text wherever a block text goes", () => {
     const mrr = {
       key: "saas.stats.mrr",

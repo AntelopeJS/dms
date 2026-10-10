@@ -42,6 +42,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
   `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row.
+  A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
+  (the text to copy instead, e.g. a full URL behind a short label).
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.
