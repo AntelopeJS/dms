@@ -35,6 +35,8 @@ interface EmptyStateProps {
 interface EmptyStateSlots {
   /** Rich description, replaces `description`. */
   default?: () => unknown;
+  /** Under the text, above the actions: a snippet to start with. */
+  content?: () => unknown;
   /** Buttons or links under the text. */
   actions?: () => unknown;
 }
@@ -71,6 +73,7 @@ const theme = tv({
     well: "mb-1.5",
     title: "text-highlighted",
     description: "text-muted",
+    content: "mt-2.5 w-full max-w-[60ch] text-start",
     actions: "mt-2.5 flex flex-wrap items-center justify-center gap-2",
   },
   variants: {
@@ -106,8 +109,11 @@ const resolvedIcon = computed(() => props.icon ?? VARIANT_ICONS[props.variant]);
 const resolvedTone = computed<Tone>(
   () => props.tone ?? (props.variant === "error" ? "error" : "neutral"),
 );
-const hasDescription = computed(() => !!props.description || !!slots.default);
-const hasActions = computed(() => !!slots.actions || !!props.actions?.length);
+// Read at each render rather than in a computed: the slots object is not
+// reactive, so a computed would keep the slots of the first render and miss
+// a slot the parent adds or removes later.
+const hasDescription = (): boolean => !!props.description || !!slots.default;
+const hasActions = (): boolean => !!slots.actions || !!props.actions?.length;
 </script>
 
 <template>
@@ -122,10 +128,13 @@ const hasActions = computed(() => !!slots.actions || !!props.actions?.length);
       :class="ui.well()"
     />
     <p :class="ui.title()">{{ props.title }}</p>
-    <p v-if="hasDescription" :class="ui.description()">
+    <p v-if="hasDescription()" :class="ui.description()">
       <slot>{{ props.description }}</slot>
     </p>
-    <div v-if="hasActions" :class="ui.actions()">
+    <div v-if="slots.content" :class="ui.content()">
+      <slot name="content" />
+    </div>
+    <div v-if="hasActions()" :class="ui.actions()">
       <slot name="actions">
         <UButton
           v-for="(action, index) in props.actions"

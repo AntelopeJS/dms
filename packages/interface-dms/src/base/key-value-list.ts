@@ -50,6 +50,13 @@ export interface KeyValueListItem {
   detail?: BlockText;
   /** ISO 4217 code of a `money` value; overrides the list's `currency`. */
   currency?: string;
+  /** Draws a button copying the value as it is shown. */
+  copy?: boolean;
+  /**
+   * Text the copy button copies instead of the shown value (a full URL behind
+   * a short label). Implies `copy`.
+   */
+  copyValue?: string;
 }
 
 /** The options `KeyValueList` takes. */
@@ -121,6 +128,11 @@ const KeyValueListItemSchema = z.object({
   }),
   detail: ui(blockTextSchema().optional(), { label: "Detail", widget: "text" }),
   currency: ui(z.string().optional(), { label: "Currency", advanced: true }),
+  copy: ui(z.boolean().optional(), { label: "Copy button", widget: "switch" }),
+  copyValue: ui(z.string().optional(), {
+    label: "Copied text",
+    advanced: true,
+  }),
 }) satisfies BlockOptionsFor<KeyValueListItem>;
 
 /** The options `KeyValueList` accepts. */

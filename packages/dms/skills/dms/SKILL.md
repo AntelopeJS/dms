@@ -32,16 +32,22 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `Grid`, `KpiCard`, … — fluent builders producing a **serializable description**, not live UI: the
   frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
-  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL;
+  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
   A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
   `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
-  browser writes in the reader's language: StatGroup / KeyValueList / Banner texts and layout
+  browser writes in the reader's language: StatGroup / KeyValueList / Banner / NavCardGrid /
+  ActivityFeed / Meter / TopListCard item texts (and ActivityFeed `params`, typed `count` for
+  plurals) and layout
   banners (`RegisterLayoutBanner({ resolve })` → `{ text, actions }`) take it; never format text server-side.
   A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
   `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row.
+  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class),
+  and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
+  A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
+  (the text to copy instead, e.g. a full URL behind a short label).
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.

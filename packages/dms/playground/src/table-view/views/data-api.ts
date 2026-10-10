@@ -24,6 +24,7 @@ import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import { ReadonlyBehaviorType } from "@antelopejs/interface-dms/base/types";
+import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import {
   Column,
   DefaultDisplays,
@@ -42,10 +43,47 @@ export const JOB_RUN_STATUSES = [
 
 const HIDDEN_IN_FORMS = ReadonlyBehaviorType.hidden;
 
+// The HTTP answer a run's last call got, and its tone by status class: the
+// server picks the tone per row, the column only names the field.
+const HTTP_STATUS_BY_RUN: Record<JobRunStatus, number> = {
+  healthy: 200,
+  running: 202,
+  paused: 304,
+  degraded: 429,
+  failing: 502,
+};
+const HTTP_CLASS_SIZE = 100;
+const HTTP_TONE_BY_CLASS: Record<number, Tone> = {
+  2: "success",
+  3: "info",
+  4: "warning",
+  5: "error",
+};
+
+// The locales a run's notification template is written in: a present one as
+// a soft pill, a missing one outlined.
+const NOTIFICATION_LOCALES = ["en", "fr", "de"] as const;
+const LOCALES_BY_RUN: Record<JobRunStatus, readonly string[]> = {
+  healthy: NOTIFICATION_LOCALES,
+  running: ["en", "fr"],
+  paused: ["en", "fr"],
+  degraded: ["en"],
+  failing: ["en"],
+};
+
+function localePills(status: JobRunStatus): DefaultDisplays.PillItem[] {
+  const present = LOCALES_BY_RUN[status];
+  return NOTIFICATION_LOCALES.map((locale) =>
+    present.includes(locale)
+      ? { label: locale.toUpperCase(), tone: "primary", variant: "soft" }
+      : { label: locale.toUpperCase(), variant: "outline" },
+  );
+}
+
 /**
  * Job runs of the "Views, grouped & cells" demo: each column draws its value
- * through one of the cell displays (status pill, progress, sparkline,
- * duration, bytes, mono).
+ * through one of the cell displays (status pill, a status pill toned by the
+ * row, pills styled by the row, progress, sparkline, duration, bytes, mono).
  */
 @RegisterDataController()
 export class jobRunDataAPI extends DataController(
@@ -121,6 +159,43 @@ export class jobRunDataAPI extends DataController(
   @Optional()
   @Access(AccessMode.ReadWrite)
   declare lastError: string;
+
+  @Listable(["status"])
+  @Column({
+    name: "Last call",
+    type: new DefaultDataTypes.NumberType(),
+    display: new DefaultDisplays.StatusPillDisplay({
+      toneField: "lastCallTone",
+    }),
+    readonlyBehavior: HIDDEN_IN_FORMS,
+    size: 110,
+  })
+  @Access(AccessMode.ReadOnly)
+  get lastCall(): number {
+    return HTTP_STATUS_BY_RUN[this.table.status];
+  }
+
+  @Listable(["status"])
+  @Access(AccessMode.ReadOnly)
+  get lastCallTone(): Tone {
+    const statusClass = Math.floor(
+      HTTP_STATUS_BY_RUN[this.table.status] / HTTP_CLASS_SIZE,
+    );
+    return HTTP_TONE_BY_CLASS[statusClass] ?? "neutral";
+  }
+
+  @Listable(["status"])
+  @Column({
+    name: "Locales",
+    type: new DefaultDataTypes.StringType(),
+    display: new DefaultDisplays.PillsDisplay(),
+    readonlyBehavior: HIDDEN_IN_FORMS,
+    size: 140,
+  })
+  @Access(AccessMode.ReadOnly)
+  get locales(): DefaultDisplays.PillItem[] {
+    return localePills(this.table.status);
+  }
 
   @Listable()
   @Column({

@@ -3,6 +3,10 @@
 // left (380px) and a detail panel on the right. The list is driven by `items`
 // + v-model; the detail is rendered by the default slot, which receives the
 // currently selected value.
+//
+// The panes sit side by side from 64rem of the layout's own width (the former
+// `lg` viewport breakpoint), not the viewport's: a docked side panel or a
+// narrow grid cell leaves less room than the screen suggests.
 interface MdItem {
   value: string | number;
   label: string;
@@ -23,59 +27,61 @@ defineSlots<{
 </script>
 
 <template>
-  <div
-    class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[380px_minmax(0,1fr)]"
-  >
-    <!-- List pane -->
-    <div class="dms-card p-2">
-      <p
-        v-if="listLabel"
-        class="text-dimmed px-2.5 pt-2.5 pb-1 font-mono text-[10px] tracking-widest uppercase"
-      >
-        {{ listLabel }}
-      </p>
-      <ul class="flex flex-col gap-1.5">
-        <li v-for="item in items" :key="item.value">
-          <button
-            type="button"
-            class="flex w-full items-start gap-3 rounded-md border border-transparent px-3.5 py-3 text-left transition-colors"
-            :class="
-              selected === item.value
-                ? 'border-primary bg-primary/10'
-                : 'hover:bg-elevated'
-            "
-            @click="selected = item.value"
-          >
-            <span
-              v-if="item.icon"
-              class="grid size-[26px] shrink-0 place-items-center"
-              :class="selected === item.value ? 'text-primary' : 'text-toned'"
+  <div class="@container">
+    <div
+      class="grid grid-cols-1 items-start gap-5 @5xl:grid-cols-[380px_minmax(0,1fr)]"
+    >
+      <!-- List pane -->
+      <div class="dms-card p-2">
+        <p
+          v-if="listLabel"
+          class="text-dimmed px-2.5 pt-2.5 pb-1 font-mono text-[10px] tracking-widest uppercase"
+        >
+          {{ listLabel }}
+        </p>
+        <ul class="flex flex-col gap-1.5">
+          <li v-for="item in items" :key="item.value">
+            <button
+              type="button"
+              class="flex w-full items-start gap-3 rounded-md border border-transparent px-3.5 py-3 text-left transition-colors"
+              :class="
+                selected === item.value
+                  ? 'border-primary bg-primary/10'
+                  : 'hover:bg-elevated'
+              "
+              @click="selected = item.value"
             >
-              <UIcon
-                :name="item.icon"
-                class="size-[18px]"
-                :aria-hidden="true"
-              />
-            </span>
-            <span class="min-w-0">
-              <span class="text-highlighted block text-sm font-semibold">
-                {{ item.label }}
-              </span>
               <span
-                v-if="item.sublabel"
-                class="text-muted mt-0.5 block truncate text-xs"
+                v-if="item.icon"
+                class="grid size-[26px] shrink-0 place-items-center"
+                :class="selected === item.value ? 'text-primary' : 'text-toned'"
               >
-                {{ item.sublabel }}
+                <UIcon
+                  :name="item.icon"
+                  class="size-[18px]"
+                  :aria-hidden="true"
+                />
               </span>
-            </span>
-          </button>
-        </li>
-      </ul>
-    </div>
+              <span class="min-w-0">
+                <span class="text-highlighted block text-sm font-semibold">
+                  {{ item.label }}
+                </span>
+                <span
+                  v-if="item.sublabel"
+                  class="text-muted mt-0.5 block truncate text-xs"
+                >
+                  {{ item.sublabel }}
+                </span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
 
-    <!-- Detail pane -->
-    <div class="dms-card overflow-hidden">
-      <slot :selected="selected" />
+      <!-- Detail pane -->
+      <div class="dms-card overflow-hidden">
+        <slot :selected="selected" />
+      </div>
     </div>
   </div>
 </template>

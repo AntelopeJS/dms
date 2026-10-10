@@ -18,7 +18,10 @@ import {
 import { registerMetricCellTypes } from "./metricCells";
 import { registerTwoLineCellType } from "./twoLineCell";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
-import StatusPill from "../../../components/status-pill/StatusPill.vue";
+import StatusPill, {
+  type StatusPillVariant,
+} from "../../../components/status-pill/StatusPill.vue";
+import { isDmsTone } from "../../utils/tone";
 import IdentityCell from "../../components/table-view/IdentityCell.vue";
 import {
   firstNameOf,
@@ -453,9 +456,76 @@ const PILL_FILLED_CLASS =
   "shrink-0 border-(--dms-accent-fill) bg-(--dms-accent-fill) font-[650] text-(--dms-accent-on-fill)";
 
 /**
- * `pills`: a list (relation rows, select values, strings) as v2 role pills,
- * or a single filled pill when the row's `exclusive.field` is set (an owner's
- * crown). A bare id a relation could not resolve (a deleted row) is skipped.
+ * A pill the server styles per row. Mirror of `DefaultDisplays.PillItem` from
+ * `@antelopejs/interface-dms/base/table-view`.
+ */
+interface PillItem {
+  label: string;
+  tone?: string;
+  variant?: string;
+}
+
+const PILL_VARIANTS = new Set<string>(["soft", "outline"]);
+const DEFAULT_PILL_VARIANT: StatusPillVariant = "soft";
+
+const pillVariantOf = (variant: string | undefined): StatusPillVariant =>
+  variant && PILL_VARIANTS.has(variant)
+    ? (variant as StatusPillVariant)
+    : DEFAULT_PILL_VARIANT;
+const DEFAULT_PILL_TONE = "neutral";
+
+// An object with a `label` but no `labelKey` field: a related row carries
+// that field, which tells the two apart.
+const isPillItem = (item: unknown, labelKey: string): item is PillItem =>
+  isObject(item) && typeof item.label === "string" && !(labelKey in item);
+
+/**
+ * The pills of a list. A bare id is skipped next to the related rows it
+ * could not be resolved into; next to pill items it is a pill.
+ */
+function pillsOf(
+  items: unknown[],
+  labelKey: string,
+  processI18n: (text: string) => string,
+): PillItem[] {
+  const hasRelatedRows = items.some(
+    (item) => isObject(item) && !isPillItem(item, labelKey),
+  );
+  return items.flatMap((item): PillItem[] => {
+    if (isPillItem(item, labelKey)) {
+      return [{ ...item, label: processI18n(item.label) }];
+    }
+    if (isObject(item)) {
+      const label = (item as Record<string, unknown>)[labelKey];
+      return label === undefined ? [] : [{ label: processI18n(String(label)) }];
+    }
+    return hasRelatedRows ? [] : [{ label: processI18n(String(item)) }];
+  });
+}
+
+/** A plain pill in the role-pill outline, a styled one as a status pill. */
+function renderPill(pill: PillItem) {
+  if (!pill.tone && !pill.variant) {
+    return h(
+      "span",
+      { class: [PILL_CLASS, PILL_OUTLINE_CLASS, PILL_SHRINK_CLASS] },
+      [h("span", { class: "truncate" }, pill.label)],
+    );
+  }
+  return h(StatusPill, {
+    label: pill.label,
+    tone: pill.tone && isDmsTone(pill.tone) ? pill.tone : DEFAULT_PILL_TONE,
+    variant: pillVariantOf(pill.variant),
+    dot: "none",
+    class: PILL_SHRINK_CLASS,
+  });
+}
+
+/**
+ * `pills`: a list (relation rows, select values, strings, pill items) as v2
+ * role pills, a pill item in its own tone and variant, or a single filled
+ * pill when the row's `exclusive.field` is set (an owner's crown). A bare id
+ * a relation could not resolve (a deleted row) is skipped.
  */
 function renderPills(value: unknown, options: unknown, row: Row) {
   const { processI18n } = useTranslation();
@@ -468,17 +538,13 @@ function renderPills(value: unknown, options: unknown, row: Row) {
       processI18n(opts.exclusive.label),
     ]);
   }
-  const labelKey = opts.labelKey ?? DEFAULT_RELATION_LABEL_KEY;
   const items = Array.isArray(value) ? value : value == null ? [] : [value];
-  const hasObjects = items.some((item) => isObject(item));
-  const labels = items.flatMap((item) => {
-    if (isObject(item)) {
-      const label = (item as Record<string, unknown>)[labelKey];
-      return label === undefined ? [] : [processI18n(String(label))];
-    }
-    return hasObjects ? [] : [processI18n(String(item))];
-  });
-  if (labels.length === 0) {
+  const pills = pillsOf(
+    items,
+    opts.labelKey ?? DEFAULT_RELATION_LABEL_KEY,
+    processI18n,
+  );
+  if (pills.length === 0) {
     return opts.emptyLabel
       ? h(
           "span",
@@ -491,14 +557,11 @@ function renderPills(value: unknown, options: unknown, row: Row) {
   // few letters); the list's tooltip names them all.
   return h(
     "span",
-    { class: "flex min-w-0 gap-1 overflow-hidden", title: labels.join(", ") },
-    labels.map((label) =>
-      h(
-        "span",
-        { class: [PILL_CLASS, PILL_OUTLINE_CLASS, PILL_SHRINK_CLASS] },
-        [h("span", { class: "truncate" }, label)],
-      ),
-    ),
+    {
+      class: "flex min-w-0 gap-1 overflow-hidden",
+      title: pills.map((pill) => pill.label).join(", "),
+    },
+    pills.map(renderPill),
   );
 }
 

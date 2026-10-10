@@ -52,6 +52,15 @@ export const ComposedTextSchema: z.ZodType<ComposedText> = z.object({
 });
 
 /**
+ * The schema of one value a composed text names, for an option that takes
+ * such values on their own.
+ *
+ * @internal
+ */
+export const composedTextParamSchema = (): z.ZodType<ComposedTextParam> =>
+  ComposedTextParamSchema;
+
+/**
  * The schema of a block text option: a plain string or a composed text.
  *
  * @internal

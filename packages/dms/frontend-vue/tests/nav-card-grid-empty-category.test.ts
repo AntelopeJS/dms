@@ -105,6 +105,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
+  vi.stubGlobal("useI18n", () => ({ t: String, locale: ref("en") }));
 });
 
 afterEach(() => {
