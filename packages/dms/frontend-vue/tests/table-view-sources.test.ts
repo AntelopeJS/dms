@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { reactive } from "vue";
 import {
   processSourceRows,
   sourceRouteQuery,
@@ -24,6 +25,11 @@ const COLUMNS = [
 ] as TableViewColumn[];
 
 type Api = Parameters<typeof useTableRows>[0]["api"];
+
+interface PageRoute {
+  params: Record<string, string>;
+  query: Record<string, unknown>;
+}
 
 describe("source tables", () => {
   it("sends the route only the part of the query it handles", () => {
@@ -110,6 +116,67 @@ describe("source tables", () => {
     expect(controllerApi).toHaveBeenCalledWith("/api/runs/count/batch", {
       method: "POST",
       body: { queries: [{ id: "all", query: {} }] },
+    });
+  });
+
+  describe("with a templated fetchUrl", () => {
+    const FETCH_URL = "/api/ws/{{params.id}}/requests?route={{query.route}}";
+
+    function sourceRows(route: PageRoute) {
+      const api = vi.fn(async (_url: string) => ({ results: ROWS, total: 3 }));
+      const rows = useTableRows<LogRow>({
+        api: api as unknown as Api,
+        location: FETCH_URL,
+        source: { fetchUrl: FETCH_URL, capabilities: {} },
+        columns: COLUMNS,
+        route: () => ({ routeParams: route.params, routeQuery: route.query }),
+      });
+      return { api, rows };
+    }
+
+    it("requests the page's URL, its values encoded", async () => {
+      const { api, rows } = sourceRows({
+        params: { id: "ws-1" },
+        query: { route: "GET /api/a?b=c" },
+      });
+      await rows.list({});
+      expect(api).toHaveBeenCalledWith(
+        "/api/ws/ws-1/requests?route=GET%20%2Fapi%2Fa%3Fb%3Dc",
+        { query: {} },
+      );
+    });
+
+    it("requests nothing, and lists nothing, while a token has no value", async () => {
+      const { api, rows } = sourceRows({ params: { id: "ws-1" }, query: {} });
+      expect(rows.sourceUrl.value).toBe(undefined);
+      expect(await rows.list({ offset: 10, limit: 10 })).toEqual({
+        results: [],
+        total: 0,
+        offset: 10,
+        limit: 10,
+      });
+      expect(
+        await rows.countBatch([{ id: "orders", query: { search: "orders" } }]),
+      ).toEqual({ orders: 0 });
+      expect(api).not.toHaveBeenCalled();
+    });
+
+    it("follows the page URL, tab counters included", async () => {
+      const route = reactive<PageRoute>({
+        params: { id: "ws-1" },
+        query: { route: "GET /a" },
+      });
+      const { api, rows } = sourceRows(route);
+      await rows.list({});
+      route.query = { route: "POST /b" };
+      expect(rows.sourceUrl.value).toBe(
+        "/api/ws/ws-1/requests?route=POST%20%2Fb",
+      );
+      await rows.countBatch([{ id: "all", query: {} }]);
+      expect(api.mock.calls.map(([url]) => url)).toEqual([
+        "/api/ws/ws-1/requests?route=GET%20%2Fa",
+        "/api/ws/ws-1/requests?route=POST%20%2Fb",
+      ]);
     });
   });
 });

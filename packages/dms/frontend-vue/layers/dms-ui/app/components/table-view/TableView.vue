@@ -609,14 +609,18 @@ watch(resolvedTabs, (next) => {
 });
 
 const { $authFetch } = useAuthFetch();
+const route = useDmsRoute();
 // The controller's routes, or a `TableView.fromSource` table's route.
 const tableRows = useTableRows<T>({
   api: $authFetch,
   location,
   source: props.source,
   columns: props.columns,
+  route: () => ({
+    routeParams: props.routeParams,
+    routeQuery: route.query as Record<string, unknown>,
+  }),
 });
-const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
 
@@ -813,7 +817,14 @@ const { data, status, error, refresh } = await useServerRenderedAsyncData(
     }
     return tableRows.list({ ...queryRequest.value, ...archiveQuery.value });
   },
-  { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
+  {
+    watch: [
+      queryRequest,
+      archiveQuery,
+      isActiveDisplaySelfManaged,
+      tableRows.sourceUrl,
+    ],
+  },
 );
 
 // Nothing listed yet (a client navigation paints before the first page
@@ -960,7 +971,7 @@ const { data: tabCountsData, refresh: refreshTabCounts } =
         })),
       );
     },
-    { watch: [tabCountsQuery, archiveQuery] },
+    { watch: [tabCountsQuery, archiveQuery, tableRows.sourceUrl] },
   );
 
 const viewItems = computed<TableViewItem[]>(() =>

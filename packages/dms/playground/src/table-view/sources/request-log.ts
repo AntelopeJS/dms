@@ -21,11 +21,13 @@ const PATHS = [
   "/api/customers",
   "/api/invoices/42",
   "/api/health",
+  "/api/search?q=shoes&page=2",
 ];
 const STATUSES = [200, 200, 200, 201, 204, 404, 500];
 const ENTRY_COUNT = 120;
 const MINUTE_MS = 60_000;
 const METHOD_FILTER_KEY = "filter_method";
+const ROUTE_KEY = "route";
 
 // A fixed log: the same seed lists the same requests on every run.
 const ENTRIES: RequestLogEntry[] = Array.from(
@@ -59,5 +61,18 @@ export class RequestLogController extends Controller(
     const offset = Number(query.get("offset")) || 0;
     const limit = Number(query.get("limit")) || rows.length;
     return { results: rows.slice(offset, offset + limit), total: rows.length };
+  }
+
+  /**
+   * The requests of one route, `?route=GET /api/orders`: the "Requests of a
+   * route" table names it with `{{query.route}}`, which the browser encodes.
+   */
+  @Get("/route")
+  ofRoute(@Context() ctx: RequestContext) {
+    const route = ctx.url.searchParams.get(ROUTE_KEY);
+    const rows = ENTRIES.filter(
+      (entry) => `${entry.method} ${entry.path}` === route,
+    );
+    return { results: rows, total: rows.length };
   }
 }
