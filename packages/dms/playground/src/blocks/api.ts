@@ -9,8 +9,15 @@ const DEMO_LATENCY_MS = 900;
 export const FACTS_DEMO_TOPIC = "blocks:facts-demo";
 const FACTS_DEMO_EVENT_TYPE = "facts.update";
 const OUTSTANDING_STEP = 125;
+const FACTS_BUMP_DELAY_MS = 2_000;
 let factsRevision = 1;
 let outstanding = 4890;
+
+async function bumpFactsAndPublish(): Promise<void> {
+  factsRevision += 1;
+  outstanding += OUTSTANDING_STEP;
+  await PublishMessage(FACTS_DEMO_TOPIC, FACTS_DEMO_EVENT_TYPE);
+}
 
 // The live StatGroup follows a PeriodSelector: its figures scale with the
 // length of the selected period, so a change of preset shows in the numbers.
@@ -93,11 +100,15 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     });
   }
 
+  // Lands a moment later, as a background job would: the header button's own
+  // page refresh has come and gone, so only the realtime event shows it.
   @Post("facts/bump")
-  async bumpFacts(): Promise<{ ok: boolean }> {
-    factsRevision += 1;
-    outstanding += OUTSTANDING_STEP;
-    await PublishMessage(FACTS_DEMO_TOPIC, FACTS_DEMO_EVENT_TYPE);
+  bumpFacts(): { ok: boolean } {
+    setTimeout(() => {
+      bumpFactsAndPublish().catch((error: unknown) => {
+        console.warn("[playground] live facts bump failed", error);
+      });
+    }, FACTS_BUMP_DELAY_MS);
     return { ok: true };
   }
 

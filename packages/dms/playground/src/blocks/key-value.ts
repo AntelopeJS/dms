@@ -1,20 +1,36 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Card, KeyValueList, StatGroup } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
-import { Form } from "@antelopejs/interface-dms/base/form";
-import { HttpMethod } from "@antelopejs/interface-dms/base/types";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
-export class PageBlocksKeyValue extends PageController("blocks-key-value", {
-  displayName: "Key / value & card",
-  icon: "i-ph-list-dashes",
-  category: blocksCategory,
-  order: 10,
-  description:
-    "KeyValueList block (every value type, columns, dense, live data refreshed over realtime) and the Card container block",
-}) {
+export class PageBlocksKeyValue extends PageController(
+  "blocks-key-value",
+  {
+    displayName: "Key / value & card",
+    icon: "i-ph-list-dashes",
+    category: blocksCategory,
+    order: 10,
+    description:
+      'KeyValueList block (every value type, columns, dense, live data refreshed over realtime: "Update the live facts" bumps them 2 s later and publishes on their topic) and the Card container block',
+  },
+  DefaultLayout({
+    headerActions: [
+      {
+        label: "Update the live facts",
+        icon: "i-ph-broadcast",
+        target: {
+          type: "api",
+          url: "/api/blocks/facts/bump",
+          method: "POST",
+          successMessage: "Update started; Live facts refreshes when it lands",
+        },
+      },
+    ],
+  }),
+) {
   static summaries = Grid({ gap: "1rem", minColumnWidth: "320px" }).child(
     "row",
     GridRow()
@@ -75,16 +91,6 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
         }),
       ),
   );
-
-  static bumpFacts = Form({
-    title: "Update the live facts",
-    description:
-      "Bumps the revision and the outstanding amount, then publishes on the topic the Live facts list follows.",
-    submitUrl: "/api/blocks/facts/bump",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "Published; the Live facts list refreshes.",
-    fields: [],
-  });
 
   static columns = KeyValueList({
     title: "Record · two columns",
