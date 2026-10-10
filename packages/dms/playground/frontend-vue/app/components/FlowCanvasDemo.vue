@@ -65,6 +65,7 @@ const edges = ref<DemoEdge[]>([
 ]);
 
 const canvas = ref<{ fitView: () => void } | null>(null);
+const deleteBadge = ref(true);
 let nodeCounter = 0;
 let edgeCounter = 0;
 
@@ -127,6 +128,7 @@ function fitView() {
       :edges="edges"
       minimap
       deletable-nodes
+      :delete-badge="deleteBadge"
       zoom-readout
       @connect="onConnect"
       @node-drag-stop="onNodeDragStop"
@@ -159,6 +161,15 @@ function fitView() {
             icon="i-ph-arrows-out"
             label="Fit view"
             @click="fitView"
+          />
+          <div class="demo-toolbar__divider" />
+          <UButton
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            icon="i-ph-trash"
+            :label="deleteBadge ? 'Hide delete badge' : 'Show delete badge'"
+            @click="deleteBadge = !deleteBadge"
           />
         </div>
       </template>

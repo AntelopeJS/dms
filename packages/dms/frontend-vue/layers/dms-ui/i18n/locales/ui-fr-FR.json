@@ -25,6 +25,7 @@
       "edit_item_description": "Modifiez ses champs, puis enregistrez.",
       "edit_item_in": "Les modifications sont enregistrées dans « {caption} ».",
       "search_placeholder": "Rechercher...",
+      "search_open": "Ouvrir la recherche",
       "options_title": "Options de la table",
       "filters_title": "Filtres",
       "columns_title": "Colonnes",

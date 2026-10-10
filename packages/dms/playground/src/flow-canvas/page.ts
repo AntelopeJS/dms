@@ -9,7 +9,7 @@ export class PageFlowCanvasDemo extends PageController(
   {
     displayName: "Flow Canvas",
     description:
-      "Generic DMS-themed Vue Flow wrapper (DmsFlowCanvas): custom node slot, animated edges, minimap, controls, fit-view, deletable nodes (badge + Delete/Backspace) and a live zoom readout",
+      "Generic DMS-themed Vue Flow wrapper (DmsFlowCanvas): custom node slot, animated edges, minimap, controls, fit-view, deletable nodes (optional badge + Delete/Backspace) and a live zoom readout",
     icon: "i-ph-graph",
     category: flowCanvasCategory,
     order: 0,

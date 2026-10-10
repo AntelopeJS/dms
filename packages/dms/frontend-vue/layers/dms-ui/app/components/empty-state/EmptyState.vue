@@ -109,8 +109,11 @@ const resolvedIcon = computed(() => props.icon ?? VARIANT_ICONS[props.variant]);
 const resolvedTone = computed<Tone>(
   () => props.tone ?? (props.variant === "error" ? "error" : "neutral"),
 );
-const hasDescription = computed(() => !!props.description || !!slots.default);
-const hasActions = computed(() => !!slots.actions || !!props.actions?.length);
+// Read at each render rather than in a computed: the slots object is not
+// reactive, so a computed would keep the slots of the first render and miss
+// a slot the parent adds or removes later.
+const hasDescription = (): boolean => !!props.description || !!slots.default;
+const hasActions = (): boolean => !!slots.actions || !!props.actions?.length;
 </script>
 
 <template>
@@ -125,13 +128,13 @@ const hasActions = computed(() => !!slots.actions || !!props.actions?.length);
       :class="ui.well()"
     />
     <p :class="ui.title()">{{ props.title }}</p>
-    <p v-if="hasDescription" :class="ui.description()">
+    <p v-if="hasDescription()" :class="ui.description()">
       <slot>{{ props.description }}</slot>
     </p>
     <div v-if="slots.content" :class="ui.content()">
       <slot name="content" />
     </div>
-    <div v-if="hasActions" :class="ui.actions()">
+    <div v-if="hasActions()" :class="ui.actions()">
       <slot name="actions">
         <UButton
           v-for="(action, index) in props.actions"
