@@ -117,6 +117,7 @@ export class RequestLogController extends Controller(
     return { ok: true };
   }
 
+  /**
    * The requests of one route, `?route=GET /api/orders`: the "Requests of a
    * route" table names it with `{{query.route}}`, which the browser encodes.
    */
