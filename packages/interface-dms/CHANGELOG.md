@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.5.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.1...v0.5.2)
+
+### 🚀 Enhancements
+
+- **table-view:** Reorder the cards of the cards display ([#194](https://github.com/AntelopeJS/dms/pull/194))
+
+### 🩹 Fixes
+
+- **dms-ui:** Declare @lezer/common, which the code highlighter imports ([#192](https://github.com/AntelopeJS/dms/pull/192))
+- **table-view:** Open the toolbar search from its button again ([#193](https://github.com/AntelopeJS/dms/pull/193))
+
+### 📦 Build
+
+- **deps:** Require interface-dms 0.5.1 and dms-frontend 0.5.2 ([#191](https://github.com/AntelopeJS/dms/pull/191))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.2 ([18f8a17](https://github.com/AntelopeJS/dms/commit/18f8a17))
+- **release:** @antelopejs/dms v0.7.3 ([f27b9c5](https://github.com/AntelopeJS/dms/commit/f27b9c5))
+- **release:** @antelopejs/dms v0.7.4 ([b328fa3](https://github.com/AntelopeJS/dms/commit/b328fa3))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.0...v0.5.1)
