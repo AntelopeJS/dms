@@ -11,7 +11,7 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.6.5",
   "engines": {
-    "@antelopejs/dms-frontend": ">=0.5.1 <0.6.0"
+    "@antelopejs/dms-frontend": ">=0.5.2 <0.6.0"
   },
   "scripts": {
     "typecheck": "ajs dms verify-source --layer \"$PWD\" --local-package @antelopejs/dms=.. --local-package @antelopejs/interface-dms=../../interface-dms",
@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@antelopejs/core": ">=1.13.4 <2",
-    "@antelopejs/dms-frontend": ">=0.5.1 <0.6.0",
+    "@antelopejs/dms-frontend": ">=0.5.2 <0.6.0",
     "@eslint/js": "^8.57.0",
     "@inertiajs/vue3": "^3.7.0",
     "@nuxt/ui": "4.10.0",

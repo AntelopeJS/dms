@@ -45,7 +45,7 @@ importers:
         specifier: '>=0.1.7 <1.0.0'
         version: 0.1.7(@antelopejs/interface-api@0.0.13(@antelopejs/interface-core@0.1.1))(@antelopejs/interface-core@0.1.1)(@antelopejs/interface-database@0.1.8(@antelopejs/interface-core@0.1.1))
       '@antelopejs/interface-dms':
-        specifier: '>=0.5.0 <0.6.0'
+        specifier: '>=0.5.1 <0.6.0'
         version: link:../interface-dms
       '@antelopejs/interface-email':
         specifier: '>=0.0.5 <1.0.0'
@@ -195,8 +195,8 @@ importers:
         specifier: '>=1.13.4 <2'
         version: 1.13.5
       '@antelopejs/dms-frontend':
-        specifier: 0.5.1
-        version: 0.5.1(@antelopejs/core@1.13.5)
+        specifier: 0.5.2
+        version: 0.5.2(@antelopejs/core@1.13.5)
       '@types/node':
         specifier: ^20.5.7
         version: 20.19.43
@@ -293,8 +293,8 @@ packages:
     engines: {node: '>=20.19'}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.5.1':
-    resolution: {integrity: sha512-ykrqlHfYF+BqNy+h4FuZBbqAW6UjviauCiI8cQCW1M55MzIxk2Ar3ZnMH1VKH8QsfDBBNapDik5rd/AMLQ33dw==}
+  '@antelopejs/dms-frontend@0.5.2':
+    resolution: {integrity: sha512-0kChPedSTpKES7aN/gLj5tAe4WRaU+FrwaRKpOyvo3fvvRPfDTvlTYjjdUpabsF150d3+V/AksXstZ5eb36QwQ==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
@@ -3116,7 +3116,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.5.1(@antelopejs/core@1.13.5)':
+  '@antelopejs/dms-frontend@0.5.2(@antelopejs/core@1.13.5)':
     dependencies:
       '@antelopejs/core': 1.13.5
       chokidar: 4.0.3
