@@ -53,6 +53,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
   (the text to copy instead, e.g. a full URL behind a short label).
+  A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on
+  the `cards` display alike; a `card.component` receives a `reorder` prop and `v-bind`s
+  `reorder.handle` on a button — no custom display just to drag cards.
 - **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
   interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
   a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.
