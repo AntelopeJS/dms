@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import type { TableViewCardReorder } from "#dms-ui/app/composables/table-view/types";
+
 // The card of the roadmap demo's cards display: a module's own card drawn
-// with the DMS record card.
+// with the DMS record card. The roadmap is ordered by hand, so the card also
+// draws the move handle the display hands it.
 
 interface FeatureRow {
   name?: string;
@@ -19,6 +22,7 @@ interface Props {
   selected?: boolean;
   actions: FeatureCardActions;
   open: () => void;
+  reorder?: TableViewCardReorder;
 }
 
 const props = defineProps<Props>();
@@ -51,7 +55,17 @@ const cardActions = computed(() =>
     :meta="`${props.row.votes ?? 0} votes`"
     :actions="cardActions"
     :selected="props.selected"
+    :class="{ 'opacity-50': props.reorder?.dragging }"
     interactive
     @open="props.open()"
-  />
+  >
+    <template v-if="props.reorder" #aside>
+      <button
+        v-bind="props.reorder.handle"
+        class="text-dimmed hover:text-highlighted inline-flex size-6 shrink-0 cursor-grab items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <UIcon name="i-ph-dots-six-vertical" class="size-4" />
+      </button>
+    </template>
+  </DmsRecordCard>
 </template>

@@ -20,7 +20,9 @@ import {
 import { expect } from "chai";
 import { CORE_SCHEMA_NAME } from "@antelopejs/interface-dms/constants";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import {
+  CARDS_DISPLAY_ID,
   Column,
   TableView,
   type TableViewOptionsSerialized,
@@ -203,6 +205,24 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     });
     expect(options.reorder).to.deep.equal({ field: "position" });
     expect(options.pagination).to.equal("infinite");
+  });
+
+  it("serves the reorder field beside a cards display drawn by a card component", () => {
+    const component = CustomComponent("FeatureCard");
+    const options = optionsOf({
+      labelKey: "name",
+      reorder: { field: "position" },
+      displays: [{ id: CARDS_DISPLAY_ID }],
+      defaultDisplay: CARDS_DISPLAY_ID,
+      card: { component },
+    });
+    expect(options.reorder).to.deep.equal({ field: "position" });
+    const cards = options.displays?.find(
+      (display) => display.id === CARDS_DISPLAY_ID,
+    );
+    expect(cards?.options?.card).to.deep.include({
+      component: component.serializeSync(),
+    });
   });
 
   it("refuses a reorder field the rows cannot be sorted on nor saved by", () => {

@@ -29,6 +29,7 @@ import {
 import type {
   CustomButton,
   TableViewDisplayCapabilities,
+  TableViewDisplayReorder,
   TableViewEmptyStatesConfig,
 } from "../../../composables/table-view/types";
 import type {
@@ -44,6 +45,10 @@ import type { ResolvedQuickFilter } from "../../composables/table-view/utils/qui
 import type { ClearableTableFilters } from "../../composables/table/utils/clearTableFilters";
 import type { EventHookOn } from "@vueuse/core";
 import type { VNodeChild } from "vue";
+import {
+  REORDER_HANDLE_CLASS,
+  useReorderHandles,
+} from "../../composables/table-view/useReorderHandles";
 
 export interface Data {
   [key: string]: unknown;
@@ -82,12 +87,7 @@ export interface TableAccumulation {
 }
 
 /** Rows ordered by hand (backend `reorder`): a handle moves a row. */
-export interface TableReorder {
-  /** Off while a search, a filter or a tab narrows the rows. */
-  enabled: boolean;
-  /** Moves the row at `from` to `to`, within the page. */
-  move: (from: number, to: number) => void;
-}
+export type TableReorder = TableViewDisplayReorder;
 
 /** Where a table draws its views (see `TableProps.viewsPlacement`). */
 export type TableViewsPlacement = "band" | "header";
@@ -531,8 +531,7 @@ const theme = tv({
     handleHeadCell: `${HEADER_MATCH_BG} border-b-default w-8 border-b p-0`,
     handleCell:
       "border-b-muted w-8 border-b ps-2 pe-0 in-[tr:last-child]:border-b-0",
-    handle:
-      "inline-flex size-6 cursor-grab items-center justify-center rounded text-dimmed hover:text-highlighted focus-visible:outline-2 focus-visible:outline-(--dms-accent-line) disabled:cursor-not-allowed disabled:opacity-40 [&>svg]:size-4",
+    handle: REORDER_HANDLE_CLASS,
   },
   variants: {
     cellWrap: {
@@ -809,23 +808,10 @@ const leadingCellCount = computed(
   () => (hasPresenceRail.value ? 1 : 0) + (props.reorder ? 1 : 0),
 );
 
-// Moving rows: the row dragged by its handle, dropped on another row; the
-// arrow keys on a handle move its row by one.
-const draggedRowIndex = ref<number | undefined>();
-const dropRow = (index: number) => {
-  const from = draggedRowIndex.value;
-  draggedRowIndex.value = undefined;
-  if (from !== undefined && props.reorder?.enabled) {
-    props.reorder.move(from, index);
-  }
-};
-const stepRow = (index: number, step: number) => {
-  const target = index + step;
-  const count = table.getRowModel().rows.length;
-  if (props.reorder?.enabled && target >= 0 && target < count) {
-    props.reorder.move(index, target);
-  }
-};
+const reorderHandles = useReorderHandles({
+  reorder: () => props.reorder,
+  count: () => table.getRowModel().rows.length,
+});
 
 // Pinned columns stick only while they cover at most 60% of the visible scroll
 // area: on a phone, labelled row actions or a wide pinned set would otherwise
@@ -1497,8 +1483,8 @@ defineShortcuts({
                       @dblclick="handleRowDoubleClick(row.original)"
                       @mouseenter="handleRowHover(row)"
                       @mouseleave="handleRowLeave"
-                      @dragover="reorder?.enabled && $event.preventDefault()"
-                      @drop="dropRow(row.index)"
+                      @dragover="reorderHandles.allowDrop"
+                      @drop="reorderHandles.drop(row.index)"
                     >
                       <td
                         v-if="hasPresenceRail"
@@ -1515,20 +1501,8 @@ defineShortcuts({
                       />
                       <td v-if="reorder" :class="uiTable.handleCell()">
                         <button
-                          type="button"
-                          :draggable="reorder.enabled"
-                          :disabled="!reorder.enabled"
-                          :aria-label="t('dms.table.reorder.move')"
-                          :title="
-                            reorder.enabled
-                              ? t('dms.table.reorder.move')
-                              : t('dms.table.reorder.disabled')
-                          "
+                          v-bind="reorderHandles.handleFor(row.index)"
                           :class="uiTable.handle()"
-                          @dragstart="draggedRowIndex = row.index"
-                          @dragend="draggedRowIndex = undefined"
-                          @keydown.up.prevent="stepRow(row.index, -1)"
-                          @keydown.down.prevent="stepRow(row.index, 1)"
                         >
                           <UIcon name="i-ph-dots-six-vertical" />
                         </button>

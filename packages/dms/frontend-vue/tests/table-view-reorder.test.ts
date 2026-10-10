@@ -67,7 +67,7 @@ describe("rows ordered by hand", () => {
       api: api as unknown as Api,
       canEdit: computed(() => true),
       isNarrowed: computed(() => narrowed),
-      isGrid: computed(() => true),
+      isOrderedDisplay: computed(() => true),
       refresh,
       onError,
     });
@@ -113,7 +113,7 @@ describe("rows ordered by hand", () => {
       api: vi.fn() as unknown as Api,
       canEdit: computed(() => false),
       isNarrowed: computed(() => false),
-      isGrid: computed(() => true),
+      isOrderedDisplay: computed(() => true),
       refresh: vi.fn(),
       onError: vi.fn(),
     });

@@ -153,6 +153,8 @@ export class PageTableViewSources extends PageController(
     }),
   );
 
+  // Ordered by hand on the grid and on the cards alike: FeatureRecordCard
+  // draws the move handle the cards display hands it, beside its selection.
   static roadmap = TableView(roadmapFeatureDataAPI, {
     caption: "Roadmap",
     labelKey: "name",
@@ -160,6 +162,6 @@ export class PageTableViewSources extends PageController(
     formContainer: { type: "drawer" },
     displays: [{ id: "cards" }],
     card: { component: CustomComponent("FeatureRecordCard") },
-    rowActions: { add: true, edit: true, delete: true },
+    rowActions: { add: true, edit: true, delete: true, hasSelection: true },
   });
 }

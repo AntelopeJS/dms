@@ -96,6 +96,47 @@ export interface TableViewDisplayActions<T> {
 }
 
 /**
+ * Rows ordered by hand (backend `reorder`), as a display moves them. Set on
+ * the displays that draw the rows in their order (the grid and `cards`), for
+ * a caller who may edit them.
+ */
+export interface TableViewDisplayReorder {
+  /** Off while a search, a filter or a tab narrows the rows. */
+  enabled: boolean;
+  /** Moves the row at `from` to `to`, both indexes into `items`. */
+  move: (from: number, to: number) => void;
+}
+
+/**
+ * The attributes and listeners of a move handle: `v-bind` them on a
+ * `<button>`. Dragged, it moves its row onto the card it is dropped on; with
+ * it focused, the arrow keys move the row one place back (up, left) or
+ * forward (down, right).
+ */
+export interface TableViewReorderHandle {
+  type: "button";
+  draggable: boolean;
+  disabled: boolean;
+  "aria-label": string;
+  /** Says how to move the row, or, while moving is off, how to turn it on. */
+  title: string;
+  onClick: (event: MouseEvent) => void;
+  onDragstart: (event: DragEvent) => void;
+  onDragend: () => void;
+  onKeydown: (event: KeyboardEvent) => void;
+}
+
+/** A card's move handle, on a hand-ordered `cards` display. */
+export interface TableViewCardReorder {
+  /** Off while a search, a filter or a tab narrows the rows. */
+  enabled: boolean;
+  /** The card is the one being dragged. */
+  dragging: boolean;
+  /** Bind on the element the card is moved by. */
+  handle: TableViewReorderHandle;
+}
+
+/**
  * The card the `kanban` and `cards` displays draw (backend `card` option):
  * the columns it shows, or a component drawing it whole.
  */
@@ -127,6 +168,11 @@ export interface TableViewCardProps<T = Record<string, unknown>> {
   open: () => void;
   /** Kanban only: the value of the column the card sits in. */
   groupValue?: string;
+  /**
+   * `cards` only, on a hand-ordered table (backend `reorder`) and for a
+   * caller who may edit: the card's move handle, to draw somewhere on it.
+   */
+  reorder?: TableViewCardReorder;
 }
 
 /**
@@ -182,6 +228,11 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   options?: Record<string, unknown>;
   /** Re-fetch the table view (shared list + tab counts + active display). */
   refresh: () => Promise<void> | void;
+  /**
+   * Rows ordered by hand (backend `reorder`): set on the grid and the
+   * `cards` display, for a caller who may edit the rows.
+   */
+  reorder?: TableViewDisplayReorder;
 
   /**
    * Escape hatch: the TanStack table instance, present when the display is

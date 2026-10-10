@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { tv } from "tailwind-variants";
 import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
+import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import {
   resolveRowClickAction,
   type RowClickActionOptions,
@@ -22,8 +23,9 @@ const themeSource = tableSource.slice(
 const theme = new Function(
   "tv",
   "EYEBROW_CLASS",
+  "REORDER_HANDLE_CLASS",
   `${themeSource}; return theme;`,
-)(tv, EYEBROW_CLASS);
+)(tv, EYEBROW_CLASS, REORDER_HANDLE_CLASS);
 
 const HOVER_ROW = "hover:bg-elevated";
 const HOVER_CELL = "group-hover:bg-elevated";

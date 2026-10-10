@@ -353,7 +353,8 @@ export type TableViewPaginationMode = "pages" | "loadMore" | "infinite";
 /**
  * Rows the user orders by hand: a drag handle (or the arrow keys on it)
  * moves a row, and the rows it moved get a new value of `field`. The handle
- * shows on the grid, to a caller who may edit the rows.
+ * shows on the grid and on the `cards` display (in front of each row, on
+ * each card), to a caller who may edit the rows.
  */
 export interface TableViewReorderOptions {
   /**
@@ -504,7 +505,10 @@ export interface TableViewCardOptions {
    * hand it the same props: `row`, `rowId`, `columns`, `labelKey`, `actions`
    * (the table's row actions), `selected` and `select(value?)` (the row's
    * selection), and `open()` (what a click on the row does). The kanban adds
-   * `groupValue`, the value of the column the card sits in.
+   * `groupValue`, the value of the column the card sits in; the `cards`
+   * display of a hand-ordered table (`reorder`) adds `reorder`, the card's
+   * move handle (`{ enabled, dragging, handle }`, `handle` bound with
+   * `v-bind` on a button).
    */
   component?: Component;
 }
@@ -942,10 +946,11 @@ export interface TableViewOptions<
   kanban?: KanbanOptions;
   /**
    * Lets the user order the rows by hand: the rows are listed sorted on
-   * `field`, a drag handle moves a row within its page, and only the rows
-   * whose position changed are saved (a partial edit of `field`). Moving is
-   * off while a search, a filter or a tab narrows the rows. Needs the
-   * `edit` action.
+   * `field`, a drag handle moves a row within its page — on the grid and on
+   * the `cards` display, whose custom `card.component` receives the handle
+   * as its `reorder` prop — and only the rows whose position changed are
+   * saved (a partial edit of `field`). Moving is off while a search, a
+   * filter or a tab narrows the rows. Needs the `edit` action.
    */
   reorder?: TableViewReorderOptions;
   /**

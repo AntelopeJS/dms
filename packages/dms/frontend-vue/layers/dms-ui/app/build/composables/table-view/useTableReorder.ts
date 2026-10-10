@@ -1,10 +1,10 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { ComputedRef, Ref } from "vue";
 import type {
+  TableViewDisplayReorder,
   TableViewListResponse,
   TableViewReorderConfig,
 } from "../../../composables/table-view/types";
-import type { TableReorder } from "../../components/table/Table.vue";
 import { moveRow, reorderEdits } from "./utils/reorder";
 
 export interface TableReorderOptions<T> {
@@ -18,8 +18,8 @@ export interface TableReorderOptions<T> {
   canEdit: ComputedRef<boolean>;
   /** A search, a filter or a tab narrows the rows. */
   isNarrowed: ComputedRef<boolean>;
-  /** The grid is the display shown. */
-  isGrid: ComputedRef<boolean>;
+  /** The display shown draws the rows in their order: the grid, the cards. */
+  isOrderedDisplay: ComputedRef<boolean>;
   /** Lists the rows again, after a move failed. */
   refresh: () => Promise<void> | void;
   onError: (error: unknown) => void;
@@ -28,8 +28,9 @@ export interface TableReorderOptions<T> {
 /**
  * Rows ordered by hand: a move updates the page at once and saves, by a
  * partial edit, only the rows whose position changed. Moving is off while
- * the rows are narrowed (the handle says how to turn it back on); outside
- * the grid, or for a caller who may not edit, there is no handle at all.
+ * the rows are narrowed (the handle says how to turn it back on); on a
+ * display that does not draw the rows in their order (the board, the
+ * groups), or for a caller who may not edit, there is no handle at all.
  */
 export function useTableReorder<T>(options: TableReorderOptions<T>) {
   const { reorder, data, rowIdKey } = options;
@@ -66,8 +67,8 @@ export function useTableReorder<T>(options: TableReorderOptions<T>) {
     }
   };
 
-  const state = computed<TableReorder | undefined>(() => {
-    if (!reorder || !options.isGrid.value || !options.canEdit.value) {
+  const state = computed<TableViewDisplayReorder | undefined>(() => {
+    if (!reorder || !options.isOrderedDisplay.value || !options.canEdit.value) {
       return undefined;
     }
     return { enabled: !options.isNarrowed.value, move };
