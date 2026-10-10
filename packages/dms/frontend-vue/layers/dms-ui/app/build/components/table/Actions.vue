@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T extends Data">
-import { injectLocal, useFocus, useFocusWithin } from "@vueuse/core";
+import { injectLocal, useFocusWithin } from "@vueuse/core";
 import { tv } from "tailwind-variants";
-import type { ShallowRef } from "vue";
+import { nextTick, type ShallowRef } from "vue";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 
 import TableMenu from "./Menu.vue";
@@ -162,7 +162,6 @@ const searchActive = ref(false);
 const searchInputRef = ref<HTMLInputElement>();
 const searchSectionRef = ref<HTMLElement>();
 
-const { focused: inputFocus } = useFocus(searchInputRef);
 const { focused: searchAreaFocused } = useFocusWithin(searchSectionRef);
 
 // A search set from outside (a view opened) shows in its field.
@@ -183,16 +182,17 @@ tableSharedData.onFiltersCleared(() => {
   if (!searchAreaFocused.value) searchActive.value = false;
 });
 
-watch(searchAreaFocused, (isFocused) => {
+// Opening the search unmounts the trigger button that held the focus: the
+// area reads as left for a moment, until the field takes the focus. Only an
+// area still left once the field rendered folds the search back.
+watch(searchAreaFocused, async (isFocused) => {
   if (isFocused || !searchActive.value) return;
+  await nextTick();
+  if (searchAreaFocused.value || !searchActive.value) return;
   if (tableSharedData?.globalFilterState.value) return;
   searchActive.value = false;
 });
 
-const toggleSearch = () => {
-  searchActive.value = !searchActive.value;
-  inputFocus.value = !inputFocus.value;
-};
 
 const searchFieldRef = ref<{ $el: HTMLElement }>();
 
@@ -203,6 +203,12 @@ const focusSearchBar = () => {
   (host as unknown as { $el: HTMLElement } | undefined)?.$el
     ?.querySelector("input")
     ?.focus();
+};
+
+const openSearch = async () => {
+  searchActive.value = true;
+  await nextTick();
+  focusSearchBar();
 };
 
 const searchPlaceholderText = computed(() =>
@@ -426,7 +432,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
           square
           :aria-label="t('dms.table.search_open')"
           :class="uiTableActions.trigger()"
-          @click="toggleSearch"
+          @click="openSearch"
         />
 
         <div :class="uiTableActions.searchContainer({ searchActive })">
