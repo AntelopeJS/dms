@@ -89,6 +89,15 @@ describe("form URL variables on a repeated placeholder", () => {
     ).toBe("/workspaces/ws-1/invoices/row-7");
   });
 
+  it("encodes an occurrence like any parameter", () => {
+    expect(
+      replaceUrlVariables("/workspaces/{{params.id:1}}/rows", {
+        routeParams: { id: "row-7", "id:1": "ws 1/2", "id:2": "row-7" },
+        routeQuery: {},
+      }),
+    ).toBe("/workspaces/ws%201%2F2/rows");
+  });
+
   it("leaves an indexed token that no occurrence answers alone", () => {
     expect(replaceUrlVariables("/invoices/{{params.id:3}}", context)).toBe(
       "/invoices/{{params.id:3}}",
