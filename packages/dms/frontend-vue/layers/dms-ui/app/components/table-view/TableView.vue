@@ -107,6 +107,7 @@ import { useTableViews } from "../../build/composables/table-view/useTableViews"
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import { useFirstPageOnChange } from "../../build/composables/table-view/useFirstPageOnChange";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
 import {
@@ -709,6 +710,13 @@ const hiddenFilters = computed<TableFilter[]>(() => [
   ...routeParamHiddenFilters.value,
   ...activeTabFilters.value,
 ]);
+
+// A hidden filter's value changed with the URL: the page reached among the
+// previous rows lists from page 1 among the new ones, like a visible filter.
+useFirstPageOnChange(
+  () => [queryParamHiddenFilters.value, routeParamHiddenFilters.value],
+  paginationState,
+);
 
 const queryParamDefaults = computed<Record<string, unknown> | undefined>(() => {
   if (!queryParamFilters && !routeParamFilters) return undefined;
@@ -1980,6 +1988,7 @@ onMounted(() => {
     :quick-filters="resolvedQuickFilters"
     :footer="resolvedFooter"
     :empty-states="props.emptyStates"
+    :hidden-filters-apply="queryParamHiddenFilters.length > 0"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"

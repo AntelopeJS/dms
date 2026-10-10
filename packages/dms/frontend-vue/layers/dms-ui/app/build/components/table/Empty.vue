@@ -45,7 +45,7 @@ const tableSharedDataRef =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
 const tableSharedData = computed(() => tableSharedDataRef?.value);
 
-// A search, a filter chip or a quick filter narrows the rows.
+// A search, a filter chip, a quick filter or a hidden filter narrows the rows.
 const isFiltered = computed(() => !!tableSharedData.value?.isFiltered?.value);
 // What the clear action would clear; nothing (only default filters left at
 // their value) offers no action.

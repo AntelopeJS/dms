@@ -15,6 +15,13 @@ inside `ChartCard`); layout `Grid` + `GridRow`, `HStack` / `VStack` / `Spacer`, 
 behavioral DSL — permissioned `.action()`s and `.watch()` reactivity — see
 `docs/02.building/05.actions-and-reactivity.md`.
 
+A `TableView` scoped by the page URL takes `queryParamFilters: { status: { field: "status" } }`
+(hidden filters read from `?status=`; `routeParamFilters` for slug params like `:id`). No
+glue is needed around it: an active query filter shows the `filtered` empty state, and a
+link changing its value sends the table back to page 1. A drawer or modal row action already
+gets `navigation` (J / K, `index` / `total` in the order shown) —
+`docs/04.components/06.tables/8.row-drawers.md`.
+
 ## DataTypes
 
 A field's `type` is a **DataType instance**: `new DefaultDataTypes.StringType({ … })`. The

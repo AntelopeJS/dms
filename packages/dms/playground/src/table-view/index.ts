@@ -23,6 +23,7 @@ export * from "./kanban-custom-card/page";
 export * from "./kanban-mode/page";
 export * from "./modal-mode/page";
 export * from "./page-mode/page";
+export * from "./query-filters/page";
 export * from "./quick-actions";
 export * from "./relation-dms-member/data-api";
 export * from "./relation-dms-member/database";

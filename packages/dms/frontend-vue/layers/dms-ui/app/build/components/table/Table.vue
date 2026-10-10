@@ -227,6 +227,12 @@ export interface TableProps<T> {
   bulkActions?: CustomRowAction[];
   /** What the empty body says, per reason it is empty. */
   emptyStates?: TableViewEmptyStatesConfig;
+  /**
+   * Filters the toolbar does not show narrow the rows (the page URL's
+   * `queryParamFilters`): the table reads as filtered, and its empty body
+   * says no row matches rather than that there are none yet.
+   */
+  hiddenFiltersApply?: boolean;
 
   data?: T[] | null;
   columns?: TableColumn<T>[];
@@ -330,7 +336,7 @@ export interface TableSharedData<T> {
   resetFilters: () => void;
   /** What `resetFilters` would clear (nothing: no clear action to offer). */
   clearableFilters: ComputedRef<ClearableTableFilters>;
-  /** A search or a filter chip narrows the rows. */
+  /** A search, a filter chip or a hidden filter narrows the rows. */
   isFiltered: ComputedRef<boolean>;
   /** Runs after `resetFilters` (e.g. the toolbar folds its search). */
   onFiltersCleared: EventHookOn;
@@ -1059,6 +1065,7 @@ const narrowingState: TableNarrowingState = {
   globalFilter: globalFilterState,
   pagination: paginationState,
   searchApplies: computed(() => resolvedCapabilities.value.search),
+  hiddenFiltersApply: computed(() => !!props.hiddenFiltersApply),
 };
 const filtersCleared = createEventHook();
 const resetFilters = () => {
