@@ -491,6 +491,9 @@ const theme = tv({
     // never hides past the card edge. Phones drop the content-column indent.
     expandedBody:
       "sticky start-0 w-[var(--dms-table-viewport,auto)] pt-4 pb-[18px] pe-[18px] ps-[18px] sm:ps-[68px]",
+    // The empty body centres on the visible part of a table wider than its
+    // card, not on the whole scroll width.
+    emptyBody: "sticky start-0 w-[var(--dms-table-viewport,auto)]",
 
     headCell: `${HEADER_MATCH_BG} ${FIRST_HEAD_CELL_GUTTER} border-b-default text-dimmed group relative touch-none select-none overflow-hidden border-b h-9 px-3.5 py-0 ${EYEBROW_CLASS} last:pe-2.5`,
     headCellInternal: "flex w-full items-center justify-between gap-1",
@@ -746,15 +749,14 @@ const onTableScroll = (event: Event) => {
   if (!hasScrollArea.value) return;
   isScrolled.value = (event.target as HTMLElement).scrollTop > 0;
 };
-// Expanded detail bands are as wide as the visible scroll area.
+// Expanded detail bands, group headers and the empty body are as wide as
+// the visible scroll area.
 const tableRootRef = useTemplateRef<HTMLElement>("tableRoot");
 const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableRootStyle = computed(() => ({
   maxHeight: props.maxHeight,
   "--dms-table-viewport":
-    (isExpandable || !!props.grouping) && tableViewportWidth.value > 0
-      ? `${tableViewportWidth.value}px`
-      : undefined,
+    tableViewportWidth.value > 0 ? `${tableViewportWidth.value}px` : undefined,
 }));
 
 // A clipped cell value reads in full in a native tooltip.
@@ -1628,14 +1630,16 @@ defineShortcuts({
                   "
                   class="p-0"
                 >
-                  <TableEmpty
-                    :can-add-row="
-                      normalizeActionConfig(rowActions?.add).isEnabled
-                    "
-                    :load-error="loadError"
-                    :archived="isShowingArchived"
-                    :empty-states="emptyStates"
-                  />
+                  <div :class="uiTable.emptyBody()">
+                    <TableEmpty
+                      :can-add-row="
+                        normalizeActionConfig(rowActions?.add).isEnabled
+                      "
+                      :load-error="loadError"
+                      :archived="isShowingArchived"
+                      :empty-states="emptyStates"
+                    />
+                  </div>
                 </td>
               </tr>
             </tbody>
