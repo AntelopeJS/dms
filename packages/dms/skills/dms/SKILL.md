@@ -32,7 +32,7 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `Grid`, `KpiCard`, … — fluent builders producing a **serializable description**, not live UI: the
   frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
-  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL;
+  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
   A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
