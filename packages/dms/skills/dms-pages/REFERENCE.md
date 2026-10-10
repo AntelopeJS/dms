@@ -9,7 +9,11 @@ Main builders: `Form`; `TableView(controller, options)`; the charts (`ChartLine`
 `ChartArea`, `ChartBar`, `ChartColumn`, `ChartDonut`, `ChartPie`, `ChartScatter`,
 `ChartMixed`, `ChartRadar`, `ChartRadialBar`, `ChartHeatmap`, `ChartCandlestick`, usually
 inside `ChartCard`); layout `Grid` + `GridRow`, `HStack` / `VStack` / `Spacer`, `Tab`,
-`Placeholder`; dashboard widgets `KpiCard`, `TopListCard`, `PeriodSelector`; and
+`Placeholder`; dashboard widgets `KpiCard`, `TopListCard`, `PeriodSelector`; display blocks
+`StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet to
+start with), `Banner`, `Card`, and `CodeBlock` (read-only highlighted code with a copy
+button: `code` + `language`, or `fetchUrl` answering `{ code, language? }` — see
+`docs/04.components/11.display-blocks.md`); and
 `CustomComponent` (deep import from `@antelopejs/interface-dms/base/custom` — not in the barrel). Nest with
 `.child("key", builder)`; `Grid` children must be `GridRow`s. Builders also carry a
 behavioral DSL — permissioned `.action()`s and `.watch()` reactivity — see
