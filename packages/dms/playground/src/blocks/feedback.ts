@@ -1,17 +1,41 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Banner, EmptyState } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
-export class PageBlocksFeedback extends PageController("blocks-feedback", {
-  displayName: "Banner & empty state",
-  icon: "i-ph-megaphone",
-  category: blocksCategory,
-  order: 30,
-  description:
-    "Banner block (tones, compact size, link actions, remembered dismiss) and EmptyState block (variants, sizes, actions)",
-}) {
+export class PageBlocksFeedback extends PageController(
+  "blocks-feedback",
+  {
+    displayName: "Banner & empty state",
+    icon: "i-ph-megaphone",
+    category: blocksCategory,
+    order: 30,
+    description:
+      "Banner block (tones, compact size, link actions, remembered dismiss, fetched from a route) and EmptyState block (variants, sizes, actions)",
+  },
+  DefaultLayout({
+    headerActions: [
+      {
+        id: "outage",
+        label: "Simulate an outage",
+        icon: "i-ph-lightning",
+        target: {
+          type: "api",
+          method: "POST",
+          url: "/api/blocks/provider-status/outage",
+          successMessage: "Brevo is down",
+        },
+      },
+    ],
+  }),
+) {
+  // Nothing until the route answers a banner: press "Simulate an outage".
+  static providerStatus = Banner({
+    fetchUrl: "/api/blocks/provider-status",
+  });
+
   static beta = Banner({
     tone: "warning",
     title: "Sales analytics is in beta",

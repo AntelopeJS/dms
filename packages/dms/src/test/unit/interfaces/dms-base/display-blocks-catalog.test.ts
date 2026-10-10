@@ -77,6 +77,14 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     }
   });
 
+  it("lets a banner read its content from a route", () => {
+    const banner = declared("Banner");
+
+    expect(banner.config.fetchUrl?.ui?.widget).to.equal("dataSource");
+    expect(banner.config.periodScope?.optional).to.equal(true);
+    expect(banner.config.realtimeTopic?.optional).to.equal(true);
+  });
+
   it("says what a block falls back on when an option is unset", () => {
     expect(declared("StatGroup").defaults.layout).to.equal("joined");
     expect(declared("KeyValueList").defaults.card).to.equal(true);

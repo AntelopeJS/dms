@@ -57,6 +57,11 @@ vi.mock(
   () => ({ useComponentEvent: () => ({}) }),
 );
 
+vi.mock(
+  "../layers/dms-ui/app/build/composables/actions/useActionTargets",
+  () => ({ useActionTargets: () => ({ handleCustomButton: () => {} }) }),
+);
+
 // The generic components only lay out what the block resolved: their props
 // are what is checked here.
 const propsProbe = (name: string, keys: string[]) => ({
