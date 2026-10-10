@@ -98,4 +98,17 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
   getEmpty() {
     return later({ items: [] });
   }
+
+  // The CodeBlock demo reads one snippet, `{ code, language? }`, not `{ items }`.
+  @Get("code")
+  getCode() {
+    const preset = {
+      id: "thumbnail",
+      format: "webp",
+      quality: 82,
+      resize: { width: 480, height: 480, fit: "cover" },
+      generatedAt: new Date().toISOString(),
+    };
+    return later({ code: JSON.stringify(preset, null, 2), language: "json" });
+  }
 }

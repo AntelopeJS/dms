@@ -3,6 +3,7 @@ import { getCurrentInstance, h, render } from "vue";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import { useControlError } from "../../../build/composables/form/useControlError";
+import { codeLanguageLabel } from "../../../build/utils/codeLanguages";
 import type {
   CodeEditor,
   CodeEditorCompletion,
@@ -47,13 +48,6 @@ const LINE_HEIGHT_PX = 19;
 // The editor's top and bottom padding, around its lines.
 const EDITOR_PADDING_PX = 16;
 const INVALID_JSON = "$dms.field_errors.invalid_json";
-const LANGUAGE_LABELS: Record<string, string> = {
-  json: "JSON",
-  sql: "SQL",
-  html: "HTML",
-  javascript: "JavaScript",
-  text: "Text",
-};
 
 const host = useTemplateRef<HTMLElement>("host");
 const position = ref<CodeEditorPosition>({ line: 1, column: 1 });
@@ -188,7 +182,7 @@ onBeforeUnmount(() => {
         {{ t("dms.form.code.complete") }}
       </span>
       <span class="ms-auto">
-        {{ LANGUAGE_LABELS[props.language] ?? props.language }} ·
+        {{ codeLanguageLabel(props.language) }} ·
         {{ t("dms.form.code.position", position) }}
       </span>
     </div>

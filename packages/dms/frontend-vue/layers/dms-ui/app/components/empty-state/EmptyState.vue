@@ -35,6 +35,8 @@ interface EmptyStateProps {
 interface EmptyStateSlots {
   /** Rich description, replaces `description`. */
   default?: () => unknown;
+  /** Under the text, above the actions: a snippet to start with. */
+  content?: () => unknown;
   /** Buttons or links under the text. */
   actions?: () => unknown;
 }
@@ -71,6 +73,7 @@ const theme = tv({
     well: "mb-1.5",
     title: "text-highlighted",
     description: "text-muted",
+    content: "mt-2.5 w-full max-w-[60ch] text-start",
     actions: "mt-2.5 flex flex-wrap items-center justify-center gap-2",
   },
   variants: {
@@ -125,6 +128,9 @@ const hasActions = computed(() => !!slots.actions || !!props.actions?.length);
     <p v-if="hasDescription" :class="ui.description()">
       <slot>{{ props.description }}</slot>
     </p>
+    <div v-if="slots.content" :class="ui.content()">
+      <slot name="content" />
+    </div>
     <div v-if="hasActions" :class="ui.actions()">
       <slot name="actions">
         <UButton

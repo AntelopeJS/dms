@@ -9,6 +9,7 @@ import {
 } from "./display";
 import { toneEnum } from "./internal/display";
 import { TONES, type Tone } from "./types/tone";
+import { CODE_BLOCK_LANGUAGES, type CodeBlockLanguage } from "./code-block";
 
 /** Why a block is empty: see `EmptyStateVariant`. */
 export const EMPTY_STATE_VARIANTS = [
@@ -26,6 +27,16 @@ export const EMPTY_STATE_SIZES = ["sm", "md", "lg"] as const;
 
 export type EmptyStateSize = (typeof EMPTY_STATE_SIZES)[number];
 
+/** A snippet under the text of an empty state: the first call to make. */
+export interface EmptyStateCode {
+  /** The code, verbatim. */
+  content: string;
+  /** Highlighting language, as in `CodeBlock`. Defaults to `text`. */
+  language?: CodeBlockLanguage;
+  /** A button copies the code. Defaults to `true`. */
+  copy?: boolean;
+}
+
 /** The options `EmptyState` takes. */
 export interface EmptyStateProps extends BaseComponentProps {
   /** `$`-prefixed for an i18n key, like every text of the block. */
@@ -40,6 +51,8 @@ export interface EmptyStateProps extends BaseComponentProps {
   hatched?: boolean;
   size?: EmptyStateSize;
   actions?: BlockLinkAction[];
+  /** A snippet between the text and the actions ("send your first email"). */
+  code?: EmptyStateCode;
   /** Card surface around it; turn it off inside a `Card` block. */
   card?: boolean;
 }
@@ -77,6 +90,15 @@ export function EmptyState(
     });
 }
 
+const EmptyStateCodeSchema = z.object({
+  content: ui(z.string(), { label: "Code", widget: "textarea" }),
+  language: ui(z.enum(CODE_BLOCK_LANGUAGES).optional(), {
+    label: "Language",
+    widget: "select",
+  }),
+  copy: ui(z.boolean().optional(), { label: "Copy button", widget: "switch" }),
+}) satisfies BlockOptionsFor<EmptyStateCode>;
+
 /** The options `EmptyState` accepts. */
 export const EmptyStateSchema = z.object({
   title: ui(z.string().describe("Title of the empty state."), {
@@ -90,6 +112,12 @@ export const EmptyStateSchema = z.object({
     widget: "textarea",
   }),
   actions: blockActionsOption("Buttons under the text; the first one leads."),
+  code: ui(
+    EmptyStateCodeSchema.optional().describe(
+      "A snippet between the text and the actions.",
+    ),
+    { label: "Code snippet", group: "content" },
+  ),
   variant: ui(
     z
       .enum(EMPTY_STATE_VARIANTS)
