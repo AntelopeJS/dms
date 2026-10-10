@@ -3,6 +3,7 @@ import type { DataType } from "#dms-core/app/composables/data-types/useDataType"
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
+import { isDmsTone } from "../../utils/tone";
 import { readRowField, readSubline, toneClass, type Row } from "./cellHelpers";
 
 const Sparkline = defineAsyncComponent(
@@ -21,6 +22,8 @@ interface SelectItemOption {
 
 interface StatusPillOptions {
   tones?: Record<string, string>;
+  /** Row field holding the pill's tone, read before `tones`. */
+  toneField?: string;
   subField?: string;
   /** Tone of the line under the pill when the row gives none. */
   subTone?: string;
@@ -29,10 +32,18 @@ interface StatusPillOptions {
   typeOptions?: { items?: SelectItemOption[] };
 }
 
+// A row field that holds no known tone gives way to the column's map.
+function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
+  const rowTone = readRowField(row, opts.toneField);
+  if (typeof rowTone === "string" && isDmsTone(rowTone)) return rowTone;
+  return opts.tones?.[key] ?? "neutral";
+}
+
 /**
- * `status_pill`: a tinted pill led by a dot, in the tone the value maps to,
- * with an optional line under it (a failure's cause, a composed "retry Oct
- * 10") in the row's tone, else `subTone`, else the pill's.
+ * `status_pill`: a tinted pill led by a dot, in the tone the row gives
+ * (`toneField`) or the value maps to, with an optional line under it (a
+ * failure's cause, a composed "retry Oct 10") in the row's tone, else
+ * `subTone`, else the pill's.
  */
 function renderStatusPill(value: unknown, options: unknown, row: Row) {
   const { processI18n } = useTranslation();
@@ -42,7 +53,7 @@ function renderStatusPill(value: unknown, options: unknown, row: Row) {
   const item = opts.typeOptions?.items?.find(
     (candidate) => String(candidate.value) === key,
   );
-  const tone = opts.tones?.[key] ?? "neutral";
+  const tone = statusPillTone(opts, key, row);
   const pill = h(StatusPill, {
     tone,
     label: processI18n(item?.label ?? key),
