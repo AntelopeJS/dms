@@ -19,6 +19,11 @@ button: `code` + `language`, or `fetchUrl` answering `{ code, language? }` — s
 behavioral DSL — permissioned `.action()`s and `.watch()` reactivity — see
 `docs/02.building/05.actions-and-reactivity.md`.
 
+A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
+points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
+`direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your
+own drawer in a `CustomComponent`.
+
 ## DataTypes
 
 A field's `type` is a **DataType instance**: `new DefaultDataTypes.StringType({ … })`. The
