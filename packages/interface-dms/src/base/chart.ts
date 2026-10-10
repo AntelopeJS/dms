@@ -1,10 +1,9 @@
 import { ComponentBuilder } from "../component";
-import type { PageMetadata } from "../page";
-import { RegisterPageTopic } from "../realtime";
 import type { AxeOrientation, BaseComponentProps, EnumOption } from "./types";
 import type { HttpMethod } from "./types/http";
 import { ChartType } from "./chart-type";
 import { CHART_COMPONENT_NAME, CHART_META_BY_TYPE } from "./internal/chart";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 export { ChartType } from "./chart-type";
 
@@ -290,25 +289,6 @@ export type AnyChartProps =
   | RadialBarChartProps
   | HeatmapChartProps;
 
-function normalizeChartTopics(topic: string | string[] | undefined): string[] {
-  if (!topic) return [];
-  return Array.isArray(topic) ? topic : [topic];
-}
-
-function attachChartRealtimeHook<TProps>(
-  builder: ComponentBuilder<TProps>,
-  topics: string[],
-): void {
-  if (topics.length === 0) return;
-  builder.onCreated((parentPage: PageMetadata) => {
-    const parentInfo = parentPage.pageInfo;
-    if (!parentInfo) return;
-    for (const topic of topics) {
-      RegisterPageTopic(parentInfo.fullId, topic);
-    }
-  });
-}
-
 /**
  * `options` is optional because a page is written as it is built: the editor
  * places a block before anything is configured, and writes that as the bare
@@ -327,11 +307,10 @@ function createChartBuilder<TType extends ChartType>(type: TType) {
         name: (merged as BaseChartProps).title || meta.name,
         icon: meta.icon,
       });
-    attachChartRealtimeHook(
+    return attachRealtimeTopicsHook(
       builder,
-      normalizeChartTopics((merged as BaseChartProps).realtimeTopic),
+      (merged as BaseChartProps).realtimeTopic,
     );
-    return builder;
   };
 }
 

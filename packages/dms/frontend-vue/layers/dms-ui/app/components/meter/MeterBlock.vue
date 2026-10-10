@@ -40,6 +40,10 @@ interface MeterBlockProps extends DefaultComponentProps {
   /** Endpoint answering `{ value?, max?, segments?, hint?, valueLabel? }`. */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Wraps the meter in a padded card. */
   card?: boolean;
   /** Link buttons pushed right of the legend ("Manage members"). */
@@ -61,6 +65,8 @@ const props = withDefaults(defineProps<MeterBlockProps>(), {
   size: "sm",
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   card: false,
   actions: () => [],
 });
@@ -76,6 +82,8 @@ const { state: watchState } = useWatch(
 const { data, isLoading, error, refresh } = useChartFetch<MeterResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
 });

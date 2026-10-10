@@ -29,6 +29,10 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Endpoint answering `{ items }`, newest first. */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /**
    * Files the entries under day separators ("Today · Sep 29") with their
    * time; off, each entry shows how long ago it happened.
@@ -62,6 +66,8 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   items: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   groupByDay: true,
   maxItems: undefined,
   fillHeight: false,
@@ -89,6 +95,8 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,

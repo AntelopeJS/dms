@@ -1,6 +1,9 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Card, KeyValueList, StatGroup } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
+import { Form } from "@antelopejs/interface-dms/base/form";
+import { HttpMethod } from "@antelopejs/interface-dms/base/types";
+import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
@@ -10,7 +13,7 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
   category: blocksCategory,
   order: 10,
   description:
-    "KeyValueList block (every value type, columns, dense, live data) and the Card container block",
+    "KeyValueList block (every value type, columns, dense, live data refreshed over realtime) and the Card container block",
 }) {
   static summaries = Grid({ gap: "1rem", minColumnWidth: "320px" }).child(
     "row",
@@ -65,11 +68,23 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
         KeyValueList({
           title: "Live facts",
           fetchUrl: "/api/blocks/facts",
+          // Read again on each bump of the form below, over SSE.
+          realtimeTopic: FACTS_DEMO_TOPIC,
           // The route answers 5 rows: the skeleton draws as many.
           skeletonCount: 5,
         }),
       ),
   );
+
+  static bumpFacts = Form({
+    title: "Update the live facts",
+    description:
+      "Bumps the revision and the outstanding amount, then publishes on the topic the Live facts list follows.",
+    submitUrl: "/api/blocks/facts/bump",
+    submitUrlMethod: HttpMethod.post,
+    successMessage: "Published; the Live facts list refreshes.",
+    fields: [],
+  });
 
   static columns = KeyValueList({
     title: "Record · two columns",

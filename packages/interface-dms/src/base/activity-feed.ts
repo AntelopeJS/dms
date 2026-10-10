@@ -11,6 +11,7 @@ import {
 import { toneEnum } from "./internal/display";
 import type { BaseComponentProps } from "./types";
 import { type Tone, TONES } from "./types/tone";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /** One entry of an activity feed. */
 export interface ActivityFeedItem {
@@ -94,12 +95,15 @@ const DEFAULT_ICON = "i-ph-pulse";
 export function ActivityFeed(
   options?: ActivityFeedProps,
 ): ComponentBuilder<ActivityFeedProps> {
-  return new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
-    .options({ ...options })
-    .meta({
-      name: options?.title || "Activity feed",
-      icon: DEFAULT_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
+      .options({ ...options })
+      .meta({
+        name: options?.title || "Activity feed",
+        icon: DEFAULT_ICON,
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 const ActivityFeedItemSchema = z.object({

@@ -6,6 +6,7 @@ import { toneEnum } from "./internal/display";
 import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import type { BaseComponentProps } from "./types";
 import type { CategoryInfo } from "../page/types";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /** One navigation card. */
 export interface NavCardItem {
@@ -92,12 +93,15 @@ export function NavCardGrid(
     ...rest,
   };
   if (category) props.categoryId = category.fullId;
-  return new ComponentBuilder<NavCardGridProps>(NAV_CARD_GRID_COMPONENT_NAME)
-    .options(props)
-    .meta({
-      name: options?.title || "Navigation cards",
-      icon: NAV_CARD_GRID_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<NavCardGridProps>(NAV_CARD_GRID_COMPONENT_NAME)
+      .options(props)
+      .meta({
+        name: options?.title || "Navigation cards",
+        icon: NAV_CARD_GRID_ICON,
+      }),
+    rest.realtimeTopic,
+  );
 }
 
 const NavCardItemSchema = z.object({

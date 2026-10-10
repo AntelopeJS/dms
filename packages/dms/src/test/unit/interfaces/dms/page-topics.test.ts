@@ -26,6 +26,9 @@ import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
+import { Meter } from "@antelopejs/interface-dms/base/meter";
+import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
+import { Tab } from "@antelopejs/interface-dms/base/tab";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   Column,
@@ -188,6 +191,25 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
 
     destroyModule(own);
     expect(topicsOf(SharedPage)).to.deep.equal([]);
+  });
+
+  it("registers the topics a list block, a meter or a tab set refetches on", () => {
+    const owner = moduleContext("page-topics-blocks");
+    const meta = GetMetadata(SharedPage, PageMetadata);
+    const blocks = [
+      StatGroup({ fetchUrl: "/api/stats", realtimeTopic: OWN_TOPIC }),
+      Meter({ fetchUrl: "/api/seats", realtimeTopic: [OTHER_TOPIC] }),
+      Tab({ items: [], badgesUrl: "/api/counts", realtimeTopic: OWN_TOPIC }),
+      StatGroup({ fetchUrl: "/api/stats" }),
+    ];
+    RunWithModuleContext(owner, () => {
+      for (const block of blocks) block.onPageCreated?.(meta);
+    });
+    try {
+      expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);
+    } finally {
+      destroyModule(owner);
+    }
   });
 
   it("unregisters one topic of a page by its registration id", () => {

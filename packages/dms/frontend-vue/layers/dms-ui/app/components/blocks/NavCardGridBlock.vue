@@ -49,6 +49,10 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
   description?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Shown when there is nothing to list. */
   empty?: BlockEmptyText;
   /**
@@ -66,6 +70,8 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   description: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   empty: undefined,
   skeletonCount: undefined,
 });
@@ -90,6 +96,8 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
