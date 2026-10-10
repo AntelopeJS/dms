@@ -46,6 +46,7 @@ import {
 } from "./dev/module-update-notifications";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
+import { registerTenantInstanceProvisioning } from "./hooks/tenant-instances";
 import { registerWorkspaceNotifications } from "./hooks/workspace-notifications";
 import {
   cancelScheduledBroadcast,
@@ -70,7 +71,10 @@ import {
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
-import { ensureDefaultTenantExists } from "./utils";
+import {
+  ensureDefaultTenantExists,
+  registerExistingTenantInstances,
+} from "./utils";
 import { MILLISECONDS_PER_SECOND } from "@antelopejs/interface-dms/utils/internal/time";
 
 export * from "./config";
@@ -87,9 +91,11 @@ export async function construct(config: Config): Promise<void> {
 
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await ensureDefaultTenantExists();
+    await registerExistingTenantInstances();
     return undefined;
   });
 
+  registerTenantInstanceProvisioning();
   registerTenantDeletedCleanup();
   registerInviteExtensionCleanup();
   registerWorkspaceNotifications();
