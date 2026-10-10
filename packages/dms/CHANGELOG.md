@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.4...v0.7.5)
+
+### 🚀 Enhancements
+
+- **table-view:** Reorder the cards of the cards display ([#194](https://github.com/AntelopeJS/dms/pull/194))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.2 ([83da6c1](https://github.com/AntelopeJS/dms/commit/83da6c1))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.3...v0.7.4)
