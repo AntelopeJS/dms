@@ -1,7 +1,7 @@
 /**
  * The window event a data block (StatGroup, KeyValueList, NavCardGrid,
- * ActivityFeed, KPI, top list, meter, chart, a tab set's badges) re-fetches
- * on, keeping its values on screen until the new answer lands.
+ * ActivityFeed, KPI, top list, meter, chart, a tab set's badges, table view)
+ * re-fetches on, keeping its values on screen until the new answer lands.
  */
 export const BLOCK_REFRESH_EVENT = "DmsComponent.Block.Refresh";
 

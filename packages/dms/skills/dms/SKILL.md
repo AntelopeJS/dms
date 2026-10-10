@@ -34,9 +34,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
   A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
-  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves;
+  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks (table views included) re-fetch after a form saves;
   `periodScope` binds a card, chart, list block or `Meter` to a `PeriodSelector`, and
-  `realtimeTopic` re-fetches a chart, list block, `Meter` or `Tab` badges on each `PublishMessage`.
+  `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.

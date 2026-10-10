@@ -14,7 +14,10 @@ import { hasSearchableFields } from "../internal/searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
 import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
 import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
-import { registerTableViewPageTopics } from "./internal/realtime";
+import {
+  registerTableViewCustomTopics,
+  registerTableViewPageTopics,
+} from "./internal/realtime";
 import {
   adaptRowActions,
   resolveCustomButtons,
@@ -200,6 +203,7 @@ export function TableView<T extends ControllerClass>(
       routeParamFilters: options.routeParamFilters,
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
+      realtimeTopic: options.realtimeTopic,
       tabs: serializeTableViewTabs(options.tabs),
       views: serializeTableViewViews(options.views),
       layout: options.layout,
@@ -246,6 +250,7 @@ export function TableView<T extends ControllerClass>(
       if (options.realtime !== false) {
         registerTableViewPageTopics(parentInfo.fullId, config.location);
       }
+      registerTableViewCustomTopics(parentInfo.fullId, options.realtimeTopic);
 
       if (!tableViewPermissionId) {
         Logging.Warn("TableView permission ID not found");

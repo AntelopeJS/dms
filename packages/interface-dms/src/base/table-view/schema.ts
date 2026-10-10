@@ -438,6 +438,14 @@ export const TableViewSchema = z.object({
     group: "advanced",
     widget: "switch",
   }),
+  // A topic is a name the backend publishes under, which only its code knows.
+  realtimeTopic: ui(
+    z
+      .union([z.string(), z.array(z.string())])
+      .optional()
+      .describe("Topics whose events make the table read its rows again."),
+    { label: "Realtime topics", group: "data", advanced: true },
+  ),
   kanban: ui(kanbanSchema.optional(), { label: "Kanban", group: "advanced" }),
   card: ui(cardSchema.optional(), {
     label: "Cards",

@@ -26,6 +26,8 @@ import {
   resolveCustomRowActions,
 } from "./internal/request-filter";
 import { resolveTableViewTabs, serializeTableViewTabs } from "./internal/tabs";
+import { registerTableViewCustomTopics } from "./internal/realtime";
+import type { PageMetadata } from "../../page";
 import { serializeEmptyStates } from "./internal/footer";
 import {
   assertTabTargets,
@@ -93,6 +95,7 @@ export interface TableViewSourceOptions extends Pick<
   | "tabs"
   | "quickFilters"
   | "defaultSort"
+  | "realtimeTopic"
 > {
   /** The columns, keyed by row field, in their declared `order`. */
   columns: Record<string, TableViewSourceColumn>;
@@ -220,7 +223,7 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
  * query; what it does not handle itself (`capabilities`) — search, sort,
  * pages — the browser does over the rows it answered. Rows open custom
  * actions (a drawer, a route), never the built-in forms; there is no
- * realtime, export nor footer summary.
+ * export nor footer summary, and no realtime beyond its `realtimeTopic`.
  */
 export function tableViewFromSource(
   options: TableViewSourceOptions,
@@ -285,9 +288,15 @@ export function tableViewFromSource(
       customButtons: serializeCustomButtons(declaredCustomButtons),
       enableTableExport: false,
       realtime: false,
+      realtimeTopic: options.realtimeTopic,
       formComponents: {},
     })
     .meta({ name: options.caption || "TableView", icon: "i-ph-table" })
+    .onCreated((parentPage: PageMetadata) => {
+      const parentInfo = parentPage.pageInfo;
+      if (!parentInfo) return;
+      registerTableViewCustomTopics(parentInfo.fullId, options.realtimeTopic);
+    })
     .onFilter(async (permissions, served, permissionId, context) => ({
       ...served,
       rowActions: {

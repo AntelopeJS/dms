@@ -108,6 +108,7 @@ import { useTableFooter } from "../../build/composables/table-view/useTableFoote
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
+import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
 import {
   groupedOptionsFor,
@@ -175,6 +176,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   tableId?: string;
   /** The page carries no other table view: `?view=` / `?tab=` are its own. */
   isSoleTableView?: boolean;
+  /** Topics whose events make the table read its rows again. */
+  realtimeTopic?: string | string[];
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -1114,6 +1117,11 @@ const refreshAll = async () => {
     activeDisplayRef.value?.refresh?.(),
   ]);
 };
+
+// The rows can move without the table seeing it (a batch, a job, another
+// block's action): a topic of the backend or a page refresh reads them again,
+// keeping the current rows on screen until the answer lands.
+useRefreshTriggers(props.realtimeTopic, () => void refreshAll());
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
