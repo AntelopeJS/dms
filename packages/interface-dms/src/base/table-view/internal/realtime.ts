@@ -37,6 +37,22 @@ export function registerTableViewPageTopics(
   RegisterPageTopic(pageId, tableViewPresenceTopic(controllerLocation));
 }
 
+/**
+ * Bind the topics a table view's `realtimeTopic` names to the page it is
+ * placed on, so a session on that page may subscribe to them.
+ *
+ * @internal
+ */
+export function registerTableViewCustomTopics(
+  pageId: string,
+  topic: string | string[] | undefined,
+): void {
+  if (!topic) return;
+  for (const entry of Array.isArray(topic) ? topic : [topic]) {
+    RegisterPageTopic(pageId, entry);
+  }
+}
+
 async function dispatchRealtimeMutation(
   context: RealtimeMutationContext,
 ): Promise<void> {

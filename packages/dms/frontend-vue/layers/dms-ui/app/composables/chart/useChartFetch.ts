@@ -1,6 +1,5 @@
 import {
   computed,
-  onBeforeUnmount,
   onMounted,
   ref,
   watch,
@@ -12,12 +11,11 @@ import {
   usePeriodScope,
 } from "../../../../dms-core/app/composables/period/usePeriodScope";
 import type { PeriodState } from "../../../../dms-core/app/composables/period/types";
-import { useRealtimeTopic } from "../../../../dms-core/app/composables/realtime/useRealtimeTopic";
 import {
   hasUrlVariables,
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
-import { onPageBlocksRefresh } from "../../utils/blockRefresh";
+import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -132,20 +130,6 @@ function readStaticData<T>(
   return source ?? null;
 }
 
-function subscribeRealtimeTopics(
-  topic: string | string[] | undefined,
-  onEvent: () => void,
-): void {
-  if (!topic) return;
-  const topics = Array.isArray(topic) ? topic : [topic];
-  for (const entry of topics) {
-    useRealtimeTopic(entry, (event) => {
-      if (!("type" in event)) return;
-      onEvent();
-    });
-  }
-}
-
 /**
  * The URL to request: `fetchUrl` with its tokens filled, or `undefined` while
  * one has no value. Only a URL naming a token reads the route.
@@ -162,16 +146,6 @@ function useResolvedFetchUrl<T>(
       routeQuery: route.query as Record<string, unknown>,
     }),
   );
-}
-
-// Mounted only: the page refresh is a browser event, and a block the server
-// renders has nothing to refetch.
-function subscribePageRefresh(onRefresh: () => void): void {
-  let unsubscribe: (() => void) | undefined;
-  onMounted(() => {
-    unsubscribe = onPageBlocksRefresh(onRefresh);
-  });
-  onBeforeUnmount(() => unsubscribe?.());
 }
 
 export function useChartFetch<T>(
@@ -290,8 +264,7 @@ export function useChartFetch<T>(
       scheduleRefresh,
     );
     onMounted(fetchOnMount);
-    subscribeRealtimeTopics(options.realtimeTopic, refreshSameInputs);
-    subscribePageRefresh(refreshSameInputs);
+    useRefreshTriggers(options.realtimeTopic, refreshSameInputs);
   } else if (typeof options.staticData === "function") {
     watch(
       () => readStaticData(options.staticData),

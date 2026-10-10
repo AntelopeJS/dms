@@ -927,6 +927,15 @@ export interface TableViewOptions<
    */
   realtime?: boolean;
   /**
+   * Topics the backend publishes on (`PublishMessage`) when the rows change
+   * without a write through this table's routes — a batch, a job, an import.
+   * The table reads its rows again on each event, keeping the current rows on
+   * screen until the answer lands. The page registers them, as for a chart's
+   * `realtimeTopic`. Independent of `realtime`, which covers the writes made
+   * through the controller.
+   */
+  realtimeTopic?: string | string[];
+  /**
    * Enable the kanban display mode for this collection. When set, users can
    * switch between the table and a kanban board from the toolbar.
    */

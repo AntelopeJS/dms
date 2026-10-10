@@ -190,6 +190,32 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     expect(topicsOf(SharedPage)).to.deep.equal([]);
   });
 
+  it("registers the topics a table view refetches its rows on", () => {
+    const owner = moduleContext("page-topics-table-topic");
+    const meta = GetMetadata(SharedPage, PageMetadata);
+    const tables = [
+      TableView(RowsAPI, { realtime: false, realtimeTopic: OWN_TOPIC }),
+      TableView.fromSource({
+        fetchUrl: "/api/page-topics-source",
+        columns: {
+          name: { name: "Name", type: new DefaultDataTypes.StringType() },
+        },
+        realtimeTopic: [OTHER_TOPIC],
+      }),
+    ];
+    RunWithModuleContext(owner, () => {
+      for (const table of tables) table.onPageCreated?.(meta);
+    });
+    try {
+      expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);
+      const [own, other] = tables.map((table) => table.serializeSync().options);
+      expect(own?.realtimeTopic).to.equal(OWN_TOPIC);
+      expect(other?.realtimeTopic).to.deep.equal([OTHER_TOPIC]);
+    } finally {
+      destroyModule(owner);
+    }
+  });
+
   it("unregisters one topic of a page by its registration id", () => {
     const pageId = pageFullId(SharedPage);
     const topics = realtimeImpl.internal.RegisterPageTopic;

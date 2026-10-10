@@ -172,8 +172,8 @@ export const blockItemsSourceOptions = () => ({
  *
  * `REFRESH_PAGE` asks every block of the page that reads its data from a
  * route (StatGroup, KeyValueList, NavCardGrid, ActivityFeed, KpiCard,
- * TopListCard, Meter, the charts, a `Tab`'s `badgesUrl`) to read it again,
- * without remounting it: a form changing the record a detail page shows
+ * TopListCard, Meter, the charts, a `Tab`'s `badgesUrl`, TableView) to read
+ * it again, without remounting it: a form changing the record a detail page shows
  * declares `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)`.
  * The page header's buttons do it on their own once they changed something,
  * and a frontend component calls `refreshPageBlocks()` for the same effect.
