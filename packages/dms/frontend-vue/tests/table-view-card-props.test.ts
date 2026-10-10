@@ -113,7 +113,10 @@ describe("cards display with a custom card", () => {
     received.length = 0;
     vi.stubGlobal("computed", computed);
     vi.stubGlobal("h", h);
-    vi.stubGlobal("useI18n", () => ({ locale: ref("en") }));
+    vi.stubGlobal("useI18n", () => ({
+      locale: ref("en"),
+      t: (key: string) => key,
+    }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
@@ -146,7 +149,10 @@ describe("the default cards", () => {
 
   beforeEach(() => {
     vi.stubGlobal("computed", computed);
-    vi.stubGlobal("useI18n", () => ({ locale: ref("en") }));
+    vi.stubGlobal("useI18n", () => ({
+      locale: ref("en"),
+      t: (key: string) => key,
+    }));
     vi.stubGlobal("useTranslation", () => ({ processI18n: (t: string) => t }));
     vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   });

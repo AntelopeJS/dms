@@ -37,6 +37,7 @@ import type {
 } from "../../composables/table-view/types";
 import {
   TABLE_DISPLAY_ID,
+  CARDS_DISPLAY_ID,
   KANBAN_DISPLAY_ID,
   GROUPED_DISPLAY_ID,
   TableViewEvents,
@@ -1019,7 +1020,9 @@ const accumulation = computed<TableAccumulation | undefined>(() =>
     : undefined,
 );
 
-// Rows ordered by hand: moving is off while anything narrows the rows.
+// Rows ordered by hand: moving is off while anything narrows the rows, and
+// only the displays drawing the rows in their order move them.
+const ORDERED_DISPLAY_IDS = new Set([TABLE_DISPLAY_ID, CARDS_DISPLAY_ID]);
 const { reorderState } = useTableReorder<T>({
   reorder: reorderConfig,
   data,
@@ -1033,7 +1036,9 @@ const { reorderState } = useTableReorder<T>({
       !!effectiveGlobalFilter.value ||
       activeTabFilters.value.length > 0,
   ),
-  isGrid: computed(() => activeDisplayId.value === TABLE_DISPLAY_ID),
+  isOrderedDisplay: computed(() =>
+    ORDERED_DISPLAY_IDS.has(activeDisplayId.value),
+  ),
   refresh: () => refresh(),
   onError: (failure) =>
     toast.add({
@@ -1742,6 +1747,7 @@ const displayContext = computed(
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
     refresh: refreshAll,
+    reorder: reorderState.value,
     table: displayTable.value,
   }),
 );

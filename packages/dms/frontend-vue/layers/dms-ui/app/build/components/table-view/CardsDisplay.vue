@@ -6,12 +6,17 @@ import CardGridSkeleton from "./CardGridSkeleton.vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
   TableViewCardConfig,
+  TableViewCardReorder,
   TableViewDisplayContext,
 } from "../../../composables/table-view/types/display";
 import {
   buildCardProps,
   cardFieldColumns,
 } from "../../composables/table-view/utils/card";
+import {
+  REORDER_HANDLE_CLASS,
+  useReorderHandles,
+} from "../../composables/table-view/useReorderHandles";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -85,6 +90,22 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
 };
 
 const openItem = (item: T) => props.context.actions.open(item);
+
+// A hand-ordered table (backend `reorder`): each card carries a move handle,
+// and is where another card dragged by its handle drops.
+const { draggedIndex, handleFor, drop, allowDrop } = useReorderHandles({
+  reorder: () => props.context.reorder,
+  count: () => props.context.items.length,
+});
+
+const cardReorder = (index: number): TableViewCardReorder | undefined =>
+  props.context.reorder
+    ? {
+        enabled: props.context.reorder.enabled,
+        dragging: draggedIndex.value === index,
+        handle: handleFor(index),
+      }
+    : undefined;
 </script>
 
 <template>
@@ -107,30 +128,49 @@ const openItem = (item: T) => props.context.actions.open(item);
       class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
     >
       <template v-if="cardComponent">
-        <component
-          :is="cardComponent"
-          v-for="item in props.context.items"
+        <!-- A wrapper out of the grid's layout, catching the drop on the
+             card whatever its root element. -->
+        <div
+          v-for="(item, index) in props.context.items"
           :key="rowId(item)"
-          v-bind="{
-            ...(card?.component?.options ?? {}),
-            ...buildCardProps(item, props.context),
-          }"
-        />
+          class="contents"
+          @dragover="allowDrop"
+          @drop="drop(index)"
+        >
+          <component
+            :is="cardComponent"
+            v-bind="{
+              ...(card?.component?.options ?? {}),
+              ...buildCardProps(item, props.context),
+              reorder: cardReorder(index),
+            }"
+          />
+        </div>
       </template>
       <template v-else>
         <article
-          v-for="item in props.context.items"
+          v-for="(item, index) in props.context.items"
           :key="rowId(item)"
           class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
           :class="{
             'border-primary ring-primary ring-1':
               props.context.selection.isSelected(rowId(item)),
+            'opacity-50': draggedIndex === index,
           }"
           tabindex="0"
           @click="openItem(item)"
           @keydown.enter.self="openItem(item)"
+          @dragover="allowDrop"
+          @drop="drop(index)"
         >
           <header class="flex items-center gap-2.5">
+            <button
+              v-if="props.context.reorder"
+              v-bind="handleFor(index)"
+              :class="['-ms-1.5', REORDER_HANDLE_CLASS]"
+            >
+              <UIcon name="i-ph-dots-six-vertical" />
+            </button>
             <span
               class="bg-accented text-default grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
             >
