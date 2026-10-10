@@ -1,3 +1,5 @@
+import type { BlockText } from "#dms-core/app/types/composed-text";
+
 /** Serializable X-axis settings, matching the DMS server contract. */
 export interface ChartXAxis {
   /** Requested intervals; ignored by ApexCharts on datetime axes. */
@@ -100,8 +102,9 @@ export interface KpiCardResponse {
 
 export interface TopListItem {
   id: string | number;
-  title: string;
-  description?: string;
+  /** A literal, a `$`-prefixed i18n key, or a composed text. */
+  title: BlockText;
+  description?: BlockText;
   value: number;
   delta?: number | null;
   sparkline?: number[];

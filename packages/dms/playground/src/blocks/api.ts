@@ -71,14 +71,22 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           description:
             "People with access to this workspace and pending invitations.",
           to: "/settings/workspace/members",
-          state: "8 of 10 seats used",
+          state: {
+            key: "demo.blocks.nav.seats_used",
+            params: { used: 8, total: 10 },
+          },
         },
         {
           icon: "i-ph-credit-card",
-          title: "Billing",
+          title: "$demo.blocks.nav.billing",
           description: "Payment method, plan and the last 24 invoices.",
           to: "#billing",
-          state: "Payment failed on Sep 28",
+          state: {
+            key: "demo.blocks.nav.payment_failed",
+            params: {
+              date: { type: "date", value: "2026-09-28", format: "day" },
+            },
+          },
           stateTone: "error",
           tag: "SaaS",
         },
@@ -87,7 +95,10 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           title: "Integrations",
           description: "Stripe, Shopify and outgoing webhooks.",
           to: "#integrations",
-          state: "1 connector degraded",
+          state: {
+            key: "demo.blocks.nav.connectors_degraded",
+            params: { count: { type: "count", value: 1 } },
+          },
           stateTone: "warning",
         },
       ],
