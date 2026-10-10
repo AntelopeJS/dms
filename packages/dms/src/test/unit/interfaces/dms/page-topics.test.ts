@@ -25,6 +25,7 @@ import { expect } from "chai";
 import * as pageImpl from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
+import { Banner } from "@antelopejs/interface-dms/base/banner";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { Meter } from "@antelopejs/interface-dms/base/meter";
 import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
@@ -60,6 +61,7 @@ const SHARED_PAGE = "page-topics-shared";
 const CHART_TOPICS = ["page-topics:first", "page-topics:second"];
 const OWN_TOPIC = "page-topics:own";
 const OTHER_TOPIC = "page-topics:other";
+const BANNER_TOPIC = "page-topics:banner";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 class Row extends Table {
@@ -207,6 +209,21 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     });
     try {
       expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);
+    } finally {
+      destroyModule(owner);
+    }
+  });
+
+  it("registers a fetched banner's topics on the page it is placed on", () => {
+    const owner = moduleContext("page-topics-banner");
+    const banner = Banner({
+      fetchUrl: "/api/status",
+      realtimeTopic: BANNER_TOPIC,
+    });
+    const meta = GetMetadata(SharedPage, PageMetadata);
+    RunWithModuleContext(owner, () => banner.onPageCreated?.(meta));
+    try {
+      expect(topicsOf(SharedPage)).to.deep.equal([BANNER_TOPIC]);
     } finally {
       destroyModule(owner);
     }

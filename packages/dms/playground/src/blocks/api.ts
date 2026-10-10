@@ -1,4 +1,5 @@
 import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
+import type { BannerContent } from "@antelopejs/interface-dms/base";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 
 // Live payloads for the display-block demos. Each answers `{ items }` in the
@@ -37,6 +38,37 @@ const PERIOD_LABELS: Record<string, string> = {
   "last-month": "Last month",
   "last-90-days": "Last 90 days",
   "this-quarter": "This quarter",
+};
+
+const PROVIDER_STATUS_URL = "/api/blocks/provider-status";
+
+// The fetched banner of the feedback demo: the page header's "Simulate an
+// outage" sets it, the banner's own "Replay the queue" clears it.
+let isProviderDown = false;
+
+const PROVIDER_OUTAGE: BannerContent = {
+  tone: "error",
+  title: "Mail provider outage",
+  description:
+    "Brevo has rejected every send since 09:12. 1,284 emails are queued and go out once replayed.",
+  actions: [
+    { label: "Status page", to: "https://status.brevo.com" },
+    {
+      label: "Replay the queue",
+      icon: "i-ph-arrow-clockwise",
+      target: {
+        type: "api",
+        method: "POST",
+        url: `${PROVIDER_STATUS_URL}/replay`,
+        successMessage: "1,284 emails replayed",
+      },
+      confirm: {
+        title: "Replay 1,284 queued emails?",
+        description: "They are sent again through Brevo, oldest first.",
+        confirmLabel: "Replay",
+      },
+    },
+  ],
 };
 
 function later<T>(value: T): Promise<T> {
@@ -177,5 +209,22 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
       generatedAt: new Date().toISOString(),
     };
     return later({ code: JSON.stringify(preset, null, 2), language: "json" });
+  }
+
+  @Get("provider-status")
+  getProviderStatus() {
+    return later(isProviderDown ? PROVIDER_OUTAGE : null);
+  }
+
+  @Post("provider-status/outage")
+  simulateOutage() {
+    isProviderDown = true;
+    return { isProviderDown };
+  }
+
+  @Post("provider-status/replay")
+  replayQueue() {
+    isProviderDown = false;
+    return { isProviderDown };
   }
 }

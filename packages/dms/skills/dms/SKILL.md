@@ -37,6 +37,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves;
   `periodScope` binds a card, chart, list block or `Meter` to a `PeriodSelector`, and
   `realtimeTopic` re-fetches a chart, list block, `Meter` or `Tab` badges on each `PublishMessage`.
+  A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
+  a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
+  or `null` for no banner — the block then draws nothing.
   A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
   `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
   browser writes in the reader's language: StatGroup / KeyValueList / Banner / NavCardGrid /
