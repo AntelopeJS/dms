@@ -16,7 +16,7 @@ export class PageTableViewViews extends PageController(
     category: tableViewCategory,
     order: 36,
     description:
-      'TableView views: a strip of module views (counted, tokens {{user.id}} and {{now-7d}} resolved by the server), users\' own saved views, a "Timeline" view opening the grouped display by day, and the metric cell displays (status pill, progress, sparkline, duration, bytes, mono). Select runs for the bulk "Re-run" (or "Select all N matching"), read the footer figures computed by the server (summed output, failing count) and the status legend, search for nothing to see the filtered empty state, and click a run: its drawer steps through the runs with J / K and keeps ?record= in the URL. The second table offers its views from a menu, grouped by status: pick another column to group by from its options menu. Open a view from the URL: ?runs.view=failing',
+      'TableView views: a strip of module views (counted, tokens {{user.id}} and {{now-7d}} resolved by the server), users\' own saved views, a "Timeline" view opening the grouped display by day, and the metric cell displays (status pill, an HTTP "Last call" pill toned by the server, "Locales" pills styled per row, progress, sparkline, duration, bytes, mono). Select runs for the bulk "Re-run" (or "Select all N matching"), read the footer figures computed by the server (summed output, failing count) and the status legend, search for nothing to see the filtered empty state, and click a run: its drawer steps through the runs with J / K and keeps ?record= in the URL. The second table offers its views from a menu, grouped by status: pick another column to group by from its options menu. Open a view from the URL: ?runs.view=failing',
   },
   DefaultLayout({ fullWidth: true }),
 ) {

@@ -103,6 +103,28 @@ describe("metric cells", () => {
     expect(cell.innerHTML).toContain("text-error");
   });
 
+  it("tones a status pill by the row's tone field before the column's map", () => {
+    const options = { tones: { "404": "info" }, toneField: "statusTone" };
+    const pill = (row: Record<string, unknown>) =>
+      render(formatters.get("status_pill")!(404, "en-GB", options, row))
+        .innerHTML;
+
+    expect(pill({ statusTone: "warning" })).toContain("text-warning");
+    app?.unmount();
+    expect(pill({ statusTone: "not-a-tone" })).toContain("text-info");
+    app?.unmount();
+    expect(
+      render(
+        formatters.get("status_pill")!(
+          503,
+          "en-GB",
+          { toneField: "statusTone" },
+          { statusTone: "error" },
+        ),
+      ).innerHTML,
+    ).toContain("text-error");
+  });
+
   it("draws a progress bar with its figures", () => {
     const cell = render(
       formatters.get("progress")!(
