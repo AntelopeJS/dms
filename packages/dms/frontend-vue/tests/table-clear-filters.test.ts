@@ -148,6 +148,18 @@ describe("clearTableFilters", () => {
     ).toBe(true);
   });
 
+  it("counts the hidden filters of the page URL as filters", () => {
+    const state = { ...createState(), hiddenFiltersApply: ref(true) };
+    expect(isTableNarrowed(state)).toBe(true);
+    // Nothing the user could clear: no clear action is offered.
+    expect(clearableTableFilters(state)).toEqual({
+      filters: false,
+      search: false,
+    });
+    state.hiddenFiltersApply.value = false;
+    expect(isTableNarrowed(state)).toBe(false);
+  });
+
   it("ignores a search the active display does not apply", () => {
     const state = {
       ...createState({ globalFilter: "a" }),
@@ -242,6 +254,16 @@ describe("table empty state", () => {
     button.click();
     await nextTick();
     expect(state.globalFilter.value).toBe("");
+  });
+
+  it("says no row matches, not that there are none yet, under hidden filters", () => {
+    const container = mountEmpty({
+      ...createState(),
+      hiddenFiltersApply: ref(true),
+    });
+    expect(container.textContent).toContain("dms.table.no_results_title");
+    expect(container.textContent).not.toContain("dms.table.empty_title");
+    expect(container.querySelector("button")).toBeNull();
   });
 
   it("offers no clear action when only default filters narrow the rows", () => {
