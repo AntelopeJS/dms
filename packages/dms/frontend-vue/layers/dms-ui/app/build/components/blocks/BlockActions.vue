@@ -2,6 +2,7 @@
 import type { ButtonProps } from "@nuxt/ui";
 import { buttonLinkProps } from "../../utils/link";
 import type { Tone } from "../../../types/tone";
+import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 
 /** A link button a block option declares (interface-dms `BlockLinkAction`). */
 export interface BlockAction {
@@ -13,12 +14,26 @@ export interface BlockAction {
   color?: Tone;
 }
 
-// The link buttons of a display block (empty state, banner, card head). One
+/**
+ * A button running a target (interface-dms `BannerButtonAction`): the block
+ * that offers it runs it on `press`, with its confirmation.
+ */
+export interface BlockButtonAction
+  extends Pick<CustomButton, "label" | "icon" | "target" | "confirm"> {
+  variant?: ButtonProps["variant"];
+  color?: Tone;
+}
+
+/** A link or a button a block offers. */
+export type BlockActionItem = BlockAction | BlockButtonAction;
+
+// The buttons of a display block (empty state, banner, card head): links, and
+// in a banner, buttons running a target, which the block runs on `press`. One
 // action leads (`leadVariant` / `leadColor`): the first, or the last in a
 // banner where the main action sits right-most. The others are quiet buttons,
 // unless an action sets its own look. Labels follow the `$` i18n convention.
 interface BlockActionsProps {
-  actions: BlockAction[];
+  actions: BlockActionItem[];
   size?: ButtonProps["size"];
   leadVariant?: ButtonProps["variant"];
   leadColor?: Tone;
@@ -36,7 +51,17 @@ const props = withDefaults(defineProps<BlockActionsProps>(), {
   leadPosition: "first",
 });
 
+const emit = defineEmits<{ press: [action: BlockButtonAction] }>();
+
 const { processI18n } = useTranslation();
+
+const isButtonAction = (action: BlockActionItem): action is BlockButtonAction =>
+  "target" in action && Boolean(action.target);
+
+function actionProps(action: BlockActionItem): Record<string, unknown> {
+  if (!isButtonAction(action)) return buttonLinkProps(action.to);
+  return { onClick: () => emit("press", action) };
+}
 
 function isLead(index: number): boolean {
   return props.leadPosition === "last"
@@ -45,7 +70,7 @@ function isLead(index: number): boolean {
 }
 
 function buttonVariant(
-  action: BlockAction,
+  action: BlockActionItem,
   index: number,
 ): ButtonProps["variant"] {
   return (
@@ -53,7 +78,10 @@ function buttonVariant(
   );
 }
 
-function buttonColor(action: BlockAction, index: number): ButtonProps["color"] {
+function buttonColor(
+  action: BlockActionItem,
+  index: number,
+): ButtonProps["color"] {
   return action.color ?? (isLead(index) ? props.leadColor : "neutral");
 }
 </script>
@@ -61,12 +89,12 @@ function buttonColor(action: BlockAction, index: number): ButtonProps["color"] {
 <template>
   <UButton
     v-for="(action, index) in props.actions"
-    :key="`${index}-${action.to}`"
+    :key="`${index}-${action.label}`"
     :label="processI18n(action.label ?? '')"
     :icon="action.icon"
     :size="props.size"
     :variant="buttonVariant(action, index)"
     :color="buttonColor(action, index)"
-    v-bind="buttonLinkProps(action.to)"
+    v-bind="actionProps(action)"
   />
 </template>

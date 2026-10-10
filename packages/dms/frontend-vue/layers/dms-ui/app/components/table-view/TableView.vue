@@ -47,7 +47,6 @@ import {
 } from "../../composables/table-view/kanban";
 import { useTableRowActions } from "../../build/composables/table-view/useTableViewRowActions";
 import {
-  buildTableDataKey,
   buildTableQuery,
   isFilterEffective,
 } from "../../build/composables/table-view/utils/tableQuery";
@@ -107,6 +106,7 @@ import { useTableViews } from "../../build/composables/table-view/useTableViews"
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
+import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
@@ -119,7 +119,10 @@ import { readTableUrlKey } from "../../build/composables/table-view/utils/views"
 import TableViews, {
   type TableViewItem,
 } from "../../build/components/table/Views.vue";
-import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
+import {
+  useTableCountsData,
+  useTableListData,
+} from "../../build/composables/table-view/useTableListData";
 import { useTableDataChanges } from "../../composables/table-view/useTableDataChanges";
 
 const REALTIME_ROW_TOPIC_PREFIX = "tableview:row:";
@@ -350,12 +353,42 @@ const resolvedChrome = resolveTableChrome(props.layout, {
 });
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
 
-const paginationState = ref<PaginationState>(
-  getPreference<PaginationState>(
-    getTablePreferenceKey("pagination"),
-    DEFAULT_PAGINATION,
-  ),
-);
+const route = useDmsRoute();
+
+const DEFAULT_FILTER_MODE = "is";
+
+const queryParamHiddenFilters = computed<TableFilter[]>(() => {
+  if (!queryParamFilters) return [];
+
+  return Object.entries(queryParamFilters)
+    .filter(([param]) => route.query[param] !== undefined)
+    .map(([param, config]) => ({
+      accessorKey: config.field,
+      mode: config.mode || DEFAULT_FILTER_MODE,
+      value: route.query[param] as string,
+    }));
+});
+
+const routeParamHiddenFilters = computed<TableFilter[]>(() => {
+  if (!routeParamFilters || !routeParams) return [];
+
+  return Object.entries(routeParamFilters)
+    .filter(([param]) => routeParams[param] !== undefined)
+    .map(([param, config]) => ({
+      accessorKey: config.field,
+      mode: config.mode || DEFAULT_FILTER_MODE,
+      value: routeParams[param] as string,
+    }));
+});
+
+// A hidden filter's value changed with the URL, in place or through a
+// remount: the page reached among the previous rows lists from page 1.
+const paginationState = usePersistedPagination({
+  preferences: { getPreference, setPreference },
+  preferenceKey: getTablePreferenceKey,
+  defaults: DEFAULT_PAGINATION,
+  scope: () => [queryParamHiddenFilters.value, routeParamHiddenFilters.value],
+});
 const rowSelect = ref<RowSelectionState>({});
 // A column's grid header, for the sort messages.
 const columnLabel = (id: string): string => {
@@ -618,35 +651,11 @@ const tableRows = useTableRows<T>({
   location,
   source: props.source,
   columns: props.columns,
+  route: () => ({
+    routeParams: props.routeParams,
+    routeQuery: route.query as Record<string, unknown>,
+  }),
 });
-const route = useDmsRoute();
-
-const DEFAULT_FILTER_MODE = "is";
-
-const queryParamHiddenFilters = computed<TableFilter[]>(() => {
-  if (!queryParamFilters) return [];
-
-  return Object.entries(queryParamFilters)
-    .filter(([param]) => route.query[param] !== undefined)
-    .map(([param, config]) => ({
-      accessorKey: config.field,
-      mode: config.mode || DEFAULT_FILTER_MODE,
-      value: route.query[param] as string,
-    }));
-});
-
-const routeParamHiddenFilters = computed<TableFilter[]>(() => {
-  if (!routeParamFilters || !routeParams) return [];
-
-  return Object.entries(routeParamFilters)
-    .filter(([param]) => routeParams[param] !== undefined)
-    .map(([param, config]) => ({
-      accessorKey: config.field,
-      mode: config.mode || DEFAULT_FILTER_MODE,
-      value: routeParams[param] as string,
-    }));
-});
-
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
 // filter like the filters row does.
@@ -791,33 +800,14 @@ const archiveQuery = computed(() =>
   archiveMode ? { showArchived: showArchived.value } : {},
 );
 
-const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
-  results: [],
-  total: 0,
-  offset: 0,
-  limit: 0,
-};
-
-const tableDataKey = buildTableDataKey({
+const { data, status, error, refresh } = await useTableListData<T>({
   componentId,
   pageId,
-  query: queryRequest.value,
-  archiveQuery: archiveQuery.value,
-  isSelfManaged: isActiveDisplaySelfManaged.value,
+  rows: tableRows,
+  query: queryRequest,
+  archiveQuery,
+  isSelfManaged: isActiveDisplaySelfManaged,
 });
-
-const { data, status, error, refresh } = await useServerRenderedAsyncData(
-  tableDataKey,
-  (): Promise<TableViewListResponse<T>> => {
-    // Self-managed displays (e.g. kanban) fetch their own data; skip the
-    // shared list query for them.
-    if (isActiveDisplaySelfManaged.value) {
-      return Promise.resolve(EMPTY_LIST_RESULT);
-    }
-    return tableRows.list({ ...queryRequest.value, ...archiveQuery.value });
-  },
-  { watch: [queryRequest, archiveQuery, isActiveDisplaySelfManaged] },
-);
 
 // Nothing listed yet (a client navigation paints before the first page
 // arrives): the table draws its skeleton, never the empty state.
@@ -952,19 +942,13 @@ const tabCountsQuery = computed(() => [
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useServerRenderedAsyncData<Record<string, number>>(
-    `table-view-${componentId}-${pageId}-tab-counts`,
-    async () => {
-      if (tabCountsQuery.value.length === 0) return {};
-      return await tableRows.countBatch(
-        tabCountsQuery.value.map(({ id, query }) => ({
-          id,
-          query: { ...query, ...archiveQuery.value },
-        })),
-      );
-    },
-    { watch: [tabCountsQuery, archiveQuery] },
-  );
+  await useTableCountsData<T>({
+    componentId,
+    pageId,
+    rows: tableRows,
+    queries: tabCountsQuery,
+    archiveQuery,
+  });
 
 const viewItems = computed<TableViewItem[]>(() =>
   tableViewItems.value.map((view) => ({
@@ -1855,7 +1839,6 @@ defineShortcuts(
 
 const tableStatePreferences = {
   sorting,
-  pagination: paginationState,
   columnFilters: columnFilters,
   columnVisibility,
   filtersOpen: filtersRowOpen,
@@ -1988,6 +1971,7 @@ onMounted(() => {
     :quick-filters="resolvedQuickFilters"
     :footer="resolvedFooter"
     :empty-states="props.emptyStates"
+    :hidden-filters-apply="queryParamHiddenFilters.length > 0"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"

@@ -13,10 +13,12 @@ import {
   type ActivityFeedDay,
   type ActivityFeedItem,
   formatActivityTime,
+  activityText,
   groupActivityByDay,
-  resolveActivityParams,
 } from "../../build/components/activity-feed/activityFeedDays";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 import type { BlockEmptyText } from "../../build/components/blocks/BlockStatus.vue";
 
 // The renderer's props are optional: DmsActivityFeed is both the backend
@@ -29,6 +31,10 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Endpoint answering `{ items }`, newest first. */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /**
    * Files the entries under day separators ("Today · Sep 29") with their
    * time; off, each entry shows how long ago it happened.
@@ -62,6 +68,8 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   items: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   groupByDay: true,
   maxItems: undefined,
   fillHeight: false,
@@ -79,6 +87,7 @@ const SKELETON_TITLE_WIDTHS = ["w-3/5", "w-1/2", "w-2/5"];
 
 const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
 const {
   items: list,
@@ -89,6 +98,8 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
@@ -108,15 +119,15 @@ const days = computed<ActivityFeedDay[]>(() =>
 );
 
 const trailingOf = (item: ActivityFeedItem): string | undefined => {
-  if (item.time) return processI18n(item.time);
+  if (item.time) return processText(item.time);
   if (!item.date) return undefined;
   return props.groupByDay
     ? formatActivityTime(item.date, locale.value)
     : formatRelativeTime(item.date, t, locale.value);
 };
 
-const textOf = (item: ActivityFeedItem, text: string): string =>
-  processI18n(text, resolveActivityParams(item.params, processI18n));
+const textOf = (item: ActivityFeedItem, text: BlockText): string =>
+  processText(activityText(text, item.params));
 
 const metaOf = (item: ActivityFeedItem): string | undefined =>
   item.meta?.length

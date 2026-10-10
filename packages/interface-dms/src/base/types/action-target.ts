@@ -1,12 +1,21 @@
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { ModalSize } from "./size";
 
+/** The edge of the window a `drawer` action target slides in from. */
+export type DrawerDirection = "top" | "right" | "bottom" | "left";
+
 export type ActionTarget =
   | {
       type: "drawer";
       component: Component;
       title?: string;
       description?: string;
+      /**
+       * Edge the drawer slides in from (`bottom` by default). A `left` or
+       * `right` drawer is a side sheet as wide as a side panel, and spans the
+       * window's height.
+       */
+      direction?: DrawerDirection;
     }
   | {
       type: "modal";
@@ -65,6 +74,12 @@ export type ActionTargetSerialized =
       component: ComponentInfoSerialized;
       title?: string;
       description?: string;
+      /**
+       * Edge the drawer slides in from (`bottom` by default). A `left` or
+       * `right` drawer is a side sheet as wide as a side panel, and spans the
+       * window's height.
+       */
+      direction?: DrawerDirection;
     }
   | {
       type: "modal";

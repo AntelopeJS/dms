@@ -47,6 +47,22 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     }
   });
 
+  it("lets a fetched block follow a period scope and realtime topics", () => {
+    for (const type of [
+      "StatGroup",
+      "KeyValueList",
+      "NavCardGrid",
+      "ActivityFeed",
+      "Meter",
+    ]) {
+      const { config } = declared(type);
+      expect(config.fetchUrl?.ui?.periodOption, type).to.equal("periodScope");
+      expect(config.periodScope?.optional, type).to.equal(true);
+      expect(config.realtimeTopic?.ui?.advanced, type).to.equal(true);
+    }
+    expect(declared("Tab").config.realtimeTopic?.optional).to.equal(true);
+  });
+
   it("lets a fetched block say how many placeholders to draw, unset by default", () => {
     for (const type of [
       "StatGroup",
@@ -59,6 +75,14 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
       expect(option?.optional, type).to.equal(true);
       expect(declared(type).defaults.skeletonCount, type).to.equal(undefined);
     }
+  });
+
+  it("lets a banner read its content from a route", () => {
+    const banner = declared("Banner");
+
+    expect(banner.config.fetchUrl?.ui?.widget).to.equal("dataSource");
+    expect(banner.config.periodScope?.optional).to.equal(true);
+    expect(banner.config.realtimeTopic?.optional).to.equal(true);
   });
 
   it("says what a block falls back on when an option is unset", () => {
@@ -85,6 +109,21 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     });
 
     expect(result.valid).to.equal(false);
+  });
+
+  it("accepts a copy button on a key / value row", () => {
+    const valid = (item: Record<string, unknown>) =>
+      ValidateBlockOptions("KeyValueList", {
+        items: [
+          { label: "Endpoint", value: "https://api.example.com", ...item },
+        ],
+      }).valid;
+
+    expect(valid({ copy: true })).to.equal(true);
+    expect(valid({ copyValue: "https://cdn.example.com/a.webp" })).to.equal(
+      true,
+    );
+    expect(valid({ copy: "yes" })).to.equal(false);
   });
 
   it("accepts a composed text wherever a block text goes", () => {

@@ -29,6 +29,8 @@ export interface TabProps extends TabComponentProps {
    * names, read in one request and again when a watch action fires.
    */
   badgesUrl?: string;
+  /** Topics whose events make the tab set read `badgesUrl` again. */
+  realtimeTopic?: string | string[];
 }
 
 /** The badges `badgesUrl` answers with, by tab slot. */

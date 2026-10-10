@@ -161,6 +161,41 @@ export namespace DefaultDisplays {
     icon?: string;
   }
 
+  /**
+   * How a pill item is drawn: `soft` a tinted pill, `outline` a hairline one
+   * in its tone.
+   */
+  export type PillVariant = "soft" | "outline";
+
+  /**
+   * A pill the server styles per row, an item of the list a `PillsDisplay`
+   * draws (a locale present in solid, a missing one outlined). A list may mix
+   * them with plain strings.
+   *
+   * @example
+   * ```ts
+   * @Listable(["translations"])
+   * get locales(): Array<string | DefaultDisplays.PillItem> {
+   *   return LOCALES.map((locale) =>
+   *     this.translations[locale]
+   *       ? { label: locale, tone: "success", variant: "soft" }
+   *       : { label: locale, variant: "outline" },
+   *   );
+   * }
+   * ```
+   */
+  export interface PillItem {
+    /** `$`-prefixed for an i18n key. */
+    label: string;
+    /** Tone of the pill. Defaults to `neutral`. */
+    tone?: Tone;
+    /**
+     * `soft` by default. An item with neither a tone nor a variant is drawn
+     * as a plain string is.
+     */
+    variant?: PillVariant;
+  }
+
   export interface PillsDisplayOptions {
     /** Field naming a related row (relation values). Defaults to `name`. */
     labelKey?: string;
@@ -171,8 +206,9 @@ export namespace DefaultDisplays {
   }
 
   /**
-   * A list (relation rows, select values, strings) as outline pills; a bare
-   * id a relation could not resolve is skipped.
+   * A list (relation rows, select values, strings, {@link PillItem}s) as
+   * outline pills, a pill item in its own tone and variant; a bare id a
+   * relation could not resolve is skipped.
    */
   @RegisterDisplay("pills")
   export class PillsDisplay extends ColumnDisplay<PillsDisplayOptions> {}
@@ -230,7 +266,13 @@ export namespace DefaultDisplays {
      * neutral. A select column's item labels and icons name the pill.
      * @example { healthy: "success", degraded: "warning", failing: "error" }
      */
-    tones: Record<string, Tone>;
+    tones?: Record<string, Tone>;
+    /**
+     * Row field holding the pill's tone, a `Tone` the server picks per row (an
+     * HTTP status by its class); read before `tones`. A row whose field holds
+     * no tone falls back to `tones`.
+     */
+    toneField?: string;
     /**
      * Row field drawn under the pill (the failure's cause): a string
      * (`$`-prefixed for an i18n key), a `ComposedText` or a

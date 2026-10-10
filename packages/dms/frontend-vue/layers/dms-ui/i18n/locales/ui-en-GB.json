@@ -25,6 +25,7 @@
       "edit_item_description": "Change its fields, then save.",
       "edit_item_in": "Changes are saved to {caption}.",
       "search_placeholder": "Search...",
+      "search_open": "Open search",
       "options_title": "Table options",
       "filters_title": "Filters",
       "columns_title": "Columns",

@@ -11,28 +11,35 @@ import DmsBlockActions, {
 } from "../../build/components/blocks/BlockActions.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
+
+/** A segment as the page or the route sends it, its legend still to write. */
+interface MeterBlockSegment extends Omit<MeterSegment, "label"> {
+  label?: BlockText;
+}
 
 /** What a meter's data source answers: any subset of its figures. */
 interface MeterResponse {
   value?: number;
   max?: number;
-  segments?: MeterSegment[];
-  hint?: string;
-  valueLabel?: string;
+  segments?: MeterBlockSegment[];
+  hint?: BlockText;
+  valueLabel?: BlockText;
 }
 
 // The page block behind the backend `Meter` builder: static figures or a
 // data source, optionally in a card. DmsMeter draws it.
 interface MeterBlockProps extends DefaultComponentProps {
   label?: string;
-  hint?: string;
+  hint?: BlockText;
   value?: number;
   max?: number;
-  segments?: MeterSegment[];
+  segments?: MeterBlockSegment[];
   legend?: boolean;
   format?: MeterFormat;
-  valueLabel?: string;
+  valueLabel?: BlockText;
   tone?: MeterTone;
   warnAt?: number;
   errorAt?: number;
@@ -40,6 +47,10 @@ interface MeterBlockProps extends DefaultComponentProps {
   /** Endpoint answering `{ value?, max?, segments?, hint?, valueLabel? }`. */
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Wraps the meter in a padded card. */
   card?: boolean;
   /** Link buttons pushed right of the legend ("Manage members"). */
@@ -61,11 +72,13 @@ const props = withDefaults(defineProps<MeterBlockProps>(), {
   size: "sm",
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   card: false,
   actions: () => [],
 });
 
-const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 const { t } = useI18n();
 
 const { state: watchState } = useWatch(
@@ -76,12 +89,14 @@ const { state: watchState } = useWatch(
 const { data, isLoading, error, refresh } = useChartFetch<MeterResponse>({
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
 });
 
-const translate = (text: string | undefined): string | undefined =>
-  text ? processI18n(text) : undefined;
+const translate = (text: BlockText | undefined): string | undefined =>
+  text ? processText(text) : undefined;
 
 const figures = computed(() => {
   const fetched = data.value ?? {};

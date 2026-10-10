@@ -14,22 +14,24 @@ import DmsBlockStatus, {
 import { useBlockItems } from "../../build/composables/blocks/useBlockItems";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
 import type { Tone } from "../../types/tone";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import type { BlockText } from "../../../../dms-core/app/types/composed-text";
 
 // `NavCardGrid` block (interface-dms `base/nav-card-grid`): a responsive grid
 // of navigation cards (v2 settings overview, a module's home), static or from
 // `fetchUrl` (`{ items }`) so each card can carry its target's live state.
 interface NavCardGridItem {
   id?: string;
-  title: string;
-  description?: string;
+  title: BlockText;
+  description?: BlockText;
   icon: string;
   iconTone?: IconWellTone;
   to: string;
-  state?: string;
+  state?: BlockText;
   stateTone?: Tone;
-  tag?: string;
-  readout?: string[];
+  tag?: BlockText;
+  readout?: BlockText[];
   /** The page's navigation badge (a category's cards), in the top corner. */
   badge?: string;
   badgeTone?: Tone;
@@ -49,6 +51,10 @@ interface NavCardGridBlockProps extends DefaultComponentProps {
   description?: string;
   fetchUrl?: string;
   fetchUrlMethod?: string;
+  /** Id of the PeriodSelector the data follows. */
+  periodScope?: string;
+  /** Topics whose events make the block read `fetchUrl` again. */
+  realtimeTopic?: string | string[];
   /** Shown when there is nothing to list. */
   empty?: BlockEmptyText;
   /**
@@ -66,6 +72,8 @@ const props = withDefaults(defineProps<NavCardGridBlockProps>(), {
   description: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
+  periodScope: undefined,
+  realtimeTopic: undefined,
   empty: undefined,
   skeletonCount: undefined,
 });
@@ -77,6 +85,7 @@ const MIN_CARD_WIDTH = "16rem";
 const CARD_GAP = "0.75rem";
 
 const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
 const { cards: categoryCards } = useCategoryNavCards(() => props.categoryId);
 const veil = usePreviewEntryVeil();
@@ -90,6 +99,8 @@ const {
   items: () => props.items,
   fetchUrl: props.fetchUrl,
   fetchUrlMethod: props.fetchUrlMethod,
+  periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchActions: props.watchActions,
   componentId: props.componentId,
@@ -119,10 +130,11 @@ const cards = computed(() =>
   items.value.map((item, index) => ({
     ...item,
     key: item.id ?? `${index}-${item.to}`,
-    title: processI18n(item.title ?? ""),
-    description: item.description ? processI18n(item.description) : undefined,
-    state: item.state ? processI18n(item.state) : undefined,
-    readout: item.readout?.map((line) => processI18n(line)),
+    title: processText(item.title),
+    description: item.description ? processText(item.description) : undefined,
+    state: item.state ? processText(item.state) : undefined,
+    tag: item.tag ? processText(item.tag) : undefined,
+    readout: item.readout?.map((line) => processText(line)),
   })),
 );
 // v2 .sx-grid: cards closing on a state line run a tighter rhythm, the whole

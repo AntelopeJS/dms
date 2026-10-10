@@ -20,16 +20,19 @@ const props = withDefaults(defineProps<TabProps>(), {
   persistState: false,
   stateKey: "tab",
   badgesUrl: undefined,
+  realtimeTopic: undefined,
 });
 
 // The badges a module counts for a record's tabs, in one request, again when
-// a watch action fires: each replaces its tab's static badge.
+// a watch action or a realtime topic fires: each replaces its tab's static
+// badge.
 const { state: watchState } = useWatch(
   props.watchActions || [],
   props.componentId,
 );
 const { data: fetchedBadges } = useChartFetch<TabBadges>({
   fetchUrl: props.badgesUrl,
+  realtimeTopic: props.realtimeTopic,
   routeParams: () => props.routeParams,
   watchSource: () => JSON.stringify(watchState.value),
 });

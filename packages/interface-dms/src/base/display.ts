@@ -91,14 +91,43 @@ export const blockCardOption = (isOnByDefault: boolean) =>
     { label: "In a card", group: "appearance", widget: "switch" },
   );
 
-/** The `fetchUrl` option of a block, picked in the editor's source list. */
-export const blockFetchUrlOption = (description: string) =>
+/**
+ * The `fetchUrl` option of a block, picked in the editor's source list.
+ * `periodOption` names the block's option holding the period scope the
+ * source follows, for a block that can follow one.
+ */
+export const blockFetchUrlOption = (
+  description: string,
+  periodOption?: string,
+) =>
   ui(z.string().optional().describe(description), {
     label: "Data source",
     group: "data",
     widget: "dataSource",
     advanced: true,
+    ...(periodOption ? { periodOption } : {}),
   });
+
+/** The `periodScope` option of a block whose data source follows a period. */
+export const blockPeriodScopeOption = () =>
+  ui(
+    z
+      .string()
+      .optional()
+      .describe("Id of the PeriodSelector driving this block."),
+    { label: "Period scope", group: "advanced" },
+  );
+
+/** The `realtimeTopic` option of a block that refetches on realtime events. */
+export const blockRealtimeTopicOption = () =>
+  // A topic is a name the backend publishes under, which only its code knows.
+  ui(
+    z
+      .union([z.string(), z.array(z.string())])
+      .optional()
+      .describe("Topics whose events make the block read its data again."),
+    { label: "Realtime topics", group: "data", advanced: true },
+  );
 
 /** The `fetchUrlMethod` option that goes with `fetchUrl`. */
 export const blockFetchUrlMethodOption = () =>
@@ -128,6 +157,19 @@ export interface BlockItemsSource {
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
+  /**
+   * Id of the `PeriodSelector` the items follow: `fetchUrl` is requested with
+   * the selected period (`from`, `to`, `preset`, `comparison`, and
+   * `compareFrom` / `compareTo` when comparing), and again when it changes,
+   * as for a `KpiCard`.
+   */
+  periodScope?: string;
+  /**
+   * Topics the backend publishes on (`PublishMessage`) when the items change:
+   * the block reads `fetchUrl` again on each event, keeping the items on
+   * screen. The page registers them, as for a chart's `realtimeTopic`.
+   */
+  realtimeTopic?: string | string[];
   /** Shown when there is nothing to list. */
   empty?: BlockEmptyText;
   /**
@@ -143,12 +185,17 @@ export interface BlockItemsSource {
   skeletonCount?: number;
 }
 
+const PERIOD_SCOPE_OPTION = "periodScope";
+
 /** The options of `BlockItemsSource`, for a list block's schema. */
 export const blockItemsSourceOptions = () => ({
   fetchUrl: blockFetchUrlOption(
     "Route answering `{ items }`; when set it replaces the static items.",
+    PERIOD_SCOPE_OPTION,
   ),
   fetchUrlMethod: blockFetchUrlMethodOption(),
+  periodScope: blockPeriodScopeOption(),
+  realtimeTopic: blockRealtimeTopicOption(),
   empty: blockEmptyOption(),
   skeletonCount: ui(
     z
@@ -172,8 +219,8 @@ export const blockItemsSourceOptions = () => ({
  *
  * `REFRESH_PAGE` asks every block of the page that reads its data from a
  * route (StatGroup, KeyValueList, NavCardGrid, ActivityFeed, KpiCard,
- * TopListCard, Meter, the charts, a `Tab`'s `badgesUrl`, TableView) to read
- * it again, without remounting it: a form changing the record a detail page shows
+ * TopListCard, Meter, Banner, the charts, a `Tab`'s `badgesUrl`, TableView) to
+ * read it again, without remounting it: a form changing the record a detail page shows
  * declares `.watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE)`.
  * The page header's buttons do it on their own once they changed something,
  * and a frontend component calls `refreshPageBlocks()` for the same effect.

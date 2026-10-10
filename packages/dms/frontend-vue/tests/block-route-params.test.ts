@@ -17,6 +17,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   replaceUrlVariables,
+  resolveTextVariables,
   resolveUrlVariables,
 } from "../layers/dms-ui/app/build/utils/urlVariables";
 
@@ -93,6 +94,53 @@ describe("resolveUrlVariables", () => {
     );
     expect(replaceUrlVariables("/api/ws/{{params.id}}", context)).toBe(
       "/api/ws/{{params.id}}",
+    );
+  });
+
+  it("encodes the values it fills, so each stays one parameter", () => {
+    expect(
+      resolveUrlVariables("/api/log/{{params.id}}?route={{query.route}}", {
+        routeParams: { id: "a b" },
+        routeQuery: { route: "GET /api/a?b=c&d" },
+      }),
+    ).toBe("/api/log/a%20b?route=GET%20%2Fapi%2Fa%3Fb%3Dc%26d");
+  });
+
+  // The router keeps the page path percent-encoded, and route parameters are
+  // read from it.
+  it("does not encode a route parameter twice", () => {
+    expect(
+      replaceUrlVariables("/api/ws/{{params.id}}", {
+        routeParams: { id: "caf%C3%A9%20bar" },
+        routeQuery: {},
+      }),
+    ).toBe("/api/ws/caf%C3%A9%20bar");
+    expect(
+      replaceUrlVariables("/api/ws/{{params.id}}", {
+        routeParams: { id: "100%" },
+        routeQuery: {},
+      }),
+    ).toBe("/api/ws/100%25");
+  });
+
+  it("writes response values as answered", () => {
+    expect(
+      replaceUrlVariables("{{response.redirectPath}}&tab={{query.tab}}", {
+        routeQuery: { tab: "a&b" },
+        response: { redirectPath: "/settings/users?invited=1" },
+      }),
+    ).toBe("/settings/users?invited=1&tab=a%26b");
+  });
+
+  it("fills a plain value without encoding it", () => {
+    expect(
+      resolveTextVariables("{{query.status}} / {{params.id}}", {
+        routeParams: { id: "ws-1" },
+        routeQuery: { status: "on hold" },
+      }),
+    ).toBe("on hold / ws-1");
+    expect(resolveTextVariables("{{query.status}}", { routeQuery: {} })).toBe(
+      undefined,
     );
   });
 

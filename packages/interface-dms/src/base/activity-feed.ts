@@ -9,8 +9,14 @@ import {
   type BlockLinkAction,
 } from "./display";
 import { toneEnum } from "./internal/display";
+import {
+  blockTextSchema,
+  composedTextParamSchema,
+} from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
+import type { BlockText, ComposedTextParam } from "./types/composed-text";
 import { type Tone, TONES } from "./types/tone";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /** One entry of an activity feed. */
 export interface ActivityFeedItem {
@@ -18,21 +24,26 @@ export interface ActivityFeedItem {
   /** Icon of the entry's well, e.g. `i-ph-check-circle`. */
   icon?: string;
   tone?: Tone;
-  /** Title (i18n key with `$` or literal). */
-  title: string;
-  /** Details under the title, joined by "·". */
-  meta?: string[];
   /**
-   * Values the title and the details interpolate (`{device}`) when they are
-   * i18n keys. A value written as a `$`-prefixed key is translated first,
-   * with the item's other values: `{ device: "$…device", browser: "Chrome",
-   * os: "Windows" }`.
+   * Title: a literal, a `$`-prefixed i18n key, or a `ComposedText` that
+   * carries its own values.
    */
-  params?: Record<string, string>;
+  title: BlockText;
+  /** Details under the title, joined by "·"; each one like the title. */
+  meta?: BlockText[];
+  /**
+   * Values the `$`-prefixed title and details interpolate (`{device}`). A
+   * typed value is formatted for the reader (`{ type: "count", value: 3 }`,
+   * which also picks the plural form of the message; `{ type: "relative",
+   * value: "2026-10-10T08:00:00Z" }`), as in a `ComposedText`. A string
+   * written as a `$`-prefixed key is translated first, with the item's other
+   * values: `{ device: "$…device", browser: "Chrome", os: "Windows" }`.
+   */
+  params?: Record<string, ComposedTextParam>;
   /** ISO date: files the entry under its day and gives its time. */
   date?: string;
-  /** Literal trailing text, in place of the formatted time. */
-  time?: string;
+  /** Trailing text, in place of the formatted time; a `BlockText`. */
+  time?: BlockText;
   /** Accent dot after the time. */
   unread?: boolean;
   /** Path the entry links to. */
@@ -94,12 +105,15 @@ const DEFAULT_ICON = "i-ph-pulse";
 export function ActivityFeed(
   options?: ActivityFeedProps,
 ): ComponentBuilder<ActivityFeedProps> {
-  return new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
-    .options({ ...options })
-    .meta({
-      name: options?.title || "Activity feed",
-      icon: DEFAULT_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<ActivityFeedProps>(ACTIVITY_FEED_COMPONENT_NAME)
+      .options({ ...options })
+      .meta({
+        name: options?.title || "Activity feed",
+        icon: DEFAULT_ICON,
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 const ActivityFeedItemSchema = z.object({
@@ -109,16 +123,19 @@ const ActivityFeedItemSchema = z.object({
     label: "Tone",
     widget: "select",
   }),
-  title: ui(z.string(), { label: "Title" }),
-  meta: ui(z.array(z.string()).optional(), { label: "Details" }),
-  params: ui(z.record(z.string(), z.string()).optional(), {
+  title: ui(blockTextSchema(), { label: "Title", widget: "text" }),
+  meta: ui(z.array(blockTextSchema()).optional(), { label: "Details" }),
+  params: ui(z.record(z.string(), composedTextParamSchema()).optional(), {
     label: "Text values",
     widget: "json",
   }),
   date: ui(z.string().optional().describe("ISO date of the event."), {
     label: "Date",
   }),
-  time: ui(z.string().optional(), { label: "Time text" }),
+  time: ui(blockTextSchema().optional(), {
+    label: "Time text",
+    widget: "text",
+  }),
   unread: ui(z.boolean().optional(), { label: "Unread", widget: "switch" }),
   to: ui(z.string().optional(), { label: "Link", widget: "url" }),
 }) satisfies BlockOptionsFor<ActivityFeedItem>;

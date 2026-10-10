@@ -1,6 +1,7 @@
 export * from "./activity";
 export * from "./api";
 export * from "./category";
+export * from "./code";
 export * from "./feed-api";
 export * from "./feedback";
 export * from "./key-value";

@@ -1,9 +1,13 @@
+import type { DrawerDirection } from "../../containers/types";
+
 export type ActionTarget =
   | {
       type: "drawer";
       component: ComponentInfo;
       title?: string;
       description?: string;
+      /** Edge the drawer slides in from (`bottom` by default). */
+      direction?: DrawerDirection;
     }
   | {
       type: "modal";

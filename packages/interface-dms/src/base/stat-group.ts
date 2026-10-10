@@ -7,6 +7,7 @@ import { TONES, type Tone, ICON_TONES, type IconTone } from "./types/tone";
 import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps } from "./types";
 import type { BlockText } from "./types/composed-text";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 
 /** One cell of a stat group. */
 export interface StatGroupItem {
@@ -84,9 +85,12 @@ const STAT_GROUP_DEFAULT_LAYOUT: StatGroupLayout = "joined";
 export function StatGroup(
   options?: StatGroupProps,
 ): ComponentBuilder<StatGroupProps> {
-  return new ComponentBuilder<StatGroupProps>(STAT_GROUP_COMPONENT_NAME)
-    .options({ layout: STAT_GROUP_DEFAULT_LAYOUT, ...options })
-    .meta({ name: "Stat group", icon: STAT_GROUP_ICON });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<StatGroupProps>(STAT_GROUP_COMPONENT_NAME)
+      .options({ layout: STAT_GROUP_DEFAULT_LAYOUT, ...options })
+      .meta({ name: "Stat group", icon: STAT_GROUP_ICON }),
+    options?.realtimeTopic,
+  );
 }
 
 const StatGroupItemSchema = z.object({

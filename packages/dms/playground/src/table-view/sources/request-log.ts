@@ -23,6 +23,7 @@ const PATHS = [
   "/api/customers",
   "/api/invoices/42",
   "/api/health",
+  "/api/search?q=shoes&page=2",
 ];
 const STATUSES = [200, 200, 200, 201, 204, 404, 500];
 const ENTRY_COUNT = 120;
@@ -30,6 +31,7 @@ const MINUTE_MS = 60_000;
 const METHOD_FILTER_KEY = "filter_method";
 const BATCH_SIZE = 3;
 const BACKGROUND_BATCH_DELAY_MS = 2_000;
+const ROUTE_KEY = "route";
 
 /** Published once a background batch landed; the request log table follows it. */
 export const REQUEST_LOG_TOPIC = "playground:request-log";
@@ -113,5 +115,17 @@ export class RequestLogController extends Controller(
       });
     }, BACKGROUND_BATCH_DELAY_MS);
     return { ok: true };
+  }
+
+   * The requests of one route, `?route=GET /api/orders`: the "Requests of a
+   * route" table names it with `{{query.route}}`, which the browser encodes.
+   */
+  @Get("/route")
+  ofRoute(@Context() ctx: RequestContext) {
+    const route = ctx.url.searchParams.get(ROUTE_KEY);
+    const rows = ENTRIES.filter(
+      (entry) => `${entry.method} ${entry.path}` === route,
+    );
+    return { results: rows, total: rows.length };
   }
 }

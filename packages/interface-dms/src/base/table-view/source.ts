@@ -102,6 +102,14 @@ export interface TableViewSourceOptions extends Pick<
   /**
    * Route answering `{ results, total }` for the list query (`offset`,
    * `limit`, `sortKey`, `sortDirection`, `search`, `filter_<column>`).
+   *
+   * It may name the page it is shown on: `{{params.X}}` is filled with the
+   * route parameter `X` of the page URL (`{{params.id}}` on a detail page
+   * whose slug is `:id`; `{{params.id:1}}` for the first of a repeated name),
+   * `{{query.X}}` with its query parameter `X`, both percent-encoded. The
+   * table and its tab counters list again when they change, and request
+   * nothing while a token has no value: the table shows its empty state
+   * instead.
    */
   fetchUrl: string;
   /** The key of the row id, `_id` by default. */

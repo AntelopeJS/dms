@@ -3,6 +3,7 @@ import {
   formatActivityTime,
   formatShortDate,
   groupActivityByDay,
+  activityText,
   resolveActivityParams,
   relativeDayBucket,
 } from "../layers/dms-ui/app/build/components/activity-feed/activityFeedDays";
@@ -87,25 +88,38 @@ describe("activity feed day groups", () => {
 });
 
 describe("resolveActivityParams", () => {
-  // Echoes the key and its values, so assertions read the whole text.
-  const translate = (key: string, params?: Record<string, string> | null) =>
-    `${key}(${JSON.stringify(params ?? {})})`;
-
-  it("translates a $ value with the entry's literal values", () => {
+  it("makes a $ value a text of its own, with the entry's other values", () => {
+    const count = { type: "count", value: 2 } as const;
     expect(
-      resolveActivityParams(
-        { device: "$activity.device", browser: "Chrome", os: "Windows" },
-        translate,
-      ),
+      resolveActivityParams({
+        device: "$activity.device",
+        browser: "Chrome",
+        count,
+      }),
     ).toEqual({
-      device: '$activity.device({"browser":"Chrome","os":"Windows"})',
+      device: {
+        key: "$activity.device",
+        params: { browser: "Chrome", count },
+      },
       browser: "Chrome",
-      os: "Windows",
+      count,
     });
   });
 
   it("gives nothing for an entry without values", () => {
-    expect(resolveActivityParams(undefined, translate)).toBeNull();
+    expect(resolveActivityParams(undefined)).toBeUndefined();
+  });
+});
+
+describe("activityText", () => {
+  it("gives a $ title the entry's values and leaves other texts alone", () => {
+    expect(activityText("$a.title", { name: "Léa" })).toEqual({
+      key: "$a.title",
+      params: { name: "Léa" },
+    });
+    expect(activityText("Plain", { name: "Léa" })).toBe("Plain");
+    const composed = { key: "a.composed" };
+    expect(activityText(composed, { name: "Léa" })).toBe(composed);
   });
 });
 
