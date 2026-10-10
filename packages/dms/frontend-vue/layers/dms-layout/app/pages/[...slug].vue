@@ -494,10 +494,14 @@ if (import.meta.env.DEV) {
     :class="stackClass"
     :css="animateLayout"
   >
+    <!-- `empty:hidden`: a block with nothing to show (a fetched Banner the
+         route answered `null`) renders a bare comment; its wrapper must not
+         take a gap of the stack. -->
     <div
       v-for="component in components"
       :key="component.id"
       :class="[
+        'empty:hidden',
         { 'dms-fresh-modified': freshComponentIds.has(component.id) },
         component.id === fillingComponentId && fillColumnClass,
       ]"

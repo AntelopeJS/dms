@@ -90,9 +90,9 @@ const FLOW_PAGE_MARKUP =
   '<h1 class="text-highlighted text-2xl font-[650] leading-[1.2] tracking-[-0.03em]"><!--[-->Explorer<!--]--></h1><!--v-if--></div><!--[--><!--[--><!-- eslint-disable vue/no-v-html --><!--v-if--><!--]--><!--]--></section>' +
   '<div class="contents [html[data-dms-role-preview=pending]_&amp;]:hidden"><!--[--><!--[--><!--[-->' +
   '<div class="dms-page-stack space-y-6">' +
-  '<div class="">' +
+  '<div class="empty:hidden">' +
   '<section data-component="stats" page-id="tools.explorer" layout-path="stats"></section></div>' +
-  '<div class="">' +
+  '<div class="empty:hidden">' +
   '<section data-component="explorer" page-id="tools.explorer" layout-path="explorer"></section></div></div><!----><!--]--><!--]--><!--]--></div>' +
   PAGE_SKELETON_MARKUP +
   "<!----><!--]--><!--]--><!--]--></div></div><!--[--><!----><!--]--></div><!----></div>";
@@ -124,8 +124,12 @@ const Container: FunctionalComponent = (_, { attrs, slots }) =>
   h("div", { ...attrs, class: ["w-full", attrs.class] }, slots.default?.());
 Container.inheritAttrs = false;
 
+// A component id starting with `hidden` stands for a block that has nothing
+// to show (a fetched Banner the route answered `null`): it renders nothing.
 const PageComponent: FunctionalComponent<{ componentId: string }> = (props) =>
-  h("section", { "data-component": props.componentId });
+  props.componentId.startsWith("hidden")
+    ? null
+    : h("section", { "data-component": props.componentId });
 PageComponent.props = ["componentId"];
 
 const FillHeightProbe: FunctionalComponent = () =>
@@ -296,6 +300,19 @@ describe("DefaultLayout without fillHeight", () => {
   it("tells the page it does not fill the panel", async () => {
     const markup = await renderInLayout({}, FillHeightProbe);
     expect(parse(markup).querySelector("output")?.textContent).toBe("false");
+  });
+});
+
+describe("a block that renders nothing", () => {
+  it("leaves an empty wrapper the stack hides, so it takes no gap", async () => {
+    pageLayout.value = withComponents("hiddenBanner", "stats");
+    const host = parse(await renderInLayout({}, CatchAllPage));
+    const [banner, stats] = Array.from(
+      host.querySelectorAll(".dms-page-stack > div"),
+    );
+    expect(banner?.matches(":empty")).toBe(true);
+    expectClasses(banner, "empty:hidden");
+    expect(stats?.matches(":empty")).toBe(false);
   });
 });
 
