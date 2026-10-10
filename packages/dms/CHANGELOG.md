@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.3...v0.7.4)
+
+### 🩹 Fixes
+
+- **table-view:** Open the toolbar search from its button again ([#193](https://github.com/AntelopeJS/dms/pull/193))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.2...v0.7.3)
