@@ -3,6 +3,10 @@ import {
   regionalDayKey,
   regionalDayNumber,
 } from "#dms-core/app/utils/regional";
+import type {
+  BlockText,
+  ComposedTextParam,
+} from "#dms-core/app/types/composed-text";
 import type { Tone } from "../../../types/tone";
 
 /** One entry of an activity feed, as a page declares it or a source answers. */
@@ -10,19 +14,19 @@ export interface ActivityFeedItem {
   id?: string;
   icon?: string;
   tone?: Tone;
-  /** Title (i18n key with `$` or literal). */
-  title: string;
+  /** Title (i18n key with `$`, literal, or composed text). */
+  title: BlockText;
   /** Dimmed details, joined by "·". */
-  meta?: string[];
+  meta?: BlockText[];
   /**
-   * Values the title and the details interpolate; a `$`-prefixed value is
-   * translated first.
+   * Values the `$` title and details interpolate: typed values are formatted
+   * as in a composed text; a `$`-prefixed string is translated first.
    */
-  params?: Record<string, string>;
+  params?: Record<string, ComposedTextParam>;
   /** ISO date: files the entry under its day and gives its time. */
   date?: string;
-  /** Literal trailing text, in place of the formatted time. */
-  time?: string;
+  /** Trailing text, in place of the formatted time. */
+  time?: BlockText;
   unread?: boolean;
   /** Makes the row a link. */
   to?: string;
@@ -143,31 +147,39 @@ export function formatActivityTime(date: string, locale: string): string {
   }).format(parsed);
 }
 
-type ActivityTranslate = (
-  key: string,
-  params?: Record<string, string> | null,
-) => string;
-
-const isTextKey = (value: string): boolean => value.startsWith("$");
+const isTextKey = (value: ComposedTextParam): value is string =>
+  typeof value === "string" && value.startsWith("$");
 
 /**
- * The values an entry's title and details interpolate. A `$` value is a text
- * of its own, translated with the entry's literal values: "Signed in on
- * {device}" with `device` = "{browser} on {os}".
+ * The values an entry's title and details interpolate, as composed-text
+ * parameters. A `$` string is a text of its own, written with the entry's
+ * other values: "Signed in on {device}" with `device` = "{browser} on {os}".
  */
 export function resolveActivityParams(
-  params: Record<string, string> | undefined,
-  translate: ActivityTranslate,
-): Record<string, string> | null {
-  if (!params) return null;
+  params: Record<string, ComposedTextParam> | undefined,
+): Record<string, ComposedTextParam> | undefined {
+  if (!params) return undefined;
   const entries = Object.entries(params);
-  const literals = Object.fromEntries(
+  const values = Object.fromEntries(
     entries.filter(([, value]) => !isTextKey(value)),
   );
   return Object.fromEntries(
     entries.map(([name, value]) => [
       name,
-      isTextKey(value) ? translate(value, literals) : value,
+      isTextKey(value) ? { key: value, params: values } : value,
     ]),
   );
+}
+
+/**
+ * A title or a detail of an entry as the text to write: a `$` key takes the
+ * entry's values, so a `count` value picks its plural form; a composed text
+ * carries its own values, and a literal is written as is.
+ */
+export function activityText(
+  text: BlockText,
+  params: Record<string, ComposedTextParam> | undefined,
+): BlockText {
+  if (!isTextKey(text)) return text;
+  return { key: text, params: resolveActivityParams(params) };
 }

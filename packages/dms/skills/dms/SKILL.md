@@ -37,7 +37,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks re-fetch after a form saves.
   A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
   `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
-  browser writes in the reader's language: StatGroup / KeyValueList / Banner texts and layout
+  browser writes in the reader's language: StatGroup / KeyValueList / Banner / NavCardGrid /
+  ActivityFeed / Meter / TopListCard item texts (and ActivityFeed `params`, typed `count` for
+  plurals) and layout
   banners (`RegisterLayoutBanner({ resolve })` → `{ text, actions }`) take it; never format text server-side.
   A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or

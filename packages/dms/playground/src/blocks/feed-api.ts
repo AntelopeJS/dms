@@ -44,7 +44,14 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
           icon: "i-ph-sparkle",
           tone: "secondary",
           title: "Assistant added Top customers to Sales overview",
-          meta: ["1 file changed", "safe mode", "requested by Camille"],
+          meta: [
+            {
+              key: "demo.blocks.activity.files_changed",
+              params: { count: { type: "count", value: 1 } },
+            },
+            "safe mode",
+            "requested by Camille",
+          ],
           date: ago(12 * MINUTE_MS),
           unread: true,
           to: "/chart/chart-dashboard",
@@ -53,8 +60,20 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
           id: "a2",
           icon: "i-ph-check-circle",
           tone: "success",
-          title: "Order #10481 paid",
-          meta: ["Globex Logistics", "€860.50", "Stripe"],
+          title: {
+            key: "demo.blocks.activity.order_paid",
+            params: { order: "#10481" },
+          },
+          meta: [
+            "Globex Logistics",
+            {
+              key: "demo.blocks.activity.amount",
+              params: {
+                amount: { type: "money", value: 86050, currency: "EUR" },
+              },
+            },
+            "Stripe",
+          ],
           date: ago(36 * MINUTE_MS),
           unread: true,
         },
@@ -70,7 +89,10 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
           id: "a4",
           icon: "i-ph-translate",
           tone: "warning",
-          title: "12 translation keys missing",
+          // A `$` title takes the entry's typed values: the count picks
+          // the plural form.
+          title: "$demo.blocks.activity.missing_keys",
+          params: { count: { type: "count", value: 12 } },
           meta: ["Français", "checkout"],
           date: ago(DAY_MS + HOUR_MS),
         },
@@ -135,10 +157,26 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   getSeats() {
     return later({
       max: 10,
-      hint: "8 in use · 2 free",
+      hint: {
+        key: "demo.blocks.meter.seats_hint",
+        params: { used: 8, free: 2 },
+      },
       segments: [
-        { value: 6, label: "6 members" },
-        { value: 2, tone: "soft", label: "2 pending invites" },
+        {
+          value: 6,
+          label: {
+            key: "demo.blocks.meter.members",
+            params: { count: { type: "count", value: 6 } },
+          },
+        },
+        {
+          value: 2,
+          tone: "soft",
+          label: {
+            key: "demo.blocks.meter.pending_invites",
+            params: { count: { type: "count", value: 2 } },
+          },
+        },
       ],
     });
   }
