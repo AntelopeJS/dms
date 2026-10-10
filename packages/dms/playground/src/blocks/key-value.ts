@@ -10,7 +10,7 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
   category: blocksCategory,
   order: 10,
   description:
-    "KeyValueList block (every value type, columns, dense, live data) and the Card container block",
+    "KeyValueList block (every value type, copy buttons, columns, dense, live data) and the Card container block",
 }) {
   static summaries = Grid({ gap: "1rem", minColumnWidth: "320px" }).child(
     "row",
@@ -56,7 +56,12 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
               tone: "error",
               to: "#billing",
             },
-            { label: "Customer ID", value: "cus_Q8f2LmXv01", type: "mono" },
+            {
+              label: "Customer ID",
+              value: "cus_Q8f2LmXv01",
+              type: "mono",
+              copy: true,
+            },
           ],
         }),
       )
@@ -84,6 +89,12 @@ export class PageBlocksKeyValue extends PageController("blocks-key-value", {
         to: "/settings/workspace/members",
       },
       { label: "Region", value: "eu-west-3", type: "mono" },
+      {
+        label: "Public endpoint",
+        value: "api.example.com/v1",
+        type: "mono",
+        copyValue: "https://api.example.com/v1",
+      },
       { label: "Monthly cost", value: 1240.5, type: "money", currency: "USD" },
       {
         label: "Documentation",

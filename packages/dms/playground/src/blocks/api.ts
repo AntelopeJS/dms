@@ -53,7 +53,12 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     return later({
       items: [
         { label: "Customer", value: "Acme Logistics SA" },
-        { label: "VAT number", value: "BE0478.123.456", type: "mono" },
+        {
+          label: "VAT number",
+          value: "BE0478.123.456",
+          type: "mono",
+          copy: true,
+        },
         { label: "Status", value: "Past due", type: "status", tone: "error" },
         { label: "Outstanding", value: 4890, type: "money" },
         { label: "Last payment", value: "2026-08-14", type: "date" },
