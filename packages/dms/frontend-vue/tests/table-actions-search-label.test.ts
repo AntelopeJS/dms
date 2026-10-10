@@ -37,8 +37,13 @@ const ButtonStub = defineComponent({
       h("button", slots.default?.()),
 });
 
+// A real UInput wraps its field: the toolbar focuses the input inside it.
 const InputStub = defineComponent({
-  setup: () => () => h("input"),
+  inheritAttrs: false,
+  setup:
+    (_, { attrs }) =>
+    () =>
+      h("div", [h("input", attrs)]),
 });
 
 let app: App | undefined;
@@ -88,6 +93,7 @@ function mountActions(searchPlaceholder: string | undefined, search = "") {
     app.component(name, stub);
   }
   const container = document.createElement("div");
+  document.body.append(container);
   app.mount(container);
   return container;
 }
@@ -110,6 +116,7 @@ beforeEach(() => {
 afterEach(() => {
   app?.unmount();
   app = undefined;
+  document.body.replaceChildren();
   vi.unstubAllGlobals();
 });
 
@@ -119,6 +126,20 @@ describe("table toolbar search", () => {
     expect(container.querySelector("button")?.getAttribute("aria-label")).toBe(
       "dms.table.search_open",
     );
+  });
+
+  it("opens the search field from its button and focuses it", async () => {
+    const container = mountActions(undefined);
+    const trigger = container.querySelector("button");
+    trigger?.focus();
+    trigger?.click();
+    await nextTick();
+    await nextTick();
+    const input = container.querySelector("input");
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+    await nextTick();
+    expect(container.querySelector("input")).not.toBeNull();
   });
 
   it("uses the configured placeholder, which also names the field", async () => {
