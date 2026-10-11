@@ -18,6 +18,8 @@ export interface ActivityFeedItem {
   title: BlockText;
   /** Dimmed details, joined by "·". */
   meta?: BlockText[];
+  /** Third line, dimmed and mono (the entry's evidence). */
+  detail?: BlockText;
   /**
    * Values the `$` title and details interpolate: typed values are formatted
    * as in a composed text; a `$`-prefixed string is translated first.

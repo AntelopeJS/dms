@@ -26,6 +26,11 @@ interface ListRowProps {
   description?: string;
   /** Meta entries, joined by "·" (the `meta` slot overrides them). */
   meta?: string[];
+  /**
+   * A last line under the meta, dimmed and mono whatever `mono` says: the
+   * evidence behind a feed entry (`400 "Cart is empty" × 16`).
+   */
+  detail?: string;
   /** Mono meta (times, paths, ids); the title stays sans. */
   mono?: boolean;
   /**
@@ -81,6 +86,7 @@ const props = withDefaults(defineProps<ListRowProps>(), {
   title: undefined,
   description: undefined,
   meta: undefined,
+  detail: undefined,
   mono: false,
   size: "md",
   // Undefined, not false: an absent read state is not "read".
@@ -123,6 +129,7 @@ const theme = tv({
     // The "·" closes each entry followed by another (rather than opening it),
     // so a wrapped line never starts with a separator.
     meta: "flex flex-wrap items-center gap-x-2 gap-y-1 [&>span:has(+span)]:after:text-dimmed [&>span:has(+span)]:after:ms-2 [&>span:has(+span)]:after:content-['·']",
+    detail: "text-dimmed mt-0.5 font-mono text-[11px] font-medium",
     trailing: "flex shrink-0 items-center gap-2",
     trailingText:
       "text-dimmed text-right font-mono text-[11.5px] font-medium whitespace-nowrap",
@@ -183,6 +190,7 @@ const theme = tv({
       true: {
         title: "truncate max-sm:whitespace-normal",
         meta: "flex-nowrap overflow-hidden whitespace-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
+        detail: "truncate max-sm:whitespace-normal",
       },
     },
     bare: {
@@ -285,6 +293,13 @@ const unreadText = computed(
             </span>
           </slot>
         </div>
+        <p
+          v-if="props.detail"
+          :class="ui.detail()"
+          :title="props.truncate ? props.detail : undefined"
+        >
+          {{ props.detail }}
+        </p>
       </div>
     </div>
     <div v-if="hasTrailing && !props.bare" :class="ui.trailing()">

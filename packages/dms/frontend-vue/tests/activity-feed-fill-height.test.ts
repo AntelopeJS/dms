@@ -8,6 +8,7 @@ const items = ref<Array<Record<string, unknown>>>([]);
 vi.mock("../layers/dms-ui/app/build/composables/blocks/useBlockItems", () => ({
   useBlockItems: () => ({
     items: computed(() => items.value),
+    count: computed(() => undefined),
     isPending: computed(() => false),
     hasError: computed(() => false),
     refresh: async () => {},

@@ -14,6 +14,8 @@ interface Props {
   iconColor?: Tone;
   title?: string;
   subtitle?: string;
+  /** Third line, dimmed and mono (an entry's evidence). */
+  detail?: string;
   /** Trailing meta, usually the time. */
   trailing?: string;
   /** Render title/subtitle in mono (for paths, queries…). */
@@ -37,6 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
   iconColor: "neutral",
   title: undefined,
   subtitle: undefined,
+  detail: undefined,
   trailing: undefined,
   mono: false,
   unread: false,
@@ -58,6 +61,7 @@ const hasTitle = computed(() => !!props.title || !!slots.default);
     :icon="props.icon"
     :tone="props.iconColor"
     :meta="meta"
+    :detail="props.detail"
     :mono="props.mono"
     :unread="props.unread || undefined"
     :trailing="props.trailing"

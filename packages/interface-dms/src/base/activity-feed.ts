@@ -32,6 +32,11 @@ export interface ActivityFeedItem {
   /** Details under the title, joined by "·"; each one like the title. */
   meta?: BlockText[];
   /**
+   * A third line under the details, dimmed and mono, like the title: the
+   * evidence behind the entry (`400 "Cart is empty" × 16`).
+   */
+  detail?: BlockText;
+  /**
    * Values the `$`-prefixed title and details interpolate (`{device}`). A
    * typed value is formatted for the reader (`{ type: "count", value: 3 }`,
    * which also picks the plural form of the message; `{ type: "relative",
@@ -51,13 +56,38 @@ export interface ActivityFeedItem {
 }
 
 /**
+ * What an `ActivityFeed`'s `fetchUrl` answers: its entries, newest first, and
+ * optionally how many there are in all, shown beside the title.
+ */
+export interface ActivityFeedResponse {
+  items: ActivityFeedItem[];
+  /**
+   * The count beside the title: every entry the source holds, more than
+   * `items` when the route caps them. Replaces the `count` option.
+   */
+  count?: number;
+}
+
+/**
  * The options `ActivityFeed` takes. Its `fetchUrl` answers `{ items }`, newest
- * first, like every list block.
+ * first, like every list block, and may add a `count`
+ * (`ActivityFeedResponse`).
  */
 export interface ActivityFeedProps
   extends BaseComponentProps, BlockItemsSource {
   /** Eyebrow title of the card head. */
   title?: string;
+  /**
+   * Count beside the title, as a mono chip. A `count` the route answers
+   * replaces it. Shown with the card head only.
+   */
+  count?: number;
+  /**
+   * Soft badge in the card head, before the actions, like a `TopListCard`'s
+   * period badge: the window the entries cover ("Last 24 h"). A `$` key, a
+   * literal or a `ComposedText`. Shown with the card head only.
+   */
+  badge?: BlockText;
   /** Entries shown when no data source is set, newest first. */
   items?: ActivityFeedItem[];
   /**
@@ -100,6 +130,14 @@ const DEFAULT_ICON = "i-ph-pulse";
  *   maxItems: 8,
  *   actions: [{ label: "View all", to: "/audit" }],
  * })
+ *
+ * // Head: "NEEDS ATTENTION [4]  Last 24 h"; each entry a third mono line.
+ * ActivityFeed({
+ *   title: "Needs attention",
+ *   badge: "Last 24 h",
+ *   fetchUrl: "/api/attention", // { items: [{ …, detail }], count: 4 }
+ *   groupByDay: false,
+ * })
  * ```
  */
 export function ActivityFeed(
@@ -125,6 +163,10 @@ const ActivityFeedItemSchema = z.object({
   }),
   title: ui(blockTextSchema(), { label: "Title", widget: "text" }),
   meta: ui(z.array(blockTextSchema()).optional(), { label: "Details" }),
+  detail: ui(blockTextSchema().optional(), {
+    label: "Detail line",
+    widget: "text",
+  }),
   params: ui(z.record(z.string(), composedTextParamSchema()).optional(), {
     label: "Text values",
     widget: "json",
@@ -151,6 +193,21 @@ export const ActivityFeedSchema = z.object({
     group: "content",
     widget: "json",
   }),
+  count: ui(
+    z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Count beside the title; a `count` the route answers wins."),
+    { label: "Count", group: "content", widget: "number", min: 0 },
+  ),
+  badge: ui(
+    blockTextSchema()
+      .optional()
+      .describe("Soft badge in the card head, e.g. the window covered."),
+    { label: "Badge", group: "content", widget: "text" },
+  ),
   groupByDay: ui(
     z
       .boolean()

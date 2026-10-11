@@ -26,6 +26,10 @@ import type { BlockEmptyText } from "../../build/components/blocks/BlockStatus.v
 interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Eyebrow title of the card head ("Activity"). */
   title?: string;
+  /** Count chip beside the title; a `count` the source answers wins. */
+  count?: number;
+  /** Soft badge in the card head, before the actions ("Last 24 h"). */
+  badge?: BlockText;
   /** Entries shown when no data source is set. */
   items?: ActivityFeedItem[];
   /** Endpoint answering `{ items }`, newest first. */
@@ -65,6 +69,8 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
 
 const props = withDefaults(defineProps<ActivityFeedProps>(), {
   title: undefined,
+  count: undefined,
+  badge: undefined,
   items: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
@@ -91,6 +97,7 @@ const { processText } = useComposedText();
 
 const {
   items: list,
+  count: fetchedCount,
   isPending,
   hasError,
   refresh,
@@ -128,6 +135,17 @@ const trailingOf = (item: ActivityFeedItem): string | undefined => {
 
 const textOf = (item: ActivityFeedItem, text: BlockText): string =>
   processText(activityText(text, item.params));
+
+const detailOf = (item: ActivityFeedItem): string | undefined =>
+  item.detail ? textOf(item, item.detail) : undefined;
+
+const headCount = computed(() => fetchedCount.value ?? props.count);
+const badgeText = computed(() =>
+  props.badge ? processText(props.badge) : undefined,
+);
+const hasHeadActions = computed(
+  () => props.actions.length > 0 || !!badgeText.value,
+);
 
 const metaOf = (item: ActivityFeedItem): string | undefined =>
   item.meta?.length
@@ -186,6 +204,7 @@ const wrapperProps = computed(() =>
     ? {
         padded: false,
         title: props.title ? processI18n(props.title) : undefined,
+        count: headCount.value,
         class: "min-w-0 overflow-hidden",
       }
     : { class: "min-w-0" },
@@ -194,8 +213,16 @@ const wrapperProps = computed(() =>
 
 <template>
   <component :is="Wrapper" v-bind="wrapperProps">
-    <template v-if="props.card && props.actions.length" #actions>
+    <template v-if="props.card && hasHeadActions" #actions>
+      <UBadge
+        v-if="badgeText"
+        :label="badgeText"
+        color="primary"
+        variant="soft"
+        size="sm"
+      />
       <DmsBlockActions
+        v-if="props.actions.length"
         :actions="props.actions"
         size="xs"
         lead-variant="ghost"
@@ -287,6 +314,7 @@ const wrapperProps = computed(() =>
             :icon-color="item.tone ?? 'neutral'"
             :title="textOf(item, item.title)"
             :subtitle="metaOf(item)"
+            :detail="detailOf(item)"
             :trailing="trailingOf(item)"
             :unread="item.unread"
             :mono="props.mono"
