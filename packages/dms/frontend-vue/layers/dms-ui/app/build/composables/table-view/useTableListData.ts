@@ -61,7 +61,8 @@ export function useTableListData<T extends Record<string, unknown>>(
   });
   return useServerRenderedAsyncData(
     key,
-    (): Promise<TableViewListResponse<T>> =>
+    // `null` while a source waits on its period scope: the table's skeleton.
+    (): Promise<TableViewListResponse<T> | null> =>
       isSelfManaged.value
         ? Promise.resolve(EMPTY_LIST_RESULT)
         : rows.list({ ...query.value, ...archiveQuery.value }),

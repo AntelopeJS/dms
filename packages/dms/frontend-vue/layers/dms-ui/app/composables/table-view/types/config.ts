@@ -220,6 +220,8 @@ export interface TableViewSourceCapabilities {
 export interface TableViewSourceConfig {
   fetchUrl: string;
   capabilities: TableViewSourceCapabilities;
+  /** Id of the `PeriodSelector` whose period is sent to `fetchUrl`. */
+  periodScope?: string;
 }
 
 export interface TableViewListResponse<T> {

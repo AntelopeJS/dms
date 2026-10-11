@@ -46,10 +46,34 @@ export type PeriodSelectorVariant = (typeof PERIOD_SELECTOR_VARIANTS)[number];
  */
 export const DEFAULT_PERIOD_SCOPE = "page";
 
+/**
+ * A date-range control publishing its period under `id`, for the cards,
+ * charts, blocks and source tables naming it as their `periodScope`.
+ *
+ * The period lives in the page URL, always: a range is
+ * `?<id>.period=last-7-days&<id>.compare=previous-period`, a custom range
+ * `?<id>.from=2026-10-01&<id>.to=2026-10-31` (an ISO date or date-time each;
+ * a custom comparison adds `<id>.compareFrom` / `<id>.compareTo`). Keys are
+ * prefixed with the id, so several selectors on a page never collide. A
+ * change replaces the current history entry rather than pushing one, so Back
+ * leaves the page instead of stepping through every pick, and the server
+ * renders the URL's period.
+ *
+ * On load the period comes from the URL, then from the last choice the user
+ * made on this selector of this page (kept in the browser), then from
+ * `defaultPreset` / `defaultComparison`. The range and the comparison are
+ * read apart, and a value that is unknown, not offered by `presets` /
+ * `comparisons`, or not a valid date range is skipped for the next source.
+ */
 export interface PeriodSelectorProps extends BaseComponentProps {
-  /** Scope id the cards on the page refer to. Defaults to {@link DEFAULT_PERIOD_SCOPE}. */
+  /**
+   * Scope id the cards on the page refer to, and the prefix of the selector's
+   * URL keys (`?<id>.period=`). Defaults to {@link DEFAULT_PERIOD_SCOPE}.
+   */
   id?: string;
+  /** The range when neither the URL nor the user's last choice gives one. */
   defaultPreset?: PeriodPreset;
+  /** The comparison when neither the URL nor the user's last choice gives one. */
   defaultComparison?: PeriodComparison;
   presets?: PeriodPreset[];
   comparisons?: PeriodComparison[];
@@ -68,6 +92,9 @@ export interface PeriodSelectorProps extends BaseComponentProps {
 const PERIOD_SELECTOR_COMPONENT_NAME = "dms-period-selector";
 
 /**
+ * A period selector; it keeps its period in the page URL under keys prefixed
+ * with its `id` (see {@link PeriodSelectorProps}).
+ *
  * `options` is optional because a page is written as it is built: the editor
  * places a block before anything is configured, and writes that as the bare
  * call `PeriodSelector()`. A page under construction has to compile — it is typechecked
