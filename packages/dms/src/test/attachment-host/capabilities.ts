@@ -52,6 +52,7 @@ export const INVOICE_STATUSES = [
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 export class Invoice extends Table {
   @Field("string") declare number: string;
+  @Field("string") declare customer?: string;
   @Field("string") declare status: string;
   @Field("number") declare amount: number;
   @Field("string") declare ownerId?: string;
@@ -74,6 +75,14 @@ export class CapabilityInvoiceController extends DataController(
   @Listable()
   @Access(AccessMode.ReadOnly)
   declare _id: string;
+
+  // Searchable without being filterable, and declared first, so the search
+  // starts from a field that has no data-api filter.
+  @Searchable()
+  @Listable()
+  @Column({ name: "Customer", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadWrite)
+  declare customer: string;
 
   @Searchable()
   @Listable()

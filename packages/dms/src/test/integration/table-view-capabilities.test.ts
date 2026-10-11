@@ -27,11 +27,17 @@ interface FooterSummary {
 
 async function seed(client: AxiosInstance, ownerId: string): Promise<void> {
   const rows = [
-    { number: "INV-1", status: "open", amount: 100, ownerId },
-    { number: "INV-2", status: "open", amount: 250, ownerId },
-    { number: "INV-3", status: "open", amount: 50 },
-    { number: "INV-4", status: "paid", amount: 500 },
-    { number: "INV-5", status: "paid", amount: 75 },
+    { number: "INV-1", customer: "Acme", status: "open", amount: 100, ownerId },
+    {
+      number: "INV-2",
+      customer: "Globex",
+      status: "open",
+      amount: 250,
+      ownerId,
+    },
+    { number: "INV-3", customer: "Acme", status: "open", amount: 50 },
+    { number: "INV-4", customer: "Initech", status: "paid", amount: 500 },
+    { number: "INV-5", customer: "Globex", status: "paid", amount: 75 },
   ];
   for (const row of rows) {
     const created = await client.post(`${LOCATION}/new`, row);
@@ -144,6 +150,21 @@ describe("[integration] table view capabilities", () => {
   it("refuses a summary no table view declared", async () => {
     const response = await client.get(`${LOCATION}/summary?ids=999`);
     expect(response.status).to.equal(HTTP_BAD_REQUEST);
+  });
+
+  it("searches a searchable field that is not filterable", async () => {
+    const byCustomer = await list(client, "&search=Acme");
+    expect(byCustomer.map((row) => row.number).sort()).to.deep.equal([
+      "INV-1",
+      "INV-3",
+    ]);
+
+    const byNumber = await list(client, "&search=INV-4");
+    expect(byNumber.map((row) => row.number)).to.deep.equal(["INV-4"]);
+
+    const count = await client.get(`${LOCATION}/count?search=Globex`);
+    expect(count.status, JSON.stringify(count.data)).to.equal(HTTP_OK);
+    expect(count.data).to.deep.equal({ total: 2 });
   });
 
   it("resolves {{user.id}} to the caller in lists and counters", async () => {

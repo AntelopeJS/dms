@@ -37,14 +37,38 @@ interface SearchTarget {
   thisObj: any;
 }
 
+type Condition = ValueProxyOrValue<boolean>;
+
+type SearchFilter = NonNullable<DataAPIMeta["filters"][string]>;
+
+/**
+ * The filter matching a searchable field: the data-api filter a `filterable`
+ * column (or `@Filter`) declared, else the filter of the field's column type.
+ * Search is distinct from filtering, so a field need not be filterable to be
+ * searched.
+ */
+function resolveSearchFilter(
+  field: string,
+  target: SearchTarget,
+): SearchFilter | undefined {
+  const declared = target.meta.filters[field];
+  if (declared) {
+    return declared;
+  }
+  const columnType = GetMetadata(target.thisObj.constructor, TableViewMeta)
+    .columns[field]?.type;
+  return columnType?.filter.bind(columnType);
+}
+
 function applySearchFilter(
   row: ValueProxy<Record<string, unknown>>,
   field: string,
   compareMode: string,
   target: SearchTarget,
-): ValueProxyOrValue<boolean> {
+): Condition {
   const { searchValue, context, meta, thisObj } = target;
-  const filterFunc = meta.filters[field];
+  const filterFunc = resolveSearchFilter(field, target);
+  // A field with neither a filter nor a column cannot be matched.
   if (!filterFunc) {
     return false;
   }
@@ -64,6 +88,14 @@ function applySearchFilter(
   );
 }
 
+// A filter may answer with a literal (an unknown compare mode does): it is
+// folded away rather than asked for an operator it does not have.
+function either(a: Condition, b: Condition): Condition {
+  if (typeof a === "boolean") return a ? true : b;
+  if (typeof b === "boolean") return b ? true : a;
+  return a.or(b);
+}
+
 function applyGlobalSearch(
   query: Stream<Record<string, unknown>>,
   searchableFields: Record<string, string>,
@@ -75,18 +107,11 @@ function applyGlobalSearch(
     return query;
   }
 
-  return query.filter((row: ValueProxy<Record<string, unknown>>) => {
-    const [firstField, firstMode] = fieldEntries[0];
-    let condition = applySearchFilter(row, firstField, firstMode, target);
-
-    for (let i = 1; i < fieldEntries.length; i++) {
-      const [field, mode] = fieldEntries[i];
-      const nextCondition = applySearchFilter(row, field, mode, target);
-      condition = (condition as any).or(nextCondition);
-    }
-
-    return condition;
-  });
+  return query.filter((row: ValueProxy<Record<string, unknown>>) =>
+    fieldEntries
+      .map(([field, mode]) => applySearchFilter(row, field, mode, target))
+      .reduce(either, false),
+  );
 }
 
 function extractSearchParameter(reqCtx: RequestContext): string | undefined {
