@@ -9,7 +9,11 @@ import type { ActionTarget, ActionTargetSerialized } from "../action-target";
 export function serializeActionTarget(
   target: ActionTarget,
 ): ActionTargetSerialized {
-  if (target.type === "drawer" || target.type === "modal") {
+  if (
+    target.type === "drawer" ||
+    target.type === "modal" ||
+    target.type === "sidePanel"
+  ) {
     return { ...target, component: target.component.serializeSync() };
   }
   return target;

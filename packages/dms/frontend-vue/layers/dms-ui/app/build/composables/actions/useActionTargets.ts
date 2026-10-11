@@ -4,7 +4,7 @@ import {
   isConfirmFrom,
 } from "#dms-core/app/types/confirm-dialog";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
-import type { Component } from "vue";
+import { type Component, getCurrentScope, onScopeDispose } from "vue";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import type { CustomRowAction } from "../../../types/row-action";
@@ -26,7 +26,18 @@ import {
   type RowNavigationSource,
   rowNavigation,
 } from "./rowNavigation";
-import { writeRecordId } from "../table-view/utils/recordLink";
+import {
+  clearWrittenRecord,
+  isDeepLinkAction,
+  writeRecordId,
+  type WrittenRecord,
+} from "../table-view/utils/recordLink";
+import {
+  closeRowSidePanel,
+  closeRowSidePanelOf,
+  openRowSidePanel,
+  rowSidePanelOwnerKey,
+} from "#dms-layout/app/build/composables/layout/rowSidePanel";
 import type { TableUrlScope } from "../table-view/utils/views";
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import {
@@ -70,6 +81,16 @@ interface TargetRunExtras {
   selection?: BulkSelection;
   /** The open row is reflected in the URL. */
   deepLink?: boolean;
+}
+
+type SidePanelTarget = ActionTarget & { type: "sidePanel" };
+
+/** A side panel to open, and on what. */
+interface SidePanelTargetRun extends TargetRunExtras {
+  target: SidePanelTarget;
+  title: string;
+  containerId: string;
+  rowData?: Data;
 }
 
 /** A drawer or modal to open, and on what. */
@@ -214,14 +235,84 @@ export function useActionTargets(config: ActionTargetsConfig) {
       : openDrawer({ ...options, direction: run.target.direction });
   };
 
+  const resolveTargetComponent = (componentName: string): Component =>
+    (resolveDmsComponent(componentName) || componentName) as Component;
+
+  const rowIdOf = (row?: Data): string | undefined => {
+    if (!row) return undefined;
+    const idKey =
+      config.rowNavigation?.rowIdKey ?? config.rowIdKey ?? DEFAULT_ROW_ID_KEY;
+    const id = get(row, idKey);
+    return id === undefined || id === null ? undefined : String(id);
+  };
+
+  // A deep-linked action keeps the row it has open in the URL; `undefined`
+  // removes it, but only the row this run wrote, on the page it wrote it:
+  // closing as the user navigates leaves the next page's `?record=` alone.
+  const rowRecorder = (deepLink?: boolean) => {
+    let written: WrittenRecord | undefined;
+    return (row?: Data): void => {
+      if (!deepLink || !config.recordScope || !config.rowNavigation) return;
+      if (!row) {
+        clearWrittenRecord(written);
+        written = undefined;
+        return;
+      }
+      written = writeRecordId(config.recordScope, rowIdOf(row));
+    };
+  };
+
+  const ownerKey = rowSidePanelOwnerKey(config.pageId, config.componentId);
+
+  // The panel belongs to the table that opened it: it closes with it.
+  if (getCurrentScope()) onScopeDispose(() => closeRowSidePanelOf(ownerKey));
+
+  // A side panel opened on a listed row steps through the rows shown in place
+  // (the panel computes its position); a deep-linked one keeps the row in the
+  // URL while it is open. A bulk action's panel receives the selection.
+  const handleSidePanelTarget = (run: SidePanelTargetRun) => {
+    const componentName = run.target.component?.componentName;
+    if (!componentName) return;
+    const session = Symbol(componentName);
+    const component = resolveTargetComponent(componentName);
+    const recordRow = rowRecorder(run.deepLink && !run.selection);
+    const componentOptions = {
+      ...run.target.component?.options,
+      pageId: config.pageId,
+      componentId: config.componentId,
+      containerId: run.containerId,
+      selection: run.selection,
+      onSuccessCallback: () => {
+        closeRowSidePanel(session);
+        config.refreshCallback?.();
+      },
+    };
+    const showRow = (row?: Data) => {
+      openRowSidePanel({
+        session,
+        ownerKey,
+        title: run.title,
+        positionLabel: run.target.positionLabel,
+        component,
+        componentOptions,
+        row,
+        rowKey: rowIdOf(row),
+        source: row ? config.rowNavigation : undefined,
+        showRow,
+        onClose: () => recordRow(undefined),
+      });
+      recordRow(row);
+    };
+    showRow(run.rowData);
+  };
+
   // A container opened on a listed row steps through the rows shown (its
   // `navigation` prop, J and K), mounting its component anew on each; a
   // deep-linked one keeps the row in the URL while it is open.
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
-    const component = (resolveDmsComponent(componentName) ||
-      componentName) as Component;
+    const component = resolveTargetComponent(componentName);
     const source = config.rowNavigation;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
@@ -242,13 +333,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         },
       };
     };
-    const recordRow = (row?: Data) => {
-      if (!run.deepLink || !config.recordScope || !source) return;
-      writeRecordId(
-        config.recordScope,
-        row ? String(get(row, source.rowIdKey)) : undefined,
-      );
-    };
+    const recordRow = rowRecorder(run.deepLink);
     function showRow(row: Data) {
       instance?.patch({
         componentOptions: optionsFor(row),
@@ -281,6 +366,15 @@ export function useActionTargets(config: ActionTargetsConfig) {
       description: processI18n(
         (target as { description?: string }).description || "",
       ),
+      containerId: `${config.pageId}-${config.componentId}-${target.type}`,
+      rowData: extras?.selection ? undefined : rowData,
+      ...extras,
+    });
+
+  const sidePanelHandler: TargetHandler = (target, label, rowData, extras) =>
+    handleSidePanelTarget({
+      target: target as SidePanelTarget,
+      title: processI18n((target as SidePanelTarget).title || label),
       containerId: `${config.pageId}-${config.componentId}-${target.type}`,
       rowData: extras?.selection ? undefined : rowData,
       ...extras,
@@ -332,6 +426,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       if (quickAction) dispatchQuickActionTarget(quickAction.target);
     },
     drawer: componentHandler,
+    sidePanel: sidePanelHandler,
   };
 
   const targetUrl = (url: string, rowData?: Data): string =>
@@ -421,7 +516,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       action.label,
       rowData,
       action.confirm,
-      { deepLink: action.deepLink },
+      { deepLink: isDeepLinkAction(action) },
     );
   };
 

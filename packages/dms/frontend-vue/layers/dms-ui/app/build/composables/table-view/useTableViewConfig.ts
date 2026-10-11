@@ -123,6 +123,7 @@ export const useTableViewConfig = <T extends Data>(
     maxHeight: config.maxHeight,
     rowIdKey: config.rowIdKey,
     rowActions: config.rowActions,
+    rowClick: config.rowClick,
     customNavItems: config.customNavItems,
     componentId: config.componentId,
     formContainer: config.formContainer,

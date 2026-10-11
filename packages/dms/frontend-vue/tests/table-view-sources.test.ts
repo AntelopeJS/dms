@@ -179,4 +179,44 @@ describe("source tables", () => {
       ]);
     });
   });
+
+  describe("reading one row (fetchRowUrl)", () => {
+    const FETCH_URL = "/api/ws/{{params.ws}}/requests";
+    const ROW_URL = "/api/ws/{{params.ws}}/requests/{id}";
+
+    function rowsWith(
+      api: (url: string) => Promise<unknown>,
+      fetchRowUrl?: string,
+    ) {
+      return useTableRows<LogRow>({
+        api: api as unknown as Api,
+        location: FETCH_URL,
+        source: { fetchUrl: FETCH_URL, fetchRowUrl, capabilities: {} },
+        columns: COLUMNS,
+        route: () => ({ routeParams: { ws: "ws-1" }, routeQuery: {} }),
+      });
+    }
+
+    it("reads a row by id, its id and the page's tokens filled", async () => {
+      const api = vi.fn(async () => ROWS[2]);
+      const rows = rowsWith(api, ROW_URL);
+      expect(await rows.getRow("c/42")).toBe(ROWS[2]);
+      expect(api).toHaveBeenCalledWith("/api/ws/ws-1/requests/c%2F42");
+    });
+
+    it("rejects as the route does on a missing row", async () => {
+      const api = vi.fn(async () => {
+        throw Object.assign(new Error("Not Found"), { statusCode: 404 });
+      });
+      await expect(rowsWith(api, ROW_URL).getRow("gone")).rejects.toThrow(
+        "Not Found",
+      );
+    });
+
+    it("requests nothing without fetchRowUrl", async () => {
+      const api = vi.fn(async () => ROWS[0]);
+      expect(await rowsWith(api).getRow("a")).toBeUndefined();
+      expect(api).not.toHaveBeenCalled();
+    });
+  });
 });
