@@ -31,6 +31,23 @@ describe("[unit] interfaces/dms-base — SelectType display", () => {
     expect(component.options).to.deep.equal({ items: ITEMS, multiple: true });
   });
 
+  it("passes the cards per row to the cards, and to no other display", () => {
+    const select = (display: DefaultDataTypes.SelectTypeOptions["display"]) =>
+      new DefaultDataTypes.SelectType({ items: ITEMS, display, columns: 3 });
+
+    expect(select("cards").inputComponent().options).to.deep.equal({
+      items: ITEMS,
+      multiple: undefined,
+      columns: 3,
+    });
+    expect(select("dropdown").inputComponent().options).to.not.have.property(
+      "columns",
+    );
+    expect(
+      select("cards").filterComponents().default.options,
+    ).to.not.have.property("columns");
+  });
+
   it("filters with a dropdown, whatever the form shows", () => {
     const select = new DefaultDataTypes.SelectType({
       items: ITEMS,

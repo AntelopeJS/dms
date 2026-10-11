@@ -229,6 +229,11 @@ export namespace FormComponents {
   export interface ChoiceCardsOptions {
     items: SelectOption[];
     multiple?: boolean;
+    /**
+     * Cards per row once the field is 480px wide (one column below it), so
+     * three options sit on one row instead of wrapping 2 + 1. Defaults to 2.
+     */
+    columns?: number;
   }
 
   export interface SegmentedSelectOptions {

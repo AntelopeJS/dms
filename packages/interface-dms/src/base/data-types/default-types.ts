@@ -57,16 +57,30 @@ export type BooleanDisplay = (typeof BOOLEAN_DISPLAYS)[number];
 // Displays picking one value only: a select picking several shows cards.
 const SINGLE_PICK_DISPLAYS = new Set<SelectDisplay>(["segmented", "radio"]);
 
-type SelectInputOptions = FormComponents.SelectOptions;
+type SelectInputOptions = FormComponents.SelectOptions &
+  Pick<FormComponents.ChoiceCardsOptions, "columns">;
+
+// The cards keep `columns` out of their options unless it is set, so a select
+// that does not set it serializes as before.
+function choiceCardsOptions({
+  items,
+  multiple,
+  columns,
+}: SelectInputOptions): FormComponents.ChoiceCardsOptions {
+  const options: FormComponents.ChoiceCardsOptions = { items, multiple };
+  if (columns !== undefined) options.columns = columns;
+  return options;
+}
 
 // The input each display of a select renders.
 const SELECT_INPUTS: Record<
   SelectDisplay,
   (options: SelectInputOptions) => ComponentInfoSerialized
 > = {
-  dropdown: (options) => FormComponents.InputSelect(options),
-  cards: ({ items, multiple }) =>
-    FormComponents.InputChoiceCards({ items, multiple }),
+  dropdown: ({ columns: _columns, ...options }) =>
+    FormComponents.InputSelect(options),
+  cards: (options) =>
+    FormComponents.InputChoiceCards(choiceCardsOptions(options)),
   segmented: ({ items }) => FormComponents.InputSegmentedSelect({ items }),
   radio: ({ items }) => FormComponents.InputRadioGroup({ items }),
 };
@@ -159,6 +173,11 @@ export namespace DefaultDataTypes {
      * select shows cards instead.
      */
     display?: SelectDisplay;
+    /**
+     * Cards per row of the `cards` display, once the field is 480px wide.
+     * Defaults to 2; ignored by the other displays.
+     */
+    columns?: number;
     fallback?: string;
   };
 
@@ -586,7 +605,7 @@ export namespace DefaultDataTypes {
 
     // A filter picks from a dropdown, whatever the form shows.
     override filterComponents() {
-      const { display: _display, ...options } = this.options;
+      const { display: _display, columns: _columns, ...options } = this.options;
       return { default: FormComponents.InputSelect(options) };
     }
 
