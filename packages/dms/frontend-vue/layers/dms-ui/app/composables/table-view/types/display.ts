@@ -92,7 +92,14 @@ export interface TableViewDisplayActions<T> {
   details: (item: T) => void;
   /** What a click on the row does in the grid: its default action. */
   open: (item: T) => void;
-  custom: (action: CustomRowAction) => void;
+  /** Runs a custom row action on the row, as its grid menu entry does. */
+  custom: (action: CustomRowAction, item?: T) => void;
+  /**
+   * The table's custom row actions the row offers: those whose `rule` accepts
+   * it, in their declared order. A card drawing its own menu lists these and
+   * runs one with `custom`; an action's `id` finds a given one.
+   */
+  customFor: (item: T) => CustomRowAction[];
 }
 
 /**

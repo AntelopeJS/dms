@@ -5,6 +5,7 @@ import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import {
   resolveRowClickAction,
+  rowCustomActions,
   type RowClickActionOptions,
 } from "../layers/dms-ui/app/utils/rowClickAction";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
@@ -156,5 +157,36 @@ describe("resolveRowClickAction", () => {
     };
     expect(resolveRowClickAction(options, rowFor("draft"))).toBe("edit");
     expect(resolveRowClickAction(options, rowFor("sent"))).toBe("details");
+  });
+});
+
+describe("rowCustomActions", () => {
+  const stopSelling: CustomRowAction = {
+    id: "stop_selling",
+    label: "Stop selling",
+    target: { type: "api", url: "/plans/{_id}/stop", method: "POST" },
+    rule: { field: "isActive", equals: true },
+  };
+  const remove: CustomRowAction = {
+    id: "delete",
+    label: "Delete",
+    target: { type: "api", url: "/plans/{_id}", method: "DELETE" },
+    rule: { field: "workspaces", equals: 0 },
+  };
+
+  it("lists the actions whose rule accepts the row, in their order", () => {
+    const actions = [detailsAction, stopSelling, remove];
+    expect(
+      rowCustomActions(actions, { isActive: true, workspaces: 0 }),
+    ).toEqual(actions);
+    expect(
+      rowCustomActions(actions, { isActive: false, workspaces: 2 }).map(
+        (action) => action.label,
+      ),
+    ).toEqual(["Details"]);
+  });
+
+  it("lists nothing for a table without custom actions", () => {
+    expect(rowCustomActions(undefined, {})).toEqual([]);
   });
 });

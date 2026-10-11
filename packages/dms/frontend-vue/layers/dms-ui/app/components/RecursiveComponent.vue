@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { childLayoutPath } from "#dms-core/app/build/utils/permission-preview";
+import { childComponentId } from "../utils/componentId";
 import {
   GRID_DECLARED_COLUMNS,
   type GridDeclaredColumns,
@@ -111,7 +112,7 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
           <DmsRecursiveComponent
             :component="child"
             :page-id="pageId"
-            :component-id="`${componentId}-child-${child.id}`"
+            :component-id="childComponentId(componentId, child.id)"
             :route-params="routeParams"
             :layout-path="childLayoutPath(layoutPath, child.id)"
           />
@@ -120,7 +121,7 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
           v-else
           :component="child"
           :page-id="pageId"
-          :component-id="`${componentId}-child-${child.id}`"
+          :component-id="childComponentId(componentId, child.id)"
           :route-params="routeParams"
           :layout-path="childLayoutPath(layoutPath, child.id)"
         />
@@ -135,7 +136,7 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
           <DmsRecursiveComponent
             :component="child"
             :page-id="pageId"
-            :component-id="`${componentId}-child-${child.id}`"
+            :component-id="childComponentId(componentId, child.id)"
             :route-params="routeParams"
             :layout-path="childLayoutPath(layoutPath, child.id)"
           />
@@ -144,7 +145,7 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
           v-else
           :component="child"
           :page-id="pageId"
-          :component-id="`${componentId}-child-${child.id}`"
+          :component-id="childComponentId(componentId, child.id)"
           :route-params="routeParams"
           :layout-path="childLayoutPath(layoutPath, child.id)"
         />

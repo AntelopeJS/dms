@@ -456,6 +456,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         rowActions: {
           custom: [
             {
+              id: "resend",
               label: "Resend",
               icon: "i-ph-paper-plane-tilt",
               isVisible: true,
@@ -468,7 +469,11 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       }),
     );
     const [action] = options.rowActions?.custom ?? [];
-    expect(action).to.include({ color: "error", showLabel: true });
+    expect(action).to.include({
+      id: "resend",
+      color: "error",
+      showLabel: true,
+    });
     expect(
       await resolveCustomRowActions(
         new Set(),
