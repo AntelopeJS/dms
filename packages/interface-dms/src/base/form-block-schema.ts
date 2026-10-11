@@ -113,6 +113,13 @@ const FormSectionSchema = ui(
       widget: "textarea",
     }),
     icon: ui(z.string().optional(), { label: "Icon", widget: "icon" }),
+    navGroup: ui(
+      z
+        .string()
+        .optional()
+        .describe("Heading the section sits under in the side navigation."),
+      { label: "Navigation group" },
+    ),
     fields: ui(FormEntriesSchema, { label: "Fields" }),
   }) satisfies BlockOptionsFor<FormSection>,
   { label: "Section" },
