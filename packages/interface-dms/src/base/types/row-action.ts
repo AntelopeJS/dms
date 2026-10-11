@@ -122,6 +122,11 @@ export type CustomRowActionBulk = true | CustomRowActionBulkOptions;
 export interface CustomRowAction<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
+  /**
+   * Names the action for a custom card or display that places it itself: it
+   * finds it by this id among the row's actions (`actions.customFor(row)`).
+   */
+  id?: string;
   label: string;
   icon?: string;
   target: ActionTarget;
@@ -178,6 +183,7 @@ export interface CustomRowAction<
 }
 
 export interface CustomRowActionSerialized {
+  id?: string;
   label: string;
   icon?: string;
   target: ActionTargetSerialized;

@@ -6,6 +6,7 @@ import {
 } from "@antelopejs/interface-api";
 import {
   DataController,
+  DefaultRoutes,
   RegisterDataController,
 } from "@antelopejs/interface-data-api";
 import {
@@ -142,6 +143,60 @@ export class CapabilityInvoiceController extends DataController(
     );
     return { ids };
   }
+}
+
+// The same invoices behind a route scope: every list-like route, the tab
+// counters' batch count included, only ever sees the open ones.
+const OPEN_SCOPE = { filters: { status: ["open", "is"] as [string, string] } };
+
+@RegisterDataController()
+export class ScopedInvoiceController extends DataController(
+  Invoice,
+  {
+    ...TableViewRoutes.All,
+    list: DefaultRoutes.WithOptions(TableViewRoutes.List, OPEN_SCOPE),
+    count: DefaultRoutes.WithOptions(TableViewRoutes.Count, OPEN_SCOPE),
+    countBatch: DefaultRoutes.WithOptions(
+      TableViewRoutes.CountBatch,
+      OPEN_SCOPE,
+    ),
+  },
+  Controller("/api/capabilities/open-invoices"),
+) {
+  @ModelReference()
+  @Model(InvoiceModel)
+  declare model: InvoiceModel;
+
+  @Listable()
+  @Access(AccessMode.ReadOnly)
+  declare _id: string;
+
+  @Listable()
+  @Column({
+    name: "Number",
+    type: new DefaultDataTypes.StringType(),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadOnly)
+  declare number: string;
+
+  @Listable()
+  @Column({
+    name: "Status",
+    type: new DefaultDataTypes.SelectType({ items: INVOICE_STATUSES }),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadOnly)
+  declare status: string;
+
+  @Listable()
+  @Column({
+    name: "Owner",
+    type: new DefaultDataTypes.StringType(),
+    filterable: true,
+  })
+  @Access(AccessMode.ReadOnly)
+  declare ownerId: string;
 }
 
 @RegisterPage()

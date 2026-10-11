@@ -14,6 +14,8 @@ export interface CustomRowActionBulkOptions {
 export type CustomRowActionBulk = true | CustomRowActionBulkOptions;
 
 export interface CustomRowAction {
+  /** Names the action for a card or display that places it itself. */
+  id?: string;
   label: string;
   icon?: string;
   target: ActionTarget;

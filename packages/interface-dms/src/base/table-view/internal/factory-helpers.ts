@@ -117,6 +117,7 @@ function serializeCustomRowAction<T extends Record<string, unknown>>(
   action: CustomRowAction<T>,
 ): CustomRowActionSerialized {
   const served: CustomRowActionSerialized = {
+    id: action.id,
     label: action.label,
     icon: action.icon,
     rule: action.rule as RowActionRule | undefined,

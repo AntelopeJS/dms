@@ -95,7 +95,10 @@ import {
   staticQuickFilterItems,
 } from "../../build/composables/table-view/utils/quickFilters";
 import { useNavBadges } from "../../build/composables/navigation/useNavBadges";
-import { resolveRowClickAction } from "../../utils/rowClickAction";
+import {
+  resolveRowClickAction,
+  rowCustomActions,
+} from "../../utils/rowClickAction";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 
 import UTable from "../../build/components/table/Table.vue";
@@ -1778,6 +1781,11 @@ const displayRowActions = {
     isRowActionEnabled(tableProps.value.rowActions?.edit, item),
   canDeleteRow: (item: T) =>
     isRowActionEnabled(tableProps.value.rowActions?.delete, item),
+  customFor: (item: T) =>
+    rowCustomActions(
+      tableProps.value.rowActions?.custom,
+      item as Record<string, unknown>,
+    ),
 };
 
 // The TanStack instance is only available as a #body slot prop; captured here so

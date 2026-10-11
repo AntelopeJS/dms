@@ -188,6 +188,20 @@ describe("[integration] table view capabilities", () => {
     expect(otherCounts.data).to.deep.equal({ mine: 0 });
   });
 
+  it("keeps a route scope in the tab counters' batch count", async () => {
+    const scoped = "/api/capabilities/open-invoices";
+    const count = await client.get(`${scoped}/count`);
+    expect(count.data).to.deep.equal({ total: 3 });
+    const counts = await client.post(`${scoped}/count/batch`, {
+      queries: [
+        { id: "all", query: {} },
+        { id: "mine", query: { filter_ownerId: "is:{{user.id}}" } },
+      ],
+    });
+    expect(counts.status, JSON.stringify(counts.data)).to.equal(HTTP_OK);
+    expect(counts.data).to.deep.equal({ all: 3, mine: 2 });
+  });
+
   it("hands a bulk route the selected ids, or every row the filters match", async () => {
     const open = await list(client, "&filter_status=is:open");
     const [first] = open;

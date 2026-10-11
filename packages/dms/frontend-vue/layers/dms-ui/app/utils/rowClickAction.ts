@@ -46,3 +46,15 @@ export const resolveRowClickAction = (
   if (isEnabledForRow(rowActions?.details, row)) return "details";
   return undefined;
 };
+
+/**
+ * The custom row actions `row` offers: those whose `rule` accepts it, in
+ * their declared order (a card's own menu, `actions.customFor`).
+ */
+export const rowCustomActions = (
+  custom: CustomRowAction[] | undefined,
+  row: Record<string, unknown>,
+): CustomRowAction[] =>
+  (custom ?? []).filter(
+    (action) => !action.rule || evaluateRowActionRule(action.rule, row),
+  );
