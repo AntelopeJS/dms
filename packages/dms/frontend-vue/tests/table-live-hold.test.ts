@@ -8,7 +8,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createApp, defineComponent, h, nextTick, type App } from "vue";
+import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
@@ -21,7 +21,11 @@ import {
   LIVE_HELD_AT_QUERY_KEY,
   sourceRouteQuery,
 } from "../layers/dms-ui/app/build/composables/table-view/useTableRows";
-import type { TableLiveHold } from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
+import type {
+  TableLiveHold,
+  TableLiveHoldSignals,
+} from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
+import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
 
 const topicHandlers = new Map<string, RealtimeTopicHandler>();
 
@@ -53,7 +57,13 @@ let live: PageLiveController;
 const publish = () =>
   topicHandlers.get(TOPIC)?.({ topic: TOPIC, type: "request", ts: 1 });
 
-function mountTable(options: { liveHold: boolean; isSource?: boolean }) {
+interface MountedTableOptions {
+  liveHold: boolean | TableViewLiveHoldOptions;
+  isSource?: boolean;
+  signals?: TableLiveHoldSignals;
+}
+
+function mountTable(options: MountedTableOptions) {
   const refresh = vi.fn();
   let hold: TableLiveHold | undefined;
   const app = createApp(
@@ -61,9 +71,10 @@ function mountTable(options: { liveHold: boolean; isSource?: boolean }) {
       setup() {
         const gate = useRefreshTriggers(TOPIC, refresh);
         hold = useTableLiveHold({
-          isEnabled: options.liveHold,
+          liveHold: options.liveHold,
           isSource: options.isSource ?? true,
           gate: () => gate,
+          signals: options.signals,
         });
         return () => h("div");
       },
@@ -193,7 +204,13 @@ it("reads on a user's refresh while held, and holds from then", async () => {
 });
 
 it("wires the table view's rows, row events and banner to the hold", () => {
-  expect(tableViewSource).toMatch(/liveHold\?: boolean;/);
+  expect(tableViewSource).toMatch(
+    /liveHold\?: boolean \| TableViewLiveHoldOptions;/,
+  );
+  expect(tableViewSource).toContain(
+    "isRowOpen: () => openRowId.value !== undefined,",
+  );
+  expect(tableViewSource).toContain('ref="tableRoot"');
   expect(tableViewSource).toContain("heldQuery: liveHold.heldQuery,");
   expect(tableViewSource).toContain("refreshCallback: refreshByUser,");
   expect(tableViewSource).toContain('@refresh="refreshByUser"');
@@ -201,4 +218,77 @@ it("wires the table view's rows, row events and banner to the hold", () => {
   expect(tableViewSource).toMatch(
     /<LiveHoldBanner[\s\S]*@show="liveHold.showNew"/,
   );
+});
+
+it("holds the table alone while a row is open, the page staying live", async () => {
+  const isRowOpen = ref(false);
+  const { refresh, hold } = mountTable({
+    liveHold: { whileRowOpen: true },
+    signals: { isRowOpen: () => isRowOpen.value },
+  });
+
+  isRowOpen.value = true;
+  await nextTick();
+  publish();
+  publish();
+  expect(live.isPaused.value).toBe(false);
+  expect(live.missedCount.value).toBe(0);
+  expect(refresh).not.toHaveBeenCalled();
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.newCount.value).toBe(2);
+
+  // Closing the panel reads what the table missed, once.
+  isRowOpen.value = false;
+  await nextTick();
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(hold.isHolding.value).toBe(false);
+  publish();
+  expect(refresh).toHaveBeenCalledTimes(2);
+});
+
+it("keeps today's hold when liveHold is true: an open row changes nothing", async () => {
+  const { refresh, hold } = mountTable({
+    liveHold: true,
+    signals: { isRowOpen: () => true },
+  });
+  publish();
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(hold.isHolding.value).toBe(false);
+});
+
+it("holds the table while its first row is scrolled out of view", async () => {
+  const element = document.createElement("div");
+  element.innerHTML = "<table><tbody><tr><td>1</td></tr></tbody></table>";
+  document.body.append(element);
+  const row = element.querySelector("tr")!;
+  const rect = (bottom: number) => ({ bottom, top: bottom - 40 }) as DOMRect;
+  row.getBoundingClientRect = () => rect(120);
+  vi.stubGlobal("requestAnimationFrame", (run: () => void) =>
+    setTimeout(run, 16),
+  );
+  const scroll = async () => {
+    window.dispatchEvent(new Event("scroll"));
+    vi.advanceTimersByTime(16);
+    await nextTick();
+  };
+
+  const { refresh, hold } = mountTable({
+    liveHold: { whileScrolled: true },
+    signals: { tableElement: () => element },
+  });
+  await nextTick();
+  publish();
+  expect(refresh).toHaveBeenCalledTimes(1);
+
+  row.getBoundingClientRect = () => rect(-200);
+  await scroll();
+  publish();
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.newCount.value).toBe(1);
+  expect(refresh).toHaveBeenCalledTimes(1);
+
+  row.getBoundingClientRect = () => rect(120);
+  await scroll();
+  expect(refresh).toHaveBeenCalledTimes(2);
+  element.remove();
 });

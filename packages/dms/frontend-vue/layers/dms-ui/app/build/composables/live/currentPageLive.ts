@@ -48,6 +48,11 @@ export interface LiveGate {
   catchUp(): void;
   /** Records a read the caller makes itself (see LiveSubscription). */
   acknowledge(): void;
+  /**
+   * Holds the block alone while the page stays live (see LiveSubscription).
+   * Does nothing on a page without `live`.
+   */
+  setHeld(isHeld: boolean): void;
 }
 
 interface BoundSubscription {
@@ -103,5 +108,6 @@ export function useLiveGate(refresh: () => void): LiveGate {
       else refresh();
     },
     acknowledge: () => resolve()?.acknowledge(),
+    setHeld: (isHeld) => resolve()?.setHeld(isHeld),
   };
 }

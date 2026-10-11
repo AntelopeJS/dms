@@ -20,6 +20,7 @@ import type {
   MenuOptions,
   PageExtensionComponent,
   PageExtensionInfo,
+  PageLiveOptions,
 } from "./types";
 import { fireAndForget } from "../utils/fire-and-forget";
 
@@ -167,15 +168,38 @@ function assertHasCategoryOrModule(
   }
 }
 
-// A rate the browser would read as "no cap" or as a busy loop is refused at
-// declaration, where the module author sees it, rather than ignored at run time.
-function assertValidLiveOptions(id: string, options: MenuOptions): void {
-  const maxRate = options.live?.maxRate;
-  if (maxRate === undefined) return;
-  if (!Number.isFinite(maxRate) || maxRate <= 0) {
+const LIVE_PERIOD_PATTERN = /^[1-9]\d*[mhd]$/;
+
+function assertPositiveRate(id: string, name: string, rate: unknown): void {
+  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) return;
+  throw new Error(
+    `Page "${id}" declares ${name} ${String(rate)}: it must be a positive number of seconds.`,
+  );
+}
+
+function assertValidSlowRate(id: string, live: PageLiveOptions): void {
+  const slow = live.slowRateAfter;
+  if (slow === undefined) return;
+  assertPositiveRate(id, "live.slowRateAfter.maxRate", slow.maxRate);
+  if (!LIVE_PERIOD_PATTERN.test(String(slow.period))) {
     throw new Error(
-      `Page "${id}" declares live.maxRate ${maxRate}: it must be a positive number of seconds.`,
+      `Page "${id}" declares live.slowRateAfter.period "${String(slow.period)}": it must read like "30m", "24h" or "7d".`,
     );
+  }
+}
+
+// A rate the browser would read as "no cap" or as a busy loop, a period it
+// cannot read or an empty scope are refused at declaration, where the module
+// author sees them, rather than ignored at run time.
+function assertValidLiveOptions(id: string, options: MenuOptions): void {
+  const live = options.live;
+  if (!live) return;
+  if (live.maxRate !== undefined) {
+    assertPositiveRate(id, "live.maxRate", live.maxRate);
+  }
+  assertValidSlowRate(id, live);
+  if (live.scope !== undefined && live.scope.trim() === "") {
+    throw new Error(`Page "${id}" declares an empty live.scope.`);
   }
 }
 

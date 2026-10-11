@@ -175,15 +175,58 @@ export type MemberAccess = boolean | "self";
  * form saved with `BlockFunctions.REFRESH_PAGE`, a table's row actions.
  *
  * The user switches with a `LiveToggle()` block, or the L key while one is on
- * the page; the choice is kept per page in the browser. A table declared with
- * `liveHold` keeps its rows while paused and offers to show what is new.
+ * the page; the choice is kept per page in the browser (per `scope` when set),
+ * and `?live=0` in the URL opens the page paused. The page also pauses by
+ * itself while its browser tab is hidden, and while a component holds it
+ * (`usePageLive().hold(reason)`); it resumes when that ends, unless the user
+ * paused it. A table declared with `liveHold` keeps its rows while paused and
+ * offers to show what is new.
+ *
+ * Paused, an event counts as the rows it names in `payload.ids` (each row once
+ * per pause, as a table view's own row events do), else as `payload.count`
+ * when it is a positive integer (a batch of N requests), else as one.
+ *
+ * While the realtime stream is down, a page with a `maxRate` reads its blocks
+ * every `maxRate` seconds instead (`refreshLivePageBlocks()`), until it is back.
  */
 export interface PageLiveOptions {
   /**
    * Shortest interval, in seconds, between two refetches of one block in
-   * Direct. Unset, a block refetches on each event, as without `live`.
+   * Direct, and the polling interval while the realtime stream is down.
+   * Unset, a block refetches on each event, as without `live`, and the page
+   * does not poll.
    */
   maxRate?: number;
+  /**
+   * A slower cadence while the page shows a long period: once the period of
+   * its `PeriodSelector` spans `period` or more, `maxRate` gives way to this
+   * one, for the gate and the polling alike. A week of data barely moves in 5 s.
+   *
+   * ```ts
+   * live: { maxRate: 10, slowRateAfter: { period: "7d", maxRate: 60 } }
+   * ```
+   */
+  slowRateAfter?: PageLiveSlowRate;
+  /**
+   * Shares the remembered Direct / Pause choice between the pages declaring
+   * the same key, e.g. the pages of one module (`scope: "api"`). Unset, each
+   * page remembers its own.
+   */
+  scope?: string;
+}
+
+/**
+ * A length of time: a positive whole number of minutes, hours or days
+ * (`"30m"`, `"24h"`, `"7d"`).
+ */
+export type PageLivePeriod = `${number}${"m" | "h" | "d"}`;
+
+/** The slower cadence of a live page showing a long period. */
+export interface PageLiveSlowRate {
+  /** The shortest period the slower cadence applies to. */
+  period: PageLivePeriod;
+  /** Shortest interval, in seconds, between two refetches of one block. */
+  maxRate: number;
 }
 
 export interface MenuOptions {

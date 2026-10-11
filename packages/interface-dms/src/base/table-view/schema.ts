@@ -464,10 +464,16 @@ export const TableViewSchema = z.object({
   ),
   liveHold: ui(
     z
-      .boolean()
+      .union([
+        z.boolean(),
+        z.object({
+          whileRowOpen: z.boolean().optional(),
+          whileScrolled: z.boolean().optional(),
+        }),
+      ])
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused and shows what is new.",
+        "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled }` also holds them in Direct.",
       ),
     { label: "Hold rows while paused", group: "data", widget: "switch" },
   ),

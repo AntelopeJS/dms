@@ -732,14 +732,18 @@
       "generic": "Something went wrong and the action couldn’t be completed. Try again."
     },
     "live": {
-      "direct": "Direct",
+      "direct": "Live",
       "pause": "Pause",
       "aria_label": "Live updates",
       "updated_seconds": "Updated {count} s ago",
       "updated_minutes": "Updated {count} min ago",
       "updated_hours": "Updated {count} h ago",
       "new_rows": "{count} new",
-      "show_new": "Show"
+      "show_new": "Show",
+      "paused": "Paused",
+      "resume": "Resume",
+      "reason_hidden": "tab hidden",
+      "polling": "no realtime, polling"
     }
   }
 }
