@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.7.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.5...v0.7.6)
+
+### 🚀 Enhancements
+
+- **dms:** Small block, form and table view options for module layouts ([#198](https://github.com/AntelopeJS/dms/pull/198))
+
+### 🩹 Fixes
+
+- **table-view:** Search searchable fields that are not filterable ([#196](https://github.com/AntelopeJS/dms/pull/196))
+- **dms:** Bind the export job proxies, word single-row delete confirms, translate aria-labels and tenant guards ([#197](https://github.com/AntelopeJS/dms/pull/197))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.3 ([e20de2c](https://github.com/AntelopeJS/dms/commit/e20de2c))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.5
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.4...v0.7.5)
