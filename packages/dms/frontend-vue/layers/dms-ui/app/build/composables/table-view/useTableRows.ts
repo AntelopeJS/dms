@@ -242,5 +242,12 @@ export function useTableRows<T extends Record<string, unknown>>(
       ? getSourceRow(source, id)
       : api<T>(`${location}/get`, { query: { id } });
 
-  return { isSource: !!source, sourceUrl, list, countBatch, getRow };
+  return {
+    isSource: !!source,
+    sourceUrl,
+    isPeriodPending,
+    list,
+    countBatch,
+    getRow,
+  };
 }
