@@ -18,9 +18,6 @@ import type { Tone } from "../../../types/tone";
 //   14px value; the group draws the frame and the hairlines.
 export type StatCellSize = "md" | "sm";
 
-/** Lines the detail takes before it ends in an ellipsis. */
-export type StatCellDetailLines = 1 | 2;
-
 interface StatCellProps {
   /** Mono label above the value; drawn as a skeleton in `placeholder`. */
   eyebrow?: string;
@@ -29,13 +26,11 @@ interface StatCellProps {
   /** Icon of the well; the cell has no well without one. */
   icon?: string;
   tone?: IconWellTone;
-  /** The line under the value; see `detailLines`. */
-  detail?: string;
   /**
-   * Lines the detail may take before it ends in an ellipsis: 1 keeps the
-   * cells of a row the same height, 2 lets a longer detail read whole.
+   * The line under the value; a longer one wraps to a second line before its
+   * ellipsis, the row taking the height of its tallest cell.
    */
-  detailLines?: StatCellDetailLines;
+  detail?: string;
   /** Tone of the detail line (`neutral` = muted text). */
   detailTone?: Tone;
   /** Route, `#anchor` or URL the whole cell links to. */
@@ -69,7 +64,6 @@ const props = withDefaults(defineProps<StatCellProps>(), {
   tone: "primary",
   detail: undefined,
   detailTone: "neutral",
-  detailLines: 1,
   to: undefined,
   size: "md",
   loading: false,
@@ -84,10 +78,6 @@ defineSlots<StatCellSlots>();
 const MD_CELL = "dms-card flex items-center gap-3.5 px-4 py-3.5";
 const MD_STACK = "@max-md:flex-col @max-md:items-start @max-md:gap-2.5";
 const SM_CELL = "flex min-w-0 items-start gap-3 px-4 py-3.5";
-const DETAIL_CLAMP: Record<StatCellDetailLines, string> = {
-  1: "truncate",
-  2: "line-clamp-2",
-};
 
 const isMd = computed(() => props.size === "md");
 const wraps = computed(() =>
@@ -103,10 +93,7 @@ const cellClass = computed(() => {
     props.to && "dms-card--interactive",
   ];
 });
-const detailClass = computed(() => [
-  DETAIL_CLAMP[props.detailLines],
-  DMS_TONE_TEXT[props.detailTone],
-]);
+const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
 </script>
 
 <template>
@@ -150,8 +137,8 @@ const detailClass = computed(() => [
         </p>
         <p
           v-if="props.detail && !props.loading"
-          class="text-xs"
-          :class="[wraps, detailClass]"
+          class="line-clamp-2 text-xs [overflow-wrap:anywhere]"
+          :class="detailClass"
         >
           {{ props.detail }}
         </p>
@@ -189,7 +176,11 @@ const detailClass = computed(() => [
         </b>
         <template v-if="props.detail">
           <USkeleton v-if="props.loading" class="h-3 w-20" />
-          <small v-else class="text-xs" :class="detailClass">
+          <small
+            v-else
+            class="line-clamp-2 text-xs [overflow-wrap:anywhere]"
+            :class="detailClass"
+          >
             {{ props.detail }}
           </small>
         </template>

@@ -32,10 +32,7 @@ export interface StatGroupItem {
    * "money", value: 92200, currency: "EUR" } } }`).
    */
   value: BlockText | number;
-  /**
-   * The line under the value: a string or a `ComposedText`. It ends in an
-   * ellipsis past `StatGroupProps.detailLines` lines.
-   */
+  /** One line under the value: a string or a `ComposedText`. */
   detail?: BlockText;
   /** Tone of the detail line (`neutral` = muted). */
   detailTone?: Tone;
@@ -47,11 +44,6 @@ export interface StatGroupItem {
 export const STAT_GROUP_LAYOUTS = ["joined", "cards"] as const;
 
 export type StatGroupLayout = (typeof STAT_GROUP_LAYOUTS)[number];
-
-/** How many lines a cell's detail may take: see `StatGroupProps.detailLines`. */
-export const STAT_GROUP_DETAIL_LINES = [1, 2] as const;
-
-export type StatGroupDetailLines = (typeof STAT_GROUP_DETAIL_LINES)[number];
 
 /** The options `StatGroup` takes. */
 export interface StatGroupProps extends BaseComponentProps, BlockItemsSource {
@@ -65,13 +57,6 @@ export interface StatGroupProps extends BaseComponentProps, BlockItemsSource {
   columns?: number;
   /** Accessible name of the group. */
   label?: string;
-  /**
-   * Lines each cell's detail may take before it ends in an ellipsis. `1`
-   * keeps every cell of a row one line tall; `2` lets a longer detail ("Next
-   * invoice on Nov 1 · 3 seats") read whole, the row taking the height of its
-   * tallest cell. Optional. Defaults to `1`.
-   */
-  detailLines?: StatGroupDetailLines;
 }
 
 const STAT_GROUP_COMPONENT_NAME = "dms-stat-group-block";
@@ -168,22 +153,6 @@ export const StatGroupSchema = z.object({
     label: "Accessible name",
     group: "advanced",
   }),
-  detailLines: ui(
-    z
-      .union([
-        z.literal(STAT_GROUP_DETAIL_LINES[0]),
-        z.literal(STAT_GROUP_DETAIL_LINES[1]),
-      ])
-      .optional()
-      .describe("Lines each detail may take before its ellipsis."),
-    {
-      label: "Detail lines",
-      group: "appearance",
-      widget: "number",
-      min: 1,
-      max: 2,
-    },
-  ),
   ...blockItemsSourceOptions(),
 }) satisfies BlockOptionsFor<StatGroupProps>;
 

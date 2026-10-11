@@ -52,8 +52,7 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   and `IdentityDisplay({ iconField })` reads each row's tile icon from a row field.
   `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class),
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
-  A `StatGroup` detail cut on one line gets a second with `StatGroup({ detailLines: 2 })`; a
-  `NavCardGrid` card title always takes up to two lines.
+  A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
   A `Form` whose hidden save bar leaves an empty band under a settings page takes
   `saveBarSpace: "collapse"`: the clean bar then takes no space (it keeps it by default).
   A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a

@@ -111,17 +111,8 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(result.valid).to.equal(false);
   });
 
-  it("lets a stat group give its details two lines", () => {
-    const valid = (detailLines: unknown) =>
-      ValidateBlockOptions("StatGroup", {
-        items: [{ eyebrow: "MRR", value: 12 }],
-        detailLines,
-      }).valid;
-
-    expect(valid(1)).to.equal(true);
-    expect(valid(2)).to.equal(true);
-    expect(valid(3)).to.equal(false);
-    expect(declared("StatGroup").config.detailLines?.optional).to.equal(true);
+  it("offers no option for the lines a stat group's detail takes", () => {
+    expect(declared("StatGroup").config).to.not.have.property("detailLines");
   });
 
   it("accepts link buttons in a top list's head", () => {

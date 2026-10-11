@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
-import DmsStatCell, {
-  type StatCellDetailLines,
-} from "../../build/components/stat/StatCell.vue";
+import DmsStatCell from "../../build/components/stat/StatCell.vue";
 import type { Tone } from "../../types/tone";
 
 export type StatGroupLayout = "joined" | "cards";
@@ -52,12 +50,6 @@ interface StatGroupProps {
   skeletonCount?: number;
   /** Accessible name of the group (announced as a navigation when it links). */
   label?: string;
-  /**
-   * Lines each cell's detail may take before it ends in an ellipsis. 1 (the
-   * default) keeps every cell one line tall; 2 lets a longer detail read
-   * whole, the row taking the height of its tallest cell.
-   */
-  detailLines?: StatCellDetailLines;
 }
 
 const props = withDefaults(defineProps<StatGroupProps>(), {
@@ -67,7 +59,6 @@ const props = withDefaults(defineProps<StatGroupProps>(), {
   loading: false,
   skeletonCount: 4,
   label: undefined,
-  detailLines: 1,
 });
 
 const MIN_COLUMNS = 1;
@@ -155,7 +146,6 @@ function wellTone(item: StatGroupItem): IconWellTone {
           :icon="item.icon"
           :detail="item.detail"
           :detail-tone="item.detailTone"
-          :detail-lines="props.detailLines"
           :to="item.to"
           size="sm"
           :tone="wellTone(item)"
@@ -185,7 +175,6 @@ function wellTone(item: StatGroupItem): IconWellTone {
           :icon="item.icon"
           :detail="item.detail"
           :detail-tone="item.detailTone"
-          :detail-lines="props.detailLines"
           :to="item.to"
           :tone="wellTone(item)"
           :loading="props.loading"

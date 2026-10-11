@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
 
-// A detail or a title cut on its first line loses what it says: a StatGroup
-// may give its details two lines, and a nav card's title always has two.
+// A detail or a title cut on its first line loses what it says: a stat
+// group's details and a nav card's title take two lines before the ellipsis.
 
 const Slot = defineComponent({
   setup:
@@ -31,25 +31,12 @@ function detailClasses(html: string): string {
   return element?.[1] ?? "";
 }
 
-describe("StatGroup detailLines", () => {
+describe("StatGroup detail", () => {
   it.each(["joined", "cards"])(
-    "keeps a %s cell's detail on one line by default",
+    "gives a %s cell's detail two lines before its ellipsis",
     async (layout) => {
       const html = await render(StatGroup, {
         layout,
-        items: [{ eyebrow: "Billing", value: "On", detail: DETAIL }],
-      });
-      expect(detailClasses(html)).toContain("truncate");
-      expect(detailClasses(html)).not.toContain("line-clamp-2");
-    },
-  );
-
-  it.each(["joined", "cards"])(
-    "gives a %s cell's detail two lines when asked",
-    async (layout) => {
-      const html = await render(StatGroup, {
-        layout,
-        detailLines: 2,
         items: [{ eyebrow: "Billing", value: "On", detail: DETAIL }],
       });
       expect(detailClasses(html)).toContain("line-clamp-2");
