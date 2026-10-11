@@ -213,7 +213,10 @@ const wrapperProps = computed(() =>
             v-if="props.groupByDay"
             class="flex items-center gap-2.5 px-[18px] pt-3.5 pb-1.5 after:h-px after:flex-1 after:bg-(--ui-border-muted)"
           >
-            <USkeleton class="my-[1.5px] h-2.5 w-24" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="my-[1.5px] h-2.5 w-24"
+            />
           </div>
           <div class="divide-y divide-(--ui-border-muted)">
             <DmsRowSkeleton

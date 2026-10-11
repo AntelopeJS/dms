@@ -53,6 +53,9 @@ jobs:
       # Node does not fall back to a directory index inside an exports map, so
       # a new interface folder is unreachable until the map lists it.
       - run: pnpm --dir packages/interface-dms check:exports
+      # ImplementInterface binds only the proxies a subpath exports, and an
+      # unbound one never answers.
+      - run: pnpm --dir packages/interface-dms check:proxies
 
       - run: pnpm --dir packages/dms lint
       # oxlint's type-aware pass degrades to `any` on a broken tsconfig

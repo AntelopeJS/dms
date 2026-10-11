@@ -1,6 +1,6 @@
-import { createSSRApp, defineComponent, h, type Component } from "vue";
+import { createSSRApp, defineComponent, h, ref, type Component } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import StatGroup from "../layers/dms-ui/app/components/stat-group/StatGroup.vue";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
 
@@ -21,6 +21,10 @@ async function render(component: Component, props: Record<string, unknown>) {
   }
   return renderToString(app);
 }
+
+beforeAll(() => {
+  vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
+});
 
 const DETAIL = "Next invoice on Nov 1 for the three seats left";
 

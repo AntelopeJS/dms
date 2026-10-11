@@ -130,8 +130,14 @@ const outOfScope = computed(() => preview.result.value?.outOfScope ?? 0);
     aria-hidden="true"
     class="hidden h-[37px] items-center gap-2.5 border-b border-(--dms-accent-line) bg-(--dms-accent-tint) ps-4 pe-3 [html[data-dms-role-preview=pending]_&]:flex"
   >
-    <USkeleton class="size-4 rounded-full" />
-    <USkeleton class="h-3 w-64 max-w-[60%]" />
-    <USkeleton class="ms-auto h-6 w-24" />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      class="size-4 rounded-full"
+    />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      class="h-3 w-64 max-w-[60%]"
+    />
+    <USkeleton :aria-label="t('dms.a11y.loading')" class="ms-auto h-6 w-24" />
   </div>
 </template>

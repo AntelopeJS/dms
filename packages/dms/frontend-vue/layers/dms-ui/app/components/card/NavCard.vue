@@ -81,6 +81,8 @@ const passthrough = computed(() => {
   const { class: _class, ...rest } = attrs;
   return rest;
 });
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -113,6 +115,7 @@ const passthrough = computed(() => {
     </div>
 
     <USkeleton
+      :aria-label="t('dms.a11y.loading')"
       v-if="props.statePending && !props.state"
       aria-hidden="true"
       class="mt-auto h-[18px] w-28 self-start"

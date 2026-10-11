@@ -419,12 +419,27 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             class="flex min-h-[228px] flex-col gap-3 p-4"
           >
             <div class="flex items-start justify-between">
-              <USkeleton class="size-9 rounded-[10px]" />
-              <USkeleton class="h-5 w-12 rounded-full" />
+              <USkeleton
+                :aria-label="t('dms.a11y.loading')"
+                class="size-9 rounded-[10px]"
+              />
+              <USkeleton
+                :aria-label="t('dms.a11y.loading')"
+                class="h-5 w-12 rounded-full"
+              />
             </div>
-            <USkeleton class="h-2.5 w-4/5" />
-            <USkeleton class="h-2.5 w-3/5" />
-            <USkeleton class="mt-auto h-4 w-2/5" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="h-2.5 w-4/5"
+            />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="h-2.5 w-3/5"
+            />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="mt-auto h-4 w-2/5"
+            />
           </DmsCard>
         </div>
 

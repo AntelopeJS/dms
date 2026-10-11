@@ -130,8 +130,14 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
     aria-hidden="true"
     :class="[uiTablePagination.root(), uiTablePagination.placeholderRoot()]"
   >
-    <USkeleton :class="uiTablePagination.placeholderCount()" />
-    <USkeleton :class="uiTablePagination.placeholderPager()" />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      :class="uiTablePagination.placeholderCount()"
+    />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      :class="uiTablePagination.placeholderPager()"
+    />
   </div>
   <nav
     v-else-if="rowCount"
@@ -183,6 +189,7 @@ const uiTablePagination = computed(() => uiTablePaginationVariant());
       </span>
       {{ summary.label }}
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="summary.value === undefined"
         aria-hidden="true"
         :class="uiTablePagination.summaryPlaceholder()"

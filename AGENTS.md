@@ -42,7 +42,9 @@ calls is internal, and is classified in the commit that adds it.
   exception: `ImplementInterface` attaches them by walking the exports of the
   subpath the runtime hands it, so they stay declared at that subpath, inside
   its `internal` namespace or tagged `@internal` at the top level. That
-  namespace holds proxies only.
+  namespace holds proxies only. A module-private proxy is never bound, and a
+  call to it waits forever: `pnpm --dir packages/interface-dms check:proxies`
+  is the gate.
 - An internal symbol a module already reaches stays importable from its old
   path and name, tagged, until a breaking release removes it.
 
