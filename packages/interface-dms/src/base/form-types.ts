@@ -106,6 +106,13 @@ export const FORM_SAVE_MODES = ["bar", "footer", "none", "instant"] as const;
 
 export type FormSaveMode = (typeof FORM_SAVE_MODES)[number];
 
+/**
+ * What a hidden save bar does with its place: see `FormProps.saveBarSpace`.
+ */
+export const FORM_SAVE_BAR_SPACES = ["reserve", "collapse"] as const;
+
+export type FormSaveBarSpace = (typeof FORM_SAVE_BAR_SPACES)[number];
+
 /** How a sectioned form lists its sections: see `FormProps.sectionNav`. */
 export const FORM_SECTION_NAVS = ["side", "jump", "none"] as const;
 
@@ -182,6 +189,15 @@ export interface FormProps extends BaseComponentProps {
    * the container's footer.
    */
   saveMode?: FormSaveMode;
+  /**
+   * What the save bar does while it has nothing to offer — the form is
+   * clean and has nowhere to cancel to. `reserve` (the default): it keeps
+   * its place, invisible, so its showing up never moves anything. `collapse`:
+   * it takes no space until there is something to save, and the content
+   * below it moves down by its height when it shows — for a settings page
+   * whose last card would otherwise sit above an empty band.
+   */
+  saveBarSpace?: FormSaveBarSpace;
   /**
    * What the form edits. `record` (the default): a record, a settings page,
    * a table view's form; it keeps its values once saved, and offers Cancel

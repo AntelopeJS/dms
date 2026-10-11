@@ -42,6 +42,11 @@ interface SaveBarProps {
    * which can be changed shows its submit alone, all the time.
    */
   resettable?: boolean;
+  /**
+   * Hidden, the bar takes no space instead of keeping its place: the content
+   * after it moves when it shows.
+   */
+  collapsible?: boolean;
 }
 
 const props = withDefaults(defineProps<SaveBarProps>(), {
@@ -53,6 +58,7 @@ const props = withDefaults(defineProps<SaveBarProps>(), {
   variant: "floating",
   kind: "record",
   resettable: true,
+  collapsible: false,
 });
 
 const emit = defineEmits<{
@@ -67,7 +73,8 @@ const SECONDARY_LABELS: Record<FormKind, string> = {
 };
 
 // Its states have the same height, and hidden it keeps its place (one line,
-// whatever the changes): switching never moves the content around it.
+// whatever the changes): switching never moves the content around it. A
+// collapsible bar gives that place up while hidden, by the caller's choice.
 const theme = tv({
   slots: {
     root: "flex items-center transition-[opacity,translate,visibility] duration-200 ease-out",
@@ -85,7 +92,13 @@ const theme = tv({
     hidden: {
       true: { root: "invisible translate-y-2 opacity-0" },
     },
+    collapsible: {
+      true: "",
+    },
   },
+  compoundVariants: [
+    { hidden: true, collapsible: true, class: { root: "hidden" } },
+  ],
 });
 
 const BUTTONS = {
@@ -105,7 +118,11 @@ const state = computed(() =>
   }),
 );
 const ui = computed(() =>
-  theme({ variant: props.variant, hidden: state.value.isHidden }),
+  theme({
+    variant: props.variant,
+    hidden: state.value.isHidden,
+    collapsible: props.collapsible,
+  }),
 );
 const buttons = computed(() => BUTTONS[props.variant]);
 trackFloatingSaveBar(

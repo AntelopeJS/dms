@@ -104,3 +104,41 @@ it("lists a record form's unsaved changes beside Discard and Save", async () => 
     "dms.save_bar.save",
   ]);
 });
+
+const rootClasses = () => host.firstElementChild!.className.split(/\s+/);
+
+it("keeps a clean page form's place while hidden by default", async () => {
+  await mount({ variant: "floating", dirty: false });
+
+  expect(host.firstElementChild!.getAttribute("aria-hidden")).toBe("true");
+  expect(rootClasses()).toContain("invisible");
+  expect(rootClasses()).not.toContain("hidden");
+});
+
+it("gives its place up while hidden when collapsible", async () => {
+  await mount({ variant: "floating", dirty: false, collapsible: true });
+
+  expect(rootClasses()).toContain("hidden");
+  expect(rootClasses()).not.toContain("flex");
+});
+
+it("shows a collapsible bar as before once there is something to offer", async () => {
+  await mount({
+    variant: "floating",
+    dirty: true,
+    changes: ["Name"],
+    collapsible: true,
+  });
+  expect(rootClasses()).not.toContain("hidden");
+  expect(rootClasses()).toContain("flex");
+  app?.unmount();
+
+  await mount({
+    variant: "floating",
+    dirty: false,
+    cancellable: true,
+    collapsible: true,
+  });
+  expect(rootClasses()).not.toContain("hidden");
+  expect(buttons()).toEqual([{ label: "dms.button.cancel", disabled: false }]);
+});

@@ -17,6 +17,12 @@ export type FormKind = "record" | "action";
 export type FormSaveMode = "bar" | "footer" | "none" | "instant";
 
 /**
+ * What a hidden save bar does with its place (interface-dms `FormSaveBarSpace`):
+ * `reserve` keeps it, `collapse` gives it up until there is something to save.
+ */
+export type FormSaveBarSpace = "reserve" | "collapse";
+
+/**
  * The way a form saves: `bar` unless it says otherwise. An `action` form
  * (send, invite, run) is sent on purpose, so it never saves as it goes.
  */

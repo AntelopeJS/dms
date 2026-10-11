@@ -10,6 +10,7 @@ import {
 import type { DataType } from "./data-types/core";
 import {
   FORM_KINDS,
+  FORM_SAVE_BAR_SPACES,
   FORM_SAVE_MODES,
   FORM_SECTION_NAVS,
   type FieldGroup,
@@ -227,6 +228,20 @@ export const FormSchema = z.object({
         none: "None",
         instant: "Instant",
       },
+    },
+  ),
+  saveBarSpace: ui(
+    z
+      .enum(FORM_SAVE_BAR_SPACES)
+      .optional()
+      .describe(
+        "Whether the hidden save bar keeps its place or takes no space while there is nothing to save.",
+      ),
+    {
+      label: "Hidden save bar",
+      group: "appearance",
+      widget: "segmented",
+      valueLabels: { reserve: "Keeps its place", collapse: "Collapses" },
     },
   ),
   kind: ui(

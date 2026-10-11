@@ -1,6 +1,7 @@
 import type { FormFieldOrGroup, FormSection, FormSectionNav } from "./field";
 import type {
   FormKind,
+  FormSaveBarSpace,
   FormSaveMode,
 } from "../../../build/composables/form/formFooter";
 
@@ -40,6 +41,11 @@ export interface FormProps extends FormComponentProps {
    * saves like `bar` for now. In a drawer or a modal, the container's footer.
    */
   saveMode?: FormSaveMode;
+  /**
+   * While the bar has nothing to offer: `reserve` (default) keeps its place,
+   * invisible; `collapse` takes no space until there is something to save.
+   */
+  saveBarSpace?: FormSaveBarSpace;
   /**
    * `record` (default): keeps its values once saved, Cancel while clean when
    * it has somewhere to go back to. `action` (send, invite, run): Reset and

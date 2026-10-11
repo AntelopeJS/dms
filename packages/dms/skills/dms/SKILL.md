@@ -53,6 +53,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail cut on one line gets a second with `StatGroup({ detailLines: 2 })`; a
   `NavCardGrid` card title always takes up to two lines.
+  A `Form` whose hidden save bar leaves an empty band under a settings page takes
+  `saveBarSpace: "collapse"`: the clean bar then takes no space (it keeps it by default).
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
   (the text to copy instead, e.g. a full URL behind a short label).
   A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on
