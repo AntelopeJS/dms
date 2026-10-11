@@ -16,6 +16,7 @@ import {
   type PeriodSelection,
   readComparisonChoice,
   readRangeChoice,
+  rememberPeriod,
   resolvePeriodSelection,
   writePeriodQuery,
 } from "../layers/dms-ui/app/build/composables/period/periodQuery";
@@ -312,6 +313,39 @@ describe("several selectors on one page", () => {
       "sales.from": "2026-10-01",
       "sales.to": "2026-10-02",
       "traffic.period": "last-30-days",
+    });
+  });
+});
+
+describe("the last choices kept in the browser", () => {
+  it("keeps only the most recent ones", () => {
+    let store = {};
+    for (let index = 0; index < 25; index++) {
+      store = rememberPeriod(store, `page-${index}#page`, { period: "ytd" });
+    }
+    const keys = Object.keys(store);
+    expect(keys).toHaveLength(20);
+    expect(keys[0]).toBe("page-5#page");
+    expect(keys.at(-1)).toBe("page-24#page");
+  });
+
+  it("moves a selector chosen again to the most recent place", () => {
+    const store = rememberPeriod(
+      { "a#page": { period: "ytd" }, "b#page": { period: "ytd" } },
+      "a#page",
+      { period: "last-7-days" },
+      2,
+    );
+    expect(Object.keys(store)).toEqual(["b#page", "a#page"]);
+    expect(store["a#page"]).toEqual({ period: "last-7-days" });
+    expect(
+      Object.keys(rememberPeriod(store, "c#page", { period: "ytd" }, 2)),
+    ).toEqual(["a#page", "c#page"]);
+  });
+
+  it("starts over from a store that is not an object", () => {
+    expect(rememberPeriod("broken", "a#page", { period: "ytd" })).toEqual({
+      "a#page": { period: "ytd" },
     });
   });
 });

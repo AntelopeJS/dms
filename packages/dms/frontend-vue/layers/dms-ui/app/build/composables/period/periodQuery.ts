@@ -300,3 +300,31 @@ export function mergePeriodSearch(
   const text = params.toString();
   return text ? `?${text}` : "";
 }
+
+/** The last choices of the selectors, by `rememberedPeriodKey`, oldest first. */
+export type RememberedPeriods = Record<string, Record<string, string>>;
+
+/** How many selectors' last choices the browser keeps. */
+export const REMEMBERED_PERIODS_LIMIT = 20;
+
+/** The entry of selector `id` of page `pageId` among the last choices. */
+export function rememberedPeriodKey(pageId: string, id: string): string {
+  return `${pageId}#${id}`;
+}
+
+/**
+ * The last choices with `key`'s set to `query`, moved last as the most
+ * recent, and only the `limit` most recent kept: the store lives in a
+ * cookie, which must not grow with every page a user ever opened.
+ */
+export function rememberPeriod(
+  store: unknown,
+  key: string,
+  query: Record<string, string>,
+  limit = REMEMBERED_PERIODS_LIMIT,
+): RememberedPeriods {
+  const entries = Object.entries(
+    store && typeof store === "object" ? (store as RememberedPeriods) : {},
+  ).filter(([entry]) => entry !== key);
+  return Object.fromEntries([...entries, [key, query]].slice(-limit));
+}

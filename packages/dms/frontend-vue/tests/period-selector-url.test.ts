@@ -22,6 +22,16 @@ const route = reactive<{ query: Record<string, string> }>({ query: {} });
 const preferences = new Map<string, unknown>();
 
 vi.stubGlobal("useDmsRoute", () => route);
+// Inertia's client-side replace moves its page URL, which the DMS route
+// follows: the route then holds the query the browser shows.
+const { inertiaReplace } = vi.hoisted(() => ({
+  inertiaReplace: vi.fn(({ url }: { url: string }) => {
+    route.query = Object.fromEntries(
+      new URL(url, "http://dms.local").searchParams,
+    );
+  }),
+}));
+vi.mock("@inertiajs/vue3", () => ({ router: { replace: inertiaReplace } }));
 vi.stubGlobal("usePreferences", () => ({
   getPreference: <T>(key: string, fallback?: T) =>
     (preferences.get(key) as T | undefined) ?? fallback,
@@ -31,7 +41,7 @@ vi.stubGlobal("usePreferences", () => ({
 const { usePeriod } = await import(
   "../layers/dms-core/app/composables/period/usePeriod"
 );
-const { usePeriodLocation, PERIOD_PREFERENCE_PREFIX } = await import(
+const { usePeriodLocation, PERIOD_PREFERENCE_KEY } = await import(
   "../layers/dms-ui/app/build/composables/period/usePeriodLocation"
 );
 
@@ -82,9 +92,13 @@ function mount(...ids: string[]): void {
 
 const search = () => new URLSearchParams(window.location.search);
 
+const remember = (query: Record<string, string>) =>
+  preferences.set(PERIOD_PREFERENCE_KEY, { [`${PAGE_ID}#page`]: query });
+
 beforeEach(() => {
   route.query = {};
   preferences.clear();
+  inertiaReplace.mockClear();
   window.history.replaceState(null, "", PAGE_PATH);
 });
 
@@ -98,7 +112,7 @@ describe("the period a selector starts from", () => {
       "page.period": "last-7-days",
       "page.compare": "previous-year",
     };
-    preferences.set(`${PERIOD_PREFERENCE_PREFIX}.${PAGE_ID}.page`, {
+    remember({
       period: "last-30-days",
     });
     mount("page");
@@ -107,7 +121,7 @@ describe("the period a selector starts from", () => {
   });
 
   it("is the user's last choice when the URL names none", () => {
-    preferences.set(`${PERIOD_PREFERENCE_PREFIX}.${PAGE_ID}.page`, {
+    remember({
       period: "last-30-days",
       compare: "previous-period",
     });
@@ -118,7 +132,7 @@ describe("the period a selector starts from", () => {
 
   it("is the default when neither names a valid one", () => {
     route.query = { "page.period": "next-century" };
-    preferences.set(`${PERIOD_PREFERENCE_PREFIX}.${PAGE_ID}.page`, {
+    remember({
       period: "ytd",
     });
     mount("page");
@@ -143,7 +157,46 @@ describe("the period a selector starts from", () => {
   });
 });
 
+describe("the URL on load", () => {
+  it("carries the period the selector starts from, the default included", () => {
+    window.history.replaceState(null, "", `${PAGE_PATH}?requests.tab=get`);
+    mount("page");
+    expect(Object.fromEntries(search())).toEqual({
+      "requests.tab": "get",
+      "page.period": "this-month",
+      "page.compare": "none",
+    });
+  });
+
+  it("is left alone when it already names the period", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `${PAGE_PATH}?page.period=this-month&page.compare=none`,
+    );
+    route.query = { "page.period": "this-month", "page.compare": "none" };
+    mount("page");
+    expect(inertiaReplace).not.toHaveBeenCalled();
+  });
+});
+
 describe("a change of period", () => {
+  it("reaches the route, so a tab written from it keeps the new period", async () => {
+    mount("page");
+    handles.page!.setPreset("last-7-days");
+    await nextTick();
+    // What useTab does: the route's query, plus its own key.
+    const query = { ...route.query, tab: "2" };
+    window.history.replaceState(
+      null,
+      "",
+      `${PAGE_PATH}?${new URLSearchParams(query)}`,
+    );
+    expect(search().get("tab")).toBe("2");
+    expect(search().get("page.period")).toBe("last-7-days");
+    expect(handles.page!.preset.value).toBe("last-7-days");
+  });
+
   it("replaces the URL in place and remembers the choice", async () => {
     mount("page");
     const entries = window.history.length;
@@ -154,7 +207,9 @@ describe("a change of period", () => {
     expect(search().get("page.compare")).toBe("previous-period");
     expect(window.history.length).toBe(entries);
     expect(
-      preferences.get(`${PERIOD_PREFERENCE_PREFIX}.${PAGE_ID}.page`),
+      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
+        `${PAGE_ID}#page`
+      ],
     ).toEqual({ period: "last-7-days", compare: "previous-period" });
   });
 

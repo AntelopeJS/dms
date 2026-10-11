@@ -54,14 +54,16 @@ export const DEFAULT_PERIOD_SCOPE = "page";
  * `?<id>.period=last-7-days&<id>.compare=previous-period`, a custom range
  * `?<id>.from=2026-10-01&<id>.to=2026-10-31` (an ISO date or date-time each;
  * a custom comparison adds `<id>.compareFrom` / `<id>.compareTo`). Keys are
- * prefixed with the id, so several selectors on a page never collide. A
- * change replaces the current history entry rather than pushing one, so Back
- * leaves the page instead of stepping through every pick, and the server
- * renders the URL's period.
+ * prefixed with the id, so several selectors on a page never collide. The
+ * URL is written once the page is shown (a copied URL always carries the
+ * period), then on each change, replacing the current history entry rather
+ * than pushing one, so Back leaves the page instead of stepping through
+ * every pick. The server renders the URL's period.
  *
  * On load the period comes from the URL, then from the last choice the user
- * made on this selector of this page (kept in the browser), then from
- * `defaultPreset` / `defaultComparison`. The range and the comparison are
+ * made on this selector of this page (kept in the browser, for the 20 most
+ * recent selectors), then from `defaultPreset` / `defaultComparison`. The
+ * range and the comparison are
  * read apart, and a value that is unknown, not offered by `presets` /
  * `comparisons`, or not a valid date range is skipped for the next source.
  */
