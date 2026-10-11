@@ -91,6 +91,11 @@ export namespace DefaultDataTypes {
     max?: number;
     step?: number;
     placeholder?: string;
+    /**
+     * Unit written after the form field ("days", "seats"): an i18n key with
+     * `$`, or a literal. The value stays a bare number.
+     */
+    suffix?: string;
     fallback?: string;
   };
 
@@ -98,6 +103,11 @@ export namespace DefaultDataTypes {
     placeholder?: string;
     maxLength?: number;
     minLength?: number;
+    /**
+     * Shows the characters typed in the form field, out of `maxLength` when
+     * set ("4 / 60"). Defaults to `false`.
+     */
+    showCount?: boolean;
     textarea?: boolean;
     rows?: number;
     /**
@@ -218,6 +228,7 @@ export namespace DefaultDataTypes {
         max: this.options.max,
         step: this.options.step,
         placeholder: this.options.placeholder,
+        suffix: this.options.suffix,
       });
     }
 
@@ -272,6 +283,7 @@ export namespace DefaultDataTypes {
           placeholder: this.options.placeholder,
           maxLength: this.options.maxLength,
           rows: this.options.rows,
+          showCount: this.options.showCount,
         });
       }
 
@@ -279,6 +291,7 @@ export namespace DefaultDataTypes {
         placeholder: this.options.placeholder,
         maxLength: this.options.maxLength,
         minLength: this.options.minLength,
+        showCount: this.options.showCount,
       });
     }
 

@@ -21,6 +21,31 @@ export interface FormSectionsLayout {
   sections: FormSectionLayout[];
 }
 
+/** A run of the side navigation's entries under one heading, or none. */
+export interface FormSectionNavGroup {
+  label?: string;
+  sections: FormSectionLayout[];
+}
+
+/**
+ * The side navigation's entries, in order, cut wherever the heading changes:
+ * consecutive sections naming the same `navGroup` share one heading.
+ */
+export function groupSectionsForNav(
+  sections: readonly FormSectionLayout[],
+): FormSectionNavGroup[] {
+  const groups: FormSectionNavGroup[] = [];
+  for (const section of sections) {
+    const current = groups.at(-1);
+    if (current && current.label === section.navGroup) {
+      current.sections.push(section);
+    } else {
+      groups.push({ label: section.navGroup, sections: [section] });
+    }
+  }
+  return groups;
+}
+
 /** An error of the form, as UForm lists them: the name it went under. */
 export interface FormErrorRef {
   name?: string;

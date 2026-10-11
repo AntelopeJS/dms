@@ -104,3 +104,52 @@ it("lists a record form's unsaved changes beside Discard and Save", async () => 
     "dms.save_bar.save",
   ]);
 });
+
+const classesOf = (element: Element | null | undefined) =>
+  (element?.className ?? "").split(/\s+/);
+const anchor = () => host.firstElementChild!;
+const bar = () => anchor().firstElementChild!;
+
+it("takes no space while a clean page form's bar hides", async () => {
+  await mount({ variant: "floating", dirty: false });
+
+  expect(anchor().getAttribute("aria-hidden")).toBe("true");
+  expect(classesOf(anchor())).toEqual(
+    expect.arrayContaining(["sticky", "h-0"]),
+  );
+  expect(classesOf(bar())).toEqual(
+    expect.arrayContaining(["absolute", "invisible"]),
+  );
+});
+
+it("floats over the form when it shows, making room under the last field", async () => {
+  await mount({ variant: "floating", dirty: true, changes: ["Name"] });
+
+  expect(anchor().getAttribute("aria-hidden")).toBeNull();
+  expect(classesOf(anchor())).not.toContain("h-0");
+  expect(classesOf(anchor())).toContain("h-[calc(var(--dms-save-bar-h)+2rem)]");
+  expect(classesOf(bar())).toEqual(
+    expect.arrayContaining(["absolute", "h-(--dms-save-bar-h)"]),
+  );
+  expect(classesOf(bar())).not.toContain("invisible");
+});
+
+it("gives Cancel and Unsaved changes the same fixed height", async () => {
+  await mount({ variant: "floating", dirty: false, cancellable: true });
+  const cancelBar = classesOf(bar());
+  expect(buttons()).toEqual([{ label: "dms.button.cancel", disabled: false }]);
+  app?.unmount();
+
+  await mount({ variant: "floating", dirty: true, changes: ["Name"] });
+  expect(cancelBar).toContain("h-(--dms-save-bar-h)");
+  expect(classesOf(bar())).toContain("h-(--dms-save-bar-h)");
+});
+
+it("keeps a hidden band's place in its footer", async () => {
+  await mount({ variant: "band", kind: "action", dirty: false });
+
+  expect(anchor().getAttribute("aria-hidden")).toBe("true");
+  expect(classesOf(anchor())).toContain("invisible");
+  expect(classesOf(anchor())).not.toContain("h-0");
+  expect(classesOf(anchor())).not.toContain("absolute");
+});

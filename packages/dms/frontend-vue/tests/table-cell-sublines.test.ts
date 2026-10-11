@@ -448,6 +448,21 @@ describe("identity sub-line", () => {
     expect(sub?.className).toContain("text-muted");
   });
 
+  it("reads each row's tile icon from iconField, falling back to icon", async () => {
+    const identity = await identityFormatter();
+    const options = { iconField: "icon", icon: "i-ph-puzzle-piece" };
+    const tileOf = (row: Record<string, unknown>) =>
+      render(() =>
+        (identity.default as Formatter)("Exports", "en", options, row),
+      )
+        .querySelector("[data-icon]")
+        ?.getAttribute("data-icon");
+
+    expect(tileOf({ icon: "i-ph-export" })).toBe("i-ph-export");
+    expect(tileOf({ icon: "" })).toBe("i-ph-puzzle-piece");
+    expect(tileOf({})).toBe("i-ph-puzzle-piece");
+  });
+
   it("draws an empty issuer as its translated empty label and icon", async () => {
     const identity = await identityFormatter();
     const cell = render(() =>

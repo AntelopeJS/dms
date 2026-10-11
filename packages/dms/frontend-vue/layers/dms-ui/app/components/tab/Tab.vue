@@ -21,6 +21,7 @@ const props = withDefaults(defineProps<TabProps>(), {
   stateKey: "tab",
   badgesUrl: undefined,
   realtimeTopic: undefined,
+  fit: false,
 });
 
 // The badges a module counts for a record's tabs, in one request, again when
@@ -72,10 +73,23 @@ const ROOT_CLASSES: Record<AxeOrientation, string> = {
   [AxeOrientation.vertical]: "max-sm:flex-col max-sm:items-stretch",
 };
 
+// A fitted pill list hugs its tabs: the triggers stop growing to share the
+// full width. Link tabs never grow, and a vertical list has its own width.
+const FIT_CLASSES: Record<TabVariant, { list: string; trigger: string }> = {
+  [TabVariant.pill]: { list: "w-fit max-w-full", trigger: "grow-0" },
+  [TabVariant.link]: { list: "", trigger: "" },
+};
+
 const panelClass = computed(() => PANEL_CLASSES[props.orientation]);
+const fitClasses = computed(() =>
+  props.fit && props.orientation === AxeOrientation.horizontal
+    ? FIT_CLASSES[props.variant]
+    : undefined,
+);
 const tabsUi = computed(() => ({
   root: ROOT_CLASSES[props.orientation],
-  list: LIST_CLASSES[props.orientation],
+  list: [LIST_CLASSES[props.orientation], fitClasses.value?.list],
+  trigger: fitClasses.value?.trigger,
   // The panel may shrink below its content's width (a wide table scrolls
   // inside it instead of pushing the page sideways).
   content: "min-w-0",

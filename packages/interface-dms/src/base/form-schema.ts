@@ -328,6 +328,8 @@ export namespace FormComponents {
     max?: number;
     step?: number;
     placeholder?: string;
+    /** Unit written after the field ("days"): an i18n key with `$`, or a literal. */
+    suffix?: string;
   }
 
   export interface InputTimeOptions {
@@ -345,6 +347,8 @@ export namespace FormComponents {
     placeholder?: string;
     maxLength?: number;
     minLength?: number;
+    /** Shows the characters typed, out of `maxLength` when set ("4 / 60"). */
+    showCount?: boolean;
   }
 
   export interface RadioGroupOptions {
@@ -412,6 +416,8 @@ export namespace FormComponents {
     placeholder?: string;
     rows?: number;
     maxLength?: number;
+    /** Shows the characters typed, out of `maxLength` when set ("4 / 60"). */
+    showCount?: boolean;
   }
 
   export interface CalendarOptions {

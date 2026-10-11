@@ -26,7 +26,10 @@ interface StatCellProps {
   /** Icon of the well; the cell has no well without one. */
   icon?: string;
   tone?: IconWellTone;
-  /** One line under the value. */
+  /**
+   * The line under the value; a longer one wraps to a second line before its
+   * ellipsis, the row taking the height of its tallest cell.
+   */
   detail?: string;
   /** Tone of the detail line (`neutral` = muted text). */
   detailTone?: Tone;
@@ -150,8 +153,8 @@ const { t } = useI18n();
         </p>
         <p
           v-if="props.detail && !props.loading"
-          class="truncate text-xs"
-          :class="[wraps, detailClass]"
+          class="line-clamp-2 text-xs [overflow-wrap:anywhere]"
+          :class="detailClass"
         >
           {{ props.detail }}
         </p>
@@ -207,7 +210,11 @@ const { t } = useI18n();
             v-if="props.loading"
             class="h-3 w-20"
           />
-          <small v-else class="truncate text-xs" :class="detailClass">
+          <small
+            v-else
+            class="line-clamp-2 text-xs [overflow-wrap:anywhere]"
+            :class="detailClass"
+          >
             {{ props.detail }}
           </small>
         </template>

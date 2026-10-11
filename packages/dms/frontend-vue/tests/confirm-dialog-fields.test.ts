@@ -231,6 +231,18 @@ describe("ConfirmModal fields", () => {
     expect(closed).toHaveBeenCalledWith(true);
   });
 
+  it("says what the required mark means under the fields", async () => {
+    mount({ title: "Delete?", fields: [reassign] });
+    await flush();
+    expect(host.textContent).toContain("dms.form.required_legend");
+  });
+
+  it("draws no legend when no field is required", async () => {
+    mount({ title: "Delete?", fields: [{ ...reassign, required: false }] });
+    await flush();
+    expect(host.textContent).not.toContain("dms.form.required_legend");
+  });
+
   it("flags a required field left empty instead of confirming", async () => {
     const onConfirm = vi.fn();
     mount({ title: "Delete?", fields: [reassign], onConfirm });

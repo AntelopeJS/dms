@@ -386,6 +386,8 @@ interface IdentityBadgeOption {
 interface IdentityOptions {
   avatarField?: string;
   icon?: string;
+  /** Row field holding the tile's icon; `icon` when it is empty. */
+  iconField?: string;
   subtitleField?: string;
   subtitleTone?: string;
   selfField?: string;
@@ -431,7 +433,7 @@ function renderIdentity(value: unknown, options: unknown, row: Row) {
       | { key: string }
       | string
       | null,
-    icon: opts.icon,
+    icon: stringOf(readRowField(row, opts.iconField)) ?? opts.icon,
     selfId: stringOf(readRowField(row, opts.selfField)),
     selfLabel: opts.selfLabel ? processI18n(opts.selfLabel) : undefined,
     badges,

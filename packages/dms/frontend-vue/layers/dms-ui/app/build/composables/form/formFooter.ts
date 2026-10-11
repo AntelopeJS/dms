@@ -51,8 +51,9 @@ export interface SaveBarState {
   /** The submit shows but waits for a change. */
   isSubmitHeld: boolean;
   /**
-   * Nothing to offer: the bar keeps its place, invisible, so its showing up
-   * never moves the content around it.
+   * Nothing to offer: the bar hides. The floating bar takes no space then
+   * (it overlays the form), a band keeps its place; either way its showing
+   * up never moves the content above it.
    */
   isHidden: boolean;
 }

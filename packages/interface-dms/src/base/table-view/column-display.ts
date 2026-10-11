@@ -121,6 +121,12 @@ export namespace DefaultDisplays {
     /** Icon drawn in a tile instead of an avatar. */
     icon?: string;
     /**
+     * Row field holding the icon of the row's tile (a feature's own icon, a
+     * document's type): it wins over `icon`, which stands for a row whose
+     * field is empty.
+     */
+    iconField?: string;
+    /**
      * Row field drawn as the secondary line: a string, drawn as written (an
      * address, an id), or a `ComposedText` or {@link CellSubline}
      * composed in the reader's language.

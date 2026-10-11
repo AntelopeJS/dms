@@ -12,6 +12,7 @@ import {
   type ValueFormat,
   type ValuePrecision,
 } from "./chart";
+import { type BlockLinkAction, blockActionsOption } from "./display";
 import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps, EnumOption } from "./types";
 import type { BlockText } from "./types/composed-text";
@@ -66,6 +67,11 @@ export interface TopListCardProps extends BaseComponentProps {
   maxHeight?: string;
   staticItems?: TopListItem[];
   emptyLabel?: string;
+  /**
+   * Link buttons in the card head, after the period badge ("Catalogue →",
+   * "View all"): quiet ghost buttons unless one sets its own look.
+   */
+  actions?: BlockLinkAction[];
   /**
    * How many placeholder rows the card draws while `fetchUrl` loads: the
    * length the route answers (its "top N"), so a short list keeps its height
@@ -201,6 +207,7 @@ export const TopListCardSchema = z.object({
     label: "Empty message",
     group: "content",
   }),
+  actions: blockActionsOption("Link buttons in the card head."),
   skeletonCount: ui(
     z
       .number()

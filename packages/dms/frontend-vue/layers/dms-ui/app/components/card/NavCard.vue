@@ -61,7 +61,10 @@ const attrs = useAttrs();
 const theme = tv({
   slots: {
     root: "dms-card dms-card--interactive group flex flex-col gap-3 p-[18px] text-start",
-    title: "text-highlighted min-w-0 truncate text-sm font-[650]",
+    // Two lines before the ellipsis: a title cut on its first line no longer
+    // says where the card leads, and the card already grows with its text.
+    title:
+      "text-highlighted line-clamp-2 min-w-0 text-sm font-[650] [overflow-wrap:anywhere]",
     tag: `${MONO_TAG_CLASS} bg-elevated shrink-0 text-dimmed`,
     badge: "shrink-0",
     arrow:

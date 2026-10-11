@@ -188,3 +188,36 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
       .false;
   });
 });
+
+describe("[unit] interfaces/dms-base — a number's unit and a text's counter", () => {
+  it("hands a number field its unit, and leaves the value a number", () => {
+    const days = new DefaultDataTypes.NumberType({
+      min: 0,
+      suffix: "$billing.days",
+    });
+    expect(days.inputComponent().options).to.include({
+      suffix: "$billing.days",
+    });
+    expect(days.getValidation().safeParse(30).success).to.equal(true);
+    expect(
+      new DefaultDataTypes.NumberType().inputComponent().options,
+    ).to.include({ suffix: undefined });
+  });
+
+  it("asks a text field and a text area for their counter", () => {
+    const name = new DefaultDataTypes.StringType({
+      maxLength: 60,
+      showCount: true,
+    });
+    expect(name.inputComponent().options).to.include({
+      maxLength: 60,
+      showCount: true,
+    });
+    const notes = new DefaultDataTypes.StringType({
+      textarea: true,
+      showCount: true,
+    });
+    expect(notes.inputComponent().componentName).to.equal("dms-textarea");
+    expect(notes.inputComponent().options).to.include({ showCount: true });
+  });
+});
