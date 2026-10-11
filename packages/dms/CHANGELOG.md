@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.6...v0.7.7)
+
+### 🚀 Enhancements
+
+- **dms:** Group the jump navigation chips by navGroup ([#200](https://github.com/AntelopeJS/dms/pull/200))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.5...v0.7.6)
