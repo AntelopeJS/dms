@@ -58,7 +58,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` (as `isVisible: false`, for that table view only) — no view
   just to hide it.
-  A long sectioned `Form` groups its side navigation with `FormSection.navGroup` ("Billing", "Legal").
+  A long sectioned `Form` groups its navigation with `FormSection.navGroup` ("Billing", "Legal"),
+  in the side list and in the `sectionNav: "jump"` chips alike (a form whose side column holds a preview).
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
   keeps a pill tab list to its tabs' width.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`

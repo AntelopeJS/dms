@@ -124,10 +124,10 @@ export interface FormSection {
   /** Icon of the section's entry in the side navigation. */
   icon?: string;
   /**
-   * Heading the section's entry sits under in the side navigation (an i18n
-   * key with `$`, or a literal): consecutive sections giving the same one
-   * share it, so a long form reads as "Billing" and "Legal" parts. The row
-   * of chips lists the sections without it.
+   * Heading the section's entry sits under in the navigation (an i18n key
+   * with `$`, or a literal): consecutive sections giving the same one share
+   * it, so a long form reads as "Billing" and "Legal" parts. The side list
+   * titles each run; the row of chips leads each run with its label.
    */
   navGroup?: string;
   fields: FormFieldOrGroup[];
