@@ -4,6 +4,7 @@ import DmsStatGroup, {
   type StatGroupItem,
   type StatGroupLayout,
 } from "../stat-group/StatGroup.vue";
+import type { StatCellDetailLines } from "../../build/components/stat/StatCell.vue";
 import DmsBlockStatus, {
   type BlockEmptyText,
 } from "../../build/components/blocks/BlockStatus.vue";
@@ -29,6 +30,8 @@ interface StatGroupBlockProps extends DefaultComponentProps {
   columns?: number;
   /** Accessible name of the group. */
   label?: string;
+  /** Lines each cell's detail may take: 1 (the default) or 2. */
+  detailLines?: StatCellDetailLines;
   fetchUrl?: string;
   fetchUrlMethod?: string;
   /** Id of the PeriodSelector the data follows. */
@@ -49,6 +52,7 @@ const props = withDefaults(defineProps<StatGroupBlockProps>(), {
   layout: "joined",
   columns: undefined,
   label: undefined,
+  detailLines: undefined,
   fetchUrl: undefined,
   fetchUrlMethod: undefined,
   periodScope: undefined,
@@ -95,6 +99,7 @@ const resolvedItems = computed<StatGroupItem[]>(() =>
     :items="resolvedItems"
     :layout="props.layout"
     :columns="props.columns"
+    :detail-lines="props.detailLines"
     :loading="isPending"
     :skeleton-count="
       props.skeletonCount ?? props.columns ?? DEFAULT_SKELETON_COUNT

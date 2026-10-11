@@ -111,6 +111,19 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(result.valid).to.equal(false);
   });
 
+  it("lets a stat group give its details two lines", () => {
+    const valid = (detailLines: unknown) =>
+      ValidateBlockOptions("StatGroup", {
+        items: [{ eyebrow: "MRR", value: 12 }],
+        detailLines,
+      }).valid;
+
+    expect(valid(1)).to.equal(true);
+    expect(valid(2)).to.equal(true);
+    expect(valid(3)).to.equal(false);
+    expect(declared("StatGroup").config.detailLines?.optional).to.equal(true);
+  });
+
   it("accepts a copy button on a key / value row", () => {
     const valid = (item: Record<string, unknown>) =>
       ValidateBlockOptions("KeyValueList", {
