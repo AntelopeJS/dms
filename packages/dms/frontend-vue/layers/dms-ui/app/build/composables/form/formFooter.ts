@@ -17,12 +17,6 @@ export type FormKind = "record" | "action";
 export type FormSaveMode = "bar" | "footer" | "none" | "instant";
 
 /**
- * What a hidden save bar does with its place (interface-dms `FormSaveBarSpace`):
- * `reserve` keeps it, `collapse` gives it up until there is something to save.
- */
-export type FormSaveBarSpace = "reserve" | "collapse";
-
-/**
  * The way a form saves: `bar` unless it says otherwise. An `action` form
  * (send, invite, run) is sent on purpose, so it never saves as it goes.
  */
@@ -57,8 +51,9 @@ export interface SaveBarState {
   /** The submit shows but waits for a change. */
   isSubmitHeld: boolean;
   /**
-   * Nothing to offer: the bar keeps its place, invisible, so its showing up
-   * never moves the content around it.
+   * Nothing to offer: the bar hides. The floating bar takes no space then
+   * (it overlays the form), a band keeps its place; either way its showing
+   * up never moves the content above it.
    */
   isHidden: boolean;
 }

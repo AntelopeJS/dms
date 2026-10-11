@@ -380,7 +380,7 @@ function toggleArea(id: string): void {
     />
 
     <DmsSaveBar
-      class="mx-3 mb-3"
+      class="mx-3"
       :dirty="props.dirty"
       :saving="props.saving"
       :changes="props.changes"

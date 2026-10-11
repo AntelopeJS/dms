@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  ListBlockTypes,
-  ValidateBlockOptions,
-} from "@antelopejs/interface-dms/base/block-types";
+import { ListBlockTypes } from "@antelopejs/interface-dms/base/block-types";
 
 /**
  * A form's entries are a field or a group of fields, and both are objects: a
@@ -49,20 +46,6 @@ describe("[unit] interfaces/dms-base/form — its catalog entry", () => {
       "saveBar",
       "cancellable",
     );
-  });
-
-  it("offers to collapse the hidden save bar, keeping its place by default", () => {
-    const config = ListBlockTypes().find(
-      (block) => block.type === "Form",
-    )?.config;
-    expect(config?.saveBarSpace?.enum).to.deep.equal(["reserve", "collapse"]);
-    expect(config?.saveBarSpace?.optional).to.equal(true);
-    expect(
-      ValidateBlockOptions("Form", { saveBarSpace: "collapse" }).valid,
-    ).to.equal(true);
-    expect(
-      ValidateBlockOptions("Form", { saveBarSpace: "shrink" }).valid,
-    ).to.equal(false);
   });
 
   it("leaves its addresses and methods to the advanced view", () => {

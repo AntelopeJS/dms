@@ -9,9 +9,10 @@ import { trackFloatingSaveBar } from "../../build/composables/form/floatingSaveB
 import DmsUnsavedStatus from "../../build/components/form/UnsavedStatus.vue";
 
 /**
- * `floating`: the v2 save bar, a card that sticks to the bottom of the panel
- * while the form runs past it. `band`: the footer band of a form card, a
- * drawer or a modal (its surface classes come from the form).
+ * `floating`: the v2 save bar, a card floating over the bottom of the panel
+ * while the form runs past it, taking no space while hidden. `band`: the
+ * footer band of a form card, a drawer or a modal (its surface classes come
+ * from the form).
  */
 export type SaveBarVariant = "floating" | "band";
 
@@ -42,11 +43,6 @@ interface SaveBarProps {
    * which can be changed shows its submit alone, all the time.
    */
   resettable?: boolean;
-  /**
-   * Hidden, the bar takes no space instead of keeping its place: the content
-   * after it moves when it shows.
-   */
-  collapsible?: boolean;
 }
 
 const props = withDefaults(defineProps<SaveBarProps>(), {
@@ -58,7 +54,6 @@ const props = withDefaults(defineProps<SaveBarProps>(), {
   variant: "floating",
   kind: "record",
   resettable: true,
-  collapsible: false,
 });
 
 const emit = defineEmits<{
@@ -72,32 +67,49 @@ const SECONDARY_LABELS: Record<FormKind, string> = {
   action: "dms.button.reset",
 };
 
-// Its states have the same height, and hidden it keeps its place (one line,
-// whatever the changes): switching never moves the content around it. A
-// collapsible bar gives that place up while hidden, by the caller's choice.
+// Its states have the same height, so switching between them never moves the
+// content around it. The floating bar overlays the form: its root is a sticky
+// anchor at the form's end that takes no space while the bar hides, and the
+// bar's height plus its gaps while it shows, so the last field scrolls clear
+// of it and nothing above it moves. The band, a footer, keeps its place.
 const theme = tv({
   slots: {
-    root: "flex items-center transition-[opacity,translate,visibility] duration-200 ease-out",
+    root: "",
+    bar: "flex items-center",
     actions: "ms-auto flex shrink-0 items-center gap-2",
   },
   variants: {
     variant: {
       floating: {
-        root: "border-accented sticky bottom-4 z-5 mt-5 gap-3 rounded-[10px] border bg-(--ui-bg) py-2.5 ps-4 pe-3 text-[13px] shadow-lg",
+        root: "pointer-events-none sticky bottom-1 z-5 h-0 [--dms-save-bar-h:50px]",
+        bar: "border-accented pointer-events-auto absolute inset-x-0 bottom-3 h-(--dms-save-bar-h) gap-3 rounded-[10px] border bg-(--ui-bg) ps-4 pe-3 text-[13px] shadow-lg transition-[opacity,translate,visibility] duration-200 ease-out",
       },
       band: {
-        root: "gap-2",
+        root: "transition-[opacity,translate,visibility] duration-200 ease-out",
+        bar: "gap-2",
       },
     },
     hidden: {
-      true: { root: "invisible translate-y-2 opacity-0" },
-    },
-    collapsible: {
       true: "",
+      false: "",
     },
   },
   compoundVariants: [
-    { hidden: true, collapsible: true, class: { root: "hidden" } },
+    {
+      variant: "floating",
+      hidden: false,
+      class: { root: "h-[calc(var(--dms-save-bar-h)+2rem)]" },
+    },
+    {
+      variant: "floating",
+      hidden: true,
+      class: { bar: "invisible translate-y-2 opacity-0" },
+    },
+    {
+      variant: "band",
+      hidden: true,
+      class: { root: "invisible translate-y-2 opacity-0" },
+    },
   ],
 });
 
@@ -118,18 +130,14 @@ const state = computed(() =>
   }),
 );
 const ui = computed(() =>
-  theme({
-    variant: props.variant,
-    hidden: state.value.isHidden,
-    collapsible: props.collapsible,
-  }),
+  theme({ variant: props.variant, hidden: state.value.isHidden }),
 );
 const buttons = computed(() => BUTTONS[props.variant]);
 trackFloatingSaveBar(
   () => props.variant === "floating" && !state.value.isHidden,
 );
 
-// Empty while there is nothing to save: the hidden bar keeps its line.
+// Empty while there is nothing to save: the hidden bar keeps its one line.
 const statusText = computed(() => {
   if (!props.dirty) return "";
   const changed = props.changes.map((label) => processI18n(label)).join(", ");
@@ -150,39 +158,41 @@ const saveText = computed(() => {
     :inert="state.isHidden || undefined"
     :aria-hidden="state.isHidden || undefined"
   >
-    <DmsUnsavedStatus
-      v-if="state.showsStatus"
-      :text="statusText"
-      :is-band="props.variant === 'band'"
-    />
-    <div :class="ui.actions()">
-      <UButton
-        v-if="state.secondary === 'discard'"
-        :label="t(SECONDARY_LABELS[props.kind])"
-        color="neutral"
-        :variant="buttons.discardVariant"
-        :size="buttons.size"
-        :disabled="props.saving"
-        @click="emit('discard')"
+    <div :class="ui.bar()">
+      <DmsUnsavedStatus
+        v-if="state.showsStatus"
+        :text="statusText"
+        :is-band="props.variant === 'band'"
       />
-      <UButton
-        v-else-if="state.secondary === 'cancel'"
-        :label="t('dms.button.cancel')"
-        color="neutral"
-        variant="outline"
-        :size="buttons.size"
-        @click="emit('cancel')"
-      />
-      <UButton
-        v-if="state.showsSubmit"
-        :label="saveText"
-        :size="buttons.size"
-        :loading="props.saving"
-        :disabled="state.isSubmitHeld"
-        :type="props.form ? 'submit' : 'button'"
-        :form="props.form"
-        @click="props.form ? undefined : emit('save')"
-      />
+      <div :class="ui.actions()">
+        <UButton
+          v-if="state.secondary === 'discard'"
+          :label="t(SECONDARY_LABELS[props.kind])"
+          color="neutral"
+          :variant="buttons.discardVariant"
+          :size="buttons.size"
+          :disabled="props.saving"
+          @click="emit('discard')"
+        />
+        <UButton
+          v-else-if="state.secondary === 'cancel'"
+          :label="t('dms.button.cancel')"
+          color="neutral"
+          variant="outline"
+          :size="buttons.size"
+          @click="emit('cancel')"
+        />
+        <UButton
+          v-if="state.showsSubmit"
+          :label="saveText"
+          :size="buttons.size"
+          :loading="props.saving"
+          :disabled="state.isSubmitHeld"
+          :type="props.form ? 'submit' : 'button'"
+          :form="props.form"
+          @click="props.form ? undefined : emit('save')"
+        />
+      </div>
     </div>
   </div>
 </template>
