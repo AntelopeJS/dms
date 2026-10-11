@@ -224,9 +224,12 @@ onBeforeUnmount(() => {
         :key="i"
         class="border-muted grid h-10 grid-cols-[22px_minmax(0,1.2fr)_minmax(0,1fr)_90px] items-center gap-3 ps-[18px] pe-3 not-first:border-t"
       >
-        <USkeleton class="size-[18px] rounded-[5px]" />
-        <USkeleton class="h-3 w-40" />
-        <USkeleton class="h-3 w-32" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="size-[18px] rounded-[5px]"
+        />
+        <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-40" />
+        <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-32" />
         <span />
       </div>
     </div>

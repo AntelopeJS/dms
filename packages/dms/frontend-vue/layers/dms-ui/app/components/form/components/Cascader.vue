@@ -402,7 +402,12 @@ function nodeClasses(node: CascaderNode, isHighlighted: boolean): string[] {
             class="w-52 space-y-2 p-2"
             aria-busy="true"
           >
-            <USkeleton v-for="i in 5" :key="i" class="h-6 w-full" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              v-for="i in 5"
+              :key="i"
+              class="h-6 w-full"
+            />
           </div>
 
           <div

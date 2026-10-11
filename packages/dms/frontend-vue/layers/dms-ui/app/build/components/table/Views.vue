@@ -243,6 +243,7 @@ const openTab = (id: string) => emit("open", id);
         />
         {{ view.label }}
         <USkeleton
+          :aria-label="t('dms.a11y.loading')"
           v-if="view.countPending"
           aria-hidden="true"
           class="h-3 w-4 rounded-[3px]"

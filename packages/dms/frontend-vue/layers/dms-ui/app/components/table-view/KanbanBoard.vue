@@ -451,6 +451,7 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
             {{ col.label }}
           </span>
           <USkeleton
+            :aria-label="t('dms.a11y.loading')"
             v-if="isBoardLoading && !cells[col.value]"
             aria-hidden="true"
             class="ms-auto h-[16.5px] w-5 shrink-0 rounded-[5px]"
@@ -478,17 +479,26 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
               class="border-default grid gap-2 rounded-lg border bg-(--dms-surface-card) px-3 pt-2.5 pb-[11px] shadow-xs"
             >
               <div class="-mb-0.5 flex min-h-5 items-center">
-                <USkeleton class="h-2.5 w-10" />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-2.5 w-10"
+                />
               </div>
               <div class="flex h-[17px] items-center">
-                <USkeleton class="h-3 w-3/4" />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-3 w-3/4"
+                />
               </div>
               <div
                 v-for="fieldColumn in cardColumns"
                 :key="fieldColumn.id"
                 class="-mt-0.5 flex h-[18px] items-center"
               >
-                <USkeleton class="h-2.5 w-1/2" />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-2.5 w-1/2"
+                />
               </div>
             </div>
           </div>

@@ -91,6 +91,8 @@ const cellClass = computed(() => {
   ];
 });
 const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -101,6 +103,7 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
   >
     <template v-if="isMd">
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="props.placeholder || (props.loading && props.icon)"
         class="size-10 shrink-0 rounded-[10px]"
       />
@@ -113,9 +116,18 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
       <!-- A placeholder keeps the loaded lines' boxes (eyebrow 13px, value
            24px, detail 16px), so the card keeps its height when it lands. -->
       <div v-if="props.placeholder" class="grid flex-1 gap-[3px]">
-        <USkeleton class="my-[1.5px] h-2.5 w-20" />
-        <USkeleton class="my-px h-[22px] w-10" />
-        <USkeleton class="my-0.5 h-3 w-24" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-[1.5px] h-2.5 w-20"
+        />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-px h-[22px] w-10"
+        />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-0.5 h-3 w-24"
+        />
       </div>
       <div v-else class="grid min-w-0 flex-1 gap-[3px]">
         <DmsEyebrow
@@ -124,7 +136,11 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
           :class="wraps"
           :label="props.eyebrow"
         />
-        <USkeleton v-if="props.loading" class="h-[22px] w-16" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          v-if="props.loading"
+          class="h-[22px] w-16"
+        />
         <p
           v-else
           class="text-highlighted text-[22px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"
@@ -145,6 +161,7 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
 
     <template v-else>
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="props.placeholder || (props.loading && props.icon)"
         class="size-8 shrink-0 rounded-[9px]"
       />
@@ -157,13 +174,26 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
       <!-- Each placeholder line keeps the loaded line's box (eyebrow 11px,
            value 19px, detail 16px), so the group keeps its height. -->
       <div v-if="props.placeholder" class="grid flex-1 gap-0.5">
-        <USkeleton class="my-px h-[9px] w-16" />
-        <USkeleton class="my-[2.5px] h-3.5 w-24" />
-        <USkeleton class="my-0.5 h-3 w-20" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-px h-[9px] w-16"
+        />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-[2.5px] h-3.5 w-24"
+        />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="my-0.5 h-3 w-20"
+        />
       </div>
       <span v-else class="grid min-w-0 gap-0.5">
         <DmsEyebrow as="span" size="xs" :label="props.eyebrow" />
-        <USkeleton v-if="props.loading" class="my-0.5 h-3.5 w-24" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          v-if="props.loading"
+          class="my-0.5 h-3.5 w-24"
+        />
         <b
           v-else
           class="text-highlighted text-sm leading-[1.35] font-semibold whitespace-nowrap tabular-nums transition-opacity"
@@ -172,7 +202,11 @@ const detailClass = computed(() => DMS_TONE_TEXT[props.detailTone]);
           <slot name="value">{{ props.value }}</slot>
         </b>
         <template v-if="props.detail">
-          <USkeleton v-if="props.loading" class="h-3 w-20" />
+          <USkeleton
+            :aria-label="t('dms.a11y.loading')"
+            v-if="props.loading"
+            class="h-3 w-20"
+          />
           <small v-else class="truncate text-xs" :class="detailClass">
             {{ props.detail }}
           </small>

@@ -22,6 +22,8 @@ const PERCENT_UNIT = "%";
 const RING_SIZE = "min(78%, 16rem)";
 const RING_HOLE_MASK =
   "radial-gradient(circle, transparent 54%, #000 calc(54% + 1px))";
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -32,6 +34,7 @@ const RING_HOLE_MASK =
     aria-busy="true"
   >
     <USkeleton
+      :aria-label="t('dms.a11y.loading')"
       class="aspect-square rounded-full"
       :style="{
         height: RING_SIZE,
@@ -47,6 +50,7 @@ const RING_HOLE_MASK =
     aria-busy="true"
   >
     <USkeleton
+      :aria-label="t('dms.a11y.loading')"
       v-for="(barHeight, index) in GHOST_BAR_HEIGHTS"
       :key="index"
       class="flex-1 rounded-t-[4px] rounded-b-none"

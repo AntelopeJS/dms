@@ -485,6 +485,10 @@
         "previous_month": "Previous month",
         "next_month": "Next month"
       }
+    },
+    "a11y": {
+      "breadcrumb": "Breadcrumb",
+      "loading": "Loading"
     }
   }
 }

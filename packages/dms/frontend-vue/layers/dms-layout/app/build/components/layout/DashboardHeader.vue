@@ -211,6 +211,7 @@ const mobileBreadcrumb = computed(
 
       <template #title>
         <UBreadcrumb
+          :aria-label="t('dms.a11y.breadcrumb')"
           :items="breadcrumb"
           :ui="{ linkLabel: 'first-letter:uppercase' }"
           class="hidden md:block"
@@ -290,6 +291,7 @@ const mobileBreadcrumb = computed(
          with its buttons. -->
     <div class="border-default border-b px-3 py-2 sm:px-4 md:hidden">
       <UBreadcrumb
+        :aria-label="t('dms.a11y.breadcrumb')"
         :items="mobileBreadcrumb"
         :ui="{ linkLabel: 'first-letter:uppercase' }"
       >

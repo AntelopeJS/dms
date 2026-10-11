@@ -142,6 +142,7 @@ async function onLocaleChange(code: unknown) {
         class="border-default flex items-center border-s px-2 font-mono tabular-nums"
       >
         <USkeleton
+          :aria-label="t('dms.a11y.loading')"
           v-if="githubStars === null"
           aria-hidden="true"
           class="h-2.5 w-6"

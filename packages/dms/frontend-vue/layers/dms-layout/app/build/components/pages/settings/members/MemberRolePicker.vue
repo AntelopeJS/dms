@@ -169,7 +169,11 @@ function toggle(roleId: string) {
 
 <template>
   <div class="flex flex-col gap-1.5">
-    <USkeleton v-if="isLoading" class="h-7 w-48 rounded-full" />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      v-if="isLoading"
+      class="h-7 w-48 rounded-full"
+    />
     <span
       v-else-if="options.roles.length === 0"
       class="text-dimmed text-[12.5px]"

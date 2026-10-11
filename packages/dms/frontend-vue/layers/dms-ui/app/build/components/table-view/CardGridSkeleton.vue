@@ -21,6 +21,8 @@ const MAX_CARD_COUNT = 12;
 const cardCount = computed(() =>
   Math.max(1, Math.min(props.count, MAX_CARD_COUNT)),
 );
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -34,13 +36,22 @@ const cardCount = computed(() =>
       class="border-default @container rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px]"
     >
       <div class="flex items-center gap-2.5">
-        <USkeleton class="size-7 shrink-0 rounded-[7px]" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          class="size-7 shrink-0 rounded-[7px]"
+        />
         <div class="min-w-0 flex-1">
           <div class="text-[13px]">
-            <USkeleton class="inline-block h-3 w-3/5 align-middle" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="inline-block h-3 w-3/5 align-middle"
+            />
           </div>
           <div class="font-mono text-[11px]">
-            <USkeleton class="inline-block h-2 w-2/5 align-middle" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="inline-block h-2 w-2/5 align-middle"
+            />
           </div>
         </div>
       </div>
@@ -49,10 +60,16 @@ const cardCount = computed(() =>
       >
         <div v-for="field in props.fields" :key="field" class="min-w-0">
           <div :class="['font-mono', props.labelClass]">
-            <USkeleton class="inline-block h-2 w-1/2 align-middle" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="inline-block h-2 w-1/2 align-middle"
+            />
           </div>
           <div class="mt-0.5">
-            <USkeleton class="inline-block h-2.5 w-4/5 align-middle" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="inline-block h-2.5 w-4/5 align-middle"
+            />
           </div>
         </div>
       </div>

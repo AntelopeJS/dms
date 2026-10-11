@@ -485,6 +485,10 @@
         "previous_month": "Mois précédent",
         "next_month": "Mois suivant"
       }
+    },
+    "a11y": {
+      "breadcrumb": "Fil d'Ariane",
+      "loading": "Chargement"
     }
   }
 }

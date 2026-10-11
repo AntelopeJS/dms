@@ -314,10 +314,19 @@ const toolbarButtons = computed(() => [
              padding, so the swap to the editor moves nothing below it. -->
         <template #fallback>
           <div class="min-h-[140px] px-3 py-2.5" aria-busy="true">
-            <USkeleton class="mb-4 h-8 w-3/4" />
-            <USkeleton class="mb-3 h-4 w-full" />
-            <USkeleton class="mb-3 h-4 w-5/6" />
-            <USkeleton class="h-4 w-4/5" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="mb-4 h-8 w-3/4"
+            />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="mb-3 h-4 w-full"
+            />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="mb-3 h-4 w-5/6"
+            />
+            <USkeleton :aria-label="t('dms.a11y.loading')" class="h-4 w-4/5" />
           </div>
         </template>
       </DmsClientOnly>

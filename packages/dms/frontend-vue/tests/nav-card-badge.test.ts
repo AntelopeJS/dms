@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createApp, defineComponent, h, type App } from "vue";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import NavCard from "../layers/dms-ui/app/components/card/NavCard.vue";
 
 // A nav card of the settings overview carries its page's navigation badge in
@@ -38,6 +38,10 @@ function mountCard(props: Record<string, unknown>): HTMLElement {
 
 const headRow = (container: HTMLElement) =>
   container.querySelector("h3")?.parentElement as HTMLElement;
+
+beforeEach(() => {
+  vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+});
 
 afterEach(() => {
   app?.unmount();
