@@ -722,8 +722,9 @@
       "empty": "Nothing to show yet",
       "load_error": "Couldn't load this block",
       "load_error_hint": "Check your connection, then try again.",
+      "retry": "Try again",
       "not_found": "Not found",
-      "retry": "Try again"
+      "not_found_hint": "What this block shows doesn’t exist, or no longer does."
     },
     "action_error": {
       "forbidden": "You don’t have permission to do this.",

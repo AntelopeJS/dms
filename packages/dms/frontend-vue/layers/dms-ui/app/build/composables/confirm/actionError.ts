@@ -68,7 +68,7 @@ const isTechnical = (text: string) =>
  * as it came. Undefined when it is not user-facing (an untranslated key, JSON,
  * a stack trace…), for the caller to fall back on a generic message.
  */
-const userFacingText = (
+export const userFacingText = (
   text: string | undefined,
   translate: I18nTranslate,
 ): string | undefined => {

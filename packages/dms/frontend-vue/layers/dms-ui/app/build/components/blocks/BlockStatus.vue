@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import DmsEmptyState from "../../../components/empty-state/EmptyState.vue";
+import DmsBlockActions from "./BlockActions.vue";
+import type { FetchNotFound } from "../../utils/fetchNotFound";
+import { userFacingText } from "../../composables/confirm/actionError";
 
 /** What a block shows when it has nothing to list (interface-dms `BlockEmptyText`). */
 export interface BlockEmptyText {
@@ -8,14 +12,22 @@ export interface BlockEmptyText {
   description?: string;
 }
 
-// What a data-driven block shows instead of its content: an empty list, or a
-// first load that failed (with a retry). Compact v2 .c-empty in a card, so it
-// keeps the footprint of the block it stands in for.
+/**
+ * `empty`: nothing to show. `error`: the first load failed. `not-found`: the
+ * source answered 404, what the block shows does not exist.
+ */
+export type BlockStatusState = "empty" | "error" | "not-found";
+
+// What a data-driven block shows instead of its content: an empty list, a
+// first load that failed (with a retry), or a source that answered 404.
+// Compact v2 .c-empty in a card, so it keeps the footprint of the block it
+// stands in for.
 interface BlockStatusProps {
-  /** `empty`: nothing to show. `error`: the first load failed. */
-  state: "empty" | "error";
+  state: BlockStatusState;
   /** Replaces the default texts of the empty state. */
   empty?: BlockEmptyText;
+  /** What the 404 said, laid over the default not-found texts. */
+  notFound?: FetchNotFound | null;
   /** Draw the card surface around it (off inside a card). */
   card?: boolean;
 }
@@ -26,33 +38,63 @@ interface BlockStatusEmits {
 
 const props = withDefaults(defineProps<BlockStatusProps>(), {
   empty: undefined,
+  notFound: undefined,
   card: true,
 });
 const emit = defineEmits<BlockStatusEmits>();
 
+const NOT_FOUND_ICON = "i-ph-magnifying-glass";
+const VARIANTS = {
+  empty: "no-data",
+  error: "error",
+  "not-found": "no-result",
+} as const;
+
 const { t } = useI18n();
 const { processI18n } = useTranslation();
+
+const translate = (text: string | undefined) =>
+  text ? processI18n(text) : undefined;
+
+const notFoundState = computed(() => {
+  const answered = props.notFound?.emptyState ?? {};
+  const message = props.notFound?.message;
+  return {
+    title: translate(answered.title) ?? t("dms.blocks.not_found"),
+    description:
+      translate(answered.description) ??
+      (message ? userFacingText(message, t) : undefined) ??
+      t("dms.blocks.not_found_hint"),
+    icon: answered.icon ?? NOT_FOUND_ICON,
+    tone: answered.tone,
+    actions: answered.actions ?? [],
+  };
+});
+
+const isNotFound = computed(() => props.state === "not-found");
+
+const title = computed(() => {
+  if (props.state === "error") return t("dms.blocks.load_error");
+  if (isNotFound.value) return notFoundState.value.title;
+  return props.empty ? processI18n(props.empty.title) : t("dms.blocks.empty");
+});
+
+const description = computed(() => {
+  if (props.state === "error") return t("dms.blocks.load_error_hint");
+  if (isNotFound.value) return notFoundState.value.description;
+  return translate(props.empty?.description);
+});
 </script>
 
 <template>
   <div :class="props.card && 'dms-card'">
     <DmsEmptyState
       size="sm"
-      :variant="props.state === 'error' ? 'error' : 'no-data'"
-      :title="
-        props.state === 'error'
-          ? t('dms.blocks.load_error')
-          : props.empty
-            ? processI18n(props.empty.title)
-            : t('dms.blocks.empty')
-      "
-      :description="
-        props.state === 'error'
-          ? t('dms.blocks.load_error_hint')
-          : props.empty?.description
-            ? processI18n(props.empty.description)
-            : undefined
-      "
+      :variant="VARIANTS[props.state]"
+      :icon="isNotFound ? notFoundState.icon : undefined"
+      :tone="isNotFound ? notFoundState.tone : undefined"
+      :title="title"
+      :description="description"
     >
       <template v-if="props.state === 'error'" #actions>
         <UButton
@@ -63,6 +105,9 @@ const { processI18n } = useTranslation();
           size="sm"
           @click="emit('retry')"
         />
+      </template>
+      <template v-else-if="isNotFound && notFoundState.actions.length" #actions>
+        <DmsBlockActions :actions="notFoundState.actions" size="sm" />
       </template>
     </DmsEmptyState>
   </div>

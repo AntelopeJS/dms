@@ -16,6 +16,7 @@ import {
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -41,6 +42,10 @@ export interface UseChartFetchReturn<T> {
    * (period, watched state, realtime event) until the new answer lands.
    */
   isLoading: Ref<boolean>;
+  /**
+   * Why the last request failed. A 404 also clears `data`: read it with
+   * `readFetchNotFound` to draw a not-found state rather than a load error.
+   */
   error: Ref<unknown>;
   refresh: () => Promise<void>;
 }
@@ -111,7 +116,12 @@ async function runFetch<T>(
     data.value = response;
   } catch (err) {
     if (runner.activeAbort !== controller) return;
-    if ((err as { name?: string })?.name !== "AbortError") error.value = err;
+    if ((err as { name?: string })?.name === "AbortError") return;
+    error.value = err;
+    // A 404 says what the block showed is gone (another tab deleted it, the
+    // URL now names another record): its last values must not stay on screen
+    // as if they still belonged to it. Any other failure keeps them.
+    if (readFetchNotFound(err)) data.value = null;
   } finally {
     // A request a newer one superseded leaves the loading flag to that one:
     // clearing it here would show the empty state while the newer answer is

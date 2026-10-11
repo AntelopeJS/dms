@@ -723,8 +723,9 @@
       "empty": "Rien à afficher pour l'instant",
       "load_error": "Impossible de charger ce bloc",
       "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer",
       "not_found": "Introuvable",
-      "retry": "Réessayer"
+      "not_found_hint": "Ce que ce bloc affiche n’existe pas, ou plus."
     },
     "action_error": {
       "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",

@@ -3,6 +3,7 @@ import { computed } from "vue";
 import DmsCodeSnippet from "../code-snippet/CodeSnippet.vue";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -62,10 +63,14 @@ const title = computed(() =>
   props.title ? processText(props.title) : undefined,
 );
 const showSkeleton = computed(() => isLoading.value && !data.value);
+const notFound = computed(() =>
+  isLoading.value ? null : readFetchNotFound(error.value),
+);
 // A failed first load shows a retry in place of the code; a failed refetch
 // keeps the code on screen.
 const hasError = computed(
-  () => !isLoading.value && !data.value && Boolean(error.value),
+  () =>
+    !isLoading.value && !data.value && Boolean(error.value) && !notFound.value,
 );
 
 const { t } = useI18n();
@@ -73,6 +78,11 @@ const { t } = useI18n();
 
 <template>
   <DmsBlockStatus v-if="hasError" state="error" @retry="refresh()" />
+  <DmsBlockStatus
+    v-else-if="notFound"
+    state="not-found"
+    :not-found="notFound"
+  />
   <div
     v-else-if="showSkeleton"
     class="border-default grid gap-2 rounded-[10px] border px-3.5 py-3"
