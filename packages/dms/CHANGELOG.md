@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.7.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.7...v0.7.8)
+
+### 🚀 Enhancements
+
+- **table-view:** Tone duration and text cells from a row field ([#201](https://github.com/AntelopeJS/dms/pull/201))
+- **period-selector:** Keep the period in the page URL ([#204](https://github.com/AntelopeJS/dms/pull/204))
+- **table-view:** Open rows in a side panel action target ([#202](https://github.com/AntelopeJS/dms/pull/202))
+- **page:** Add a Direct / Pause live mode over the page realtime ([#203](https://github.com/AntelopeJS/dms/pull/203))
+
+### 🩹 Fixes
+
+- **field-row:** Span both form columns when a row has no label ([#205](https://github.com/AntelopeJS/dms/pull/205))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.4 ([78deb34](https://github.com/AntelopeJS/dms/commit/78deb34))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.6...v0.7.7)
