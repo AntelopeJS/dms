@@ -9,6 +9,8 @@ import {
   type ReplaceUrlVariablesContext,
   resolveUrlVariables,
 } from "../../utils/urlVariables";
+import type { RowActionRule } from "#dms-core/app/types/row-action";
+import { pinRows } from "./utils/pinnedRows";
 import {
   appendPeriodToUrl,
   usePeriodScope,
@@ -34,6 +36,11 @@ export interface TableRowsOptions {
    * read again on every request.
    */
   route?: () => ReplaceUrlVariablesContext;
+  /**
+   * The rows listed first whatever the sort (backend `pinnedRows`), read on
+   * every request: `undefined` while the display pins nothing.
+   */
+  pinnedRows?: () => RowActionRule | undefined;
 }
 
 const FILTER_PREFIX = "filter_";
@@ -94,13 +101,15 @@ const compareValues = (a: unknown, b: unknown): number => {
 /**
  * The rows the browser narrows, sorts and pages itself, for what the source
  * route left to it: a search over the listed columns' text, the sort on one
- * column, the page.
+ * column, the page. The pinned rows lead before the page is cut, so they
+ * open the first one.
  */
 export function processSourceRows<T extends Record<string, unknown>>(
   rows: T[],
   query: Query,
   capabilities: SourceCapabilities,
   columns: TableViewColumn[],
+  pinnedRows?: RowActionRule,
 ): TableViewListResponse<T> {
   let processed = rows;
   const search = typeof query.search === "string" ? query.search.trim() : "";
@@ -120,6 +129,7 @@ export function processSourceRows<T extends Record<string, unknown>>(
       (a, b) => direction * compareValues(get(a, sortKey), get(b, sortKey)),
     );
   }
+  processed = pinRows(processed, pinnedRows);
   const offset = Number(query.offset) || 0;
   const limit = Number(query.limit) || processed.length;
   return {
@@ -151,7 +161,8 @@ function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
  * source's `periodScope` adds the period of its selector to the URL, like a
  * chart's; until that selector registers, nothing is requested and the list
  * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
- * URL requested, for the caller to list again when it changes.
+ * URL requested, for the caller to list again when it changes. The rows
+ * `pinnedRows` accepts lead each list answered.
  */
 export function useTableRows<T extends Record<string, unknown>>(
   options: TableRowsOptions,
@@ -189,13 +200,26 @@ export function useTableRows<T extends Record<string, unknown>>(
         limit: Number(query.limit) || 0,
       };
     }
-    return processSourceRows(response.results, query, capabilities, columns);
+    return processSourceRows(
+      response.results,
+      query,
+      capabilities,
+      columns,
+      options.pinnedRows?.(),
+    );
   };
 
-  const list = (query: Query): Promise<TableViewListResponse<T> | null> =>
-    source
-      ? listFromSource(source, query)
-      : api<TableViewListResponse<T>>(`${location}/list`, { query });
+  const withPinnedRows = (
+    page: TableViewListResponse<T> | null,
+  ): TableViewListResponse<T> | null =>
+    page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
+
+  const list = async (query: Query): Promise<TableViewListResponse<T> | null> =>
+    withPinnedRows(
+      source
+        ? await listFromSource(source, query)
+        : await api<TableViewListResponse<T>>(`${location}/list`, { query }),
+    );
 
   // A source answers its totals one list at a time.
   const countBatch = async (

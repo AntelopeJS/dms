@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import enGB from "../layers/dms-ui/i18n/locales/ui-en-GB.json";
 import frFR from "../layers/dms-ui/i18n/locales/ui-fr-FR.json";
@@ -13,6 +15,7 @@ import {
   sanitizeSorting,
   sortableColumnIds,
   sortDirectionLabelKey,
+  sortingOrDefault,
   sortValueKind,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/sortableColumns";
 
@@ -89,6 +92,48 @@ describe("sanitizeSorting", () => {
     expect(
       sanitizeSorting([{ id: "due_date", desc: false }], afterRefusal),
     ).toEqual([]);
+  });
+});
+
+describe("sortingOrDefault", () => {
+  const byDueDate = [{ id: "due_date", desc: true }];
+
+  it("keeps a sort the route serves", () => {
+    const sorting = [{ id: "completion_percentage", desc: false }];
+    expect(sortingOrDefault(sorting, sortable, byDueDate)).toEqual(sorting);
+  });
+
+  // Clearing the sort (a third click on a header) used to be remembered as
+  // `[]`: the table then listed in the database's natural order for good.
+  it("goes back to the default sort once the user clears theirs", () => {
+    expect(sortingOrDefault([], sortable, byDueDate)).toEqual(byDueDate);
+    expect(sortingOrDefault(null, sortable, byDueDate)).toEqual(byDueDate);
+    expect(
+      sortingOrDefault([{ id: "name", desc: false }], sortable, byDueDate),
+    ).toEqual(byDueDate);
+  });
+
+  it("stays unsorted without a default, or when the route refuses it", () => {
+    expect(sortingOrDefault([], sortable, [])).toEqual([]);
+    expect(
+      sortingOrDefault([], new Set(["completion_percentage"]), byDueDate),
+    ).toEqual([]);
+  });
+
+  it("is what the table view restores, and corrects, its sort with", () => {
+    const tableView = readFileSync(
+      resolve(
+        __dirname,
+        "../layers/dms-ui/app/components/table-view/TableView.vue",
+      ),
+      "utf8",
+    );
+    expect(tableView).toMatch(
+      /const sorting = ref<SortingState>\(\s*sortingOrDefault\(/,
+    );
+    expect(tableView).toMatch(
+      /const sanitized = sortingOrDefault\(\s*next,\s*sortableIds\.value,\s*defaultSortState,\s*\);/,
+    );
   });
 });
 

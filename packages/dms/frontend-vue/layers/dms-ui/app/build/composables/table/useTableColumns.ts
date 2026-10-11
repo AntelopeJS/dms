@@ -41,6 +41,8 @@ import {
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
 import { useActionConfirm } from "../confirm/useActionConfirm";
+import { interpolateLiteral } from "../../utils/literalText";
+import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 import {
   type DefaultSortConfig,
   type HeaderSortCue,
@@ -160,6 +162,8 @@ interface ColumnConfig<T> {
   columnMenus?: boolean;
   /** The table's default sort: its column shows a neutral arrow. */
   defaultSort?: DefaultSortConfig;
+  /** Field naming a row: the default name of its ⋯ menu button. */
+  labelKey?: string;
 }
 
 interface ExtendedColumnMeta<T> extends ColumnMeta<T, unknown> {
@@ -406,6 +410,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   const renderActionsDropdown = (
     items: DropdownMenuItem[] | DropdownMenuItem[][],
     rowId: string,
+    label: string,
   ) =>
     h(
       DropdownMenu as Component,
@@ -418,6 +423,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
         default: () =>
           h(Button, {
             id: `row-actions-${rowId}`,
+            "aria-label": label,
             icon: appConfig.ui.icons.ellipsis,
             color: Color.neutral,
             variant: ButtonVariant.ghost,
@@ -521,7 +527,9 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
       children.unshift(renderRestoreButton(restoreDescriptor, row.id));
     }
     if (dropdownItems.length > 0) {
-      children.push(renderActionsDropdown(dropdownItems, row.id));
+      children.push(
+        renderActionsDropdown(dropdownItems, row.id, menuLabel(row.original)),
+      );
     }
 
     return h(
@@ -579,6 +587,22 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
   };
 
   const { processI18n } = useTranslation();
+
+  // A row's own text: a `$` key translated with the row's fields as
+  // parameters, or a literal whose `{field}` braces they fill.
+  const rowText = (text: string, rowData: T): string =>
+    readTranslationKey(text).isKey
+      ? processI18n(text, rowData)
+      : interpolateLiteral(text, rowData);
+
+  const menuLabel = (rowData: T): string => {
+    const declared = config.rowActions?.menuLabel;
+    if (declared) return rowText(declared, rowData);
+    const label = config.labelKey ? get(rowData, config.labelKey) : undefined;
+    return typeof label === "string" || typeof label === "number"
+      ? t("dms.table.row_actions_for", { label })
+      : t("dms.table.row_actions");
+  };
 
   const isCustomActionDisabled = (
     action: CustomRowAction,
@@ -638,7 +662,7 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
   const buildCustomActionDescriptors = (rowData: T): RowActionDescriptor[] =>
     (config.rowActions?.custom || []).map((action) => ({
-      label: processI18n(action.label),
+      label: rowText(action.label, rowData),
       // A labelled button may go without an icon.
       icon: action.icon || (action.showLabel ? "" : "i-ph-lightning"),
       onSelect: () => config.onCustomRowAction?.(action, rowData),

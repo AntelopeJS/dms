@@ -109,6 +109,7 @@ export const useTable = <T extends Data>(props: UseTableProps<T>) => {
     showArchived: props.showArchived,
     columnMenus: props.columnMenus,
     defaultSort: props.tableProps.defaultSort,
+    labelKey: props.tableProps.labelKey,
   });
 
   // A saved order (the user's, a view's) is kept, completed with the

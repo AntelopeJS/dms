@@ -8,6 +8,7 @@ import { claimFormPageRoute } from "../../page/internal/form-page-routes";
 import { resolveInheritedLayout } from "../../page/internal/categories";
 import { StampUploadFieldTokens } from "../../uploads";
 import type { FormBuilder } from "../form-types";
+import type { RowActionRule } from "../types/row-action";
 import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
 import { hasSearchableFields } from "../internal/searchable";
@@ -200,6 +201,7 @@ export function TableView<T extends ControllerClass>(
       formContainer: options.formContainer,
       archiveMode: options.archiveMode,
       defaultSort: options.defaultSort,
+      pinnedRows: options.pinnedRows as RowActionRule | undefined,
       queryParamFilters: options.queryParamFilters,
       routeParamFilters: options.routeParamFilters,
       customButtons: serializedCustomButtons,

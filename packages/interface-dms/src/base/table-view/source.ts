@@ -100,6 +100,7 @@ export interface TableViewSourceOptions extends Pick<
   | "tabs"
   | "quickFilters"
   | "defaultSort"
+  | "pinnedRows"
   | "realtimeTopic"
   | "liveHold"
 > {
@@ -148,7 +149,10 @@ export interface TableViewSourceOptions extends Pick<
   /** What the route handles itself; the browser does the rest. */
   capabilities?: TableViewSourceCapabilities;
   /** Custom actions only: there are no built-in forms over a source. */
-  rowActions?: Pick<TableViewRowActionOptions, "custom" | "hasSelection">;
+  rowActions?: Pick<
+    TableViewRowActionOptions,
+    "custom" | "hasSelection" | "menuLabel"
+  >;
   /** The footer's texts and legend; summaries need a data controller. */
   footer?: Pick<TableViewFooterOptions, "countLabel" | "hint" | "legend">;
 }
@@ -337,6 +341,7 @@ export function tableViewFromSource(
       displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
       defaultSort: options.defaultSort,
+      pinnedRows: options.pinnedRows,
       customButtons: serializeCustomButtons(declaredCustomButtons),
       enableTableExport: false,
       realtime: false,

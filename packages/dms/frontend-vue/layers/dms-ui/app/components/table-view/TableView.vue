@@ -70,6 +70,7 @@ import {
   defaultSortingState,
   resolveDefaultSortConfig,
   sanitizeSorting,
+  sortingOrDefault,
   sortableColumnIds,
   sortValueKind,
 } from "../../build/composables/table-view/utils/sortableColumns";
@@ -100,6 +101,7 @@ import {
   rowCustomActions,
 } from "../../utils/rowClickAction";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
+import type { RowActionRule } from "#dms-core/app/types/row-action";
 
 import UTable from "../../build/components/table/Table.vue";
 import ExpandedRowDetail from "../../build/components/table-view/ExpandedRowDetail.vue";
@@ -197,6 +199,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   source?: TableViewSourceConfig;
   /** Rows ordered by hand on a number column (backend `reorder`). */
   reorder?: TableViewReorderConfig;
+  /** Rows listed first whatever the sort (backend `pinnedRows`). */
+  pinnedRows?: RowActionRule;
   /** Footer texts and figures: row count, hint, summaries and legend. */
   footer?: TableViewFooter;
   /** What the empty body says, per reason it is empty. */
@@ -483,9 +487,10 @@ const defaultSortKind = tableDefaultSort
     )
   : undefined;
 const sorting = ref<SortingState>(
-  sanitizeSorting(
+  sortingOrDefault(
     tablePreferences.get<SortingState>("sorting", defaultSortState),
     declaredSortableIds,
+    defaultSortState,
   ),
 );
 
@@ -657,6 +662,8 @@ const tableRows = useTableRows<T>({
     routeParams: props.routeParams,
     routeQuery: route.query as Record<string, unknown>,
   }),
+  // Groups keep their rows together: the grouped display pins nothing.
+  pinnedRows: () => (isGroupedDisplay.value ? undefined : props.pinnedRows),
 });
 // Quick filters: dropdowns of the toolbar over a column's values (a select's
 // items, a boolean, the rows a relation points to), writing that column's
@@ -875,18 +882,27 @@ watch(listLoadError, (message) => {
 });
 
 // Whatever sets the sort (a header, the sort menu, a pasted table config), the
-// route only ever receives a sort it accepts. A new order lists from page 1:
+// route only ever receives a sort it accepts, and a cleared sort goes back to
+// the default one rather than being remembered empty. A new order lists from page 1:
 // the page reached in the previous order shows unrelated rows in the new one.
 // Synchronous, so the list is queried once, with both changes.
 watch(
   sorting,
   (next, previous) => {
-    const sanitized = sanitizeSorting(next, sortableIds.value);
+    const sanitized = sortingOrDefault(
+      next,
+      sortableIds.value,
+      defaultSortState,
+    );
     if (!isSameSorting(sanitized, next)) {
       sorting.value = sanitized;
       return;
     }
-    const before = sanitizeSorting(previous, sortableIds.value);
+    const before = sortingOrDefault(
+      previous,
+      sortableIds.value,
+      defaultSortState,
+    );
     if (
       !isSameSorting(sanitized, before) &&
       paginationState.value.pageIndex !== 0

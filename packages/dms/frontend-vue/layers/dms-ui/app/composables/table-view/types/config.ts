@@ -2,6 +2,7 @@ import type {
   FormContainer,
   FormPageUrls,
 } from "../../../build/composables/table-view/useTableViewConfig";
+import type { RowActionRule } from "#dms-core/app/types/row-action";
 import type { TableViewColumn } from "./column";
 import type { TableViewDisplayCapabilities } from "./display";
 import type { CustomButton } from "./custom-button";
@@ -283,6 +284,8 @@ export interface TableViewConfig<T extends Data>
   componentId?: string;
   pageId?: string;
   defaultSort?: { field: string; desc?: boolean };
+  /** Rows listed first whatever the sort: a rule on their fields. */
+  pinnedRows?: RowActionRule;
   queryParamFilters?: QueryParamFilters;
   routeParamFilters?: RouteParamFilters;
   routeParams?: Record<string, string>;

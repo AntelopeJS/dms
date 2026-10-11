@@ -113,6 +113,8 @@ export interface TableRowActionOptions {
   copyLink?: boolean | RowActionConfig;
   hasSelection?: boolean;
   custom?: CustomRowAction[];
+  /** Name of a row's ⋯ menu button, its `{field}` braces filled from the row. */
+  menuLabel?: string;
 }
 
 export interface NavItem {
@@ -149,6 +151,8 @@ export interface TableProps<T> {
   caption?: string;
 
   rowIdKey?: string;
+  /** Field naming a row: the default name of its ⋯ menu button. */
+  labelKey?: string;
   rowActions?: TableRowActionOptions;
   /**
    * What runs a row's click action: a double-click (the default) or a single

@@ -127,6 +127,12 @@ export interface CustomRowAction<
    * finds it by this id among the row's actions (`actions.customFor(row)`).
    */
   id?: string;
+  /**
+   * The action's name, its `{field}` braces filled from the row
+   * (`"Translate {name}"`), as `target`'s URL is. `$`: an i18n key, whose
+   * translation receives the row's fields as parameters. On the selection
+   * bar (`bulk`) it names several rows: keep row fields out of it there.
+   */
   label: string;
   icon?: string;
   target: ActionTarget;

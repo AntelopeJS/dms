@@ -270,6 +270,34 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     ).to.throw(/needs the edit action/);
   });
 
+  it("serves the pinned rows and the row menu's label, from a source and a controller", () => {
+    const pinnedRows = { field: "isBase", equals: true };
+    const source = sourceOf({
+      pinnedRows,
+      rowActions: { menuLabel: "Actions for {path}" },
+    });
+    expect(source.pinnedRows).to.deep.equal(pinnedRows);
+    expect(source.rowActions?.menuLabel).to.equal("Actions for {path}");
+    const options = optionsOf({
+      pinnedRows: { field: "name", equals: "Roadmap" },
+      rowActions: { menuLabel: "$features.row_menu" },
+    });
+    expect(options.pinnedRows).to.deep.equal({
+      field: "name",
+      equals: "Roadmap",
+    });
+    expect(options.rowActions?.menuLabel).to.equal("$features.row_menu");
+  });
+
+  it("refuses pinned rows on a table ordered by hand", () => {
+    expect(() =>
+      optionsOf({
+        reorder: { field: "position" },
+        pinnedRows: { field: "name", equals: "Roadmap" },
+      }),
+    ).to.throw(/excludes pinnedRows/);
+  });
+
   it("types a guard's `this` as the data controller it runs with", async () => {
     const reached: FeatureModel[] = [];
     const guards: FeatureOptions["guards"] = {
