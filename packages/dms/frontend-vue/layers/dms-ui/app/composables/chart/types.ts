@@ -106,6 +106,8 @@ export interface TopListItem {
   title: BlockText;
   description?: BlockText;
   value: number;
+  /** The value as written, in place of the formatted one. */
+  valueLabel?: BlockText;
   delta?: number | null;
   sparkline?: number[];
   icon?: string;

@@ -22,6 +22,7 @@ import type {
   ValuePrecision,
 } from "../../composables/chart/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 
 interface Props extends DefaultComponentProps {
   title: string;
@@ -32,6 +33,8 @@ interface Props extends DefaultComponentProps {
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
+  /** Unit after each formatted value, space included (" ms"); `$` key or literal. */
+  valueSuffix?: string;
   showRank?: boolean;
   highlightTopN?: number;
   rankColor?: UiColor;
@@ -100,6 +103,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { locale, t } = useI18n();
 const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 useComponentEvent(props.componentId);
 const { state: watchState } = useWatch(
   props.watchActions || [],
@@ -167,14 +171,20 @@ function barClass(index: number): string {
   return `${rankFillClass.value} ${QUIET_BAR_OPACITY_CLASS}`;
 }
 
+const valueSuffixText = computed(() =>
+  props.valueSuffix ? processI18n(props.valueSuffix) : "",
+);
+
 function formattedValue(item: TopListItem): string {
-  return formatValue(
+  if (item.valueLabel) return processText(item.valueLabel);
+  const formatted = formatValue(
     item.value,
     props.valueFormat,
     locale.value,
     props.currencyCode,
     props.valuePrecision,
   );
+  return `${formatted}${valueSuffixText.value}`;
 }
 
 function sparklineAccentFor(item: TopListItem): string {
