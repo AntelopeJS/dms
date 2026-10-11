@@ -148,10 +148,16 @@ onMounted(() => {
             :key="row"
             :class="[TILE_ROW_CLASS, 'py-2.5']"
           >
-            <USkeleton class="size-8 rounded-full" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="size-8 rounded-full"
+            />
             <span class="grid gap-1.5">
-              <USkeleton class="h-3.5 w-32" />
-              <USkeleton class="h-3 w-44" />
+              <USkeleton
+                :aria-label="t('dms.a11y.loading')"
+                class="h-3.5 w-32"
+              />
+              <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-44" />
             </span>
           </li>
         </template>

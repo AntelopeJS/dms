@@ -196,7 +196,11 @@ const isStat = computed(() => props.variant === "stat");
       />
     </div>
     <!-- The value's placeholder takes its 33px line. -->
-    <USkeleton v-if="isFirstLoad" class="mt-1 h-[33px] w-32" />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      v-if="isFirstLoad"
+      class="mt-1 h-[33px] w-32"
+    />
     <div
       v-else-if="hasError"
       class="mt-auto flex items-center justify-between gap-2"
@@ -242,13 +246,17 @@ const isStat = computed(() => props.variant === "stat");
     >
       <div class="grid">
         <div v-if="showDelta" class="flex h-6 items-center">
-          <USkeleton class="h-3 w-[58px]" />
+          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-[58px]" />
         </div>
         <div v-if="footnote" class="flex h-4 items-center">
-          <USkeleton class="h-2.5 w-28" />
+          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-2.5 w-28" />
         </div>
       </div>
-      <USkeleton v-if="showSparkline" class="ml-auto h-[34px] w-24" />
+      <USkeleton
+        :aria-label="t('dms.a11y.loading')"
+        v-if="showSparkline"
+        class="ml-auto h-[34px] w-24"
+      />
     </div>
     <!-- The trend's line holds its place, as in the skeleton, while there is
          no change to show (no comparison period): no "0%" stand-in, and

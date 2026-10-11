@@ -251,7 +251,12 @@ const gridStyle = computed(() => ({
         <UBadge v-if="badgeLabel" :color="badgeColor" variant="soft" size="sm">
           {{ badgeLabel }}
         </UBadge>
-        <USkeleton v-else class="h-5 w-16 rounded-[5px]" aria-hidden="true" />
+        <USkeleton
+          :aria-label="t('dms.a11y.loading')"
+          v-else
+          class="h-5 w-16 rounded-[5px]"
+          aria-hidden="true"
+        />
       </template>
     </DmsSectionHeader>
 
@@ -308,15 +313,23 @@ const gridStyle = computed(() => ({
           class="flex h-14 items-center gap-3 px-[18px]"
         >
           <USkeleton
+            :aria-label="t('dms.a11y.loading')"
             v-if="showRank"
             class="size-[26px] shrink-0 rounded-[7px]"
           />
           <div class="grid flex-1 gap-1.5">
-            <USkeleton class="h-3 w-2/5" />
-            <USkeleton class="h-2.5 w-1/4" />
+            <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-2/5" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="h-2.5 w-1/4"
+            />
           </div>
-          <USkeleton class="h-3 w-14" />
-          <USkeleton v-if="showDelta" class="h-3 w-[46px]" />
+          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-14" />
+          <USkeleton
+            :aria-label="t('dms.a11y.loading')"
+            v-if="showDelta"
+            class="h-3 w-[46px]"
+          />
         </div>
       </div>
     </div>

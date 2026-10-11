@@ -192,6 +192,7 @@ onMounted(loadSessions);
 
     <div v-if="isLoading" class="grid gap-3 px-[18px] py-4">
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-for="index in SKELETON_COUNT"
         :key="index"
         class="h-10 w-full"

@@ -115,6 +115,8 @@ function onContentPending() {
 function onContentResolve() {
   isContentLoading.value = false;
 }
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -191,8 +193,14 @@ function onContentResolve() {
                 :key="field"
                 class="flex flex-col gap-2"
               >
-                <USkeleton class="h-3 w-24" />
-                <USkeleton class="h-8 w-full" />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-3 w-24"
+                />
+                <USkeleton
+                  :aria-label="t('dms.a11y.loading')"
+                  class="h-8 w-full"
+                />
               </div>
             </div>
           </template>

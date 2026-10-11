@@ -73,6 +73,11 @@ function fetchError(status: number | undefined, data?: unknown) {
   });
 }
 
+const shownRows = [
+  { _id: "t1", name: "Write the report" },
+  { _id: "t2", name: "Review the draft" },
+];
+
 async function rowActions() {
   const { useTableRowActions } = await import(
     "../layers/dms-ui/app/build/composables/table-view/useTableViewRowActions"
@@ -84,6 +89,7 @@ async function rowActions() {
     pageId: "tasks",
     formComponents: {},
     refreshCallback: refresh,
+    rowNavigation: { rows: () => shownRows, rowIdKey: "_id" },
   });
 }
 
@@ -296,6 +302,26 @@ describe("Table row actions: refusals", () => {
       method: HttpMethod.delete,
       query: { id: ["t1"] },
     });
+  });
+
+  it("words a fixed dialog with the fields of the one row it deletes", async () => {
+    api.mockResolvedValue(1);
+    const { deleteRows } = await rowActions();
+
+    await deleteRows(["t1"], { confirm: { title: "Delete {name}?" } });
+
+    expect(dialogs[0]!.options.title).toBe("Delete Write the report?");
+  });
+
+  it("words a fixed dialog with the count of the rows it deletes", async () => {
+    api.mockResolvedValue(2);
+    const { deleteRows } = await rowActions();
+
+    await deleteRows(["t1", "t2"], {
+      confirm: { title: "Delete {count} tasks?" },
+    });
+
+    expect(dialogs[0]!.options.title).toBe("Delete 2 tasks?");
   });
 
   it("keeps the generic confirmation for several rows of a `from` dialog", async () => {

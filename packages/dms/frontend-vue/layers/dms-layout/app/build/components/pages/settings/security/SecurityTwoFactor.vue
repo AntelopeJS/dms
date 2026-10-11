@@ -398,6 +398,7 @@ async function markSaved(): Promise<void> {
   >
     <template #badge>
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="!status"
         aria-hidden="true"
         class="h-5 w-12 rounded-full"
@@ -419,11 +420,17 @@ async function markSaved(): Promise<void> {
       <template #label>
         <DmsListRow bare>
           <span class="flex h-[1lh]">
-            <USkeleton class="my-auto h-3 w-36" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="my-auto h-3 w-36"
+            />
           </span>
           <template #meta>
             <span class="flex h-[1lh]">
-              <USkeleton class="my-auto h-2.5 w-64 max-w-full" />
+              <USkeleton
+                :aria-label="t('dms.a11y.loading')"
+                class="my-auto h-2.5 w-64 max-w-full"
+              />
             </span>
           </template>
         </DmsListRow>
@@ -518,8 +525,16 @@ async function markSaved(): Promise<void> {
     </template>
 
     <template v-if="!status" #footer>
-      <USkeleton aria-hidden="true" class="h-3 w-56" />
-      <USkeleton aria-hidden="true" class="ms-auto h-7 w-36" />
+      <USkeleton
+        :aria-label="t('dms.a11y.loading')"
+        aria-hidden="true"
+        class="h-3 w-56"
+      />
+      <USkeleton
+        :aria-label="t('dms.a11y.loading')"
+        aria-hidden="true"
+        class="ms-auto h-7 w-36"
+      />
     </template>
     <template v-else #footer>
       <span class="flex items-center gap-1.5 text-xs">

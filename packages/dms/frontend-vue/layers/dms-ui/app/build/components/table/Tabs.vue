@@ -196,6 +196,7 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
         {{ tab.label }}
       </span>
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="tab.countPending"
         aria-hidden="true"
         :class="ui.countPlaceholder()"

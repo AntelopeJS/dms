@@ -40,7 +40,11 @@ const isVNodeValue = computed(() => isVNode(formattedValue.value));
 </script>
 
 <template>
-  <USkeleton v-if="loading" class="h-9 w-full" />
+  <USkeleton
+    :aria-label="t('dms.a11y.loading')"
+    v-if="loading"
+    class="h-9 w-full"
+  />
 
   <Component
     :is="dedicatedComponent"

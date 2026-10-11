@@ -25,6 +25,7 @@ const { t } = useI18n();
           <!-- The variables are read after mount: a placeholder holds
                the count's place until then. -->
           <USkeleton
+            :aria-label="t('dms.a11y.loading')"
             v-if="cssVariableCount === null"
             aria-hidden="true"
             class="inline-block h-2.5 w-20 align-middle"
