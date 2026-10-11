@@ -27,8 +27,10 @@ import {
   rowNavigation,
 } from "./rowNavigation";
 import {
+  clearWrittenRecord,
   isDeepLinkAction,
   writeRecordId,
+  type WrittenRecord,
 } from "../table-view/utils/recordLink";
 import {
   closeRowSidePanel,
@@ -245,13 +247,20 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   // A deep-linked action keeps the row it has open in the URL; `undefined`
-  // removes it.
-  const rowRecorder =
-    (deepLink?: boolean) =>
-    (row?: Data): void => {
+  // removes it, but only the row this run wrote, on the page it wrote it:
+  // closing as the user navigates leaves the next page's `?record=` alone.
+  const rowRecorder = (deepLink?: boolean) => {
+    let written: WrittenRecord | undefined;
+    return (row?: Data): void => {
       if (!deepLink || !config.recordScope || !config.rowNavigation) return;
-      writeRecordId(config.recordScope, rowIdOf(row));
+      if (!row) {
+        clearWrittenRecord(written);
+        written = undefined;
+        return;
+      }
+      written = writeRecordId(config.recordScope, rowIdOf(row));
     };
+  };
 
   const ownerKey = rowSidePanelOwnerKey(config.pageId, config.componentId);
 

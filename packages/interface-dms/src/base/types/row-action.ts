@@ -170,7 +170,9 @@ export interface CustomRowAction<
   /**
    * The drawer, modal or side panel the action opens is reflected in the URL
    * (`?record=<id>`, `?<tableId>.record=<id>` on a page with several table
-   * views): a link or a reload opens it again on that row.
+   * views): a link or a reload opens it again on that row. Off by default
+   * for a drawer or a modal; on by default for a side panel, which
+   * `deepLink: false` opts out of.
    */
   deepLink?: boolean;
 }

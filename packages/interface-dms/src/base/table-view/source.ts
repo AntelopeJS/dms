@@ -123,6 +123,9 @@ export interface TableViewSourceOptions extends Pick<
    * request beyond the first page — opens through it; the side panel or
    * drawer then shows the row without its position among the rows shown.
    * Without it, a deep link opens only a listed row.
+   *
+   * It is sent no query: one row by id depends on no period, filter, search
+   * or page, so a `PeriodSelector` scoping the table does not reach it.
    * @example "/api/requests/{id}"
    */
   fetchRowUrl?: string;

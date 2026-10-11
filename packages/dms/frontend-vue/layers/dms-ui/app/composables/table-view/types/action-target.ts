@@ -9,7 +9,7 @@ export interface SidePanelTargetOptions {
    * `{ index }` (from 1) and `{ total }`.
    */
   positionLabel?: string;
-  /** The open row is kept in the URL (`?record=`), like the action's `deepLink`. */
+  /** The open row is kept in the URL (`?record=`): on unless `false`. */
   deepLink?: boolean;
 }
 

@@ -372,13 +372,48 @@ describe("row side panel deep link", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("honours the action's own deepLink too, and leaves the URL alone without one", async () => {
+  it("keeps the row in the URL by default, deepLink: false opting out", async () => {
+    expect(isDeepLinkAction(panelAction())).toBe(true);
+    expect(isDeepLinkAction(panelAction({ deepLink: false }))).toBe(false);
+    expect(isDeepLinkAction(panelAction({}, { deepLink: false }))).toBe(false);
+    expect(
+      isDeepLinkAction(panelAction({ deepLink: false }, { deepLink: true })),
+    ).toBe(true);
+    const drawer = panelAction({
+      type: "drawer",
+    } as Partial<CustomRowAction["target"]>);
+    expect(isDeepLinkAction(drawer)).toBe(false);
+
     const { targets } = mountPanel();
-    expect(isDeepLinkAction(panelAction({}, { deepLink: true }))).toBe(true);
-    expect(isDeepLinkAction(panelAction())).toBe(false);
     targets.handleCustomRowAction(panelAction(), rows[0]);
     await settle();
+    expect(window.location.search).toBe("?record=r1");
+    closeRowSidePanel();
+    targets.handleCustomRowAction(panelAction({ deepLink: false }), rows[0]);
+    await settle();
     expect(window.location.search).toBe("");
+  });
+
+  it("leaves the next page's ?record= alone when it closes on the way out", async () => {
+    const { targets, showTable } = mountPanel();
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    expect(window.location.search).toBe("?record=r1");
+    window.history.pushState(null, "", "/runs?record=run-5");
+    showTable.value = false;
+    await settle();
+    expect(useRowSidePanelContent().value).toBeNull();
+    expect(window.location.pathname).toBe("/runs");
+    expect(window.location.search).toBe("?record=run-5");
+  });
+
+  it("leaves a ?record= another row wrote on the same page alone", async () => {
+    const { targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    window.history.replaceState(null, "", "/requests?record=other");
+    closeRowSidePanel();
+    expect(window.location.search).toBe("?record=other");
   });
 });
 

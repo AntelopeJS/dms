@@ -17,15 +17,15 @@ export interface SidePanelTargetOptions {
   /**
    * Position of the open row among the rows the table shows, drawn under the
    * title: an i18n key (`$`-prefixed) receiving `{ index }` (from 1) and
-   * `{ total }`, e.g. `"$api.drawer.position"` for "Request {index} of
+   * `{ total }`, e.g. `"$api.request.position"` for "Request {index} of
    * {total} shown". Defaults to the DMS's generic "{index} of {total}".
    */
   positionLabel?: string;
   /**
    * The open row is kept in the URL (`?record=<id>`, `?<tableId>.record=<id>`
    * on a page with several table views): a link or a reload opens the panel
-   * again on that row, and closing it removes the key. The same as the
-   * action's own `deepLink`.
+   * again on that row, and closing it removes the key. On by default for a
+   * side panel: `false` opts out. The action's own `deepLink` wins when set.
    */
   deepLink?: boolean;
 }

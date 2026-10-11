@@ -202,7 +202,8 @@ export function useTableRows<T extends Record<string, unknown>>(
     return Object.fromEntries(totals);
   };
 
-  // A source reads one row through its `fetchRowUrl`, if it declares one.
+  // A source reads one row through its `fetchRowUrl`, if it declares one. It
+  // sends no list query, the period included: one row by id depends on none.
   const getSourceRow = (
     sourceConfig: TableViewSourceConfig,
     id: string,

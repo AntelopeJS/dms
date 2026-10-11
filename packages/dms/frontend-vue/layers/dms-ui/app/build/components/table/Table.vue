@@ -37,7 +37,7 @@ import type {
   FormPageUrls,
 } from "../../composables/table-view/useTableViewConfig";
 import type { CustomRowAction } from "../../../types/row-action";
-import type { TableRowClick } from "../../utils/rowClickTrigger";
+import type { TableViewRowClick } from "../../utils/rowClickTrigger";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./Tabs.vue";
 import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
@@ -154,7 +154,7 @@ export interface TableProps<T> {
    * What runs a row's click action: a double-click (the default) or a single
    * click (`"single"`). See `isRowClickTrigger`.
    */
-  rowClick?: TableRowClick;
+  rowClick?: TableViewRowClick;
   /** Id of the row a side panel has open: the grid highlights it. */
   openRowId?: string;
   customNavItems?: NavItem[];
