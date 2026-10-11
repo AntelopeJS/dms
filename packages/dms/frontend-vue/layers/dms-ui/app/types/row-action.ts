@@ -24,7 +24,10 @@ export interface CustomRowAction {
   isVisible?: boolean;
   /** Legacy spelling of `isVisible`, still honoured. */
   visible?: boolean;
-  /** Preferred row-click target when its rule accepts the row. */
+  /**
+   * Preferred row-click target when its rule accepts the row: a double-click,
+   * or a single click on a table with `rowClick: "single"`.
+   */
   isDefault?: boolean;
   /** Color of the inline button or menu entry. */
   color?: ColorValue;
@@ -34,6 +37,6 @@ export interface CustomRowAction {
   showLabel?: boolean;
   /** Offered on the selection bar too. */
   bulk?: CustomRowActionBulk;
-  /** The drawer or modal it opens is reflected in the URL (`?record=`). */
+  /** The drawer, modal or side panel it opens is reflected in the URL (`?record=`). */
   deepLink?: boolean;
 }

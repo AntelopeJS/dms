@@ -4,6 +4,32 @@ import type { ModalSize } from "./size";
 /** The edge of the window a `drawer` action target slides in from. */
 export type DrawerDirection = "top" | "right" | "bottom" | "left";
 
+/**
+ * What a `sidePanel` action target sets besides its component, shared by the
+ * declared and the serialized target.
+ */
+export interface SidePanelTargetOptions {
+  /**
+   * Title of the panel header. `$`-prefixed: an i18n key. Defaults to the
+   * action's label.
+   */
+  title?: string;
+  /**
+   * Position of the open row among the rows the table shows, drawn under the
+   * title: an i18n key (`$`-prefixed) receiving `{ index }` (from 1) and
+   * `{ total }`, e.g. `"$api.drawer.position"` for "Request {index} of
+   * {total} shown". Defaults to the DMS's generic "{index} of {total}".
+   */
+  positionLabel?: string;
+  /**
+   * The open row is kept in the URL (`?record=<id>`, `?<tableId>.record=<id>`
+   * on a page with several table views): a link or a reload opens the panel
+   * again on that row, and closing it removes the key. The same as the
+   * action's own `deepLink`.
+   */
+  deepLink?: boolean;
+}
+
 export type ActionTarget =
   | {
       type: "drawer";
@@ -24,6 +50,19 @@ export type ActionTarget =
       title?: string;
       description?: string;
     }
+  | ({
+      /**
+       * A non-modal panel docked on the right of the page, next to the table,
+       * which stays usable. The DMS draws its header: the title, the row's
+       * position among the rows shown ("3 of 20"), previous and next buttons
+       * (J and K too) and a close button (Esc too). Its component receives the
+       * same props as a drawer's (`rowData`, `navigation`…), and is mounted
+       * anew on each row. One panel is open at a time: opening it closes a
+       * module's side panel, and the other way round.
+       */
+      type: "sidePanel";
+      component: Component;
+    } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   | {
@@ -88,6 +127,19 @@ export type ActionTargetSerialized =
       title?: string;
       description?: string;
     }
+  | ({
+      /**
+       * A non-modal panel docked on the right of the page, next to the table,
+       * which stays usable. The DMS draws its header: the title, the row's
+       * position among the rows shown ("3 of 20"), previous and next buttons
+       * (J and K too) and a close button (Esc too). Its component receives the
+       * same props as a drawer's (`rowData`, `navigation`…), and is mounted
+       * anew on each row. One panel is open at a time: opening it closes a
+       * module's side panel, and the other way round.
+       */
+      type: "sidePanel";
+      component: ComponentInfoSerialized;
+    } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   | {

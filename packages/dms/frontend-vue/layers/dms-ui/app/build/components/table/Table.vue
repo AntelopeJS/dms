@@ -37,6 +37,7 @@ import type {
   FormPageUrls,
 } from "../../composables/table-view/useTableViewConfig";
 import type { CustomRowAction } from "../../../types/row-action";
+import type { TableRowClick } from "../../utils/rowClickTrigger";
 import type { RowActionConfig } from "#dms-core/app/types/row-action";
 import type { TableTabItem } from "./Tabs.vue";
 import type { ColumnDisplay } from "../../composables/data-types/useColumnValueRenderer";
@@ -149,6 +150,13 @@ export interface TableProps<T> {
 
   rowIdKey?: string;
   rowActions?: TableRowActionOptions;
+  /**
+   * What runs a row's click action: a double-click (the default) or a single
+   * click (`"single"`). See `isRowClickTrigger`.
+   */
+  rowClick?: TableRowClick;
+  /** Id of the row a side panel has open: the grid highlights it. */
+  openRowId?: string;
   customNavItems?: NavItem[];
   tabs?: TableTabItem[];
   customButtons?: CustomButton[];
@@ -412,6 +420,7 @@ import {
 } from "../../composables/table/constants";
 import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
+import { isRowClickTrigger } from "../../utils/rowClickTrigger";
 
 // Same color as the surrounding card frame (.dms-card) so sticky
 // rail/pinned cells blend in instead of showing a contrasting block.
@@ -434,6 +443,12 @@ const ROW_HOVER_CELL_BG = "group-hover:bg-elevated";
 const ROW_SELECTED_BG = "data-[selected=true]:bg-primary/10";
 const ROW_SELECTED_CELL_BG =
   "group-data-[selected=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
+
+// The row a side panel has open: the hover tint, held, and an accent rule on
+// its leading edge.
+const ROW_OPEN_BG =
+  "data-[open=true]:bg-elevated data-[open=true]:shadow-[inset_2px_0_0_0_var(--ui-primary)]";
+const ROW_OPEN_CELL_BG = "group-data-[open=true]:bg-elevated";
 
 // An expanded row keeps the hover tint and hands its bottom rule to the detail
 // band below it.
@@ -501,7 +516,7 @@ const theme = tv({
     colResizer:
       "bg-primary/40 absolute right-0 top-0 z-10 h-full w-1 cursor-col-resize touch-none select-none opacity-0 hover:opacity-100",
 
-    row: `group ${ROW_SELECTED_BG} ${ROW_EXPANDED_BG}`,
+    row: `group ${ROW_SELECTED_BG} ${ROW_EXPANDED_BG} ${ROW_OPEN_BG}`,
     rowCell: `${FIRST_ROW_CELL_GUTTER} border-b-muted border-b h-11 px-3.5 py-0 text-[13px] last:pe-2.5 in-[tr:last-child]:border-b-0 group-data-[expanded=true]:border-b-transparent`,
     rowInternal: "transition-opacity duration-150",
     rowContainer: "relative",
@@ -560,11 +575,11 @@ const theme = tv({
     pinned: {
       left: {
         headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[2px_0_0_0_rgba(0,0,0,0.06)]`,
       },
       right: {
         headCell: `${HEADER_MATCH_BG} sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
-        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
+        rowCell: `${PANEL_MATCH_BG} ${ROW_SELECTED_CELL_BG} ${ROW_EXPANDED_CELL_BG} ${ROW_OPEN_CELL_BG} group-data-[presence=true]:bg-elevated sticky z-10 shadow-[-2px_0_0_0_rgba(0,0,0,0.06)]`,
       },
     },
     // Dense lists: 36px rows under a 32px header band.
@@ -1205,7 +1220,7 @@ const rowClickAction = (row: T): RowClickAction | undefined =>
 // lights up always opens something.
 const isRowClickable = (row: T): boolean => rowClickAction(row) !== undefined;
 
-const handleRowDoubleClick = (row: T) => {
+const runRowClickAction = (row: T) => {
   const action = rowClickAction(row);
   if (!action) return;
   if (typeof action === "string") {
@@ -1214,6 +1229,19 @@ const handleRowDoubleClick = (row: T) => {
   }
   props.onCustomRowAction?.(action, row);
 };
+
+// Both events reach the row: `rowClick` tells which one runs its action.
+const handleRowPointer = (event: MouseEvent, row: T) => {
+  if (!isRowClickTrigger(props.rowClick, event)) return;
+  runRowClickAction(row);
+};
+
+const isOpenRow = (row: T): boolean =>
+  props.openRowId !== undefined &&
+  String(get(row, rowIdKey)) === props.openRowId;
+
+const isSingleClickRow = (row: T): boolean =>
+  props.rowClick === "single" && isRowClickable(row);
 
 const presenceRailBackground = (row: T): string => {
   if (getRowPresence(row)) return PRESENCE_RAIL_ACTIVE_BG;
@@ -1472,20 +1500,24 @@ defineShortcuts({
                     <tr
                       :data-selected="row.getIsSelected()"
                       :data-expanded="row.getIsExpanded()"
+                      :data-open="isOpenRow(row.original) || undefined"
+                      :aria-current="isOpenRow(row.original) || undefined"
                       :data-presence="!!getRowPresence(row.original)"
                       :title="
                         getRowPresence(row.original)
                           ? presenceTooltipText(getRowPresence(row.original)!)
                           : undefined
                       "
-                      :class="
+                      :class="[
                         uiTable.row({
                           loading,
                           rowClickable: isRowClickable(row.original),
                           presence: !!getRowPresence(row.original),
-                        })
-                      "
-                      @dblclick="handleRowDoubleClick(row.original)"
+                        }),
+                        { 'cursor-pointer': isSingleClickRow(row.original) },
+                      ]"
+                      @click="handleRowPointer($event, row.original)"
+                      @dblclick="handleRowPointer($event, row.original)"
                       @mouseenter="handleRowHover(row)"
                       @mouseleave="handleRowLeave"
                       @dragover="reorderHandles.allowDrop"

@@ -83,3 +83,20 @@ export function listenRowSteps(current: () => RowNavigation | undefined) {
   window.addEventListener("keydown", onKey);
   return () => window.removeEventListener("keydown", onKey);
 }
+
+const CLOSE_KEY = "Escape";
+
+/**
+ * Escape closes a row's side panel, unless the user types in a field or a
+ * layer above it (a dialog, a menu) already handled the key. Returns the
+ * listener's removal.
+ */
+export function listenRowPanelClose(close: () => void) {
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key !== CLOSE_KEY || event.defaultPrevented) return;
+    if (isTypingTarget(event.target)) return;
+    close();
+  };
+  window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
+}

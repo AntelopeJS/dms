@@ -30,6 +30,11 @@ A button or row action (`customButtons`, `rowActions.custom`, a page's `headerAc
 points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
 `direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your
 own drawer in a `CustomComponent`.
+To read rows one after the other next to the table (a request log), use a `sidePanel`
+target instead: a non-modal panel docked on the right whose header the DMS draws (title,
+`positionLabel` "x of y", previous / next, J / K, close), with `deepLink` and the table's
+`rowClick: "single"` — never bridge the table's DOM to build one —
+`docs/04.components/06.tables/8.row-drawers.md#side-panel`.
 
 ## DataTypes
 

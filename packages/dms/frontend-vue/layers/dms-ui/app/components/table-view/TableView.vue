@@ -8,7 +8,12 @@ import type {
   Table,
   VisibilityState,
 } from "@tanstack/vue-table";
-import { refDebounced, useActiveElement, watchDebounced } from "@vueuse/core";
+import {
+  refDebounced,
+  until,
+  useActiveElement,
+  watchDebounced,
+} from "@vueuse/core";
 import {
   QUICK_ACTION_BUTTON_KEY,
   QUICK_ACTION_COMPONENT_KEY,
@@ -71,7 +76,14 @@ import {
 import { selectedRowIds } from "../../build/composables/table-view/utils/bulkActions";
 import { isBulkAction } from "../../build/composables/actions/bulkSelection";
 import { selectionScopeKey } from "../../build/utils/selectionScope";
-import { readRecordId } from "../../build/composables/table-view/utils/recordLink";
+import {
+  isDeepLinkAction,
+  readRecordId,
+} from "../../build/composables/table-view/utils/recordLink";
+import {
+  rowSidePanelOwnerKey,
+  useRowSidePanelContent,
+} from "#dms-layout/app/build/composables/layout/rowSidePanel";
 import type { CustomRowAction } from "../../types/row-action";
 import {
   type QuickFilterItem,
@@ -1599,19 +1611,31 @@ watch(rowSelect, (selection) => {
   if (Object.keys(selection).length === 0) allMatching.value = false;
 });
 
-// A deep-linked action reopens on the row the URL names, listed or not.
+// A deep-linked action reopens on the row the URL names, listed or not. A
+// list still loading is waited for: a source table has no route to read one
+// row from.
 const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
-  (action) => action.deepLink,
+  isDeepLinkAction,
 );
 const openRecordFromUrl = async () => {
   const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
   if (!deepLinkAction || !id) return;
+  await until(isListLoading).toBe(false);
   const listed = shownResults.value?.find((row) => getRowId(row) === id);
   const row = listed ?? (await tableRows.getRow(id).catch(() => undefined));
   if (row) handleCustomRowAction(deepLinkAction, row as Data);
 };
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
+
+// The row a side panel has open, which the grid highlights.
+const rowSidePanel = useRowSidePanelContent();
+const rowSidePanelOwner = rowSidePanelOwnerKey(pageId!, componentId!);
+const openRowId = computed(() =>
+  rowSidePanel.value?.ownerKey === rowSidePanelOwner
+    ? rowSidePanel.value.rowKey
+    : undefined,
+);
 
 const isRowActionEnabled = (
   config: boolean | RowActionConfig | undefined,
@@ -2004,6 +2028,7 @@ onMounted(() => {
     :bulk-actions="bulkCustomActions"
     v-model:all-matching="allMatching"
     :presence-by-row="presenceByRowFiltered"
+    :open-row-id="openRowId"
     @add="handleRowAdd"
     @refresh="refreshAll"
     @details="handleRowClick"

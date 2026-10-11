@@ -1,3 +1,4 @@
+import type { CustomRowAction } from "../../../../types/row-action";
 import { readTableUrlKey, type TableUrlScope } from "./views";
 
 /** Query key of the row a `deepLink` action has open. */
@@ -29,4 +30,13 @@ export function writeRecordId(scope: TableUrlScope, id?: string): void {
   if (id) url.searchParams.set(key, id);
   else url.searchParams.delete(key);
   window.history.replaceState(window.history.state, "", url);
+}
+
+/**
+ * Whether an action keeps the row it opens in the URL: its own `deepLink`, or
+ * the `deepLink` of the side panel it opens.
+ */
+export function isDeepLinkAction(action: CustomRowAction): boolean {
+  if (action.deepLink) return true;
+  return action.target.type === "sidePanel" && !!action.target.deepLink;
 }

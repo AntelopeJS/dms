@@ -82,6 +82,7 @@ export interface TableViewSourceOptions extends Pick<
   | "layout"
   | "density"
   | "maxHeight"
+  | "rowClick"
   | "pageSize"
   | "pagination"
   | "emptyStates"
@@ -273,6 +274,7 @@ export function tableViewFromSource(
       layout: options.layout,
       density: options.density,
       maxHeight: options.maxHeight,
+      rowClick: options.rowClick,
       pageSize: options.pageSize,
       pagination: options.pagination,
       footer: options.footer,

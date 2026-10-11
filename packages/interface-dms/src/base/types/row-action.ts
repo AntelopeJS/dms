@@ -137,7 +137,8 @@ export interface CustomRowAction<
   /**
    * Makes this action the target of a row click, ahead of the built-in
    * `edit`/`details` fallbacks. The first flagged action whose `rule` accepts
-   * the row wins.
+   * the row wins. A double-click by default; a single click on a table view
+   * declaring `rowClick: "single"`.
    */
   isDefault?: boolean;
   /**
@@ -167,7 +168,7 @@ export interface CustomRowAction<
    */
   bulk?: CustomRowActionBulk;
   /**
-   * The drawer or modal the action opens is reflected in the URL
+   * The drawer, modal or side panel the action opens is reflected in the URL
    * (`?record=<id>`, `?<tableId>.record=<id>` on a page with several table
    * views): a link or a reload opens it again on that row.
    */
