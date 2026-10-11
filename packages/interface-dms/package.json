@@ -30,8 +30,9 @@
     "lint": "oxlint && oxfmt --check .",
     "lint:fix": "oxlint --fix --max-warnings=1000000 && oxfmt .",
     "format": "oxfmt .",
-    "prepack": "pnpm run build && pnpm run check:exports",
+    "prepack": "pnpm run build && pnpm run check:exports && pnpm run check:proxies",
     "check:exports": "node scripts/check-exports.mjs",
+    "check:proxies": "node scripts/check-proxies.mjs",
     "release": "release-it",
     "knip": "knip --dependencies",
     "knip:all": "knip"

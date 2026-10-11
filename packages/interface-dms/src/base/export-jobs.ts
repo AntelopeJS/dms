@@ -172,10 +172,19 @@ interface ErasedExportJobAccessOptions {
   isOwnedBy?: (record: ExportJob, context: never, user: User) => boolean;
 }
 
-const runExportJobProxy =
+/**
+ * The proxies behind the generic entry points below. `ImplementInterface`
+ * binds a proxy only by walking this subpath's exports, so a module-private
+ * proxy is never bound and every call to it waits forever. Not in an
+ * `internal` namespace: the `base` barrel already re-exports table-view's.
+ *
+ * @internal
+ */
+export const runExportJobProxy =
   InterfaceFunction<(options: ErasedRunExportJobOptions) => ExportJobTicket>();
 
-const getExportJobStatusProxy =
+/** @internal */
+export const getExportJobStatusProxy =
   InterfaceFunction<
     (
       ctx: RequestContext,
@@ -185,7 +194,8 @@ const getExportJobStatusProxy =
     ) => ExportJobStatus
   >();
 
-const downloadExportJobProxy =
+/** @internal */
+export const downloadExportJobProxy =
   InterfaceFunction<
     (
       ctx: RequestContext,
