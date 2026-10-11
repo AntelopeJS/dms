@@ -899,6 +899,10 @@
     "close": "Ne plus afficher"
   },
   "side_panel": {
-    "resize": "Redimensionner le panneau"
+    "resize": "Redimensionner le panneau",
+    "position": "{index} sur {total}",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "close": "Fermer"
   }
 }

@@ -319,6 +319,13 @@ export const TableViewSchema = z.object({
       ),
     { label: "Max height", group: "appearance" },
   ),
+  rowClick: ui(
+    z
+      .enum(["single", "double"])
+      .optional()
+      .describe("What runs a row's click action: a single or a double click."),
+    { label: "Row click", group: "features", widget: "segmented" },
+  ),
   expandable: ui(
     expandableSchema
       .optional()

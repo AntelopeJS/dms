@@ -469,6 +469,19 @@
         "delete": {
           "description": "Delete hovered row",
           "condition": "Only when enableRowDelete is enabled"
+        },
+        "j": {
+          "description": "Next row"
+        },
+        "k": {
+          "description": "Previous row"
+        },
+        "row_open": {
+          "condition": "While a row is open in a side panel, a drawer or a modal, outside a text field"
+        },
+        "panel_escape": {
+          "description": "Close the row side panel",
+          "condition": "While a row is open in a side panel, once the table has no search or selection to clear"
         }
       },
       "tab": {

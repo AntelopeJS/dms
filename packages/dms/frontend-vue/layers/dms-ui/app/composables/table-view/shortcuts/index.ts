@@ -23,6 +23,11 @@ import {
 } from "./tableViewShiftA";
 import { TABLE_VIEW_DELETE_METADATA } from "./tableViewDelete";
 import { TABLE_VIEW_SHIFT_F_METADATA } from "./tableViewShiftF";
+import {
+  TABLE_VIEW_J_METADATA,
+  TABLE_VIEW_K_METADATA,
+  TABLE_VIEW_PANEL_ESCAPE_METADATA,
+} from "./tableViewRowPanel";
 
 export const TABLE_VIEW_SHORTCUTS_METADATA = [
   TABLE_VIEW_META_R_METADATA,
@@ -31,6 +36,9 @@ export const TABLE_VIEW_SHORTCUTS_METADATA = [
   TABLE_VIEW_SHIFT_A_METADATA,
   TABLE_VIEW_DELETE_METADATA,
   TABLE_VIEW_SHIFT_F_METADATA,
+  TABLE_VIEW_J_METADATA,
+  TABLE_VIEW_K_METADATA,
+  TABLE_VIEW_PANEL_ESCAPE_METADATA,
 ];
 
 interface BuildTableViewShortcutsParams<T extends Data> {

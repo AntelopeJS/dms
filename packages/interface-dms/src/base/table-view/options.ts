@@ -142,6 +142,15 @@ export interface TableViewColumnsOptions {
 export type TableViewDensity = "default" | "compact";
 
 /**
+ * What runs a row's click action (its `isDefault` custom action, else `edit`
+ * or `details`): a double-click (`"double"`, the default), or a single click
+ * (`"single"`), for a list read row after row in a side panel. A single click
+ * on a control of the row (a button, a link, a checkbox) or one ending a text
+ * selection runs nothing.
+ */
+export type TableViewRowClick = "single" | "double";
+
+/**
  * Everything a view sets on the table when it is opened. What a view leaves
  * out falls back to the table's defaults, so opening a view always shows the
  * same rows the same way.
@@ -841,6 +850,12 @@ export interface TableViewOptions<
    * "60vh"), under a column header that stays in view while they scroll.
    */
   maxHeight?: string;
+  /**
+   * What runs the row's click action: a double-click by default, a single
+   * click with `"single"`. See {@link TableViewRowClick}.
+   * @example "single"
+   */
+  rowClick?: TableViewRowClick;
   /**
    * Expandable rows: a caret column in front of the content opens a detail
    * band under each row, listing `fields` or rendering `component`.

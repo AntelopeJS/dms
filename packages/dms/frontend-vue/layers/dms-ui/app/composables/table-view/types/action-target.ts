@@ -1,5 +1,18 @@
 import type { DrawerDirection } from "../../containers/types";
 
+/** What a `sidePanel` target sets besides its component (backend `SidePanelTargetOptions`). */
+export interface SidePanelTargetOptions {
+  /** Title of the panel header (`$`: an i18n key); the action's label else. */
+  title?: string;
+  /**
+   * The row's position under the title: an i18n key (`$`-prefixed) receiving
+   * `{ index }` (from 1) and `{ total }`.
+   */
+  positionLabel?: string;
+  /** The open row is kept in the URL (`?record=`): on unless `false`. */
+  deepLink?: boolean;
+}
+
 export type ActionTarget =
   | {
       type: "drawer";
@@ -16,6 +29,8 @@ export type ActionTarget =
       title?: string;
       description?: string;
     }
+  /** A non-modal panel docked on the right of the page, on a row. */
+  | ({ type: "sidePanel"; component: ComponentInfo } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
   /** Runs a quick action, by its `category:id` key or bare id. */

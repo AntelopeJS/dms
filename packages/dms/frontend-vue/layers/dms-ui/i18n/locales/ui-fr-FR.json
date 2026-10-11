@@ -470,6 +470,19 @@
         "delete": {
           "description": "Supprimer la ligne survolée",
           "condition": "Uniquement quand enableRowDelete est activé"
+        },
+        "j": {
+          "description": "Ligne suivante"
+        },
+        "k": {
+          "description": "Ligne précédente"
+        },
+        "row_open": {
+          "condition": "Quand une ligne est ouverte dans un panneau latéral, un tiroir ou une fenêtre, hors d'un champ de saisie"
+        },
+        "panel_escape": {
+          "description": "Fermer le panneau latéral de la ligne",
+          "condition": "Quand une ligne est ouverte dans un panneau latéral, une fois que la table n'a plus de recherche ni de sélection à effacer"
         }
       },
       "tab": {
