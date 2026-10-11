@@ -74,6 +74,20 @@ describe("FieldRow", () => {
     expect(body().className).toContain("py-4");
   });
 
+  it("spans both form columns with its control when it has no label", async () => {
+    await mount({ layout: "form" }, { default: () => h("input") });
+    expect(body().children).toHaveLength(1);
+    expect(body().firstElementChild!.className).toContain("col-span-full");
+  });
+
+  it("keeps a labelled control in the form's control column", async () => {
+    await mount(
+      { label: "Name", layout: "form" },
+      { default: () => h("input") },
+    );
+    expect(body().lastElementChild!.className).not.toContain("col-span-full");
+  });
+
   it("leaves the spacing to the list of a stacked form", async () => {
     await mount({
       label: "Name",

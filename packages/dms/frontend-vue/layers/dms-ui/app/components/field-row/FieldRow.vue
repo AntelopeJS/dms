@@ -107,15 +107,24 @@ const theme = tv({
     disabled: {
       true: { root: "opacity-55" },
     },
+    // Without a label cell, the control is the grid's only child: it spans
+    // both columns instead of falling into the form's 240px label column.
+    labeled: {
+      false: { control: "col-span-full" },
+    },
   },
 });
 
+const hasText = computed(
+  () => !!(props.label || props.description || slots.label || slots.details),
+);
 const ui = computed(() =>
   theme({
     layout: props.layout,
     inset: props.inset,
     spacing: props.spacing,
     disabled: props.disabled,
+    labeled: hasText.value,
   }),
 );
 const labelTag = computed(() => (props.labelFor ? "label" : "div"));
@@ -127,10 +136,7 @@ const { processI18n } = useTranslation();
 <template>
   <div :class="ui.root()">
     <div :class="ui.body()">
-      <div
-        v-if="props.label || props.description || slots.label || slots.details"
-        :class="ui.text()"
-      >
+      <div v-if="hasText" :class="ui.text()">
         <component
           :is="labelTag"
           v-if="props.label || slots.label"
