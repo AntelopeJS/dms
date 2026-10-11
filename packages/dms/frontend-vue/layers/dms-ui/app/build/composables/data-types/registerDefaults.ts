@@ -1,5 +1,5 @@
 import { registerFieldTypes } from "./registerFieldTypes";
-import { defineAsyncComponent, type VNode } from "vue";
+import { defineAsyncComponent, type VNode, type VNodeChild } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
@@ -10,6 +10,7 @@ import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
 import {
   isSet,
   readRowField,
+  readRowTone,
   readSubline,
   type Row,
   stringOf,
@@ -21,7 +22,7 @@ import { useComposedText } from "../../../../../dms-core/app/composables/transla
 import StatusPill, {
   type StatusPillVariant,
 } from "../../../components/status-pill/StatusPill.vue";
-import { isDmsTone } from "../../utils/tone";
+import { DMS_TONE_TEXT, isDmsTone } from "../../utils/tone";
 import IdentityCell from "../../components/table-view/IdentityCell.vue";
 import {
   firstNameOf,
@@ -738,6 +739,32 @@ const registerCellTypes = (registerDataType: (dataType: DataType) => void) => {
   });
 };
 
+interface TextOptions {
+  /** Row field holding the text's tone. */
+  toneField?: string;
+}
+
+/**
+ * `string`: the value as written, in the tone the row gives (`toneField`) when
+ * it gives one; a row without one keeps the bare value, as a string column
+ * always drew it.
+ */
+function renderText(
+  value: unknown,
+  _locale: string,
+  options?: unknown,
+  row?: Row,
+): unknown {
+  const tone = readRowTone(
+    row,
+    (options as TextOptions | undefined)?.toneField,
+  );
+  if (!tone) return value;
+  // The value stays the child, as the untoned cell returns it: a number or a
+  // list renders as it did, never as "[object Object]".
+  return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
+}
+
 const registerPrimitiveTypes = (
   registerDataType: (dataType: DataType) => void,
 ) => {
@@ -747,7 +774,7 @@ const registerPrimitiveTypes = (
   });
   registerDataType({
     id: "string",
-    formatter: { default: (value: unknown, _locale: string) => value },
+    formatter: { default: renderText },
   });
   registerDataType({
     id: "price",

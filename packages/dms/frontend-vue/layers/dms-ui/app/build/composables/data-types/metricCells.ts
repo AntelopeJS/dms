@@ -3,8 +3,14 @@ import type { DataType } from "#dms-core/app/composables/data-types/useDataType"
 import StatusPill from "../../../components/status-pill/StatusPill.vue";
 import MonoCell from "../../components/table/MonoCell.vue";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
-import { isDmsTone } from "../../utils/tone";
-import { readRowField, readSubline, toneClass, type Row } from "./cellHelpers";
+import {
+  readRowField,
+  readRowTone,
+  readSubline,
+  rowToneTextClass,
+  toneClass,
+  type Row,
+} from "./cellHelpers";
 
 const Sparkline = defineAsyncComponent(
   () => import("../../../components/chart/internal/Sparkline.vue"),
@@ -34,9 +40,7 @@ interface StatusPillOptions {
 
 // A row field that holds no known tone gives way to the column's map.
 function statusPillTone(opts: StatusPillOptions, key: string, row: Row) {
-  const rowTone = readRowField(row, opts.toneField);
-  if (typeof rowTone === "string" && isDmsTone(rowTone)) return rowTone;
-  return opts.tones?.[key] ?? "neutral";
+  return readRowTone(row, opts.toneField) ?? opts.tones?.[key] ?? "neutral";
 }
 
 /**
@@ -186,6 +190,17 @@ const withSymbol = (
 ): string =>
   `${new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value)} ${symbol}`;
 
+/** A duration always in milliseconds, its digits grouped: "2,149 ms". */
+export function formatMilliseconds(ms: number, locale: string): string {
+  const figure = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+    // `true` groups a four-digit figure too, where a locale's default (es,
+    // pl) would leave "2149" against "12.149" further down the column.
+    useGrouping: true,
+  }).format(ms);
+  return `${figure} ms`;
+}
+
 /**
  * A duration in its most readable unit: "910 ms", "1.8 s", "4 min 12 s",
  * "2 h 5 min".
@@ -225,8 +240,42 @@ export function formatBytes(bytes: number, locale: string): string {
   );
 }
 
-const figure = (text: string) =>
-  h("span", { class: [FIGURE_CLASS, "block text-right text-toned"] }, text);
+const FIGURE_TONE_CLASS = "text-toned";
+
+const figure = (text: string, toneClass = FIGURE_TONE_CLASS) =>
+  h("span", { class: [FIGURE_CLASS, "block text-right", toneClass] }, text);
+
+interface DurationOptions {
+  unit?: string;
+  /** `readable` (the default) or `ms`. */
+  format?: string;
+  /** Row field holding the figure's tone. */
+  toneField?: string;
+}
+
+const DURATION_FORMATS: Record<string, typeof formatDuration> = {
+  readable: formatDuration,
+  ms: formatMilliseconds,
+};
+
+/**
+ * `duration`: the figure in its most readable unit, or in milliseconds
+ * (`format: "ms"`), in the tone the row gives (`toneField`).
+ */
+function renderDuration(
+  value: unknown,
+  locale: string,
+  options: unknown,
+  row: Row,
+) {
+  const opts = (options ?? {}) as DurationOptions;
+  const ms = numberOf(value) * (DURATION_UNIT_MS[opts.unit ?? "ms"] ?? 1);
+  const format = DURATION_FORMATS[opts.format ?? "readable"] ?? formatDuration;
+  return figure(
+    format(ms, locale),
+    rowToneTextClass(row, opts.toneField, FIGURE_TONE_CLASS),
+  );
+}
 
 /**
  * Cell data types a column picks through its `display` option to draw a
@@ -259,15 +308,8 @@ export const registerMetricCellTypes = (
   registerDataType({
     id: "duration",
     formatter: {
-      default: (value, locale, options) => {
-        const unit = (options as { unit?: string } | undefined)?.unit ?? "ms";
-        return figure(
-          formatDuration(
-            numberOf(value) * (DURATION_UNIT_MS[unit] ?? 1),
-            locale,
-          ),
-        );
-      },
+      default: (value, locale, options, row) =>
+        renderDuration(value, locale, options, row),
     },
   });
   registerDataType({

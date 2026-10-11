@@ -50,7 +50,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
   `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row,
   and `IdentityDisplay({ iconField })` reads each row's tile icon from a row field.
-  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class),
+  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class);
+  `DurationDisplay({ toneField })` and `TextDisplay({ toneField })` colour their text with it (a slow
+  duration, an error message), and `DurationDisplay({ format: "ms" })` writes "2,149 ms" on every row;
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
   A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a
