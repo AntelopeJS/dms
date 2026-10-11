@@ -1,5 +1,6 @@
 import type { BlockText } from "#dms-core/app/types/composed-text";
 import type { BlockAction } from "#dms-ui/app/build/components/blocks/BlockActions.vue";
+import type { PageLiveOptions } from "#dms-ui/app/types/live";
 
 export type MenuItemType = "label" | "link";
 // MenuItemVariant / MenuItemStatus / MenuItemQuery live in dms-core, the layer
@@ -28,6 +29,8 @@ export interface MenuOptions {
   status?: MenuItemStatus;
   badge?: string;
   bypassTenantAccessGate?: boolean;
+  /** The page's Direct / Pause valve (see `PageLiveOptions`). */
+  live?: PageLiveOptions;
 }
 
 export interface CategoryInfo extends Omit<MenuOptions, "category"> {

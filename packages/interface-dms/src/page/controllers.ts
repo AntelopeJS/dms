@@ -167,6 +167,18 @@ function assertHasCategoryOrModule(
   }
 }
 
+// A rate the browser would read as "no cap" or as a busy loop is refused at
+// declaration, where the module author sees it, rather than ignored at run time.
+function assertValidLiveOptions(id: string, options: MenuOptions): void {
+  const maxRate = options.live?.maxRate;
+  if (maxRate === undefined) return;
+  if (!Number.isFinite(maxRate) || maxRate <= 0) {
+    throw new Error(
+      `Page "${id}" declares live.maxRate ${maxRate}: it must be a positive number of seconds.`,
+    );
+  }
+}
+
 export function Category(id: string, options: MenuOptions): CategoryInfo {
   assertHasCategoryOrModule(id, options, "Category");
   return createCategoryFunction(id, options);
@@ -178,6 +190,7 @@ export function PageController(
   layout?: ComponentInfo,
 ) {
   assertHasCategoryOrModule(id, options, "Page");
+  assertValidLiveOptions(id, options);
   const resolvedOptions = applyModuleResolution(id, options);
   const resolvedCategory = resolveCategoryInfo(resolvedOptions.category);
   validateNotInsideSettings(resolvedOptions.module, resolvedCategory);
@@ -198,6 +211,7 @@ export function RootPageController(
   },
   layout?: ComponentInfo,
 ) {
+  assertValidLiveOptions(id, options);
   const fullSlug = calculateFullSlug(id, options);
   const cl = class extends Controller(fullSlug) {};
 

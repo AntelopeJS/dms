@@ -974,6 +974,18 @@ export interface TableViewOptions<
    */
   realtimeTopic?: string | string[];
   /**
+   * On a page declared with `live`, keeps the rows on screen while the page is
+   * paused, through the user's own search, sort and pagination too, and shows
+   * a "N new · Show" banner counting the events the table received since.
+   * Show reads the rows once without leaving the pause.
+   *
+   * A `TableView.fromSource` route receives the moment the rows were frozen
+   * as `liveHeldAt` (ISO 8601) on every list and count request made while
+   * paused, so it can answer the rows as they stood then; a data controller's
+   * rows are held against the realtime only. Ignored on a page without `live`.
+   */
+  liveHold?: boolean;
+  /**
    * Enable the kanban display mode for this collection. When set, users can
    * switch between the table and a kanban board from the toolbar.
    */

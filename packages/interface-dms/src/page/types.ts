@@ -158,6 +158,34 @@ export interface ModuleInfo {
  */
 export type MemberAccess = boolean | "self";
 
+/**
+ * The Direct / Pause valve of a page's realtime (`MenuOptions.live`). It adds
+ * no transport: blocks keep their `realtimeTopic` and tables their
+ * `realtime`, and the page only decides when the events they receive turn
+ * into requests.
+ *
+ * - **Direct** (the default): a block or table refetches on its events as
+ *   usual, at most once per `maxRate` seconds. The last event of a burst is
+ *   never lost: it refetches when the interval ends.
+ * - **Pause**: nothing is requested on an event. Each block and table counts
+ *   the events it receives, and resuming refetches once each one that missed
+ *   any. A rolling period (`last-hour`, `last-24h`) stops sliding meanwhile.
+ *
+ * What the user asks for always reads, paused or not: a page header button, a
+ * form saved with `BlockFunctions.REFRESH_PAGE`, a table's row actions.
+ *
+ * The user switches with a `LiveToggle()` block, or the L key while one is on
+ * the page; the choice is kept per page in the browser. A table declared with
+ * `liveHold` keeps its rows while paused and offers to show what is new.
+ */
+export interface PageLiveOptions {
+  /**
+   * Shortest interval, in seconds, between two refetches of one block in
+   * Direct. Unset, a block refetches on each event, as without `live`.
+   */
+  maxRate?: number;
+}
+
 export interface MenuOptions {
   displayName: string;
   category?: CategoryInfo | ControllerClass;
@@ -226,6 +254,23 @@ export interface MenuOptions {
    * must still reach.
    */
   bypassTenantAccessGate?: boolean;
+  /**
+   * Gives the page a Direct / Pause state over the realtime of its blocks
+   * (see {@link PageLiveOptions}). A page without it refetches on every
+   * event, as before. Read on pages only: a category ignores it.
+   *
+   * ```ts
+   * export class RequestLogs extends PageController("logs", {
+   *   displayName: "Request logs",
+   *   module: "api",
+   *   live: { maxRate: 5 },
+   * }) {
+   *   static liveToggle = LiveToggle();
+   *   static table = TableView.fromSource({ ..., realtimeTopic: "api:requests", liveHold: true });
+   * }
+   * ```
+   */
+  live?: PageLiveOptions;
 }
 
 export interface CategoryInfo extends Omit<MenuOptions, "category"> {

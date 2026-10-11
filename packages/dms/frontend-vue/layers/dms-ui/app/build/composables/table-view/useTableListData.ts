@@ -18,6 +18,11 @@ export interface TableListDataOptions<T extends Record<string, unknown>> {
   archiveQuery: ComputedRef<Query>;
   /** A self-managed display (the kanban) reads its own rows. */
   isSelfManaged: ComputedRef<boolean>;
+  /**
+   * Added to each request when it leaves, never watched: the live hold's
+   * bound must not list the rows again by changing (see useTableLiveHold).
+   */
+  heldQuery?: () => Query;
 }
 
 /** One counter: its id and its list query, as the table view builds it. */
@@ -32,7 +37,11 @@ export interface TableCountsDataOptions<T extends Record<string, unknown>> {
   rows: TableRows<T>;
   queries: ComputedRef<TableCountRequest[]>;
   archiveQuery: ComputedRef<Query>;
+  /** Added to each request when it leaves, never watched (see the list's). */
+  heldQuery?: () => Query;
 }
+
+const NO_HELD_QUERY = (): Query => ({});
 
 const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
   results: [],
@@ -51,6 +60,7 @@ export function useTableListData<T extends Record<string, unknown>>(
   options: TableListDataOptions<T>,
 ) {
   const { rows, query, archiveQuery, isSelfManaged } = options;
+  const heldQuery = options.heldQuery ?? NO_HELD_QUERY;
   const key = buildTableDataKey({
     componentId: options.componentId,
     pageId: options.pageId,
@@ -65,7 +75,7 @@ export function useTableListData<T extends Record<string, unknown>>(
     (): Promise<TableViewListResponse<T> | null> =>
       isSelfManaged.value
         ? Promise.resolve(EMPTY_LIST_RESULT)
-        : rows.list({ ...query.value, ...archiveQuery.value }),
+        : rows.list({ ...query.value, ...archiveQuery.value, ...heldQuery() }),
     { watch: [query, archiveQuery, isSelfManaged, rows.sourceUrl] },
   );
 }
@@ -78,6 +88,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
   options: TableCountsDataOptions<T>,
 ) {
   const { rows, queries, archiveQuery } = options;
+  const heldQuery = options.heldQuery ?? NO_HELD_QUERY;
   const sourceSuffix = rows.sourceUrl.value ? `-${rows.sourceUrl.value}` : "";
   return useServerRenderedAsyncData<Record<string, number>>(
     `table-view-${options.componentId}-${options.pageId}-tab-counts${sourceSuffix}`,
@@ -86,7 +97,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
       return await rows.countBatch(
         queries.value.map(({ id, query }) => ({
           id,
-          query: { ...query, ...archiveQuery.value },
+          query: { ...query, ...archiveQuery.value, ...heldQuery() },
         })),
       );
     },

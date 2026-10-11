@@ -38,6 +38,10 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a `PeriodSelector`
   (which keeps its period in the page URL, `?<id>.period=`), and
   `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
+  A monitoring page that must not refetch on every event declares `live: { maxRate }` in its page options
+  and places a `LiveToggle()` (Direct / Pause, L key); `liveHold: true` keeps a table's rows while paused.
+  A custom component follows that state with `usePageLive()`; `refreshPageBlocks()` (user actions) always reads,
+  `refreshLivePageBlocks()` (timers, feeds) is held while paused.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.

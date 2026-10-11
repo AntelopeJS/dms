@@ -78,7 +78,7 @@ it("refreshes on each event of any of its topics, not on a snapshot", () => {
 
 it("wires the table view's realtimeTopic and page refresh to its refresh", () => {
   expect(tableViewSource).toMatch(/realtimeTopic\?: string \| string\[\];/);
-  expect(tableViewSource).toContain(
-    "useRefreshTriggers(props.realtimeTopic, () => void refreshAll());",
+  expect(tableViewSource).toMatch(
+    /const liveGate = useRefreshTriggers\(\s*props\.realtimeTopic,\s*\(\) => void refreshAll\(\),\s*\);/,
   );
 });
