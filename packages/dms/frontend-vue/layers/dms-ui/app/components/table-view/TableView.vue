@@ -182,6 +182,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   expandable?: TableViewExpandableConfig;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
+  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
+  searchShortcut?: string;
   /** One-click dropdown filters of the toolbar. */
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
@@ -1213,6 +1215,7 @@ const {
   handleCustomButton,
   handleCustomRowAction,
   handleBulkCustomAction,
+  handleMissingRow,
   runConfirmedBuiltIn,
 } = useTableRowActions<T>({
   api: $authFetch,
@@ -1643,12 +1646,13 @@ const openRecordFromUrl = async () => {
   const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
   if (!deepLinkAction || !id) return;
   await until(isListLoading).toBe(false);
-  const row = await resolveDeepLinkedRow(id, {
+  const { row, isMissing } = await resolveDeepLinkedRow(id, {
     listed: shownResults.value ?? undefined,
     idOf: getRowId,
     getRow: tableRows.getRow,
   });
   if (row) handleCustomRowAction(deepLinkAction, row as Data);
+  else if (isMissing) handleMissingRow(deepLinkAction, id);
 };
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
@@ -2029,6 +2033,7 @@ onMounted(() => {
     :reorder="reorderState"
     :views-placement="viewsLayout === 'menu' ? 'header' : 'band'"
     :search-placeholder="props.searchPlaceholder"
+    :search-shortcut="props.searchShortcut"
     :quick-filters="resolvedQuickFilters"
     :footer="resolvedFooter"
     :empty-states="props.emptyStates"

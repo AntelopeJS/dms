@@ -465,7 +465,8 @@
           "condition": "Uniquement quand enableRowSelection est activé"
         },
         "shift_f": {
-          "description": "Ouvrir/focus la barre de recherche"
+          "description": "Ouvrir/focus la barre de recherche",
+          "condition": "Sauf si le tableau nomme une autre touche (searchShortcut), comme /"
         },
         "delete": {
           "description": "Supprimer la ligne survolée",

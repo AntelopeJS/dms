@@ -298,6 +298,8 @@ export interface TableViewConfig<T extends Data>
   /** The controller declares `@Searchable` fields. */
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
+  searchShortcut?: string;
   quickFilters?: TableViewQuickFilter[];
   /** Rows per page while the user picked none. */
   pageSize?: number;

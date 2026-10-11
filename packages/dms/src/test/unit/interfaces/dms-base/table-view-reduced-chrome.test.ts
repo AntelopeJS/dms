@@ -172,6 +172,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         realtime: false,
         layout: "compact",
         searchPlaceholder: "$orders.search",
+        searchShortcut: "/",
         quickFilters: [{ field: "status" }],
         pageSize: 25,
         footer: { countLabel: "$orders.count", hint: "$orders.hint" },
@@ -180,6 +181,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     expect(options.layout).to.equal("compact");
     expect(options.searchable).to.equal(false);
     expect(options.searchPlaceholder).to.equal("$orders.search");
+    expect(options.searchShortcut).to.equal("/");
     expect(options.quickFilters).to.deep.equal([{ field: "status" }]);
     expect(options.pageSize).to.equal(25);
     expect(options.footer).to.deep.equal({

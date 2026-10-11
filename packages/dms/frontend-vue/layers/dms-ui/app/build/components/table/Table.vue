@@ -203,6 +203,8 @@ export interface TableProps<T> {
   chrome?: ResolvedTableChrome;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
+  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
+  searchShortcut?: string;
   /**
    * One-click dropdown filters of the toolbar, writing the column filters
    * (the `columnFilters` model).
@@ -342,6 +344,10 @@ export interface TableSharedData<T> {
    * included) and the toolbar search — and goes back to the first page.
    */
   resetFilters: () => void;
+  /** Empties the toolbar search alone (the toolbar folds it). */
+  clearSearch: () => void;
+  /** Clears the filter chips alone, the search kept. */
+  clearFilters: () => void;
   /** What `resetFilters` would clear (nothing: no clear action to offer). */
   clearableFilters: ComputedRef<ClearableTableFilters>;
   /** A search, a filter chip or a hidden filter narrows the rows. */
@@ -409,7 +415,9 @@ import TableTabs from "./Tabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
 import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
 import {
+  clearTableColumnFilters,
   clearTableFilters,
+  clearTableSearch,
   clearableTableFilters,
   isTableNarrowed,
   type TableNarrowingState,
@@ -444,11 +452,14 @@ const ROW_SELECTED_BG = "data-[selected=true]:bg-primary/10";
 const ROW_SELECTED_CELL_BG =
   "group-data-[selected=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
 
-// The row a side panel has open: the hover tint, held, and an accent rule on
-// its leading edge.
+// The row a side panel has open: the accent tint of a selected row and a 2px
+// accent bar on its leading edge, the "current item" of the design system
+// (a list row, a settings role). The bar is drawn by the first cell: a
+// table row's own box shadow is not painted under its cells' backgrounds.
 const ROW_OPEN_BG =
-  "data-[open=true]:bg-elevated data-[open=true]:shadow-[inset_2px_0_0_0_var(--ui-primary)]";
-const ROW_OPEN_CELL_BG = "group-data-[open=true]:bg-elevated";
+  "data-[open=true]:bg-primary/10 data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]";
+const ROW_OPEN_CELL_BG =
+  "group-data-[open=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]";
 
 // An expanded row keeps the hover tint and hands its bottom rule to the detail
 // band below it.
@@ -1079,6 +1090,13 @@ const resetFilters = () => {
   clearTableFilters(narrowingState);
   void filtersCleared.trigger();
 };
+// Clearing the search folds the toolbar's field, as a full clear does; the
+// filters alone leave it as it is.
+const clearSearch = () => {
+  clearTableSearch(narrowingState);
+  void filtersCleared.trigger();
+};
+const clearFilters = () => clearTableColumnFilters(narrowingState);
 const clearableFilters = computed(() => clearableTableFilters(narrowingState));
 const isFiltered = computed(() => isTableNarrowed(narrowingState));
 
@@ -1162,6 +1180,8 @@ watchEffect(() => {
     hasCustomColumns,
     deleteFilter,
     resetFilters,
+    clearSearch,
+    clearFilters,
     clearableFilters,
     isFiltered,
     onFiltersCleared: filtersCleared.on,
@@ -1305,6 +1325,7 @@ defineShortcuts({
           :on-custom-button="onCustomButton"
           :chrome="resolvedChrome"
           :search-placeholder="searchPlaceholder"
+          :search-shortcut="searchShortcut"
           :quick-filters="quickFilters"
           :class="{
             'ms-auto': !resolvedChrome.caption && !tabsInline,

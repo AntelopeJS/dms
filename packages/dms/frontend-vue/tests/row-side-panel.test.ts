@@ -425,19 +425,22 @@ describe("deep link to a row the table does not list", () => {
     const getRow = vi.fn(async () => older);
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow }),
-    ).toBe(older);
+    ).toEqual({ row: older, isMissing: false });
     expect(getRow).toHaveBeenCalledWith("r9");
   });
 
   it("takes a listed row as it is, without a request", async () => {
     const getRow = vi.fn(async () => older);
-    expect(
-      await resolveDeepLinkedRow("r2", { listed: rows, idOf, getRow }),
-    ).toBe(rows[1]);
+    const found = await resolveDeepLinkedRow("r2", {
+      listed: rows,
+      idOf,
+      getRow,
+    });
+    expect(found.row).toBe(rows[1]);
     expect(getRow).not.toHaveBeenCalled();
   });
 
-  it("opens nothing for a missing row (404) or without a row route", async () => {
+  it("marks a row its route answers 404 for as missing", async () => {
     const missing = vi.fn(async () => {
       throw Object.assign(new Error("Not Found"), { statusCode: 404 });
     });
@@ -447,11 +450,20 @@ describe("deep link to a row the table does not list", () => {
         idOf,
         getRow: missing,
       }),
-    ).toBeUndefined();
+    ).toEqual({ isMissing: true });
+  });
+
+  it("finds nothing, missing or not, on a refusal or without a row route", async () => {
+    const refused = async () => {
+      throw Object.assign(new Error("Forbidden"), { status: 403 });
+    };
+    expect(
+      await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: refused }),
+    ).toEqual({ isMissing: false });
     const noRoute = async () => undefined;
     expect(
       await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: noRoute }),
-    ).toBeUndefined();
+    ).toEqual({ row: undefined, isMissing: false });
   });
 
   it("opens the unlisted row without a position, J and K inert", async () => {
@@ -465,6 +477,87 @@ describe("deep link to a row the table does not list", () => {
     press("j");
     await settle();
     expect(shownName(host)).toBe("Older");
+  });
+});
+
+describe("side panel on a missing row", () => {
+  const notFound = (host: ParentNode) =>
+    query(host, "[data-dms-row-side-panel-not-found]");
+
+  it("says the row is gone under the target's title, with the DMS's words", async () => {
+    window.history.replaceState(null, "", "/requests?record=gone");
+    const { host, targets } = mountPanel();
+    targets.handleMissingRow(panelAction(), "gone");
+    await settle();
+    expect(openPanelId()).toBe(ROW_SIDE_PANEL_ID);
+    expect(title(host)).toBe("Request details");
+    expect(position(host)).toBeUndefined();
+    expect(shownName(host)).toBeUndefined();
+    expect(notFound(host)?.textContent).toContain(
+      "$side_panel.not_found.title",
+    );
+    expect(notFound(host)?.textContent).toContain(
+      "$side_panel.not_found.description",
+    );
+  });
+
+  it("takes the target's own not-found words", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleMissingRow(
+      panelAction({
+        notFound: {
+          title: "$api.request.not_found_title",
+          description: "$api.request.not_found_description",
+        },
+      }),
+      "gone",
+    );
+    await settle();
+    expect(notFound(host)?.textContent).toContain(
+      "$api.request.not_found_title",
+    );
+    expect(notFound(host)?.textContent).toContain(
+      "$api.request.not_found_description",
+    );
+  });
+
+  it("closes from its state, removing the link's ?record=", async () => {
+    window.history.replaceState(null, "", "/requests?record=gone");
+    const { host, targets } = mountPanel();
+    targets.handleMissingRow(panelAction(), "gone");
+    await settle();
+    notFound(host)?.querySelector("button")?.click();
+    await settle();
+    expect(query(host, "[data-dms-side-panel]")).toBeNull();
+    expect(window.location.search).toBe("");
+  });
+
+  it("opens nothing for a drawer action", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleMissingRow(
+      panelAction({ type: "drawer" } as Partial<CustomRowAction["target"]>),
+      "gone",
+    );
+    await settle();
+    expect(query(host, "[data-dms-side-panel]")).toBeNull();
+  });
+});
+
+describe("row side panel title from the row", () => {
+  it("names the open row with the target's rowTitle and its fields", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(
+      panelAction({ rowTitle: "{name} ({_id})" }),
+      rows[0],
+    );
+    await settle();
+    expect(title(host)).toBe("First (r1)");
+    expect(
+      query(host, "[data-dms-side-panel]")?.getAttribute("aria-label"),
+    ).toBe("Request details");
+    query(host, "[data-dms-row-side-panel-next]")?.click();
+    await settle();
+    expect(title(host)).toBe("Second (r2)");
   });
 });
 
@@ -631,11 +724,17 @@ describe("open row highlight", () => {
     )}; return theme;`,
   )(tv, EYEBROW_CLASS, REORDER_HANDLE_CLASS);
 
-  it("tints the open row and its pinned cells", () => {
+  it("tints the open row with the accent and its pinned cells opaquely", () => {
     const ui = theme();
-    expect(ui.row({})).toContain("data-[open=true]:bg-elevated");
+    expect(ui.row({})).toContain("data-[open=true]:bg-primary/10");
     expect(ui.rowCell({ pinned: "left" })).toContain(
-      "group-data-[open=true]:bg-elevated",
+      "group-data-[open=true]:bg-[color-mix(in_srgb,var(--ui-primary)_10%,var(--dms-surface-card))]",
+    );
+  });
+
+  it("draws the accent bar on the open row's first cell", () => {
+    expect(theme().row({})).toContain(
+      "data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]",
     );
   });
 

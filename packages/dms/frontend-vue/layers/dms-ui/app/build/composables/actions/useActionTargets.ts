@@ -91,7 +91,12 @@ interface SidePanelTargetRun extends TargetRunExtras {
   title: string;
   containerId: string;
   rowData?: Data;
+  /** Id of a row the link names but the route answered 404 for. */
+  missingId?: string;
 }
+
+const NOT_FOUND_TITLE_KEY = "side_panel.not_found.title";
+const NOT_FOUND_DESCRIPTION_KEY = "side_panel.not_found.description";
 
 /** A drawer or modal to open, and on what. */
 interface ComponentTargetRun extends TargetRunExtras {
@@ -246,21 +251,39 @@ export function useActionTargets(config: ActionTargetsConfig) {
     return id === undefined || id === null ? undefined : String(id);
   };
 
-  // A deep-linked action keeps the row it has open in the URL; `undefined`
-  // removes it, but only the row this run wrote, on the page it wrote it:
-  // closing as the user navigates leaves the next page's `?record=` alone.
-  const rowRecorder = (deepLink?: boolean) => {
+  // A deep-linked action keeps the row it has open in the URL, by id;
+  // `undefined` removes it, but only the row this run wrote, on the page it
+  // wrote it: closing as the user navigates leaves the next page's
+  // `?record=` alone.
+  const recordRecorder = (deepLink?: boolean) => {
     let written: WrittenRecord | undefined;
-    return (row?: Data): void => {
+    return (id?: string): void => {
       if (!deepLink || !config.recordScope || !config.rowNavigation) return;
-      if (!row) {
+      if (!id) {
         clearWrittenRecord(written);
         written = undefined;
         return;
       }
-      written = writeRecordId(config.recordScope, rowIdOf(row));
+      written = writeRecordId(config.recordScope, id);
     };
   };
+  const rowRecorder = (deepLink?: boolean) => {
+    const recordId = recordRecorder(deepLink);
+    return (row?: Data): void => recordId(rowIdOf(row));
+  };
+
+  // The header names the open row when the target words it from its fields.
+  const rowTitleOf = (target: SidePanelTarget, row?: Data) =>
+    row && target.rowTitle
+      ? resolveConfirmText(target.rowTitle, row, t as ConfirmTranslate)
+      : undefined;
+
+  const notFoundOf = (target: SidePanelTarget) => ({
+    title: processI18n(target.notFound?.title || `$${NOT_FOUND_TITLE_KEY}`),
+    description: processI18n(
+      target.notFound?.description || `$${NOT_FOUND_DESCRIPTION_KEY}`,
+    ),
+  });
 
   const ownerKey = rowSidePanelOwnerKey(config.pageId, config.componentId);
 
@@ -274,36 +297,40 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
     const session = Symbol(componentName);
-    const component = resolveTargetComponent(componentName);
-    const recordRow = rowRecorder(run.deepLink && !run.selection);
-    const componentOptions = {
-      ...run.target.component?.options,
-      pageId: config.pageId,
-      componentId: config.componentId,
-      containerId: run.containerId,
-      selection: run.selection,
-      onSuccessCallback: () => {
-        closeRowSidePanel(session);
-        config.refreshCallback?.();
+    const recordId = recordRecorder(run.deepLink && !run.selection);
+    const panel = {
+      session,
+      ownerKey,
+      title: run.title,
+      positionLabel: run.target.positionLabel,
+      component: resolveTargetComponent(componentName),
+      componentOptions: {
+        ...run.target.component?.options,
+        pageId: config.pageId,
+        componentId: config.componentId,
+        containerId: run.containerId,
+        selection: run.selection,
+        onSuccessCallback: () => {
+          closeRowSidePanel(session);
+          config.refreshCallback?.();
+        },
       },
+      onClose: () => recordId(undefined),
     };
     const showRow = (row?: Data) => {
       openRowSidePanel({
-        session,
-        ownerKey,
-        title: run.title,
-        positionLabel: run.target.positionLabel,
-        component,
-        componentOptions,
+        ...panel,
+        rowTitle: rowTitleOf(run.target, row),
         row,
         rowKey: rowIdOf(row),
         source: row ? config.rowNavigation : undefined,
         showRow,
-        onClose: () => recordRow(undefined),
       });
-      recordRow(row);
+      recordId(rowIdOf(row));
     };
-    showRow(run.rowData);
+    if (!run.missingId) return showRow(run.rowData);
+    openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+    recordId(run.missingId);
   };
 
   // A container opened on a listed row steps through the rows shown (its
@@ -543,5 +570,26 @@ export function useActionTargets(config: ActionTargetsConfig) {
     );
   };
 
-  return { handleCustomButton, handleCustomRowAction, handleBulkCustomAction };
+  /**
+   * Opens a side panel action on a row its link names but its route answered
+   * 404 for: the panel says the row is gone, and closing it removes the link.
+   * Another target opens nothing: no row, no drawer.
+   */
+  const handleMissingRow = (action: CustomRowAction, id: string) => {
+    if (action.target.type !== "sidePanel") return;
+    handleSidePanelTarget({
+      target: action.target,
+      title: processI18n(action.target.title || action.label),
+      containerId: `${config.pageId}-${config.componentId}-${action.target.type}`,
+      deepLink: isDeepLinkAction(action),
+      missingId: id,
+    });
+  };
+
+  return {
+    handleCustomButton,
+    handleCustomRowAction,
+    handleBulkCustomAction,
+    handleMissingRow,
+  };
 }

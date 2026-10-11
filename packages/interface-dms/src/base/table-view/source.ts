@@ -90,6 +90,7 @@ export interface TableViewSourceOptions extends Pick<
   | "pagination"
   | "emptyStates"
   | "searchPlaceholder"
+  | "searchShortcut"
   | "labelKey"
   | "customButtons"
   | "displays"
@@ -330,6 +331,7 @@ export function tableViewFromSource(
       emptyStates: serializeEmptyStates(options.emptyStates),
       searchable: browserCan(capabilities, "search"),
       searchPlaceholder: options.searchPlaceholder,
+      searchShortcut: options.searchShortcut,
       quickFilters: options.quickFilters,
       tabs: serializeTableViewTabs(options.tabs),
       displays: serializeTableViewDisplays(options),

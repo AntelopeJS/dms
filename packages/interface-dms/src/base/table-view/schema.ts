@@ -343,6 +343,15 @@ export const TableViewSchema = z.object({
     label: "Search placeholder",
     group: "content",
   }),
+  searchShortcut: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        'Key opening the search, as defineShortcuts names it ("/", "shift_f").',
+      ),
+    { label: "Search shortcut", group: "features" },
+  ),
   quickFilters: ui(z.array(quickFilterSchema).optional(), {
     label: "Quick filters",
     group: "features",

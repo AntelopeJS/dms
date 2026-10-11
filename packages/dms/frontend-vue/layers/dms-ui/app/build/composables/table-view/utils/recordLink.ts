@@ -1,3 +1,4 @@
+import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
 import type { CustomRowAction } from "../../../../types/row-action";
 import { readTableUrlKey, type TableUrlScope } from "./views";
 
@@ -76,16 +77,39 @@ export interface DeepLinkedRowSource<T> {
   getRow: (id: string) => Promise<T | undefined>;
 }
 
+/** What a deep link found: its row, or a route answering it is gone. */
+export interface DeepLinkedRow<T> {
+  row?: T;
+  /** The route answered 404: the row the link names no longer exists. */
+  isMissing: boolean;
+}
+
+interface FetchFailure {
+  status?: number;
+  statusCode?: number;
+}
+
+const isNotFound = (error: unknown): boolean => {
+  if (!error || typeof error !== "object") return false;
+  const { status, statusCode } = error as FetchFailure;
+  return (statusCode ?? status) === HTTP_NOT_FOUND;
+};
+
 /**
  * The row a deep link names: the listed one, else the one read by id — a row
- * beyond the first page. A row the route cannot answer (gone, a 404) opens
- * nothing.
+ * beyond the first page. A route answering 404 marks it missing; any other
+ * failure (a refusal, the network) or no route at all finds nothing.
  */
 export async function resolveDeepLinkedRow<T>(
   id: string,
   source: DeepLinkedRowSource<T>,
-): Promise<T | undefined> {
+): Promise<DeepLinkedRow<T>> {
   const listed = source.listed?.find((row) => source.idOf(row) === id);
-  if (listed) return listed;
-  return source.getRow(id).catch(() => undefined);
+  if (listed) return { row: listed, isMissing: false };
+  try {
+    const row = await source.getRow(id);
+    return { row: row ?? undefined, isMissing: false };
+  } catch (error: unknown) {
+    return { isMissing: isNotFound(error) };
+  }
 }
