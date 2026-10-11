@@ -652,6 +652,25 @@ export const useTableRowActions = <T extends Data>(
     };
   };
 
+  const findShownRow = (id: string | undefined): Data | undefined =>
+    config.rowNavigation
+      ?.rows()
+      .find(
+        (row) =>
+          String(getItemId(row, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)) === id,
+      );
+
+  /**
+   * What a fixed dialog words: the rows' count, and for one row shown in the
+   * table its own fields too (`{name}`). The count wins a clash, it is what
+   * every bulk dialog may name.
+   */
+  const confirmRowFields = (ids: string[]): Data => {
+    const count = { count: ids.length };
+    const row = ids.length === 1 ? findShownRow(ids[0]) : undefined;
+    return row ? { ...row, ...count } : count;
+  };
+
   /** Asks the declared confirmation of a bulk action, running it inside. */
   const askDeclaredBulkConfirm = (
     declared: ActionConfirm,
@@ -664,8 +683,7 @@ export const useTableRowActions = <T extends Data>(
         id: ids[0],
         [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: ids[0],
       },
-      // A fixed dialog names the rows it reaches.
-      row: { count: ids.length },
+      row: confirmRowFields(ids),
       fallback,
       run,
     });
