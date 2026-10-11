@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.5.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.4...v0.5.5)
+
+### 🚀 Enhancements
+
+- **dms:** Hand cards their row's custom actions and name a block's sibling ([#207](https://github.com/AntelopeJS/dms/pull/207))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.8 ([515bcaf](https://github.com/AntelopeJS/dms/commit/515bcaf))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.4
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.3...v0.5.4)
