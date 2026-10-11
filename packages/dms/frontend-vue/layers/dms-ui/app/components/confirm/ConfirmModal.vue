@@ -12,6 +12,7 @@ import {
   type ConfirmImpact,
   type ConfirmNotice,
   type ConfirmPartialOutcome,
+  type ConfirmSecondaryAction,
   ConfirmTextError,
   type ConfirmValues,
 } from "../../composables/confirm/types";
@@ -52,6 +53,11 @@ interface ConfirmModalProps {
   fields?: ConfirmDialogField[];
   /** A component drawn in the body, bound to the fields' values. */
   component?: ComponentInfo;
+  /**
+   * A button next to cancel and confirm that leaves the modal open: its
+   * `run` is awaited, the button loading; a rejection shows in the alert.
+   */
+  secondaryAction?: ConfirmSecondaryAction;
   /** Checks the body fields first; `false` keeps the modal open. */
   validate?: () => boolean | Promise<boolean>;
   /**
@@ -88,6 +94,7 @@ const props = withDefaults(defineProps<ConfirmModalProps>(), {
   confirmText: undefined,
   fields: () => [],
   component: undefined,
+  secondaryAction: undefined,
   validate: undefined,
   onConfirm: undefined,
 });
@@ -153,6 +160,7 @@ const bodyComponent = computed(() => resolveComponentRef(props.component));
 const isOpen = ref(true);
 const typedText = ref("");
 const isPending = ref(false);
+const isSecondaryPending = ref(false);
 // The failure (or partial outcome) of the last confirm, above the buttons.
 const notice = ref<ConfirmNotice & { tone: "error" | "warning" }>();
 // The action went part of the way: nothing left to confirm, closing it
@@ -315,6 +323,20 @@ async function handleConfirm() {
   close(true);
 }
 
+async function handleSecondary() {
+  const action = props.secondaryAction;
+  if (!action || isPending.value || isSecondaryPending.value) return;
+  isSecondaryPending.value = true;
+  notice.value = undefined;
+  try {
+    await action.run();
+  } catch (error) {
+    notice.value = { ...errorNotice(error), tone: "error" };
+  } finally {
+    isSecondaryPending.value = false;
+  }
+}
+
 function handleCancel() {
   if (isPending.value) return;
   close(isSettled.value);
@@ -463,6 +485,17 @@ function handleCancel() {
 
     <template #footer>
       <div class="flex w-full items-center justify-end gap-2">
+        <UButton
+          v-if="props.secondaryAction"
+          :label="props.secondaryAction.label"
+          :icon="props.secondaryAction.icon"
+          variant="ghost"
+          color="neutral"
+          :loading="isSecondaryPending"
+          :disabled="isPending"
+          data-confirm-action="secondary"
+          @click="handleSecondary"
+        />
         <DmsModalEscHint
           class="max-sm:hidden"
           :label="
