@@ -40,3 +40,25 @@ export function isDeepLinkAction(action: CustomRowAction): boolean {
   if (action.deepLink) return true;
   return action.target.type === "sidePanel" && !!action.target.deepLink;
 }
+
+/** Where a deep link finds its row: among the rows listed, or by id. */
+export interface DeepLinkedRowSource<T> {
+  listed: T[] | undefined;
+  idOf: (row: T) => string | undefined;
+  /** Reads one row: a controller's `get` route, a source's `fetchRowUrl`. */
+  getRow: (id: string) => Promise<T | undefined>;
+}
+
+/**
+ * The row a deep link names: the listed one, else the one read by id — a row
+ * beyond the first page. A row the route cannot answer (gone, a 404) opens
+ * nothing.
+ */
+export async function resolveDeepLinkedRow<T>(
+  id: string,
+  source: DeepLinkedRowSource<T>,
+): Promise<T | undefined> {
+  const listed = source.listed?.find((row) => source.idOf(row) === id);
+  if (listed) return listed;
+  return source.getRow(id).catch(() => undefined);
+}

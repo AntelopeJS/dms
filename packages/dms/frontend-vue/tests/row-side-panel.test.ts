@@ -39,7 +39,10 @@ import {
 import { useAppSidePanels } from "../layers/dms-layout/app/composables/useAppSidePanels";
 import { useSidePanel } from "../layers/dms-layout/app/composables/useSidePanel";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
-import { isDeepLinkAction } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
+import {
+  isDeepLinkAction,
+  resolveDeepLinkedRow,
+} from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
 import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
@@ -376,6 +379,57 @@ describe("row side panel deep link", () => {
     targets.handleCustomRowAction(panelAction(), rows[0]);
     await settle();
     expect(window.location.search).toBe("");
+  });
+});
+
+describe("deep link to a row the table does not list", () => {
+  const older: Row = { _id: "r9", name: "Older" };
+  const idOf = (row: Row) => row._id;
+
+  it("reads a row beyond the first page by id", async () => {
+    const getRow = vi.fn(async () => older);
+    expect(
+      await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow }),
+    ).toBe(older);
+    expect(getRow).toHaveBeenCalledWith("r9");
+  });
+
+  it("takes a listed row as it is, without a request", async () => {
+    const getRow = vi.fn(async () => older);
+    expect(
+      await resolveDeepLinkedRow("r2", { listed: rows, idOf, getRow }),
+    ).toBe(rows[1]);
+    expect(getRow).not.toHaveBeenCalled();
+  });
+
+  it("opens nothing for a missing row (404) or without a row route", async () => {
+    const missing = vi.fn(async () => {
+      throw Object.assign(new Error("Not Found"), { statusCode: 404 });
+    });
+    expect(
+      await resolveDeepLinkedRow("gone", {
+        listed: rows,
+        idOf,
+        getRow: missing,
+      }),
+    ).toBeUndefined();
+    const noRoute = async () => undefined;
+    expect(
+      await resolveDeepLinkedRow("r9", { listed: rows, idOf, getRow: noRoute }),
+    ).toBeUndefined();
+  });
+
+  it("opens the unlisted row without a position, J and K inert", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction({ deepLink: true }), older);
+    await settle();
+    expect(shownName(host)).toBe("Older");
+    expect(position(host)).toBeUndefined();
+    expect(query(host, "[data-dms-row-side-panel-next]")).toBeNull();
+    expect(window.location.search).toBe("?record=r9");
+    press("j");
+    await settle();
+    expect(shownName(host)).toBe("Older");
   });
 });
 

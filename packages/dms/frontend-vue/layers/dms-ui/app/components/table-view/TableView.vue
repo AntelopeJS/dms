@@ -79,6 +79,7 @@ import { selectionScopeKey } from "../../build/utils/selectionScope";
 import {
   isDeepLinkAction,
   readRecordId,
+  resolveDeepLinkedRow,
 } from "../../build/composables/table-view/utils/recordLink";
 import {
   rowSidePanelOwnerKey,
@@ -1612,8 +1613,9 @@ watch(rowSelect, (selection) => {
 });
 
 // A deep-linked action reopens on the row the URL names, listed or not. A
-// list still loading is waited for: a source table has no route to read one
-// row from.
+// list still loading is waited for first: a row it lists keeps its position
+// among the rows shown, and a source table without `fetchRowUrl` has no
+// route to read one row from.
 const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
   isDeepLinkAction,
 );
@@ -1621,8 +1623,11 @@ const openRecordFromUrl = async () => {
   const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
   if (!deepLinkAction || !id) return;
   await until(isListLoading).toBe(false);
-  const listed = shownResults.value?.find((row) => getRowId(row) === id);
-  const row = listed ?? (await tableRows.getRow(id).catch(() => undefined));
+  const row = await resolveDeepLinkedRow(id, {
+    listed: shownResults.value ?? undefined,
+    idOf: getRowId,
+    getRow: tableRows.getRow,
+  });
   if (row) handleCustomRowAction(deepLinkAction, row as Data);
 };
 

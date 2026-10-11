@@ -38,6 +38,7 @@ const SORT_KEYS = ["sortKey", "sortDirection"];
 const PAGE_KEYS = ["offset", "limit"];
 const DESCENDING = "desc";
 const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
+const ROW_ID_TOKEN = "{id}";
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
@@ -201,10 +202,25 @@ export function useTableRows<T extends Record<string, unknown>>(
     return Object.fromEntries(totals);
   };
 
-  /** One row by id: a source has no route for it. */
+  // A source reads one row through its `fetchRowUrl`, if it declares one.
+  const getSourceRow = (
+    sourceConfig: TableViewSourceConfig,
+    id: string,
+  ): Promise<T | undefined> => {
+    const url = resolveUrlVariables(
+      sourceConfig.fetchRowUrl?.replaceAll(
+        ROW_ID_TOKEN,
+        encodeURIComponent(id),
+      ),
+      options.route?.() ?? NO_ROUTE_VALUES,
+    );
+    return url ? api<T>(url) : Promise.resolve(undefined);
+  };
+
+  /** One row by id: a source's `fetchRowUrl`, a controller's `get` route. */
   const getRow = (id: string): Promise<T | undefined> =>
     source
-      ? Promise.resolve(undefined)
+      ? getSourceRow(source, id)
       : api<T>(`${location}/get`, { query: { id } });
 
   return { isSource: !!source, sourceUrl, list, countBatch, getRow };

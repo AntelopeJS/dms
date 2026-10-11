@@ -113,6 +113,19 @@ export interface TableViewSourceOptions extends Pick<
    * instead.
    */
   fetchUrl: string;
+  /**
+   * Route answering ONE row, by id: a template where `{id}` is the row's id
+   * (percent-encoded), with the same `{{params.X}}` / `{{query.X}}` tokens as
+   * `fetchUrl`, e.g. `"/api/requests/{id}"`. The route answers the row
+   * itself, or an error (a 404) when it is gone.
+   *
+   * A deep link (`?record=<id>`) to a row the table does not list — an older
+   * request beyond the first page — opens through it; the side panel or
+   * drawer then shows the row without its position among the rows shown.
+   * Without it, a deep link opens only a listed row.
+   * @example "/api/requests/{id}"
+   */
+  fetchRowUrl?: string;
   /** The key of the row id, `_id` by default. */
   rowIdKey?: string;
   /** What the route handles itself; the browser does the rest. */
@@ -126,6 +139,8 @@ export interface TableViewSourceOptions extends Pick<
 /** Where a source table reads its rows, as it reaches the client. */
 export interface TableViewSourceSerialized {
   fetchUrl: string;
+  /** Route answering one row, `{id}` its id (see `TableViewSourceOptions`). */
+  fetchRowUrl?: string;
   capabilities: TableViewSourceCapabilities;
 }
 
@@ -178,6 +193,9 @@ function serializeSourceColumns(
     }));
 }
 
+/** Where `fetchRowUrl` takes the row's id. */
+const ROW_ID_TOKEN = "{id}";
+
 /** How registration errors name a source table. */
 const sourceName = (options: TableViewSourceOptions): string =>
   `TableView.fromSource(${options.fetchUrl})`;
@@ -194,6 +212,11 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
   validateDisplayIds(where, options.displays);
   validateDefaultDisplay(where, options);
   assertTabTargets(where, options.tabs);
+  if (options.fetchRowUrl && !options.fetchRowUrl.includes(ROW_ID_TOKEN)) {
+    throw new Error(
+      `${where} sets fetchRowUrl without ${ROW_ID_TOKEN}: the route needs the row's id`,
+    );
+  }
   const filtering =
     (options.tabs?.some((tab) => tab.filter) ?? false) ||
     (options.quickFilters?.length ?? 0) > 0;
@@ -266,7 +289,11 @@ export function tableViewFromSource(
   return builder
     .options({
       ...config,
-      source: { fetchUrl: options.fetchUrl, capabilities },
+      source: {
+        fetchUrl: options.fetchUrl,
+        ...(options.fetchRowUrl && { fetchRowUrl: options.fetchRowUrl }),
+        capabilities,
+      },
       rowActions,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,

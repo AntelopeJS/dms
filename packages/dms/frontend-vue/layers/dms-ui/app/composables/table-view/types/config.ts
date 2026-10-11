@@ -219,6 +219,8 @@ export interface TableViewSourceCapabilities {
 /** Where a `TableView.fromSource` table reads its rows (backend `source`). */
 export interface TableViewSourceConfig {
   fetchUrl: string;
+  /** Route answering one row, `{id}` its id (backend `fetchRowUrl`). */
+  fetchRowUrl?: string;
   capabilities: TableViewSourceCapabilities;
 }
 
