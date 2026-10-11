@@ -222,6 +222,8 @@ export interface TableViewSourceConfig {
   /** Route answering one row, `{id}` its id (backend `fetchRowUrl`). */
   fetchRowUrl?: string;
   capabilities: TableViewSourceCapabilities;
+  /** Id of the `PeriodSelector` whose period is sent to `fetchUrl`. */
+  periodScope?: string;
 }
 
 export interface TableViewListResponse<T> {

@@ -75,7 +75,10 @@ export interface TableViewSourceCapabilities {
   filter?: boolean;
 }
 
-/** The source table's options, the ones a read-only list can honour. */
+/**
+ * The source table's options, the ones a read-only list can honour, plus
+ * `periodScope`: the rows of a report follow a `PeriodSelector` like a chart.
+ */
 export interface TableViewSourceOptions extends Pick<
   TableViewOptions,
   | "caption"
@@ -131,6 +134,15 @@ export interface TableViewSourceOptions extends Pick<
   fetchRowUrl?: string;
   /** The key of the row id, `_id` by default. */
   rowIdKey?: string;
+  /**
+   * Id of the `PeriodSelector` the rows follow, as a chart's `periodScope`:
+   * `fetchUrl` is requested with `from`, `to`, `preset` and `comparison`
+   * (and `compareFrom` / `compareTo` while a comparison is on), and the table
+   * and its tab counters list again when the period changes. Nothing is
+   * requested until that selector is on the page: the table keeps its
+   * skeleton meanwhile.
+   */
+  periodScope?: string;
   /** What the route handles itself; the browser does the rest. */
   capabilities?: TableViewSourceCapabilities;
   /** Custom actions only: there are no built-in forms over a source. */
@@ -145,6 +157,8 @@ export interface TableViewSourceSerialized {
   /** Route answering one row, `{id}` its id (see `TableViewSourceOptions`). */
   fetchRowUrl?: string;
   capabilities: TableViewSourceCapabilities;
+  /** Id of the `PeriodSelector` whose period is sent to `fetchUrl`. */
+  periodScope?: string;
 }
 
 // The built-in row actions a source table never offers.
@@ -251,6 +265,7 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
  * pages — the browser does over the rows it answered. Rows open custom
  * actions (a drawer, a route), never the built-in forms; there is no
  * export nor footer summary, and no realtime beyond its `realtimeTopic`.
+ * A `periodScope` sends the period of a `PeriodSelector` with each request.
  */
 export function tableViewFromSource(
   options: TableViewSourceOptions,
@@ -284,6 +299,12 @@ export function tableViewFromSource(
       `TableView expandable on ${sourceName(options)} sets lazyLoad: a source has no get route to load a row from`,
     );
   }
+  const source: TableViewSourceSerialized = {
+    fetchUrl: options.fetchUrl,
+    capabilities,
+  };
+  if (options.fetchRowUrl) source.fetchRowUrl = options.fetchRowUrl;
+  if (options.periodScope) source.periodScope = options.periodScope;
   const expandable = serializeExpandable(
     sourceName(options),
     { columns: options.columns },
@@ -292,11 +313,7 @@ export function tableViewFromSource(
   return builder
     .options({
       ...config,
-      source: {
-        fetchUrl: options.fetchUrl,
-        ...(options.fetchRowUrl && { fetchRowUrl: options.fetchRowUrl }),
-        capabilities,
-      },
+      source,
       rowActions,
       rowIdKey: options.rowIdKey,
       labelKey: options.labelKey,

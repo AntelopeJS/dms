@@ -9,6 +9,10 @@ import {
   type ReplaceUrlVariablesContext,
   resolveUrlVariables,
 } from "../../utils/urlVariables";
+import {
+  appendPeriodToUrl,
+  usePeriodScope,
+} from "#dms-core/app/composables/period/usePeriodScope";
 
 type Query = Record<string, unknown>;
 
@@ -136,28 +140,35 @@ function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
  * the rest to the browser; a route answering one page is taken as it is.
  *
  * A source's `{{params.X}}` and `{{query.X}}` tokens are filled from `route`;
- * while one has no value nothing is requested and the list is empty.
- * `sourceUrl` is the URL requested, for the caller to list again when it
- * changes.
+ * while one has no value nothing is requested and the list is empty. A
+ * source's `periodScope` adds the period of its selector to the URL, like a
+ * chart's; until that selector registers, nothing is requested and the list
+ * answers `null`, which the table draws as its skeleton. `sourceUrl` is the
+ * URL requested, for the caller to list again when it changes.
  */
 export function useTableRows<T extends Record<string, unknown>>(
   options: TableRowsOptions,
 ) {
   const { api, location, source, columns } = options;
-
-  const sourceUrl = computed(() =>
-    source
-      ? resolveUrlVariables(
-          source.fetchUrl,
-          options.route?.() ?? NO_ROUTE_VALUES,
-        )
-      : undefined,
+  const periodScope = usePeriodScope(source?.periodScope);
+  const isPeriodPending = computed(
+    () => !!source?.periodScope && !periodScope.value,
   );
+
+  const sourceUrl = computed(() => {
+    if (!source) return undefined;
+    const url = resolveUrlVariables(
+      source.fetchUrl,
+      options.route?.() ?? NO_ROUTE_VALUES,
+    );
+    return source.periodScope ? appendPeriodToUrl(url, periodScope.value) : url;
+  });
 
   const listFromSource = async (
     sourceConfig: TableViewSourceConfig,
     query: Query,
-  ): Promise<TableViewListResponse<T>> => {
+  ): Promise<TableViewListResponse<T> | null> => {
+    if (isPeriodPending.value) return null;
     const url = sourceUrl.value;
     if (!url) return emptySourcePage(query);
     const { capabilities } = sourceConfig;
@@ -174,7 +185,7 @@ export function useTableRows<T extends Record<string, unknown>>(
     return processSourceRows(response.results, query, capabilities, columns);
   };
 
-  const list = (query: Query): Promise<TableViewListResponse<T>> =>
+  const list = (query: Query): Promise<TableViewListResponse<T> | null> =>
     source
       ? listFromSource(source, query)
       : api<TableViewListResponse<T>>(`${location}/list`, { query });
@@ -191,15 +202,15 @@ export function useTableRows<T extends Record<string, unknown>>(
     }
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {
-        const { total } = await listFromSource(source, {
+        const page = await listFromSource(source, {
           ...query,
           offset: 0,
           limit: 1,
         });
-        return [id, total] as const;
+        return page ? [[id, page.total] as const] : [];
       }),
     );
-    return Object.fromEntries(totals);
+    return Object.fromEntries(totals.flat());
   };
 
   // A source reads one row through its `fetchRowUrl`, if it declares one. It

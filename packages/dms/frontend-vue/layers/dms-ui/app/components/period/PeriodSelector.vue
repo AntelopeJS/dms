@@ -12,6 +12,7 @@ import type {
 } from "#dms-core/app/composables/period/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import { usePeriodDraft } from "../../build/composables/period/usePeriodDraft";
+import { usePeriodLocation } from "../../build/composables/period/usePeriodLocation";
 import {
   type CalendarRange,
   calendarToRange,
@@ -98,6 +99,19 @@ const period = usePeriod({
   defaultComparison: props.defaultComparison,
   presets: props.presets,
   comparisons: props.comparisons,
+});
+
+// Before the scope registers, so the cards' first request already carries
+// the period of the URL (or of the user's last choice), never the default.
+usePeriodLocation(period, {
+  id: props.id,
+  pageId: props.pageId,
+  fallback: {
+    preset: period.preset.value,
+    comparison: period.comparison.value,
+    customRange: null,
+    customCompareRange: null,
+  },
 });
 
 const cleanup = registerPeriodScope(props.id, period.state);
