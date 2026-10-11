@@ -116,7 +116,7 @@ const FormSectionSchema = ui(
       z
         .string()
         .optional()
-        .describe("Heading the section sits under in the side navigation."),
+        .describe("Heading the section sits under in the navigation."),
       { label: "Navigation group" },
     ),
     fields: ui(FormEntriesSchema, { label: "Fields" }),
