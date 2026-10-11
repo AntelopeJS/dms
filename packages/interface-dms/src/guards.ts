@@ -20,8 +20,8 @@ import {
 import type { User } from "./auth/db";
 
 const HTTP_FORBIDDEN_STATUS = 403;
-const TENANT_OWNER_REQUIRED_MESSAGE = "Tenant owner required";
-const TENANT_MEMBER_REQUIRED_MESSAGE = "Tenant member required";
+const TENANT_OWNER_REQUIRED_MESSAGE = "error.tenant_owner_required";
+const TENANT_MEMBER_REQUIRED_MESSAGE = "error.tenant_member_required";
 
 async function getTenantMembership(
   userId: string,

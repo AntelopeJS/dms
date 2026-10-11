@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { HTTPResult, type RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { expect } from "chai";
@@ -25,6 +27,10 @@ const AUTH_KEY = "request-guard-key";
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
 const gate = denyingTenantGate("request-guard-gate", TENANT);
+const TENANT_OWNER_REQUIRED = "error.tenant_owner_required";
+const TENANT_MEMBER_REQUIRED = "error.tenant_member_required";
+const CORE_LOCALES = ["core-en-GB.json", "core-fr-FR.json"];
+const CORE_LOCALES_DIR = "frontend-vue/layers/dms-core/i18n/locales";
 
 function context(token: string): RequestContext {
   return {
@@ -43,6 +49,29 @@ async function expectStatus(
     expect(error).to.be.instanceOf(HTTPResult);
     expect((error as HTTPResult).getStatus()).to.equal(status);
   }
+}
+
+async function refusalOf(action: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await action();
+  } catch (error) {
+    expect(error).to.be.instanceOf(HTTPResult);
+    expect((error as HTTPResult).getStatus()).to.equal(HTTP_FORBIDDEN);
+    return (error as HTTPResult).getBody();
+  }
+  return expect.fail("Expected guard rejection");
+}
+
+function translationOf(locale: string, key: string): unknown {
+  const messages: unknown = JSON.parse(
+    readFileSync(join(process.cwd(), CORE_LOCALES_DIR, locale), "utf8"),
+  );
+  return key
+    .split(".")
+    .reduce<unknown>(
+      (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+      messages,
+    );
 }
 
 describe("[unit] request tenant guards — JWT and custom credentials", () => {
@@ -166,6 +195,32 @@ describe("[unit] request tenant guards — JWT and custom credentials", () => {
       await GetModel(TenantMemberModel, TENANT).update(MEMBER_ID, {
         isTenantOwner: false,
       });
+    }
+  });
+
+  it("refuses with an i18n key the dashboard translates", async () => {
+    expect(
+      await refusalOf(() =>
+        authenticateTenantRequest(context(jwt), { requireOwner: true }),
+      ),
+    ).to.equal(TENANT_OWNER_REQUIRED);
+    const foreign: RequestAuthenticator = {
+      ...authenticator,
+      authenticate: async () => ({ user, tenantId: OTHER_TENANT }),
+    };
+    expect(
+      await refusalOf(() =>
+        authenticateTenantRequest(context("opaque.secret"), {
+          authenticators: [foreign],
+        }),
+      ),
+    ).to.equal(TENANT_MEMBER_REQUIRED);
+    for (const locale of CORE_LOCALES) {
+      for (const key of [TENANT_OWNER_REQUIRED, TENANT_MEMBER_REQUIRED]) {
+        expect(translationOf(locale, key), `${locale} ${key}`).to.be.a(
+          "string",
+        );
+      }
     }
   });
 

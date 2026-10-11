@@ -69,6 +69,8 @@
     "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
     "forbidden": "Vous n'êtes pas autorisé à accéder à cette ressource.",
     "not_a_member": "Vous n'êtes plus membre de ce compte.",
+    "tenant_owner_required": "Seul un propriétaire de l'espace peut faire cela.",
+    "tenant_member_required": "Seul un membre de l'espace peut faire cela.",
     "session_expired": "Votre session a expiré. Veuillez vous reconnecter.",
     "session_not_found": "Cette session n'existe plus.",
     "rate_limited": "Trop de requêtes. Veuillez patienter avant de réessayer.",
