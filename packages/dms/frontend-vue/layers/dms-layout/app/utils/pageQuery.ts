@@ -2,10 +2,10 @@
 
 /** The page query as the server reads it: one value per name, the last one. */
 export function pageQueryValues(
-  query: Record<string, unknown>,
+  query: Record<string, unknown> | undefined,
 ): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(query).flatMap(([name, value]) => {
+    Object.entries(query ?? {}).flatMap(([name, value]) => {
       const last = Array.isArray(value) ? value.at(-1) : value;
       return typeof last === "string" ? [[name, last]] : [];
     }),

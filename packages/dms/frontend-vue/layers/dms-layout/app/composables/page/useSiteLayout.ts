@@ -304,7 +304,7 @@ export const useSiteLayout = () => {
 
     const { $authFetch } = useAuthFetch();
     const request = $authFetch<PageLayout>(
-      query ? layoutUrlWithQuery(slug, query) : slug,
+      layoutUrlWithQuery(slug, query ?? {}),
     ).then((result) => {
       if (pageLayouts.value === cache) cache[slug] = result;
       return result;

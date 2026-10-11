@@ -23,7 +23,7 @@ export async function usePageLayout() {
       // depends on it; cached for the page whatever its query.
       await siteLayout.loadPageLayout(
         layoutUrl.value,
-        pageQueryValues(route.query as Record<string, unknown>),
+        pageQueryValues(route.query),
       );
     }
   };
