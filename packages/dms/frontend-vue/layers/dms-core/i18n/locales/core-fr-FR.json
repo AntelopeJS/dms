@@ -432,7 +432,8 @@
     "components": {
       "tableview": "📄 TableView",
       "tab": "🗂️ Onglet",
-      "global": "🌐 Global"
+      "global": "🌐 Global",
+      "livetoggle": "📡 Direct / Pause"
     },
     "chart": {
       "no_data": "Aucune donnée",

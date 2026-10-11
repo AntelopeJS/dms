@@ -13,15 +13,23 @@ export const BlockFunctions = {
 /**
  * Asks every data block mounted on the page to read its data again: what a
  * component calls once an action of its own changed the record the page
- * shows. The page header calls it after a button changed something.
+ * shows. The page header calls it after a button changed something. On a page
+ * declared with `live`, it goes through the page's Direct / Pause gate like a
+ * realtime event: a paused page counts it and reads on resume.
  */
 export function refreshPageBlocks(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(BLOCK_REFRESH_EVENT));
 }
 
-/** Calls `handler` on each `refreshPageBlocks()`; returns the unsubscribe. */
-export function onPageBlocksRefresh(handler: () => void): () => void {
+/**
+ * Calls `handler` on each `refreshPageBlocks()`; returns the unsubscribe. Every
+ * handler receives the same event for one call, which tells one refresh
+ * reaching several blocks from several refreshes.
+ */
+export function onPageBlocksRefresh(
+  handler: (event: Event) => void,
+): () => void {
   if (typeof window === "undefined") return () => {};
   window.addEventListener(BLOCK_REFRESH_EVENT, handler);
   return () => window.removeEventListener(BLOCK_REFRESH_EVENT, handler);

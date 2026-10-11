@@ -204,6 +204,7 @@ export function TableView<T extends ControllerClass>(
       customButtons: serializedCustomButtons,
       defaultFilters: options.defaultFilters,
       realtimeTopic: options.realtimeTopic,
+      liveHold: options.liveHold,
       tabs: serializeTableViewTabs(options.tabs),
       views: serializeTableViewViews(options.views),
       layout: options.layout,

@@ -110,6 +110,9 @@ import { useAccumulatedPages } from "../../build/composables/table-view/useAccum
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
+import { usePageLive } from "../../composables/live/usePageLive";
+import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
 import {
   groupedOptionsFor,
@@ -179,6 +182,8 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   isSoleTableView?: boolean;
   /** Topics whose events make the table read its rows again. */
   realtimeTopic?: string | string[];
+  /** Keeps the rows while the live page is paused (backend `liveHold`). */
+  liveHold?: boolean;
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -801,6 +806,14 @@ const archiveQuery = computed(() =>
   archiveMode ? { showArchived: showArchived.value } : {},
 );
 
+// The gate is set up with the other refresh triggers below; the hold only
+// reads it once the table is on screen.
+const liveHold = useTableLiveHold({
+  isEnabled: !!props.liveHold,
+  isSource: tableRows.isSource,
+  gate: () => liveGate,
+});
+
 const { data, status, error, refresh } = await useTableListData<T>({
   componentId,
   pageId,
@@ -808,6 +821,7 @@ const { data, status, error, refresh } = await useTableListData<T>({
   query: queryRequest,
   archiveQuery,
   isSelfManaged: isActiveDisplaySelfManaged,
+  heldQuery: liveHold.heldQuery,
 });
 
 // Nothing listed yet (a client navigation paints before the first page
@@ -949,6 +963,7 @@ const { data: tabCountsData, refresh: refreshTabCounts } =
     rows: tableRows,
     queries: tabCountsQuery,
     archiveQuery,
+    heldQuery: liveHold.heldQuery,
   });
 
 const viewItems = computed<TableViewItem[]>(() =>
@@ -1125,8 +1140,12 @@ const refreshAll = async () => {
 
 // The rows can move without the table seeing it (a batch, a job, another
 // block's action): a topic of the backend or a page refresh reads them again,
-// keeping the current rows on screen until the answer lands.
-useRefreshTriggers(props.realtimeTopic, () => void refreshAll());
+// keeping the current rows on screen until the answer lands. On a live page
+// the row events below go through the same gate.
+const liveGate = useRefreshTriggers(
+  props.realtimeTopic,
+  () => void refreshAll(),
+);
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1395,12 +1414,28 @@ const realtimeEventHandlers: Record<
   },
 };
 
+// On a live page a row event is one more event behind the table: in Direct
+// it reads the rows again (at most once per `maxRate`), paused it is counted
+// and the rows stay as they are. Rows gone elsewhere still leave a selection
+// the page shows moving.
+const { isEnabled: isPageLive, isPaused: isPagePaused } = usePageLive();
+const gateRowEvent = (type: string, ids: string[], event: object) => {
+  if (type === REALTIME_EVENT_TYPE.DELETED && !isPagePaused.value) {
+    deselectRows(ids);
+  }
+  liveGate.trigger(event);
+};
+
 useRealtimeTopic(realtimeRowTopic, (event) => {
   const payload = event as { type: string; payload?: { ids?: string[] } };
   const handler = realtimeEventHandlers[payload.type];
   if (!handler) return;
   const ids = payload.payload?.ids ?? [];
   if (ids.length === 0 && payload.type !== REALTIME_EVENT_TYPE.CREATED) return;
+  if (isPageLive.value) {
+    gateRowEvent(payload.type, ids, event);
+    return;
+  }
   void handler(ids);
 });
 
@@ -2016,6 +2051,12 @@ onMounted(() => {
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >
+    <template v-if="liveHold.newCount.value > 0" #notice>
+      <LiveHoldBanner
+        :count="liveHold.newCount.value"
+        @show="liveHold.showNew"
+      />
+    </template>
     <template v-if="hasViews" #views>
       <TableViews
         :items="viewItems"

@@ -446,6 +446,15 @@ export const TableViewSchema = z.object({
       .describe("Topics whose events make the table read its rows again."),
     { label: "Realtime topics", group: "data", advanced: true },
   ),
+  liveHold: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "On a live page, keeps the rows while paused and shows what is new.",
+      ),
+    { label: "Hold rows while paused", group: "data", widget: "switch" },
+  ),
   kanban: ui(kanbanSchema.optional(), { label: "Kanban", group: "advanced" }),
   card: ui(cardSchema.optional(), {
     label: "Cards",

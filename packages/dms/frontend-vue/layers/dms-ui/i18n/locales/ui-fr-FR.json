@@ -493,6 +493,11 @@
         "escape": {
           "description": "Fermer les dialogues, les menus et la palette"
         }
+      },
+      "livetoggle": {
+        "l": {
+          "description": "Basculer la page entre Direct et Pause"
+        }
       }
     },
     "notifications": {
@@ -710,6 +715,16 @@
     "action_error": {
       "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",
       "generic": "Une erreur est survenue et l’action n’a pas pu aboutir. Réessayez."
+    },
+    "live": {
+      "direct": "Direct",
+      "pause": "Pause",
+      "aria_label": "Mises à jour en direct",
+      "updated_seconds": "Mis à jour il y a {count} s",
+      "updated_minutes": "Mis à jour il y a {count} min",
+      "updated_hours": "Mis à jour il y a {count} h",
+      "new_rows": "{count} nouvelle | {count} nouvelles",
+      "show_new": "Afficher"
     }
   }
 }

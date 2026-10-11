@@ -1339,6 +1339,10 @@ defineShortcuts({
       />
     </template>
 
+    <!-- A strip the table view adds over its rows (the live hold's "N new"),
+         shown whichever chrome the display keeps. -->
+    <slot name="notice" />
+
     <slot name="body" :table="table">
       <section
         ref="tableRoot"

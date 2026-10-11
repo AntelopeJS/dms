@@ -37,6 +37,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks (table views included) re-fetch after a form saves;
   `periodScope` binds a card, chart, list block or `Meter` to a `PeriodSelector`, and
   `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
+  A monitoring page that must not refetch on every event declares `live: { maxRate }` in its page options
+  and places a `LiveToggle()` (Direct / Pause, L key); `liveHold: true` keeps a table's rows while paused.
+  A custom component follows that state with `usePageLive()`.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.

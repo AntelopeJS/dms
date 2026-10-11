@@ -432,7 +432,8 @@
     "components": {
       "tableview": "📄 TableView",
       "tab": "🗂️ Tab",
-      "global": "🌐 Global"
+      "global": "🌐 Global",
+      "livetoggle": "📡 Live toggle"
     },
     "chart": {
       "no_data": "No data",

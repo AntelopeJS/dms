@@ -37,6 +37,11 @@ const SEARCH_KEY = "search";
 const SORT_KEYS = ["sortKey", "sortDirection"];
 const PAGE_KEYS = ["offset", "limit"];
 const DESCENDING = "desc";
+/**
+ * Sent while a `liveHold` table is paused: the moment its rows were frozen,
+ * for a source route to list the rows as they stood then.
+ */
+export const LIVE_HELD_AT_QUERY_KEY = "liveHeldAt";
 const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
@@ -54,6 +59,7 @@ const QUERY_KEY_CAPABILITIES: Array<
 /**
  * The part of the list query a source route handles, by its capabilities: a
  * key no capability names (a controller's `showArchived`…) never reaches it.
+ * The live hold's bound always does: a route not reading it lists as usual.
  */
 export function sourceRouteQuery(
   query: Query,
@@ -61,6 +67,7 @@ export function sourceRouteQuery(
 ): Query {
   return Object.fromEntries(
     Object.entries(query).filter(([key]) => {
+      if (key === LIVE_HELD_AT_QUERY_KEY) return true;
       const entry = QUERY_KEY_CAPABILITIES.find(([matches]) => matches(key));
       return !!entry && !!capabilities[entry[1]];
     }),

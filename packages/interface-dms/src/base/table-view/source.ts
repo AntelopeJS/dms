@@ -96,6 +96,7 @@ export interface TableViewSourceOptions extends Pick<
   | "quickFilters"
   | "defaultSort"
   | "realtimeTopic"
+  | "liveHold"
 > {
   /** The columns, keyed by row field, in their declared `order`. */
   columns: Record<string, TableViewSourceColumn>;
@@ -289,6 +290,7 @@ export function tableViewFromSource(
       enableTableExport: false,
       realtime: false,
       realtimeTopic: options.realtimeTopic,
+      liveHold: options.liveHold,
       formComponents: {},
     })
     .meta({ name: options.caption || "TableView", icon: "i-ph-table" })

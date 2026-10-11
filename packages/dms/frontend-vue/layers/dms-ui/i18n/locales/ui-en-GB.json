@@ -492,6 +492,11 @@
         "escape": {
           "description": "Close dialogs, menus and the palette"
         }
+      },
+      "livetoggle": {
+        "l": {
+          "description": "Switch the page between Direct and Pause"
+        }
       }
     },
     "notifications": {
@@ -709,6 +714,16 @@
     "action_error": {
       "forbidden": "You don’t have permission to do this.",
       "generic": "Something went wrong and the action couldn’t be completed. Try again."
+    },
+    "live": {
+      "direct": "Direct",
+      "pause": "Pause",
+      "aria_label": "Live updates",
+      "updated_seconds": "Updated {count} s ago",
+      "updated_minutes": "Updated {count} min ago",
+      "updated_hours": "Updated {count} h ago",
+      "new_rows": "{count} new",
+      "show_new": "Show"
     }
   }
 }

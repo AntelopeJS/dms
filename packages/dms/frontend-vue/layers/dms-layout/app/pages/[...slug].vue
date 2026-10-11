@@ -2,6 +2,7 @@
 import { withoutTrailingSlash } from "ufo";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
+import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
 
 defineOptions({ inheritAttrs: false });
 
@@ -216,6 +217,11 @@ const { permissions: userPermissions } = usePermissions();
 const realtimePageId = computed(() => pagelayoutMetadata.value?.fullId ?? "");
 const realtime = usePageRealtime(realtimePageId);
 providePageRealtime(realtime);
+// Before the blocks set up: their refetches go through the page's live gate.
+usePageLiveHost(() => ({
+  pageId: pagelayoutMetadata.value?.fullId,
+  live: pagelayoutMetadata.value?.live,
+}));
 
 function buildPageSetupContext(
   pageInfo: PageInfo,
