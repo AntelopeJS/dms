@@ -35,7 +35,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
   nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks (table views included) re-fetch after a form saves;
-  `periodScope` binds a card, chart, list block or `Meter` to a `PeriodSelector`, and
+  `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a `PeriodSelector`
+  (which keeps its period in the page URL, `?<id>.period=`), and
   `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
   A monitoring page that must not refetch on every event declares `live: { maxRate }` in its page options
   and places a `LiveToggle()` (Direct / Pause, L key); `liveHold: true` keeps a table's rows while paused.
@@ -54,7 +55,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
   `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row,
   and `IdentityDisplay({ iconField })` reads each row's tile icon from a row field.
-  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class),
+  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class);
+  `DurationDisplay({ toneField })` and `TextDisplay({ toneField })` colour their text with it (a slow
+  duration, an error message), and `DurationDisplay({ format: "ms" })` writes "2,149 ms" on every row;
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
   A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a

@@ -350,18 +350,57 @@ export namespace DefaultDisplays {
   /** The unit a duration column stores. */
   export type DurationUnit = "ms" | "s";
 
+  /**
+   * How a duration is written: `readable` in its most readable unit ("2.1 s",
+   * "4 min 12 s"), `ms` always in milliseconds with grouped digits ("2,149 ms"
+   * in English, "2 149 ms" in French).
+   */
+  export type DurationFormat = "readable" | "ms";
+
   export interface DurationDisplayOptions {
     /** Unit of the stored number. Defaults to `ms`. */
     unit?: DurationUnit;
+    /**
+     * How the duration is written. Defaults to `readable`; `ms` keeps every
+     * row in one unit, so a column of request timings lines up.
+     */
+    format?: DurationFormat;
+    /**
+     * Row field holding the figure's tone, a `Tone` the server picks per row
+     * (`warning` for a slow request): the text takes its colour, no pill is
+     * drawn. A row whose field holds no tone keeps the default colour.
+     */
+    toneField?: string;
   }
 
-  /** A duration in its most readable unit: "910 ms", "1.8 s", "4 min 12 s". */
+  /**
+   * A duration in its most readable unit ("910 ms", "1.8 s", "4 min 12 s"),
+   * or in milliseconds (`format: "ms"`), coloured by the row when `toneField`
+   * names its tone.
+   */
   @RegisterDisplay("duration")
   export class DurationDisplay extends ColumnDisplay<DurationDisplayOptions> {}
 
   /** A size in bytes in its most readable unit: "12 kB", "1.4 MB". */
   @RegisterDisplay("bytes")
   export class BytesDisplay extends ColumnDisplay<Record<string, never>> {}
+
+  export interface TextDisplayOptions {
+    /**
+     * Row field holding the text's tone, a `Tone` the server picks per row
+     * (`error` for an error message): the text takes its colour, no pill is
+     * drawn. A row whose field holds no tone keeps the default colour.
+     */
+    toneField?: string;
+  }
+
+  /**
+   * The value as plain text, the way a string column draws it, coloured by
+   * the row when `toneField` names its tone. It borrows the `string` data
+   * type's rendering, so a column of another type reads its raw value.
+   */
+  @RegisterDisplay("string")
+  export class TextDisplay extends ColumnDisplay<TextDisplayOptions> {}
 
   export interface MonoDisplayOptions {
     /** A button copies the value (an id, a key, a URL). */

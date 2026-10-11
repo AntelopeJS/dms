@@ -62,6 +62,8 @@ describe("[unit] interfaces/dms-base — column displays", () => {
     };
     // @ts-expect-error an option the identity display does not take
     new DefaultDisplays.IdentityDisplay({ avatar: "photo" });
+    // @ts-expect-error a duration is written readable or in ms only
+    new DefaultDisplays.DurationDisplay({ format: "seconds" });
     expect(column.name).to.equal("Member");
   });
 
@@ -103,6 +105,20 @@ describe("[unit] interfaces/dms-base — column displays", () => {
       [
         new DefaultDisplays.StatusPillDisplay({ toneField: "httpTone" }),
         { type: "status_pill", options: { toneField: "httpTone" } },
+      ],
+      [
+        new DefaultDisplays.DurationDisplay({
+          format: "ms",
+          toneField: "durationTone",
+        }),
+        {
+          type: "duration",
+          options: { format: "ms", toneField: "durationTone" },
+        },
+      ],
+      [
+        new DefaultDisplays.TextDisplay({ toneField: "errorTone" }),
+        { type: "string", options: { toneField: "errorTone" } },
       ],
       [new DefaultDisplays.BytesDisplay(), { type: "bytes" }],
       [

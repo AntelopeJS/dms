@@ -133,6 +133,15 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(options.realtime).to.equal(false);
   });
 
+  it("serves the period scope a source table follows", () => {
+    const options = sourceOf({ periodScope: "report" });
+    expect(options.source).to.deep.equal({
+      fetchUrl: "/api/request-log",
+      capabilities: {},
+      periodScope: "report",
+    });
+  });
+
   it("searches and sorts a paging route's rows only where the route does", () => {
     const paged = sourceOf({ capabilities: { paginate: true } });
     expect(paged.searchable).to.equal(false);
