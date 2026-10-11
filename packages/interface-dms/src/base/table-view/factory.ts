@@ -187,7 +187,7 @@ export function TableView<T extends ControllerClass>(
 
   builder
     .options({
-      ...config,
+      ...withHiddenColumns(config, options.columns?.hidden),
       rowActions: serializedRowActions,
       caption: options.caption,
       density: options.density,
@@ -405,6 +405,36 @@ export function TableView<T extends ControllerClass>(
     });
 
   return builder;
+}
+
+/** A column of the controller's config, as far as hiding it goes. */
+interface HideableColumn {
+  id: string;
+  isVisible?: boolean;
+}
+
+/** The controller's config, as far as its columns go. */
+interface ColumnsConfig {
+  columns: HideableColumn[];
+}
+
+/**
+ * The controller's config with the columns a table view hides set to open
+ * hidden, as a column declared `isVisible: false` does. The config is the
+ * controller's, which other table views share: the table view gets a copy.
+ */
+function withHiddenColumns<T extends ColumnsConfig>(
+  config: T,
+  hidden: string[] = [],
+): T {
+  if (hidden.length === 0) return config;
+  const hiddenIds = new Set(hidden);
+  return {
+    ...config,
+    columns: config.columns.map((column) =>
+      hiddenIds.has(column.id) ? { ...column, isVisible: false } : column,
+    ),
+  };
 }
 
 /**

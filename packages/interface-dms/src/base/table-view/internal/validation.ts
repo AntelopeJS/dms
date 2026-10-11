@@ -422,6 +422,12 @@ export function validateTableViewOptions<T extends Record<string, unknown>>(
     "card fields",
     options.card?.fields ?? [],
   );
+  assertKnownColumns(
+    controllerName,
+    meta,
+    "columns.hidden",
+    options.columns?.hidden ?? [],
+  );
   validateGroupedOptions(controllerName, meta, options.grouped);
   validateDisplayIds(controllerName, options.displays);
   validateDefaultDisplay(controllerName, options);

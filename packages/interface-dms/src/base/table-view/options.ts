@@ -127,6 +127,17 @@ export interface TableViewColumnsState {
   order?: string[];
 }
 
+/** The columns of the controller one table view shows: see `TableViewOptions.columns`. */
+export interface TableViewColumnsOptions {
+  /**
+   * Columns this table view opens hidden, as a column declared
+   * `isVisible: false` does but for this table view only: another table view
+   * over the same controller still shows them. They stay in the column
+   * picker, filterable and in the forms.
+   */
+  hidden?: string[];
+}
+
 /** Row height of a table: `compact` gives 36px rows under a 32px header. */
 export type TableViewDensity = "default" | "compact";
 
@@ -633,6 +644,7 @@ export interface TableViewExpandableSerialized extends TableViewExpandableBehavi
 
 export interface TableViewOptionsSerialized extends Omit<
   TableViewOptions,
+  | "columns"
   | "customButtons"
   | "rowActions"
   | "kanban"
@@ -878,6 +890,13 @@ export interface TableViewOptions<
    */
   labelKey?: string;
   rowActions?: TableViewRowActionOptions<T>;
+  /**
+   * The controller's columns as this table view shows them, when one page
+   * needs them otherwise than the controller declares: a related list on a
+   * record's page hides the column naming that record.
+   * @example { hidden: ["workspace"] }
+   */
+  columns?: TableViewColumnsOptions;
   customButtons?: CustomButton[];
   /**
    * Where the add, edit and details forms open (a page by default) and their
