@@ -534,8 +534,12 @@ const theme = tv({
     handle: REORDER_HANDLE_CLASS,
   },
   variants: {
+    // A wrapped cell grows its row past the 44px band: it keeps the band's
+    // breathing room above and below its lines instead of touching the
+    // hairlines (one line still fits the band, so its row keeps its height).
     cellWrap: {
       true: {
+        rowCell: "py-2.5",
         rowSpan: "line-clamp-none whitespace-normal [overflow-wrap:anywhere]",
       },
     },
@@ -1516,6 +1520,8 @@ defineShortcuts({
                             pinned: getPinnedVariant(cell.column),
                             loading,
                             rowClickable: isRowClickable(row.original),
+                            cellWrap: (cell.column.columnDef as TableColumn<T>)
+                              .cellWrap,
                           })
                         "
                         :style="{

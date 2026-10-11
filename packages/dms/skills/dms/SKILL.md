@@ -48,7 +48,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   banners (`RegisterLayoutBanner({ resolve })` → `{ text, actions }`) take it; never format text server-side.
   A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
   `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
-  `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row.
+  `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row,
+  and `IdentityDisplay({ iconField })` reads each row's tile icon from a row field.
   `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class),
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail cut on one line gets a second with `StatGroup({ detailLines: 2 })`; a

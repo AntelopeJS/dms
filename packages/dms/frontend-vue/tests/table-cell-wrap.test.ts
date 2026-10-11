@@ -38,8 +38,30 @@ describe("Table grid cell layout theme", () => {
 
   it("preserves pinned cell and table layout classes", () => {
     expect(theme({ cellWrap: true }).table()).toBe(theme().table());
-    expect(theme({ cellWrap: true }).rowCell({ pinned: "left" })).toBe(
-      theme().rowCell({ pinned: "left" }),
+    const pinned = theme().rowCell({ pinned: "left" }).split(" ");
+    const wrapped = theme()
+      .rowCell({ pinned: "left", cellWrap: true })
+      .split(" ");
+    expect(wrapped.filter((name: string) => !pinned.includes(name))).toEqual([
+      "py-2.5",
+    ]);
+    expect(pinned.filter((name: string) => !wrapped.includes(name))).toEqual([
+      "py-0",
+    ]);
+  });
+
+  it("pads only a wrapped cell, so its lines clear the row's hairlines", () => {
+    expect(theme().rowCell({ cellWrap: true })).toContain("py-2.5");
+    expect(theme().rowCell({ cellWrap: true })).toContain("h-11");
+    expect(theme().rowCell({ cellWrap: true })).not.toContain("py-0");
+    for (const cellWrap of [undefined, false]) {
+      expect(theme().rowCell({ cellWrap })).toContain("py-0");
+    }
+  });
+
+  it("reads each column's policy for its cell too", () => {
+    expect(tableSource).toMatch(
+      /uiTable\.rowCell\(\{[^}]*cellWrap: \(cell\.column\.columnDef as TableColumn<T>\)\s*\.cellWrap,?\s*\}\)/,
     );
   });
 
