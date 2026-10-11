@@ -445,6 +445,7 @@
       "preset_aria": "Preset",
       "comparison_aria": "Comparison",
       "custom_range_aria": "Custom range",
+      "since": "since {from}",
       "presets": {
         "last-hour": "Last hour",
         "last-24h": "Last 24 hours",
@@ -459,6 +460,7 @@
         "last-quarter": "Last quarter",
         "ytd": "Year to date",
         "last-year": "Last year",
+        "all": "All time",
         "custom": "Custom"
       },
       "comparisons": {

@@ -67,7 +67,7 @@ function endOfYear(date: Date, yearOffset = 0): Date {
 
 const PRESET_RANGE_RESOLVERS: Record<
   Exclude<PeriodPreset, "custom">,
-  (now: Date) => PeriodRange
+  (now: Date) => PeriodRange | null
 > = {
   "last-hour": (now) => ({ from: addHours(now, -1), to: now }),
   "last-24h": (now) => ({ from: addDays(now, -1), to: now }),
@@ -112,6 +112,7 @@ const PRESET_RANGE_RESOLVERS: Record<
     from: startOfYear(now, -1),
     to: endOfYear(now, -1),
   }),
+  all: () => null,
 };
 
 const RELATIVE_PRESETS = new Set<PeriodPreset>(["last-hour", "last-24h"]);
@@ -130,13 +131,13 @@ export function isRelativePreset(preset: PeriodPreset): boolean {
  *
  * Calendar presets snap to day boundaries (start-of-day to end-of-day), while
  * the relative ones (`last-hour`, `last-24h`) keep instant bounds so an ops
- * dashboard can read sub-day granularity.
+ * dashboard can read sub-day granularity. `all` has no bounds: `null`.
  */
 export function resolvePresetRange(
   preset: PeriodPreset,
   now: Date,
   fallbackRange: PeriodRange,
-): PeriodRange {
+): PeriodRange | null {
   if (preset === "custom") return fallbackRange;
   return PRESET_RANGE_RESOLVERS[preset](now);
 }

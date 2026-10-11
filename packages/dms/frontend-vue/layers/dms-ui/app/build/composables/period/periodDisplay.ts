@@ -152,3 +152,58 @@ export function periodDuration(range: PeriodRange): PeriodDuration {
   }
   return { unit: "days", count: Math.max(Math.round(span / MS_PER_DAY), 1) };
 }
+
+const DAYS_PER_WEEK = 7;
+const YESTERDAY_OFFSET = -1;
+const WEEKDAY_FORMAT: FormatOptions = { weekday: "short" };
+
+function localDayStart(date: Date): number {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
+}
+
+function daysBefore(date: Date, now: Date): number {
+  return Math.round((localDayStart(now) - localDayStart(date)) / MS_PER_DAY);
+}
+
+function formatWith(date: Date, locale: string, options: FormatOptions) {
+  const formatter = regionalDateTimeFormat(locale, options, {
+    keepLocalZone: true,
+  });
+  return normalizeSpaces(formatter.format(date));
+}
+
+function relativeDayPrefix(date: Date, now: Date, locale: string): string {
+  const days = daysBefore(date, now);
+  if (days <= 0) return "";
+  if (days === 1) {
+    const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    return `${format.format(YESTERDAY_OFFSET, "day")} `;
+  }
+  if (days < DAYS_PER_WEEK) {
+    return `${formatWith(date, locale, WEEKDAY_FORMAT)} `;
+  }
+  const sameYear = date.getFullYear() === now.getFullYear();
+  const day: FormatOptions = sameYear
+    ? DAY_FORMAT
+    : { ...DAY_FORMAT, year: "numeric" };
+  return `${formatWith(date, locale, day)}, `;
+}
+
+/**
+ * An instant as seen from `now`, in the reader's locale: the time alone
+ * today ("11:52"), then "yesterday 11:52", the weekday within a week
+ * ("Mon 11:52"), and the date beyond ("Oct 4, 11:52", with its year when
+ * not this one's). The start of a window labelled relative to now.
+ */
+export function formatRelativeInstant(
+  date: Date,
+  now: Date,
+  locale: string,
+): string {
+  const time = formatWith(date, locale, TIME_FORMAT);
+  return `${relativeDayPrefix(date, now, locale)}${time}`;
+}
