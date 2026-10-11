@@ -54,7 +54,7 @@ export interface FormSection {
   label: string;
   description?: string;
   icon?: string;
-  /** Heading of the side navigation the section's entry sits under. */
+  /** Heading of the navigation (side list or chips) the section's entry sits under. */
   navGroup?: string;
   fieldIds: string[];
 }

@@ -25,21 +25,36 @@ const emit = defineEmits<{ select: [sectionId: string] }>();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
-// The side list reads its sections in titled runs (`navGroup`); the row of
-// chips has no room for headings and lists them all in one run.
-const GROUPS_CLASSES: Record<FormSectionNavVariant, string> = {
+/**
+ * How the entries are laid out: the side list, the row of chips, or the
+ * chips cut into labelled runs once a section names a `navGroup`.
+ */
+type FormSectionNavLayout = FormSectionNavVariant | "chipGroups";
+
+// A row of chips with no group keeps its one scrolling line; with groups, the
+// runs wrap, each led by its label.
+const GROUPS_CLASSES: Record<FormSectionNavLayout, string> = {
   list: "flex flex-col gap-4",
   chips: "",
+  chipGroups: "flex flex-wrap items-center gap-x-5 gap-y-2.5",
 };
 
-const GROUP_CLASSES: Record<FormSectionNavVariant, string> = {
+const GROUP_CLASSES: Record<FormSectionNavLayout, string> = {
   list: "grid gap-1",
   chips: "contents",
+  chipGroups: "flex flex-wrap items-center gap-x-2 gap-y-1.5",
 };
 
-const VARIANT_CLASSES: Record<FormSectionNavVariant, string> = {
+const LIST_CLASSES: Record<FormSectionNavLayout, string> = {
   list: "flex flex-col gap-0.5",
   chips: "flex gap-1.5 overflow-x-auto pb-1",
+  chipGroups: "flex flex-wrap gap-1.5",
+};
+
+const GROUP_LABEL_CLASSES: Record<FormSectionNavLayout, string> = {
+  list: "px-2.5",
+  chips: "",
+  chipGroups: "shrink-0",
 };
 
 const ITEM_CLASSES: Record<FormSectionNavVariant, string> = {
@@ -55,9 +70,12 @@ const ACTIVE_CLASSES: Record<FormSectionNavVariant, string> = {
 
 const groupIdPrefix = useId();
 const groups = computed<FormSectionNavGroup[]>(() =>
-  props.variant === "list"
-    ? groupSectionsForNav(props.sections)
-    : [{ sections: props.sections }],
+  groupSectionsForNav(props.sections),
+);
+const layout = computed<FormSectionNavLayout>(() =>
+  props.variant === "chips" && groups.value.some((group) => group.label)
+    ? "chipGroups"
+    : props.variant,
 );
 
 function groupHeadingId(index: number): string {
@@ -79,23 +97,20 @@ function onSelect(event: MouseEvent, sectionId: string): void {
 </script>
 
 <template>
-  <nav
-    :aria-label="t('dms.form.sections.nav')"
-    :class="GROUPS_CLASSES[props.variant]"
-  >
+  <nav :aria-label="t('dms.form.sections.nav')" :class="GROUPS_CLASSES[layout]">
     <div
       v-for="(group, groupIndex) in groups"
       :key="group.sections[0]?.id ?? groupIndex"
-      :class="GROUP_CLASSES[props.variant]"
+      :class="GROUP_CLASSES[layout]"
     >
       <DmsEyebrow
         v-if="group.label"
         :id="groupHeadingId(groupIndex)"
         :label="processI18n(group.label)"
-        class="px-2.5"
+        :class="GROUP_LABEL_CLASSES[layout]"
       />
       <ul
-        :class="VARIANT_CLASSES[props.variant]"
+        :class="LIST_CLASSES[layout]"
         :aria-labelledby="group.label ? groupHeadingId(groupIndex) : undefined"
       >
         <li v-for="section in group.sections" :key="section.id">
