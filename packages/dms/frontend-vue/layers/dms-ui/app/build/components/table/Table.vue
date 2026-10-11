@@ -1249,6 +1249,7 @@ defineShortcuts({
             {{ caption }}
           </span>
           <USkeleton
+            :aria-label="t('dms.a11y.loading')"
             v-if="isFirstPageLoading"
             aria-hidden="true"
             :class="uiTable.captionCountPlaceholder()"
@@ -1590,6 +1591,7 @@ defineShortcuts({
                     :class="uiTable.rowCell()"
                   >
                     <USkeleton
+                      :aria-label="t('dms.a11y.loading')"
                       v-if="column.columnDef.meta"
                       :class="uiTable.skeletonCell()"
                       :style="{ width: skeletonWidth(rowIndex, columnIndex) }"

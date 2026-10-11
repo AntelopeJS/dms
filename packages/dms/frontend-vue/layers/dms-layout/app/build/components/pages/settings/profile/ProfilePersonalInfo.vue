@@ -292,6 +292,7 @@ onMounted(async () => {
               {{ saved.email }}
             </span>
             <USkeleton
+              :aria-label="t('dms.a11y.loading')"
               v-if="!isProfileLoaded"
               aria-hidden="true"
               class="h-5 w-[74px] shrink-0 rounded-md"

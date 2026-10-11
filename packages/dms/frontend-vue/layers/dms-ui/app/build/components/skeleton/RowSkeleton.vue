@@ -18,6 +18,8 @@ const props = withDefaults(defineProps<RowSkeletonProps>(), {
   linesClass: "space-y-1.5",
   isCentered: false,
 });
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -26,9 +28,14 @@ const props = withDefaults(defineProps<RowSkeletonProps>(), {
     :class="props.isCentered ? 'items-center' : 'items-start'"
     aria-hidden="true"
   >
-    <USkeleton class="shrink-0" :class="props.well" />
+    <USkeleton
+      :aria-label="t('dms.a11y.loading')"
+      class="shrink-0"
+      :class="props.well"
+    />
     <div class="min-w-0 flex-1" :class="props.linesClass">
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-for="(line, index) in props.lines"
         :key="index"
         :class="line"

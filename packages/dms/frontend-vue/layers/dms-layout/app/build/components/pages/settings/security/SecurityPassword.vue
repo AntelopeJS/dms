@@ -211,7 +211,10 @@ async function submit(): Promise<void> {
           {{ t("page.settings.security.password.label") }}
           <template #meta>
             <span v-if="!overview" aria-hidden="true" class="flex h-[1lh]">
-              <USkeleton class="my-auto h-2.5 w-52" />
+              <USkeleton
+                :aria-label="t('dms.a11y.loading')"
+                class="my-auto h-2.5 w-52"
+              />
             </span>
             <template v-else-if="!hasPassword">
               <span>{{ t("page.settings.security.password.not_set") }}</span>

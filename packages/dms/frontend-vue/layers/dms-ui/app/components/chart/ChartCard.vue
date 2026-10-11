@@ -178,7 +178,11 @@ const hasMeta = computed(
         <div
           class="text-highlighted mt-2 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums"
         >
-          <USkeleton v-if="isFirstLoad" class="h-[33px] w-36" />
+          <USkeleton
+            :aria-label="t('dms.a11y.loading')"
+            v-if="isFirstLoad"
+            class="h-[33px] w-36"
+          />
           <span
             v-else
             class="transition-opacity"
@@ -193,8 +197,11 @@ const hasMeta = computed(
           class="mt-1.5 flex h-5 items-center gap-2"
           aria-hidden="true"
         >
-          <USkeleton class="h-4 w-14 rounded-full" />
-          <USkeleton class="h-3 w-20" />
+          <USkeleton
+            :aria-label="t('dms.a11y.loading')"
+            class="h-4 w-14 rounded-full"
+          />
+          <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-20" />
         </div>
         <div
           v-else-if="hasMeta"

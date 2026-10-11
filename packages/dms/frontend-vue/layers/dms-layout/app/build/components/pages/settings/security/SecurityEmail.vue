@@ -271,7 +271,10 @@ async function cancelChange(): Promise<void> {
           <!-- A badge's height (the address line carries one) holds the
                line while the address loads. -->
           <span v-if="!email" aria-hidden="true" class="flex h-5">
-            <USkeleton class="my-auto h-3.5 w-40" />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="my-auto h-3.5 w-40"
+            />
           </span>
           <span v-else class="break-all">{{ email }}</span>
           <UBadge

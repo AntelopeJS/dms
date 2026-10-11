@@ -67,6 +67,8 @@ const showSkeleton = computed(() => isLoading.value && !data.value);
 const hasError = computed(
   () => !isLoading.value && !data.value && Boolean(error.value),
 );
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -77,6 +79,7 @@ const hasError = computed(
     aria-busy="true"
   >
     <USkeleton
+      :aria-label="t('dms.a11y.loading')"
       v-for="width in SKELETON_LINE_WIDTHS"
       :key="width"
       class="h-3"

@@ -52,6 +52,8 @@ defineSlots<{
   /** The summary, after the lead. */
   default?: () => unknown;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -62,6 +64,7 @@ defineSlots<{
     class="border-muted flex flex-wrap items-center gap-3.5 border-t px-[18px] py-3.5 first:border-t-0"
   >
     <USkeleton
+      :aria-label="t('dms.a11y.loading')"
       v-if="props.loading"
       aria-hidden="true"
       class="size-8 shrink-0 rounded-[9px]"
@@ -78,6 +81,7 @@ defineSlots<{
       </template>
       <!-- Transparent text on a 12px bar per line it wraps to. -->
       <USkeleton
+        :aria-label="t('dms.a11y.loading')"
         v-if="props.loading"
         as="span"
         aria-hidden="true"

@@ -69,6 +69,8 @@
     "unauthorized": "You are not allowed to perform this action.",
     "forbidden": "You are not authorized to access this resource.",
     "not_a_member": "You are no longer a member of this account.",
+    "tenant_owner_required": "Only a workspace owner can do this.",
+    "tenant_member_required": "Only a workspace member can do this.",
     "session_expired": "Your session has expired. Please sign in again.",
     "session_not_found": "This session no longer exists.",
     "rate_limited": "Too many requests. Please wait before trying again.",
@@ -485,6 +487,10 @@
         "previous_month": "Previous month",
         "next_month": "Next month"
       }
+    },
+    "a11y": {
+      "breadcrumb": "Breadcrumb",
+      "loading": "Loading"
     }
   }
 }

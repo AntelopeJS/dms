@@ -184,6 +184,7 @@ describe("the drawer container", () => {
       clearGuards: vi.fn(),
     }));
     vi.stubGlobal("useDmsRoute", () => reactive({ path: "/" }));
+    vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   });
 
   it("slides in from the bottom, full width, by default", async () => {
