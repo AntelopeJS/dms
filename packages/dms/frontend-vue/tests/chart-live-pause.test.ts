@@ -5,7 +5,10 @@
  */
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, expect, it, vi } from "vitest";
-import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import {
+  refreshLivePageBlocks,
+  refreshPageBlocks,
+} from "../layers/dms-ui/app/utils/blockRefresh";
 import { createPageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
 import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
@@ -53,13 +56,19 @@ it("requests nothing while paused and reads once on resume", async () => {
   expect(requests).toHaveLength(1);
 
   live.pause();
-  refreshPageBlocks();
-  refreshPageBlocks();
+  refreshLivePageBlocks();
+  refreshLivePageBlocks();
   await settle();
   expect(requests).toHaveLength(1);
 
   live.resume();
   await settle();
   expect(requests).toHaveLength(2);
+
+  // An action of the user refreshes even while paused.
+  live.pause();
+  refreshPageBlocks();
+  await settle();
+  expect(requests).toHaveLength(3);
   live.dispose();
 });

@@ -9,7 +9,10 @@
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
-import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import {
+  refreshLivePageBlocks,
+  refreshPageBlocks,
+} from "../layers/dms-ui/app/utils/blockRefresh";
 import {
   createPageLiveController,
   type PageLiveController,
@@ -81,7 +84,8 @@ it("leaves a page without live as it was: every event refetches", () => {
   publish();
   publish();
   refreshPageBlocks();
-  expect(onRefresh).toHaveBeenCalledTimes(3);
+  refreshLivePageBlocks();
+  expect(onRefresh).toHaveBeenCalledTimes(4);
   expect(usePageLive().isEnabled.value).toBe(false);
   expect(usePageLive().isLive.value).toBe(true);
 });
@@ -133,16 +137,42 @@ it("in Pause, requests nothing and counts the events per block", () => {
 
   publish();
   publish();
-  refreshPageBlocks();
+  refreshLivePageBlocks();
   vi.advanceTimersByTime(60_000);
 
   expect(logs).not.toHaveBeenCalled();
   expect(chart).not.toHaveBeenCalled();
   expect(routes).not.toHaveBeenCalled();
-  // Two events and a page refresh, each counted once for the page although
+  // Two events and a live refresh, each counted once for the page although
   // two blocks (three for the refresh) received them.
   expect(live.missedCount.value).toBe(3);
   expect(usePageLive().isPaused.value).toBe(true);
+});
+
+it("refreshes on a user's refreshPageBlocks even while paused", () => {
+  const live = installLive(MAX_RATE_SECONDS);
+  const onRefresh = mountBlock();
+  live.pause();
+  publish();
+  expect(live.missedCount.value).toBe(1);
+
+  refreshPageBlocks();
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+  expect(live.isPaused.value).toBe(true);
+
+  // Read by the user, the block has nothing left to read on resume.
+  live.resume();
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+it("caps a live refresh like a realtime event in Direct", () => {
+  installLive(MAX_RATE_SECONDS);
+  const onRefresh = mountBlock(undefined);
+  refreshLivePageBlocks();
+  refreshLivePageBlocks();
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(MAX_RATE_MS);
+  expect(onRefresh).toHaveBeenCalledTimes(2);
 });
 
 it("on resume, refetches once each block that missed an event", () => {

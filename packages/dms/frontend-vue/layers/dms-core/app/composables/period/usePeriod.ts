@@ -24,6 +24,14 @@ export interface UsePeriodOptions {
   defaultComparison?: PeriodComparison;
   presets?: PeriodPreset[];
   comparisons?: PeriodComparison[];
+  /**
+   * While it answers true, a relative preset stops sliding: the period keeps
+   * the range it had, so nothing reading it refetches on the clock. The
+   * minutes it skipped are caught up once, when it answers false again. A
+   * period the user changes still applies at once. The selector holds it
+   * while its live page is paused.
+   */
+  holdClock?: () => boolean;
 }
 
 export interface UsePeriodReturn {
@@ -46,10 +54,16 @@ const DEFAULT_PRESET: PeriodPreset = "this-month";
 const DEFAULT_COMPARISON: PeriodComparison = "none";
 const RELATIVE_REFRESH_INTERVAL_MS = 60000;
 
-function useRelativePresetClock(preset: Ref<PeriodPreset>): Ref<number> {
+const NEVER_HELD = () => false;
+
+function useRelativePresetClock(
+  preset: Ref<PeriodPreset>,
+  isHeld: () => boolean = NEVER_HELD,
+): Ref<number> {
   const tick = ref(0);
   if (typeof window === "undefined") return tick;
   let timer: ReturnType<typeof setInterval> | null = null;
+  let hasSkippedTick = false;
   const stop = () => {
     if (timer !== null) clearInterval(timer);
     timer = null;
@@ -60,11 +74,17 @@ function useRelativePresetClock(preset: Ref<PeriodPreset>): Ref<number> {
       stop();
       if (!isRelative) return;
       timer = setInterval(() => {
-        tick.value += 1;
+        if (isHeld()) hasSkippedTick = true;
+        else tick.value += 1;
       }, RELATIVE_REFRESH_INTERVAL_MS);
     },
     { immediate: true },
   );
+  watch(isHeld, (held) => {
+    if (held || !hasSkippedTick) return;
+    hasSkippedTick = false;
+    tick.value += 1;
+  });
   if (getCurrentScope()) onScopeDispose(stop);
   return tick;
 }
@@ -156,7 +176,7 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
   const comparisons = computed<PeriodComparison[]>(
     () => options.comparisons ?? DEFAULT_COMPARISONS,
   );
-  const relativeClock = useRelativePresetClock(refs.preset);
+  const relativeClock = useRelativePresetClock(refs.preset, options.holdClock);
   const state = computed<PeriodState>(() => {
     void relativeClock.value;
     return buildState(refs);

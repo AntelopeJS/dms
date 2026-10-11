@@ -19,8 +19,15 @@ export interface LiveSubscription {
   trigger(event?: object): void;
   /** Events the block received while paused and has not read yet. */
   readonly missed: Readonly<Ref<number>>;
+  /** When the block last read through the gate (ms since the epoch), 0 before. */
+  readonly lastReadAt: Readonly<Ref<number>>;
   /** Reads now, whatever the state, and forgets what was missed. */
   catchUp(): void;
+  /**
+   * Records a read the block made by itself (one the user asked for): it
+   * forgets what was missed, and a waiting trailing read is dropped.
+   */
+  acknowledge(): void;
   unsubscribe(): void;
 }
 
@@ -47,7 +54,7 @@ export interface PageLiveController {
 interface SubscriberState {
   refresh: () => void;
   missed: Ref<number>;
-  lastRunAt: number;
+  lastRunAt: Ref<number>;
   timer: ReturnType<typeof setTimeout> | null;
   /** The event the trailing call stands for, counted if the page pauses first. */
   pendingEvent: object | undefined;
@@ -135,7 +142,7 @@ class PageLive implements PageLiveController {
     const state: SubscriberState = {
       refresh,
       missed: ref(0),
-      lastRunAt: 0,
+      lastRunAt: ref(0),
       timer: null,
       pendingEvent: undefined,
     };
@@ -143,9 +150,14 @@ class PageLive implements PageLiveController {
     return {
       trigger: (event) => this.trigger(state, event),
       missed: readonly(state.missed),
+      lastReadAt: readonly(state.lastRunAt),
       catchUp: () => {
         state.missed.value = 0;
         this.run(state);
+      },
+      acknowledge: () => {
+        state.missed.value = 0;
+        this.markRead(state);
       },
       unsubscribe: () => {
         clearTimer(state);
@@ -169,7 +181,7 @@ class PageLive implements PageLiveController {
   // the last event of a burst is never lost.
   private triggerDirect(state: SubscriberState, event: object | undefined) {
     if (state.timer) return;
-    const wait = state.lastRunAt + this.minIntervalMs - Date.now();
+    const wait = state.lastRunAt.value + this.minIntervalMs - Date.now();
     if (wait <= 0) {
       this.run(state);
       return;
@@ -179,10 +191,14 @@ class PageLive implements PageLiveController {
   }
 
   private run(state: SubscriberState): void {
-    clearTimer(state);
-    state.lastRunAt = Date.now();
-    this.updatedAt.value = state.lastRunAt;
+    this.markRead(state);
     state.refresh();
+  }
+
+  private markRead(state: SubscriberState): void {
+    clearTimer(state);
+    state.lastRunAt.value = Date.now();
+    this.updatedAt.value = state.lastRunAt.value;
   }
 
   private countMissed(state: SubscriberState, event: object | undefined) {

@@ -21,17 +21,25 @@ let live: PageLiveController | undefined;
 const t = (key: string, params?: { count?: number }) =>
   params?.count === undefined ? key : `${key}:${params.count}`;
 
-async function mountToggle(props: Record<string, unknown> = {}) {
+async function createToggle(
+  target: HTMLElement,
+  props: Record<string, unknown> = {},
+): Promise<App> {
   const { default: LiveToggleBlock } = await import(
     "../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"
   );
-  app = createApp({
+  const toggle = createApp({
     render: () =>
       h(LiveToggleBlock, { componentId: "live", pageId: "api.logs", ...props }),
   });
-  app.component("UIcon", () => h("i"));
-  app.mount(host);
+  toggle.component("UIcon", () => h("i"));
+  toggle.mount(target);
   await nextTick();
+  return toggle;
+}
+
+async function mountToggle(props: Record<string, unknown> = {}) {
+  app = await createToggle(host, props);
 }
 
 const segment = (value: string) =>
@@ -136,4 +144,19 @@ it("reads elapsed times in seconds, minutes, then hours", () => {
   expect(formatElapsed(59_999)).toEqual({ unit: "seconds", count: 59 });
   expect(formatElapsed(60_000)).toEqual({ unit: "minutes", count: 1 });
   expect(formatElapsed(2 * 3_600_000 + 1)).toEqual({ unit: "hours", count: 2 });
+});
+
+it("switches once per L with two toggles on the page", async () => {
+  const controller = installLive();
+  await mountToggle();
+  const second = await createToggle(document.createElement("div"));
+
+  pressL();
+  expect(controller.isPaused.value).toBe(true);
+
+  app?.unmount();
+  app = undefined;
+  pressL();
+  expect(controller.isPaused.value).toBe(false);
+  second.unmount();
 });

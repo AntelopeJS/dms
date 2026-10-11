@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import DmsSegmented from "../segmented/Segmented.vue";
 import { usePageLive } from "../../composables/live/usePageLive";
 import { formatElapsed } from "../../build/composables/live/formatElapsed";
+import { useLiveToggleShortcut } from "../../build/composables/live/useLiveToggleShortcut";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 interface LiveToggleBlockProps extends DefaultComponentProps {
@@ -65,7 +66,7 @@ const updatedLabel = computed(() => {
   return t(`dms.live.updated_${unit}`, { count }, count);
 });
 
-defineShortcuts({ l: () => live.toggle() });
+useLiveToggleShortcut(() => live.toggle());
 </script>
 
 <template>

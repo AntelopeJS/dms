@@ -167,8 +167,12 @@ export type MemberAccess = boolean | "self";
  * - **Direct** (the default): a block or table refetches on its events as
  *   usual, at most once per `maxRate` seconds. The last event of a burst is
  *   never lost: it refetches when the interval ends.
- * - **Pause**: nothing is requested. Each block and table counts the events it
- *   receives, and resuming refetches once each one that missed any.
+ * - **Pause**: nothing is requested on an event. Each block and table counts
+ *   the events it receives, and resuming refetches once each one that missed
+ *   any. A rolling period (`last-hour`, `last-24h`) stops sliding meanwhile.
+ *
+ * What the user asks for always reads, paused or not: a page header button, a
+ * form saved with `BlockFunctions.REFRESH_PAGE`, a table's row actions.
  *
  * The user switches with a `LiveToggle()` block, or the L key while one is on
  * the page; the choice is kept per page in the browser. A table declared with

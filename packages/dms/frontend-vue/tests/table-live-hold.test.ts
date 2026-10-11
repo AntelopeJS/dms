@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
+import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import {
@@ -173,9 +174,29 @@ it("lets the bound through to a source route whatever its capabilities", () => {
   ).toEqual({ [LIVE_HELD_AT_QUERY_KEY]: "2026-10-11T08:00:00.000Z" });
 });
 
+it("reads on a user's refresh while held, and holds from then", async () => {
+  vi.setSystemTime(new Date("2026-10-11T08:00:00.000Z"));
+  const { refresh, hold } = mountTable({ liveHold: true });
+  live.pause();
+  await nextTick();
+  publish();
+
+  vi.setSystemTime(new Date("2026-10-11T08:03:00.000Z"));
+  refreshPageBlocks();
+
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(live.isPaused.value).toBe(true);
+  expect(hold.newCount.value).toBe(0);
+  expect(hold.heldQuery()).toEqual({
+    [LIVE_HELD_AT_QUERY_KEY]: "2026-10-11T08:03:00.000Z",
+  });
+});
+
 it("wires the table view's rows, row events and banner to the hold", () => {
   expect(tableViewSource).toMatch(/liveHold\?: boolean;/);
   expect(tableViewSource).toContain("heldQuery: liveHold.heldQuery,");
+  expect(tableViewSource).toContain("refreshCallback: refreshByUser,");
+  expect(tableViewSource).toContain('@refresh="refreshByUser"');
   expect(tableViewSource).toContain("gateRowEvent(payload.type, ids, event);");
   expect(tableViewSource).toMatch(
     /<LiveHoldBanner[\s\S]*@show="liveHold.showNew"/,

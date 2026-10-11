@@ -1146,6 +1146,13 @@ const liveGate = useRefreshTriggers(
   props.realtimeTopic,
   () => void refreshAll(),
 );
+// What the user asks for (a row action, the refresh button, ⌘R, a display's
+// own action) reads at once, even while the live page is paused, and brings
+// a held table up to date.
+const refreshByUser = () => {
+  liveGate.acknowledge();
+  return refreshAll();
+};
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1222,7 +1229,7 @@ const {
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
-  refreshCallback: refreshAll,
+  refreshCallback: refreshByUser,
   formComponents,
   formContainer,
   formPages,
@@ -1781,7 +1788,7 @@ const displayContext = computed(
     componentId,
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
-    refresh: refreshAll,
+    refresh: refreshByUser,
     reorder: reorderState.value,
     table: displayTable.value,
   }),
@@ -1868,7 +1875,7 @@ onBeforeUnmount(() => unregisterQuickActionTarget?.());
 
 defineShortcuts(
   buildTableViewShortcuts({
-    refresh: refreshAll,
+    refresh: refreshByUser,
     tableProps,
     newRow: () => newRow(queryParamDefaults.value),
     globalFilter,
@@ -2040,7 +2047,7 @@ onMounted(() => {
     v-model:all-matching="allMatching"
     :presence-by-row="presenceByRowFiltered"
     @add="handleRowAdd"
-    @refresh="refreshAll"
+    @refresh="refreshByUser"
     @details="handleRowClick"
     @delete="(e) => deleteRows(e)"
     @archive="(e) => archiveRows(e)"

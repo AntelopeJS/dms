@@ -21,6 +21,7 @@ import {
 } from "../../build/composables/period/periodDisplay";
 import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalendar.vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
+import { usePageLive } from "../../composables/live/usePageLive";
 
 interface Props extends DefaultComponentProps {
   id: string;
@@ -93,11 +94,15 @@ useWatch(props.watchActions || [], props.componentId);
 
 const { t, locale } = useI18n();
 
+// A paused live page keeps its period where it was: a relative preset
+// sliding every minute would refetch every block reading it.
+const { isPaused: isPagePaused } = usePageLive();
 const period = usePeriod({
   defaultPreset: props.defaultPreset,
   defaultComparison: props.defaultComparison,
   presets: props.presets,
   comparisons: props.comparisons,
+  holdClock: () => isPagePaused.value,
 });
 
 const cleanup = registerPeriodScope(props.id, period.state);

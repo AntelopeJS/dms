@@ -41,7 +41,7 @@ const NO_QUERY: Query = {};
  */
 export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
   const { isEnabled, isPaused } = usePageLive();
-  const heldAt = ref<string | null>(null);
+  const pausedAt = ref<number | null>(null);
   const isHolding = computed(
     () => options.isEnabled && isEnabled.value && isPaused.value,
   );
@@ -49,23 +49,29 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
   watch(
     isHolding,
     (holding) => {
-      heldAt.value = holding ? new Date().toISOString() : null;
+      pausedAt.value = holding ? Date.now() : null;
     },
     { immediate: true },
   );
+
+  // The rows are as fresh as the pause, or as the last read the user asked
+  // for since (Show, an action of theirs).
+  const heldAt = () =>
+    pausedAt.value === null
+      ? null
+      : Math.max(pausedAt.value, options.gate().lastReadAt.value);
 
   return {
     isHolding,
     newCount: computed(() =>
       isHolding.value ? options.gate().missed.value : 0,
     ),
-    showNew: () => {
-      heldAt.value = new Date().toISOString();
-      options.gate().catchUp();
+    showNew: () => options.gate().catchUp(),
+    heldQuery: () => {
+      const at = heldAt();
+      return options.isSource && at !== null
+        ? { [LIVE_HELD_AT_QUERY_KEY]: new Date(at).toISOString() }
+        : NO_QUERY;
     },
-    heldQuery: () =>
-      options.isSource && heldAt.value
-        ? { [LIVE_HELD_AT_QUERY_KEY]: heldAt.value }
-        : NO_QUERY,
   };
 }

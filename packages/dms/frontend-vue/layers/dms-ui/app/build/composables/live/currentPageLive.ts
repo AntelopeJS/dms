@@ -42,8 +42,12 @@ export interface LiveGate {
   trigger(event?: object): void;
   /** Events the block missed while the page is paused. */
   missed: ComputedRef<number>;
+  /** When the block last read through the gate (ms), 0 before or without `live`. */
+  lastReadAt: ComputedRef<number>;
   /** Refetches now and forgets what was missed. */
   catchUp(): void;
+  /** Records a read the caller makes itself (see LiveSubscription). */
+  acknowledge(): void;
 }
 
 interface BoundSubscription {
@@ -80,21 +84,24 @@ export function useLiveGate(refresh: () => void): LiveGate {
 
   if (getCurrentScope()) onScopeDispose(unbind);
 
+  const current = () =>
+    bound.value?.controller === currentController.value
+      ? (bound.value?.subscription ?? null)
+      : null;
+
   return {
     trigger: (event) => {
       const subscription = resolve();
       if (subscription) subscription.trigger(event);
       else refresh();
     },
-    missed: computed(() =>
-      bound.value?.controller === currentController.value
-        ? (bound.value?.subscription.missed.value ?? 0)
-        : 0,
-    ),
+    missed: computed(() => current()?.missed.value ?? 0),
+    lastReadAt: computed(() => current()?.lastReadAt.value ?? 0),
     catchUp: () => {
       const subscription = resolve();
       if (subscription) subscription.catchUp();
       else refresh();
     },
+    acknowledge: () => resolve()?.acknowledge(),
   };
 }

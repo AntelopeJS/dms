@@ -1,16 +1,21 @@
 import { onBeforeUnmount, onMounted } from "vue";
 import { useRealtimeTopic } from "../../../../../dms-core/app/composables/realtime/useRealtimeTopic";
-import { onPageBlocksRefresh } from "../../../utils/blockRefresh";
+import {
+  onLivePageBlocksRefresh,
+  onPageBlocksRefresh,
+} from "../../../utils/blockRefresh";
 import { type LiveGate, useLiveGate } from "../live/currentPageLive";
 
 /**
  * Calls `onRefresh` whenever the data behind a block moved without its inputs
  * changing: on each event of one of its realtime topics, and each time the
- * page asks its blocks to refresh (refreshPageBlocks).
+ * page asks its blocks to refresh (refreshPageBlocks, refreshLivePageBlocks).
  *
- * On a page declared with `live`, both go through the page's gate: in Direct
- * at most once per `maxRate`, in Pause not at all — the block counts what it
- * missed and refetches once on resume. The returned gate says what was missed.
+ * On a page declared with `live`, the realtime events and the live refreshes
+ * go through the page's gate: in Direct at most once per `maxRate`, in Pause
+ * not at all — the block counts what it missed and refetches once on resume.
+ * A refresh the user asked for (refreshPageBlocks) reads at once, paused or
+ * not. The returned gate says what was missed.
  */
 export function useRefreshTriggers(
   realtimeTopic: string | string[] | undefined,
@@ -18,7 +23,7 @@ export function useRefreshTriggers(
 ): LiveGate {
   const gate = useLiveGate(onRefresh);
   subscribeRealtimeTopics(realtimeTopic, gate.trigger);
-  subscribePageRefresh(gate.trigger);
+  subscribePageRefresh(gate);
   return gate;
 }
 
@@ -38,10 +43,13 @@ function subscribeRealtimeTopics(
 
 // Mounted only: the page refresh is a browser event, and a block the server
 // renders has nothing to refetch.
-function subscribePageRefresh(onRefresh: (event: object) => void): void {
-  let unsubscribe: (() => void) | undefined;
+function subscribePageRefresh(gate: LiveGate): void {
+  const unsubscribes: Array<() => void> = [];
   onMounted(() => {
-    unsubscribe = onPageBlocksRefresh(onRefresh);
+    unsubscribes.push(
+      onPageBlocksRefresh(() => gate.catchUp()),
+      onLivePageBlocksRefresh(gate.trigger),
+    );
   });
-  onBeforeUnmount(() => unsubscribe?.());
+  onBeforeUnmount(() => unsubscribes.splice(0).forEach((stop) => stop()));
 }
