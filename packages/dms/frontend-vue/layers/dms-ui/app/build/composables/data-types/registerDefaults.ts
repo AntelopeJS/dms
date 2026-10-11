@@ -1,5 +1,5 @@
 import { registerFieldTypes } from "./registerFieldTypes";
-import { defineAsyncComponent, type VNode } from "vue";
+import { defineAsyncComponent, type VNode, type VNodeChild } from "vue";
 import type { DataType } from "#dms-core/app/composables/data-types/useDataType";
 import UAvatar from "@nuxt/ui/components/Avatar.vue";
 import UBadge from "@nuxt/ui/components/Badge.vue";
@@ -760,7 +760,9 @@ function renderText(
     (options as TextOptions | undefined)?.toneField,
   );
   if (!tone) return value;
-  return h("span", { class: DMS_TONE_TEXT[tone] }, String(value));
+  // The value stays the child, as the untoned cell returns it: a number or a
+  // list renders as it did, never as "[object Object]".
+  return h("span", { class: DMS_TONE_TEXT[tone] }, [value as VNodeChild]);
 }
 
 const registerPrimitiveTypes = (

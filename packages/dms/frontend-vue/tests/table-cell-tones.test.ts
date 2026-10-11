@@ -158,4 +158,19 @@ describe("plain text cell", () => {
     expect(text.textContent).toBe("ECONNRESET");
     expect(text.className).toBe("text-error");
   });
+
+  it("renders a non-string value as the untoned cell does, only adding the tone", () => {
+    const options = { toneField: "messageTone" };
+    for (const value of [2149, ["a", "b"], 0]) {
+      const plain = render(cell("string", value, options, {})).textContent;
+      app?.unmount();
+      const toned = render(
+        cell("string", value, options, { messageTone: "error" }),
+      ).firstElementChild!;
+      expect(toned.textContent).toBe(plain);
+      expect(toned.textContent).not.toContain("[object");
+      expect(toned.className).toBe("text-error");
+      app?.unmount();
+    }
+  });
 });
