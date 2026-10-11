@@ -4,13 +4,23 @@ import PageHeaderActionBar, {
   type LayoutHeaderAction,
 } from "./PageHeaderActionBar.vue";
 import { injectPageHeaderActionsHost } from "../../../composables/layout/usePageHeaderActions";
+import { useServedHeaderActions } from "../../../composables/layout/useServedHeaderActions";
 
 interface PageHeaderActionsOutletProps {
   /** Header buttons declared by the backend page (`headerActions`). */
   actions: LayoutHeaderAction[];
+  /** The page query the server resolved their availability for. */
+  servedQuery?: Record<string, string>;
 }
 
-const props = defineProps<PageHeaderActionsOutletProps>();
+const props = withDefaults(defineProps<PageHeaderActionsOutletProps>(), {
+  servedQuery: undefined,
+});
+
+const actions = useServedHeaderActions({
+  actions: () => props.actions,
+  servedQuery: () => props.servedQuery,
+});
 
 const ROOT_SELECTOR = "[data-dms-page-header-actions]";
 // The actions take their own full-width row below `md`, the end of the
@@ -26,7 +36,7 @@ onServerPrefetch(() => host?.whenReady());
 
 const pageActions = computed(() => host?.actions.value ?? null);
 const hasActions = computed(
-  () => props.actions.length > 0 || !!pageActions.value,
+  () => actions.value.length > 0 || !!pageActions.value,
 );
 
 // Hydrating before the page has set up: its actions are not known yet, but
@@ -56,7 +66,7 @@ const showsServerMarkup = computed(
     data-dms-page-header-actions
     :class="ROOT_CLASS"
   >
-    <PageHeaderActionBar :actions="props.actions" />
+    <PageHeaderActionBar :actions="actions" />
     <component :is="pageActions" v-if="pageActions" />
   </div>
 </template>

@@ -1,5 +1,6 @@
 import { applyButtonAvailability } from "../../base/internal/button-availability";
 import type {
+  DefaultLayoutSerializedOptions,
   PageHeaderButtonDeclared,
   PageHeaderButtonSerialized,
 } from "../../base/internal/layouts";
@@ -42,7 +43,9 @@ async function serveHeaderButton(
  * the header buttons whose gate the caller fails are left out — a `permission`
  * names an action of the page, relative to `pagePermissionId` — and those
  * whose `availability` refuses the request are disabled with its reason.
- * `loadPermissions` is only called when a button declares a permission.
+ * `loadPermissions` is only called when a button declares a permission. When
+ * one declares an `availability`, the layout says which page query it was
+ * resolved for (`headerActionsQuery`), so the header asks again for another.
  *
  * @internal
  */
@@ -52,9 +55,7 @@ export async function filterLayoutHeaderActions<T>(
   context: ComponentFilterContext,
   pagePermissionId: string | undefined,
 ): Promise<ComponentInfo<T> | undefined> {
-  const options = layout?.options as
-    | { headerActions?: PageHeaderButtonDeclared[] }
-    | undefined;
+  const options = layout?.options as DefaultLayoutSerializedOptions | undefined;
   const buttons = options?.headerActions;
   if (!layout || !buttons) return layout;
   let loaded: Promise<Set<string>> | undefined;
@@ -64,13 +65,14 @@ export async function filterLayoutHeaderActions<T>(
       serveHeaderButton(button, permissions, pagePermissionId, context),
     ),
   );
-  return {
-    ...layout,
-    options: {
-      ...options,
-      headerActions: served.filter((button) => button !== undefined),
-    } as T,
+  const servedOptions: DefaultLayoutSerializedOptions = {
+    ...options,
+    headerActions: served.filter((button) => button !== undefined),
   };
+  if (buttons.some((button) => button.availability)) {
+    servedOptions.headerActionsQuery = context.query ?? {};
+  }
+  return { ...layout, options: servedOptions as T };
 }
 
 /** What a component's options carry of the buttons it may place in the header. */

@@ -118,3 +118,47 @@ export function resolveTextVariables(
   const resolved = fillRouteTokens(text, context, TEXT_ENCODING);
   return hasUrlVariables(resolved) ? undefined : resolved;
 }
+
+// A route token left without a value: `{{params.id}}`, `{{query.workspace}}`.
+const UNRESOLVED_ROUTE_TOKEN = /\{\{(?:params|query)\.\w+(?::\d+)?\}\}/g;
+const UNRESOLVED_ROUTE_VALUE = /^\{\{(?:params|query)\.\w+(?::\d+)?\}\}$/;
+const QUERY_SEPARATOR = "?";
+const FRAGMENT_SEPARATOR = "#";
+const PAIR_SEPARATOR = "&";
+const VALUE_SEPARATOR = "=";
+
+/** The query of a URL without the pairs whose whole value is a token left empty. */
+function dropUnresolvedPairs(search: string): string {
+  return search
+    .split(PAIR_SEPARATOR)
+    .filter((pair) => {
+      const value = pair.slice(pair.indexOf(VALUE_SEPARATOR) + 1);
+      return (
+        !pair.includes(VALUE_SEPARATOR) || !UNRESOLVED_ROUTE_VALUE.test(value)
+      );
+    })
+    .join(PAIR_SEPARATOR);
+}
+
+/**
+ * A link's URL with the `{{params.X}}` / `{{query.X}}` tokens of the page it
+ * sits on filled, for a button that always leads somewhere: a query pair
+ * whose value is a token the page has no value for is left out
+ * (`?workspace={{query.workspace}}` on a page without `?workspace=` leads to
+ * the target's default), any other such token is left empty.
+ */
+export function resolveLinkVariables(
+  url: string,
+  context: ReplaceUrlVariablesContext,
+): string {
+  const filled = replaceUrlVariables(url, context);
+  if (!hasUrlVariables(filled)) return filled;
+  const [beforeFragment = "", ...fragment] = filled.split(FRAGMENT_SEPARATOR);
+  const [path = "", ...search] = beforeFragment.split(QUERY_SEPARATOR);
+  const query = dropUnresolvedPairs(search.join(QUERY_SEPARATOR));
+  const rebuilt = [
+    query ? `${path}${QUERY_SEPARATOR}${query}` : path,
+    ...fragment,
+  ].join(FRAGMENT_SEPARATOR);
+  return rebuilt.replace(UNRESOLVED_ROUTE_TOKEN, "");
+}

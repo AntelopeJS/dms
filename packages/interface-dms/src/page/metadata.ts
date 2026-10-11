@@ -89,8 +89,17 @@ import {
 import {
   isPageInsideModule,
   logModuleRouteGated,
+  RequestQueryProperty,
   RequestTenantIdProperty,
 } from "./internal/metadata-helpers";
+
+/** How one request asks for a page layout, besides its caller. */
+interface PageLayoutRequest {
+  /** Assert the tenant access gate: the by-slug entry has no guard of its own. */
+  enforceTenantAccessGate?: boolean;
+  /** The query of the page URL, for header-button availability. */
+  query?: Readonly<Record<string, string>>;
+}
 
 const NATIVE_UPLOAD_FIELD_TYPES = new Set(["file", "image"]);
 
@@ -363,6 +372,7 @@ export class PageMetadata {
     });
 
     this.applyAuthDecorators(pageInfo);
+    RequestQueryProperty()(this.target.prototype, "pageQuery");
     this.registerLayoutRoute(pageInfo);
   }
 
@@ -522,8 +532,11 @@ export class PageMetadata {
       memberModel: TenantMemberModel,
       roleModel: RoleModel,
       tenantId: string,
+      query: Record<string, string>,
     ): Promise<PageLayout> =>
-      this.resolvePageLayout(user, memberModel, roleModel, tenantId);
+      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
+        query,
+      });
 
     // The by-slug entry carries no guard of its own, so it asks the resolver
     // to assert the gate; the route below is already guarded.
@@ -532,7 +545,12 @@ export class PageMetadata {
       memberModel,
       roleModel,
       tenantId,
-    ) => this.resolvePageLayout(user, memberModel, roleModel, tenantId, true);
+      query,
+    ) =>
+      this.resolvePageLayout(user, memberModel, roleModel, tenantId, {
+        enforceTenantAccessGate: true,
+        query,
+      });
     pageLayoutHandlers.set(pageInfo.fullSlug, handler);
 
     const routeId = RegisterRoute({
@@ -543,6 +561,7 @@ export class PageMetadata {
           this.memberModel,
           this.roleModel,
           this.tenantId,
+          this.pageQuery,
         );
       },
       method: "GET",
@@ -569,7 +588,7 @@ export class PageMetadata {
     memberModel: TenantMemberModel,
     roleModel: RoleModel,
     tenantId: string,
-    enforceTenantAccessGate = false,
+    { enforceTenantAccessGate = false, query }: PageLayoutRequest = {},
   ): Promise<PageLayout> {
     const layout = this.layoutRef;
     if (!layout) {
@@ -614,7 +633,7 @@ export class PageMetadata {
 
     // Header actions declaring a permission are filtered on every page, even
     // one skipping component permissions: they name their own requirement.
-    const context = { tenantId, user };
+    const context = { tenantId, user, query };
     if (this.pageInfo?.publicAccess === true || this.skipComponentPermissions) {
       return {
         ...layout,

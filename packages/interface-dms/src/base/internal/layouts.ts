@@ -48,4 +48,10 @@ export interface DefaultLayoutSerializedOptions extends Omit<
   "headerActions"
 > {
   headerActions?: PageHeaderButtonDeclared[];
+  /**
+   * The page query the header buttons' `availability` was resolved for, set
+   * only when one of them declares an `availability`: the header asks for its
+   * buttons again when the page URL's query no longer matches it.
+   */
+  headerActionsQuery?: Readonly<Record<string, string>>;
 }

@@ -136,6 +136,8 @@ const navigationTree: SiteLayoutTree = {
   category: undefined,
 };
 const OMIT_SHARED_PAGE_QUERY_VALUE = "false";
+// The `/dms/pagelayout` parameter naming the page; the rest of its query is the page URL's.
+const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
 
 setSlugProvider(() => Object.keys(pagesBySlug));
 
@@ -871,7 +873,7 @@ export class DMSController extends Controller("/dms") {
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @IfAuthUser() user: User | undefined,
-    @Parameter("slug", "query") slug: string,
+    @Parameter(PAGE_LAYOUT_SLUG_PARAMETER, "query") slug: string,
   ) {
     assert(slug, 400, "error.slug_required");
 
@@ -884,6 +886,7 @@ export class DMSController extends Controller("/dms") {
       memberModel,
       roleModel,
       getRequestTenantId(requestContext),
+      pageQueryOf(requestContext),
     );
   }
 
@@ -907,6 +910,16 @@ export class DMSController extends Controller("/dms") {
     await assertPageSessionAccepted(payload, !!user, this.authorization);
     return payload;
   }
+}
+
+/**
+ * The query of the page URL a `/dms/pagelayout` request carries next to its
+ * `slug`: everything but the slug, one value per name.
+ */
+function pageQueryOf(requestContext: RequestContext): Record<string, string> {
+  const query = Object.fromEntries(requestContext.url.searchParams);
+  delete query[PAGE_LAYOUT_SLUG_PARAMETER];
+  return query;
 }
 
 interface AccessContext {

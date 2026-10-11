@@ -30,6 +30,25 @@ export const RequestTenantIdProperty = MakeParameterAndPropertyDecorator(
   },
 );
 
+/**
+ * The query of the request, one value per name (the last one given), as a
+ * header button's `availability` reads it.
+ *
+ * @internal
+ */
+export function readRequestQuery(
+  ctx: Pick<RequestContext, "url">,
+): Record<string, string> {
+  return Object.fromEntries(ctx.url.searchParams);
+}
+
+/** @internal */
+export const RequestQueryProperty = MakeParameterAndPropertyDecorator(
+  (target, key, index) => {
+    SetParameterProvider(target, key, index, readRequestQuery);
+  },
+);
+
 /** @internal */
 export function isPageInsideModule(pageInfo: PageInfo): boolean {
   return pageInfo.fullSlug.startsWith(`${MODULE_URL_PREFIX}/`);

@@ -16,6 +16,10 @@ import { runMountedQuickAction } from "#dms-ui/app/build/utils/quickActionTarget
 import { useActionTargets } from "#dms-ui/app/build/composables/actions/useActionTargets";
 import { refreshPageBlocks } from "#dms-ui/app/utils/blockRefresh";
 import {
+  hasUrlVariables,
+  resolveLinkVariables,
+} from "#dms-ui/app/build/utils/urlVariables";
+import {
   dispatchQuickActionTarget,
   findServedQuickAction,
 } from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
@@ -111,6 +115,32 @@ function baseButton(action: LayoutHeaderAction): ButtonProps {
 }
 
 type LinkTarget = Extract<ActionTarget, { type: "page" | "external" }>;
+type UrlTarget = Extract<ActionTarget, { url: string }>;
+
+const hasTargetUrl = (target: ActionTarget): target is UrlTarget =>
+  typeof (target as Partial<UrlTarget>).url === "string";
+
+// The values of the page a target's URL may name: a button declared once on
+// the page leads to the record the page shows (`{{params.id}}`) or keeps its
+// scope (`?workspace={{query.workspace}}`), following the URL as it changes.
+const pageUrlValues = computed(() => ({
+  routeParams: siteLayout.findMatchingRoute(route.path)?.params,
+  routeQuery: route.query as Record<string, unknown>,
+}));
+
+function withPageValues(action: LayoutHeaderAction): LayoutHeaderAction {
+  const { target } = action;
+  if (!target || !hasTargetUrl(target) || !hasUrlVariables(target.url)) {
+    return action;
+  }
+  return {
+    ...action,
+    target: {
+      ...target,
+      url: resolveLinkVariables(target.url, pageUrlValues.value),
+    },
+  };
+}
 
 // A link target (without a confirmation) renders as a link: middle click and
 // "open in a new tab" keep working.
@@ -157,8 +187,9 @@ function resolveQuickActionButton(
 }
 
 function resolveAction(
-  action: LayoutHeaderAction,
+  declared: LayoutHeaderAction,
 ): ResolvedHeaderAction | null {
+  const action = withPageValues(declared);
   const base = baseButton(action);
   const disabledReason =
     action.disabled && action.disabledReason

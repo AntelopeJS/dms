@@ -159,6 +159,47 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
     expect(invite).to.not.have.property("availability");
   });
 
+  it("hands availability the page query, and says which query it served", async () => {
+    const queue = DefaultLayout({
+      headerActions: [
+        {
+          ...link("download"),
+          availability: ({ query }) =>
+            query?.locale === "de" ? undefined : { reason: "$lang.missing" },
+        },
+      ],
+    });
+    const serve = async (query: Record<string, string>) =>
+      (await filterLayoutHeaderActions(
+        queue,
+        async () => new Set(),
+        { ...CONTEXT, query },
+        "pages.lang",
+      ))!.options as {
+        headerActions: PageHeaderButtonSerialized[];
+        headerActionsQuery?: Record<string, string>;
+      };
+
+    const german = await serve({ workspace: "web", locale: "de" });
+    expect(german.headerActions[0]).to.not.have.property("disabled");
+    expect(german.headerActionsQuery).to.deep.equal({
+      workspace: "web",
+      locale: "de",
+    });
+    const french = await serve({ locale: "fr" });
+    expect(french.headerActions[0]).to.deep.include({ disabled: true });
+  });
+
+  it("names no query when no button declares an availability", async () => {
+    const filtered = await filterLayoutHeaderActions(
+      DefaultLayout({ headerActions: [link("open")] }),
+      async () => new Set(),
+      { ...CONTEXT, query: { workspace: "web" } },
+      "pages.billing",
+    );
+    expect(filtered!.options).to.not.have.property("headerActionsQuery");
+  });
+
   it("does not load permissions when no button declares one", async () => {
     const open = DefaultLayout({ headerActions: [link("open")] });
     let loaded = false;
