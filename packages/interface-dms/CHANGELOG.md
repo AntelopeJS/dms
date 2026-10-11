@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.5.4
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.3...v0.5.4)
+
+### 🚀 Enhancements
+
+- **dms:** Group the jump navigation chips by navGroup ([#200](https://github.com/AntelopeJS/dms/pull/200))
+- **table-view:** Tone duration and text cells from a row field ([#201](https://github.com/AntelopeJS/dms/pull/201))
+- **period-selector:** Keep the period in the page URL ([#204](https://github.com/AntelopeJS/dms/pull/204))
+- **table-view:** Open rows in a side panel action target ([#202](https://github.com/AntelopeJS/dms/pull/202))
+- **page:** Add a Direct / Pause live mode over the page realtime ([#203](https://github.com/AntelopeJS/dms/pull/203))
+
+### 🩹 Fixes
+
+- **field-row:** Span both form columns when a row has no label ([#205](https://github.com/AntelopeJS/dms/pull/205))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.6 ([e17d7c9](https://github.com/AntelopeJS/dms/commit/e17d7c9))
+- **release:** @antelopejs/dms v0.7.7 ([32db065](https://github.com/AntelopeJS/dms/commit/32db065))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.2...v0.5.3)
