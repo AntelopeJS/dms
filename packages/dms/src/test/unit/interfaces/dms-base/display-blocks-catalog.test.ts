@@ -124,6 +124,27 @@ describe("[unit] interfaces/dms-base/display blocks — in the catalog", () => {
     expect(declared("StatGroup").config.detailLines?.optional).to.equal(true);
   });
 
+  it("accepts link buttons in a top list's head", () => {
+    const valid = (actions: unknown) =>
+      ValidateBlockOptions("TopListCard", { title: "Top plans", actions })
+        .valid;
+
+    expect(valid([{ label: "$dashboard.catalogue", to: "/plans" }])).to.equal(
+      true,
+    );
+    expect(valid([{ label: "Catalogue" }])).to.equal(false);
+    expect(declared("TopListCard").config.actions?.optional).to.equal(true);
+  });
+
+  it("lets a tab set fit its pill list to its tabs", () => {
+    expect(
+      ValidateBlockOptions("Tab", { items: [], fit: true }).valid,
+    ).to.equal(true);
+    expect(
+      ValidateBlockOptions("Tab", { items: [], fit: "yes" }).valid,
+    ).to.equal(false);
+  });
+
   it("accepts a copy button on a key / value row", () => {
     const valid = (item: Record<string, unknown>) =>
       ValidateBlockOptions("KeyValueList", {

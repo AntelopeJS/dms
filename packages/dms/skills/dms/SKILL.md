@@ -62,6 +62,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `columns: { hidden: ["workspace"] }` (as `isVisible: false`, for that table view only) — no view
   just to hide it.
   A long sectioned `Form` groups its side navigation with `FormSection.navGroup` ("Billing", "Legal").
+  `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
+  keeps a pill tab list to its tabs' width.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
   (the text to copy instead, e.g. a full URL behind a short label).
   A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on

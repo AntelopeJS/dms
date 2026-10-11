@@ -31,6 +31,11 @@ export interface TabProps extends TabComponentProps {
   badgesUrl?: string;
   /** Topics whose events make the tab set read `badgesUrl` again. */
   realtimeTopic?: string | string[];
+  /**
+   * A horizontal `pill` list as wide as its tabs, not the full width; a
+   * `link` list already sizes its tabs to their labels.
+   */
+  fit?: boolean;
 }
 
 /** The badges `badgesUrl` answers with, by tab slot. */

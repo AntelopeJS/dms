@@ -3,6 +3,9 @@ import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useMounted } from "@vueuse/core";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
+import DmsBlockActions, {
+  type BlockAction,
+} from "../../build/components/blocks/BlockActions.vue";
 // Imported rather than resolved from the registry: a registered component is
 // a lazy chunk of its own, and a list whose rows only arrive with its data
 // would draw an empty card for the moment that chunk takes.
@@ -42,6 +45,8 @@ interface Props extends DefaultComponentProps {
   maxHeight?: string;
   staticItems?: TopListItem[];
   emptyLabel?: string;
+  /** Link buttons in the card head, after the period badge. */
+  actions?: BlockAction[];
   /**
    * Placeholder rows while `fetchUrl` loads: the "top N" it answers.
    * Optional. Defaults to 10, enough to fill the default `maxHeight`.
@@ -90,6 +95,7 @@ const props = withDefaults(defineProps<Props>(), {
   currencyCode: "EUR",
   maxHeight: DEFAULT_MAX_HEIGHT,
   skeletonCount: SKELETON_ROW_COUNT,
+  actions: () => [],
 });
 
 const { locale, t } = useI18n();
@@ -247,11 +253,28 @@ const gridStyle = computed(() => ({
       :title="processI18n(title)"
       :description="description ? processI18n(description) : undefined"
     >
-      <template v-if="periodScope" #trailing>
-        <UBadge v-if="badgeLabel" :color="badgeColor" variant="soft" size="sm">
-          {{ badgeLabel }}
-        </UBadge>
-        <USkeleton v-else class="h-5 w-16 rounded-[5px]" aria-hidden="true" />
+      <template v-if="periodScope || props.actions.length" #trailing>
+        <template v-if="periodScope">
+          <UBadge
+            v-if="badgeLabel"
+            :color="badgeColor"
+            variant="soft"
+            size="sm"
+          >
+            {{ badgeLabel }}
+          </UBadge>
+          <USkeleton v-else class="h-5 w-16 rounded-[5px]" aria-hidden="true" />
+        </template>
+        <!-- Quiet links, as in an ActivityFeed head: the rows stay the
+          card's content. -->
+        <DmsBlockActions
+          v-if="props.actions.length"
+          :actions="props.actions"
+          size="xs"
+          lead-variant="ghost"
+          lead-color="neutral"
+          rest-variant="ghost"
+        />
       </template>
     </DmsSectionHeader>
 

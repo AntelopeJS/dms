@@ -66,6 +66,13 @@ export interface TabProps extends BaseComponentProps {
    * `BlockItemsSource.realtimeTopic`.
    */
   realtimeTopic?: string | string[];
+  /**
+   * A horizontal `pill` list as wide as its tabs instead of the full width
+   * of its column: a switch of a few short tabs above a card ("Activity ·
+   * Logins"). A `link` list already sizes its tabs to their labels.
+   * Optional. Defaults to `false`.
+   */
+  fit?: boolean;
 }
 
 const TAB_COMPONENT_NAME = "dms-tab";
@@ -147,6 +154,10 @@ export const TabSchema = z.object({
     group: "layout",
     widget: "segmented",
   }),
+  fit: ui(
+    z.boolean().optional().describe("Pill tabs as wide as their labels."),
+    { label: "Fit the tabs", group: "layout", widget: "switch" },
+  ),
   unmountOnHide: ui(z.boolean().optional(), {
     label: "Unmount hidden tabs",
     group: "behavior",
