@@ -86,6 +86,9 @@ An absolute link (a public file, a snippet to copy, a mail) is built on `await G
 (`@antelopejs/interface-dms/api-base-url`, the backend) or `await GetClientBaseUrl()`
 (`/client-base-url`, the dashboard), never on `Host` / `X-Forwarded-*`: a reverse proxy may not
 forward them. Both answer the DMS config (`apiBaseUrl`, `clientBaseUrl`).
+A client address (a rate limit, an anonymous visitor) comes from `await getClientIp(context)`
+(`/client-ip`), never from `X-Forwarded-For` read by hand: it follows the DMS's
+`auth.trustedProxies`, so the operator declares the proxies once.
 
 ## Navigation & access — module pages are owner-only
 

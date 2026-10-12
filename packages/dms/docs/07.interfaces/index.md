@@ -54,6 +54,7 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/uploads` | Signed upload tokens for the file and image fields of a serialized component | [Core](./1.core/2.pages-and-modules.md) |
 | `/types` | `MaybePromise`, the one shared type alias | [Core](./1.core/2.pages-and-modules.md) |
 | `/api-base-url`, `/client-base-url` | `GetApiBaseUrl`, `GetClientBaseUrl`: the public origins of the API and the dashboard | [Core](./1.core/2.pages-and-modules.md#public-urls) |
+| `/client-ip` | `getClientIp`, `ResolveClientIp`: a request's client address behind the trusted proxies | [Core](./1.core/2.pages-and-modules.md#client-address) |
 | `/auth` | Authentication decorators, tokens, sessions, external identities, account mail | [Auth](./2.auth/1.introduction.md) |
 | `/auth/db`, `/auth/db/models`, `/auth/db/tables` | The `User`, `Session` and `UserExternalIdentity` tables and models | [Auth](./2.auth/4.users.md) |
 | `/base` | The component barrel: forms, tables, charts, cards, layout, trees | [Base](./3.base/1.introduction.md) |
