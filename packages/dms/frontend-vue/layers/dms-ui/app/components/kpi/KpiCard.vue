@@ -8,6 +8,8 @@ import DmsEyebrow from "../section-header/Eyebrow.vue";
 import DmsTrendBadge from "../chart/internal/TrendBadge.vue";
 import DmsSparkline from "../chart/internal/Sparkline.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
+import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import {
   ABSENT_VALUE_PARTS,
   formatValueParts,
@@ -107,6 +109,10 @@ const isFirstLoad = computed(() => isLoading.value && data.value === null);
 const hasError = computed(
   () => !isLoading.value && data.value === null && Boolean(error.value),
 );
+// A 404 is a status too, but nothing to retry: the value does not exist.
+const notFound = computed(() =>
+  hasError.value ? readFetchNotFound(error.value) : null,
+);
 // A refetch keeps the stale value on screen, faded, instead of a skeleton.
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 const showTrend = computed(() => props.showDelta && delta.value !== null);
@@ -201,24 +207,13 @@ const isStat = computed(() => props.variant === "stat");
       v-if="isFirstLoad"
       class="mt-1 h-[33px] w-32"
     />
-    <div
+    <DmsBlockInlineStatus
       v-else-if="hasError"
-      class="mt-auto flex items-center justify-between gap-2"
-      role="alert"
-    >
-      <p class="text-error flex min-w-0 items-center gap-1.5 text-[12.5px]">
-        <UIcon name="i-ph-warning-circle" class="size-4 shrink-0" />
-        <span class="truncate">{{ t("dms.table.load_error_title") }}</span>
-      </p>
-      <UButton
-        :label="t('dms.table.load_error_retry')"
-        icon="i-ph-arrows-clockwise"
-        color="neutral"
-        variant="outline"
-        size="xs"
-        @click="refresh()"
-      />
-    </div>
+      class="mt-auto"
+      :state="notFound ? 'not-found' : 'error'"
+      :not-found="notFound"
+      @retry="refresh()"
+    />
     <p
       v-else
       class="text-highlighted mt-1 text-[30px] leading-[1.1] font-[650] tracking-[-0.035em] tabular-nums transition-opacity"

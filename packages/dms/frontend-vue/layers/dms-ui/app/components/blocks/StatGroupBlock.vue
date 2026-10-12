@@ -61,7 +61,7 @@ const DEFAULT_SKELETON_COUNT = 4;
 
 const { processText } = useComposedText();
 
-const { items, isPending, hasError, refresh } =
+const { items, isPending, hasError, notFound, refresh } =
   useBlockItems<StatGroupBlockItem>({
     items: () => props.items,
     fetchUrl: props.fetchUrl,
@@ -85,6 +85,11 @@ const resolvedItems = computed<StatGroupItem[]>(() =>
 
 <template>
   <DmsBlockStatus v-if="hasError" state="error" @retry="refresh()" />
+  <DmsBlockStatus
+    v-else-if="notFound"
+    state="not-found"
+    :not-found="notFound"
+  />
   <DmsBlockStatus
     v-else-if="!isPending && resolvedItems.length === 0"
     state="empty"

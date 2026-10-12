@@ -3,6 +3,10 @@ import { useChartFetch } from "../../../composables/chart/useChartFetch";
 import { useComponentEvent } from "../../../../../dms-core/app/composables/components/useComponentEvent";
 import { useWatch } from "../../../../../dms-core/app/composables/watch/useWatch";
 import type { WatchAction } from "../../../../../dms-core/app/types/watch";
+import {
+  type FetchNotFound,
+  readFetchNotFound,
+} from "../../utils/fetchNotFound";
 
 /** What a list block's `fetchUrl` answers with. */
 export interface BlockItemsResponse<T> {
@@ -39,6 +43,11 @@ export interface UseBlockItemsReturn<T> {
   isPending: ComputedRef<boolean>;
   /** The first load failed; a refetch failure keeps the last items. */
   hasError: ComputedRef<boolean>;
+  /**
+   * The source answered 404: what the block lists does not exist (its last
+   * items are dropped). `null` otherwise. Never also `hasError`.
+   */
+  notFound: ComputedRef<FetchNotFound | null>;
   refresh: () => Promise<void>;
 }
 
@@ -81,9 +90,17 @@ export function useBlockItems<T>(
   const isPending = computed(
     () => isFetched && isLoading.value && data.value === null,
   );
+  const notFound = computed(() =>
+    isFetched && !isLoading.value ? readFetchNotFound(error.value) : null,
+  );
   const hasError = computed(
-    () => isFetched && !isLoading.value && data.value === null && !!error.value,
+    () =>
+      isFetched &&
+      !isLoading.value &&
+      data.value === null &&
+      !!error.value &&
+      !notFound.value,
   );
 
-  return { items, count, isPending, hasError, refresh };
+  return { items, count, isPending, hasError, notFound, refresh };
 }

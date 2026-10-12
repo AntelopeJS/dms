@@ -10,6 +10,8 @@ import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
+import { readFetchNotFound } from "../../build/utils/fetchNotFound";
+import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -119,6 +121,10 @@ const showSkeleton = computed(() => isLoading.value && !data.value);
 const hasError = computed(
   () => !isLoading.value && !data.value && Boolean(error.value),
 );
+// A 404 is a status too, but nothing to retry: the figures do not exist.
+const notFound = computed(() =>
+  hasError.value ? readFetchNotFound(error.value) : null,
+);
 // The placeholder is the meter's own shape: the label line (the label is
 // configuration, shown as is), the bar at its size, the legend line.
 const SKELETON_TRACK_HEIGHTS: Record<string, string> = {
@@ -162,24 +168,15 @@ const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
         <USkeleton :aria-label="t('dms.a11y.loading')" class="h-2.5 w-40" />
       </span>
     </div>
-    <div v-else-if="hasError" class="grid min-w-0 gap-1.5" role="alert">
+    <div v-else-if="hasError" class="grid min-w-0 gap-1.5">
       <span v-if="props.label" class="text-toned text-[13px]">
         {{ translate(props.label) }}
       </span>
-      <div class="flex items-center justify-between gap-2">
-        <p class="text-error flex min-w-0 items-center gap-1.5 text-[12.5px]">
-          <UIcon name="i-ph-warning-circle" class="size-4 shrink-0" />
-          <span class="truncate">{{ t("dms.table.load_error_title") }}</span>
-        </p>
-        <UButton
-          :label="t('dms.table.load_error_retry')"
-          icon="i-ph-arrows-clockwise"
-          color="neutral"
-          variant="outline"
-          size="xs"
-          @click="refresh()"
-        />
-      </div>
+      <DmsBlockInlineStatus
+        :state="notFound ? 'not-found' : 'error'"
+        :not-found="notFound"
+        @retry="refresh()"
+      />
     </div>
     <DmsMeter
       v-else

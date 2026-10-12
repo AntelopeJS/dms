@@ -19,7 +19,9 @@ import {
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
-import type { BlockEmptyText } from "../../build/components/blocks/BlockStatus.vue";
+import DmsBlockStatus, {
+  type BlockEmptyText,
+} from "../../build/components/blocks/BlockStatus.vue";
 
 // The renderer's props are optional: DmsActivityFeed is both the backend
 // `ActivityFeed` block (`dms-activity-feed-block`) and a template component.
@@ -100,6 +102,7 @@ const {
   count: fetchedCount,
   isPending,
   hasError,
+  notFound,
   refresh,
 } = useBlockItems<ActivityFeedItem>({
   items: () => props.items,
@@ -276,6 +279,13 @@ const wrapperProps = computed(() =>
             onClick: () => refresh(),
           },
         ]"
+      />
+
+      <DmsBlockStatus
+        v-else-if="notFound"
+        state="not-found"
+        :card="false"
+        :not-found="notFound"
       />
 
       <DmsEmptyState

@@ -1,6 +1,9 @@
 import { computed, type ComputedRef } from "vue";
 import { useChartFetch } from "../../../composables/chart/useChartFetch";
-import { HTTP_NOT_FOUND } from "../../../../../dms-core/app/utils/http-status";
+import {
+  type FetchNotFound,
+  readFetchNotFound,
+} from "../../utils/fetchNotFound";
 import type { BlockAction } from "../../components/blocks/BlockActions.vue";
 import type {
   EmptyStateSize,
@@ -47,6 +50,8 @@ export interface GuardState {
   condition: GuardCondition;
   /** The answer's `emptyState`, when the route sent one. */
   override?: GuardFallback;
+  /** What the 404 said, for `notFound`: its message sets the default texts. */
+  notFound?: FetchNotFound;
 }
 
 const FIELD_PATH_SEPARATOR = ".";
@@ -63,27 +68,6 @@ export function readFieldPath(source: unknown, path: string): unknown {
 export function isEmptyValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.length === 0;
   return !value;
-}
-
-interface StatusError {
-  status?: number;
-  statusCode?: number;
-  response?: { status?: number; _data?: unknown };
-  data?: unknown;
-}
-
-/** The HTTP status of a failed request, as `$fetch` and `$authFetch` throw it. */
-function errorStatus(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined;
-  const { statusCode, status, response } = error as StatusError;
-  return statusCode ?? status ?? response?.status;
-}
-
-/** The `emptyState` the body of a failed request carries, if any. */
-function errorBody(error: unknown): GuardResponse | undefined {
-  const { data, response } = error as StatusError;
-  const body = data ?? response?._data;
-  return body && typeof body === "object" ? (body as GuardResponse) : undefined;
 }
 
 function answerOverride(answer: unknown): GuardFallback | undefined {
@@ -118,8 +102,9 @@ export function useGuard(
     const { when = "empty", field } = options();
     const failure = error.value;
     if (when === "notFound") {
-      if (errorStatus(failure) !== HTTP_NOT_FOUND) return null;
-      return { condition: when, override: answerOverride(errorBody(failure)) };
+      const notFound = readFetchNotFound(failure);
+      if (!notFound) return null;
+      return { condition: when, override: notFound.emptyState, notFound };
     }
     const answer = data.value;
     if (failure || answer === null || answer === undefined) return null;

@@ -5,8 +5,10 @@ import DmsEmptyStateBlock from "../blocks/EmptyStateBlock.vue";
 import {
   type GuardCondition,
   type GuardFallback,
+  type GuardState,
   useGuard,
 } from "../../build/composables/blocks/useGuard";
+import { notFoundTexts } from "../../build/utils/fetchNotFound";
 
 // `Guard` block (interface-dms `base/guard`): renders its children unchanged
 // unless a route says there is nothing for them, then one EmptyState (the
@@ -40,16 +42,24 @@ const state = useGuard(
   () => props.routeParams,
 );
 
-const DEFAULT_FALLBACKS: Record<GuardCondition, () => GuardFallback> = {
+// `notFound` draws what a block whose source answers 404 draws: the same
+// title, the 404's message (or the same hint) and the same icon.
+const DEFAULT_FALLBACKS: Record<
+  GuardCondition,
+  (state: GuardState) => GuardFallback
+> = {
   empty: () => ({ title: t("dms.blocks.empty") }),
-  notFound: () => ({ title: t("dms.blocks.not_found"), variant: "no-result" }),
+  notFound: ({ notFound }) => ({
+    ...notFoundTexts(notFound, t),
+    variant: "no-result",
+  }),
 };
 
 const fallback = computed<GuardFallback | null>(() => {
   const current = state.value;
   if (!current) return null;
   return {
-    ...DEFAULT_FALLBACKS[current.condition](),
+    ...DEFAULT_FALLBACKS[current.condition](current),
     ...props.fallback,
     ...current.override,
   };

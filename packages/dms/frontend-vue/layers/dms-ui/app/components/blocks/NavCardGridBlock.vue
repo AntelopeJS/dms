@@ -94,6 +94,7 @@ const {
   items: blockItems,
   isPending,
   hasError,
+  notFound,
   refresh,
 } = useBlockItems<NavCardGridItem>({
   items: () => props.items,
@@ -161,6 +162,11 @@ const { t } = useI18n();
       "
     />
     <DmsBlockStatus v-if="hasError" state="error" @retry="refresh()" />
+    <DmsBlockStatus
+      v-else-if="notFound"
+      state="not-found"
+      :not-found="notFound"
+    />
     <DmsBlockStatus
       v-else-if="!isPending && cards.length === 0"
       state="empty"

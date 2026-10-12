@@ -24,6 +24,9 @@ behavioral DSL — permissioned `.action()`s and `.watch()` reactivity — see
 checks the value at `field` (absent / `null` / `false` / `0` / `""` / `[]`), `when: "notFound"`
 a 404. The children show while loading and on any other failure; an `emptyState` in the
 answer is laid over `fallback` — `docs/04.components/03.layout-and-containers.md#guard`.
+A block whose `fetchUrl` answers 404 shows its own "Not found" (no retry), the 404 body's
+`message` / `emptyState` over it; a `Guard` with `when: "notFound"` draws the same state once
+for the blocks it wraps — `docs/04.components/11.display-blocks.md#not-found`.
 
 A `TableView` scoped by the page URL takes `queryParamFilters: { status: { field: "status" } }`
 (hidden filters read from `?status=`; `routeParamFilters` for slug params like `:id`). No

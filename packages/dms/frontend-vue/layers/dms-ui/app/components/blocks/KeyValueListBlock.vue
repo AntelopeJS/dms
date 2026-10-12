@@ -69,7 +69,7 @@ const TRANSLATED_TYPES = new Set([undefined, "text", "status", "link"]);
 
 const { processText } = useComposedText();
 
-const { items, isPending, hasError, refresh } =
+const { items, isPending, hasError, notFound, refresh } =
   useBlockItems<KeyValueListBlockItem>({
     items: () => props.items,
     fetchUrl: props.fetchUrl,
@@ -104,7 +104,11 @@ const title = computed(() =>
   props.title ? processText(props.title) : undefined,
 );
 const isEmpty = computed(
-  () => !isPending.value && !hasError.value && resolvedItems.value.length === 0,
+  () =>
+    !isPending.value &&
+    !hasError.value &&
+    !notFound.value &&
+    resolvedItems.value.length === 0,
 );
 // A card with a head gets its body padding from the list itself, so the rows'
 // hairlines run to the same inset as the head's.
@@ -121,6 +125,12 @@ const listClass = computed(() => (props.card ? "px-[18px] py-2" : undefined));
       state="error"
       :card="false"
       @retry="refresh()"
+    />
+    <DmsBlockStatus
+      v-else-if="notFound"
+      state="not-found"
+      :card="false"
+      :not-found="notFound"
     />
     <DmsBlockStatus
       v-else-if="isEmpty"

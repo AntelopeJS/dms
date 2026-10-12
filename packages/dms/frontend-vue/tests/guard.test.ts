@@ -156,13 +156,48 @@ describe("Guard", () => {
   });
 
   describe("when notFound", () => {
-    const NOT_FOUND = { fetchUrl: "/api/routes/{{params.id}}", when: "notFound" };
+    const NOT_FOUND = {
+      fetchUrl: "/api/routes/{{params.id}}",
+      when: "notFound",
+    };
 
     it("swaps its children for Not found when the route answers 404", async () => {
       failure.value = { statusCode: 404 };
       const html = await render(NOT_FOUND);
       expect(html).not.toContain("data-children");
       expect(html).toContain("t(dms.blocks.not_found)");
+      expect(html).toContain("t(dms.blocks.not_found_hint)");
+    });
+
+    it("describes it with the 404's message, as a block does", async () => {
+      failure.value = {
+        statusCode: 404,
+        data: { message: "No such route" },
+      };
+      const html = await render(NOT_FOUND);
+      expect(html).toContain("t(dms.blocks.not_found)");
+      expect(html).toContain("No such route");
+      expect(html).not.toContain("t(dms.blocks.not_found_hint)");
+    });
+
+    it("reads the 404 body ofetch keeps on the response", async () => {
+      failure.value = {
+        response: {
+          status: 404,
+          _data: { emptyState: { title: "Workspace gone" } },
+        },
+      };
+      expect(await render(NOT_FOUND)).toContain("Workspace gone");
+    });
+
+    it("lets the fallback replace the 404's message", async () => {
+      failure.value = { statusCode: 404, data: { message: "No such route" } };
+      const html = await render({
+        ...NOT_FOUND,
+        fallback: { description: "This route was removed." },
+      });
+      expect(html).toContain("This route was removed.");
+      expect(html).not.toContain("No such route");
     });
 
     it("lays the 404 body's emptyState over the fallback", async () => {
