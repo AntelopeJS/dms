@@ -115,8 +115,13 @@ import {
 } from "../../build/composables/table-view/useExpandedRowDetails";
 import type {
   TableAccumulation,
+  TableUrlFilter,
   TableViewSwitcherItem,
 } from "../../build/components/table/Table.vue";
+import {
+  visibleUrlFilters,
+  withoutQueryParam,
+} from "../../build/composables/table-view/utils/urlFilters";
 import {
   defineAsyncComponent,
   useTemplateRef,
@@ -398,6 +403,15 @@ const queryParamHiddenFilters = computed<TableFilter[]>(() => {
       value: route.query[param] as string,
     }));
 });
+
+const shownUrlFilters = computed<TableUrlFilter[]>(() =>
+  visibleUrlFilters(queryParamFilters, route.query as Record<string, unknown>),
+);
+
+const removeUrlFilter = (param: string) =>
+  router.replace({
+    query: withoutQueryParam(route.query, param),
+  });
 
 const routeParamHiddenFilters = computed<TableFilter[]>(() => {
   if (!routeParamFilters || !routeParams) return [];
@@ -2108,6 +2122,7 @@ onMounted(() => {
     :footer="resolvedFooter"
     :empty-states="props.emptyStates"
     :hidden-filters-apply="queryParamHiddenFilters.length > 0"
+    :url-filters="shownUrlFilters"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
     :displays="availableDisplays"
@@ -2145,6 +2160,7 @@ onMounted(() => {
     @export-all="handleExportTable"
     @bulk-action="runBulkAction"
     @duplicate="handleRowDuplicate"
+    @remove-url-filter="removeUrlFilter"
     @edit="handleRowEdit"
   >
     <template

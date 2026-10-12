@@ -14,6 +14,10 @@ import type { BlockAction } from "../../../build/components/blocks/BlockActions.
 export interface QueryParamFilter {
   field: string;
   mode?: string;
+  /** Shown as a removable chip while the URL applies it. */
+  visible?: boolean;
+  /** The chip's name; the field's column label by default. */
+  label?: string;
 }
 
 export type QueryParamFilters = Record<string, QueryParamFilter>;

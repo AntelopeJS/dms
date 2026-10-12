@@ -780,6 +780,17 @@ export interface TableViewFormPageUrls {
 export interface QueryParamFilter {
   field: string;
   mode?: string;
+  /**
+   * Shows the filter, while the URL applies it, as a chip of the filters row
+   * that the user can remove (which drops the parameter from the URL). Off by
+   * default: the filter stays hidden and cannot be cleared.
+   */
+  visible?: boolean;
+  /**
+   * Names the chip of a `visible` filter (a `$`-prefixed key is translated).
+   * Defaults to the label of the `field` column, else the parameter's name.
+   */
+  label?: string;
 }
 
 export type QueryParamFilters = Record<string, QueryParamFilter>;
@@ -998,7 +1009,9 @@ export interface TableViewOptions<
   pinnedRows?: RowActionRule<T>;
   /**
    * Maps URL query parameters to hidden filters applied to the table data.
-   * These filters are not visible in the UI and not persisted in preferences.
+   * These filters are not persisted in preferences, and not visible in the UI
+   * unless one sets `visible: true`: it then shows as a removable chip.
+   * @example { email: { field: "email", visible: true, label: "$app.email" } }
    */
   queryParamFilters?: QueryParamFilters;
   /**
