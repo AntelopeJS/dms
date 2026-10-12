@@ -79,3 +79,17 @@ it("has every reason in English and French", () => {
     }
   }
 });
+
+it("words the count with missedLabel and adds the paused page's breakdown", async () => {
+  const host = await mountBanner({
+    count: 12,
+    missedLabel: "$api.live.new_requests",
+    detail: { text: "$api.live.in_5xx", params: { count: 2 }, tone: "error" },
+  });
+
+  expect(host.textContent).toContain("api.live.new_requests:12");
+  expect(host.textContent).not.toContain("dms.live.new_rows");
+  const detail = host.querySelector(".dms-live-hold-banner__detail");
+  expect(detail?.textContent?.trim()).toBe("api.live.in_5xx:2");
+  expect(detail?.classList.contains("text-error")).toBe(true);
+});

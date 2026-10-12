@@ -1,6 +1,9 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
 import { usePageLive } from "../../../composables/live/usePageLive";
-import type { TableViewLiveHoldOptions } from "../../../types/live";
+import type {
+  PageLiveNote,
+  TableViewLiveHoldOptions,
+} from "../../../types/live";
 import type { LiveGate } from "../live/currentPageLive";
 import { useScrolledPastTop } from "./useScrolledPastTop";
 import { LIVE_HELD_AT_QUERY_KEY } from "./useTableRows";
@@ -49,6 +52,13 @@ export interface TableLiveHold {
    * a paused page says why on its toggle.
    */
   reason: ComputedRef<TableLiveHoldReason | null>;
+  /** What the new rows are called, given `{count}` (`liveHold.missedLabel`). */
+  missedLabel: string | undefined;
+  /**
+   * The breakdown of what the paused page missed (`setMissedDetail`), `null`
+   * while the page is live or nothing came in.
+   */
+  missedDetail: ComputedRef<PageLiveNote | null>;
   /** Reads the rows once, staying held, and holds them from now. */
   showNew: () => void;
   /** The bound a source route receives with each request while held. */
@@ -104,24 +114,15 @@ function useLocalHold(
  * @internal
  */
 export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
-  const { isEnabled, isPaused } = usePageLive();
+  const { isEnabled, isPaused, missedDetail } = usePageLive();
   const holdOptions = holdOptionsOf(options.liveHold);
   const localReason = useLocalHold(holdOptions, options.signals ?? {});
   const isLocallyHeld = computed(() => localReason.value !== null);
-  const pausedAt = ref<number | null>(null);
   const isHolding = computed(
     () =>
       !!holdOptions &&
       isEnabled.value &&
       (isPaused.value || isLocallyHeld.value),
-  );
-
-  watch(
-    isHolding,
-    (holding) => {
-      pausedAt.value = holding ? Date.now() : null;
-    },
-    { immediate: true },
   );
   // Again on a new controller: the gate binds to the page on screen.
   watch(
@@ -131,28 +132,43 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
     },
     { flush: "sync" },
   );
-
-  // The rows are as fresh as the hold, or as the last read the user asked
-  // for since (Show, an action of theirs).
-  const heldAt = () =>
-    pausedAt.value === null
-      ? null
-      : Math.max(pausedAt.value, options.gate().lastReadAt.value);
+  const newCount = computed(() =>
+    isHolding.value ? options.gate().missed.value : 0,
+  );
 
   return {
     isHolding,
-    newCount: computed(() =>
-      isHolding.value ? options.gate().missed.value : 0,
-    ),
+    newCount,
     reason: computed(() =>
       isHolding.value && !isPaused.value ? localReason.value : null,
     ),
+    missedLabel: holdOptions?.missedLabel,
+    missedDetail: computed(() =>
+      isPaused.value && newCount.value > 0 ? missedDetail.value : null,
+    ),
     showNew: () => options.gate().catchUp(),
-    heldQuery: () => {
-      const at = heldAt();
-      return options.isSource && at !== null
-        ? { [LIVE_HELD_AT_QUERY_KEY]: new Date(at).toISOString() }
-        : NO_QUERY;
+    heldQuery: useHeldQuery(isHolding, options),
+  };
+}
+
+// The bound a source route receives while the rows are held: they are as
+// fresh as the hold, or as the last read the user asked for since (Show, an
+// action of theirs).
+function useHeldQuery(
+  isHolding: ComputedRef<boolean>,
+  options: TableLiveHoldOptions,
+): () => Query {
+  const pausedAt = ref<number | null>(null);
+  watch(
+    isHolding,
+    (holding) => {
+      pausedAt.value = holding ? Date.now() : null;
     },
+    { immediate: true },
+  );
+  return () => {
+    if (!options.isSource || pausedAt.value === null) return NO_QUERY;
+    const at = Math.max(pausedAt.value, options.gate().lastReadAt.value);
+    return { [LIVE_HELD_AT_QUERY_KEY]: new Date(at).toISOString() };
   };
 }

@@ -350,3 +350,35 @@ it("tells the hold about the table's search and sort, and the banner why", () =>
   );
   expect(tableViewSource).toContain(':reason="liveHold.reason.value"');
 });
+
+it("hands the strip the paused page's breakdown and the table's missedLabel", async () => {
+  const isRowOpen = ref(false);
+  const { hold } = mountTable({
+    liveHold: { whileRowOpen: true, missedLabel: "$api.live.new_requests" },
+    signals: { isRowOpen: () => isRowOpen.value },
+  });
+  expect(hold.missedLabel).toBe("$api.live.new_requests");
+  const detail = { text: "$api.live.in_5xx", params: { count: 1 } };
+
+  // Held by an open row, the page live: the page has no breakdown to give.
+  isRowOpen.value = true;
+  await nextTick();
+  publish();
+  live.setMissedDetail(detail);
+  expect(hold.missedDetail.value).toBe(null);
+
+  live.pause();
+  await nextTick();
+  publish();
+  live.setMissedDetail(detail);
+  expect(hold.missedDetail.value).toEqual(detail);
+
+  live.resume();
+  await nextTick();
+  expect(hold.missedDetail.value).toBe(null);
+});
+
+it("passes the strip its wording and breakdown", () => {
+  expect(tableViewSource).toContain(':missed-label="liveHold.missedLabel"');
+  expect(tableViewSource).toContain(':detail="liveHold.missedDetail.value"');
+});

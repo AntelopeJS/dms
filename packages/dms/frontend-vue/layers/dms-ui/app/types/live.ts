@@ -55,4 +55,6 @@ export interface TableViewLiveHoldOptions {
   whileSearching?: boolean;
   /** While the user sorts the rows otherwise than by the table's default. */
   whileSorted?: boolean;
+  /** What the strip calls the new rows, given `{count}`. */
+  missedLabel?: string;
 }

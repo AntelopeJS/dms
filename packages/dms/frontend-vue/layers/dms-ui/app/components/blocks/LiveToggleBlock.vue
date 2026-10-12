@@ -5,11 +5,11 @@ import { usePageLive } from "../../composables/live/usePageLive";
 import { formatElapsed } from "../../build/composables/live/formatElapsed";
 import { useLiveToggleShortcut } from "../../build/composables/live/useLiveToggleShortcut";
 import { HIDDEN_TAB_NOTE } from "../../build/composables/live/pageLiveController";
+import type { ConfirmTranslate } from "../../build/composables/confirm/confirmDialogTexts";
 import {
-  resolveConfirmText,
-  type ConfirmTranslate,
-} from "../../build/composables/confirm/confirmDialogTexts";
-import type { PageLiveNote, PageLiveNoteTone } from "../../types/live";
+  missedRowsText,
+  showLiveNote,
+} from "../../build/composables/live/liveNotes";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 interface LiveToggleBlockProps extends DefaultComponentProps {
@@ -39,11 +39,6 @@ const ALIGN_CLASSES: Record<
   left: "justify-start",
   center: "justify-center",
   right: "justify-end",
-};
-const TONE_CLASSES: Record<PageLiveNoteTone, string> = {
-  neutral: "",
-  warning: "text-warning",
-  error: "text-error",
 };
 const PILL_BUTTON_CLASS =
   "focus-visible:outline-primary flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[12px] font-medium transition-colors focus-visible:outline-2";
@@ -90,15 +85,10 @@ const updatedLabel = computed(() => {
     : updated;
 });
 
-const noteText = (note: PageLiveNote) =>
-  resolveConfirmText(note.text, note.params ?? {}, translate);
-
 const missedText = computed(() => {
   const count = live.missedCount.value;
   if (count === 0) return "";
-  return props.missedLabel
-    ? resolveConfirmText(props.missedLabel, { count }, translate)
-    : t("dms.live.new_rows", { count }, count);
+  return missedRowsText(count, props.missedLabel, translate);
 });
 
 // "Paused · typing in the Tester · 40 new requests", the detail apart: it
@@ -107,7 +97,7 @@ const pausedText = computed(() => {
   const reason = live.pauseReason.value;
   return [
     t("dms.live.paused"),
-    reason ? noteText(reason) : "",
+    reason ? showLiveNote(reason, translate).text : "",
     missedText.value,
   ]
     .filter((part) => part !== "")
@@ -117,10 +107,7 @@ const pausedText = computed(() => {
 const detail = computed(() => {
   const note = live.missedDetail.value;
   if (!note || live.missedCount.value === 0) return null;
-  return {
-    text: noteText(note),
-    toneClass: TONE_CLASSES[note.tone ?? "neutral"],
-  };
+  return showLiveNote(note, translate);
 });
 
 // A hidden tab resumes by itself when it shows again: no button for it.

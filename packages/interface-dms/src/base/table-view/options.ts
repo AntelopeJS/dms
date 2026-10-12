@@ -868,6 +868,15 @@ export interface TableViewLiveHoldOptions {
    * Defaults to false.
    */
   whileSorted?: boolean;
+  /**
+   * What the strip calls the new rows, given `{count}`, as the `LiveToggle`'s
+   * own `missedLabel`: an i18n key prefixed with `$`
+   * (`"$api.live.new_requests"`, "12 new requests"), or a text. While the
+   * page is paused, the strip adds the breakdown a component gave with
+   * `usePageLive().setMissedDetail` ("12 new requests · 2 in 5xx").
+   * Defaults to "N new".
+   */
+  missedLabel?: string;
 }
 
 export interface TableViewOptions<

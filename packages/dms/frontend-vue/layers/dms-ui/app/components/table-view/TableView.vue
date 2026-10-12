@@ -2111,6 +2111,8 @@ onMounted(() => {
       <LiveHoldBanner
         :count="liveHold.newCount.value"
         :reason="liveHold.reason.value"
+        :missed-label="liveHold.missedLabel"
+        :detail="liveHold.missedDetail.value"
         @show="liveHold.showNew"
       />
     </template>

@@ -44,7 +44,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
   `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone, its strip saying why ("Table on hold ·
-  search active"). Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
+  search active"); `liveHold.missedLabel` words its "N new", and paused, it adds the
+  `setMissedDetail()` breakdown ("12 new requests · 2 in 5xx"). Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
   module may batch publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
   A custom component follows that state with `usePageLive()`, holds the page with `hold(reason)` /
   `release()` and adds a breakdown with `setMissedDetail()`; a custom component that reads its own data
