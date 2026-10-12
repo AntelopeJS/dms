@@ -46,7 +46,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   holds the table alone. Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
   module may batch publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
   A custom component follows that state with `usePageLive()`, holds the page with `hold(reason)` /
-  `release()` and adds a breakdown with `setMissedDetail()`; `refreshPageBlocks()` (user actions) always
+  `release()` and adds a breakdown with `setMissedDetail()`; a custom component that reads its own data
+  on a topic calls `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })`, gated exactly like a
+  built-in block (never a throttle of its own); `refreshPageBlocks()` (user actions) always
   reads, `refreshLivePageBlocks()` (timers, feeds) is held while paused.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)

@@ -75,8 +75,9 @@ export interface PageLiveState {
  * const { isPaused, missedCount, resume, hold, release } = usePageLive();
  * ```
  *
- * A component that refetches on its own realtime topic need not use it:
- * built-in blocks with a `realtimeTopic` already follow the state.
+ * A component that refetches on its own realtime topic need not read it:
+ * `usePageLiveRefresh` gates its refresh as the built-in blocks with a
+ * `realtimeTopic` are.
  */
 export function usePageLive(): PageLiveState {
   const isPaused = computed(() => currentPageLive()?.isPaused.value ?? false);
