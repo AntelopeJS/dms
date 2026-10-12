@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.11
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.10...v0.7.11)
+
+### 🩹 Fixes
+
+- **guard:** Space several children the way the page spaces its blocks ([#221](https://github.com/AntelopeJS/dms/pull/221))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.10
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.9...v0.7.10)
