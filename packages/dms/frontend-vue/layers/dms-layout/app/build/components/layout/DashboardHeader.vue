@@ -5,6 +5,8 @@ import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 import { useHeaderActionControls } from "../../composables/layout/useHeaderActionControls";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
+import type { CategoryInfo } from "../../../types/page";
+import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */
@@ -96,6 +98,22 @@ const toggleCurrentPageFavorite = () => {
   favoritePages.toggleFavorite(currentPageInfo.value);
 };
 
+/** The page a module's root crumb opens: the module's landing page. */
+function moduleLandingSlug(
+  metadata: CategoryInfo,
+): string | undefined {
+  if (!metadata.isModuleRoot || metadata.hasAccess === false) return undefined;
+  const module = siteLayout.modules.value?.[metadata.id];
+  if (!module) return undefined;
+  return (
+    resolveModuleLandingSlug(
+      siteLayout.siteLayoutTree.value,
+      metadata.id,
+      module.landingPage,
+    ) ?? undefined
+  );
+}
+
 const breadcrumb = computed((): BreadcrumbItem[] => {
   const base: BreadcrumbItem[] = [
     { icon: HOME_ICON, to: homepage || "/", "aria-label": t("header.home") },
@@ -122,7 +140,10 @@ const breadcrumb = computed((): BreadcrumbItem[] => {
 
         const target = buildBreadcrumbTarget(
           to,
-          matchingRoute.metadata,
+          {
+            ...matchingRoute.metadata,
+            landingSlug: moduleLandingSlug(matchingRoute.metadata),
+          },
           route.query,
         );
 

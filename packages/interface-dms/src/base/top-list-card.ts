@@ -12,7 +12,12 @@ import {
   type ValueFormat,
   type ValuePrecision,
 } from "./chart";
-import { type BlockLinkAction, blockActionsOption } from "./display";
+import {
+  type BlockLinkAction,
+  blockActionsOption,
+  blockRealtimeTopicOption,
+} from "./display";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import { blockTextSchema } from "./internal/composed-text";
 import type { BaseComponentProps, EnumOption } from "./types";
 import type { BlockText } from "./types/composed-text";
@@ -57,6 +62,12 @@ export interface TopListCardProps extends BaseComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
+  /**
+   * Topics the backend publishes on (`PublishMessage`) when the data moves:
+   * the card reads `fetchUrl` again on each event, keeping what it shows,
+   * through the page's `live` gate. The page registers them.
+   */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -106,12 +117,15 @@ const DEFAULT_ICON = "i-ph-list-numbers";
 export function TopListCard(
   options?: TopListCardProps,
 ): ComponentBuilder<TopListCardProps> {
-  return new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
-    .options({ ...options } as TopListCardProps)
-    .meta({
-      name: options?.title || "Top list",
-      icon: DEFAULT_ICON,
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<TopListCardProps>(TOP_LIST_CARD_COMPONENT_NAME)
+      .options({ ...options } as TopListCardProps)
+      .meta({
+        name: options?.title || "Top list",
+        icon: DEFAULT_ICON,
+      }),
+    options?.realtimeTopic,
+  );
 }
 
 const TopListItemSchema = z.object({
@@ -154,6 +168,7 @@ export const TopListCardSchema = z.object({
     label: "Period scope",
     group: "advanced",
   }),
+  realtimeTopic: blockRealtimeTopicOption(),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",
     group: "appearance",

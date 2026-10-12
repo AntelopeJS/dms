@@ -8,6 +8,8 @@ import {
 } from "./block-registry";
 import { VALUE_FORMATS, type ValueFormat, type ValuePrecision } from "./chart";
 import { CHART_BLOCK_TYPES } from "./internal/chart-schemas";
+import { blockRealtimeTopicOption } from "./display";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import type { BaseComponentProps, EnumOption } from "./types";
 import { HttpMethod } from "./types/http";
 
@@ -22,6 +24,12 @@ export interface ChartCardProps extends BaseComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
+  /**
+   * Topics the backend publishes on (`PublishMessage`) when the data moves:
+   * the card reads `fetchUrl` again on each event, keeping what it shows,
+   * through the page's `live` gate. The page registers them.
+   */
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -79,7 +87,10 @@ export function ChartCard(
       name: rest.title || "Chart card",
       icon: rest.icon || "i-ph-chart-line",
     });
-  return chart ? builder.child(NESTED_CHART_ID, chart) : builder;
+  return attachRealtimeTopicsHook(
+    chart ? builder.child(NESTED_CHART_ID, chart) : builder,
+    rest.realtimeTopic,
+  );
 }
 
 /** The options `ChartCard` accepts, including the chart it wraps. */
@@ -126,6 +137,7 @@ export const ChartCardSchema = z.object({
     label: "Period scope",
     group: "advanced",
   }),
+  realtimeTopic: blockRealtimeTopicOption(),
   valueFormat: ui(z.enum(VALUE_FORMATS).optional(), {
     label: "Value format",
     group: "appearance",

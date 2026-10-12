@@ -4,7 +4,9 @@
  * when the caller may open it, else its first page — keeping the query and
  * the hash it was entered with. The middleware answers the landing page
  * rather than navigating to it, so the module's address never renders and,
- * in a server render, becomes the response's redirect.
+ * in a server render, becomes the response's redirect. A page the browser
+ * already draws at the module's address (a link that skipped the guard) loads
+ * the landing page instead of navigating from its own setup.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
@@ -20,7 +22,12 @@ interface TreeNode {
   childrenOrders: string[];
 }
 
-type Middleware = (to: { path: string; fullPath: string }) => Promise<unknown>;
+interface GuardedRoute {
+  path: string;
+  fullPath: string;
+}
+
+type Middleware = (to: GuardedRoute, from?: GuardedRoute) => Promise<unknown>;
 
 const navigateDms = vi.fn();
 
@@ -72,12 +79,16 @@ function stubSiteLayout(moduleRoot: TreeNode, landingPage?: string) {
   }));
 }
 
-async function enter(fullPath: string): Promise<unknown> {
+async function enter(
+  fullPath: string,
+  drawnThere = false,
+): Promise<unknown> {
   const middleware = (
     await import("../layers/dms-layout/app/middleware/module-routing.global")
   ).default as unknown as Middleware;
   const path = fullPath.replace(/[?#].*$/, "");
-  return middleware({ path, fullPath });
+  const to = { path, fullPath };
+  return middleware(to, drawnThere ? to : { path: "/home", fullPath: "/home" });
 }
 
 beforeEach(() => {
@@ -129,6 +140,14 @@ describe("entering a module", () => {
     );
     await enter("/modules/api");
     expect(navigateDms).toHaveBeenCalledWith("/dashboard", { replace: true });
+  });
+
+  it("loads the landing page when the browser already draws the module's address", async () => {
+    stubSiteLayout(apiModule(), "overview");
+    const replace = vi.fn();
+    vi.stubGlobal("window", { location: { replace } });
+    expect(await enter("/modules/api?live=0", true)).toBe(false);
+    expect(replace).toHaveBeenCalledWith("/modules/api/overview?live=0");
   });
 
   it("leaves a module page alone", async () => {

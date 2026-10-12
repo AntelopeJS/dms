@@ -18,6 +18,16 @@ describe("buildBreadcrumbTarget", () => {
     expect(buildBreadcrumbTarget("/projects", {}, {})).to.equal(undefined);
   });
 
+  it("links a module's root to the module's landing page", () => {
+    expect(
+      buildBreadcrumbTarget(
+        "/modules/api",
+        { landingSlug: "/modules/api/overview" },
+        {},
+      ),
+    ).to.equal("/modules/api/overview");
+  });
+
   it("carries only the query values an ancestor page requires", () => {
     expect(
       buildBreadcrumbTarget("/projects/project", PROJECT_PAGE, {
