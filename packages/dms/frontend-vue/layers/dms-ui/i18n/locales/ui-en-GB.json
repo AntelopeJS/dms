@@ -702,7 +702,9 @@
       "error_title": "Activity could not be loaded",
       "error_description": "Check your connection, then try again.",
       "retry": "Try again",
-      "list_label": "Activity"
+      "list_label": "Activity",
+      "show_more": "Show {count} more",
+      "show_fewer": "Show fewer"
     },
     "leave_guard": {
       "title": "Discard unsaved changes?",

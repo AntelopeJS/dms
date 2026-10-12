@@ -26,6 +26,12 @@ interface Props {
   to?: string;
   /** Hover band; on by default. */
   interactive?: boolean;
+  /**
+   * The title, details and detail line wrap over as many lines as they
+   * need, a long path or query breaking anywhere, instead of one line each
+   * cut with an ellipsis.
+   */
+  wrap?: boolean;
 }
 
 interface Slots {
@@ -45,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   unread: false,
   to: undefined,
   interactive: true,
+  wrap: false,
 });
 const slots = defineSlots<Slots>();
 
@@ -57,7 +64,8 @@ const hasTitle = computed(() => !!props.title || !!slots.default);
     size="sm"
     icon-size="xs"
     marker="trailing"
-    truncate
+    :truncate="!props.wrap"
+    :class="props.wrap && '[overflow-wrap:anywhere]'"
     :icon="props.icon"
     :tone="props.iconColor"
     :meta="meta"
@@ -71,15 +79,15 @@ const hasTitle = computed(() => !!props.title || !!slots.default);
     <template v-if="hasTitle" #default>
       <!-- One line on wide screens (the full text shows on hover); on a
            phone a sentence wraps rather than losing its end, while a mono
-           path or query keeps its line. -->
+           path or query keeps its line. `wrap` keeps every word. -->
       <span
-        class="min-w-0 truncate"
-        :class="
-          props.mono
-            ? 'text-toned font-mono text-[12.5px]'
-            : 'max-sm:whitespace-normal'
-        "
-        :title="props.title"
+        class="min-w-0"
+        :class="[
+          props.mono && 'text-toned font-mono text-[12.5px]',
+          !props.wrap && 'truncate',
+          !props.wrap && !props.mono && 'max-sm:whitespace-normal',
+        ]"
+        :title="props.wrap ? undefined : props.title"
       >
         <slot>{{ props.title }}</slot>
       </span>

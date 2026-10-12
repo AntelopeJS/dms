@@ -72,6 +72,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   duration, an error message), and `DurationDisplay({ format: "ms" })` writes "2,149 ms" on every row;
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
+  An `ActivityFeed` whose entries must be read whole sets `wrap: true` (no ellipsis; leave `fillHeight`
+  off so the card grows) and `visibleItems: N` for a "Show N more" fold.
   A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a
   text field `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
   A `TableView` over a shared controller hides a column on one page with
