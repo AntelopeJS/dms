@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { isDeepStrictEqual } from "node:util";
 import { BasicDataModel } from "@antelopejs/interface-database-decorators";
 import type {
   NotificationData,
@@ -94,41 +93,8 @@ export function buildNewUserNotification(
   };
 }
 
-function matchesDelivery(
-  existing: UserNotification,
-  userId: string,
-  data: NotificationData,
-  groupId?: string,
-): boolean {
-  return (
-    existing.isIdempotent === true &&
-    isDeepStrictEqual(
-      [
-        existing.userId,
-        existing.categoryId,
-        existing.subjectId,
-        existing.groupId,
-        existing.icon,
-        existing.title,
-        existing.description,
-        existing.linkTo,
-        existing.params,
-        existing.tone ?? null,
-      ],
-      [
-        userId,
-        data.subject.category.id,
-        data.subject.id,
-        groupId || null,
-        data.icon,
-        data.title,
-        data.description,
-        data.linkTo || null,
-        data.params || null,
-        data.tone ?? null,
-      ],
-    )
-  );
+function isReceiptOf(existing: UserNotification, userId: string): boolean {
+  return existing.isIdempotent === true && existing.userId === userId;
 }
 
 export class UserNotificationsModel extends BasicDataModel(
@@ -515,7 +481,12 @@ export class UserNotificationsModel extends BasicDataModel(
     }
   }
 
-  /** Atomically inserts a delivery, returning undefined when the same event already exists. */
+  /**
+   * Atomically inserts a delivery, returning undefined when the recipient
+   * already holds a receipt for the key. The first delivery stored under a
+   * key wins: a later send under the same key, whatever its content, is
+   * "already created", as an outbox retry or a second instance expects.
+   */
   async createIdempotently(
     userId: string,
     data: NotificationData,
@@ -533,8 +504,7 @@ export class UserNotificationsModel extends BasicDataModel(
     } catch (error) {
       // A failed acknowledgement can follow a committed insert, independent of driver error codes.
       const existing = await this.table.get(id).run();
-      if (!existing || !matchesDelivery(existing, userId, data, groupId))
-        throw error;
+      if (!existing || !isReceiptOf(existing, userId)) throw error;
       return undefined;
     }
   }
