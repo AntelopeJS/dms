@@ -65,14 +65,15 @@ const COMPARISON_RESOLVERS: Record<
  * `previous-period` returns the equal-length span immediately before the
  * range, offset by a single millisecond so the two never overlap. Ranges of
  * whole days are measured in calendar days, so daylight saving changes don't
- * move their midnight boundaries.
+ * move their midnight boundaries. A range with no bounds (`all`) has nothing
+ * to compare against: `null`.
  */
 export function resolveComparisonRange(
   comparison: PeriodComparison,
-  range: PeriodRange,
+  range: PeriodRange | null,
   customRange: PeriodRange | null,
 ): PeriodRange | null {
-  if (comparison === "none") return null;
+  if (comparison === "none" || !range) return null;
   if (comparison === "custom") return customRange;
   return COMPARISON_RESOLVERS[comparison](range);
 }

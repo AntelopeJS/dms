@@ -19,6 +19,7 @@ export const PERIOD_PRESETS = [
   "last-quarter",
   "ytd",
   "last-year",
+  "all",
   "custom",
 ] as const;
 export type PeriodPreset = (typeof PERIOD_PRESETS)[number];
@@ -31,6 +32,23 @@ export const PERIOD_COMPARISONS = [
   "custom",
 ] as const;
 export type PeriodComparison = (typeof PERIOD_COMPARISONS)[number];
+
+/**
+ * How the selector writes the window beside its control: `absolute` gives
+ * both bounds ("Oct 10, 7:54 PM – Oct 11, 7:54 PM"), `relative` its start
+ * from now ("since yesterday 11:52", "since Oct 4, 11:52").
+ */
+export const PERIOD_RANGE_LABELS = ["absolute", "relative"] as const;
+export type PeriodRangeLabel = (typeof PERIOD_RANGE_LABELS)[number];
+
+/**
+ * How the selector offers its comparisons: `menu` lists them in a dropdown,
+ * `toggle` is one inline button switching the comparison on and off, and
+ * `hidden` shows nothing, the comparison staying on.
+ */
+export const PERIOD_COMPARISON_CONTROLS = ["menu", "toggle", "hidden"] as const;
+export type PeriodComparisonControl =
+  (typeof PERIOD_COMPARISON_CONTROLS)[number];
 
 /** Where the selector sits in its row. */
 export const PERIOD_ALIGNS = ["left", "center", "right"] as const;
@@ -53,7 +71,10 @@ export const DEFAULT_PERIOD_SCOPE = "page";
  * The period lives in the page URL, always: a range is
  * `?<id>.period=last-7-days&<id>.compare=previous-period`, a custom range
  * `?<id>.from=2026-10-01&<id>.to=2026-10-31` (an ISO date or date-time each;
- * a custom comparison adds `<id>.compareFrom` / `<id>.compareTo`). Keys are
+ * a custom comparison adds `<id>.compareFrom` / `<id>.compareTo`). The `all`
+ * preset (`?<id>.period=all`) has no bounds: its cards are sent no `from` /
+ * `to`. A link naming a range opens on it even when `custom` is not offered,
+ * no preset selected (an incident's window, say). Keys are
  * prefixed with the id, so several selectors on a page never collide. The
  * URL is written once the page is shown (a copied URL always carries the
  * period), then on each change, replacing the current history entry rather
@@ -61,8 +82,9 @@ export const DEFAULT_PERIOD_SCOPE = "page";
  * every pick. The server renders the URL's period.
  *
  * On load the period comes from the URL, then from the last choice the user
- * made on this selector of this page (kept in the browser, for the 20 most
- * recent selectors), then from `defaultPreset` / `defaultComparison`. The
+ * made on this selector of this page — or on any selector sharing its
+ * `rememberKey` — (kept in the browser, for the 20 most recent selectors),
+ * then from `defaultPreset` / `defaultComparison`. The
  * range and the comparison are
  * read apart, and a value that is unknown, not offered by `presets` /
  * `comparisons`, or not a valid date range is skipped for the next source.
@@ -84,6 +106,27 @@ export interface PeriodSelectorProps extends BaseComponentProps {
   align?: PeriodAlign;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRangeLabel?: boolean;
+  /**
+   * How the window beside the control reads: `absolute` (the default) gives
+   * both bounds, `relative` its start from now, in the reader's locale
+   * ("since yesterday 11:52"). A window ending before now keeps its bounds.
+   */
+  rangeLabel?: PeriodRangeLabel;
+  /**
+   * How the comparisons are offered (see {@link PeriodComparisonControl}).
+   * Defaults to `toggle` when `comparisons` offers a single comparison
+   * besides `none`, `menu` otherwise. The toggle switches between that
+   * comparison and `none`; `hidden` keeps the comparison on
+   * (`defaultComparison`, else the first one offered besides `none`).
+   */
+  comparisonControl?: PeriodComparisonControl;
+  /**
+   * Shares the remembered last choice with every selector carrying the same
+   * key, on any page: a module's pages give theirs one key so the period
+   * follows the user from page to page. Without it the choice is kept per
+   * page and per `id`. A choice a selector does not offer is skipped there.
+   */
+  rememberKey?: string;
   /**
    * `segmented` renders the presets as inline pills for one-click range
    * switching; the custom range stays in its popover calendar.
@@ -133,6 +176,7 @@ const PERIOD_PRESET_LABELS: Record<PeriodPreset, string> = {
   "last-quarter": "Last quarter",
   ytd: "Year to date",
   "last-year": "Last year",
+  all: "All time",
   custom: "Custom",
 };
 const PERIOD_COMPARISON_LABELS: Record<PeriodComparison, string> = {
@@ -203,6 +247,27 @@ export const PeriodSelectorSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  rangeLabel: ui(
+    z
+      .enum(PERIOD_RANGE_LABELS)
+      .optional()
+      .describe("`relative` shows the start of the window from now."),
+    { label: "Range format", group: "appearance", widget: "segmented" },
+  ),
+  comparisonControl: ui(
+    z
+      .enum(PERIOD_COMPARISON_CONTROLS)
+      .optional()
+      .describe("How the comparisons are offered."),
+    { label: "Comparison control", group: "appearance", widget: "segmented" },
+  ),
+  rememberKey: ui(
+    z
+      .string()
+      .optional()
+      .describe("Selectors sharing this key share the remembered period."),
+    { label: "Remember key", group: "advanced" },
+  ),
   variant: ui(
     z
       .enum(PERIOD_SELECTOR_VARIANTS)

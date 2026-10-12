@@ -52,3 +52,24 @@ describe("[unit] interfaces/dms-base/period-selector — its catalog entry", () 
     expect(config.presets?.items?.ui?.valueLabels?.["today"]).to.equal("Today");
   });
 });
+
+describe("[unit] interfaces/dms-base/period-selector — its parity options", () => {
+  it("offers every period as a range", () => {
+    const config = periodSelectorConfig();
+
+    expect(config.defaultPreset?.enum).to.include("all");
+    expect(config.defaultPreset?.ui?.valueLabels?.["all"]).to.equal("All time");
+  });
+
+  it("names the range label formats and the comparison controls", () => {
+    const config = periodSelectorConfig();
+
+    expect(config.rangeLabel?.enum).to.deep.equal(["absolute", "relative"]);
+    expect(config.comparisonControl?.enum).to.deep.equal([
+      "menu",
+      "toggle",
+      "hidden",
+    ]);
+    expect(config.rememberKey?.type).to.equal("string");
+  });
+});

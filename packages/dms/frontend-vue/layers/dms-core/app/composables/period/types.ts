@@ -12,6 +12,7 @@ export type PeriodPreset =
   | "last-quarter"
   | "ytd"
   | "last-year"
+  | "all"
   | "custom";
 
 export type PeriodComparison =
@@ -28,7 +29,8 @@ export interface PeriodRange {
 export interface PeriodState {
   preset: PeriodPreset;
   comparison: PeriodComparison;
-  range: PeriodRange;
+  /** The window, or `null` for `all`: every period, with no bounds. */
+  range: PeriodRange | null;
   compareRange: PeriodRange | null;
   key: string;
 }

@@ -67,14 +67,21 @@ export function usePeriodScope(
   });
 }
 
+/**
+ * `url` with `state` as query parameters: `from` / `to`, `compareFrom` /
+ * `compareTo` when a comparison range is set, `preset` and `comparison`.
+ * Every period (`all`) has no bounds, so it sends no `from` / `to`.
+ */
 export function appendPeriodToUrl(
   url: string | undefined,
   state: PeriodState | null,
 ): string | undefined {
   if (!url || !state) return url;
   const params = new URLSearchParams();
-  params.set("from", state.range.from.toISOString());
-  params.set("to", state.range.to.toISOString());
+  if (state.range) {
+    params.set("from", state.range.from.toISOString());
+    params.set("to", state.range.to.toISOString());
+  }
   if (state.compareRange) {
     params.set("compareFrom", state.compareRange.from.toISOString());
     params.set("compareTo", state.compareRange.to.toISOString());

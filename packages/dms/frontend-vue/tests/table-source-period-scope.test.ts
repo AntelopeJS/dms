@@ -24,7 +24,7 @@ vi.stubGlobal("useDmsLazyAsyncData", engine.useDmsLazyAsyncData);
 const { useTableRows } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableRows"
 );
-const { useTableListData } = await import(
+const { useTableCountsData, useTableListData } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableListData"
 );
 const { usePeriod } = await import(
@@ -49,6 +49,7 @@ const api = (async (url: string) => {
 const mounted: App[] = [];
 const cleanups: Array<() => void> = [];
 let listed: { value: unknown } | undefined;
+let counted: { value: unknown } | undefined;
 
 const SourceTable = defineComponent({
   setup() {
@@ -67,6 +68,15 @@ const SourceTable = defineComponent({
       isSelfManaged: computed(() => false),
     }).then(({ data }) => {
       listed = data;
+    });
+    void useTableCountsData({
+      componentId: "report",
+      pageId: "reports",
+      rows,
+      queries: computed(() => [{ id: "all", query: {} }]),
+      archiveQuery: computed(() => ({})),
+    }).then(({ data }) => {
+      counted = data;
     });
     return () => h("div");
   },
@@ -98,6 +108,7 @@ const periodOf = (url: string) =>
 beforeEach(() => {
   requests.length = 0;
   listed = undefined;
+  counted = undefined;
 });
 
 afterEach(() => {
@@ -114,13 +125,30 @@ describe("a source table bound to a period scope", () => {
     expect(listed!.value).toBeNull();
   });
 
+  // The server never registers a scope: an empty object there drew the tabs
+  // with no skeleton, where the browser (its key carrying the period) drew
+  // one, and hydration mismatched.
+  it("keeps its tab counters' skeleton too until the scope registers", async () => {
+    mountTable();
+    await settle();
+    expect(counted).toBeDefined();
+    expect(counted!.value).toBeNull();
+  });
+
+  it("counts its tabs with the period once the scope registers", async () => {
+    registerSelector();
+    mountTable();
+    await settle();
+    expect(counted!.value).toEqual({ all: 1 });
+  });
+
   it("sends the period with its request once the scope registers", async () => {
     const period = registerSelector();
     mountTable();
     await settle();
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(2);
     expect(listed!.value).toMatchObject({ total: 1 });
-    const { range } = period.state.value;
+    const range = period.state.value.range!;
     expect(periodOf(requests[0]!)).toEqual({
       from: range.from.toISOString(),
       to: range.to.toISOString(),

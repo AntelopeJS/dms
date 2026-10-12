@@ -100,8 +100,8 @@ function buildKey(state: Omit<PeriodState, "key">): string {
   return [
     state.preset,
     state.comparison,
-    state.range.from.toISOString(),
-    state.range.to.toISOString(),
+    state.range ? state.range.from.toISOString() : "-",
+    state.range ? state.range.to.toISOString() : "-",
     state.compareRange ? state.compareRange.from.toISOString() : "-",
     state.compareRange ? state.compareRange.to.toISOString() : "-",
   ].join("|");

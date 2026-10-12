@@ -45,6 +45,18 @@ export class PageChartPeriod extends PageController("chart-period", {
     defaultPreset: "last-24h",
   });
 
+  static segmentedOps = PeriodSelector({
+    id: "period-ops",
+    variant: "segmented",
+    align: "left",
+    size: "xs",
+    presets: ["last-hour", "last-24h", "last-7-days", "all"],
+    comparisons: ["previous-period"],
+    defaultPreset: "last-24h",
+    rangeLabel: "relative",
+    rememberKey: "playground-ops",
+  });
+
   static segmentedKpi = KpiCard({
     title: "Live KPI bound to the segmented selector",
     fetchUrl: "/api/dashboard/kpi/orders",
