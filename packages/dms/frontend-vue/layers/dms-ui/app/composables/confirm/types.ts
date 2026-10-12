@@ -24,7 +24,14 @@ export type ConfirmValues = Record<string, unknown>;
  * whose texts are already resolved, plus what only a caller in the browser
  * can give (render functions, handlers).
  */
-export interface ConfirmOptions extends Omit<ConfirmDialog, "params" | "icon"> {
+export interface ConfirmOptions
+  extends Omit<ConfirmDialog, "params" | "icon" | "secondaryAction"> {
+  /**
+   * A button next to cancel and confirm that leaves the dialog open (a
+   * download before removing): its `run` is awaited, the button loading,
+   * and a rejection is shown in the dialog's alert.
+   */
+  secondaryAction?: ConfirmSecondaryAction;
   /**
    * The button focused on open (`"cancel"` for a dialog whose safe answer
    * is to stay); left out, the dialog's first focusable element.
@@ -61,6 +68,13 @@ export interface ConfirmOptions extends Omit<ConfirmDialog, "params" | "icon"> {
   onConfirm?: (
     values: ConfirmValues,
   ) => Promise<void | boolean | ConfirmPartialOutcome>;
+}
+
+/** A secondary button of the confirm modal: its text resolved, its handler. */
+export interface ConfirmSecondaryAction {
+  label: string;
+  icon?: string;
+  run: () => Promise<void> | void;
 }
 
 /** A summary shown in the confirm modal's alert: a title and its detail. */
