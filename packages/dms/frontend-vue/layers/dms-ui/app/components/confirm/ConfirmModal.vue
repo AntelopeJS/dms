@@ -3,7 +3,7 @@ import { nextTick, useTemplateRef, watch, type FunctionalComponent } from "vue";
 import { DialogDescription, DialogTitle } from "reka-ui";
 import DmsIconWell from "../icon-well/IconWell.vue";
 import DmsModalEscHint from "../../build/components/modal/ModalEscHint.vue";
-import DmsFormRequiredLegend from "../../build/components/form/FormRequiredLegend.vue";
+import DmsFormRequiredLegend from "../form/FormRequiredLegend.vue";
 import {
   ConfirmActionError,
   type ConfirmBodyRender,

@@ -335,6 +335,13 @@ export namespace FormComponents {
     placeholder?: string;
     /** Unit written after the field ("days"): an i18n key with `$`, or a literal. */
     suffix?: string;
+    /**
+     * `InputNumber` only. By default (`true`) a value typed outside `min` /
+     * `max` is clamped into range when the field loses focus. `false` keeps
+     * it as typed and shows "too small" / "too large" under the field, which
+     * blocks the submit; the steppers still stop at the bounds.
+     */
+    clamp?: boolean;
   }
 
   export interface InputTimeOptions {

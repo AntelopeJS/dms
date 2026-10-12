@@ -23,11 +23,20 @@ export interface ApiFieldError {
   /** The values of the field the error names (addresses of a list…). */
   values?: string[];
   /**
+   * Values filling the placeholders of the translated message: a body
+   * `{ field: "budget", message: "$page.error.budget_max", params: { max: 5000 } }`
+   * shows "At most 5000" for a translation `"At most {max}"`.
+   */
+  params?: ApiFieldErrorParams;
+  /**
    * The part of the field the error names, as a dotted path from the field
    * (`address.streetName`, `title.fr`); absent when it names the field.
    */
   path?: string;
 }
+
+/** Placeholder values of a field error's message. */
+export type ApiFieldErrorParams = Record<string, string | number | boolean>;
 
 /** A code the API answers with that belongs to a field. */
 export type FieldErrorCode<F extends string = string> =
@@ -224,10 +233,26 @@ function fromIssues(issues: ValidationIssue[]): ApiFieldError[] {
   });
 }
 
-/** `{ field, message, values? }`, the shape the DMS answers with. */
+const PARAM_TYPES = new Set(["string", "number", "boolean"]);
+
+/** The placeholder values of a body, keeping only the plain ones. */
+function paramsOf(params: unknown): ApiFieldErrorParams | undefined {
+  if (typeof params !== "object" || params === null || Array.isArray(params)) {
+    return undefined;
+  }
+  const entries = Object.entries(params).filter(([, value]) =>
+    PARAM_TYPES.has(typeof value),
+  );
+  return entries.length > 0
+    ? (Object.fromEntries(entries) as ApiFieldErrorParams)
+    : undefined;
+}
+
+/** `{ field, message, values?, params? }`, the shape the DMS answers with. */
 function fromFieldObject(body: Record<string, unknown>): ApiFieldError[] {
-  const { field, message, values } = body;
+  const { field, message, values, params } = body;
   if (typeof field !== "string" || typeof message !== "string") return [];
+  const placeholders = paramsOf(params);
   return [
     {
       field,
@@ -235,6 +260,7 @@ function fromFieldObject(body: Record<string, unknown>): ApiFieldError[] {
       values: Array.isArray(values)
         ? values.filter((value): value is string => typeof value === "string")
         : undefined,
+      ...(placeholders && { params: placeholders }),
     },
   ];
 }
@@ -311,7 +337,7 @@ function isClientError(status: number | undefined): status is number {
  *
  * Read, in order: a code the form maps to a field (`codes`, for any 4xx), a
  * zod issue list (what `assertValidation` answers), a `{ field, message }`
- * body, the data API's "Missing mandatory fields: a, b" / "Invalid field
+ * body (with optional `values` and `params`), the data API's "Missing mandatory fields: a, b" / "Invalid field
  * type(s): a" and a `field: message` text. A network failure, a 403, a 429
  * or a 5xx never resolves to a field.
  *
@@ -478,7 +504,11 @@ export function useFieldErrors<F extends string>(
     if (fields.length === 0) return false;
     clear();
     for (const entry of fields) {
-      errors[entry.field as F] = resolveApiMessage(translate, entry.message);
+      errors[entry.field as F] = resolveApiMessage(
+        translate,
+        entry.message,
+        entry.params,
+      );
     }
     await focus(fields[0]!.field as F);
     return true;

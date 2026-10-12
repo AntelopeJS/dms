@@ -66,7 +66,7 @@ import {
   type FormRecordLoad,
   trackFormRecordLoad,
 } from "../../build/composables/form/formRecordLoad";
-import DmsFormRequiredLegend from "../../build/components/form/FormRequiredLegend.vue";
+import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
