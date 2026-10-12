@@ -445,4 +445,6 @@ export type PageLayoutHandler = (
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
+  /** The query of the page URL, handed to header-button availability. */
+  query?: Readonly<Record<string, string>>,
 ) => Promise<PageLayout>;

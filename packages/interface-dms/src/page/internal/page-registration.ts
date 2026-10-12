@@ -21,6 +21,8 @@ export interface RouteCallbackContext {
   memberModel: TenantMemberModel;
   roleModel: RoleModel;
   tenantId: string;
+  /** The query of the layout request: the page URL's own. */
+  pageQuery: Record<string, string>;
 }
 
 /**

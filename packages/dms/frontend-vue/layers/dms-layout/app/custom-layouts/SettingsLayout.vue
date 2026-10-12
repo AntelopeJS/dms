@@ -12,6 +12,11 @@ interface Props {
   description?: string;
   /** Header buttons declared by the backend page (`headerActions`). */
   headerActions?: LayoutHeaderAction[];
+  /**
+   * The page query the server resolved the buttons' availability for, set
+   * when one declares an `availability` (`headerActionsQuery`).
+   */
+  headerActionsQuery?: Record<string, string>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,6 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
   headerActions: () => [],
+  headerActionsQuery: undefined,
 });
 </script>
 
@@ -33,6 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
         :title="props.title"
         :description="props.description"
         :header-actions="props.headerActions"
+        :header-actions-query="props.headerActionsQuery"
         header-class="pb-5"
       >
         <slot />

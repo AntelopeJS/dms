@@ -35,6 +35,12 @@ link changing its value sends the table back to page 1. A drawer or modal row ac
 gets `navigation` (J / K, `index` / `total` in the order shown) —
 `docs/04.components/06.tables/8.row-drawers.md`.
 
+A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
+(`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), and an
+`availability` reads `context.query`, asked again when the query changes — no need to build
+the header in Vue with `usePageHeaderActions` to carry the scope —
+`docs/07.interfaces/3.base/6.layout.md#buttons-that-follow-the-page-url`.
+
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
 points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
 `direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your

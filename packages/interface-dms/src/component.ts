@@ -148,6 +148,14 @@ export interface ComponentFilterContext {
   tenantId: string;
   /** Undefined for an unauthenticated request. */
   user: User | undefined;
+  /**
+   * The query of the page URL the layout is served for (`?workspace=web` is
+   * `{ workspace: "web" }`), one value per name. Set while a page layout is
+   * served, and read by a header button's `availability`; undefined anywhere
+   * else (a table view's data request, a row action). Caller-supplied: check
+   * the values like any other input.
+   */
+  query?: Readonly<Record<string, string>>;
 }
 
 /**

@@ -1,3 +1,5 @@
+import { pageQueryValues } from "../../utils/pageQuery";
+
 /**
  * Reads the same page cache that Inertia hydrates before navigation. Missing
  * layouts (including newly registered dev pages) use the shared deduped loader.
@@ -17,7 +19,12 @@ export async function usePageLayout() {
   );
   const load = async () => {
     if (layoutUrl.value && !pageLayout.value) {
-      await siteLayout.loadPageLayout(layoutUrl.value);
+      // Asked with the page query, for the header buttons whose availability
+      // depends on it; cached for the page whatever its query.
+      await siteLayout.loadPageLayout(
+        layoutUrl.value,
+        pageQueryValues(route.query),
+      );
     }
   };
   watch([layoutUrl, () => siteLayout.pageLayouts.value], load);

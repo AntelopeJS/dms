@@ -13,6 +13,11 @@ interface Props {
   description?: string;
   /** Header buttons declared by the backend page (`headerActions`). */
   headerActions?: LayoutHeaderAction[];
+  /**
+   * The page query the server resolved the buttons' availability for, set
+   * when one declares an `availability` (`headerActionsQuery`).
+   */
+  headerActionsQuery?: Record<string, string>;
   /** Space between the page header and the page. */
   headerClass?: string;
 }
@@ -23,6 +28,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: undefined,
   description: undefined,
   headerActions: () => [],
+  headerActionsQuery: undefined,
   headerClass: "pb-6",
 });
 
@@ -58,7 +64,10 @@ const PAGE_SLOT_CLASS =
     :class="props.headerClass"
   >
     <template #actions>
-      <PageHeaderActionsOutlet :actions="props.headerActions" />
+      <PageHeaderActionsOutlet
+        :actions="props.headerActions"
+        :served-query="props.headerActionsQuery"
+      />
     </template>
   </PageHeader>
   <div :class="isPageLoading ? 'hidden' : PAGE_SLOT_CLASS">

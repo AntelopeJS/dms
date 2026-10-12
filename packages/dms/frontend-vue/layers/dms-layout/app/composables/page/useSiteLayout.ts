@@ -1,3 +1,4 @@
+import { layoutUrlWithQuery } from "../../utils/pageQuery";
 import { withoutTrailingSlash } from "ufo";
 
 const STALE_THRESHOLD_MS = 300_000;
@@ -282,7 +283,15 @@ export const useSiteLayout = () => {
     await refresh();
   };
 
-  const loadPageLayout = async (slug: string): Promise<PageLayout> => {
+  /**
+   * The layout of a page, cached by its layout URL. `query` is the page
+   * URL's, which the first request carries for the header buttons whose
+   * availability reads it (the header asks again for another query).
+   */
+  const loadPageLayout = async (
+    slug: string,
+    query?: Record<string, string>,
+  ): Promise<PageLayout> => {
     if (pageLayouts.value[slug]) {
       return pageLayouts.value[slug];
     }
@@ -294,7 +303,9 @@ export const useSiteLayout = () => {
     }
 
     const { $authFetch } = useAuthFetch();
-    const request = $authFetch<PageLayout>(slug).then((result) => {
+    const request = $authFetch<PageLayout>(
+      layoutUrlWithQuery(slug, query ?? {}),
+    ).then((result) => {
       if (pageLayouts.value === cache) cache[slug] = result;
       return result;
     });

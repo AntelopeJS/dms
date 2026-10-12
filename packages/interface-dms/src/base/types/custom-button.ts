@@ -25,6 +25,10 @@ export interface CustomButtonUnavailability {
  * while the page layout is filtered, so the button reaches the client already
  * disabled. Returning `undefined` leaves it enabled.
  *
+ * In a page header, `context.query` holds the query of the page URL, and the
+ * header asks again whenever that query changes: a button can depend on the
+ * record `?id=` names. A table's toolbar button gets no query.
+ *
  * It only shapes the UI: whatever the button triggers must still refuse the
  * operation on its own.
  */
