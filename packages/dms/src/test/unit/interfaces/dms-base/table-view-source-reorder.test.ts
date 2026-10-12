@@ -189,6 +189,21 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     ).to.throw(/unknown column "status"/);
   });
 
+  it("serves queryParamFilters to a route that reads filters, refusing them otherwise", () => {
+    const queryParamFilters = {
+      route: { field: "route", mode: "is" },
+      since: { field: "from" },
+    };
+    expect(
+      sourceOf({ queryParamFilters, capabilities: { filter: true } })
+        .queryParamFilters,
+    ).to.deep.equal(queryParamFilters);
+    expect(() => sourceOf({ queryParamFilters })).to.throw(
+      /sets queryParamFilters, which needs capabilities\.filter/,
+    );
+    expect(() => sourceOf({ queryParamFilters: {} })).to.not.throw();
+  });
+
   it("runs the registration checks of TableView(): page size, displays, card fields, tab targets", () => {
     expect(() => sourceOf({ pageSize: 0 })).to.throw(/pageSize/);
     expect(() => sourceOf({ displays: [{ id: "plan-cards" }] })).to.throw(
