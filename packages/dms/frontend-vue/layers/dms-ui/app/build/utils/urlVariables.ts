@@ -3,7 +3,8 @@
 // a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
 // table view (see extractRouteParams).
 const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
-const QUERY_TOKEN = /\{\{query\.(\w+)\}\}/g;
+// A query key may carry dots and dashes: a period selector writes `<id>.period`.
+const QUERY_TOKEN = /\{\{query\.([\w.-]+)\}\}/g;
 const RESPONSE_TOKEN = /\{\{response\.(\w+)\}\}/g;
 const TOKEN_OPENING = "{{";
 

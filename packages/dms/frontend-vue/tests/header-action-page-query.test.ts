@@ -134,6 +134,14 @@ describe("resolveLinkVariables", () => {
     );
   });
 
+  it("fills a query key carrying dots", () => {
+    expect(
+      resolveLinkVariables("/logs?period={{query.api.period}}", {
+        routeQuery: { "api.period": "7d" },
+      }),
+    ).toBe("/logs?period=7d");
+  });
+
   it("empties any other token left without a value", () => {
     expect(resolveLinkVariables("/t/{{params.slug}}/edit", context)).toBe(
       "/t//edit",
@@ -151,6 +159,23 @@ describe("page query helpers", () => {
   it("compares queries in any order", () => {
     expect(isSamePageQuery({ a: "1", b: "2" }, { b: "2", a: "1" })).toBe(true);
     expect(isSamePageQuery({ a: "1" }, { a: "1", b: "2" })).toBe(false);
+  });
+
+  it("leaves out the keys that only record the view's state", () => {
+    const base = { workspace: "shop" };
+    expect(
+      isSamePageQuery(base, {
+        workspace: "shop",
+        record: "42",
+        live: "0",
+        "api.period": "24h",
+        "api.compare": "previous",
+        "api.from": "2026-10-01",
+      }),
+    ).toBe(true);
+    expect(isSamePageQuery(base, { workspace: "blog", record: "42" })).toBe(
+      false,
+    );
   });
 
   it("asks the layout URL for a query", () => {

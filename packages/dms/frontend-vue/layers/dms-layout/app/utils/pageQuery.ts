@@ -12,15 +12,40 @@ export function pageQueryValues(
   );
 }
 
-/** Whether two page queries hold the same values, in any order. */
+// Query keys the DMS writes for the view itself, never for the record a page
+// acts on: the row open in a side panel, the paused live mode, and a period
+// selector's range (`<id>.period`, `<id>.compare`, `<id>.from`…).
+const VIEW_STATE_KEYS = new Set(["record", "live"]);
+const PERIOD_KEY = /\.(?:period|compare|from|to|compareFrom|compareTo)$/;
+
+/** Whether a query key only records the view's own state. */
+export function isViewStateKey(name: string): boolean {
+  return VIEW_STATE_KEYS.has(name) || PERIOD_KEY.test(name);
+}
+
+function withoutViewState(
+  query: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(query).filter(([name]) => !isViewStateKey(name)),
+  );
+}
+
+/**
+ * Whether two page queries hold the same values, in any order, leaving out
+ * the keys that only record the view's state: moving through rows, pausing
+ * the live mode or changing a period never asks the layout again.
+ */
 export function isSamePageQuery(
   left: Record<string, string>,
   right: Record<string, string>,
 ): boolean {
-  const names = Object.keys(left);
+  const kept = withoutViewState(left);
+  const other = withoutViewState(right);
+  const names = Object.keys(kept);
   return (
-    names.length === Object.keys(right).length &&
-    names.every((name) => left[name] === right[name])
+    names.length === Object.keys(other).length &&
+    names.every((name) => kept[name] === other[name])
   );
 }
 
