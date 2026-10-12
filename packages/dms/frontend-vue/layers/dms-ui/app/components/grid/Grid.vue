@@ -14,32 +14,16 @@ import {
   gridScopeId,
   GridResponsiveStyle,
 } from "./columns";
-import DmsEmptyStateBlock from "../blocks/EmptyStateBlock.vue";
-import {
-  type EmptyWhenOptions,
-  useEmptyWhen,
-} from "../../build/composables/blocks/useEmptyWhen";
 
 interface GridProps extends DefaultComponentProps {
   gap?: string;
   minColumnWidth?: string;
-  /**
-   * A route whose answer, when the value it names is empty, swaps the rows
-   * for one empty state across the grid (interface-dms `GridEmptyWhen`).
-   */
-  emptyWhen?: EmptyWhenOptions;
 }
 
 const props = withDefaults(defineProps<GridProps>(), {
   gap: "1rem",
   minColumnWidth: GRID_DEFAULT_MIN_COLUMN_WIDTH,
-  emptyWhen: undefined,
 });
-
-const emptyState = useEmptyWhen(
-  () => props.emptyWhen,
-  () => props.routeParams,
-);
 
 /**
  * Keyed by row rather than appended to: a list that only grows keeps counting
@@ -108,12 +92,7 @@ const gridStyle = computed(() => ({
 
 <template>
   <div :style="gridStyle" :data-dms-grid="scope">
-    <DmsEmptyStateBlock
-      v-if="emptyState"
-      v-bind="emptyState"
-      class="col-[1/-1]"
-    />
-    <slot v-else />
+    <slot />
     <GridResponsiveStyle :css="responsiveStyles" />
   </div>
 </template>

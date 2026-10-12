@@ -3,7 +3,6 @@ import {
   GetBlockType,
   ValidateBlockOptions,
 } from "@antelopejs/interface-dms/base/block-types";
-import { Grid } from "@antelopejs/interface-dms/base/grid";
 
 function declared(type: string) {
   const block = GetBlockType(type);
@@ -17,7 +16,7 @@ const valid = (type: string, options: Record<string, unknown>) =>
 /**
  * The options that let a module draw with stock blocks what it drew with its
  * own: a feed head's count and badge, an entry's third line, a top list's
- * unit, and a grid giving way to one empty state.
+ * unit.
  */
 describe("[unit] interfaces/dms-base — ActivityFeed head and entry detail", () => {
   it("takes a count and a badge in its head, both optional", () => {
@@ -62,40 +61,5 @@ describe("[unit] interfaces/dms-base — TopListCard value unit", () => {
         ],
       }),
     ).to.equal(true);
-  });
-});
-
-describe("[unit] interfaces/dms-base — Grid emptyWhen", () => {
-  const emptyWhen = {
-    fetchUrl: "/api/routes/activity?route={{query.route}}",
-    field: "calls",
-    emptyState: {
-      title: "No calls yet",
-      actions: [{ label: "Test this route", to: "/routes?tab=2" }],
-    },
-  };
-
-  it("is an optional, advanced option of the grid", () => {
-    const option = declared("Grid").config.emptyWhen;
-    expect(option?.optional).to.equal(true);
-    expect(option?.ui?.advanced).to.equal(true);
-  });
-
-  it("needs a route, a field and the empty state to show", () => {
-    expect(valid("Grid", { emptyWhen })).to.equal(true);
-    expect(
-      valid("Grid", { emptyWhen: { ...emptyWhen, field: undefined } }),
-    ).to.equal(false);
-    expect(
-      valid("Grid", { emptyWhen: { ...emptyWhen, emptyState: {} } }),
-    ).to.equal(false);
-  });
-
-  it("serializes the option with the grid's defaults", async () => {
-    const serialized = await Grid({ emptyWhen }).serialize();
-    expect(serialized.options).to.deep.include({
-      gap: "1rem",
-      emptyWhen,
-    });
   });
 });
