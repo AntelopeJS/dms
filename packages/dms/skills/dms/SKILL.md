@@ -94,6 +94,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   (`?tab=tester`, an index still read), and a tab `badge` takes a `$` key or a `ComposedText`. A `ChartCard` plotting several series names them with
   `showSeriesLegend: true` (placed by the chart's `legendPosition: "top" | "bottom"`) — never a raw
   Apex `legend` in `rawOptions`.
+  A custom component brings a block of its page into view with `scrollToBlock("tabs.statistics")`
+  (the block's key path; `false` when it is not on screen) — never a DOM query of its own.
   Code in a custom component is a `DmsCodeSnippet` (`language`, `title`, `maxLines` or a CSS
   `maxHeight`, `wrap: true | "anywhere"`; without title and language its copy button floats in the
   corner) — never a `<pre>` and copy button of the module's own.
