@@ -17,6 +17,7 @@ import {
   type ConfirmValues,
 } from "../../composables/confirm/types";
 import { resolveActionError } from "../../build/composables/confirm/actionError";
+import { isConfirmTextMatch } from "../../build/composables/confirm/confirmTextMatch";
 import type { ConfirmDialogField } from "#dms-core/app/types/confirm-dialog";
 import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 
@@ -46,6 +47,8 @@ interface ConfirmModalProps {
    * empty or different flags it under the field instead.
    */
   confirmText?: string;
+  /** Compares the typed text with `confirmText` ignoring case. */
+  confirmTextCaseInsensitive?: boolean;
   /**
    * Fields filled in before confirming (labels resolved); their values reach
    * `onConfirm`, and a field error it rejects with shows under its field.
@@ -92,6 +95,7 @@ const props = withDefaults(defineProps<ConfirmModalProps>(), {
   impact: () => [],
   body: undefined,
   confirmText: undefined,
+  confirmTextCaseInsensitive: false,
   fields: () => [],
   component: undefined,
   secondaryAction: undefined,
@@ -225,7 +229,13 @@ const modalContent = computed(() =>
 );
 
 const isTypedMatch = computed(
-  () => !props.confirmText || typedText.value.trim() === props.confirmText,
+  () =>
+    !props.confirmText ||
+    isConfirmTextMatch(
+      typedText.value,
+      props.confirmText,
+      props.confirmTextCaseInsensitive,
+    ),
 );
 
 function close(value: boolean) {

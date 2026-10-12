@@ -84,6 +84,11 @@ export interface ConfirmDialog {
   /** Text the user must type to confirm (type-to-confirm). */
   confirmText?: string;
   /**
+   * Compares the typed text with `confirmText` ignoring case (`acme` matches
+   * `ACME`): for a name the user reads but would not care to retype exactly.
+   */
+  confirmTextCaseInsensitive?: boolean;
+  /**
    * Fields the user fills in before confirming. Their values are sent with
    * the action's request — merged into an `api` target's `body`, the input
    * winning — and a field error the server answers shows under its field.

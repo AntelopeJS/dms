@@ -70,6 +70,26 @@ export interface ConfirmOptions
   ) => Promise<void | boolean | ConfirmPartialOutcome>;
 }
 
+/**
+ * How `useConfirmFrom().confirmFrom(url, options)` asks a dialog the server
+ * words, as a declarative action's `confirm: { from }` does.
+ */
+export interface ConfirmFromOptions {
+  /**
+   * Fill-ins of the URL's `{placeholders}` and of the dialog's texts (a
+   * record's fields); the dialog's own `params` win in its texts.
+   */
+  params?: Record<string, unknown>;
+  /** What the dialog leaves out (a colour, an icon, a confirm label). */
+  fallback?: Partial<ConfirmOptions>;
+  /**
+   * Runs the action from inside the dialog with its fields' values, as
+   * {@link ConfirmOptions.onConfirm}; left out, run it once `confirmFrom`
+   * resolved `true`.
+   */
+  onConfirm?: ConfirmOptions["onConfirm"];
+}
+
 /** A secondary button of the confirm modal: its text resolved, its handler. */
 export interface ConfirmSecondaryAction {
   label: string;
