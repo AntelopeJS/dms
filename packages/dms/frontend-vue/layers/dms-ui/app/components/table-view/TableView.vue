@@ -78,9 +78,12 @@ import { selectedRowIds } from "../../build/composables/table-view/utils/bulkAct
 import { isBulkAction } from "../../build/composables/actions/bulkSelection";
 import { selectionScopeKey } from "../../build/utils/selectionScope";
 import {
+  type DeepLinkOutcome,
+  deepLinkOutcome,
   isDeepLinkAction,
   readRecordId,
   resolveDeepLinkedRow,
+  writeRecordId,
 } from "../../build/composables/table-view/utils/recordLink";
 import {
   rowSidePanelOwnerKey,
@@ -1686,9 +1689,38 @@ const openRecordFromUrl = async () => {
     idOf: getRowId,
     getRow: tableRows.getRow,
   });
-  if (row) handleCustomRowAction(deepLinkAction, row as Data);
-  else if (isMissing) handleMissingRow(deepLinkAction, id);
+  const outcome = deepLinkOutcome({ row, isMissing }, deepLinkAction);
+  deepLinkOutcomes[outcome](deepLinkAction, id, row as Data);
 };
+
+const notifyUnresolvedRecordLink = () => {
+  writeRecordId(urlScope);
+  toast.add({
+    title: t("dms.record_link.not_found_title"),
+    description: t("dms.record_link.not_found_description"),
+    color: Color.warning,
+    icon: "i-ph-link-break",
+  });
+};
+
+const deepLinkOutcomes: Record<
+  DeepLinkOutcome,
+  (action: CustomRowAction, id: string, row: Data) => void
+> = {
+  open: (action, _id, row) => handleCustomRowAction(action, row),
+  missingPanel: (action, id) => handleMissingRow(action, id),
+  notify: notifyUnresolvedRecordLink,
+};
+
+// A visit that keeps the page mounted (a link to the same page with another
+// `?record=`) opens the row it names, as a fresh load would. The table's own
+// writes replace the URL in place and never reach the route.
+watch(
+  () => readRecordId(route.query, urlScope),
+  (id, previous) => {
+    if (id && id !== previous) void openRecordFromUrl();
+  },
+);
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 

@@ -753,6 +753,10 @@
       "held_searching": "search active",
       "held_sorted": "sorted otherwise than by default",
       "held_scrolled": "scrolled down"
+    },
+    "record_link": {
+      "not_found_title": "This entry is no longer available",
+      "not_found_description": "The link points to an entry that was deleted, or that this list cannot show."
     }
   }
 }

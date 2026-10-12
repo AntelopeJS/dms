@@ -13,6 +13,7 @@ import {
   rowNavigation,
 } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
 import {
+  deepLinkOutcome,
   readRecordId,
   recordUrlKey,
   writeRecordId,
@@ -129,6 +130,22 @@ describe("record deep links", () => {
     expect(window.location.search).toBe("?tab=open&record=r7");
     writeRecordId({ tableId: "runs", isSoleTableView: true });
     expect(window.location.search).toBe("?tab=open");
+  });
+
+  it("notifies a link no row answers, unless a side panel shows it missing", () => {
+    const panel = {
+      target: { type: "sidePanel" },
+    } as unknown as CustomRowAction;
+    const drawer = {
+      target: { type: "drawer" },
+      deepLink: true,
+    } as unknown as CustomRowAction;
+    const row = { id: "r1" };
+    expect(deepLinkOutcome({ row, isMissing: false }, drawer)).toBe("open");
+    expect(deepLinkOutcome({ isMissing: true }, panel)).toBe("missingPanel");
+    expect(deepLinkOutcome({ isMissing: true }, drawer)).toBe("notify");
+    expect(deepLinkOutcome({ isMissing: false }, panel)).toBe("notify");
+    expect(deepLinkOutcome({ isMissing: false }, drawer)).toBe("notify");
   });
 });
 

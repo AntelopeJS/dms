@@ -754,6 +754,10 @@
       "held_searching": "recherche active",
       "held_sorted": "tri autre que celui par défaut",
       "held_scrolled": "défilé vers le bas"
+    },
+    "record_link": {
+      "not_found_title": "Cette entrée n’est plus disponible",
+      "not_found_description": "Le lien mène à une entrée supprimée, ou que cette liste ne peut pas afficher."
     }
   }
 }

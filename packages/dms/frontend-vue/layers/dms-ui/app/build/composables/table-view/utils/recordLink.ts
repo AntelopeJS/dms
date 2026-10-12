@@ -102,3 +102,21 @@ export async function resolveDeepLinkedRow<T>(
     return { isMissing: readFetchNotFound(error) !== null };
   }
 }
+
+/**
+ * What a table does with the row a deep link resolved to: open it, let a side
+ * panel show its own "no longer available" state, or tell the user the link
+ * led nowhere (a drawer or a modal has no such state, and a failed read or a
+ * table with no route to read one row finds nothing either).
+ */
+export type DeepLinkOutcome = "open" | "missingPanel" | "notify";
+
+export function deepLinkOutcome(
+  found: DeepLinkedRow<unknown>,
+  action: CustomRowAction,
+): DeepLinkOutcome {
+  if (found.row) return "open";
+  if (found.isMissing && action.target.type === "sidePanel")
+    return "missingPanel";
+  return "notify";
+}
