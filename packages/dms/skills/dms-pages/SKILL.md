@@ -91,7 +91,7 @@ with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`).
 `TableViewRoutes` (from `@antelopejs/interface-dms/base/table-view`) provides the presets — `Get`, `List`,
 `Select`, `Count`, `New`, `Edit`, `Delete`, `Archive`, `Restore`, or `All`. Field decorators:
 `@Column` / `@Select` / `@Exported` / `@ArchiveField` / `@Searchable` from `@antelopejs/interface-dms/base` (plus
-class-level `@ColumnGroup(id, config)`), `@Listable` / `@Sortable` from
+class-level `@ColumnGroup(id, config)` and the optional `@TableIcon(icon)`), `@Listable` / `@Sortable` from
 `@antelopejs/interface-data-api/metadata`. Read a
 real one first: `@antelopejs/interface-dms/data-controllers` (`members`); guide in
 `docs/04.components/09.data-controller.md` (+ `06.tables/`). Database rows carry **`_id`**

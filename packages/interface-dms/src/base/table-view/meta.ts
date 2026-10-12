@@ -147,6 +147,8 @@ export class TableViewMeta {
   public readonly columns: Record<string, ColumnOptions> = {};
   public readonly groups: Record<string, ColumnGroupConfig> = {};
   public archiveField?: string;
+  /** The icon `@TableIcon` gave the controller's table. */
+  public icon?: string;
   /**
    * Row rules the data routes enforce on every write: those of the writing
    * TableView over the controller (archive-mode defaults included), unless
@@ -168,8 +170,8 @@ export class TableViewMeta {
 
   /**
    * A controller derived from this one (`DataController(Table, {},
-   * Controller("/b", Parent))`) starts with its columns, groups, options and
-   * archive field. The TableViews and forms built over the parent stay the
+   * Controller("/b", Parent))`) starts with its columns, groups, options,
+   * archive field and icon. The TableViews and forms built over the parent stay the
    * parent's: the derived controller serves its own.
    */
   public inherit(parent: TableViewMeta): void {
@@ -183,6 +185,7 @@ export class TableViewMeta {
     Object.assign(this.groups, parent.groups);
     this.options = { ...parent.options };
     this.archiveField = parent.archiveField;
+    this.icon = parent.icon;
   }
 
   /**
@@ -480,6 +483,10 @@ export class TableViewMeta {
   public setArchiveField(field: string) {
     this.archiveField = field;
   }
+
+  public setIcon(icon: string) {
+    this.icon = icon;
+  }
 }
 
 export const Column = MakeMethodAndPropertyDecorator(
@@ -531,6 +538,18 @@ export const Column = MakeMethodAndPropertyDecorator(
 export function ColumnGroup(id: string, config: ColumnGroupConfig) {
   return (target: new (...args: unknown[]) => unknown) => {
     GetMetadata(target, TableViewMeta).setGroup(id, config);
+  };
+}
+
+/**
+ * The icon of the table a data controller serves, as an Iconify name
+ * (`"i-ph-users"`). The table views over the controller draw with it where they
+ * would otherwise draw a generic table -- in the roles' permission tree, among
+ * others. Optional: without it they keep the generic table icon.
+ */
+export function TableIcon(icon: string) {
+  return (target: new (...args: unknown[]) => unknown) => {
+    GetMetadata(target, TableViewMeta).setIcon(icon);
   };
 }
 

@@ -14,7 +14,10 @@ import {
   serializeTableViewDisplays,
 } from "./internal/factory-helpers";
 import type { ColumnOptions } from "./meta";
-import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import {
+  DEFAULT_TABLE_ICON,
+  TABLE_VIEW_COMPONENT_NAME,
+} from "./internal/options";
 import type {
   TableViewFooterOptions,
   TableViewOptions,
@@ -370,7 +373,7 @@ export function tableViewFromSource(
       liveHold: options.liveHold,
       formComponents: {},
     })
-    .meta({ name: options.caption || "TableView", icon: "i-ph-table" })
+    .meta({ name: options.caption || "TableView", icon: DEFAULT_TABLE_ICON })
     .onCreated((parentPage: PageMetadata) => {
       const parentInfo = parentPage.pageInfo;
       if (!parentInfo) return;

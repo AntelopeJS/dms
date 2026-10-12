@@ -13,7 +13,10 @@ import { applyArchiveModeDefaultRules } from "../helpers/archive-mode-helpers";
 import { FormPageLayout } from "../layouts";
 import { hasSearchableFields } from "../internal/searchable";
 import { type TableViewAccess, TableViewMeta } from "./meta";
-import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import {
+  DEFAULT_TABLE_ICON,
+  TABLE_VIEW_COMPONENT_NAME,
+} from "./internal/options";
 import type { TableViewOptions, TableViewOptionsSerialized } from "./options";
 import {
   registerTableViewCustomTopics,
@@ -230,7 +233,7 @@ export function TableView<T extends ControllerClass>(
     })
     .meta({
       name: options.caption || "TableView",
-      icon: "i-ph-table",
+      icon: meta.icon ?? DEFAULT_TABLE_ICON,
     })
     .onCreated((parentPage: PageMetadata) => {
       const parentInfo = parentPage.pageInfo;

@@ -3,7 +3,8 @@
  * `./table-view/`:
  *
  * - `options` — the consumer-facing option types and their serialized forms
- * - `meta` — `TableViewMeta` and the column declaration decorators
+ * - `meta` — `TableViewMeta`, the column declaration decorators and the
+ *   table's icon (`TableIcon`)
  * - `data-functions` — the interface functions the data implementation
  *   provides (search, export, archive, guard fetches)
  * - `realtime` — the topics of a table view and the mutation listeners a
@@ -52,6 +53,7 @@ export {
   type ColumnOptions,
   Exported,
   Select,
+  TableIcon,
   type TableViewAccess,
   TableViewMeta,
 } from "./table-view/meta";

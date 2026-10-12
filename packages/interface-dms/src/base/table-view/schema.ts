@@ -30,7 +30,10 @@ import {
   type TableViewRowActionOptions,
   type TableViewTab,
 } from "./options";
-import { TABLE_VIEW_COMPONENT_NAME } from "./internal/options";
+import {
+  DEFAULT_TABLE_ICON,
+  TABLE_VIEW_COMPONENT_NAME,
+} from "./internal/options";
 
 const DEFAULT_KANBAN_COLUMN_MAX_HEIGHT = "60vh";
 
@@ -524,7 +527,7 @@ RegisterBlockType({
   controllerArg: true,
   meta: {
     name: "Table",
-    icon: "i-ph-table",
+    icon: DEFAULT_TABLE_ICON,
     description: "Paginated table over a resource, with its forms and actions.",
     group: "data",
   },
