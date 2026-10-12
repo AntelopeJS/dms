@@ -32,6 +32,7 @@ import {
 import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalendar.vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { usePageLive } from "../../composables/live/usePageLive";
+import { useLivePeriodSpan } from "../../build/composables/live/useLivePeriodSpan";
 
 interface Props extends DefaultComponentProps {
   id: string;
@@ -120,6 +121,8 @@ const period = usePeriod({
   comparisons: comparisonSetup.comparisons,
   holdClock: () => isPagePaused.value,
 });
+// A page declaring `live.slowRateAfter` slows down over a long period.
+useLivePeriodSpan(() => period.state.value.range);
 
 // Before the scope registers, so the cards' first request already carries
 // the period of the URL (or of the user's last choice), never the default.

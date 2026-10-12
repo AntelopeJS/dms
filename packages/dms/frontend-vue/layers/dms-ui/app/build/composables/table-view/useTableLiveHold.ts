@@ -1,13 +1,23 @@
 import { computed, ref, watch, type ComputedRef } from "vue";
 import { usePageLive } from "../../../composables/live/usePageLive";
+import type { TableViewLiveHoldOptions } from "../../../types/live";
 import type { LiveGate } from "../live/currentPageLive";
+import { useScrolledPastTop } from "./useScrolledPastTop";
 import { LIVE_HELD_AT_QUERY_KEY } from "./useTableRows";
 
 type Query = Record<string, unknown>;
 
+/** What the table tells its hold about the user's reading. */
+export interface TableLiveHoldSignals {
+  /** One of its rows is open in the side panel. */
+  isRowOpen?: () => boolean;
+  /** The table's element, whose first row `whileScrolled` follows. */
+  tableElement?: () => unknown;
+}
+
 export interface TableLiveHoldOptions {
-  /** The table declares `liveHold`. */
-  isEnabled: boolean;
+  /** The table's `liveHold`: `true` or an object enables it. */
+  liveHold: boolean | TableViewLiveHoldOptions | undefined;
   /** A `TableView.fromSource` table: its route receives the hold's bound. */
   isSource: boolean;
   /**
@@ -15,35 +25,71 @@ export interface TableLiveHoldOptions {
    * sets it up after the list this hold bounds.
    */
   gate: () => LiveGate;
+  signals?: TableLiveHoldSignals;
 }
 
 export interface TableLiveHold {
-  /** The rows are held: the table declares `liveHold` and the page is paused. */
+  /** The rows are held: the page is paused, or the table holds by itself. */
   isHolding: ComputedRef<boolean>;
   /** Events the table received since its rows were held or last shown. */
   newCount: ComputedRef<number>;
-  /** Reads the rows once, staying paused, and holds them from now. */
+  /** Reads the rows once, staying held, and holds them from now. */
   showNew: () => void;
   /** The bound a source route receives with each request while held. */
   heldQuery: () => Query;
 }
 
 const NO_QUERY: Query = {};
+const NEVER = () => false;
+const NO_ELEMENT = () => null;
+
+function holdOptionsOf(
+  liveHold: TableLiveHoldOptions["liveHold"],
+): TableViewLiveHoldOptions | null {
+  if (!liveHold) return null;
+  return liveHold === true ? {} : liveHold;
+}
+
+// The table alone holds while the page is live: the user reads a row in the
+// side panel, or reads further down than the rows that would move.
+function useLocalHold(
+  holdOptions: TableViewLiveHoldOptions | null,
+  signals: TableLiveHoldSignals,
+): ComputedRef<boolean> {
+  const isRowOpen = signals.isRowOpen ?? NEVER;
+  const tableElement = signals.tableElement ?? NO_ELEMENT;
+  const isScrolled = useScrolledPastTop(() => {
+    const element = tableElement();
+    return element instanceof HTMLElement ? element : null;
+  }, !!holdOptions?.whileScrolled);
+  return computed(
+    () =>
+      (!!holdOptions?.whileRowOpen && isRowOpen()) ||
+      (!!holdOptions?.whileScrolled && isScrolled.value),
+  );
+}
 
 /**
- * The `liveHold` of a table view: while its live page is paused, the table
- * keeps its rows — the gate already requests nothing on its events — and a
- * source route is told the moment they were frozen, so the user's own search,
- * sort and pagination list the rows as they stood. Show reads them once more
- * without leaving the pause.
+ * The `liveHold` of a table view: while its live page is paused — or, with
+ * `whileRowOpen` / `whileScrolled`, while the user reads a row or scrolled
+ * down — the table keeps its rows: the gate requests nothing on its events
+ * and counts them, and a source route is told the moment they were frozen, so
+ * the user's own search, sort and pagination list the rows as they stood.
+ * Show reads them once more without leaving the hold; the end of a hold of
+ * the table's own reads them if it missed any.
  *
  * @internal
  */
 export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
   const { isEnabled, isPaused } = usePageLive();
+  const holdOptions = holdOptionsOf(options.liveHold);
+  const isLocallyHeld = useLocalHold(holdOptions, options.signals ?? {});
   const pausedAt = ref<number | null>(null);
   const isHolding = computed(
-    () => options.isEnabled && isEnabled.value && isPaused.value,
+    () =>
+      !!holdOptions &&
+      isEnabled.value &&
+      (isPaused.value || isLocallyHeld.value),
   );
 
   watch(
@@ -53,8 +99,16 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
     },
     { immediate: true },
   );
+  // Again on a new controller: the gate binds to the page on screen.
+  watch(
+    [isLocallyHeld, isEnabled],
+    ([held, enabled]) => {
+      if (enabled) options.gate().setHeld(held);
+    },
+    { flush: "sync" },
+  );
 
-  // The rows are as fresh as the pause, or as the last read the user asked
+  // The rows are as fresh as the hold, or as the last read the user asked
   // for since (Show, an action of theirs).
   const heldAt = () =>
     pausedAt.value === null

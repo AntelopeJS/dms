@@ -81,4 +81,71 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
     expect(options.liveHold).to.equal(true);
     expect(options.realtimeTopic).to.equal("api:requests");
   });
+  it("carries the slower cadence and the shared remember key to the browser", () => {
+    const live = {
+      maxRate: 10,
+      slowRateAfter: { period: "7d" as const, maxRate: 60 },
+      rememberKey: "api",
+    };
+    const page = PageController("live-page-slow", {
+      displayName: "Live page",
+      category: pagesCategory,
+      live,
+    });
+    expect(GetMetadata(page, PageMetadata).pageInfo?.live).to.deep.equal(live);
+  });
+
+  it("refuses a slower cadence it cannot read, and an empty remember key", () => {
+    const declare = (id: string, live: Record<string, unknown>) => () =>
+      PageController(id, {
+        displayName: "Live page",
+        category: pagesCategory,
+        live,
+      });
+    expect(
+      declare("live-slow-period", {
+        slowRateAfter: { period: "a week", maxRate: 60 },
+      }),
+    ).to.throw(/live\.slowRateAfter\.period/);
+    expect(
+      declare("live-slow-zero", {
+        slowRateAfter: { period: "0d", maxRate: 60 },
+      }),
+    ).to.throw(/live\.slowRateAfter\.period/);
+    expect(
+      declare("live-slow-rate", {
+        slowRateAfter: { period: "7d", maxRate: 0 },
+      }),
+    ).to.throw(/live\.slowRateAfter\.maxRate/);
+    expect(declare("live-remember-key", { rememberKey: " " })).to.throw(
+      /live\.rememberKey/,
+    );
+  });
+
+  it("serializes the pill variant and the missed label of LiveToggle", () => {
+    const options = LiveToggle({
+      variant: "pill",
+      missedLabel: "$api.live.new_requests",
+    }).serializeSync().options;
+    expect(options).to.deep.equal({
+      variant: "pill",
+      missedLabel: "$api.live.new_requests",
+    });
+    const block = GetBlockType("LiveToggle");
+    expect(block?.config.variant?.enum).to.deep.equal(["segmented", "pill"]);
+    expect(block?.config.missedLabel?.type).to.equal("string");
+  });
+
+  it("hands a liveHold object to the renderer", () => {
+    const options = TableView.fromSource({
+      fetchUrl: "/api/request-log",
+      columns: { path: { name: "Path", type: STRING } },
+      realtimeTopic: "api:requests",
+      liveHold: { whileRowOpen: true, whileScrolled: true },
+    }).serializeSync().options as TableViewOptionsSerialized;
+    expect(options.liveHold).to.deep.equal({
+      whileRowOpen: true,
+      whileScrolled: true,
+    });
+  });
 });

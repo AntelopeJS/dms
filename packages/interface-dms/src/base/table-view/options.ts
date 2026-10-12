@@ -838,6 +838,19 @@ export interface GroupedOptions {
   count?: boolean;
 }
 
+/**
+ * When a `liveHold` table also holds its rows while its live page is in
+ * Direct: the table alone keeps them and counts its events into the
+ * "N new · Show" banner, the other blocks of the page staying live. It reads
+ * them once again when the hold ends, if it missed any.
+ */
+export interface TableViewLiveHoldOptions {
+  /** While one of its rows is open in the side panel. Defaults to false. */
+  whileRowOpen?: boolean;
+  /** While the user has scrolled its first row out of view. Defaults to false. */
+  whileScrolled?: boolean;
+}
+
 export interface TableViewOptions<
   T extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -994,8 +1007,16 @@ export interface TableViewOptions<
    * as `liveHeldAt` (ISO 8601) on every list and count request made while
    * paused, so it can answer the rows as they stood then; a data controller's
    * rows are held against the realtime only. Ignored on a page without `live`.
+   *
+   * An object holds the table alone, the rest of the page staying live, in
+   * more cases (see {@link TableViewLiveHoldOptions}); `true` and `{}` hold it
+   * only while the page is paused.
+   *
+   * ```ts
+   * liveHold: { whileRowOpen: true, whileScrolled: true }
+   * ```
    */
-  liveHold?: boolean;
+  liveHold?: boolean | TableViewLiveHoldOptions;
   /**
    * Enable the kanban display mode for this collection. When set, users can
    * switch between the table and a kanban board from the toolbar.

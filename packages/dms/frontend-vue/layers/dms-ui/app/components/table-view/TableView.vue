@@ -114,7 +114,9 @@ import type {
 } from "../../build/components/table/Table.vue";
 import {
   defineAsyncComponent,
+  useTemplateRef,
   type Component,
+  type ComponentPublicInstance,
   type WatchOptions,
   type WatchSource,
 } from "vue";
@@ -130,6 +132,7 @@ import type { TableField } from "#dms-core/app/build/composables/user/tablePrefe
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
+import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
 import LiveHoldBanner from "../../build/components/table-view/LiveHoldBanner.vue";
 import { useTableReorder } from "../../build/composables/table-view/useTableReorder";
@@ -207,7 +210,7 @@ interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Topics whose events make the table read its rows again. */
   realtimeTopic?: string | string[];
   /** Keeps the rows while the live page is paused (backend `liveHold`). */
-  liveHold?: boolean;
+  liveHold?: boolean | TableViewLiveHoldOptions;
 }
 
 const props = defineProps<TableViewProps<T>>();
@@ -799,12 +802,26 @@ const archiveQuery = computed(() =>
   archiveMode ? { showArchived: showArchived.value } : {},
 );
 
+// The row a side panel has open, which the grid highlights.
+const rowSidePanel = useRowSidePanelContent();
+const rowSidePanelOwner = rowSidePanelOwnerKey(pageId!, componentId!);
+const openRowId = computed(() =>
+  rowSidePanel.value?.ownerKey === rowSidePanelOwner
+    ? rowSidePanel.value.rowKey
+    : undefined,
+);
+
 // The gate is set up with the other refresh triggers below; the hold only
 // reads it once the table is on screen.
+const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
 const liveHold = useTableLiveHold({
-  isEnabled: !!props.liveHold,
+  liveHold: props.liveHold,
   isSource: tableRows.isSource,
   gate: () => liveGate,
+  signals: {
+    isRowOpen: () => openRowId.value !== undefined,
+    tableElement: () => tableRoot.value?.$el ?? null,
+  },
 });
 
 const { data, status, error, refresh } = await useTableListData<T>({
@@ -1657,15 +1674,6 @@ const openRecordFromUrl = async () => {
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 
-// The row a side panel has open, which the grid highlights.
-const rowSidePanel = useRowSidePanelContent();
-const rowSidePanelOwner = rowSidePanelOwnerKey(pageId!, componentId!);
-const openRowId = computed(() =>
-  rowSidePanel.value?.ownerKey === rowSidePanelOwner
-    ? rowSidePanel.value.rowKey
-    : undefined,
-);
-
 const isRowActionEnabled = (
   config: boolean | RowActionConfig | undefined,
   item: T,
@@ -2010,6 +2018,7 @@ onMounted(() => {
 
 <template>
   <UTable
+    ref="tableRoot"
     v-bind="tableProps"
     v-model:pagination="paginationState"
     v-model:global-filter="globalFilter"

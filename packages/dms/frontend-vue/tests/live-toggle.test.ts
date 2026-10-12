@@ -5,7 +5,10 @@
  * text field, and nothing at all on a page without `live`.
  */
 import { createApp, h, nextTick, type App } from "vue";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
 import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import {
   createPageLiveController,
@@ -33,6 +36,9 @@ async function createToggle(
       h(LiveToggleBlock, { componentId: "live", pageId: "api.logs", ...props }),
   });
   toggle.component("UIcon", () => h("i"));
+  toggle.component("UButton", (buttonProps: { label?: string }, { attrs }) =>
+    h("button", { ...attrs, type: "button" }, buttonProps.label),
+  );
   toggle.mount(target);
   await nextTick();
   return toggle;
@@ -159,4 +165,84 @@ it("switches once per L with two toggles on the page", async () => {
   pressL();
   expect(controller.isPaused.value).toBe(false);
   second.unmount();
+});
+
+describe("the pill variant and the paused state", () => {
+  const pill = (value: string) =>
+    host.querySelector<HTMLButtonElement>(`button[data-value="${value}"]`);
+  const resumeButton = () =>
+    host.querySelector<HTMLButtonElement>('[data-action="resume"]');
+
+  it("draws a Live pill with a pulsing dot beside Pause", async () => {
+    installLive();
+    await mountToggle({ variant: "pill" });
+    expect(pill("direct")?.getAttribute("aria-pressed")).toBe("true");
+    expect(pill("direct")?.textContent).toContain("dms.live.direct");
+    expect(host.querySelector(".dms-live-toggle__dot")?.className).toContain(
+      "animate-pulse",
+    );
+    expect(host.textContent).toContain("dms.live.updated_seconds:0");
+    expect(resumeButton()).toBeNull();
+
+    pill("pause")?.click();
+    await nextTick();
+    expect(live?.isPaused.value).toBe(true);
+    expect(resumeButton()).not.toBeNull();
+
+    resumeButton()?.click();
+    await nextTick();
+    expect(live?.isPaused.value).toBe(false);
+  });
+
+  it("says what was missed, with the module's label and breakdown", async () => {
+    const controller = installLive();
+    await mountToggle({
+      variant: "pill",
+      missedLabel: "$api.live.new_requests",
+    });
+    controller.pause();
+    const block = controller.subscribe(() => {});
+    block.trigger({ topic: "api", payload: { count: 40 } });
+    usePageLive().setMissedDetail({
+      text: "$api.live.in_5xx",
+      params: { count: 2 },
+      tone: "error",
+    });
+    await nextTick();
+
+    const status = host.querySelector(".dms-live-toggle__status");
+    expect(status?.textContent).toContain(
+      "dms.live.paused · api.live.new_requests:40",
+    );
+    expect(status?.querySelector(".text-error")?.textContent).toContain(
+      "api.live.in_5xx:2",
+    );
+  });
+
+  it("names the reason a component holds the page for", async () => {
+    installLive();
+    await mountToggle();
+    usePageLive().hold("$api.live.typing_in_tester");
+    await nextTick();
+    expect(host.textContent).toContain(
+      "dms.live.paused · api.live.typing_in_tester",
+    );
+    expect(host.textContent).not.toContain("dms.live.updated");
+  });
+
+  it("reads Live in en-GB, Direct in fr-FR", () => {
+    const locale = (name: string) =>
+      JSON.parse(
+        readFileSync(
+          resolve(__dirname, `../layers/dms-ui/i18n/locales/ui-${name}.json`),
+          "utf8",
+        ),
+      ).dms.live;
+    expect(locale("en-GB").direct).toBe("Live");
+    expect(locale("fr-FR").direct).toBe("Direct");
+    for (const key of ["paused", "resume", "reason_hidden", "polling"]) {
+      expect(locale("en-GB")[key]).toBeTruthy();
+      expect(locale("fr-FR")[key]).toBeTruthy();
+    }
+  });
 });

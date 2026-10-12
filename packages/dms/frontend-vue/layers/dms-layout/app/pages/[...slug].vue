@@ -218,10 +218,13 @@ const realtimePageId = computed(() => pagelayoutMetadata.value?.fullId ?? "");
 const realtime = usePageRealtime(realtimePageId);
 providePageRealtime(realtime);
 // Before the blocks set up: their refetches go through the page's live gate.
-usePageLiveHost(() => ({
-  pageId: pagelayoutMetadata.value?.fullId,
-  live: pagelayoutMetadata.value?.live,
-}));
+usePageLiveHost(
+  () => ({
+    pageId: pagelayoutMetadata.value?.fullId,
+    live: pagelayoutMetadata.value?.live,
+  }),
+  { isStreamConnected: () => !!realtime.sessionId.value },
+);
 
 function buildPageSetupContext(
   pageInfo: PageInfo,

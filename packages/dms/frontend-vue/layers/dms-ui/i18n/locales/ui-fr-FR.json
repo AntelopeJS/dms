@@ -740,7 +740,11 @@
       "updated_minutes": "Mis à jour il y a {count} min",
       "updated_hours": "Mis à jour il y a {count} h",
       "new_rows": "{count} nouvelle | {count} nouvelles",
-      "show_new": "Afficher"
+      "show_new": "Afficher",
+      "paused": "En pause",
+      "resume": "Reprendre",
+      "reason_hidden": "onglet masqué",
+      "polling": "sans temps réel, relecture régulière"
     }
   }
 }

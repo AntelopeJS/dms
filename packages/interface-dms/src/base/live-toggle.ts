@@ -7,6 +7,14 @@ import type { BaseComponentProps } from "./types";
 export const LIVE_TOGGLE_ALIGNS = ["left", "center", "right"] as const;
 export type LiveToggleAlign = (typeof LIVE_TOGGLE_ALIGNS)[number];
 
+/**
+ * How the toggle is drawn: `segmented`, two segments Live / Pause (the
+ * default), or `pill`, a "Live" pill with a pulsing dot beside a Pause
+ * button, and a Resume button while paused.
+ */
+export const LIVE_TOGGLE_VARIANTS = ["segmented", "pill"] as const;
+export type LiveToggleVariant = (typeof LIVE_TOGGLE_VARIANTS)[number];
+
 export interface LiveToggleProps extends BaseComponentProps {
   align?: LiveToggleAlign;
   /**
@@ -14,21 +22,37 @@ export interface LiveToggleProps extends BaseComponentProps {
    * counted in the browser. Defaults to true.
    */
   showUpdatedAt?: boolean;
+  /** How the toggle is drawn (see {@link LiveToggleVariant}). Defaults to `segmented`. */
+  variant?: LiveToggleVariant;
+  /**
+   * What the paused toggle calls the events it missed: an i18n key (prefixed
+   * with `$`) or a text, given `{count}` and pluralised on it, e.g.
+   * `"$api.live.new_requests"` for "40 new requests". Defaults to "N new".
+   */
+  missedLabel?: string;
 }
 
 const LIVE_TOGGLE_COMPONENT_NAME = "dms-live-toggle-block";
 
 /**
- * The Direct / Pause switch of a page declared with `live` (see
+ * The Live / Pause switch of a page declared with `live` (see
  * `PageLiveOptions`), with the time since the page last read its data. The L
  * key switches it too, outside a text field. On a page without `live` it
  * renders nothing.
+ *
+ * Paused, it says so and why: "Paused · typing in the Tester" when a component
+ * holds the page (`usePageLive().hold(reason)`), then the events missed
+ * ("40 new requests", see `missedLabel`) and the breakdown a module's
+ * component gives with `usePageLive().setMissedDetail()` ("2 in 5xx").
  *
  * The state belongs to the page, not to the block: every block and table of
  * the page follows it, and a custom component reads it with `usePageLive()`.
  *
  * ```ts
- * static toolbar = HStack().child("live", LiveToggle({ align: "right" }));
+ * static toolbar = HStack().child(
+ *   "live",
+ *   LiveToggle({ variant: "pill", missedLabel: "$api.live.new_requests" }),
+ * );
  * ```
  */
 export function LiveToggle(
@@ -53,6 +77,20 @@ export const LiveToggleSchema = z.object({
       .describe("Shows how long ago the page last read its data."),
     { label: "Show the last update", group: "appearance", widget: "switch" },
   ),
+  variant: ui(z.enum(LIVE_TOGGLE_VARIANTS).optional(), {
+    label: "Variant",
+    group: "appearance",
+    widget: "segmented",
+  }),
+  missedLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        "What the paused toggle calls the missed events, given {count}.",
+      ),
+    { label: "Missed events label", group: "content" },
+  ),
 }) satisfies BlockOptionsFor<LiveToggleProps>;
 
 RegisterBlockType({
@@ -63,7 +101,7 @@ RegisterBlockType({
     name: "Live toggle",
     icon: "i-ph-broadcast",
     description:
-      "Direct / Pause switch of a live page, with the time since its last update.",
+      "Live / Pause switch of a live page, with the time since its last update.",
     group: "data",
   },
 });
