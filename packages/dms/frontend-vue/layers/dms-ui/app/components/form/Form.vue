@@ -30,7 +30,7 @@ import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
 import { formSaveMode } from "../../build/composables/form/formFooter";
-import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
+import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
 import {
   FORM_ENTRY_CONTEXT_KEY,
