@@ -44,11 +44,24 @@ const Pair = defineComponent({
     h(Fragment, [h("h3", { class: "pair-head" }), h("p", "body")]),
 });
 
-const resolvedChild = (id: string, component: unknown) => ({
+// A list beside the item it selects, like a split layout: one child in a
+// named slot, the other in the default one.
+const Split = defineComponent({
+  setup:
+    (_, { slots }) =>
+    () =>
+      h("div", { class: "split" }, [
+        h("aside", slots.aside?.()),
+        h("article", slots.default?.()),
+      ]),
+});
+
+const resolvedChild = (id: string, component: unknown, slot?: string) => ({
   id,
   component,
   options: {},
   children: [],
+  ...(slot ? { slot } : {}),
 });
 
 async function mountPage(showSecond = ref(true)) {
@@ -69,6 +82,10 @@ async function mountPage(showSecond = ref(true)) {
         showSecond.value
           ? block("tabs", Section, [resolvedChild("statistics", Section)])
           : null,
+        block("explorer", Split, [
+          resolvedChild("tree", Section, "aside"),
+          resolvedChild("header", Pair),
+        ]),
       ]),
   });
   app.component("DmsRecursiveComponent", RecursiveComponent);
@@ -113,6 +130,18 @@ describe("scrollToBlock", () => {
       element: host.querySelector(".pair-head"),
       options: { behavior: "smooth" },
     });
+  });
+
+  it("finds the children of a block that places them in its slots", async () => {
+    await mountPage();
+    expect(scrollToBlock("explorer.header")).toBe(true);
+    expect(scrolled.at(-1)?.element).toBe(
+      host.querySelector(".split article .pair-head"),
+    );
+    expect(scrollToBlock("explorer.tree")).toBe(true);
+    expect(scrolled.at(-1)?.element).toBe(
+      host.querySelector(".split aside section"),
+    );
   });
 
   it("answers false for a block that is not on screen", async () => {
