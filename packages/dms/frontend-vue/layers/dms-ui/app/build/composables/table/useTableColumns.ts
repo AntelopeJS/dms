@@ -41,8 +41,10 @@ import {
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
 import { useActionConfirm } from "../confirm/useActionConfirm";
-import { interpolateLiteral } from "../../utils/literalText";
-import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
+import {
+  resolveConfirmText,
+  type ConfirmTranslate,
+} from "../confirm/confirmDialogTexts";
 import {
   type DefaultSortConfig,
   type HeaderSortCue,
@@ -588,12 +590,11 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
   const { processI18n } = useTranslation();
 
-  // A row's own text: a `$` key translated with the row's fields as
-  // parameters, or a literal whose `{field}` braces they fill.
+  // A row's own text, resolved as a confirmation's texts are: a `$` key
+  // translated with the row's fields as parameters, or a literal whose
+  // `{field}` braces they fill.
   const rowText = (text: string, rowData: T): string =>
-    readTranslationKey(text).isKey
-      ? processI18n(text, rowData)
-      : interpolateLiteral(text, rowData);
+    resolveConfirmText(text, rowData, t as ConfirmTranslate);
 
   const menuLabel = (rowData: T): string => {
     const declared = config.rowActions?.menuLabel;
