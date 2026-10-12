@@ -77,6 +77,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   just to hide it.
   A long sectioned `Form` groups its navigation with `FormSection.navGroup` ("Billing", "Legal"),
   in the side list and in the `sectionNav: "jump"` chips alike (a form whose side column holds a preview).
+  A module's own `inputComponent` submits its form, adds a validator and focuses a field with
+  `useEnclosingForm()` (never `closest("form")` / `requestSubmit()`), and a link ending in `#<fieldId>`
+  opens the form on that field, focused.
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
   keeps a pill tab list to its tabs' width.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
