@@ -801,17 +801,21 @@ export const useTableRowActions = <T extends Data>(
     await proceed();
   };
 
-  const { handleCustomButton, handleCustomRowAction, handleBulkCustomAction } =
-    useActionTargets({
-      api: config.api,
-      pageId: config.pageId,
-      componentId: config.componentId,
-      refreshCallback: config.refreshCallback,
-      handleApiError,
-      rowNavigation: config.rowNavigation,
-      recordScope: config.recordScope,
-      rowIdKey: config.rowIdKey,
-    });
+  const {
+    handleCustomButton,
+    handleCustomRowAction,
+    handleBulkCustomAction,
+    handleMissingRow,
+  } = useActionTargets({
+    api: config.api,
+    pageId: config.pageId,
+    componentId: config.componentId,
+    refreshCallback: config.refreshCallback,
+    handleApiError,
+    rowNavigation: config.rowNavigation,
+    recordScope: config.recordScope,
+    rowIdKey: config.rowIdKey,
+  });
 
   return {
     createFormContainer,
@@ -826,6 +830,7 @@ export const useTableRowActions = <T extends Data>(
     handleCustomButton,
     handleCustomRowAction,
     handleBulkCustomAction,
+    handleMissingRow,
     handleApiError,
     runConfirmedBuiltIn,
   };

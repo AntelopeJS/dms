@@ -80,6 +80,18 @@ const customComponent = computed(() => {
   return name ? resolveDmsComponent(name) || name : undefined;
 });
 const refresh = () => tableSharedData.value?.emits("refresh");
+// A custom state clears what narrows the rows as the built-in one does; each
+// is unset while there is nothing of it to clear.
+const clearSearch = computed(() =>
+  clearable.value?.search
+    ? () => tableSharedData.value?.clearSearch()
+    : undefined,
+);
+const clearFilters = computed(() =>
+  clearable.value?.filters
+    ? () => tableSharedData.value?.clearFilters()
+    : undefined,
+);
 
 interface EmptyStateContent {
   title: string;
@@ -221,6 +233,8 @@ const builtInActions = computed(() => {
     :state="kind"
     :search="search"
     :refresh="refresh"
+    :clear-search="clearSearch"
+    :clear-filters="clearFilters"
   />
   <DmsEmptyState
     v-else

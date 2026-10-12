@@ -5,6 +5,25 @@ import type { ModalSize } from "./size";
 export type DrawerDirection = "top" | "right" | "bottom" | "left";
 
 /**
+ * What a side panel says when the row its link names is gone: the `?record=`
+ * of a deep link, or a `fetchRowUrl` / `get` route answering 404. Texts are
+ * `$`-prefixed i18n keys or literals.
+ */
+export interface SidePanelNotFoundTexts {
+  /**
+   * Title of the state, e.g. `"$api.request.not_found_title"` for "This
+   * request is no longer stored". Defaults to the DMS's generic "This entry
+   * is no longer available".
+   */
+  title?: string;
+  /**
+   * Text under it, e.g. "It was pruned by the log retention, or the link is
+   * wrong." Defaults to the DMS's generic one.
+   */
+  description?: string;
+}
+
+/**
  * What a `sidePanel` action target sets besides its component, shared by the
  * declared and the serialized target.
  */
@@ -14,6 +33,15 @@ export interface SidePanelTargetOptions {
    * action's label.
    */
   title?: string;
+  /**
+   * Title of the header while a row is open, in place of `title`: an i18n key
+   * (`$`-prefixed) or a literal receiving the row's fields, as a
+   * confirmation's texts do. `"$api.request.heading"` translated "{method}
+   * {path}" reads "POST /api/orders". `title` stays the header of a panel
+   * showing no row (a missing one).
+   * @example "{method} {path}"
+   */
+  rowTitle?: string;
   /**
    * Position of the open row among the rows the table shows, drawn under the
    * title: an i18n key (`$`-prefixed) receiving `{ index }` (from 1) and
@@ -28,6 +56,13 @@ export interface SidePanelTargetOptions {
    * side panel: `false` opts out. The action's own `deepLink` wins when set.
    */
   deepLink?: boolean;
+  /**
+   * The words of the panel opened on a row that no longer exists (a deep link
+   * to a deleted row): the DMS draws the state and a close button under the
+   * header, in place of the component. See {@link SidePanelNotFoundTexts}.
+   * @example { title: "$api.request.not_found_title", description: "$api.request.not_found_description" }
+   */
+  notFound?: SidePanelNotFoundTexts;
 }
 
 export type ActionTarget =

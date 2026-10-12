@@ -211,6 +211,7 @@ export function TableView<T extends ControllerClass>(
       layout: options.layout,
       searchable: hasSearchableFields(controller),
       searchPlaceholder: options.searchPlaceholder,
+      searchShortcut: options.searchShortcut,
       quickFilters: options.quickFilters,
       pageSize: options.pageSize,
       pagination: options.pagination,

@@ -22,6 +22,17 @@ export const ROW_SIDE_PANEL_ID = "dms:row-side-panel";
 const ROW_SIDE_PANEL_COMPONENT = "DmsRowSidePanel";
 
 /**
+ * The state the panel draws in place of the component on a row that is gone,
+ * its texts translated.
+ *
+ * @internal
+ */
+export interface RowSidePanelNotFound {
+  title: string;
+  description: string;
+}
+
+/**
  * What the row side panel shows: the header the DMS draws, the module's
  * component and the row it receives.
  *
@@ -32,7 +43,12 @@ export interface RowSidePanelContent {
   session: symbol;
   /** The table (or button bar) that opened the panel; see {@link rowSidePanelOwnerKey}. */
   ownerKey: string;
+  /** The panel's title: its accessible name, and its header without a row. */
   title: string;
+  /** The header's title while `row` is open (the target's `rowTitle`). */
+  rowTitle?: string;
+  /** The row the link names is gone: this state replaces the component. */
+  notFound?: RowSidePanelNotFound;
   /** i18n key (`$`-prefixed) of the position, receiving `{ index, total }`. */
   positionLabel?: string;
   component: Component;

@@ -903,6 +903,10 @@
     "position": "{index} sur {total}",
     "previous": "Précédent",
     "next": "Suivant",
-    "close": "Fermer"
+    "close": "Fermer",
+    "not_found": {
+      "title": "Cette entrée n'est plus disponible",
+      "description": "Elle a été supprimée, ou le lien est erroné."
+    }
   }
 }

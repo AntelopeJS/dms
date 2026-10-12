@@ -899,6 +899,10 @@
     "position": "{index} of {total}",
     "previous": "Previous",
     "next": "Next",
-    "close": "Close"
+    "close": "Close",
+    "not_found": {
+      "title": "This entry is no longer available",
+      "description": "It was deleted, or the link is wrong."
+    }
   }
 }

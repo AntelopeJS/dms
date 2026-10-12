@@ -9,7 +9,10 @@ import type { Data, TableSharedData } from "./Table.vue";
 import { KANBAN_DISPLAY_ID } from "../../../composables/table-view/types";
 import type { CustomButton } from "../../../composables/table-view/types/custom-button";
 import { useTableContext } from "../../composables/table/useTableContext";
-import { createTableViewShiftFShortcut } from "../../../composables/table-view/shortcuts/tableViewShiftF";
+import {
+  createTableViewShiftFShortcut,
+  tableSearchShortcuts,
+} from "../../../composables/table-view/shortcuts/tableViewShiftF";
 import {
   FULL_TABLE_CHROME,
   type ResolvedTableChrome,
@@ -111,6 +114,8 @@ interface TableActionsProps {
   chrome?: ResolvedTableChrome;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
+  /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
+  searchShortcut?: string;
   /** Dropdown filters writing their column's filter. */
   quickFilters?: ResolvedQuickFilter[];
 }
@@ -193,7 +198,6 @@ watch(searchAreaFocused, async (isFocused) => {
   searchActive.value = false;
 });
 
-
 const searchFieldRef = ref<{ $el: HTMLElement }>();
 
 const focusSearchBar = () => {
@@ -273,13 +277,16 @@ const closeSearch = () => {
   searchActive.value = false;
 };
 
-defineShortcuts({
-  shift_f: createTableViewShiftFShortcut(
-    searchActive,
-    tableSharedData!.globalFilterState,
-    focusSearchBar,
+const openSearchFromShortcut = createTableViewShiftFShortcut(
+  searchActive,
+  tableSharedData!.globalFilterState,
+  focusSearchBar,
+);
+defineShortcuts(
+  computed(() =>
+    tableSearchShortcuts(props.searchShortcut, openSearchFromShortcut),
   ),
-});
+);
 
 const hasCustomFilterConfig = computed(() => {
   const filters = tableSharedData?.columnFiltersState.value || [];

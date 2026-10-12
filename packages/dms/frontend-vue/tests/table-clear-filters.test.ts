@@ -15,14 +15,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PaginationState } from "@tanstack/vue-table";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
 import {
+  clearTableColumnFilters,
   clearTableFilters,
   clearTableFiltersLabelKey,
+  clearTableSearch,
   clearableTableFilters,
   isTableNarrowed,
   resetColumnFilters,
   type TableNarrowingState,
 } from "../layers/dms-ui/app/build/composables/table/utils/clearTableFilters";
 import TableEmpty from "../layers/dms-ui/app/build/components/table/Empty.vue";
+import { useTableViewEmptyState } from "../layers/dms-ui/app/composables/table-view/useTableViewEmptyState";
+import type { TableViewEmptyStatesConfig } from "../layers/dms-ui/app/composables/table-view/types";
 
 const pinnedStatus = (value: unknown): TableFilter => ({
   accessorKey: "status",
@@ -173,12 +177,45 @@ describe("clearTableFilters", () => {
   });
 });
 
+describe("clearing the search or the filters alone", () => {
+  it("empties the search, the chips kept, back to page 1", () => {
+    const state = createState({
+      columnFilters: [dueDate],
+      globalFilter: "late",
+      pageIndex: 2,
+    });
+    clearTableSearch(state);
+    expect(state.globalFilter.value).toBe("");
+    expect(state.columnFilters.value).toEqual([dueDate]);
+    expect(state.pagination.value.pageIndex).toBe(0);
+  });
+
+  it("clears the chips, the search kept, back to page 1", () => {
+    const state = createState({
+      columnFilters: [pinnedStatus("closed"), dueDate],
+      globalFilter: "late",
+      pageIndex: 2,
+    });
+    clearTableColumnFilters(state);
+    expect(state.globalFilter.value).toBe("late");
+    expect(state.columnFilters.value).toEqual([pinnedStatus("open")]);
+    expect(state.pagination.value.pageIndex).toBe(0);
+  });
+});
+
 describe("table empty state", () => {
   let app: App | undefined;
 
-  const mountEmpty = (state: Harness) => {
+  const mountEmpty = (
+    state: Harness,
+    emptyStates?: TableViewEmptyStatesConfig,
+  ) => {
     const sharedData = shallowRef({
       resetFilters: () => clearTableFilters(state),
+      clearSearch: () => clearTableSearch(state),
+      clearFilters: () => clearTableColumnFilters(state),
+      globalFilterState: state.globalFilter,
+      emptyStates,
       clearableFilters: computed(() => clearableTableFilters(state)),
       isFiltered: computed(() => isTableNarrowed(state)),
       showArchivedState: ref(false),
@@ -264,6 +301,67 @@ describe("table empty state", () => {
     expect(container.textContent).toContain("dms.table.no_results_title");
     expect(container.textContent).not.toContain("dms.table.empty_title");
     expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("hands a custom state a clear for the search and one for the filters", async () => {
+    const received: Record<string, unknown>[] = [];
+    vi.stubGlobal("resolveDmsComponent", () =>
+      defineComponent({
+        props: {
+          state: String,
+          clearSearch: Function,
+          clearFilters: Function,
+        },
+        setup: (props) => () => {
+          received.push({ ...props });
+          return h("p", "custom");
+        },
+      }),
+    );
+    const state = createState({
+      columnFilters: [dueDate],
+      globalFilter: "late",
+    });
+    mountEmpty(state, {
+      filtered: { title: "", component: { componentName: "LogsEmpty" } },
+    });
+    const props = received.at(-1)!;
+    expect(props.state).toBe("filtered");
+    (props.clearSearch as () => void)();
+    await nextTick();
+    expect(state.globalFilter.value).toBe("");
+    expect(state.columnFilters.value).toEqual([dueDate]);
+    expect(received.at(-1)!.clearSearch).toBeUndefined();
+    (received.at(-1)!.clearFilters as () => void)();
+    expect(state.columnFilters.value).toEqual([]);
+  });
+
+  it("lets a component inside the table clear through useTableViewEmptyState", async () => {
+    const state = createState({
+      columnFilters: [dueDate],
+      globalFilter: "late",
+    });
+    let controls: ReturnType<typeof useTableViewEmptyState> | undefined;
+    vi.stubGlobal("resolveDmsComponent", () =>
+      defineComponent({
+        setup: () => {
+          controls = useTableViewEmptyState();
+          return () => h("p");
+        },
+      }),
+    );
+    mountEmpty(state, {
+      filtered: { title: "", component: { componentName: "LogsEmpty" } },
+    });
+    expect(controls!.search.value).toBe("late");
+    expect(controls!.isFiltered.value).toBe(true);
+    expect(controls!.canClearSearch.value).toBe(true);
+    expect(controls!.canClearFilters.value).toBe(true);
+    controls!.clearFilters();
+    expect(controls!.canClearFilters.value).toBe(false);
+    expect(state.globalFilter.value).toBe("late");
+    controls!.clearSearch();
+    expect(controls!.isFiltered.value).toBe(false);
   });
 
   it("offers no clear action when only default filters narrow the rows", () => {

@@ -133,6 +133,11 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(options.realtime).to.equal(false);
   });
 
+  it("serves the key a source table opens its search with", () => {
+    expect(sourceOf({ searchShortcut: "/" }).searchShortcut).to.equal("/");
+    expect(sourceOf().searchShortcut).to.equal(undefined);
+  });
+
   it("serves the route reading one row, and refuses one without {id}", () => {
     expect(
       sourceOf({ fetchRowUrl: "/api/request-log/{id}" }).source,

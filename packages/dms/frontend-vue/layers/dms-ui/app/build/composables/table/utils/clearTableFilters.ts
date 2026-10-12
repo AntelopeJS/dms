@@ -79,10 +79,25 @@ export const clearTableFiltersLabelKey = (
       ? "dms.table.clear_search"
       : "dms.table.clear_filters";
 
-export const clearTableFilters = (state: TableNarrowingState): void => {
-  state.columnFilters.value = resetColumnFilters(state.columnFilters.value);
-  state.globalFilter.value = "";
+const backToFirstPage = (state: TableNarrowingState): void => {
   if (state.pagination && state.pagination.value.pageIndex !== 0) {
     state.pagination.value = { ...state.pagination.value, pageIndex: 0 };
   }
+};
+
+/** Empties the toolbar search alone, back to the first page. */
+export const clearTableSearch = (state: TableNarrowingState): void => {
+  state.globalFilter.value = "";
+  backToFirstPage(state);
+};
+
+/** Clears the filter chips alone (pinned ones reset), back to the first page. */
+export const clearTableColumnFilters = (state: TableNarrowingState): void => {
+  state.columnFilters.value = resetColumnFilters(state.columnFilters.value);
+  backToFirstPage(state);
+};
+
+export const clearTableFilters = (state: TableNarrowingState): void => {
+  state.columnFilters.value = resetColumnFilters(state.columnFilters.value);
+  clearTableSearch(state);
 };

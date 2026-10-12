@@ -464,7 +464,8 @@
           "condition": "Only when enableRowSelection is enabled"
         },
         "shift_f": {
-          "description": "Open/focus search bar"
+          "description": "Open/focus search bar",
+          "condition": "Unless the table names another key (searchShortcut), such as /"
         },
         "delete": {
           "description": "Delete hovered row",

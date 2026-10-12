@@ -476,7 +476,10 @@ export interface TableViewEmptyState {
   /**
    * Frontend component drawing the whole state instead (a gallery of
    * templates), resolved by name from the global registry. It receives
-   * `state` (`firstRun`, `filtered` or `error`), `search` and `refresh()`.
+   * `state` (`firstRun`, `filtered` or `error`), `search`, `refresh()`, and
+   * `clearSearch()` / `clearFilters()` while a search or a filter chip
+   * narrows the rows (unset otherwise); `useTableViewEmptyState()` reads the
+   * same from deeper in its tree.
    */
   component?: Component;
 }
@@ -870,6 +873,14 @@ export interface TableViewOptions<
   layout?: TableViewLayout;
   /** Placeholder of the search field. `$`-prefixed: an i18n key. */
   searchPlaceholder?: string;
+  /**
+   * The key that opens and focuses the search field, in Nuxt UI
+   * `defineShortcuts` notation: `"/"`, `"shift_f"`, `"meta_k"`. Defaults to
+   * `"shift_f"` (⇧F). Like every table shortcut, it does not fire while the
+   * user types in a field, so `"/"` stays a character there.
+   * @example "/"
+   */
+  searchShortcut?: string;
   /** One-click dropdown filters drawn in the toolbar. */
   quickFilters?: TableViewQuickFilter[];
   /**

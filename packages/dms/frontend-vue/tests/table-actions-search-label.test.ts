@@ -12,6 +12,7 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defineShortcuts } from "@nuxt/ui/runtime/composables/defineShortcuts.js";
 import TableActions from "../layers/dms-ui/app/build/components/table/Actions.vue";
 import { FULL_TABLE_CHROME } from "../layers/dms-ui/app/build/composables/table-view/utils/chrome";
 
@@ -48,7 +49,11 @@ const InputStub = defineComponent({
 
 let app: App | undefined;
 
-function mountActions(searchPlaceholder: string | undefined, search = "") {
+function mountActions(
+  searchPlaceholder: string | undefined,
+  search = "",
+  searchShortcut?: string,
+) {
   const Host = defineComponent({
     setup() {
       provide(
@@ -76,6 +81,7 @@ function mountActions(searchPlaceholder: string | undefined, search = "") {
       return () =>
         h(TableActions, {
           searchPlaceholder,
+          searchShortcut,
           chrome: { ...FULL_TABLE_CHROME, refresh: false, menu: false },
         });
     },
@@ -164,5 +170,55 @@ describe("table toolbar search", () => {
     expect(input?.getAttribute("aria-label")).toBe(
       "dms.table.search_placeholder",
     );
+  });
+});
+
+describe("table search shortcut", () => {
+  const press = (
+    key: string,
+    init: KeyboardEventInit = {},
+    target: EventTarget = document.body,
+  ) =>
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true, ...init }),
+    );
+  const settle = async () => {
+    await nextTick();
+    await nextTick();
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal("defineShortcuts", defineShortcuts);
+    vi.stubGlobal("nextTick", nextTick);
+  });
+
+  it("opens and focuses the search on ⇧F by default", async () => {
+    const container = mountActions(undefined);
+    press("F", { shiftKey: true });
+    await settle();
+    const input = container.querySelector("input");
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("opens it on the table's own key, ⇧F no longer bound", async () => {
+    const container = mountActions(undefined, "", "/");
+    press("F", { shiftKey: true });
+    await settle();
+    expect(container.querySelector("input")).toBeNull();
+    press("/");
+    await settle();
+    expect(document.activeElement).toBe(container.querySelector("input"));
+  });
+
+  it("leaves / to a field the user types in", async () => {
+    const container = mountActions(undefined, "", "/");
+    const field = document.createElement("input");
+    document.body.append(field);
+    field.focus();
+    press("/", {}, field);
+    await settle();
+    expect(container.querySelector("input")).toBeNull();
+    expect(document.activeElement).toBe(field);
   });
 });
