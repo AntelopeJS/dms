@@ -16,7 +16,7 @@ import {
   formErrorsInjectionKey,
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
-import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/useControlError";
+import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
 
 const formErrors = ref<Array<Record<string, unknown>>>([]);
 const model = ref<string[]>([]);

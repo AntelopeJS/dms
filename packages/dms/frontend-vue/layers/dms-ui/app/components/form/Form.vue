@@ -56,7 +56,7 @@ import {
   resolveSectionNav,
   sectionState,
 } from "../../build/composables/form/formSections";
-import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/useControlError";
+import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/formControlErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
 import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";

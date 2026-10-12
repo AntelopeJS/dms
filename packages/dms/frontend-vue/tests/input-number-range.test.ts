@@ -17,7 +17,7 @@ import {
   nextTick,
   ref,
 } from "vue";
-import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/useControlError";
+import { FORM_CONTROL_ERRORS_KEY } from "../layers/dms-ui/app/build/composables/form/formControlErrors";
 import {
   ABOVE_MAX_MESSAGE,
   BELOW_MIN_MESSAGE,

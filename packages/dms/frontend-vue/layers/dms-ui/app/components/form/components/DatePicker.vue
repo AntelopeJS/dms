@@ -14,7 +14,7 @@ import {
 } from "@internationalized/date";
 import { reactivePick } from "@vueuse/core";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 import {
   FIELD_TRIGGER_CLASS,
   FIELD_TRIGGER_INVALID_CLASS,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { InputProps } from "@nuxt/ui/components/Input.vue";
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 
 interface InputTimeProps extends Omit<InputProps, "modelValue" | "type"> {
   modelValue?: number | null;
