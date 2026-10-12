@@ -213,6 +213,7 @@ let globalConfig: Config = {
 };
 
 let devClientBaseUrl: string | undefined;
+let devApiBaseUrl: string | undefined;
 
 export function getConfig(): Config {
   return globalConfig;
@@ -224,6 +225,15 @@ export function setDevClientBaseUrl(url: string): void {
 
 export function getClientBaseUrl(): string | undefined {
   return devClientBaseUrl ?? globalConfig.clientBaseUrl;
+}
+
+/** `undefined` drops the dev override, back to the configured origin. */
+export function setDevApiBaseUrl(url: string | undefined): void {
+  devApiBaseUrl = url;
+}
+
+export function getApiBaseUrl(): string | undefined {
+  return devApiBaseUrl ?? globalConfig.apiBaseUrl;
 }
 
 export function getAuthConfig(): AuthConfig {
