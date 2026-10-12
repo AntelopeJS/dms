@@ -1,6 +1,6 @@
-import { HTTP_NOT_FOUND } from "#dms-core/app/utils/http-status";
 import type { CustomRowAction } from "../../../../types/row-action";
 import { readTableUrlKey, type TableUrlScope } from "./views";
+import { readFetchNotFound } from "../../../utils/fetchNotFound";
 
 /** Query key of the row a `deepLink` action has open. */
 export const RECORD_URL_KEY = "record";
@@ -84,17 +84,6 @@ export interface DeepLinkedRow<T> {
   isMissing: boolean;
 }
 
-interface FetchFailure {
-  status?: number;
-  statusCode?: number;
-}
-
-const isNotFound = (error: unknown): boolean => {
-  if (!error || typeof error !== "object") return false;
-  const { status, statusCode } = error as FetchFailure;
-  return (statusCode ?? status) === HTTP_NOT_FOUND;
-};
-
 /**
  * The row a deep link names: the listed one, else the one read by id — a row
  * beyond the first page. A route answering 404 marks it missing; any other
@@ -110,6 +99,6 @@ export async function resolveDeepLinkedRow<T>(
     const row = await source.getRow(id);
     return { row: row ?? undefined, isMissing: false };
   } catch (error: unknown) {
-    return { isMissing: isNotFound(error) };
+    return { isMissing: readFetchNotFound(error) !== null };
   }
 }

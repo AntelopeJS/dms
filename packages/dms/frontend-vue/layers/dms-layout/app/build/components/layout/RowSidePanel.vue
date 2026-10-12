@@ -140,8 +140,7 @@ onBeforeUnmount(() => {
       <DmsEmptyState
         v-if="content.notFound"
         data-dms-row-side-panel-not-found
-        variant="no-data"
-        icon="i-ph-file-x"
+        variant="no-result"
         :title="content.notFound.title"
         :description="content.notFound.description"
         :actions="notFoundActions"
