@@ -1,21 +1,13 @@
 import type { PaginationState } from "@tanstack/vue-table";
 import { computed, ref, watch, type Ref } from "vue";
+import { hashText } from "#dms-core/app/build/composables/user/tablePreferences";
+import type { TablePreferences } from "./useTablePreferences";
 
 const FIRST_PAGE_INDEX = 0;
-const PAGINATION_PREFERENCE = "pagination";
-// The hidden filters the stored page was reached under, next to it.
-const PAGINATION_SCOPE_PREFERENCE = "paginationScope";
-
-/** The preference store the page is kept in (`usePreferences`). */
-export interface PaginationPreferences {
-  getPreference: <V>(keyPath: string, defaultValue?: V) => V;
-  setPreference: (keyPath: string, value: unknown) => void;
-}
 
 export interface PersistedPaginationOptions {
-  preferences: PaginationPreferences;
-  /** The table's preference key of a setting. */
-  preferenceKey: (suffix: string) => string;
+  /** The table's preferences (`useTablePreferences`). */
+  preferences: TablePreferences;
   defaults: PaginationState;
   /**
    * What lists other rows without the user picking it: the hidden filters
@@ -30,8 +22,8 @@ const firstPage = (pagination: PaginationState): PaginationState => ({
 });
 
 /**
- * The table's page, kept in the user's preferences with the hidden filters
- * it was reached under. A page restored under other hidden filters (a link
+ * The table's page, kept in the user's preferences with a hash of the hidden
+ * filters it was reached under (only past the first page, where it matters). A page restored under other hidden filters (a link
  * that remounted the page with another `?status=`) starts at the first
  * page, as does a change of their value while the table is shown; compared
  * by value, so another query parameter changing keeps the page.
@@ -39,15 +31,14 @@ const firstPage = (pagination: PaginationState): PaginationState => ({
 export function usePersistedPagination(
   options: PersistedPaginationOptions,
 ): Ref<PaginationState> {
-  const { preferences, preferenceKey } = options;
-  const scopeKey = computed(() => JSON.stringify(options.scope() ?? null));
-  const stored = preferences.getPreference<PaginationState>(
-    preferenceKey(PAGINATION_PREFERENCE),
-    options.defaults,
+  const { preferences, defaults } = options;
+  const scopeKey = computed(() =>
+    hashText(JSON.stringify(options.scope() ?? null)),
   );
-  // A page stored before its scope was: kept, as it always was.
-  const storedScope = preferences.getPreference<string>(
-    preferenceKey(PAGINATION_SCOPE_PREFERENCE),
+  const stored = preferences.get<PaginationState>("pagination", defaults);
+  // A page kept without its scope (the first one): kept as it is.
+  const storedScope = preferences.get<string>(
+    "paginationScope",
     scopeKey.value,
   );
   const pagination = ref<PaginationState>(
@@ -66,10 +57,12 @@ export function usePersistedPagination(
   watch(
     [pagination, scopeKey],
     ([value, scope]) => {
-      preferences.setPreference(preferenceKey(PAGINATION_PREFERENCE), value);
-      preferences.setPreference(
-        preferenceKey(PAGINATION_SCOPE_PREFERENCE),
-        scope,
+      preferences.set("pagination", value, defaults);
+      const isFirstPage = value.pageIndex === FIRST_PAGE_INDEX;
+      preferences.set<string | undefined>(
+        "paginationScope",
+        isFirstPage ? undefined : scope,
+        undefined,
       );
     },
     { deep: true },

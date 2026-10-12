@@ -23,6 +23,7 @@ import {
   type UserTableView,
   viewSnapshot,
 } from "./utils/views";
+import type { TablePreferences } from "./useTablePreferences";
 
 /** The table's state a view reads and sets. */
 export interface TableViewsState {
@@ -40,8 +41,8 @@ export interface TableViewsOptions {
   views: TableViewViewsConfig | undefined;
   defaults: TableStateDefaults;
   state: TableViewsState;
-  /** Preference key of the table, for one of its settings. */
-  preferenceKey: (suffix: string) => string;
+  /** The table's preferences (`useTablePreferences`). */
+  preferences: TablePreferences;
   urlScope: TableUrlScope;
 }
 
@@ -52,8 +53,6 @@ export interface ResolvedTableView extends TableViewViewConfig {
 }
 
 export const VIEW_URL_KEY = "view";
-const ACTIVE_VIEW_PREFERENCE = "activeView";
-const USER_VIEWS_PREFERENCE = "userViews";
 const NO_VIEW = "";
 const VIEW_NAME_FIELD = "label";
 
@@ -64,8 +63,7 @@ const VIEW_NAME_FIELD = "label";
  * a change made to a view is not kept when another is opened.
  */
 export function useTableViews(options: TableViewsOptions) {
-  const { views, defaults, state, preferenceKey, urlScope } = options;
-  const { getPreference, setPreference } = usePreferences();
+  const { views, defaults, state, preferences, urlScope } = options;
   const { user } = useUserSession();
   const { t } = useI18n();
   const { processI18n } = useTranslation();
@@ -74,9 +72,9 @@ export function useTableViews(options: TableViewsOptions) {
   const route = useDmsRoute();
 
   const userId = computed(() => user.value?._id as string | undefined);
-  const storedUserViews = ref<UserTableView[]>(
-    getPreference<UserTableView[]>(preferenceKey(USER_VIEWS_PREFERENCE), []),
-  );
+  // Kept in the browser: none on the server, restored once mounted.
+  const storedUserViews = ref<UserTableView[]>([]);
+  preferences.restore("userViews", storedUserViews, Array.isArray);
   const ownUserViews = computed(() =>
     views?.userViews && userId.value
       ? storedUserViews.value.filter((view) => view.ownerId === userId.value)
@@ -132,25 +130,50 @@ export function useTableViews(options: TableViewsOptions) {
 
   // Read once, on arrival: a view named by the URL wins over the state kept
   // from the last visit; a view the caller may not open falls back to the
-  // default one, with a word (on the client, once mounted).
+  // default one, with a word (on the client, once mounted). The user's views
+  // are kept in the browser, so a view that is not the module's is resolved
+  // once mounted.
   const urlView = readTableUrlKey(route.query, urlScope, VIEW_URL_KEY);
-  const persistedViewId = getPreference<string | undefined>(
-    preferenceKey(ACTIVE_VIEW_PREFERENCE),
+  const persistedViewId = preferences.get<string | undefined>(
+    "activeView",
     undefined,
   );
   let isUrlViewUnavailable = false;
+  let isUrlViewPending = false;
+  let isOpenedOnArrival = false;
   if (urlView.value && findView(urlView.value)) {
     openView(urlView.value);
+    isOpenedOnArrival = true;
   } else if (urlView.value) {
-    isUrlViewUnavailable = true;
-    openView(views?.defaultView);
+    isUrlViewPending = true;
   } else if (persistedViewId === undefined) {
     if (views?.defaultView) openView(views.defaultView);
+    isOpenedOnArrival = !!views?.defaultView;
   } else {
     activeViewId.value = findView(persistedViewId)?.id;
   }
 
+  // The browser-only state (order, density) is restored over the view opened
+  // in setup: the view's own wins, as it did when everything was read there.
+  const reapplyBrowserState = () => {
+    const snapshot = viewSnapshot(activeView.value, defaults);
+    state.columnOrder.value = snapshot.order;
+    state.density.value = snapshot.density;
+  };
+
+  const arriveOnceMounted = () => {
+    if (isUrlViewPending) {
+      isUrlViewUnavailable = !findView(urlView.value);
+      openView(isUrlViewUnavailable ? views?.defaultView : urlView.value);
+    } else if (isOpenedOnArrival) {
+      reapplyBrowserState();
+    } else if (persistedViewId && !activeViewId.value) {
+      activeViewId.value = findView(persistedViewId)?.id;
+    }
+  };
+
   onMounted(() => {
+    arriveOnceMounted();
     if (urlView.ignoredShortKey && import.meta.env.DEV) {
       console.warn(
         `[DMS] "?${VIEW_URL_KEY}=" is ignored on a page with several table views: name the table, "?${urlScope.tableId}.${VIEW_URL_KEY}=".`,
@@ -166,7 +189,7 @@ export function useTableViews(options: TableViewsOptions) {
   });
 
   watch(activeViewId, (id) => {
-    setPreference(preferenceKey(ACTIVE_VIEW_PREFERENCE), id ?? NO_VIEW);
+    preferences.set<string | undefined>("activeView", id ?? NO_VIEW, undefined);
   });
 
   const isModified = computed(() => {
@@ -181,7 +204,7 @@ export function useTableViews(options: TableViewsOptions) {
 
   const writeUserViews = (next: UserTableView[]) => {
     storedUserViews.value = next;
-    setPreference(preferenceKey(USER_VIEWS_PREFERENCE), next);
+    preferences.set("userViews", next, []);
   };
 
   /** Back to the open view's own state. */
