@@ -14,7 +14,7 @@ import type {
 import archiver from "archiver";
 import ignore from "ignore";
 import { coerce, major } from "semver";
-import { getConfig, setDevClientBaseUrl } from "../../config";
+import { getConfig, setDevApiBaseUrl, setDevClientBaseUrl } from "../../config";
 import { scheduleBroadcast } from "./dev-reload";
 import {
   assertFrontendBootstrap,
@@ -322,16 +322,16 @@ function applyDevManifestOverrides<T extends ManifestModuleEntry>(
 ): ModuleManifestShape<T> {
   const config = getConfig();
   const clientOrigin = resolveClientOrigin(clientUrl);
-  if (clientOrigin && outcome === "authenticated") {
-    setDevClientBaseUrl(clientOrigin);
+  const apiOrigin = resolveRequestOrigin(requestContext.rawRequest);
+  // Only a trusted dev server moves the origins every module builds links on.
+  if (outcome === "authenticated") {
+    if (clientOrigin) setDevClientBaseUrl(clientOrigin);
+    if (apiOrigin) setDevApiBaseUrl(apiOrigin);
   }
   return applyDevManifestUrls(
     manifest,
     { apiBaseUrl: config.apiBaseUrl, clientBaseUrl: config.clientBaseUrl },
-    {
-      apiBaseUrl: resolveRequestOrigin(requestContext.rawRequest),
-      clientBaseUrl: clientOrigin,
-    },
+    { apiBaseUrl: apiOrigin, clientBaseUrl: clientOrigin },
   );
 }
 

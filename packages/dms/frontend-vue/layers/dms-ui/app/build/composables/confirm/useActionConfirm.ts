@@ -13,6 +13,7 @@ import {
   type ConfirmTranslate,
   resolveConfirmDialog,
 } from "./confirmDialogTexts";
+import { type DownloadFetch, secondaryTargetRunner } from "./secondaryTarget";
 
 /** What an action asks its confirmation with. */
 export interface ActionConfirmRequest {
@@ -44,6 +45,9 @@ export function useActionConfirm() {
   const { $authFetch } = useAuthFetch();
   const { t } = useI18n();
   const toast = useToast();
+  const runSecondaryTarget = secondaryTargetRunner(
+    $authFetch.raw as unknown as DownloadFetch,
+  );
 
   const loadDialog = async (
     declared: ActionConfirm,
@@ -81,6 +85,7 @@ export function useActionConfirm() {
       dialog,
       request.row,
       t as ConfirmTranslate,
+      runSecondaryTarget,
     );
     const isConfirmed = await confirm({
       ...request.fallback,

@@ -1,5 +1,6 @@
 import type { Component, ComponentInfoSerialized } from "../../component";
 import type { FormField, FormFieldSerialized } from "../form-types";
+import type { ActionTarget } from "./action-target";
 import type { ButtonColor } from "./custom-button";
 
 /** One dependent a confirmed action affects, listed in its dialog. */
@@ -8,6 +9,45 @@ export interface ConfirmDialogImpact {
   /** `$`-prefixed: an i18n key, receiving the dialog's `params`. */
   label: string;
   count?: number | string;
+}
+
+/**
+ * A file a dialog's secondary action downloads, the dialog staying open. The
+ * URL is fetched with the user's session, like an `api` target: a path is
+ * read from the DMS API, an absolute URL as it is.
+ */
+export interface ConfirmDialogDownloadTarget {
+  type: "download";
+  url: string;
+  /**
+   * Name the file is saved under. Defaults to the name the response's
+   * `Content-Disposition` gives, else the URL's last path segment.
+   */
+  filename?: string;
+}
+
+/**
+ * Where a dialog's secondary action leads: a link (`external`, as on an
+ * action), or a file to download.
+ */
+export type ConfirmDialogSecondaryTarget =
+  | Extract<ActionTarget, { type: "external" }>
+  | ConfirmDialogDownloadTarget;
+
+/**
+ * A button drawn next to cancel and confirm that neither answers the
+ * dialog: it runs its target and leaves the dialog open ("Download a backup"
+ * before removing).
+ */
+export interface ConfirmDialogSecondaryAction {
+  /** Text of the button, interpolated like the dialog's other texts. */
+  label: string;
+  icon?: string;
+  /**
+   * Its URL is filled in with the dialog's `params` and, on a row action,
+   * the row's fields (`{name}`).
+   */
+  target: ConfirmDialogSecondaryTarget;
 }
 
 /**
@@ -31,6 +71,11 @@ export interface ConfirmDialog {
   cancelLabel?: string;
   /** What the action takes with it, listed above the buttons. */
   impact?: ConfirmDialogImpact[];
+  /**
+   * A button next to cancel and confirm, leaving the dialog open: a link,
+   * or a file to download first.
+   */
+  secondaryAction?: ConfirmDialogSecondaryAction;
   /**
    * The action cannot run (the last owner, a locked row): the dialog only
    * explains why, with a close button.

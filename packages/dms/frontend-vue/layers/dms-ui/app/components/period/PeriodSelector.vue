@@ -11,12 +11,21 @@ import type {
   PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
-import { usePeriodDraft } from "../../build/composables/period/usePeriodDraft";
+import {
+  startingRange,
+  usePeriodDraft,
+} from "../../build/composables/period/usePeriodDraft";
+import {
+  type ComparisonControl,
+  resolveComparisonControl,
+} from "../../build/composables/period/periodComparisonControl";
+import { isRelativePreset } from "#dms-core/app/composables/period/presetResolvers";
 import { usePeriodLocation } from "../../build/composables/period/usePeriodLocation";
 import {
   type CalendarRange,
   calendarToRange,
   formatPeriodRange,
+  formatRelativeInstant,
   periodDuration,
   rangeToCalendar,
 } from "../../build/composables/period/periodDisplay";
@@ -35,6 +44,9 @@ interface Props extends DefaultComponentProps {
   align?: "left" | "center" | "right";
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRangeLabel?: boolean;
+  rangeLabel?: "absolute" | "relative";
+  comparisonControl?: ComparisonControl;
+  rememberKey?: string;
   variant?: "default" | "segmented";
 }
 
@@ -44,6 +56,7 @@ const CARET_UP_ICON = "i-ph-caret-up-light";
 const CUSTOM_PRESET: PeriodPreset = "custom";
 const NO_COMPARISON: PeriodComparison = "none";
 const SEGMENTED_VARIANT: NonNullable<Props["variant"]> = "segmented";
+const RELATIVE_RANGE_LABEL: NonNullable<Props["rangeLabel"]> = "relative";
 // Two months side by side from this width; one below (design @container 760px).
 const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
@@ -51,6 +64,7 @@ const props = withDefaults(defineProps<Props>(), {
   align: "right",
   size: "sm",
   showRangeLabel: true,
+  rangeLabel: "absolute",
   variant: "default",
 });
 
@@ -98,11 +112,12 @@ const { t, locale } = useI18n();
 // A paused live page keeps its period where it was: a relative preset
 // sliding every minute would refetch every block reading it.
 const { isPaused: isPagePaused } = usePageLive();
+const comparisonSetup = resolveComparisonControl(props);
 const period = usePeriod({
   defaultPreset: props.defaultPreset,
-  defaultComparison: props.defaultComparison,
+  defaultComparison: comparisonSetup.defaultComparison,
   presets: props.presets,
-  comparisons: props.comparisons,
+  comparisons: comparisonSetup.comparisons,
   holdClock: () => isPagePaused.value,
 });
 
@@ -111,6 +126,7 @@ const period = usePeriod({
 usePeriodLocation(period, {
   id: props.id,
   pageId: props.pageId,
+  rememberKey: props.rememberKey,
   fallback: {
     preset: period.preset.value,
     comparison: period.comparison.value,
@@ -226,7 +242,7 @@ function applyDraft() {
 }
 
 const draftCalendar = computed<CalendarRange>(() =>
-  rangeToCalendar(draft.range.value),
+  rangeToCalendar(draft.range.value ?? startingRange(new Date())),
 );
 
 const draftCompareCalendar = computed<CalendarRange | null>(() => {
@@ -272,7 +288,9 @@ const draftComparison = computed<PeriodComparison>({
 });
 
 const draftDurationLabel = computed(() => {
-  const { unit, count } = periodDuration(draft.range.value);
+  const range = draft.range.value;
+  if (!range) return presetLabel(draft.preset.value);
+  const { unit, count } = periodDuration(range);
   return t(`dms.period.popover.${unit}`, { count }, count);
 });
 
@@ -282,12 +300,36 @@ const draftCompareLabel = computed(() => {
 });
 
 // ── Trigger, comparison chip, range label ──────────────────────────────
-const committedRangeLabel = computed(() =>
-  formatPeriodRange(period.state.value.range, locale.value),
+const committedRangeLabel = computed(() => {
+  const { range } = period.state.value;
+  return range ? formatPeriodRange(range, locale.value) : null;
+});
+
+/**
+ * The instant a relative label is read from: a rolling window's own end, so
+ * it holds still with the window while the page is paused.
+ */
+function labelNow(preset: PeriodPreset, range: PeriodRange): Date {
+  return isRelativePreset(preset) ? range.to : new Date();
+}
+
+// Only a window reaching now reads "since …"; one that has ended keeps its
+// bounds.
+const relativeRangeLabel = computed<string | null>(() => {
+  const { preset, range } = period.state.value;
+  if (props.rangeLabel !== RELATIVE_RANGE_LABEL || !range) return null;
+  const now = labelNow(preset, range);
+  if (range.to.getTime() < now.getTime()) return null;
+  const from = formatRelativeInstant(range.from, now, locale.value);
+  return t("dms.period.since", { from }, `since ${from}`);
+});
+
+const rangeLabelText = computed(
+  () => relativeRangeLabel.value ?? committedRangeLabel.value,
 );
 
 const triggerLabel = computed(() =>
-  isCustomActive.value
+  isCustomActive.value && committedRangeLabel.value
     ? committedRangeLabel.value
     : presetLabel(period.preset.value),
 );
@@ -318,6 +360,21 @@ const canCompare = computed(() =>
   period.comparisons.value.some((comparison) => comparison !== NO_COMPARISON),
 );
 
+const isComparisonMenu = computed(
+  () => canCompare.value && comparisonSetup.control === "menu",
+);
+const toggledComparison = comparisonSetup.toggled;
+const canChooseComparison = computed(
+  () => canCompare.value && comparisonSetup.control !== "hidden",
+);
+// Every period has no bounds, so nothing to compare it with.
+const isComparisonDisabled = computed(() => !period.state.value.range);
+
+function toggleComparison() {
+  if (!toggledComparison) return;
+  period.setComparison(hasComparison.value ? NO_COMPARISON : toggledComparison);
+}
+
 const comparisonItems = computed(() => [
   period.comparisons.value.map((comparison) => ({
     label: comparisonLabel(comparison),
@@ -343,7 +400,7 @@ function compareRangeText(compare: PeriodRange, main: PeriodRange): string {
 
 const compareRangeLabel = computed(() => {
   const { compareRange, range } = period.state.value;
-  return compareRange ? compareRangeText(compareRange, range) : null;
+  return compareRange && range ? compareRangeText(compareRange, range) : null;
 });
 
 // ── Segmented variant ──────────────────────────────────────────────────
@@ -361,6 +418,13 @@ interface SegmentItem {
   icon?: string;
 }
 
+function customSegmentLabel(): string {
+  const { range } = period.state.value;
+  return isCustomActive.value && range
+    ? formatPeriodRange(range, locale.value, false)
+    : presetLabel(CUSTOM_PRESET);
+}
+
 const segmentedItems = computed<SegmentItem[]>(() => {
   const items: SegmentItem[] = listedPresets.value.map((preset) => ({
     label: segmentLabel(preset),
@@ -368,9 +432,7 @@ const segmentedItems = computed<SegmentItem[]>(() => {
   }));
   if (isCustomEnabled.value) {
     items.push({
-      label: isCustomActive.value
-        ? formatPeriodRange(period.state.value.range, locale.value, false)
-        : presetLabel(CUSTOM_PRESET),
+      label: customSegmentLabel(),
       value: CUSTOM_PRESET,
       icon: CALENDAR_ICON,
     });
@@ -564,7 +626,7 @@ function onSegmentedClick(event: MouseEvent) {
                 />
               </label>
               <label
-                v-if="canCompare"
+                v-if="canChooseComparison"
                 class="grid gap-1 min-[22rem]:col-span-2 md:col-span-1"
               >
                 <span :class="FIELD_LABEL_CLASS">
@@ -634,15 +696,38 @@ function onSegmentedClick(event: MouseEvent) {
       </template>
     </UPopover>
 
+    <UButton
+      v-if="toggledComparison"
+      variant="ghost"
+      color="neutral"
+      :size="size"
+      :aria-pressed="hasComparison"
+      :disabled="isComparisonDisabled"
+      class="order-2"
+      :class="hasComparison ? 'text-toned' : 'text-dimmed'"
+      @click="toggleComparison"
+    >
+      <template #leading>
+        <span
+          class="h-[2.5px] w-3 shrink-0 rounded-[2px]"
+          :class="comparisonKeyClass(hasComparison)"
+          aria-hidden="true"
+        />
+      </template>
+      {{ comparisonLabel(toggledComparison) }}
+    </UButton>
+
     <UDropdownMenu
-      v-if="canCompare"
+      v-else-if="isComparisonMenu"
       :items="comparisonItems"
       :content="{ align: 'end' }"
+      :disabled="isComparisonDisabled"
     >
       <UButton
         variant="ghost"
         color="neutral"
         :size="size"
+        :disabled="isComparisonDisabled"
         :trailing-icon="CARET_DOWN_ICON"
         :aria-label="$t('dms.period.comparison_aria', 'Comparison')"
         class="text-muted order-2"
@@ -663,12 +748,12 @@ function onSegmentedClick(event: MouseEvent) {
          a render that straddles a minute, or a server in another zone, may
          print other bounds than the browser, which then corrects them. -->
     <span
-      v-if="showRangeLabel"
+      v-if="showRangeLabel && rangeLabelText"
       data-allow-mismatch="text"
       class="text-dimmed hidden font-mono text-[11.5px] font-medium whitespace-nowrap tabular-nums sm:inline"
       :class="rangeLabelOrder"
     >
-      <b class="text-toned font-[550]">{{ committedRangeLabel }}</b>
+      <b class="text-toned font-[550]">{{ rangeLabelText }}</b>
       <template v-if="compareRangeLabel">
         ·
         <span class="text-(--dms-chart-2)">

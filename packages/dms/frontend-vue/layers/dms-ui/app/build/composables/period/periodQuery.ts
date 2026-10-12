@@ -48,6 +48,11 @@ export interface PeriodQueryKeys {
 export interface PeriodSource {
   query: PeriodQuery;
   keys: PeriodQueryKeys;
+  /**
+   * Whether a range it names is taken even when `custom` is not offered: a
+   * link framing a window (an incident's) opens on it, no preset selected.
+   */
+  isRangeAlwaysAccepted?: boolean;
 }
 
 const CUSTOM_PRESET: PeriodPreset = "custom";
@@ -160,7 +165,9 @@ function readRange(
 
 /**
  * The range a source names, when the selector offers it: a custom range
- * (`from` and `to`) first, then a preset (`period`).
+ * (`from` and `to`) first, then a preset (`period`). A source whose ranges
+ * are always accepted gives its custom range even when `custom` is not
+ * offered.
  */
 export function readRangeChoice(
   source: PeriodSource,
@@ -168,7 +175,9 @@ export function readRangeChoice(
 ): PeriodRangeChoice | null {
   const { query, keys } = source;
   const customRange = readRange(query, keys.from, keys.to);
-  if (customRange && choices.presets.includes(CUSTOM_PRESET)) {
+  const isCustomAccepted =
+    source.isRangeAlwaysAccepted || choices.presets.includes(CUSTOM_PRESET);
+  if (customRange && isCustomAccepted) {
     return { preset: CUSTOM_PRESET, customRange };
   }
   const preset = choices.presets.find(
@@ -307,9 +316,36 @@ export type RememberedPeriods = Record<string, Record<string, string>>;
 /** How many selectors' last choices the browser keeps. */
 export const REMEMBERED_PERIODS_LIMIT = 20;
 
-/** The entry of selector `id` of page `pageId` among the last choices. */
-export function rememberedPeriodKey(pageId: string, id: string): string {
-  return `${pageId}#${id}`;
+/** What a remembered choice is kept under: a page's selector, or a shared key. */
+export interface RememberedPeriodTarget {
+  pageId: string;
+  id: string;
+  /** Shared by every selector carrying it, on any page. */
+  rememberKey?: string;
+}
+
+// A page key always holds `#`, so a shared key cannot collide with one.
+const SHARED_KEY_PREFIX = "@";
+
+/**
+ * The entry of a selector among the last choices: its `rememberKey`, shared
+ * by every selector carrying it, else selector `id` of page `pageId`.
+ */
+export function rememberedPeriodKey(target: RememberedPeriodTarget): string {
+  if (target.rememberKey) return `${SHARED_KEY_PREFIX}${target.rememberKey}`;
+  return `${target.pageId}#${target.id}`;
+}
+
+/**
+ * Whether the selector offers `selection`'s range: a range only a link could
+ * bring (a custom one without `custom` offered) is not remembered, so the
+ * last choice made in the menu stays.
+ */
+export function isRangeOffered(
+  selection: PeriodRangeChoice,
+  choices: PeriodChoices,
+): boolean {
+  return choices.presets.includes(selection.preset);
 }
 
 /**

@@ -165,8 +165,11 @@ export type {
   ActionConfirm,
   ActionConfirmSerialized,
   ConfirmDialog,
+  ConfirmDialogDownloadTarget,
   ConfirmDialogFrom,
   ConfirmDialogImpact,
+  ConfirmDialogSecondaryAction,
+  ConfirmDialogSecondaryTarget,
   ConfirmDialogSerialized,
 } from "./types/confirm-dialog";
 export { serializeConfirmDialog } from "./confirm-dialog";

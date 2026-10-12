@@ -13,6 +13,7 @@ import {
   nextTick,
   reactive,
   type App,
+  type Component,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -51,17 +52,36 @@ const PAGE_ID = "dashboard";
 const PAGE_PATH = "/dashboard";
 const handles: Record<string, Period> = {};
 
+const PRESETS: PeriodPreset[] = [
+  "last-7-days",
+  "last-30-days",
+  "this-month",
+  "custom",
+];
+
+/** What a test changes of a selector's setup. */
+interface SelectorSetup {
+  pageId?: string;
+  presets?: PeriodPreset[];
+  rememberKey?: string;
+}
+
 /** The selector's state wiring, as PeriodSelector.vue does it in setup. */
-function selector(id: string, defaultPreset: PeriodPreset = "this-month") {
+function selector(
+  id: string,
+  defaultPreset: PeriodPreset = "this-month",
+  setup: SelectorSetup = {},
+) {
   return defineComponent({
     setup() {
       const period = usePeriod({
         defaultPreset,
-        presets: ["last-7-days", "last-30-days", "this-month", "custom"],
+        presets: setup.presets ?? PRESETS,
       });
       usePeriodLocation(period, {
         id,
-        pageId: PAGE_ID,
+        pageId: setup.pageId ?? PAGE_ID,
+        rememberKey: setup.rememberKey,
         fallback: {
           preset: period.preset.value,
           comparison: period.comparison.value,
@@ -78,16 +98,20 @@ function selector(id: string, defaultPreset: PeriodPreset = "this-month") {
 
 const mounted: App[] = [];
 
+function mountApp(root: Component): void {
+  const app = createApp(root);
+  app.mount(document.createElement("div"));
+  mounted.push(app);
+}
+
 function mount(...ids: string[]): void {
-  const app = createApp({
+  mountApp({
     setup: () => () =>
       h(
         "div",
         ids.map((id) => h(selector(id))),
       ),
   });
-  app.mount(document.createElement("div"));
-  mounted.push(app);
 }
 
 const search = () => new URLSearchParams(window.location.search);
@@ -264,5 +288,59 @@ describe("a route changed from outside", () => {
     route.query = { "page.period": "last-decade" };
     await nextTick();
     expect(handles.page!.preset.value).toBe("last-7-days");
+  });
+});
+
+describe("a remembered choice shared by a rememberKey", () => {
+  const onPage = (pageId: string) =>
+    selector("api", "last-30-days", { pageId, rememberKey: "api" });
+
+  it("follows the user from one page to the next", async () => {
+    mountApp(onPage("overview"));
+    handles.api!.setPreset("last-7-days");
+    await nextTick();
+    mounted.splice(0).forEach((app) => app.unmount());
+    route.query = {};
+    window.history.replaceState(null, "", "/logs");
+    mountApp(onPage("logs"));
+    expect(handles.api!.preset.value).toBe("last-7-days");
+  });
+
+  it("stays per page without one", async () => {
+    mountApp(selector("api", "last-30-days", { pageId: "overview" }));
+    handles.api!.setPreset("last-7-days");
+    await nextTick();
+    mounted.splice(0).forEach((app) => app.unmount());
+    route.query = {};
+    mountApp(selector("api", "last-30-days", { pageId: "logs" }));
+    expect(handles.api!.preset.value).toBe("last-30-days");
+  });
+});
+
+describe("a link framing a window no preset matches", () => {
+  const PILLS: PeriodPreset[] = ["last-hour", "last-24h", "last-7-days"];
+
+  it("opens on that window, no preset selected, and is not remembered", async () => {
+    remember({ period: "last-7-days" });
+    route.query = {
+      "page.from": "2026-10-11T09:12:00.000Z",
+      "page.to": "2026-10-11T09:40:00.000Z",
+    };
+    mountApp(selector("page", "last-24h", { presets: PILLS }));
+    await nextTick();
+    const period = handles.page!;
+    expect(period.preset.value).toBe("custom");
+    expect(PILLS).not.toContain(period.preset.value);
+    expect(period.state.value.range).toEqual({
+      from: new Date("2026-10-11T09:12:00.000Z"),
+      to: new Date("2026-10-11T09:40:00.000Z"),
+    });
+    period.setComparison("previous-period");
+    await nextTick();
+    expect(
+      (preferences.get(PERIOD_PREFERENCE_KEY) as Record<string, unknown>)[
+        `${PAGE_ID}#page`
+      ],
+    ).toEqual({ period: "last-7-days" });
   });
 });

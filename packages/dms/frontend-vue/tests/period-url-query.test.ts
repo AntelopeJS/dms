@@ -15,7 +15,9 @@ import {
   type PeriodChoices,
   type PeriodSelection,
   readComparisonChoice,
+  isRangeOffered,
   readRangeChoice,
+  rememberedPeriodKey,
   rememberPeriod,
   resolvePeriodSelection,
   writePeriodQuery,
@@ -197,6 +199,23 @@ describe("parsing the URL", () => {
     ).toBeNull();
   });
 
+  it("takes a linked range the selector does not offer, from a source that always accepts one", () => {
+    const query = { "page.from": "2026-10-01", "page.to": "2026-10-15" };
+    const choices = { ...CHOICES, presets: ["last-7-days" as const] };
+    expect(
+      readRangeChoice(
+        { query, keys: PAGE, isRangeAlwaysAccepted: true },
+        choices,
+      ),
+    ).toEqual({
+      preset: "custom",
+      customRange: { from: day(2026, 10, 1), to: endOfDay(2026, 10, 15) },
+    });
+    expect(
+      isRangeOffered({ preset: "custom", customRange: null }, choices),
+    ).toBe(false);
+  });
+
   it.each([
     ["an unknown comparison", { "page.compare": "previous-decade" }],
     ["a custom comparison with no range", { "page.compare": "custom" }],
@@ -347,5 +366,38 @@ describe("the last choices kept in the browser", () => {
     expect(rememberPeriod("broken", "a#page", { period: "ytd" })).toEqual({
       "a#page": { period: "ytd" },
     });
+  });
+});
+
+describe("every period", () => {
+  const choices: PeriodChoices = { ...CHOICES, presets: ["last-24h", "all"] };
+
+  it("is written as a preset with no bounds", () => {
+    expect(writePeriodQuery({ ...DEFAULT, preset: "all" }, PAGE)).toEqual({
+      "page.period": "all",
+      "page.compare": "none",
+    });
+  });
+
+  it("is read back when the selector offers it", () => {
+    const query = { "page.period": "all" };
+    expect(readRangeChoice({ query, keys: PAGE }, choices)).toEqual({
+      preset: "all",
+      customRange: null,
+    });
+    expect(readRangeChoice({ query, keys: PAGE }, CHOICES)).toBeNull();
+  });
+});
+
+describe("the key a last choice is kept under", () => {
+  it("is the page and the selector id by default", () => {
+    expect(rememberedPeriodKey({ pageId: "logs", id: "api" })).toBe("logs#api");
+  });
+
+  it("is the shared key on every page carrying it", () => {
+    const shared = (pageId: string) =>
+      rememberedPeriodKey({ pageId, id: "api", rememberKey: "api" });
+    expect(shared("logs")).toBe(shared("overview"));
+    expect(shared("logs")).not.toContain("#");
   });
 });

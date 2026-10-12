@@ -11,12 +11,23 @@ import { calendarToRange, rangeToCalendar } from "./periodDisplay";
 
 const CUSTOM_PRESET: PeriodPreset = "custom";
 
+/**
+ * Where a custom range starts when nothing on screen has bounds (every
+ * period): today.
+ */
+export function startingRange(now: Date): PeriodRange {
+  return calendarToRange(rangeToCalendar({ from: now, to: now }));
+}
+
 export interface UsePeriodDraftReturn {
   preset: Ref<PeriodPreset>;
   comparison: Ref<PeriodComparison>;
   customRange: Ref<PeriodRange | null>;
-  /** The range the staged preset (or custom range) resolves to. */
-  range: ComputedRef<PeriodRange>;
+  /**
+   * The range the staged preset (or custom range) resolves to; `null` for
+   * every period (`all`).
+   */
+  range: ComputedRef<PeriodRange | null>;
   compareRange: ComputedRef<PeriodRange | null>;
   isDirty: ComputedRef<boolean>;
   /** Start over from the committed period (on open, on cancel). */
@@ -59,13 +70,14 @@ export function usePeriodDraft(period: UsePeriodReturn): UsePeriodDraftReturn {
     customRange.value = committedCustomRange();
   }
 
-  const range = computed<PeriodRange>(() =>
-    resolvePresetRange(
+  const range = computed<PeriodRange | null>(() => {
+    const now = new Date();
+    return resolvePresetRange(
       preset.value,
-      new Date(),
-      customRange.value ?? period.state.value.range,
-    ),
-  );
+      now,
+      customRange.value ?? period.state.value.range ?? startingRange(now),
+    );
+  });
 
   const compareRange = computed<PeriodRange | null>(() =>
     resolveComparisonRange(
@@ -86,7 +98,8 @@ export function usePeriodDraft(period: UsePeriodReturn): UsePeriodDraftReturn {
   function selectPreset(next: PeriodPreset): void {
     if (next === CUSTOM_PRESET && !customRange.value) {
       // Custom starts from the days on screen, ready to be adjusted.
-      customRange.value = calendarToRange(rangeToCalendar(range.value));
+      const shown = range.value ?? startingRange(new Date());
+      customRange.value = calendarToRange(rangeToCalendar(shown));
     }
     preset.value = next;
   }

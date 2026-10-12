@@ -82,6 +82,11 @@ releases the frontend module runs on go in the frontend module's own `package.js
 `"engines": { "@antelopejs/dms-frontend": ">=0.4.0 <0.5.0" }`: the loader refuses the module
 outside that range. Cap it below the next loader minor while the loader is 0.x.
 
+An absolute link (a public file, a snippet to copy, a mail) is built on `await GetApiBaseUrl()`
+(`@antelopejs/interface-dms/api-base-url`, the backend) or `await GetClientBaseUrl()`
+(`/client-base-url`, the dashboard), never on `Host` / `X-Forwarded-*`: a reverse proxy may not
+forward them. Both answer the DMS config (`apiBaseUrl`, `clientBaseUrl`).
+
 ## Navigation & access — module pages are owner-only
 
 Three constraints are enforced at registration: a page's `category` must **descend from the

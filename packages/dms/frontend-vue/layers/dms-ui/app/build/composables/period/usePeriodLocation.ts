@@ -5,9 +5,11 @@ import {
   isPeriodQueryCurrent,
   mergePeriodSearch,
   periodQueryKeys,
+  isRangeOffered,
   rememberedPeriodKey,
   rememberPeriod,
   type RememberedPeriods,
+  type RememberedPeriodTarget,
   type PeriodQuery,
   type PeriodQueryKeys,
   type PeriodSelection,
@@ -21,6 +23,8 @@ export interface PeriodLocationOptions {
   id: string;
   /** The page it is on: its last choice is kept per page and per id. */
   pageId: string;
+  /** Shares the last choice with every selector carrying it, on any page. */
+  rememberKey?: string;
   /** What the period falls back to when no source names a valid one. */
   fallback: PeriodSelection;
 }
@@ -87,9 +91,9 @@ function replacePeriodInUrl(
 }
 
 /** The user's last choice of one selector, kept in the preferences. */
-function useRememberedPeriod(pageId: string, id: string) {
+function useRememberedPeriod(target: RememberedPeriodTarget) {
   const { getPreference, setPreference } = usePreferences();
-  const key = rememberedPeriodKey(pageId, id);
+  const key = rememberedPeriodKey(target);
   const all = () => getPreference<RememberedPeriods>(PERIOD_PREFERENCE_KEY, {});
   return {
     source: (): PeriodSource => ({
@@ -127,8 +131,10 @@ function usePeriodUrlWriter(keys: PeriodQueryKeys) {
 
 /**
  * Keeps a selector's period in the page URL (`?<id>.period=`, see
- * `periodQuery`) and its last choice in the user's preferences. The period
- * starts from the URL, then from that last choice, then from `fallback`. Both
+ * `periodQuery`) and its last choice in the user's preferences, per page or
+ * under its `rememberKey`. The period starts from the URL, then from that
+ * last choice, then from `fallback`. A URL range is taken even when `custom`
+ * is not offered, and is then not remembered. Both
  * are read in setup, on the server too: the preferences are a cookie, so the
  * server renders the period the browser will show.
  *
@@ -145,7 +151,7 @@ export function usePeriodLocation(
 ): void {
   const route = useDmsRoute();
   const urlKeys = periodQueryKeys(options.id);
-  const remembered = useRememberedPeriod(options.pageId, options.id);
+  const remembered = useRememberedPeriod(options);
   const writer = usePeriodUrlWriter(urlKeys);
   const choices = {
     presets: period.presets.value,
@@ -154,6 +160,7 @@ export function usePeriodLocation(
   const urlSource = (): PeriodSource => ({
     query: route.query as PeriodQuery,
     keys: urlKeys,
+    isRangeAlwaysAccepted: true,
   });
 
   applySelection(
@@ -170,7 +177,7 @@ export function usePeriodLocation(
     () => selectionText(readSelection(period)),
     () => {
       const selection = readSelection(period);
-      remembered.remember(selection);
+      if (isRangeOffered(selection, choices)) remembered.remember(selection);
       writer.write(selection);
     },
   );

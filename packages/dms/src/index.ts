@@ -194,6 +194,10 @@ async function implementInterfaces(): Promise<void> {
     await import("@antelopejs/interface-dms/client-base-url"),
     await import("./implementations/dms/client-base-url"),
   );
+  void ImplementInterface(
+    await import("@antelopejs/interface-dms/api-base-url"),
+    await import("./implementations/dms/api-base-url"),
+  );
 
   void ImplementInterface(
     await import("@antelopejs/interface-dms/auth"),

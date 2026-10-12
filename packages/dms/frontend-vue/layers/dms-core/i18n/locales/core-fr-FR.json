@@ -445,6 +445,7 @@
       "preset_aria": "Préréglage",
       "comparison_aria": "Comparaison",
       "custom_range_aria": "Plage personnalisée",
+      "since": "depuis {from}",
       "presets": {
         "last-hour": "Dernière heure",
         "last-24h": "24 dernières heures",
@@ -459,6 +460,7 @@
         "last-quarter": "Trimestre dernier",
         "ytd": "Année en cours",
         "last-year": "Année dernière",
+        "all": "Toute la période",
         "custom": "Personnalisé"
       },
       "comparisons": {
