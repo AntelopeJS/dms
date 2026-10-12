@@ -87,7 +87,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   "min" | "max" | "step" }`) when it keeps another value than the one typed, and redraws the kept
   value itself: a note "1020 → 1,000" listens to it — never a forced remount (`:key`).
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
-  keeps a pill tab list to its tabs' width. A `ChartCard` plotting several series names them with
+  keeps a pill tab list to its tabs' width; with `persistState` the URL names the open tab by its slot
+  (`?tab=tester`, an index still read), and a tab `badge` takes a `$` key or a `ComposedText`. A `ChartCard` plotting several series names them with
   `showSeriesLegend: true` (placed by the chart's `legendPosition: "top" | "bottom"`) — never a raw
   Apex `legend` in `rawOptions`.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
