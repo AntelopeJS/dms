@@ -26,7 +26,17 @@ export interface ChartCardProps extends BaseComponentProps {
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /**
+   * The card's own legend, "Period" and "Comparison" in its head, drawn when
+   * the route answers a comparison. Defaults to `true`.
+   */
   showLegend?: boolean;
+  /**
+   * The legend of the chart the card wraps, naming each of its series
+   * ("Average", "p95"), placed by the chart's `legendPosition`. Off by
+   * default: a card's single series is named by its title.
+   */
+  showSeriesLegend?: boolean;
   primaryLabel?: string;
   comparisonLabel?: string;
 }
@@ -137,6 +147,10 @@ export const ChartCardSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  showSeriesLegend: ui(
+    z.boolean().optional().describe("Name each series of the chart."),
+    { label: "Show series legend", group: "appearance", widget: "switch" },
+  ),
   primaryLabel: ui(z.string().optional(), {
     label: "Series label",
     group: "content",

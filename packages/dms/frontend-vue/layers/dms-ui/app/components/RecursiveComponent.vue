@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ComponentPublicInstance } from "vue";
 import { usePermissionPreview } from "#dms-core/app/build/composables/auth/usePermissionPreview";
 import { childLayoutPath } from "#dms-core/app/build/utils/permission-preview";
 import { childComponentId } from "../utils/componentId";
@@ -7,6 +8,7 @@ import {
   type GridDeclaredColumns,
 } from "./grid/constants";
 import DmsPermissionVeil from "../build/components/permission/PermissionVeil.vue";
+import { registerBlockAnchor } from "../build/composables/page/blockAnchors";
 
 interface Props {
   component: ResolvedComponentInfo;
@@ -21,6 +23,14 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// The block's anchor is its layout path: `scrollToBlock(key)` finds it there.
+let anchored: ComponentPublicInstance | null = null;
+function anchorBlock(instance: unknown): void {
+  const block = (instance as ComponentPublicInstance | null) ?? null;
+  registerBlockAnchor(props.layoutPath, block, anchored);
+  anchored = block;
+}
 
 const { t } = useI18n();
 const preview = usePermissionPreview();
@@ -97,6 +107,7 @@ provide<GridDeclaredColumns>(GRID_DECLARED_COLUMNS, {
   >
     <Component
       :is="component.component"
+      :ref="anchorBlock"
       v-bind="JSON.parse(JSON.stringify(component.options || {})) || {}"
       :page-id="pageId"
       :component-id="componentId"

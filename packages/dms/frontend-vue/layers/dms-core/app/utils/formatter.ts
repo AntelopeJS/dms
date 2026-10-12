@@ -229,6 +229,20 @@ export function formatDateTime(
   });
 }
 
+/**
+ * A number written for `locale`; a value that is not a number is returned as
+ * is. Options Intl refuses (an unknown currency) write the bare number.
+ */
+export function formatNumber(
+  value: number,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): string;
+export function formatNumber(
+  value: unknown,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): unknown;
 export function formatNumber(
   value: unknown,
   locale: string = DEFAULT_LOCALE,
@@ -238,10 +252,21 @@ export function formatNumber(
   try {
     return new Intl.NumberFormat(locale, options).format(value);
   } catch {
-    return value;
+    return String(value);
   }
 }
 
+/** An amount, in euros unless `options.currency` says otherwise. */
+export function formatPrice(
+  value: number,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): string;
+export function formatPrice(
+  value: unknown,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): unknown;
 export function formatPrice(
   value: unknown,
   locale: string = DEFAULT_LOCALE,
@@ -256,6 +281,17 @@ export function formatPrice(
   });
 }
 
+/** A ratio as a percentage (`0.25` → "25%"). */
+export function formatPercentage(
+  value: number,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): string;
+export function formatPercentage(
+  value: unknown,
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): unknown;
 export function formatPercentage(
   value: unknown,
   locale: string = DEFAULT_LOCALE,

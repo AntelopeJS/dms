@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.6...v0.5.7)
+
+### 🚀 Enhancements
+
+- **dms:** Give custom components the live, form and record APIs stock blocks use ([#225](https://github.com/AntelopeJS/dms/pull/225))
+- **dms:** Close the module gaps left by the API console ([#233](https://github.com/AntelopeJS/dms/pull/233))
+
+### 🩹 Fixes
+
+- **guard:** Space several children the way the page spaces its blocks ([#221](https://github.com/AntelopeJS/dms/pull/221))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.10 ([e4747dce](https://github.com/AntelopeJS/dms/commit/e4747dce))
+- **release:** @antelopejs/dms v0.7.11 ([54748e78](https://github.com/AntelopeJS/dms/commit/54748e78))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.5...v0.5.6)

@@ -13,6 +13,7 @@ import {
   buildPageSearchShortcuts,
   pageSearchAriaKeyshortcuts,
 } from "../layers/dms-ui/app/build/composables/global/searchShortcuts";
+import * as publicSearchShortcuts from "../layers/dms-ui/app/composables/global/searchShortcuts";
 import registry from "../layers/dms-ui/app/config/shortcuts-registry";
 
 let app: App;
@@ -128,6 +129,22 @@ describe("settings search shortcut maps", () => {
     expect(nav).toEqual(["/"]);
     expect(page).toEqual(["meta_/", "meta_shift_/"]);
     expect(nav.filter((key) => page.includes(key))).toEqual([]);
+  });
+
+  it("are public where the UI toolkit docs import them", () => {
+    expect(publicSearchShortcuts.buildPageSearchShortcuts).toBe(
+      buildPageSearchShortcuts,
+    );
+    expect(publicSearchShortcuts.PAGE_SEARCH_SHORTCUTS).toBe(
+      PAGE_SEARCH_SHORTCUTS,
+    );
+    const docs = readFileSync(
+      resolve(__dirname, "../../docs/06.frontend-composables/05.ui-toolkit.md"),
+      "utf8",
+    );
+    expect(docs).toContain(
+      'from "#dms-ui/app/composables/global/searchShortcuts"',
+    );
   });
 
   it("describe the page search keys per platform", () => {

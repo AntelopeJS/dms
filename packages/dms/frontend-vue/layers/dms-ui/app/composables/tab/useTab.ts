@@ -1,3 +1,21 @@
+/**
+ * The index of the tab a URL names: its slot (`?tab=tester`), or its index
+ * (`?tab=2`) as written before tabs were named. `null` when it names none.
+ */
+function tabIndexOf(
+  value: unknown,
+  slots: readonly string[],
+  tabCount: number,
+): number | null {
+  if (typeof value !== "string" || value === "") return null;
+  const bySlot = slots.indexOf(value);
+  if (bySlot >= 0) return bySlot;
+  const index = Number(value);
+  return Number.isInteger(index) && index >= 0 && index < tabCount
+    ? index
+    : null;
+}
+
 export function useTab(
   tabCount: Ref<number> | number,
   props: TabProps,
@@ -15,24 +33,22 @@ export function useTab(
   const totalTabs = computed(() =>
     isNumber(tabCount) ? tabCount : tabCount.value,
   );
+  const slots = computed(() => (props.items ?? []).map((item) => item.slot));
+
+  const urlTabIndex = (value: unknown) =>
+    tabIndexOf(value, slots.value, totalTabs.value);
 
   const getInitialTab = () => {
-    if (props.persistState && route.query[stateKey]) {
-      const tabFromUrl = route.query[stateKey] as string;
-      const tabIndex = Number.parseInt(tabFromUrl, 10);
-      if (
-        !Number.isNaN(tabIndex) &&
-        tabIndex >= 0 &&
-        tabIndex < totalTabs.value
-      ) {
-        return tabFromUrl;
-      }
-    }
-    return String(0);
+    const fromUrl = props.persistState
+      ? urlTabIndex(route.query[stateKey])
+      : null;
+    return String(fromUrl ?? 0);
   };
 
   const activeTab = ref<string>(getInitialTab());
 
+  // The open tab is written by its slot, which stays right when tabs are
+  // added or reordered; a tab without one keeps its index.
   const updateUrl = async (newTab: string) => {
     if (!props.persistState) return;
 
@@ -41,13 +57,15 @@ export function useTab(
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete query[stateKey];
     } else {
-      query[stateKey] = newTab;
+      query[stateKey] = slots.value[Number(newTab)] || newTab;
     }
     await router.push({ query });
   };
 
   const goToTab = (index: number | string) => {
-    const indexNum = isString(index) ? Number.parseInt(index, 10) : index;
+    const indexNum = isString(index)
+      ? (tabIndexOf(index, slots.value, totalTabs.value) ?? -1)
+      : index;
     const indexStr = String(indexNum);
 
     if (indexNum < 0 || indexNum >= totalTabs.value) {
@@ -95,15 +113,9 @@ export function useTab(
     (newValue) => {
       if (!props.persistState) return;
 
-      const tabStr = newValue as string;
-      const tabIndex = Number.parseInt(tabStr, 10);
-      if (
-        !Number.isNaN(tabIndex) &&
-        tabIndex >= 0 &&
-        tabIndex < totalTabs.value &&
-        tabStr !== activeTab.value
-      ) {
-        activeTab.value = tabStr;
+      const tabIndex = urlTabIndex(newValue);
+      if (tabIndex !== null && String(tabIndex) !== activeTab.value) {
+        activeTab.value = String(tabIndex);
       }
     },
   );

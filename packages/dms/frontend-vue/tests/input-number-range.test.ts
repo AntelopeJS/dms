@@ -68,6 +68,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => text,
   }));
+  vi.stubGlobal("useI18n", () => ({ locale: ref("en") }));
   host = document.createElement("div");
   document.body.append(host);
   reported.clear();

@@ -43,27 +43,46 @@ function findModuleRootNode(
   return null;
 }
 
-function pickLandingFromNode(node: SiteLayoutTree): string | null {
-  if (node.layoutUrl && node.hasAccess !== false) {
-    return node.fullSlug;
-  }
+function isOpenablePage(node: SiteLayoutTree): boolean {
+  return !!node.layoutUrl && node.hasAccess !== false;
+}
+
+/** The first page the caller may open under `node`, in menu order. */
+function findPage(
+  node: SiteLayoutTree,
+  accepts: (page: SiteLayoutTree) => boolean,
+): SiteLayoutTree | null {
+  if (isOpenablePage(node) && accepts(node)) return node;
   for (const childId of node.childrenOrders) {
     const child = node.children[childId];
-    if (!child) continue;
-    if (child.hasAccess === false) continue;
-    const candidate = pickLandingFromNode(child);
-    if (candidate) return candidate;
+    if (!child || child.hasAccess === false) continue;
+    const found = findPage(child, accepts);
+    if (found) return found;
   }
   return null;
 }
 
+/**
+ * The page a module opens on: its `landingPage` when the caller may open it,
+ * else its first page in menu order.
+ */
 function resolveModuleLandingSlug(
   tree: SiteLayoutTree | undefined,
   moduleId: string,
+  landingPage: string | undefined,
 ): string | null {
   const moduleRoot = findModuleRootNode(tree, moduleId);
   if (!moduleRoot) return null;
-  return pickLandingFromNode(moduleRoot);
+  const declared = landingPage
+    ? findPage(moduleRoot, (page) => page.id === landingPage)
+    : null;
+  return (declared ?? findPage(moduleRoot, () => true))?.fullSlug ?? null;
+}
+
+/** `landing` with the query and hash of `fullPath`, as the module was entered. */
+function withQueryAndHash(landing: string, fullPath: string): string {
+  const start = fullPath.search(/[?#]/);
+  return start < 0 ? landing : `${landing}${fullPath.slice(start)}`;
 }
 
 function ensureSiteLayoutLoaded(
@@ -126,10 +145,15 @@ export default defineDmsMiddleware(async (to) => {
   const landingSlug = resolveModuleLandingSlug(
     siteLayout.siteLayoutTree.value,
     moduleId,
+    moduleEntry.landingPage,
   );
 
+  // Answered rather than navigated to: the navigation that entered the
+  // module goes to the landing page instead, so the module's own address
+  // never renders (a 404 before the redirect landed), never enters the
+  // history, and a server render answers it with a redirect.
   if (landingSlug && landingSlug !== to.path) {
-    return navigateDms(landingSlug, { replace: true });
+    return withQueryAndHash(landingSlug, to.fullPath);
   }
 
   return redirectToHomepage();

@@ -6,6 +6,7 @@ import {
   type CandlestickChartProps,
   type ChartAnnotation,
   type ChartColorValue,
+  CHART_LEGEND_POSITIONS,
   type ChartSeries,
   ChartType,
   type ColumnChartProps,
@@ -118,6 +119,11 @@ const baseChartShape = {
     label: "Show legend",
     group: "appearance",
     widget: "switch",
+  }),
+  legendPosition: ui(z.enum(CHART_LEGEND_POSITIONS).optional(), {
+    label: "Legend position",
+    group: "appearance",
+    widget: "segmented",
   }),
   fetchUrl: ui(z.string().optional(), {
     label: "Data source",

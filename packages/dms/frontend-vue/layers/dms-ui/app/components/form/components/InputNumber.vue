@@ -4,7 +4,7 @@ import type {
   InputNumberEmits,
   InputNumberSlots,
 } from "@nuxt/ui/components/InputNumber.vue";
-import { computed, watch } from "vue";
+import { computed, nextTick, watch } from "vue";
 import { useForwardPropsEmits } from "reka-ui";
 import { useControlError } from "../../../build/composables/form/useControlError";
 import {
@@ -12,6 +12,11 @@ import {
   numberRangeError,
   numberStepperState,
 } from "../../../build/composables/form/numberRange";
+import {
+  numberAdjustment,
+  parseTypedNumber,
+} from "../../../build/utils/numberAdjustment";
+import type { InputNumberAdjustment } from "../../../types/input-number";
 
 defineOptions({ inheritAttrs: false });
 
@@ -25,10 +30,20 @@ interface InputNumberFieldProps extends InputNumberProps {
   clamp?: boolean;
 }
 
+interface InputNumberAdjustEmits {
+  /**
+   * The field kept another value than the one typed, on leaving it or on
+   * Enter: clamped to `min` / `max`, or put on its `step`.
+   */
+  adjust: [adjustment: InputNumberAdjustment];
+}
+
+type InputNumberFieldEmits = InputNumberEmits & InputNumberAdjustEmits;
+
 const props = withDefaults(defineProps<InputNumberFieldProps>(), {
   clamp: true,
 });
-const emits = defineEmits<InputNumberEmits>();
+const emits = defineEmits<InputNumberFieldEmits>();
 defineSlots<InputNumberSlots>();
 
 const forwarded = useForwardPropsEmits(props, emits);
@@ -36,7 +51,12 @@ const bounds = computed(() => ({ min: props.min, max: props.max }));
 // Unclamped, the input is not told the bounds (it would clamp to them on
 // blur): its steppers stop there instead, and the range is checked here.
 const inputProps = computed(() => {
-  const { suffix: _suffix, clamp: _clamp, ...rest } = forwarded.value;
+  const {
+    suffix: _suffix,
+    clamp: _clamp,
+    onAdjust: _onAdjust,
+    ...rest
+  } = forwarded.value;
   if (props.clamp) return rest;
   const { min: _min, max: _max, ...unbounded } = rest;
   return {
@@ -45,6 +65,7 @@ const inputProps = computed(() => {
   };
 });
 const { processI18n } = useTranslation();
+const { locale } = useI18n();
 
 // v2 number fields keep the value left-aligned with a compact caret stepper.
 const DEFAULT_ORIENTATION = "vertical";
@@ -70,6 +91,46 @@ watch(
   },
   { immediate: true },
 );
+
+// What was typed since the field last settled, and the value it settled on.
+let typedText: string | null = null;
+let settledValue: number | null | undefined;
+
+function onTyped(event: Event): void {
+  typedText = (event.target as HTMLInputElement).value;
+  settledValue = undefined;
+}
+
+function onSettledValue(value: number | null | undefined): void {
+  settledValue = value;
+}
+
+// The number field keeps its own copy of the text typed, which it does not
+// always redraw when it settles on the value it already held (1020 typed
+// over 1,000): its `change` handler copies the kept value's text back.
+function redraw(input: HTMLInputElement): void {
+  input.dispatchEvent(new Event("change"));
+}
+
+/** Once the field applied the typed text: on leaving it, or on Enter. */
+async function settle(event: Event): Promise<void> {
+  if (typedText === null) return;
+  const text = typedText;
+  typedText = null;
+  const input = event.target as HTMLInputElement;
+  await nextTick();
+  const typed = parseTypedNumber(text, props.locale ?? locale.value);
+  const kept = settledValue === undefined ? props.modelValue : settledValue;
+  const adjustment = numberAdjustment(
+    typed,
+    kept,
+    // Unclamped, only the step changes what was typed.
+    props.clamp ? bounds.value : {},
+  );
+  if (!adjustment) return;
+  emits("adjust", adjustment);
+  redraw(input);
+}
 </script>
 
 <template>
@@ -78,9 +139,13 @@ watch(
   <div
     :class="props.suffix ? 'flex items-center gap-2' : 'contents'"
     @beforeinput.capture="onIncomingText"
+    @input="onTyped"
+    @keydown.enter="settle"
   >
     <UInputNumber
       v-bind="{ ...inputProps, ...$attrs }"
+      @blur="settle"
+      @update:model-value="onSettledValue"
       :class="props.suffix && 'min-w-0 flex-1'"
       :orientation="props.orientation ?? DEFAULT_ORIENTATION"
       :increment="{ color: 'neutral' }"

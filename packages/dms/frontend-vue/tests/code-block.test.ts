@@ -94,6 +94,34 @@ describe("DmsCodeSnippet", () => {
     expect(pre().previousElementSibling).toBeNull();
   });
 
+  it("floats the copy button in the code's corner without a title or a language", async () => {
+    await mountSnippet({ code: '{"ok":true}' });
+    expect(host.querySelector("[data-floating-copy]")).toBe(copyButton());
+    expect(host.textContent).not.toContain("Text");
+    expect(pre().className).toContain("pe-10");
+  });
+
+  it("keeps the head of a snippet naming its language", async () => {
+    await mountSnippet({ code: "plain words", language: "text" });
+    expect(host.querySelector("[data-floating-copy]")).toBeNull();
+    expect(copyButton()).not.toBeNull();
+    expect(pre().className).not.toContain("pe-10");
+  });
+
+  it("breaks a word too long for the line with wrap anywhere", async () => {
+    await mountSnippet({ code: "x".repeat(400), wrap: "anywhere" });
+    expect(pre().className).toContain("[overflow-wrap:anywhere]");
+    expect(pre().className).toContain("whitespace-pre-wrap");
+  });
+
+  it("caps the height with a CSS length when no line count is set", async () => {
+    await mountSnippet({ code: "a", maxHeight: "20rem" });
+    expect(pre().style.maxHeight).toBe("20rem");
+    app?.unmount();
+    await mountSnippet({ code: "a\nb", maxHeight: "20rem", maxLines: 1 });
+    expect(pre().style.maxHeight).toBe("35px");
+  });
+
   it("wraps long lines or scrolls them, and caps the height in lines", async () => {
     await mountSnippet({ code: "a\nb\nc", wrap: true, maxLines: 2 });
     expect(pre().className).toContain("whitespace-pre-wrap");

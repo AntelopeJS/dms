@@ -1,7 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest";
 import { ref } from "vue";
 import { useRegionalFormat } from "../layers/dms-core/app/composables/user/useRegionalFormat";
-import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
+import {
+  regionalFormatLocale,
+  setRegionalPreferencesSource,
+} from "../layers/dms-core/app/utils/regional";
 
 // 23:30 UTC on 30 Sep: already 1 Oct in Brussels.
 const LATE_EVENING_UTC = new Date(Date.UTC(2026, 8, 30, 23, 30));
@@ -63,5 +74,61 @@ describe("useRegionalFormat", () => {
   it("translates relative dates with the application's messages", () => {
     const { formatRelativeTime } = useRegionalFormat();
     expect(formatRelativeTime(Date.now())).toBe("common.time.just_now:{}");
+  });
+
+  it("types a formatted number as a string", () => {
+    const { formatNumber, formatPercentage, formatPrice } = useRegionalFormat();
+    const written: string[] = [
+      formatNumber(1234.5),
+      formatPercentage(0.25),
+      formatPrice(12),
+    ];
+    expect(written).toEqual([
+      new Intl.NumberFormat("fr-FR").format(1234.5),
+      new Intl.NumberFormat("fr-FR", { style: "percent" }).format(0.25),
+      new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+      }).format(12),
+    ]);
+    expectTypeOf(formatNumber(1)).toEqualTypeOf<string>();
+    expectTypeOf(formatNumber("n/a" as unknown)).toEqualTypeOf<unknown>();
+    expect(formatNumber("n/a")).toBe("n/a");
+  });
+
+  it("names the locale of the DMS texts for the interface language", () => {
+    locale.value = "en";
+    const { formatLocale } = useRegionalFormat();
+    expect(formatLocale.value).toBe("en-GB");
+    locale.value = "fr";
+    expect(formatLocale.value).toBe("fr-FR");
+  });
+
+  it("writes in the locale of the DMS texts when asked", () => {
+    locale.value = "en";
+    const interfaceFormat = useRegionalFormat();
+    const textFormat = useRegionalFormat({ locale: "format" });
+    const clock: Intl.DateTimeFormatOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+    };
+    expect(interfaceFormat.dateTimeFormat(clock).format(LATE_EVENING_UTC)).toBe(
+      "1:30 AM",
+    );
+    expect(textFormat.dateTimeFormat(clock).format(LATE_EVENING_UTC)).toBe(
+      "1:30",
+    );
+    expect(textFormat.formatDate(LATE_EVENING_UTC, DAY_MONTH_YEAR)).toBe(
+      "1 October 2026",
+    );
+  });
+});
+
+describe("regionalFormatLocale", () => {
+  it("reads a bare DMS language as the region its texts are written for", () => {
+    expect(regionalFormatLocale("en")).toBe("en-GB");
+    expect(regionalFormatLocale("fr")).toBe("fr-FR");
+    expect(regionalFormatLocale("en-US")).toBe("en-US");
+    expect(regionalFormatLocale("de")).toBe("de");
   });
 });

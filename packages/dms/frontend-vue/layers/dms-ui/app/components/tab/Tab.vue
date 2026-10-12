@@ -3,8 +3,11 @@ import type { TabProps } from "../../composables/tab/types";
 import { type TabBadges, TabVariant } from "../../composables/tab/types/props";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { confirmLeave } from "../../build/composables/unsaved-changes/registry";
+import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
+import type { BadgeProps } from "@nuxt/ui";
 
 const { processI18n } = useTranslation();
+const { processText } = useComposedText();
 
 const props = withDefaults(defineProps<TabProps>(), {
   // A tab set with nothing in it yet is a legitimate state — a page being
@@ -45,9 +48,24 @@ const countFormat = computed(() => new Intl.NumberFormat(locale.value));
 const COUNT_BADGE_CLASS =
   "rounded-[4px] bg-elevated px-[5px] py-px font-mono text-[10.5px] font-semibold tabular-nums text-dimmed ring-0 in-data-[state=active]:bg-primary/10 in-data-[state=active]:text-primary";
 
+type TabBadge = TabProps["items"][number]["badge"];
+
+// A badge written as text is a BlockText: a `$` key or a ComposedText is
+// written in the reader's language, a number as it is.
+function writtenBadge(
+  badge: TabBadge,
+): string | number | BadgeProps | undefined {
+  if (badge === undefined || typeof badge === "number") return badge;
+  if (typeof badge === "string" || "key" in badge) return processText(badge);
+  const { label } = badge;
+  return typeof label === "string"
+    ? { ...badge, label: processText(label) }
+    : badge;
+}
+
 function badgeOf(item: TabProps["items"][number]) {
   const fetched = fetchedBadges.value?.[item.slot];
-  if (fetched === undefined) return item.badge;
+  if (fetched === undefined) return writtenBadge(item.badge);
   return typeof fetched === "number"
     ? countFormat.value.format(fetched)
     : fetched;
