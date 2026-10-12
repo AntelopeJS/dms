@@ -723,6 +723,7 @@
       "empty": "Rien à afficher pour l'instant",
       "load_error": "Impossible de charger ce bloc",
       "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
+      "not_found": "Introuvable",
       "retry": "Réessayer"
     },
     "action_error": {

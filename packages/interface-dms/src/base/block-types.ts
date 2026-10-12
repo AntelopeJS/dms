@@ -19,6 +19,7 @@ import "./code-block";
 import "./empty-state";
 import "./form-block-schema";
 import "./grid";
+import "./guard";
 import "./key-value-list";
 import "./kpi-card";
 import "./meter";

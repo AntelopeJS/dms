@@ -7,6 +7,8 @@ import type { WatchAction } from "../../../../../dms-core/app/types/watch";
 /** What a list block's `fetchUrl` answers with. */
 export interface BlockItemsResponse<T> {
   items?: T[];
+  /** How many items the source holds in all (an ActivityFeed's head count). */
+  count?: number;
 }
 
 export interface UseBlockItemsOptions<T> {
@@ -31,6 +33,8 @@ export interface UseBlockItemsOptions<T> {
 
 export interface UseBlockItemsReturn<T> {
   items: ComputedRef<T[]>;
+  /** The `count` the source answered with, if it answered one. */
+  count: ComputedRef<number | undefined>;
   /** First load of a fetched list: nothing to show yet. */
   isPending: ComputedRef<boolean>;
   /** The first load failed; a refetch failure keeps the last items. */
@@ -71,6 +75,9 @@ export function useBlockItems<T>(
   const items = computed<T[]>(() =>
     isFetched ? (data.value?.items ?? []) : (options.items() ?? []),
   );
+  const count = computed<number | undefined>(() =>
+    typeof data.value?.count === "number" ? data.value.count : undefined,
+  );
   const isPending = computed(
     () => isFetched && isLoading.value && data.value === null,
   );
@@ -78,5 +85,5 @@ export function useBlockItems<T>(
     () => isFetched && !isLoading.value && data.value === null && !!error.value,
   );
 
-  return { items, isPending, hasError, refresh };
+  return { items, count, isPending, hasError, refresh };
 }

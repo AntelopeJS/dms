@@ -34,6 +34,12 @@ export interface TopListItem {
    */
   description?: BlockText;
   value: number;
+  /**
+   * The value as written, in place of the formatted `value`, which still
+   * sizes the bar: a `$` key, a literal or a `ComposedText`, for a figure a
+   * format cannot write ("1.9 s (partial)"). `valueSuffix` is not added to it.
+   */
+  valueLabel?: BlockText;
   delta?: number | null;
   sparkline?: number[];
   icon?: string;
@@ -54,6 +60,12 @@ export interface TopListCardProps extends BaseComponentProps {
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
+  /**
+   * Unit written right after each formatted value: `" ms"` makes 1864
+   * "1,864 ms". Written as given, so a space goes in it; a `$`-prefixed i18n
+   * key is translated. Not added to a row's `valueLabel`.
+   */
+  valueSuffix?: string;
   showRank?: boolean;
   highlightTopN?: number;
   rankColor?: ChartColorValue;
@@ -107,6 +119,7 @@ const TopListItemSchema = z.object({
   title: blockTextSchema(),
   description: blockTextSchema().optional(),
   value: z.number(),
+  valueLabel: blockTextSchema().optional(),
   delta: z.number().nullable().optional(),
   sparkline: z.array(z.number()).optional(),
   icon: ui(z.string().optional(), { widget: "icon" }),
@@ -150,6 +163,13 @@ export const TopListCardSchema = z.object({
     label: "Currency",
     group: "appearance",
   }),
+  valueSuffix: ui(
+    z
+      .string()
+      .optional()
+      .describe('Unit after each value, space included, e.g. " ms".'),
+    { label: "Value unit", group: "appearance" },
+  ),
   showRank: ui(z.boolean().optional(), {
     label: "Show rank",
     group: "appearance",

@@ -9,7 +9,7 @@ Main builders: `Form`; `TableView(controller, options)`; the charts (`ChartLine`
 `ChartArea`, `ChartBar`, `ChartColumn`, `ChartDonut`, `ChartPie`, `ChartScatter`,
 `ChartMixed`, `ChartRadar`, `ChartRadialBar`, `ChartHeatmap`, `ChartCandlestick`, usually
 inside `ChartCard`); layout `Grid` + `GridRow`, `HStack` / `VStack` / `Spacer`, `Tab`,
-`Placeholder`; dashboard widgets `KpiCard`, `TopListCard`, `PeriodSelector`; display blocks
+`Guard`, `Placeholder`; dashboard widgets `KpiCard`, `TopListCard`, `PeriodSelector`; display blocks
 `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet to
 start with), `Banner`, `Card`, and `CodeBlock` (read-only highlighted code with a copy
 button: `code` + `language`, or `fetchUrl` answering `{ code, language? }` — see
@@ -18,6 +18,12 @@ button: `code` + `language`, or `fetchUrl` answering `{ code, language? }` — s
 `.child("key", builder)`; `Grid` children must be `GridRow`s. Builders also carry a
 behavioral DSL — permissioned `.action()`s and `.watch()` reactivity — see
 `docs/02.building/05.actions-and-reactivity.md`.
+
+`Guard({ fetchUrl, field?, when?, fallback? })` wraps any blocks and shows one `EmptyState`
+(`fallback`) in their place when the route says there is nothing: `when: "empty"` (default)
+checks the value at `field` (absent / `null` / `false` / `0` / `""` / `[]`), `when: "notFound"`
+a 404. The children show while loading and on any other failure; an `emptyState` in the
+answer is laid over `fallback` — `docs/04.components/03.layout-and-containers.md#guard`.
 
 A `TableView` scoped by the page URL takes `queryParamFilters: { status: { field: "status" } }`
 (hidden filters read from `?status=`; `routeParamFilters` for slug params like `:id`). No

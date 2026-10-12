@@ -22,6 +22,7 @@ export * from "./empty-state";
 export * from "./export-jobs";
 export * from "./form";
 export * from "./grid";
+export * from "./guard";
 export * from "./key-value-list";
 export * from "./kpi-card";
 export * from "./layouts";
