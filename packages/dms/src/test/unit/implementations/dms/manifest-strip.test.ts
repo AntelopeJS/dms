@@ -25,6 +25,9 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
         options: { baseURL: "https://api.example.com" },
         privateOptions: { oauth: { relaySecret: "s3cret" } },
         authEstablishEndpoints: ["/api/saas/register/finalize"],
+        publicEndpoints: [
+          { path: "/api/hooks/*", methods: ["POST"], headers: [] },
+        ],
       },
       {
         name: "@scope/dms-lang-layer",
@@ -85,6 +88,7 @@ describe("[unit] manifest field policy", () => {
       expect(module).to.not.have.property("privateOptions");
       expect(module).to.not.have.property("path");
       expect(module).to.not.have.property("authEstablishEndpoints");
+      expect(module).to.not.have.property("publicEndpoints");
     }
   });
 
@@ -97,6 +101,7 @@ describe("[unit] manifest field policy", () => {
     expect(shaped.modules[0].authEstablishEndpoints).to.deep.equal([
       "/api/saas/register/finalize",
     ]);
+    expect(shaped.modules[0].publicEndpoints).to.have.length(1);
     expect(shaped.modules[1]).to.not.have.property("authEstablishEndpoints");
   });
 

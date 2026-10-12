@@ -388,6 +388,38 @@ export interface AddFrontendModuleOptions {
    * registration.
    */
   authEstablishEndpoints?: string[];
+  /**
+   * Backend API routes this module serves to callers outside the dashboard: a
+   * mail or payment provider's webhook, a script.
+   *
+   * The frontend server's proxy asks every state-changing request for a
+   * same-site `Origin` and sends it with the signed-in user's session. A
+   * declared route needs no `Origin`, is never sent the session (so a
+   * cross-site form posting to it acts as nobody, and the route authenticates
+   * its caller itself), and receives the module's declared headers.
+   *
+   * Malformed entries are rejected at registration (see
+   * {@link FrontendPublicEndpoint}).
+   */
+  publicEndpoints?: FrontendPublicEndpoint[];
+}
+
+/** A backend route a frontend module serves to anyone. */
+export interface FrontendPublicEndpoint {
+  /**
+   * Absolute path under `/api/`; a `*` segment matches exactly one segment
+   * (`/api/mailing/events/:provider` is written `/api/mailing/events/*`). No
+   * query string, no prefix match.
+   */
+  path: string;
+  /** Methods it answers: GET, HEAD, POST, PUT, PATCH or DELETE. Default `["POST"]`. */
+  methods?: string[];
+  /**
+   * The module's own `x-` request headers the proxy relays to it (a webhook
+   * secret). Headers a proxy or the DMS gives a meaning to (`x-forwarded-*`,
+   * `x-real-ip`, `x-dms-*`, `x-inertia*`, method overrides) are refused.
+   */
+  headers?: string[];
 }
 
 export const AddFrontendModule =
@@ -407,6 +439,13 @@ export interface FrontendModuleMetadata {
    * the field.
    */
   authEstablishEndpoints?: string[];
+  /**
+   * The routes this module serves to anyone, as declared by
+   * {@link AddFrontendModuleOptions.publicEndpoints}. Empty when the module
+   * declared none, absent when the DMS serving this metadata predates the
+   * field.
+   */
+  publicEndpoints?: FrontendPublicEndpoint[];
 }
 
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */
