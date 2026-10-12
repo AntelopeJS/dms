@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.13
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.12...v0.7.13)
+
+### 🩹 Fixes
+
+- **module:** Redirect a module's address on the server, and refresh chart cards live ([#239](https://github.com/AntelopeJS/dms/pull/239))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.8 ([77931b26](https://github.com/AntelopeJS/dms/commit/77931b26))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.12
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.11...v0.7.12)
