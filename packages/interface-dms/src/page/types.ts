@@ -169,7 +169,9 @@ export type MemberAccess = boolean | "self";
  *   never lost: it refetches when the interval ends.
  * - **Pause**: nothing is requested on an event. Each block and table counts
  *   the events it receives, and resuming refetches once each one that missed
- *   any. A rolling period (`last-hour`, `last-24h`) stops sliding meanwhile.
+ *   any. A rolling period (`last-hour`, `last-24h`) stops sliding meanwhile,
+ *   and a calendar period (`today`, `last-7-days`...) waits to move past
+ *   midnight.
  *
  * What the user asks for always reads, paused or not: a page header button, a
  * form saved with `BlockFunctions.REFRESH_PAGE`, a table's row actions.

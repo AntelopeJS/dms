@@ -487,6 +487,7 @@
         "vs": "vs",
         "days": "{count} jour | {count} jours",
         "hours": "{count} heure | {count} heures",
+        "max_days": "{count} jour maximum | {count} jours maximum",
         "previous_month": "Mois précédent",
         "next_month": "Mois suivant"
       }

@@ -63,15 +63,23 @@ function selectionText(selection: PeriodSelection): string {
   return JSON.stringify(writePeriodQuery(selection, STORED_KEYS));
 }
 
+type DmsRouteState = ReturnType<typeof useDmsRoute>;
+
+function browserQuery(): PeriodQuery {
+  return Object.fromEntries(new URLSearchParams(window.location.search));
+}
+
 /**
  * Writes the period into the URL: the history entry is replaced, and no
  * request reloads the page. The browser's URL is written at once, so a
- * second selector writing in the same tick merges into it; Inertia's
- * client-side replace then moves its page URL, which the DMS route follows,
- * so a component writing the query from the route (a tab, a quick action)
- * carries the period on instead of the one the page was opened with.
+ * second selector writing in the same tick merges into it, and so is the
+ * route's query: a component or a module building a query from the route
+ * (a tab, a quick action) carries the new period on at once, instead of the
+ * one the page was opened with. Inertia's client-side replace then moves its
+ * page URL, which the route follows, a few ticks later, to the same query.
  */
 function replacePeriodInUrl(
+  route: DmsRouteState,
   keys: PeriodQueryKeys,
   selection: PeriodSelection,
 ): string | null {
@@ -81,13 +89,27 @@ function replacePeriodInUrl(
   if (isPeriodQueryCurrent(query, keys, selection)) return null;
   url.search = mergePeriodSearch(url.search, keys, selection);
   const written = urlKeysText(Object.fromEntries(url.searchParams), keys);
+  const fullPath = `${url.pathname}${url.search}${url.hash}`;
   window.history.replaceState(window.history.state, "", url);
+  route.query = Object.fromEntries(url.searchParams);
+  route.fullPath = fullPath;
   inertiaRouter.replace({
-    url: `${url.pathname}${url.search}${url.hash}`,
+    url: fullPath,
     preserveState: true,
     preserveScroll: true,
   });
   return written;
+}
+
+/**
+ * Until Inertia's page catches up with a URL written in place, the route can
+ * still be set back to the page's previous query (a component reading the
+ * route meanwhile refreshes it from that page). The address bar is ahead of
+ * it, never behind: a route whose period keys differ from it is stale.
+ */
+function isRouteBehindBrowser(text: string, keys: PeriodQueryKeys): boolean {
+  if (typeof window === "undefined") return false;
+  return text !== urlKeysText(browserQuery(), keys);
 }
 
 /** The user's last choice of one selector, kept in the preferences. */
@@ -113,11 +135,11 @@ function useRememberedPeriod(target: RememberedPeriodTarget) {
  * later, and a pick made meanwhile must not be undone by the URL of the one
  * before: `isEcho` tells a route naming a URL written here from a change.
  */
-function usePeriodUrlWriter(keys: PeriodQueryKeys) {
+function usePeriodUrlWriter(route: DmsRouteState, keys: PeriodQueryKeys) {
   const pending: string[] = [];
   return {
     write: (selection: PeriodSelection) => {
-      const written = replacePeriodInUrl(keys, selection);
+      const written = replacePeriodInUrl(route, keys, selection);
       if (written !== null) pending.push(written);
     },
     isEcho: (text: string) => {
@@ -142,8 +164,9 @@ function usePeriodUrlWriter(keys: PeriodQueryKeys) {
  * period, then on every change: the history entry is replaced instead of
  * pushed, so Back leaves the page rather than stepping through every pick,
  * and the page is not requested again, only the bound cards and tables
- * refetch. A route changed from outside (Back to the page with another
- * period, a link) moves the period.
+ * refetch. The route's query (`useDmsRoute().query`) follows each write at
+ * once. A route changed from outside (Back to the page with another period,
+ * a link) moves the period.
  */
 export function usePeriodLocation(
   period: UsePeriodReturn,
@@ -152,7 +175,7 @@ export function usePeriodLocation(
   const route = useDmsRoute();
   const urlKeys = periodQueryKeys(options.id);
   const remembered = useRememberedPeriod(options);
-  const writer = usePeriodUrlWriter(urlKeys);
+  const writer = usePeriodUrlWriter(route, urlKeys);
   const choices = {
     presets: period.presets.value,
     comparisons: period.comparisons.value,
@@ -186,7 +209,7 @@ export function usePeriodLocation(
   watch(
     () => urlKeysText(route.query as PeriodQuery, urlKeys),
     (text) => {
-      if (writer.isEcho(text)) return;
+      if (writer.isEcho(text) || isRouteBehindBrowser(text, urlKeys)) return;
       const current = readSelection(period);
       const next = resolvePeriodSelection([urlSource()], choices, current);
       if (selectionText(next) === selectionText(current)) return;

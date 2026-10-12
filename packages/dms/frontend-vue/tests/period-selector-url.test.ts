@@ -25,12 +25,13 @@ const preferences = new Map<string, unknown>();
 vi.stubGlobal("useDmsRoute", () => route);
 // Inertia's client-side replace moves its page URL, which the DMS route
 // follows: the route then holds the query the browser shows.
+function followInertiaPage({ url }: { url: string }): void {
+  route.query = Object.fromEntries(
+    new URL(url, "http://dms.local").searchParams,
+  );
+}
 const { inertiaReplace } = vi.hoisted(() => ({
-  inertiaReplace: vi.fn(({ url }: { url: string }) => {
-    route.query = Object.fromEntries(
-      new URL(url, "http://dms.local").searchParams,
-    );
-  }),
+  inertiaReplace: vi.fn(),
 }));
 vi.mock("@inertiajs/vue3", () => ({ router: { replace: inertiaReplace } }));
 vi.stubGlobal("usePreferences", () => ({
@@ -116,13 +117,24 @@ function mount(...ids: string[]): void {
 
 const search = () => new URLSearchParams(window.location.search);
 
+/** A navigation from outside: the browser's URL moves, then the route. */
+function navigate(query: Record<string, string>): void {
+  window.history.replaceState(
+    null,
+    "",
+    `${PAGE_PATH}?${new URLSearchParams(query)}`,
+  );
+  route.query = query;
+}
+
 const remember = (query: Record<string, string>) =>
   preferences.set(PERIOD_PREFERENCE_KEY, { [`${PAGE_ID}#page`]: query });
 
 beforeEach(() => {
   route.query = {};
   preferences.clear();
-  inertiaReplace.mockClear();
+  inertiaReplace.mockReset();
+  inertiaReplace.mockImplementation(followInertiaPage);
   window.history.replaceState(null, "", PAGE_PATH);
 });
 
@@ -272,10 +284,34 @@ describe("a change of period", () => {
   });
 });
 
+describe("the route while Inertia catches up", () => {
+  it("holds the new period at once", async () => {
+    inertiaReplace.mockImplementation(() => {});
+    mount("page");
+    handles.page!.setPreset("last-7-days");
+    await nextTick();
+    expect(route.query["page.period"]).toBe("last-7-days");
+    expect(search().get("page.period")).toBe("last-7-days");
+  });
+
+  it("does not move the period back when it reports the old URL late", async () => {
+    inertiaReplace.mockImplementation(() => {});
+    mount("page");
+    await nextTick();
+    const before = { ...route.query };
+    handles.page!.setPreset("last-7-days");
+    await nextTick();
+    route.query = before;
+    await nextTick();
+    expect(handles.page!.preset.value).toBe("last-7-days");
+    expect(search().get("page.period")).toBe("last-7-days");
+  });
+});
+
 describe("a route changed from outside", () => {
   it("moves the period of the selector it names", async () => {
     mount("sales", "traffic");
-    route.query = { "sales.period": "last-30-days" };
+    navigate({ "sales.period": "last-30-days" });
     await nextTick();
     expect(handles.sales!.preset.value).toBe("last-30-days");
     expect(handles.traffic!.preset.value).toBe("this-month");
@@ -285,7 +321,7 @@ describe("a route changed from outside", () => {
     mount("page");
     handles.page!.setPreset("last-7-days");
     await nextTick();
-    route.query = { "page.period": "last-decade" };
+    navigate({ "page.period": "last-decade" });
     await nextTick();
     expect(handles.page!.preset.value).toBe("last-7-days");
   });

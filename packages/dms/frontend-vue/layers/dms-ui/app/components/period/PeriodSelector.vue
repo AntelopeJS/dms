@@ -23,9 +23,11 @@ import { isRelativePreset } from "#dms-core/app/composables/period/presetResolve
 import { usePeriodLocation } from "../../build/composables/period/usePeriodLocation";
 import {
   type CalendarRange,
+  type CalendarRangeAnchor,
   calendarToRange,
   formatPeriodRange,
   formatRelativeInstant,
+  limitCalendarRange,
   periodDuration,
   rangeToCalendar,
 } from "../../build/composables/period/periodDisplay";
@@ -49,6 +51,7 @@ interface Props extends DefaultComponentProps {
   comparisonControl?: ComparisonControl;
   rememberKey?: string;
   variant?: "default" | "segmented";
+  maxDays?: number;
 }
 
 const CALENDAR_ICON = "i-ph-calendar-blank-light";
@@ -232,9 +235,18 @@ function setOpen(open: boolean) {
   isOpen.value = open;
 }
 
+// A custom range starts from the days on screen, which a long preset can
+// stretch past `maxDays`: it keeps its most recent days.
+function selectDraftPreset(preset: PeriodPreset) {
+  draft.selectPreset(preset);
+  const custom = draft.customRange.value;
+  if (preset !== CUSTOM_PRESET || !custom) return;
+  selectCalendarRange(rangeToCalendar(custom), "end");
+}
+
 function openCustom() {
   draft.reset();
-  draft.selectPreset(CUSTOM_PRESET);
+  selectDraftPreset(CUSTOM_PRESET);
   pendingStart.value = null;
   isOpen.value = true;
 }
@@ -253,9 +265,14 @@ const draftCompareCalendar = computed<CalendarRange | null>(() => {
   return compare ? rangeToCalendar(compare) : null;
 });
 
-function selectCalendarRange(range: CalendarRange) {
+function selectCalendarRange(
+  range: CalendarRange,
+  anchor: CalendarRangeAnchor = "start",
+) {
   if (!isCustomEnabled.value) return;
-  draft.selectRange(calendarToRange(range));
+  draft.selectRange(
+    calendarToRange(limitCalendarRange(range, props.maxDays, anchor)),
+  );
 }
 
 function updateStart(value: DateValue | null | undefined) {
@@ -273,6 +290,7 @@ function updateEnd(value: DateValue | null | undefined) {
   const start = draftCalendar.value.start;
   selectCalendarRange(
     end.compare(start) < 0 ? { start: end, end } : { start, end },
+    "end",
   );
 }
 
@@ -296,6 +314,12 @@ const draftDurationLabel = computed(() => {
   const { unit, count } = periodDuration(range);
   return t(`dms.period.popover.${unit}`, { count }, count);
 });
+
+const maxDaysHint = computed(() =>
+  props.maxDays && isCustomEnabled.value
+    ? t("dms.period.popover.max_days", { count: props.maxDays }, props.maxDays)
+    : null,
+);
 
 const draftCompareLabel = computed(() => {
   const compare = draft.compareRange.value;
@@ -557,7 +581,7 @@ function onSegmentedClick(event: MouseEvent) {
                   role="option"
                   :aria-selected="draft.preset.value === entry.preset"
                   :class="presetItemClass(entry.preset)"
-                  @click="draft.selectPreset(entry.preset)"
+                  @click="selectDraftPreset(entry.preset)"
                 >
                   <span class="truncate">{{ entry.label }}</span>
                   <span
@@ -583,7 +607,7 @@ function onSegmentedClick(event: MouseEvent) {
                   role="option"
                   :aria-selected="draft.preset.value === CUSTOM_PRESET"
                   :class="presetItemClass(CUSTOM_PRESET)"
-                  @click="draft.selectPreset(CUSTOM_PRESET)"
+                  @click="selectDraftPreset(CUSTOM_PRESET)"
                 >
                   <UIcon :name="CALENDAR_ICON" class="size-4 shrink-0" />
                   {{ $t("dms.period.popover.custom_range", "Custom range") }}
@@ -662,7 +686,8 @@ function onSegmentedClick(event: MouseEvent) {
               :week-starts-on="weekStartsOn"
               :number-of-months="isWide ? 2 : 1"
               :readonly="!isCustomEnabled"
-              @update:model-value="selectCalendarRange"
+              :max-days="maxDays"
+              @update:model-value="selectCalendarRange($event)"
               @pending="pendingStart = $event"
             />
 
@@ -680,6 +705,7 @@ function onSegmentedClick(event: MouseEvent) {
                   </span>
                   {{ draftCompareLabel }}
                 </template>
+                <template v-if="maxDaysHint">· {{ maxDaysHint }}</template>
               </span>
               <UButton
                 color="neutral"
