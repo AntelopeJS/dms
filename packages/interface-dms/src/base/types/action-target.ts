@@ -98,8 +98,21 @@ export type ActionTarget =
       type: "sidePanel";
       component: Component;
     } & SidePanelTargetOptions)
-  | { type: "page"; url: string }
-  | { type: "external"; url: string; newTab?: boolean }
+  | {
+      type: "page";
+      /**
+       * The page to open. On a row action the row's fields fill `{field}`;
+       * `{{params.X}}` and `{{query.X}}` name the page the action sits on, a
+       * query pair whose token the page has no value for being left out.
+       */
+      url: string;
+    }
+  | {
+      type: "external";
+      /** Takes the same `{field}` and page URL tokens as a `page` target. */
+      url: string;
+      newTab?: boolean;
+    }
   | {
       type: "quickAction";
       /**

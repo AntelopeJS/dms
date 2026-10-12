@@ -48,9 +48,35 @@ import {
   dispatchQuickActionTarget,
   findServedQuickAction,
 } from "../../utils/dispatchQuickActionTarget";
+import {
+  hasUrlVariables,
+  resolveLinkVariables,
+} from "../../utils/urlVariables";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
+
+/**
+ * A link target's URL with the page's `{{params.X}}` / `{{query.X}}` filled
+ * (a query pair without a value left out), then the row's `{field}`: a row
+ * action keeps the page's context (`?website={{query.website}}`) as a page
+ * header button does. Read when the link is followed, so it carries the URL
+ * as it is then.
+ */
+function linkTargetUrl(url: string, rowData?: Data): string {
+  const withPageValues = hasUrlVariables(url)
+    ? resolveLinkVariables(url, currentPageUrlValues())
+    : url;
+  return rowData ? interpolateUrl(withPageValues, rowData) : withPageValues;
+}
+
+function currentPageUrlValues() {
+  const route = useDmsRoute();
+  return {
+    routeParams: useSiteLayout().findMatchingRoute(route.path)?.params,
+    routeQuery: route.query as Record<string, unknown>,
+  };
+}
 
 /** Where the buttons run: the requests they send, what they refresh. */
 export interface ActionTargetsConfig {
@@ -410,16 +436,11 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const targetHandlers: Record<string, TargetHandler> = {
     page: (target, _label, rowData) => {
       const pageTarget = target as ActionTarget & { type: "page" };
-      const url = rowData
-        ? interpolateUrl(pageTarget.url, rowData)
-        : pageTarget.url;
-      navigateDms(url);
+      navigateDms(linkTargetUrl(pageTarget.url, rowData));
     },
     external: (target, _label, rowData) => {
       const externalTarget = target as ActionTarget & { type: "external" };
-      const url = rowData
-        ? interpolateUrl(externalTarget.url, rowData)
-        : externalTarget.url;
+      const url = linkTargetUrl(externalTarget.url, rowData);
       if (typeof window === "undefined" || !url) return;
       if (externalTarget.newTab) {
         window.open(url, "_blank", "noopener,noreferrer");

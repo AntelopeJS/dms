@@ -44,6 +44,14 @@ export interface TopListItem {
   sparkline?: number[];
   icon?: string;
   avatar?: TopListItemAvatar;
+  /**
+   * Where the row leads. It may name the page it is shown on, as
+   * `fetchUrl` does: `{{params.X}}` and `{{query.X}}` are filled from the
+   * page URL when the row is drawn, and a query pair whose token the page
+   * has no value for is left out, so
+   * `/pages?website={{query.website}}&sales.period={{query.sales.period}}`
+   * keeps the page's website and period.
+   */
   to?: string;
 }
 
