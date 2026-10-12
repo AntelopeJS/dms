@@ -2,8 +2,7 @@
 import { computed } from "vue";
 import DmsEmptyState from "../../../components/empty-state/EmptyState.vue";
 import DmsBlockActions from "./BlockActions.vue";
-import type { FetchNotFound } from "../../utils/fetchNotFound";
-import { userFacingText } from "../../composables/confirm/actionError";
+import { type FetchNotFound, notFoundTexts } from "../../utils/fetchNotFound";
 
 /** What a block shows when it has nothing to list (interface-dms `BlockEmptyText`). */
 export interface BlockEmptyText {
@@ -43,7 +42,6 @@ const props = withDefaults(defineProps<BlockStatusProps>(), {
 });
 const emit = defineEmits<BlockStatusEmits>();
 
-const NOT_FOUND_ICON = "i-ph-magnifying-glass";
 const VARIANTS = {
   empty: "no-data",
   error: "error",
@@ -58,14 +56,11 @@ const translate = (text: string | undefined) =>
 
 const notFoundState = computed(() => {
   const answered = props.notFound?.emptyState ?? {};
-  const message = props.notFound?.message;
+  const defaults = notFoundTexts(props.notFound, t);
   return {
-    title: translate(answered.title) ?? t("dms.blocks.not_found"),
-    description:
-      translate(answered.description) ??
-      (message ? userFacingText(message, t) : undefined) ??
-      t("dms.blocks.not_found_hint"),
-    icon: answered.icon ?? NOT_FOUND_ICON,
+    title: translate(answered.title) ?? defaults.title,
+    description: translate(answered.description) ?? defaults.description,
+    icon: answered.icon,
     tone: answered.tone,
     actions: answered.actions ?? [],
   };

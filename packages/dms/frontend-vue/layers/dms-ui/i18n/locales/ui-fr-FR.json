@@ -725,7 +725,7 @@
       "load_error_hint": "Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer",
       "not_found": "Introuvable",
-      "not_found_hint": "Ce que ce bloc affiche n’existe pas, ou plus."
+      "not_found_hint": "Ce qui est affiché ici n’existe pas, ou plus."
     },
     "action_error": {
       "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",

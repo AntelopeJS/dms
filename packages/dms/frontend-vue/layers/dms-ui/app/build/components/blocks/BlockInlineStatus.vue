@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { FetchNotFound } from "../../utils/fetchNotFound";
+import {
+  type FetchNotFound,
+  NOT_FOUND_TITLE_KEY,
+} from "../../utils/fetchNotFound";
 
 // The one-line status a compact block (a KPI card, a meter) shows in place of
 // its value: a first load that failed, with a retry, or a source that
@@ -30,7 +33,7 @@ const isError = computed(() => props.state === "error");
 const label = computed(() => {
   if (isError.value) return t("dms.table.load_error_title");
   const title = props.notFound?.emptyState?.title;
-  return title ? processI18n(title) : t("dms.blocks.not_found");
+  return title ? processI18n(title) : t(NOT_FOUND_TITLE_KEY);
 });
 const icon = computed(() =>
   isError.value

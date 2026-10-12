@@ -724,7 +724,7 @@
       "load_error_hint": "Check your connection, then try again.",
       "retry": "Try again",
       "not_found": "Not found",
-      "not_found_hint": "What this block shows doesn’t exist, or no longer does."
+      "not_found_hint": "What this shows doesn’t exist, or no longer does."
     },
     "action_error": {
       "forbidden": "You don’t have permission to do this.",
