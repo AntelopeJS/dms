@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { emailStyles } from "./index";
+import { emailLogoUrl, emailStyles } from "./index";
 
 interface EmailAppConfig {
   branding?: {
@@ -11,38 +11,53 @@ interface EmailAppConfig {
   };
 }
 
-defineProps<{
-  title: string;
-  lang?: string;
-}>();
+withDefaults(
+  defineProps<{
+    /** Shown as the email's heading; no heading when omitted. */
+    title?: string;
+    lang?: string;
+    /** Inbox preview text, hidden in the message body. */
+    preheader?: string;
+    /** Draws the separator between the content and the `footer` slot. */
+    divider?: boolean;
+    logoAlt?: string;
+  }>(),
+  { divider: true, logoAlt: "Logo" },
+);
 
 const appConfig = useDmsAppConfig() as EmailAppConfig;
 const runtimeConfig = useDmsRuntimeConfig();
 
-const logoPath = appConfig.branding?.logo?.default?.light;
-const clientBaseUrl = runtimeConfig.public.dms?.clientBaseUrl ?? "";
-const logoUrl = logoPath?.startsWith("/")
-  ? `${clientBaseUrl}${logoPath}`
-  : logoPath;
+const logoUrl = emailLogoUrl(
+  appConfig.branding?.logo?.default?.light,
+  runtimeConfig.public.dms?.clientBaseUrl ?? "",
+);
 </script>
 
 <template>
   <EHtml :lang="lang ?? 'en'">
-    <EHead />
+    <EHead>
+      <slot name="head" />
+    </EHead>
     <EBody :style="emailStyles.main">
+      <EPreview v-if="preheader">{{ preheader }}</EPreview>
       <EContainer :style="emailStyles.container">
         <ESection :style="emailStyles.card">
           <ESection v-if="logoUrl" :style="emailStyles.logo">
-            <EImg :src="logoUrl" alt="Logo" :style="emailStyles.logoImage" />
+            <EImg
+              :src="logoUrl"
+              :alt="logoAlt"
+              :style="emailStyles.logoImage"
+            />
           </ESection>
 
-          <EHeading as="h1" :style="emailStyles.heading">
+          <EHeading v-if="title" as="h1" :style="emailStyles.heading">
             {{ title }}
           </EHeading>
 
           <slot />
 
-          <EHr :style="emailStyles.divider" />
+          <EHr v-if="divider" :style="emailStyles.divider" />
 
           <slot name="footer" />
         </ESection>

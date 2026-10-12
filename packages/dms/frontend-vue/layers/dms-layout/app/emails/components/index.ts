@@ -1,3 +1,5 @@
+export * from "./email-logo";
+
 export const emailFontFamily =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
