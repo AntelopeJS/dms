@@ -81,11 +81,11 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
     expect(options.liveHold).to.equal(true);
     expect(options.realtimeTopic).to.equal("api:requests");
   });
-  it("carries the slower cadence and the shared scope to the browser", () => {
+  it("carries the slower cadence and the shared remember key to the browser", () => {
     const live = {
       maxRate: 10,
       slowRateAfter: { period: "7d" as const, maxRate: 60 },
-      scope: "api",
+      rememberKey: "api",
     };
     const page = PageController("live-page-slow", {
       displayName: "Live page",
@@ -95,7 +95,7 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
     expect(GetMetadata(page, PageMetadata).pageInfo?.live).to.deep.equal(live);
   });
 
-  it("refuses a slower cadence it cannot read, and an empty scope", () => {
+  it("refuses a slower cadence it cannot read, and an empty remember key", () => {
     const declare = (id: string, live: Record<string, unknown>) => () =>
       PageController(id, {
         displayName: "Live page",
@@ -117,7 +117,9 @@ describe("[unit] interfaces/dms-base — page live mode", () => {
         slowRateAfter: { period: "7d", maxRate: 0 },
       }),
     ).to.throw(/live\.slowRateAfter\.maxRate/);
-    expect(declare("live-scope", { scope: " " })).to.throw(/live\.scope/);
+    expect(declare("live-remember-key", { rememberKey: " " })).to.throw(
+      /live\.rememberKey/,
+    );
   });
 
   it("serializes the pill variant and the missed label of LiveToggle", () => {

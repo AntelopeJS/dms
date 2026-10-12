@@ -6,10 +6,10 @@ import { formatElapsed } from "../../build/composables/live/formatElapsed";
 import { useLiveToggleShortcut } from "../../build/composables/live/useLiveToggleShortcut";
 import { HIDDEN_TAB_NOTE } from "../../build/composables/live/pageLiveController";
 import {
-  liveNoteText,
-  type LiveTranslate,
-} from "../../build/composables/live/liveNoteText";
-import type { PageLiveNoteTone } from "../../types/live";
+  resolveConfirmText,
+  type ConfirmTranslate,
+} from "../../build/composables/confirm/confirmDialogTexts";
+import type { PageLiveNote, PageLiveNoteTone } from "../../types/live";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 interface LiveToggleBlockProps extends DefaultComponentProps {
@@ -50,7 +50,7 @@ const PILL_BUTTON_CLASS =
 const PILL_IDLE_CLASS = "text-muted hover:text-default hover:bg-elevated";
 
 const { t } = useI18n();
-const translate = t as LiveTranslate;
+const translate = t as ConfirmTranslate;
 const live = usePageLive();
 
 // The state lives in the browser (its storage, its clock): the server and the
@@ -90,11 +90,14 @@ const updatedLabel = computed(() => {
     : updated;
 });
 
+const noteText = (note: PageLiveNote) =>
+  resolveConfirmText(note.text, note.params ?? {}, translate);
+
 const missedText = computed(() => {
   const count = live.missedCount.value;
   if (count === 0) return "";
   return props.missedLabel
-    ? liveNoteText(translate, { text: props.missedLabel, params: { count } })
+    ? resolveConfirmText(props.missedLabel, { count }, translate)
     : t("dms.live.new_rows", { count }, count);
 });
 
@@ -104,7 +107,7 @@ const pausedText = computed(() => {
   const reason = live.pauseReason.value;
   return [
     t("dms.live.paused"),
-    reason ? liveNoteText(translate, reason) : "",
+    reason ? noteText(reason) : "",
     missedText.value,
   ]
     .filter((part) => part !== "")
@@ -115,7 +118,7 @@ const detail = computed(() => {
   const note = live.missedDetail.value;
   if (!note || live.missedCount.value === 0) return null;
   return {
-    text: liveNoteText(translate, note),
+    text: noteText(note),
     toneClass: TONE_CLASSES[note.tone ?? "neutral"],
   };
 });

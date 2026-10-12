@@ -148,7 +148,7 @@ class PageLive implements PageLiveController {
     private readonly options: PageLiveOptions,
     start: PageLiveStart = {},
   ) {
-    this.storageKey = liveStorageKey(pageId, options.scope);
+    this.storageKey = liveStorageKey(pageId, options.rememberKey);
     this.isPausedByUrl = !!start.isPausedByUrl;
     this.poller = new LivePoller(
       () => this.intervalMs(),
@@ -374,7 +374,7 @@ function clearTimer(state: SubscriberState): void {
 
 /**
  * The controller of a page declared with `live`. Starts paused when the URL
- * asks for it or the browser remembers the page (or its `scope`) paused,
+ * asks for it or the browser remembers the page (or its `rememberKey`) paused,
  * live otherwise.
  *
  * @internal

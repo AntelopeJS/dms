@@ -189,7 +189,7 @@ function assertValidSlowRate(id: string, live: PageLiveOptions): void {
 }
 
 // A rate the browser would read as "no cap" or as a busy loop, a period it
-// cannot read or an empty scope are refused at declaration, where the module
+// cannot read or an empty remember key are refused at declaration, where the module
 // author sees them, rather than ignored at run time.
 function assertValidLiveOptions(id: string, options: MenuOptions): void {
   const live = options.live;
@@ -198,8 +198,8 @@ function assertValidLiveOptions(id: string, options: MenuOptions): void {
     assertPositiveRate(id, "live.maxRate", live.maxRate);
   }
   assertValidSlowRate(id, live);
-  if (live.scope !== undefined && live.scope.trim() === "") {
-    throw new Error(`Page "${id}" declares an empty live.scope.`);
+  if (live.rememberKey !== undefined && live.rememberKey.trim() === "") {
+    throw new Error(`Page "${id}" declares an empty live.rememberKey.`);
   }
 }
 

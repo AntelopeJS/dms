@@ -2,7 +2,7 @@
 /**
  * The live mode beyond Live / Pause: what a pause counts (published rows, not
  * messages), the holds a component takes with a reason, the hidden tab, the
- * `?live=0` URL, the shared `scope`, the polling while the stream is down and
+ * `?live=0` URL, the shared `rememberKey`, the polling while the stream is down and
  * its slower cadence over a long period, and the remembered pause applied only
  * once the page is mounted.
  */
@@ -268,10 +268,10 @@ describe("the browser around the page", () => {
     unbind();
   });
 
-  it("shares the remembered choice between the pages of one scope", () => {
-    install({ scope: "api" }).pause();
+  it("shares the remembered choice between the pages of one remember key", () => {
+    install({ rememberKey: "api" }).pause();
     expect(
-      install({ scope: "api" }, {}, "modules.api.routes").isPaused.value,
+      install({ rememberKey: "api" }, {}, "modules.api.routes").isPaused.value,
     ).toBe(true);
     expect(install({}, {}, "modules.api.routes").isPaused.value).toBe(false);
   });

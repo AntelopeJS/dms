@@ -1,5 +1,5 @@
 const STORAGE_KEY_PREFIX = "dms.live.paused:";
-const SCOPE_KEY_PREFIX = "scope:";
+const REMEMBER_KEY_PREFIX = "key:";
 const PAUSED_VALUE = "1";
 
 /** Browser storage of the paused pages; absent on the server or when denied. */
@@ -12,13 +12,16 @@ function liveStorage(): Storage | undefined {
 }
 
 /**
- * The storage key of a page's Live / Pause choice: its `live.scope` when it
+ * The storage key of a page's Live / Pause choice: its `live.rememberKey` when it
  * shares one, its own id else.
  *
  * @internal
  */
-export function liveStorageKey(pageId: string, scope?: string): string {
-  return STORAGE_KEY_PREFIX + (scope ? SCOPE_KEY_PREFIX + scope : pageId);
+export function liveStorageKey(pageId: string, rememberKey?: string): string {
+  return (
+    STORAGE_KEY_PREFIX +
+    (rememberKey ? REMEMBER_KEY_PREFIX + rememberKey : pageId)
+  );
 }
 
 /** @internal */

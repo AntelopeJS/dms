@@ -175,7 +175,7 @@ export type MemberAccess = boolean | "self";
  * form saved with `BlockFunctions.REFRESH_PAGE`, a table's row actions.
  *
  * The user switches with a `LiveToggle()` block, or the L key while one is on
- * the page; the choice is kept per page in the browser (per `scope` when set),
+ * the page; the choice is kept per page in the browser (per `rememberKey` when set),
  * and `?live=0` in the URL opens the page paused. The page also pauses by
  * itself while its browser tab is hidden, and while a component holds it
  * (`usePageLive().hold(reason)`); it resumes when that ends, unless the user
@@ -209,10 +209,10 @@ export interface PageLiveOptions {
   slowRateAfter?: PageLiveSlowRate;
   /**
    * Shares the remembered Direct / Pause choice between the pages declaring
-   * the same key, e.g. the pages of one module (`scope: "api"`). Unset, each
+   * the same key, e.g. the pages of one module (`rememberKey: "api"`). Unset, each
    * page remembers its own.
    */
-  scope?: string;
+  rememberKey?: string;
 }
 
 /**

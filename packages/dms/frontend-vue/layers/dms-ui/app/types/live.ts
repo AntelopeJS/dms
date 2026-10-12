@@ -20,7 +20,7 @@ export interface PageLiveOptions {
   /** The slower cadence once the page's period spans `period` or more. */
   slowRateAfter?: PageLiveSlowRate;
   /** Key the remembered Live / Pause choice is shared under. */
-  scope?: string;
+  rememberKey?: string;
 }
 
 /** How the live toggle draws a note: a breakdown in 5xx reads as an error. */

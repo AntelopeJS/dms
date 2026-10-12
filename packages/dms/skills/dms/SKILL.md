@@ -39,7 +39,7 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   (which keeps its period in the page URL, `?<id>.period=`), and
   `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
   A monitoring page that must not refetch on every event declares `live: { maxRate }` in its page options
-  (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `scope: "<module>"` to share the
+  (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"` to share the
   choice between pages; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
   `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled }` also
