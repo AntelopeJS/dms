@@ -72,13 +72,23 @@ describe("EmailLayout", () => {
     expect(html).toContain("<small>Footer</small>");
   });
 
-  it("leaves out a logo a mail client cannot load", async () => {
+  it("keeps any logo by default", async () => {
     expect(
-      await renderLayout({ title: "Hi" }, "/images/logo.svg"),
-    ).not.toContain("<img");
+      await renderLayout({ title: "Hi" }, "/images/logo.svg", ""),
+    ).toContain('<img src="/images/logo.svg" alt="Logo">');
+  });
+
+  it("leaves out a logo a mail client cannot load with publicLogoOnly", async () => {
+    const guarded = { title: "Hi", publicLogoOnly: true };
+    expect(await renderLayout(guarded, "/images/logo.svg")).not.toContain(
+      "<img",
+    );
     expect(
-      await renderLayout({ title: "Hi" }, "/logo.png", "http://localhost:3001"),
+      await renderLayout(guarded, "/logo.png", "http://localhost:3001"),
     ).not.toContain("<img");
+    expect(await renderLayout(guarded)).toContain(
+      `<img src="${PUBLIC_BASE}/images/logo.png" alt="Logo">`,
+    );
   });
 });
 

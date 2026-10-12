@@ -11,7 +11,7 @@ interface EmailAppConfig {
   };
 }
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** Shown as the email's heading; no heading when omitted. */
     title?: string;
@@ -21,17 +21,25 @@ withDefaults(
     /** Draws the separator between the content and the `footer` slot. */
     divider?: boolean;
     logoAlt?: string;
+    /**
+     * Leaves the logo out unless a mail client can load it: an absolute
+     * public http(s) URL, not an SVG (see `emailLogoUrl`).
+     */
+    publicLogoOnly?: boolean;
   }>(),
-  { divider: true, logoAlt: "Logo" },
+  { divider: true, logoAlt: "Logo", publicLogoOnly: false },
 );
 
 const appConfig = useDmsAppConfig() as EmailAppConfig;
 const runtimeConfig = useDmsRuntimeConfig();
 
-const logoUrl = emailLogoUrl(
-  appConfig.branding?.logo?.default?.light,
-  runtimeConfig.public.dms?.clientBaseUrl ?? "",
-);
+const logoPath = appConfig.branding?.logo?.default?.light;
+const clientBaseUrl = runtimeConfig.public.dms?.clientBaseUrl ?? "";
+const logoUrl = props.publicLogoOnly
+  ? emailLogoUrl(logoPath, clientBaseUrl)
+  : logoPath?.startsWith("/")
+    ? `${clientBaseUrl}${logoPath}`
+    : logoPath;
 </script>
 
 <template>
