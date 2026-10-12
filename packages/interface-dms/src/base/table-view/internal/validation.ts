@@ -300,6 +300,11 @@ export function validateReorder<T extends Record<string, unknown>>(
   if (options.rowActions?.edit === false) {
     throw new Error(`${where} needs the edit action: moving a row edits it`);
   }
+  if (options.pinnedRows) {
+    throw new Error(
+      `${where} excludes pinnedRows: hand-ordered rows keep their position`,
+    );
+  }
 }
 
 function assertViewFilters(

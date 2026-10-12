@@ -122,6 +122,7 @@ export const useTableViewConfig = <T extends Data>(
     caption: processI18n(config.caption ?? ""),
     maxHeight: config.maxHeight,
     rowIdKey: config.rowIdKey,
+    labelKey: config.labelKey,
     rowActions: config.rowActions,
     rowClick: config.rowClick,
     customNavItems: config.customNavItems,

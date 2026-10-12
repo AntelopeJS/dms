@@ -54,6 +54,23 @@ export const sanitizeSorting = (
   return [{ id: first.id, desc: first.desc === true }];
 };
 
+/**
+ * The sort the list route can serve ({@link sanitizeSorting}), or the
+ * default sort when that leaves none: a sort the user cleared, or one naming
+ * a column gone, goes back to the table's default rather than to the
+ * database's natural order — and is remembered so.
+ */
+export const sortingOrDefault = (
+  sorting: SortingState | null | undefined,
+  sortable: ReadonlySet<string>,
+  defaultSorting: SortingState,
+): SortingState => {
+  const sanitized = sanitizeSorting(sorting, sortable);
+  return sanitized.length > 0
+    ? sanitized
+    : sanitizeSorting(defaultSorting, sortable);
+};
+
 /** Whether two sorting states request the same order. */
 export const isSameSorting = (a: SortingState, b: SortingState): boolean =>
   a.length === b.length &&

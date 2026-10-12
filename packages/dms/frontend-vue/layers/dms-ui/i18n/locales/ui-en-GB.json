@@ -120,6 +120,8 @@
       "clear_selection": "Clear selection",
       "expand_row": "Expand row",
       "collapse_row": "Collapse row",
+      "row_actions": "Row actions",
+      "row_actions_for": "Actions for {label}",
       "tabs": {
         "all": "All"
       },

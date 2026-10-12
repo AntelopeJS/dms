@@ -79,9 +79,18 @@ export interface TableViewRowActionOptions<
    */
   hasSelection?: boolean;
   /**
-   * Custom row actions
+   * Custom row actions. A label may name the row's fields in braces
+   * (`"Translate {name}"`), as a target URL does; a `$` key's translation
+   * receives them as parameters.
    */
   custom?: CustomRowAction<T>[];
+  /**
+   * Accessible name of the ⋯ button opening a row's menu of actions, its
+   * `{field}` braces filled from the row (`"Actions for {name}"`). `$`: an
+   * i18n key, whose translation receives the row's fields as parameters.
+   * Defaults to "Actions for <label>" with `labelKey`, "Row actions" without.
+   */
+  menuLabel?: string;
 }
 
 export interface TableViewRowActionOptionsSerialized {
@@ -96,6 +105,7 @@ export interface TableViewRowActionOptionsSerialized {
   add?: boolean | RowActionConfigSerialized;
   hasSelection?: boolean;
   custom?: CustomRowActionSerialized[];
+  menuLabel?: string;
 }
 
 /** The filter a tab applies on one column. */
@@ -952,9 +962,22 @@ export interface TableViewOptions<
    */
   defaultFilters?: Array<{ accessorKey: string; value?: string; mode: string }>;
   /**
-   * Default sort configuration applied when no user preference exists
+   * Default sort configuration applied when no user preference exists, and
+   * the sort the table goes back to when the user clears theirs.
    */
   defaultSort?: { field: string; desc?: boolean };
+  /**
+   * Rows listed first, whatever the sort: those `pinnedRows` accepts, a rule
+   * on the row's fields as a row action's `rule`, in the order the sort gives
+   * them. The rest follows in the sort's order. A route answering every row
+   * (a `TableView.fromSource` without `paginate`) has its pinned rows on the
+   * first page; a route answering one page has them first within the page it
+   * answers. The `grouped` display keeps its groups and pins nothing;
+   * registration refuses it alongside `reorder`, whose rows keep their
+   * position.
+   * @example { field: "isBase", equals: true }
+   */
+  pinnedRows?: RowActionRule<T>;
   /**
    * Maps URL query parameters to hidden filters applied to the table data.
    * These filters are not visible in the UI and not persisted in preferences.

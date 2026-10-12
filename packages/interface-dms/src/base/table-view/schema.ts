@@ -97,6 +97,13 @@ const rowActionsSchema = z.object({
     label: "Custom actions",
     hidden: true,
   }),
+  menuLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe("Accessible name of a row's ⋯ menu, e.g. Actions for {name}."),
+    { label: "Row menu label", order: 12, group: "features", advanced: true },
+  ),
 }) satisfies BlockOptionsFor<TableViewRowActionOptions>;
 
 const tabFilterSchema = z.object({
@@ -429,6 +436,12 @@ export const TableViewSchema = z.object({
       })
       .optional(),
     { label: "Default sort", group: "data" },
+  ),
+  pinnedRows: ui(
+    opaqueOption<RowActionRule>()
+      .optional()
+      .describe("Rows listed first whatever the sort: a rule on their fields."),
+    { label: "Pinned rows", group: "data", widget: "json" },
   ),
   queryParamFilters: ui(z.record(paramFilterSchema).optional(), {
     label: "Query parameter filters",

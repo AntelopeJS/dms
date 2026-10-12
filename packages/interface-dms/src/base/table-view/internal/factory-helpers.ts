@@ -153,6 +153,7 @@ export function serializeRowActions<T extends Record<string, unknown>>(
     add: serializeRowActionConfig(rowActions.add),
     hasSelection: rowActions.hasSelection,
     custom: rowActions.custom?.map(serializeCustomRowAction),
+    menuLabel: rowActions.menuLabel,
   };
 }
 

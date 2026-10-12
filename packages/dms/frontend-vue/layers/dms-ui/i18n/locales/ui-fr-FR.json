@@ -120,6 +120,8 @@
       "clear_selection": "Effacer la sélection",
       "expand_row": "Déplier la ligne",
       "collapse_row": "Replier la ligne",
+      "row_actions": "Actions de la ligne",
+      "row_actions_for": "Actions pour {label}",
       "tabs": {
         "all": "Tous"
       },
