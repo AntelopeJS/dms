@@ -19,6 +19,20 @@ import {
 /** Renders the actions shown on the right of the page header. */
 export type PageHeaderActionsRender = () => VNodeChild;
 
+/** Where the actions of `usePageHeaderActions` go in the page header. */
+export interface PageHeaderActionsOptions {
+  /**
+   * Place among the buttons the page layout serves (`headerActions`, each
+   * with its own `order`), smallest first; defaults to `0`. At an equal
+   * order the served buttons come first, so `-1` puts these actions before
+   * every served button left at the default.
+   */
+  order?: number;
+}
+
+/** The order of actions that do not name one, and of served buttons. */
+export const DEFAULT_PAGE_HEADER_ACTIONS_ORDER = 0;
+
 /**
  * What a layout rendering a page header shares with the page in its slot.
  *
@@ -32,6 +46,10 @@ export type PageHeaderActionsRender = () => VNodeChild;
 export interface PageHeaderActionsHost {
   /** The render function the page asked for, if any. */
   actions: ShallowRef<PageHeaderActionsRender | null>;
+  /** The `order` the page gave its actions. */
+  actionsOrder: Readonly<Ref<number>>;
+  /** Places the page's actions among the served buttons. */
+  setActionsOrder: (order: number) => void;
   /** Once the page in the slot has set up and set its actions. */
   isReady: Readonly<Ref<boolean>>;
   /** Called right after the page in the slot rendered (its sync setup ran). */
@@ -57,6 +75,7 @@ const SERVER_READY_TIMEOUT_MS = 5000;
  */
 export const providePageHeaderActions = (): PageHeaderActionsHost => {
   const actions = shallowRef<PageHeaderActionsRender | null>(null);
+  const actionsOrder = ref(DEFAULT_PAGE_HEADER_ACTIONS_ORDER);
   const isReady = ref(false);
   let slotRendered = false;
   let pending = 0;
@@ -79,6 +98,10 @@ export const providePageHeaderActions = (): PageHeaderActionsHost => {
   });
   const host: PageHeaderActionsHost = {
     actions,
+    actionsOrder: readonly(actionsOrder),
+    setActionsOrder: (order) => {
+      actionsOrder.value = order;
+    },
     isReady: readonly(isReady),
     markSlotRendered: () => {
       slotRendered = true;
@@ -135,13 +158,21 @@ export const holdPageHeaderActions = (): Component => {
  * Call it before the first `await` of the setup: the header then renders
  * the actions in the server pass, with the page.
  *
+ * They come after the buttons the page layout serves (`headerActions`)
+ * unless `options.order` places them among those.
+ *
  * @param render Render function of the actions, e.g. `() => h(UButton, …)`
+ * @param options Where the actions go among the served buttons
  */
-export const usePageHeaderActions = (render: PageHeaderActionsRender): void => {
+export const usePageHeaderActions = (
+  render: PageHeaderActionsRender,
+  options: PageHeaderActionsOptions = {},
+): void => {
   const host = inject(PAGE_HEADER_ACTIONS_KEY, null);
   if (!host) return;
   const release = host.expect();
   const show = () => {
+    host.setActionsOrder(options.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER);
     host.actions.value = render;
     release();
   };

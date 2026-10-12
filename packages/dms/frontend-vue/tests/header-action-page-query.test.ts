@@ -3,7 +3,8 @@
  * A page header's buttons follow the page URL: a target URL takes the
  * `{{params.X}}` / `{{query.X}}` tokens of a block's `fetchUrl`, and a
  * button whose availability reads the query is asked for again when the
- * query changes.
+ * query changes. The served buttons and a page's own actions
+ * (`usePageHeaderActions`) share one order.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -23,6 +24,11 @@ import {
   layoutUrlWithQuery,
   pageQueryValues,
 } from "../layers/dms-layout/app/utils/pageQuery";
+import {
+  providePageHeaderActions,
+  usePageHeaderActions,
+  type PageHeaderActionsOptions,
+} from "../layers/dms-layout/app/composables/layout/usePageHeaderActions";
 
 const handleCustomButton = vi.fn();
 vi.mock("#dms-ui/app/build/composables/actions/useActionTargets", () => ({
@@ -106,6 +112,7 @@ const mountBar = (actions: unknown[]) =>
   );
 
 const buttons = () => [...host.querySelectorAll("button")];
+const labels = () => buttons().map((button) => button.textContent);
 
 describe("resolveLinkVariables", () => {
   const context = {
@@ -277,10 +284,98 @@ describe("a header button's availability", () => {
     expect(buttons()[0]?.disabled).toBe(false);
   });
 
+  it("shows a button it hides only for the queries it does not hide it for", async () => {
+    const addKey = {
+      id: "add-key",
+      label: "Add key",
+      target: download(false).target,
+    };
+    authFetch.mockResolvedValue({
+      components: {},
+      layout: { options: { headerActions: [download(false)] } },
+    });
+    await mount(
+      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue",
+      { actions: [download(false), addKey], servedQuery: { workspace: "web" } },
+    );
+    expect(labels()).toEqual(["Download", "Add key"]);
+
+    route.query = { workspace: "modules" };
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(authFetch).toHaveBeenCalledWith(`${LAYOUT_URL}?workspace=modules`);
+    expect(labels()).toEqual(["Download"]);
+
+    route.query = { workspace: "web" };
+    await nextTick();
+    expect(labels()).toEqual(["Download", "Add key"]);
+  });
+
   it("is never asked again when no button declares one", async () => {
     await mountOutlet(undefined);
     route.query = { workspace: "gone" };
     await nextTick();
     expect(authFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("the order of the header's buttons", () => {
+  const served = (id: string, order?: number) => ({
+    id,
+    label: id,
+    target: { type: "page", url: `/${id}` },
+    order,
+  });
+
+  // A layout's page body: the outlet, then the page calling
+  // usePageHeaderActions, then the marker saying the page has rendered.
+  async function mountPage(
+    actions: unknown[],
+    options?: PageHeaderActionsOptions,
+  ) {
+    const { default: Outlet } = await import(
+      "../layers/dms-layout/app/build/components/layout/PageHeaderActionsOutlet.vue"
+    );
+    const Page = defineComponent({
+      setup() {
+        usePageHeaderActions(() => h("button", "Export"), options);
+        return () => null;
+      },
+    });
+    const Body = defineComponent({
+      setup() {
+        const pageHost = providePageHeaderActions();
+        const Rendered = defineComponent({
+          setup() {
+            pageHost.markSlotRendered();
+            return () => null;
+          },
+        });
+        return () => [h(Outlet, { actions }), h(Page), h(Rendered)];
+      },
+    });
+    app = createApp(Body);
+    app.component("UButton", ButtonStub);
+    app.component("UTooltip", SlotStub);
+    app.mount(host);
+    await nextTick();
+  }
+
+  it("puts the page's actions after the served buttons by default", async () => {
+    await mountPage([served("add-key"), served("add-language")]);
+    expect(labels()).toEqual(["add-key", "add-language", "Export"]);
+  });
+
+  it("puts them before the served buttons of a greater order", async () => {
+    await mountPage([served("add-key")], { order: -1 });
+    expect(labels()).toEqual(["Export", "add-key"]);
+  });
+
+  it("sorts the served buttons by order, the declared order breaking ties", async () => {
+    await mountPage(
+      [served("last", 2), served("first"), served("second"), served("mid", 1)],
+      { order: 1 },
+    );
+    expect(labels()).toEqual(["first", "second", "mid", "Export", "last"]);
   });
 });

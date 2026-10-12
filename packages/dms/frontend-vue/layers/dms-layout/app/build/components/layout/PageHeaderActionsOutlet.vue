@@ -66,7 +66,11 @@ const showsServerMarkup = computed(
     data-dms-page-header-actions
     :class="ROOT_CLASS"
   >
-    <PageHeaderActionBar :actions="actions" />
-    <component :is="pageActions" v-if="pageActions" />
+    <PageHeaderActionBar
+      :actions="actions"
+      :slot-order="host?.actionsOrder.value"
+    >
+      <component :is="pageActions" v-if="pageActions" />
+    </PageHeaderActionBar>
   </div>
 </template>

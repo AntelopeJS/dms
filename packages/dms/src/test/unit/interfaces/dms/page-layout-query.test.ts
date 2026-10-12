@@ -62,6 +62,13 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
                 ? undefined
                 : { reason: "$lang.unknown_workspace" },
           },
+          {
+            id: "add-language",
+            label: "Add language",
+            target: { type: "page", url: "/languages/new" },
+            availability: ({ query }) =>
+              query?.workspace === "locked" ? { hidden: true } : undefined,
+          },
         ],
       }),
     );
@@ -102,6 +109,18 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
     const bare = await serve();
     expect(bare.headerActions[0]).to.deep.include({ disabled: true });
     expect(bare.headerActionsQuery).to.deep.equal({});
+  });
+
+  it("leaves out the button its availability hides for the query", async () => {
+    const ids = (options: ServedOptions) =>
+      options.headerActions.map((action) => action.id);
+    const locked = await serve({ workspace: "locked" });
+    expect(ids(locked)).to.deep.equal(["download"]);
+    expect(locked.headerActionsQuery).to.deep.equal({ workspace: "locked" });
+    expect(ids(await serve({ workspace: "web" }))).to.deep.equal([
+      "download",
+      "add-language",
+    ]);
   });
 
   it("reads one value per name from the layout request", () => {

@@ -23,6 +23,7 @@ import {
   dispatchQuickActionTarget,
   findServedQuickAction,
 } from "#dms-ui/app/build/utils/dispatchQuickActionTarget";
+import { DEFAULT_PAGE_HEADER_ACTIONS_ORDER } from "../../../composables/layout/usePageHeaderActions";
 
 /**
  * A button of the page header as the server serves it (`DefaultLayout({
@@ -40,14 +41,22 @@ export interface LayoutHeaderAction
   componentId?: string;
   /** Id of that component's button; absent for its built-in add. */
   buttonId?: string;
+  /** Place among the header's buttons, smallest first; `0` by default. */
+  order?: number;
 }
 
 interface PageHeaderActionBarProps {
   actions: LayoutHeaderAction[];
+  /**
+   * Where the default slot (the actions of `usePageHeaderActions`) goes
+   * among the buttons: after every button of an order up to this one.
+   */
+  slotOrder?: number;
 }
 
 interface ResolvedHeaderAction {
   id: string;
+  order: number;
   button: ButtonProps;
   /** Why the button is disabled, shown in a tooltip. */
   disabledReason?: string;
@@ -55,7 +64,9 @@ interface ResolvedHeaderAction {
   previewLocked?: string;
 }
 
-const props = defineProps<PageHeaderActionBarProps>();
+const props = withDefaults(defineProps<PageHeaderActionBarProps>(), {
+  slotOrder: DEFAULT_PAGE_HEADER_ACTIONS_ORDER,
+});
 
 const { processI18n } = useTranslation();
 const siteLayout = useSiteLayout();
@@ -102,6 +113,9 @@ const defaultVariant = (
   color: ButtonProps["color"] | undefined,
 ): ButtonProps["variant"] =>
   !color || color === "neutral" ? "outline" : "solid";
+
+const orderOf = (action: LayoutHeaderAction): number =>
+  action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
 function baseButton(action: LayoutHeaderAction): ButtonProps {
   const color = action.color ?? "neutral";
@@ -174,6 +188,7 @@ function resolveQuickActionButton(
   if (!quickAction) return null;
   return {
     id: action.id,
+    order: orderOf(action),
     button: {
       ...base,
       icon: action.icon ?? quickAction.icon,
@@ -199,6 +214,7 @@ function resolveAction(
     const { componentId, buttonId } = action;
     return {
       id: action.id,
+      order: orderOf(action),
       button: {
         ...base,
         onClick: () => pressComponentButton(componentId, buttonId),
@@ -212,6 +228,7 @@ function resolveAction(
   }
   return {
     id: action.id,
+    order: orderOf(action),
     button: {
       ...base,
       ...(linkProps(action) ?? {
@@ -251,15 +268,42 @@ const resolved = computed(() =>
   props.actions
     .map(resolveAction)
     .filter((action): action is ResolvedHeaderAction => action !== null)
-    .map(lockForPreview),
+    .map(lockForPreview)
+    .sort((first, second) => first.order - second.order),
 );
+
+// The slot (the page's own actions) goes after every served button of an
+// order up to its own: at an equal order the served ones lead, as they did
+// before `order` existed.
+const SLOT_KEY = "dms-page-header-slot";
+
+interface HeaderBarEntry {
+  key: string;
+  /** Absent for the slot's place. */
+  action?: ResolvedHeaderAction;
+}
+
+const entries = computed<HeaderBarEntry[]>(() => {
+  const toEntry = (action: ResolvedHeaderAction) => ({
+    key: action.id,
+    action,
+  });
+  const leading = resolved.value.filter(
+    (action) => action.order <= props.slotOrder,
+  );
+  const trailing = resolved.value.filter(
+    (action) => action.order > props.slotOrder,
+  );
+  return [...leading.map(toEntry), { key: SLOT_KEY }, ...trailing.map(toEntry)];
+});
 </script>
 
 <template>
-  <template v-for="action in resolved" :key="action.id">
+  <template v-for="{ key, action } in entries" :key="key">
+    <slot v-if="!action" />
     <!-- A disabled button fires no pointer event: the tooltip hangs on a
       focusable wrapper, so the reason also reaches keyboard users. -->
-    <UTooltip v-if="action.previewLocked" :text="action.previewLocked">
+    <UTooltip v-else-if="action.previewLocked" :text="action.previewLocked">
       <UButton v-bind="action.button" />
     </UTooltip>
     <UTooltip v-else-if="action.disabledReason" :text="action.disabledReason">

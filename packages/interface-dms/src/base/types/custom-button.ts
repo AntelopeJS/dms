@@ -21,9 +21,20 @@ export interface CustomButtonUnavailability {
 }
 
 /**
+ * The button is left out of what a request is served, as if its permission
+ * were missing: for a button that makes no sense in the current scope (an
+ * "Add key" on a read-only workspace), where a disabled one would only be
+ * noise.
+ */
+export interface CustomButtonHidden {
+  hidden: true;
+}
+
+/**
  * Decides, per request, whether a button can be pressed. Runs server-side
  * while the page layout is filtered, so the button reaches the client already
- * disabled. Returning `undefined` leaves it enabled.
+ * disabled, or not at all. Returning `undefined` leaves it enabled, `{ reason
+ * }` disables it with that reason, and `{ hidden: true }` leaves it out.
  *
  * In a page header, `context.query` holds the query of the page URL, and the
  * header asks again whenever that query changes: a button can depend on the
@@ -34,7 +45,7 @@ export interface CustomButtonUnavailability {
  */
 export type CustomButtonAvailability = (
   context: ComponentFilterContext,
-) => MaybePromise<CustomButtonUnavailability | undefined>;
+) => MaybePromise<CustomButtonUnavailability | CustomButtonHidden | undefined>;
 
 export interface CustomButton {
   /**
@@ -60,8 +71,9 @@ export interface CustomButton {
   /** Absolute permission id the button requires; wins over `permission`. */
   permissionId?: string;
   /**
-   * Disables the button for a request it answers with a reason. A button the
-   * caller lacks the permission for is stripped before this runs.
+   * Disables the button for a request it answers with a reason, or leaves it
+   * out for one it answers `{ hidden: true }`. A button the caller lacks the
+   * permission for is stripped before this runs.
    */
   availability?: CustomButtonAvailability;
   /**

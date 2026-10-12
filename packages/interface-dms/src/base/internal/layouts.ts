@@ -25,6 +25,8 @@ export interface PageHeaderButtonSerialized extends Omit<
   componentId?: string;
   /** Id of that component's button; absent for its built-in add action. */
   buttonId?: string;
+  /** Place among the header's buttons (`PageHeaderButton.order`). */
+  order?: number;
 }
 
 /**

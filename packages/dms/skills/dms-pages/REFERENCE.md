@@ -39,7 +39,12 @@ A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{
 (`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), and an
 `availability` reads `context.query`, asked again when the query changes — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
-`docs/07.interfaces/3.base/6.layout.md#buttons-that-follow-the-page-url`.
+`docs/07.interfaces/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
+answering `{ hidden: true }` leaves the button out for that query (`{ reason }` only
+disables it): no Vue header to hide "Add key" on a read-only workspace. `order` on a
+header button and `usePageHeaderActions(render, { order })` interleave served buttons with a
+component's client-side ones (default `0`, served first on a tie: `order: -1` puts a Vue
+"Export" before a served "Add key") — `docs/07.interfaces/3.base/6.layout.md#ordering-the-header`.
 
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
 points at an `ActionTarget`. A `drawer` target opens from the bottom; give it

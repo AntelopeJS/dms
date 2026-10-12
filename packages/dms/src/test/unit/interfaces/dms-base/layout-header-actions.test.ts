@@ -7,6 +7,11 @@ import {
   withComponentHeaderButtons,
 } from "@antelopejs/interface-dms/page/internal/layout-filter";
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
+import { resolveCustomButtons } from "@antelopejs/interface-dms/base/table-view/internal/request-filter";
+import type {
+  CustomButton,
+  CustomButtonSerialized,
+} from "@antelopejs/interface-dms/base/types/custom-button";
 
 const CONTEXT = { tenantId: "tenant", user: undefined };
 
@@ -69,6 +74,20 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
         confirm: { title: "Purge?", confirmText: "PURGE" },
       },
     ]);
+  });
+
+  it("serves the order a button declares", () => {
+    const layout = DefaultLayout({
+      headerActions: [
+        {
+          id: "add",
+          label: "Add",
+          target: { type: "page", url: "/a" },
+          order: 1,
+        },
+      ],
+    });
+    expect(actionsOf(layout.options)[0]).to.deep.include({ order: 1 });
   });
 
   it("keeps the full-width default next to the buttons", () => {
@@ -157,6 +176,41 @@ describe("[unit] interfaces/dms/page — header buttons served per caller", () =
       disabledReason: "$seats.full",
     });
     expect(invite).to.not.have.property("availability");
+  });
+
+  it("leaves out a button its availability hides, for that query only", async () => {
+    const scoped = DefaultLayout({
+      headerActions: [
+        link("open"),
+        {
+          ...link("add-key"),
+          availability: ({ query }) =>
+            query?.workspace === "modules" ? { hidden: true } : undefined,
+        },
+      ],
+    });
+    const serve = async (query: Record<string, string>) =>
+      (await filterLayoutHeaderActions(
+        scoped,
+        async () => new Set(),
+        { ...CONTEXT, query },
+        "pages.lang",
+      ))!.options as {
+        headerActions: PageHeaderButtonSerialized[];
+        headerActionsQuery?: Record<string, string>;
+      };
+
+    const readOnly = await serve({ workspace: "modules" });
+    expect(readOnly.headerActions.map((action) => action.id)).to.deep.equal([
+      "open",
+    ]);
+    expect(readOnly.headerActionsQuery).to.deep.equal({ workspace: "modules" });
+    const own = await serve({ workspace: "own" });
+    expect(own.headerActions.map((action) => action.id)).to.deep.equal([
+      "open",
+      "add-key",
+    ]);
+    expect(own.headerActions[1]).to.not.have.property("disabled");
   });
 
   it("hands availability the page query, and says which query it served", async () => {
@@ -332,5 +386,46 @@ describe("[unit] interfaces/dms/page — a table's buttons placed in the header"
         buttonId: undefined,
       },
     ]);
+  });
+});
+
+describe("[unit] interfaces/dms-base/table-view — a toolbar button its availability hides", () => {
+  it("is left out of the buttons served, the others kept", async () => {
+    const declared: CustomButton[] = [
+      { id: "export", label: "Export", target: { type: "page", url: "/x" } },
+      {
+        id: "add",
+        label: "Add",
+        target: { type: "page", url: "/new" },
+        availability: () => ({ hidden: true }),
+      },
+      {
+        id: "purge",
+        label: "Purge",
+        target: { type: "page", url: "/purge" },
+        availability: () => ({ reason: "$locked" }),
+      },
+    ];
+    const serialized = declared.map(
+      ({ availability: _availability, ...button }) =>
+        button as CustomButtonSerialized,
+    );
+
+    const served = await resolveCustomButtons(
+      new Set(),
+      declared,
+      serialized,
+      "pages.lang.table",
+      CONTEXT,
+    );
+
+    expect(served?.map((button) => button.id)).to.deep.equal([
+      "export",
+      "purge",
+    ]);
+    expect(served?.[1]).to.deep.include({
+      disabled: true,
+      disabledReason: "$locked",
+    });
   });
 });

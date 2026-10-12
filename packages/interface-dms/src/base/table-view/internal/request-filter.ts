@@ -182,7 +182,7 @@ export function adaptRowActions({
 /**
  * The custom buttons served to one request: those whose permission the caller
  * lacks are stripped, and those whose `availability` refuses the request are
- * disabled with its reason.
+ * disabled with its reason, or stripped when it hides them.
  *
  * @internal
  */
@@ -204,13 +204,12 @@ export async function resolveCustomButtons(
     ) {
       continue;
     }
-    kept.push(
-      await applyButtonAvailability(
-        declared?.availability,
-        serialized,
-        context,
-      ),
+    const served = await applyButtonAvailability(
+      declared?.availability,
+      serialized,
+      context,
     );
+    if (served) kept.push(served);
   }
   return kept;
 }

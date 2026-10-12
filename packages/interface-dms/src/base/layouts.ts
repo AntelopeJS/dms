@@ -7,6 +7,19 @@ import type {
   PageHeaderButtonDeclared,
 } from "./internal/layouts";
 
+/** A button of the page header: a `CustomButton` that may say where it goes. */
+export interface PageHeaderButton extends CustomButton {
+  /**
+   * Place among the header's buttons, smallest first; defaults to `0`. The
+   * header sorts the buttons the layout serves and the actions a Vue
+   * component of the page adds (`usePageHeaderActions(render, { order })`)
+   * together; at an equal order the served buttons come first, in the order
+   * declared. A table view's buttons placed in the header (`placement:
+   * "header"`) take `0`.
+   */
+  order?: number;
+}
+
 export interface DefaultLayoutOptions {
   /**
    * Content spans the whole panel. Defaults to `true`: dashboard pages are
@@ -32,15 +45,16 @@ export interface DefaultLayoutOptions {
    * confirmation and availability. A string `permission` names an action of
    * the page, relative to its permission id; `permissionId` is an absolute
    * one. A table view's own buttons join them with `placement: "header"`.
+   * An `availability` disables a button for one request, or hides it.
    */
-  headerActions?: CustomButton[];
+  headerActions?: PageHeaderButton[];
 }
 
 // A button without an id is keyed by its place in the header.
 const HEADER_BUTTON_ID_PREFIX = "header-";
 
 function declareHeaderButton(
-  button: CustomButton,
+  button: PageHeaderButton,
   index: number,
 ): PageHeaderButtonDeclared {
   const { id, target, confirm, placement: _placement, ...rest } = button;

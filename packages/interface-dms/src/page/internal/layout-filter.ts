@@ -42,7 +42,8 @@ async function serveHeaderButton(
  * The page layout (the frame around the components) as one caller may see it:
  * the header buttons whose gate the caller fails are left out — a `permission`
  * names an action of the page, relative to `pagePermissionId` — and those
- * whose `availability` refuses the request are disabled with its reason.
+ * whose `availability` refuses the request are disabled with its reason, or
+ * left out when it hides them.
  * `loadPermissions` is only called when a button declares a permission. When
  * one declares an `availability`, the layout says which page query it was
  * resolved for (`headerActionsQuery`), so the header asks again for another.
