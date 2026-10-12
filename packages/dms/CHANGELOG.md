@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.7.12
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.11...v0.7.12)
+
+### 🚀 Enhancements
+
+- **dms:** Give custom components the live, form and record APIs stock blocks use ([#225](https://github.com/AntelopeJS/dms/pull/225))
+- **dms:** Close the module gaps left by the API console ([#233](https://github.com/AntelopeJS/dms/pull/233))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.7 ([18ea2af5](https://github.com/AntelopeJS/dms/commit/18ea2af5))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.11
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.10...v0.7.11)
