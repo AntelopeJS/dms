@@ -17,6 +17,10 @@ import {
   type FormValidator,
 } from "../../composables/form/types/validation";
 import { FORM_FIELD_LOADING_KEY } from "../../composables/form/types/field-loading";
+import {
+  FORM_HANDLE_KEY,
+  linkedFieldId,
+} from "../../build/composables/form/enclosingForm";
 import { FORM_CONTENT_LANGUAGE_KEY } from "../../composables/form/types/content-language";
 import { DMS_SECTION_SURFACE_KEY } from "../../build/components/section/context";
 import DmsSaveBar from "../save-bar/SaveBar.vue";
@@ -30,7 +34,7 @@ import { DMS_CONTAINER_KEY } from "../../build/composables/containers/context";
 import { useFormDirty } from "../../composables/unsaved-changes/useFormDirty";
 import { useUnsavedChanges } from "../../composables/unsaved-changes/useUnsavedChanges";
 import { formSaveMode } from "../../build/composables/form/formFooter";
-import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
+import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import { formatRecordLabel } from "../../build/composables/table-view/utils/formTexts";
 import {
   FORM_ENTRY_CONTEXT_KEY,
@@ -166,6 +170,13 @@ async function focusField(name: string | undefined): Promise<void> {
     return;
   }
   row?.scrollIntoView({ block: "center" });
+}
+
+/** Brings a field into view and focuses it: a link's anchor, a field's request. */
+async function revealField(fieldId: string): Promise<void> {
+  await formSettled();
+  fieldRow(fieldId)?.scrollIntoView({ block: "center" });
+  await focusField(fieldId);
 }
 
 /**
@@ -516,6 +527,13 @@ function onSubmit(event: Parameters<typeof handleSubmit>[0]) {
 }
 
 provide(FORM_VALIDATOR_KEY, registerValidator);
+provide(FORM_HANDLE_KEY, {
+  submit: async () => {
+    await form.value?.submit();
+  },
+  registerValidator,
+  revealField,
+});
 provide(FORM_FIELD_LOADING_KEY, setFieldLoading);
 provide(FORM_CONTENT_LANGUAGE_KEY, "*");
 
@@ -578,6 +596,25 @@ if (props.labelKey && !inFormContainer) {
       formatRecordLabel(initialValues.value[labelKey], locale.value),
     );
   });
+}
+
+// A page opened on a field's anchor (`#retentionDays`, the id of its
+// control) brings it into view and focuses it once drawn: a link followed
+// inside the app gets no jump from the browser, and the fields of a record
+// exist only once it loaded. A form in a drawer or a modal follows none: the
+// anchor is the page's.
+if (!inFormContainer && !container) {
+  const followFieldAnchor = () => {
+    const fieldId = linkedFieldId(window.location.hash, allFieldIds.value);
+    if (fieldId) void revealField(fieldId);
+  };
+  onMounted(() => {
+    followFieldAnchor();
+    window.addEventListener("hashchange", followFieldAnchor);
+  });
+  onBeforeUnmount(() =>
+    window.removeEventListener("hashchange", followFieldAnchor),
+  );
 }
 
 const isHorizontal = props.fieldsOrientation !== "vertical";

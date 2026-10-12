@@ -703,7 +703,9 @@
       "error_title": "Impossible de charger l'activité",
       "error_description": "Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer",
-      "list_label": "Activité"
+      "list_label": "Activité",
+      "show_more": "Afficher {count} de plus",
+      "show_fewer": "Afficher moins"
     },
     "leave_guard": {
       "title": "Abandonner les modifications non enregistrées ?",
@@ -746,7 +748,12 @@
       "paused": "En pause",
       "resume": "Reprendre",
       "reason_hidden": "onglet masqué",
-      "polling": "sans temps réel, relecture régulière"
+      "polling": "sans temps réel, relecture régulière",
+      "table_held": "Tableau figé",
+      "held_row_open": "ligne ouverte",
+      "held_searching": "recherche active",
+      "held_sorted": "tri autre que celui par défaut",
+      "held_scrolled": "défilé vers le bas"
     }
   }
 }

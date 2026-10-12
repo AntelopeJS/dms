@@ -98,6 +98,18 @@ export interface ActivityFeedProps
   /** Shows at most this many entries; `skeletonCount` never exceeds it. */
   maxItems?: number;
   /**
+   * Shows the first this many entries and, under them, a "Show N more"
+   * button that unfolds the rest (up to `maxItems`) and folds them back:
+   * the card stays short without hiding what it holds.
+   */
+  visibleItems?: number;
+  /**
+   * Entries wrap their title, details and detail line over as many lines as
+   * they need, a long path breaking anywhere, instead of cutting each to one
+   * line with an ellipsis. Defaults to `false`.
+   */
+  wrap?: boolean;
+  /**
    * The card fills its grid cell instead of growing with its entries, which
    * scroll inside it under a fixed head: the cards beside it in the row set
    * the row's height. Once the cells stack, the list scrolls past a height
@@ -131,12 +143,15 @@ const DEFAULT_ICON = "i-ph-pulse";
  *   actions: [{ label: "View all", to: "/audit" }],
  * })
  *
- * // Head: "NEEDS ATTENTION [4]  Last 24 h"; each entry a third mono line.
+ * // Head: "NEEDS ATTENTION [4]  Last 24 h"; each entry a third mono line,
+ * // wrapped rather than cut, three shown before "Show 1 more".
  * ActivityFeed({
  *   title: "Needs attention",
  *   badge: "Last 24 h",
  *   fetchUrl: "/api/attention", // { items: [{ …, detail }], count: 4 }
  *   groupByDay: false,
+ *   wrap: true,
+ *   visibleItems: 3,
  * })
  * ```
  */
@@ -226,6 +241,31 @@ export const ActivityFeedSchema = z.object({
     widget: "number",
     min: 1,
   }),
+  visibleItems: ui(
+    z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe(
+        'Entries shown before a "Show N more" button unfolds the rest.',
+      ),
+    {
+      label: "Entries before Show more",
+      group: "appearance",
+      widget: "number",
+      min: 1,
+    },
+  ),
+  wrap: ui(
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Entries wrap their texts rather than cutting them to one line.",
+      ),
+    { label: "Wrap entries", group: "appearance", widget: "switch" },
+  ),
   fillHeight: ui(
     z
       .boolean()

@@ -28,7 +28,7 @@ vi.mock(
   "../layers/dms-layout/app/build/components/layout/QuickActionsPopover.vue",
   () => ({ default: () => null }),
 );
-vi.mock("#dms-core/app/build/composables/page/usePageRecordLabel", () => ({
+vi.mock("#dms-core/app/composables/page/usePageRecordLabel", () => ({
   usePageRecordLabel: () => ({ label: ref(null) }),
 }));
 

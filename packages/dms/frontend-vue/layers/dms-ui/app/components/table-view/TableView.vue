@@ -827,6 +827,8 @@ const liveHold = useTableLiveHold({
   gate: () => liveGate,
   signals: {
     isRowOpen: () => openRowId.value !== undefined,
+    isSearching: () => !!effectiveGlobalFilter.value,
+    isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
     tableElement: () => tableRoot.value?.$el ?? null,
   },
 });
@@ -2102,9 +2104,15 @@ onMounted(() => {
     @duplicate="handleRowDuplicate"
     @edit="handleRowEdit"
   >
-    <template v-if="liveHold.newCount.value > 0" #notice>
+    <template
+      v-if="liveHold.newCount.value > 0 || liveHold.reason.value"
+      #notice
+    >
       <LiveHoldBanner
         :count="liveHold.newCount.value"
+        :reason="liveHold.reason.value"
+        :missed-label="liveHold.missedLabel"
+        :detail="liveHold.missedDetail.value"
         @show="liveHold.showNew"
       />
     </template>

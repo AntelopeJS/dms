@@ -4,7 +4,7 @@ import NotificationPopover from "../notification/NotificationPopover.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
 import { useHeaderActionControls } from "../../composables/layout/useHeaderActionControls";
-import { usePageRecordLabel } from "#dms-core/app/build/composables/page/usePageRecordLabel";
+import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 
 const HOME_ICON = "i-ph-house-light";
 /** Breadcrumb slot of the folded middle crumbs on small screens. */

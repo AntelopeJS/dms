@@ -103,6 +103,7 @@ export interface TableViewSourceOptions extends Pick<
   | "pinnedRows"
   | "realtimeTopic"
   | "liveHold"
+  | "queryParamFilters"
 > {
   /** The columns, keyed by row field, in their declared `order`. */
   columns: Record<string, TableViewSourceColumn>;
@@ -224,9 +225,35 @@ const sourceName = (options: TableViewSourceOptions): string =>
   `TableView.fromSource(${options.fetchUrl})`;
 
 /**
+ * Tabs, quick filters and `queryParamFilters` send column filters
+ * (`filter_<field>`), which only a route reading them can apply.
+ */
+function assertSourceFilters(
+  where: string,
+  options: TableViewSourceOptions,
+): void {
+  const filtering =
+    (options.tabs?.some((tab) => tab.filter) ?? false) ||
+    (options.quickFilters?.length ?? 0) > 0;
+  if (filtering && !options.capabilities?.filter) {
+    throw new Error(
+      `${where} filters with tabs or quick filters, which needs capabilities.filter: the route applies the filters`,
+    );
+  }
+  const hasQueryParamFilters =
+    Object.keys(options.queryParamFilters ?? {}).length > 0;
+  if (hasQueryParamFilters && !options.capabilities?.filter) {
+    throw new Error(
+      `${where} sets queryParamFilters, which needs capabilities.filter: the route applies the filters`,
+    );
+  }
+}
+
+/**
  * The checks `TableView()` runs that apply to a source — the page size,
- * the display ids, a tab filtering or linking — and its own: tabs and quick
- * filters send column filters, which only a route reading them can apply,
+ * the display ids, a tab filtering or linking — and its own: tabs, quick
+ * filters and `queryParamFilters` send column filters, which only a route
+ * reading them can apply,
  * and every key an option names (card fields included) must be a column.
  */
 function assertSourceOptions(options: TableViewSourceOptions): void {
@@ -240,14 +267,7 @@ function assertSourceOptions(options: TableViewSourceOptions): void {
       `${where} sets fetchRowUrl without ${ROW_ID_TOKEN}: the route needs the row's id`,
     );
   }
-  const filtering =
-    (options.tabs?.some((tab) => tab.filter) ?? false) ||
-    (options.quickFilters?.length ?? 0) > 0;
-  if (filtering && !options.capabilities?.filter) {
-    throw new Error(
-      `${where} filters with tabs or quick filters, which needs capabilities.filter: the route applies the filters`,
-    );
-  }
+  assertSourceFilters(where, options);
   const keys = [
     ...(options.tabs ?? []).flatMap((tab) =>
       tab.filter ? [tab.filter.accessorKey] : [],
@@ -337,6 +357,7 @@ export function tableViewFromSource(
       searchPlaceholder: options.searchPlaceholder,
       searchShortcut: options.searchShortcut,
       quickFilters: options.quickFilters,
+      queryParamFilters: options.queryParamFilters,
       tabs: serializeTableViewTabs(options.tabs),
       displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,

@@ -1,31 +1,9 @@
-import { computed } from "vue";
-
-interface PageRecordLabel {
-  path: string;
-  label: string;
-}
-
-const STATE_KEY = "dms-page-record-label";
-
 /**
- * The label of the row a page is about, e.g. the task an edit page changes:
- * the form that loads the row sets it, the breadcrumb ends with it. Held with
- * the page's path, so it never outlives its page.
+ * The former path of `usePageRecordLabel`, kept for the modules that import
+ * it from here. Import it from `#dms-core/app/composables/page/usePageRecordLabel`,
+ * or call the auto-imported `usePageRecordLabel()`.
+ *
+ * @internal
+ * @deprecated Use `#dms-core/app/composables/page/usePageRecordLabel`.
  */
-export function usePageRecordLabel() {
-  const state = useDmsState<PageRecordLabel | null>(STATE_KEY, () => null);
-  const route = useDmsRoute();
-
-  const label = computed(() =>
-    state.value && state.value.path === route.path
-      ? state.value.label
-      : undefined,
-  );
-
-  /** Names the row of the page at `path`; no label clears it. */
-  const setLabel = (path: string, value: string | undefined) => {
-    state.value = value ? { path, label: value } : null;
-  };
-
-  return { label, setLabel };
-}
+export { usePageRecordLabel } from "../../../composables/page/usePageRecordLabel";

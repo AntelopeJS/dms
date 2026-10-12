@@ -32,6 +32,16 @@ describe("[unit] interfaces/dms-base — ActivityFeed head and entry detail", ()
     expect(valid("ActivityFeed", { count: -1 })).to.equal(false);
   });
 
+  it("takes visibleItems and wrap, both optional", () => {
+    const { config } = declared("ActivityFeed");
+    expect(config.visibleItems?.optional).to.equal(true);
+    expect(config.wrap?.optional).to.equal(true);
+    expect(valid("ActivityFeed", { visibleItems: 3, wrap: true })).to.equal(
+      true,
+    );
+    expect(valid("ActivityFeed", { visibleItems: 0 })).to.equal(false);
+  });
+
   it("takes a third line on an entry, as text or composed text", () => {
     const entry = declared("ActivityFeed").config.items?.items?.properties;
     expect(entry?.detail?.optional).to.equal(true);

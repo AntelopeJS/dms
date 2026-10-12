@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, resolveComponent } from "vue";
+import { computed, ref, resolveComponent } from "vue";
 import DmsActivityItem from "../activity/ActivityItem.vue";
 import DmsBlockActions, {
   type BlockAction,
@@ -49,6 +49,16 @@ interface ActivityFeedProps extends Partial<DefaultComponentProps> {
   /** Shows at most this many entries. */
   maxItems?: number;
   /**
+   * Shows the first this many entries, and a "Show N more" button under them
+   * that unfolds the rest (up to `maxItems`), and folds them back.
+   */
+  visibleItems?: number;
+  /**
+   * Entries wrap their title, details and detail line rather than cutting
+   * each to one line with an ellipsis.
+   */
+  wrap?: boolean;
+  /**
    * Fills its grid cell instead of growing with its entries, which scroll
    * under the fixed head: the cards beside it set the row's height.
    */
@@ -80,6 +90,8 @@ const props = withDefaults(defineProps<ActivityFeedProps>(), {
   realtimeTopic: undefined,
   groupByDay: true,
   maxItems: undefined,
+  visibleItems: undefined,
+  wrap: false,
   fillHeight: false,
   skeletonCount: undefined,
   actions: () => [],
@@ -119,13 +131,36 @@ const entries = computed<ActivityFeedItem[]>(() =>
   props.maxItems ? list.value.slice(0, props.maxItems) : list.value,
 );
 
+// Folded, the feed shows its first `visibleItems` entries; the button under
+// them unfolds the rest and folds them back.
+const isUnfolded = ref(false);
+const foldedCount = computed(() =>
+  props.visibleItems
+    ? Math.max(0, entries.value.length - props.visibleItems)
+    : 0,
+);
+const shownEntries = computed<ActivityFeedItem[]>(() =>
+  foldedCount.value > 0 && !isUnfolded.value
+    ? entries.value.slice(0, props.visibleItems)
+    : entries.value,
+);
+const foldLabel = computed(() =>
+  isUnfolded.value
+    ? t("dms.activity_feed.show_fewer")
+    : t(
+        "dms.activity_feed.show_more",
+        { count: foldedCount.value },
+        foldedCount.value,
+      ),
+);
+
 const days = computed<ActivityFeedDay[]>(() =>
   props.groupByDay
-    ? groupActivityByDay(entries.value, locale.value, {
+    ? groupActivityByDay(shownEntries.value, locale.value, {
         today: t("dms.activity_feed.today"),
         yesterday: t("dms.activity_feed.yesterday"),
       })
-    : [{ key: "all", items: entries.value }],
+    : [{ key: "all", items: shownEntries.value }],
 );
 
 const trailingOf = (item: ActivityFeedItem): string | undefined => {
@@ -158,11 +193,12 @@ const metaOf = (item: ActivityFeedItem): string | undefined =>
 const isFirstLoad = isPending;
 
 // The placeholder takes the feed's loaded shape: as many rows as it will show
-// (`skeletonCount`, else `maxItems`; never more than `maxItems`), under day
-// separators when the entries are grouped by day.
+// (`skeletonCount`, else `visibleItems` or `maxItems`; never more than
+// those), under day separators when the entries are grouped by day.
 const skeletonDays = computed<number[][]>(() => {
-  const wanted = props.skeletonCount ?? props.maxItems ?? SKELETON_ROWS;
-  const count = props.maxItems ? Math.min(wanted, props.maxItems) : wanted;
+  const shown = props.visibleItems ?? props.maxItems;
+  const wanted = props.skeletonCount ?? shown ?? SKELETON_ROWS;
+  const count = shown ? Math.min(wanted, shown) : wanted;
   const perDay = props.groupByDay ? SKELETON_ROWS_PER_DAY : count;
   const days: number[][] = [];
   for (let start = 0; start < count; start += perDay) {
@@ -328,10 +364,25 @@ const wrapperProps = computed(() =>
             :trailing="trailingOf(item)"
             :unread="item.unread"
             :mono="props.mono"
+            :wrap="props.wrap"
             :to="item.to"
             :interactive="!!item.to"
           />
         </section>
+        <div
+          v-if="foldedCount > 0"
+          class="dms-activity-feed__fold border-t border-(--ui-border-muted) px-[18px] pt-2 pb-1"
+        >
+          <UButton
+            :label="foldLabel"
+            :aria-expanded="isUnfolded"
+            color="neutral"
+            variant="link"
+            size="xs"
+            class="p-0 font-medium"
+            @click="isUnfolded = !isUnfolded"
+          />
+        </div>
       </div>
     </div>
   </component>

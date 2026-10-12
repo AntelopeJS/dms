@@ -42,12 +42,18 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"` to share the
   choice between pages; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
-  `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled }` also
-  holds the table alone. Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
+  `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
+  whileSearching, whileSorted }` also holds the table alone, its strip saying why ("Table on hold ·
+  search active"); `liveHold.missedLabel` words its "N new", and paused, it adds the
+  `setMissedDetail()` breakdown ("12 new requests · 2 in 5xx"). Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
   module may batch publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
   A custom component follows that state with `usePageLive()`, holds the page with `hold(reason)` /
-  `release()` and adds a breakdown with `setMissedDetail()`; `refreshPageBlocks()` (user actions) always
+  `release()` and adds a breakdown with `setMissedDetail()`; a custom component that reads its own data
+  on a topic calls `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })`, gated exactly like a
+  built-in block (never a throttle of its own); `refreshPageBlocks()` (user actions) always
   reads, `refreshLivePageBlocks()` (timers, feeds) is held while paused.
+  A custom component on a record page names its record at the end of the breadcrumb with
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)` (auto-imported; never the `build/` path).
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.
@@ -66,6 +72,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   duration, an error message), and `DurationDisplay({ format: "ms" })` writes "2,149 ms" on every row;
   and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
   A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
+  An `ActivityFeed` whose entries must be read whole sets `wrap: true` (no ellipsis; leave `fillHeight`
+  off so the card grows) and `visibleItems: N` for a "Show N more" fold.
   A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a
   text field `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
   A `TableView` over a shared controller hides a column on one page with
@@ -73,6 +81,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   just to hide it.
   A long sectioned `Form` groups its navigation with `FormSection.navGroup` ("Billing", "Legal"),
   in the side list and in the `sectionNav: "jump"` chips alike (a form whose side column holds a preview).
+  A module's own `inputComponent` submits its form, adds a validator and focuses a field with
+  `useEnclosingForm()` (never `closest("form")` / `requestSubmit()`), and a link ending in `#<fieldId>`
+  opens the form on that field, focused.
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
   keeps a pill tab list to its tabs' width.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
