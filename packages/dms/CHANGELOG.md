@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.7.10
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.9...v0.7.10)
+
+### 🚀 Enhancements
+
+- **interface:** Expose the API base URL to modules with GetApiBaseUrl ([#215](https://github.com/AntelopeJS/dms/pull/215))
+- **confirm:** Add a secondary action to ConfirmDialog ([#214](https://github.com/AntelopeJS/dms/pull/214))
+- **period:** Add relative range label, comparison toggle, all-time preset and shared remembered period ([#209](https://github.com/AntelopeJS/dms/pull/209))
+- **blocks:** Close the stock block gaps left by the dms-api migration ([#210](https://github.com/AntelopeJS/dms/pull/210))
+- **blocks:** Treat a 404 as not found, and draw it the same in a Guard ([#216](https://github.com/AntelopeJS/dms/pull/216))
+- **table-view:** Close the search and side panel gaps of a custom request log ([#212](https://github.com/AntelopeJS/dms/pull/212))
+- **page:** Bring the live mode to parity with custom live controls ([#211](https://github.com/AntelopeJS/dms/pull/211))
+- **table-view:** Pin rows, fall back to the default sort, name row actions after the row ([#218](https://github.com/AntelopeJS/dms/pull/218))
+- **page:** Let header actions follow the page query ([#219](https://github.com/AntelopeJS/dms/pull/219))
+
+### 🩹 Fixes
+
+- **realtime:** Keep a page's topics when it remounts at the same path ([#213](https://github.com/AntelopeJS/dms/pull/213))
+- **preferences:** Keep the server-read table state in a compact cookie and the rest in localStorage ([#217](https://github.com/AntelopeJS/dms/pull/217))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.6 ([71a65f72](https://github.com/AntelopeJS/dms/commit/71a65f72))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.9
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.8...v0.7.9)
