@@ -34,6 +34,8 @@ interface Props extends DefaultComponentProps {
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
   showLegend?: boolean;
+  /** The wrapped chart draws its own legend, naming each series. */
+  showSeriesLegend?: boolean;
   primaryLabel?: string;
   comparisonLabel?: string;
 }
@@ -53,6 +55,7 @@ const DEFAULT_COMPARISON_LABEL_KEY = "dms.chart.legend_comparison";
 const props = withDefaults(defineProps<Props>(), {
   showDelta: true,
   showLegend: true,
+  showSeriesLegend: false,
   valueFormat: "compact",
   currencyCode: "EUR",
 });
@@ -126,7 +129,7 @@ const nestedContext = reactive<NestedChartContext>({
   cardSeries: [],
   cardComparisonSeries: [],
   isLoading: false,
-  hideLegend: true,
+  hideLegend: !props.showSeriesLegend,
   valueFormat: props.valueFormat,
   currencyCode: props.currencyCode,
   valuePrecision: props.valuePrecision,
@@ -138,6 +141,7 @@ watchEffect(() => {
   nestedContext.cardSeries = cardSeries.value;
   nestedContext.cardComparisonSeries = cardComparisonSeries.value;
   nestedContext.isLoading = isLoading.value;
+  nestedContext.hideLegend = !props.showSeriesLegend;
   nestedContext.valueFormat = props.valueFormat;
   nestedContext.currencyCode = props.currencyCode;
   nestedContext.valuePrecision = props.valuePrecision;

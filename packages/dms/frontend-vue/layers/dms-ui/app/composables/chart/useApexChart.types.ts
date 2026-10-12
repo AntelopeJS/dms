@@ -3,6 +3,7 @@ import type {
   ChartAnnotation,
   ChartAutoYRange,
   ChartCurve,
+  ChartLegendPosition,
   ChartSeries,
   ChartType,
   ChartXAxis,
@@ -35,6 +36,7 @@ export interface UseApexChartInput {
   showGrid?: boolean;
   showTooltip?: boolean;
   showLegend?: boolean;
+  legendPosition?: ChartLegendPosition;
   smooth?: boolean;
   curve?: ChartCurve;
   stacked?: boolean;

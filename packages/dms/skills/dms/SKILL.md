@@ -87,7 +87,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   "min" | "max" | "step" }`) when it keeps another value than the one typed, and redraws the kept
   value itself: a note "1020 → 1,000" listens to it — never a forced remount (`:key`).
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
-  keeps a pill tab list to its tabs' width.
+  keeps a pill tab list to its tabs' width. A `ChartCard` plotting several series names them with
+  `showSeriesLegend: true` (placed by the chart's `legendPosition: "top" | "bottom"`) — never a raw
+  Apex `legend` in `rawOptions`.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
   (the text to copy instead, e.g. a full URL behind a short label).
   A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on

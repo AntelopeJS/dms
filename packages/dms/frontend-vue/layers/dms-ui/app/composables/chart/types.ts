@@ -64,6 +64,9 @@ export interface ChartSeries {
 
 export type ChartCurve = "smooth" | "straight" | "stepline";
 
+/** Mirror of `ChartLegendPosition`: where a chart draws its legend. */
+export type ChartLegendPosition = "top" | "bottom";
+
 /** Opt-in expansion of native Y bounds to include annotation lines and bands. */
 export interface ChartAutoYRange {
   /** Outward fraction of each bound's magnitude (or 1 at zero). Defaults to 0.08. */

@@ -54,6 +54,10 @@ export type ChartColor = ChartColorValue | ChartColorValue[];
 
 export type ComparisonStyle = "dashed" | "solid" | "dimmed";
 
+/** Where a chart draws the legend naming its series. */
+export const CHART_LEGEND_POSITIONS = ["top", "bottom"] as const;
+export type ChartLegendPosition = (typeof CHART_LEGEND_POSITIONS)[number];
+
 /** How a card or chart renders a numeric value. */
 export const VALUE_FORMATS = [
   "number",
@@ -139,6 +143,13 @@ interface BaseChartProps extends BaseComponentProps {
   width?: number;
   showTooltip?: boolean;
   showLegend?: boolean;
+  /**
+   * Where the legend sits: `top` (right-aligned above the plot, the default
+   * of the axis charts) or `bottom` (the default of the donut, pie, radial
+   * and radar charts). Drawn in the dashboard's colours and type, like the
+   * tooltip.
+   */
+  legendPosition?: ChartLegendPosition;
   /**
    * Where the data is read from. `{{params.X}}` and `{{query.X}}` name the
    * page URL, as in `BlockItemsSource.fetchUrl`.
