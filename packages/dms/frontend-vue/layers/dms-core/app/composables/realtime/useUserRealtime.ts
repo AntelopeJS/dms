@@ -60,6 +60,7 @@ interface UserRealtimeState {
   appliedPageId: Ref<string | null>;
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
+  reconciling: Promise<void>;
   cancelConnect?: () => void;
 }
 
@@ -247,7 +248,7 @@ const callPageEndpoint = async (
   });
 };
 
-const reconcilePage = async (
+const applyDesiredPage = async (
   state: UserRealtimeState,
   baseUrl: string,
 ): Promise<void> => {
@@ -259,9 +260,24 @@ const reconcilePage = async (
   // A reconnect during the call replaced the session: the page is applied to
   // the dead one, and the new one still needs it.
   if (state.sessionId.value !== sessionId) return;
-  if ((state.pageId.value ?? null) === desired) {
-    state.appliedPageId.value = desired;
-  }
+  state.appliedPageId.value = desired;
+};
+
+/**
+ * Runs one page call at a time. Two overlapping calls would each compare the
+ * desired page with what the server held before either landed: an unsubscribe
+ * in flight followed by a subscribe to the same page would skip the
+ * subscribe, and the session would end up with no page at all.
+ */
+const reconcilePage = (
+  state: UserRealtimeState,
+  baseUrl: string,
+): Promise<void> => {
+  const run = state.reconciling
+    .catch(() => undefined)
+    .then(() => applyDesiredPage(state, baseUrl));
+  state.reconciling = run;
+  return run;
 };
 
 /**
@@ -290,6 +306,7 @@ const buildApi = (): UserRealtimeApi => {
     appliedPageId,
     handlers: new Map(),
     snapshots: new Map(),
+    reconciling: Promise.resolve(),
   };
 
   const config = useDmsRuntimeConfig();
