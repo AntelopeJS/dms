@@ -13,7 +13,8 @@ import { notFoundTexts } from "../../build/utils/fetchNotFound";
 // `Guard` block (interface-dms `base/guard`): renders its children unchanged
 // unless a route says there is nothing for them, then one EmptyState (the
 // `fallback`, with the answer's `emptyState` laid over it) in their place.
-// `display: contents`, so the children lay out as if the guard were not there.
+// Several children stack with the room the page leaves between its blocks,
+// as in a tab: the page spaces the guard, not what it holds.
 interface GuardProps extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
@@ -67,7 +68,7 @@ const fallback = computed<GuardFallback | null>(() => {
 </script>
 
 <template>
-  <div class="contents" data-dms-guard>
+  <div class="space-y-6" data-dms-guard>
     <DmsEmptyStateBlock v-if="fallback" v-bind="fallback" />
     <slot v-else />
   </div>
