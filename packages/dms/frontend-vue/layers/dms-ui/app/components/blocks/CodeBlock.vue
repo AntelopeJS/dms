@@ -4,6 +4,7 @@ import DmsCodeSnippet from "../code-snippet/CodeSnippet.vue";
 import DmsBlockStatus from "../../build/components/blocks/BlockStatus.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
+import { PLAIN_CODE_LANGUAGE } from "../../build/utils/codeLanguages";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
@@ -58,7 +59,10 @@ const { data, isLoading, error, refresh } = useChartFetch<CodeBlockResponse>({
 });
 
 const code = computed(() => data.value?.code ?? props.code);
-const language = computed(() => data.value?.language ?? props.language);
+// The block always heads its code with its language, plain text included.
+const language = computed(
+  () => data.value?.language ?? props.language ?? PLAIN_CODE_LANGUAGE,
+);
 const title = computed(() =>
   props.title ? processText(props.title) : undefined,
 );

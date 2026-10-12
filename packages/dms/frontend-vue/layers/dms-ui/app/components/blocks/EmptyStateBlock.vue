@@ -5,6 +5,7 @@ import DmsEmptyState, {
   type EmptyStateVariant,
 } from "../empty-state/EmptyState.vue";
 import DmsCodeSnippet from "../code-snippet/CodeSnippet.vue";
+import { PLAIN_CODE_LANGUAGE } from "../../build/utils/codeLanguages";
 import DmsBlockActions, {
   type BlockAction,
 } from "../../build/components/blocks/BlockActions.vue";
@@ -75,7 +76,7 @@ const description = computed(() =>
       <template v-if="props.code" #content>
         <DmsCodeSnippet
           :code="props.code.content"
-          :language="props.code.language"
+          :language="props.code.language ?? PLAIN_CODE_LANGUAGE"
           :copy="props.code.copy ?? true"
         />
       </template>
