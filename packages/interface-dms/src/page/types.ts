@@ -66,8 +66,19 @@ export type PageSetupFunction = (
 ) => MaybePromise<PageSetupCleanup | void>;
 
 export interface PageValidation {
+  /** Query parameters the page needs, each with a non-empty value. */
   requiredQueryParams?: string[];
+  /** Id of a validation function the frontend registers. */
   customFunctionId?: string;
+  /**
+   * Where a page that fails its validation sends the user, in place of the
+   * "Page not found" error: a dashboard path, such as the list a detail page
+   * opened without its `?id` belongs to. The history entry is replaced, so
+   * Back does not return to the invalid URL, and a server render answers a
+   * redirect. It may name the page URL with `{{params.X}}` and `{{query.X}}`
+   * tokens; a query pair whose token has no value is left out.
+   */
+  redirectTo?: string;
 }
 
 export const MODULE_URL_PREFIX = "/modules";

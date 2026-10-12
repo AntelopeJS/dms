@@ -3,6 +3,7 @@ import { withoutTrailingSlash } from "ufo";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
 import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
+import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 
 defineOptions({ inheritAttrs: false });
 
@@ -95,13 +96,13 @@ async function recheckAccessWithFreshSession(): Promise<void> {
   });
 }
 
-function validatePage(
+function isPageValid(
   metadata: PageInfo | undefined,
   query: Record<string, unknown>,
   params: Record<string, unknown>,
-): void {
+): boolean {
   if (!metadata?.validation) {
-    return;
+    return true;
   }
 
   const { validation } = metadata;
@@ -121,12 +122,31 @@ function validatePage(
     { query, params },
   );
 
-  if (!isQueryValid || !isCustomValid) {
+  return isQueryValid && isCustomValid;
+}
+
+// Set while a page failing its validation leaves for its `redirectTo`: its
+// blocks are not drawn, so none of them requests a URL missing its context.
+const isLeavingPage = ref(false);
+
+async function enforcePageValidation(): Promise<void> {
+  const metadata = pagelayoutMetadata.value;
+  const query = route.query as Record<string, unknown>;
+  if (isPageValid(metadata, query, routeParams.value)) {
+    return;
+  }
+  const redirect = pageValidationRedirect(metadata?.validation, route.path, {
+    routeParams: routeParams.value,
+    routeQuery: query,
+  });
+  if (!redirect) {
     throw createError({
       statusCode: HTTP_NOT_FOUND,
       statusMessage: "Page not found",
     });
   }
+  isLeavingPage.value = true;
+  await navigateDms(redirect, { replace: true });
 }
 
 defineDmsPageMeta({
@@ -159,7 +179,7 @@ if (siteLayout.loadingError && siteLayout.loadingError.value) {
   });
 }
 
-validatePage(pagelayoutMetadata.value, route.query, routeParams.value);
+await enforcePageValidation();
 await checkPageMetadata(pagelayoutMetadata.value);
 
 // Same reason as the guard inside `checkPageMetadata`: while a dev reload is in
@@ -207,7 +227,8 @@ watch(
       siteLayout.refreshIfStale(),
       refreshPermissionsIfStale(),
     ]);
-    validatePage(pagelayoutMetadata.value, route.query, routeParams.value);
+    isLeavingPage.value = false;
+    await enforcePageValidation();
     await checkPageMetadata(pagelayoutMetadata.value);
   },
 );
@@ -488,7 +509,8 @@ if (import.meta.env.DEV) {
 </script>
 
 <template>
-  <div v-if="hidesEveryBlock" class="dms-card overflow-hidden">
+  <template v-if="isLeavingPage" />
+  <div v-else-if="hidesEveryBlock" class="dms-card overflow-hidden">
     <DmsEmptyState
       variant="no-access"
       :title="t('page.no_visible_blocks.title')"
