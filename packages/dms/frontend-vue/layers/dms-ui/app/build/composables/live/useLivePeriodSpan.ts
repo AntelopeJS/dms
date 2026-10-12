@@ -11,15 +11,18 @@ interface ShownRange {
  * Tells the live page on screen how long a period the selector shows, so a
  * page declaring `live.slowRateAfter` slows down over a long one. Follows
  * the page's controller as it is installed or replaced, and withdraws the
- * span when the selector goes.
+ * span when the selector goes. A range without bounds (all time) spans more
+ * than any period.
  *
  * @internal
  */
-export function useLivePeriodSpan(range: () => ShownRange): void {
+export function useLivePeriodSpan(range: () => ShownRange | null): void {
   if (typeof window === "undefined") return;
   const owner = Symbol("live-period");
+  const spanOf = (shown: ShownRange | null) =>
+    shown ? shown.to.getTime() - shown.from.getTime() : Number.POSITIVE_INFINITY;
   const stop = watch(
-    [currentPageLive, () => range().to.getTime() - range().from.getTime()],
+    [currentPageLive, () => spanOf(range())],
     ([controller, span], _previous, onCleanup) => {
       controller?.reportPeriodSpan(owner, span);
       onCleanup(() => controller?.reportPeriodSpan(owner, null));

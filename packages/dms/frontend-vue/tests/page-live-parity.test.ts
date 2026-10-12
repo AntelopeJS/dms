@@ -337,6 +337,7 @@ describe("the cadence", () => {
     expect(liveIntervalMs(options, null)).toBe(5000);
     expect(liveIntervalMs(options, DAY_MS)).toBe(5000);
     expect(liveIntervalMs(options, 7 * DAY_MS)).toBe(60_000);
+    expect(liveIntervalMs(options, Number.POSITIVE_INFINITY)).toBe(60_000);
 
     const poll = vi.fn();
     const live = install(options, { poll });
