@@ -54,6 +54,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   reads, `refreshLivePageBlocks()` (timers, feeds) is held while paused.
   A custom component on a record page names its record at the end of the breadcrumb with
   `usePageRecordLabel().setLabel(useDmsRoute().path, label)` (auto-imported; never the `build/` path).
+  A custom component formats through `useRegionalFormat()` (`formatNumber` & co. return `string` for a
+  number); `useRegionalFormat({ locale: "format" })` writes in `formatLocale`, the locale of the DMS's
+  texts (`en` → `en-GB`) — never a hand-rolled `en` → `en-GB` mapping.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.
@@ -83,9 +86,19 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   in the side list and in the `sectionNav: "jump"` chips alike (a form whose side column holds a preview).
   A module's own `inputComponent` submits its form, adds a validator and focuses a field with
   `useEnclosingForm()` (never `closest("form")` / `requestSubmit()`), and a link ending in `#<fieldId>`
-  opens the form on that field, focused.
+  opens the form on that field, focused. `DmsInputNumber` emits `adjust` (`{ typed, value, reason:
+  "min" | "max" | "step" }`) when it keeps another value than the one typed, and redraws the kept
+  value itself: a note "1020 → 1,000" listens to it — never a forced remount (`:key`).
   `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
-  keeps a pill tab list to its tabs' width.
+  keeps a pill tab list to its tabs' width; with `persistState` the URL names the open tab by its slot
+  (`?tab=tester`, an index still read), and a tab `badge` takes a `$` key or a `ComposedText`. A `ChartCard` plotting several series names them with
+  `showSeriesLegend: true` (placed by the chart's `legendPosition: "top" | "bottom"`) — never a raw
+  Apex `legend` in `rawOptions`.
+  A custom component brings a block of its page into view with `scrollToBlock("tabs.statistics")`
+  (the block's key path; `false` when it is not on screen) — never a DOM query of its own.
+  Code in a custom component is a `DmsCodeSnippet` (`language`, `title`, `maxLines` or a CSS
+  `maxHeight`, `wrap: true | "anywhere"`; without title and language its copy button floats in the
+  corner) — never a `<pre>` and copy button of the module's own.
   A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
   (the text to copy instead, e.g. a full URL behind a short label).
   A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on

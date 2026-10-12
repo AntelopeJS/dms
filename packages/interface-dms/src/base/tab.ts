@@ -8,6 +8,8 @@ import { AxeOrientation } from "./types/orientation";
 import { Size } from "./types/size";
 import { blockRealtimeTopicOption } from "./display";
 import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
+import { blockTextSchema } from "./internal/composed-text";
+import type { BlockText } from "./types/composed-text";
 
 export namespace TabEvents {
   export const TAB_CHANGE = "DmsComponent.Tab.Change";
@@ -19,6 +21,7 @@ export enum TabVariant {
 }
 
 export interface BadgeProps {
+  /** A `$`-prefixed i18n key is translated. */
   label?: string | number;
   color?: string;
   variant?: "solid" | "outline" | "soft" | "subtle";
@@ -27,9 +30,18 @@ export interface BadgeProps {
 
 export interface TabItem {
   label: string;
+  /**
+   * The tab's id: the slot its children render into, and the name the URL
+   * gives it under `persistState` (`?tab=<slot>`).
+   */
   slot: string;
   icon?: string;
-  badge?: string | number | BadgeProps;
+  /**
+   * A count or a short word after the label ("Beta"). A text is a
+   * `BlockText`: a `$`-prefixed i18n key or a `ComposedText` is written in
+   * the reader's language, like the `label` of a `BadgeProps`.
+   */
+  badge?: BlockText | number | BadgeProps;
   disabled?: boolean;
   shortcut?: string;
   avatar?: {
@@ -46,7 +58,13 @@ export interface TabProps extends BaseComponentProps {
   variant?: EnumOption<TabVariant>;
   orientation?: EnumOption<AxeOrientation>;
   unmountOnHide?: boolean;
+  /**
+   * Keeps the open tab in the page URL, under `stateKey` (`?tab=<slot>`), so
+   * a link or a reload opens it. The first tab writes nothing. A URL may
+   * also name a tab by its index (`?tab=2`), as it did before.
+   */
   persistState?: boolean;
+  /** The query parameter of `persistState`. Defaults to `tab`. */
   stateKey?: string;
   /**
    * A module route answering `{ [slot]: string | number }` in one request:
@@ -108,7 +126,7 @@ const TabItemSchema = z.object({
     label: "Slot",
   }),
   icon: ui(z.string().optional(), { widget: "icon" }),
-  badge: z.union([z.string(), z.number(), BadgeSchema]).optional(),
+  badge: z.union([blockTextSchema(), z.number(), BadgeSchema]).optional(),
   disabled: ui(z.boolean().optional(), { widget: "switch" }),
   shortcut: z.string().optional(),
   avatar: z

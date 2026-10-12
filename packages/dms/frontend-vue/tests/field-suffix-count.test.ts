@@ -44,6 +44,7 @@ const load = async (name: string) =>
     .default as Component;
 
 beforeEach(() => {
+  vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
   }));

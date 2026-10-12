@@ -63,7 +63,7 @@ export function buildLegend(
 ): Record<string, unknown> {
   return {
     show: input.showLegend ?? true,
-    position: isCircular ? "bottom" : "top",
+    position: input.legendPosition ?? (isCircular ? "bottom" : "top"),
     horizontalAlign: "right",
     fontSize: LEGEND_FONT_SIZE,
     labels: { colors: theme.muted },

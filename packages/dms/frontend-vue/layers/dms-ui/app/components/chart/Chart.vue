@@ -21,6 +21,7 @@ import type {
   ChartAnnotation,
   ChartAutoYRange,
   ChartCurve,
+  ChartLegendPosition,
   ChartResponse,
   ChartSeries,
   ChartType,
@@ -48,6 +49,7 @@ interface Props extends DefaultComponentProps {
   showGrid?: boolean;
   showTooltip?: boolean;
   showLegend?: boolean;
+  legendPosition?: ChartLegendPosition;
   smooth?: boolean;
   curve?: ChartCurve;
   stacked?: boolean;
@@ -238,6 +240,7 @@ const apex = useApexChart(() => ({
   showGrid: props.showGrid,
   showTooltip: props.showTooltip,
   showLegend: effectiveShowLegend.value,
+  legendPosition: props.legendPosition,
   smooth: props.smooth,
   curve: props.curve,
   stacked: props.stacked,

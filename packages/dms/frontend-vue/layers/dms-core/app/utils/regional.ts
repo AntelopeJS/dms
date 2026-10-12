@@ -47,6 +47,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const MONDAY = 1;
 const DAYS_PER_WEEK = 7;
 
+/**
+ * The region each language the DMS is translated into is written for: its
+ * texts are British English and French of France (`core-en-GB.json`,
+ * `core-fr-FR.json`), while the interface language is the bare tag.
+ */
+const DMS_TEXT_LOCALES: Record<string, string> = {
+  en: "en-GB",
+  fr: "fr-FR",
+};
+
 /** `timeStyle` as the fields it stands for, when a date format replaces `dateStyle`. */
 const TIME_STYLE_FIELDS: Record<string, Intl.DateTimeFormatOptions> = {
   full: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
@@ -194,6 +204,16 @@ export function withRegionalOptions(
     result = { ...result, hourCycle: preferences.timeFormat };
   }
   return result;
+}
+
+/**
+ * The locale the DMS's texts are written in for the interface language
+ * `locale`: a bare `en` is `en-GB` (24-hour clock, day before month), a bare
+ * `fr` is `fr-FR`. A tag naming its region, or a language the DMS is not
+ * translated into, is returned as is.
+ */
+export function regionalFormatLocale(locale: string): string {
+  return DMS_TEXT_LOCALES[locale.toLowerCase()] ?? locale;
 }
 
 /** `new Intl.DateTimeFormat` with the user's preferences applied. */
