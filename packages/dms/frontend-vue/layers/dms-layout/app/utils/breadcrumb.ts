@@ -3,6 +3,8 @@ import type { PageValidation } from "../types/page";
 export interface BreadcrumbTargetSource {
   layoutUrl?: string;
   validation?: PageValidation;
+  /** A module's root: the page the module opens on, its crumb's link. */
+  landingSlug?: string;
 }
 
 /**
@@ -32,8 +34,9 @@ export function buildPageTarget(
 }
 
 /**
- * The link of a breadcrumb crumb: the page's {@link buildPageTarget}.
- * Categories without a page behind them get no link.
+ * The link of a breadcrumb crumb: the page's {@link buildPageTarget}. A
+ * module's root links to its landing page; other categories without a page
+ * behind them get no link.
  */
 export function buildBreadcrumbTarget(
   path: string,
@@ -41,7 +44,7 @@ export function buildBreadcrumbTarget(
   currentQuery: Record<string, unknown>,
 ): string | undefined {
   if (!metadata.layoutUrl) {
-    return undefined;
+    return metadata.landingSlug;
   }
 
   return buildPageTarget(path, metadata.validation, currentQuery);

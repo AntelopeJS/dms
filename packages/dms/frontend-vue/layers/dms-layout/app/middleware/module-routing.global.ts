@@ -1,7 +1,12 @@
+import { resolveModuleLandingSlug } from "../utils/moduleLanding";
+
 const MODULE_NOT_FOUND_KIND = "module-not-found";
 const MODULE_NOT_FOUND_STATUS = 404;
 const MODULE_NOT_FOUND_MESSAGE = "Module not found";
-const MODULES_TREE_KEY = "modules";
+
+interface GuardedRoute {
+  path: string;
+}
 
 interface ModuleRouteParts {
   moduleId: string;
@@ -26,63 +31,24 @@ function parseModuleRoute(path: string): ModuleRouteParts | null {
   };
 }
 
-function findModuleRootNode(
-  tree: SiteLayoutTree | undefined,
-  moduleId: string,
-): SiteLayoutTree | null {
-  if (!tree) return null;
-  const modulesNode = tree.children[MODULES_TREE_KEY];
-  if (!modulesNode) return null;
-  for (const childId of modulesNode.childrenOrders) {
-    const child = modulesNode.children[childId];
-    if (!child) continue;
-    if (child.isModuleRoot && child.id === moduleId) {
-      return child;
-    }
-  }
-  return null;
-}
-
-function isOpenablePage(node: SiteLayoutTree): boolean {
-  return !!node.layoutUrl && node.hasAccess !== false;
-}
-
-/** The first page the caller may open under `node`, in menu order. */
-function findPage(
-  node: SiteLayoutTree,
-  accepts: (page: SiteLayoutTree) => boolean,
-): SiteLayoutTree | null {
-  if (isOpenablePage(node) && accepts(node)) return node;
-  for (const childId of node.childrenOrders) {
-    const child = node.children[childId];
-    if (!child || child.hasAccess === false) continue;
-    const found = findPage(child, accepts);
-    if (found) return found;
-  }
-  return null;
-}
-
-/**
- * The page a module opens on: its `landingPage` when the caller may open it,
- * else its first page in menu order.
- */
-function resolveModuleLandingSlug(
-  tree: SiteLayoutTree | undefined,
-  moduleId: string,
-  landingPage: string | undefined,
-): string | null {
-  const moduleRoot = findModuleRootNode(tree, moduleId);
-  if (!moduleRoot) return null;
-  const declared = landingPage
-    ? findPage(moduleRoot, (page) => page.id === landingPage)
-    : null;
-  return (declared ?? findPage(moduleRoot, () => true))?.fullSlug ?? null;
-}
-
 /** `landing` with the query and hash of `fullPath`, as the module was entered. */
 function withQueryAndHash(landing: string, fullPath: string): string {
   const start = fullPath.search(/[?#]/);
   return start < 0 ? landing : `${landing}${fullPath.slice(start)}`;
+}
+
+/**
+ * Whether the browser already draws the page at `to`: a link that visits the
+ * module's address without a navigation guard gets the landing page served
+ * there, and the guard then runs from that page's own setup (`to` is the page
+ * on screen). A navigation started from there restarts with each remount of
+ * the page it starts, so the browser loads the landing page instead.
+ */
+function isDrawnInBrowser(
+  to: GuardedRoute,
+  from: GuardedRoute | undefined,
+): boolean {
+  return typeof window !== "undefined" && from?.path === to.path;
 }
 
 function ensureSiteLayoutLoaded(
@@ -92,7 +58,7 @@ function ensureSiteLayoutLoaded(
   return siteLayout.loadSiteLayout();
 }
 
-export default defineDmsMiddleware(async (to) => {
+export default defineDmsMiddleware(async (to, from) => {
   const moduleRoute = parseModuleRoute(to.path);
   if (!moduleRoute) return;
 
@@ -153,7 +119,12 @@ export default defineDmsMiddleware(async (to) => {
   // never renders (a 404 before the redirect landed), never enters the
   // history, and a server render answers it with a redirect.
   if (landingSlug && landingSlug !== to.path) {
-    return withQueryAndHash(landingSlug, to.fullPath);
+    const landing = withQueryAndHash(landingSlug, to.fullPath);
+    if (isDrawnInBrowser(to, from)) {
+      window.location.replace(landing);
+      return false;
+    }
+    return landing;
   }
 
   return redirectToHomepage();

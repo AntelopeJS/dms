@@ -998,6 +998,26 @@ function resolveRegisteredPageSlug(path: string): string | undefined {
   );
 }
 
+/**
+ * The landing page a module's own address (`/modules/<id>`) stands for. The
+ * address has no page of its own: answering its request with the landing page
+ * lets the page render run the module routing middleware, which redirects the
+ * visit there -- a server render with a redirect -- instead of failing it with
+ * a 404 before the middleware runs.
+ */
+function resolveModuleAddressSlug(path: string): string | undefined {
+  const prefix = `${MODULE_URL_PREFIX}/`;
+  if (!path.startsWith(prefix)) return undefined;
+  const info = moduleRegistry[path.slice(prefix.length)];
+  if (!info) return undefined;
+  const landingSlug = resolveModuleLandingSlug(info);
+  return landingSlug === path ? undefined : landingSlug;
+}
+
+function resolveServedPageSlug(path: string): string | undefined {
+  return resolveRegisteredPageSlug(path) ?? resolveModuleAddressSlug(path);
+}
+
 type SharedPagePayloadArguments = [
   slug: string,
   user: User | undefined,
@@ -1031,7 +1051,7 @@ export async function buildPagePayload(
     requestContext,
   ] = arguments_;
   const normalizedSlug = `/${slug.replace(/^\/+|\/+$/g, "")}`;
-  const registeredSlug = resolveRegisteredPageSlug(normalizedSlug);
+  const registeredSlug = resolveServedPageSlug(normalizedSlug);
   assert(registeredSlug, 404, "error.page_not_found");
   const handler = GetPageLayoutBySlug(registeredSlug);
   assert(handler, 404, "error.page_not_found");
