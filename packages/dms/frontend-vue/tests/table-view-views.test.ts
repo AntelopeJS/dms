@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableViews from "../layers/dms-ui/app/build/components/table/Views.vue";
 import { mergeColumnOrder } from "../layers/dms-ui/app/build/composables/table/utils/columnOrder";
 import { useTableViews } from "../layers/dms-ui/app/build/composables/table-view/useTableViews";
+import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 import {
   isSameTableState,
   readTableUrlKey,
@@ -211,12 +212,22 @@ describe("useTableViews", () => {
     const preferences = new Map<string, unknown>(
       Object.entries(options.preferences ?? {}),
     );
-    vi.stubGlobal("usePreferences", () => ({
-      getPreference: (key: string, fallback: unknown) =>
-        preferences.has(key) ? preferences.get(key) : fallback,
-      setPreference: (key: string, value: unknown) =>
-        preferences.set(key, value),
-    }));
+    // `useTablePreferences`: the browser-only fields come back once mounted.
+    const restores: Array<() => void> = [];
+    const tablePreferences: TablePreferences = {
+      get: <V>(field: string, fallback: V) =>
+        (preferences.has(field) ? preferences.get(field) : fallback) as V,
+      set: (field, value) => {
+        preferences.set(field, value);
+      },
+      restore: (field, state) => {
+        restores.push(() => {
+          if (preferences.has(field)) {
+            state.value = preferences.get(field) as typeof state.value;
+          }
+        });
+      },
+    };
     vi.stubGlobal("useUserSession", () => ({
       user: ref({ _id: options.userId ?? "u1" }),
     }));
@@ -244,11 +255,15 @@ describe("useTableViews", () => {
     app = createApp(
       defineComponent({
         setup() {
+          onMounted(() => restores.forEach((restore) => restore()));
+          // As the table view does, before its views.
+          tablePreferences.restore("density", state.density);
+          tablePreferences.restore("columnOrder", state.columnOrder);
           api = useTableViews({
             views: options.views,
             defaults: DEFAULTS,
             state,
-            preferenceKey: (suffix) => `tables.content.page.${suffix}`,
+            preferences: tablePreferences,
             urlScope: { tableId: "content", isSoleTableView: true },
           });
           return () => h("div");
@@ -300,7 +315,7 @@ describe("useTableViews", () => {
     const { api, state } = await mountViews({
       views: VIEWS,
       query: { view: "mine" },
-      preferences: { "tables.content.page.activeView": "all" },
+      preferences: { activeView: "all" },
     });
     expect(api.activeViewId.value).toBe("mine");
     expect(state.columnFilters.value).toEqual([
@@ -323,13 +338,43 @@ describe("useTableViews", () => {
     ]);
   });
 
+  it("opens a user view the URL names once its views are restored in the browser", async () => {
+    const { api } = await mountViews({
+      views: VIEWS,
+      query: { view: "user-mine" },
+      preferences: {
+        userViews: [
+          { id: "user-mine", label: "Mine", ownerId: "u1", search: "x" },
+        ],
+      },
+    });
+    expect(api.activeViewId.value).toBe("user-mine");
+    expect(toasts).toEqual([]);
+  });
+
+  it("restores the browser-only state, a view opened on arrival keeping its own", async () => {
+    const opened = await mountViews({
+      views: VIEWS,
+      query: { view: "all" },
+      preferences: { density: "compact" },
+    });
+    expect(opened.state.density.value).toBe("default");
+    app?.unmount();
+
+    const kept = await mountViews({
+      views: VIEWS,
+      preferences: { density: "compact", activeView: "" },
+    });
+    expect(kept.state.density.value).toBe("compact");
+  });
+
   it("opens the default view on a first visit only", async () => {
     const first = await mountViews({ views: VIEWS });
     expect(first.api.activeViewId.value).toBe("all");
     app?.unmount();
     const later = await mountViews({
       views: VIEWS,
-      preferences: { "tables.content.page.activeView": "" },
+      preferences: { activeView: "" },
     });
     expect(later.api.activeViewId.value).toBe(undefined);
   });
@@ -354,9 +399,7 @@ describe("useTableViews", () => {
       views: VIEWS,
       viewName: " Printers ",
       preferences: {
-        "tables.content.page.userViews": [
-          { id: "user-x", label: "Theirs", ownerId: "u2" },
-        ],
+        userViews: [{ id: "user-x", label: "Theirs", ownerId: "u2" }],
       },
     });
     state.globalFilter.value = "printer";
@@ -373,9 +416,7 @@ describe("useTableViews", () => {
       "i18n:tickets.mine",
       "Printers",
     ]);
-    expect(
-      (preferences.get("tables.content.page.userViews") as unknown[]).length,
-    ).toBe(2);
+    expect((preferences.get("userViews") as unknown[]).length).toBe(2);
 
     state.density.value = "compact";
     await nextTick();

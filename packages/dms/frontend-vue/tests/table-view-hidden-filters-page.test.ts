@@ -4,6 +4,8 @@ import type { LocationQuery } from "vue-router";
 import { useAccumulatedPages } from "../layers/dms-ui/app/build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../layers/dms-ui/app/build/composables/table-view/usePersistedPagination";
 import { usePreferences } from "../layers/dms-core/app/composables/user/usePreferences";
+import { useTablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
+import { tablePreferenceId } from "../layers/dms-core/app/build/composables/user/tablePreferences";
 
 const PAGE_SIZE = 10;
 const THIRD_PAGE = 2;
@@ -16,19 +18,18 @@ const hiddenFiltersOf = (query: () => LocationQuery) =>
       : [{ accessorKey: "status", mode: "is", value: query().status }],
   );
 
-const TABLE_KEY = "tables.tasks.query-filters";
-const preferenceKey = (suffix: string) => `${TABLE_KEY}.${suffix}`;
+const COMPONENT_ID = "tasks";
+const PAGE_ID = "query-filters";
 
-// The `user-preferences` cookie, surviving the remounts of a page.
-let cookie: Ref<Record<string, unknown>>;
+// The `dms-preferences` cookie, surviving the remounts of a page.
+let cookie: Ref<string>;
 
 // What a table view does on mount: its page, read back from the cookie,
 // under the hidden filters the URL sets.
 const mountTable = (query: Ref<LocationQuery>) => {
   const hiddenFilters = hiddenFiltersOf(() => query.value);
   const pagination = usePersistedPagination({
-    preferences: usePreferences(),
-    preferenceKey,
+    preferences: useTablePreferences(COMPONENT_ID, PAGE_ID),
     defaults: { pageIndex: 0, pageSize: PAGE_SIZE },
     scope: () => [hiddenFilters.value, []],
   });
@@ -36,8 +37,9 @@ const mountTable = (query: Ref<LocationQuery>) => {
 };
 
 beforeEach(() => {
-  cookie = ref({});
+  cookie = ref("");
   vi.stubGlobal("useDmsCookie", () => cookie);
+  vi.stubGlobal("usePreferences", usePreferences);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("readonly", readonly);
   vi.stubGlobal("computed", computed);
@@ -100,16 +102,11 @@ describe("a hidden filter changed by the URL", () => {
     expect(again.pagination.value.pageIndex).toBe(THIRD_PAGE);
   });
 
-  it("keeps a page stored before its hidden filters were", () => {
-    cookie.value = {
-      tables: {
-        tasks: {
-          "query-filters": {
-            pagination: { pageIndex: THIRD_PAGE, pageSize: PAGE_SIZE },
-          },
-        },
-      },
-    };
+  it("keeps a page stored without its hidden filters", () => {
+    usePreferences().setPreference(
+      `tables.${tablePreferenceId(COMPONENT_ID, PAGE_ID)}`,
+      { p: [PAGE_SIZE, THIRD_PAGE] },
+    );
     const table = mountTable(ref<LocationQuery>({}));
     expect(table.pagination.value.pageIndex).toBe(THIRD_PAGE);
   });

@@ -118,11 +118,12 @@ describe("table density menu", () => {
 
   it("keeps the user's density with the table state, the module's as default", () => {
     expect(tableViewSource).toMatch(
-      /getTablePreferenceKey\("density"\),\s*props\.density \?\? DEFAULT_DENSITY/,
+      /defaultDensity = props\.density \?\? DEFAULT_DENSITY/,
     );
-    expect(tableViewSource).toMatch(
-      /groupedGroupBy,\s*density,\s*\} as const;/,
+    expect(tableViewSource).toContain(
+      'tablePreferences.restore("density", density);',
     );
+    expect(tableViewSource).toMatch(/\["density", density, defaultDensity\]/);
     expect(tableViewSource).toContain('v-model:density="density"');
   });
 });

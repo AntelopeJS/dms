@@ -124,6 +124,9 @@ import { useGroupedRows } from "../../build/composables/table-view/useGroupedRow
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
+import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import type { Ref } from "vue";
+import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
@@ -168,6 +171,9 @@ interface RealtimePresenceActor {
 }
 
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
+
+/** A kept field of the table, its state, and its default. */
+type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
 // The backend options of a table view, declared here as well so the
 // component's runtime props never depend on resolving the imported config.
@@ -230,13 +236,9 @@ const {
   defaultDisplay,
 } = useTableViewConfig<T>(props);
 
-const { getPreference, setPreference } = usePreferences();
+const tablePreferences = useTablePreferences(componentId, pageId);
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
-
-const getTablePreferenceKey = (suffix: string) => {
-  return `tables.${componentId}.${pageId}.${suffix}`;
-};
 
 const kanbanEligibleColumns = allColumns.filter(isEligibleKanbanColumn);
 const kanbanGroupByOptions = kanbanEligibleColumns.map((column) => ({
@@ -260,8 +262,8 @@ const groupedOptions = optionsForDisplay(GROUPED_DISPLAY_ID) as
 
 // Stored under the legacy "viewMode" key (free migration of "table"/"kanban");
 // clamped to the offered set so a stale/removed id never renders an un-offered display.
-const persistedDisplay = getPreference<string>(
-  getTablePreferenceKey("viewMode"),
+const persistedDisplay = tablePreferences.get<string>(
+  "viewMode",
   defaultDisplay,
 );
 // A default display that draws its whole interface (no table chrome, hence no
@@ -338,30 +340,24 @@ const activeDisplayComponent = computed<Component | string | undefined>(() => {
   return STATIC_DISPLAY_COMPONENTS[id];
 });
 
-const kanbanGroupBy = ref<string>(
-  getPreference<string>(
-    getTablePreferenceKey("kanbanGroupBy"),
-    kanbanOptions?.groupByField ?? "",
-  ),
-);
+const defaultKanbanGroupBy = kanbanOptions?.groupByField ?? "";
+const kanbanGroupBy = ref<string>(defaultKanbanGroupBy);
 // A saved preference may point to a column that no longer exists or is no
 // longer eligible after a backend config change.
-if (
-  kanbanOptions &&
-  !kanbanEligibleColumns.some((c) => c.accessorKey === kanbanGroupBy.value)
-) {
-  kanbanGroupBy.value = kanbanOptions.groupByField;
-}
+tablePreferences.restore(
+  "kanbanGroupBy",
+  kanbanGroupBy,
+  (field) =>
+    !kanbanOptions ||
+    kanbanEligibleColumns.some((c) => c.accessorKey === field),
+);
 
 const DEFAULT_DENSITY = "default";
 // The module's density is the default; the user's pick in the ⋯ menu is kept
 // with the rest of the table's state.
-const density = ref<"default" | "compact">(
-  getPreference(
-    getTablePreferenceKey("density"),
-    props.density ?? DEFAULT_DENSITY,
-  ),
-);
+const defaultDensity = props.density ?? DEFAULT_DENSITY;
+const density = ref<"default" | "compact">(defaultDensity);
+tablePreferences.restore("density", density);
 
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_PAGINATION: PaginationState = {
@@ -406,8 +402,7 @@ const routeParamHiddenFilters = computed<TableFilter[]>(() => {
 // A hidden filter's value changed with the URL, in place or through a
 // remount: the page reached among the previous rows lists from page 1.
 const paginationState = usePersistedPagination({
-  preferences: { getPreference, setPreference },
-  preferenceKey: getTablePreferenceKey,
+  preferences: tablePreferences,
   defaults: DEFAULT_PAGINATION,
   scope: () => [queryParamHiddenFilters.value, routeParamHiddenFilters.value],
 });
@@ -449,18 +444,14 @@ const groupedGroupByOptions = groupedOptions
         value: column.accessorKey,
       }))
   : [];
-const groupedGroupBy = ref<string>(
-  getPreference<string>(
-    getTablePreferenceKey("groupedGroupBy"),
-    groupedOptions?.groupByField ?? "",
-  ),
+const defaultGroupedGroupBy = groupedOptions?.groupByField ?? "";
+const groupedGroupBy = ref<string>(defaultGroupedGroupBy);
+tablePreferences.restore(
+  "groupedGroupBy",
+  groupedGroupBy,
+  (field) =>
+    !groupedOptions || groupedGroupByOptions.some((o) => o.value === field),
 );
-if (
-  groupedOptions &&
-  !groupedGroupByOptions.some((o) => o.value === groupedGroupBy.value)
-) {
-  groupedGroupBy.value = groupedOptions.groupByField;
-}
 const activeGroupedOptions = computed<TableViewGroupedConfig | undefined>(
   () =>
     groupedOptions &&
@@ -488,18 +479,12 @@ const defaultSortKind = tableDefaultSort
   : undefined;
 const sorting = ref<SortingState>(
   sanitizeSorting(
-    getPreference<SortingState>(
-      getTablePreferenceKey("sorting"),
-      defaultSortState,
-    ),
+    tablePreferences.get<SortingState>("sorting", defaultSortState),
     declaredSortableIds,
   ),
 );
 
-const savedFilters = getPreference<TableFilter[]>(
-  getTablePreferenceKey("columnFilters"),
-  [],
-);
+const savedFilters = tablePreferences.get<TableFilter[]>("columnFilters", []);
 
 const buildPinnedFilters = (): TableFilter[] =>
   (defaultFilters || []).map((def) => {
@@ -521,26 +506,17 @@ const initialFilters = [...buildPinnedFilters(), ...manualFilters];
 
 const columnFilters = ref<TableFilter[]>(initialFilters);
 const columnVisibility = ref<VisibilityState>(
-  getPreference<VisibilityState>(
-    getTablePreferenceKey("columnVisibility"),
-    initialVisibility,
-  ),
+  tablePreferences.get<VisibilityState>("columnVisibility", initialVisibility),
 );
-const columnSizing = ref<ColumnSizingState>(
-  getPreference<ColumnSizingState>(getTablePreferenceKey("columnSizing"), {}),
-);
-const columnOrder = ref<string[]>(
-  getPreference<string[]>(getTablePreferenceKey("columnOrder"), []),
-);
+const columnSizing = ref<ColumnSizingState>({});
+tablePreferences.restore("columnSizing", columnSizing);
+const columnOrder = ref<string[]>([]);
+tablePreferences.restore("columnOrder", columnOrder, Array.isArray);
 const hasEmptyDefaultFilter = (defaultFilters || []).some(
   (f) => f.value === undefined || f.value === null || f.value === "",
 );
-const filtersRowOpen = ref<boolean>(
-  getPreference<boolean>(
-    getTablePreferenceKey("filtersOpen"),
-    hasEmptyDefaultFilter,
-  ),
-);
+const filtersRowOpen = ref<boolean>(hasEmptyDefaultFilter);
+tablePreferences.restore("filtersOpen", filtersRowOpen);
 const globalFilter = shallowRef<string>();
 const globalFilterDebounced = refDebounced(
   globalFilter,
@@ -595,7 +571,7 @@ const {
     density,
     pagination: paginationState,
   },
-  preferenceKey: getTablePreferenceKey,
+  preferences: tablePreferences,
   urlScope,
 });
 
@@ -607,8 +583,7 @@ const TAB_URL_KEY = "tab";
 const urlTab = readTableUrlKey(useDmsRoute().query, urlScope, TAB_URL_KEY);
 // A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
-  urlTab.value ??
-    getPreference<string>(getTablePreferenceKey("activeTab"), ALL_TAB_ID),
+  urlTab.value ?? tablePreferences.get<string>("activeTab", ALL_TAB_ID),
 );
 
 interface ResolvedTab {
@@ -1922,24 +1897,25 @@ defineShortcuts(
   }),
 );
 
-const tableStatePreferences = {
-  sorting,
-  columnFilters: columnFilters,
-  columnVisibility,
-  filtersOpen: filtersRowOpen,
-  activeTab: activeTabId,
-  viewMode: activeDisplayId,
-  columnOrder,
-  kanbanGroupBy,
-  groupedGroupBy,
-  density,
-} as const;
+// Each kept field with its default: a value back to it is forgotten.
+const tableStatePreferences: TableStatePreference[] = [
+  ["sorting", sorting, defaultSortState],
+  ["columnFilters", columnFilters, []],
+  ["columnVisibility", columnVisibility, initialVisibility],
+  ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
+  ["activeTab", activeTabId, ALL_TAB_ID],
+  ["viewMode", activeDisplayId, defaultDisplay],
+  ["columnOrder", columnOrder, []],
+  ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
+  ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
+  ["density", density, defaultDensity],
+];
 
-Object.entries(tableStatePreferences).forEach(([key, ref]) => {
+tableStatePreferences.forEach(([field, state, defaultValue]) => {
   watch(
-    ref,
+    state,
     (newValue) => {
-      setPreference(getTablePreferenceKey(key), newValue);
+      tablePreferences.set(field, newValue, defaultValue);
     },
     { deep: true },
   );
@@ -1951,7 +1927,7 @@ const COLUMN_SIZING_PERSIST_DEBOUNCE_MS = 500;
 let pendingColumnSizingWrite = false;
 
 const persistColumnSizing = () => {
-  setPreference(getTablePreferenceKey("columnSizing"), columnSizing.value);
+  tablePreferences.set("columnSizing", columnSizing.value, {});
   pendingColumnSizingWrite = false;
 };
 
