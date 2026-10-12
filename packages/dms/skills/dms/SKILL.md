@@ -54,6 +54,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   reads, `refreshLivePageBlocks()` (timers, feeds) is held while paused.
   A custom component on a record page names its record at the end of the breadcrumb with
   `usePageRecordLabel().setLabel(useDmsRoute().path, label)` (auto-imported; never the `build/` path).
+  A custom component formats through `useRegionalFormat()` (`formatNumber` & co. return `string` for a
+  number); `useRegionalFormat({ locale: "format" })` writes in `formatLocale`, the locale of the DMS's
+  texts (`en` → `en-GB`) — never a hand-rolled `en` → `en-GB` mapping.
   A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
   a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
   or `null` for no banner — the block then draws nothing.
