@@ -49,6 +49,8 @@ const BLOCKS: Record<string, string> = {
   ActivityFeed:
     "../layers/dms-ui/app/components/activity-feed/ActivityFeed.vue",
   MeterBlock: "../layers/dms-ui/app/components/meter/MeterBlock.vue",
+  ChartCard: "../layers/dms-ui/app/components/chart/ChartCard.vue",
+  TopListCard: "../layers/dms-ui/app/components/top-list/TopListCard.vue",
 };
 const GLOBAL_COMPONENTS = ["DmsCard", "UIcon", "USkeleton", "UButton", "ULink"];
 const SCOPE = "dashboard";
@@ -81,6 +83,9 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-GB"), t: String }));
   vi.stubGlobal("useTranslation", () => ({ processI18n: String }));
   vi.stubGlobal("useDmsCookie", () => ref<string[]>([]));
+  // The cards reach these through auto-imports rather than imports.
+  vi.stubGlobal("useComponentEvent", () => ({}));
+  vi.stubGlobal("useWatch", () => ({ state: ref({}) }));
 });
 
 afterEach(() => vi.unstubAllGlobals());

@@ -27,6 +27,8 @@ import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as realtimeImpl from "../../../../implementations/dms/realtime";
 import { Banner } from "@antelopejs/interface-dms/base/banner";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
+import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
+import { TopListCard } from "@antelopejs/interface-dms/base/top-list-card";
 import { Meter } from "@antelopejs/interface-dms/base/meter";
 import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
 import { Tab } from "@antelopejs/interface-dms/base/tab";
@@ -232,6 +234,33 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     ];
     RunWithModuleContext(owner, () => {
       for (const block of blocks) block.onPageCreated?.(meta);
+    });
+    try {
+      expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);
+    } finally {
+      destroyModule(owner);
+    }
+  });
+
+  it("registers the topics a chart card or a top list card refetches on", () => {
+    const owner = moduleContext("page-topics-cards");
+    const meta = GetMetadata(SharedPage, PageMetadata);
+    const cards = [
+      ChartCard({
+        title: "Traffic",
+        fetchUrl: "/api/traffic",
+        realtimeTopic: OWN_TOPIC,
+        chart: ChartLine(),
+      }),
+      TopListCard({
+        title: "Slowest",
+        fetchUrl: "/api/slowest",
+        realtimeTopic: [OTHER_TOPIC],
+      }),
+      TopListCard({ title: "Quiet", fetchUrl: "/api/quiet" }),
+    ];
+    RunWithModuleContext(owner, () => {
+      for (const card of cards) card.onPageCreated?.(meta);
     });
     try {
       expect(topicsOf(SharedPage)).to.have.members([OWN_TOPIC, OTHER_TOPIC]);

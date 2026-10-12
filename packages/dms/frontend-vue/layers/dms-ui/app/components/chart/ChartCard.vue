@@ -29,6 +29,7 @@ interface Props extends DefaultComponentProps {
   fetchUrl?: string;
   fetchUrlMethod?: string;
   periodScope?: string;
+  realtimeTopic?: string | string[];
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
@@ -74,6 +75,7 @@ const { data, isLoading } = useChartFetch<ChartCardResponse>({
   fetchUrlMethod: props.fetchUrlMethod,
   routeParams: () => props.routeParams,
   periodScope: props.periodScope,
+  realtimeTopic: props.realtimeTopic,
   watchSource: () => watchKey.value,
 });
 
