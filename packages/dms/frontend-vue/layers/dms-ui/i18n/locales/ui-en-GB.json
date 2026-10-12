@@ -745,7 +745,12 @@
       "paused": "Paused",
       "resume": "Resume",
       "reason_hidden": "tab hidden",
-      "polling": "no realtime, polling"
+      "polling": "no realtime, polling",
+      "table_held": "Table on hold",
+      "held_row_open": "row open",
+      "held_searching": "search active",
+      "held_sorted": "sorted otherwise than by default",
+      "held_scrolled": "scrolled down"
     }
   }
 }

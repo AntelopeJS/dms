@@ -746,7 +746,12 @@
       "paused": "En pause",
       "resume": "Reprendre",
       "reason_hidden": "onglet masqué",
-      "polling": "sans temps réel, relecture régulière"
+      "polling": "sans temps réel, relecture régulière",
+      "table_held": "Tableau figé",
+      "held_row_open": "ligne ouverte",
+      "held_searching": "recherche active",
+      "held_sorted": "tri autre que celui par défaut",
+      "held_scrolled": "défilé vers le bas"
     }
   }
 }

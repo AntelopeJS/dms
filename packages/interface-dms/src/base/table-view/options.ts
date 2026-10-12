@@ -851,14 +851,23 @@ export interface GroupedOptions {
 /**
  * When a `liveHold` table also holds its rows while its live page is in
  * Direct: the table alone keeps them and counts its events into the
- * "N new · Show" banner, the other blocks of the page staying live. It reads
- * them once again when the hold ends, if it missed any.
+ * "N new · Show" banner, the other blocks of the page staying live. The
+ * banner says why the table holds ("Table on hold · search active"). It reads
+ * the rows once again when the hold ends, if it missed any.
  */
 export interface TableViewLiveHoldOptions {
   /** While one of its rows is open in the side panel. Defaults to false. */
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. Defaults to false. */
   whileScrolled?: boolean;
+  /** While the user's search narrows the rows. Defaults to false. */
+  whileSearching?: boolean;
+  /**
+   * While the user sorts the rows otherwise than by the table's `defaultSort`
+   * (the newest first, for a log): new rows would land anywhere among them.
+   * Defaults to false.
+   */
+  whileSorted?: boolean;
 }
 
 export interface TableViewOptions<
@@ -1036,7 +1045,7 @@ export interface TableViewOptions<
    * only while the page is paused.
    *
    * ```ts
-   * liveHold: { whileRowOpen: true, whileScrolled: true }
+   * liveHold: { whileRowOpen: true, whileScrolled: true, whileSearching: true }
    * ```
    */
   liveHold?: boolean | TableViewLiveHoldOptions;

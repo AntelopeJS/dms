@@ -11,9 +11,20 @@ type Query = Record<string, unknown>;
 export interface TableLiveHoldSignals {
   /** One of its rows is open in the side panel. */
   isRowOpen?: () => boolean;
+  /** The user's search narrows the rows. */
+  isSearching?: () => boolean;
+  /** The rows are sorted otherwise than by the table's default. */
+  isSorted?: () => boolean;
   /** The table's element, whose first row `whileScrolled` follows. */
   tableElement?: () => unknown;
 }
+
+/** Why a table holds its rows by itself, its page staying live. */
+export type TableLiveHoldReason =
+  | "rowOpen"
+  | "searching"
+  | "sorted"
+  | "scrolled";
 
 export interface TableLiveHoldOptions {
   /** The table's `liveHold`: `true` or an object enables it. */
@@ -33,6 +44,11 @@ export interface TableLiveHold {
   isHolding: ComputedRef<boolean>;
   /** Events the table received since its rows were held or last shown. */
   newCount: ComputedRef<number>;
+  /**
+   * Why the table holds by itself while its page is live, `null` otherwise:
+   * a paused page says why on its toggle.
+   */
+  reason: ComputedRef<TableLiveHoldReason | null>;
   /** Reads the rows once, staying held, and holds them from now. */
   showNew: () => void;
   /** The bound a source route receives with each request while held. */
@@ -51,30 +67,37 @@ function holdOptionsOf(
 }
 
 // The table alone holds while the page is live: the user reads a row in the
-// side panel, or reads further down than the rows that would move.
+// side panel, narrows or reorders the rows, or reads further down than the
+// rows that would move. The first reason in this order is the one shown.
 function useLocalHold(
   holdOptions: TableViewLiveHoldOptions | null,
   signals: TableLiveHoldSignals,
-): ComputedRef<boolean> {
-  const isRowOpen = signals.isRowOpen ?? NEVER;
+): ComputedRef<TableLiveHoldReason | null> {
   const tableElement = signals.tableElement ?? NO_ELEMENT;
   const isScrolled = useScrolledPastTop(() => {
     const element = tableElement();
     return element instanceof HTMLElement ? element : null;
   }, !!holdOptions?.whileScrolled);
+  const reasons: Array<[TableLiveHoldReason, boolean, () => boolean]> = [
+    ["rowOpen", !!holdOptions?.whileRowOpen, signals.isRowOpen ?? NEVER],
+    ["searching", !!holdOptions?.whileSearching, signals.isSearching ?? NEVER],
+    ["sorted", !!holdOptions?.whileSorted, signals.isSorted ?? NEVER],
+    ["scrolled", !!holdOptions?.whileScrolled, () => isScrolled.value],
+  ];
   return computed(
     () =>
-      (!!holdOptions?.whileRowOpen && isRowOpen()) ||
-      (!!holdOptions?.whileScrolled && isScrolled.value),
+      reasons.find(([, isEnabled, isActive]) => isEnabled && isActive())?.[0] ??
+      null,
   );
 }
 
 /**
  * The `liveHold` of a table view: while its live page is paused — or, with
- * `whileRowOpen` / `whileScrolled`, while the user reads a row or scrolled
- * down — the table keeps its rows: the gate requests nothing on its events
- * and counts them, and a source route is told the moment they were frozen, so
- * the user's own search, sort and pagination list the rows as they stood.
+ * `whileRowOpen` / `whileSearching` / `whileSorted` / `whileScrolled`, while
+ * the user reads a row, searches, sorts or scrolled down — the table keeps
+ * its rows: the gate requests nothing on its events and counts them, and a
+ * source route is told the moment they were frozen, so the user's own
+ * search, sort and pagination list the rows as they stood.
  * Show reads them once more without leaving the hold; the end of a hold of
  * the table's own reads them if it missed any.
  *
@@ -83,7 +106,8 @@ function useLocalHold(
 export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
   const { isEnabled, isPaused } = usePageLive();
   const holdOptions = holdOptionsOf(options.liveHold);
-  const isLocallyHeld = useLocalHold(holdOptions, options.signals ?? {});
+  const localReason = useLocalHold(holdOptions, options.signals ?? {});
+  const isLocallyHeld = computed(() => localReason.value !== null);
   const pausedAt = ref<number | null>(null);
   const isHolding = computed(
     () =>
@@ -119,6 +143,9 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
     isHolding,
     newCount: computed(() =>
       isHolding.value ? options.gate().missed.value : 0,
+    ),
+    reason: computed(() =>
+      isHolding.value && !isPaused.value ? localReason.value : null,
     ),
     showNew: () => options.gate().catchUp(),
     heldQuery: () => {

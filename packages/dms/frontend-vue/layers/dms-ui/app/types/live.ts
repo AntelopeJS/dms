@@ -51,4 +51,8 @@ export interface TableViewLiveHoldOptions {
   whileRowOpen?: boolean;
   /** While the user has scrolled its first row out of view. */
   whileScrolled?: boolean;
+  /** While the user's search narrows the rows. */
+  whileSearching?: boolean;
+  /** While the user sorts the rows otherwise than by the table's default. */
+  whileSorted?: boolean;
 }

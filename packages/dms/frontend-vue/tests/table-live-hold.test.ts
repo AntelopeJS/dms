@@ -292,3 +292,61 @@ it("holds the table while its first row is scrolled out of view", async () => {
   expect(refresh).toHaveBeenCalledTimes(2);
   element.remove();
 });
+
+it("holds the table alone while searching or sorted, saying why", async () => {
+  const isSearching = ref(false);
+  const isSorted = ref(false);
+  const isRowOpen = ref(false);
+  const { refresh, hold } = mountTable({
+    liveHold: { whileSearching: true, whileSorted: true, whileRowOpen: true },
+    signals: {
+      isSearching: () => isSearching.value,
+      isSorted: () => isSorted.value,
+      isRowOpen: () => isRowOpen.value,
+    },
+  });
+  expect(hold.reason.value).toBe(null);
+
+  isSorted.value = true;
+  await nextTick();
+  publish();
+  expect(refresh).not.toHaveBeenCalled();
+  expect(hold.reason.value).toBe("sorted");
+
+  isSearching.value = true;
+  await nextTick();
+  expect(hold.reason.value).toBe("searching");
+
+  isRowOpen.value = true;
+  await nextTick();
+  expect(hold.reason.value).toBe("rowOpen");
+
+  // Paused, the page's toggle says why: the table names no reason.
+  live.pause();
+  await nextTick();
+  expect(hold.isHolding.value).toBe(true);
+  expect(hold.reason.value).toBe(null);
+});
+
+it("holds for no search nor sort the options leave off", async () => {
+  const { refresh, hold } = mountTable({
+    liveHold: { whileRowOpen: true },
+    signals: { isSearching: () => true, isSorted: () => true },
+  });
+  publish();
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(hold.reason.value).toBe(null);
+});
+
+it("tells the hold about the table's search and sort, and the banner why", () => {
+  expect(tableViewSource).toContain(
+    "isSearching: () => !!effectiveGlobalFilter.value,",
+  );
+  expect(tableViewSource).toContain(
+    "isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),",
+  );
+  expect(tableViewSource).toMatch(
+    /v-if="liveHold\.newCount\.value > 0 \|\| liveHold\.reason\.value"/,
+  );
+  expect(tableViewSource).toContain(':reason="liveHold.reason.value"');
+});

@@ -42,8 +42,9 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"` to share the
   choice between pages; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
-  `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled }` also
-  holds the table alone. Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
+  `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
+  whileSearching, whileSorted }` also holds the table alone, its strip saying why ("Table on hold ·
+  search active"). Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
   module may batch publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
   A custom component follows that state with `usePageLive()`, holds the page with `hold(reason)` /
   `release()` and adds a breakdown with `setMissedDetail()`; a custom component that reads its own data
