@@ -27,6 +27,7 @@ export {
   type FrontendModuleMetadata,
   type FrontendModuleOptions,
   type FrontendModuleValue,
+  type FrontendPublicEndpoint,
   type FrontendRendererMetadata,
   GetFrontendModules,
   NotifyMenuChanged,

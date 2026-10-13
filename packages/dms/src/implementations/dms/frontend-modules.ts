@@ -8,6 +8,7 @@ import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import type {
   AddFrontendModuleOptions,
   FrontendModuleMetadata,
+  FrontendPublicEndpoint,
   FrontendModuleOptions,
   FrontendModuleValue,
 } from "@antelopejs/interface-dms/page";
@@ -33,6 +34,10 @@ import {
   stripPrivateManifestFields,
 } from "./manifest";
 import { warnOnceFor } from "./warn-once";
+import {
+  copyPublicEndpoints,
+  resolvePublicEndpoints,
+} from "./frontend-public-endpoints";
 
 interface FrontendModule {
   name: string;
@@ -44,6 +49,7 @@ interface FrontendModule {
   configKey?: string;
   renderer: AddFrontendModuleOptions["renderer"];
   authEstablishEndpoints: string[];
+  publicEndpoints: Required<FrontendPublicEndpoint>[];
 }
 
 interface FrontendSelection {
@@ -52,9 +58,13 @@ interface FrontendSelection {
   rendererMajor: number;
 }
 
-type ServedModule = Omit<FrontendModule, "path" | "authEstablishEndpoints"> & {
+type ServedModule = Omit<
+  FrontendModule,
+  "path" | "authEstablishEndpoints" | "publicEndpoints"
+> & {
   path?: string;
   authEstablishEndpoints?: string[];
+  publicEndpoints?: Required<FrontendPublicEndpoint>[];
 };
 
 const BUILD_ARTIFACT_PATTERNS = [
@@ -240,6 +250,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   cachedModulesArchives.clear();
   const identity = moduleIdentity(config);
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
+  const publicEndpoints = resolvePublicEndpoints(config);
   const registeredModule = modules[identity];
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
@@ -254,6 +265,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     configKey: config.configKey,
     renderer: config.renderer,
     authEstablishEndpoints,
+    publicEndpoints,
   };
   scheduleBroadcast();
 }
@@ -284,6 +296,7 @@ export function GetFrontendModules(): FrontendModuleMetadata[] {
     priority: module.priority,
     options: copyFrontendOptions(module.options ?? {}),
     authEstablishEndpoints: [...module.authEstablishEndpoints],
+    publicEndpoints: copyPublicEndpoints(module.publicEndpoints),
   }));
 }
 

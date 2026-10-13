@@ -5,6 +5,7 @@ export interface ManifestModuleEntry {
   privateOptions?: Record<string, unknown>;
   path?: string;
   authEstablishEndpoints?: string[];
+  publicEndpoints?: unknown[];
 }
 
 export interface ModuleManifestShape<
@@ -145,6 +146,7 @@ export function applyDevManifestUrls<T extends ManifestModuleEntry>(
 export interface ManifestFieldPolicy {
   privateOptions: boolean;
   path: boolean;
+  /** Also governs `publicEndpoints`, the other routing declaration. */
   authEstablishEndpoints: boolean;
 }
 
@@ -155,7 +157,12 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
   const shaped = { ...module };
   if (!keep.privateOptions) delete shaped.privateOptions;
   if (!keep.path) delete shaped.path;
-  if (!keep.authEstablishEndpoints) delete shaped.authEstablishEndpoints;
+  // The routing declarations go together: an anonymous build gets neither,
+  // and its frontend server then opens no session and no public route.
+  if (!keep.authEstablishEndpoints) {
+    delete shaped.authEstablishEndpoints;
+    delete shaped.publicEndpoints;
+  }
   return shaped;
 }
 
