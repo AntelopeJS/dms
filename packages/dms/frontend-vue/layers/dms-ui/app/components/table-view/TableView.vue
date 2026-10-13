@@ -78,12 +78,8 @@ import { selectedRowIds } from "../../build/composables/table-view/utils/bulkAct
 import { isBulkAction } from "../../build/composables/actions/bulkSelection";
 import { selectionScopeKey } from "../../build/utils/selectionScope";
 import {
-  type DeepLinkOutcome,
-  deepLinkOutcome,
   isDeepLinkAction,
-  readRecordId,
   resolveDeepLinkedRow,
-  writeRecordId,
 } from "../../build/composables/table-view/utils/recordLink";
 import {
   rowSidePanelOwnerKey,
@@ -119,6 +115,7 @@ import type {
   TableViewSwitcherItem,
 } from "../../build/components/table/Table.vue";
 import {
+  currentQuery,
   visibleUrlFilters,
   withoutQueryParam,
 } from "../../build/composables/table-view/utils/urlFilters";
@@ -155,6 +152,7 @@ import {
   readTableUrlTab,
   useTableUrlTab,
 } from "../../build/composables/table-view/useTableUrlTab";
+import { useTableRecordLink } from "../../build/composables/table-view/useTableRecordLink";
 import TableViews, {
   type TableViewItem,
 } from "../../build/components/table/Views.vue";
@@ -411,9 +409,11 @@ const shownUrlFilters = computed<TableUrlFilter[]>(() =>
   visibleUrlFilters(queryParamFilters, route.query as Record<string, unknown>),
 );
 
+// Rebuilt from the URL the browser shows: a `?record=` a closed drawer
+// removed in place must not come back with the visit.
 const removeUrlFilter = (param: string) =>
   router.replace({
-    query: withoutQueryParam(route.query, param),
+    query: withoutQueryParam(currentQuery(route.query), param),
   });
 
 const routeParamHiddenFilters = computed<TableFilter[]>(() => {
@@ -1298,6 +1298,7 @@ const {
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
   },
   recordScope: urlScope,
+  onRecordShown: (id) => recordLink?.shown(id),
 });
 
 // Custom actions offered on the selection bar. "Select all N matching"
@@ -1704,58 +1705,39 @@ watch(rowSelect, (selection) => {
 const deepLinkAction = (tableProps.value.rowActions?.custom ?? []).find(
   isDeepLinkAction,
 );
-const openRecordFromUrl = async () => {
-  const id = deepLinkAction ? readRecordId(route.query, urlScope) : undefined;
-  if (!deepLinkAction || !id) return;
-  await until(isListLoading).toBe(false);
-  const { row, isMissing } = await resolveDeepLinkedRow(id, {
-    listed: shownResults.value ?? undefined,
-    idOf: getRowId,
-    getRow: tableRows.getRow,
-  });
-  const outcome = deepLinkOutcome({ row, isMissing }, deepLinkAction);
-  deepLinkOutcomes[outcome](deepLinkAction, id, row as Data);
-};
+const recordLink = deepLinkAction
+  ? useTableRecordLink<T>({
+      route,
+      urlScope,
+      action: deepLinkAction,
+      resolve: async (id) => {
+        await until(isListLoading).toBe(false);
+        return resolveDeepLinkedRow(id, {
+          listed: shownResults.value ?? undefined,
+          idOf: getRowId,
+          getRow: tableRows.getRow,
+        });
+      },
+      open: (row) => handleCustomRowAction(deepLinkAction, row as Data),
+      showMissing: (id) => handleMissingRow(deepLinkAction, id),
+      notify: (outcome) => toast.add(recordLinkToasts[outcome]()),
+    })
+  : undefined;
 
-const notifyUnresolvedRecordLink = () => {
-  writeRecordId(urlScope);
-  toast.add({
+const recordLinkToasts = {
+  notify: () => ({
     title: t("dms.record_link.not_found_title"),
     description: t("dms.record_link.not_found_description"),
     color: Color.warning,
     icon: "i-ph-link-break",
-  });
-};
-
-const notifyFailedRecordLink = () => {
-  writeRecordId(urlScope);
-  toast.add({
+  }),
+  notifyFailed: () => ({
     title: t("dms.record_link.failed_title"),
     description: t("dms.record_link.failed_description"),
     color: Color.error,
     icon: "i-ph-warning-circle",
-  });
+  }),
 };
-
-const deepLinkOutcomes: Record<
-  DeepLinkOutcome,
-  (action: CustomRowAction, id: string, row: Data) => void
-> = {
-  open: (action, _id, row) => handleCustomRowAction(action, row),
-  missingPanel: (action, id) => handleMissingRow(action, id),
-  notify: notifyUnresolvedRecordLink,
-  notifyFailed: notifyFailedRecordLink,
-};
-
-// A visit that keeps the page mounted (a link to the same page with another
-// `?record=`) opens the row it names, as a fresh load would. The table's own
-// writes replace the URL in place and never reach the route.
-watch(
-  () => readRecordId(route.query, urlScope),
-  (id, previous) => {
-    if (id && id !== previous) void openRecordFromUrl();
-  },
-);
 
 const selectedIds = computed(() => selectedRowIds(rowSelect.value));
 
@@ -2086,7 +2068,6 @@ const checkUrlParameter = () => {
 
 onMounted(() => {
   checkUrlParameter();
-  void openRecordFromUrl();
   void loadRelationQuickFilters();
   void refreshLinkTabCounts();
   // The registry is client-only; once hydrated, degrade to the table display if

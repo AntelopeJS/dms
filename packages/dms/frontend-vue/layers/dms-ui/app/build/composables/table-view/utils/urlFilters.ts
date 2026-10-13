@@ -27,3 +27,21 @@ export function withoutQueryParam<Query extends Record<string, unknown>>(
   const { [param]: _removed, ...rest } = query;
   return rest as Query;
 }
+
+/** The query of a URL, absolute or relative to the page, one value per key. */
+export function queryOfUrl(url: string): Record<string, string> {
+  return Object.fromEntries(new URL(url, "http://dms.invalid").searchParams);
+}
+
+/**
+ * The query the browser shows, else the route's on a server render. A table
+ * writes some keys in place (the open `?record=`, removed on close), so the
+ * route, which follows the last visit, can still hold a key the browser no
+ * longer shows: a visit rebuilt from it would bring the key back.
+ */
+export function currentQuery(
+  routeQuery: Record<string, unknown>,
+): Record<string, unknown> {
+  if (typeof window === "undefined") return routeQuery;
+  return queryOfUrl(window.location.href);
+}
