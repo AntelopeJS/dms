@@ -313,6 +313,120 @@ describe("action targets on a selection and on a listed row", () => {
     expect(drawer!.patches).toHaveLength(1);
   });
 
+  it("shows another row in a row's drawer by id, read when unlisted", async () => {
+    window.history.replaceState(null, "", "/runs");
+    const rows = [{ _id: "r1" }, { _id: "r2" }];
+    const older = { _id: "r9" };
+    const getRow = vi.fn(async (id: string) =>
+      id === "r9" ? older : undefined,
+    );
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id", getRow },
+      recordScope: { tableId: "runs", isSoleTableView: true },
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        deepLink: true,
+        target: { type: "drawer", component: { componentName: "RunDrawer" } },
+      },
+      rows[0],
+    );
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const options = drawer!.options.componentOptions as Record<string, unknown>;
+    const showRow = options.showRow as (row: object | string) => Promise<void>;
+
+    await showRow("r9");
+    expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
+    const patched = drawer!.patches[0]!.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(patched.rowData).toBe(older);
+    expect(patched.navigation).toBeUndefined();
+    expect(window.location.search).toBe("?record=r9");
+
+    await showRow("r2");
+    expect(getRow).toHaveBeenCalledTimes(1);
+    expect(drawer!.patches[1]).toMatchObject({ componentKey: "r2" });
+    expect(window.location.search).toBe("?record=r2");
+
+    await expect(showRow("r404")).rejects.toThrow("r404");
+    expect(drawer!.patches).toHaveLength(2);
+    drawer!.settle();
+  });
+
+  const deferredRows = () => {
+    const pending = new Map<string, (row: object) => void>();
+    const getRow = vi.fn(
+      (id: string) =>
+        new Promise<object | undefined>((resolve) => pending.set(id, resolve)),
+    );
+    return { getRow, resolve: (id: string) => pending.get(id)!({ _id: id }) };
+  };
+
+  const openDeepLinkedDrawer = (getRow: (id: string) => Promise<unknown>) => {
+    window.history.replaceState(null, "", "/runs");
+    const rows = [{ _id: "r1" }];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id", getRow },
+      recordScope: { tableId: "runs", isSoleTableView: true },
+      onRecordShown: vi.fn(),
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        deepLink: true,
+        target: { type: "drawer", component: { componentName: "RunDrawer" } },
+      },
+      rows[0],
+    );
+    return targets;
+  };
+
+  const showRowOf = (drawer: (typeof drawers)[number]) =>
+    (drawer.options.componentOptions as Record<string, unknown>).showRow as (
+      row: object | string,
+    ) => Promise<void>;
+
+  it("drops a row read that resolves after its drawer closed", async () => {
+    const rows = deferredRows();
+    openDeepLinkedDrawer(rows.getRow);
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const shown = showRowOf(drawer!)("r9");
+
+    drawer!.settle();
+    await vi.waitFor(() => expect(window.location.search).toBe(""));
+    rows.resolve("r9");
+    await shown;
+
+    expect(window.location.search).toBe("");
+    expect(drawer!.patches).toHaveLength(0);
+    expect(drawers).toHaveLength(1);
+  });
+
+  it("applies only the latest of two rows read at once", async () => {
+    const rows = deferredRows();
+    openDeepLinkedDrawer(rows.getRow);
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const showRow = showRowOf(drawer!);
+    const first = showRow("r8");
+    const second = showRow("r9");
+
+    rows.resolve("r9");
+    await second;
+    rows.resolve("r8");
+    await first;
+
+    expect(drawer!.patches).toHaveLength(1);
+    expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
+    expect(window.location.search).toBe("?record=r9");
+    drawer!.settle();
+  });
+
   it("hands a bulk drawer the selection instead of a row", async () => {
     const targets = mountTargets();
     targets.handleBulkCustomAction(

@@ -188,7 +188,12 @@ interface Mounted {
   showTable: Ref<boolean>;
 }
 
-function mountPanel(shownRows: Ref<Row[]> = ref(rows)): Mounted {
+type ReadRow = (id: string) => Promise<Row | undefined>;
+
+function mountPanel(
+  shownRows: Ref<Row[]> = ref(rows),
+  getRow?: ReadRow,
+): Mounted {
   let targets: ReturnType<typeof useActionTargets> | undefined;
   const showTable = ref(true);
   const Table = defineComponent({
@@ -201,7 +206,11 @@ function mountPanel(shownRows: Ref<Row[]> = ref(rows)): Mounted {
         refreshCallback: () => {
           refreshes += 1;
         },
-        rowNavigation: { rows: () => shownRows.value, rowIdKey: "_id" },
+        rowNavigation: {
+          rows: () => shownRows.value,
+          rowIdKey: "_id",
+          getRow,
+        },
         recordScope: { tableId: "requests", isSoleTableView: true },
       });
       return () => h("table");
@@ -477,6 +486,88 @@ describe("deep link to a row the table does not list", () => {
     press("j");
     await settle();
     expect(shownName(host)).toBe("Older");
+  });
+});
+
+describe("showing another row from the panel", () => {
+  const older: Row = { _id: "r9", name: "Older" };
+  const notFoundError = () =>
+    Object.assign(new Error("Not Found"), { statusCode: 404 });
+  const showRow = (rowOrId: Row | string) =>
+    (
+      useRowSidePanelContent().value?.componentOptions.showRow as (
+        rowOrId: Row | string,
+      ) => Promise<void>
+    )(rowOrId);
+
+  it("moves the highlight, the position and ?record= onto a listed row", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    await showRow("r3");
+    await settle();
+    expect(shownName(host)).toBe("Third");
+    expect(position(host)).toBe("side_panel.position(3/3)");
+    expect(useRowSidePanelContent().value?.rowKey).toBe("r3");
+    expect(window.location.search).toBe("?record=r3");
+    await showRow(rows[1]!);
+    await settle();
+    expect(position(host)).toBe("side_panel.position(2/3)");
+  });
+
+  it("reads an unlisted row by id, shown without a position", async () => {
+    const getRow = vi.fn(async () => older);
+    const { host, targets } = mountPanel(ref(rows), getRow);
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    await showRow("r9");
+    await settle();
+    expect(getRow).toHaveBeenCalledWith("r9");
+    expect(shownName(host)).toBe("Older");
+    expect(position(host)).toBeUndefined();
+    expect(useRowSidePanelContent().value?.rowKey).toBe("r9");
+    expect(window.location.search).toBe("?record=r9");
+  });
+
+  it("says a row its route answers 404 for is gone", async () => {
+    const { host, targets } = mountPanel(ref(rows), async () => {
+      throw notFoundError();
+    });
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    await showRow("gone");
+    await settle();
+    expect(query(host, "[data-dms-row-side-panel-not-found]")).not.toBeNull();
+    expect(useRowSidePanelContent().value?.rowKey).toBeUndefined();
+    expect(window.location.search).toBe("?record=gone");
+  });
+
+  it("rejects a row it cannot read, keeping the row it shows", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    await expect(showRow("r9")).rejects.toThrow("r9");
+    await settle();
+    expect(shownName(host)).toBe("First");
+    expect(window.location.search).toBe("?record=r1");
+  });
+
+  it("leaves the panel shut when it closed while the row was read", async () => {
+    let answer!: (row: Row) => void;
+    const { host, targets } = mountPanel(
+      ref(rows),
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    targets.handleCustomRowAction(panelAction(), rows[0]);
+    await settle();
+    const shown = showRow("r9");
+    closeRowSidePanel();
+    answer(older);
+    await shown;
+    await settle();
+    expect(useRowSidePanelContent().value).toBeNull();
+    expect(query(host, "[data-dms-side-panel]")).toBeNull();
+    expect(window.location.search).toBe("");
   });
 });
 

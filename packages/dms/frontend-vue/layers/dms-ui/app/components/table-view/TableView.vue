@@ -1296,6 +1296,7 @@ const {
   rowNavigation: {
     rows: () => (shownResults.value ?? []) as Data[],
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
+    getRow: (id) => tableRows.getRow(id) as Promise<Data | undefined>,
   },
   recordScope: urlScope,
   onRecordShown: (id) => recordLink?.shown(id),
