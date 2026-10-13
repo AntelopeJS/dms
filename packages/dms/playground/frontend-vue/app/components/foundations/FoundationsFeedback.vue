@@ -377,8 +377,8 @@ const STATUS_METRICS = [
 
     <ShowcaseSection
       id="permission-veil"
-      title="DmsPermissionVeil"
-      description="Shows what a role would lose on a block without taking it away: hidden (hatched veil + lock), readonly or limited (badge with a tooltip)."
+      title="DmsPermissionVeil · internal"
+      description="Internal to the DMS (dms-ui build/), shown for review only: the role preview draws it on every block, a module cannot rely on it. It shows what a role would lose on a block without taking it away: hidden (hatched veil + lock), readonly or limited (badge with a tooltip)."
       :columns="3"
     >
       <ShowcaseDemo

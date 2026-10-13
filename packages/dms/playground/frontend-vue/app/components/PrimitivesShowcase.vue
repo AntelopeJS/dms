@@ -212,8 +212,12 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
           <span
             class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
           >
-            DmsStepIndicator (onboarding page)
+            DmsStepIndicator (onboarding page) · internal
           </span>
+          <p class="text-dimmed text-xs">
+            Internal to the onboarding layer (build/), shown for review only: a
+            module cannot rely on it. Use UStepper.
+          </p>
           <DmsStepIndicator
             :labels="ONBOARDING_STEPS"
             :current="1"
@@ -410,10 +414,10 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
         <span
           class="text-dimmed font-mono text-[10.5px] font-semibold tracking-[0.12em] uppercase"
         >
-          DmsAuthCodeInput (sign-in code, xl)
+          UPinInput · otp · xl (the sign-in code look)
         </span>
         <div class="justify-self-start">
-          <DmsAuthCodeInput v-model="code" />
+          <UPinInput v-model="code" :length="6" size="xl" otp />
         </div>
       </div>
     </section>
