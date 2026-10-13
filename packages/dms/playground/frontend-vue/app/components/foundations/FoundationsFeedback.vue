@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import ShowcaseDemo from "./ShowcaseDemo.vue";
-import ShowcaseSection from "./ShowcaseSection.vue";
+import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
+import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 import DmsPermissionVeil from "#dms-ui/app/build/components/permission/PermissionVeil.vue";
 
 /**
