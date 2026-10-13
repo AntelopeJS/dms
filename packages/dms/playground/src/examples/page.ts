@@ -1,6 +1,7 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import type { ComponentBuilder } from "@antelopejs/interface-dms/component";
 import {
+  Banner,
   Card,
   FieldRow,
   KeyValueList,
@@ -19,6 +20,7 @@ import {
   DASHBOARD_CARDS,
   DOCS_LINKS,
   ECOSYSTEM,
+  FEATURE_INDEX_URL,
   PAGE_CLASS_SAMPLE,
   RUN_LOCALLY_SAMPLE,
   RUNTIME_STEPS,
@@ -122,7 +124,7 @@ export class ExamplesOverviewPage extends PageController(
     category: examplesCategory,
     order: 0,
     description:
-      "Welcome to the AntelopeJS DMS playground: what it is, what to explore and how to run it",
+      "Welcome to the AntelopeJS DMS playground: what it is, what to explore and how to run it. Start from the feature index to find one feature.",
   },
   DefaultLayout({ fullWidth: false, hideHeader: true }),
 ) {
@@ -137,6 +139,22 @@ export class ExamplesOverviewPage extends PageController(
     fetchUrl: "/api/playground-welcome/stats",
   });
 
+  static featureIndex = Banner({
+    tone: "info",
+    icon: "i-ph-list-checks",
+    title: "Looking for one feature?",
+    description:
+      "The feature index lists every DMS feature with the API that turns it on and the page that shows it. Ctrl K finds them too.",
+    actions: [
+      {
+        label: "Open the feature index",
+        to: FEATURE_INDEX_URL,
+        icon: "i-ph-arrow-right",
+        color: "primary",
+      },
+    ],
+  });
+
   static explore = NavCardGrid({
     title: "What you can explore",
     description:
@@ -147,8 +165,8 @@ export class ExamplesOverviewPage extends PageController(
   static dashboard = NavCardGrid({
     title: "The dashboard around them",
     description:
-      "What every DMS app gets without writing a page: navigation, modules and settings.",
-    columns: 4,
+      "What a page is made of besides its blocks, the dashboard around it and the backend services, then modules and settings.",
+    columns: 3,
     items: DASHBOARD_CARDS,
   });
 

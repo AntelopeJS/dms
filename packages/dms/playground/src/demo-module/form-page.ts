@@ -11,7 +11,8 @@ export class DemoModuleFormPage extends PageController(
     icon: "i-ph-envelope",
     module: "demo",
     order: 1,
-    description: "A simple contact form to demonstrate forms inside a module",
+    description:
+      "Demonstrates: a module page and the module's landingPage: /modules/demo opens here.",
   },
   FormPageLayout(),
 ) {

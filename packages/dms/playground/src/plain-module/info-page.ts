@@ -6,5 +6,6 @@ export class PlainModuleInfoPage extends PageController("info", {
   icon: "i-ph-info",
   module: "plain",
   order: 0,
-  description: "A loose page rendered under the fallback Pages group",
+  description:
+    "Demonstrates: a module without defaultCategory, whose pages fall back to the generic Pages group.",
 }) {}
