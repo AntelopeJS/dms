@@ -1,11 +1,24 @@
+import { get } from "@nuxt/ui/runtime/utils/index.js";
+
+// Every token is `{{<scope>.<key>}}`, spaces inside the braces allowed, as the
+// server's filter tokens (`{{ user.id }}`) are.
+//
 // `{{params.id}}` takes the bare name, which on a route repeating a placeholder
 // is its last occurrence — the row id of a form page. The `:<n>` suffix reaches
 // a specific occurrence, `{{params.id:1}}` being the id of the page carrying the
 // table view (see extractRouteParams).
-const PARAM_TOKEN = /\{\{params\.(\w+(?::\d+)?)\}\}/g;
+const PARAM_KEY = String.raw`params\.(\w+(?::\d+)?)`;
 // A query key may carry dots and dashes: a period selector writes `<id>.period`.
-const QUERY_TOKEN = /\{\{query\.([\w.-]+)\}\}/g;
-const RESPONSE_TOKEN = /\{\{response\.(\w+)\}\}/g;
+const QUERY_KEY = String.raw`query\.([\w.-]+)`;
+// A response key is a path into the answered body: `{{response.data.id}}`.
+const RESPONSE_KEY = String.raw`response\.([\w.-]+)`;
+
+const tokenPattern = (key: string, flags = "g"): RegExp =>
+  new RegExp(String.raw`\{\{\s*${key}\s*\}\}`, flags);
+
+const PARAM_TOKEN = tokenPattern(PARAM_KEY);
+const QUERY_TOKEN = tokenPattern(QUERY_KEY);
+const RESPONSE_TOKEN = tokenPattern(RESPONSE_KEY);
 const TOKEN_OPENING = "{{";
 
 export interface ReplaceUrlVariablesContext {
@@ -63,8 +76,8 @@ function fillResponseTokens(
   response: Record<string, unknown> | undefined,
 ): string {
   if (!response) return text;
-  return text.replace(RESPONSE_TOKEN, (match, key) => {
-    const value = response[key];
+  return text.replace(RESPONSE_TOKEN, (match, key: string) => {
+    const value: unknown = get(response, key);
     return typeof value === "string" || typeof value === "number"
       ? String(value)
       : match;
@@ -122,10 +135,11 @@ export function resolveTextVariables(
 
 // A route token left without a value: `{{params.id}}`, `{{query.workspace}}`,
 // `{{query.sales.period}}` (a query key may carry dots and dashes, as above).
-const UNRESOLVED_ROUTE_TOKEN =
-  /\{\{(?:params\.\w+(?::\d+)?|query\.[\w.-]+)\}\}/g;
-const UNRESOLVED_ROUTE_VALUE =
-  /^\{\{(?:params\.\w+(?::\d+)?|query\.[\w.-]+)\}\}$/;
+const ROUTE_KEY = `(?:${PARAM_KEY}|${QUERY_KEY})`;
+const UNRESOLVED_ROUTE_TOKEN = tokenPattern(ROUTE_KEY);
+const UNRESOLVED_ROUTE_VALUE = new RegExp(
+  `^${tokenPattern(ROUTE_KEY, "").source}$`,
+);
 const QUERY_SEPARATOR = "?";
 const FRAGMENT_SEPARATOR = "#";
 const PAIR_SEPARATOR = "&";

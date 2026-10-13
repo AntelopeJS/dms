@@ -15,6 +15,11 @@ import {
 } from "./confirmDialogTexts";
 import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
+import {
+  hasUrlVariables,
+  resolveLinkVariables,
+} from "../../utils/urlVariables";
+import { currentPageUrlValues } from "../page/pageUrlValues";
 
 /** What an action asks its confirmation with. */
 export interface ActionConfirmRequest {
@@ -55,7 +60,10 @@ export function useActionConfirm() {
     request: ActionConfirmRequest,
   ): Promise<ConfirmDialog | undefined> => {
     if (!isConfirmFrom(declared)) return declared;
-    const url = interpolateUrl(declared.from, {
+    const from = hasUrlVariables(declared.from)
+      ? resolveLinkVariables(declared.from, currentPageUrlValues())
+      : declared.from;
+    const url = interpolateUrl(from, {
       ...request.row,
       ...request.urlParams,
     });

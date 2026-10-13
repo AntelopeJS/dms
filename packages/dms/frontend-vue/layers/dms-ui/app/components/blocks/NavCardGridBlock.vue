@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { gridColumnsTemplate } from "../grid/columns";
 import {
   useCategoryNavCards,
@@ -217,7 +218,7 @@ const { t } = useI18n();
         >
           <DmsNavCard
             class="h-full"
-            :to="card.to"
+            :to="pageLink(card.to)"
             :icon="card.icon"
             :icon-tone="card.iconTone"
             :title="card.title"

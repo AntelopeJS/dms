@@ -147,6 +147,7 @@ export type ActionTarget =
     }
   | {
       type: "api";
+      /** Takes the page URL tokens and `{{row.field}}`, as a `page` target. */
       url: string;
       method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
       /**
@@ -163,9 +164,12 @@ export type ActionTarget =
     }
   | {
       type: "exportJob";
+      /** Takes the page URL tokens and `{{row.field}}`, as a `page` target. */
       url: string;
       method?: "GET" | "POST";
+      /** As `url`, plus `{jobId}`: the id of the job the start answered. */
       statusUrl?: string;
+      /** As `url`, plus `{jobId}`: the id of the job the start answered. */
       downloadUrl?: string;
       labels?: {
         title?: string;

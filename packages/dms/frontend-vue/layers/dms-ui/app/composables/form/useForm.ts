@@ -12,7 +12,7 @@ import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
 import {
   type ReplaceUrlVariablesContext,
   hasUrlVariables,
-  replaceUrlVariables,
+  resolveLinkVariables,
   resolveTextVariables,
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
@@ -770,7 +770,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     showSubmitNotice(response);
     props.onSuccessCallback?.(response, plainData);
     if (props.redirectOnSuccess) {
-      const target = replaceUrlVariables(
+      const target = resolveLinkVariables(
         props.redirectOnSuccess,
         buildUrlContext(response as Record<string, unknown> | undefined),
       );

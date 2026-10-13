@@ -51,7 +51,10 @@ export interface ActivityFeedItem {
   time?: BlockText;
   /** Accent dot after the time. */
   unread?: boolean;
-  /** Path the entry links to. */
+  /**
+   * Path the entry links to. Takes the page URL tokens (`{{params.X}}`,
+   * `{{query.X}}`).
+   */
   to?: string;
 }
 

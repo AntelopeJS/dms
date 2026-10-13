@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
 import DmsStatusPill from "../status-pill/StatusPill.vue";
@@ -216,7 +217,7 @@ function keyOf(item: KeyValueItem, index: number): string {
           <template v-else>
             <component
               :is="item.to ? DmsAutoLink : 'span'"
-              :to="item.to"
+              :to="pageLink(item.to)"
               class="min-w-0"
               :class="item.to && item.type !== 'status' && 'hover:underline'"
             >

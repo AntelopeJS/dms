@@ -11,6 +11,12 @@ import type {
 } from "../../../composables/confirm/types";
 import { processFieldI18n } from "../../utils/fieldOptionsI18n";
 import { interpolateLiteral } from "../../utils/literalText";
+import {
+  hasUrlVariables,
+  resolveLinkVariables,
+  resolveTextVariables,
+} from "../../utils/urlVariables";
+import { currentPageUrlValues } from "../page/pageUrlValues";
 
 /** `t` as vue-i18n gives it: named parameters, then the plural count. */
 export type ConfirmTranslate = (
@@ -41,22 +47,37 @@ export type SecondaryTargetRun = (
   target: ConfirmDialogSecondaryTarget,
 ) => Promise<void> | void;
 
+// The page's `{{params.X}}` / `{{query.X}}` come first, as on an action's own
+// target; the route is only read for a text holding such a token.
+function withPageLink(url: string): string {
+  return hasUrlVariables(url)
+    ? resolveLinkVariables(url, currentPageUrlValues())
+    : url;
+}
+
+function withPageText(text: string): string | undefined {
+  return hasUrlVariables(text)
+    ? resolveTextVariables(text, currentPageUrlValues())
+    : text;
+}
+
 /**
  * A dialog's secondary target with its URL (and file name) filled in with
- * the same parameters as its texts.
+ * the page's values, then the same parameters as its texts.
  */
 function resolveSecondaryTarget(
   target: ConfirmDialogSecondaryTarget,
   params: Record<string, unknown>,
 ): ConfirmDialogSecondaryTarget {
-  const url = interpolateUrl(target.url, params);
+  const url = interpolateUrl(withPageLink(target.url), params);
   if (target.type !== "download" || target.filename === undefined) {
     return { ...target, url };
   }
+  const filename = withPageText(target.filename);
   return {
     ...target,
     url,
-    filename: interpolateLiteral(target.filename, params),
+    filename: filename && interpolateLiteral(filename, params),
   };
 }
 

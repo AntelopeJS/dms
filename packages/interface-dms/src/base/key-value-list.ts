@@ -43,7 +43,10 @@ export interface KeyValueListItem {
    */
   value?: BlockText | number | null;
   type?: KeyValueType;
-  /** Route, `#anchor` or URL the value links to. */
+  /**
+   * Route, `#anchor` or URL the value links to. Takes the page URL tokens
+   * (`{{params.X}}`, `{{query.X}}`).
+   */
   to?: string;
   /** Text colour, or the pill tone of a `status` value. */
   tone?: Tone;

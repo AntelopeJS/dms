@@ -57,7 +57,7 @@ target instead: a non-modal panel docked on the right whose header the DMS draws
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{id}"`) — never bridge the table's DOM to build one —
 `docs/04.components/06.tables/8.row-drawers.md#side-panel`.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
-target, `{ url, filename? }`, with the same `{field}` / `{{query.X}}` tokens — never a Vue
+target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
 header button or an `api` target for it — `docs/07.interfaces/3.base/2.types.md`.
 
 A row that must stay on top of a table under any sort (a base language, a default

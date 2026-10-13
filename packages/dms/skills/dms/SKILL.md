@@ -33,7 +33,8 @@ For the framework underneath (the core, `ajs` CLI, interfaces as versioned contr
   frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
   routes often declared `@Get`/`@Post` on the same page class; the backend stays the source of truth.
   A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
-  nothing is fetched while one is unresolved), and `.watch(FormEvents.SUBMIT_SUCCESS,
+  nothing is fetched while one is unresolved) — every token is `{{<scope>.<key>}}`: `params`, `query`, `row` (an
+  action's row), `response` (a form's redirect), and the same page tokens work in every URL and link option, and `.watch(FormEvents.SUBMIT_SUCCESS,
   BlockFunctions.REFRESH_PAGE)` makes the page's data blocks (table views included) re-fetch after a form saves;
   `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a `PeriodSelector`
   (which keeps its period in the page URL, `?<id>.period=`), and

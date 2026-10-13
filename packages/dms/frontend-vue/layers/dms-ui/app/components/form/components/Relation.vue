@@ -3,6 +3,7 @@
   lang="ts"
   generic="T extends ArrayOrNested<SelectMenuItem>, M extends boolean = false"
 >
+import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { useForwardPropsEmits } from "reka-ui";
 import type {
   SelectMenuProps,
@@ -193,7 +194,9 @@ interface RelationItems {
 }
 
 async function fetchRelationItems(): Promise<RelationItems> {
-  const data = await $authFetch<RelationResponse>(props.searchUrl, {
+  const url = pageRequestUrl(props.searchUrl);
+  if (!url) return { results: [], total: 0 };
+  const data = await $authFetch<RelationResponse>(url, {
     params: {
       search: searchTermDebounced.value || undefined,
     },

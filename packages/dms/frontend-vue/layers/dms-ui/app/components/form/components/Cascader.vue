@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import {
   buildCascaderTree,
   CASCADER_FETCH_LIMIT,
@@ -68,8 +69,10 @@ interface CascaderResponse {
 
 const { data, status, execute } = await useDmsAsyncData(
   `cascader-${instanceId}`,
-  () =>
-    $authFetch<CascaderResponse>(props.searchUrl, {
+  () => {
+    const url = pageRequestUrl(props.searchUrl);
+    if (!url) return Promise.resolve({ results: [], total: 0 });
+    return $authFetch<CascaderResponse>(url, {
       params: { limit: CASCADER_FETCH_LIMIT },
       onRequestError: ({ error }: { error: Error }) => {
         toast.add({
@@ -78,7 +81,8 @@ const { data, status, execute } = await useDmsAsyncData(
           description: error.message,
         });
       },
-    }),
+    });
+  },
   { lazy: true, immediate: false },
 );
 

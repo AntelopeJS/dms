@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../build/composables/page/pageUrlValues";
 import type { FormProps } from "../../composables/form/types/props";
 import type {
   FormData,
@@ -492,7 +493,7 @@ function cancelForm(): void {
     window.history.back();
     return;
   }
-  if (props.backTo) void router.push(props.backTo);
+  if (props.backTo) void router.push(pageLink(props.backTo));
 }
 
 const validators = new Set<FormValidator>();

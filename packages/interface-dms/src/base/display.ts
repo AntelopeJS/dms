@@ -20,7 +20,8 @@ export type BlockActionVariant = (typeof BLOCK_ACTION_VARIANTS)[number];
 /**
  * A link button a display block renders. `to` is a DMS route, an `#anchor` on
  * the page, or an absolute URL (opened in a new tab). The block picks the look
- * of the buttons by their place; `variant` and `color` override it.
+ * of the buttons by their place; `variant` and `color` override it. `to`
+ * takes the page URL tokens (`{{params.X}}`, `{{query.X}}`).
  */
 export interface BlockLinkAction {
   /** Button text; `$`-prefixed for an i18n key. */

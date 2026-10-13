@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import type { SelectMenuItem } from "@nuxt/ui";
 import { refDebounced } from "@vueuse/core";
 import {
@@ -225,7 +226,9 @@ interface CountryOptions {
 }
 
 async function fetchCountryOptions(): Promise<CountryOptions> {
-  const data = await $authFetch<CountryApiResponse>(props.searchUrl!, {
+  const url = pageRequestUrl(props.searchUrl);
+  if (!url) return { results: [], total: 0 };
+  const data = await $authFetch<CountryApiResponse>(url, {
     params: {
       q: countrySearchTermDebounced.value,
     },
