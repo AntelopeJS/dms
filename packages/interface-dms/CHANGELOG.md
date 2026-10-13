@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.5.13
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.12...v0.5.13)
+
+### 🚀 Enhancements
+
+- **layout:** Let a header button's label read the page's query ([#247](https://github.com/AntelopeJS/dms/pull/247))
+- **table-view:** Let a row's panel, drawer or modal show another row in place ([#252](https://github.com/AntelopeJS/dms/pull/252))
+- **table-view:** Let a table view drop the built-in table display ([#255](https://github.com/AntelopeJS/dms/pull/255))
+
+### 🩹 Fixes
+
+- **table-view:** Reopen a record link to a closed row and keep chips from restoring it ([#249](https://github.com/AntelopeJS/dms/pull/249))
+- **table-view:** Keep an empty list on screen while it is read again ([#250](https://github.com/AntelopeJS/dms/pull/250))
+- **table-view:** Serve the row menu label to the browser ([#253](https://github.com/AntelopeJS/dms/pull/253))
+- **table-view:** Keep the tab the user opens in the URL ([#254](https://github.com/AntelopeJS/dms/pull/254))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.17 ([b5929d77](https://github.com/AntelopeJS/dms/commit/b5929d77))
+- **release:** @antelopejs/dms v0.7.18 ([7777b64c](https://github.com/AntelopeJS/dms/commit/7777b64c))
+- **release:** @antelopejs/dms v0.7.19 ([265c5e12](https://github.com/AntelopeJS/dms/commit/265c5e12))
+- **release:** @antelopejs/dms v0.7.20 ([84dd3ae7](https://github.com/AntelopeJS/dms/commit/84dd3ae7))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.12
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.11...v0.5.12)
