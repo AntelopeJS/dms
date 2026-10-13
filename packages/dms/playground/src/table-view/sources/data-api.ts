@@ -1,4 +1,9 @@
-import { Controller } from "@antelopejs/interface-api";
+import {
+  Controller,
+  HTTPResult,
+  Parameter,
+  Post,
+} from "@antelopejs/interface-api";
 import {
   DataController,
   RegisterDataController,
@@ -19,7 +24,10 @@ import {
 } from "@antelopejs/interface-dms/base/table-view";
 import { RoadmapFeature, RoadmapFeatureModel } from "./database";
 
-/** The roadmap features of the "Sources, order & cards" demo, in hand order. */
+const HTTP_NOT_FOUND = 404;
+const JSON_TYPE = "application/json";
+
+/** The roadmap features of the "Rows ordered by hand" demo, in hand order. */
 @RegisterDataController()
 export class roadmapFeatureDataAPI extends DataController(
   RoadmapFeature,
@@ -64,4 +72,19 @@ export class roadmapFeatureDataAPI extends DataController(
   })
   @Access(AccessMode.ReadWrite)
   declare position: number;
+
+  /** The cards' "Upvote" button, a custom row action placed by the card. */
+  @Post("upvote")
+  async upvote(@Parameter("id", "query") id: string) {
+    const feature = await this.model.get(id);
+    if (!feature) {
+      throw new HTTPResult(
+        HTTP_NOT_FOUND,
+        JSON.stringify({ message: "Feature not found" }),
+        JSON_TYPE,
+      );
+    }
+    await this.model.update(id, { votes: feature.votes + 1 });
+    return { votes: feature.votes + 1 };
+  }
 }
