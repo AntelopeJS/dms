@@ -4,6 +4,9 @@ import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types";
 import { notificationCategory } from "../category";
+import { sentNotificationCount } from "../notification-api";
+
+const NOTIFICATION_API = "/api/notification";
 
 @RegisterPage()
 export class PageNotificationTest extends PageController(
@@ -13,10 +16,12 @@ export class PageNotificationTest extends PageController(
     icon: "i-ph-bell-ringing",
     category: notificationCategory,
     order: 0,
-    description: "Test the notification system by sending custom notifications",
+    description:
+      "Demonstrates: the Notification() builder and its delivery options (toUser, toRoles, broadcast, readScope, idempotencyKey, params). Send one and open the bell.",
   },
   FormPageLayout(),
 ) {
+  // Its nav badge counts the notifications you sent yourself with it.
   static notificationForm = Form({
     title: "Send Custom Notification",
     description: "Fill in the form and submit to send yourself a notification",
@@ -64,6 +69,11 @@ export class PageNotificationTest extends PageController(
         }),
       },
     ],
+  }).navBadge({
+    count: async (_ctx, user) => ({
+      count: sentNotificationCount(user._id),
+      tone: "primary",
+    }),
   });
 
   static dmsUpdateForm = Form({
@@ -105,7 +115,7 @@ export class PageNotificationTest extends PageController(
   static broadcastAllForm = Form({
     title: "Broadcast to All (shared)",
     description:
-      "Send a shared notification to all users - when one reads it, all see it as read",
+      'broadcast({ readScope: "shared" }): one notification for every user; once one of them reads it, it is read for all',
     submitUrl: "/api/notification/broadcast-all",
     submitLabel: "Send broadcast",
     kind: "action",
@@ -119,5 +129,49 @@ export class PageNotificationTest extends PageController(
         defaultValue: "System announcement",
       },
     ],
+  });
+
+  static idempotentForm = Form({
+    title: "Idempotent delivery",
+    description:
+      "toUser(id, { idempotencyKey }): send twice with the same key, a single notification arrives",
+    submitUrl: `${NOTIFICATION_API}/send-idempotent`,
+    submitLabel: "Send with this key",
+    kind: "action",
+    submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
+    fields: [
+      {
+        id: "key",
+        label: "Idempotency key",
+        type: new DefaultDataTypes.StringType(),
+        defaultValue: "order-42-shipped",
+        required: true,
+      },
+    ],
+  });
+
+  static paramsForm = Form({
+    title: "Translated text with params",
+    description:
+      "Builder .params({ count: 3 }) fills the {count} of a translated title, in each reader's language",
+    submitUrl: `${NOTIFICATION_API}/send-params`,
+    submitLabel: "Send",
+    kind: "action",
+    submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
+    fields: [],
+  });
+
+  static rolesForm = Form({
+    title: "Send to roles",
+    description:
+      "toRoles(roleIds) with every role of the workspace, under the playground's own notification subject (Settings › Notifications)",
+    submitUrl: `${NOTIFICATION_API}/send-to-roles`,
+    submitLabel: "Send to every role",
+    kind: "action",
+    submitUrlMethod: HttpMethod.post,
+    successMessage: "$demo.notifications.sent",
+    fields: [],
   });
 }

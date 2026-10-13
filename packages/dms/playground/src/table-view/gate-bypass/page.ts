@@ -6,8 +6,8 @@ import { taskDataAPI } from "../data-api";
 import { gateDemoInvoiceAPI } from "./data-api";
 import { demoFormPages } from "../form-texts";
 
-// Recovery-surface demo: suspend the tenant with
-// POST /playground/gate-demo/toggle, then reload. This page stays reachable
+// Recovery-surface demo: suspend the tenant from System › Tenancy (POST
+// /api/playground/gate-demo/toggle), then reload. This page stays reachable
 // (page-level flag) and its first table keeps serving rows (controller-level
 // flag), while the second table's routes stay gated and must surface an
 // explicit error — never an empty table. The second table only reads: the

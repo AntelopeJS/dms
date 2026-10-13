@@ -116,6 +116,28 @@
       "maintenance": {
         "title": "Maintenance on Sunday from 2:00 to 2:30 a.m.",
         "description": "The dashboard will be unavailable meanwhile: save your work before then."
+      },
+      "category": {
+        "label": "Playground",
+        "description": "Notifications the playground sends for its demos",
+        "tag": "Demo"
+      },
+      "subject": {
+        "label": "Playground demos",
+        "description": "Sent from System › Notifications",
+        "badge": "New"
+      },
+      "idempotent": {
+        "title": "Delivered once for the key {key}",
+        "description": "Send it again with the same key: no second notification arrives."
+      },
+      "orders": {
+        "title": "no new order | {count} new order | {count} new orders",
+        "description": "The count is sent as a param and written in your language."
+      },
+      "roles": {
+        "title": "A message for every role",
+        "description": "Sent with toRoles to the members holding one of the workspace's roles."
       }
     },
     "job_runs": {
@@ -210,6 +232,40 @@
       "toolkit": {
         "refused": "The playground refused this call on purpose.",
         "invoice": "Invoice of {amount}, due {due}."
+      }
+    },
+    "pages": {
+      "header": {
+        "download": "Download {locale}.json",
+        "archived": "The archive workspace is read-only: restore it to publish",
+        "client_action": "Client action",
+        "client_action_toast": "Run in the browser, without a request",
+        "client_action_title": "A header button added from the browser",
+        "client_action_description": "This component calls usePageHeaderActions with order 20: its button sits between Download (10) and Publish (30)."
+      },
+      "banners": {
+        "info": "The playground's text banner: close it, it stays closed for this browser session.",
+        "open": "Open the banners demo",
+        "past_due": "Your payment of {amount} failed. We will try again on {date}.",
+        "pay": "Update the payment method",
+        "suspended": "This workspace is suspended, or the component banner is switched on.",
+        "suspended_link": "Open Tenancy"
+      },
+      "hooks": {
+        "seats_full": "No seat left: free one or upgrade the plan to invite someone"
+      },
+      "realtime": {
+        "browser_title": "Received by this browser on {topic}",
+        "browser_empty": "Nothing yet: press Ping in the header."
+      },
+      "quick_actions": {
+        "ping_toast": "The quick action's event reached a listener",
+        "ping_description": "Payload: {payload}"
+      },
+      "setup": {
+        "mounted": "Page setup function mounted",
+        "mounted_description": "{page}: it receives your {count} permission(s) and listens to the form.",
+        "field_change": "A field changed: the page setup function heard it"
       }
     }
   }

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { AddFrontendModule } from "@antelopejs/interface-dms/page";
+import { WEBHOOK_SIGNATURE_HEADER, WEBHOOKS_API } from "./hooks/webhooks";
 import "./demo-module";
 import "./plain-module";
 import "./examples";
@@ -22,6 +23,14 @@ import "./quick-actions";
 import "./primitives";
 import "./foundations";
 import "./frontend-modules";
+import "./page-header";
+import "./layout-banners";
+import "./tenancy";
+import "./hooks";
+import "./page-access";
+import "./realtime";
+import "./emails";
+import "./permissions";
 
 /** Registers the playground's Vue frontend extensions. */
 export async function start() {
@@ -31,5 +40,14 @@ export async function start() {
     renderer: { name: "vue", version: "3" },
     priority: 100,
     options: { dmsI18nAppLayer: true },
+    // A provider's webhook, reachable through the frontend server without a
+    // session or a same-site Origin (see hooks/webhooks.ts).
+    publicEndpoints: [
+      {
+        path: `${WEBHOOKS_API}/*`,
+        methods: ["POST"],
+        headers: [WEBHOOK_SIGNATURE_HEADER],
+      },
+    ],
   });
 }

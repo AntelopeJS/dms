@@ -12,7 +12,8 @@ export class PageNested3B1 extends PageController(
     icon: "i-ph-file",
     category: level2BCategory,
     order: 0,
-    description: "Nested page at level 3 (branch B)",
+    description:
+      "Demonstrates: categories nested with Category({ category }); this page sits at level 3 (branch B).",
   },
   FormPageLayout(),
 ) {

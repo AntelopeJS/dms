@@ -8,6 +8,11 @@ import {
 } from "../page-extension/target-page";
 import { PageTableViewGateBypass } from "../table-view/gate-bypass/page";
 import { PageTableViewTabs } from "../table-view/tabs/page";
+import { DynamicNavigationProjectPage } from "../navigation/project-page";
+import { PRESS_BUTTON_ID, QuickActionsPage } from "./page";
+
+export * from "./api";
+export * from "./page";
 
 const playgroundActions = QuickActionCategory("playground", {
   displayName: "Playground",
@@ -25,6 +30,19 @@ QuickAction("open-tabs", {
   target: { type: "navigate", page: PageTableViewTabs },
 });
 
+// Routes to a page that needs a query: one page, any number of actions.
+QuickAction("open-invoicer", {
+  category: playgroundActions,
+  displayName: "Open project invoicer",
+  icon: "i-ph-cube",
+  order: 15,
+  target: {
+    type: "navigate",
+    page: DynamicNavigationProjectPage,
+    query: { project: "invoicer" },
+  },
+});
+
 // Routes to the page, then opens the creation form of the table view named
 // here — the page mounts only one, but naming it survives a rename.
 QuickAction("new-task", {
@@ -40,7 +58,7 @@ QuickAction("new-task", {
 });
 
 // The page mounts two table views, so this one names the table it means.
-// Suspend the tenant with POST /playground/gate-demo/toggle: the action stays
+// Suspend the tenant from System › Tenancy: the action stays
 // listed, because its page opts out of the tenant access gate.
 QuickAction("new-invoice", {
   category: playgroundActions,
@@ -66,7 +84,23 @@ QuickAction("new-nested-task", {
   },
 });
 
-// Dispatched where the user stands; the page only decides who may run it.
+// Presses a table view's button by its id: the action is listed only for a
+// caller the button admits, and opens what the button opens.
+QuickAction("press-button", {
+  category: playgroundActions,
+  displayName: "Press the quick actions table's button",
+  icon: "i-ph-hand-pointing",
+  order: 38,
+  target: {
+    type: "button",
+    page: QuickActionsPage,
+    button: PRESS_BUTTON_ID,
+    component: QuickActionsPage.actions,
+  },
+});
+
+// Dispatched where the user stands; the page only decides who may run it. The
+// playground's quick-action-ping plugin answers it with a toast.
 QuickAction("ping", {
   category: playgroundActions,
   displayName: "Dispatch a demo event",
@@ -74,7 +108,7 @@ QuickAction("ping", {
   order: 40,
   target: {
     type: "event",
-    page: PageTableViewTabs,
+    page: QuickActionsPage,
     name: "playground:quick-action-ping",
     payload: { source: "quick-action" },
   },
