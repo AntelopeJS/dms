@@ -357,6 +357,76 @@ describe("action targets on a selection and on a listed row", () => {
     drawer!.settle();
   });
 
+  const deferredRows = () => {
+    const pending = new Map<string, (row: object) => void>();
+    const getRow = vi.fn(
+      (id: string) =>
+        new Promise<object | undefined>((resolve) => pending.set(id, resolve)),
+    );
+    return { getRow, resolve: (id: string) => pending.get(id)!({ _id: id }) };
+  };
+
+  const openDeepLinkedDrawer = (getRow: (id: string) => Promise<unknown>) => {
+    window.history.replaceState(null, "", "/runs");
+    const rows = [{ _id: "r1" }];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id", getRow },
+      recordScope: { tableId: "runs", isSoleTableView: true },
+      onRecordShown: vi.fn(),
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        deepLink: true,
+        target: { type: "drawer", component: { componentName: "RunDrawer" } },
+      },
+      rows[0],
+    );
+    return targets;
+  };
+
+  const showRowOf = (drawer: (typeof drawers)[number]) =>
+    (drawer.options.componentOptions as Record<string, unknown>).showRow as (
+      row: object | string,
+    ) => Promise<void>;
+
+  it("drops a row read that resolves after its drawer closed", async () => {
+    const rows = deferredRows();
+    openDeepLinkedDrawer(rows.getRow);
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const shown = showRowOf(drawer!)("r9");
+
+    drawer!.settle();
+    await vi.waitFor(() => expect(window.location.search).toBe(""));
+    rows.resolve("r9");
+    await shown;
+
+    expect(window.location.search).toBe("");
+    expect(drawer!.patches).toHaveLength(0);
+    expect(drawers).toHaveLength(1);
+  });
+
+  it("applies only the latest of two rows read at once", async () => {
+    const rows = deferredRows();
+    openDeepLinkedDrawer(rows.getRow);
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const showRow = showRowOf(drawer!);
+    const first = showRow("r8");
+    const second = showRow("r9");
+
+    rows.resolve("r9");
+    await second;
+    rows.resolve("r8");
+    await first;
+
+    expect(drawer!.patches).toHaveLength(1);
+    expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
+    expect(window.location.search).toBe("?record=r9");
+    drawer!.settle();
+  });
+
   it("hands a bulk drawer the selection instead of a row", async () => {
     const targets = mountTargets();
     targets.handleBulkCustomAction(

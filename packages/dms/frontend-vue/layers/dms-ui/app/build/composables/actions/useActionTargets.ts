@@ -356,10 +356,15 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
   // `showRow` given an id: the listed row, else the one the table's route
   // reads. A row its route answered 404 for goes to `showMissing` when the
-  // container has a state for it; any other row not found rejects.
-  const rowShower =
-    (show: (row: Data) => void, showMissing?: (id: string) => void): ShowRow =>
-    async (rowOrId) => {
+  // container has a state for it; any other row not found rejects. Only the
+  // latest call applies: a read that resolves after a later call is dropped.
+  const rowShower = (
+    show: (row: Data) => void,
+    showMissing?: (id: string) => void,
+  ): ShowRow => {
+    let latest = 0;
+    return async (rowOrId) => {
+      const call = ++latest;
       if (typeof rowOrId !== "string") return show(rowOrId);
       const source = config.rowNavigation;
       const found = await resolveDeepLinkedRow(rowOrId, {
@@ -367,10 +372,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
         idOf: rowIdOf,
         getRow: source?.getRow ?? NO_ROW_ROUTE,
       });
+      if (call !== latest) return;
       if (found.row) return show(found.row);
       if (found.isMissing && showMissing) return showMissing(rowOrId);
       throw new Error(`The row "${rowOrId}" could not be read`);
     };
+  };
 
   const rowRecorder = (deepLink?: boolean) => {
     const recordId = recordRecorder(deepLink);
@@ -455,6 +462,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const source = config.rowNavigation;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
+    // Set once the container closes: a row read that resolves later neither
+    // writes `?record=` back nor patches the closed container.
+    let closed = false;
+    const showRowById = rowShower((row) => {
+      if (!closed) showRow(row);
+    });
     const optionsFor = (row?: Data) => {
       navigation =
         row && source ? rowNavigation(source, row, showRow) : undefined;
@@ -465,7 +478,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         containerId: run.containerId,
         rowData: row,
         navigation,
-        showRow: rowShower(showRow),
+        showRow: showRowById,
         selection: run.selection,
         onSuccessCallback: () => {
           instance?.close();
@@ -486,6 +499,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     // `showRow` may move an unlisted row's container onto a listed one.
     const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
     const settle = () => {
+      closed = true;
       stopSteps?.();
       recordRow(undefined);
     };
