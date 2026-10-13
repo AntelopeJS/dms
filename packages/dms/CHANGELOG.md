@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.7.16
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.15...v0.7.16)
+
+### 🚀 Enhancements
+
+- **layout:** Hide header buttons by availability and order them with page actions ([#237](https://github.com/AntelopeJS/dms/pull/237))
+- **period:** Roll calendar presets over at midnight, sync the route query and cap custom ranges ([#227](https://github.com/AntelopeJS/dms/pull/227))
+- **table-view:** Follow the URL tab after mount ([#229](https://github.com/AntelopeJS/dms/pull/229))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.11 ([8cb631b4](https://github.com/AntelopeJS/dms/commit/8cb631b4))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.15
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.14...v0.7.15)
