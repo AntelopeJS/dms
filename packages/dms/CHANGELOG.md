@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.17
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.16...v0.7.17)
+
+### 🚀 Enhancements
+
+- **actions:** Let a button download a file with the user's session ([#246](https://github.com/AntelopeJS/dms/pull/246))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.12 ([029d1f2d](https://github.com/AntelopeJS/dms/commit/029d1f2d))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.16
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.15...v0.7.16)
