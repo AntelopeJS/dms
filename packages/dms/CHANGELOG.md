@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.20
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.19...v0.7.20)
+
+### 🩹 Fixes
+
+- **table-view:** Reopen a record link to a closed row and keep chips from restoring it ([#249](https://github.com/AntelopeJS/dms/pull/249))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.19
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.18...v0.7.19)
