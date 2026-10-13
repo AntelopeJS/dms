@@ -157,6 +157,7 @@ export function adaptRowActions({
     copyLink: applyPermissionToAction(grants.view, rowActions?.copyLink),
     hasSelection: rowActions?.hasSelection,
     custom,
+    menuLabel: rowActions?.menuLabel,
   };
 
   // The table's own rules are already in its options; the controller's rule
