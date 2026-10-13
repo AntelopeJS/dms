@@ -507,6 +507,11 @@ export const TableViewSchema = z.object({
     label: "Displays",
     group: "advanced",
   }),
+  tableDisplay: ui(z.boolean().optional(), {
+    label: "Table display",
+    group: "advanced",
+    widget: "switch",
+  }),
   defaultDisplay: ui(z.string().default(TABLE_DISPLAY_ID), {
     label: "Default display",
     group: "advanced",

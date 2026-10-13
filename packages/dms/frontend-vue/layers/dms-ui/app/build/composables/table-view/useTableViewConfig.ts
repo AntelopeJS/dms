@@ -103,10 +103,11 @@ export const useTableViewConfig = <T extends Data>(
   );
 
   // Config-derived (SSR-safe; the registry is client-only): the implicit `table`
-  // display plus explicit `displays`. Built-in defaults
+  // display (unless `tableDisplay` is false) plus explicit `displays`. Built-in defaults
   // (selfManagedData/capabilities) are merged per id.
   const resolvedDisplays: TableViewDisplayConfig[] = (() => {
-    const list: TableViewDisplayConfig[] = [{ id: TABLE_DISPLAY_ID }];
+    const list: TableViewDisplayConfig[] =
+      config.tableDisplay === false ? [] : [{ id: TABLE_DISPLAY_ID }];
     for (const display of config.displays ?? []) {
       if (display.id === TABLE_DISPLAY_ID) continue;
       list.push(display);

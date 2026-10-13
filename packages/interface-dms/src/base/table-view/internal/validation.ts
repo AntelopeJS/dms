@@ -190,6 +190,7 @@ interface DisplayDeclarations {
   kanban?: KanbanOptions;
   grouped?: GroupedOptions;
   displays?: TableViewDisplayOption[];
+  tableDisplay?: boolean;
 }
 
 /**
@@ -198,9 +199,9 @@ interface DisplayDeclarations {
  * @internal
  */
 export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
-  const { kanban, grouped, displays } = options;
+  const { kanban, grouped, displays, tableDisplay } = options;
   return new Set<string>([
-    TABLE_DISPLAY_ID,
+    ...(tableDisplay === false ? [] : [TABLE_DISPLAY_ID]),
     ...(kanban ? [KANBAN_DISPLAY_ID] : []),
     ...(grouped ? [GROUPED_DISPLAY_ID] : []),
     ...(displays?.map((display) => display.id) ?? []),
@@ -217,7 +218,14 @@ export function validateDefaultDisplay(
   options: DisplayDeclarations & { defaultDisplay?: string },
 ): void {
   const { defaultDisplay } = options;
-  if (!defaultDisplay) return;
+  if (!defaultDisplay) {
+    if (options.tableDisplay === false) {
+      throw new Error(
+        `TableView on ${controllerName} drops the table display without a defaultDisplay`,
+      );
+    }
+    return;
+  }
   if (!offeredDisplayIds(options).has(defaultDisplay)) {
     throw new Error(
       `TableView on ${controllerName} defaults to display "${defaultDisplay}" which is not declared in displays`,

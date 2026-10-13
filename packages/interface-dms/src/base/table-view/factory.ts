@@ -222,6 +222,7 @@ export function TableView<T extends ControllerClass>(
       emptyStates: serializeEmptyStates(options.emptyStates),
       displays: serializeTableViewDisplays(options),
       defaultDisplay: options.defaultDisplay,
+      tableDisplay: options.tableDisplay,
       formComponents: {
         new: newForm ? newForm.serializeSync() : undefined,
         edit: editForm ? editForm.serializeSync() : undefined,

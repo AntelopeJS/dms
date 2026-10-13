@@ -1117,6 +1117,12 @@ export interface TableViewOptions<
    */
   displays?: TableViewDisplayOption[];
   /**
+   * Whether the built-in `table` display is offered. `false` leaves only the
+   * other displays, so the switcher disappears when one remains; it then needs
+   * a `defaultDisplay`. Defaults to `true`.
+   */
+  tableDisplay?: boolean;
+  /**
    * Display shown by default when the user has no saved preference. Defaults to
    * "table".
    */
