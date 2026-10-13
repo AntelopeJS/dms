@@ -21,6 +21,7 @@ import "./page-extension";
 import "./quick-actions";
 import "./primitives";
 import "./foundations";
+import "./frontend-modules";
 
 /** Registers the playground's Vue frontend extensions. */
 export async function start() {
