@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.18
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.17...v0.7.18)
+
+### 🚀 Enhancements
+
+- **layout:** Let a header button's label read the page's query ([#247](https://github.com/AntelopeJS/dms/pull/247))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.17
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.16...v0.7.17)
