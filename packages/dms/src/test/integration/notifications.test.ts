@@ -235,7 +235,7 @@ describe("Notification idempotency (MongoDB adapter)", () => {
     assert.equal((await model.table.run()).length, 2);
   });
 
-  it("rejects an actual duplicate insert and mismatched notification identity", async () => {
+  it("keeps the first delivery when a key is reused with other content", async () => {
     await sendable.toUsersIdempotently([USER], EVENT);
     const [row] = await model.table.run();
     await assert.rejects(model.table.insert(row).run(), (error: unknown) => {
@@ -243,12 +243,20 @@ describe("Notification idempotency (MongoDB adapter)", () => {
       assert.match(error.message, /E11000/);
       return true;
     });
-    await assert.rejects(
-      new SendableNotification({
-        ...data,
-        title: "Different",
-      }).toUsersIdempotently([USER], EVENT),
+    await new SendableNotification({
+      ...data,
+      title: "Different",
+      params: { count: 2 },
+    }).toUsersIdempotently([USER], EVENT);
+    assert.equal(
+      await model.createIdempotently(
+        USER,
+        { ...data, title: "Different" },
+        EVENT,
+      ),
+      undefined,
     );
+    assert.equal((await model.table.run()).length, 1);
     assert.equal((await model.get(row._id))?.title, data.title);
   });
 
