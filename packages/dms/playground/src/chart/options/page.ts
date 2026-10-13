@@ -190,7 +190,6 @@ export class PageChartOptions extends PageController("chart-options", {
           title: "Stacked horizontal bars, square corners",
           fetchUrl: `${SERIES_URL}?seed=34&size=6&count=2`,
           stacked: true,
-          barWidth: 60,
           roundedCorners: false,
           orientation: AxeOrientation.horizontal,
         }),
@@ -202,7 +201,7 @@ export class PageChartOptions extends PageController("chart-options", {
           fetchUrl: `${SERIES_URL}?seed=35&size=6`,
           orientation: AxeOrientation.vertical,
           roundedCorners: true,
-          color: "rgb(14 165 233)",
+          color: "rgb(14, 165, 233)",
         }),
       ),
   );
@@ -254,10 +253,10 @@ export class PageChartOptions extends PageController("chart-options", {
       .child(
         "heatmap",
         ChartHeatmap({
-          title: "Static heatmap, distributed, an hsl() colour",
+          title: "Static heatmap, distributed, a theme colour",
           staticDataset: LOAD_BY_HOUR,
           distributed: true,
-          color: "hsl(262 83% 58%)",
+          color: "secondary",
         }),
       )
       .child(

@@ -857,7 +857,7 @@ const CHART_TYPE_FEATURES: PlaygroundFeature[] = [
 const CHART_OPTION_FEATURES: PlaygroundFeature[] = [
   feature("Colours: names, arrays, hex", "color", CHART_XY),
   feature(
-    "Colours: shade tokens, CSS variables, rgb() and hsl()",
+    "Colours: shade tokens, CSS variables and rgb()",
     'color: "primary-300" | "--ui-primary" | "rgb(...)"',
     CHART_OPTIONS,
   ),
@@ -918,7 +918,7 @@ const CHART_OPTION_FEATURES: PlaygroundFeature[] = [
   ),
   feature(
     "Bar stacking, width, corners and orientation",
-    "ChartBar({ stacked, barWidth, roundedCorners, orientation })",
+    "ChartBar({ stacked, roundedCorners, orientation })",
     CHART_OPTIONS,
   ),
   feature(

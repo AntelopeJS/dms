@@ -83,11 +83,11 @@ export class PlaygroundFeatureIndexPage extends PageController(
       since: {
         name: "Since",
         type: new DefaultDataTypes.StringType(),
-        size: 90,
+        size: 110,
         sortable: true,
       },
       status: {
-        name: "Demo page",
+        name: "Status",
         type: new DefaultDataTypes.StringType(),
         display: new DefaultDisplays.StatusPillDisplay({
           tones: { shown: "success", missing: "error" },
