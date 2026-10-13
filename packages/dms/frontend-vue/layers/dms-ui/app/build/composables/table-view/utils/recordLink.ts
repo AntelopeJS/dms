@@ -82,12 +82,18 @@ export interface DeepLinkedRow<T> {
   row?: T;
   /** The route answered 404: the row the link names no longer exists. */
   isMissing: boolean;
+  /**
+   * The read failed for another reason (a refusal, the network, a server
+   * error): the row may still exist, the link just could not be followed.
+   */
+  isFailed?: boolean;
 }
 
 /**
  * The row a deep link names: the listed one, else the one read by id — a row
- * beyond the first page. A route answering 404 marks it missing; any other
- * failure (a refusal, the network) or no route at all finds nothing.
+ * beyond the first page. A route answering 404 marks it missing, any other
+ * failure (a refusal, the network) marks it failed, and no route at all finds
+ * nothing.
  */
 export async function resolveDeepLinkedRow<T>(
   id: string,
@@ -99,23 +105,30 @@ export async function resolveDeepLinkedRow<T>(
     const row = await source.getRow(id);
     return { row: row ?? undefined, isMissing: false };
   } catch (error: unknown) {
-    return { isMissing: readFetchNotFound(error) !== null };
+    if (readFetchNotFound(error) !== null) return { isMissing: true };
+    return { isMissing: false, isFailed: true };
   }
 }
 
 /**
  * What a table does with the row a deep link resolved to: open it, let a side
- * panel show its own "no longer available" state, or tell the user the link
- * led nowhere (a drawer or a modal has no such state, and a failed read or a
- * table with no route to read one row finds nothing either).
+ * panel show its own "no longer available" state, tell the user the link led
+ * nowhere (a drawer or a modal has no such state, and a table with no route to
+ * read one row finds nothing either), or tell them the row could not be read
+ * (a refusal, the network) without claiming it is gone.
  */
-export type DeepLinkOutcome = "open" | "missingPanel" | "notify";
+export type DeepLinkOutcome =
+  | "open"
+  | "missingPanel"
+  | "notify"
+  | "notifyFailed";
 
 export function deepLinkOutcome(
   found: DeepLinkedRow<unknown>,
   action: CustomRowAction,
 ): DeepLinkOutcome {
   if (found.row) return "open";
+  if (found.isFailed) return "notifyFailed";
   if (found.isMissing && action.target.type === "sidePanel")
     return "missingPanel";
   return "notify";

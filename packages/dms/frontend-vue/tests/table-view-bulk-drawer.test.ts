@@ -146,6 +146,12 @@ describe("record deep links", () => {
     expect(deepLinkOutcome({ isMissing: true }, drawer)).toBe("notify");
     expect(deepLinkOutcome({ isMissing: false }, panel)).toBe("notify");
     expect(deepLinkOutcome({ isMissing: false }, drawer)).toBe("notify");
+    expect(deepLinkOutcome({ isMissing: false, isFailed: true }, panel)).toBe(
+      "notifyFailed",
+    );
+    expect(deepLinkOutcome({ isMissing: false, isFailed: true }, drawer)).toBe(
+      "notifyFailed",
+    );
   });
 });
 

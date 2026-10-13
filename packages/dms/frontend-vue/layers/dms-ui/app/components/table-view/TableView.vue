@@ -1703,6 +1703,16 @@ const notifyUnresolvedRecordLink = () => {
   });
 };
 
+const notifyFailedRecordLink = () => {
+  writeRecordId(urlScope);
+  toast.add({
+    title: t("dms.record_link.failed_title"),
+    description: t("dms.record_link.failed_description"),
+    color: Color.error,
+    icon: "i-ph-warning-circle",
+  });
+};
+
 const deepLinkOutcomes: Record<
   DeepLinkOutcome,
   (action: CustomRowAction, id: string, row: Data) => void
@@ -1710,6 +1720,7 @@ const deepLinkOutcomes: Record<
   open: (action, _id, row) => handleCustomRowAction(action, row),
   missingPanel: (action, id) => handleMissingRow(action, id),
   notify: notifyUnresolvedRecordLink,
+  notifyFailed: notifyFailedRecordLink,
 };
 
 // A visit that keeps the page mounted (a link to the same page with another
