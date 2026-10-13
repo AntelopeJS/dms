@@ -267,6 +267,18 @@
         "mounted_description": "{page}: it receives your {count} permission(s) and listens to the form.",
         "field_change": "A field changed: the page setup function heard it"
       }
+    },
+    "table_view": {
+      "new_requests": "{count} new request | {count} new requests",
+      "request_count": "{count} request | {count} requests",
+      "task_count": "{count} task | {count} tasks",
+      "cells": {
+        "contact_line": "{count} seat · {country} | {count} seats · {country}",
+        "plan_detail": "{price} per seat · {count} seat | {price} per seat · {count} seats",
+        "renews": "Renews {date}",
+        "on_date": "on {date}",
+        "by": "{date} · by {name}"
+      }
     }
   }
 }

@@ -3,7 +3,8 @@ import type { TableViewCardReorder } from "#dms-ui/app/composables/table-view/ty
 
 // The card of the roadmap demo's cards display: a module's own card drawn
 // with the DMS record card. The roadmap is ordered by hand, so the card also
-// draws the move handle the display hands it.
+// draws the move handle the display hands it. Its footer buttons are the
+// row's custom actions (`actions.customFor`), run with `actions.custom`.
 
 interface FeatureRow {
   name?: string;
@@ -12,9 +13,19 @@ interface FeatureRow {
   votes?: number;
 }
 
+interface CustomRowAction {
+  id?: string;
+  label: string;
+  icon?: string;
+}
+
 interface FeatureCardActions {
   canEditRow: (row: FeatureRow) => boolean;
   edit: (row: FeatureRow) => void;
+  /** The custom row actions the row offers (their `rule` accepted). */
+  customFor: (row: FeatureRow) => CustomRowAction[];
+  /** Runs a custom row action on the row, as its grid menu entry does. */
+  custom: (action: CustomRowAction, row?: FeatureRow) => void;
 }
 
 interface Props {
@@ -32,7 +43,15 @@ const AREA_ICONS: Record<string, string> = {
   Forms: "i-ph-textbox",
 };
 
-const cardActions = computed(() =>
+const customActions = computed(() =>
+  props.actions.customFor(props.row).map((action) => ({
+    label: action.label,
+    icon: action.icon,
+    onClick: () => props.actions.custom(action, props.row),
+  })),
+);
+
+const editAction = computed(() =>
   props.actions.canEditRow(props.row)
     ? [
         {
@@ -43,6 +62,11 @@ const cardActions = computed(() =>
       ]
     : [],
 );
+
+const cardActions = computed(() => [
+  ...customActions.value,
+  ...editAction.value,
+]);
 </script>
 
 <template>

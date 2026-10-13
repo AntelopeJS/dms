@@ -14,7 +14,7 @@ export class PageTableViewRelationDmsMember extends PageController(
     category: tableViewCategory,
     order: 121,
     description:
-      "Tenant-scoped relation to the real DMS members (memberSettingDataAPI): their @Joined name resolves in the list. The table starts empty, as tenant rows are created at runtime: add an assignment to pick a member.",
+      "A tenant-scoped relation to the real DMS members, their name resolved in the list. It starts empty (emptyStates.firstRun): add an assignment to pick a member.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -22,6 +22,14 @@ export class PageTableViewRelationDmsMember extends PageController(
     caption: "Assignments → real DMS member (tenant-scoped)",
     labelKey: "label",
     formContainer: { type: "page", pages: demoFormPages("member_assignment") },
+    emptyStates: {
+      firstRun: {
+        title: "No assignment yet",
+        description:
+          "Assign a real DMS member to a label to see the relation resolve.",
+        icon: "i-ph-user-plus",
+      },
+    },
     rowActions: {
       add: true,
       copyLink: false,

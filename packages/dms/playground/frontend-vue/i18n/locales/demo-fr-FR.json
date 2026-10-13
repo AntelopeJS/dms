@@ -267,6 +267,18 @@
         "mounted_description": "{page} : elle reçoit vos {count} permission(s) et écoute le formulaire.",
         "field_change": "Un champ a changé : la fonction de configuration de page l'a entendu"
       }
+    },
+    "table_view": {
+      "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
+      "request_count": "{count} requête | {count} requêtes",
+      "task_count": "{count} tâche | {count} tâches",
+      "cells": {
+        "contact_line": "{count} siège · {country} | {count} sièges · {country}",
+        "plan_detail": "{price} par siège · {count} siège | {price} par siège · {count} sièges",
+        "renews": "Renouvellement {date}",
+        "on_date": "le {date}",
+        "by": "{date} · par {name}"
+      }
     }
   }
 }

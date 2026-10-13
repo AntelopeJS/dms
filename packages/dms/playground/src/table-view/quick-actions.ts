@@ -93,3 +93,18 @@ for (const spec of tablePages) {
     target: { type: "openForm", page: spec.page },
   });
 }
+
+// Presses the table's "Complete all pending" button: the action opens what the
+// button opens (its confirmation, then its route) and is listed only for a
+// caller the button's own permission admits.
+QuickAction("table-view-complete-all", {
+  category: tableViewQuickActionCategory,
+  displayName: "Complete all pending tasks",
+  icon: "i-ph-checks",
+  order: 12,
+  target: {
+    type: "button",
+    page: PageTableViewCustomRowActions,
+    button: "complete-all",
+  },
+});

@@ -27,7 +27,7 @@ export class PageTableViewModal extends PageController(
     category: tableViewCategory,
     order: 10,
     description:
-      "Add, edit and details forms open in a centred modal over the task list",
+      "Add, edit and details forms open in a centred extra-large modal over the task list. Click Add, or double-click a task.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

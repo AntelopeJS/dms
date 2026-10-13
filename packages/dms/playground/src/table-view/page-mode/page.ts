@@ -27,7 +27,7 @@ export class PageTableViewPage extends PageController(
     category: tableViewCategory,
     order: 30,
     description:
-      "Add, edit and details forms open as full pages with their own URLs",
+      "Add, edit and details forms open as full pages at URLs the table builds (<page>/table/new, <page>/table/:id/edit). Open a task, then read the URL.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -44,8 +44,5 @@ export class PageTableViewPage extends PageController(
       hasSelection: true,
     },
     formContainer: { type: "page", pages: demoFormPages("task") },
-    // Offers the built-in cards display next to the grid (display switch in
-    // the toolbar).
-    displays: [{ id: "cards" }],
   });
 }

@@ -914,14 +914,28 @@ const generateEmailFromName = (name: string): string => {
     .replace(/[^a-z0-9.]/g, "")}@example.com`;
 };
 
+// A fixed seed: every install lists the same tasks, so the demos whose rules
+// read a task's status or priority behave the same everywhere.
+const FIXTURE_SEED = 0x5eed;
+const UINT32_RANGE = 2 ** 32;
+let randomState = FIXTURE_SEED;
+
+// mulberry32: a small repeatable generator of numbers in [0, 1).
+function seededRandom(): number {
+  randomState = (randomState + 0x6d2b79f5) | 0;
+  let mixed = Math.imul(randomState ^ (randomState >>> 15), 1 | randomState);
+  mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed);
+  return ((mixed ^ (mixed >>> 14)) >>> 0) / UINT32_RANGE;
+}
+
 const pickRandom = <T>(arr: readonly T[]): T => {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[Math.floor(seededRandom() * arr.length)];
 };
 
 const buildRandomDates = (): RandomDates => {
-  const dueDays = Math.floor(Math.random() * 30);
-  const createdDays = Math.floor(Math.random() * 90);
-  const updatedDays = Math.floor(Math.random() * (90 - createdDays));
+  const dueDays = Math.floor(seededRandom() * 30);
+  const createdDays = Math.floor(seededRandom() * 90);
+  const updatedDays = Math.floor(seededRandom() * (90 - createdDays));
   const createdDate = new Date(Date.now() - createdDays * 86400000);
   return {
     dueDate: new Date(Date.now() + dueDays * 86400000),
@@ -931,14 +945,14 @@ const buildRandomDates = (): RandomDates => {
 };
 
 const buildRandomAddress = (): RandomAddress | undefined => {
-  const hasAddress = Math.random() < 0.7;
+  const hasAddress = seededRandom() < 0.7;
   if (!hasAddress) return undefined;
   const base = pickRandom(SAMPLE_ADDRESSES);
-  const includeOptional = Math.random() < 0.3;
+  const includeOptional = seededRandom() < 0.3;
   return {
     ...base,
     ...(includeOptional && {
-      addressLine2: `Suite ${Math.floor(Math.random() * 500) + 1}`,
+      addressLine2: `Suite ${Math.floor(seededRandom() * 500) + 1}`,
     }),
   };
 };
@@ -959,8 +973,8 @@ const buildRandomTask = (i: number): Partial<Task> => {
     description: pickRandom(RANDOM_DESCRIPTIONS),
     due_date: dates.dueDate,
     assignees: pickRandomUser()._id,
-    price: Math.floor(Math.random() * 1000) + 1,
-    completion_percentage: Math.random(),
+    price: Math.floor(seededRandom() * 1000) + 1,
+    completion_percentage: seededRandom(),
     url: `https://www.google.com/search?q=${taskName}`,
     phone: "+1-555-123-4567",
     done: false,
@@ -982,7 +996,7 @@ const generateRandomTasks = (count: number): Partial<Task>[] => {
 };
 
 function pickRandomUser(): User {
-  return defaultUsers[Math.floor(Math.random() * defaultUsers.length)];
+  return defaultUsers[Math.floor(seededRandom() * defaultUsers.length)];
 }
 
 export const defaultUsers: User[] = [

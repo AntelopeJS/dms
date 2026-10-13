@@ -6,6 +6,14 @@ interface KanbanColumnMeta {
   type: { id: string; inputComponent?: { options?: unknown } };
 }
 
+interface CustomRowAction {
+  id?: string;
+  label: string;
+  icon?: string;
+}
+
+const START_ACTION_ID = "start";
+
 // The card props every card display hands a custom card (`card.component`),
 // mirrored locally so this example stays decoupled from the dms package's
 // internal type paths.
@@ -20,6 +28,10 @@ interface TaskCardProps {
   actions: {
     canDeleteRow: (item: Record<string, unknown>) => boolean;
     delete: (ids: string[]) => void;
+    /** The custom row actions the row offers (their `rule` accepted) */
+    customFor: (item: Record<string, unknown>) => CustomRowAction[];
+    /** Runs a custom row action on the row */
+    custom: (action: CustomRowAction, item?: Record<string, unknown>) => void;
   };
   /** The row is selected */
   selected: boolean;
@@ -40,6 +52,14 @@ const PRIORITY_COLORS: Record<string, string> = {
   medium: "warning",
   high: "error",
 };
+
+// The row's "Start" action, found by its id among the actions its rule
+// leaves it: absent once the task is no longer pending.
+const startAction = computed(() =>
+  props.actions
+    .customFor(props.row)
+    .find((action) => action.id === START_ACTION_ID),
+);
 
 const priority = computed(() => String(props.row.priority ?? ""));
 const completion = computed(() =>
@@ -102,6 +122,16 @@ const price = computed(() => {
         :aria-label="String(row.name ?? rowId)"
         @click.stop
         @update:model-value="(value: unknown) => select(Boolean(value))"
+      />
+      <UButton
+        v-if="startAction"
+        :label="startAction.label"
+        :icon="startAction.icon"
+        color="primary"
+        variant="soft"
+        size="xs"
+        class="ml-auto mr-1"
+        @click.stop="actions.custom(startAction, row)"
       />
       <UButton
         v-if="actions.canDeleteRow(row)"
