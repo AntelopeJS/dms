@@ -871,6 +871,46 @@
       "expires_label": "Cette invitation expire dans",
       "expires_in": "{days} jours",
       "footer": "Si vous n'attendiez pas cette invitation, vous pouvez ignorer cet e-mail."
+    },
+    "common": {
+      "greeting": "Bonjour {name},",
+      "code_label": "Votre code de vérification :",
+      "code_expires_label": "Ce code expire dans",
+      "hours": "{count} heure | {count} heures"
+    },
+    "user_validation": {
+      "title": "Vérifiez votre adresse e-mail",
+      "body": "Merci pour votre inscription ! Saisissez le code ci-dessous pour vérifier votre adresse e-mail :",
+      "footer": "Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail."
+    },
+    "reset_password": {
+      "title": "Réinitialisez votre mot de passe",
+      "body": "Nous avons reçu une demande de réinitialisation de votre mot de passe. Saisissez le code ci-dessous pour le réinitialiser :",
+      "footer": "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail. Votre mot de passe reste inchangé."
+    },
+    "two_factor": {
+      "title": "Votre code de vérification",
+      "body": "Saisissez ce code de vérification pour terminer votre connexion :",
+      "footer": "Si vous n'avez pas essayé de vous connecter, vous pouvez ignorer cet e-mail."
+    },
+    "email_change_verification": {
+      "title": "Confirmez votre nouvelle adresse de connexion",
+      "body": "Saisissez le code ci-dessous pour faire de {email} l'adresse de connexion de votre compte :",
+      "footer": "Si vous n'avez pas demandé ce changement, vous pouvez ignorer cet e-mail : votre compte garde son adresse actuelle."
+    },
+    "email_change_notice": {
+      "title": "Votre adresse de connexion va changer",
+      "body": "Une personne connectée à votre compte a demandé à remplacer son adresse de connexion par {email}. Le changement prendra effet une fois cette adresse confirmée.",
+      "footer": "Si ce n'est pas vous, changez votre mot de passe maintenant et déconnectez les autres sessions dans Sécurité : votre compte garde cette adresse tant que la nouvelle n'est pas confirmée."
+    },
+    "export_ready": {
+      "title": "Votre export de données est prêt",
+      "body": "Votre export de données a été préparé. Utilisez le bouton ci-dessous pour télécharger l'archive :",
+      "button": "Télécharger l'export",
+      "expires_label": "Ce lien de téléchargement expire dans",
+      "partial": "Cet export est {incomplete} : les parties suivantes n'ont pas pu être incluses — {sources}. Demandez un nouvel export si vous en avez besoin.",
+      "incomplete": "incomplet",
+      "footer": "Si vous n'avez pas demandé cet export, vous pouvez ignorer cet e-mail."
     }
   },
   "empty_layout": {

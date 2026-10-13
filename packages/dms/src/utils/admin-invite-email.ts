@@ -1,5 +1,4 @@
-const DEFAULT_LANGUAGE = "en";
-const LANGUAGE_CODE_LENGTH = 2;
+import { resolveEmailLanguage } from "./email-subjects";
 
 /** The names an invitation email can mention, each one optional. */
 export interface AdminInviteEmailNames {
@@ -40,8 +39,7 @@ const SUBJECT_COPY: Record<string, AdminInviteSubjectCopy> = {
  * code of `language` when there is copy for it, English otherwise.
  */
 export function resolveAdminInviteLanguage(language?: string): string {
-  const code = language?.slice(0, LANGUAGE_CODE_LENGTH).toLowerCase();
-  return code && Object.hasOwn(SUBJECT_COPY, code) ? code : DEFAULT_LANGUAGE;
+  return resolveEmailLanguage(language);
 }
 
 function joinTarget(

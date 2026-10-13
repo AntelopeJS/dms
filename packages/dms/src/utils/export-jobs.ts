@@ -12,7 +12,7 @@ import {
   FileExists,
 } from "@antelopejs/interface-file-storage";
 import { TenantModel } from "@antelopejs/interface-dms/db";
-import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { type User, UserModel } from "@antelopejs/interface-dms/auth/db";
 import { ExportStatus } from "@antelopejs/interface-dms/base/types";
 import {
   GenerateHtml,
@@ -22,6 +22,7 @@ import { stringify } from "csv-stringify/sync";
 import { getClientBaseUrl } from "../config";
 import { ExportJobModel } from "@antelopejs/interface-dms/db/internal/exportJobs.model";
 import type { ExportJob } from "@antelopejs/interface-dms/db/tables/exportJobs.table";
+import { builtInEmailSubject } from "./email-subjects";
 import { runInBatches } from "./run-in-batches";
 import {
   type Deliverer,
@@ -115,14 +116,13 @@ interface ExportReadyEmailData {
   userName: string;
   downloadLink: string;
   expiresIn: string;
+  expiresInHours: number;
   partial: boolean;
   failedSources: string[];
 }
 
 const ExportReadyTemplate =
   RegisterHtmlTemplate<ExportReadyEmailData>("EmailExportReady");
-
-const EXPORT_READY_SUBJECT = "Your data export is ready";
 
 function buildDeliveryLink(exportRecord: ExportJob): string {
   const baseUrl = getClientBaseUrl();
@@ -137,6 +137,22 @@ export function readJobResult(
   return JSON.parse(exportRecord.json_result) as ExportJobResultSummary;
 }
 
+function exportReadyEmailData(
+  user: User,
+  exportRecord: ExportJob,
+): ExportReadyEmailData {
+  const result = readJobResult(exportRecord);
+  const expiresInHours = EXPORT_TTL_MS / MILLISECONDS_PER_HOUR;
+  return {
+    userName: user.name || user.email,
+    downloadLink: buildDeliveryLink(exportRecord),
+    expiresIn: `${expiresInHours} hours`,
+    expiresInHours,
+    partial: result?.partial ?? false,
+    failedSources: (result?.failures ?? []).map((failure) => failure.source),
+  };
+}
+
 const emailDeliverer: Deliverer = {
   validate(options: ExportJobDeliveryOptions): void {
     assert(
@@ -148,18 +164,15 @@ const emailDeliverer: Deliverer = {
   async deliver(exportRecord: ExportJob): Promise<void> {
     const user = await GetModel(UserModel).get(exportRecord.userId);
     assert(user, 500, "Export recipient not found");
-    const result = readJobResult(exportRecord);
-    const html = await GenerateHtml(ExportReadyTemplate, {
-      userName: user.name || user.email,
-      downloadLink: buildDeliveryLink(exportRecord),
-      expiresIn: `${EXPORT_TTL_MS / MILLISECONDS_PER_HOUR} hours`,
-      partial: result?.partial ?? false,
-      failedSources: (result?.failures ?? []).map((failure) => failure.source),
-    });
+    const html = await GenerateHtml(
+      ExportReadyTemplate,
+      exportReadyEmailData(user, exportRecord),
+      user.language,
+    );
 
     const sent = await Send({
       to: user.email,
-      subject: EXPORT_READY_SUBJECT,
+      subject: builtInEmailSubject("exportReady", user.language),
       html,
     });
     assert(

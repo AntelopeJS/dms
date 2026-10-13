@@ -867,6 +867,46 @@
       "expires_label": "This invitation expires in",
       "expires_in": "{days} days",
       "footer": "If you didn't expect this invitation, you can safely ignore this email."
+    },
+    "common": {
+      "greeting": "Hello {name},",
+      "code_label": "Your verification code is:",
+      "code_expires_label": "This code expires in",
+      "hours": "{count} hour | {count} hours"
+    },
+    "user_validation": {
+      "title": "Verify Your Email",
+      "body": "Thank you for signing up! Enter the verification code below to verify your email address:",
+      "footer": "If you didn't create an account, you can safely ignore this email."
+    },
+    "reset_password": {
+      "title": "Reset Your Password",
+      "body": "We received a request to reset your password. Enter the verification code below to reset your password:",
+      "footer": "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged."
+    },
+    "two_factor": {
+      "title": "Your verification code",
+      "body": "Use this verification code to finish signing in:",
+      "footer": "If you did not attempt to sign in, you can safely ignore this email."
+    },
+    "email_change_verification": {
+      "title": "Confirm your new sign-in email",
+      "body": "Enter the code below to make {email} the sign-in email of your account:",
+      "footer": "If you didn't ask for this change, you can safely ignore this email: your account keeps its current address."
+    },
+    "email_change_notice": {
+      "title": "Your sign-in email is being changed",
+      "body": "Someone signed in to your account asked to change its sign-in email to {email}. The change takes effect once that address is confirmed.",
+      "footer": "If this wasn't you, change your password now and sign out the other sessions in Security: your account keeps this address until the new one is confirmed."
+    },
+    "export_ready": {
+      "title": "Your data export is ready",
+      "body": "Your data export has been prepared. Use the button below to download the archive:",
+      "button": "Download export",
+      "expires_label": "This download link expires in",
+      "partial": "This export is {incomplete}: the following parts could not be included — {sources}. Request a new export if you need them.",
+      "incomplete": "incomplete",
+      "footer": "If you didn't request this export, you can safely ignore this email."
     }
   },
   "empty_layout": {

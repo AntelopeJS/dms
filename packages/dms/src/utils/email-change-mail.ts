@@ -4,12 +4,14 @@ import {
   GenerateHtml,
   RegisterHtmlTemplate,
 } from "@antelopejs/interface-dms/html-render";
+import { builtInEmailSubject } from "./email-subjects";
 
 interface EmailChangeCodeData {
   userName: string;
   newEmail: string;
   code: string;
   expiresIn: string;
+  expiresInHours: number;
 }
 
 interface EmailChangeNoticeData {
@@ -23,9 +25,6 @@ const CodeTemplate = RegisterHtmlTemplate<EmailChangeCodeData>(
 const NoticeTemplate =
   RegisterHtmlTemplate<EmailChangeNoticeData>("EmailChangeNotice");
 
-const CODE_SUBJECT = "Confirm your new sign-in email";
-const NOTICE_SUBJECT = "Your sign-in email is being changed";
-
 async function sendOrThrow(to: string, subject: string, html: string) {
   const result = await Send({ to, subject, html });
   if (!result.success) {
@@ -36,20 +35,30 @@ async function sendOrThrow(to: string, subject: string, html: string) {
 /**
  * Sends the code proving the new address to that address.
  *
- * @param expiresIn How long the code stays valid, as the email words it
+ * @param expiresInHours How long the code stays valid, in hours
  */
 export async function sendEmailChangeCode(
   user: User,
   newEmail: string,
   code: string,
-  expiresIn: string,
+  expiresInHours: number,
 ): Promise<void> {
   const html = await GenerateHtml(
     CodeTemplate,
-    { userName: user.name || user.email, newEmail, code, expiresIn },
+    {
+      userName: user.name || user.email,
+      newEmail,
+      code,
+      expiresIn: `${expiresInHours} hours`,
+      expiresInHours,
+    },
     user.language,
   );
-  await sendOrThrow(newEmail, CODE_SUBJECT, html);
+  await sendOrThrow(
+    newEmail,
+    builtInEmailSubject("emailChangeVerification", user.language),
+    html,
+  );
 }
 
 /** Tells the current address that the account is moving to `newEmail`. */
@@ -62,5 +71,9 @@ export async function sendEmailChangeNotice(
     { userName: user.name || user.email, newEmail },
     user.language,
   );
-  await sendOrThrow(user.email, NOTICE_SUBJECT, html);
+  await sendOrThrow(
+    user.email,
+    builtInEmailSubject("emailChangeNotice", user.language),
+    html,
+  );
 }

@@ -24,6 +24,8 @@ import { generateSecret } from "./token-secret";
 import { assertTokenSessionAlive, loadTokenSession } from "./token-session";
 import { INVITE_EXPIRY_DAYS } from "@antelopejs/interface-dms/invites";
 
+export * from "./account-emails";
+
 const HTTP_FORBIDDEN = 403;
 const HTTP_UNAUTHORIZED = 401;
 const OWNER_ONLY_ERROR_MESSAGE = "Owner-only";
@@ -36,7 +38,6 @@ const TWO_FACTOR_TOKEN_PURPOSE = "2fa";
 const ACCESS_TOKEN_PURPOSE = "access";
 const REFRESH_TOKEN_PURPOSE = "refresh";
 const INVALID_SESSION_TOKEN_ERROR = "Invalid session token";
-const MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
 
 interface TenantTokenInput {
   tenantId: string;
@@ -50,30 +51,11 @@ interface TokenResult {
   expiresIn: number;
 }
 
-interface ResetPasswordData {
-  userName: string;
-  resetCode: string;
-  expiresIn: string;
-}
-
-interface EmailValidationData {
-  userName: string;
-  validationCode: string;
-  expiresIn: string;
-}
-
 interface AdminInviteData extends AdminInviteEmailNames {
   email: string;
   signupLink: string;
   expiresInDays: number;
 }
-
-const ResetPasswordTemplate =
-  RegisterHtmlTemplate<ResetPasswordData>("EmailResetPassword");
-
-const EmailValidationTemplate = RegisterHtmlTemplate<EmailValidationData>(
-  "EmailUserValidation",
-);
 
 const AdminInviteTemplate =
   RegisterHtmlTemplate<AdminInviteData>("EmailAdminInvite");
@@ -401,103 +383,6 @@ export async function validateTwoFactorToken(token: string) {
     INVALID_TWO_FACTOR_TOKEN_ERROR,
   );
   return { ...claims, user };
-}
-
-interface TwoFactorEmailData {
-  userName: string;
-  verificationCode: string;
-}
-
-const TwoFactorEmailTemplate =
-  RegisterHtmlTemplate<TwoFactorEmailData>("EmailTwoFactor");
-
-export async function send2FAEmail(user: User, code: string): Promise<void> {
-  const html = await GenerateHtml(
-    TwoFactorEmailTemplate,
-    {
-      userName: user.name || user.email,
-      verificationCode: code,
-    },
-    user.language,
-  );
-
-  const result = await Send({
-    to: user.email,
-    subject: "Your verification code",
-    html,
-  });
-
-  if (!result.success) {
-    Logging.Error(
-      `[DMS-AUTH] Failed to send 2FA email to "${user.email}": ${result.error?.message}`,
-    );
-    throw new Error(`Failed to send email: ${result.error?.message}`);
-  }
-
-  Logging.Info(`[DMS-AUTH] 2FA email sent to "${user.email}"`);
-}
-
-export async function sendEmailValidationEmail(user: User): Promise<void> {
-  const authConfig = getAuthConfig();
-  const expiryHours =
-    authConfig.emailValidationTokenLifetime / MILLISECONDS_PER_HOUR;
-
-  const html = await GenerateHtml(
-    EmailValidationTemplate,
-    {
-      userName: user.name || user.email,
-      validationCode: user.validationToken,
-      expiresIn: `${expiryHours} hours`,
-    },
-    user.language,
-  );
-
-  const result = await Send({
-    to: user.email,
-    subject: "Verify Your Email",
-    html,
-  });
-
-  if (!result.success) {
-    Logging.Error(
-      `[DMS-AUTH] Failed to send validation email to "${user.email}": ${result.error?.message}`,
-    );
-    throw new Error(`Failed to send email: ${result.error?.message}`);
-  }
-
-  Logging.Info(`[DMS-AUTH] Validation email sent to "${user.email}"`);
-}
-
-export async function sendEmailForgotEmail(user: User): Promise<void> {
-  const authConfig = getAuthConfig();
-
-  const expiryHours =
-    authConfig.passwordRecoverTokenLifetime / MILLISECONDS_PER_HOUR;
-
-  const html = await GenerateHtml(
-    ResetPasswordTemplate,
-    {
-      userName: user.name || user.email,
-      resetCode: user.forgotPasswordToken,
-      expiresIn: `${expiryHours} hours`,
-    },
-    user.language,
-  );
-
-  const result = await Send({
-    to: user.email,
-    subject: "Reset Your Password",
-    html,
-  });
-
-  if (!result.success) {
-    Logging.Error(
-      `[DMS-AUTH] Failed to send reset password email to "${user.email}": ${result.error?.message}`,
-    );
-    throw new Error(`Failed to send email: ${result.error?.message}`);
-  }
-
-  Logging.Info(`[DMS-AUTH] Reset password email sent to "${user.email}"`);
 }
 
 const BUILTIN_SENSITIVE_USER_KEYS: string[] = [

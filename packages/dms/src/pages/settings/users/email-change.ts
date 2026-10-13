@@ -49,10 +49,8 @@ export interface EmailChangeCancelled {
   success: true;
 }
 
-function codeLifetimeText(): string {
-  const hours =
-    getAuthConfig().emailValidationTokenLifetime / MILLISECONDS_PER_HOUR;
-  return `${hours} hours`;
+function codeLifetimeHours(): number {
+  return getAuthConfig().emailValidationTokenLifetime / MILLISECONDS_PER_HOUR;
 }
 
 // The latest change is read whether it is still pending or not: cancelling
@@ -130,7 +128,7 @@ export async function requestEmailChange(
   // fail a request whose change is already recorded. A lost code is asked
   // again a minute later.
   fireAndForget(
-    sendEmailChangeCode(user, available, code, codeLifetimeText()),
+    sendEmailChangeCode(user, available, code, codeLifetimeHours()),
     "email change code to the new address",
   );
   fireAndForget(

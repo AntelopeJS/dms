@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import EmailLayout from "./components/EmailLayout.vue";
 import EmailOTP from "./components/EmailOTP.vue";
 import { emailStyles } from "./components/index";
@@ -8,24 +9,34 @@ defineProps<{
   newEmail: string;
   code: string;
   expiresIn: string;
+  expiresInHours: number;
 }>();
+
+const { t, locale } = useI18n();
 </script>
 
 <template>
-  <EmailLayout title="Confirm your new sign-in email" public-logo-only>
-    <EText :style="emailStyles.text">Hello {{ userName }},</EText>
-
+  <EmailLayout
+    :title="t('emails.email_change_verification.title')"
+    :lang="locale"
+    public-logo-only
+  >
     <EText :style="emailStyles.text">
-      Enter the code below to make {{ newEmail }} the sign-in email of your
-      account:
+      {{ t("emails.common.greeting", { name: userName }) }}
     </EText>
 
-    <EmailOTP :code="code" :expires-in="expiresIn" />
+    <EText :style="emailStyles.text">
+      {{ t("emails.email_change_verification.body", { email: newEmail }) }}
+    </EText>
+
+    <EmailOTP
+      :code="code"
+      :expires-in="t('emails.common.hours', expiresInHours)"
+    />
 
     <template #footer>
       <EText :style="emailStyles.footer">
-        If you didn't ask for this change, you can safely ignore this email:
-        your account keeps its current address.
+        {{ t("emails.email_change_verification.footer") }}
       </EText>
     </template>
   </EmailLayout>

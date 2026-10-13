@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import EmailLayout from "./components/EmailLayout.vue";
 import EmailOTP from "./components/EmailOTP.vue";
 import { emailStyles } from "./components/index";
@@ -7,24 +8,34 @@ defineProps<{
   userName: string;
   resetCode: string;
   expiresIn: string;
+  expiresInHours: number;
 }>();
+
+const { t, locale } = useI18n();
 </script>
 
 <template>
-  <EmailLayout title="Reset Your Password" public-logo-only>
-    <EText :style="emailStyles.text">Hello {{ userName }},</EText>
-
+  <EmailLayout
+    :title="t('emails.reset_password.title')"
+    :lang="locale"
+    public-logo-only
+  >
     <EText :style="emailStyles.text">
-      We received a request to reset your password. Enter the verification code
-      below to reset your password:
+      {{ t("emails.common.greeting", { name: userName }) }}
     </EText>
 
-    <EmailOTP :code="resetCode" :expires-in="expiresIn" />
+    <EText :style="emailStyles.text">
+      {{ t("emails.reset_password.body") }}
+    </EText>
+
+    <EmailOTP
+      :code="resetCode"
+      :expires-in="t('emails.common.hours', expiresInHours)"
+    />
 
     <template #footer>
       <EText :style="emailStyles.footer">
-        If you didn't request a password reset, you can safely ignore this
-        email. Your password will remain unchanged.
+        {{ t("emails.reset_password.footer") }}
       </EText>
     </template>
   </EmailLayout>

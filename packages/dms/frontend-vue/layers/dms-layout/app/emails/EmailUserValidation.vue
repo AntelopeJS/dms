@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import EmailLayout from "./components/EmailLayout.vue";
 import EmailOTP from "./components/EmailOTP.vue";
 import { emailStyles } from "./components/index";
@@ -7,23 +8,34 @@ defineProps<{
   userName: string;
   validationCode: string;
   expiresIn: string;
+  expiresInHours: number;
 }>();
+
+const { t, locale } = useI18n();
 </script>
 
 <template>
-  <EmailLayout title="Verify Your Email" public-logo-only>
-    <EText :style="emailStyles.text">Hello {{ userName }},</EText>
-
+  <EmailLayout
+    :title="t('emails.user_validation.title')"
+    :lang="locale"
+    public-logo-only
+  >
     <EText :style="emailStyles.text">
-      Thank you for signing up! Enter the verification code below to verify your
-      email address:
+      {{ t("emails.common.greeting", { name: userName }) }}
     </EText>
 
-    <EmailOTP :code="validationCode" :expires-in="expiresIn" />
+    <EText :style="emailStyles.text">
+      {{ t("emails.user_validation.body") }}
+    </EText>
+
+    <EmailOTP
+      :code="validationCode"
+      :expires-in="t('emails.common.hours', expiresInHours)"
+    />
 
     <template #footer>
       <EText :style="emailStyles.footer">
-        If you didn't create an account, you can safely ignore this email.
+        {{ t("emails.user_validation.footer") }}
       </EText>
     </template>
   </EmailLayout>

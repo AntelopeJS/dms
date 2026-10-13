@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import EmailLayout from "./components/EmailLayout.vue";
 import { emailStyles } from "./components/index";
 
@@ -6,22 +7,27 @@ defineProps<{
   userName: string;
   newEmail: string;
 }>();
+
+const { t, locale } = useI18n();
 </script>
 
 <template>
-  <EmailLayout title="Your sign-in email is being changed" public-logo-only>
-    <EText :style="emailStyles.text">Hello {{ userName }},</EText>
+  <EmailLayout
+    :title="t('emails.email_change_notice.title')"
+    :lang="locale"
+    public-logo-only
+  >
+    <EText :style="emailStyles.text">
+      {{ t("emails.common.greeting", { name: userName }) }}
+    </EText>
 
     <EText :style="emailStyles.text">
-      Someone signed in to your account asked to change its sign-in email to
-      {{ newEmail }}. The change takes effect once that address is confirmed.
+      {{ t("emails.email_change_notice.body", { email: newEmail }) }}
     </EText>
 
     <template #footer>
       <EText :style="emailStyles.footer">
-        If this wasn't you, change your password now and sign out the other
-        sessions in Security: your account keeps this address until the new one
-        is confirmed.
+        {{ t("emails.email_change_notice.footer") }}
       </EText>
     </template>
   </EmailLayout>
