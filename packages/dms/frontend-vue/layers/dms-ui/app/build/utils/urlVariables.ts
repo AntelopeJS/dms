@@ -120,9 +120,12 @@ export function resolveTextVariables(
   return hasUrlVariables(resolved) ? undefined : resolved;
 }
 
-// A route token left without a value: `{{params.id}}`, `{{query.workspace}}`.
-const UNRESOLVED_ROUTE_TOKEN = /\{\{(?:params|query)\.\w+(?::\d+)?\}\}/g;
-const UNRESOLVED_ROUTE_VALUE = /^\{\{(?:params|query)\.\w+(?::\d+)?\}\}$/;
+// A route token left without a value: `{{params.id}}`, `{{query.workspace}}`,
+// `{{query.sales.period}}` (a query key may carry dots and dashes, as above).
+const UNRESOLVED_ROUTE_TOKEN =
+  /\{\{(?:params\.\w+(?::\d+)?|query\.[\w.-]+)\}\}/g;
+const UNRESOLVED_ROUTE_VALUE =
+  /^\{\{(?:params\.\w+(?::\d+)?|query\.[\w.-]+)\}\}$/;
 const QUERY_SEPARATOR = "?";
 const FRAGMENT_SEPARATOR = "#";
 const PAIR_SEPARATOR = "&";

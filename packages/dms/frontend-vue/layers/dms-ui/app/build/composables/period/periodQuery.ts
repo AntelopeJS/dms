@@ -7,6 +7,12 @@ import {
   type PeriodPreset,
   type PeriodRange,
 } from "#dms-core/app/composables/period/types";
+import type { PeriodQueryKeys } from "#dms-core/app/composables/period/periodLink";
+
+export {
+  type PeriodQueryKeys,
+  periodQueryKeys,
+} from "#dms-core/app/composables/period/periodLink";
 
 /** The range half of a selector's choice: a preset, or a custom range. */
 export interface PeriodRangeChoice {
@@ -34,16 +40,6 @@ export interface PeriodChoices {
 /** A page URL query, or a selection kept in the preferences. */
 export type PeriodQuery = Record<string, unknown>;
 
-/** The keys one selector reads and writes. */
-export interface PeriodQueryKeys {
-  period: string;
-  compare: string;
-  from: string;
-  to: string;
-  compareFrom: string;
-  compareTo: string;
-}
-
 /** A source the halves of a selection are read from, in order. */
 export interface PeriodSource {
   query: PeriodQuery;
@@ -57,30 +53,11 @@ export interface PeriodSource {
 
 const CUSTOM_PRESET: PeriodPreset = "custom";
 const CUSTOM_COMPARISON: PeriodComparison = "custom";
-const KEY_NAMES: Array<keyof PeriodQueryKeys> = [
-  "period",
-  "compare",
-  "from",
-  "to",
-  "compareFrom",
-  "compareTo",
-];
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const MONTH_OFFSET = 1;
 const DATE_PART_LENGTH = 2;
 const YEAR_PART_LENGTH = 4;
-
-/**
- * The keys of selector `id` in the page URL (`<id>.period`), or the bare keys
- * (`period`) of a selection kept on its own.
- */
-export function periodQueryKeys(id?: string): PeriodQueryKeys {
-  const prefix = id ? `${id}.` : "";
-  return Object.fromEntries(
-    KEY_NAMES.map((name) => [name, `${prefix}${name}`]),
-  ) as unknown as PeriodQueryKeys;
-}
 
 function readText(query: PeriodQuery, key: string): string | undefined {
   const raw = query[key];

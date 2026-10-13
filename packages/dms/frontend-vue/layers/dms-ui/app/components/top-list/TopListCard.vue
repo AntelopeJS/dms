@@ -14,6 +14,10 @@ import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
 import { usePeriodScope } from "#dms-core/app/composables/period/usePeriodScope";
+import {
+  hasUrlVariables,
+  resolveLinkVariables,
+} from "../../build/utils/urlVariables";
 import type {
   TopListCardResponse,
   TopListItem,
@@ -126,7 +130,23 @@ const { data, isLoading } = useChartFetch<TopListCardResponse>({
   watchSource: () => watchKey.value,
 });
 
-const items = computed<TopListItem[]>(() => data.value?.items ?? []);
+// A row's link may name the page it is shown on (`{{query.website}}`), so a
+// list served once leads on with the page's own context, as the URL changes.
+// The route is only read for a list holding such a link.
+function withPageValues(item: TopListItem): TopListItem {
+  if (!item.to || !hasUrlVariables(item.to)) return item;
+  return {
+    ...item,
+    to: resolveLinkVariables(item.to, {
+      routeParams: props.routeParams,
+      routeQuery: useDmsRoute().query as Record<string, unknown>,
+    }),
+  };
+}
+
+const items = computed<TopListItem[]>(() =>
+  (data.value?.items ?? []).map(withPageValues),
+);
 const hasAnyIcon = computed(() =>
   items.value.some((item) => Boolean(item.icon || item.avatar)),
 );
