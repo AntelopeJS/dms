@@ -49,15 +49,17 @@ export function resolveI18nKey(
  * (`$page.settings.invites.error.not_found`). `translate` echoes the key back
  * when no translation exists in the active locale or its fallbacks: a message
  * marked with `$` then falls back to the bare key, and an unmarked one — which
- * may well be plain prose — is shown as it came in.
+ * may well be plain prose — is shown as it came in. `params` fill the
+ * translation's placeholders (`"At most {max}"` with `{ max: 5000 }`).
  */
 export function resolveApiMessage(
   translate: I18nTranslate,
   message: unknown,
+  params?: Record<string, unknown> | null,
 ): string {
   const text = typeof message === "string" ? message : String(message);
   const marked = readTranslationKey(text);
-  const translated = translate(marked.key, {});
+  const translated = translate(marked.key, params ?? {});
 
   if (translated !== marked.key) return translated;
   return marked.isKey ? marked.key : text;
@@ -93,8 +95,11 @@ export const useTranslation = () => {
     return resolveI18nKey(t, key, params);
   }
 
-  function processApiMessage(message: unknown) {
-    return resolveApiMessage(t, message);
+  function processApiMessage(
+    message: unknown,
+    params?: Record<string, unknown> | null,
+  ) {
+    return resolveApiMessage(t, message, params);
   }
 
   return {

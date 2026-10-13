@@ -65,7 +65,8 @@ beforeEach(() => {
   vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (key: string) => key,
-    processApiMessage: (message: string) => `t(${message})`,
+    processApiMessage: (message: string, params?: Record<string, unknown>) =>
+      params ? `t(${message}, ${JSON.stringify(params)})` : `t(${message})`,
   }));
   vi.stubGlobal("useI18n", () => ({
     t: (key: string, named?: Record<string, unknown>) =>
@@ -135,6 +136,22 @@ describe("DMS form server errors", () => {
       },
     ]);
     expect(addToast).not.toHaveBeenCalled();
+  });
+
+  it("fills the message's placeholders from the error's params", async () => {
+    authFetch.mockRejectedValue({
+      statusCode: 400,
+      data: {
+        message: "$budget_max",
+        field: "name",
+        params: { max: 5000 },
+      },
+    });
+    await submit(setupForm());
+
+    expect(showFieldErrors).toHaveBeenCalledExactlyOnceWith([
+      { name: "name", message: 't($budget_max, {"max":5000})' },
+    ]);
   });
 
   it("keeps a failure tied to no field as a toast", async () => {

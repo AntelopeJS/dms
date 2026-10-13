@@ -721,10 +721,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
         // them: the field shows which ones to fix.
         message: entry.values?.length
           ? t("dms.field_errors.with_values", {
-              message: processApiMessage(entry.message),
+              message: processApiMessage(entry.message, entry.params),
               values: entry.values.join(", "),
             })
-          : processApiMessage(entry.message),
+          : processApiMessage(entry.message, entry.params),
         values: entry.values,
         path: entry.path,
       })),

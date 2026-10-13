@@ -4,6 +4,7 @@ import {
   describeApiError,
   resolveFieldErrors,
 } from "../layers/dms-core/app/composables/useFieldErrors";
+import { resolveApiMessage } from "../layers/dms-core/app/composables/translation/useTranslation";
 
 const FIELDS = ["name", "email", "password"] as const;
 
@@ -132,6 +133,25 @@ describe("resolveFieldErrors", () => {
     ]);
   });
 
+  it("reads the params of a { field, message, params } body", () => {
+    const error = {
+      statusCode: 400,
+      data: {
+        message: "$page.campaigns.error.budget_max",
+        field: "budget",
+        params: { max: 5000, currency: "EUR", nested: { no: 1 } },
+      },
+    };
+    expect(resolveFieldErrors(error, { fields: ["budget"] }).fields).toEqual([
+      {
+        field: "budget",
+        message: "$page.campaigns.error.budget_max",
+        values: undefined,
+        params: { max: 5000, currency: "EUR" },
+      },
+    ]);
+  });
+
   it("reads the data API's missing and invalid field lists", () => {
     expect(
       resolveFieldErrors(
@@ -208,5 +228,20 @@ describe("describeApiError", () => {
   it("falls back to the generic server error without a body", () => {
     expect(describeApiError(new Error("down"))).toBe("error.500.description");
     expect(apiErrorText(new Error("down"))).toBeUndefined();
+  });
+});
+
+describe("resolveApiMessage", () => {
+  const translate = (key: string, params: Record<string, unknown>) =>
+    key === "page.error.budget_max" ? `At most ${String(params.max)}` : key;
+
+  it("fills the translation's placeholders with the params", () => {
+    expect(
+      resolveApiMessage(translate, "$page.error.budget_max", { max: 5000 }),
+    ).toBe("At most 5000");
+  });
+
+  it("keeps an untranslated message as it came", () => {
+    expect(resolveApiMessage(translate, "Too big", { max: 1 })).toBe("Too big");
   });
 });
