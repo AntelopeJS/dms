@@ -2,12 +2,14 @@ import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import {
   ActivityFeed,
   Banner,
+  BlockFunctions,
   FieldRow,
+  KeyValueList,
   Meter,
   Section,
 } from "@antelopejs/interface-dms/base";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { Form } from "@antelopejs/interface-dms/base/form";
+import { Form, FormEvents } from "@antelopejs/interface-dms/base/form";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { blocksCategory } from "./category";
 
@@ -20,7 +22,7 @@ export class PageBlocksSettings extends PageController(
     category: blocksCategory,
     order: 60,
     description:
-      "A settings-like page composed from the backend: header actions, Section, FieldRow, a Form with the sticky save bar, a danger zone",
+      "A settings-like page composed from the backend: Section, FieldRow (form, stack, required, disabled, no label), a Form with the sticky save bar, a danger zone. Save the workspace name: the summary above it reads it again through BlockFunctions.REFRESH_PAGE.",
   },
   DefaultLayout({
     fullWidth: false,
@@ -97,48 +99,107 @@ export class PageBlocksSettings extends PageController(
       ),
     );
 
+  static rows = Section({
+    title: "Field rows",
+    description: "The states a FieldRow takes besides its layout.",
+  })
+    .child(
+      "billingEmail",
+      FieldRow({
+        label: "Billing email",
+        description: "required: true marks the label.",
+        required: true,
+        layout: "form",
+      }).child(
+        "value",
+        KeyValueList({
+          card: false,
+          items: [{ label: "Current", value: "billing@acme.io", copy: true }],
+        }),
+      ),
+    )
+    .child(
+      "sso",
+      FieldRow({
+        label: "Single sign-on",
+        description: "disabled: true dims the row: Enterprise plan only.",
+        disabled: true,
+        layout: "form",
+      }).child(
+        "upgrade",
+        Banner({
+          size: "sm",
+          tone: "primary",
+          title: "Upgrade to Enterprise",
+          actions: [{ label: "Compare plans", to: "#plans", variant: "link" }],
+        }),
+      ),
+    )
+    .child(
+      "unlabelled",
+      FieldRow({ layout: "form" }).child(
+        "note",
+        Banner({
+          size: "sm",
+          tone: "info",
+          title: "A FieldRow without a label",
+          description: "Its content spans both columns of the form layout.",
+        }),
+      ),
+    );
+
   static profile = Section({
     title: "Workspace profile",
     description:
-      "Edit a field: the save bar sticks to the bottom until you save or discard.",
-  }).child(
-    "form",
-    Form({
-      fetchUrl: "/api/blocks-feed/workspace",
-      submitUrl: "/api/blocks-feed/workspace",
-      fields: [
-        {
-          id: "name",
-          label: "Name",
-          description: "Shown in the sidebar and in emails.",
-          type: new DefaultDataTypes.StringType({ maxLength: 60 }),
-          required: true,
-        },
-        {
-          id: "slug",
-          label: "URL",
-          description: "app.antelopejs.com/<slug>",
-          type: new DefaultDataTypes.StringType({ maxLength: 32 }),
-        },
-        {
-          id: "language",
-          label: "Default language",
-          type: new DefaultDataTypes.SelectType({
-            items: [
-              { label: "English (UK)", value: "en-GB" },
-              { label: "Français", value: "fr-FR" },
-              { label: "Nederlands", value: "nl-BE" },
-            ],
-          }),
-        },
-        {
-          id: "description",
-          label: "Description",
-          type: new DefaultDataTypes.StringType({ textarea: true, rows: 3 }),
-        },
-      ],
-    }),
-  );
+      "Edit a field: the save bar sticks to the bottom until you save or discard. The summary reads the saved values once the form succeeds.",
+  })
+    .child(
+      "summary",
+      KeyValueList({
+        title: "Saved values",
+        dense: true,
+        fetchUrl: "/api/blocks-feed/workspace/summary",
+        skeletonCount: 3,
+      }),
+    )
+    .child(
+      "form",
+      Form({
+        fetchUrl: "/api/blocks-feed/workspace",
+        submitUrl: "/api/blocks-feed/workspace",
+        fields: [
+          {
+            id: "name",
+            label: "Name",
+            description: "Shown in the sidebar and in emails.",
+            type: new DefaultDataTypes.StringType({ maxLength: 60 }),
+            required: true,
+          },
+          {
+            id: "slug",
+            label: "URL",
+            description: "app.antelopejs.com/<slug>",
+            type: new DefaultDataTypes.StringType({ maxLength: 32 }),
+          },
+          {
+            id: "language",
+            label: "Default language",
+            type: new DefaultDataTypes.SelectType({
+              items: [
+                { label: "English (UK)", value: "en-GB" },
+                { label: "Français", value: "fr-FR" },
+                { label: "Nederlands", value: "nl-BE" },
+              ],
+            }),
+          },
+          {
+            id: "description",
+            label: "Description",
+            type: new DefaultDataTypes.StringType({ textarea: true, rows: 3 }),
+          },
+        ],
+      }).watch(FormEvents.SUBMIT_SUCCESS, BlockFunctions.REFRESH_PAGE),
+    );
 
   static activity = Section({
     title: "Recent activity",

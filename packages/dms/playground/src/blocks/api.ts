@@ -1,18 +1,36 @@
 import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
 import type { BannerContent } from "@antelopejs/interface-dms/base";
+import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
+import { notFound, serviceUnavailable } from "./demo-errors";
 
 // Live payloads for the display-block demos. Each answers `{ items }` in the
 // block's own item shape after a short delay, so the loading state shows.
 const DEMO_LATENCY_MS = 900;
+const MINUTE_MS = 60 * 1000;
 
 /** Published on each bump of the live facts, which the KeyValueList follows. */
 export const FACTS_DEMO_TOPIC = "blocks:facts-demo";
+/** Published when the mail provider goes down or comes back. */
+export const PROVIDER_STATUS_TOPIC = "blocks:provider-status";
 const FACTS_DEMO_EVENT_TYPE = "facts.update";
+const PROVIDER_STATUS_EVENT_TYPE = "provider.status";
 const OUTSTANDING_STEP = 125;
-const FACTS_BUMP_DELAY_MS = 2_000;
+const BACKGROUND_JOB_DELAY_MS = 2_000;
 let factsRevision = 1;
 let outstanding = 4890;
+
+/**
+ * Runs `job` a moment later, as a background job would: the header button's
+ * own page refresh has come and gone, so only the realtime event shows it.
+ */
+function inBackground(job: () => Promise<void>): void {
+  setTimeout(() => {
+    job().catch((error: unknown) => {
+      console.warn("[playground] background demo job failed", error);
+    });
+  }, BACKGROUND_JOB_DELAY_MS);
+}
 
 async function bumpFactsAndPublish(): Promise<void> {
   factsRevision += 1;
@@ -39,37 +57,71 @@ const PERIOD_LABELS: Record<string, string> = {
   "last-90-days": "Last 90 days",
   "this-quarter": "This quarter",
 };
+const MRR_CENTS = 92200;
+const MRR_RENEWAL = "2026-10-31T09:00:00Z";
+const CONVERSION_RATIO = 0.253;
+const CONVERSION_SESSIONS = 18420;
+const QUEUED_EMAILS = 1284;
+const OUTAGE_STARTED_MINUTES_AGO = 42;
 
 const PROVIDER_STATUS_URL = "/api/blocks/provider-status";
 
 // The fetched banner of the feedback demo: the page header's "Simulate an
 // outage" sets it, the banner's own "Replay the queue" clears it.
 let isProviderDown = false;
+let outageStartedAt = Date.now();
 
-const PROVIDER_OUTAGE: BannerContent = {
-  tone: "error",
-  title: "Mail provider outage",
-  description:
-    "Brevo has rejected every send since 09:12. 1,284 emails are queued and go out once replayed.",
-  actions: [
-    { label: "Status page", to: "https://status.brevo.com" },
-    {
-      label: "Replay the queue",
-      icon: "i-ph-arrow-clockwise",
-      target: {
-        type: "api",
-        method: "POST",
-        url: `${PROVIDER_STATUS_URL}/replay`,
-        successMessage: "1,284 emails replayed",
-      },
-      confirm: {
-        title: "Replay 1,284 queued emails?",
-        description: "They are sent again through Brevo, oldest first.",
-        confirmLabel: "Replay",
+async function setProviderDown(isDown: boolean): Promise<void> {
+  isProviderDown = isDown;
+  outageStartedAt = Date.now() - OUTAGE_STARTED_MINUTES_AGO * MINUTE_MS;
+  await PublishMessage(PROVIDER_STATUS_TOPIC, PROVIDER_STATUS_EVENT_TYPE);
+}
+
+// Title and description are composed in the reader's language: a relative
+// time, a count picking the plural form, and a nested text as a value.
+function providerOutage(): BannerContent {
+  return {
+    tone: "error",
+    title: {
+      key: "demo.blocks.banner.outage",
+      params: {
+        since: {
+          type: "relative",
+          value: new Date(outageStartedAt).toISOString(),
+        },
       },
     },
-  ],
-};
+    description: {
+      key: "demo.blocks.banner.queued",
+      plural: "queued",
+      params: {
+        queued: { type: "count", value: QUEUED_EMAILS },
+        provider: {
+          key: "demo.blocks.banner.provider",
+          params: { name: "Brevo" },
+        },
+      },
+    },
+    actions: [
+      { label: "Status page", to: "https://status.brevo.com" },
+      {
+        label: "Replay the queue",
+        icon: "i-ph-arrow-clockwise",
+        target: {
+          type: "api",
+          method: "POST",
+          url: `${PROVIDER_STATUS_URL}/replay`,
+          successMessage: "1,284 emails replayed",
+        },
+        confirm: {
+          title: "Replay 1,284 queued emails?",
+          description: "They are sent again through Brevo, oldest first.",
+          confirmLabel: "Replay",
+        },
+      },
+    ],
+  };
+}
 
 function later<T>(value: T): Promise<T> {
   return new Promise((resolve) =>
@@ -77,45 +129,68 @@ function later<T>(value: T): Promise<T> {
   );
 }
 
+// Eyebrow, value and detail are each composed in the reader's language.
+function mrrStat(): StatGroupItem {
+  return {
+    icon: "i-ph-currency-eur",
+    tone: "primary",
+    eyebrow: "$demo.blocks.stats.mrr_label",
+    value: {
+      key: "demo.blocks.stats.mrr",
+      params: {
+        amount: { type: "money", value: MRR_CENTS, currency: "EUR" },
+      },
+    },
+    detail: {
+      key: "demo.blocks.stats.renews",
+      params: {
+        at: { type: "datetime", value: MRR_RENEWAL, format: "long" },
+      },
+    },
+  };
+}
+
+function invoiceStats(scale: number, period: string): StatGroupItem[] {
+  const scaled = (value: number) => Math.round(value * scale);
+  return [
+    {
+      icon: "i-ph-receipt",
+      eyebrow: "Invoices sent",
+      value: scaled(1284),
+      detail: period,
+    },
+    {
+      icon: "i-ph-hourglass-medium",
+      tone: "warning",
+      eyebrow: "Awaiting payment",
+      value: scaled(37),
+      detail: `€${scaled(48210).toLocaleString("en-US")} outstanding`,
+      detailTone: "warning",
+    },
+    {
+      icon: "i-ph-warning-octagon",
+      tone: "error",
+      eyebrow: "Overdue",
+      value: scaled(6),
+      detail: "Oldest 41 days",
+      detailTone: "error",
+    },
+    {
+      icon: "i-ph-check-circle",
+      tone: "success",
+      eyebrow: "Paid",
+      value: scaled(1241),
+      detail: "96.6% on time",
+    },
+  ];
+}
+
 export class BlocksDemoApiController extends Controller("/api/blocks") {
   @Get("stats")
   getStats(@Parameter("preset", "query") preset?: string) {
     const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
     const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
-    const scaled = (value: number) => Math.round(value * scale);
-    return later({
-      items: [
-        {
-          icon: "i-ph-receipt",
-          eyebrow: "Invoices sent",
-          value: scaled(1284),
-          detail: period,
-        },
-        {
-          icon: "i-ph-hourglass-medium",
-          tone: "warning",
-          eyebrow: "Awaiting payment",
-          value: scaled(37),
-          detail: `€${scaled(48210).toLocaleString("en-US")} outstanding`,
-          detailTone: "warning",
-        },
-        {
-          icon: "i-ph-warning-octagon",
-          tone: "error",
-          eyebrow: "Overdue",
-          value: scaled(6),
-          detail: "Oldest 41 days",
-          detailTone: "error",
-        },
-        {
-          icon: "i-ph-check-circle",
-          tone: "success",
-          eyebrow: "Paid",
-          value: scaled(1241),
-          detail: "96.6% on time",
-        },
-      ],
-    });
+    return later({ items: [mrrStat(), ...invoiceStats(scale, period)] });
   }
 
   @Get("facts")
@@ -132,20 +207,47 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
         { label: "Status", value: "Past due", type: "status", tone: "error" },
         { label: "Outstanding", value: outstanding, type: "money" },
         { label: "Last payment", value: "2026-08-14", type: "date" },
+        {
+          label: "$demo.blocks.facts.conversion",
+          value: {
+            key: "demo.blocks.facts.ratio",
+            params: {
+              ratio: {
+                type: "number",
+                value: CONVERSION_RATIO,
+                format: "percent",
+              },
+              sessions: {
+                type: "number",
+                value: CONVERSION_SESSIONS,
+                format: "compact",
+              },
+            },
+          },
+        },
         { label: "Revision", value: factsRevision, type: "mono" },
       ],
     });
   }
 
-  // Lands a moment later, as a background job would: the header button's own
-  // page refresh has come and gone, so only the realtime event shows it.
+  // Figures of the period the card's own selector picks.
+  @Get("period-facts")
+  getPeriodFacts(@Parameter("preset", "query") preset?: string) {
+    const scale = PERIOD_SCALES[preset ?? DEFAULT_PERIOD] ?? 1;
+    const period = PERIOD_LABELS[preset ?? DEFAULT_PERIOD] ?? "Selected period";
+    return later({
+      items: [
+        { label: "Period", value: period },
+        { label: "Orders", value: Math.round(1284 * scale), type: "mono" },
+        { label: "Revenue", value: Math.round(238052 * scale), type: "money" },
+        { label: "Refunds", value: Math.round(1890 * scale), type: "money" },
+      ],
+    });
+  }
+
   @Post("facts/bump")
   bumpFacts(): { ok: boolean } {
-    setTimeout(() => {
-      bumpFactsAndPublish().catch((error: unknown) => {
-        console.warn("[playground] live facts bump failed", error);
-      });
-    }, FACTS_BUMP_DELAY_MS);
+    inBackground(bumpFactsAndPublish);
     return { ok: true };
   }
 
@@ -154,6 +256,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     return later({
       items: [
         {
+          id: "members",
           icon: "i-ph-users",
           title: "Members",
           description:
@@ -165,6 +268,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           },
         },
         {
+          id: "billing",
           icon: "i-ph-credit-card",
           title: "$demo.blocks.nav.billing",
           description: "Payment method, plan and the last 24 invoices.",
@@ -179,6 +283,7 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           tag: "SaaS",
         },
         {
+          id: "integrations",
           icon: "i-ph-plugs-connected",
           title: "Integrations",
           description: "Stripe, Shopify and outgoing webhooks.",
@@ -189,6 +294,15 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
           },
           stateTone: "warning",
         },
+        {
+          id: "facts",
+          icon: "i-ph-broadcast",
+          title: "Live facts",
+          description: "Re-read when the header button bumps the facts.",
+          to: "/blocks/blocks-key-value",
+          state: `Revision ${factsRevision}`,
+          stateTone: "info",
+        },
       ],
     });
   }
@@ -196,6 +310,22 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
   @Get("empty")
   getEmpty() {
     return later({ items: [] });
+  }
+
+  @Get("broken")
+  async getBroken(): Promise<never> {
+    await later(null);
+    throw serviceUnavailable();
+  }
+
+  @Get("gone")
+  async getGone(): Promise<never> {
+    await later(null);
+    throw notFound("This report was archived on Sep 30.", {
+      title: "Report archived",
+      icon: "i-ph-archive",
+      actions: [{ label: "Open the archive", to: "#archive" }],
+    });
   }
 
   // The CodeBlock demo reads one snippet, `{ code, language? }`, not `{ items }`.
@@ -213,18 +343,18 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
 
   @Get("provider-status")
   getProviderStatus() {
-    return later(isProviderDown ? PROVIDER_OUTAGE : null);
+    return later(isProviderDown ? providerOutage() : null);
   }
 
   @Post("provider-status/outage")
   simulateOutage() {
-    isProviderDown = true;
-    return { isProviderDown };
+    inBackground(() => setProviderDown(true));
+    return { ok: true };
   }
 
   @Post("provider-status/replay")
-  replayQueue() {
-    isProviderDown = false;
+  async replayQueue() {
+    await setProviderDown(false);
     return { isProviderDown };
   }
 }
