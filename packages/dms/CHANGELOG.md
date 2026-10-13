@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.7.14
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.13...v0.7.14)
+
+### 🚀 Enhancements
+
+- **interface:** Expose the resolved client address to modules ([#235](https://github.com/AntelopeJS/dms/pull/235))
+- **form:** Keep out-of-range numbers, interpolate field error params and expose the required legend ([#231](https://github.com/AntelopeJS/dms/pull/231))
+- **confirm:** Add useConfirmFrom and a case-insensitive typed confirmation ([#232](https://github.com/AntelopeJS/dms/pull/232))
+- **page:** Let a page failing its validation redirect instead of answering not found ([#236](https://github.com/AntelopeJS/dms/pull/236))
+- **links:** Let row links and link actions keep the page's context ([#238](https://github.com/AntelopeJS/dms/pull/238))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.9 ([ef80c3fc](https://github.com/AntelopeJS/dms/commit/ef80c3fc))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.13
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.12...v0.7.13)
