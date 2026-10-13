@@ -1,5 +1,10 @@
 import type { CustomRowAction } from "../../../../types/row-action";
-import { readTableUrlKey, type TableUrlScope } from "./views";
+import {
+  readTableUrlKey,
+  tableUrlKey,
+  type TableUrlScope,
+  writeTableUrlKey,
+} from "./views";
 import { readFetchNotFound } from "../../../utils/fetchNotFound";
 
 /** Query key of the row a `deepLink` action has open. */
@@ -7,9 +12,7 @@ export const RECORD_URL_KEY = "record";
 
 /** The key this table writes the open row under: short on a sole table. */
 export function recordUrlKey(scope: TableUrlScope): string {
-  return scope.isSoleTableView || !scope.tableId
-    ? RECORD_URL_KEY
-    : `${scope.tableId}.${RECORD_URL_KEY}`;
+  return tableUrlKey(scope, RECORD_URL_KEY);
 }
 
 /** The row the URL names for this table, if any. */
@@ -29,13 +32,9 @@ export function writeRecordId(
   scope: TableUrlScope,
   id?: string,
 ): WrittenRecord | undefined {
-  if (typeof window === "undefined") return undefined;
-  const url = new URL(window.location.href);
-  const key = recordUrlKey(scope);
-  if (id) url.searchParams.set(key, id);
-  else url.searchParams.delete(key);
-  window.history.replaceState(window.history.state, "", url);
-  return id ? { pathname: url.pathname, key, id } : undefined;
+  const url = writeTableUrlKey(scope, RECORD_URL_KEY, id);
+  if (!url || !id) return undefined;
+  return { pathname: url.pathname, key: recordUrlKey(scope), id };
 }
 
 /**
