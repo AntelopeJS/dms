@@ -9,7 +9,7 @@ defineProps<{
 </script>
 
 <template>
-  <EmailLayout title="Your sign-in email is being changed">
+  <EmailLayout title="Your sign-in email is being changed" public-logo-only>
     <EText :style="emailStyles.text">Hello {{ userName }},</EText>
 
     <EText :style="emailStyles.text">
@@ -20,8 +20,8 @@ defineProps<{
     <template #footer>
       <EText :style="emailStyles.footer">
         If this wasn't you, change your password now and sign out the other
-        sessions in Security: your account keeps this address until the new
-        one is confirmed.
+        sessions in Security: your account keeps this address until the new one
+        is confirmed.
       </EText>
     </template>
   </EmailLayout>

@@ -12,7 +12,7 @@ defineProps<{
 </script>
 
 <template>
-  <EmailLayout title="Confirm your new sign-in email">
+  <EmailLayout title="Confirm your new sign-in email" public-logo-only>
     <EText :style="emailStyles.text">Hello {{ userName }},</EText>
 
     <EText :style="emailStyles.text">

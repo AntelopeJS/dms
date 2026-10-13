@@ -51,7 +51,7 @@ const invitation = computed(() => {
 </script>
 
 <template>
-  <EmailLayout :title="title" :lang="locale">
+  <EmailLayout :title="title" :lang="locale" public-logo-only>
     <EText :style="emailStyles.text">
       {{ t("emails.admin_invite.greeting") }}
     </EText>
