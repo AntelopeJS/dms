@@ -45,7 +45,7 @@ export class PageChartStaticData extends PageController("chart-static", {
   category: pageCategory,
   order: 80,
   description:
-    "Charts running purely off staticDataset, with no fetchUrl and no periodScope",
+    "Charts drawn from staticDataset alone, with no route: a dashed comparison line, an area opacity, a bounded Y range, a donut and a candlestick.",
 }) {
   static line = ChartLine({
     title: "Quarterly revenue",

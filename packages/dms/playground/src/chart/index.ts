@@ -5,6 +5,7 @@ export * from "./circular/page";
 export * from "./dashboard/page";
 export * from "./metrics/page";
 export * from "./multi-scope/page";
+export * from "./options/page";
 export * from "./period/page";
 export * from "./realtime/page";
 export * from "./static-data/page";

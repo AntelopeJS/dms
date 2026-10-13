@@ -15,7 +15,8 @@ export class PageChartXY extends PageController("chart-xy", {
   icon: "i-ph-chart-line",
   category: pageCategory,
   order: 10,
-  description: "Line, Area, Bar, Column and Scatter charts",
+  description:
+    "The XY charts: line, area, horizontal bar, column, scatter, stacked columns with a colour array, and a line with a fixed Y range. Hover a chart for its tooltip.",
 }) {
   static line = ChartLine({
     title: "Line chart",

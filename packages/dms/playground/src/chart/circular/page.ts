@@ -12,7 +12,8 @@ export class PageChartCircular extends PageController("chart-circular", {
   icon: "i-ph-chart-pie-slice",
   category: pageCategory,
   order: 20,
-  description: "Donut, Pie and RadialBar charts",
+  description:
+    "The circular charts: a donut with a central label, a pie and a radial bar showing its total. Hover a slice for its value.",
 }) {
   static donut = ChartDonut({
     title: "Donut chart",

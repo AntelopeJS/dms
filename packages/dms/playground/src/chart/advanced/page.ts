@@ -15,7 +15,8 @@ export class PageChartAdvanced extends PageController("chart-advanced", {
   icon: "i-ph-chart-line-up",
   category: pageCategory,
   order: 40,
-  description: "Mixed, Radar, Heatmap and Candlestick charts",
+  description:
+    "Mixed (columns and a line), radar, heatmap and candlestick charts, each read from a route.",
 }) {
   static mixed = ChartMixed({
     title: "Mixed chart",
