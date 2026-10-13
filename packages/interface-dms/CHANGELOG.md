@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.5.10
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.9...v0.5.10)
+
+### 🚀 Enhancements
+
+- **email:** Make the EmailLayout heading and separator optional and guard its logo ([#223](https://github.com/AntelopeJS/dms/pull/223))
+- **form:** Make useControlError a public composable ([#224](https://github.com/AntelopeJS/dms/pull/224))
+- **table-view:** Show visible query param filters as removable chips ([#228](https://github.com/AntelopeJS/dms/pull/228))
+- **page:** Let a frontend module declare public endpoints ([#230](https://github.com/AntelopeJS/dms/pull/230))
+
+### 🩹 Fixes
+
+- **notifications:** Treat a reused idempotency key as already delivered ([#222](https://github.com/AntelopeJS/dms/pull/222))
+- **table-view:** Notify an unresolved record link and follow a record change ([#226](https://github.com/AntelopeJS/dms/pull/226))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.7.14 ([50907541](https://github.com/AntelopeJS/dms/commit/50907541))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.5.9
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.8...v0.5.9)
