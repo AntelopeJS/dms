@@ -271,9 +271,11 @@ describe("action targets on a selection and on a listed row", () => {
   it("steps a row's drawer through the rows shown and keeps it in the URL", async () => {
     window.history.replaceState(null, "", "/runs");
     const rows = [{ _id: "r1" }, { _id: "r2" }];
+    const onRecordShown = vi.fn();
     const targets = mountTargets({
       rowNavigation: { rows: () => rows, rowIdKey: "_id" },
       recordScope: { tableId: "runs", isSoleTableView: true },
+      onRecordShown,
     });
     targets.handleCustomRowAction(
       {
@@ -306,6 +308,7 @@ describe("action targets on a selection and on a listed row", () => {
     await nextTick();
     await Promise.resolve();
     expect(window.location.search).toBe("");
+    expect(onRecordShown.mock.calls).toEqual([["r1"], ["r2"], [undefined]]);
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "k" }));
     expect(drawer!.patches).toHaveLength(1);
   });

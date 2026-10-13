@@ -58,15 +58,18 @@ export interface WrittenRecord {
 /**
  * Removes the row a table wrote in the URL, only while the URL still holds
  * it: a container closing as the user leaves the page must not erase the
- * `?record=` of the page reached.
+ * `?record=` of the page reached. Returns whether it removed it.
  */
-export function clearWrittenRecord(written: WrittenRecord | undefined): void {
-  if (typeof window === "undefined" || !written) return;
+export function clearWrittenRecord(
+  written: WrittenRecord | undefined,
+): boolean {
+  if (typeof window === "undefined" || !written) return false;
   const url = new URL(window.location.href);
-  if (url.pathname !== written.pathname) return;
-  if (url.searchParams.get(written.key) !== written.id) return;
+  if (url.pathname !== written.pathname) return false;
+  if (url.searchParams.get(written.key) !== written.id) return false;
   url.searchParams.delete(written.key);
   window.history.replaceState(window.history.state, "", url);
+  return true;
 }
 
 /** Where a deep link finds its row: among the rows listed, or by id. */

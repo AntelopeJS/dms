@@ -76,6 +76,8 @@ interface TableRowActionsConfig {
   rowNavigation?: RowNavigationSource;
   /** Where a `deepLink` action writes its open row in the URL. */
   recordScope?: TableUrlScope;
+  /** Told the row a `deepLink` action shows, `undefined` once closed. */
+  onRecordShown?: (id?: string) => void;
 }
 
 interface BulkActionConfig {
@@ -814,6 +816,7 @@ export const useTableRowActions = <T extends Data>(
     handleApiError,
     rowNavigation: config.rowNavigation,
     recordScope: config.recordScope,
+    onRecordShown: config.onRecordShown,
     rowIdKey: config.rowIdKey,
   });
 

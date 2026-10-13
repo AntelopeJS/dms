@@ -111,6 +111,11 @@ export interface ActionTargetsConfig {
   /** Where a `deepLink` action writes the row it has open in the URL. */
   recordScope?: TableUrlScope;
   /**
+   * Told the row a `deepLink` action shows each time it writes it in the URL,
+   * and `undefined` once its container closed and removed it.
+   */
+  onRecordShown?: (id?: string) => void;
+  /**
    * The field a row's id is read from (`_id` by default): it fills `{id}` in
    * the `from` URL of a row action's confirmation, as on a built-in action.
    */
@@ -326,11 +331,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
     return (id?: string): void => {
       if (!deepLink || !config.recordScope || !config.rowNavigation) return;
       if (!id) {
-        clearWrittenRecord(written);
+        if (clearWrittenRecord(written)) config.onRecordShown?.(undefined);
         written = undefined;
         return;
       }
       written = writeRecordId(config.recordScope, id);
+      config.onRecordShown?.(id);
     };
   };
   const rowRecorder = (deepLink?: boolean) => {
