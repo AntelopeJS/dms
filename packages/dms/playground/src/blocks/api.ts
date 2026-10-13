@@ -1,5 +1,8 @@
 import { Controller, Get, Parameter, Post } from "@antelopejs/interface-api";
-import type { BannerContent } from "@antelopejs/interface-dms/base";
+import type {
+  BannerAction,
+  BannerContent,
+} from "@antelopejs/interface-dms/base";
 import type { StatGroupItem } from "@antelopejs/interface-dms/base/stat-group";
 import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import { notFound, serviceUnavailable } from "./demo-errors";
@@ -77,6 +80,25 @@ async function setProviderDown(isDown: boolean): Promise<void> {
   await PublishMessage(PROVIDER_STATUS_TOPIC, PROVIDER_STATUS_EVENT_TYPE);
 }
 
+const PROVIDER_OUTAGE_ACTIONS: BannerAction[] = [
+  { label: "Status page", to: "https://status.brevo.com" },
+  {
+    label: "Replay the queue",
+    icon: "i-ph-arrow-clockwise",
+    target: {
+      type: "api",
+      method: "POST",
+      url: `${PROVIDER_STATUS_URL}/replay`,
+      successMessage: "1,284 emails replayed",
+    },
+    confirm: {
+      title: "Replay 1,284 queued emails?",
+      description: "They are sent again through Brevo, oldest first.",
+      confirmLabel: "Replay",
+    },
+  },
+];
+
 // Title and description are composed in the reader's language: a relative
 // time, a count picking the plural form, and a nested text as a value.
 function providerOutage(): BannerContent {
@@ -102,24 +124,7 @@ function providerOutage(): BannerContent {
         },
       },
     },
-    actions: [
-      { label: "Status page", to: "https://status.brevo.com" },
-      {
-        label: "Replay the queue",
-        icon: "i-ph-arrow-clockwise",
-        target: {
-          type: "api",
-          method: "POST",
-          url: `${PROVIDER_STATUS_URL}/replay`,
-          successMessage: "1,284 emails replayed",
-        },
-        confirm: {
-          title: "Replay 1,284 queued emails?",
-          description: "They are sent again through Brevo, oldest first.",
-          confirmLabel: "Replay",
-        },
-      },
-    ],
+    actions: PROVIDER_OUTAGE_ACTIONS,
   };
 }
 
