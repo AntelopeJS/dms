@@ -41,7 +41,7 @@ export class PageTableViewExpandableRows extends PageController(
     category: tableViewCategory,
     order: 34,
     description:
-      'The expandable option of TableView: a caret column opens a detail band under each order. The first table lists detail fields (defaultExpanded "first", next to row selection and row actions); the second hands the whole band to the OrderLinesDetail component, one row at a time, reading the order lines when it opens (lazyLoad), under status tabs, compact density and a 560px scroll area',
+      "A caret opens a detail band under each order: listed fields (the first one open), or a component reading the order lines when it opens (lazyLoad, one at a time). Open a few orders.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

@@ -14,7 +14,7 @@ export class PageTableViewDrawer extends PageController(
     category: tableViewCategory,
     order: 0,
     description:
-      "Add, edit and details forms open in a side drawer next to the task list",
+      "Add, edit and details forms open in a side drawer next to the task list. Click Add, or double-click a task.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

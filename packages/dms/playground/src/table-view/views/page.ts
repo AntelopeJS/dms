@@ -3,6 +3,7 @@ import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
+import { demoGuide } from "../guide";
 import { jobRunDataAPI } from "./data-api";
 
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
@@ -11,15 +12,48 @@ const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 export class PageTableViewViews extends PageController(
   "table-view-views",
   {
-    displayName: "Views, grouped & cells",
+    displayName: "Views & grouped display",
     icon: "i-ph-bookmarks-simple",
     category: tableViewCategory,
     order: 36,
     description:
-      'TableView views: a strip of module views (counted, tokens {{user.id}} and {{now-7d}} resolved by the server), users\' own saved views, a "Timeline" view opening the grouped display by day, and the metric cell displays (status pill, an HTTP "Last call" pill toned by the server, "Locales" pills styled per row, progress, sparkline, duration, bytes, mono). Select runs for the bulk "Re-run" (or "Select all N matching"), read the footer figures computed by the server (summed output, failing count) and the status legend, search for nothing to see the filtered empty state, and click a run: its drawer steps through the runs with J / K and keeps ?record= in the URL; its "Inspect in side sheet" action opens the same drawer from the right. The second table offers its views from a menu, grouped by status: pick another column to group by from its options menu. Open a view from the URL: ?runs.view=failing',
+      "Named views of a table (a strip and a menu), the grouped display, footer figures, bulk actions over every matching row and a row drawer. Open a view, then click a run.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
+  static guide = demoGuide([
+    {
+      label: "Views strip",
+      text: 'views.layout "strip": counted views whose filters hold server tokens ({{user.id}}, {{now-7d}}), tone, defaultView and users\' own saved views (userViews). Open one from the URL with ?runs.view=failing.',
+      to: "/table-view/table-view-views?runs.view=failing",
+    },
+    {
+      label: "Timeline",
+      text: "A view opening the grouped display (grouped by day, collapsible, counted), with its own hidden columns and compact density.",
+    },
+    {
+      label: "Select runs",
+      text: 'The bulk "Re-run" runs on the selection, or on every matching run after "Select all N matching" (bulk.allMatching, resolveBulkRowIds).',
+    },
+    {
+      label: "Footer",
+      text: "Figures computed by the server (summed output, failing count), a countLabel and the status legend.",
+    },
+    {
+      label: "Click a run",
+      text: 'Its drawer (isDefault, deepLink) steps with J / K and keeps ?record= in the URL; "Inspect in side sheet" opens it from the right. Search for nothing: the filtered empty state.',
+    },
+    {
+      label: "Runs by status",
+      text: 'views.layout "menu", grouped by status by default: pick another column to group by from its options menu.',
+    },
+    {
+      label: "Cells",
+      text: "The columns draw status pills, a pill toned by the row, pills styled per row, progress, sparkline, duration, bytes and mono cells; every display is on the Cell displays page.",
+      to: "/table-view/table-view-cell-displays",
+    },
+  ]);
+
   static runs = TableView(jobRunDataAPI, {
     caption: "Job runs",
     labelKey: "name",

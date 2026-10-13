@@ -1,6 +1,5 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { Card } from "@antelopejs/interface-dms/base";
-import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
 import {
@@ -8,14 +7,15 @@ import {
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
-import { roadmapFeatureDataAPI } from "./data-api";
-import { REQUEST_LOG_TOPIC } from "./request-log";
+import { demoGuide } from "../guide";
+import { BROKEN_ROUTE, REQUEST_LOG_TOPIC } from "./request-log";
 
 const PAGE_PATH = "/table-view/table-view-sources";
 const DEMO_ROUTES = [
   "GET /api/orders",
   "POST /api/customers",
   "GET /api/search?q=shoes&page=2",
+  BROKEN_ROUTE,
 ];
 
 const routeLink = (route: string) => ({
@@ -28,12 +28,12 @@ const routeLink = (route: string) => ({
 export class PageTableViewSources extends PageController(
   "table-view-sources",
   {
-    displayName: "Sources, order & cards",
+    displayName: "Sources",
     icon: "i-ph-plugs-connected",
     category: tableViewCategory,
-    order: 37,
+    order: 38,
     description:
-      'TableView.fromSource lists the rows of a module route with no data controller (the request log filters on the server, the browser searches, sorts and pages), with "Load more" pagination. The roadmap is ordered by hand: drag a row by its handle (or use the arrow keys on it) — only the moved rows are saved. "Import a batch" adds requests and refreshes the page blocks; "Import in background" adds them 2 s later and publishes on the realtime topic the log follows. Its cards display draws each feature with DmsRecordCard. "Requests of a route" reads its route from the page URL ({{query.route}}): pick one in its head, it lists nothing until then',
+      "TableView.fromSource lists the rows of a module route, without a data controller. Import a batch from the header, or pick a route in the second table's head.",
   },
   DefaultLayout({
     fullWidth: true,
@@ -64,6 +64,30 @@ export class PageTableViewSources extends PageController(
     ],
   }),
 ) {
+  static guide = demoGuide([
+    {
+      label: "Request log",
+      text: 'The route filters on the method (capabilities.filter, the GET / POST tabs) and answers every row: the browser searches, sorts and pages them. "Load more" pagination.',
+    },
+    {
+      label: "Import a batch",
+      text: "A page header button that changed something refreshes the page's blocks: the log reads its rows again.",
+    },
+    {
+      label: "Import in background",
+      text: "The rows land 2 s later and the route publishes on the log's realtimeTopic: the table reads them again by itself.",
+    },
+    {
+      label: "Requests of a route",
+      text: "fetchUrl names the page URL ({{query.route}}): it lists nothing until a route is picked. GET /api/broken fails: emptyStates.error says so, with Try again.",
+    },
+    {
+      label: "More",
+      text: "The API request log page does it all on the server (search, sort, paging, period, side panel).",
+      to: "/table-view/table-view-request-log",
+    },
+  ]);
+
   static requests = TableView.fromSource({
     caption: "Request log",
     fetchUrl: "/api/playground/request-log",
@@ -131,6 +155,13 @@ export class PageTableViewSources extends PageController(
     TableView.fromSource({
       fetchUrl: "/api/playground/request-log/route?route={{query.route}}",
       pageSize: 10,
+      emptyStates: {
+        error: {
+          title: "The log is unavailable",
+          description: "Its store did not answer. Try again in a minute.",
+          icon: "i-ph-plug",
+        },
+      },
       columns: {
         method: {
           name: "Method",
@@ -152,16 +183,4 @@ export class PageTableViewSources extends PageController(
       },
     }),
   );
-
-  // Ordered by hand on the grid and on the cards alike: FeatureRecordCard
-  // draws the move handle the cards display hands it, beside its selection.
-  static roadmap = TableView(roadmapFeatureDataAPI, {
-    caption: "Roadmap",
-    labelKey: "name",
-    reorder: { field: "position" },
-    formContainer: { type: "drawer" },
-    displays: [{ id: "cards" }],
-    card: { component: CustomComponent("FeatureRecordCard") },
-    rowActions: { add: true, edit: true, delete: true, hasSelection: true },
-  });
 }

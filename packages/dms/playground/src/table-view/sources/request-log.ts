@@ -2,6 +2,7 @@ import {
   Context,
   Controller,
   Get,
+  HTTPResult,
   Post,
   type RequestContext,
 } from "@antelopejs/interface-api";
@@ -32,6 +33,11 @@ const METHOD_FILTER_KEY = "filter_method";
 const BATCH_SIZE = 3;
 const BACKGROUND_BATCH_DELAY_MS = 2_000;
 const ROUTE_KEY = "route";
+const HTTP_UNAVAILABLE = 503;
+const JSON_TYPE = "application/json";
+
+/** A route whose log fails to load, for the table's error empty state. */
+export const BROKEN_ROUTE = "GET /api/broken";
 
 /** Published once a background batch landed; the request log table follows it. */
 export const REQUEST_LOG_TOPIC = "playground:request-log";
@@ -124,6 +130,13 @@ export class RequestLogController extends Controller(
   @Get("/route")
   ofRoute(@Context() ctx: RequestContext) {
     const route = ctx.url.searchParams.get(ROUTE_KEY);
+    if (route === BROKEN_ROUTE) {
+      throw new HTTPResult(
+        HTTP_UNAVAILABLE,
+        JSON.stringify({ message: "The log store is unreachable" }),
+        JSON_TYPE,
+      );
+    }
     const rows = REQUEST_LOG_ENTRIES.filter(
       (entry) => `${entry.method} ${entry.path}` === route,
     );

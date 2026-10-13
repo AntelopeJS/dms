@@ -21,7 +21,8 @@ export class PageTableViewGateBypass extends PageController(
     icon: "i-ph-lock-open",
     category: tableViewCategory,
     order: 150,
-    description: "TableView kept readable while a tenant access gate denies",
+    description:
+      "bypassTenantAccessGate keeps a table readable while a tenant access gate denies the tenant. Suspend the tenant, then reload.",
     bypassTenantAccessGate: true,
   },
   DefaultLayout({ fullWidth: true }),

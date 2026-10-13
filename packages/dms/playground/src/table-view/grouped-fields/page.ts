@@ -9,17 +9,17 @@ import { demoFormPages } from "../form-texts";
 export class PageTableViewGrouped extends PageController(
   "table-view-grouped",
   {
-    displayName: "Grouped Fields",
+    displayName: "Form field groups",
     icon: "i-ph-squares-four",
     category: tableViewCategory,
     order: 50,
     description:
-      "Form fields grouped into titled sections inside the add / edit form",
+      "@ColumnGroup sorts the fields of the add, edit and details forms into titled sections. Open a contact or add one.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(contactDataAPI, {
-    caption: "Contacts - Grouped Fields",
+    caption: "Contacts - Form field groups",
     labelKey: "firstName",
     formContainer: { type: "page", pages: demoFormPages("contact") },
     rowActions: {

@@ -81,7 +81,7 @@ function localePills(status: JobRunStatus): DefaultDisplays.PillItem[] {
 }
 
 /**
- * Job runs of the "Views, grouped & cells" demo: each column draws its value
+ * Job runs of the "Views & grouped display" demo: each column draws its value
  * through one of the cell displays (status pill, a status pill toned by the
  * row, pills styled by the row, progress, sparkline, duration, bytes, mono).
  */
