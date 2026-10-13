@@ -1,5 +1,7 @@
 export * from "./activity";
 export * from "./api";
+export * from "./catalog";
+export * from "./catalog-api";
 export * from "./category";
 export * from "./code";
 export * from "./feed-api";
