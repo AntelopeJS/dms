@@ -13,7 +13,8 @@ import {
   type ConfirmTranslate,
   resolveConfirmDialog,
 } from "./confirmDialogTexts";
-import { type DownloadFetch, secondaryTargetRunner } from "./secondaryTarget";
+import type { DownloadFetch } from "../../utils/fileDownload";
+import { secondaryTargetRunner } from "./secondaryTarget";
 
 /** What an action asks its confirmation with. */
 export interface ActionConfirmRequest {

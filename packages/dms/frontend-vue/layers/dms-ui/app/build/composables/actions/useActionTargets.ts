@@ -51,7 +51,10 @@ import {
 import {
   hasUrlVariables,
   resolveLinkVariables,
+  resolveTextVariables,
 } from "../../utils/urlVariables";
+import { interpolateLiteral } from "../../utils/literalText";
+import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -68,6 +71,21 @@ function linkTargetUrl(url: string, rowData?: Data): string {
     ? resolveLinkVariables(url, currentPageUrlValues())
     : url;
   return rowData ? interpolateUrl(withPageValues, rowData) : withPageValues;
+}
+
+/**
+ * A download target's file name with the page's tokens filled as they are
+ * (a name, not a URL: nothing is encoded), then the row's `{field}`. A token
+ * the page has no value for leaves no name: the server's one is used.
+ */
+function downloadTargetFilename(
+  filename: string | undefined,
+  rowData?: Data,
+): string | undefined {
+  if (!filename) return undefined;
+  const withPageValues = resolveTextVariables(filename, currentPageUrlValues());
+  if (!withPageValues || !rowData) return withPageValues;
+  return interpolateLiteral(withPageValues, rowData);
 }
 
 function currentPageUrlValues() {
@@ -110,6 +128,7 @@ interface TargetRunExtras {
 }
 
 type SidePanelTarget = ActionTarget & { type: "sidePanel" };
+type DownloadTarget = ActionTarget & { type: "download" };
 
 /** A side panel to open, and on what. */
 interface SidePanelTargetRun extends TargetRunExtras {
@@ -148,6 +167,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const { copy: copyToClipboard } = useClipboard({ legacy: true });
   const { confirmAction } = useActionConfirm();
   const { handleApiError } = config;
+  const fetchRaw = useAuthFetch().$authFetch.raw as unknown as DownloadFetch;
 
   /** Calls an `api` target and tells how it went (rejects on a failure). */
   const requestApiTarget = async (
@@ -247,6 +267,26 @@ export function useActionTargets(config: ActionTargetsConfig) {
         : undefined,
       labels,
     });
+  };
+
+  // Fetched with the user's session, as a confirmation's download is; a
+  // refusal is toasted like a failed API call.
+  const handleDownloadTarget = async (
+    target: DownloadTarget,
+    label: string,
+    rowData?: Data,
+  ) => {
+    try {
+      await saveDownload(
+        {
+          url: linkTargetUrl(target.url, rowData),
+          filename: downloadTargetFilename(target.filename, rowData),
+        },
+        fetchRaw,
+      );
+    } catch (error: unknown) {
+      handleApiError(error, label ? processI18n(label, rowData) : undefined);
+    }
   };
 
   const openContainer = (
@@ -462,6 +502,8 @@ export function useActionTargets(config: ActionTargetsConfig) {
         : jobTarget.url;
       await handleExportJobTarget(jobTarget, url, rowData);
     },
+    download: (target, label, rowData) =>
+      handleDownloadTarget(target as DownloadTarget, label, rowData),
     modal: componentHandler,
     // Runs the quick action as the command palette does; one the user is not
     // served runs nothing.

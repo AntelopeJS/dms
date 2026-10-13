@@ -172,8 +172,8 @@ export interface CustomRowAction<
   /**
    * Offers the action on the selection bar, for the selected rows: an `api`
    * or `exportJob` target receives their `ids` as a repeated query parameter
-   * (`?ids=a&ids=b`), a page or external URL too, a drawer or modal
-   * component a `selection` prop. With `{ allMatching: true }`, "Select all
+   * (`?ids=a&ids=b`), a page, external or download URL too, a drawer or
+   * modal component a `selection` prop. With `{ allMatching: true }`, "Select all
    * N matching" sends `allMatching=true` and the table's filters and search
    * instead. A fixed confirmation receives `{ count }`.
    */

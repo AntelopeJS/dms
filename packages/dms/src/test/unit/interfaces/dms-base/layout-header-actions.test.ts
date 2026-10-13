@@ -76,6 +76,21 @@ describe("[unit] interfaces/dms-base/layouts — header buttons", () => {
     ]);
   });
 
+  it("serves a download target as declared, its tokens for the client", () => {
+    const target = {
+      type: "download" as const,
+      url: "/api/lang/translations/export?workspace={{query.workspace}}&locale={{query.locale}}",
+      filename: "{{query.locale}}.json",
+    };
+    const layout = DefaultLayout({
+      headerActions: [{ id: "download-language", label: "Download", target }],
+    });
+
+    expect(actionsOf(layout.options)).to.deep.equal([
+      { id: "download-language", label: "Download", target },
+    ]);
+  });
+
   it("serves the order a button declares", () => {
     const layout = DefaultLayout({
       headerActions: [

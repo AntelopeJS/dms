@@ -47,7 +47,13 @@ export function withQuery(url: string, query: Record<string, QueryValue>) {
   return joined ? `${path}?${joined}` : (path ?? url);
 }
 
-const URL_TARGET_TYPES = new Set(["page", "external", "api", "exportJob"]);
+const URL_TARGET_TYPES = new Set([
+  "page",
+  "external",
+  "download",
+  "api",
+  "exportJob",
+]);
 
 /** A target sending the selection along: its URL carries the query. */
 export function targetWithSelection(
