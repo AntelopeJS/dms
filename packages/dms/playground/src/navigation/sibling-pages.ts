@@ -13,7 +13,8 @@ export class NavigationSectionPage extends PageController(
     displayName: "Section",
     icon: "i-ph-folder",
     category: dynamicNavigationCategory,
-    description: "Sibling of Section archive, whose slug extends this one",
+    description:
+      "Demonstrates: sibling pages whose slugs share a prefix. Open Section archive: only that entry is active.",
   },
   FormPageLayout(),
 ) {
@@ -31,7 +32,8 @@ export class NavigationSectionArchivePage extends PageController(
     displayName: "Section archive",
     icon: "i-ph-archive",
     category: dynamicNavigationCategory,
-    description: "Sibling of Section, not one of its children",
+    description:
+      "Demonstrates: sibling pages whose slugs share a prefix. Only this entry is active here, not Section.",
   },
   FormPageLayout(),
 ) {

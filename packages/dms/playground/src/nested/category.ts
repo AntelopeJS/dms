@@ -1,11 +1,11 @@
 import { Category } from "@antelopejs/interface-dms/page";
-import { internalsSection } from "../sections";
+import { pagesSection } from "../sections";
 
 export const nestedCategory = Category("nested", {
   displayName: "Nested Categories",
   icon: "i-ph-folders",
-  order: 0,
-  category: internalsSection,
+  order: 40,
+  category: pagesSection,
 });
 
 export const level2ACategory = Category("level-2a", {

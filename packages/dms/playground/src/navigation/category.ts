@@ -1,14 +1,16 @@
 import { Category } from "@antelopejs/interface-dms/page";
-import { libraryCategory } from "../sections";
+import { pagesSection } from "../sections";
 
-// A heading group whose children are the sidebar's own entries, the shape a
-// per-tenant list of projects takes: collapsed, they become the rail's icons.
+// The category a dynamic menu provider fills: its static pages and the entries
+// computed per request sort together by `order`.
 export const dynamicNavigationCategory = Category("dynamic-nav", {
   displayName: "Dynamic Navigation",
   icon: "i-ph-tree-structure",
-  order: 70,
-  type: "label",
-  category: libraryCategory,
+  order: 10,
+  category: pagesSection,
 });
 
 export const DYNAMIC_NAVIGATION_PROJECT_SLUG = `${dynamicNavigationCategory.fullSlug}/project`;
+export const DYNAMIC_NAVIGATION_DETAIL_SLUG = `${dynamicNavigationCategory.fullSlug}/projects/:projectId`;
+export const DYNAMIC_NAVIGATION_OVERVIEW_URL = `${dynamicNavigationCategory.fullSlug}/overview`;
+export const NAVIGATION_DEMO_API = "/api/playground/navigation";

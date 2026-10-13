@@ -3,7 +3,7 @@ import { Category, RootCategory } from "@antelopejs/interface-dms/page";
 // The playground files its demos under its own "Library" root instead of the
 // core `pagesCategory`, whose "Pages" label every DMS project keeps. Like the
 // Pages root it uses `urlSlug: "/"`, so it adds no URL segment. Its id starts
-// the playground pages' permission ids (`library.form.form-simple`, ...).
+// the playground pages' permission ids (`library.components.form.form-simple`).
 export const libraryCategory = RootCategory("library", {
   displayName: "Library",
   icon: "i-ph-books",
@@ -11,48 +11,82 @@ export const libraryCategory = RootCategory("library", {
   urlSlug: "/",
 });
 
-// Thematic section headings that organize the library. Each section uses
-// `urlSlug: "/"` so it stays transparent in page URLs
-// (e.g. /grid/layout-grid-simple, not /layout/grid/layout-grid-simple).
-// The library reads from the building blocks to the plumbing: design system,
-// layout, then the page components (table view 30, form 40, charts 50, in
-// their own category.ts), dynamic navigation (70), system and internals.
+// Every section of the library is declared here, in reading order: from the
+// building blocks (design system, layout, components) to the page and the
+// dashboard around it, then the backend services. Each one is a heading with
+// `urlSlug: "/"`, so it stays out of page URLs (/grid/layout-grid-simple, not
+// /layout/grid/layout-grid-simple) but is part of their permission ids.
 
-// Every component built or reworked for the v2 design: the themed Nuxt UI
-// primitives, the generic DMS Vue components (foundations) and the blocks a
-// page author places from the backend.
-export const designSystemSection = Category("design-system", {
+interface LibrarySection {
+  displayName: string;
+  icon: string;
+  order: number;
+}
+
+function librarySection(id: string, section: LibrarySection) {
+  return Category(id, {
+    ...section,
+    category: libraryCategory,
+    type: "label",
+    urlSlug: "/",
+  });
+}
+
+/**
+ * Every component built or reworked for the v2 design: the themed Nuxt UI
+ * primitives, the generic DMS Vue components (foundations) and the blocks a
+ * page author places from the backend.
+ */
+export const designSystemSection = librarySection("design-system", {
   displayName: "Design system",
   icon: "i-ph-palette",
   order: 10,
-  category: libraryCategory,
-  type: "label",
-  urlSlug: "/",
 });
 
-export const layoutSection = Category("layout", {
+/** Grids, stacks, tabs, drawers and modals: how blocks are arranged. */
+export const layoutSection = librarySection("layout", {
   displayName: "Layout",
   icon: "i-ph-layout",
   order: 20,
-  category: libraryCategory,
-  type: "label",
-  urlSlug: "/",
 });
 
-export const systemSection = Category("system", {
+/** The data components: table view, form and charts. */
+export const componentsSection = librarySection("components", {
+  displayName: "Components",
+  icon: "i-ph-squares-four",
+  order: 30,
+});
+
+/**
+ * What a page is made of besides its blocks: menus and categories, header
+ * buttons, validation, access options and extensions.
+ */
+export const pagesSection = librarySection("pages", {
+  displayName: "Pages & navigation",
+  icon: "i-ph-signpost",
+  order: 60,
+});
+
+/** The dashboard around every page: layout banners and quick actions. */
+export const chromeSection = librarySection("chrome", {
+  displayName: "Dashboard chrome",
+  icon: "i-ph-app-window",
+  order: 70,
+});
+
+/**
+ * Backend services a module calls: notifications, realtime, hooks, invites,
+ * permissions, tenancy and emails.
+ */
+export const systemSection = librarySection("system", {
   displayName: "System",
   icon: "i-ph-gear",
   order: 80,
-  category: libraryCategory,
-  type: "label",
-  urlSlug: "/",
 });
 
-export const internalsSection = Category("internals", {
+/** Regression demos and plumbing with no better home. */
+export const internalsSection = librarySection("internals", {
   displayName: "Internals",
   icon: "i-ph-test-tube",
   order: 90,
-  category: libraryCategory,
-  type: "label",
-  urlSlug: "/",
 });
