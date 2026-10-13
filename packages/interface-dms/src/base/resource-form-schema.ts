@@ -78,7 +78,7 @@ export const ResourceFormSchema = z.object({
       .string()
       .optional()
       .describe(
-        "Path to open once saved; {{response._id}} is the row just written.",
+        "The page to open once saved; {{response._id}} stands for the row just saved.",
       ),
     { label: "Then open", group: "behavior" },
   ),

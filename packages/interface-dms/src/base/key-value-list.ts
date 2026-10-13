@@ -141,16 +141,19 @@ const KeyValueListItemSchema = z.object({
 
 /** The options `KeyValueList` accepts. */
 export const KeyValueListSchema = z.object({
-  title: ui(z.string().optional().describe("Eyebrow title of the card."), {
-    label: "Title",
-    group: "content",
-  }),
+  title: ui(
+    z.string().optional().describe("Small heading at the top of the card."),
+    {
+      label: "Title",
+      group: "content",
+    },
+  ),
   items: ui(
     z.array(KeyValueListItemSchema).optional().describe("The rows, in order."),
     { label: "Rows", group: "content" },
   ),
   card: blockCardOption(KEY_VALUE_LIST_DEFAULTS.card),
-  dense: ui(z.boolean().optional().describe("Tighter rows."), {
+  dense: ui(z.boolean().optional().describe("Rows closer together."), {
     label: "Dense",
     group: "appearance",
     widget: "switch",
@@ -162,11 +165,14 @@ export const KeyValueListSchema = z.object({
       .min(1)
       .max(3)
       .default(KEY_VALUE_LIST_DEFAULTS.columns)
-      .describe("Columns on wide screens."),
+      .describe("How many columns on a wide screen."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 3 },
   ),
   currency: ui(
-    z.string().optional().describe("Default ISO code of money values."),
+    z
+      .string()
+      .optional()
+      .describe("The currency of amounts, as a three-letter code such as EUR."),
     { label: "Currency", group: "appearance" },
   ),
   ...blockItemsSourceOptions(),

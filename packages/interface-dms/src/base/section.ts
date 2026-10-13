@@ -109,7 +109,12 @@ export const SectionSchema = z.object({
     widget: "textarea",
   }),
   danger: ui(
-    z.boolean().optional().describe("Marks a block of destructive actions."),
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Draws the section in red, for actions that delete or cannot be undone.",
+      ),
     { label: "Danger zone", group: "appearance", widget: "switch" },
   ),
   card: blockCardOption(true),

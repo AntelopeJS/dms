@@ -59,31 +59,41 @@ export function Card(options?: CardProps): ComponentBuilder<CardProps> {
 
 /** The options `Card` accepts. */
 export const CardSchema = z.object({
-  title: ui(z.string().optional().describe("Eyebrow title of the head."), {
-    label: "Title",
-    group: "content",
-  }),
+  title: ui(
+    z.string().optional().describe("Small heading at the top of the card."),
+    {
+      label: "Title",
+      group: "content",
+    },
+  ),
   count: ui(
     z
       .union([z.number(), z.string()])
       .optional()
-      .describe("Mono count after the title."),
+      .describe("A number shown after the title."),
     { label: "Count", group: "content" },
   ),
   description: ui(z.string().optional(), {
     label: "Description",
     group: "content",
   }),
-  actions: blockActionsOption("Link buttons on the right of the head."),
-  footer: ui(z.string().optional().describe("Muted text in the foot band."), {
-    label: "Footer",
-    group: "content",
-  }),
+  actions: blockActionsOption(
+    "Buttons at the top right of the card, each opening a page.",
+  ),
+  footer: ui(
+    z.string().optional().describe("Small text along the bottom of the card."),
+    {
+      label: "Footer",
+      group: "content",
+    },
+  ),
   padded: ui(
     z
       .boolean()
       .default(CARD_DEFAULTS.padded)
-      .describe("Pads the body; off for a list or table edge to edge."),
+      .describe(
+        "Leaves space around the content; turn it off for a list or table that runs to the edges.",
+      ),
     { label: "Padded body", group: "layout", widget: "switch" },
   ),
   variant: ui(z.enum(CARD_VARIANTS).default(CARD_DEFAULTS.variant), {

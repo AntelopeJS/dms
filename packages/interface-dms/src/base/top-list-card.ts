@@ -190,7 +190,9 @@ export const TopListCardSchema = z.object({
     z
       .string()
       .optional()
-      .describe('Unit after each value, space included, e.g. " ms".'),
+      .describe(
+        'Text after each value, such as " ms" (with its leading space).',
+      ),
     { label: "Value unit", group: "appearance" },
   ),
   showRank: ui(z.boolean().optional(), {
@@ -250,7 +252,9 @@ export const TopListCardSchema = z.object({
     label: "Empty message",
     group: "content",
   }),
-  actions: blockActionsOption("Link buttons in the card head."),
+  actions: blockActionsOption(
+    "Buttons at the top of the card, each opening a page.",
+  ),
   skeletonCount: ui(
     z
       .number()

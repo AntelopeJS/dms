@@ -186,7 +186,7 @@ const ActivityFeedItemSchema = z.object({
     label: "Text values",
     widget: "json",
   }),
-  date: ui(z.string().optional().describe("ISO date of the event."), {
+  date: ui(z.string().optional().describe("When the event happened."), {
     label: "Date",
   }),
   time: ui(blockTextSchema().optional(), {
@@ -199,10 +199,13 @@ const ActivityFeedItemSchema = z.object({
 
 /** The options `ActivityFeed` accepts. */
 export const ActivityFeedSchema = z.object({
-  title: ui(z.string().optional().describe("Eyebrow title of the card."), {
-    label: "Title",
-    group: "content",
-  }),
+  title: ui(
+    z.string().optional().describe("Small heading at the top of the card."),
+    {
+      label: "Title",
+      group: "content",
+    },
+  ),
   items: ui(z.array(ActivityFeedItemSchema).optional(), {
     label: "Static entries",
     group: "content",
@@ -214,13 +217,17 @@ export const ActivityFeedSchema = z.object({
       .int()
       .min(0)
       .optional()
-      .describe("Count beside the title; a `count` the route answers wins."),
+      .describe(
+        "A number shown beside the title; a data source can replace it.",
+      ),
     { label: "Count", group: "content", widget: "number", min: 0 },
   ),
   badge: ui(
     blockTextSchema()
       .optional()
-      .describe("Soft badge in the card head, e.g. the window covered."),
+      .describe(
+        "A short tag at the top of the card, such as the period it covers.",
+      ),
     { label: "Badge", group: "content", widget: "text" },
   ),
   groupByDay: ui(
@@ -271,11 +278,13 @@ export const ActivityFeedSchema = z.object({
       .boolean()
       .optional()
       .describe(
-        "Fills the grid cell, the entries scrolling inside, rather than growing with them.",
+        "Takes the full height of its place, the entries scrolling inside, rather than growing with them.",
       ),
     { label: "Fill the cell", group: "appearance", widget: "switch" },
   ),
-  actions: blockActionsOption("Link buttons in the card head."),
+  actions: blockActionsOption(
+    "Buttons at the top of the card, each opening a page.",
+  ),
   ...blockItemsSourceOptions(),
   mono: ui(z.boolean().optional(), {
     label: "Mono text",

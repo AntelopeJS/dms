@@ -70,7 +70,7 @@ export const KpiCardSchema = z.object({
     z.string().optional().describe("Secondary line under the value."),
     { label: "Description", group: "content", widget: "textarea" },
   ),
-  icon: ui(z.string().optional().describe("Icon name, e.g. `i-ph-trend-up`."), {
+  icon: ui(z.string().optional().describe("The icon shown on the card."), {
     label: "Icon",
     group: "appearance",
     widget: "icon",
@@ -79,7 +79,7 @@ export const KpiCardSchema = z.object({
     z
       .enum(["default", "stat"])
       .optional()
-      .describe("`stat` renders the compact DMS look."),
+      .describe("Stat draws the card in a compact style."),
     { label: "Variant", group: "appearance", widget: "segmented" },
   ),
   fetchUrl: ui(
@@ -113,7 +113,9 @@ export const KpiCardSchema = z.object({
     z
       .string()
       .optional()
-      .describe("ISO code used when the format is currency."),
+      .describe(
+        "The currency, as a three-letter code such as EUR, when the value is an amount.",
+      ),
     { label: "Currency", group: "appearance" },
   ),
   showDelta: ui(z.boolean().optional(), {

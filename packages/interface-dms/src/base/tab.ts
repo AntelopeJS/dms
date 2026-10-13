@@ -173,7 +173,7 @@ export const TabSchema = z.object({
     widget: "segmented",
   }),
   fit: ui(
-    z.boolean().optional().describe("Pill tabs as wide as their labels."),
+    z.boolean().optional().describe("Each tab only as wide as its label."),
     { label: "Fit the tabs", group: "layout", widget: "switch" },
   ),
   unmountOnHide: ui(z.boolean().optional(), {

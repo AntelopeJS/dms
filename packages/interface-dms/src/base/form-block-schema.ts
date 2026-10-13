@@ -272,7 +272,7 @@ export const FormSchema = z.object({
     widget: "segmented",
   }),
   redirectOnSuccess: ui(
-    z.string().optional().describe("Path to navigate to after a submit."),
+    z.string().optional().describe("The page to open once the form is sent."),
     {
       label: "Redirect on success",
       group: "behavior",
