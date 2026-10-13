@@ -2,8 +2,8 @@ import { Category } from "@antelopejs/interface-dms/page";
 import { systemSection } from "../sections";
 
 export const notificationCategory = Category("notification", {
-  displayName: "Notification",
+  displayName: "Notifications",
   icon: "i-ph-bell",
-  order: 0,
+  order: 10,
   category: systemSection,
 });
