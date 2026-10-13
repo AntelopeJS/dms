@@ -176,6 +176,12 @@
       "top_list": {
         "last_visit": "Last visit {at}"
       }
+    },
+    "form_pages": {
+      "username_taken": "“{name}” is already taken.",
+      "invited": "No invitation sent | {count} invitation sent | {count} invitations sent",
+      "impact_members": "Members",
+      "impact_tables": "Tables"
     }
   }
 }

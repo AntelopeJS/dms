@@ -8,17 +8,20 @@ import { pageCategory } from "../category";
 export class PageFormAdvanced extends PageController(
   "form-advanced",
   {
-    displayName: "Advanced Form",
+    displayName: "Two forms, one page",
     icon: "i-ph-note-pencil-duotone",
     category: pageCategory,
     order: 10,
-    description: "Advanced form with select, radio, and slider options",
+    description:
+      "Two forms on one page, each with its own record and save bar: prices, percentages, multiple selects, and labels above the fields (fieldsOrientation vertical).",
   },
   FormPageLayout(),
 ) {
   static productForm = Form({
     title: "Product Configuration",
     description: "Configure your product preferences",
+    fetchUrl: "/api/form-advanced/product/get",
+    submitUrl: "/api/form-advanced/product/save",
     fields: [
       {
         id: "productName",
@@ -104,7 +107,10 @@ export class PageFormAdvanced extends PageController(
 
   static userPreferences = Form({
     title: "User Preferences",
-    description: "Configure your application preferences",
+    description: "fieldsOrientation vertical: each label sits above its field.",
+    fieldsOrientation: "vertical",
+    fetchUrl: "/api/form-advanced/preferences/get",
+    submitUrl: "/api/form-advanced/preferences/save",
     fields: [
       {
         id: "language",

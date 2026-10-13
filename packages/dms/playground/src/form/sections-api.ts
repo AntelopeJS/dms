@@ -15,6 +15,7 @@ const JSON_TYPE = "application/json";
 
 /** The demo's settings, kept in memory: a restart puts the defaults back. */
 const settings: Record<string, unknown> = {
+  profileName: "Default profile",
   agent: "claude",
   thinking: "medium",
   approvalMode: "ask",

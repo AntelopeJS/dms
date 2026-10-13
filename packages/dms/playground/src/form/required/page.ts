@@ -19,6 +19,8 @@ const TAG_ITEMS = [
   { label: "On sale", value: "sale" },
 ];
 
+const BUDGET_RANGE = { min: 0, max: 5000, step: 50, suffix: "EUR" };
+
 const DEPARTMENT_ITEMS = [
   { label: "Engineering / Frontend", value: "eng-frontend" },
   { label: "Engineering / Backend", value: "eng-backend" },
@@ -28,8 +30,9 @@ const DEPARTMENT_ITEMS = [
 /**
  * Every field type the generic form renders, each one required, plus a few
  * constraints: submitting it empty shows how each control flags a missing
- * value, and the submit endpoint re-checks everything server-side (and
- * refuses the username `admin` to show a server field error).
+ * value, and the submit endpoint re-checks everything server-side. It refuses
+ * the username `admin` with a translated error naming it (`params`), and the
+ * postal code `0000` with an error on that part of the address (`path`).
  */
 @RegisterPage()
 export class PageFormRequired extends PageController(
@@ -40,14 +43,14 @@ export class PageFormRequired extends PageController(
     category: pageCategory,
     order: 5,
     description:
-      "Every field type, required, with constraint and server-side errors",
+      "Every field type, required: validate it empty to see each error. Type admin as the username or 0000 as the postal code for server-side errors.",
   },
   FormPageLayout(),
 ) {
   static form = Form({
     title: "Required fields",
     description:
-      "Type in any field, then validate: every other control shows its error. The username admin is taken (server-side error).",
+      "Type in any field, then validate: every other control shows its error. The username admin is taken (a translated server error naming it); the postal code 0000 is unknown (a server error on part of the address).",
     submitUrl: "/api/form-required/submit",
     submitLabel: "Validate",
     successMessage: "Every field is valid. Nothing was saved.",
@@ -78,6 +81,7 @@ export class PageFormRequired extends PageController(
           textarea: true,
           rows: 3,
           maxLength: 200,
+          showCount: true,
         }),
         required: true,
       },
@@ -121,6 +125,39 @@ export class PageFormRequired extends PageController(
         label: "Quantity",
         description: "Between 1 and 10",
         type: new DefaultDataTypes.NumberType({ min: 1, max: 10, step: 1 }),
+        required: true,
+      },
+      {
+        id: "budget",
+        label: "Monthly budget",
+        description:
+          "0 to 5,000 by 50, not clamped: type 7000 and leave the field",
+        type: new DefaultDataTypes.NumberType(BUDGET_RANGE),
+        inputComponent: FormComponents.InputNumber({
+          ...BUDGET_RANGE,
+          clamp: false,
+        }),
+        required: true,
+      },
+      {
+        id: "trialDays",
+        label: "Trial length",
+        description: "0 to 90 with a unit, clamped: type 120 and leave it",
+        type: new DefaultDataTypes.NumberType({
+          min: 0,
+          max: 90,
+          suffix: "days",
+        }),
+        required: true,
+      },
+      {
+        id: "tagline",
+        label: "Tagline",
+        description: "A character counter, out of 60",
+        type: new DefaultDataTypes.StringType({
+          maxLength: 60,
+          showCount: true,
+        }),
         required: true,
       },
       {

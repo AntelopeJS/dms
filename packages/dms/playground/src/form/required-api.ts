@@ -7,12 +7,49 @@ import {
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { formSchema } from "@antelopejs/interface-dms/base/form";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
+import { type DemoRecord, JSON_TYPE } from "./demo-record-api";
 import { PageFormRequired } from "./required/page";
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_CONFLICT = 409;
-const JSON_TYPE = "application/json";
 const TAKEN_USERNAME = "admin";
+const UNKNOWN_POSTAL_CODE = "0000";
+// Params fill a translated message only: a literal is shown as it is.
+const USERNAME_TAKEN_KEY = "$demo.form_pages.username_taken";
+const ADDRESS_FIELD = "address";
+const POSTAL_CODE_PART = "postalCode";
+
+interface PostalAddress {
+  postalCode?: string;
+}
+
+function refuseTakenUsername(username: unknown): void {
+  if (username !== TAKEN_USERNAME) return;
+  throw new HTTPResult(
+    HTTP_CONFLICT,
+    JSON.stringify({
+      field: "username",
+      message: USERNAME_TAKEN_KEY,
+      params: { name: username },
+    }),
+    JSON_TYPE,
+  );
+}
+
+function refuseUnknownPostalCode(address: unknown): void {
+  const postalCode = (address as PostalAddress | undefined)?.postalCode;
+  if (postalCode !== UNKNOWN_POSTAL_CODE) return;
+  throw new HTTPResult(
+    HTTP_BAD_REQUEST,
+    JSON.stringify([
+      {
+        path: [ADDRESS_FIELD, POSTAL_CODE_PART],
+        message: "Unknown postal code",
+      },
+    ]),
+    JSON_TYPE,
+  );
+}
 
 /**
  * The submit endpoint of the "Required & Validation" demo: it validates the
@@ -26,18 +63,10 @@ export class FormRequiredAPIController extends Controller(
   declare user: User;
 
   @Put("submit")
-  async submit(@JSONBody() body: Record<string, unknown>) {
-    // A uniqueness check needs no valid body: it answers first, alone.
-    if (body.username === TAKEN_USERNAME) {
-      throw new HTTPResult(
-        HTTP_CONFLICT,
-        JSON.stringify({
-          field: "username",
-          message: "This username is already taken.",
-        }),
-        JSON_TYPE,
-      );
-    }
+  async submit(@JSONBody() body: DemoRecord) {
+    // Business checks need no valid body: they answer first, alone.
+    refuseTakenUsername(body.username);
+    refuseUnknownPostalCode(body[ADDRESS_FIELD]);
     const parsed = await formSchema(PageFormRequired.form).safeParseAsync(body);
     if (!parsed.success) {
       throw new HTTPResult(

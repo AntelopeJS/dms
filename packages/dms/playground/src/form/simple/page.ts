@@ -8,19 +8,22 @@ import { pageCategory } from "../category";
 export class PageFormSimple extends PageController(
   "form-simple",
   {
-    displayName: "Simple Form",
+    displayName: "Simple form",
     icon: "i-ph-note-pencil",
     category: pageCategory,
     order: 0,
     description:
-      "Text, email, number, checkbox, select, date and colour fields in one plain form",
+      "Plain inputs in one form: text, textarea, email, number, switch, select, dates and colour. Change a value: the save bar appears, and the page's setup function logs each change to the console.",
     setupId: "dms:demo:form-lifecycle",
   },
   FormPageLayout(),
 ) {
   static form = Form({
-    title: "Simple Form Example",
-    description: "A form showcasing all available field types",
+    title: "Simple form",
+    description:
+      "The plain inputs, saved to an in-memory record: reload to see the saved values.",
+    fetchUrl: "/api/form-simple/get",
+    submitUrl: "/api/form-simple/save",
     fields: [
       {
         id: "textField",
@@ -63,8 +66,8 @@ export class PageFormSimple extends PageController(
       },
       {
         id: "checkboxField",
-        label: "Checkbox",
-        description: "Check to agree",
+        label: "Switch",
+        description: "A boolean, drawn as a switch by default",
         type: new DefaultDataTypes.BooleanType(),
       },
       {

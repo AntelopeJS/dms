@@ -47,6 +47,7 @@ export class Profile extends Table {
 
   @Field("any") declare coverImage: DefaultDataTypes.ImageValue;
   @Field(["any"]) declare gallery: DefaultDataTypes.ImageValue[];
+  @Field(["string"]) declare documents: string[];
 
   @Field("string") declare firstName: string;
   @Field("string") declare lastName: string;
@@ -72,6 +73,7 @@ export class Profile extends Table {
   @Field("string") declare linkedinUrl: string;
   @Field("string") declare githubUrl: string;
   @Field("string") declare twitterUrl: string;
+  @Field("string") declare mastodonUrl: string;
 
   @Field("string") declare address: string;
   @Field("string") declare bio: string;
