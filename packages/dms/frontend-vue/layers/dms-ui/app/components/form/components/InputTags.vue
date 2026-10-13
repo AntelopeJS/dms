@@ -3,7 +3,7 @@ import {
   formErrorsInjectionKey,
   formFieldInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 import {
   addTags,
   invalidTags,

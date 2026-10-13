@@ -6,7 +6,7 @@ import type {
 } from "@nuxt/ui/components/InputNumber.vue";
 import { computed, nextTick, watch } from "vue";
 import { useForwardPropsEmits } from "reka-ui";
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 import {
   BELOW_MIN_MESSAGE,
   numberRangeError,

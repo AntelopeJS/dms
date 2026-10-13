@@ -2,7 +2,7 @@
 import { getCurrentInstance, h, render } from "vue";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 import { codeLanguageLabel } from "../../../build/utils/codeLanguages";
 import type {
   CodeEditor,

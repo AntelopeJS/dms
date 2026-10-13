@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useControlError } from "../../../build/composables/form/useControlError";
+import { useControlError } from "../../../composables/form/useControlError";
 import {
   type KeyValueRow,
   keyValueProblem,
