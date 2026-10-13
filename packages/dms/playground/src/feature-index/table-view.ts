@@ -56,7 +56,7 @@ function feature(
   demo: string,
   since?: string,
 ): PlaygroundFeature {
-  return { area: AREA, feature: name, api, demo, ...(since && { since }) };
+  return { area: AREA, feature: name, api, demo, since };
 }
 
 const FORMS_AND_CONTAINERS: PlaygroundFeature[] = [

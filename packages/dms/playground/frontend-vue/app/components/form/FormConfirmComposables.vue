@@ -6,8 +6,8 @@ import {
   type ConfirmValues,
 } from "#dms-ui/app/composables/confirm/types";
 import { useConfirmFrom } from "#dms-ui/app/composables/confirm/useConfirmFrom";
-import ShowcaseDemo from "../foundations/ShowcaseDemo.vue";
-import ShowcaseSection from "../foundations/ShowcaseSection.vue";
+import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
+import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
 /**
  * Form › Confirmations: the options of `useConfirm()` a Vue component alone

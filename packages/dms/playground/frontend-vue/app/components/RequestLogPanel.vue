@@ -26,9 +26,11 @@ const { formatDateTime } = useRegionalFormat();
 const servedAt = computed(() => formatDateTime(props.rowData?.at) ?? "—");
 
 const openPrevious = (id: string) =>
-  props.showRow?.(id).catch(() =>
-    toast.add({ color: "error", title: "This request could not be opened" }),
-  );
+  props
+    .showRow?.(id)
+    .catch(() =>
+      toast.add({ color: "error", title: "This request could not be opened" }),
+    );
 </script>
 
 <template>
