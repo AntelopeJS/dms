@@ -18,7 +18,7 @@ export class PageDashboardShowcase extends PageController("chart-dashboard", {
   category: pageCategory,
   order: 0,
   description:
-    "Dashboard with PeriodSelector, KpiCards, and a comparison ChartCard",
+    "A dashboard: one PeriodSelector driving three KpiCards, a ChartCard compared with last year and two TopListCards. Change the period or the comparison to see every card reload.",
 }) {
   static periodSelector = PeriodSelector({
     id: SCOPE_ID,
@@ -33,43 +33,43 @@ export class PageDashboardShowcase extends PageController("chart-dashboard", {
       .child(
         "revenue",
         KpiCard({
-          title: "Ventes globales",
+          title: "Overall sales",
           icon: "i-lucide-euro",
           fetchUrl: "/api/dashboard/kpi/revenue",
           periodScope: SCOPE_ID,
           valueFormat: "currency",
-          compareLabel: "vs période comparée",
+          compareLabel: "vs compared period",
           showSparkline: true,
         }),
       )
       .child(
         "orders",
         KpiCard({
-          title: "Commandes",
+          title: "Orders",
           icon: "i-lucide-shopping-bag",
           fetchUrl: "/api/dashboard/kpi/orders",
           periodScope: SCOPE_ID,
           valueFormat: "compact",
-          compareLabel: "vs période comparée",
+          compareLabel: "vs compared period",
           showSparkline: true,
         }),
       )
       .child(
         "customers",
         KpiCard({
-          title: "Nouveaux clients",
+          title: "New customers",
           icon: "i-lucide-user-plus",
           fetchUrl: "/api/dashboard/kpi/customers",
           periodScope: SCOPE_ID,
           valueFormat: "compact",
-          compareLabel: "vs période comparée",
+          compareLabel: "vs compared period",
           showSparkline: true,
         }),
       ),
   );
 
   static sales = ChartCard({
-    title: "Ventes globales",
+    title: "Overall sales",
     fetchUrl: "/api/dashboard/sales",
     periodScope: SCOPE_ID,
     valueFormat: "currency",
@@ -87,8 +87,8 @@ export class PageDashboardShowcase extends PageController("chart-dashboard", {
       .child(
         "trending",
         TopListCard({
-          title: "Top 10 produits en tendance",
-          description: "Hausse vs période comparée",
+          title: "Top 10 trending products",
+          description: "Change vs the compared period",
           fetchUrl: "/api/dashboard/top-products?limit=10&withSparkline=true",
           periodScope: SCOPE_ID,
           valueFormat: "compact",
@@ -102,8 +102,8 @@ export class PageDashboardShowcase extends PageController("chart-dashboard", {
       .child(
         "yoy",
         TopListCard({
-          title: "Top 25 produits",
-          description: "Hausse vs période comparée",
+          title: "Top 25 products",
+          description: "Change vs the compared period",
           fetchUrl: "/api/dashboard/top-products?limit=25",
           periodScope: SCOPE_ID,
           valueFormat: "currency",

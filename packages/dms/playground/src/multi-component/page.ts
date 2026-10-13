@@ -35,7 +35,7 @@ export class PageMultiComponent extends PageController("multi-component", {
   category: multiComponentCategory,
   order: 0,
   description:
-    "Two key / value lists, two forms and two charts sharing one grid layout",
+    "Several kinds of blocks on one page: two key / value lists, two forms and two charts sharing one grid layout. Each block loads and saves on its own.",
 }) {
   static mainGrid = (() => {
     const fileList = KeyValueList({

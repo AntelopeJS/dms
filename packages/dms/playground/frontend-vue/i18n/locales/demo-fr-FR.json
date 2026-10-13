@@ -184,7 +184,8 @@
         "order_paid": "Commande {order} payée",
         "files_changed": "{count} fichier modifié | {count} fichiers modifiés",
         "missing_keys": "aucune clé de traduction manquante | {count} clé de traduction manquante | {count} clés de traduction manquantes",
-        "amount": "{amount}"
+        "amount": "{amount}",
+        "badge_rows": "{count} ligne lue | {count} lignes lues"
       },
       "meter": {
         "seats_hint": "{used} utilisés · {free} libres",
@@ -199,7 +200,47 @@
         "connectors_degraded": "aucun connecteur dégradé | {count} connecteur dégradé | {count} connecteurs dégradés"
       },
       "top_list": {
-        "last_visit": "Dernière visite {at}"
+        "last_visit": "Dernière visite {at}",
+        "partial": "{value} k pour l'instant"
+      },
+      "stats": {
+        "mrr_label": "Revenu mensuel récurrent",
+        "mrr": "{amount} / mois",
+        "renews": "Renouvelé le {at}"
+      },
+      "facts": {
+        "conversion": "Conversion",
+        "ratio": "{ratio} de {sessions} sessions"
+      },
+      "banner": {
+        "outage": "Panne du fournisseur d'e-mails depuis {since}",
+        "queued": "Aucun e-mail en attente pour {provider} | {queued} e-mail en attente pour {provider}, envoyé une fois relancé | {queued} e-mails en attente pour {provider}, envoyés une fois relancés",
+        "provider": "{name}, le fournisseur d'e-mails"
+      },
+      "code": {
+        "generated": "Configuration du préréglage, générée le {at}"
+      },
+      "live": {
+        "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
+        "in_5xx": "{count} en 5xx",
+        "typing": "saisie d'une note",
+        "polling": "Interrogation périodique",
+        "paused": "En pause",
+        "direct": "En direct",
+        "health_title": "Santé · composant personnalisé",
+        "requests": "Requêtes",
+        "missed": "Manqués pendant la pause",
+        "updated": "Dernière lecture",
+        "note_placeholder": "Saisissez une note : la page se met en pause",
+        "read_now": "Lire maintenant"
+      },
+      "tabs": {
+        "beta": "bêta",
+        "unread": "{count} non lu | {count} non lus"
+      },
+      "chart_card": {
+        "this_period": "Cette période",
+        "last_period": "Période précédente"
       }
     },
     "form_pages": {

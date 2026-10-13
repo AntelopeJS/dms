@@ -1,5 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { Tab } from "@antelopejs/interface-dms/base/tab";
+import { BlockFunctions, KeyValueList } from "@antelopejs/interface-dms/base";
+import { Tab, TabEvents } from "@antelopejs/interface-dms/base/tab";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
 import { componentsPanel, databasePanel, filesPanel } from "../panels";
@@ -10,7 +11,8 @@ export class PageTabsBasic extends PageController("tabs-basic", {
   icon: "i-ph-squares-four",
   category: pageCategory,
   order: 0,
-  description: "The plainest tabs: each tab holds a key / value list",
+  description:
+    "The plainest tabs, each holding a key / value list, then tabs with keyboard shortcuts (Shift+F, C, D). Switching the first set fires TabEvents.TAB_CHANGE, watched to refresh the page: the read counter below goes up.",
 }) {
   static tabs = Tab({
     items: [
@@ -35,7 +37,14 @@ export class PageTabsBasic extends PageController("tabs-basic", {
   })
     .child("filesPanel", filesPanel(), { slot: "files" })
     .child("componentsPanel", componentsPanel(), { slot: "components" })
-    .child("databasePanel", databasePanel(), { slot: "database" });
+    .child("databasePanel", databasePanel(), { slot: "database" })
+    .watch(TabEvents.TAB_CHANGE, BlockFunctions.REFRESH_PAGE);
+
+  static reads = KeyValueList({
+    title: "Read on each page refresh",
+    fetchUrl: "/api/tab-reads",
+    dense: true,
+  });
 
   static tabsWithShortcuts = Tab({
     items: [

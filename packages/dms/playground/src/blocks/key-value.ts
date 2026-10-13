@@ -1,9 +1,22 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { Card, KeyValueList, StatGroup } from "@antelopejs/interface-dms/base";
+import {
+  CARD_ACTIONS_SLOT,
+  CARD_FOOTER_SLOT,
+  Card,
+  HStack,
+  KeyValueList,
+  PeriodSelector,
+  Placeholder,
+  StatGroup,
+} from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
+import { HttpMethod } from "@antelopejs/interface-dms/base/types";
 import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
+
+const CARD_PERIOD_SCOPE = "blocks-key-value-card";
+const FOOTER_HEIGHT = "24px";
 
 @RegisterPage()
 export class PageBlocksKeyValue extends PageController(
@@ -14,7 +27,7 @@ export class PageBlocksKeyValue extends PageController(
     category: blocksCategory,
     order: 10,
     description:
-      'KeyValueList block (every value type, copy buttons, columns, dense, live data refreshed over realtime: "Update the live facts" bumps them 2 s later and publishes on their topic) and the Card container block',
+      'KeyValueList block (every value type, copy buttons, 2 and 3 columns, a list currency, dense, composed texts, data read from a route) and the Card container (count, actions, footer, elevated variant, actions and footer slots). Press "Update the live facts": Live facts refreshes 2 s later over realtime.',
   },
   DefaultLayout({
     headerActions: [
@@ -53,6 +66,12 @@ export class PageBlocksKeyValue extends PageController(
               tone: "warning",
             },
             { label: "Language", value: "English (UK)" },
+            // A text value takes a tone too: it colours the text.
+            {
+              label: "Password",
+              value: "Expires in 3 days",
+              tone: "warning",
+            },
           ],
         }),
       )
@@ -89,10 +108,11 @@ export class PageBlocksKeyValue extends PageController(
         KeyValueList({
           title: "Live facts",
           fetchUrl: "/api/blocks/facts",
-          // Read again on each bump of the form below, over SSE.
+          fetchUrlMethod: HttpMethod.get,
+          // Read again on each bump of the header button, over SSE.
           realtimeTopic: FACTS_DEMO_TOPIC,
-          // The route answers 5 rows: the skeleton draws as many.
-          skeletonCount: 5,
+          // The route answers 7 rows: the skeleton draws as many.
+          skeletonCount: 7,
         }),
       ),
   );
@@ -124,6 +144,31 @@ export class PageBlocksKeyValue extends PageController(
         to: "https://antelopejs.com/docs",
       },
     ],
+  });
+
+  // `currency` on the list is the default of every money row; a row's own
+  // `currency` still wins.
+  static threeColumns = KeyValueList({
+    title: "Invoice · three columns, list currency EUR",
+    columns: 3,
+    currency: "EUR",
+    items: [
+      { label: "Subtotal", value: 490, type: "money" },
+      { label: "VAT 21%", value: 102.9, type: "money" },
+      { label: "Total", value: 592.9, type: "money" },
+      { label: "Paid", value: 0, type: "money" },
+      { label: "Converted", value: 641.2, type: "money", currency: "USD" },
+      { label: "Due", value: "2026-10-31", type: "date" },
+    ],
+  });
+
+  static emptyFacts = KeyValueList({
+    title: "Facts · empty",
+    fetchUrl: "/api/blocks/empty",
+    empty: {
+      title: "No facts",
+      description: "The route answered no item.",
+    },
   });
 
   static card = Card({
@@ -169,6 +214,52 @@ export class PageBlocksKeyValue extends PageController(
       ],
     }),
   );
+
+  // Blocks in the head and the foot of the card, through its two slots: a
+  // period selector driving the list in the body, and a row of notes.
+  static elevated = Card({
+    title: "Sales",
+    count: "this workspace",
+    description: "variant elevated, a selector in the actions slot",
+    variant: "elevated",
+  })
+    .child(
+      "period",
+      PeriodSelector({
+        id: CARD_PERIOD_SCOPE,
+        size: "xs",
+        variant: "segmented",
+        presets: ["last-7-days", "this-month", "this-quarter"],
+        comparisons: ["none"],
+        defaultPreset: "this-month",
+      }),
+      { slot: CARD_ACTIONS_SLOT },
+    )
+    .child(
+      "facts",
+      KeyValueList({
+        card: false,
+        fetchUrl: "/api/blocks/period-facts",
+        periodScope: CARD_PERIOD_SCOPE,
+        skeletonCount: 4,
+      }),
+    )
+    .child(
+      "foot",
+      HStack({ distribution: "space-between", alignment: "center" })
+        .child(
+          "sync",
+          Placeholder({
+            label: "Footer slot: last sync 10:15",
+            height: FOOTER_HEIGHT,
+          }),
+        )
+        .child(
+          "next",
+          Placeholder({ label: "next at 10:30", height: FOOTER_HEIGHT }),
+        ),
+      { slot: CARD_FOOTER_SLOT },
+    );
 
   static cardWithBlocks = Card({
     title: "This month",

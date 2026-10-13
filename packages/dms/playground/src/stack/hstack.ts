@@ -3,9 +3,74 @@ import {
   HStack,
   Placeholder,
   Spacer,
+  type StackDistribution,
   VStack,
 } from "@antelopejs/interface-dms/base";
 import { stackCategory } from "./category";
+
+const DISTRIBUTIONS: StackDistribution[] = [
+  "start",
+  "center",
+  "end",
+  "space-between",
+  "space-around",
+  "space-evenly",
+];
+const SMALL_BOX_WIDTH = "80px";
+const SMALL_BOX_HEIGHT = "60px";
+const WRAPPED_BOX_COUNT = 10;
+const WRAPPED_BOX_WIDTH = "120px";
+
+function smallBox(label: string) {
+  return Placeholder({
+    label,
+    width: SMALL_BOX_WIDTH,
+    height: SMALL_BOX_HEIGHT,
+  });
+}
+
+// Three narrow boxes per row, so the leftover width shows where each
+// distribution puts it.
+function distributionRow(distribution: StackDistribution) {
+  return HStack({ distribution, spacing: "8px", alignment: "center" })
+    .child(
+      "label",
+      Placeholder({
+        label: distribution,
+        height: SMALL_BOX_HEIGHT,
+        width: "140px",
+      }),
+    )
+    .child("a", smallBox("A"))
+    .child("b", smallBox("B"))
+    .child("c", smallBox("C"));
+}
+
+function distributionRows() {
+  return DISTRIBUTIONS.reduce(
+    (stack, distribution) =>
+      stack.child(distribution, distributionRow(distribution)),
+    VStack({ spacing: "12px", alignment: "stretch" }),
+  );
+}
+
+function wrappedRow() {
+  return Array.from(
+    { length: WRAPPED_BOX_COUNT },
+    (_, index) => index + 1,
+  ).reduce(
+    (stack, index) =>
+      stack.child(
+        `box${index}`,
+        Placeholder({
+          label: `${index}`,
+          width: WRAPPED_BOX_WIDTH,
+          height: SMALL_BOX_HEIGHT,
+        }),
+      ),
+    HStack({ wrap: true, spacing: "12px" }),
+  );
+}
 
 @RegisterPage()
 export class PageHStack extends PageController("stack-hstack", {
@@ -13,7 +78,8 @@ export class PageHStack extends PageController("stack-hstack", {
   icon: "i-ph-rows",
   category: stackCategory,
   order: 0,
-  description: "Horizontal Stack - Arrange components side by side",
+  description:
+    "HStack places blocks side by side: alignment, spacing, the six distributions of the leftover width, and wrap onto several lines. Narrow the window to see the wrapped row break.",
 }) {
   static mainContent = (() => {
     const item1 = Placeholder({ label: "Item 1", height: "150px" });
@@ -65,4 +131,8 @@ export class PageHStack extends PageController("stack-hstack", {
       .child("ex3", example3)
       .child("ex4", example4);
   })();
+
+  static distributions = distributionRows();
+
+  static wrapped = wrappedRow();
 }

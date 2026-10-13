@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/base";
 import { Color } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
+import { PLAYGROUND_OPS_PERIOD_KEY } from "../period/page";
 
 const OPS_SCOPE = "ops-metrics";
 const OPS_SYNC_GROUP = "ops-grid";
@@ -25,7 +26,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
   category: pageCategory,
   order: 75,
   description:
-    "Segmented period, latency bands, stepline replicas, reference lines and a synced crosshair",
+    "An ops dashboard: segmented period remembered with the PeriodSelector page, latency bands, a band with a line, stepline replicas, reference lines and a crosshair synced between charts. Hover one chart to see the other follow.",
 }) {
   static period = PeriodSelector({
     id: OPS_SCOPE,
@@ -41,6 +42,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
       "custom",
     ],
     comparisons: ["none", "previous-period"],
+    rememberKey: PLAYGROUND_OPS_PERIOD_KEY,
   });
 
   static latencyKpi = KpiCard({

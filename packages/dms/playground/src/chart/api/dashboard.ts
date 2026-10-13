@@ -374,9 +374,9 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     @Parameter("comparison", "query") comparison?: string,
   ): ChartCardPayload {
     const seed = this.resolveSeed(preset, from);
-    const current = buildDailySeries("Période", seed, 5500, 9500);
+    const current = buildDailySeries("Period", seed, 5500, 9500);
     const comparisonSeries = isComparing(comparison)
-      ? [buildDailySeries("Comparaison", seed + 11, 5000, 11000)]
+      ? [buildDailySeries("Comparison", seed + 11, 5000, 11000)]
       : undefined;
     const currentTotal = totalOf(current);
     return {

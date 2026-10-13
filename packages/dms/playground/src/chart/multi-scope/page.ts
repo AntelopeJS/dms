@@ -18,7 +18,7 @@ export class PageChartMultiScope extends PageController("chart-multi-scope", {
   category: pageCategory,
   order: 90,
   description:
-    "Two independent PeriodSelectors driving disjoint groups of charts on the same page",
+    "Two independent PeriodSelectors, each driving its own KpiCard and ChartCard (dimmed and solid comparison styles). Change one selector: only its group reloads.",
 }) {
   static salesPeriod = PeriodSelector({
     id: SALES_SCOPE,
@@ -38,7 +38,7 @@ export class PageChartMultiScope extends PageController("chart-multi-scope", {
           fetchUrl: "/api/dashboard/kpi/revenue",
           periodScope: SALES_SCOPE,
           valueFormat: "currency",
-          compareLabel: "vs période comparée",
+          compareLabel: "vs compared period",
           showSparkline: true,
         }),
       )
@@ -76,7 +76,7 @@ export class PageChartMultiScope extends PageController("chart-multi-scope", {
           fetchUrl: "/api/dashboard/kpi/customers",
           periodScope: TRAFFIC_SCOPE,
           valueFormat: "compact",
-          compareLabel: "vs période comparée",
+          compareLabel: "vs compared period",
           showSparkline: true,
         }),
       )

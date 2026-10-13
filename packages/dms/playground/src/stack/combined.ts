@@ -13,7 +13,8 @@ export class PageStackCombined extends PageController("stack-combined", {
   icon: "i-ph-layout",
   category: stackCategory,
   order: 30,
-  description: "Complex layouts combining HStack, VStack, and Spacer",
+  description:
+    "Page-like layouts composed of HStack, VStack and Spacer only: a header bar, a sidebar and content, a footer.",
 }) {
   static mainContent = (() => {
     const logo = Placeholder({ label: "Logo", height: "60px", width: "60px" });
