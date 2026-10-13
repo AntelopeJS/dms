@@ -176,6 +176,18 @@
       "top_list": {
         "last_visit": "Last visit {at}"
       }
+    },
+    "table_view": {
+      "new_requests": "{count} new request | {count} new requests",
+      "request_count": "{count} request | {count} requests",
+      "task_count": "{count} task | {count} tasks",
+      "cells": {
+        "contact_line": "{count} seat · {country} | {count} seats · {country}",
+        "plan_detail": "{price} per seat · {count} seat | {price} per seat · {count} seats",
+        "renews": "Renews {date}",
+        "on_date": "on {date}",
+        "by": "{date} · by {name}"
+      }
     }
   }
 }

@@ -176,6 +176,18 @@
       "top_list": {
         "last_visit": "Dernière visite {at}"
       }
+    },
+    "table_view": {
+      "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
+      "request_count": "{count} requête | {count} requêtes",
+      "task_count": "{count} tâche | {count} tâches",
+      "cells": {
+        "contact_line": "{count} siège · {country} | {count} sièges · {country}",
+        "plan_detail": "{price} par siège · {count} siège | {price} par siège · {count} sièges",
+        "renews": "Renouvellement {date}",
+        "on_date": "le {date}",
+        "by": "{date} · par {name}"
+      }
     }
   }
 }

@@ -49,22 +49,22 @@ function buildEntry(sequence: number, at: Date): RequestLogEntry {
 }
 
 // A fixed log: the same seed lists the same requests on every run, newest
-// first. The batch routes put new requests on top of it.
-const ENTRIES: RequestLogEntry[] = Array.from(
+// first, the newest one served when the backend started (so a period
+// selector's "last 24 hours" finds them). The batch routes put new requests
+// on top of it.
+const LOG_START_MS = Date.now();
+export const REQUEST_LOG_ENTRIES: RequestLogEntry[] = Array.from(
   { length: ENTRY_COUNT },
   (_, index) =>
-    buildEntry(
-      ENTRY_COUNT - index,
-      new Date(Date.UTC(2026, 9, 5, 12) - index * MINUTE_MS),
-    ),
+    buildEntry(ENTRY_COUNT - index, new Date(LOG_START_MS - index * MINUTE_MS)),
 );
 
 function appendBatch(): void {
   const now = new Date();
   const batch = Array.from({ length: BATCH_SIZE }, (_, index) =>
-    buildEntry(ENTRIES.length + BATCH_SIZE - index, now),
+    buildEntry(REQUEST_LOG_ENTRIES.length + BATCH_SIZE - index, now),
   );
-  ENTRIES.unshift(...batch);
+  REQUEST_LOG_ENTRIES.unshift(...batch);
 }
 
 async function appendBatchAndPublish(): Promise<void> {
@@ -86,8 +86,8 @@ export class RequestLogController extends Controller(
     const query = ctx.url.searchParams;
     const method = query.get(METHOD_FILTER_KEY)?.replace(/^is:/, "");
     const rows = method
-      ? ENTRIES.filter((entry) => entry.method === method)
-      : ENTRIES;
+      ? REQUEST_LOG_ENTRIES.filter((entry) => entry.method === method)
+      : REQUEST_LOG_ENTRIES;
     const offset = Number(query.get("offset")) || 0;
     const limit = Number(query.get("limit")) || rows.length;
     return { results: rows.slice(offset, offset + limit), total: rows.length };
@@ -124,7 +124,7 @@ export class RequestLogController extends Controller(
   @Get("/route")
   ofRoute(@Context() ctx: RequestContext) {
     const route = ctx.url.searchParams.get(ROUTE_KEY);
-    const rows = ENTRIES.filter(
+    const rows = REQUEST_LOG_ENTRIES.filter(
       (entry) => `${entry.method} ${entry.path}` === route,
     );
     return { results: rows, total: rows.length };
