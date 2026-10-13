@@ -244,6 +244,30 @@ describe("a header button's target URL", () => {
       }),
     );
   });
+  it("runs a download target on the page's scope, as a button", async () => {
+    await mountBar([
+      {
+        id: "download-language",
+        label: "Download",
+        target: {
+          type: "download",
+          url: "/api/lang/translations/export?workspace={{query.workspace}}&locale={{params.locale}}",
+          filename: "{{params.locale}}.json",
+        },
+      },
+    ]);
+    expect(buttons()[0]?.dataset.to).toBeUndefined();
+    buttons()[0]?.click();
+    expect(handleCustomButton).toHaveBeenCalledWith(
+      expect.objectContaining({
+        target: {
+          type: "download",
+          url: "/api/lang/translations/export?workspace=web&locale=de",
+          filename: "{{params.locale}}.json",
+        },
+      }),
+    );
+  });
 });
 
 describe("a header button's availability", () => {

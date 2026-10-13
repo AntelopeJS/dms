@@ -12,10 +12,8 @@ import {
 import { createI18n } from "vue-i18n";
 import ConfirmModal from "../layers/dms-ui/app/components/confirm/ConfirmModal.vue";
 import { resolveConfirmDialog } from "../layers/dms-ui/app/build/composables/confirm/confirmDialogTexts";
-import {
-  downloadFilename,
-  secondaryTargetRunner,
-} from "../layers/dms-ui/app/build/composables/confirm/secondaryTarget";
+import { secondaryTargetRunner } from "../layers/dms-ui/app/build/composables/confirm/secondaryTarget";
+import { downloadFilename } from "../layers/dms-ui/app/build/utils/fileDownload";
 
 vi.mock("reka-ui", async () => {
   const { defineComponent: define, h: render } = await import("vue");

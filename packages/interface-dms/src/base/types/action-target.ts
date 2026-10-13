@@ -65,6 +65,28 @@ export interface SidePanelTargetOptions {
   notFound?: SidePanelNotFoundTexts;
 }
 
+/**
+ * A `download` action target: the file is fetched with the user's session and
+ * saved, the page left as it is.
+ */
+export interface DownloadActionTarget {
+  type: "download";
+  /**
+   * The file to fetch, with the user's session: takes the same `{field}` and
+   * page URL tokens (`{{params.X}}`, `{{query.X}}`) as a `page` target, a
+   * query pair whose token the page has no value for being left out.
+   * @example "/api/lang/translations/export?workspace={{query.workspace}}&locale={{query.locale}}"
+   */
+  url: string;
+  /**
+   * The saved file's name, same tokens (written as they are, not encoded).
+   * Else, or while a token is left without a value, the server's
+   * `Content-Disposition` name, else the URL's last path segment.
+   * @example "{{query.locale}}.json"
+   */
+  filename?: string;
+}
+
 export type ActionTarget =
   | {
       type: "drawer";
@@ -113,6 +135,7 @@ export type ActionTarget =
       url: string;
       newTab?: boolean;
     }
+  | DownloadActionTarget
   | {
       type: "quickAction";
       /**
@@ -190,6 +213,7 @@ export type ActionTargetSerialized =
     } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
+  | DownloadActionTarget
   | {
       type: "quickAction";
       /**

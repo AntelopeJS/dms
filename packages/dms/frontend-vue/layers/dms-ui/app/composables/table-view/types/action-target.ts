@@ -25,6 +25,18 @@ export interface SidePanelTargetOptions {
   notFound?: SidePanelNotFoundTexts;
 }
 
+/**
+ * Fetches a file with the user's session and saves it (backend
+ * `DownloadActionTarget`).
+ */
+export interface DownloadActionTarget {
+  type: "download";
+  /** Takes the `{field}` and `{{params.X}}` / `{{query.X}}` tokens. */
+  url: string;
+  /** Saved under; the response's `Content-Disposition` name, else the URL's. */
+  filename?: string;
+}
+
 export type ActionTarget =
   | {
       type: "drawer";
@@ -45,6 +57,7 @@ export type ActionTarget =
   | ({ type: "sidePanel"; component: ComponentInfo } & SidePanelTargetOptions)
   | { type: "page"; url: string }
   | { type: "external"; url: string; newTab?: boolean }
+  | DownloadActionTarget
   /** Runs a quick action, by its `category:id` key or bare id. */
   | { type: "quickAction"; id: string }
   | {
