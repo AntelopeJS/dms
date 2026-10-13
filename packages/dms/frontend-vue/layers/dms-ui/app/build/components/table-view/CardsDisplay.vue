@@ -113,7 +113,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
     <!-- v2 cards display: an auto-fill grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
-      v-if="props.context.loading && props.context.items.length === 0"
+      v-if="props.context.firstPageLoading"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
     />

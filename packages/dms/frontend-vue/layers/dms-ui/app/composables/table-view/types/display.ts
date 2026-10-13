@@ -214,7 +214,13 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   items: T[];
   /** Full column metadata (types, labels, accessor keys) — for field rendering. */
   columns: TableViewColumn[];
+  /** The shared query is in flight: a first read or any re-read. */
   loading: boolean;
+  /**
+   * No answer has arrived yet: draw a skeleton. A re-read keeps the rows,
+   * or the empty state, on screen; swapping either for a skeleton flashes.
+   */
+  firstPageLoading: boolean;
 
   selection: TableViewDisplaySelection;
   pagination: TableViewDisplayPagination;
