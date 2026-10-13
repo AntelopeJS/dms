@@ -3,6 +3,7 @@ import { AddFrontendModule } from "@antelopejs/interface-dms/page";
 import "./demo-module";
 import "./plain-module";
 import "./examples";
+import "./feature-index";
 import "./flow-canvas";
 import "./drawer-modal";
 import "./form";
