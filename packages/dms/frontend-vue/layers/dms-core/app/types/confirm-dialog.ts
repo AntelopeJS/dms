@@ -83,6 +83,8 @@ export interface ConfirmDialog {
   blocked?: boolean;
   /** Text the user must type to confirm. */
   confirmText?: string;
+  /** Compares the typed text with `confirmText` ignoring case. */
+  confirmTextCaseInsensitive?: boolean;
   /** Fields whose values are sent with the action's request. */
   fields?: ConfirmDialogField[];
   /** A component drawn in the dialog's body. */

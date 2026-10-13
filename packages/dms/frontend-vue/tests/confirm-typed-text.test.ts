@@ -171,6 +171,41 @@ it("flags an empty or different typed text instead of disabling confirm", async 
   expect(closed).toHaveBeenCalledWith(true);
 });
 
+it("matches the typed text ignoring case when asked", async () => {
+  const onConfirm = vi.fn(async () => undefined);
+  mount({
+    title: "Delete?",
+    confirmLabel: "Delete",
+    confirmText: "Acme Corp",
+    confirmTextCaseInsensitive: true,
+    onConfirm,
+  });
+  await flush();
+
+  await type("acme corp");
+  confirmButton().click();
+  await flush();
+  expect(typedError()).toBeUndefined();
+  expect(onConfirm).toHaveBeenCalledOnce();
+});
+
+it("keeps the case-sensitive match by default", async () => {
+  const onConfirm = vi.fn(async () => undefined);
+  mount({
+    title: "Delete?",
+    confirmLabel: "Delete",
+    confirmText: "Acme Corp",
+    onConfirm,
+  });
+  await flush();
+
+  await type("acme corp");
+  confirmButton().click();
+  await flush();
+  expect(typedError()).toBe('dms.confirm.type_mismatch {"text":"Acme Corp"}');
+  expect(onConfirm).not.toHaveBeenCalled();
+});
+
 it("runs the body check with the typed one and stays open when it fails", async () => {
   const validate = vi.fn(() => false);
   const onConfirm = vi.fn(async () => undefined);
