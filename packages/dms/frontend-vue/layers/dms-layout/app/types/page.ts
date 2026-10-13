@@ -9,6 +9,8 @@ export type MenuItemType = "label" | "link";
 export interface PageValidation {
   requiredQueryParams?: string[];
   customFunctionId?: string;
+  /** Where a page failing its validation sends the user, not-found aside. */
+  redirectTo?: string;
 }
 
 export interface MenuOptions {
