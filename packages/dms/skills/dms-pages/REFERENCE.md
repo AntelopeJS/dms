@@ -36,7 +36,8 @@ gets `navigation` (J / K, `index` / `total` in the order shown) —
 `docs/04.components/06.tables/8.row-drawers.md`.
 
 A page's `headerActions` follow its URL: a target URL takes `{{params.X}}` / `{{query.X}}`
-(`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), and an
+(`?workspace={{query.workspace}}`, a pair the page has no value for is dropped), a label's
+translation takes the page's route and query parameters (`"Download {locale}.json"`), and an
 `availability` reads `context.query`, asked again when the query changes — no need to build
 the header in Vue with `usePageHeaderActions` to carry the scope —
 `docs/07.interfaces/3.base/6.layout.md#buttons-that-follow-the-page-url`. An `availability`
