@@ -33,7 +33,7 @@ function featureRow(feature: PlaygroundFeature, index: number): FeatureRow {
     _id: String(index),
     ...feature,
     page,
-    status: GetPageLayoutBySlug(page) ? "shown" : "missing",
+    status: GetPageLayoutBySlug(feature.slug ?? page) ? "shown" : "missing",
   };
 }
 

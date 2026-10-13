@@ -25,6 +25,12 @@ export interface PlaygroundFeature {
    * query or a hash leading to the right spot (`/table-view/x?tab=open`).
    */
   demo: string;
+  /**
+   * Slug the demo page registered, with its route parameters
+   * (`/projects/:projectId`), when `demo` is a concrete URL of such a page:
+   * the index checks this one instead.
+   */
+  slug?: string;
   /** DMS release that added it, when it is recent enough to be worth naming. */
   since?: string;
 }

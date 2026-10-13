@@ -48,6 +48,8 @@ const PAGES = {
   gateBypass: `${ROOT}/table-view-gate-bypass`,
 };
 
+const BY_STATUS_SLUG = `${ROOT}/table-view-tasks-by-status/:status`;
+
 function feature(
   name: string,
   api: string,
@@ -314,11 +316,14 @@ const FILTERS_TABS_VIEWS: PlaygroundFeature[] = [
     `${PAGES.queryFilters}?minPrice=500`,
     VISIBLE_QUERY_FILTERS,
   ),
-  feature(
-    "Filter from a route parameter of the page",
-    "TableView({ routeParamFilters: { status: { field } } })",
-    PAGES.byStatus,
-  ),
+  {
+    ...feature(
+      "Filter from a route parameter of the page",
+      "TableView({ routeParamFilters: { status: { field } } })",
+      PAGES.byStatus,
+    ),
+    slug: BY_STATUS_SLUG,
+  },
 ];
 
 const EMPTY_STATES_AND_REALTIME: PlaygroundFeature[] = [
@@ -786,12 +791,15 @@ const SOURCES: PlaygroundFeature[] = [
     PAGES.sources,
     SOURCE_TOKENS,
   ),
-  feature(
-    "Source URL naming a route parameter",
-    "fetchUrl: ...?exclude={{params.status}}",
-    PAGES.byStatus,
-    SOURCE_TOKENS,
-  ),
+  {
+    ...feature(
+      "Source URL naming a route parameter",
+      "fetchUrl: ...?exclude={{params.status}}",
+      PAGES.byStatus,
+      SOURCE_TOKENS,
+    ),
+    slug: BY_STATUS_SLUG,
+  },
   feature(
     "Source searching, sorting and paging on the server",
     "fromSource({ capabilities: { search, sort, paginate } })",
