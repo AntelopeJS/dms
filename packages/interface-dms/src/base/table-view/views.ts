@@ -26,7 +26,8 @@ const withLeadingSlash = (path: string): string =>
  * The dashboard path of a page opening one of its table views on a view or a
  * tab (`/workspaces?content.view=past-due`), for a StatGroup item, a KPI card
  * or a notification. `tableId` is the key the table view is mounted under in
- * the page (`page.SetComponent("content", TableView(...))`).
+ * the page (`page.SetComponent("content", TableView(...))`). Followed from
+ * the page already shown, a link naming another tab switches it in place.
  * @throws When `page` is no page controller.
  */
 export function tableViewLink(

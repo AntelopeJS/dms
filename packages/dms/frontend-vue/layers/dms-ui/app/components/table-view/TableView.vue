@@ -151,7 +151,10 @@ import {
   groupedSorting,
   isGroupableColumn,
 } from "../../build/composables/table-view/utils/groupedRows";
-import { readTableUrlKey } from "../../build/composables/table-view/utils/views";
+import {
+  readTableUrlTab,
+  useTableUrlTab,
+} from "../../build/composables/table-view/useTableUrlTab";
 import TableViews, {
   type TableViewItem,
 } from "../../build/components/table/Views.vue";
@@ -606,11 +609,10 @@ const ALL_TAB_ID = "all";
 
 const { t, te } = useI18n();
 
-const TAB_URL_KEY = "tab";
-const urlTab = readTableUrlKey(useDmsRoute().query, urlScope, TAB_URL_KEY);
 // A tab named by the URL wins over the one kept from the last visit.
 const activeTabId = ref<string>(
-  urlTab.value ?? tablePreferences.get<string>("activeTab", ALL_TAB_ID),
+  readTableUrlTab(route.query, urlScope) ??
+    tablePreferences.get<string>("activeTab", ALL_TAB_ID),
 );
 
 interface ResolvedTab {
@@ -659,6 +661,14 @@ const resolvedTabs = computed<ResolvedTab[]>(() => {
 const activeTabFilters = computed<TableFilter[]>(() => {
   const tab = resolvedTabs.value.find((t) => t.id === activeTabId.value);
   return tab?.filters || [];
+});
+
+useTableUrlTab({
+  route,
+  urlScope,
+  activeTabId,
+  isOpenable: (tabId) =>
+    resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId),
 });
 
 watch(resolvedTabs, (next) => {
