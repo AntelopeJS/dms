@@ -68,9 +68,7 @@ const pauseReason = computed(() => {
 });
 
 const lastUpdate = computed(() =>
-  live.lastUpdatedAt.value
-    ? formatRelativeTime(live.lastUpdatedAt.value)
-    : "—",
+  live.lastUpdatedAt.value ? formatRelativeTime(live.lastUpdatedAt.value) : "—",
 );
 </script>
 
