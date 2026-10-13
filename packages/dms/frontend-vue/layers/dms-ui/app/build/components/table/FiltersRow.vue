@@ -9,6 +9,7 @@ import type {
   TableColumn,
   TableFilter,
   TableSharedData,
+  TableUrlFilter,
 } from "./Table.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
@@ -126,6 +127,17 @@ const deleteFilter = (index: number) => {
   tableSharedData?.value?.deleteFilter(index);
 };
 
+const urlFilters = computed(() => tableSharedData?.value?.urlFilters ?? []);
+
+const urlFilterLabel = (filter: TableUrlFilter): string =>
+  (filter.label && processI18n(filter.label)) ||
+  getColumn(filter.accessorKey)?.label ||
+  filter.param;
+
+const removeUrlFilter = (filter: TableUrlFilter) => {
+  tableSharedData?.value?.emits("removeUrlFilter", filter.param);
+};
+
 // The "clear all" action: offered while something narrows the rows, named
 // after what it clears (filters, search or both).
 const clearable = computed(
@@ -171,9 +183,9 @@ const displayValue = (filter: TableFilter): string => {
 };
 
 // The whole filter in words, for a chip shrunk to an ellipsis.
-const chipTitle = (filter: TableFilter): string =>
+const chipTitle = (filter: TableFilter, label?: string): string =>
   [
-    getColumn(filter.accessorKey)?.label,
+    label ?? getColumn(filter.accessorKey)?.label,
     t(`dms.table.compare_mode.${filter.mode}`),
     displayValue(filter),
   ]
@@ -184,6 +196,31 @@ const chipTitle = (filter: TableFilter): string =>
 <template>
   <div :class="ui.root()">
     <ul :class="ui.list()">
+      <li
+        v-for="filter in urlFilters"
+        :key="`url-${filter.param}`"
+        :class="ui.item()"
+        data-dms-url-filter
+      >
+        <span
+          :class="ui.chip()"
+          :title="chipTitle(filter, urlFilterLabel(filter))"
+        >
+          <span :class="ui.label()">{{ urlFilterLabel(filter) }}</span>
+          <span :class="ui.mode()">
+            {{ t(`dms.table.compare_mode.${filter.mode}`) }}
+          </span>
+          <span :class="ui.value()">{{ displayValue(filter) }}</span>
+        </span>
+        <button
+          type="button"
+          :class="ui.remove()"
+          :aria-label="t('dms.button.delete')"
+          @click="removeUrlFilter(filter)"
+        >
+          <UIcon :name="appConfig.ui.icons.close" />
+        </button>
+      </li>
       <li
         v-for="(filter, index) in filters"
         :key="`${filter.accessorKey}-${index}`"

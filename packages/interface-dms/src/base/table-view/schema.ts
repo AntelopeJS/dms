@@ -209,7 +209,12 @@ const formContainerSchema = z.discriminatedUnion("type", [
 const paramFilterSchema = z.object({
   field: ui(z.string(), { widget: "field", fieldAspect: "filterable" }),
   mode: z.string().optional(),
-}) satisfies BlockOptionsFor<QueryParamFilter & RouteParamFilter>;
+}) satisfies BlockOptionsFor<RouteParamFilter>;
+
+const queryParamFilterSchema = paramFilterSchema.extend({
+  visible: z.boolean().optional(),
+  label: z.string().optional(),
+}) satisfies BlockOptionsFor<QueryParamFilter>;
 
 const kanbanSchema = z.object({
   groupByField: ui(
@@ -443,7 +448,7 @@ export const TableViewSchema = z.object({
       .describe("Rows listed first whatever the sort: a rule on their fields."),
     { label: "Pinned rows", group: "data", widget: "json" },
   ),
-  queryParamFilters: ui(z.record(paramFilterSchema).optional(), {
+  queryParamFilters: ui(z.record(queryParamFilterSchema).optional(), {
     label: "Query parameter filters",
     group: "advanced",
     widget: "json",

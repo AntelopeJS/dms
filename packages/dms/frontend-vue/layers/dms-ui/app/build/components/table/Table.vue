@@ -247,6 +247,11 @@ export interface TableProps<T> {
    * says no row matches rather than that there are none yet.
    */
   hiddenFiltersApply?: boolean;
+  /**
+   * The page URL's filters declared `visible`: drawn as chips of the filters
+   * row, each removable (`removeUrlFilter`).
+   */
+  urlFilters?: TableUrlFilter[];
 
   data?: T[] | null;
   columns?: TableColumn<T>[];
@@ -307,6 +312,7 @@ export interface TableEmits<T> {
   (e: "details" | "edit", item: T): void;
   (e: "delete" | "archive" | "restore" | "export", itemIds: string[]): void;
   (e: "duplicate", itemId: string): void;
+  (e: "removeUrlFilter", param: string): void;
 }
 
 export interface TableFilter {
@@ -315,6 +321,14 @@ export interface TableFilter {
   mode: string;
   pinned?: boolean;
   initialValue?: unknown | unknown[];
+}
+
+/** A filter the page URL applies and shows (see `TableProps.urlFilters`). */
+export interface TableUrlFilter extends TableFilter {
+  /** The query parameter carrying it, removed with the chip. */
+  param: string;
+  /** The chip's name, before the column's label. */
+  label?: string;
 }
 
 export interface TableSharedData<T> {
@@ -343,6 +357,8 @@ export interface TableSharedData<T> {
   resetSorting: () => void;
   hasCustomColumns: ComputedRef<boolean>;
   deleteFilter: (index: number) => void;
+  /** The URL filters shown as chips (see `TableProps.urlFilters`). */
+  urlFilters: TableUrlFilter[];
   /**
    * Clears everything that narrows the rows — filter chips (quick filters
    * included) and the toolbar search — and goes back to the first page.
@@ -1183,6 +1199,7 @@ watchEffect(() => {
     resetSorting,
     hasCustomColumns,
     deleteFilter,
+    urlFilters: props.urlFilters ?? [],
     resetFilters,
     clearSearch,
     clearFilters,
@@ -1348,7 +1365,7 @@ defineShortcuts({
 
       <TableFiltersRow
         v-if="
-          filtersRowOpen &&
+          (filtersRowOpen || !!urlFilters?.length) &&
           resolvedCapabilities.filters &&
           resolvedChrome.filters
         "
