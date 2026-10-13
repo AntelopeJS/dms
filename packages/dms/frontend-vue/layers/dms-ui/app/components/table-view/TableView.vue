@@ -267,6 +267,11 @@ const kanbanGroupByOptions = kanbanEligibleColumns.map((column) => ({
 const { displays: registeredDisplays, getById } = useTableViewDisplays();
 
 const offeredDisplayIds = new Set(resolvedDisplays.map((d) => d.id));
+// Where a stale or unavailable choice lands: the grid, unless the table view
+// drops it, then its default display.
+const fallbackDisplayId = offeredDisplayIds.has(TABLE_DISPLAY_ID)
+  ? TABLE_DISPLAY_ID
+  : defaultDisplay;
 const resolvedDisplay = (id: string): TableViewDisplayConfig | undefined =>
   resolvedDisplays.find((d) => d.id === id);
 const optionsForDisplay = (id: string): Record<string, unknown> | undefined =>
@@ -293,7 +298,7 @@ const activeDisplayId = ref<string>(
     ? defaultDisplay
     : offeredDisplayIds.has(persistedDisplay)
       ? persistedDisplay
-      : TABLE_DISPLAY_ID,
+      : fallbackDisplayId,
 );
 
 /** A display the backend config renders by itself, with no client plugin. */
@@ -587,7 +592,7 @@ const {
     ),
     display: offeredDisplayIds.has(defaultDisplay)
       ? defaultDisplay
-      : TABLE_DISPLAY_ID,
+      : fallbackDisplayId,
     density: props.density ?? DEFAULT_DENSITY,
     displays: offeredDisplayIds,
   },
@@ -2071,14 +2076,14 @@ onMounted(() => {
   checkUrlParameter();
   void loadRelationQuickFilters();
   void refreshLinkTabCounts();
-  // The registry is client-only; once hydrated, degrade to the table display if
-  // the active id is no longer available (e.g. kanban with no eligible column).
+  // The registry is client-only; once hydrated, degrade to the fallback display
+  // if the active id is no longer available (e.g. kanban with no eligible column).
   if (
-    activeDisplayId.value !== TABLE_DISPLAY_ID &&
+    activeDisplayId.value !== fallbackDisplayId &&
     !isConfigRenderedDisplay(activeDisplayId.value) &&
     !availableDisplays.value.some((d) => d.id === activeDisplayId.value)
   ) {
-    activeDisplayId.value = TABLE_DISPLAY_ID;
+    activeDisplayId.value = fallbackDisplayId;
   }
 });
 </script>

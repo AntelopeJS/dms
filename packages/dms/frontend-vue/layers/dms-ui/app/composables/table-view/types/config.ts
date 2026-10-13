@@ -296,6 +296,8 @@ export interface TableViewConfig<T extends Data>
   tabs?: TableViewTab[];
   /** Displays this table view offers, beyond the implicit built-in `table`. */
   displays?: TableViewDisplayConfig[];
+  /** Whether the built-in `table` display is offered. Defaults to `true`. */
+  tableDisplay?: boolean;
   /** Display shown by default when the user has no saved preference. Defaults to "table". */
   defaultDisplay?: string;
   /** Expandable rows: caret column + detail band. */
