@@ -10,7 +10,8 @@ export class PageGridSpacer extends PageController("grid-spacer", {
   icon: "i-ph-columns",
   category: pageCategory,
   order: 30,
-  description: "Grid layout demonstrating Spacer and colSpan features",
+  description:
+    "Grid rows mixing a Spacer cell and colSpan: empty cells push blocks aside, wide cells span several columns.",
 }) {
   static grid = Grid({ gap: "1rem" })
     .child(

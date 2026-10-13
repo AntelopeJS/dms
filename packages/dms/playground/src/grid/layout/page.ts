@@ -23,7 +23,8 @@ export class PageLayoutGridSimple extends PageController("layout-grid-simple", {
   icon: "i-ph-grid-four",
   category: pageCategory,
   order: 0,
-  description: "Grid layout with a file list on the left and Tabs on the right",
+  description:
+    "A two-column Grid: a file list on the left and a Tab set on the right. Switch tabs: the left column stays put.",
 }) {
   static grid = Grid({ gap: "1rem" }).child(
     "row1",

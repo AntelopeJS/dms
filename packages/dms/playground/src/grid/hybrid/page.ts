@@ -9,7 +9,8 @@ export class PageLayoutGridHybrid extends PageController("layout-grid-hybrid", {
   icon: "i-ph-layout",
   category: pageCategory,
   order: 20,
-  description: "Grid with element on left and nested Grid components on right",
+  description:
+    "A Grid with a block on the left and a nested Grid on the right: grids compose inside grid cells.",
 }) {
   static mainGrid = Grid({ gap: "1rem" }).child(
     "row1",
