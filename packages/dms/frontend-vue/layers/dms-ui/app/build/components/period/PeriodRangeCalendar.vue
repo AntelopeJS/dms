@@ -20,7 +20,10 @@ import {
   RangeCalendarRoot,
   type DateRange,
 } from "reka-ui";
-import type { CalendarRange } from "../../composables/period/periodDisplay";
+import {
+  type CalendarRange,
+  isBeyondMaxDays,
+} from "../../composables/period/periodDisplay";
 
 // Two-month range calendar of the period selector (design .cal): a
 // continuous accent strip for the selected range with filled endpoints, and
@@ -32,6 +35,11 @@ interface Props {
   weekStartsOn?: number;
   numberOfMonths?: number;
   readonly?: boolean;
+  /**
+   * The longest range, in days, that can be picked: once a start day is
+   * picked, the days that would exceed it are disabled.
+   */
+  maxDays?: number;
 }
 
 type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -105,6 +113,13 @@ function onUpdate(value: DateRange | null) {
   }
   pendingStart.value = start ?? null;
   emit("pending", pendingStart.value);
+}
+
+function isDateDisabled(date: DateValue): boolean {
+  const picked = pendingStart.value;
+  return (
+    !!picked && isBeyondMaxDays(date as CalendarDate, picked, props.maxDays)
+  );
 }
 
 function onPlaceholder(value: DateValue) {
@@ -210,6 +225,7 @@ const weekStart = computed(() => props.weekStartsOn as WeekStart);
     :number-of-months="numberOfMonths"
     :max-value="todayDate"
     :readonly="readonly"
+    :is-date-disabled="isDateDisabled"
     weekday-format="short"
     prevent-deselect
     class="flex gap-6"

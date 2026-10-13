@@ -16,7 +16,12 @@ import {
   type PeriodRange,
   type PeriodState,
 } from "./types";
-import { isRelativePreset, resolvePresetRange } from "./presetResolvers";
+import {
+  isCalendarPreset,
+  isRelativePreset,
+  msUntilNextMidnight,
+  resolvePresetRange,
+} from "./presetResolvers";
 import { resolveComparisonRange } from "./compareResolvers";
 
 export interface UsePeriodOptions {
@@ -25,11 +30,11 @@ export interface UsePeriodOptions {
   presets?: PeriodPreset[];
   comparisons?: PeriodComparison[];
   /**
-   * While it answers true, a relative preset stops sliding: the period keeps
-   * the range it had, so nothing reading it refetches on the clock. The
-   * minutes it skipped are caught up once, when it answers false again. A
-   * period the user changes still applies at once. The selector holds it
-   * while its live page is paused.
+   * While it answers true, the period stops following the clock: a relative
+   * preset stops sliding and a calendar preset does not move at midnight, so
+   * nothing reading it refetches on the clock. What it skipped is caught up
+   * once, when it answers false again. A period the user changes still
+   * applies at once. The selector holds it while its live page is paused.
    */
   holdClock?: () => boolean;
 }
@@ -56,30 +61,46 @@ const RELATIVE_REFRESH_INTERVAL_MS = 60000;
 
 const NEVER_HELD = () => false;
 
-function useRelativePresetClock(
+type ClockKind = "relative" | "calendar" | "still";
+
+function clockKind(preset: PeriodPreset): ClockKind {
+  if (isRelativePreset(preset)) return "relative";
+  return isCalendarPreset(preset) ? "calendar" : "still";
+}
+
+const CLOCK_DELAYS: Record<Exclude<ClockKind, "still">, () => number> = {
+  relative: () => RELATIVE_REFRESH_INTERVAL_MS,
+  calendar: () => msUntilNextMidnight(new Date()),
+};
+
+/**
+ * Ticks whenever the active preset's range moves on its own: every minute
+ * for a relative preset, at each local midnight for a calendar one. Each
+ * timeout is armed from the time it is set, so a machine waking from sleep
+ * resolves once, then lines up on the next boundary again.
+ */
+function usePresetClock(
   preset: Ref<PeriodPreset>,
   isHeld: () => boolean = NEVER_HELD,
 ): Ref<number> {
   const tick = ref(0);
   if (typeof window === "undefined") return tick;
-  let timer: ReturnType<typeof setInterval> | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   let hasSkippedTick = false;
   const stop = () => {
-    if (timer !== null) clearInterval(timer);
+    if (timer !== null) clearTimeout(timer);
     timer = null;
   };
-  watch(
-    () => isRelativePreset(preset.value),
-    (isRelative) => {
-      stop();
-      if (!isRelative) return;
-      timer = setInterval(() => {
-        if (isHeld()) hasSkippedTick = true;
-        else tick.value += 1;
-      }, RELATIVE_REFRESH_INTERVAL_MS);
-    },
-    { immediate: true },
-  );
+  const arm = (kind: ClockKind) => {
+    stop();
+    if (kind === "still") return;
+    timer = setTimeout(() => {
+      if (isHeld()) hasSkippedTick = true;
+      else tick.value += 1;
+      arm(kind);
+    }, CLOCK_DELAYS[kind]());
+  };
+  watch(() => clockKind(preset.value), arm, { immediate: true });
   watch(isHeld, (held) => {
     if (held || !hasSkippedTick) return;
     hasSkippedTick = false;
@@ -155,11 +176,14 @@ function makeSetters(refs: PeriodRefs) {
  * Reactive period state machine behind `PeriodSelector` — presets,
  * comparisons and custom ranges resolved into a publishable `state`.
  *
- * Call it inside a component `setup` or an `effectScope`: the interval that
- * keeps relative presets (`last-hour`, `last-24h`) sliding is disposed with
- * that scope, and leaks if none exists. Under `KeepAlive`, a deactivated
- * component keeps its scope, so a relative preset keeps ticking (one
- * re-resolution per minute) until unmount.
+ * Relative presets (`last-hour`, `last-24h`) re-resolve every minute, and
+ * calendar presets (`today`, `last-7-days`, `this-month`...) at each local
+ * midnight, so a page left open overnight moves on to the new day.
+ *
+ * Call it inside a component `setup` or an `effectScope`: the timer that
+ * keeps the presets following the clock is disposed with that scope, and
+ * leaks if none exists. Under `KeepAlive`, a deactivated component keeps its
+ * scope, so the period keeps re-resolving until unmount.
  */
 export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
   const refs: PeriodRefs = {
@@ -176,9 +200,9 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
   const comparisons = computed<PeriodComparison[]>(
     () => options.comparisons ?? DEFAULT_COMPARISONS,
   );
-  const relativeClock = useRelativePresetClock(refs.preset, options.holdClock);
+  const presetClock = usePresetClock(refs.preset, options.holdClock);
   const state = computed<PeriodState>(() => {
-    void relativeClock.value;
+    void presetClock.value;
     return buildState(refs);
   });
   const setters = makeSetters(refs);

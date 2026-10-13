@@ -132,6 +132,14 @@ export interface PeriodSelectorProps extends BaseComponentProps {
    * switching; the custom range stays in its popover calendar.
    */
   variant?: PeriodSelectorVariant;
+  /**
+   * The longest custom range, in days (both ends included), the user can
+   * pick: once a start day is picked, the calendar disables the days past
+   * it, a range typed in the date fields is cut to it, and the popover says
+   * so. Presets are not limited, nor is a range a link puts in the URL: the
+   * endpoint still has to enforce its own limit.
+   */
+  maxDays?: number;
 }
 
 const PERIOD_SELECTOR_COMPONENT_NAME = "dms-period-selector";
@@ -274,6 +282,15 @@ export const PeriodSelectorSchema = z.object({
       .optional()
       .describe("`segmented` shows the ranges as inline pills."),
     { label: "Variant", group: "appearance", widget: "segmented" },
+  ),
+  maxDays: ui(
+    z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("The longest custom range the user can pick, in days."),
+    { label: "Longest custom range (days)", group: "behavior" },
   ),
 }) satisfies BlockOptionsFor<PeriodSelectorProps>;
 

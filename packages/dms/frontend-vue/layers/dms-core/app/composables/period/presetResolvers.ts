@@ -115,15 +115,33 @@ const PRESET_RANGE_RESOLVERS: Record<
   all: () => null,
 };
 
+const HOURS_PER_DAY = 24;
 const RELATIVE_PRESETS = new Set<PeriodPreset>(["last-hour", "last-24h"]);
+const UNBOUNDED_PRESETS = new Set<PeriodPreset>(["all", "custom"]);
 
 /**
  * Relative presets resolve against the instant they are read: a live
  * dashboard must re-resolve them as time passes, where calendar presets
- * stay valid until the preset itself changes.
+ * stay valid until the next local midnight.
  */
 export function isRelativePreset(preset: PeriodPreset): boolean {
   return RELATIVE_PRESETS.has(preset);
+}
+
+/**
+ * Calendar presets (`today`, `last-7-days`, `this-month`...) snap to day
+ * boundaries: they hold for the rest of the day, then move at the next local
+ * midnight. `custom` and `all` never move on their own.
+ */
+export function isCalendarPreset(preset: PeriodPreset): boolean {
+  return !RELATIVE_PRESETS.has(preset) && !UNBOUNDED_PRESETS.has(preset);
+}
+
+/** The time left until the next local midnight, from `now`. */
+export function msUntilNextMidnight(now: Date): number {
+  const midnight = new Date(now);
+  midnight.setHours(HOURS_PER_DAY, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
 }
 
 /**

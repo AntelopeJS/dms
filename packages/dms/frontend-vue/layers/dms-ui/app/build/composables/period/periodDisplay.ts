@@ -53,6 +53,55 @@ export function calendarToRange(range: CalendarRange): PeriodRange {
   };
 }
 
+/** Which bound of a range stays put when the range has to shrink. */
+export type CalendarRangeAnchor = "start" | "end";
+
+const RANGE_SHRINKERS: Record<
+  CalendarRangeAnchor,
+  (range: CalendarRange, span: number) => CalendarRange
+> = {
+  start: (range, span) => ({
+    start: range.start,
+    end: range.start.add({ days: span }),
+  }),
+  end: (range, span) => ({
+    start: range.end.subtract({ days: span }),
+    end: range.end,
+  }),
+};
+
+/** The number of days a range covers, both ends included. */
+export function calendarRangeDays(range: CalendarRange): number {
+  return range.end.compare(range.start) + 1;
+}
+
+/**
+ * Shrinks a range to at most `maxDays` days, keeping its `anchor` bound and
+ * moving the other one. Without a limit, or within it, the range is returned
+ * as is.
+ */
+export function limitCalendarRange(
+  range: CalendarRange,
+  maxDays: number | undefined,
+  anchor: CalendarRangeAnchor,
+): CalendarRange {
+  if (!maxDays || calendarRangeDays(range) <= maxDays) return range;
+  return RANGE_SHRINKERS[anchor](range, maxDays - 1);
+}
+
+/**
+ * Whether a range starting (or ending) on `pickedDay` and reaching `date`
+ * would cover more than `maxDays` days.
+ */
+export function isBeyondMaxDays(
+  date: CalendarDate,
+  pickedDay: CalendarDate,
+  maxDays: number | undefined,
+): boolean {
+  if (!maxDays) return false;
+  return Math.abs(date.compare(pickedDay)) >= maxDays;
+}
+
 function isStartOfDay(date: Date): boolean {
   return (
     date.getHours() === 0 &&
