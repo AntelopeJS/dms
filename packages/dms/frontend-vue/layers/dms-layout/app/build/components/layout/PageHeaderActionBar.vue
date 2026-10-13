@@ -117,13 +117,20 @@ const defaultVariant = (
 const orderOf = (action: LayoutHeaderAction): number =>
   action.order ?? DEFAULT_PAGE_HEADER_ACTIONS_ORDER;
 
+// A served label's translation reads the page query as its parameters:
+// `"Download {locale}.json"` names the language of `?locale=`.
+function labelParams(): Record<string, unknown> {
+  const { routeParams, routeQuery } = pageUrlValues.value;
+  return { ...routeParams, ...routeQuery };
+}
+
 function baseButton(action: LayoutHeaderAction): ButtonProps {
   const color = action.color ?? "neutral";
   return {
     color,
     variant: action.variant ?? defaultVariant(color),
     icon: action.icon,
-    label: action.label ? processI18n(action.label) : undefined,
+    label: action.label ? processI18n(action.label, labelParams()) : undefined,
     disabled: action.disabled,
   };
 }

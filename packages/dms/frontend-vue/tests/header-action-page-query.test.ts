@@ -73,7 +73,10 @@ beforeEach(() => {
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("useTranslation", () => ({
-    processI18n: (value: string) => value,
+    processI18n: (value: string, params?: Record<string, unknown>) =>
+      value.replace(/\{(\w+)\}/g, (_, name: string) =>
+        String(params?.[name] ?? `{${name}}`),
+      ),
   }));
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useDmsRoute", () => route);
@@ -267,6 +270,24 @@ describe("a header button's target URL", () => {
         },
       }),
     );
+  });
+});
+
+describe("a header button's label", () => {
+  it("reads the page's query and params as its parameters, and follows them", async () => {
+    route.query = { workspace: "web", file: "fr" };
+    await mountBar([
+      {
+        id: "download",
+        label: "Download {file}.json for {locale}",
+        target: { type: "page", url: "/x" },
+      },
+    ]);
+    expect(labels()).toEqual(["Download fr.json for de"]);
+
+    route.query = { workspace: "web", file: "it" };
+    await nextTick();
+    expect(labels()).toEqual(["Download it.json for de"]);
   });
 });
 
