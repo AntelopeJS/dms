@@ -257,6 +257,12 @@ export interface TableProps<T> {
   columns?: TableColumn<T>[];
   loading?: boolean;
   /**
+   * No answer has arrived yet. Without it, a load with no row listed counts
+   * as the first one, which also draws the skeleton over a re-read of an
+   * empty list.
+   */
+  firstPageLoading?: boolean;
+  /**
    * Message (i18n key) of a failed data fetch; switches the empty-table panel
    * to its error state so a refused query never reads as "no data".
    */
@@ -713,7 +719,11 @@ const DEFAULT_CAPABILITIES = resolveDisplayCapabilities({
   columnManagement: true,
 });
 
-const props = defineProps<TableProps<T>>();
+// Undefined, not the `false` an absent boolean prop casts to: the table then
+// judges the first load by itself.
+const props = withDefaults(defineProps<TableProps<T>>(), {
+  firstPageLoading: undefined,
+});
 const emits = defineEmits<TableEmits<T>>();
 
 const appConfig = useDmsAppConfig() as DmsAppConfig & {
@@ -827,7 +837,7 @@ const paginationState = defineModel<PaginationState>("pagination", {
 // The first page is on its way: skeleton rows (and placeholders for the
 // counts) hold the list's place instead of its empty state.
 const isFirstPageLoading = computed(
-  () => !!props.loading && !props.data?.length,
+  () => props.firstPageLoading ?? (!!props.loading && !props.data?.length),
 );
 const skeletonRowCount = computed(() =>
   Math.min(
@@ -1654,7 +1664,7 @@ defineShortcuts({
               </template>
               <!-- First load: skeleton rows keep the column rhythm instead of
                 flashing the empty state. -->
-              <template v-else-if="loading">
+              <template v-else-if="isFirstPageLoading">
                 <tr
                   v-for="rowIndex in skeletonRowCount"
                   :key="`skeleton-${rowIndex}`"

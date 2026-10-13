@@ -1872,6 +1872,7 @@ const displayContext = computed(
     items: shownResults.value ?? EMPTY_ITEMS,
     columns: props.columns,
     loading: isListLoading.value,
+    firstPageLoading: isFirstPageLoading.value,
     selection: { ids: selectedIds.value, ...displaySelection },
     pagination: {
       pageIndex: paginationState.value.pageIndex,
@@ -2142,6 +2143,7 @@ onMounted(() => {
     :tabs="tabsWithCount"
     :initial-column-visibility="initialVisibility"
     :loading="isListLoading"
+    :first-page-loading="isFirstPageLoading"
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
