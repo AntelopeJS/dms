@@ -1,5 +1,8 @@
 import { Logging } from "@antelopejs/interface-core/logging";
-import type { CustomButtonUnavailability } from "../../base/types/custom-button";
+import type {
+  CustomButtonHidden,
+  CustomButtonUnavailability,
+} from "../../base/types/custom-button";
 import type { ComponentFilterContext } from "../../component";
 import { OwnedRegistry } from "../../utils/internal/owned-registry";
 import type { InviteAvailabilityResolver } from "../availability";
@@ -11,7 +14,7 @@ export const inviteAvailabilityResolvers =
 async function resolveOne(
   resolver: InviteAvailabilityResolver,
   context: ComponentFilterContext,
-): Promise<CustomButtonUnavailability | undefined> {
+): Promise<CustomButtonUnavailability | CustomButtonHidden | undefined> {
   try {
     return await resolver(context);
   } catch (error) {
@@ -21,14 +24,15 @@ async function resolveOne(
 }
 
 /**
- * The reason the first refusing resolver gives, in registration order;
- * `undefined` while every resolver leaves invitations available.
+ * The answer of the first refusing resolver, in registration order (a reason,
+ * or `{ hidden: true }`); `undefined` while every resolver leaves invitations
+ * available.
  *
  * @internal
  */
 export async function ResolveInviteAvailability(
   context: ComponentFilterContext,
-): Promise<CustomButtonUnavailability | undefined> {
+): Promise<CustomButtonUnavailability | CustomButtonHidden | undefined> {
   for (const resolver of inviteAvailabilityResolvers.values()) {
     const unavailability = await resolveOne(resolver, context);
     if (unavailability) return unavailability;
