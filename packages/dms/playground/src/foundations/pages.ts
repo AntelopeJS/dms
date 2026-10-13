@@ -9,7 +9,7 @@ export class PageFoundationsLabels extends PageController(
   {
     displayName: "Icons, pills & labels",
     description:
-      "DmsIconWell (every tone × size), DmsStatusPill (tones, dots, sizes, variants, icons), DmsEyebrow, DmsSectionHeader, DmsCopyButton and DmsAutoLink",
+      "DmsIconWell, DmsStatusPill, DmsEyebrow, DmsSectionHeader, DmsCopyButton and DmsAutoLink in every tone, size and variant. Click a copy button to try it",
     icon: "i-ph-tag",
     category: foundationsCategory,
     order: 0,
@@ -28,7 +28,7 @@ export class PageFoundationsFeedback extends PageController(
   {
     displayName: "Feedback & status",
     description:
-      "DmsBanner, DmsEmptyState, DmsMeter, DmsCheckList, DmsPasswordRules (with a live input), DmsPermissionVeil and DmsStatusSummary",
+      "DmsBanner, DmsEmptyState, DmsMeter, DmsCheckList, DmsPasswordRules and DmsStatusSummary, plus the internal permission veil for review. Type a password to watch the rules tick",
     icon: "i-ph-info",
     category: foundationsCategory,
     order: 10,
@@ -47,7 +47,7 @@ export class PageFoundationsLists extends PageController(
   {
     displayName: "Lists & data",
     description:
-      "DmsListRow (unread, current, meta, trailing actions, bare, sizes), DmsActivityItem, DmsKeyValueList, DmsStatGroup and DmsMasterDetail",
+      "DmsListRow, DmsActivityItem, DmsKeyValueList, DmsStatGroup and DmsMasterDetail with their variants. Pick an entry of the master-detail to open its detail",
     icon: "i-ph-list-bullets",
     category: foundationsCategory,
     order: 20,
@@ -66,7 +66,7 @@ export class PageFoundationsSurfaces extends PageController(
   {
     displayName: "Cards & controls",
     description:
-      "DmsCard (title, count, actions, footer, selected), DmsNavCard (state, badge, readout), DmsSegmented and the settings rows: DmsFieldRow, DmsSaveStatus, DmsInstantSaveBadge, DmsSaveBar",
+      "DmsCard, DmsNavCard, DmsRecordCard, DmsSegmented, DmsSection and the settings rows (DmsFieldRow, DmsSaveStatus, DmsInstantSaveBadge, DmsSaveBar). Edit a settings field to bring up the save bar",
     icon: "i-ph-cards-three",
     category: foundationsCategory,
     order: 30,

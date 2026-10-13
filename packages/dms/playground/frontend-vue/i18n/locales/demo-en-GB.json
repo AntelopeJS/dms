@@ -143,6 +143,9 @@
         "copy": "Copy the question",
         "copied": "Question copied",
         "copyFailed": "Copy failed"
+      },
+      "prompts": {
+        "order": "Why is order #10482 still pending, and when will it ship?"
       }
     },
     "side_panel": {
@@ -182,6 +185,32 @@
       "invited": "No invitation sent | {count} invitation sent | {count} invitations sent",
       "impact_members": "Members",
       "impact_tables": "Tables"
+    },
+    "frontend": {
+      "palette": {
+        "group": "Playground",
+        "foundations": "Design system foundations",
+        "foundations_search": "pills badges tones icons labels design tokens",
+        "features": "Feature index",
+        "open_panel": "Open the demo side panel",
+        "close_panel": "Close the demo side panel"
+      },
+      "header_action": "Toggle the compact interface",
+      "widget": {
+        "label": "Added from a page"
+      },
+      "overlay": {
+        "open_panel": "Side panel",
+        "remove": "Remove this overlay"
+      },
+      "links": {
+        "footer": "Playground source",
+        "auth": "No account yet? Sign up"
+      },
+      "toolkit": {
+        "refused": "The playground refused this call on purpose.",
+        "invoice": "Invoice of {amount}, due {due}."
+      }
     }
   }
 }

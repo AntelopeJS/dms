@@ -2,6 +2,9 @@ import { SIDE_PANEL_DEMO_ID } from "../composables/useSidePanelDemo";
 
 const SIDE_PANEL_DEMO_ICON = "i-ph-sidebar-simple-light";
 const SIDE_PANEL_DEMO_ORDER = 90;
+const SIDE_PANEL_DEMO_DEFAULT_WIDTH = 400;
+const SIDE_PANEL_DEMO_MIN_WIDTH = 320;
+const SIDE_PANEL_DEMO_MAX_WIDTH = 640;
 
 /**
  * Demo of a docked side panel (see `registerSidePanel`), toggled from a header
@@ -15,6 +18,9 @@ export default defineDmsPlugin(() => {
     id: SIDE_PANEL_DEMO_ID,
     component: "SidePanelDemo",
     ariaLabel: "$demo.side_panel.title",
+    defaultWidth: SIDE_PANEL_DEMO_DEFAULT_WIDTH,
+    minWidth: SIDE_PANEL_DEMO_MIN_WIDTH,
+    maxWidth: SIDE_PANEL_DEMO_MAX_WIDTH,
   });
 
   registerHeaderAction({

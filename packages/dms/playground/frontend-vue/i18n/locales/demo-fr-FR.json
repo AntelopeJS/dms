@@ -143,6 +143,9 @@
         "copy": "Copier la question",
         "copied": "Question copiée",
         "copyFailed": "La copie a échoué"
+      },
+      "prompts": {
+        "order": "Pourquoi la commande #10482 est-elle toujours en attente, et quand partira-t-elle ?"
       }
     },
     "side_panel": {
@@ -182,6 +185,32 @@
       "invited": "Aucune invitation envoyée | {count} invitation envoyée | {count} invitations envoyées",
       "impact_members": "Membres",
       "impact_tables": "Tables"
+    },
+    "frontend": {
+      "palette": {
+        "group": "Playground",
+        "foundations": "Fondations du design system",
+        "foundations_search": "pastilles badges tons icônes libellés design tokens",
+        "features": "Index des fonctionnalités",
+        "open_panel": "Ouvrir le panneau latéral de démo",
+        "close_panel": "Fermer le panneau latéral de démo"
+      },
+      "header_action": "Basculer l'interface compacte",
+      "widget": {
+        "label": "Ajouté depuis une page"
+      },
+      "overlay": {
+        "open_panel": "Panneau latéral",
+        "remove": "Retirer cette surcouche"
+      },
+      "links": {
+        "footer": "Code du playground",
+        "auth": "Pas encore de compte ? Inscrivez-vous"
+      },
+      "toolkit": {
+        "refused": "Le playground a refusé cet appel exprès.",
+        "invoice": "Facture de {amount}, échéance {due}."
+      }
     }
   }
 }

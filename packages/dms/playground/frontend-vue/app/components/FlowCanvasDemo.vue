@@ -29,7 +29,10 @@ interface DemoEdge {
   animated?: boolean;
 }
 
+type GridVariant = "dots" | "lines" | false;
+
 const STAGE_NODE_TYPE = "stage";
+const GRID_VARIANTS: GridVariant[] = ["dots", "lines", false];
 const NEW_NODE_X = 320;
 const NEW_NODE_Y_STEP = 96;
 
@@ -66,6 +69,8 @@ const edges = ref<DemoEdge[]>([
 
 const canvas = ref<{ fitView: () => void } | null>(null);
 const deleteBadge = ref(true);
+const grid = ref<GridVariant>("dots");
+const hasControls = ref(true);
 let nodeCounter = 0;
 let edgeCounter = 0;
 
@@ -115,6 +120,11 @@ function onDeleteNodes(ids: string[]) {
   );
 }
 
+function cycleGrid() {
+  const next = (GRID_VARIANTS.indexOf(grid.value) + 1) % GRID_VARIANTS.length;
+  grid.value = GRID_VARIANTS[next];
+}
+
 function fitView() {
   canvas.value?.fitView();
 }
@@ -129,6 +139,8 @@ function fitView() {
       minimap
       deletable-nodes
       :delete-badge="deleteBadge"
+      :grid="grid"
+      :controls="hasControls"
       zoom-readout
       @connect="onConnect"
       @node-drag-stop="onNodeDragStop"
@@ -170,6 +182,24 @@ function fitView() {
             icon="i-ph-trash"
             :label="deleteBadge ? 'Hide delete badge' : 'Show delete badge'"
             @click="deleteBadge = !deleteBadge"
+          />
+          <div class="demo-toolbar__divider" />
+          <UButton
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            icon="i-ph-grid-four"
+            :label="`Grid: ${grid || 'none'}`"
+            @click="cycleGrid"
+          />
+          <div class="demo-toolbar__divider" />
+          <UButton
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            icon="i-ph-sliders-horizontal"
+            :label="hasControls ? 'Hide controls' : 'Show controls'"
+            @click="hasControls = !hasControls"
           />
         </div>
       </template>
