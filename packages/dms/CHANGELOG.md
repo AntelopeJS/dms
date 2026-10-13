@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.7.21
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.20...v0.7.21)
+
+### 🚀 Enhancements
+
+- **table-view:** Let a row's panel, drawer or modal show another row in place ([#252](https://github.com/AntelopeJS/dms/pull/252))
+- **table-view:** Let a table view drop the built-in table display ([#255](https://github.com/AntelopeJS/dms/pull/255))
+
+### 🩹 Fixes
+
+- **table-view:** Keep an empty list on screen while it is read again ([#250](https://github.com/AntelopeJS/dms/pull/250))
+- **table-view:** Serve the row menu label to the browser ([#253](https://github.com/AntelopeJS/dms/pull/253))
+- **table-view:** Keep the tab the user opens in the URL ([#254](https://github.com/AntelopeJS/dms/pull/254))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.5.13 ([6b58111b](https://github.com/AntelopeJS/dms/commit/6b58111b))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.20
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.19...v0.7.20)
