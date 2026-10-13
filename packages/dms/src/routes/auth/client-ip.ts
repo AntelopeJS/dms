@@ -1,17 +1,10 @@
 import { isIPv4 } from "node:net";
+import type { ClientAddressSource } from "@antelopejs/interface-dms/client-ip";
 import type { AuthConfig } from "../../config";
 
 const FORWARDED_FOR_SEPARATOR = ",";
 const IPV4_MAPPED_PREFIX = "::ffff:";
 const NO_TRUSTED_PROXY = 0;
-
-/** What a request exposes about the address it came from. */
-export interface ClientAddressSource {
-  /** The TCP peer of the request: the client, or the nearest proxy */
-  socketAddress: string | undefined;
-  /** The raw `x-forwarded-for` header, possibly absent */
-  forwardedFor: string | undefined;
-}
 
 /**
  * Presents an IPv4 address the same way whether it arrived over an IPv4 or a
