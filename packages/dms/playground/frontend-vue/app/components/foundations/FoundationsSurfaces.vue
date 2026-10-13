@@ -37,6 +37,7 @@ const INBOX_ITEMS = [
   { label: "Archived", value: "archived", count: 112, disabled: true },
 ];
 const size = ref<string | number>("sm");
+const recordOpened = ref(false);
 
 // Settings rows: an instant-save switch and a form saved through the bar.
 const digest = ref(true);
@@ -392,6 +393,122 @@ const LOCALES = [
             live <DmsInstantSaveBadge :state="digestState" />
           </span>
         </div>
+      </ShowcaseDemo>
+    </ShowcaseSection>
+
+    <ShowcaseSection
+      id="record-card"
+      title="DmsRecordCard"
+      description="A record in a grid of cards (a skill, a plan, a feature): icon well and mono identity, a badge, a short description, then tags, a mono note and actions on a ruled footer."
+      :columns="3"
+    >
+      <ShowcaseDemo label="icon · subtitle · badge · tags · meta · actions">
+        <DmsRecordCard
+          icon="i-ph-robot"
+          title="invoice-reminder"
+          subtitle="@acme/skills"
+          :badge="{ label: 'Beta', tone: 'warning' }"
+          description="Sends a reminder three days before an invoice is due."
+          :tags="['billing', 'email']"
+          meta="31 uses"
+          :actions="[
+            {
+              label: 'Edit',
+              icon: 'i-ph-pencil-simple',
+              color: 'neutral',
+              variant: 'ghost',
+              size: 'xs',
+            },
+          ]"
+        />
+      </ShowcaseDemo>
+      <ShowcaseDemo label="tone='success' · interactive @open · selected">
+        <DmsRecordCard
+          icon="i-ph-check-circle"
+          tone="success"
+          title="pro-plan"
+          subtitle="€49 / month"
+          description="Click the card: it emits open."
+          :selected="recordOpened"
+          interactive
+          @open="recordOpened = !recordOpened"
+        />
+      </ShowcaseDemo>
+      <ShowcaseDemo label="muted · #aside · #default · #actions">
+        <DmsRecordCard
+          icon="i-ph-archive"
+          tone="neutral"
+          title="legacy-import"
+          subtitle="@acme/importers"
+          description="Set aside: drawn dimmed."
+          muted
+        >
+          <template #aside>
+            <USwitch :model-value="false" size="sm" aria-label="Enabled" />
+          </template>
+          <DmsMeter :value="2" :max="10" label="Runs this month" />
+          <template #actions>
+            <UButton
+              label="Restore"
+              color="neutral"
+              variant="outline"
+              size="xs"
+            />
+          </template>
+        </DmsRecordCard>
+      </ShowcaseDemo>
+    </ShowcaseSection>
+
+    <ShowcaseSection
+      id="section"
+      title="DmsSection"
+      description="A titled group of a settings page: a card by default, a danger zone with a red-tinted frame, or bare (card false). Its badge slot follows the title, its trail slot ends the head, its footer slot closes the card."
+      :columns="2"
+    >
+      <ShowcaseDemo label="title · description · #badge · #trail · #footer">
+        <DmsSection
+          title="Notifications"
+          description="What we send, and where."
+        >
+          <template #badge>
+            <DmsStatusPill tone="info" label="3 channels" size="sm" />
+          </template>
+          <template #trail>
+            <UButton label="Test" color="neutral" variant="ghost" size="xs" />
+          </template>
+          <DmsFieldRow
+            label="Weekly digest"
+            description="Every Monday at 08:00."
+          >
+            <USwitch :model-value="true" aria-label="Weekly digest" />
+          </DmsFieldRow>
+          <template #footer>
+            <span class="text-muted text-[12.5px]"
+              >Changes save instantly.</span
+            >
+          </template>
+        </DmsSection>
+      </ShowcaseDemo>
+      <ShowcaseDemo label="danger · :card='false'">
+        <DmsSection
+          title="Danger zone"
+          description="Deleting the workspace removes every record."
+          danger
+        >
+          <DmsFieldRow
+            label="Delete the workspace"
+            description="It cannot be undone."
+          >
+            <UButton label="Delete" color="error" variant="outline" size="sm" />
+          </DmsFieldRow>
+        </DmsSection>
+        <DmsSection
+          title="Bare section"
+          description="card=false: the title and the content, no frame."
+          :card="false"
+        >
+          <p class="text-muted text-[13px]">Content without a card.</p>
+        </DmsSection>
       </ShowcaseDemo>
     </ShowcaseSection>
   </div>
