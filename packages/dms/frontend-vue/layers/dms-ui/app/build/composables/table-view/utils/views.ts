@@ -184,6 +184,35 @@ export interface UrlKeyReading {
 }
 
 /**
+ * The key this table writes `key` (`tab`, `record`) under: the short one on
+ * its page's only table, else prefixed with its id (`content.tab`).
+ */
+export function tableUrlKey(scope: TableUrlScope, key: string): string {
+  return scope.isSoleTableView || !scope.tableId
+    ? key
+    : `${scope.tableId}.${key}`;
+}
+
+/**
+ * Writes (or, without a value, removes) `key` for this table in the browser's
+ * URL in place: no visit, no history entry. Returns the URL written, or
+ * `undefined` on a server render.
+ */
+export function writeTableUrlKey(
+  scope: TableUrlScope,
+  key: string,
+  value?: string,
+): URL | undefined {
+  if (typeof window === "undefined") return undefined;
+  const url = new URL(window.location.href);
+  const scopedKey = tableUrlKey(scope, key);
+  if (value) url.searchParams.set(scopedKey, value);
+  else url.searchParams.delete(scopedKey);
+  window.history.replaceState(window.history.state, "", url);
+  return url;
+}
+
+/**
  * The value the URL gives `key` (`view`, `tab`) for this table: under its
  * prefixed key (`content.view`) or, when it is its page's only table, the
  * short one. A short key on a page with several tables is ignored.
