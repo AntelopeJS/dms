@@ -3,8 +3,12 @@ import type {
   FrontendPublicEndpoint,
 } from "@antelopejs/interface-dms/page";
 
-// An absolute backend API path whose segments are literal or `*`.
-const PUBLIC_PATH = /^\/api(?:\/(?:\*|[A-Za-z0-9][A-Za-z0-9._~-]*))+$/;
+// An absolute backend API path whose first segment is literal (a `*` there
+// would open a route of every module) and whose next ones are literal or `*`.
+// Kept in step with `PUBLIC_PATH` in dms-frontend's
+// `templates/vue/server/public-endpoints.mjs`, which matches requests to it.
+const PUBLIC_PATH =
+  /^\/api\/[A-Za-z0-9][A-Za-z0-9._~-]*(?:\/(?:\*|[A-Za-z0-9][A-Za-z0-9._~-]*))*$/;
 const ALLOWED_METHODS = new Set([
   "GET",
   "HEAD",
@@ -16,7 +20,8 @@ const ALLOWED_METHODS = new Set([
 const DEFAULT_METHODS = ["POST"];
 const HEADER_NAME = /^x-[a-z0-9-]+$/;
 // Headers a reverse proxy, the frontend server or the DMS give a meaning to:
-// never taken from an anonymous caller.
+// never taken from an anonymous caller. Kept in step with dms-frontend's
+// `RESERVED_HEADER`.
 const RESERVED_HEADER =
   /^x-(?:forwarded-|real-ip$|dms-|inertia|http-method|method-override|original-|rewrite-)/;
 

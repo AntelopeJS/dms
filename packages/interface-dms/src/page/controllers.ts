@@ -408,8 +408,9 @@ export interface AddFrontendModuleOptions {
 export interface FrontendPublicEndpoint {
   /**
    * Absolute path under `/api/`; a `*` segment matches exactly one segment
-   * (`/api/mailing/events/:provider` is written `/api/mailing/events/*`). No
-   * query string, no prefix match.
+   * (`/api/mailing/events/:provider` is written `/api/mailing/events/*`). The
+   * first segment after `/api/` is literal (the module's own prefix), never
+   * `*`. No query string, no prefix match, no `.` / `..` segment.
    */
   path: string;
   /** Methods it answers: GET, HEAD, POST, PUT, PATCH or DELETE. Default `["POST"]`. */
