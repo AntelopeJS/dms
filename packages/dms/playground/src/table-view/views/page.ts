@@ -4,7 +4,7 @@ import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { demoGuide } from "../guide";
-import { jobRunDataAPI } from "./data-api";
+import { JOB_RUNS_TOPIC, jobRunDataAPI } from "./data-api";
 
 const READ_ONLY = { add: false, duplicate: false, edit: false, delete: false };
 
@@ -33,7 +33,7 @@ export class PageTableViewViews extends PageController(
     },
     {
       label: "Select runs",
-      text: 'The bulk "Re-run" runs on the selection, or on every matching run after "Select all N matching" (bulk.allMatching, resolveBulkRowIds).',
+      text: 'The bulk "Re-run" runs on the selection, or on every matching run after "Select all N matching" (bulk.allMatching, resolveBulkRowIds); the route then publishes on the table realtimeTopic, so every open screen lists the runs again.',
     },
     {
       label: "Footer",
@@ -66,6 +66,7 @@ export class PageTableViewViews extends PageController(
       },
     },
     defaultSort: { field: "startedAt", desc: true },
+    realtimeTopic: JOB_RUNS_TOPIC,
     grouped: {
       groupByField: "startedAt",
       by: "day",
