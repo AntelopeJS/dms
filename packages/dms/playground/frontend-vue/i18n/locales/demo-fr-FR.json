@@ -116,6 +116,28 @@
       "maintenance": {
         "title": "Maintenance dimanche de 2 h à 2 h 30",
         "description": "Le tableau de bord sera indisponible pendant ce temps : enregistrez votre travail avant."
+      },
+      "category": {
+        "label": "Playground",
+        "description": "Les notifications que le playground envoie pour ses démos",
+        "tag": "Démo"
+      },
+      "subject": {
+        "label": "Démos du playground",
+        "description": "Envoyées depuis System › Notifications",
+        "badge": "Nouveau"
+      },
+      "idempotent": {
+        "title": "Livrée une seule fois pour la clé {key}",
+        "description": "Renvoyez-la avec la même clé : aucune deuxième notification n'arrive."
+      },
+      "orders": {
+        "title": "aucune nouvelle commande | {count} nouvelle commande | {count} nouvelles commandes",
+        "description": "Le nombre est envoyé en paramètre et écrit dans votre langue."
+      },
+      "roles": {
+        "title": "Un message pour chaque rôle",
+        "description": "Envoyé avec toRoles aux membres qui ont l'un des rôles de l'espace."
       }
     },
     "job_runs": {
@@ -175,6 +197,40 @@
       },
       "top_list": {
         "last_visit": "Dernière visite {at}"
+      }
+    },
+    "pages": {
+      "header": {
+        "download": "Télécharger {locale}.json",
+        "archived": "L'espace archive est en lecture seule : restaurez-le pour publier",
+        "client_action": "Action du navigateur",
+        "client_action_toast": "Exécutée dans le navigateur, sans requête",
+        "client_action_title": "Un bouton d'en-tête ajouté depuis le navigateur",
+        "client_action_description": "Ce composant appelle usePageHeaderActions avec l'ordre 20 : son bouton se place entre Télécharger (10) et Publish (30)."
+      },
+      "banners": {
+        "info": "La bannière texte du playground : fermez-la, elle reste fermée pour cette session du navigateur.",
+        "open": "Ouvrir la démo des bannières",
+        "past_due": "Votre paiement de {amount} a échoué. Nouvel essai le {date}.",
+        "pay": "Mettre à jour le moyen de paiement",
+        "suspended": "Cet espace est suspendu, ou la bannière composant est activée.",
+        "suspended_link": "Ouvrir Tenancy"
+      },
+      "hooks": {
+        "seats_full": "Plus de place libre : libérez-en une ou changez d'offre pour inviter quelqu'un"
+      },
+      "realtime": {
+        "browser_title": "Reçu par ce navigateur sur {topic}",
+        "browser_empty": "Rien pour l'instant : cliquez sur Ping dans l'en-tête."
+      },
+      "quick_actions": {
+        "ping_toast": "L'événement de l'action rapide a atteint un écouteur",
+        "ping_description": "Contenu : {payload}"
+      },
+      "setup": {
+        "mounted": "Fonction de configuration de page montée",
+        "mounted_description": "{page} : elle reçoit vos {count} permission(s) et écoute le formulaire.",
+        "field_change": "Un champ a changé : la fonction de configuration de page l'a entendu"
       }
     }
   }
