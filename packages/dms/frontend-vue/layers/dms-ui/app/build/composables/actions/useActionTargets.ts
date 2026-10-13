@@ -25,10 +25,12 @@ import {
   type RowNavigation,
   type RowNavigationSource,
   rowNavigation,
+  type ShowRow,
 } from "./rowNavigation";
 import {
   clearWrittenRecord,
   isDeepLinkAction,
+  resolveDeepLinkedRow,
   writeRecordId,
   type WrittenRecord,
 } from "../table-view/utils/recordLink";
@@ -37,6 +39,7 @@ import {
   closeRowSidePanelOf,
   openRowSidePanel,
   rowSidePanelOwnerKey,
+  useRowSidePanelContent,
 } from "#dms-layout/app/build/composables/layout/rowSidePanel";
 import type { TableUrlScope } from "../table-view/utils/views";
 import { useActionConfirm } from "../confirm/useActionConfirm";
@@ -144,6 +147,18 @@ interface SidePanelTargetRun extends TargetRunExtras {
   /** Id of a row the link names but the route answered 404 for. */
   missingId?: string;
 }
+
+/**
+ * `show`, run only while the row side panel still shows `session`: a row read
+ * after the panel closed, or moved to another run, leaves it alone.
+ */
+function whileShown<V>(session: symbol, show: (value: V) => void) {
+  return (value: V): void => {
+    if (useRowSidePanelContent().value?.session === session) show(value);
+  };
+}
+
+const NO_ROW_ROUTE = async (): Promise<undefined> => undefined;
 
 const NOT_FOUND_TITLE_KEY = "side_panel.not_found.title";
 const NOT_FOUND_DESCRIPTION_KEY = "side_panel.not_found.description";
@@ -339,6 +354,24 @@ export function useActionTargets(config: ActionTargetsConfig) {
       config.onRecordShown?.(id);
     };
   };
+  // `showRow` given an id: the listed row, else the one the table's route
+  // reads. A row its route answered 404 for goes to `showMissing` when the
+  // container has a state for it; any other row not found rejects.
+  const rowShower =
+    (show: (row: Data) => void, showMissing?: (id: string) => void): ShowRow =>
+    async (rowOrId) => {
+      if (typeof rowOrId !== "string") return show(rowOrId);
+      const source = config.rowNavigation;
+      const found = await resolveDeepLinkedRow(rowOrId, {
+        listed: source?.rows(),
+        idOf: rowIdOf,
+        getRow: source?.getRow ?? NO_ROW_ROUTE,
+      });
+      if (found.row) return show(found.row);
+      if (found.isMissing && showMissing) return showMissing(rowOrId);
+      throw new Error(`The row "${rowOrId}" could not be read`);
+    };
+
   const rowRecorder = (deepLink?: boolean) => {
     const recordId = recordRecorder(deepLink);
     return (row?: Data): void => recordId(rowIdOf(row));
@@ -382,6 +415,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
         componentId: config.componentId,
         containerId: run.containerId,
         selection: run.selection,
+        showRow: rowShower(
+          whileShown(session, showRow),
+          whileShown(session, showMissing),
+        ),
         onSuccessCallback: () => {
           closeRowSidePanel(session);
           config.refreshCallback?.();
@@ -389,7 +426,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       },
       onClose: () => recordId(undefined),
     };
-    const showRow = (row?: Data) => {
+    function showRow(row?: Data) {
       openRowSidePanel({
         ...panel,
         rowTitle: rowTitleOf(run.target, row),
@@ -399,10 +436,13 @@ export function useActionTargets(config: ActionTargetsConfig) {
         showRow,
       });
       recordId(rowIdOf(row));
-    };
-    if (!run.missingId) return showRow(run.rowData);
-    openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
-    recordId(run.missingId);
+    }
+    function showMissing(id: string) {
+      openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+      recordId(id);
+    }
+    if (run.missingId) return showMissing(run.missingId);
+    showRow(run.rowData);
   };
 
   // A container opened on a listed row steps through the rows shown (its
@@ -425,6 +465,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         containerId: run.containerId,
         rowData: row,
         navigation,
+        showRow: rowShower(showRow),
         selection: run.selection,
         onSuccessCallback: () => {
           instance?.close();
@@ -436,13 +477,14 @@ export function useActionTargets(config: ActionTargetsConfig) {
     function showRow(row: Data) {
       instance?.patch({
         componentOptions: optionsFor(row),
-        componentKey: String(get(row, source!.rowIdKey)),
+        componentKey: rowIdOf(row),
       });
       recordRow(row);
     }
     instance = openContainer(run, component, optionsFor(run.rowData));
     recordRow(run.rowData);
-    const stopSteps = navigation ? listenRowSteps(() => navigation) : undefined;
+    // `showRow` may move an unlisted row's container onto a listed one.
+    const stopSteps = source ? listenRowSteps(() => navigation) : undefined;
     const settle = () => {
       stopSteps?.();
       recordRow(undefined);

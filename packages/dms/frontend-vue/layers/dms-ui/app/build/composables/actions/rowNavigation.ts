@@ -18,7 +18,21 @@ export interface RowNavigation {
 export interface RowNavigationSource {
   rows: () => Data[];
   rowIdKey: string;
+  /**
+   * Reads one row by id (the table's `get` route or `fetchRowUrl`): what a
+   * container's `showRow` falls back to for a row the table does not list.
+   */
+  getRow?: (id: string) => Promise<Data | undefined>;
 }
+
+/**
+ * What a drawer, modal or side panel opened on a row receives to show
+ * another row of the same table in its place (`showRow` prop): the row
+ * itself, or its id, read from the rows shown or else from the table's route.
+ * The table then treats it as the open row: its highlight, its position, its
+ * `?record=`. It rejects when the row could not be read.
+ */
+export type ShowRow = (row: Data | string) => Promise<void>;
 
 const rowIdOf = (row: Data, rowIdKey: string): string =>
   String(get(row, rowIdKey));

@@ -313,6 +313,50 @@ describe("action targets on a selection and on a listed row", () => {
     expect(drawer!.patches).toHaveLength(1);
   });
 
+  it("shows another row in a row's drawer by id, read when unlisted", async () => {
+    window.history.replaceState(null, "", "/runs");
+    const rows = [{ _id: "r1" }, { _id: "r2" }];
+    const older = { _id: "r9" };
+    const getRow = vi.fn(async (id: string) =>
+      id === "r9" ? older : undefined,
+    );
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id", getRow },
+      recordScope: { tableId: "runs", isSoleTableView: true },
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        deepLink: true,
+        target: { type: "drawer", component: { componentName: "RunDrawer" } },
+      },
+      rows[0],
+    );
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    const options = drawer!.options.componentOptions as Record<string, unknown>;
+    const showRow = options.showRow as (row: object | string) => Promise<void>;
+
+    await showRow("r9");
+    expect(drawer!.patches[0]).toMatchObject({ componentKey: "r9" });
+    const patched = drawer!.patches[0]!.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(patched.rowData).toBe(older);
+    expect(patched.navigation).toBeUndefined();
+    expect(window.location.search).toBe("?record=r9");
+
+    await showRow("r2");
+    expect(getRow).toHaveBeenCalledTimes(1);
+    expect(drawer!.patches[1]).toMatchObject({ componentKey: "r2" });
+    expect(window.location.search).toBe("?record=r2");
+
+    await expect(showRow("r404")).rejects.toThrow("r404");
+    expect(drawer!.patches).toHaveLength(2);
+    drawer!.settle();
+  });
+
   it("hands a bulk drawer the selection instead of a row", async () => {
     const targets = mountTargets();
     targets.handleBulkCustomAction(
