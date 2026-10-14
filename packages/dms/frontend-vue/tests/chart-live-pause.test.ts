@@ -4,7 +4,8 @@
  * refresh, and reads once when the page resumes.
  */
 import { createApp, defineComponent, h, ref } from "vue";
-import { afterEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   refreshLivePageBlocks,
   refreshPageBlocks,
@@ -38,6 +39,8 @@ afterEach(() => {
   setCurrentPageLive(null);
   window.localStorage.clear();
 });
+
+beforeEach(() => useRealDataEngine());
 
 it("requests nothing while paused and reads once on resume", async () => {
   const live = createPageLiveController("api.overview", {});

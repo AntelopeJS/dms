@@ -1,6 +1,7 @@
 import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
@@ -143,6 +144,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
   sendComponentEvent.mockClear();
 });
+
+beforeEach(() => useRealDataEngine());
 
 describe("module-supplied widget strings and the $ convention", () => {
   it("resolves top list row titles, descriptions and aria-labels", async () => {

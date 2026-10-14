@@ -6,6 +6,7 @@
 import { type Component, createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import type { UseChartFetchOptions } from "../layers/dms-ui/app/composables/chart/useChartFetch";
 
 const fetchOptions: Array<UseChartFetchOptions<unknown>> = [];
@@ -77,6 +78,8 @@ async function render(block: Component): Promise<void> {
   for (const name of GLOBAL_COMPONENTS) app.component(name, Slot);
   await renderToString(app);
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   fetchOptions.length = 0;

@@ -1,7 +1,4 @@
-import {
-  type DmsAppContext,
-  type DmsPluginSetup,
-} from "#dms/frontend-module";
+import { type DmsAppContext, type DmsPluginSetup } from "#dms/frontend-module";
 import dmsMenuSyncPlugin from "./layers/dms-layout/app/plugins/dms-menu-sync.client";
 import commandPaletteNavigationPlugin from "./layers/dms-layout/app/plugins/command-palette-navigation.client";
 import commandPalettePersonalPagesPlugin from "./layers/dms-layout/app/plugins/command-palette-personal-pages.client";
@@ -10,6 +7,7 @@ import commandPaletteSessionPlugin from "./layers/dms-layout/app/plugins/command
 import notificationStreamPlugin from "./layers/dms-layout/app/plugins/notification-stream.client";
 import permissionPreviewPlugin from "./layers/dms-layout/app/plugins/permission-preview.client";
 import profileSyncPlugin from "./layers/dms-layout/app/plugins/profile-sync.client";
+import timeZoneCookiePlugin from "./layers/dms-layout/app/plugins/time-zone-cookie.client";
 
 const deferredPlugins: DmsPluginSetup[] = [
   dmsMenuSyncPlugin,
@@ -20,6 +18,7 @@ const deferredPlugins: DmsPluginSetup[] = [
   notificationStreamPlugin,
   permissionPreviewPlugin,
   profileSyncPlugin,
+  timeZoneCookiePlugin,
 ];
 
 export async function installDeferredPlugins(

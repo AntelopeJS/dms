@@ -1,4 +1,6 @@
-import { computed, ref, type ComputedRef } from "vue";
+import { computed, markRaw, ref, type ComputedRef, type Ref } from "vue";
+import { isRelativePreset } from "./presetResolvers";
+import { resolvesPeriodsAsBrowser } from "./periodTimeZone";
 import type { PeriodState } from "./types";
 
 interface PeriodScopeRegistration {
@@ -6,65 +8,101 @@ interface PeriodScopeRegistration {
   refCount: number;
 }
 
-const periodScopeRegistry = new Map<string, PeriodScopeRegistration>();
-const registryVersion = ref(0);
-
-function bumpRegistry(): void {
-  registryVersion.value += 1;
+interface PeriodScopeRegistry {
+  scopes: Map<string, PeriodScopeRegistration>;
+  version: Ref<number>;
 }
 
-const noopUnregister = (): void => undefined;
+const PERIOD_SCOPES_STATE_KEY = "dms-period-scopes";
+
+function createRegistry(): PeriodScopeRegistry {
+  return markRaw({ scopes: new Map(), version: ref(0) });
+}
+
+// A browser tab runs one application, whose scopes every caller shares; a
+// server renders many requests at once, each with its own scopes.
+const browserRegistry = createRegistry();
+
+function usePeriodScopeRegistry(): PeriodScopeRegistry {
+  if (typeof window !== "undefined") return browserRegistry;
+  return useDmsState(PERIOD_SCOPES_STATE_KEY, createRegistry).value;
+}
 
 export function registerPeriodScope(
   id: string,
   state: ComputedRef<PeriodState>,
 ): () => void {
-  if (typeof window === "undefined") return noopUnregister;
-  const existing = periodScopeRegistry.get(id);
+  const registry = usePeriodScopeRegistry();
+  const existing = registry.scopes.get(id);
   if (existing) {
     existing.state = state;
     existing.refCount += 1;
   } else {
-    periodScopeRegistry.set(id, { state, refCount: 1 });
+    registry.scopes.set(id, { state, refCount: 1 });
   }
-  bumpRegistry();
+  registry.version.value += 1;
   return () => {
-    const entry = periodScopeRegistry.get(id);
+    const entry = registry.scopes.get(id);
     if (!entry) return;
     entry.refCount -= 1;
-    if (entry.refCount <= 0) periodScopeRegistry.delete(id);
-    bumpRegistry();
+    if (entry.refCount <= 0) registry.scopes.delete(id);
+    registry.version.value += 1;
   };
 }
 
 const warnedMissingScopes = new Set<string>();
 const MISSING_SCOPE_WARN_DELAY_MS = 250;
 
-function deferMissingScopeWarn(id: string): void {
+function deferMissingScopeWarn(
+  registry: PeriodScopeRegistry,
+  id: string,
+): void {
   if (warnedMissingScopes.has(id)) return;
   warnedMissingScopes.add(id);
   if (typeof window === "undefined") return;
   setTimeout(() => {
-    if (periodScopeRegistry.has(id)) return;
+    if (registry.scopes.has(id)) return;
     console.warn(
       `[dms] periodScope "${id}" is not registered. The consumer will run without period filtering. Add a PeriodSelector with id="${id}" to bind it.`,
     );
   }, MISSING_SCOPE_WARN_DELAY_MS);
 }
 
+function readPeriodScope(
+  registry: PeriodScopeRegistry,
+  id: string,
+): PeriodState | null {
+  void registry.version.value;
+  const entry = registry.scopes.get(id);
+  if (!entry) {
+    deferMissingScopeWarn(registry, id);
+    return null;
+  }
+  return entry.state.value;
+}
+
+/**
+ * The state of a period scope, `null` while no selector registers it.
+ *
+ * A server render reads it once, as the caller sets up: a selector that sets
+ * up later (further down the page) leaves the caller to the browser, whose
+ * first render must match the HTML. It also answers `null` for a period the
+ * browser could resolve to other bounds: before the browser's cookie names
+ * its time zone, or a relative preset, which follows the instant it is read.
+ */
 export function usePeriodScope(
   id: string | undefined,
 ): ComputedRef<PeriodState | null> {
-  return computed(() => {
-    if (!id) return null;
-    void registryVersion.value;
-    const entry = periodScopeRegistry.get(id);
-    if (!entry) {
-      deferMissingScopeWarn(id);
-      return null;
-    }
-    return entry.state.value;
-  });
+  if (!id) return computed(() => null);
+  const registry = usePeriodScopeRegistry();
+  if (typeof window !== "undefined")
+    return computed(() => readPeriodScope(registry, id));
+  const state = readPeriodScope(registry, id);
+  const resolvesAsBrowser =
+    state !== null &&
+    !isRelativePreset(state.preset) &&
+    resolvesPeriodsAsBrowser();
+  return computed(() => (resolvesAsBrowser ? state : null));
 }
 
 /**

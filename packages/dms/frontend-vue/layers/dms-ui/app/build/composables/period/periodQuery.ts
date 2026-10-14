@@ -8,6 +8,10 @@ import {
   type PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import type { PeriodQueryKeys } from "#dms-core/app/composables/period/periodLink";
+import {
+  readerClock,
+  type WallTime,
+} from "#dms-core/app/composables/period/periodClock";
 
 export {
   type PeriodQueryKeys,
@@ -67,27 +71,41 @@ function readText(query: PeriodQuery, key: string): string | undefined {
 
 type DayBoundary = "start" | "end";
 
-function dayBoundary(day: Date, boundary: DayBoundary): Date {
-  if (boundary === "end") {
-    day.setHours(
-      END_OF_DAY_HOURS,
-      END_OF_DAY_MINUTES,
-      END_OF_DAY_SECONDS,
-      END_OF_DAY_MS,
-    );
-  }
-  return day;
+const DAY_BOUNDARY_TIMES: Record<
+  DayBoundary,
+  Pick<WallTime, "hours" | "minutes" | "seconds" | "milliseconds">
+> = {
+  start: { hours: 0, minutes: 0, seconds: 0, milliseconds: 0 },
+  end: {
+    hours: END_OF_DAY_HOURS,
+    minutes: END_OF_DAY_MINUTES,
+    seconds: END_OF_DAY_SECONDS,
+    milliseconds: END_OF_DAY_MS,
+  },
+};
+
+// Days are the reader's calendar days (`readerClock`): the browser's zone,
+// on the server as in the browser.
+function dayBoundary(
+  wall: Pick<WallTime, "year" | "month" | "day">,
+  boundary: DayBoundary,
+): Date {
+  return readerClock().instant({ ...wall, ...DAY_BOUNDARY_TIMES[boundary] });
 }
 
 /** A local calendar day, refused when it does not exist (`2026-02-30`). */
 function parseIsoDay(match: RegExpExecArray, boundary: DayBoundary) {
   const [year, month, day] = match.slice(1).map(Number);
-  const date = new Date(year!, month! - MONTH_OFFSET, day);
+  const date = dayBoundary(
+    { year: year!, month: month! - MONTH_OFFSET, day: day! },
+    boundary,
+  );
+  const wall = readerClock().wall(date);
   const exists =
-    date.getFullYear() === year &&
-    date.getMonth() === month! - MONTH_OFFSET &&
-    date.getDate() === day;
-  return exists ? dayBoundary(date, boundary) : null;
+    wall.year === year &&
+    wall.month === month! - MONTH_OFFSET &&
+    wall.day === day;
+  return exists ? date : null;
 }
 
 /**
@@ -112,8 +130,9 @@ function pad(value: number, length = DATE_PART_LENGTH): string {
 }
 
 function isDayBoundary(date: Date, boundary: DayBoundary): boolean {
-  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  return dayBoundary(day, boundary).getTime() === date.getTime();
+  return (
+    dayBoundary(readerClock().wall(date), boundary).getTime() === date.getTime()
+  );
 }
 
 /**
@@ -122,10 +141,11 @@ function isDayBoundary(date: Date, boundary: DayBoundary): boolean {
  */
 export function formatPeriodDate(date: Date, boundary: DayBoundary): string {
   if (!isDayBoundary(date, boundary)) return date.toISOString();
+  const { year, month, day } = readerClock().wall(date);
   return [
-    pad(date.getFullYear(), YEAR_PART_LENGTH),
-    pad(date.getMonth() + MONTH_OFFSET),
-    pad(date.getDate()),
+    pad(year, YEAR_PART_LENGTH),
+    pad(month + MONTH_OFFSET),
+    pad(day),
   ].join("-");
 }
 

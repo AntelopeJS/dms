@@ -86,10 +86,10 @@ export function useTableListData<T extends Record<string, unknown>>(
  * The counters of a table view's tabs and views, keyed by id; `null` until
  * they arrive. Keyed by source URL like the list (see useTableListData).
  *
- * A source waiting on its period scope answers `null` too, like its list:
- * the scope never registers during the server render, so the server and the
- * browser (whose key carries the period, and has no payload yet) both draw
- * the counters' skeleton, and hydration matches.
+ * A source waiting on its period scope answers `null` too, like its list: a
+ * server render that cannot resolve the period as the browser will (see
+ * `usePeriodScope`) draws the counters' skeleton, as the browser does until
+ * its own request answers, and hydration matches.
  */
 export function useTableCountsData<T extends Record<string, unknown>>(
   options: TableCountsDataOptions<T>,

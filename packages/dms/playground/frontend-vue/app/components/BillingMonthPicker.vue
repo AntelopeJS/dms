@@ -18,28 +18,38 @@ interface BillingMonth {
 
 const { locale } = useI18n();
 
+// In the reader's calendar, as a PeriodSelector resolves its presets: a
+// server render then computes the months the browser will, in its zone.
 function billingMonthRange(monthsAgo: number): PeriodRange {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const to = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    LAST_DAY_OF_PREVIOUS_MONTH,
-  );
-  to.setHours(
-    END_OF_DAY_HOURS,
-    END_OF_DAY_MINUTES,
-    END_OF_DAY_SECONDS,
-    END_OF_DAY_MS,
-  );
+  const clock = readerClock();
+  const { year, month } = clock.wall(new Date());
+  const from = clock.instant({
+    year,
+    month: month - monthsAgo,
+    day: 1,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    milliseconds: 0,
+  });
+  const to = clock.instant({
+    year,
+    month: month - monthsAgo + 1,
+    day: LAST_DAY_OF_PREVIOUS_MONTH,
+    hours: END_OF_DAY_HOURS,
+    minutes: END_OF_DAY_MINUTES,
+    seconds: END_OF_DAY_SECONDS,
+    milliseconds: END_OF_DAY_MS,
+  });
   return { from, to };
 }
 
 const months = computed<BillingMonth[]>(() => {
-  const formatter = new Intl.DateTimeFormat(locale.value, {
-    month: "long",
-    year: "numeric",
-  });
+  const formatter = regionalDateTimeFormat(
+    locale.value,
+    { month: "long", year: "numeric" },
+    { keepLocalZone: true },
+  );
   return Array.from({ length: MONTH_COUNT }, (_, monthsAgo) => {
     const range = billingMonthRange(monthsAgo);
     return {

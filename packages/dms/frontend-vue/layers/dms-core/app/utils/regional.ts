@@ -37,6 +37,7 @@ export interface RegionalOptionsSettings {
 }
 
 type PreferencesSource = () => RegionalPreferences;
+type ReaderTimeZoneSource = () => string | null | undefined;
 
 const WEEK_STARTS: readonly number[] = [0, 1, 6];
 const TIME_FORMATS: readonly string[] = ["h23", "h12"];
@@ -73,6 +74,7 @@ const NUMERIC_DATE: Intl.DateTimeFormatOptions = {
 
 const knownTimeZones = new Map<string, boolean>();
 let preferencesSource: PreferencesSource | undefined;
+let readerTimeZoneSource: ReaderTimeZoneSource | undefined;
 
 /** Whether the runtime knows `timeZone` (an unknown one would throw in Intl). */
 export function isKnownTimeZone(timeZone: string): boolean {
@@ -123,6 +125,35 @@ export function readRegionalPreferences(
  */
 export function setRegionalPreferencesSource(source: PreferencesSource): void {
   preferencesSource = source;
+}
+
+/**
+ * Tells a server render where to read the zone of the browser it renders for
+ * (its `dms-time-zone` cookie). Called on every read, so it resolves the
+ * request being rendered rather than a value captured once.
+ */
+export function setReaderTimeZoneSource(source: ReaderTimeZoneSource): void {
+  readerTimeZoneSource = source;
+}
+
+/**
+ * The time zone of the browser the page is for, when it is not the zone the
+ * code runs in: `undefined` in the browser, where it is; on a server, the zone
+ * the browser's cookie names, if this runtime knows it. Dates computed or
+ * written for the browser use it, so the server renders what the browser
+ * renders.
+ */
+export function readerTimeZone(): string | undefined {
+  if (typeof window !== "undefined") return undefined;
+  let zone: string | null | undefined;
+  try {
+    zone = readerTimeZoneSource?.();
+  } catch {
+    return undefined;
+  }
+  return zone && zone !== browserTimeZone() && isKnownTimeZone(zone)
+    ? zone
+    : undefined;
 }
 
 /** The current user's preferences; none outside an application. */
@@ -195,8 +226,10 @@ export function withRegionalOptions(
   let result = preferences.dateFormat
     ? DATE_FORMAT_REWRITES[preferences.dateFormat](options)
     : { ...options };
-  if (preferences.timeZone && !settings.keepLocalZone && !result.timeZone) {
-    result = { ...result, timeZone: preferences.timeZone };
+  const timeZone =
+    (!settings.keepLocalZone && preferences.timeZone) || readerTimeZone();
+  if (timeZone && !result.timeZone) {
+    result = { ...result, timeZone };
   }
   const statesClock =
     result.hour12 !== undefined || result.hourCycle !== undefined;
@@ -238,7 +271,7 @@ export function regionalDayNumber(
   preferences: RegionalPreferences = currentRegionalPreferences(),
 ): number {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: preferences.timeZone,
+    timeZone: preferences.timeZone ?? readerTimeZone(),
     year: "numeric",
     month: "numeric",
     day: "numeric",

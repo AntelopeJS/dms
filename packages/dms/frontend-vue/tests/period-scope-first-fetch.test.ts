@@ -19,6 +19,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import type { PeriodState } from "../layers/dms-core/app/composables/period/types";
 
 const requests: string[] = [];
@@ -163,6 +164,8 @@ function withComponents<
   return app;
 }
 
+beforeEach(() => useRealDataEngine());
+
 beforeEach(() => {
   requests.length = 0;
 });
@@ -238,6 +241,8 @@ describe("period-scoped cards on first paint", () => {
     }
   });
 
+  // Its period unknown to the server (no selector registered it before the
+  // card set up), a card renders its placeholder, never an empty value.
   it("shows a loading placeholder server-side rather than an empty value", async () => {
     const app = createSSRApp({
       render: () =>
@@ -246,7 +251,7 @@ describe("period-scoped cards on first paint", () => {
           componentId: "card",
           pageId: "page",
           fetchUrl: "/api/metrics/kpi/revenue",
-          periodScope: SCOPE,
+          periodScope: "unregistered-scope",
         }),
     });
     withComponents(app, {

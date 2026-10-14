@@ -8,22 +8,39 @@ import {
   type PeriodPreset,
   type PeriodRange,
 } from "./types";
+import { readerClock } from "./periodClock";
+
+// Resolved in the reader's calendar (`readerClock`): the browser's zone, on
+// the server as in the browser.
+function atTime(
+  date: Date,
+  hours: number,
+  minutes: number,
+  seconds: number,
+  milliseconds: number,
+): Date {
+  const clock = readerClock();
+  return clock.instant({
+    ...clock.wall(date),
+    hours,
+    minutes,
+    seconds,
+    milliseconds,
+  });
+}
 
 function startOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
+  return atTime(date, 0, 0, 0, 0);
 }
 
 function endOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(
+  return atTime(
+    date,
     END_OF_DAY_HOURS,
     END_OF_DAY_MINUTES,
     END_OF_DAY_SECONDS,
     END_OF_DAY_MS,
   );
-  return next;
 }
 
 function addDays(date: Date, amount: number): Date {
@@ -34,35 +51,47 @@ function addHours(date: Date, amount: number): Date {
   return new Date(date.getTime() + amount * MS_PER_HOUR);
 }
 
+/** Midnight of a day given as year, month and day; they roll over as `Date`'s. */
+function dayStart(year: number, month: number, day: number): Date {
+  return readerClock().instant({
+    year,
+    month,
+    day,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    milliseconds: 0,
+  });
+}
+
 function startOfMonth(date: Date, monthOffset = 0): Date {
-  return new Date(date.getFullYear(), date.getMonth() + monthOffset, 1);
+  const { year, month } = readerClock().wall(date);
+  return dayStart(year, month + monthOffset, 1);
 }
 
 function endOfMonth(date: Date, monthOffset = 0): Date {
-  const next = new Date(
-    date.getFullYear(),
-    date.getMonth() + monthOffset + 1,
-    0,
-  );
-  return endOfDay(next);
+  const { year, month } = readerClock().wall(date);
+  return endOfDay(dayStart(year, month + monthOffset + 1, 0));
 }
 
 function startOfQuarter(date: Date, quarterOffset = 0): Date {
-  const quarter = Math.floor(date.getMonth() / 3) + quarterOffset;
-  return new Date(date.getFullYear(), quarter * 3, 1);
+  const { year, month } = readerClock().wall(date);
+  const quarter = Math.floor(month / 3) + quarterOffset;
+  return dayStart(year, quarter * 3, 1);
 }
 
 function endOfQuarter(date: Date, quarterOffset = 0): Date {
-  const quarter = Math.floor(date.getMonth() / 3) + quarterOffset;
-  return endOfDay(new Date(date.getFullYear(), quarter * 3 + 3, 0));
+  const { year, month } = readerClock().wall(date);
+  const quarter = Math.floor(month / 3) + quarterOffset;
+  return endOfDay(dayStart(year, quarter * 3 + 3, 0));
 }
 
 function startOfYear(date: Date, yearOffset = 0): Date {
-  return new Date(date.getFullYear() + yearOffset, 0, 1);
+  return dayStart(readerClock().wall(date).year + yearOffset, 0, 1);
 }
 
 function endOfYear(date: Date, yearOffset = 0): Date {
-  return endOfDay(new Date(date.getFullYear() + yearOffset, 11, 31));
+  return endOfDay(dayStart(readerClock().wall(date).year + yearOffset, 11, 31));
 }
 
 const PRESET_RANGE_RESOLVERS: Record<

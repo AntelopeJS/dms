@@ -5,6 +5,7 @@
 import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 
 const rows = ref<Array<Record<string, unknown>>>([]);
@@ -54,6 +55,8 @@ function values(html: string): string[] {
     (match) => (match[1] ?? "").trim(),
   );
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   rows.value = [
