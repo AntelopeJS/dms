@@ -24,7 +24,14 @@ interface Emits {
   (event: "drawn"): void;
 }
 
+/** The ApexCharts instance the wrapper exposes as `chart`. */
+interface ApexCore {
+  /** Apex's own (debounced) window resize handler: redraws at the container width. */
+  windowResizeHandler: () => void;
+}
+
 interface ApexChartInstance {
+  chart: ApexCore | null;
   updateOptions: (
     options: Record<string, unknown>,
     redrawPaths?: boolean,
@@ -39,6 +46,7 @@ const emit = defineEmits<Emits>();
 const REDRAW_PATHS = false;
 const ANIMATE = true;
 const UPDATE_SYNCED_CHARTS = false;
+const WIDTH_TOLERANCE_PX = 1;
 
 const { locale } = useI18n();
 
@@ -57,6 +65,7 @@ onMounted(() => {
   void ensureApexLocale(locale.value).catch(() => undefined);
 });
 
+const hostRef = ref<HTMLElement | null>(null);
 const chartRef = ref<ApexChartInstance | null>(null);
 
 /**
@@ -123,10 +132,31 @@ watch(
 function onDrawn() {
   emit("drawn");
 }
+
+function isDrawnAtStaleWidth(host: HTMLElement): boolean {
+  const svg = host.querySelector("svg.apexcharts-svg");
+  if (!svg) return false;
+  const drawnWidth = svg.getBoundingClientRect().width;
+  const hostWidth = host.getBoundingClientRect().width;
+  return Math.abs(drawnWidth - hostWidth) > WIDTH_TOLERANCE_PX;
+}
+
+/**
+ * Apex drops its container's resizes while an animation runs, so a sidebar
+ * collapsed or expanded during one leaves the chart at its old width, past
+ * its card when the container shrank, until the next window resize. Once the
+ * animation is over, a chart drawn at another width than its host redraws.
+ */
+function redrawIfResizedWhileAnimating() {
+  const host = hostRef.value;
+  const chart = chartRef.value?.chart;
+  if (!host || !chart || !isDrawnAtStaleWidth(host)) return;
+  chart.windowResizeHandler();
+}
 </script>
 
 <template>
-  <div class="dms-apex">
+  <div ref="hostRef" class="dms-apex">
     <ApexChart
       ref="chartRef"
       :type="apexType"
@@ -135,6 +165,7 @@ function onDrawn() {
       :series="apexSeries"
       @mounted="onDrawn"
       @updated="onDrawn"
+      @animation-end="redrawIfResizedWhileAnimating"
     />
   </div>
 </template>
