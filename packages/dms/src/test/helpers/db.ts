@@ -13,6 +13,26 @@ function getMongoUrl(): string {
   return url;
 }
 
+// One client for the whole run: `resetDatabase` runs before most integration
+// tests, and a connect/close per call adds a handshake to every one of them.
+let sharedClient: Promise<MongoClient> | undefined;
+
+function getClient(): Promise<MongoClient> {
+  sharedClient ??= MongoClient.connect(getMongoUrl()).catch((error) => {
+    sharedClient = undefined;
+    throw error;
+  });
+  return sharedClient;
+}
+
+// Root-level hook: the harness stops the replica set right after mocha, and an
+// open client would keep monitoring a server that is gone.
+after(async () => {
+  const client = sharedClient;
+  sharedClient = undefined;
+  if (client) await (await client).close();
+});
+
 function isPreserved(name: string): boolean {
   return PRESERVED_COLLECTION_PREFIXES.some((prefix) =>
     name.startsWith(prefix),
@@ -20,18 +40,13 @@ function isPreserved(name: string): boolean {
 }
 
 export async function resetDatabase(): Promise<void> {
-  const client = await MongoClient.connect(getMongoUrl());
-  try {
-    const db = client.db(DMS_SCHEMA_DB);
-    const collections = await db.collections();
-    await Promise.all(
-      collections
-        .filter((collection) => !isPreserved(collection.collectionName))
-        .map((collection) => collection.deleteMany({})),
-    );
-  } finally {
-    await client.close();
-  }
+  const db = (await getClient()).db(DMS_SCHEMA_DB);
+  const collections = await db.collections();
+  await Promise.all(
+    collections
+      .filter((collection) => !isPreserved(collection.collectionName))
+      .map((collection) => collection.deleteMany({})),
+  );
 }
 
 export async function countRawDocuments(
