@@ -104,7 +104,7 @@ export class PageTableViewTasksByStatus extends PageController(
           label: "Open",
           icon: "i-ph-arrow-right",
           isDefault: true,
-          target: { type: "page", url: "{path}" },
+          target: { type: "page", url: "{{row.path}}" },
         },
       ],
     },

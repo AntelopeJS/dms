@@ -492,7 +492,7 @@ const ROW_ACTIONS: PlaygroundFeature[] = [
   ),
   feature(
     "Link filled with the row's fields",
-    'target: { type: "page", url: ".../{status}" }',
+    'target: { type: "page", url: ".../{{row.status}}" }',
     PAGES.actions,
     PAGE_TOKENS,
   ),
@@ -808,7 +808,7 @@ const SOURCES: PlaygroundFeature[] = [
   ),
   feature(
     "Source row read by id for a deep link",
-    'fromSource({ fetchRowUrl: ".../{id}" })',
+    'fromSource({ fetchRowUrl: ".../{{row.id}}" })',
     `${PAGES.requestLog}?record=req-3`,
     REQUEST_LOG_GAPS,
   ),

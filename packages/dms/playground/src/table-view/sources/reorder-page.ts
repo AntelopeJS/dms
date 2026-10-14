@@ -53,7 +53,7 @@ export class PageTableViewReorder extends PageController(
           icon: "i-ph-arrow-fat-up",
           target: {
             type: "api",
-            url: "/api/playground/roadmap-features/upvote?id={_id}",
+            url: "/api/playground/roadmap-features/upvote?id={{row._id}}",
             method: "POST",
             successMessage: "Upvoted",
           },

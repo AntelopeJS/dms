@@ -54,7 +54,7 @@ const deleteAction: PageHeaderButton = {
       target: {
         type: "download",
         url: `${FORM_CONFIRM_API}/backup`,
-        filename: "{name}-backup.json",
+        filename: "{{row.name}}-backup.json",
       },
     },
   },

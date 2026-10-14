@@ -27,7 +27,7 @@ const model = defineModel<number | null>();
 const DAYS_PER_WEEK = 7;
 const NAME_FIELD = "name";
 const LOWER_RETENTION_URL =
-  "/api/form-custom-input/lower-retention?days={days}";
+  "/api/form-custom-input/lower-retention?days={{row.days}}";
 
 const form = useEnclosingForm();
 const { report } = useControlError();
