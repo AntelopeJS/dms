@@ -105,36 +105,23 @@ released, pin matching interface artifacts in both temporary DMS and provider
 manifests throughout the test run: the runner reinstalls dependencies and can
 otherwise restore an older interface. No local API or MongoDB checkout is needed.
 
-## Known limitation — existing auth integration tests are skipped
+## Seed over HTTP, not through test-side models
 
-The auth integration suites (`integration/auth/*`) are `describe.skip`. They seed
-fixtures (e.g. an invite) **in-process** with `GetModel(...)` and then drive the
-flow over HTTP. Under `ajs module test`, the mocha-loaded test code and the
-runtime-loaded module code resolve **different copies of
-`@antelopejs/interface-database`**. A row seeded via the test-side copy is written
-to the shared in-memory mongo, but the route-side copy's `Schema`/`CROSS_INSTANCE`
-view does not return it — so the signup route reports `error.invalid_token` even
-though the invite exists in the database.
+Under `ajs module test`, the mocha-loaded test code and the runtime-loaded
+module code can resolve **different copies of `@antelopejs/interface-database`**.
+A row seeded in-process with `GetModel(...)` reaches the shared in-memory mongo,
+but a route's `Schema`/`CROSS_INSTANCE` view may not return it -- a signup route
+once reported `error.invalid_token` for an invite that was in the database. The
+auth suites that depended on that seeding were always skipped and have been
+removed; login, refresh, sessions and signup are covered over HTTP by
+`login-throttle`, `session-revocation`, `two-factor-*`, `password-reset` and
+`auth-key-rotation`.
 
-This was verified empirically:
-- A single mongo connection is established (to the in-memory replset).
-- The seeded invite is present in `dms-core.dms-tenant__user_invites` (raw query).
-- In-process `GetModel(UserInviteModel, CROSS_INSTANCE).getAll()` returns it.
-- The **route's** identical call returns `[]`.
+Drive state through the real endpoints (bootstrap the first owner with
+`POST /onboarding/register`, then create and consume invites over HTTP).
+`resetDatabase` cleans the shared mongo through a raw client, which works
+regardless.
 
-A secondary harness quirk was fixed here: the runner calls `manager.startAll()`
-without awaiting it, so tests could begin before schemas/API were ready.
-`integration/setup.test.ts` adds a readiness gate that closes that race.
-
-### Options to unblock the stateful suites (needs a decision)
-
-1. **Fix the runner** (`@antelopejs/core` test-module) to share one
-   interface/module instance with the test files and to `await startAll()`. This
-   is the clean fix but lives in the antelope core repo.
-2. **Seed exclusively over HTTP** — bootstrap the first owner via
-   `POST /onboarding/register`, then create/consume invites through the real
-   endpoints, so all state lives on the route side. (`resetDatabase` already
-   cleans the shared mongo via a raw client, which works regardless.)
-
-The existing auth suites remain skipped. New attachment suites avoid this model
-identity problem and exercise stateful operations against the real HTTP runtime.
+The runner calls `manager.startAll()` without awaiting it, so tests could begin
+before schemas and the API are ready; `integration/setup.test.ts` adds a
+readiness gate that closes that race.
