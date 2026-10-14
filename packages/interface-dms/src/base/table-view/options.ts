@@ -1107,24 +1107,22 @@ export interface TableViewOptions<
    */
   card?: TableViewCardOptions;
   /**
-   * Additional displays this table view offers beyond the implicit built-in
-   * `table` (and `kanban` when the `kanban` option is set). Each `component` is
-   * a frontend component resolved by name on the client from the global
-   * registry (declare its directory with `global: true`); it receives the
-   * normalized `context` prop. `selfManagedData`/`capabilities` are the SSR
-   * source of truth for data fetching + chrome; the matching client plugin
-   * (`registerTableViewDisplay`) supplies the id, label, icon and component.
+   * The displays this table view offers, in the switcher's order. Left out,
+   * the table view offers the built-in `table` alone; listed, it offers
+   * exactly these, so the grid is kept by listing `{ id: "table" }`. The
+   * `kanban` and `grouped` options add their display after the list unless it
+   * places them. Each `component` is a frontend component resolved by name on
+   * the client from the global registry (declare its directory with
+   * `global: true`); it receives the normalized `context` prop.
+   * `selfManagedData`/`capabilities` are the SSR source of truth for data
+   * fetching + chrome; the matching client plugin (`registerTableViewDisplay`)
+   * supplies the id, label, icon and component.
+   * @example [{ id: "table" }, { id: "cards" }]
    */
   displays?: TableViewDisplayOption[];
   /**
-   * Whether the built-in `table` display is offered. `false` leaves only the
-   * other displays, so the switcher disappears when one remains; it then needs
-   * a `defaultDisplay`. Defaults to `true`.
-   */
-  tableDisplay?: boolean;
-  /**
    * Display shown by default when the user has no saved preference. Defaults to
-   * "table".
+   * the first display offered: `table` when `displays` is left out.
    */
   defaultDisplay?: string;
   /**

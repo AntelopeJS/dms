@@ -24,6 +24,7 @@ import {
   DefaultDisplays,
   TableView,
   type TableViewExpandableOptions,
+  type TableViewOptions,
   type TableViewOptionsSerialized,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -147,6 +148,8 @@ const columnsOf = (table: ReturnType<typeof TableView>) =>
     }
   ).columns;
 
+type DisplayDeclarations = Pick<TableViewOptions, "displays" | "kanban">;
+
 describe("[unit] interfaces/dms-base — table view reduced chrome & expandable rows", () => {
   it("serializes a column's display data type and width", () => {
     const number = columnsOf(TableView(OrderAPI, { realtime: false })).find(
@@ -223,6 +226,42 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         displays: [{ id: "plan-cards", component }],
       }),
     ).to.throw(/"<module>:<id>"/);
+  });
+
+  it("offers the table alone by default, and exactly the listed displays otherwise", () => {
+    const idsOf = (declared: DisplayDeclarations) =>
+      optionsOf(
+        TableView(StatusOrderAPI, { realtime: false, ...declared }),
+      ).displays?.map((display) => display.id);
+    expect(idsOf({})).to.deep.equal(["table"]);
+    expect(
+      idsOf({ displays: [{ id: "cards" }, { id: "table" }] }),
+    ).to.deep.equal(["cards", "table"]);
+    expect(idsOf({ displays: [{ id: "cards" }] })).to.deep.equal(["cards"]);
+    expect(idsOf({ kanban: { groupByField: "status" } })).to.deep.equal([
+      "table",
+      "kanban",
+    ]);
+    expect(() =>
+      TableView(OrderAPI, { realtime: false, displays: [] }),
+    ).to.throw(/offers no display/);
+  });
+
+  it("hands the kanban options to a kanban display the list places", () => {
+    const options = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        kanban: { groupByField: "status" },
+        displays: [{ id: "kanban" }, { id: "table" }],
+      }),
+    );
+    expect(options.displays?.map((display) => display.id)).to.deep.equal([
+      "kanban",
+      "table",
+    ]);
+    expect(options.displays?.[0]?.options).to.deep.include({
+      groupByField: "status",
+    });
   });
 
   it("hands one card to the kanban and the cards displays", () => {

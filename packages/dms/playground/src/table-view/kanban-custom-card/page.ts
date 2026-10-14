@@ -36,14 +36,14 @@ export class PageTableViewKanbanCustomCard extends PageController(
     category: tableViewCategory,
     order: 100,
     description:
-      'A board and a card grid drawing each task with a custom card, and no table (tableDisplay: false). Switch displays, then press "Start" on a pending card.',
+      'A board and a card grid drawing each task with a custom card, and no table (displays without { id: "table" }). Switch displays, then press "Start" on a pending card.',
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static guide = demoGuide([
     {
       label: "Display switcher",
-      text: 'tableDisplay: false drops the grid: the switcher offers the kanban board and the built-in "cards" display only.',
+      text: 'displays lists the built-in "cards" display without { id: "table" }: the switcher offers the card grid and the kanban board only.',
     },
     {
       label: "Custom card",
@@ -87,7 +87,6 @@ export class PageTableViewKanbanCustomCard extends PageController(
     // the same props.
     card: { component: CustomComponent("KanbanTaskCard") },
     displays: [{ id: "cards" }],
-    tableDisplay: false,
     defaultDisplay: "kanban",
   });
 }

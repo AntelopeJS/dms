@@ -294,11 +294,9 @@ export interface TableViewConfig<T extends Data>
   routeParamFilters?: RouteParamFilters;
   routeParams?: Record<string, string>;
   tabs?: TableViewTab[];
-  /** Displays this table view offers, beyond the implicit built-in `table`. */
+  /** Displays this table view offers, in order; the built-in `table` alone when left out. */
   displays?: TableViewDisplayConfig[];
-  /** Whether the built-in `table` display is offered. Defaults to `true`. */
-  tableDisplay?: boolean;
-  /** Display shown by default when the user has no saved preference. Defaults to "table". */
+  /** Display shown by default when the user has no saved preference. Defaults to the first display. */
   defaultDisplay?: string;
   /** Expandable rows: caret column + detail band. */
   expandable?: TableViewExpandableConfig;

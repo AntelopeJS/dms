@@ -190,7 +190,39 @@ interface DisplayDeclarations {
   kanban?: KanbanOptions;
   grouped?: GroupedOptions;
   displays?: TableViewDisplayOption[];
-  tableDisplay?: boolean;
+}
+
+const IMPLICIT_DISPLAYS: readonly TableViewDisplayOption[] = [
+  { id: TABLE_DISPLAY_ID },
+];
+
+/**
+ * The displays a table view lists: its `displays`, else the built-in table
+ * alone. A table view that lists its displays names the table among them to
+ * keep it.
+ */
+function listedDisplays(
+  displays: TableViewDisplayOption[] | undefined,
+): readonly TableViewDisplayOption[] {
+  return displays ?? IMPLICIT_DISPLAYS;
+}
+
+/**
+ * The displays a table view offers, in the switcher's order: the listed ones,
+ * then the kanban board and the grouped display their own options declare
+ * when the list does not place them.
+ *
+ * @internal
+ */
+export function offeredDisplays(
+  options: DisplayDeclarations,
+): TableViewDisplayOption[] {
+  const listed = listedDisplays(options.displays);
+  const declaredByOption = [
+    ...(options.kanban ? [KANBAN_DISPLAY_ID] : []),
+    ...(options.grouped ? [GROUPED_DISPLAY_ID] : []),
+  ].filter((id) => !listed.some((display) => display.id === id));
+  return [...listed, ...declaredByOption.map((id) => ({ id }))];
 }
 
 /**
@@ -199,17 +231,12 @@ interface DisplayDeclarations {
  * @internal
  */
 export function offeredDisplayIds(options: DisplayDeclarations): Set<string> {
-  const { kanban, grouped, displays, tableDisplay } = options;
-  return new Set<string>([
-    ...(tableDisplay === false ? [] : [TABLE_DISPLAY_ID]),
-    ...(kanban ? [KANBAN_DISPLAY_ID] : []),
-    ...(grouped ? [GROUPED_DISPLAY_ID] : []),
-    ...(displays?.map((display) => display.id) ?? []),
-  ]);
+  return new Set(offeredDisplays(options).map((display) => display.id));
 }
 
 /**
- * The default display must be one the table view offers.
+ * A table view offers at least one display, and its default display is one
+ * of them. Left out, the default is the first display offered.
  *
  * @internal
  */
@@ -217,16 +244,14 @@ export function validateDefaultDisplay(
   controllerName: string,
   options: DisplayDeclarations & { defaultDisplay?: string },
 ): void {
-  const { defaultDisplay } = options;
-  if (!defaultDisplay) {
-    if (options.tableDisplay === false) {
-      throw new Error(
-        `TableView on ${controllerName} drops the table display without a defaultDisplay`,
-      );
-    }
-    return;
+  const offered = offeredDisplayIds(options);
+  if (offered.size === 0) {
+    throw new Error(
+      `TableView on ${controllerName} offers no display: list one in displays, e.g. { id: "${TABLE_DISPLAY_ID}" }`,
+    );
   }
-  if (!offeredDisplayIds(options).has(defaultDisplay)) {
+  const { defaultDisplay } = options;
+  if (defaultDisplay && !offered.has(defaultDisplay)) {
     throw new Error(
       `TableView on ${controllerName} defaults to display "${defaultDisplay}" which is not declared in displays`,
     );

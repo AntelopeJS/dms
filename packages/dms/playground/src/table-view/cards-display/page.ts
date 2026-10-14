@@ -6,7 +6,10 @@ import {
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
-import { TableView } from "@antelopejs/interface-dms/base/table-view";
+import {
+  TABLE_DISPLAY_ID,
+  TableView,
+} from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
@@ -63,6 +66,7 @@ export class PageTableViewCardsDisplay extends PageController(
     // playground/frontend-vue/app/plugins/table-view-cards-display.ts. Here we
     // opt this table view into it and provide the SSR-renderable component.
     displays: [
+      { id: TABLE_DISPLAY_ID },
       {
         id: TASK_CARDS_DISPLAY_ID,
         component: CustomComponent("TaskCardsDisplay"),

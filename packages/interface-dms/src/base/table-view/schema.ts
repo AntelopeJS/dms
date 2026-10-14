@@ -21,7 +21,6 @@ import {
   type QueryParamFilter,
   type RouteParamFilter,
   type TableViewCardOptions,
-  TABLE_DISPLAY_ID,
   type TableViewDisplayOption,
   type TableViewExpandableComponent,
   type TableViewExpandableOptions,
@@ -507,12 +506,7 @@ export const TableViewSchema = z.object({
     label: "Displays",
     group: "advanced",
   }),
-  tableDisplay: ui(z.boolean().optional(), {
-    label: "Table display",
-    group: "advanced",
-    widget: "switch",
-  }),
-  defaultDisplay: ui(z.string().default(TABLE_DISPLAY_ID), {
+  defaultDisplay: ui(z.string().optional(), {
     label: "Default display",
     group: "advanced",
   }),

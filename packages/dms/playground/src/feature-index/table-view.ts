@@ -620,13 +620,13 @@ const DISPLAYS_AND_CARDS: PlaygroundFeature[] = [
   ),
   feature(
     "Built-in cards display",
-    'displays: [{ id: "cards" }]',
+    'displays: [{ id: "table" }, { id: "cards" }]',
     PAGES.kanbanCards,
     V2_DESIGN,
   ),
   feature(
     "Displays without the grid",
-    "TableView({ tableDisplay: false, defaultDisplay })",
+    'displays: [{ id: "cards" }] (no { id: "table" })',
     PAGES.kanbanCards,
     LATEST,
   ),
@@ -644,7 +644,7 @@ const DISPLAYS_AND_CARDS: PlaygroundFeature[] = [
   ),
   feature(
     "Module's own table display",
-    'displays: [{ id: "<module>:<id>", component }] + registerTableViewDisplay',
+    'displays: [{ id: "table" }, { id: "<module>:<id>", component }] + registerTableViewDisplay',
     PAGES.moduleDisplay,
   ),
   feature(

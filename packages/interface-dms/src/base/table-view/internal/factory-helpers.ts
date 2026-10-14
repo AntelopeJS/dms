@@ -24,7 +24,7 @@ import type {
 } from "../../types/row-action";
 import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
 import { TableViewMeta } from "../meta";
-import { assertKnownColumns } from "./validation";
+import { assertKnownColumns, offeredDisplays } from "./validation";
 import {
   CARDS_DISPLAY_ID,
   type FormContainerPageConfig,
@@ -313,46 +313,46 @@ function serializeCard({
   return { fields: card.fields, component: card.component?.serializeSync() };
 }
 
+/** The options a built-in display takes from the table view's own options. */
+type BuiltinDisplayOptions = (
+  sources: TableViewDisplaySources,
+  card: TableViewCardOptionsSerialized | undefined,
+) => Record<string, unknown> | undefined;
+
+const BUILTIN_DISPLAY_OPTIONS: Record<string, BuiltinDisplayOptions> = {
+  [CARDS_DISPLAY_ID]: (_sources, card) => (card ? { card } : undefined),
+  [KANBAN_DISPLAY_ID]: ({ kanban }, card) => {
+    if (!kanban) return undefined;
+    const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
+    // The serialised options and a bare dictionary do not overlap, so this
+    // cannot be one assertion; the display registry reads it by key.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    return kanbanOptions as unknown as Record<string, unknown>;
+  },
+  [GROUPED_DISPLAY_ID]: ({ grouped }) => (grouped ? { ...grouped } : undefined),
+};
+
 /**
  * The `kanban` and `grouped` options are transported to the frontend as
  * `displays` entries (`{ id: "kanban", options }`), not as dedicated fields;
  * those displays read their options from `context.options` like any other.
- * The `card` joins the options of both card displays, kanban and cards.
+ * The `card` joins the options of both card displays, kanban and cards. The
+ * list is the one the table view offers: `displays`, else the table alone.
  *
  * @internal
  */
 export function serializeTableViewDisplays(
   sources: TableViewDisplaySources,
-): TableViewDisplayOptionSerialized[] | undefined {
-  const { displays, kanban } = sources;
+): TableViewDisplayOptionSerialized[] {
   const card = serializeCard(sources);
-  const serialized: TableViewDisplayOptionSerialized[] =
-    displays?.map((display) => ({
+  return offeredDisplays(sources).map((display) => {
+    const builtin = BUILTIN_DISPLAY_OPTIONS[display.id]?.(sources, card);
+    return {
       ...display,
-      options:
-        card && display.id === CARDS_DISPLAY_ID
-          ? { ...display.options, card }
-          : display.options,
+      options: builtin ? { ...display.options, ...builtin } : display.options,
       component: display.component?.serializeSync(),
-    })) ?? [];
-  if (kanban && !serialized.some((entry) => entry.id === KANBAN_DISPLAY_ID)) {
-    const kanbanOptions: KanbanOptionsSerialized = { ...kanban, card };
-    serialized.push({
-      id: KANBAN_DISPLAY_ID,
-      // The serialised options and a bare dictionary do not overlap, so this
-      // cannot be one assertion; the display registry reads it by key.
-      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-      options: kanbanOptions as unknown as Record<string, unknown>,
-    });
-  }
-  const { grouped } = sources;
-  if (grouped && !serialized.some((entry) => entry.id === GROUPED_DISPLAY_ID)) {
-    serialized.push({
-      id: GROUPED_DISPLAY_ID,
-      options: { ...grouped },
-    });
-  }
-  return serialized.length > 0 ? serialized : undefined;
+    };
+  });
 }
 
 /**
