@@ -11,6 +11,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 const TASK_CARDS_DISPLAY_ID = "playground:task-cards";
 
@@ -35,6 +36,7 @@ export class PageTableViewCardsDisplay extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(cardsTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Cards (Custom Display)",
     labelKey: "name",
     formContainer: { type: "page", pages: demoFormPages("task") },

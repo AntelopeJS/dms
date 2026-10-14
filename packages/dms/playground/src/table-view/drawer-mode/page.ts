@@ -4,6 +4,7 @@ import { TableView } from "@antelopejs/interface-dms/base/table-view";
 import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterPage()
 export class PageTableViewDrawer extends PageController(
@@ -19,6 +20,7 @@ export class PageTableViewDrawer extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(taskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Drawer Mode",
     labelKey: "name",
     rowActions: {

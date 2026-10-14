@@ -18,6 +18,7 @@ import {
   assertNotCancelled,
   logEdit,
 } from "./guards";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterDataController()
 class conditionalDeleteTaskDataAPI extends DataController(
@@ -55,6 +56,7 @@ export class PageTableViewConditionalDelete extends PageController(
   ]);
 
   static table = TableView(conditionalDeleteTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption:
       "Tasks - Delete/Edit allowed if task is neither high priority nor completed",
     labelKey: "name",

@@ -999,145 +999,60 @@ function pickRandomUser(): User {
   return defaultUsers[Math.floor(seededRandom() * defaultUsers.length)];
 }
 
-export const defaultUsers: User[] = [
-  {
-    _id: "1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4567",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "2",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4568",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "3",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4569",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "4",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4570",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "5",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4571",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "6",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4572",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "7",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4573",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "8",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4574",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "9",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4575",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "10",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4576",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "11",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4577",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "12",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4578",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "13",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4579",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "14",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4580",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "15",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4581",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
+const USER_NAMES = [
+  "Ada Lovelace",
+  "Grace Hopper",
+  "Alan Turing",
+  "Katherine Johnson",
+  "Linus Torvalds",
+  "Margaret Hamilton",
+  "Tim Berners-Lee",
+  "Barbara Liskov",
+  "Dennis Ritchie",
+  "Hedy Lamarr",
+  "Ken Thompson",
+  "Frances Allen",
+  "Guido van Rossum",
+  "Radia Perlman",
+  "Donald Knuth",
 ];
+const USER_PHONE_PREFIX = "+1-555-123-";
+const USER_PHONE_BASE = 4567;
+const USER_AVATAR_URL = "https://i.pravatar.cc/150?u=";
 
-export const defaultTasks: Partial<Task>[] = [
+function userSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]+/g, ".");
+}
+
+export const defaultUsers: User[] = USER_NAMES.map((name, index) => {
+  const slug = userSlug(name);
+  return {
+    _id: String(index + 1),
+    name,
+    email: `${slug}@example.com`,
+    phone: `${USER_PHONE_PREFIX}${USER_PHONE_BASE + index}`,
+    avatar: `${USER_AVATAR_URL}${slug}`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+});
+
+const COMPLETED_STATUS = "completed";
+const FULL_COMPLETION = 1;
+
+/** A completed task is done and fully complete; no other one is done. */
+function withConsistentProgress(task: Partial<Task>): Partial<Task> {
+  const completed = task.status === COMPLETED_STATUS;
+  return {
+    ...task,
+    done: completed,
+    completion_percentage: completed
+      ? FULL_COMPLETION
+      : task.completion_percentage,
+  };
+}
+
+const fixtureTasks: Partial<Task>[] = [
   {
     _id: "1",
     name: "Task 1",
@@ -1451,3 +1366,7 @@ export const defaultTasks: Partial<Task>[] = [
   },
   ...generateRandomTasks(300),
 ];
+
+export const defaultTasks: Partial<Task>[] = fixtureTasks.map(
+  withConsistentProgress,
+);

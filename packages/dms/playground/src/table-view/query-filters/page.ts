@@ -12,6 +12,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoGuide } from "../guide";
+import { TASK_DEFAULT_SORT } from "../status";
 
 const PAGE_PATH = "/table-view/table-view-query-filters";
 
@@ -71,6 +72,7 @@ export class PageTableViewQueryFilters extends PageController(
   ]);
 
   static tasks = TableView(queryFiltersTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks · queryParamFilters",
     labelKey: "name",
     realtime: false,

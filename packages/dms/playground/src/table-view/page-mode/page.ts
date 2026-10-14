@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterDataController()
 class pageModeTaskDataAPI extends DataController(
@@ -32,6 +33,7 @@ export class PageTableViewPage extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(pageModeTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Page Mode (Auto URLs)",
     labelKey: "name",
     rowActions: {

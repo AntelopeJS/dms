@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterDataController()
 class modalTaskDataAPI extends DataController(
@@ -32,6 +33,7 @@ export class PageTableViewModal extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(modalTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Modal Mode",
     labelKey: "name",
     rowActions: {

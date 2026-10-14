@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 const TASK_PAGES = demoFormPages("task");
 
@@ -34,6 +35,7 @@ export class PageTableViewPageCustomUrls extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(pageCustomUrlsTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Page Mode (custom URLs)",
     labelKey: "name",
     rowActions: {

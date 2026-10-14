@@ -30,3 +30,9 @@ export const TASK_STATUSES = [
 ] as const;
 
 export type TaskStatusValue = (typeof TASK_STATUSES)[number]["value"];
+
+/**
+ * The order of the task tables that set none: by due date, so the first page
+ * mixes statuses instead of following the fixture's insertion order.
+ */
+export const TASK_DEFAULT_SORT = { field: "due_date" };
