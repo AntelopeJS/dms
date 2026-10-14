@@ -102,20 +102,15 @@ export const useTableViewConfig = <T extends Data>(
       .map((col) => ({ ...col, header: processI18n(col.header) })),
   );
 
-  // Config-derived (SSR-safe; the registry is client-only): the implicit `table`
-  // display (unless `tableDisplay` is false) plus explicit `displays`. Built-in defaults
+  // Config-derived (SSR-safe; the registry is client-only): the listed
+  // `displays`, else the built-in `table` alone. Built-in defaults
   // (selfManagedData/capabilities) are merged per id.
-  const resolvedDisplays: TableViewDisplayConfig[] = (() => {
-    const list: TableViewDisplayConfig[] =
-      config.tableDisplay === false ? [] : [{ id: TABLE_DISPLAY_ID }];
-    for (const display of config.displays ?? []) {
-      if (display.id === TABLE_DISPLAY_ID) continue;
-      list.push(display);
-    }
-    return list.map(withBuiltinDefaults);
-  })();
+  const resolvedDisplays: TableViewDisplayConfig[] = (
+    config.displays ?? [{ id: TABLE_DISPLAY_ID }]
+  ).map(withBuiltinDefaults);
 
-  const defaultDisplay = config.defaultDisplay ?? TABLE_DISPLAY_ID;
+  const defaultDisplay =
+    config.defaultDisplay ?? resolvedDisplays[0]?.id ?? TABLE_DISPLAY_ID;
 
   const initialVisibility = buildInitialColumnVisibility(config.columns ?? []);
 

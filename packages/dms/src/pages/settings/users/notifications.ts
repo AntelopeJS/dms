@@ -22,6 +22,7 @@ import { Section } from "@antelopejs/interface-dms/base/section";
 import {
   type ConfirmDialogSerialized,
   serializeConfirmDialog,
+  TABLE_DISPLAY_ID,
   TableView,
 } from "@antelopejs/interface-dms/base/table-view";
 import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifications/types";
@@ -122,6 +123,7 @@ export function notificationInboxTable() {
     pagination: "infinite",
     pageSize: INBOX_PAGE_SIZE,
     displays: [
+      { id: TABLE_DISPLAY_ID },
       {
         id: "dms:inbox",
         component: CustomComponent("DmsNotificationInboxDisplay"),

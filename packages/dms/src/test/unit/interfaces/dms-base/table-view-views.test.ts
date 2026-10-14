@@ -249,12 +249,15 @@ describe("[unit] interfaces/dms-base — table view views", () => {
       defaultDisplay: "grouped",
       views: { items: [{ id: "a", label: "A", display: "grouped" }] },
     });
-    expect(options.displays).to.deep.equal([
-      {
-        id: "grouped",
-        options: { groupByField: "createdAt", by: "day", count: true },
-      },
+    expect(options.displays?.map((display) => display.id)).to.deep.equal([
+      "table",
+      "grouped",
     ]);
+    expect(options.displays?.[1]?.options).to.deep.equal({
+      groupByField: "createdAt",
+      by: "day",
+      count: true,
+    });
     expect(options.defaultDisplay).to.equal("grouped");
   });
 

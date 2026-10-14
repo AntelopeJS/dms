@@ -217,23 +217,21 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(() => sourceOf({ defaultDisplay: "cards" })).to.throw(
       /not declared in displays/,
     );
-    expect(() =>
-      sourceOf({ tableDisplay: false, displays: [{ id: "cards" }] }),
-    ).to.throw(/drops the table display without a defaultDisplay/);
+    expect(() => sourceOf({ displays: [] })).to.throw(/offers no display/);
     expect(() =>
       sourceOf({
-        tableDisplay: false,
         displays: [{ id: "cards" }],
         defaultDisplay: "table",
       }),
     ).to.throw(/not declared in displays/);
     expect(
-      sourceOf({
-        tableDisplay: false,
-        displays: [{ id: "cards" }],
-        defaultDisplay: "cards",
-      }).tableDisplay,
-    ).to.equal(false);
+      sourceOf({ displays: [{ id: "cards" }] }).displays?.map(
+        (display) => display.id,
+      ),
+    ).to.deep.equal(["cards"]);
+    expect(sourceOf({}).displays?.map((display) => display.id)).to.deep.equal([
+      "table",
+    ]);
     expect(() => sourceOf({ card: { fields: ["status"] } })).to.throw(
       /unknown column "status"/,
     );

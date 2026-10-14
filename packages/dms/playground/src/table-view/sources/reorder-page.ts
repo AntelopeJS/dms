@@ -26,7 +26,7 @@ export class PageTableViewReorder extends PageController(
     },
     {
       label: "Cards display",
-      text: 'displays: [{ id: "cards" }] with card.component (FeatureRecordCard, drawn with DmsRecordCard): the card draws the move handle it is handed.',
+      text: 'displays: [{ id: "table" }, { id: "cards" }] with card.component (FeatureRecordCard, drawn with DmsRecordCard): the card draws the move handle it is handed.',
     },
     {
       label: "Upvote",
@@ -39,7 +39,7 @@ export class PageTableViewReorder extends PageController(
     labelKey: "name",
     reorder: { field: "position" },
     formContainer: { type: "drawer" },
-    displays: [{ id: "cards" }],
+    displays: [{ id: "table" }, { id: "cards" }],
     card: { component: CustomComponent("FeatureRecordCard") },
     rowActions: {
       add: true,
