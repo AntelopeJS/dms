@@ -37,6 +37,7 @@ export interface KpiCardProps extends BaseComponentProps {
   invert?: boolean;
   compareLabel?: string;
   staticValue?: number;
+  /** The change in percent, as a fetched `delta`: 12.5 reads +12.5 %. */
   staticDelta?: number;
   staticSparkline?: number[];
 }

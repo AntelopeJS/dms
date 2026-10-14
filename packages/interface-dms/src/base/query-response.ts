@@ -44,6 +44,9 @@ export interface ComparedFigure {
   /** Absent when the preceding period measured nothing to compare against. */
   previousValue?: number;
   /**
+   * The change in percent, as every card reads a `delta`: 12.5 for 100 to
+   * 112.5, not the 0.125 ratio.
+   *
    * Absent when no share can be stated, which includes a preceding zero: growth
    * away from nothing is unbounded, so 0 to 100 carries no variation at all.
    * Blocks show none in that case rather than a stand-in for one. Written down
@@ -91,12 +94,14 @@ const BUCKET_EPOCH_LAST = Date.UTC(2100, 0, 1);
 const ISO_DATE_END = 10;
 const ISO_MINUTE_END = 16;
 
-/** The share a figure gained or lost against the one before it. */
+const PERCENT_SCALE = 100;
+
+/** The share, in percent, a figure gained or lost against the one before it. */
 function variation(current: number, previous: number): number | undefined {
   if (previous === 0) {
     return current === 0 ? 0 : undefined;
   }
-  return (current - previous) / previous;
+  return ((current - previous) / previous) * PERCENT_SCALE;
 }
 
 /** Fill in the figure before this one and the share it moved, when there is one. */

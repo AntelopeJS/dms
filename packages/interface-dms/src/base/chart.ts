@@ -158,6 +158,11 @@ interface BaseChartProps extends BaseComponentProps {
   fetchUrlMethod?: EnumOption<HttpMethod>;
   periodScope?: string;
   realtimeTopic?: string | string[];
+  /**
+   * Raw ApexCharts options, applied last. A plain key (`markers`) replaces
+   * that whole section; a dotted key (`markers.size`) sets one option inside
+   * it. Values are parsed as JSON when they can be.
+   */
   rawOptions?: KeyValuePair[];
   rawCss?: KeyValuePair[];
 }
@@ -172,7 +177,10 @@ interface XYChartProps extends BaseChartProps {
   showGrid?: boolean;
   staticDataset?: ChartSeries[];
   yRange?: YRange;
-  /** Includes annotations in native Y bounds; explicit yRange takes precedence. */
+  /**
+   * Includes annotations in native Y bounds, padded and rounded to a round
+   * step; explicit yRange takes precedence.
+   */
   autoYRange?: ChartAutoYRange;
   comparisonStyle?: ComparisonStyle;
   smooth?: boolean;
@@ -229,7 +237,9 @@ export interface ColumnChartProps extends XYChartProps {
 
 export interface ScatterChartProps extends XYChartProps {
   type: ChartType.SCATTER;
+  /** Point diameter in pixels; points are drawn at 6 px without it. */
   pointSize?: number;
+  /** Label each point with its `label`, or its value when it has none. */
   showLabels?: boolean;
 }
 
@@ -265,6 +275,10 @@ export interface DonutChartProps extends CircularChartProps {
   type: ChartType.DONUT;
   centralLabel?: string;
   centralSubLabel?: string;
+  /**
+   * Ring thickness in percent of the radius (24 by default). Slices carry
+   * their percent label from 35 up; a thinner ring cannot hold the text.
+   */
   arcWidth?: number;
 }
 

@@ -11,6 +11,11 @@ const SHADE_TOKEN =
 const CSS_VARIABLE = /^--[\w-]+$/;
 const CSS_VARIABLE_FUNCTION = /^var\((--[\w-]+)\)$/;
 const COLOR_CHANNEL_MAX = 255;
+const PERCENT_SCALE = 100;
+const PERCENT_SUFFIX = "%";
+/** CSS Color 4 `rgb(R G B / A)`, which Apex cannot parse: it splits on commas. */
+const SPACE_SEPARATED_RGB =
+  /^rgba?\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?)\s*)?\)$/i;
 const DEFAULT_PALETTE = [
   "--dms-chart-1",
   "--dms-chart-2",
@@ -32,6 +37,20 @@ const COLOR_NAME_TO_VAR: Record<string, string> = {
 
 function isHexLike(value: string): boolean {
   return HEX_PREFIXES.some((prefix) => value.startsWith(prefix));
+}
+
+function alphaValue(alpha: string): number {
+  if (!alpha.endsWith(PERCENT_SUFFIX)) return Number(alpha);
+  return Number(alpha.slice(0, -PERCENT_SUFFIX.length)) / PERCENT_SCALE;
+}
+
+/** Rewrite a space-separated `rgb()` in the comma form Apex reads. */
+function toCommaSeparatedRgb(color: string): string {
+  const match = SPACE_SEPARATED_RGB.exec(color);
+  if (!match) return color;
+  const [, red, green, blue, alpha] = match;
+  if (alpha === undefined) return `rgb(${red}, ${green}, ${blue})`;
+  return `rgba(${red}, ${green}, ${blue}, ${alphaValue(alpha)})`;
 }
 
 const colorProbeCache = new Map<string, string>();
@@ -105,7 +124,7 @@ function colorVariable(value: string): string | undefined {
 /** Resolve semantic colors, shade tokens and global CSS variables for Apex. */
 export function resolveChartColor(value: string | undefined): string {
   const colorName = value ?? DEFAULT_COLOR_NAME;
-  if (isHexLike(colorName)) return colorName;
+  if (isHexLike(colorName)) return toCommaSeparatedRgb(colorName);
   const variable = colorVariable(colorName);
   if (!variable) return colorName;
   return readCssVariable(variable, SAFE_HEX_FALLBACK);

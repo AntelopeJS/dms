@@ -18,9 +18,16 @@ const DATA_LABEL_FONT_SIZE = "11px";
 const DATA_LABEL_FONT_WEIGHT = 600;
 const TOOLTIP_DATETIME_FORMAT = "dd MMM yyyy";
 const HOVER_MARKER_SIZE = 5;
+/** Grows a visible point on hover instead of setting a size below its own. */
+const HOVER_POINT_SIZE_OFFSET = 2;
+/** A scatter is nothing but its points, so it draws them without `pointSize`. */
+const DEFAULT_POINT_SIZE = 6;
+const POINT_MARKER_TYPES: ChartType[] = ["scatter"];
 const HEAD_MARKER_SIZE = 5;
 const SOLID_GRID = 0;
 const HEAD_MARKER_TYPES: ChartType[] = ["line", "area"];
+/** A radar draws its own polygon grid; the cartesian one would cross the card. */
+const OWN_GRID_TYPES: ChartType[] = ["radar"];
 
 /** Theme colors every section of an Apex config reads once per build. */
 export interface ApexThemeColors {
@@ -83,7 +90,10 @@ export function buildGrid(
   theme: ApexThemeColors,
 ): Record<string, unknown> {
   return {
-    show: !isCircular && (input.showGrid ?? true),
+    show:
+      !isCircular &&
+      !OWN_GRID_TYPES.includes(input.type) &&
+      (input.showGrid ?? true),
     borderColor: theme.border,
     strokeDashArray: SOLID_GRID,
     padding: GRID_PADDING,
@@ -140,6 +150,13 @@ export function buildMarkers(
   colors: string[],
   theme: ApexThemeColors,
 ): Record<string, unknown> {
+  if (POINT_MARKER_TYPES.includes(input.type)) {
+    return {
+      size: input.pointSize ?? DEFAULT_POINT_SIZE,
+      strokeWidth: 0,
+      hover: { sizeOffset: HOVER_POINT_SIZE_OFFSET },
+    };
+  }
   const showsHead = HEAD_MARKER_TYPES.includes(input.type) && !input.stacked;
   return {
     size: 0,
@@ -151,10 +168,31 @@ export function buildMarkers(
   };
 }
 
-/** Value labels in mono, without Apex's default drop shadow. */
+/** Where Apex is drawing a data label. */
+interface DataLabelContext {
+  seriesIndex: number;
+  dataPointIndex: number;
+  w: { config: { series: ChartSeries[] } };
+}
+
+/** A point's own `label` when it has one, else the value Apex would print. */
+function pointLabel(value: unknown, context: DataLabelContext): unknown {
+  const point =
+    context.w.config.series[context.seriesIndex]?.data[context.dataPointIndex];
+  if (typeof point !== "object" || point === null || !("label" in point)) {
+    return value;
+  }
+  return point.label || value;
+}
+
+/**
+ * Value labels in mono, without Apex's default drop shadow. A circular chart
+ * keeps Apex's own percent formatter: its series hold bare numbers.
+ */
 export function buildDataLabels(
   enabled: boolean,
   theme: ApexThemeColors,
+  isCircular = false,
 ): Record<string, unknown> {
   return {
     enabled,
@@ -164,5 +202,6 @@ export function buildDataLabels(
       fontFamily: theme.monoFont,
       fontWeight: DATA_LABEL_FONT_WEIGHT,
     },
+    ...(isCircular ? {} : { formatter: pointLabel }),
   };
 }
