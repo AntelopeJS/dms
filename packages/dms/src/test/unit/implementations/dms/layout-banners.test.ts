@@ -21,6 +21,7 @@ import * as tenantAccessInterface from "@antelopejs/interface-dms/tenant-access"
 import { withPermissionAncestors } from "@antelopejs/interface-dms/internal/permission-ids";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import type { LayoutBannerSerialized } from "../../../../implementations/dms/layout-banners";
+import { overrideResolverTimeout } from "../../../../implementations/dms/resolver-timeout";
 import {
   denyingTenantGate,
   stubPageAccessModels,
@@ -30,7 +31,8 @@ const TENANT = "layout-banner-tenant";
 const DENIED_TENANT = "layout-banner-denied-tenant";
 const MEMBER = { _id: "layout-banner-member" } as User;
 const GRANTED_PERMISSION = "pages.layout-banner-page";
-const RESOLVER_TIMEOUT_MS = 2000;
+// A fraction of the production budget: the hanging resolvers below wait it out.
+const RESOLVER_TIMEOUT_MS = 300;
 
 const gateInfo = denyingTenantGate("layout-banner-gate", DENIED_TENANT);
 
@@ -223,10 +225,15 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
       }),
     );
 
-    const started = Date.now();
-    expect(await bannerKeys()).to.deep.equal([]);
-    expect(Date.now() - started).to.be.lessThan(RESOLVER_TIMEOUT_MS * 2);
-  }).timeout(RESOLVER_TIMEOUT_MS * 3);
+    const restoreTimeout = overrideResolverTimeout(RESOLVER_TIMEOUT_MS);
+    try {
+      const started = Date.now();
+      expect(await bannerKeys()).to.deep.equal([]);
+      expect(Date.now() - started).to.be.lessThan(RESOLVER_TIMEOUT_MS * 3);
+    } finally {
+      restoreTimeout();
+    }
+  });
 
   it("skips an untyped banner that has no content", async () => {
     const contentless = {
@@ -324,8 +331,13 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
       }),
     );
 
-    expect(await bannerKeys()).to.deep.equal(["healthy"]);
-  }).timeout(RESOLVER_TIMEOUT_MS * 3);
+    const restoreTimeout = overrideResolverTimeout(RESOLVER_TIMEOUT_MS);
+    try {
+      expect(await bannerKeys()).to.deep.equal(["healthy"]);
+    } finally {
+      restoreTimeout();
+    }
+  });
 
   it("replaces a banner re-registered under the same key, and drops it on dispose", async () => {
     RegisterLayoutBanner({ key: "same", variant: "info", text: "first" });

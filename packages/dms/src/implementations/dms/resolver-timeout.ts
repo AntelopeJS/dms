@@ -2,7 +2,23 @@
 // load: one that hangs would hold the layout of every user of the tenant. Long
 // enough for a database round trip, short enough that a stuck resolver costs a
 // slow page rather than an unusable dashboard.
-const RESOLVER_TIMEOUT_MS = 2000;
+const DEFAULT_RESOLVER_TIMEOUT_MS = 2000;
+
+let resolverTimeoutMs = DEFAULT_RESOLVER_TIMEOUT_MS;
+
+/**
+ * Overrides the resolver budget until the returned function is called.
+ *
+ * The tests that hang a resolver on purpose use it so they wait a fraction of
+ * the production budget rather than all of it.
+ */
+export function overrideResolverTimeout(timeoutMs: number): () => void {
+  const previous = resolverTimeoutMs;
+  resolverTimeoutMs = timeoutMs;
+  return () => {
+    resolverTimeoutMs = previous;
+  };
+}
 
 /**
  * Rejects when `work` does not settle within the resolver budget.
@@ -13,14 +29,13 @@ export function withResolverTimeout<T>(
   work: Promise<T>,
   subject: string,
 ): Promise<T> {
+  const timeoutMs = resolverTimeoutMs;
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(
-        new Error(
-          `resolver did not answer within ${RESOLVER_TIMEOUT_MS}ms (${subject})`,
-        ),
+        new Error(`resolver did not answer within ${timeoutMs}ms (${subject})`),
       );
-    }, RESOLVER_TIMEOUT_MS);
+    }, timeoutMs);
     work.then(resolve, reject).finally(() => clearTimeout(timer));
   });
 }
