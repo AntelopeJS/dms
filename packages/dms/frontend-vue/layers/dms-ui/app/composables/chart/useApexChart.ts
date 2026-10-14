@@ -1,11 +1,13 @@
 import { computed } from "vue";
 import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
-import { buildPlotOptions } from "./apexPlotOptions";
+import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
+import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
 import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
   axisLabelStyle,
   buildDataLabels,
+  dataLabelOffset,
   buildGrid,
   buildLegend,
   buildMarkers,
@@ -286,36 +288,6 @@ function applySeriesStroke(
 
 const HIGH_CONTRAST_YAXIS_TYPES: ChartType[] = ["radar"];
 
-const DEFAULT_Y_RANGE_PADDING = 0.08;
-const ZERO_BOUND_MAGNITUDE = 1;
-
-function buildAutoYRange(input: UseApexChartInput): Record<string, unknown> {
-  if (!input.autoYRange || APEX_TYPE_CONFIGS[input.type].isCircular) return {};
-  const requested = input.autoYRange.padding ?? DEFAULT_Y_RANGE_PADDING;
-  const padding =
-    Number.isFinite(requested) && requested >= 0
-      ? requested
-      : DEFAULT_Y_RANGE_PADDING;
-  const bounds = (input.annotations ?? [])
-    .flatMap((annotation) => [annotation.y, annotation.y2])
-    .filter(
-      (value): value is number =>
-        typeof value === "number" && Number.isFinite(value),
-    );
-  const lower = bounds.reduce((min, value) => Math.min(min, value), Infinity);
-  const upper = bounds.reduce((max, value) => Math.max(max, value), -Infinity);
-  return {
-    min: (nativeMin: number) => {
-      const min = Math.min(nativeMin, lower);
-      return min - (Math.abs(min) || ZERO_BOUND_MAGNITUDE) * padding;
-    },
-    max: (nativeMax: number) => {
-      const max = Math.max(nativeMax, upper);
-      return max + (Math.abs(max) || ZERO_BOUND_MAGNITUDE) * padding;
-    },
-  };
-}
-
 function buildYAxis(
   input: UseApexChartInput,
   theme: ApexThemeColors,
@@ -331,9 +303,8 @@ function buildYAxis(
     yaxis.min = input.yRange.min;
     yaxis.max = input.yRange.max;
   }
-  if (input.yAxisFormatter) {
-    (yaxis.labels as Record<string, unknown>).formatter = input.yAxisFormatter;
-  }
+  (yaxis.labels as Record<string, unknown>).formatter =
+    input.yAxisFormatter ?? formatPlainAxisValue;
   return yaxis;
 }
 
@@ -387,20 +358,50 @@ function applyMixedSeriesDefs(
   });
 }
 
+const RAW_OPTION_PATH_SEPARATOR = ".";
+
+function parseRawOptionValue(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function isOptionSection(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Set `value` at a dotted path ("markers.size"), copying each section on the
+ * way so the generated options are not mutated. A key without a dot replaces
+ * its whole section, as it always has.
+ */
+function setOptionPath(
+  options: Record<string, unknown>,
+  path: string[],
+  value: unknown,
+): Record<string, unknown> {
+  const [head, ...rest] = path;
+  if (head === undefined) return options;
+  if (rest.length === 0) return { ...options, [head]: value };
+  const section = isOptionSection(options[head]) ? options[head] : {};
+  return { ...options, [head]: setOptionPath(section, rest, value) };
+}
+
 function injectRawOptions(
   options: Record<string, unknown>,
   rawOptions: Array<{ key: string; value: string }> | undefined,
 ): Record<string, unknown> {
-  if (!rawOptions || rawOptions.length === 0) return options;
-  const merged: Record<string, unknown> = { ...options };
-  for (const entry of rawOptions) {
-    try {
-      merged[entry.key] = JSON.parse(entry.value);
-    } catch {
-      merged[entry.key] = entry.value;
-    }
-  }
-  return merged;
+  return (rawOptions ?? []).reduce(
+    (merged, entry) =>
+      setOptionPath(
+        merged,
+        entry.key.split(RAW_OPTION_PATH_SEPARATOR),
+        parseRawOptionValue(entry.value),
+      ),
+    options,
+  );
 }
 
 const RANGE_AREA_APEX_TYPE = "rangeArea";
@@ -465,8 +466,11 @@ function buildBaseOptions(
     chart: buildChartConfig(input, theme.muted),
     colors: seriesColors,
     dataLabels: buildDataLabels(
-      config.supportsDataLabels || input.showLabels === true,
+      (config.supportsDataLabels || input.showLabels === true) &&
+        ringFitsSliceLabels(input),
       theme,
+      config.isCircular,
+      dataLabelOffset(input),
     ),
     stroke: buildStroke(
       input,
@@ -599,10 +603,6 @@ function applyOptionalSections(
 
   if (isCircular) {
     baseOptions.labels = buildCircularLabels(input.donutData).labels;
-  }
-
-  if (input.type === "scatter" && input.pointSize !== undefined) {
-    baseOptions.markers = { size: input.pointSize };
   }
 }
 

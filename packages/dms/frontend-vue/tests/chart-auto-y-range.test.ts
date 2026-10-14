@@ -34,20 +34,20 @@ describe("annotation-aware auto Y range", () => {
 
   it("expands both ends for annotations above and below native data bounds", () => {
     const bounds = boundsFor({ annotations: [{ y: 200 }, { y: -50 }] });
-    expect(bounds.min(10)).toBe(-54);
-    expect(bounds.max(30)).toBe(216);
+    expect(bounds.min(10)).toBe(-100);
+    expect(bounds.max(30)).toBe(250);
   });
 
   it("includes both ends of a reversed band and all native series extrema", () => {
     const bounds = boundsFor({ annotations: [{ y: 200, y2: -50 }] });
-    expect(bounds.min(-100)).toBe(-108);
-    expect(bounds.max(300)).toBe(324);
+    expect(bounds.min(-100)).toBe(-150);
+    expect(bounds.max(300)).toBe(350);
   });
 
   it("pads negative bounds outwards rather than clipping negative data", () => {
     const bounds = boundsFor();
-    expect(bounds.min(-100)).toBe(-108);
-    expect(bounds.max(-10)).toBe(-9.2);
+    expect(bounds.min(-100)).toBe(-120);
+    expect(bounds.max(-10)).toBe(-9);
   });
 
   it("gives zero-only data a nonzero range without changing the series", () => {
@@ -75,15 +75,15 @@ describe("annotation-aware auto Y range", () => {
   });
 
   it.each([-1, NaN, Infinity])("defaults invalid padding %s", (padding) => {
-    expect(boundsFor({ autoYRange: { padding } }).max(100)).toBe(108);
+    expect(boundsFor({ autoYRange: { padding } }).max(100)).toBe(120);
   });
 
   it("ignores nonfinite annotation coordinates when determining bounds", () => {
     const bounds = boundsFor({
       annotations: [{ y: NaN }, { y: Infinity }, { y: 20 }],
     });
-    expect(bounds.min(10)).toBe(9.2);
-    expect(bounds.max(10)).toBe(21.6);
+    expect(bounds.min(10)).toBe(9);
+    expect(bounds.max(10)).toBe(22);
   });
 
   it("recomputes when annotations or padding change", () => {
@@ -107,6 +107,22 @@ describe("annotation-aware auto Y range", () => {
         rawOptions: [{ key: "yaxis", value: '{"min":0,"max":5}' }],
       }).options.value.yaxis,
     ).toEqual({ min: 0, max: 5 });
+  });
+
+  it("rounds the padded bounds to a step the axis can tick evenly", () => {
+    const series = [{ name: "value", data: [104.4, 420, 770] }];
+    const bounds = boundsFor({ series, annotations: [{ y: 300, y2: 500 }] });
+    expect(bounds.min(104.4)).toBe(0);
+    expect(bounds.max(770)).toBe(900);
+  });
+
+  it("writes unformatted axis labels without float noise", () => {
+    const labels = chartFor().options.value.yaxis as {
+      labels: { formatter: (value: number) => string };
+    };
+    expect(labels.labels.formatter(160.00000000000003)).toBe("160");
+    expect(labels.labels.formatter(0.1 + 0.2)).toBe("0.3");
+    expect(labels.labels.formatter(603.6)).toBe("603.6");
   });
 
   it("does not scale circular charts", () => {

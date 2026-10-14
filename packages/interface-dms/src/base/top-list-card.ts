@@ -45,6 +45,7 @@ export interface TopListItem {
    * format cannot write ("1.9 s (partial)"). `valueSuffix` is not added to it.
    */
   valueLabel?: BlockText;
+  /** The change in percent: 12.5 reads +12.5 %. */
   delta?: number | null;
   sparkline?: number[];
   icon?: string;

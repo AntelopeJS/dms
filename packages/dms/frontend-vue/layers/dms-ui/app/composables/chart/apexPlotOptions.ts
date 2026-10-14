@@ -9,7 +9,14 @@ import {
 
 const DEFAULT_BAR_RADIUS = 4;
 const DEFAULT_BAR_WIDTH_PCT = "60%";
-const DEFAULT_DONUT_HOLE = "76%";
+const HUNDRED_PERCENT = 100;
+/** Ring thickness, in percent of the radius, of a donut without `arcWidth`. */
+const DEFAULT_ARC_WIDTH = 24;
+/**
+ * The thinnest ring, in percent of the radius, a slice label ("33.0%") fits
+ * in: on a thinner one its white text runs past the ring onto the card.
+ */
+const MIN_LABELLED_ARC_WIDTH = 35;
 const DEFAULT_RADIAL_HOLE = "60%";
 const CENTER_NAME_FONT_SIZE = "10.5px";
 const CENTER_NAME_FONT_WEIGHT = 600;
@@ -17,7 +24,6 @@ const CENTER_VALUE_FONT_SIZE = "20px";
 const CENTER_VALUE_FONT_WEIGHT = 650;
 const HEATMAP_RADIUS = 4;
 const HEATMAP_DEFAULT_INTENSITY = 0.6;
-const HUNDRED_PERCENT = 100;
 
 type PlotBuilder = (props: UseApexChartInput) => Record<string, unknown>;
 
@@ -47,8 +53,13 @@ function buildBarPlotOptions(
 }
 
 function donutSizeFor(arcWidth: number | undefined): string {
-  if (arcWidth === undefined) return DEFAULT_DONUT_HOLE;
-  return `${HUNDRED_PERCENT - arcWidth}%`;
+  return `${HUNDRED_PERCENT - (arcWidth ?? DEFAULT_ARC_WIDTH)}%`;
+}
+
+/** Whether a slice label fits inside the chart's ring; always true off donuts. */
+export function ringFitsSliceLabels(input: UseApexChartInput): boolean {
+  if (input.type !== "donut") return true;
+  return (input.arcWidth ?? DEFAULT_ARC_WIDTH) >= MIN_LABELLED_ARC_WIDTH;
 }
 
 /** v2 donut centre: mono eyebrow over a 20px value. */
