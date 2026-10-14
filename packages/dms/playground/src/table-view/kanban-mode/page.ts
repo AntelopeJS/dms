@@ -11,6 +11,8 @@ import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
 
+const COLUMN_MAX_HEIGHT = "420px";
+
 @RegisterDataController()
 class kanbanTaskDataAPI extends DataController(
   Task,
@@ -27,7 +29,7 @@ export class PageTableViewKanban extends PageController(
     category: tableViewCategory,
     order: 90,
     description:
-      "TableView with kanban display mode, grouped by status with drag & drop",
+      "Kanban boards: grouped by status with drag & drop and a capped column height, then a read-only board grouped by a boolean. Drag a card to change its status.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -44,8 +46,19 @@ export class PageTableViewKanban extends PageController(
       edit: { isVisible: true },
       hasSelection: true,
     },
-    kanban: { groupByField: "status" },
+    kanban: { groupByField: "status", columnMaxHeight: COLUMN_MAX_HEIGHT },
     card: { fields: ["email", "due_date", "price", "completion_percentage"] },
     defaultDisplay: "kanban",
+  });
+
+  // Read-only over the shared tasks: a boolean column groups in two columns,
+  // and nothing can be dragged.
+  static byDone = TableView(taskDataAPI, {
+    caption: "Done or not (read-only board)",
+    labelKey: "name",
+    kanban: { groupByField: "done", draggable: false },
+    card: { fields: ["status", "due_date"] },
+    defaultDisplay: "kanban",
+    rowActions: { add: false, duplicate: false, edit: false, delete: false },
   });
 }

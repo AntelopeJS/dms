@@ -9,7 +9,7 @@ export class PagePrimitivesShowcase extends PageController(
   {
     displayName: "Themed Nuxt UI",
     description:
-      "Nuxt UI primitives as the v2 theme draws them: stepper, pagination, field variants, checkbox / radio cards, switch states, horizontal navigation, pin input, tree, chip, separator, empty state, link and table",
+      "Nuxt UI primitives as the DMS theme draws them: stepper, pagination, fields, choice cards, switches, navigation, pin input, tree, chip, link and table. Compare them with the DMS components of Foundations",
     icon: "i-ph-swatches",
     category: primitivesCategory,
     order: 0,

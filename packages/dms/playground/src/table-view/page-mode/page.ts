@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterDataController()
 class pageModeTaskDataAPI extends DataController(
@@ -27,11 +28,12 @@ export class PageTableViewPage extends PageController(
     category: tableViewCategory,
     order: 30,
     description:
-      "Add, edit and details forms open as full pages with their own URLs",
+      "Add, edit and details forms open as full pages at URLs the table builds (<page>/table/new, <page>/table/:id/edit). Open a task, then read the URL.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(pageModeTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Page Mode (Auto URLs)",
     labelKey: "name",
     rowActions: {
@@ -44,8 +46,5 @@ export class PageTableViewPage extends PageController(
       hasSelection: true,
     },
     formContainer: { type: "page", pages: demoFormPages("task") },
-    // Offers the built-in cards display next to the grid (display switch in
-    // the toolbar).
-    displays: [{ id: "cards" }],
   });
 }

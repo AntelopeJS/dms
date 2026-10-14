@@ -1,5 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
-import { Tab } from "@antelopejs/interface-dms/base/tab";
+import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
+import { Tab, TabVariant } from "@antelopejs/interface-dms/base/tab";
 import { Color, Size } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
 import { componentsPanel, databasePanel, filesPanel } from "../panels";
@@ -10,7 +11,8 @@ export class PageTabsPersist extends PageController("tabs-persist", {
   icon: "i-ph-link",
   category: pageCategory,
   order: 20,
-  description: "Tabs with URL persistence for shareable links",
+  description:
+    "Tabs whose selection lives in the URL, for shareable links: under ?activeTab= (stateKey), and under the default ?tab= key for the second set. Pick a tab and reload: it stays open.",
 }) {
   static tabsUrl = Tab({
     persistState: true,
@@ -38,4 +40,24 @@ export class PageTabsPersist extends PageController("tabs-persist", {
     .child("filesPanel", filesPanel(), { slot: "persistent1" })
     .child("componentsPanel", componentsPanel(), { slot: "persistent2" })
     .child("databasePanel", databasePanel(), { slot: "persistent3" });
+
+  // No stateKey: the selected slot goes to ?tab=.
+  static tabsDefaultKey = Tab({
+    persistState: true,
+    variant: TabVariant.pill,
+    items: [
+      { label: "Overview", icon: "i-ph-house", slot: "overview" },
+      { label: "History", icon: "i-ph-clock", slot: "history" },
+    ],
+  })
+    .child(
+      "overviewPanel",
+      Placeholder({ label: "?tab=overview", height: "80px" }),
+      { slot: "overview" },
+    )
+    .child(
+      "historyPanel",
+      Placeholder({ label: "?tab=history", height: "80px" }),
+      { slot: "history" },
+    );
 }

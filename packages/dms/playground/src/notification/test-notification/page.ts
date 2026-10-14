@@ -4,6 +4,47 @@ import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { HttpMethod } from "@antelopejs/interface-dms/base/types";
 import { notificationCategory } from "../category";
+import { sentNotificationCount } from "../notification-api";
+
+const NOTIFICATION_API = "/api/notification";
+const PRESET_COLUMNS = 2;
+
+const PRESET_ITEMS = [
+  {
+    value: "dms-update",
+    label: "DMS update",
+    description: "To you: a tone, an icon and an internal link",
+  },
+  {
+    value: "hosting-promo",
+    label: "Hosting promo",
+    description: "To you: a link that leaves the app",
+  },
+  {
+    value: "broadcast",
+    label: "Broadcast to all (shared)",
+    description:
+      'broadcast({ readScope: "shared" }): once one user reads it, it is read for all',
+  },
+  {
+    value: "idempotent",
+    label: "Idempotent delivery",
+    description:
+      "toUser(id, { idempotencyKey }): send it twice, a single notification arrives",
+  },
+  {
+    value: "params",
+    label: "Translated text with params",
+    description:
+      ".params({ count: 3 }) fills the {count} of a translated title, in each reader's language",
+  },
+  {
+    value: "roles",
+    label: "Every role",
+    description:
+      "toRoles(roleIds) with every role of the workspace, under the playground's own subject",
+  },
+];
 
 @RegisterPage()
 export class PageNotificationTest extends PageController(
@@ -13,10 +54,12 @@ export class PageNotificationTest extends PageController(
     icon: "i-ph-bell-ringing",
     category: notificationCategory,
     order: 0,
-    description: "Test the notification system by sending custom notifications",
+    description:
+      "Demonstrates: the Notification() builder and its delivery options (toUser, toRoles, broadcast, readScope, idempotencyKey, params). Send one and open the bell.",
   },
   FormPageLayout(),
 ) {
+  // Its nav badge counts the notifications you sent yourself with it.
   static notificationForm = Form({
     title: "Send Custom Notification",
     description: "Fill in the form and submit to send yourself a notification",
@@ -64,59 +107,34 @@ export class PageNotificationTest extends PageController(
         }),
       },
     ],
+  }).navBadge({
+    count: async (_ctx, user) => ({
+      count: sentNotificationCount(user._id),
+      tone: "primary",
+    }),
   });
 
-  static dmsUpdateForm = Form({
-    title: "DMS Update Notification",
-    description: "Send a system notification about a DMS update",
-    submitUrl: "/api/notification/send-dms-update",
-    submitLabel: "Send DMS update",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "title",
-        label: "Title",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "DMS Update Notification",
-      },
-    ],
-  });
-
-  static hostingPromoForm = Form({
-    title: "Hosting Promo Notification",
-    description: "Send a promotional notification about hosting offers",
-    submitUrl: "/api/notification/send-hosting-promo",
-    submitLabel: "Send hosting promo",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "title",
-        label: "Title",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "Hosting Promo Notification",
-      },
-    ],
-  });
-
-  static broadcastAllForm = Form({
-    title: "Broadcast to All (shared)",
+  // One-click notifications: picking a card makes the action form ready to
+  // send; it empties again once sent.
+  static presetForm = Form({
+    title: "Preset notifications",
     description:
-      "Send a shared notification to all users - when one reads it, all see it as read",
-    submitUrl: "/api/notification/broadcast-all",
-    submitLabel: "Send broadcast",
+      "Pick one, then send it. Each shows one option of the builder or of its delivery.",
+    submitUrl: `${NOTIFICATION_API}/send-preset`,
+    submitLabel: "Send",
     kind: "action",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
     fields: [
       {
-        id: "trigger",
-        label: "Trigger",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "System announcement",
+        id: "preset",
+        label: "Notification",
+        type: new DefaultDataTypes.SelectType({
+          items: PRESET_ITEMS,
+          display: "cards",
+          columns: PRESET_COLUMNS,
+        }),
+        required: true,
       },
     ],
   });

@@ -12,7 +12,8 @@ export class PageNested4B2 extends PageController(
     icon: "i-ph-file",
     category: level3BCategory,
     order: 1,
-    description: "Deeply nested page at level 4",
+    description:
+      "Demonstrates: categories nested with Category({ category }); this page sits at level 4.",
   },
   FormPageLayout(),
 ) {

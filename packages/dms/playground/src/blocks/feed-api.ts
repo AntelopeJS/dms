@@ -1,10 +1,47 @@
-import { Controller, Get, JSONBody, Put } from "@antelopejs/interface-api";
+import {
+  Controller,
+  Get,
+  JSONBody,
+  Parameter,
+  Post,
+  Put,
+} from "@antelopejs/interface-api";
+import type { ActivityFeedItem } from "@antelopejs/interface-dms/base/activity-feed";
+import { PublishMessage } from "@antelopejs/interface-dms/realtime";
+import { notFound, serviceUnavailable } from "./demo-errors";
+import { ago, attentionEntries, workspaceActivity } from "./feed-data";
 
 // Live payloads for the list / feed / settings block demos.
 const DEMO_LATENCY_MS = 700;
-const MINUTE_MS = 60 * 1000;
-const HOUR_MS = 60 * MINUTE_MS;
-const DAY_MS = 24 * HOUR_MS;
+
+/** Published when an entry is added to the workspace activity. */
+export const ACTIVITY_DEMO_TOPIC = "blocks:activity-demo";
+/** Published when API calls are used up, which the quota meter follows. */
+export const QUOTA_DEMO_TOPIC = "blocks:quota-demo";
+const ACTIVITY_EVENT_TYPE = "activity.add";
+const QUOTA_EVENT_TYPE = "quota.update";
+const MAX_ADDED_ENTRIES = 5;
+const QUOTA_STEP = 5_000;
+const QUOTA_MAX = 100_000;
+const DEFAULT_PERIOD = "this-month";
+
+// What the quota meter shows for each period of its selector.
+const QUOTA_BY_PERIOD: Record<string, number> = {
+  "this-month": 61_400,
+  "last-month": 97_800,
+};
+
+// How many requests need attention over each period of the feed's selector:
+// the route's `count` replaces the one the block declares.
+const ATTENTION_COUNT_BY_PERIOD: Record<string, number> = {
+  "last-24h": 9,
+  "last-7-days": 31,
+  "last-30-days": 112,
+};
+
+let quotaUsedThisMonth = QUOTA_BY_PERIOD[DEFAULT_PERIOD];
+const addedEntries: ActivityFeedItem[] = [];
+let addedSequence = 0;
 
 function later<T>(value: T): Promise<T> {
   return new Promise((resolve) =>
@@ -12,9 +49,17 @@ function later<T>(value: T): Promise<T> {
   );
 }
 
-/** An ISO date `ago` milliseconds before now. */
-function ago(ms: number): string {
-  return new Date(Date.now() - ms).toISOString();
+function newEntry(): ActivityFeedItem {
+  addedSequence += 1;
+  return {
+    id: `added-${addedSequence}`,
+    icon: "i-ph-plus-circle",
+    tone: "success",
+    title: `Order #${10500 + addedSequence} placed`,
+    meta: ["Added from the page header", "realtime"],
+    date: ago(0),
+    unread: true,
+  };
 }
 
 interface WorkspaceSettings {
@@ -37,120 +82,46 @@ const workspace: WorkspaceSettings = {
 export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
   @Get("activity")
   getActivity() {
+    return later({ items: [...addedEntries, ...workspaceActivity()] });
+  }
+
+  @Post("activity/add")
+  async addActivity() {
+    addedEntries.unshift(newEntry());
+    addedEntries.splice(MAX_ADDED_ENTRIES);
+    await PublishMessage(ACTIVITY_DEMO_TOPIC, ACTIVITY_EVENT_TYPE);
+    return { ok: true };
+  }
+
+  @Get("attention")
+  getAttention(@Parameter("preset", "query") preset?: string) {
     return later({
-      items: [
-        {
-          id: "a1",
-          icon: "i-ph-sparkle",
-          tone: "secondary",
-          title: "Assistant added Top customers to Sales overview",
-          meta: [
-            {
-              key: "demo.blocks.activity.files_changed",
-              params: { count: { type: "count", value: 1 } },
-            },
-            "safe mode",
-            "requested by Camille",
-          ],
-          date: ago(12 * MINUTE_MS),
-          unread: true,
-          to: "/chart/chart-dashboard",
-        },
-        {
-          id: "a2",
-          icon: "i-ph-check-circle",
-          tone: "success",
-          title: {
-            key: "demo.blocks.activity.order_paid",
-            params: { order: "#10481" },
-          },
-          meta: [
-            "Globex Logistics",
-            {
-              key: "demo.blocks.activity.amount",
-              params: {
-                amount: { type: "money", value: 86050, currency: "EUR" },
-              },
-            },
-            "Stripe",
-          ],
-          date: ago(36 * MINUTE_MS),
-          unread: true,
-        },
-        {
-          id: "a3",
-          icon: "i-ph-rocket-launch",
-          tone: "primary",
-          title: "Release v2.14 promoted",
-          meta: ["staging → production", "42 s"],
-          date: ago(2 * HOUR_MS),
-        },
-        {
-          id: "a4",
-          icon: "i-ph-translate",
-          tone: "warning",
-          // A `$` title takes the entry's typed values: the count picks
-          // the plural form.
-          title: "$demo.blocks.activity.missing_keys",
-          params: { count: { type: "count", value: 12 } },
-          meta: ["Français", "checkout"],
-          date: ago(DAY_MS + HOUR_MS),
-        },
-        {
-          id: "a5",
-          icon: "i-ph-user-plus",
-          title: "Hugo Martin joined as Editor",
-          meta: ["Invited by Camille Laurent"],
-          date: ago(DAY_MS + 3 * HOUR_MS),
-        },
-        {
-          id: "a6",
-          icon: "i-ph-paper-plane-tilt",
-          tone: "info",
-          title: "Invoice INV-2026-0942 sent",
-          meta: ["Stark Industries", "€490.00"],
-          date: ago(DAY_MS + 5 * HOUR_MS),
-        },
-        {
-          id: "a7",
-          icon: "i-ph-x-circle",
-          tone: "error",
-          title: "Payment for #10478 failed",
-          meta: ["Stark Industries", "card declined"],
-          date: ago(3 * DAY_MS + HOUR_MS),
-        },
-        {
-          id: "a8",
-          icon: "i-ph-upload-simple",
-          tone: "info",
-          title: "Imported 1,204 customers",
-          meta: ["customers-2026-09.csv", "3 skipped"],
-          date: ago(3 * DAY_MS + 3 * HOUR_MS),
-        },
-        {
-          id: "a9",
-          icon: "i-ph-webhooks-logo",
-          tone: "warning",
-          title: "Webhook endpoint paused",
-          meta: ["hooks.acme.io", "5 failures"],
-          date: ago(3 * DAY_MS + 5 * HOUR_MS),
-        },
-        {
-          id: "a10",
-          icon: "i-ph-database",
-          title: "Nightly backup completed",
-          meta: ["1.9 GB", "eu-west-3"],
-          date: ago(9 * DAY_MS + HOUR_MS),
-        },
-        {
-          id: "a11",
-          icon: "i-ph-key",
-          title: "API key rotated",
-          meta: ["Production", "by Camille Laurent"],
-          date: ago(9 * DAY_MS + 3 * HOUR_MS),
-        },
-      ],
+      items: attentionEntries(),
+      count: ATTENTION_COUNT_BY_PERIOD[preset ?? ""],
     });
+  }
+
+  @Get("quota")
+  getQuota(@Parameter("preset", "query") preset?: string) {
+    const isCurrentMonth = (preset ?? DEFAULT_PERIOD) === DEFAULT_PERIOD;
+    const value = isCurrentMonth
+      ? quotaUsedThisMonth
+      : (QUOTA_BY_PERIOD[preset ?? ""] ?? 0);
+    return later({ value });
+  }
+
+  @Post("quota/use")
+  async useQuota() {
+    quotaUsedThisMonth = Math.min(quotaUsedThisMonth + QUOTA_STEP, QUOTA_MAX);
+    await PublishMessage(QUOTA_DEMO_TOPIC, QUOTA_EVENT_TYPE);
+    return { value: quotaUsedThisMonth };
+  }
+
+  @Post("quota/reset")
+  async resetQuota() {
+    quotaUsedThisMonth = QUOTA_BY_PERIOD[DEFAULT_PERIOD];
+    await PublishMessage(QUOTA_DEMO_TOPIC, QUOTA_EVENT_TYPE);
+    return { value: quotaUsedThisMonth };
   }
 
   @Get("seats")
@@ -186,9 +157,42 @@ export class BlocksFeedApiController extends Controller("/api/blocks-feed") {
     return later({ items: [] });
   }
 
+  @Get("broken")
+  async getBroken(): Promise<never> {
+    await later(null);
+    throw serviceUnavailable();
+  }
+
+  @Get("gone")
+  async getGone(): Promise<never> {
+    await later(null);
+    throw notFound("The Shopify connector was removed.", {
+      title: "Feed removed",
+      icon: "i-ph-plugs",
+      actions: [{ label: "Reconnect Shopify", to: "#reconnect" }],
+    });
+  }
+
   @Get("workspace")
   getWorkspace() {
     return { ...workspace };
+  }
+
+  // Read again once the form saves: the form's SUBMIT_SUCCESS is watched with
+  // BlockFunctions.REFRESH_PAGE.
+  @Get("workspace/summary")
+  getWorkspaceSummary() {
+    return later({
+      items: [
+        { label: "Name", value: workspace.name },
+        {
+          label: "URL",
+          value: `app.antelopejs.com/${workspace.slug}`,
+          type: "mono",
+        },
+        { label: "Language", value: workspace.language, type: "mono" },
+      ],
+    });
   }
 
   @Put("workspace")

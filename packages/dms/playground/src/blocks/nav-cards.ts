@@ -1,16 +1,38 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { NavCardGrid } from "@antelopejs/interface-dms/base";
+import { DefaultLayout } from "@antelopejs/interface-dms/base/layouts";
+import { stackCategory } from "../stack/category";
+import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
 
 @RegisterPage()
-export class PageBlocksNavCards extends PageController("blocks-nav-cards", {
-  displayName: "Navigation cards",
-  icon: "i-ph-cards",
-  category: blocksCategory,
-  order: 20,
-  description:
-    "NavCardGrid block: settings-style cards with live states and tags, module tiles with a readout, live data",
-}) {
+export class PageBlocksNavCards extends PageController(
+  "blocks-nav-cards",
+  {
+    displayName: "Navigation cards",
+    icon: "i-ph-cards",
+    category: blocksCategory,
+    order: 20,
+    description:
+      'NavCardGrid block: settings-style cards with states and tags, module tiles with a readout, cards read from a route and refreshed over realtime, and the category mode (one card per page of a category). Press "Update the live facts": the last live card changes 2 s later.',
+  },
+  DefaultLayout({
+    headerActions: [
+      {
+        id: "bump",
+        label: "Update the live facts",
+        icon: "i-ph-broadcast",
+        target: {
+          type: "api",
+          url: "/api/blocks/facts/bump",
+          method: "POST",
+          successMessage:
+            "Update started; the Live facts card changes when it lands",
+        },
+      },
+    ],
+  }),
+) {
   static account = NavCardGrid({
     title: "Account",
     description: "Only you. These follow you across every workspace.",
@@ -106,9 +128,37 @@ export class PageBlocksNavCards extends PageController("blocks-nav-cards", {
 
   static live = NavCardGrid({
     title: "Workspace (live)",
-    description: "Cards and their states come from /api/blocks/shortcuts.",
+    description:
+      "Cards and their states come from /api/blocks/shortcuts, read again on each event of the facts topic.",
     fetchUrl: "/api/blocks/shortcuts",
-    // The route answers 3 cards: the skeleton draws as many, on every width.
-    skeletonCount: 3,
+    realtimeTopic: FACTS_DEMO_TOPIC,
+    columns: 2,
+    // The route answers 4 cards: the skeleton draws as many, on every width.
+    skeletonCount: 4,
+  });
+
+  // One card per page of the category the viewer can open, in menu order,
+  // each with its navigation badge: no item is listed by hand.
+  static siblings = NavCardGrid({
+    title: "Every Blocks demo",
+    description: "category: blocksCategory, one card per page of this section.",
+    category: blocksCategory,
+    empty: { title: "No page you can open" },
+  });
+
+  static stackPages = NavCardGrid({
+    title: "Stack layouts",
+    description: "The same mode on another category, in 4 columns.",
+    category: stackCategory,
+    columns: 4,
+  });
+
+  static noCards = NavCardGrid({
+    title: "Shortcuts · empty",
+    fetchUrl: "/api/blocks/empty",
+    empty: {
+      title: "No shortcut yet",
+      description: "Pin a page to see it here.",
+    },
   });
 }

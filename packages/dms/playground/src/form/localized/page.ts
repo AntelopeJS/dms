@@ -8,17 +8,21 @@ import { pageCategory } from "../category";
 export class PageFormLocalized extends PageController(
   "form-localized",
   {
-    displayName: "Localized Form",
+    displayName: "Localized fields",
     icon: "i-ph-translate",
     category: pageCategory,
     order: 30,
-    description: "Form with localized fields for multi-language support",
+    description:
+      "Fields holding one value per language. Fill both languages and save: the record stores { en, fr } for each localized field.",
   },
   FormPageLayout(),
 ) {
   static form = Form({
-    title: "Localized Form Example",
-    description: "A form demonstrating localized fields with translations",
+    title: "Localized fields",
+    description:
+      "Title and description are localized; slug and published are not.",
+    fetchUrl: "/api/form-localized/get",
+    submitUrl: "/api/form-localized/save",
     fields: [
       {
         id: "title",

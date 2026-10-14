@@ -4,15 +4,35 @@ import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
 import { Spacer } from "@antelopejs/interface-dms/base/stack";
 import { pageCategory } from "../category";
 
+const COLUMN_COUNT = 5;
+const MIN_COLUMN_WIDTH = "160px";
+const RULER_HEIGHT = "40px";
+
+function rulerRow() {
+  return Array.from({ length: COLUMN_COUNT }, (_, index) => index + 1).reduce(
+    (row, column) =>
+      row.child(
+        `col${column}`,
+        Placeholder({ label: `Column ${column}`, height: RULER_HEIGHT }),
+      ),
+    GridRow(),
+  );
+}
+
 @RegisterPage()
 export class PageGridSpacer extends PageController("grid-spacer", {
   displayName: "Grid with Spacer & ColSpan",
   icon: "i-ph-columns",
   category: pageCategory,
   order: 30,
-  description: "Grid layout demonstrating Spacer and colSpan features",
+  description:
+    "Grid rows mixing a Spacer cell and colSpan: empty cells push blocks aside, wide cells span several columns. The first row marks the five columns.",
 }) {
-  static grid = Grid({ gap: "1rem" })
+  // The grid takes as many columns as its longest row has children, whatever
+  // their colSpan: the ruler row of five sets the five tracks the rows below
+  // fill with spacers and wide cells.
+  static grid = Grid({ gap: "1rem", minColumnWidth: MIN_COLUMN_WIDTH })
+    .child("ruler", rulerRow())
     .child(
       "row1",
       GridRow()

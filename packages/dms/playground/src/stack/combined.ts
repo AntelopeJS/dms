@@ -13,7 +13,8 @@ export class PageStackCombined extends PageController("stack-combined", {
   icon: "i-ph-layout",
   category: stackCategory,
   order: 30,
-  description: "Complex layouts combining HStack, VStack, and Spacer",
+  description:
+    "Page-like layouts composed of HStack, VStack and Spacer only: a header bar, a sidebar and content, a footer.",
 }) {
   static mainContent = (() => {
     const logo = Placeholder({ label: "Logo", height: "60px", width: "60px" });
@@ -34,16 +35,15 @@ export class PageStackCombined extends PageController("stack-combined", {
     });
     const profile = Placeholder({ label: "👤", height: "60px", width: "60px" });
 
-    const headerActions = HStack({ spacing: "12px", alignment: "center" })
-      .child("search", search)
-      .child("notifications", notifications)
-      .child("profile", profile);
-
+    // The actions sit in the header itself: a nested stack takes the full
+    // width of its row, which would leave the Spacer no room to push them.
     const header = HStack({ spacing: "16px", alignment: "center" })
       .child("logo", logo)
       .child("title", title)
       .child("spacer", Spacer())
-      .child("actions", headerActions);
+      .child("search", search)
+      .child("notifications", notifications)
+      .child("profile", profile);
 
     const nav1 = Placeholder({ label: "📊 Dashboard", height: "50px" });
     const nav2 = Placeholder({ label: "📁 Projects", height: "50px" });
@@ -63,7 +63,11 @@ export class PageStackCombined extends PageController("stack-combined", {
     const card2 = Placeholder({ label: "Stats Card 2", height: "150px" });
     const card3 = Placeholder({ label: "Stats Card 3", height: "150px" });
 
-    const statsRow = HStack({ spacing: "20px", alignment: "stretch" })
+    const statsRow = HStack({
+      spacing: "20px",
+      alignment: "stretch",
+      distribution: "space-between",
+    })
       .child("card1", card1)
       .child("card2", card2)
       .child("card3", card3);

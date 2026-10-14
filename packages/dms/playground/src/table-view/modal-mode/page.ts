@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 @RegisterDataController()
 class modalTaskDataAPI extends DataController(
@@ -27,11 +28,12 @@ export class PageTableViewModal extends PageController(
     category: tableViewCategory,
     order: 10,
     description:
-      "Add, edit and details forms open in a centred modal over the task list",
+      "Add, edit and details forms open in a centred extra-large modal over the task list. Click Add, or double-click a task.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(modalTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Modal Mode",
     labelKey: "name",
     rowActions: {

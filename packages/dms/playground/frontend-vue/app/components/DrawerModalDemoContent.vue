@@ -18,7 +18,10 @@ function confirm() {
 <template>
   <div class="flex flex-col gap-4">
     <p v-if="message" class="text-muted text-sm">{{ message }}</p>
-    <UFormField label="Note" help="Returned to the caller through the result promise">
+    <UFormField
+      label="Note"
+      help="Returned to the caller through the result promise"
+    >
       <UInput v-model="note" placeholder="Type something…" class="w-full" />
     </UFormField>
     <p class="text-dimmed text-xs">container-id: {{ containerId }}</p>

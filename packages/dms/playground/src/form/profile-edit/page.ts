@@ -6,22 +6,33 @@ import { pageCategory } from "../category";
 import {
   AVATAR_ATTACHMENT_FIELD,
   AVATAR_CONSTRAINTS,
+  AVATAR_VISIBILITY,
   COVER_IMAGE_ATTACHMENT_FIELD,
   COVER_IMAGE_CONSTRAINTS,
+  DOCUMENTS_ATTACHMENT_FIELD,
+  DOCUMENTS_CONSTRAINTS,
   GALLERY_ATTACHMENT_FIELD,
   GALLERY_CONSTRAINTS,
 } from "../profile-attachments";
+import { PROFILE_SOCIAL_SLOT_ID } from "./slot";
+
+const COVER_RESIZE = { maxWidth: 1600, maxHeight: 900, fit: "cover" } as const;
+const GALLERY_RESIZE = {
+  maxWidth: 1200,
+  maxHeight: 1200,
+  fit: "contain",
+} as const;
 
 @RegisterPage()
 export class PageFormProfileEdit extends PageController(
   "form-profile-edit",
   {
-    displayName: "Profile Edit Form",
+    displayName: "Profile & uploads",
     icon: "i-ph-user-circle",
     category: pageCategory,
     order: 40,
     description:
-      "A long profile form: files and images, identity, address, preferences and links",
+      "Four forms saving one database record, with files and images stored through attachment fields. Upload, save and reload: the files stay, a removed one is deleted.",
   },
   FormPageLayout(),
 ) {
@@ -34,23 +45,26 @@ export class PageFormProfileEdit extends PageController(
       {
         id: "avatar",
         label: "Avatar",
-        description: "Your avatar",
+        description: "A PNG or JPEG file, stored public (visibility)",
         type: new DefaultDataTypes.FileType({
           multiple: false,
           path: "avatars",
           attachmentField: AVATAR_ATTACHMENT_FIELD,
           constraints: AVATAR_CONSTRAINTS,
+          visibility: AVATAR_VISIBILITY,
         }),
       },
       {
         id: "coverImage",
         label: "Cover Image",
-        description: "Single image with alt text",
+        description:
+          "Single image with alt text, resized to 1600×900 before upload",
         type: new DefaultDataTypes.ImageType({
           multiple: false,
           path: "covers",
           attachmentField: COVER_IMAGE_ATTACHMENT_FIELD,
           constraints: COVER_IMAGE_CONSTRAINTS,
+          resize: COVER_RESIZE,
         }),
       },
       {
@@ -63,6 +77,18 @@ export class PageFormProfileEdit extends PageController(
           path: "gallery",
           attachmentField: GALLERY_ATTACHMENT_FIELD,
           constraints: GALLERY_CONSTRAINTS,
+          resize: GALLERY_RESIZE,
+        }),
+      },
+      {
+        id: "documents",
+        label: "Documents",
+        description: "Several PDF files (FileType multiple)",
+        type: new DefaultDataTypes.FileType({
+          multiple: true,
+          path: "documents",
+          attachmentField: DOCUMENTS_ATTACHMENT_FIELD,
+          constraints: DOCUMENTS_CONSTRAINTS,
         }),
       },
       {
@@ -297,7 +323,9 @@ export class PageFormProfileEdit extends PageController(
 
   static socialAndSettings = Form({
     title: "Social & Settings",
-    description: "Social links and account settings",
+    description:
+      "Social links and account settings. Its last field is added by another module through the form's slot (slotId).",
+    slotId: PROFILE_SOCIAL_SLOT_ID,
     fetchUrl: "/api/profile/first",
     submitUrl: "/api/profile/first/update",
     fields: [

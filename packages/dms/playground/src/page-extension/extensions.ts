@@ -2,12 +2,12 @@
 
 import { RegisterPageExtension } from "@antelopejs/interface-dms/page";
 import { Placeholder } from "@antelopejs/interface-dms/base/placeholder";
-import { internalsSection } from "../sections";
+import { pagesSection } from "../sections";
 
 // The target is named by its page id, the same string the roles screen shows as
 // its permission: "library" (the root category) + "internals" (the section) +
 // the page's own id, i.e. "library.internals.page-extension".
-const TARGET_PAGE_ID = `${internalsSection.fullId}.page-extension`;
+const TARGET_PAGE_ID = `${pagesSection.fullId}.page-extension`;
 
 /**
  * Stands in for the first extending module (dms-saas): a banner above the
@@ -21,6 +21,12 @@ export class BillingExtension {
     .meta({ name: "Billing banner" })
     .before("table");
 
+  static billingNotice = Placeholder({
+    label: "billingNotice — BillingExtension, .after(table)",
+  })
+    .meta({ name: "Billing notice" })
+    .after("table");
+
   static billingFooter = Placeholder({
     label: "billingFooter — BillingExtension, appended",
   }).meta({ name: "Billing footer" });
@@ -33,19 +39,19 @@ export class BillingExtension {
 }
 
 /**
- * Stands in for a second extending module competing for the same anchor. The
- * two `.after("table")` blocks keep the same relative order whatever order the
- * modules start in: equal `order` falls back to the extension class and field
- * names, so `BillingExtension` never overtakes `UsageExtension` (or vice versa)
- * because of a restart.
+ * Stands in for a second extending module competing for the same anchor. At
+ * an equal `order` the two `.after("table")` blocks would fall back to the
+ * extension class and field names, the same on every restart, which puts
+ * `BillingExtension` first; `.order(-1)` puts this one first instead.
  */
 @RegisterPageExtension(TARGET_PAGE_ID)
 export class UsageExtension {
   static usageSummary = Placeholder({
-    label: "usageSummary — UsageExtension, .after(table)",
+    label: "usageSummary — UsageExtension, .after(table).order(-1)",
   })
     .meta({ name: "Usage summary" })
-    .after("table");
+    .after("table")
+    .order(-1);
 
   static nestedSummary = Placeholder({
     label: "nestedSummary — .after(content.tasks)",

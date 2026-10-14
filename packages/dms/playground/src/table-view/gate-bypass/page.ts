@@ -5,9 +5,10 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { gateDemoInvoiceAPI } from "./data-api";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
-// Recovery-surface demo: suspend the tenant with
-// POST /playground/gate-demo/toggle, then reload. This page stays reachable
+// Recovery-surface demo: suspend the tenant from System › Tenancy (POST
+// /api/playground/gate-demo/toggle), then reload. This page stays reachable
 // (page-level flag) and its first table keeps serving rows (controller-level
 // flag), while the second table's routes stay gated and must surface an
 // explicit error — never an empty table. The second table only reads: the
@@ -21,7 +22,8 @@ export class PageTableViewGateBypass extends PageController(
     icon: "i-ph-lock-open",
     category: tableViewCategory,
     order: 150,
-    description: "TableView kept readable while a tenant access gate denies",
+    description:
+      "bypassTenantAccessGate keeps a table readable while a tenant access gate denies the tenant. Suspend the tenant, then reload.",
     bypassTenantAccessGate: true,
   },
   DefaultLayout({ fullWidth: true }),
@@ -34,6 +36,7 @@ export class PageTableViewGateBypass extends PageController(
   });
 
   static tasks = TableView(taskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks (still gated)",
     labelKey: "name",
     formContainer: { type: "page", pages: demoFormPages("task") },

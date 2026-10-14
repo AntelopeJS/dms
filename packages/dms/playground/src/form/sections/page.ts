@@ -1,5 +1,6 @@
 import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+import { Banner } from "@antelopejs/interface-dms/base";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
 import { pageCategory } from "../category";
@@ -28,10 +29,15 @@ const ALWAYS_ASK_ITEMS = [
   { label: "Moving Builder blocks", value: "blocks" },
 ];
 
+const ASSISTANT_GROUP = "Assistant";
+const WORKSPACE_GROUP = "Workspace";
+const PAGE_PATH = "/form/form-sections";
+
 /**
  * A module's settings as one form split into sections: a side list follows
- * the scroll, marks the sections holding unsaved changes or errors, and the
- * save bar names the changed sections.
+ * the scroll, titles each run of sections sharing a `navGroup`, marks the
+ * sections holding unsaved changes or errors, and the save bar names the
+ * changed sections. A top-level field comes first, outside any section.
  */
 @RegisterPage()
 export class PageFormSections extends PageController(
@@ -41,19 +47,45 @@ export class PageFormSections extends PageController(
     icon: "i-ph-list-dashes",
     category: pageCategory,
     order: 6,
-    description: "Module settings: one form split into sections",
+    description:
+      "One settings form split into sections, listed on the side under their group headings. Change a value: the list marks its section and the save bar names it.",
   },
   FormPageLayout(),
 ) {
+  static anchors = Banner({
+    title: "Anchors",
+    description:
+      "A field's id or a section's anchor in the URL brings it into view, once the form is loaded.",
+    size: "sm",
+    actions: [
+      { label: "#retentionDays (a field)", to: `${PAGE_PATH}#retentionDays` },
+      {
+        label: "#dms-form-form-section-usage (a section)",
+        to: `${PAGE_PATH}#dms-form-form-section-usage`,
+      },
+    ],
+  });
+
   static form = Form({
     title: "Assistant settings",
     description:
       "Defaults for new conversations. Change a value in any section: the list marks it, and the save bar names it.",
     fetchUrl: "/api/form-sections/get",
     submitUrl: "/api/form-sections/save",
+    sectionNav: "side",
+    fields: [
+      {
+        id: "profileName",
+        label: "Profile name",
+        description: "A top-level field: it comes before every section.",
+        type: new DefaultDataTypes.StringType(),
+        required: true,
+      },
+    ],
     sections: [
       {
         id: "agent",
+        navGroup: ASSISTANT_GROUP,
         label: "Agent",
         icon: "i-ph-robot",
         description: "Which agent answers, and how long it thinks.",
@@ -75,6 +107,7 @@ export class PageFormSections extends PageController(
       },
       {
         id: "approvals",
+        navGroup: ASSISTANT_GROUP,
         label: "Approvals",
         icon: "i-ph-hand-palm",
         description: "What the agent may do without asking.",
@@ -98,27 +131,40 @@ export class PageFormSections extends PageController(
       },
       {
         id: "scope",
+        navGroup: WORKSPACE_GROUP,
         label: "Scope",
         icon: "i-ph-shield-check",
         description: "Where the agent works.",
         fields: [
           {
-            id: "workspaceRoot",
-            label: "Workspace root",
-            description: "Folder the agent may read and write.",
-            type: new DefaultDataTypes.StringType({ minLength: 2 }),
-            required: true,
-          },
-          {
-            id: "allowedHosts",
-            label: "Allowed hosts",
-            description: "One per line.",
-            type: new DefaultDataTypes.StringType({ textarea: true, rows: 3 }),
+            id: "access",
+            label: "Access",
+            description: "A field group inside a section.",
+            orientation: "vertical",
+            fields: [
+              {
+                id: "workspaceRoot",
+                label: "Workspace root",
+                description: "Folder the agent may read and write.",
+                type: new DefaultDataTypes.StringType({ minLength: 2 }),
+                required: true,
+              },
+              {
+                id: "allowedHosts",
+                label: "Allowed hosts",
+                description: "One per line.",
+                type: new DefaultDataTypes.StringType({
+                  textarea: true,
+                  rows: 3,
+                }),
+              },
+            ],
           },
         ],
       },
       {
         id: "skills",
+        navGroup: WORKSPACE_GROUP,
         label: "Skills",
         icon: "i-ph-books",
         fields: [
@@ -136,6 +182,7 @@ export class PageFormSections extends PageController(
       },
       {
         id: "usage",
+        navGroup: WORKSPACE_GROUP,
         label: "Usage & history",
         icon: "i-ph-chart-bar",
         fields: [

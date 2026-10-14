@@ -20,6 +20,7 @@ import {
 } from "@antelopejs/interface-data-api/metadata";
 import { Model } from "@antelopejs/interface-database-decorators";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
+import { PublishMessage } from "@antelopejs/interface-dms/realtime";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
@@ -28,10 +29,27 @@ import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import {
   Column,
   DefaultDisplays,
+  registerRealtimeMutationListener,
   resolveBulkRowIds,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
 import { JobRun, JobRunModel, type JobRunStatus } from "./database";
+
+/**
+ * Published once a bulk re-run rewrote runs through its own route, which the
+ * controller's realtime does not see: the "Job runs" table follows it
+ * (`realtimeTopic`), so every open screen lists the runs again.
+ */
+export const JOB_RUNS_TOPIC = "playground:job-runs";
+const JOB_RUNS_RERUN_EVENT = "job-runs.rerun";
+
+// Every write a table view makes through the controllers' routes, as the
+// realtime layer broadcasts it: a module's hook for an audit trail.
+registerRealtimeMutationListener((context) => {
+  console.info(
+    `[playground] ${context.eventType} on ${context.controllerLocation}: ${context.ids.join(", ")}`,
+  );
+});
 
 export const JOB_RUN_STATUSES = [
   { value: "healthy", label: "Healthy", textColor: "success" },
@@ -81,7 +99,7 @@ function localePills(status: JobRunStatus): DefaultDisplays.PillItem[] {
 }
 
 /**
- * Job runs of the "Views, grouped & cells" demo: each column draws its value
+ * Job runs of the "Views & grouped display" demo: each column draws its value
  * through one of the cell displays (status pill, a status pill toned by the
  * row, pills styled by the row, progress, sparkline, duration, bytes, mono).
  */
@@ -293,6 +311,7 @@ export class jobRunDataAPI extends DataController(
         this.model.update(id, { status: "running", lastError: undefined }),
       ),
     );
+    await PublishMessage(JOB_RUNS_TOPIC, JOB_RUNS_RERUN_EVENT);
     return { count: ids.length };
   }
 

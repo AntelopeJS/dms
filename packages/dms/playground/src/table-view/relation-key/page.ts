@@ -9,12 +9,12 @@ import { demoFormPages } from "../form-texts";
 export class PageTableViewRelationKey extends PageController(
   "table-view-relation-key",
   {
-    displayName: "Relation · Key (repro)",
+    displayName: "Relation · Key",
     icon: "i-ph-link",
     category: tableViewCategory,
     order: 120,
     description:
-      "Repro: relation on _id (resolves) vs relation on a non-_id key that is not @Select() (stays empty)",
+      "Relations resolved on _id and on another key: Dept (by code) and Member (by userId) find their row through RelationType({ index }), which needs that key @Select() on the target.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

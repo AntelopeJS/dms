@@ -11,6 +11,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 const TASK_CARDS_DISPLAY_ID = "playground:task-cards";
 
@@ -30,11 +31,12 @@ export class PageTableViewCardsDisplay extends PageController(
     category: tableViewCategory,
     order: 110,
     description:
-      "Project-contributed card display, sharing the table view's data, filters, search and pagination",
+      "A module's own display (registerTableViewDisplay), sharing the table's data, filters, search and paging. Each card lists its row's custom actions: \"Same status\" opens the Filter tabs page on that tab.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
   static table = TableView(cardsTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Tasks - Cards (Custom Display)",
     labelKey: "name",
     formContainer: { type: "page", pages: demoFormPages("task") },
@@ -45,6 +47,17 @@ export class PageTableViewCardsDisplay extends PageController(
       duplicate: true,
       edit: { isVisible: true },
       hasSelection: true,
+      custom: [
+        {
+          id: "open-status-tab",
+          label: "Same status",
+          icon: "i-ph-tabs",
+          target: {
+            type: "page",
+            url: "/table-view/table-view-tabs?tab={status}",
+          },
+        },
+      ],
     },
     // The display *type* (label, icon, component) is registered by
     // playground/frontend-vue/app/plugins/table-view-cards-display.ts. Here we

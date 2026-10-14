@@ -5,13 +5,16 @@ export const demoModule = RegisterModule({
   title: "Demo Module",
   description: "A demo module to showcase the module system",
   icon: "i-ph-cube",
+  // `/modules/demo` opens this page instead of the first one by order.
+  landingPage: "contact",
   // Modules catalog: version, category, state pill and live readout.
   version: "1.4.0",
   catalogCategory: "Content",
   status: () => "live",
   readout: () => [
-    { tone: "success", text: "2 pages · 1 form" },
+    { tone: "success", text: "3 pages · 1 form" },
     { tone: "info", text: `up ${formatUptime(process.uptime())}` },
+    { tone: "error", text: "1 sync job failing" },
   ],
   // Group the module's loose pages under a controllable category heading
   // instead of the default "Pages" label.
@@ -22,7 +25,9 @@ export const demoModule = RegisterModule({
   },
 });
 
+export * from "./contact-api";
 export * from "./form-page";
+export * from "./tools-page";
 export * from "./welcome-page";
 
 const SECONDS_PER_MINUTE = 60;

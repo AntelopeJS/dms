@@ -14,7 +14,8 @@ export class PageTabsVariants extends PageController("tabs-variants", {
   icon: "i-ph-sliders-horizontal",
   category: pageCategory,
   order: 30,
-  description: "Different tab styles and orientations",
+  description:
+    "Tab styles: pill and link variants, vertical orientation, sizes, colours, a disabled tab, badges (number, text, styled, i18n key, composed count), avatars and tabs fitting the full width.",
 }) {
   static tabsPill = Tab({
     variant: TabVariant.pill,
@@ -268,6 +269,21 @@ export class PageTabsVariants extends PageController("tabs-variants", {
         badge: { label: "v2.0", color: "warning", variant: "subtle" },
       },
       {
+        label: "Labs",
+        icon: "i-ph-flask",
+        slot: "labs",
+        badge: "$demo.blocks.tabs.beta",
+      },
+      {
+        label: "Inbox",
+        icon: "i-ph-tray",
+        slot: "inbox",
+        badge: {
+          key: "demo.blocks.tabs.unread",
+          params: { count: { type: "count", value: 3 } },
+        },
+      },
+      {
         label: "Settings",
         icon: "i-ph-gear-six",
         slot: "settings",
@@ -290,5 +306,51 @@ export class PageTabsVariants extends PageController("tabs-variants", {
     })
     .child("settingsPanel", Placeholder({ label: "Settings" }), {
       slot: "settings",
+    })
+    .child("labsPanel", Placeholder({ label: "Labs" }), { slot: "labs" })
+    .child("inboxPanel", Placeholder({ label: "Inbox" }), { slot: "inbox" });
+
+  // `fit` spreads the tabs over the whole width.
+  static tabsFit = Tab({
+    variant: TabVariant.pill,
+    fit: true,
+    items: [
+      { label: "Activity", icon: "i-ph-pulse", slot: "activity" },
+      { label: "Logins", icon: "i-ph-sign-in", slot: "logins" },
+    ],
+  })
+    .child("activityPanel", Placeholder({ label: "fit: true" }), {
+      slot: "activity",
+    })
+    .child("loginsPanel", Placeholder({ label: "Logins" }), {
+      slot: "logins",
+    });
+
+  static tabsAvatars = Tab({
+    variant: TabVariant.link,
+    items: [
+      {
+        label: "Ada",
+        slot: "ada",
+        avatar: {
+          src: "https://i.pravatar.cc/64?u=ada",
+          alt: "Ada",
+          size: Size.small,
+        },
+      },
+      {
+        label: "Grace",
+        slot: "grace",
+        avatar: {
+          src: "https://i.pravatar.cc/64?u=grace",
+          alt: "Grace",
+          size: Size.small,
+        },
+      },
+    ],
+  })
+    .child("adaPanel", Placeholder({ label: "Ada's work" }), { slot: "ada" })
+    .child("gracePanel", Placeholder({ label: "Grace's work" }), {
+      slot: "grace",
     });
 }

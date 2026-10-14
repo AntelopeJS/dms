@@ -3,4 +3,5 @@ export * from "./counts/page";
 export * from "./default/page";
 export * from "./keep-alive/page";
 export * from "./persist/page";
+export * from "./topics";
 export * from "./variants/page";

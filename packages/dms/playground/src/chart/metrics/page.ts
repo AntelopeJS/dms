@@ -10,6 +10,7 @@ import {
 } from "@antelopejs/interface-dms/base";
 import { Color } from "@antelopejs/interface-dms/base/types";
 import { pageCategory } from "../category";
+import { PLAYGROUND_OPS_PERIOD_KEY } from "../period/page";
 
 const OPS_SCOPE = "ops-metrics";
 const OPS_SYNC_GROUP = "ops-grid";
@@ -25,7 +26,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
   category: pageCategory,
   order: 75,
   description:
-    "Segmented period, latency bands, stepline replicas, reference lines and a synced crosshair",
+    "An ops dashboard: segmented period remembered with the PeriodSelector page, latency bands, a band with a line, stepline replicas, reference lines and a crosshair synced between charts. Hover one chart to see the other follow.",
 }) {
   static period = PeriodSelector({
     id: OPS_SCOPE,
@@ -41,13 +42,15 @@ export class PageChartMetrics extends PageController("chart-metrics", {
       "custom",
     ],
     comparisons: ["none", "previous-period"],
+    rememberKey: PLAYGROUND_OPS_PERIOD_KEY,
   });
 
   static latencyKpi = KpiCard({
-    title: "p95 latency",
+    title: "p95 latency (ms)",
     variant: "stat",
     icon: "i-ph-timer",
     fetchUrl: "/api/dashboard/kpi/latency",
+    valueFormat: "number",
     periodScope: OPS_SCOPE,
     invert: true,
     compareLabel: "vs previous period",
@@ -58,7 +61,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
     description: "Two stacked bands read as one distribution",
     fetchUrl: "/api/dashboard/latency",
     periodScope: OPS_SCOPE,
-    color: [Color.primary, Color.info],
+    color: [Color.primary, Color.secondary],
     syncGroup: OPS_SYNC_GROUP,
     height: PANEL_HEIGHT,
   });
@@ -72,7 +75,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
       { name: "p50 – p99", type: ChartType.RANGE_AREA },
       { name: "p95", type: ChartType.LINE },
     ],
-    color: [Color.info, Color.primary],
+    color: [Color.secondary, Color.primary],
     height: PANEL_HEIGHT,
   });
 

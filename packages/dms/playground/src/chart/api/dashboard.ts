@@ -258,25 +258,56 @@ function buildSeries(
 }
 
 const ONE_DAY_MS = 86400000;
-const DAILY_SERIES_LENGTH = 30;
+const HALF_DAY_MS = ONE_DAY_MS / 2;
+const DEFAULT_PERIOD_DAYS = 30;
+const MAX_PERIOD_DAYS = 366;
+const ISO_DATE_LENGTH = 10;
+
+function isoDate(time: number): string {
+  return new Date(time).toISOString().slice(0, ISO_DATE_LENGTH);
+}
+
+// The bounds are local midnights of the browser: half a day of slack lands
+// them on the right calendar day whatever its time zone.
+function dayTime(value: string | undefined, shift: number): number | undefined {
+  const time = value ? Date.parse(value) : NaN;
+  if (!Number.isFinite(time)) return undefined;
+  return Date.parse(isoDate(time + shift));
+}
+
+/**
+ * The calendar days of the selected period, up to today: a period still
+ * running ("this month") stops at today, and no period means the last 30 days.
+ */
+function periodDays(from?: string, to?: string): string[] {
+  const today = Date.parse(isoDate(Date.now()));
+  const end = Math.min(dayTime(to, -HALF_DAY_MS) ?? today, today);
+  const start =
+    dayTime(from, HALF_DAY_MS) ?? end - (DEFAULT_PERIOD_DAYS - 1) * ONE_DAY_MS;
+  const length = Math.round((end - start) / ONE_DAY_MS) + 1;
+  const count = Math.min(Math.max(length, 1), MAX_PERIOD_DAYS);
+  return Array.from({ length: count }, (_, index) =>
+    isoDate(start + index * ONE_DAY_MS),
+  );
+}
+
+interface ValueRange {
+  min: number;
+  max: number;
+}
 
 function buildDailySeries(
   name: string,
   seed: number,
-  min: number,
-  max: number,
-  daysOffset = 0,
+  range: ValueRange,
+  days: string[],
 ): NamedSeries {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const data = Array.from({ length: DAILY_SERIES_LENGTH }, (_, index) => {
-    const offset = (DAILY_SERIES_LENGTH - 1 - index + daysOffset) * ONE_DAY_MS;
-    const date = new Date(today.getTime() - offset);
-    return {
-      x: date.toISOString().slice(0, 10),
-      y: Math.round(min + deterministicRandom(seed, index) * (max - min)),
-    };
-  });
+  const data = days.map((x, index) => ({
+    x,
+    y: Math.round(
+      range.min + deterministicRandom(seed, index) * (range.max - range.min),
+    ),
+  }));
   return { name, data };
 }
 
@@ -360,34 +391,185 @@ function comparedTo(current: number, previous?: number): ComparedPayload {
   return { previousValue: previous, delta: deltaPercent(current, previous) };
 }
 
-export class DashboardApiController extends Controller("/api/dashboard") {
-  private resolveSeed(preset?: string, from?: string): number {
-    const presetSeed = PRESET_SEED_OFFSETS[preset ?? "this-month"] ?? 0;
-    const dateSeed = from ? hashKey(from) : 0;
-    return presetSeed + dateSeed;
-  }
+function resolveSeed(preset?: string, from?: string): number {
+  const presetSeed = PRESET_SEED_OFFSETS[preset ?? "this-month"] ?? 0;
+  const dateSeed = from ? hashKey(from) : 0;
+  return presetSeed + dateSeed;
+}
 
+interface PeriodRequest {
+  preset?: string;
+  from?: string;
+  to?: string;
+  comparison?: string;
+}
+
+interface DailyMetric {
+  seedOffset: number;
+  range: ValueRange;
+  comparisonRange: ValueRange;
+}
+
+const COMPARISON_SEED_OFFSET = 11;
+
+/**
+ * The daily figures the period-bound cards read: a KpiCard and a ChartCard
+ * naming the same metric total the same days, so they show the same figure.
+ */
+const DAILY_METRICS: Record<string, DailyMetric> = {
+  revenue: {
+    seedOffset: 0,
+    range: { min: 5500, max: 9500 },
+    comparisonRange: { min: 5000, max: 11000 },
+  },
+  orders: {
+    seedOffset: 34,
+    range: { min: 60, max: 110 },
+    comparisonRange: { min: 50, max: 120 },
+  },
+  customers: {
+    seedOffset: 51,
+    range: { min: 8, max: 30 },
+    comparisonRange: { min: 6, max: 32 },
+  },
+  sessions: {
+    seedOffset: 68,
+    range: { min: 1800, max: 3200 },
+    comparisonRange: { min: 1600, max: 3400 },
+  },
+};
+
+function dailyFigures(
+  metric: DailyMetric,
+  period: PeriodRequest,
+): ChartCardPayload {
+  const seed = resolveSeed(period.preset, period.from) + metric.seedOffset;
+  const days = periodDays(period.from, period.to);
+  const current = buildDailySeries("Period", seed, metric.range, days);
+  const comparisonSeries = isComparing(period.comparison)
+    ? [
+        buildDailySeries(
+          "Comparison",
+          seed + COMPARISON_SEED_OFFSET,
+          metric.comparisonRange,
+          days,
+        ),
+      ]
+    : undefined;
+  const currentTotal = totalOf(current);
+  return {
+    value: currentTotal,
+    ...comparedTo(
+      currentTotal,
+      comparisonSeries ? totalOf(comparisonSeries[0]) : undefined,
+    ),
+    series: [current],
+    comparisonSeries,
+  };
+}
+
+function dailyKpi(metric: DailyMetric, period: PeriodRequest): KpiCardPayload {
+  const figures = dailyFigures(metric, period);
+  return {
+    value: figures.value,
+    delta: figures.delta,
+    previousValue: figures.previousValue,
+    sparkline: figures.series[0].data.map((point) => point.y),
+  };
+}
+
+const LATENCY_PREVIOUS_SEED = 57;
+const LATENCY_PREVIOUS_MIN_RATIO = 0.85;
+const LATENCY_PREVIOUS_RATIO_RANGE = 0.3;
+
+/** The average p95 of the latency charts, in milliseconds. */
+function latencyKpi(period: PeriodRequest): KpiCardPayload {
+  const sparkline = latencyPoints().map((point) => point.p95);
+  const current = Math.round(
+    sparkline.reduce((acc, value) => acc + value, 0) / sparkline.length,
+  );
+  const ratio =
+    LATENCY_PREVIOUS_MIN_RATIO +
+    deterministicRandom(LATENCY_PREVIOUS_SEED, hashKey(period.preset ?? "")) *
+      LATENCY_PREVIOUS_RATIO_RANGE;
+  const previous = isComparing(period.comparison)
+    ? Math.round(current * ratio)
+    : undefined;
+  return { value: current, ...comparedTo(current, previous), sparkline };
+}
+
+type KpiBuilder = (period: PeriodRequest) => KpiCardPayload;
+
+const KPI_BUILDERS: Record<string, KpiBuilder> = {
+  latency: latencyKpi,
+  ...Object.fromEntries(
+    Object.entries(DAILY_METRICS).map(([key, metric]) => [
+      key,
+      (period: PeriodRequest) => dailyKpi(metric, period),
+    ]),
+  ),
+};
+
+const CHANNEL_LABELS = [
+  "Direct",
+  "Email",
+  "Search",
+  "Social",
+  "Referral",
+  "Other",
+];
+const CHANNEL_SEED = 42;
+const CHANNEL_SESSIONS_MIN = 100;
+const CHANNEL_SESSIONS_RANGE = 900;
+const GOAL_PERCENT_MIN = 35;
+const GOAL_PERCENT_RANGE = 60;
+
+type OhlcTuple = [number, number, number, number];
+
+interface CandlePoint {
+  x: string;
+  y: OhlcTuple;
+}
+
+interface CandlestickPayload {
+  series: Array<{ name: string; data: CandlePoint[] }>;
+}
+
+const CENTS = 100;
+
+function toCents(price: number): number {
+  return Math.round(price * CENTS) / CENTS;
+}
+
+export class DashboardApiController extends Controller("/api/dashboard") {
   @Get("sales")
   getSales(
     @Parameter("preset", "query") preset?: string,
     @Parameter("from", "query") from?: string,
+    @Parameter("to", "query") to?: string,
     @Parameter("comparison", "query") comparison?: string,
   ): ChartCardPayload {
-    const seed = this.resolveSeed(preset, from);
-    const current = buildDailySeries("Période", seed, 5500, 9500);
-    const comparisonSeries = isComparing(comparison)
-      ? [buildDailySeries("Comparaison", seed + 11, 5000, 11000)]
-      : undefined;
-    const currentTotal = totalOf(current);
-    return {
-      value: currentTotal,
-      ...comparedTo(
-        currentTotal,
-        comparisonSeries ? totalOf(comparisonSeries[0]) : undefined,
-      ),
-      series: [current],
-      comparisonSeries,
-    };
+    return dailyFigures(DAILY_METRICS.revenue, {
+      preset,
+      from,
+      to,
+      comparison,
+    });
+  }
+
+  @Get("traffic")
+  getTraffic(
+    @Parameter("preset", "query") preset?: string,
+    @Parameter("from", "query") from?: string,
+    @Parameter("to", "query") to?: string,
+    @Parameter("comparison", "query") comparison?: string,
+  ): ChartCardPayload {
+    return dailyFigures(DAILY_METRICS.sessions, {
+      preset,
+      from,
+      to,
+      comparison,
+    });
   }
 
   @Get("kpi/:metric")
@@ -395,23 +577,11 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     @Parameter("metric", "param") metric: string,
     @Parameter("preset", "query") preset?: string,
     @Parameter("from", "query") from?: string,
+    @Parameter("to", "query") to?: string,
     @Parameter("comparison", "query") comparison?: string,
   ): KpiCardPayload {
-    const metricSeedMap: Record<string, number> = {
-      revenue: 1,
-      orders: 2,
-      customers: 3,
-    };
-    const baseSeed = metricSeedMap[metric] ?? 4;
-    const seed = baseSeed * 17 + this.resolveSeed(preset, from);
-    const sparkline = Array.from({ length: 12 }, (_, index) =>
-      Math.round(50 + deterministicRandom(seed, index) * 200),
-    );
-    const current = sparkline.reduce((acc, value) => acc + value, 0);
-    const previous = isComparing(comparison)
-      ? Math.round(current * (0.8 + deterministicRandom(seed, 99) * 0.4))
-      : undefined;
-    return { value: current, ...comparedTo(current, previous), sparkline };
+    const build = KPI_BUILDERS[metric] ?? KPI_BUILDERS.revenue;
+    return build({ preset, from, to, comparison });
   }
 
   @Get("series")
@@ -486,14 +656,31 @@ export class DashboardApiController extends Controller("/api/dashboard") {
 
   @Get("circular")
   getCircular(@Parameter("size", "query") sizeParam?: string): CircularPayload {
-    const size = clampCount(sizeParam, 5);
-    const labels = ["Direct", "Email", "Search", "Social", "Referral", "Other"];
-    const data = labels.slice(0, size).map((label, index) => ({
+    const size = clampCount(sizeParam, CHANNEL_LABELS.length);
+    const data = CHANNEL_LABELS.slice(0, size).map((label, index) => ({
       x: label,
-      y: Math.round(100 + deterministicRandom(42, index) * 900),
+      y: Math.round(
+        CHANNEL_SESSIONS_MIN +
+          deterministicRandom(CHANNEL_SEED, index) * CHANNEL_SESSIONS_RANGE,
+      ),
       label,
     }));
     return { series: [{ name: "Channels", data }] };
+  }
+
+  /** Shares of a goal, 0 to 100: what a radial bar reads as percentages. */
+  @Get("goals")
+  getGoals(@Parameter("size", "query") sizeParam?: string): CircularPayload {
+    const size = clampCount(sizeParam, CHANNEL_LABELS.length);
+    const data = CHANNEL_LABELS.slice(0, size).map((label, index) => ({
+      x: label,
+      y: Math.round(
+        GOAL_PERCENT_MIN +
+          deterministicRandom(CHANNEL_SEED, index) * GOAL_PERCENT_RANGE,
+      ),
+      label,
+    }));
+    return { series: [{ name: "Goal reached", data }] };
   }
 
   @Get("top-products")
@@ -504,7 +691,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     @Parameter("comparison", "query") comparison?: string,
     @Parameter("withSparkline", "query") withSparkline?: string,
   ): TopListPayload {
-    const seed = this.resolveSeed(preset, from);
+    const seed = resolveSeed(preset, from);
     const limit = clampCount(limitParam, TOP_PRODUCT_DEFAULT_LIMIT);
     const options: BuildTopProductItemOptions = {
       includeSparkline: withSparkline === "true",
@@ -513,17 +700,14 @@ export class DashboardApiController extends Controller("/api/dashboard") {
     const items = TOP_PRODUCT_NAMES.slice(
       0,
       Math.min(limit, TOP_PRODUCT_NAMES.length),
-    ).map((name, index) => buildTopProductItem(name, index, seed, options));
+    )
+      .map((name, index) => buildTopProductItem(name, index, seed, options))
+      .sort((left, right) => right.value - left.value);
     return { items };
   }
 
   @Get("candlestick")
-  getCandlestick(): {
-    series: Array<{
-      name: string;
-      data: Array<{ x: string; y: [number, number, number, number] }>;
-    }>;
-  } {
+  getCandlestick(): CandlestickPayload {
     const data = SAMPLE_LABELS.map((label, index) => {
       const open = 100 + deterministicRandom(7, index) * 50;
       const close = open + (deterministicRandom(13, index) - 0.5) * 20;
@@ -531,7 +715,7 @@ export class DashboardApiController extends Controller("/api/dashboard") {
       const low = Math.min(open, close) - deterministicRandom(23, index) * 10;
       return {
         x: label,
-        y: [open, high, low, close] as [number, number, number, number],
+        y: [open, high, low, close].map(toCents) as OhlcTuple,
       };
     });
     return { series: [{ name: "OHLC", data }] };

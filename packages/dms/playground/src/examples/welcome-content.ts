@@ -24,9 +24,17 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     icon: "i-ph-palette",
     title: "Design system",
     description:
-      "The themed Nuxt UI primitives, the DMS foundations and every display block a page places from the backend.",
+      "The themed Nuxt UI primitives and the DMS foundations: the Vue components every screen is made of.",
     to: "/foundations/foundations-labels",
-    readout: ["Primitives · Foundations · Blocks"],
+    readout: ["Primitives · Foundations"],
+  },
+  {
+    icon: "i-ph-cube",
+    title: "Blocks",
+    description:
+      "The display blocks a page places from the backend: stat groups, key-value lists, feeds, meters, banners and more.",
+    to: "/blocks/blocks-stat-group",
+    readout: ["Stats · Lists · Feedback · Live"],
   },
   {
     icon: "i-ph-layout",
@@ -34,6 +42,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Grid and stack layouts, tabs, drawers and modals, a flow canvas and pages that combine several components.",
     to: "/grid/layout-grid-simple",
+    readout: ["Grid · Stack · Tabs · Drawer & Modal"],
   },
   {
     icon: "i-ph-table",
@@ -41,6 +50,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions.",
     to: "/table-view/table-view-users",
+    readout: ["Displays · Editing · Relations"],
   },
   {
     icon: "i-ph-note-pencil",
@@ -48,6 +58,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type.",
     to: "/form/form-simple",
+    readout: ["Field types · Layout · Saving"],
   },
   {
     icon: "i-ph-chart-line-up",
@@ -55,38 +66,62 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.",
     to: "/charts/chart-dashboard",
+    readout: ["Cards · Charts · Period"],
   },
 ];
 
-/** The dashboard around the demos: navigation, modules, settings, internals. */
+/** The feature index: every DMS feature and the page that shows it. */
+export const FEATURE_INDEX_URL = "/examples/features";
+
+/** The dashboard around the demos: pages, chrome, services, modules, settings. */
 export const DASHBOARD_CARDS: NavCardItem[] = [
   {
     icon: "i-ph-signpost",
-    title: "Dynamic navigation",
+    title: "Pages & navigation",
     description:
-      "Sidebar entries computed at request time, like a per-tenant list of projects.",
-    to: "/dynamic-nav/new-project",
+      "Header buttons that follow the URL, dynamic menu entries, page validation, access options and page extensions.",
+    to: "/page-header/page-header-actions",
+    readout: ["Page header · Dynamic navigation · Page access"],
+  },
+  {
+    icon: "i-ph-app-window",
+    title: "Dashboard chrome",
+    description:
+      "Layout banners shown on every page, and quick actions run from the command palette.",
+    to: "/layout-banners",
+    readout: ["Layout banners · Quick actions"],
+  },
+  {
+    icon: "i-ph-puzzle-piece",
+    title: "Frontend modules",
+    description:
+      "What a module adds from its own Vue code: header actions, widgets, the side panel, links and custom components.",
+    to: "/custom-components/custom-slots",
+    readout: ["Dashboard chrome · Custom components"],
   },
   {
     icon: "i-ph-gear",
-    title: "System & internals",
+    title: "System",
     description:
-      "Notifications you can send yourself, deeply nested categories and page extensions.",
+      "Notifications, realtime, hooks and invites, permissions, tenancy and emails, each with a button to try it.",
     to: "/notification/notification-test",
+    readout: ["Notifications · Realtime · Hooks · Permissions"],
   },
   {
     icon: "i-ph-squares-four",
     title: "Modules",
     description:
-      "The module home and the pages a demo module and a plain module contribute.",
+      "The module catalog and the pages a demo module and a plain module contribute.",
     to: "/modules",
+    readout: ["Demo module · Plain module"],
   },
   {
     icon: "i-ph-sliders-horizontal",
     title: "Settings",
     description:
-      "Profile, language & region, security, notifications, appearance, members, invitations and roles, with Preview as role.",
+      "Profile, security, notifications, members, invitations and roles with Preview as role, plus the playground's own workspace page.",
     to: "/settings",
+    readout: ["Profile · Workspace · Roles"],
   },
 ];
 
@@ -154,6 +189,11 @@ export interface WelcomeStep {
 
 export const USAGE_STEPS: WelcomeStep[] = [
   {
+    label: "Look a feature up",
+    description:
+      "The feature index lists every DMS feature, the API that turns it on and the page that shows it.",
+  },
+  {
     label: "Browse the sidebar",
     description:
       "Each entry is a live demo of one feature, with sample data you can change freely.",
@@ -166,7 +206,7 @@ export const USAGE_STEPS: WelcomeStep[] = [
   {
     label: "Jump anywhere with the command palette",
     description:
-      "Ctrl K (⌘K on macOS) opens the command palette: search pages, actions and settings, or switch the theme.",
+      "Ctrl K (⌘K on macOS) opens the command palette: search pages, actions, settings and the features of the feature index.",
   },
   {
     label: "Switch theme and language",

@@ -116,6 +116,28 @@
       "maintenance": {
         "title": "Maintenance dimanche de 2 h à 2 h 30",
         "description": "Le tableau de bord sera indisponible pendant ce temps : enregistrez votre travail avant."
+      },
+      "category": {
+        "label": "Playground",
+        "description": "Les notifications que le playground envoie pour ses démos",
+        "tag": "Démo"
+      },
+      "subject": {
+        "label": "Démos du playground",
+        "description": "Envoyées depuis System › Notifications",
+        "badge": "Nouveau"
+      },
+      "idempotent": {
+        "title": "Livrée une seule fois pour la clé {key}",
+        "description": "Renvoyez-la avec la même clé : aucune deuxième notification n'arrive."
+      },
+      "orders": {
+        "title": "aucune nouvelle commande | {count} nouvelle commande | {count} nouvelles commandes",
+        "description": "Le nombre est envoyé en paramètre et écrit dans votre langue."
+      },
+      "roles": {
+        "title": "Un message pour chaque rôle",
+        "description": "Envoyé avec toRoles aux membres qui ont l'un des rôles de l'espace."
       }
     },
     "job_runs": {
@@ -143,6 +165,9 @@
         "copy": "Copier la question",
         "copied": "Question copiée",
         "copyFailed": "La copie a échoué"
+      },
+      "prompts": {
+        "order": "Pourquoi la commande #10482 est-elle toujours en attente, et quand partira-t-elle ?"
       }
     },
     "side_panel": {
@@ -159,7 +184,8 @@
         "order_paid": "Commande {order} payée",
         "files_changed": "{count} fichier modifié | {count} fichiers modifiés",
         "missing_keys": "aucune clé de traduction manquante | {count} clé de traduction manquante | {count} clés de traduction manquantes",
-        "amount": "{amount}"
+        "amount": "{amount}",
+        "badge_rows": "{count} ligne lue | {count} lignes lues"
       },
       "meter": {
         "seats_hint": "{used} utilisés · {free} libres",
@@ -174,7 +200,125 @@
         "connectors_degraded": "aucun connecteur dégradé | {count} connecteur dégradé | {count} connecteurs dégradés"
       },
       "top_list": {
-        "last_visit": "Dernière visite {at}"
+        "last_visit": "Dernière visite {at}",
+        "partial": "{value} k pour l'instant"
+      },
+      "stats": {
+        "mrr_label": "MRR",
+        "mrr": "{amount}/mois",
+        "renews": "Renouvelé le {at}"
+      },
+      "facts": {
+        "conversion": "Conversion",
+        "ratio": "{ratio} de {sessions} sessions"
+      },
+      "banner": {
+        "outage": "Panne du fournisseur d'e-mails depuis {since}",
+        "queued": "Aucun e-mail en attente pour {provider} | {queued} e-mail en attente pour {provider}, envoyé une fois relancé | {queued} e-mails en attente pour {provider}, envoyés une fois relancés",
+        "provider": "{name}, le fournisseur d'e-mails"
+      },
+      "code": {
+        "generated": "Configuration du préréglage, générée le {at}"
+      },
+      "live": {
+        "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
+        "in_5xx": "{count} en 5xx",
+        "typing": "saisie d'une note",
+        "polling": "Interrogation périodique",
+        "paused": "En pause",
+        "direct": "En direct",
+        "health_title": "Santé · composant personnalisé",
+        "requests": "Requêtes",
+        "missed": "Manqués pendant la pause",
+        "updated": "Dernière lecture",
+        "note_placeholder": "Saisissez une note : la page se met en pause",
+        "read_now": "Lire maintenant"
+      },
+      "tabs": {
+        "beta": "bêta",
+        "unread": "{count} non lu | {count} non lus"
+      },
+      "chart_card": {
+        "this_period": "Cette période",
+        "last_period": "Période précédente"
+      }
+    },
+    "form_pages": {
+      "username_taken": "« {name} » est déjà pris.",
+      "invited": "Aucune invitation envoyée | {count} invitation envoyée | {count} invitations envoyées",
+      "impact_members": "Membres",
+      "impact_tables": "Tables"
+    },
+    "frontend": {
+      "palette": {
+        "group": "Playground",
+        "foundations": "Fondations du design system",
+        "foundations_search": "pastilles badges tons icônes libellés design tokens",
+        "features": "Index des fonctionnalités",
+        "open_panel": "Ouvrir le panneau latéral de démo",
+        "close_panel": "Fermer le panneau latéral de démo"
+      },
+      "header_action": "Basculer l'interface compacte",
+      "widget": {
+        "label": "Ajouté depuis une page"
+      },
+      "overlay": {
+        "open_panel": "Panneau latéral",
+        "remove": "Retirer cette surcouche"
+      },
+      "links": {
+        "footer": "Code du playground",
+        "auth": "Pas encore de compte ? Inscrivez-vous"
+      },
+      "toolkit": {
+        "refused": "Le playground a refusé cet appel exprès.",
+        "invoice": "Facture de {amount}, échéance {due}."
+      }
+    },
+    "pages": {
+      "header": {
+        "download": "Télécharger {locale}.json",
+        "archived": "L'espace archive est en lecture seule : restaurez-le pour publier",
+        "client_action": "Action du navigateur",
+        "client_action_toast": "Exécutée dans le navigateur, sans requête",
+        "client_action_title": "Un bouton d'en-tête ajouté depuis le navigateur",
+        "client_action_description": "Ce composant appelle usePageHeaderActions avec l'ordre 20 : son bouton se place entre Télécharger (10) et Publish (30)."
+      },
+      "banners": {
+        "info": "La bannière texte du playground : fermez-la, elle reste fermée pour cette session du navigateur.",
+        "open": "Ouvrir la démo des bannières",
+        "past_due": "Votre paiement de {amount} a échoué. Nouvel essai le {date}.",
+        "pay": "Mettre à jour le moyen de paiement",
+        "suspended": "Cet espace est suspendu, ou la bannière composant est activée.",
+        "suspended_link": "Ouvrir Tenancy"
+      },
+      "hooks": {
+        "seats_full": "Plus de place libre : libérez-en une ou changez d'offre pour inviter quelqu'un"
+      },
+      "realtime": {
+        "browser_title": "Reçu par ce navigateur sur {topic}",
+        "browser_empty": "Rien pour l'instant : cliquez sur Ping dans l'en-tête."
+      },
+      "quick_actions": {
+        "ping_toast": "L'événement de l'action rapide a atteint un écouteur",
+        "ping_description": "Contenu : {payload}"
+      },
+      "setup": {
+        "mounted": "Fonction de configuration de page montée",
+        "mounted_description": "{page} : elle reçoit vos {count} permission(s) et écoute le formulaire.",
+        "field_change": "Un champ a changé : la fonction de configuration de page l'a entendu"
+      }
+    },
+    "table_view": {
+      "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
+      "request_count": "{count} requête | {count} requêtes",
+      "task_count": "{count} tâche | {count} tâches",
+      "cells": {
+        "contact_line": "{count} siège · {country} | {count} sièges · {country}",
+        "plan_detail": "{price} par siège · {count} siège | {price} par siège · {count} sièges",
+        "renews": "Renouvellement {date}",
+        "on_date": "le {date}",
+        "by": "{date} · par {name}"
       }
     }
   }

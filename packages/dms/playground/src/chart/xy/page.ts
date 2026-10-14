@@ -15,7 +15,8 @@ export class PageChartXY extends PageController("chart-xy", {
   icon: "i-ph-chart-line",
   category: pageCategory,
   order: 10,
-  description: "Line, Area, Bar, Column and Scatter charts",
+  description:
+    "The XY charts: line, area, horizontal bar, column, scatter, stacked columns with a colour array, and a line with a fixed Y range. Hover a chart for its tooltip.",
 }) {
   static line = ChartLine({
     title: "Line chart",
@@ -53,14 +54,14 @@ export class PageChartXY extends PageController("chart-xy", {
     description: "Multiple series with explicit color array",
     fetchUrl: "/api/dashboard/series?seed=20&size=6&count=3",
     stacked: true,
-    color: ["primary", "info", "warning"],
+    color: ["primary", "secondary", "warning"],
     columnWidth: 40,
     roundedCorners: true,
   });
 
   static boundedLine = ChartLine({
-    title: "Constrained yRange",
-    description: "yRange clamps the axis so small variations look bigger",
+    title: "Fixed yRange",
+    description: "yRange pins the axis to 0–1000 instead of fitting the data",
     fetchUrl: "/api/dashboard/series?seed=21&size=12",
     yRange: { min: 0, max: 1000 },
     smooth: false,

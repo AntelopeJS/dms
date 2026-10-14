@@ -15,7 +15,8 @@ export class DynamicNavigationNewProjectPage extends PageController(
     category: dynamicNavigationCategory,
     order: 100,
     variant: "accent",
-    description: "Static entry sorted after the dynamic ones",
+    description:
+      "Demonstrates: MenuOptions.variant accent on a static page, sorted after the dynamic entries by its order.",
   },
   FormPageLayout(),
 ) {

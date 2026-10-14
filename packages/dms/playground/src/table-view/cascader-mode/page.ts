@@ -13,7 +13,8 @@ export class PageCascaderCategories extends PageController(
     icon: "i-ph-tree-structure",
     category: tableViewCategory,
     order: 130,
-    description: "Self-referencing category tree feeding the cascader",
+    description:
+      "A self-referencing category tree, the data the Cascader Products picker reads. Add a sub-category under a category.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {
@@ -39,7 +40,8 @@ export class PageCascaderProducts extends PageController(
     icon: "i-ph-package",
     category: tableViewCategory,
     order: 131,
-    description: "Products using the CascaderRelationType widget",
+    description:
+      "Products picking their category with a CascaderRelationType. Add a product and walk the category tree.",
   },
   DefaultLayout({ fullWidth: true }),
 ) {

@@ -6,17 +6,32 @@
  *
  * Client-only: `suggestions` is a function, which the SSR payload would drop.
  */
-const SUGGESTION_KEYS = ["churn", "block", "order"];
+interface DemoSuggestion {
+  key: string;
+  icon?: string;
+  /** Submits a prompt other than the label shown. */
+  hasPrompt?: boolean;
+}
 
-export default defineDmsPlugin(() => {
+const SUGGESTIONS: DemoSuggestion[] = [
+  { key: "churn", icon: "i-ph-chart-line-down" },
+  { key: "block", icon: "i-ph-cube" },
+  { key: "order", hasPrompt: true },
+];
+
+export default defineDmsPlugin(({ $i18n }) => {
   registerCommandPaletteAssistant({
     id: "demo:assistant",
     label: "$demo.assistant.label",
     icon: "i-ph-sparkle",
     placeholder: "$demo.assistant.placeholder",
     suggestions: () =>
-      SUGGESTION_KEYS.map((key) => ({
+      SUGGESTIONS.map(({ key, icon, hasPrompt }) => ({
         label: `$demo.assistant.suggestions.${key}`,
+        icon,
+        prompt: hasPrompt
+          ? $i18n.t(`demo.assistant.prompts.${key}`)
+          : undefined,
       })),
     answerComponent: "PaletteAssistantDemoAnswer",
   });

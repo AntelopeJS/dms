@@ -2,6 +2,8 @@ import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
+import { HttpMethod } from "@antelopejs/interface-dms/base/types";
+import { DEMO_CONTACT_API } from "./contact-api";
 
 @RegisterPage()
 export class DemoModuleFormPage extends PageController(
@@ -11,13 +13,19 @@ export class DemoModuleFormPage extends PageController(
     icon: "i-ph-envelope",
     module: "demo",
     order: 1,
-    description: "A simple contact form to demonstrate forms inside a module",
+    description:
+      "Demonstrates: a module page and the module's landingPage: /modules/demo opens here.",
   },
   FormPageLayout(),
 ) {
   static form = Form({
     title: "Contact Us",
     description: "Send us a message and we'll get back to you",
+    kind: "action",
+    submitUrl: DEMO_CONTACT_API,
+    submitUrlMethod: HttpMethod.post,
+    submitLabel: "Send message",
+    successMessage: "Message sent",
     fields: [
       {
         id: "name",
@@ -27,6 +35,7 @@ export class DemoModuleFormPage extends PageController(
           placeholder: "Jane Doe",
           maxLength: 100,
         }),
+        required: true,
       },
       {
         id: "email",
@@ -35,6 +44,7 @@ export class DemoModuleFormPage extends PageController(
         type: new DefaultDataTypes.EmailType({
           placeholder: "jane@example.com",
         }),
+        required: true,
       },
       {
         id: "subject",
@@ -60,6 +70,7 @@ export class DemoModuleFormPage extends PageController(
           textarea: true,
           rows: 6,
         }),
+        required: true,
       },
       {
         id: "subscribe",

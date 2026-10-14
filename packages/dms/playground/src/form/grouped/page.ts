@@ -8,18 +8,21 @@ import { pageCategory } from "../category";
 export class PageFormGrouped extends PageController(
   "form-grouped",
   {
-    displayName: "Grouped Fields",
+    displayName: "Field groups",
     icon: "i-ph-squares-four",
     category: pageCategory,
     order: 50,
-    description: "Form with grouped fields for better layout organization",
+    description:
+      "Fields side by side or stacked under one label, and groups moved with order. The values still save as flat keys.",
   },
   FormPageLayout(),
 ) {
   static form = Form({
-    title: "Grouped Fields Example",
+    title: "Field groups",
     description:
-      "Demonstrates how to group related fields together with shared labels",
+      "Contact is horizontal, Address vertical. Address (order 1) comes before Social links (order 2), though declared after it.",
+    fetchUrl: "/api/form-grouped/get",
+    submitUrl: "/api/form-grouped/save",
     fields: [
       {
         id: "username",
@@ -35,7 +38,8 @@ export class PageFormGrouped extends PageController(
       {
         id: "contactGroup",
         label: "Contact Information",
-        description: "Your email and phone number",
+        description: "Your email and phone number (horizontal)",
+        orientation: "horizontal",
         fields: [
           {
             id: "email",
@@ -63,7 +67,8 @@ export class PageFormGrouped extends PageController(
       {
         id: "socialGroup",
         label: "Social Links",
-        description: "Your social media profiles",
+        description: "Your social media profiles (order 2)",
+        order: 2,
         fields: [
           {
             id: "website",
@@ -88,8 +93,9 @@ export class PageFormGrouped extends PageController(
       {
         id: "addressGroup",
         label: "Address",
-        description: "Your mailing address (vertical layout)",
+        description: "Your mailing address (vertical, order 1)",
         orientation: "vertical",
+        order: 1,
         fields: [
           {
             id: "street",

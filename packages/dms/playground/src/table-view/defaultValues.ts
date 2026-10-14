@@ -914,14 +914,28 @@ const generateEmailFromName = (name: string): string => {
     .replace(/[^a-z0-9.]/g, "")}@example.com`;
 };
 
+// A fixed seed: every install lists the same tasks, so the demos whose rules
+// read a task's status or priority behave the same everywhere.
+const FIXTURE_SEED = 0x5eed;
+const UINT32_RANGE = 2 ** 32;
+let randomState = FIXTURE_SEED;
+
+// mulberry32: a small repeatable generator of numbers in [0, 1).
+function seededRandom(): number {
+  randomState = (randomState + 0x6d2b79f5) | 0;
+  let mixed = Math.imul(randomState ^ (randomState >>> 15), 1 | randomState);
+  mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed);
+  return ((mixed ^ (mixed >>> 14)) >>> 0) / UINT32_RANGE;
+}
+
 const pickRandom = <T>(arr: readonly T[]): T => {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[Math.floor(seededRandom() * arr.length)];
 };
 
 const buildRandomDates = (): RandomDates => {
-  const dueDays = Math.floor(Math.random() * 30);
-  const createdDays = Math.floor(Math.random() * 90);
-  const updatedDays = Math.floor(Math.random() * (90 - createdDays));
+  const dueDays = Math.floor(seededRandom() * 30);
+  const createdDays = Math.floor(seededRandom() * 90);
+  const updatedDays = Math.floor(seededRandom() * (90 - createdDays));
   const createdDate = new Date(Date.now() - createdDays * 86400000);
   return {
     dueDate: new Date(Date.now() + dueDays * 86400000),
@@ -931,14 +945,14 @@ const buildRandomDates = (): RandomDates => {
 };
 
 const buildRandomAddress = (): RandomAddress | undefined => {
-  const hasAddress = Math.random() < 0.7;
+  const hasAddress = seededRandom() < 0.7;
   if (!hasAddress) return undefined;
   const base = pickRandom(SAMPLE_ADDRESSES);
-  const includeOptional = Math.random() < 0.3;
+  const includeOptional = seededRandom() < 0.3;
   return {
     ...base,
     ...(includeOptional && {
-      addressLine2: `Suite ${Math.floor(Math.random() * 500) + 1}`,
+      addressLine2: `Suite ${Math.floor(seededRandom() * 500) + 1}`,
     }),
   };
 };
@@ -959,8 +973,8 @@ const buildRandomTask = (i: number): Partial<Task> => {
     description: pickRandom(RANDOM_DESCRIPTIONS),
     due_date: dates.dueDate,
     assignees: pickRandomUser()._id,
-    price: Math.floor(Math.random() * 1000) + 1,
-    completion_percentage: Math.random(),
+    price: Math.floor(seededRandom() * 1000) + 1,
+    completion_percentage: seededRandom(),
     url: `https://www.google.com/search?q=${taskName}`,
     phone: "+1-555-123-4567",
     done: false,
@@ -982,148 +996,63 @@ const generateRandomTasks = (count: number): Partial<Task>[] => {
 };
 
 function pickRandomUser(): User {
-  return defaultUsers[Math.floor(Math.random() * defaultUsers.length)];
+  return defaultUsers[Math.floor(seededRandom() * defaultUsers.length)];
 }
 
-export const defaultUsers: User[] = [
-  {
-    _id: "1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4567",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "2",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4568",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "3",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4569",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "4",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4570",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "5",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4571",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "6",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4572",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "7",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4573",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "8",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4574",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "9",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4575",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "10",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4576",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "11",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4577",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "12",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4578",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "13",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4579",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "14",
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    phone: "+1-555-123-4580",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "15",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1-555-123-4581",
-    avatar: "https://dummyjson.com/image/150",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
+const USER_NAMES = [
+  "Ada Lovelace",
+  "Grace Hopper",
+  "Alan Turing",
+  "Katherine Johnson",
+  "Linus Torvalds",
+  "Margaret Hamilton",
+  "Tim Berners-Lee",
+  "Barbara Liskov",
+  "Dennis Ritchie",
+  "Hedy Lamarr",
+  "Ken Thompson",
+  "Frances Allen",
+  "Guido van Rossum",
+  "Radia Perlman",
+  "Donald Knuth",
 ];
+const USER_PHONE_PREFIX = "+1-555-123-";
+const USER_PHONE_BASE = 4567;
+const USER_AVATAR_URL = "https://i.pravatar.cc/150?u=";
 
-export const defaultTasks: Partial<Task>[] = [
+function userSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]+/g, ".");
+}
+
+export const defaultUsers: User[] = USER_NAMES.map((name, index) => {
+  const slug = userSlug(name);
+  return {
+    _id: String(index + 1),
+    name,
+    email: `${slug}@example.com`,
+    phone: `${USER_PHONE_PREFIX}${USER_PHONE_BASE + index}`,
+    avatar: `${USER_AVATAR_URL}${slug}`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+});
+
+const COMPLETED_STATUS = "completed";
+const FULL_COMPLETION = 1;
+
+/** A completed task is done and fully complete; no other one is done. */
+function withConsistentProgress(task: Partial<Task>): Partial<Task> {
+  const completed = task.status === COMPLETED_STATUS;
+  return {
+    ...task,
+    done: completed,
+    completion_percentage: completed
+      ? FULL_COMPLETION
+      : task.completion_percentage,
+  };
+}
+
+const fixtureTasks: Partial<Task>[] = [
   {
     _id: "1",
     name: "Task 1",
@@ -1437,3 +1366,7 @@ export const defaultTasks: Partial<Task>[] = [
   },
   ...generateRandomTasks(300),
 ];
+
+export const defaultTasks: Partial<Task>[] = fixtureTasks.map(
+  withConsistentProgress,
+);

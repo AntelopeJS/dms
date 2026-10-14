@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The drawer of the "Views, grouped & cells" demo's "Run details" action: a
+// The drawer of the "Views & grouped display" demo's "Run details" action: a
 // row-click action opening a module's own component, which steps through
 // the listed runs with its `navigation` prop (or J and K).
 

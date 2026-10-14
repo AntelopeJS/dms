@@ -31,7 +31,8 @@ export class PageFormSectionsJump extends PageController(
     icon: "i-ph-tag",
     category: pageCategory,
     order: 6.5,
-    description: "Jump navigation with section groups",
+    description:
+      "Sections listed as chips above the form, grouped under their navGroup label. Below, a form of two sections gets no navigation at all.",
   },
   FormPageLayout(),
 ) {
@@ -39,6 +40,8 @@ export class PageFormSectionsJump extends PageController(
     title: "Edit plan",
     description:
       "The chips lead to each section, grouped under their navGroup label.",
+    fetchUrl: "/api/form-sections-jump/get",
+    submitUrl: "/api/form-sections-jump/save",
     sectionNav: "jump",
     sections: [
       {
@@ -155,6 +158,37 @@ export class PageFormSectionsJump extends PageController(
             id: "termsUrl",
             label: "Terms URL",
             type: new DefaultDataTypes.StringType(),
+          },
+        ],
+      },
+    ],
+  });
+
+  static shortForm = Form({
+    title: "Plan limits",
+    description:
+      "Two sections and no sectionNav: below three sections it defaults to none.",
+    saveMode: "none",
+    sections: [
+      {
+        id: "seats",
+        label: "Seats",
+        fields: [
+          {
+            id: "includedSeats",
+            label: "Included seats",
+            type: new DefaultDataTypes.NumberType({ min: 1 }),
+          },
+        ],
+      },
+      {
+        id: "storage",
+        label: "Storage",
+        fields: [
+          {
+            id: "includedStorage",
+            label: "Included storage",
+            type: new DefaultDataTypes.NumberType({ min: 0, suffix: "GB" }),
           },
         ],
       },

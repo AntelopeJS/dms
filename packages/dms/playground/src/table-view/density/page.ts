@@ -10,6 +10,7 @@ import { tableViewCategory } from "../category";
 import { taskDataAPI } from "../data-api";
 import { Task } from "../database";
 import { demoFormPages } from "../form-texts";
+import { TASK_DEFAULT_SORT } from "../status";
 
 const SCROLL_HEIGHT = "420px";
 
@@ -49,6 +50,7 @@ export class PageTableViewDensity extends PageController(
   DefaultLayout({ fullWidth: true }),
 ) {
   static compact = TableView(compactTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: 'Compact · density "compact" · sticky header · 420px',
     labelKey: "name",
     formContainer: { type: "page", pages: demoFormPages("task") },
@@ -58,6 +60,7 @@ export class PageTableViewDensity extends PageController(
   });
 
   static comfortable = TableView(comfortableTaskDataAPI, {
+    defaultSort: TASK_DEFAULT_SORT,
     caption: "Default density · sticky header · 420px",
     labelKey: "name",
     formContainer: { type: "page", pages: demoFormPages("task") },

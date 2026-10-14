@@ -11,7 +11,7 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
   category: blocksCategory,
   order: 0,
   description:
-    "StatGroup block: joined status strip, summary cards, live data following a period selector, loading, error and empty states",
+    "StatGroup block: a joined strip, summary cards, every well tone, figures following a period selector, then the error (Retry), not-found and empty states. Change the period to see the cards reload.",
 }) {
   static joined = StatGroup({
     layout: "joined",
@@ -54,24 +54,72 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
   static cards = StatGroup({
     layout: "cards",
     items: [
-      { icon: "i-ph-squares-four", eyebrow: "Installed", value: 11 },
       {
+        id: "installed",
+        icon: "i-ph-squares-four",
+        eyebrow: "Installed",
+        value: 11,
+      },
+      {
+        id: "updates",
         icon: "i-ph-arrow-circle-up",
         tone: "warning",
         eyebrow: "Updates available",
         value: 2,
       },
       {
+        id: "attention",
         icon: "i-ph-warning-circle",
         tone: "error",
         eyebrow: "Need attention",
         value: 2,
       },
       {
+        id: "available",
         icon: "i-ph-package",
         tone: "neutral",
         eyebrow: "Available",
         value: 4,
+      },
+    ],
+  });
+
+  // The well tones the other groups leave out. A long detail wraps to a
+  // second line rather than being cut.
+  static tones = StatGroup({
+    layout: "cards",
+    label: "Well tones",
+    items: [
+      {
+        icon: "i-ph-info",
+        tone: "info",
+        eyebrow: "Tone info",
+        value: "Sync queued",
+        detail:
+          "The next run starts at 10:30 and imports every order placed since the last run",
+        detailTone: "info",
+      },
+      {
+        icon: "i-ph-sparkle",
+        tone: "secondary",
+        eyebrow: "Tone secondary",
+        value: "3 suggestions",
+        detail: "From the assistant",
+      },
+      {
+        icon: "i-ph-star",
+        tone: "primary",
+        eyebrow: "Tone primary",
+        value: "Business",
+        detail: "Current plan",
+        detailTone: "primary",
+      },
+      {
+        icon: "i-ph-moon",
+        tone: "muted",
+        eyebrow: "Tone muted",
+        value: "Archived",
+        detail: "Read-only since Sep 1",
       },
     ],
   });
@@ -108,18 +156,29 @@ export class PageBlocksStatGroup extends PageController("blocks-stat-group", {
   });
 
   // Follows the selector above: the route scales its figures to the period.
+  // Its first cell composes its eyebrow, value and detail in the reader's
+  // language (a money amount, a long date).
   static live = StatGroup({
     layout: "cards",
     fetchUrl: "/api/blocks/stats",
     periodScope: LIVE_PERIOD_SCOPE,
-    // The route answers 4 figures: the skeleton draws as many cells.
-    skeletonCount: 4,
+    // The route answers 5 figures: the skeleton draws as many cells.
+    skeletonCount: 5,
   });
 
+  // The route answers 503: the block draws its load error with Retry.
   static failing = StatGroup({
     layout: "joined",
     columns: 2,
-    fetchUrl: "/api/blocks/missing",
+    fetchUrl: "/api/blocks/broken",
+  });
+
+  // The route answers 404 with `{ message, emptyState }`: "Not found", with
+  // the route's title, icon and link laid over it.
+  static notFound = StatGroup({
+    layout: "joined",
+    columns: 2,
+    fetchUrl: "/api/blocks/gone",
   });
 
   static empty = StatGroup({

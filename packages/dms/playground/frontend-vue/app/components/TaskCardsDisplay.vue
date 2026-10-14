@@ -38,7 +38,17 @@ interface DisplayContext {
     add: () => void;
     edit: (item: Record<string, unknown>) => void;
     delete: (ids: string[]) => void;
+    /** The custom row actions a row offers (their `rule` accepted). */
+    customFor: (item: Record<string, unknown>) => CustomRowAction[];
+    /** Runs a custom row action on a row, as its grid menu entry does. */
+    custom: (action: CustomRowAction, item?: Record<string, unknown>) => void;
   };
+}
+
+interface CustomRowAction {
+  id?: string;
+  label: string;
+  icon?: string;
 }
 
 const props = defineProps<{ context: DisplayContext }>();
@@ -212,6 +222,22 @@ const openItem = (item: Record<string, unknown>) => {
             </dd>
           </div>
         </dl>
+
+        <footer
+          v-if="context.actions.customFor(item).length"
+          class="mt-3 flex flex-wrap gap-1.5"
+        >
+          <UButton
+            v-for="action in context.actions.customFor(item)"
+            :key="action.id ?? action.label"
+            :label="action.label"
+            :icon="action.icon"
+            color="neutral"
+            variant="outline"
+            size="xs"
+            @click.stop="context.actions.custom(action, item)"
+          />
+        </footer>
       </article>
     </div>
 

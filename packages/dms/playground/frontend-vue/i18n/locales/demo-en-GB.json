@@ -116,6 +116,28 @@
       "maintenance": {
         "title": "Maintenance on Sunday from 2:00 to 2:30 a.m.",
         "description": "The dashboard will be unavailable meanwhile: save your work before then."
+      },
+      "category": {
+        "label": "Playground",
+        "description": "Notifications the playground sends for its demos",
+        "tag": "Demo"
+      },
+      "subject": {
+        "label": "Playground demos",
+        "description": "Sent from System › Notifications",
+        "badge": "New"
+      },
+      "idempotent": {
+        "title": "Delivered once for the key {key}",
+        "description": "Send it again with the same key: no second notification arrives."
+      },
+      "orders": {
+        "title": "no new order | {count} new order | {count} new orders",
+        "description": "The count is sent as a param and written in your language."
+      },
+      "roles": {
+        "title": "A message for every role",
+        "description": "Sent with toRoles to the members holding one of the workspace's roles."
       }
     },
     "job_runs": {
@@ -143,6 +165,9 @@
         "copy": "Copy the question",
         "copied": "Question copied",
         "copyFailed": "Copy failed"
+      },
+      "prompts": {
+        "order": "Why is order #10482 still pending, and when will it ship?"
       }
     },
     "side_panel": {
@@ -159,7 +184,8 @@
         "order_paid": "Order {order} paid",
         "files_changed": "{count} file changed | {count} files changed",
         "missing_keys": "no translation key missing | {count} translation key missing | {count} translation keys missing",
-        "amount": "{amount}"
+        "amount": "{amount}",
+        "badge_rows": "{count} row read | {count} rows read"
       },
       "meter": {
         "seats_hint": "{used} in use · {free} free",
@@ -174,7 +200,125 @@
         "connectors_degraded": "no connector degraded | {count} connector degraded | {count} connectors degraded"
       },
       "top_list": {
-        "last_visit": "Last visit {at}"
+        "last_visit": "Last visit {at}",
+        "partial": "{value}k so far"
+      },
+      "stats": {
+        "mrr_label": "MRR",
+        "mrr": "{amount}/mo",
+        "renews": "Renews {at}"
+      },
+      "facts": {
+        "conversion": "Conversion",
+        "ratio": "{ratio} of {sessions} sessions"
+      },
+      "banner": {
+        "outage": "Mail provider outage since {since}",
+        "queued": "No email queued for {provider} | {queued} email queued for {provider}, sent once replayed | {queued} emails queued for {provider}, sent once replayed",
+        "provider": "{name}, the mail provider"
+      },
+      "code": {
+        "generated": "Preset configuration, generated {at}"
+      },
+      "live": {
+        "new_requests": "{count} new request | {count} new requests",
+        "in_5xx": "{count} in 5xx",
+        "typing": "typing a note",
+        "polling": "Polling",
+        "paused": "Paused",
+        "direct": "Live",
+        "health_title": "Health · custom component",
+        "requests": "Requests",
+        "missed": "Missed while paused",
+        "updated": "Last read",
+        "note_placeholder": "Type a note: the page holds while you do",
+        "read_now": "Read now"
+      },
+      "tabs": {
+        "beta": "beta",
+        "unread": "{count} unread | {count} unread"
+      },
+      "chart_card": {
+        "this_period": "This period",
+        "last_period": "Last period"
+      }
+    },
+    "form_pages": {
+      "username_taken": "“{name}” is already taken.",
+      "invited": "No invitation sent | {count} invitation sent | {count} invitations sent",
+      "impact_members": "Members",
+      "impact_tables": "Tables"
+    },
+    "frontend": {
+      "palette": {
+        "group": "Playground",
+        "foundations": "Design system foundations",
+        "foundations_search": "pills badges tones icons labels design tokens",
+        "features": "Feature index",
+        "open_panel": "Open the demo side panel",
+        "close_panel": "Close the demo side panel"
+      },
+      "header_action": "Toggle the compact interface",
+      "widget": {
+        "label": "Added from a page"
+      },
+      "overlay": {
+        "open_panel": "Side panel",
+        "remove": "Remove this overlay"
+      },
+      "links": {
+        "footer": "Playground source",
+        "auth": "No account yet? Sign up"
+      },
+      "toolkit": {
+        "refused": "The playground refused this call on purpose.",
+        "invoice": "Invoice of {amount}, due {due}."
+      }
+    },
+    "pages": {
+      "header": {
+        "download": "Download {locale}.json",
+        "archived": "The archive workspace is read-only: restore it to publish",
+        "client_action": "Client action",
+        "client_action_toast": "Run in the browser, without a request",
+        "client_action_title": "A header button added from the browser",
+        "client_action_description": "This component calls usePageHeaderActions with order 20: its button sits between Download (10) and Publish (30)."
+      },
+      "banners": {
+        "info": "The playground's text banner: close it, it stays closed for this browser session.",
+        "open": "Open the banners demo",
+        "past_due": "Your payment of {amount} failed. We will try again on {date}.",
+        "pay": "Update the payment method",
+        "suspended": "This workspace is suspended, or the component banner is switched on.",
+        "suspended_link": "Open Tenancy"
+      },
+      "hooks": {
+        "seats_full": "No seat left: free one or upgrade the plan to invite someone"
+      },
+      "realtime": {
+        "browser_title": "Received by this browser on {topic}",
+        "browser_empty": "Nothing yet: press Ping in the header."
+      },
+      "quick_actions": {
+        "ping_toast": "The quick action's event reached a listener",
+        "ping_description": "Payload: {payload}"
+      },
+      "setup": {
+        "mounted": "Page setup function mounted",
+        "mounted_description": "{page}: it receives your {count} permission(s) and listens to the form.",
+        "field_change": "A field changed: the page setup function heard it"
+      }
+    },
+    "table_view": {
+      "new_requests": "{count} new request | {count} new requests",
+      "request_count": "{count} request | {count} requests",
+      "task_count": "{count} task | {count} tasks",
+      "cells": {
+        "contact_line": "{count} seat · {country} | {count} seats · {country}",
+        "plan_detail": "{price} per seat · {count} seat | {price} per seat · {count} seats",
+        "renews": "Renews {date}",
+        "on_date": "on {date}",
+        "by": "{date} · by {name}"
       }
     }
   }

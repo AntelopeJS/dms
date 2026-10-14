@@ -13,7 +13,7 @@ export class PageLayoutGridStacked extends PageController(
     category: pageCategory,
     order: 10,
     description:
-      "Grid component with multiple elements in different row layouts",
+      "One Grid holding rows of one, two and three placeholders, with colSpan widening a cell. Resize the window to see the rows reflow.",
   },
 ) {
   static simpleGrid = Grid({ gap: "1.5rem" })

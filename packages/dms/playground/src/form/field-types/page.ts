@@ -2,7 +2,18 @@ import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { FormPageLayout } from "@antelopejs/interface-dms/base/layouts";
+import { StatusType } from "@antelopejs/interface-dms/base/data-types/status-type";
 import { pageCategory } from "../category";
+import { userDataAPI } from "../../table-view/data-api";
+import { cascaderCategoryDataAPI } from "../../table-view/cascader-mode/data-api";
+import { TASK_STATUSES } from "../../table-view/status";
+
+const PLAN_COLUMNS = 3;
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const MIN_WINDOW_MS = 15 * MINUTE_MS;
+const MAX_WINDOW_MS = 8 * HOUR_MS;
+const TEAM_MAX_DEPTH = 2;
 
 const PLAN_ITEMS = [
   { label: "Starter", value: "starter", description: "3 projects, 10 GB" },
@@ -35,7 +46,8 @@ export class PageFormFieldTypes extends PageController(
     icon: "i-ph-shapes",
     category: pageCategory,
     order: 8,
-    description: "Select and boolean displays, repeaters, tags, secrets, code",
+    description:
+      "Every field type and display beyond the plain inputs: select and boolean displays, lists, secrets, code, relations and durations. Change a value to see its change note.",
   },
   FormPageLayout(),
 ) {
@@ -54,10 +66,11 @@ export class PageFormFieldTypes extends PageController(
           {
             id: "plan",
             label: "Plan",
-            description: "Select as cards, with descriptions",
+            description: "Select as cards, three per row (columns)",
             type: new DefaultDataTypes.SelectType({
               items: PLAN_ITEMS,
               display: "cards",
+              columns: PLAN_COLUMNS,
             }),
             required: true,
           },
@@ -68,6 +81,7 @@ export class PageFormFieldTypes extends PageController(
             type: new DefaultDataTypes.SelectType({
               items: PLAN_ITEMS,
               display: "cards",
+              columns: PLAN_COLUMNS,
               multiple: true,
             }),
           },
@@ -79,6 +93,30 @@ export class PageFormFieldTypes extends PageController(
               items: THINKING_ITEMS,
               display: "segmented",
             }),
+          },
+          {
+            id: "effort",
+            label: "Effort",
+            description: "A select that can be emptied again (deselectable)",
+            type: new DefaultDataTypes.SelectType({
+              items: THINKING_ITEMS,
+              deselectable: true,
+              placeholder: "None",
+            }),
+          },
+          {
+            id: "taskStatus",
+            label: "Status",
+            description: "Options with an icon and colours",
+            type: new DefaultDataTypes.SelectType({
+              items: [...TASK_STATUSES],
+            }),
+          },
+          {
+            id: "online",
+            label: "Online",
+            description: "A status: online or offline",
+            type: new StatusType(),
           },
           {
             id: "region",
@@ -159,6 +197,24 @@ export class PageFormFieldTypes extends PageController(
             }),
           },
           {
+            id: "quotas",
+            label: "Quotas",
+            description: "Key-value pairs with number values and headers",
+            type: new DefaultDataTypes.KeyValueType({
+              valueType: new DefaultDataTypes.NumberType({ min: 0 }),
+              keyLabel: "Region",
+              valueLabel: "Quota",
+            }),
+          },
+          {
+            id: "links",
+            label: "Links",
+            description: "A repeater of one bare type (of: { url: UrlType })",
+            type: new DefaultDataTypes.ArrayType({
+              of: { url: new DefaultDataTypes.UrlType() },
+            }),
+          },
+          {
             id: "recipients",
             label: "Recipients",
             description: "Tags: addresses, at most 5",
@@ -191,6 +247,26 @@ export class PageFormFieldTypes extends PageController(
             }),
           },
           {
+            id: "deployToken",
+            label: "Deploy token",
+            description: "Write-only: neither revealed nor copied",
+            type: new DefaultDataTypes.SecretType({
+              revealable: false,
+              copyable: false,
+              placeholder: "Write-only token",
+            }),
+          },
+          {
+            id: "adminPassword",
+            label: "Admin password",
+            description: "Typed twice (confirmPassword)",
+            type: new DefaultDataTypes.PasswordType({
+              minLength: 8,
+              confirmPassword: true,
+              confirmPlaceholder: "Repeat the password",
+            }),
+          },
+          {
             id: "payload",
             label: "Payload",
             description: "JSON, checked as you type",
@@ -209,6 +285,62 @@ export class PageFormFieldTypes extends PageController(
               minLines: 3,
               completions: QUERY_COMPLETIONS,
               completionsUrl: "/api/form-field-types/completions",
+            }),
+          },
+          {
+            id: "banner",
+            label: "Banner HTML",
+            description: "HTML without line numbers",
+            type: new DefaultDataTypes.CodeType({
+              language: "html",
+              lineNumbers: false,
+              minLines: 3,
+            }),
+          },
+          {
+            id: "hook",
+            label: "Hook",
+            description: "JavaScript",
+            type: new DefaultDataTypes.CodeType({ language: "javascript" }),
+          },
+        ],
+      },
+      {
+        id: "relations",
+        label: "Relations & time",
+        icon: "i-ph-link",
+        fields: [
+          {
+            id: "reviewers",
+            label: "Reviewers",
+            description:
+              "Several users, each removable (multiple, deselectable)",
+            type: new DefaultDataTypes.RelationType({
+              dataApiController: userDataAPI,
+              multiple: true,
+              deselectable: true,
+              placeholder: "Pick reviewers…",
+              keyMapping: { label: "name", value: "_id", avatar: "avatar" },
+            }),
+          },
+          {
+            id: "team",
+            label: "Team",
+            description: "A cascader two levels deep at most (maxDepth)",
+            type: new DefaultDataTypes.CascaderRelationType({
+              dataApiController: cascaderCategoryDataAPI,
+              maxDepth: TEAM_MAX_DEPTH,
+              keyMapping: { label: "name", value: "_id", parent: "parent" },
+            }),
+          },
+          {
+            id: "maintenanceWindow",
+            label: "Maintenance window",
+            description: "A duration from 00:15 to 08:00 (min, max)",
+            type: new DefaultDataTypes.StringTimeType({
+              placeholder: "01:30",
+              min: MIN_WINDOW_MS,
+              max: MAX_WINDOW_MS,
             }),
           },
         ],

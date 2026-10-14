@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, ref, resolveComponent } from "vue";
-import ShowcaseDemo from "./ShowcaseDemo.vue";
-import ShowcaseSection from "./ShowcaseSection.vue";
+import ShowcaseDemo from "../showcase/ShowcaseDemo.vue";
+import ShowcaseSection from "../showcase/ShowcaseSection.vue";
 
 /**
  * Design system › Foundations › Overlays: DmsConfirmModal, opened through

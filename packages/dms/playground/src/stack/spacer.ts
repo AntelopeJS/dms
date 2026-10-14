@@ -13,7 +13,8 @@ export class PageSpacer extends PageController("stack-spacer", {
   icon: "i-ph-arrow-line-right",
   category: stackCategory,
   order: 20,
-  description: "Spacer - Fill available space between components",
+  description:
+    "Spacer fills the free space of a stack: pushing blocks apart, centring one, capped by maxSize, kept above minSize, and shared by grow (1 against 3).",
 }) {
   static mainContent = (() => {
     const leftBox = Placeholder({
@@ -82,12 +83,28 @@ export class PageSpacer extends PageController("stack-spacer", {
       .child("spacer", Spacer())
       .child("right", rightBox);
 
+    // minSize keeps at least 120 px between A and B, however narrow the row.
+    const example7 = HStack({ spacing: "0", alignment: "center" })
+      .child("a", Placeholder({ label: "A", height: "100px", width: "120px" }))
+      .child("spacer", Spacer({ minSize: "120px" }))
+      .child("b", Placeholder({ label: "B", height: "100px", width: "120px" }));
+
+    // grow 1 against grow 3: the second gap takes three times the first.
+    const example8 = HStack({ spacing: "0", alignment: "center" })
+      .child("a", Placeholder({ label: "A", height: "100px", width: "100px" }))
+      .child("grow1", Spacer({ grow: 1 }))
+      .child("b", Placeholder({ label: "B", height: "100px", width: "100px" }))
+      .child("grow3", Spacer({ grow: 3 }))
+      .child("c", Placeholder({ label: "C", height: "100px", width: "100px" }));
+
     return VStack({ spacing: "32px", alignment: "stretch" })
       .child("ex1", example1)
       .child("ex2", example2)
       .child("ex3", example3)
       .child("ex4", example4)
       .child("ex5", example5)
-      .child("ex6", example6);
+      .child("ex6", example6)
+      .child("ex7", example7)
+      .child("ex8", example8);
   })();
 }
