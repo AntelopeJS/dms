@@ -12,6 +12,22 @@ export interface DmsLogoSources {
   dark: string;
 }
 
+/**
+ * What the footer of the public and auth pages shows besides its links
+ * (`registerFooterLink`).
+ */
+export interface DmsFooterConfig {
+  /**
+   * Name after the `©`, a literal or a `$`-prefixed i18n key; `false` drops
+   * the copyright.
+   */
+  copyright?: string | false;
+  /** The GitHub "Star" button of the DMS repository. */
+  githubStar?: boolean;
+  /** The language picker. */
+  localeSwitcher?: boolean;
+}
+
 export interface DmsBrandingConfig {
   /**
    * Absent when an instance ships no logo of its own; the layer's app config
@@ -21,6 +37,7 @@ export interface DmsBrandingConfig {
     default: DmsLogoSources;
     collapsed: DmsLogoSources;
   };
+  footer?: DmsFooterConfig;
 }
 
 export interface DmsAppConfig {
