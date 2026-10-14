@@ -40,6 +40,11 @@ subdirectory by setting `DMS_TEST_DIR` (read by `antelope.test.ts`'s
 tests are pure logic and don't touch the runtime. `[unit]` / `[integration]`
 tags in the `describe` titles are for readability.
 
+Each of these scripts builds the module, and the harness builds it once more
+when it loads it. With `DMS_PREBUILT=1` set, both skip that and use the `dist`
+already there (as does `pnpm typecheck` for the interface build): CI builds once
+per job and sets it. Leave it unset locally, or the tests run stale code.
+
 First run downloads the MongoDB binary (`MONGO_BINARY_VERSION` in
 `antelope.test.ts`); later runs are fast.
 
