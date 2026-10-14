@@ -226,9 +226,21 @@ export interface HookSignatures {
   };
 }
 
+/**
+ * What a handler of `H` may return. A hook whose result is `undefined` is an
+ * event: its dispatchers discard what handlers return, so any value or promise
+ * is accepted, an `async` handler and one returning a write's result included.
+ * A hook with a result expects that result, or a promise of it.
+ */
+export type HookHandlerResult<H extends Hook> = [
+  HookSignatures[H]["result"],
+] extends [undefined]
+  ? unknown
+  : Promise<HookSignatures[H]["result"]> | HookSignatures[H]["result"];
+
 export type HookHandler<H extends Hook> = (
   ...args: HookSignatures[H]["args"]
-) => Promise<HookSignatures[H]["result"]> | HookSignatures[H]["result"];
+) => HookHandlerResult<H>;
 
 export interface HookRegistrationOptions {
   /**

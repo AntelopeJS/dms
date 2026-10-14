@@ -82,7 +82,6 @@ export function construct(config: Config): void {
   registerAllPermissions();  // RegisterPermission(...) — see dms-auth
   RegisterHook(Hook.DATABASE_INITIALIZED, async () => {
     await initDatabase();
-    return undefined;
   });
 }
 export async function start(): Promise<void> {
