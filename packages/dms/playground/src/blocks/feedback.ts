@@ -212,6 +212,16 @@ export class PageBlocksFeedback extends PageController(
               description: "card: false lets the Card draw the frame.",
             }),
           ),
+        )
+        .child(
+          "offline",
+          EmptyState({
+            icon: "i-ph-wifi-slash",
+            tone: "warning",
+            size: "sm",
+            title: "You are offline",
+            description: "icon and tone override the variant's own.",
+          }),
         ),
     );
 

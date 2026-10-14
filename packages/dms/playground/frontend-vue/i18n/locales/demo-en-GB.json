@@ -204,8 +204,8 @@
         "partial": "{value}k so far"
       },
       "stats": {
-        "mrr_label": "Monthly recurring revenue",
-        "mrr": "{amount} / month",
+        "mrr_label": "MRR",
+        "mrr": "{amount}/mo",
         "renews": "Renews {at}"
       },
       "facts": {

@@ -144,6 +144,7 @@ export class PageBlocksMeters extends PageController(
           Meter({
             card: true,
             label: "Permission coverage",
+            hint: "of 669 permissions",
             value: 42,
             max: 669,
             format: "value",
@@ -158,8 +159,8 @@ export class PageBlocksMeters extends PageController(
           "uptime",
           Meter({
             card: true,
-            label: "Uptime · tone success, format none",
-            hint: "99.2% over 30 days",
+            label: "Uptime (format none)",
+            hint: "99.2% · 30 days",
             value: 99.2,
             max: 100,
             tone: "success",

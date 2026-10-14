@@ -3,10 +3,8 @@ import {
   CARD_ACTIONS_SLOT,
   CARD_FOOTER_SLOT,
   Card,
-  HStack,
   KeyValueList,
   PeriodSelector,
-  Placeholder,
   StatGroup,
 } from "@antelopejs/interface-dms/base";
 import { Grid, GridRow } from "@antelopejs/interface-dms/base/grid";
@@ -16,7 +14,7 @@ import { FACTS_DEMO_TOPIC } from "./api";
 import { blocksCategory } from "./category";
 
 const CARD_PERIOD_SCOPE = "blocks-key-value-card";
-const FOOTER_HEIGHT = "24px";
+const FOOTER_COLUMNS = 2;
 
 @RegisterPage()
 export class PageBlocksKeyValue extends PageController(
@@ -246,23 +244,20 @@ export class PageBlocksKeyValue extends PageController(
     )
     .child(
       "foot",
-      HStack({ distribution: "space-between", alignment: "center" })
-        .child(
-          "sync",
-          Placeholder({
-            label: "Footer slot: last sync 10:15",
-            height: FOOTER_HEIGHT,
-          }),
-        )
-        .child(
-          "next",
-          Placeholder({ label: "next at 10:30", height: FOOTER_HEIGHT }),
-        ),
+      KeyValueList({
+        card: false,
+        dense: true,
+        columns: FOOTER_COLUMNS,
+        items: [
+          { label: "Last sync", value: "10:15" },
+          { label: "Next sync", value: "10:30" },
+        ],
+      }),
       { slot: CARD_FOOTER_SLOT },
     );
 
   static cardWithBlocks = Card({
-    title: "This month",
+    title: "September 2026",
     actions: [{ label: "Open sales", to: "/modules", variant: "outline" }],
   })
     .child(

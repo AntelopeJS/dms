@@ -140,7 +140,7 @@ export class BlocksLiveApiController extends Controller("/api/blocks/live") {
 
   @Get("requests")
   getRequests() {
-    return later({ items: feed, count: totals.requests });
+    return later({ items: feed, count: feed.length });
   }
 
   @Get("health")

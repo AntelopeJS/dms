@@ -204,8 +204,8 @@
         "partial": "{value} k pour l'instant"
       },
       "stats": {
-        "mrr_label": "Revenu mensuel récurrent",
-        "mrr": "{amount} / mois",
+        "mrr_label": "MRR",
+        "mrr": "{amount}/mois",
         "renews": "Renouvelé le {at}"
       },
       "facts": {
