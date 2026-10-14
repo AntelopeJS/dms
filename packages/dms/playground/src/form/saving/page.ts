@@ -24,6 +24,14 @@ const contactFields = () => [
   },
 ];
 
+/** The same fields shown, never edited: no hint, no required mark. */
+const readonlyContactFields = () =>
+  contactFields().map(({ description: _description, ...field }) => ({
+    ...field,
+    required: false,
+    readonly: true,
+  }));
+
 /**
  * How a form offers to save and what follows a submit: the buttons in the
  * form's footer with a Cancel (`backTo`), no buttons at all, and an `action`
@@ -77,10 +85,10 @@ export class PageFormSaving extends PageController(
   static summary = Form({
     title: "Read-only summary",
     description:
-      "saveMode none: no buttons; the same record, saved by the form above.",
+      "saveMode none: no buttons; the same record with readonly fields, saved by the form above.",
     saveMode: "none",
     fetchUrl: `${FORM_SAVING_API}/get`,
-    fields: contactFields(),
+    fields: readonlyContactFields(),
   });
 
   static invite = Form({

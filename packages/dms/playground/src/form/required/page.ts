@@ -298,7 +298,10 @@ export class PageFormRequired extends PageController(
         id: "department",
         label: "Department",
         description: "A select with grouped labels",
-        type: new DefaultDataTypes.SelectType({ items: DEPARTMENT_ITEMS }),
+        type: new DefaultDataTypes.SelectType({
+          items: DEPARTMENT_ITEMS,
+          placeholder: "Choose…",
+        }),
         required: true,
       },
       {

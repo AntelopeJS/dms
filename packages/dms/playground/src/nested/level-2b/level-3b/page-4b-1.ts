@@ -24,7 +24,7 @@ export class PageNested4B1 extends PageController(
       {
         id: "checkbox",
         label: "Checkbox",
-        type: new DefaultDataTypes.BooleanType(),
+        type: new DefaultDataTypes.BooleanType({ display: "checkbox" }),
       },
     ],
   });

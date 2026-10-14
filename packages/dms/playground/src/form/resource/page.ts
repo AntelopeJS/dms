@@ -7,6 +7,7 @@ import { pageCategory } from "../category";
 import { taskDataAPI } from "../../table-view/data-api";
 
 const PAGE_PATH = "/form/form-resource";
+const SAMPLE_TASK_ID = "1";
 
 /**
  * Forms over a table's rows (`ResourceForm`): the fields, routes and methods
@@ -30,9 +31,12 @@ export class PageFormResource extends PageController(
   static help = Banner({
     title: "The edit and view forms read the task from ?id=",
     description:
-      "Create one below, or open a task from the Drawer Mode table and copy its id into the URL.",
+      "Without ?id= they have no task to load and show the field defaults. Open task 1, create one below, or copy a task's id from the Drawer Mode table.",
     size: "sm",
-    actions: [{ label: "Tasks table", to: "/table-view/table-view-drawer" }],
+    actions: [
+      { label: "Open task 1", to: `${PAGE_PATH}?id=${SAMPLE_TASK_ID}` },
+      { label: "Tasks table", to: "/table-view/table-view-drawer" },
+    ],
   });
 
   static create = ResourceForm(taskDataAPI, {

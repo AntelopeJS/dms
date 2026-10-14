@@ -7,6 +7,44 @@ import { notificationCategory } from "../category";
 import { sentNotificationCount } from "../notification-api";
 
 const NOTIFICATION_API = "/api/notification";
+const PRESET_COLUMNS = 2;
+
+const PRESET_ITEMS = [
+  {
+    value: "dms-update",
+    label: "DMS update",
+    description: "To you: a tone, an icon and an internal link",
+  },
+  {
+    value: "hosting-promo",
+    label: "Hosting promo",
+    description: "To you: a link that leaves the app",
+  },
+  {
+    value: "broadcast",
+    label: "Broadcast to all (shared)",
+    description:
+      'broadcast({ readScope: "shared" }): once one user reads it, it is read for all',
+  },
+  {
+    value: "idempotent",
+    label: "Idempotent delivery",
+    description:
+      "toUser(id, { idempotencyKey }): send it twice, a single notification arrives",
+  },
+  {
+    value: "params",
+    label: "Translated text with params",
+    description:
+      ".params({ count: 3 }) fills the {count} of a translated title, in each reader's language",
+  },
+  {
+    value: "roles",
+    label: "Every role",
+    description:
+      "toRoles(roleIds) with every role of the workspace, under the playground's own subject",
+  },
+];
 
 @RegisterPage()
 export class PageNotificationTest extends PageController(
@@ -76,102 +114,28 @@ export class PageNotificationTest extends PageController(
     }),
   });
 
-  static dmsUpdateForm = Form({
-    title: "DMS Update Notification",
-    description: "Send a system notification about a DMS update",
-    submitUrl: "/api/notification/send-dms-update",
-    submitLabel: "Send DMS update",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "title",
-        label: "Title",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "DMS Update Notification",
-      },
-    ],
-  });
-
-  static hostingPromoForm = Form({
-    title: "Hosting Promo Notification",
-    description: "Send a promotional notification about hosting offers",
-    submitUrl: "/api/notification/send-hosting-promo",
-    submitLabel: "Send hosting promo",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "title",
-        label: "Title",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "Hosting Promo Notification",
-      },
-    ],
-  });
-
-  static broadcastAllForm = Form({
-    title: "Broadcast to All (shared)",
+  // One-click notifications: picking a card makes the action form ready to
+  // send; it empties again once sent.
+  static presetForm = Form({
+    title: "Preset notifications",
     description:
-      'broadcast({ readScope: "shared" }): one notification for every user; once one of them reads it, it is read for all',
-    submitUrl: "/api/notification/broadcast-all",
-    submitLabel: "Send broadcast",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "trigger",
-        label: "Trigger",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "System announcement",
-      },
-    ],
-  });
-
-  static idempotentForm = Form({
-    title: "Idempotent delivery",
-    description:
-      "toUser(id, { idempotencyKey }): send twice with the same key, a single notification arrives",
-    submitUrl: `${NOTIFICATION_API}/send-idempotent`,
-    submitLabel: "Send with this key",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [
-      {
-        id: "key",
-        label: "Idempotency key",
-        type: new DefaultDataTypes.StringType(),
-        defaultValue: "order-42-shipped",
-        required: true,
-      },
-    ],
-  });
-
-  static paramsForm = Form({
-    title: "Translated text with params",
-    description:
-      "Builder .params({ count: 3 }) fills the {count} of a translated title, in each reader's language",
-    submitUrl: `${NOTIFICATION_API}/send-params`,
+      "Pick one, then send it. Each shows one option of the builder or of its delivery.",
+    submitUrl: `${NOTIFICATION_API}/send-preset`,
     submitLabel: "Send",
     kind: "action",
     submitUrlMethod: HttpMethod.post,
     successMessage: "$demo.notifications.sent",
-    fields: [],
-  });
-
-  static rolesForm = Form({
-    title: "Send to roles",
-    description:
-      "toRoles(roleIds) with every role of the workspace, under the playground's own notification subject (Settings › Notifications)",
-    submitUrl: `${NOTIFICATION_API}/send-to-roles`,
-    submitLabel: "Send to every role",
-    kind: "action",
-    submitUrlMethod: HttpMethod.post,
-    successMessage: "$demo.notifications.sent",
-    fields: [],
+    fields: [
+      {
+        id: "preset",
+        label: "Notification",
+        type: new DefaultDataTypes.SelectType({
+          items: PRESET_ITEMS,
+          display: "cards",
+          columns: PRESET_COLUMNS,
+        }),
+        required: true,
+      },
+    ],
   });
 }

@@ -25,6 +25,7 @@ export const demoModule = RegisterModule({
   },
 });
 
+export * from "./contact-api";
 export * from "./form-page";
 export * from "./tools-page";
 export * from "./welcome-page";

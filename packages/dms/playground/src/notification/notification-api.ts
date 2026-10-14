@@ -37,8 +37,6 @@ const customNotificationSchema = z.object({
   linkTo: z.string().trim().nullish(),
 });
 
-const idempotentSchema = z.object({ key: z.string().trim().min(1) });
-
 function parseBody<T>(schema: z.ZodType<T>, rawBody: unknown): T {
   const parsed = schema.safeParse(rawBody ?? {});
   if (parsed.success) return parsed.data;
@@ -66,6 +64,105 @@ function countSent(user: User, ctx: RequestContext): void {
   );
 }
 
+/** The one-click notifications of the test page, each showing one option. */
+export const NOTIFICATION_PRESETS = [
+  "dms-update",
+  "hosting-promo",
+  "broadcast",
+  "idempotent",
+  "params",
+  "roles",
+] as const;
+
+type NotificationPreset = (typeof NOTIFICATION_PRESETS)[number];
+
+const presetSchema = z.object({ preset: z.enum(NOTIFICATION_PRESETS) });
+
+/** Sent twice, the second one is dropped: the key is the same. */
+const IDEMPOTENCY_KEY = "order-42-shipped";
+
+type PresetSender = (user: User, ctx: RequestContext) => Promise<void>;
+
+async function sendDmsUpdate(user: User): Promise<void> {
+  const notification = Notification()
+    .icon("i-ph-arrow-circle-up")
+    .title(`${DEMO_MESSAGES}.dms_update.title`)
+    .description(`${DEMO_MESSAGES}.dms_update.description`)
+    .linkTo("/modules")
+    .subject(GeneralSubject)
+    .tone("primary")
+    .build();
+  await notification.toUser(user._id);
+}
+
+async function sendHostingPromo(user: User): Promise<void> {
+  const notification = Notification()
+    .icon("i-ph-tag")
+    .title(`${DEMO_MESSAGES}.hosting_promo.title`)
+    .description(`${DEMO_MESSAGES}.hosting_promo.description`)
+    .linkTo("https://antelopejs.com/hosting")
+    .subject(GeneralSubject)
+    .tone("primary")
+    .build();
+  await notification.toUser(user._id);
+}
+
+async function broadcastToAll(): Promise<void> {
+  const notification = Notification()
+    .icon("i-ph-wrench")
+    .title(`${DEMO_MESSAGES}.maintenance.title`)
+    .description(`${DEMO_MESSAGES}.maintenance.description`)
+    .linkTo("/settings/user/notifications")
+    .subject(GeneralSubject)
+    .build();
+  await notification.broadcast({ readScope: "shared" });
+}
+
+async function sendIdempotent(user: User): Promise<void> {
+  const notification = Notification()
+    .icon("i-ph-fingerprint")
+    .title(`${DEMO_MESSAGES}.idempotent.title`)
+    .description(`${DEMO_MESSAGES}.idempotent.description`)
+    .params({ key: IDEMPOTENCY_KEY })
+    .subject(PlaygroundSubject)
+    .build();
+  await notification.toUser(user._id, { idempotencyKey: IDEMPOTENCY_KEY });
+}
+
+/** A translated title whose `{count}` the reader's language writes. */
+async function sendWithParams(user: User): Promise<void> {
+  const notification = Notification()
+    .icon("i-ph-shopping-cart")
+    .title(`${DEMO_MESSAGES}.orders.title`)
+    .description(`${DEMO_MESSAGES}.orders.description`)
+    .params({ count: DEMO_ORDER_COUNT })
+    .subject(PlaygroundSubject)
+    .tone("success")
+    .build();
+  await notification.toUser(user._id);
+}
+
+/** Every member holding one of the workspace's roles receives it. */
+async function sendToRoles(_user: User, ctx: RequestContext): Promise<void> {
+  const roles = await GetModel(RoleModel, getRequestTenantId(ctx)).getAll();
+  const notification = Notification()
+    .icon("i-ph-users-three")
+    .title(`${DEMO_MESSAGES}.roles.title`)
+    .description(`${DEMO_MESSAGES}.roles.description`)
+    .subject(PlaygroundSubject)
+    .build();
+  await notification.toRoles(roles.map((role) => role._id));
+}
+
+const PRESET_SENDERS: Record<NotificationPreset, PresetSender> = {
+  "dms-update": sendDmsUpdate,
+  "hosting-promo": sendHostingPromo,
+  broadcast: broadcastToAll,
+  idempotent: sendIdempotent,
+  params: sendWithParams,
+  roles: sendToRoles,
+};
+
 export class NotificationAPIController extends Controller("/api/notification") {
   @Post("send")
   async sendNotification(
@@ -88,106 +185,15 @@ export class NotificationAPIController extends Controller("/api/notification") {
     return { success: true, message: "Notification sent!" };
   }
 
-  @Post("send-dms-update")
-  async sendDmsUpdate(@AuthRawUser() user: User) {
-    const notification = Notification()
-      .icon("i-ph-arrow-circle-up")
-      .title(`${DEMO_MESSAGES}.dms_update.title`)
-      .description(`${DEMO_MESSAGES}.dms_update.description`)
-      .linkTo("/modules")
-      .subject(GeneralSubject)
-      .tone("primary")
-      .build();
-
-    await notification.toUser(user._id);
-
-    return { success: true, message: "DMS update notification sent!" };
-  }
-
-  @Post("send-hosting-promo")
-  async sendHostingPromo(@AuthRawUser() user: User) {
-    const notification = Notification()
-      .icon("i-ph-tag")
-      .title(`${DEMO_MESSAGES}.hosting_promo.title`)
-      .description(`${DEMO_MESSAGES}.hosting_promo.description`)
-      .linkTo("https://antelopejs.com/hosting")
-      .subject(GeneralSubject)
-      .tone("primary")
-      .build();
-
-    await notification.toUser(user._id);
-
-    return { success: true, message: "Hosting promo notification sent!" };
-  }
-
-  @Post("broadcast-all")
-  async broadcastToAll() {
-    const notification = Notification()
-      .icon("i-ph-wrench")
-      .title(`${DEMO_MESSAGES}.maintenance.title`)
-      .description(`${DEMO_MESSAGES}.maintenance.description`)
-      .linkTo("/settings/user/notifications")
-      .subject(GeneralSubject)
-      .build();
-
-    await notification.broadcast({ readScope: "shared" });
-
-    return { success: true, message: "Broadcast sent to all users!" };
-  }
-
-  /** Sends at most once per key: a second submit of the same key is dropped. */
-  @Post("send-idempotent")
-  async sendIdempotent(
+  /** Sends the preset picked in the form: see `NOTIFICATION_PRESETS`. */
+  @Post("send-preset")
+  async sendPreset(
+    @Context() ctx: RequestContext,
     @AuthRawUser() user: User,
     @JSONBody() rawBody: unknown,
   ) {
-    const { key } = parseBody(idempotentSchema, rawBody);
-    const notification = Notification()
-      .icon("i-ph-fingerprint")
-      .title(`${DEMO_MESSAGES}.idempotent.title`)
-      .description(`${DEMO_MESSAGES}.idempotent.description`)
-      .params({ key })
-      .subject(PlaygroundSubject)
-      .build();
-
-    await notification.toUser(user._id, { idempotencyKey: key });
-
+    const { preset } = parseBody(presetSchema, rawBody);
+    await PRESET_SENDERS[preset](user, ctx);
     return { success: true };
-  }
-
-  /** A translated title whose `{count}` the reader's language writes. */
-  @Post("send-params")
-  async sendParams(@AuthRawUser() user: User) {
-    const notification = Notification()
-      .icon("i-ph-shopping-cart")
-      .title(`${DEMO_MESSAGES}.orders.title`)
-      .description(`${DEMO_MESSAGES}.orders.description`)
-      .params({ count: DEMO_ORDER_COUNT })
-      .subject(PlaygroundSubject)
-      .tone("success")
-      .build();
-
-    await notification.toUser(user._id);
-
-    return { success: true };
-  }
-
-  /** Every member holding one of the workspace's roles receives it. */
-  @Post("send-to-roles")
-  async sendToRoles(
-    @Context() ctx: RequestContext,
-    @AuthRawUser() _user: User,
-  ) {
-    const roles = await GetModel(RoleModel, getRequestTenantId(ctx)).getAll();
-    const notification = Notification()
-      .icon("i-ph-users-three")
-      .title(`${DEMO_MESSAGES}.roles.title`)
-      .description(`${DEMO_MESSAGES}.roles.description`)
-      .subject(PlaygroundSubject)
-      .build();
-
-    await notification.toRoles(roles.map((role) => role._id));
-
-    return { success: true, roles: roles.length };
   }
 }

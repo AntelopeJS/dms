@@ -18,6 +18,7 @@ const member: DemoRecord = {
   isOwner: false,
   displayName: "Ada",
   adminNotes: "",
+  lockOwner: false,
   memberId: "mbr_4f1c",
   joinedOn: "2025-03-14",
 };

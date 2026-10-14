@@ -81,6 +81,7 @@ export class PageFormFieldTypes extends PageController(
             type: new DefaultDataTypes.SelectType({
               items: PLAN_ITEMS,
               display: "cards",
+              columns: PLAN_COLUMNS,
               multiple: true,
             }),
           },

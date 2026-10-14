@@ -13,11 +13,14 @@ const PAGE_ID = "watch-actions";
 // granting the page only) is served the form without the gated watch.
 const FORM_PERMISSION = `${pageCategory.fullId}.${PAGE_ID}.form`;
 const OWNER_FIELD = "isOwner";
+const LOCK_FIELD = "lockOwner";
 
-const whenOwner = (value: boolean) => [
-  { key: "fieldId", value: OWNER_FIELD },
+const whenField = (fieldId: string, value: boolean) => [
+  { key: "fieldId", value: fieldId },
   { key: "value", value },
 ];
+const whenOwner = (value: boolean) => whenField(OWNER_FIELD, value);
+const whenLocked = (value: boolean) => whenField(LOCK_FIELD, value);
 
 /**
  * Watches: a form event (`FIELD_CHANGE`) runs a form function on another
@@ -34,7 +37,7 @@ export class PageFormWatchActions extends PageController(
     category: pageCategory,
     order: 60,
     description:
-      "Toggle Is owner: other fields get disabled, hidden or required. Open the browser console, then save or discard to see the form events logged.",
+      "Toggle Is owner: other fields get disabled, hidden or required; Lock ownership disables Is owner. Open the browser console, then save or discard to see the form events logged.",
     setupId: "dms:demo:form-lifecycle",
   },
   FormPageLayout(),
@@ -63,9 +66,16 @@ export class PageFormWatchActions extends PageController(
       {
         id: "adminNotes",
         label: "Admin notes",
-        description:
-          "Hidden while Is owner is off. Typing here locks Is owner (a watch behind the form's permission).",
+        description: "Hidden while Is owner is off.",
         type: new DefaultDataTypes.StringType({ textarea: true }),
+      },
+      {
+        id: LOCK_FIELD,
+        label: "Lock ownership",
+        description:
+          "Disables Is owner while on: a watch behind the form's permission.",
+        type: new DefaultDataTypes.BooleanType(),
+        defaultValue: false,
       },
       {
         id: "memberId",
@@ -110,7 +120,12 @@ export class PageFormWatchActions extends PageController(
     .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
       requirePermission: FORM_PERMISSION,
       params: { targetField: OWNER_FIELD, setDisabled: true },
-      onParam: { key: "fieldId", value: "adminNotes" },
+      onParam: whenLocked(true),
+    })
+    .watch(FormEvents.FIELD_CHANGE, FormFunctions.SET_FIELD_DISABLED, {
+      requirePermission: FORM_PERMISSION,
+      params: { targetField: OWNER_FIELD, setDisabled: false },
+      onParam: whenLocked(false),
     })
     .watchFilter((permissions, watches, permissionId) => {
       console.log(
