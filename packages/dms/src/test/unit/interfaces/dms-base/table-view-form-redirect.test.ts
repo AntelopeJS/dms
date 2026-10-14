@@ -146,14 +146,18 @@ const pages = [
   UnfilteredPage,
 ];
 
+async function formOptions(
+  formPageFullId: string,
+): Promise<FormPropsSerialized | undefined> {
+  const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
+  if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
+  return (await form.serialize()).options as FormPropsSerialized | undefined;
+}
+
 async function formRedirects(
   formPageFullId: string,
 ): Promise<Record<string, unknown>[]> {
-  const form = pageMetadataByFullId.get(formPageFullId)?.components.form;
-  if (!form) throw new Error(`No form page registered as ${formPageFullId}`);
-  const options = (await form.serialize()).options as
-    | FormPropsSerialized
-    | undefined;
+  const options = await formOptions(formPageFullId);
   return (options?.watchActions ?? [])
     .filter(
       (watch) =>
@@ -244,5 +248,22 @@ describe("[unit] interfaces/dms-base — table view form page redirect", () => {
     expect(await redirectOf("frd-unfiltered.rows.new")).to.deep.equal({
       url: "/frd-unfiltered/static/slug",
     });
+  });
+
+  // Cancel leads to the list a submit returns to, its placeholders filled
+  // from the form route the same way.
+  it("leads Cancel back to the list with the redirect's page tokens", async () => {
+    const backTo = async (fullId: string) =>
+      (await formOptions(fullId))?.backTo;
+    expect(await backTo("frd-detail.rows.edit")).to.equal(
+      "/frd-detail/{{params.id:1}}",
+    );
+    expect(await backTo("frd-detail.rows.view")).to.equal(
+      "/frd-detail/{{params.id:1}}",
+    );
+    expect(await backTo("frd-detail.rows.new")).to.equal(
+      "/frd-detail/{{params.id}}",
+    );
+    expect(await backTo("frd-top.rows.edit")).to.equal("/frd-top");
   });
 });

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../composables/page/pageUrlValues";
 import type {
   FormField,
   FormFieldReadonly,
@@ -79,7 +80,7 @@ const readonly = computed<FormFieldReadonly>(() =>
         />
         <DmsAutoLink
           v-if="readonly.link"
-          :to="readonly.link.to"
+          :to="pageLink(readonly.link.to)"
           class="text-primary ms-auto text-[12.5px] font-medium"
         >
           {{ processI18n(readonly.link.label) }}

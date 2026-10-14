@@ -140,7 +140,7 @@ describe("Table row actions: refusals", () => {
         label: "Resend",
         target: {
           type: "api",
-          url: "/api/invites/{_id}/resend",
+          url: "/api/invites/{{row._id}}/resend",
           successMessage: "Sent",
         },
         confirm: { title: "Resend?", description: "" },
@@ -170,7 +170,7 @@ describe("Table row actions: refusals", () => {
         target: {
           type: "api",
           method: "GET",
-          url: "/api/invites/{_id}/link",
+          url: "/api/invites/{{row._id}}/link",
           successMessage: "Copied",
           copy: "url",
         },
@@ -267,7 +267,7 @@ describe("Table row actions: refusals", () => {
         label: "Ban",
         target: {
           type: "api",
-          url: "/api/users/{_id}/ban",
+          url: "/api/users/{{row._id}}/ban",
           body: { notify: true, scope: "all" },
           successMessage: "Banned",
         },
@@ -293,7 +293,7 @@ describe("Table row actions: refusals", () => {
     const { deleteRows } = await rowActions();
 
     const done = await deleteRows(["t1"], {
-      confirm: { from: "/api/task/{id}/delete-confirm" },
+      confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
     });
 
     expect(done).toBe(true);
@@ -329,7 +329,7 @@ describe("Table row actions: refusals", () => {
     const { deleteRows } = await rowActions();
 
     await deleteRows(["t1", "t2"], {
-      confirm: { from: "/api/task/{id}/delete-confirm" },
+      confirm: { from: "/api/task/{{row.id}}/delete-confirm" },
     });
 
     expect(api).not.toHaveBeenCalledWith("/api/task/t1/delete-confirm");

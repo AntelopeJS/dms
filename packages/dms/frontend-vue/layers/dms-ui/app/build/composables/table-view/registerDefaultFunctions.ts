@@ -1,5 +1,5 @@
 import type { LocationQueryValue } from "#dms/frontend-module";
-import { replaceUrlVariables } from "../../utils/urlVariables";
+import { resolveLinkVariables } from "../../utils/urlVariables";
 
 type RouteQuery = Record<string, LocationQueryValue | LocationQueryValue[]>;
 
@@ -23,7 +23,7 @@ export function resolveFormSuccessTarget(
   { url, preserveQuery }: FormSuccessParams,
   route: FormSuccessRoute,
 ): { path: string; query?: RouteQuery } {
-  const path = replaceUrlVariables(url, {
+  const path = resolveLinkVariables(url, {
     routeParams: route.params,
     routeQuery: route.query,
   });

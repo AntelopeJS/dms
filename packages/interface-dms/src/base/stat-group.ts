@@ -36,7 +36,10 @@ export interface StatGroupItem {
   detail?: BlockText;
   /** Tone of the detail line (`neutral` = muted). */
   detailTone?: Tone;
-  /** Route, `#anchor` or URL the whole cell links to. */
+  /**
+   * Route, `#anchor` or URL the whole cell links to. Takes the page URL
+   * tokens (`{{params.X}}`, `{{query.X}}`).
+   */
   to?: string;
 }
 

@@ -14,8 +14,8 @@ describe("[unit] interfaces/dms-base/confirm-dialog — secondary action", () =>
         icon: "i-ph-download-simple",
         target: {
           type: "download",
-          url: "/legacy/lang/{code}.json",
-          filename: "{code}.json",
+          url: "/legacy/lang/{{row.code}}.json",
+          filename: "{{row.code}}.json",
         },
       },
     };

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { useConfirm } from "../../../composables/confirm/useConfirm";
 import DmsCopyButton from "../../copy/CopyButton.vue";
 
@@ -43,7 +44,7 @@ const masked = computed(() => {
 });
 
 async function rotate(): Promise<void> {
-  const url = props.rotateUrl;
+  const url = pageRequestUrl(props.rotateUrl);
   if (!url) return;
   const confirmed = await confirm({
     title: t("dms.form.secret.rotate_title"),
@@ -95,7 +96,7 @@ async function rotate(): Promise<void> {
     </UInput>
     <DmsCopyButton v-if="props.copyable && value" :value="value" />
     <UButton
-      v-if="props.rotateUrl"
+      v-if="pageRequestUrl(props.rotateUrl)"
       icon="i-ph-arrows-clockwise"
       :label="t('dms.form.secret.rotate')"
       color="neutral"

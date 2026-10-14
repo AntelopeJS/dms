@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed } from "vue";
 import type { IconWellTone } from "../icon-well/IconWell.vue";
 import DmsStatCell from "../../build/components/stat/StatCell.vue";
@@ -146,7 +147,7 @@ function wellTone(item: StatGroupItem): IconWellTone {
           :icon="item.icon"
           :detail="item.detail"
           :detail-tone="item.detailTone"
-          :to="item.to"
+          :to="pageLink(item.to)"
           size="sm"
           :tone="wellTone(item)"
           :loading="props.loading"
@@ -175,7 +176,7 @@ function wellTone(item: StatGroupItem): IconWellTone {
           :icon="item.icon"
           :detail="item.detail"
           :detail-tone="item.detailTone"
-          :to="item.to"
+          :to="pageLink(item.to)"
           :tone="wellTone(item)"
           :loading="props.loading"
           stack

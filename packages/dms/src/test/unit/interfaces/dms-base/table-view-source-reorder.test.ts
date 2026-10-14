@@ -138,17 +138,22 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     expect(sourceOf().searchShortcut).to.equal(undefined);
   });
 
-  it("serves the route reading one row, and refuses one without {id}", () => {
+  it("serves the route reading one row, and refuses one without {{row.id}}", () => {
     expect(
-      sourceOf({ fetchRowUrl: "/api/request-log/{id}" }).source,
+      sourceOf({ fetchRowUrl: "/api/request-log/{{row.id}}" }).source,
     ).to.deep.equal({
       fetchUrl: "/api/request-log",
-      fetchRowUrl: "/api/request-log/{id}",
+      fetchRowUrl: "/api/request-log/{{row.id}}",
       capabilities: {},
     });
-    expect(() => sourceOf({ fetchRowUrl: "/api/request-log/one" })).to.throw(
-      /fetchRowUrl without \{id\}/,
-    );
+    for (const fetchRowUrl of [
+      "/api/request-log/one",
+      "/api/request-log/{id}",
+    ]) {
+      expect(() => sourceOf({ fetchRowUrl })).to.throw(
+        /fetchRowUrl without \{\{row\.id\}\}/,
+      );
+    }
   });
 
   it("serves the period scope a source table follows", () => {

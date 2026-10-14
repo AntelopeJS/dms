@@ -1,5 +1,6 @@
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import { computed } from "vue";
+import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
 import type {
   TableViewColumn,
   TableViewListResponse,
@@ -54,7 +55,6 @@ const DESCENDING = "desc";
  */
 export const LIVE_HELD_AT_QUERY_KEY = "liveHeldAt";
 const NO_ROUTE_VALUES: ReplaceUrlVariablesContext = { routeQuery: {} };
-const ROW_ID_TOKEN = "{id}";
 
 type SourceCapabilities = TableViewSourceConfig["capabilities"];
 
@@ -251,10 +251,8 @@ export function useTableRows<T extends Record<string, unknown>>(
     id: string,
   ): Promise<T | undefined> => {
     const url = resolveUrlVariables(
-      sourceConfig.fetchRowUrl?.replaceAll(
-        ROW_ID_TOKEN,
-        encodeURIComponent(id),
-      ),
+      sourceConfig.fetchRowUrl &&
+        interpolateUrl(sourceConfig.fetchRowUrl, { id }),
       options.route?.() ?? NO_ROUTE_VALUES,
     );
     return url ? api<T>(url) : Promise.resolve(undefined);

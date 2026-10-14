@@ -3,6 +3,8 @@
 // bare `<a href="#…">` (an Inertia visit would reload the page to scroll), an
 // absolute URL opens in a new tab, and everything else is a DMS route.
 
+import { pageLink } from "../composables/page/pageUrlValues";
+
 export type LinkKind = "internal" | "anchor" | "external";
 
 const EXTERNAL_LINK_PATTERN = /^(?:[a-z][a-z\d+.-]*:|\/\/)/i;
@@ -20,12 +22,14 @@ export const EXTERNAL_LINK_ATTRIBUTES = {
 } as const;
 
 /**
- * Props for a `UButton` (or `ULink`) following `to`: an external target opens
- * in a new tab, the others navigate in place.
+ * Props for a `UButton` (or `ULink`) following `to`, its page tokens
+ * (`{{params.X}}`, `{{query.X}}`) filled: an external target opens in a new
+ * tab, the others navigate in place.
  */
 export function buttonLinkProps(
-  to: string | undefined,
+  declared: string | undefined,
 ): Record<string, string> {
+  const to = pageLink(declared);
   if (!to) return {};
   return linkKind(to) === "external"
     ? { to, ...EXTERNAL_LINK_ATTRIBUTES }

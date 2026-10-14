@@ -464,7 +464,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
               isVisible: true,
               showLabel: true,
               color: "error",
-              target: { type: "page", url: "/x/{_id}" },
+              target: { type: "page", url: "/x/{{row._id}}" },
             },
           ],
         },
@@ -492,7 +492,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
         realtime: false,
         rowActions: {
           delete: {
-            confirm: { from: "/api/orders/{id}/delete-confirm" },
+            confirm: { from: "/api/orders/{{row.id}}/delete-confirm" },
             successMessage: "$orders.deleted",
           },
           edit: { confirm: { title: "$orders.edit_locked" } },
@@ -501,7 +501,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
               label: "Refund",
               target: {
                 type: "api",
-                url: "/api/orders/{_id}/refund",
+                url: "/api/orders/{{row._id}}/refund",
                 successMessage: "Done",
               },
               confirm: {
@@ -533,7 +533,7 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
       }),
     );
     expect(options.rowActions?.delete).to.deep.equal({
-      confirm: { from: "/api/orders/{id}/delete-confirm" },
+      confirm: { from: "/api/orders/{{row.id}}/delete-confirm" },
       successMessage: "$orders.deleted",
     });
     expect(options.rowActions?.edit).to.deep.equal({

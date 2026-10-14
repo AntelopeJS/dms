@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
   type App,
@@ -203,9 +204,7 @@ beforeEach(() => {
   vi.stubGlobal("useToast", () => ({ add: addToast }));
   vi.stubGlobal("useConfirm", () => ({ confirm }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
-  vi.stubGlobal("interpolateUrl", (url: string, data: Record<string, string>) =>
-    url.replace(/\{(\w+)\}/g, (_, key: string) => data[key] ?? ""),
-  );
+  vi.stubGlobal("interpolateUrl", interpolateUrl);
   vi.stubGlobal("useTranslation", () => ({
     processApiMessage: (message: string) => `t(${message})`,
   }));

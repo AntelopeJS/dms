@@ -154,7 +154,7 @@ export class PageTableViewViews extends PageController(
           icon: "i-ph-user-plus",
           target: {
             type: "api",
-            url: "/api/playground/job-runs/assign-to-me?id={_id}",
+            url: "/api/playground/job-runs/assign-to-me?id={{row._id}}",
             successMessage: "Assigned to you",
           },
         },

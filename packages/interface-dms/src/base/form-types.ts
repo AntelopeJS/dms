@@ -33,6 +33,7 @@ export interface FormFieldBadge {
 export interface FormFieldLink {
   /** i18n key or literal. */
   label: string;
+  /** Takes the page URL tokens (`{{params.X}}`, `{{query.X}}`). */
   to: string;
 }
 
@@ -203,6 +204,7 @@ export interface FormProps extends BaseComponentProps {
   /**
    * Where Cancel leads a `record` form placed on a page; without it the form
    * offers no Cancel. Table views set it on their form pages, to the list.
+   * Takes the page URL tokens (`{{params.X}}`, `{{query.X}}`).
    */
   backTo?: string;
   fieldsOrientation?: "horizontal" | "vertical";

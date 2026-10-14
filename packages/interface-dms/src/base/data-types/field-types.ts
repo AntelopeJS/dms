@@ -56,7 +56,9 @@ export type SecretTypeOptions = {
   copyable?: boolean;
   /**
    * POSTed after a confirmation, answering `{ value }`: "Rotate…" replaces
-   * the secret with a new one.
+   * the secret with a new one. Takes the page URL tokens (`{{params.X}}`,
+   * `{{query.X}}`), so an edit form names its record; nothing is offered
+   * while one has no value.
    */
   rotateUrl?: string;
   placeholder?: string;
@@ -87,6 +89,8 @@ export type CodeTypeOptions = {
   /**
    * GET, answering `{ items }` (or a list) of `{ label, detail?, icon? }`:
    * suggestions merged with `completions` and the language's keywords.
+   * Takes the page URL tokens (`{{params.X}}`, `{{query.X}}`); nothing is
+   * requested while one has no value.
    */
   completionsUrl?: string;
   completions?: FormComponents.CodeCompletion[];

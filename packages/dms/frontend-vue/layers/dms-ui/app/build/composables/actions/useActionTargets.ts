@@ -52,52 +52,47 @@ import {
   findServedQuickAction,
 } from "../../utils/dispatchQuickActionTarget";
 import {
-  hasUrlVariables,
+  namesPageValue,
   resolveLinkVariables,
   resolveTextVariables,
 } from "../../utils/urlVariables";
-import { interpolateLiteral } from "../../utils/literalText";
+import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
+import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
 
 /**
- * A link target's URL with the page's `{{params.X}}` / `{{query.X}}` filled
- * (a query pair without a value left out), then the row's `{field}`: a row
+ * A target's URL with the page's `{{params.X}}` / `{{query.X}}` filled (a
+ * query pair without a value left out), then the row's `{{row.field}}`: an
  * action keeps the page's context (`?website={{query.website}}`) as a page
- * header button does. Read when the link is followed, so it carries the URL
- * as it is then.
+ * header button does, whatever its type and wherever it sits. Read when the
+ * action runs, so it carries the URL as it is then.
  */
-function linkTargetUrl(url: string, rowData?: Data): string {
-  const withPageValues = hasUrlVariables(url)
+function targetUrl(url: string, rowData?: Data): string {
+  const withPageValues = namesPageValue(url)
     ? resolveLinkVariables(url, currentPageUrlValues())
     : url;
   return rowData ? interpolateUrl(withPageValues, rowData) : withPageValues;
 }
 
 /**
- * A download target's file name with the page's tokens filled as they are
- * (a name, not a URL: nothing is encoded), then the row's `{field}`. A token
- * the page has no value for leaves no name: the server's one is used.
+ * A download target's file name with the row's `{{row.field}}` and the
+ * page's tokens filled as they are (a name, not a URL: nothing is encoded). A
+ * token without a value leaves no name: the server's one is used.
  */
 function downloadTargetFilename(
   filename: string | undefined,
   rowData?: Data,
 ): string | undefined {
   if (!filename) return undefined;
-  const withPageValues = resolveTextVariables(filename, currentPageUrlValues());
-  if (!withPageValues || !rowData) return withPageValues;
-  return interpolateLiteral(withPageValues, rowData);
+  const withRow = rowData ? interpolateRowText(filename, rowData) : filename;
+  return resolveTextVariables(withRow, currentPageUrlValues());
 }
 
-function currentPageUrlValues() {
-  const route = useDmsRoute();
-  return {
-    routeParams: useSiteLayout().findMatchingRoute(route.path)?.params,
-    routeQuery: route.query as Record<string, unknown>,
-  };
-}
+// The id an export job's start answered, in its `statusUrl` / `downloadUrl`.
+const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
 
 /** Where the buttons run: the requests they send, what they refresh. */
 export interface ActionTargetsConfig {
@@ -119,7 +114,7 @@ export interface ActionTargetsConfig {
    */
   onRecordShown?: (id?: string) => void;
   /**
-   * The field a row's id is read from (`_id` by default): it fills `{id}` in
+   * The field a row's id is read from (`_id` by default): it fills `{{row.id}}` in
    * the `from` URL of a row action's confirmation, as on a built-in action.
    */
   rowIdKey?: string;
@@ -275,7 +270,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const statusUrlTemplate = target.statusUrl;
     const downloadUrlTemplate = target.downloadUrl;
     const interpolate = (template: string, ticket: ExportJobTicket): string =>
-      interpolateUrl(template, { ...(rowData ?? {}), jobId: ticket.jobId });
+      targetUrl(
+        template.replace(JOB_ID_TOKEN, encodeURIComponent(ticket.jobId)),
+        rowData,
+      );
     await runExportJob({
       startUrl: url,
       startMethod: target.method ?? "POST",
@@ -299,7 +297,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     try {
       await saveDownload(
         {
-          url: linkTargetUrl(target.url, rowData),
+          url: targetUrl(target.url, rowData),
           filename: downloadTargetFilename(target.filename, rowData),
         },
         fetchRaw,
@@ -538,11 +536,11 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const targetHandlers: Record<string, TargetHandler> = {
     page: (target, _label, rowData) => {
       const pageTarget = target as ActionTarget & { type: "page" };
-      navigateDms(linkTargetUrl(pageTarget.url, rowData));
+      navigateDms(targetUrl(pageTarget.url, rowData));
     },
     external: (target, _label, rowData) => {
       const externalTarget = target as ActionTarget & { type: "external" };
-      const url = linkTargetUrl(externalTarget.url, rowData);
+      const url = targetUrl(externalTarget.url, rowData);
       if (typeof window === "undefined" || !url) return;
       if (externalTarget.newTab) {
         window.open(url, "_blank", "noopener,noreferrer");
@@ -552,16 +550,12 @@ export function useActionTargets(config: ActionTargetsConfig) {
     },
     api: async (target, label, rowData) => {
       const apiTarget = target as ActionTarget & { type: "api" };
-      const url = rowData
-        ? interpolateUrl(apiTarget.url, rowData)
-        : apiTarget.url;
+      const url = targetUrl(apiTarget.url, rowData);
       await handleApiTarget(apiTarget, url, label, rowData);
     },
     exportJob: async (target, _label, rowData) => {
       const jobTarget = target as ActionTarget & { type: "exportJob" };
-      const url = rowData
-        ? interpolateUrl(jobTarget.url, rowData)
-        : jobTarget.url;
+      const url = targetUrl(jobTarget.url, rowData);
       await handleExportJobTarget(jobTarget, url, rowData);
     },
     download: (target, label, rowData) =>
@@ -580,9 +574,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
     drawer: componentHandler,
     sidePanel: sidePanelHandler,
   };
-
-  const targetUrl = (url: string, rowData?: Data): string =>
-    rowData ? interpolateUrl(url, rowData) : url;
 
   // A target making a request runs it from inside its confirmation, which
   // shows a refusal (under its field when it names one) and stays open; any
@@ -604,7 +595,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     },
   };
 
-  // `{id}` of a confirmation's `from` URL, when the row carries an id.
+  // `{{row.id}}` of a confirmation's `from` URL, when the row carries an id.
   const rowUrlParams = (rowData?: Data) => {
     const id = rowData
       ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)

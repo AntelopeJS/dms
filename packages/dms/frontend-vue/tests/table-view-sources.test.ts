@@ -182,7 +182,7 @@ describe("source tables", () => {
 
   describe("reading one row (fetchRowUrl)", () => {
     const FETCH_URL = "/api/ws/{{params.ws}}/requests";
-    const ROW_URL = "/api/ws/{{params.ws}}/requests/{id}";
+    const ROW_URL = "/api/ws/{{params.ws}}/requests/{{row.id}}";
 
     function rowsWith(
       api: (url: string) => Promise<unknown>,

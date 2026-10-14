@@ -32,7 +32,7 @@ function mountTargets(rowIdKey?: string) {
 const REFUND: CustomRowAction = {
   label: "Refund",
   target: { type: "page", url: "/orders" },
-  confirm: { from: "/api/orders/{id}/refund-confirm?customer={customer}" },
+  confirm: { from: "/api/orders/{{row.id}}/refund-confirm?customer={{row.customer}}" },
 };
 
 beforeEach(() => {
@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe("a custom row action's confirmation worded by the server", () => {
-  it("fills {id} with the row's id, like a built-in action, besides its fields", async () => {
+  it("fills {{row.id}} with the row's id, like a built-in action, besides its fields", async () => {
     mountTargets().handleCustomRowAction(REFUND, {
       _id: "o1",
       customer: "Ada",

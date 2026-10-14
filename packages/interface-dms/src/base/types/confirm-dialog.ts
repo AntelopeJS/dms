@@ -18,9 +18,14 @@ export interface ConfirmDialogImpact {
  */
 export interface ConfirmDialogDownloadTarget {
   type: "download";
+  /**
+   * Takes the page URL tokens (`{{params.X}}`, `{{query.X}}`), then the
+   * dialog's parameters and the row's fields (`{{row.field}}`).
+   */
   url: string;
   /**
-   * Name the file is saved under. Defaults to the name the response's
+   * Name the file is saved under, with the same tokens as `url`, written as
+   * they are. Defaults to the name the response's
    * `Content-Disposition` gives, else the URL's last path segment.
    */
   filename?: string;
@@ -104,9 +109,11 @@ export interface ConfirmDialog {
 /**
  * A confirmation the server words for the row an action targets: a URL
  * answering a {@link ConfirmDialogSerialized}. On a row action, built-in or
- * custom, `{id}` is filled in with the row's id (read through the table's
- * `rowIdKey`) and `{<field>}` with any of the row's fields; a bulk custom
- * action appends its selection to the query instead.
+ * custom, `{{row.id}}` is filled in with the row's id (read through the
+ * table's `rowIdKey`) and `{{row.<field>}}` with any of the row's fields;
+ * a bulk custom action appends its selection to the query instead.
+ * The page URL's `{{params.X}}` / `{{query.X}}` are filled first, as in an
+ * action's target URL.
  */
 export interface ConfirmDialogFrom {
   from: string;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageLink } from "../../build/composables/page/pageUrlValues";
 import { computed, ref, resolveComponent } from "vue";
 import DmsActivityItem from "../activity/ActivityItem.vue";
 import DmsBlockActions, {
@@ -365,7 +366,7 @@ const wrapperProps = computed(() =>
             :unread="item.unread"
             :mono="props.mono"
             :wrap="props.wrap"
-            :to="item.to"
+            :to="pageLink(item.to)"
             :interactive="!!item.to"
           />
         </section>

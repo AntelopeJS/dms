@@ -146,8 +146,8 @@ describe("a download action target", () => {
       label: "Download",
       target: {
         type: "download",
-        url: "/api/files/{_id}?workspace={{query.workspace}}",
-        filename: "{name}",
+        url: "/api/files/{{row._id}}?workspace={{query.workspace}}",
+        filename: "{{row.name}}",
       },
     };
     mountTargets().handleCustomRowAction(action, {

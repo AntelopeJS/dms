@@ -22,7 +22,10 @@ export interface NavCardItem {
   description?: BlockText;
   icon: string;
   iconTone?: IconTone;
-  /** Route, `#anchor` or URL. */
+  /**
+   * Route, `#anchor` or URL. Takes the page URL tokens (`{{params.X}}`,
+   * `{{query.X}}`).
+   */
   to: string;
   /** Live state of the target, in mono at the bottom ("3 unread"). */
   state?: BlockText;

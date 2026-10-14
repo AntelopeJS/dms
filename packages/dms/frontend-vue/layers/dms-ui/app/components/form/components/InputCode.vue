@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { pageRequestUrl } from "../../../build/composables/page/pageUrlValues";
 import { getCurrentInstance, h, render } from "vue";
 import { useFormField } from "@nuxt/ui/composables/useFormField";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
@@ -84,10 +85,11 @@ function checkSyntax(text: string): void {
 
 async function loadCompletions(): Promise<CodeEditorCompletion[]> {
   const fixed = props.completions ?? [];
-  if (!props.completionsUrl) return fixed;
+  const url = pageRequestUrl(props.completionsUrl);
+  if (!url) return fixed;
   const response = await $authFetch<
     CodeEditorCompletion[] | CompletionsResponse
-  >(props.completionsUrl).catch(() => []);
+  >(url).catch(() => []);
   const fetched = Array.isArray(response) ? response : (response.items ?? []);
   return [...fixed, ...fetched];
 }

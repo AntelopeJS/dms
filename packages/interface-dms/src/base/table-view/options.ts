@@ -80,8 +80,8 @@ export interface TableViewRowActionOptions<
   hasSelection?: boolean;
   /**
    * Custom row actions. A label may name the row's fields in braces
-   * (`"Translate {name}"`), as a target URL does; a `$` key's translation
-   * receives them as parameters.
+   * (`"Translate {name}"`), as a translation's parameters; a `$` key's
+   * translation receives them as parameters.
    */
   custom?: CustomRowAction<T>[];
   /**

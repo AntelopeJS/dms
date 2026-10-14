@@ -49,8 +49,8 @@ describe("a confirmation's secondary action, resolved", () => {
           icon: "i-ph-download-simple",
           target: {
             type: "download",
-            url: "/legacy/lang/{workspace}/{code}.json",
-            filename: "{workspace}-{file}",
+            url: "/legacy/lang/{{row.workspace}}/{{row.code}}.json",
+            filename: "{{row.workspace}}-{{row.file}}",
           },
         },
       },

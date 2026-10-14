@@ -198,7 +198,7 @@ describe("a link row action", () => {
         label: "Report",
         target: {
           type: "page",
-          url: "/modules/marketing/funnel?id={_id}&website={{query.website}}&mk.period={{query.mk.period}}&mk.to={{query.mk.to}}&order={{params.id}}",
+          url: "/modules/marketing/funnel?id={{row._id}}&website={{query.website}}&mk.period={{query.mk.period}}&mk.to={{query.mk.to}}&order={{params.id}}",
         },
       },
       { _id: "f 1" },
@@ -211,7 +211,7 @@ describe("a link row action", () => {
 
   it("leaves a URL without page tokens as before", async () => {
     mountTargets().handleCustomRowAction(
-      { label: "Open", target: { type: "page", url: "/orders/{_id}" } },
+      { label: "Open", target: { type: "page", url: "/orders/{{row._id}}" } },
       { _id: "o2" },
     );
     await vi.waitFor(() => expect(navigateDms).toHaveBeenCalledTimes(1));
