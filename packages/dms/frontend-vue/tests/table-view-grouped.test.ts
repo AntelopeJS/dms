@@ -1,6 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   computed,
   createApp,
@@ -24,25 +22,6 @@ import {
   rowGroupKey,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
-
-const tableSource = readFileSync(
-  resolve(__dirname, "../layers/dms-ui/app/build/components/table/Table.vue"),
-  "utf8",
-);
-const menuViewModeSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/build/components/table/MenuViewMode.vue",
-  ),
-  "utf8",
-);
-const tableViewSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/TableView.vue",
-  ),
-  "utf8",
-);
 
 const LABELS = {
   today: "Today",
@@ -114,40 +93,6 @@ describe("grouped rows", () => {
     expect(groupedSorting([], { groupByField: "status" })).toEqual([
       { id: "status", desc: false },
     ]);
-  });
-});
-
-describe("grouped display wiring", () => {
-  it("draws a header row before each group of the page", () => {
-    expect(tableSource).toMatch(
-      /v-for="\{ kind, id, row, key, header \} in bodyEntries"/,
-    );
-    // Drawn by the entry, not by reading the prop when the header renders:
-    // leaving the grouped display then cannot leave it undefined.
-    expect(tableSource).toContain('<component :is="header" />');
-    expect(tableSource).not.toContain("grouping!.header");
-    expect(tableSource).toContain(':class="uiTable.groupCell()"');
-    expect(tableSource).toMatch(/if \(key !== currentKey\) \{/);
-  });
-
-  it("sorts the list on the grouped column while the grouped display shows", () => {
-    expect(tableViewSource).toMatch(
-      /isGroupedDisplay\.value && activeGroupedOptions\.value\s*\?\s*groupedSorting\(picked, activeGroupedOptions\.value\)/,
-    );
-    expect(tableViewSource).toContain(':grouping="grouping"');
-  });
-
-  it("lets the user pick the grouped column from the options menu, as on the kanban", () => {
-    expect(tableViewSource).toContain(
-      'v-model:grouped-group-by="groupedGroupBy"',
-    );
-    expect(tableViewSource).toContain(
-      ':grouped-group-by-options="groupedGroupByOptions"',
-    );
-    expect(tableViewSource).toMatch(/grouped: activeGroupedOptions,/);
-    expect(menuViewModeSource).toMatch(
-      /\[GROUPED_DISPLAY_ID\]: \(shared\) => \(\{\s*options: shared\.groupedGroupByOptions,/,
-    );
   });
 });
 

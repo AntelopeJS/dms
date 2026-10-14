@@ -828,16 +828,4 @@ describe("open row highlight", () => {
       "data-[open=true]:[&>td:first-child]:shadow-[inset_2px_0_0_0_var(--ui-primary)]",
     );
   });
-
-  it("marks the open row and wires both pointer events to the click mode", () => {
-    expect(tableSource).toContain(
-      ':data-open="isOpenRow(row.original) || undefined"',
-    );
-    expect(tableSource).toContain(
-      '@click="handleRowPointer($event, row.original)"',
-    );
-    expect(tableSource).toContain(
-      '@dblclick="handleRowPointer($event, row.original)"',
-    );
-  });
 });

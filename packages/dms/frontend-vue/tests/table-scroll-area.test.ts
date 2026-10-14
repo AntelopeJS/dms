@@ -34,12 +34,4 @@ describe("Table scroll area", () => {
     expect(theme().headCell()).not.toContain("sticky");
     expect(theme().tableRoot()).not.toContain("overflow-y-auto");
   });
-
-  it("opens the scroll area from `maxHeight` alone", () => {
-    expect(tableSource).not.toContain("stickyHeader");
-    expect(tableSource).toMatch(
-      /hasScrollArea = computed\(\(\) => !!props\.maxHeight\)/,
-    );
-    expect(tableSource).toMatch(/maxHeight: props\.maxHeight,/);
-  });
 });

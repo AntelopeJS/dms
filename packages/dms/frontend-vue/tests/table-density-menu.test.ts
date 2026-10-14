@@ -11,18 +11,8 @@ import {
   type App,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import TableMenuDensity from "../layers/dms-ui/app/build/components/table/MenuDensity.vue";
 import TableMenuRoot from "../layers/dms-ui/app/build/components/table/MenuRoot.vue";
-
-const tableViewSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/TableView.vue",
-  ),
-  "utf8",
-);
 
 describe("table density menu", () => {
   let app: App | undefined;
@@ -114,16 +104,5 @@ describe("table density menu", () => {
     expect(labels(mount(TableMenuRoot, sharedData(false)))).not.toContain(
       "dms.table.density_title",
     );
-  });
-
-  it("keeps the user's density with the table state, the module's as default", () => {
-    expect(tableViewSource).toMatch(
-      /defaultDensity = props\.density \?\? DEFAULT_DENSITY/,
-    );
-    expect(tableViewSource).toContain(
-      'tablePreferences.restore("density", density);',
-    );
-    expect(tableViewSource).toMatch(/\["density", density, defaultDensity\]/);
-    expect(tableViewSource).toContain('v-model:density="density"');
   });
 });

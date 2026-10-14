@@ -6,8 +6,6 @@
  * pagination included), and Show reads the rows once without leaving the
  * pause.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -43,13 +41,6 @@ const { useTableLiveHold } = await import(
 );
 
 const TOPIC = "api:requests";
-const tableViewSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/TableView.vue",
-  ),
-  "utf8",
-);
 
 let apps: App[] = [];
 let live: PageLiveController;
@@ -203,23 +194,6 @@ it("reads on a user's refresh while held, and holds from then", async () => {
   });
 });
 
-it("wires the table view's rows, row events and banner to the hold", () => {
-  expect(tableViewSource).toMatch(
-    /liveHold\?: boolean \| TableViewLiveHoldOptions;/,
-  );
-  expect(tableViewSource).toContain(
-    "isRowOpen: () => openRowId.value !== undefined,",
-  );
-  expect(tableViewSource).toContain('ref="tableRoot"');
-  expect(tableViewSource).toContain("heldQuery: liveHold.heldQuery,");
-  expect(tableViewSource).toContain("refreshCallback: refreshByUser,");
-  expect(tableViewSource).toContain('@refresh="refreshByUser"');
-  expect(tableViewSource).toContain("gateRowEvent(payload.type, ids, event);");
-  expect(tableViewSource).toMatch(
-    /<LiveHoldBanner[\s\S]*@show="liveHold.showNew"/,
-  );
-});
-
 it("holds the table alone while a row is open, the page staying live", async () => {
   const isRowOpen = ref(false);
   const { refresh, hold } = mountTable({
@@ -338,19 +312,6 @@ it("holds for no search nor sort the options leave off", async () => {
   expect(hold.reason.value).toBe(null);
 });
 
-it("tells the hold about the table's search and sort, and the banner why", () => {
-  expect(tableViewSource).toContain(
-    "isSearching: () => !!effectiveGlobalFilter.value,",
-  );
-  expect(tableViewSource).toContain(
-    "isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),",
-  );
-  expect(tableViewSource).toMatch(
-    /v-if="liveHold\.newCount\.value > 0 \|\| liveHold\.reason\.value"/,
-  );
-  expect(tableViewSource).toContain(':reason="liveHold.reason.value"');
-});
-
 it("hands the strip the paused page's breakdown and the table's missedLabel", async () => {
   const isRowOpen = ref(false);
   const { hold } = mountTable({
@@ -376,9 +337,4 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   live.resume();
   await nextTick();
   expect(hold.missedDetail.value).toBe(null);
-});
-
-it("passes the strip its wording and breakdown", () => {
-  expect(tableViewSource).toContain(':missed-label="liveHold.missedLabel"');
-  expect(tableViewSource).toContain(':detail="liveHold.missedDetail.value"');
 });

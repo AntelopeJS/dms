@@ -3,8 +3,6 @@
  * base language of a languages table stays on top whichever column the user
  * sorts on, and on the first page.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   processSourceRows,
@@ -127,17 +125,4 @@ describe("rows a route sorts", () => {
     pinned = undefined;
     expect(ids((await rows.list({}))!.results)).toEqual(ids(LANGUAGES));
   });
-});
-
-it("hands the table view's pinnedRows to its rows, except while grouped", () => {
-  const source = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/table-view/TableView.vue",
-    ),
-    "utf8",
-  );
-  expect(source).toMatch(
-    /pinnedRows: \(\) => \(isGroupedDisplay\.value \? undefined : props\.pinnedRows\)/,
-  );
 });

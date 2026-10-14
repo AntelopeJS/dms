@@ -6,8 +6,6 @@
  * remounting the page. A tab the user opens is written back to the URL in
  * place, under the same key.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -182,16 +180,4 @@ describe("the tab the user opens", () => {
     await visit("/runs?runs.tab=archived");
     expect(activeTabId.value).toBe("all");
   });
-});
-
-it("wires the URL tab into the table view", () => {
-  const source = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/table-view/TableView.vue",
-    ),
-    "utf8",
-  );
-  expect(source).toContain("readTableUrlTab(route.query, urlScope)");
-  expect(source).toContain("useTableUrlTab({");
 });

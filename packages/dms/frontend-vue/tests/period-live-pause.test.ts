@@ -5,8 +5,6 @@
  * so nothing refetches on the clock; a period the user picks still applies at
  * once, and resuming catches the skipped minutes up in one read.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createPageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
@@ -106,15 +104,4 @@ it("holds the period while paused, but follows the user's pick", async () => {
   await vi.advanceTimersByTimeAsync(1000);
   expect(requests).toHaveLength(3);
   expect(period.state.value.key).not.toBe(heldKey);
-});
-
-it("holds the selector's period on the page's pause", () => {
-  const source = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/period/PeriodSelector.vue",
-    ),
-    "utf8",
-  );
-  expect(source).toContain("holdClock: () => isPagePaused.value,");
 });

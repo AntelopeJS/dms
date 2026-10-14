@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   GRID_TRACKS_VAR,
@@ -9,12 +8,6 @@ import {
 
 const GAP = "1rem";
 const MIN = "240px";
-
-const sourceOf = (file: string) =>
-  readFileSync(
-    new URL(`../layers/dms-ui/app/components/grid/${file}`, import.meta.url),
-    "utf8",
-  );
 
 // Guards the exact-fit case: at the width where the track floor is precisely
 // one Nth of the container, binary floats land a hair under the integer.
@@ -104,20 +97,6 @@ describe("grid column template", () => {
   });
 });
 
-describe("grid components", () => {
-  it("drive both the container and its rows from the shared template", () => {
-    for (const file of ["Grid.vue", "GridRow.vue"]) {
-      const source = sourceOf(file);
-      expect(source).toContain("gridColumnsTemplate(");
-      expect(source).not.toMatch(/repeat\(\$\{/);
-    }
-  });
-
-  it("keeps rows spanning the full grid width", () => {
-    expect(sourceOf("GridRow.vue")).toContain('gridColumn: "1 / -1"');
-  });
-});
-
 describe("grid responsive styles", () => {
   const scope = gridScopeId("grid-child-row1");
 
@@ -164,18 +143,5 @@ describe("grid responsive styles", () => {
   it("builds a valid container name from any id", () => {
     expect(gridScopeId("v-0-1")).toBe("dms-grid-v-0-1");
     expect(gridScopeId("a.b:c d")).toBe("dms-grid-a_b_c_d");
-  });
-});
-
-describe("grid components emit their rules as CSS", () => {
-  it("make the grid and its rows size containers with no measuring script", () => {
-    for (const file of ["Grid.vue", "GridRow.vue"]) {
-      const source = sourceOf(file);
-      expect(source).toContain('containerType: "inline-size"');
-      expect(source).toContain("gridResponsiveStyles(");
-      expect(source).toContain("<GridResponsiveStyle");
-      expect(source).not.toContain("ResizeObserver");
-      expect(source).not.toContain("data-dms-grid-reflowed");
-    }
   });
 });

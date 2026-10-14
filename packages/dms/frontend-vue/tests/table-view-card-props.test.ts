@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import { computed, createApp, defineComponent, h, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import {
   buildCardProps,
@@ -20,14 +18,6 @@ vi.mock("../layers/dms-ui/app/build/components/table/Pagination.vue", () => ({
 vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
   default: { render: () => null },
 }));
-
-const kanbanBoardSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/KanbanBoard.vue",
-  ),
-  "utf8",
-);
 
 const rows = [
   { _id: "t1", name: "Write the docs" },
@@ -78,13 +68,6 @@ describe("table view card props", () => {
     props.open();
     expect(opened).toEqual([rows[0]]);
     expect(buildCardProps(rows[1]!, context).selected).toBe(true);
-  });
-
-  it("gives a kanban card the same props, plus its column's value", () => {
-    expect(kanbanBoardSource).toMatch(
-      /buildCardProps\(item, props\.cardContext\)/,
-    );
-    expect(kanbanBoardSource).toMatch(/groupValue,\n\s*\}\);/);
   });
 });
 

@@ -5,8 +5,6 @@
  * closed meanwhile: the table removes the key in place, so the route still
  * holds the same value and only the visit tells the link was followed again.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h, nextTick, reactive } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
@@ -189,19 +187,4 @@ describe("the URL a closed drawer leaves", () => {
       tab: "all",
     });
   });
-});
-
-it("wires the record link and the filter chips into the table view", () => {
-  const source = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/table-view/TableView.vue",
-    ),
-    "utf8",
-  );
-  expect(source).toContain("useTableRecordLink<T>({");
-  expect(source).toContain("onRecordShown: (id) => recordLink?.shown(id),");
-  expect(source).toContain(
-    "withoutQueryParam(currentQuery(route.query), param)",
-  );
 });

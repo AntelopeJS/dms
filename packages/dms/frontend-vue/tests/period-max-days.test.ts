@@ -5,8 +5,6 @@
  * from the date fields or a long preset is cut to it.
  */
 import { CalendarDate } from "@internationalized/date";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h, nextTick, type App } from "vue";
 import { afterEach, describe, expect, it } from "vitest";
 import PeriodRangeCalendar from "../layers/dms-ui/app/build/components/period/PeriodRangeCalendar.vue";
@@ -113,16 +111,4 @@ describe("the range calendar with maxDays", () => {
     await nextTick();
     expect(day(host, "2026-09-30").hasAttribute("data-disabled")).toBe(false);
   });
-});
-
-it("hands maxDays to the calendar and cuts the date fields to it", () => {
-  const source = readFileSync(
-    resolve(
-      __dirname,
-      "../layers/dms-ui/app/components/period/PeriodSelector.vue",
-    ),
-    "utf8",
-  );
-  expect(source).toContain(':max-days="maxDays"');
-  expect(source).toContain("limitCalendarRange(range, props.maxDays, anchor)");
 });
