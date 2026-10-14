@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.0...v0.8.1)
+
+### 🩹 Fixes
+
+- **grid:** Collapse grid row cells whose block renders nothing ([#272](https://github.com/AntelopeJS/dms/pull/272))
+
+### 🤖 CI
+
+- Speed up pipeline ([#271](https://github.com/AntelopeJS/dms/pull/271))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.8.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.7.21...v0.8.0)
