@@ -3,6 +3,7 @@ import { type Component, createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { createI18n } from "vue-i18n";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
+import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 
 interface EmailModule {
   default: Component;
@@ -44,15 +45,35 @@ function templateName(path: string): string {
   return path.split("/").pop()?.replace(".vue", "") ?? path;
 }
 
-async function renderEmail(component: Component, logo: string) {
+const EMAIL_PROPS = {
+  userName: "Ada",
+  newEmail: "ada@new.test",
+  expiresIn: "24 hours",
+  expiresInHours: 24,
+  partial: true,
+  failedSources: ["media"],
+};
+
+async function renderEmail(
+  component: Component,
+  logo: string,
+  locale = "en",
+): Promise<string> {
   vi.stubGlobal("useDmsAppConfig", () => ({
     branding: { logo: { default: { light: logo } } },
   }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { clientBaseUrl: PUBLIC_BASE } },
   }));
-  const app = createSSRApp(component, { userName: "Ada", failedSources: [] });
-  app.use(createI18n({ legacy: false, locale: "en", messages: { en } }));
+  const app = createSSRApp(component, EMAIL_PROPS);
+  app.use(
+    createI18n({
+      legacy: false,
+      locale,
+      fallbackLocale: "en",
+      messages: { en, fr },
+    }),
+  );
   Object.entries(ELEMENTS).forEach(([name, tag]) =>
     app.component(name, element(tag)),
   );
@@ -77,6 +98,33 @@ describe("built-in emails", () => {
   it.each(templates)("%s draws a public PNG logo", async (_name, component) => {
     const html = await renderEmail(component, PUBLIC_PNG_LOGO);
     expect(html).toContain(`<img src="${PUBLIC_BASE}${PUBLIC_PNG_LOGO}"`);
+  });
+
+  it.each(templates)("%s is written in French", async (_name, component) => {
+    const html = await renderEmail(component, PUBLIC_PNG_LOGO, "fr");
+    expect(html).toContain("Bonjour");
+    expect(html).not.toMatch(/Hello|If you/);
+  });
+
+  it("words the code lifetime in the recipient's language", async () => {
+    const [, component] = templates.find(
+      ([name]) => name === "EmailResetPassword",
+    )!;
+    expect(await renderEmail(component, PUBLIC_PNG_LOGO)).toContain(
+      "This code expires in 24 hours.",
+    );
+    expect(await renderEmail(component, PUBLIC_PNG_LOGO, "fr")).toContain(
+      "Ce code expire dans 24 heures.",
+    );
+  });
+
+  it("marks a partial export in French", async () => {
+    const [, component] = templates.find(
+      ([name]) => name === "EmailExportReady",
+    )!;
+    const html = await renderEmail(component, PUBLIC_PNG_LOGO, "fr");
+    expect(html).toContain("<strong>incomplet</strong>");
+    expect(html.replace(/<!--[^>]*-->/g, "")).toContain("— media.");
   });
 
   it("puts the two-factor disclaimer under the separator", async () => {

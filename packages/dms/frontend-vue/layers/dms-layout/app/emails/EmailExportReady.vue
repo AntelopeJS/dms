@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { I18nT, useI18n } from "vue-i18n";
 import EmailLayout from "./components/EmailLayout.vue";
 import EmailButton from "./components/EmailButton.vue";
 import { emailStyles } from "./components/index";
@@ -7,38 +8,48 @@ defineProps<{
   userName: string;
   downloadLink: string;
   expiresIn: string;
+  expiresInHours: number;
   partial: boolean;
   failedSources: string[];
 }>();
+
+const { t, locale } = useI18n();
 </script>
 
 <template>
-  <EmailLayout title="Your data export is ready" public-logo-only>
-    <EText :style="emailStyles.text">Hello {{ userName }},</EText>
+  <EmailLayout
+    :title="t('emails.export_ready.title')"
+    :lang="locale"
+    public-logo-only
+  >
+    <EText :style="emailStyles.text">
+      {{ t("emails.common.greeting", { name: userName }) }}
+    </EText>
 
     <EText :style="emailStyles.text">
-      Your data export has been prepared. Use the button below to download the
-      archive:
+      {{ t("emails.export_ready.body") }}
     </EText>
 
     <EmailButton
       :href="downloadLink"
-      :expires-in="expiresIn"
-      expires-label="This download link expires in"
+      :expires-in="t('emails.common.hours', expiresInHours)"
+      :expires-label="t('emails.export_ready.expires_label')"
     >
-      Download export
+      {{ t("emails.export_ready.button") }}
     </EmailButton>
 
     <EText v-if="partial" :style="emailStyles.text">
-      This export is
-      <strong>incomplete</strong>
-      : the following parts could not be included —
-      {{ failedSources.join(", ") }}. Request a new export if you need them.
+      <I18nT keypath="emails.export_ready.partial" scope="global">
+        <template #incomplete>
+          <strong>{{ t("emails.export_ready.incomplete") }}</strong>
+        </template>
+        <template #sources>{{ failedSources.join(", ") }}</template>
+      </I18nT>
     </EText>
 
     <template #footer>
       <EText :style="emailStyles.footer">
-        If you didn't request this export, you can safely ignore this email.
+        {{ t("emails.export_ready.footer") }}
       </EText>
     </template>
   </EmailLayout>
