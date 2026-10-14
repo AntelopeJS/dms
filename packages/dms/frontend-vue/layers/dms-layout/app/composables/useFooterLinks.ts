@@ -7,7 +7,8 @@ export interface FooterLink {
 
 /**
  * The Antelope links every footer starts with. A layer replaces one by
- * registering an entry under the same id.
+ * registering an entry under the same id, or removes it with
+ * `unregisterFooterLink`.
  */
 const DEFAULT_FOOTER_LINKS: FooterLink[] = [
   {
@@ -41,6 +42,15 @@ export function registerFooterLink(link: FooterLink): void {
   const next = [...links.value];
   next[existingIndex] = link;
   links.value = next;
+}
+
+/**
+ * Removes a link from the footer, one of the Antelope defaults
+ * (`dms:documentation`, `dms:website`) or another layer's. An id never
+ * registered is ignored.
+ */
+export function unregisterFooterLink(id: string): void {
+  links.value = links.value.filter((entry) => entry.id !== id);
 }
 
 export function useFooterLinks() {

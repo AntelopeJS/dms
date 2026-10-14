@@ -6,6 +6,7 @@ import {
 } from "../../utils/github-repository";
 
 const EXTERNAL_LINK_PATTERN = /^https?:\/\//;
+const DEFAULT_COPYRIGHT = "Antelope";
 const GITHUB_REPOSITORY_API = `https://api.github.com/repos/${GITHUB_REPOSITORY}`;
 const GITHUB_STARS_CACHE_KEY = "dms-github-stars";
 // GitHub allows 60 anonymous API calls an hour per visitor: the count is
@@ -15,6 +16,17 @@ const GITHUB_STARS_CACHE_TTL_MS = 60 * 60 * 1000;
 const { locale, setLocale, t } = useI18n();
 const { uniqueLocales } = useUniqueLocales();
 const { links } = useFooterLinks();
+const { processI18n } = useTranslation();
+const footer = computed(() => useDmsAppConfig().branding.footer ?? {});
+const copyright = computed(() =>
+  footer.value.copyright === false
+    ? null
+    : processI18n(footer.value.copyright ?? DEFAULT_COPYRIGHT),
+);
+const showsGithubStar = computed(() => footer.value.githubStar !== false);
+const showsLocaleSwitcher = computed(
+  () => footer.value.localeSwitcher !== false,
+);
 
 const localesOptions: SelectItem[] = uniqueLocales.value.map((lang) => ({
   label: lang.name,
@@ -87,6 +99,7 @@ async function loadGithubStars(): Promise<void> {
 }
 
 onMounted(async () => {
+  if (!showsGithubStar.value) return;
   await loadGithubStars();
   githubStarsSettled.value = true;
 });
@@ -103,7 +116,7 @@ async function onLocaleChange(code: unknown) {
   <footer
     class="border-default text-dimmed flex flex-wrap items-center gap-x-[18px] gap-y-1.5 border-t px-5 py-3 text-[12.5px] max-sm:justify-center"
   >
-    <span>&copy; Antelope</span>
+    <span v-if="copyright">&copy; {{ copyright }}</span>
     <template v-for="link in links" :key="link.id">
       <a
         v-if="isExternal(link.to)"
@@ -125,6 +138,7 @@ async function onLocaleChange(code: unknown) {
 
     <!-- GitHub star button: icon + "Star" | live count, opens the repository. -->
     <a
+      v-if="showsGithubStar"
       :href="GITHUB_REPOSITORY_URL"
       target="_blank"
       rel="noopener noreferrer"
@@ -152,6 +166,7 @@ async function onLocaleChange(code: unknown) {
     </a>
 
     <USelect
+      v-if="showsLocaleSwitcher"
       :model-value="locale"
       :items="localesOptions"
       :aria-label="t('empty_layout.footer.language')"

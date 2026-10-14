@@ -194,5 +194,10 @@ export default {
         dark: "/images/antelope-logo/icon.svg",
       },
     },
+    footer: {
+      copyright: "Antelope",
+      githubStar: true,
+      localeSwitcher: true,
+    },
   },
 };
