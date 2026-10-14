@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import DmsStepIndicator from "#dms-onboarding/app/build/components/onboarding/StepIndicator.vue";
 
 /**
@@ -176,7 +176,45 @@ const treeItems = [
 ];
 const treeSelected = ref();
 
-const tableData = [
+interface OrderRow {
+  id: string;
+  customer: string;
+  status: string;
+  total: number;
+}
+
+interface OrderRowRef {
+  original: OrderRow;
+}
+
+interface OrderCellContext {
+  row: OrderRowRef;
+}
+
+const ORDER_CURRENCY = "EUR";
+
+const { locale } = useI18n();
+const moneyFormat = computed(
+  () =>
+    new Intl.NumberFormat(locale.value, {
+      style: "currency",
+      currency: ORDER_CURRENCY,
+    }),
+);
+
+const tableColumns = computed(() => [
+  { accessorKey: "id", header: "Order" },
+  { accessorKey: "customer", header: "Customer" },
+  { accessorKey: "status", header: "Status" },
+  {
+    accessorKey: "total",
+    header: "Total",
+    cell: ({ row }: OrderCellContext) =>
+      moneyFormat.value.format(row.original.total),
+  },
+]);
+
+const tableData: OrderRow[] = [
   {
     id: "#10482",
     customer: "Northwind Traders",
@@ -584,7 +622,11 @@ const rowSelection = ref<Record<string, boolean>>({ "1": true });
         />
       </div>
       <div class="dms-card overflow-x-auto">
-        <UTable v-model:row-selection="rowSelection" :data="tableData" />
+        <UTable
+          v-model:row-selection="rowSelection"
+          :data="tableData"
+          :columns="tableColumns"
+        />
       </div>
     </section>
   </div>

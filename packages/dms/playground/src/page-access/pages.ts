@@ -160,7 +160,17 @@ export class NoComponentPermissionsPage extends PageController(
   static second = Card({
     title: "A second block",
     description: "It registers no permission of its own either.",
-  });
+  }).child(
+    "facts",
+    KeyValueList({
+      card: false,
+      dense: true,
+      items: [
+        { label: "Own permission", value: "None", type: "mono" },
+        { label: "Shown to", value: "Whoever opens the page" },
+      ],
+    }),
+  );
 }
 
 @RegisterPage()

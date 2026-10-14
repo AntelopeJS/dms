@@ -40,6 +40,7 @@ const authItems = computed(() => authLinks.value.map(linkItem));
       id="links"
       title="Where they show"
       description="Footer links close the empty layout (the sign-in screens, the error pages), after the DMS's own Documentation and Website links; an id the DMS uses replaces its link. Auth links sit under the form of the page they name. Open the sign-in page in a private window to see both."
+      :columns="1"
     >
       <ShowcaseDemo label="useFooterLinks().links">
         <DmsCard title="Footer" :count="footerItems.length">

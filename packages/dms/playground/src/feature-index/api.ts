@@ -55,9 +55,9 @@ function featureStats(rows: FeatureRow[]): FeatureStat[] {
     },
     {
       icon: "i-ph-files",
-      eyebrow: "Demo pages",
+      eyebrow: "Pages linked",
       value: pages.size,
-      detail: "That show them",
+      detail: "Demo pages a feature points to",
     },
     {
       icon: "i-ph-warning-circle",

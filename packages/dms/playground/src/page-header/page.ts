@@ -26,6 +26,10 @@ function publishAvailability({ query }: ComponentFilterContext) {
     : undefined;
 }
 
+function downloadAvailability({ query }: ComponentFilterContext) {
+  return query?.locale ? undefined : { hidden: true as const };
+}
+
 function settingsAvailability({ query }: ComponentFilterContext) {
   return query?.workspace ? undefined : { hidden: true as const };
 }
@@ -41,6 +45,7 @@ const HEADER_BUTTONS: PageHeaderButton[] = [
       url: `${PAGE_HEADER_DEMO_API}/export?workspace={{query.workspace}}&locale={{query.locale}}`,
       filename: "{{query.locale}}.json",
     },
+    availability: downloadAvailability,
   },
   {
     id: "publish",
@@ -107,7 +112,7 @@ const BUTTONS_EXPLAINED: KeyValueListItem[] = [
     label: "Download {locale}.json",
     value: "download target, label from the query",
     detail:
-      "Fetched with your session from a route behind AuthUser; filename and URL take {{query.X}}.",
+      "Fetched with your session from a route behind AuthUser; filename and URL take {{query.X}}. Hidden without ?locale=.",
   },
   {
     label: "Client action",

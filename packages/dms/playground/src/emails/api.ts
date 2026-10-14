@@ -19,6 +19,8 @@ const DIGEST_COUNT = 3;
 interface DigestProps {
   userName: string;
   count: number;
+  /** The template picks its texts and the document `lang` from it. */
+  locale: string;
 }
 
 /** Rendered from playground/frontend-vue/app/emails/EmailPlaygroundDigest.vue. */
@@ -41,7 +43,7 @@ export class EmailsDemoController extends Controller(EMAILS_DEMO_API) {
     try {
       const html = await GenerateHtml(
         PlaygroundDigestTemplate,
-        { userName: user.name, count: DIGEST_COUNT },
+        { userName: user.name, count: DIGEST_COUNT, locale: PREVIEW_LANGUAGE },
         PREVIEW_LANGUAGE,
       );
       return { code: html, language: "html" };

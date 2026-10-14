@@ -20,7 +20,8 @@ export class EmailsPage extends PageController(
   DefaultLayout(),
 ) {
   static preview = CodeBlock({
-    title: 'GenerateHtml(EmailPlaygroundDigest, props, "fr")',
+    title:
+      'GenerateHtml(EmailPlaygroundDigest, { userName, count, locale: "fr" }, "fr")',
     language: "html",
     fetchUrl: `${EMAILS_DEMO_API}/preview`,
     maxLines: PREVIEW_MAX_LINES,
@@ -46,12 +47,12 @@ export class EmailsPage extends PageController(
         value: "app/emails/EmailPlaygroundDigest.vue",
         type: "mono",
         detail:
-          'EmailLayout with :divider="false", public-logo-only, a preheader and the #head and #footer slots.',
+          'EmailLayout with :lang, :divider="false", public-logo-only, a preheader and the #head and #footer slots; texts picked from the locale prop.',
       },
       {
         label: "Backend",
         value:
-          'RegisterHtmlTemplate<{ userName, count }>("EmailPlaygroundDigest")',
+          'RegisterHtmlTemplate<{ userName, count, locale }>("EmailPlaygroundDigest")',
         type: "mono",
       },
     ],

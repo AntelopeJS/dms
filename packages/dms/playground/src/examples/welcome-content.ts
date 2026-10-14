@@ -24,9 +24,17 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     icon: "i-ph-palette",
     title: "Design system",
     description:
-      "The themed Nuxt UI primitives, the DMS foundations and every display block a page places from the backend.",
+      "The themed Nuxt UI primitives and the DMS foundations: the Vue components every screen is made of.",
     to: "/foundations/foundations-labels",
-    readout: ["Primitives · Foundations · Blocks"],
+    readout: ["Primitives · Foundations"],
+  },
+  {
+    icon: "i-ph-cube",
+    title: "Blocks",
+    description:
+      "The display blocks a page places from the backend: stat groups, key-value lists, feeds, meters, banners and more.",
+    to: "/blocks/blocks-stat-group",
+    readout: ["Stats · Lists · Feedback · Live"],
   },
   {
     icon: "i-ph-layout",
@@ -34,6 +42,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Grid and stack layouts, tabs, drawers and modals, a flow canvas and pages that combine several components.",
     to: "/grid/layout-grid-simple",
+    readout: ["Grid · Stack · Tabs · Drawer & Modal"],
   },
   {
     icon: "i-ph-table",
@@ -41,6 +50,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Archive, kanban and card displays, expandable rows, density, drawer, modal and page editing, relations and custom row actions.",
     to: "/table-view/table-view-users",
+    readout: ["Displays · Editing · Relations"],
   },
   {
     icon: "i-ph-note-pencil",
@@ -48,6 +58,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "Every field type, grouped and localized fields, address and profile forms, and watch actions that react as you type.",
     to: "/form/form-simple",
+    readout: ["Field types · Layout · Saving"],
   },
   {
     icon: "i-ph-chart-line-up",
@@ -55,6 +66,7 @@ export const BUILDING_BLOCK_CARDS: NavCardItem[] = [
     description:
       "A full dashboard, KPI and chart cards, top lists, realtime updates and the period selector that drives them.",
     to: "/charts/chart-dashboard",
+    readout: ["Cards · Charts · Period"],
   },
 ];
 
@@ -77,6 +89,15 @@ export const DASHBOARD_CARDS: NavCardItem[] = [
     description:
       "Layout banners shown on every page, and quick actions run from the command palette.",
     to: "/layout-banners",
+    readout: ["Layout banners · Quick actions"],
+  },
+  {
+    icon: "i-ph-puzzle-piece",
+    title: "Frontend modules",
+    description:
+      "What a module adds from its own Vue code: header actions, widgets, the side panel, links and custom components.",
+    to: "/custom-components/custom-slots",
+    readout: ["Dashboard chrome · Custom components"],
   },
   {
     icon: "i-ph-gear",
@@ -92,6 +113,7 @@ export const DASHBOARD_CARDS: NavCardItem[] = [
     description:
       "The module catalog and the pages a demo module and a plain module contribute.",
     to: "/modules",
+    readout: ["Demo module · Plain module"],
   },
   {
     icon: "i-ph-sliders-horizontal",
@@ -99,6 +121,7 @@ export const DASHBOARD_CARDS: NavCardItem[] = [
     description:
       "Profile, security, notifications, members, invitations and roles with Preview as role, plus the playground's own workspace page.",
     to: "/settings",
+    readout: ["Profile · Workspace · Roles"],
   },
 ];
 

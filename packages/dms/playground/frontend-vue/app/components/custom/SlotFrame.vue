@@ -39,7 +39,10 @@ const injectedItems = computed(() => [
 
 <template>
   <DmsCard :title="props.title">
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div
+      class="grid gap-5"
+      :class="{ 'lg:grid-cols-[minmax(0,1fr)_18rem]': slots.aside }"
+    >
       <div class="grid content-start gap-4">
         <slot />
         <DmsKeyValueList :items="injectedItems" dense />
