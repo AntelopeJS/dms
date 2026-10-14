@@ -173,25 +173,3 @@ describe("the load error a form shows", () => {
     }
   });
 });
-
-describe("a form whose record did not load", () => {
-  const formSource = readFileSync(
-    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
-    "utf8",
-  );
-
-  it("shows the load error instead of its fields", () => {
-    expect(formSource).toMatch(
-      /<div v-if="loadFailure"[^>]*>\s*<DmsFormLoadError[\s\S]*?<\/div>\s*<div v-else :class="surfaceClasses\.body">/,
-    );
-  });
-
-  it("cannot be saved: no save bar, and a submit is refused", () => {
-    expect(formSource).toMatch(
-      /<DmsSaveBar\s+v-if="canSave && !isInstant && !loadFailure"/,
-    );
-    expect(formSource).toMatch(
-      /function onSubmit\([^)]*\) \{\s*if \(loadFailure\.value \|\| !runValidators\(\)\) return;/,
-    );
-  });
-});

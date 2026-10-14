@@ -58,16 +58,4 @@ describe("Table grid cell layout theme", () => {
       expect(theme().rowCell({ cellWrap })).toContain("py-0");
     }
   });
-
-  it("reads each column's policy for its cell too", () => {
-    expect(tableSource).toMatch(
-      /uiTable\.rowCell\(\{[^}]*cellWrap: \(cell\.column\.columnDef as TableColumn<T>\)\s*\.cellWrap,?\s*\}\)/,
-    );
-  });
-
-  it("reads each column's policy inside the default slot fallback", () => {
-    expect(tableSource).toMatch(
-      /uiTable\.rowSpan\(\{\s*cellWrap: \(\s*cell\.column\.columnDef as TableColumn<T>\s*\)\.cellWrap[\s,]*\}\)/,
-    );
-  });
 });

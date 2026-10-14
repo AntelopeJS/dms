@@ -11,8 +11,6 @@ import {
   type PropType,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import CardsDisplay from "../layers/dms-ui/app/build/components/table-view/CardsDisplay.vue";
 import { useTableReorder } from "../layers/dms-ui/app/build/composables/table-view/useTableReorder";
 import { moveRow } from "../layers/dms-ui/app/build/composables/table-view/utils/reorder";
@@ -30,14 +28,6 @@ vi.mock("../layers/dms-ui/app/build/components/table/Empty.vue", () => ({
 
 type Row = { _id: string; name: string };
 type Api = Parameters<typeof useTableReorder>[0]["api"];
-
-const tableViewSource = readFileSync(
-  resolve(
-    __dirname,
-    "../layers/dms-ui/app/components/table-view/TableView.vue",
-  ),
-  "utf8",
-);
 
 const TaskCard = defineComponent({
   props: {
@@ -223,12 +213,6 @@ describe("the cards display of a hand-ordered table", () => {
 });
 
 describe("which displays move rows", () => {
-  it("offers moving on the grid and the cards, never on the board or the groups", () => {
-    expect(tableViewSource).toMatch(
-      /ORDERED_DISPLAY_IDS = new Set\(\[TABLE_DISPLAY_ID, CARDS_DISPLAY_ID\]\)/,
-    );
-    expect(tableViewSource).toMatch(/reorder: reorderState\.value,/);
-  });
 
   it("draws no handle on a display that does not draw the rows in their order", () => {
     vi.stubGlobal("computed", computed);

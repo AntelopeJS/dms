@@ -160,8 +160,8 @@ importers:
         specifier: '>=1.13.4 <2'
         version: 1.13.5
       '@antelopejs/dms-frontend':
-        specifier: '>=0.5.2 <0.6.0'
-        version: 0.5.2(@antelopejs/core@1.13.5)
+        specifier: '>=0.5.6 <0.6.0'
+        version: 0.5.6(@antelopejs/core@1.13.5)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -237,8 +237,8 @@ packages:
     engines: {node: '>=20.19'}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.5.2':
-    resolution: {integrity: sha512-0kChPedSTpKES7aN/gLj5tAe4WRaU+FrwaRKpOyvo3fvvRPfDTvlTYjjdUpabsF150d3+V/AksXstZ5eb36QwQ==}
+  '@antelopejs/dms-frontend@0.5.6':
+    resolution: {integrity: sha512-bO7kacKMF1rVsIjS208rhPUoIxRYss6ZuQCdQ1Kpq5D3pG0qSvF2pNsi+WecvxTOKM8d6AQAoLl5facu5tyHFQ==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
@@ -4208,7 +4208,7 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.5.2(@antelopejs/core@1.13.5)':
+  '@antelopejs/dms-frontend@0.5.6(@antelopejs/core@1.13.5)':
     dependencies:
       '@antelopejs/core': 1.13.5
       chokidar: 4.0.3

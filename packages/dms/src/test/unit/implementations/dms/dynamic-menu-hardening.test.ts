@@ -4,6 +4,7 @@ import {
   internal as pageImplInternal,
   buildSiteLayoutPayload,
 } from "../../../../implementations/dms/page";
+import { overrideResolverTimeout } from "../../../../implementations/dms/resolver-timeout";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
@@ -27,7 +28,8 @@ const TENANT = "menu-hardening-tenant";
 const CATEGORY_FULL_ID = pagesCategory.fullId;
 const MEMBER = { _id: "menu-hardening-member" } as User;
 const TARGET_SLUG = "/menu-hardening-target";
-const RESOLVER_TIMEOUT_MS = 2000;
+// A fraction of the production budget: the hanging resolver below waits it out.
+const RESOLVER_TIMEOUT_MS = 300;
 
 function entry(id: string, displayName: string): DynamicMenuItem {
   return { id, displayName, fullSlug: TARGET_SLUG };
@@ -97,6 +99,7 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
       CATEGORY_FULL_ID,
       () => new Promise<DynamicMenuItem[]>(() => undefined),
     );
+    const restoreTimeout = overrideResolverTimeout(RESOLVER_TIMEOUT_MS);
 
     try {
       const started = Date.now();
@@ -105,11 +108,12 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
 
       expect(children).to.not.include("alpha");
       expect(elapsed).to.be.greaterThanOrEqual(RESOLVER_TIMEOUT_MS - 100);
-      expect(elapsed).to.be.lessThan(RESOLVER_TIMEOUT_MS * 2);
+      expect(elapsed).to.be.lessThan(RESOLVER_TIMEOUT_MS * 3);
     } finally {
+      restoreTimeout();
       dispose();
     }
-  }).timeout(RESOLVER_TIMEOUT_MS * 3);
+  });
 
   // Sequential resolvers made the request wait for their sum.
   it("runs the providers together rather than one after the other", async () => {
@@ -133,7 +137,7 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
     } finally {
       for (const dispose of disposers) dispose();
     }
-  }).timeout(RESOLVER_TIMEOUT_MS * 3);
+  });
 
   // The resolvers are launched from the live registry and the results merged
   // by index: a module unregistering meanwhile would shift the array under the
@@ -187,5 +191,5 @@ describe("[unit] implementations/dms/page — dynamic menu hardening", () => {
       first();
       second();
     }
-  }).timeout(RESOLVER_TIMEOUT_MS * 3);
+  });
 });

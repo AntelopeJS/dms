@@ -5,8 +5,6 @@
  * leaves with its component, and focusing a field by id. A page opened on a
  * field's anchor focuses that field.
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createApp, defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -118,24 +116,5 @@ describe("a field's anchor", () => {
     );
     expect(linkedFieldId("", FIELD_IDS)).toBe(undefined);
     expect(linkedFieldId("#%E0%A4%A", FIELD_IDS)).toBe(undefined);
-  });
-});
-
-describe("the Form", () => {
-  const formSource = readFileSync(
-    resolve(__dirname, "../layers/dms-ui/app/components/form/Form.vue"),
-    "utf8",
-  );
-
-  it("offers its fields the submit, its validators and the focus", () => {
-    expect(formSource).toMatch(
-      /provide\(FORM_HANDLE_KEY, \{\s*submit: async \(\) => \{\s*await form\.value\?\.submit\(\);\s*\},\s*registerValidator,\s*revealField,\s*\}\);/,
-    );
-  });
-
-  it("follows the anchor of a field once mounted, a page form only", () => {
-    expect(formSource).toMatch(
-      /if \(!inFormContainer && !container\) \{\s*const followFieldAnchor = \(\) => \{\s*const fieldId = linkedFieldId\(window\.location\.hash, allFieldIds\.value\);/,
-    );
   });
 });

@@ -18,6 +18,10 @@ const MONGO_BINARY_VERSION = "8.0.8";
 const LOCAL_API_PATH = process.env.DMS_TEST_API_PATH;
 const LOCAL_MONGODB_PATH = process.env.DMS_TEST_MONGODB_PATH;
 const LOCAL_STORAGE_PATH = process.env.DMS_TEST_STORAGE_PATH;
+// The loader runs a local module's install command on every start. CI has
+// built the module already in the same job, so it sets DMS_PREBUILT and the
+// harness loads that build instead of compiling it a second time.
+const LOCAL_INSTALL_COMMAND = process.env.DMS_PREBUILT ? [] : ["pnpm build"];
 
 function providerSource(
   path: string | undefined,
@@ -50,7 +54,7 @@ export default defineConfig({
       source: {
         type: "local",
         path: ".",
-        installCommand: ["pnpm build"],
+        installCommand: LOCAL_INSTALL_COMMAND,
       },
       config: {
         auth: {

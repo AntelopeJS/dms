@@ -39,6 +39,9 @@ const TOTP_STEP_MS = 30 * 1000;
 // A code computed this close to the end of its window may reach the server
 // in the next one: wait for the next window instead.
 const TOTP_SAFE_MARGIN_MS = 3 * 1000;
+// A timer can fire a millisecond before `Date.now()` reaches its deadline, and
+// a code computed then is still the previous window's: overshoot the boundary.
+const TOTP_BOUNDARY_OVERSHOOT_MS = 50;
 const RATE_LIMIT_MS = 60 * 1000;
 const ATTEMPTS_PER_ACCOUNT = 10;
 const LOCKOUT_TITLE = "$dms.notifications.messages.two_factor_lockout.title";
@@ -51,7 +54,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function currentTotpCode(secret: string): Promise<string> {
   const leftInStep = TOTP_STEP_MS - (Date.now() % TOTP_STEP_MS);
-  if (leftInStep < TOTP_SAFE_MARGIN_MS) await sleep(leftInStep);
+  if (leftInStep < TOTP_SAFE_MARGIN_MS) {
+    await sleep(leftInStep + TOTP_BOUNDARY_OVERSHOOT_MS);
+  }
   return generateCode(secret, totpStepAt(Date.now()));
 }
 

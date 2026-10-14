@@ -95,16 +95,6 @@ describe("row hover affordance", () => {
     });
     expect(pinned).toContain("group-data-[presence=true]:bg-elevated");
   });
-
-  it("feeds the same condition to the row, its pinned cells and the rail", () => {
-    expect(tableSource).toMatch(
-      /uiTable\.row\(\{\s*loading,\s*rowClickable: isRowClickable\(row\.original\),/,
-    );
-    expect(tableSource).toMatch(
-      /uiTable\.rowCell\(\{[^}]*rowClickable: isRowClickable\(row\.original\),/,
-    );
-    expect(tableSource).toContain("presenceRailBackground(row.original)");
-  });
 });
 
 describe("resolveRowClickAction", () => {

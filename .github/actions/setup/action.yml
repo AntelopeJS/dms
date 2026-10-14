@@ -1,0 +1,46 @@
+name: Set up the workspace
+description: >
+  pnpm, Node, the workspace install, optionally the Vue layer install and the
+  interface build -- the part every ci.yml job shares.
+
+inputs:
+  frontend:
+    description: Also install the Vue layer (packages/dms/frontend-vue).
+    default: "false"
+  interface:
+    description: Also build the interface, which the runtime and some Vue tests import.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    # Before setup-node, which needs pnpm on PATH to resolve the store it
+    # caches. The version comes from the root `packageManager` field.
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+
+    - uses: actions/setup-node@v4
+      with:
+        # .nvmrc is the version of record. oxlint needs at least 22.18 to
+        # read a TypeScript config, which every value there clears.
+        node-version-file: .nvmrc
+        cache: pnpm
+        # The Vue layer is installed on its own, the way the loader installs
+        # it, so its lockfile has to key the cache too.
+        cache-dependency-path: |
+          pnpm-lock.yaml
+          packages/dms/frontend-vue/pnpm-lock.yaml
+
+    # `...` selects the dependencies too, so the workspace interface comes
+    # along and nothing else in the workspace is installed for nothing.
+    - shell: bash
+      run: pnpm install --filter @antelopejs/dms... --frozen-lockfile
+
+    - if: inputs.frontend == 'true'
+      shell: bash
+      run: pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
+
+    # The runtime compiles against the interface's declarations, so the
+    # interface is built before anything reads them.
+    - if: inputs.interface == 'true'
+      shell: bash
+      run: pnpm --dir packages/interface-dms build
