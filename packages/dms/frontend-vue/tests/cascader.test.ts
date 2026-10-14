@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCascaderPathLabels,
   buildCascaderTree,
+  cascaderValuePath,
   findCascaderNode,
   flattenCascaderTree,
   formatCascaderPath,
@@ -174,6 +175,32 @@ describe("buildCascaderPathLabels", () => {
       { _id: "b", name: "B", parent_id: "a" },
     ];
     expect(buildCascaderPathLabels(rows, keyMapping, "a")).toEqual(["B", "A"]);
+  });
+});
+
+describe("cascaderValuePath", () => {
+  it("resolves a picked id, or a picked row, to its path", () => {
+    expect(cascaderValuePath("speakers", keyMapping, categories)).toEqual([
+      "Electronics",
+      "Audio",
+      "Speakers",
+    ]);
+    expect(
+      cascaderValuePath({ _id: "tv", name: "TV" }, keyMapping, categories),
+    ).toEqual(["Electronics", "Video", "TV"]);
+  });
+
+  it("shows a picked row's own label, or its id, until the rows are there", () => {
+    expect(cascaderValuePath({ _id: "tv", name: "TV" }, keyMapping)).toEqual([
+      "TV",
+    ]);
+    expect(cascaderValuePath("tv", keyMapping)).toEqual(["tv"]);
+    expect(cascaderValuePath("nope", keyMapping, categories)).toEqual(["nope"]);
+  });
+
+  it("has no path for nothing picked", () => {
+    expect(cascaderValuePath(null, keyMapping, categories)).toEqual([]);
+    expect(cascaderValuePath({ name: "Loose" }, keyMapping)).toEqual(["Loose"]);
   });
 });
 

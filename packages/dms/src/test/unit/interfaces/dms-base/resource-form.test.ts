@@ -106,6 +106,15 @@ describe("[unit] interfaces/dms-base/resource-form — a form derived from its t
     expect(shown.fetchUrl).to.equal(`${LOCATION}/get?id={{query.id}}`);
   });
 
+  it("needs its row in edit and view, and opens on its defaults in new", () => {
+    const modes = ["new", "edit", "view"] as const;
+    const required = modes.map(
+      (mode) => optionsOf(ResourceForm(TicketAPI, { mode })).requiresRecord,
+    );
+
+    expect(required).to.deep.equal([false, true, true]);
+  });
+
   it("keeps the TableView's own pages on their :id segment", () => {
     const table = TableView(TicketAPI).serializeSync()
       .options as TableViewOptionsSerialized;

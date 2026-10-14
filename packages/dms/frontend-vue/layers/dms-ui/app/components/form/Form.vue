@@ -65,6 +65,7 @@ import DmsFormErrorSummary from "../../build/components/form/FormErrorSummary.vu
 import DmsFormLoadError from "../../build/components/form/FormLoadError.vue";
 import {
   type FormRecordLoad,
+  missingRecordFailure,
   trackFormRecordLoad,
 } from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
@@ -574,7 +575,15 @@ if (props.fetchUrl) {
   });
 }
 
-const loadFailure = computed(() => recordLoad?.failure.value ?? null);
+const loadFailure = computed(
+  () =>
+    recordLoad?.failure.value ??
+    missingRecordFailure({
+      requiresRecord: props.requiresRecord,
+      fetchUrl: props.fetchUrl,
+      resolvedFetchUrl: resolvedFetchUrl.value,
+    }),
+);
 const isRetryingLoad = computed(() => recordLoad?.retrying.value ?? false);
 
 /** Load the record again after a failure; it is what the form starts from. */

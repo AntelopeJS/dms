@@ -1,18 +1,26 @@
 <script setup lang="ts">
 import {
-  buildCascaderPathLabels,
   CASCADER_FETCH_LIMIT,
   CASCADER_PATH_SEPARATOR,
+  cascaderValuePath,
   resolveCascaderKeyMapping,
   type CascaderKeyMapping,
 } from "../../utils/cascader";
+import { MAX_RELATION_BADGES } from "../../build/composables/data-types/relationBadges";
 
 const DEFAULT_VALUE_KEY = "_id";
 
 interface CascaderPathProps {
+  /** One picked value, or the list a multiple cascader holds. */
   value: unknown;
   searchUrl?: string;
   keyMapping?: Partial<CascaderKeyMapping>;
+}
+
+/** A picked value of a multiple cascader: its name, its path on hover. */
+interface CascaderBadge {
+  label: string;
+  title: string;
 }
 
 const props = defineProps<CascaderPathProps>();
@@ -31,22 +39,6 @@ const keyMapping = computed(() =>
   }),
 );
 
-const valueObject = computed(() =>
-  isObject(props.value) ? (props.value as Record<string, unknown>) : undefined,
-);
-
-const valueId = computed(() => {
-  const raw = valueObject.value
-    ? valueObject.value[keyMapping.value.value]
-    : props.value;
-  return raw === undefined || raw === null ? undefined : String(raw);
-});
-
-const ownLabel = computed(() => {
-  const label = valueObject.value?.[keyMapping.value.label];
-  return label === undefined || label === null ? undefined : String(label);
-});
-
 const { data } = await useDmsAsyncData(
   `cascader-path-${props.searchUrl}`,
   () =>
@@ -58,21 +50,51 @@ const { data } = await useDmsAsyncData(
   { lazy: true },
 );
 
-const pathLabel = computed(() => {
-  if (!valueId.value) return ownLabel.value ?? "";
-  const rows = data.value?.results;
-  if (rows) {
-    const labels = buildCascaderPathLabels(
-      rows,
-      keyMapping.value,
-      valueId.value,
-    );
-    if (labels.length > 0) return labels.join(CASCADER_PATH_SEPARATOR);
-  }
-  return ownLabel.value ?? valueId.value;
-});
+const pathOf = (item: unknown): string[] =>
+  cascaderValuePath(item, keyMapping.value, data.value?.results);
+
+const pathLabel = computed(() =>
+  pathOf(props.value).join(CASCADER_PATH_SEPARATOR),
+);
+
+const badges = computed<CascaderBadge[]>(() =>
+  (Array.isArray(props.value) ? props.value : [])
+    .map(pathOf)
+    .filter((path) => path.length > 0)
+    .map((path) => ({
+      label: path.at(-1) ?? "",
+      title: path.join(CASCADER_PATH_SEPARATOR),
+    })),
+);
+const visibleBadges = computed(() =>
+  badges.value.slice(0, MAX_RELATION_BADGES),
+);
+const hiddenBadges = computed(() => badges.value.slice(MAX_RELATION_BADGES));
 </script>
 
 <template>
-  <span class="truncate" :title="pathLabel">{{ pathLabel }}</span>
+  <span
+    v-if="Array.isArray(props.value)"
+    class="inline-flex flex-wrap items-center gap-1"
+  >
+    <UBadge
+      v-for="badge in visibleBadges"
+      :key="badge.title"
+      :label="badge.label"
+      :title="badge.title"
+      color="neutral"
+      variant="subtle"
+      size="sm"
+      class="max-w-40"
+    />
+    <UBadge
+      v-if="hiddenBadges.length"
+      :label="`+${hiddenBadges.length}`"
+      :title="hiddenBadges.map((badge) => badge.title).join(', ')"
+      color="neutral"
+      variant="subtle"
+      size="sm"
+    />
+  </span>
+  <span v-else class="truncate" :title="pathLabel">{{ pathLabel }}</span>
 </template>

@@ -59,4 +59,6 @@ export interface FormProps extends FormComponentProps {
   redirectOnSuccess?: string;
   /** Field of the loaded row a page form names in the breadcrumb. */
   labelKey?: string;
+  /** Without the record `fetchUrl` names, "No entry selected", no fields. */
+  requiresRecord?: boolean;
 }

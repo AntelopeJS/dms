@@ -12,6 +12,11 @@ export namespace FormEvents {
   export const SUBMIT = "DmsComponent.Form.Submit";
   export const SUBMIT_SUCCESS = "DmsComponent.Form.SubmitSuccess";
   export const SUBMIT_ERROR = "DmsComponent.Form.SubmitError";
+  /**
+   * A field's value, as `{ fieldId, value }`: once for each field with the
+   * values the form starts from (defaults, loaded record), then on each
+   * change. A watch keyed on `fieldId` alone therefore runs at load.
+   */
   export const FIELD_CHANGE = "DmsComponent.Form.FieldChange";
   export const RESET = "DmsComponent.Form.Reset";
 }
@@ -80,6 +85,10 @@ export interface FieldGroup {
   description?: string;
   fields: FormField[];
   orientation?: "horizontal" | "vertical";
+  /**
+   * The groups giving an order trade the places they are declared at, lowest
+   * first; fields and groups without one keep their place.
+   */
   order?: number;
 }
 
@@ -195,10 +204,10 @@ export interface FormProps extends BaseComponentProps {
    * a table view's form; it keeps its values once saved, and offers Cancel
    * while clean when it has somewhere to go back to (`backTo`, or the drawer
    * or modal it sits in). `action`: a form that does something each time it
-   * is sent — send a message, invite someone, run a job; its buttons are
-   * Reset and its `submitLabel`, shown once a value changes (in a drawer or
-   * a modal, Cancel and the held submit show before that), and it empties
-   * after a successful submit.
+   * is sent — send a message, invite someone, run a job; its `submitLabel`
+   * shows from the start, so its defaults can be sent as they are, with
+   * Reset once a value changes (in a drawer or a modal, Cancel before that),
+   * and it empties after a successful submit.
    */
   kind?: FormKind;
   /**
@@ -239,6 +248,14 @@ export interface FormProps extends BaseComponentProps {
    * `labelKey`.
    */
   labelKey?: string;
+  /**
+   * The form is about the record its `fetchUrl` loads, and has nothing to
+   * show without it: while a route value that URL names is missing (a page
+   * reached without its `?id=`), it says no entry is selected instead of
+   * showing its fields with their defaults. `ResourceForm` sets it in `edit`
+   * and `view`.
+   */
+  requiresRecord?: boolean;
 }
 
 export interface FormPropsSerialized extends Omit<

@@ -23,7 +23,11 @@ export function ResourceForm<T extends ControllerClass>(
   options: ResourceFormBlockOptions,
 ): FormBuilder {
   const { mode, rowId = QUERY_ROW_ID, ...formOptions } = options;
-  const form = resourceForm(controller, mode, { ...formOptions, rowId });
+  const form = resourceForm(controller, mode, {
+    ...formOptions,
+    rowId,
+    requiresRecord: mode !== "new",
+  });
   // A resource with nothing to fill in for this mode still renders as a form —
   // its title, and no field — rather than as a hole in the page.
   return form ?? Form({ ...formOptions, fields: [] });

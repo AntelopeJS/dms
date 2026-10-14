@@ -69,23 +69,28 @@ describe("saveBarState of an action form", () => {
     });
   });
 
-  it("shows nothing on a page while untouched", () => {
-    expect(action({}).isHidden).toBe(true);
+  it("shows its submit alone, ready, on a page while untouched", () => {
+    // A pre-filled form sends its defaults as they are.
+    expect(action({})).toEqual({
+      showsStatus: false,
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
   });
 
-  it("offers Cancel beside its held submit in a drawer or a modal", () => {
-    // The invite modal: empty, it still shows the way out and its "Invite".
+  it("offers Cancel beside its ready submit in a drawer or a modal", () => {
     expect(action({ cancellable: true })).toEqual({
       showsStatus: false,
       secondary: "cancel",
       showsSubmit: true,
-      isSubmitHeld: true,
+      isSubmitHeld: false,
       isHidden: false,
     });
   });
 
   it("shows its submit alone, ready, when nothing in it can be changed", () => {
-    const bar = action({ resettable: false });
+    const bar = action({ resettable: false, dirty: true });
     expect(bar.secondary).toBeUndefined();
     expect(bar).toMatchObject({
       showsSubmit: true,

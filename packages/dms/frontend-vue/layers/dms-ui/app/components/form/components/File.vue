@@ -349,6 +349,12 @@ const acceptString = computed(() =>
   props.constraints?.allowedMimetypes?.join(","),
 );
 
+const dropPromptKey = computed(() =>
+  props.multiple
+    ? "dms.form.file.drop_prompt_multiple"
+    : "dms.form.file.drop_prompt",
+);
+
 const maxSizeFormatted = computed(() => {
   if (!props.constraints?.maxSize) return null;
   return formatFileSize(props.constraints.maxSize);
@@ -373,6 +379,7 @@ onScopeDispose(() => {
       :disabled="disabled || isUploading"
       :color="color"
       :highlight="highlight"
+      :label="$t(dropPromptKey)"
       v-bind="dropZoneAria"
     >
       <template v-if="maxSizeFormatted" #description>

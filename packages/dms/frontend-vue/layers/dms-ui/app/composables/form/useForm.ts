@@ -9,6 +9,7 @@ import type { FormField, FormFieldOrGroup } from "./types/field";
 import { isFieldGroup } from "./types/field";
 import { resolveResponseToast } from "../../build/utils/responseWarning";
 import { processFieldI18n } from "../../build/utils/fieldOptionsI18n";
+import { orderFormEntries } from "../../build/composables/form/formEntryOrder";
 import {
   type ReplaceUrlVariablesContext,
   hasUrlVariables,
@@ -90,16 +91,17 @@ export function cloneFormValue(
 
 /**
  * Whether a form offers to save: once it has an address and a field someone
- * can fill in, unless its `saveMode` is `none`.
+ * can fill in, unless its `saveMode` is `none`. An `action` form does
+ * something even with nothing to fill in, so it needs only the address.
  */
 export function formShowsActions(
-  options: Pick<FormProps, "saveMode" | "submitUrl">,
+  options: Pick<FormProps, "saveMode" | "submitUrl" | "kind">,
   fields: ReadonlyArray<{ disabled?: boolean }>,
 ): boolean {
   return (
     options.saveMode !== "none" &&
     !!options.submitUrl &&
-    !fields.every((field) => field.disabled)
+    (options.kind === "action" || !fields.every((field) => field.disabled))
   );
 }
 
@@ -573,7 +575,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   );
 
   const fields = computed<FormFieldOrGroup[]>(() =>
-    props.fields.map((item) => {
+    orderFormEntries(props.fields).map((item) => {
       if (isFieldGroup(item)) {
         return {
           ...item,

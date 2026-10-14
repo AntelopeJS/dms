@@ -6,10 +6,10 @@
  *   it has somewhere to go back to, then "Unsaved changes" with Discard and
  *   Save.
  * - `action`: a form that does something each time (send a notification,
- *   invite someone, run a job). Reset and the form's own submit label once a
- *   value changed; untouched — pre-filled or not —, no buttons on a page, and
- *   Cancel beside a held submit in a drawer or a modal. It empties after a
- *   successful submit.
+ *   invite someone, run a job). Its own submit label, always ready: what it
+ *   holds untouched, its defaults included, is a payload too. Beside it,
+ *   Reset once a value changed, Cancel before that in a drawer or a modal.
+ *   It empties after a successful submit.
  */
 export type FormKind = "record" | "action";
 
@@ -83,21 +83,25 @@ function recordSaveBar(context: SaveBarContext): SaveBarState {
 }
 
 /**
- * An action form's bar: Reset and its submit once a value changed. Before
- * that, a form in a drawer or a modal offers Cancel beside its held submit —
- * the modal's only way out and the proof it sends something —, a page form
- * nothing; a form nothing in which can be changed, its submit alone.
+ * An action form's bar: its submit, never held, so a pre-filled form sends as
+ * it is. Beside it, Reset once a value changed; before that, Cancel in a
+ * drawer or a modal, its only way out. A form nothing in which can be changed
+ * has nothing to reset.
  */
 function actionSaveBar(context: SaveBarContext): SaveBarState {
-  const bar = { showsStatus: false, showsSubmit: true, isHidden: false };
-  if (!context.resettable) return { ...bar, isSubmitHeld: false };
-  if (context.dirty) {
-    return { ...bar, secondary: "discard", isSubmitHeld: false };
+  const bar: SaveBarState = {
+    showsStatus: false,
+    showsSubmit: true,
+    isSubmitHeld: false,
+    isHidden: false,
+  };
+  if (context.dirty && context.resettable) {
+    return { ...bar, secondary: "discard" };
   }
-  if (!context.cancellable) {
-    return { ...HIDDEN_BAR, showsStatus: false };
+  if (!context.dirty && context.cancellable) {
+    return { ...bar, secondary: "cancel" };
   }
-  return { ...bar, secondary: "cancel", isSubmitHeld: true };
+  return bar;
 }
 
 const SAVE_BARS: Record<FormKind, (context: SaveBarContext) => SaveBarState> = {

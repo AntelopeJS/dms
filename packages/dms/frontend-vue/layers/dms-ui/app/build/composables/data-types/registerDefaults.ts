@@ -322,12 +322,7 @@ function renderRelation(value: unknown, options: unknown) {
 }
 
 function renderCascaderRelation(value: unknown, options: unknown) {
-  const { t } = useI18n();
   const opts = options as CascaderRelationOptions | undefined;
-
-  if (opts?.multiple && Array.isArray(value)) {
-    return t("dms.form.cascader.selected_count", { count: value.length });
-  }
 
   if (!value) return value;
 

@@ -61,7 +61,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("shows an empty modal action form's way out and its held submit", async () => {
+it("shows a modal action form's way out and its ready submit", async () => {
   const { onCancel } = await mount({
     variant: "band",
     kind: "action",
@@ -73,10 +73,22 @@ it("shows an empty modal action form's way out and its held submit", async () =>
   expect(host.firstElementChild!.getAttribute("aria-hidden")).toBeNull();
   expect(buttons()).toEqual([
     { label: "dms.button.cancel", disabled: false },
-    { label: "Invite", disabled: true },
+    { label: "Invite", disabled: false },
   ]);
   host.querySelector("button")!.click();
   expect(onCancel).toHaveBeenCalledOnce();
+});
+
+it("sends an untouched page action form as it is, its submit alone", async () => {
+  await mount({
+    variant: "band",
+    kind: "action",
+    dirty: false,
+    saveLabel: "Send",
+  });
+
+  expect(host.firstElementChild!.getAttribute("aria-hidden")).toBeNull();
+  expect(buttons()).toEqual([{ label: "Send", disabled: false }]);
 });
 
 it("resets an action form once a value changed, and sends it", async () => {
@@ -146,7 +158,7 @@ it("gives Cancel and Unsaved changes the same fixed height", async () => {
 });
 
 it("keeps a hidden band's place in its footer", async () => {
-  await mount({ variant: "band", kind: "action", dirty: false });
+  await mount({ variant: "band", kind: "record", dirty: false });
 
   expect(anchor().getAttribute("aria-hidden")).toBe("true");
   expect(classesOf(anchor())).toContain("invisible");

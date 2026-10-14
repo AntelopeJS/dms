@@ -201,3 +201,29 @@ export function buildCascaderPathLabels(
   }
   return labels;
 }
+
+function asPickedRow(item: unknown): CascaderRow | undefined {
+  return typeof item === "object" && item !== null
+    ? (item as CascaderRow)
+    : undefined;
+}
+
+/**
+ * The label path of a picked value — an id, or a row carrying its id and its
+ * own label — resolved against the flat list of rows once it is there; its
+ * own label, or its id, until then or when the list does not hold it.
+ */
+export function cascaderValuePath(
+  item: unknown,
+  keyMapping: CascaderKeyMapping,
+  rows?: CascaderRow[],
+): string[] {
+  const row = asPickedRow(item);
+  const ownLabel = row ? rowValue(row, keyMapping.label) : undefined;
+  const id = row
+    ? rowValue(row, keyMapping.value)
+    : rowValue({ id: item }, "id");
+  if (!id) return ownLabel ? [ownLabel] : [];
+  const labels = rows ? buildCascaderPathLabels(rows, keyMapping, id) : [];
+  return labels.length > 0 ? labels : [ownLabel ?? id];
+}
