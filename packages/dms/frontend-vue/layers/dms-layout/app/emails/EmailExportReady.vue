@@ -13,7 +13,7 @@ defineProps<{
 </script>
 
 <template>
-  <EmailLayout title="Your data export is ready">
+  <EmailLayout title="Your data export is ready" public-logo-only>
     <EText :style="emailStyles.text">Hello {{ userName }},</EText>
 
     <EText :style="emailStyles.text">

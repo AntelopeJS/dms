@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-  <EmailLayout title="Reset Your Password">
+  <EmailLayout title="Reset Your Password" public-logo-only>
     <EText :style="emailStyles.text">Hello {{ userName }},</EText>
 
     <EText :style="emailStyles.text">
