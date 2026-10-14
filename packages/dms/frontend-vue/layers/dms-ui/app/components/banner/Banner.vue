@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import DmsIconWell, { type IconWellSize } from "../icon-well/IconWell.vue";
-import type { SemanticColor } from "../../utils/semanticTint";
+import {
+  BANNER_TONE_ICONS,
+  type BannerTone,
+} from "../../utils/bannerToneIcons";
 
 // DMS-styled notice banner (design .banner): a left-to-right tinted wash over
 // the card surface with a boxed leading icon, used for module beta / info
 // notices. Wraps UAlert so we keep its a11y + slots while pinning the exact
 // reference look. The `cli` slot hosts the optional inset command box
 // (compose with DmsCopyButton), `actions` the right-aligned buttons.
-type BannerTone = Exclude<SemanticColor, "neutral">;
 type BannerSize = "sm" | "md";
 
 interface BannerProps {
   title?: string;
   description?: string;
+  /** Defaults to the tone's icon. */
   icon?: string;
   /** Colour of the wash and the icon well. */
   tone?: BannerTone;
@@ -39,7 +42,7 @@ interface BannerSlots {
 const props = withDefaults(defineProps<BannerProps>(), {
   title: undefined,
   description: undefined,
-  icon: "i-ph-warning",
+  icon: undefined,
   tone: "warning",
   size: "md",
   dismissible: false,
@@ -99,6 +102,8 @@ const alertUi = computed(() => ({
   actions: `items-center gap-2 mt-0 ${slots.actions ? "max-sm:basis-full max-sm:flex-wrap" : ""}`,
 }));
 
+const leadingIcon = computed(() => props.icon ?? BANNER_TONE_ICONS[props.tone]);
+
 function onOpenChange(open: boolean) {
   if (!open) emit("dismiss");
 }
@@ -116,7 +121,7 @@ function onOpenChange(open: boolean) {
     @update:open="onOpenChange"
   >
     <template #leading>
-      <DmsIconWell :icon="icon" :tone="tone" :size="SIZE_WELL[size]" />
+      <DmsIconWell :icon="leadingIcon" :tone="tone" :size="SIZE_WELL[size]" />
     </template>
 
     <template v-if="slots.description || slots.cli" #description>
