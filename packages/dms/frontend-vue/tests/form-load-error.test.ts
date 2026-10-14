@@ -4,7 +4,9 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FormLoadError from "../layers/dms-ui/app/build/components/form/FormLoadError.vue";
 import {
+  type FormLoadFailure,
   type FormLoadSource,
+  missingRecordFailure,
   trackFormRecordLoad,
 } from "../layers/dms-ui/app/build/composables/form/formRecordLoad";
 
@@ -72,6 +74,32 @@ describe("a form's record load", () => {
   });
 });
 
+describe("a form about a record its address names none of", () => {
+  const FETCH_URL = "/api/tasks/get?id={{query.id}}";
+
+  it("reports the record missing while the id is not in the address", () => {
+    expect(
+      missingRecordFailure({ requiresRecord: true, fetchUrl: FETCH_URL }),
+    ).toBe("missing");
+  });
+
+  it("reports nothing once the address names the record", () => {
+    expect(
+      missingRecordFailure({
+        requiresRecord: true,
+        fetchUrl: FETCH_URL,
+        resolvedFetchUrl: "/api/tasks/get?id=1",
+      }),
+    ).toBe(null);
+  });
+
+  it("leaves a form that may open without a record to its defaults", () => {
+    // A create form seeded by `?duplicate=` when there is one.
+    expect(missingRecordFailure({ fetchUrl: FETCH_URL })).toBe(null);
+    expect(missingRecordFailure({ requiresRecord: true })).toBe(null);
+  });
+});
+
 describe("the load error a form shows", () => {
   const Slot = defineComponent({
     props: {
@@ -91,7 +119,7 @@ describe("the load error a form shows", () => {
         ]),
   });
 
-  async function render(failure: "forbidden" | "error"): Promise<string> {
+  async function render(failure: FormLoadFailure): Promise<string> {
     const app = createSSRApp({
       render: () => h(FormLoadError, { failure }),
     });
@@ -118,6 +146,13 @@ describe("the load error a form shows", () => {
     expect(html).toContain("dms.form.load_error.retry");
   });
 
+  it("says no entry is selected, with nothing to retry", async () => {
+    const html = await render("missing");
+    expect(html).toContain("dms.form.load_error.missing_title");
+    expect(html).toContain("dms.form.load_error.missing_description");
+    expect(html).not.toContain("dms.form.load_error.retry");
+  });
+
   it("has its texts in English and French", () => {
     for (const file of ["ui-en-GB.json", "ui-fr-FR.json"]) {
       const locale = JSON.parse(
@@ -131,6 +166,8 @@ describe("the load error a form shows", () => {
         "error_title",
         "forbidden_description",
         "forbidden_title",
+        "missing_description",
+        "missing_title",
         "retry",
       ]);
     }

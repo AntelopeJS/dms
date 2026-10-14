@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import DmsEmptyState from "../../../components/empty-state/EmptyState.vue";
+import DmsEmptyState, {
+  type EmptyStateVariant,
+} from "../../../components/empty-state/EmptyState.vue";
 import type { FormLoadFailure } from "../../composables/form/formRecordLoad";
 
 // What a form shows instead of its fields when the record it edits did not
@@ -21,16 +23,22 @@ const props = withDefaults(defineProps<FormLoadErrorProps>(), {
 const emit = defineEmits<FormLoadErrorEmits>();
 
 const { t } = useI18n();
+
+const VARIANTS: Record<FormLoadFailure, EmptyStateVariant> = {
+  forbidden: "no-access",
+  missing: "no-data",
+  error: "error",
+};
 </script>
 
 <template>
   <DmsEmptyState
     size="md"
-    :variant="props.failure === 'forbidden' ? 'no-access' : 'error'"
+    :variant="VARIANTS[props.failure]"
     :title="t(`dms.form.load_error.${props.failure}_title`)"
     :description="t(`dms.form.load_error.${props.failure}_description`)"
   >
-    <template #actions>
+    <template v-if="props.failure !== 'missing'" #actions>
       <UButton
         :label="t('dms.form.load_error.retry')"
         icon="i-ph-arrows-clockwise"

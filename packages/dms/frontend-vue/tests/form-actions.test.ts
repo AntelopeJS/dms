@@ -13,6 +13,13 @@ describe("formShowsActions", () => {
     ).toBe(false);
   });
 
+  it("shows the submit of an action form with nothing to fill in", () => {
+    const action = { kind: "action", submitUrl: "/api/jobs/run" } as const;
+    expect(formShowsActions(action, [])).toBe(true);
+    expect(formShowsActions(action, [{ disabled: true }])).toBe(true);
+    expect(formShowsActions({ ...action, saveMode: "none" }, [])).toBe(false);
+  });
+
   it("hides them with saveMode none, whatever the form could submit", () => {
     expect(
       formShowsActions({ saveMode: "none", submitUrl: "/api/order/new" }, [{}]),

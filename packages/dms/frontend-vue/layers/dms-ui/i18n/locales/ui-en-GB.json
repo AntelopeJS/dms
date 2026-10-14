@@ -284,6 +284,8 @@
         "error_description": "Check your connection, then try again. Nothing can be saved until the entry loads.",
         "forbidden_title": "You can't view this entry",
         "forbidden_description": "Your role doesn't let you view this entry, so the form can't open on its current values. Ask an administrator for access.",
+        "missing_title": "No entry selected",
+        "missing_description": "This form shows one entry, and the address names none. Open it from an entry to see its values.",
         "retry": "Try again"
       },
       "select_date": "Select date",
@@ -335,6 +337,8 @@
       },
       "file": {
         "count": "{count} file(s)",
+        "drop_prompt": "Drop a file or browse",
+        "drop_prompt_multiple": "Drop files or browse",
         "max_size": "Max size: {size}",
         "uploaded_files": "Uploaded files",
         "rejected_title": "File not added",

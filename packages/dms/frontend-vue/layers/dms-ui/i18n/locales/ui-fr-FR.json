@@ -285,6 +285,8 @@
         "error_description": "Vérifiez votre connexion, puis réessayez. Rien ne peut être enregistré tant que l'élément n'est pas chargé.",
         "forbidden_title": "Vous ne pouvez pas voir cet élément",
         "forbidden_description": "Votre rôle ne vous permet pas de voir cet élément, le formulaire ne peut donc pas s'ouvrir sur ses valeurs actuelles. Demandez l'accès à un administrateur.",
+        "missing_title": "Aucun élément sélectionné",
+        "missing_description": "Ce formulaire affiche un élément, et l'adresse n'en désigne aucun. Ouvrez-le depuis un élément pour voir ses valeurs.",
         "retry": "Réessayer"
       },
       "select_date": "Sélectionner une date",
@@ -336,6 +338,8 @@
       },
       "file": {
         "count": "{count} fichier(s)",
+        "drop_prompt": "Glisser un fichier ou parcourir",
+        "drop_prompt_multiple": "Glisser des fichiers ou parcourir",
         "max_size": "Taille max : {size}",
         "uploaded_files": "Fichiers téléversés",
         "rejected_title": "Fichier non ajouté",

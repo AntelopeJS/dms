@@ -40,7 +40,7 @@ interface SaveBarProps {
   kind?: FormKind;
   /**
    * Whether anything in the form can be changed: an `action` form nothing in
-   * which can be changed shows its submit alone, all the time.
+   * which can be changed never offers Reset.
    */
   resettable?: boolean;
 }
