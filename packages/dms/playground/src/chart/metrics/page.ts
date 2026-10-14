@@ -46,10 +46,11 @@ export class PageChartMetrics extends PageController("chart-metrics", {
   });
 
   static latencyKpi = KpiCard({
-    title: "p95 latency",
+    title: "p95 latency (ms)",
     variant: "stat",
     icon: "i-ph-timer",
     fetchUrl: "/api/dashboard/kpi/latency",
+    valueFormat: "number",
     periodScope: OPS_SCOPE,
     invert: true,
     compareLabel: "vs previous period",
@@ -60,7 +61,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
     description: "Two stacked bands read as one distribution",
     fetchUrl: "/api/dashboard/latency",
     periodScope: OPS_SCOPE,
-    color: [Color.primary, Color.info],
+    color: [Color.primary, Color.secondary],
     syncGroup: OPS_SYNC_GROUP,
     height: PANEL_HEIGHT,
   });
@@ -74,7 +75,7 @@ export class PageChartMetrics extends PageController("chart-metrics", {
       { name: "p50 – p99", type: ChartType.RANGE_AREA },
       { name: "p95", type: ChartType.LINE },
     ],
-    color: [Color.info, Color.primary],
+    color: [Color.secondary, Color.primary],
     height: PANEL_HEIGHT,
   });
 

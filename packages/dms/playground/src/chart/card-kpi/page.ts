@@ -112,7 +112,11 @@ export class PageChartCardKpi extends PageController(
           valuePrecision: 0,
           primaryLabel: "$demo.blocks.chart_card.this_period",
           comparisonLabel: "$demo.blocks.chart_card.last_period",
-          chart: ChartColumn({ roundedCorners: true }),
+          chart: ChartColumn({
+            roundedCorners: true,
+            xaxisType: "datetime",
+            xAxis: { datetimeFormat: "dd MMM" },
+          }),
         }),
       ),
   );

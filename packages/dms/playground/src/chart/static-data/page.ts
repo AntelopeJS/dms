@@ -22,6 +22,8 @@ const QUARTERLY_REVENUE_PREVIOUS = [
   { x: "Q4", y: 19400 },
 ];
 
+const PREVIOUS_YEAR_DASH = 6;
+
 const TRAFFIC_BREAKDOWN = [
   { label: "Direct", value: 4200 },
   { label: "Email", value: 1800 },
@@ -45,20 +47,20 @@ export class PageChartStaticData extends PageController("chart-static", {
   category: pageCategory,
   order: 80,
   description:
-    "Charts drawn from staticDataset alone, with no route: a dashed comparison line, an area opacity, a bounded Y range, a donut and a candlestick.",
+    "Charts drawn from staticDataset alone, with no route: a dashed previous-year line, an area opacity, a bounded Y range, a donut and a candlestick.",
 }) {
   static line = ChartLine({
     title: "Quarterly revenue",
-    description: "Inline staticDataset with comparison series",
+    description: "Inline staticDataset, last year dashed by strokeDashArray",
     staticDataset: [
       { name: "2026", data: QUARTERLY_REVENUE, color: "#7c3aed" },
       {
         name: "2025",
         data: QUARTERLY_REVENUE_PREVIOUS,
         color: "#94a3b8",
+        strokeDashArray: PREVIOUS_YEAR_DASH,
       },
     ],
-    comparisonStyle: "dashed",
   });
 
   static area = ChartArea({

@@ -29,7 +29,8 @@ export class PageChartCircular extends PageController("chart-circular", {
 
   static radialBar = ChartRadialBar({
     title: "Radial bar chart",
-    fetchUrl: "/api/dashboard/circular?size=4",
+    description: "Each ring is a share of a goal, 0 to 100 %",
+    fetchUrl: "/api/dashboard/goals?size=4",
     showTotal: true,
   });
 }

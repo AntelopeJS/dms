@@ -20,6 +20,8 @@ import { pageCategory } from "../category";
 const SERIES_URL = "/api/dashboard/series";
 const FIXED_WIDTH_PX = 420;
 const AUTO_Y_PADDING = 0.1;
+const RAW_MARKERS = JSON.stringify({ size: 5 });
+const DATETIME_TICK_COUNT = 6;
 
 const PLAN_VS_ACTUAL = [
   {
@@ -62,6 +64,40 @@ const DEALS = [
   },
 ];
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const SIGNUPS_BASE = 120;
+const SIGNUPS_STEP = 35;
+const SIGNUPS_WAVE = 3;
+const SIGNUPS_TREND = 10;
+
+const MONTHLY_SIGNUPS = [
+  {
+    name: "Sign-ups",
+    data: MONTH_NAMES.map((month, index) => ({
+      x: month,
+      y:
+        SIGNUPS_BASE +
+        (index % SIGNUPS_WAVE) * SIGNUPS_STEP +
+        index * SIGNUPS_TREND,
+    })),
+  },
+];
+
+const DEALS_Y_RANGE = { min: 0, max: 500 };
+const DEAL_POINT_SIZE = 8;
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const HOURS = ["08h", "10h", "12h", "14h", "16h", "18h"];
 const LOAD_SEED = 7;
@@ -212,29 +248,31 @@ export class PageChartOptions extends PageController("chart-options", {
       .child(
         "scatter",
         ChartScatter({
-          title: "Numeric axis, labelled points",
+          title: "Numeric axis, value labels",
           staticDataset: DEALS,
           xaxisType: "numeric",
           showLabels: true,
+          pointSize: DEAL_POINT_SIZE,
+          yRange: DEALS_Y_RANGE,
           color: "secondary",
         }),
       )
       .child(
         "rotated",
         ChartColumn({
-          title: "Category axis: 6 ticks, rotated -45°",
-          fetchUrl: `${SERIES_URL}?seed=36&size=12`,
+          title: "Long category labels rotated -45°",
+          staticDataset: MONTHLY_SIGNUPS,
           xaxisType: "category",
-          xAxis: { tickAmount: 6, rotate: -45, hideOverlappingLabels: true },
+          xAxis: { rotate: -45, hideOverlappingLabels: false },
         }),
       )
       .child(
         "datetime",
         ChartArea({
-          title: "Datetime axis formatted dd MMM",
+          title: "Datetime axis formatted dd MMM, 6 ticks",
           fetchUrl: "/api/dashboard/sales",
           xaxisType: "datetime",
-          xAxis: { datetimeFormat: "dd MMM" },
+          xAxis: { datetimeFormat: "dd MMM", tickAmount: DATETIME_TICK_COUNT },
         }),
       ),
   );
@@ -246,7 +284,7 @@ export class PageChartOptions extends PageController("chart-options", {
         "hollow",
         ChartRadialBar({
           title: "Radial bar, hollow 40%",
-          fetchUrl: "/api/dashboard/circular?size=3",
+          fetchUrl: "/api/dashboard/goals?size=3",
           hollowSize: "40%",
         }),
       )
@@ -265,7 +303,7 @@ export class PageChartOptions extends PageController("chart-options", {
           title: "seriesDefs with their own colour",
           fetchUrl: `${SERIES_URL}?seed=37&size=12&count=2`,
           seriesDefs: [
-            { name: "Series 1", type: ChartType.COLUMN, color: "info" },
+            { name: "Series 1", type: ChartType.COLUMN, color: "secondary" },
             { name: "Series 2", type: ChartType.LINE, color: "--ui-primary" },
           ],
         }),
@@ -275,7 +313,7 @@ export class PageChartOptions extends PageController("chart-options", {
   static raw = ChartLine({
     title: "rawOptions (bigger markers) and rawCss (rounded frame)",
     fetchUrl: `${SERIES_URL}?seed=38&size=12`,
-    rawOptions: [{ key: "markers.size", value: "5" }],
+    rawOptions: [{ key: "markers", value: RAW_MARKERS }],
     rawCss: [{ key: "border-radius", value: "12px" }],
     color: "--ui-secondary",
   });
