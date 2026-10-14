@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.8.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.1...v0.8.2)
+
+### 🩹 Fixes
+
+- **links:** Open a row field holding a whole URL as written ([#273](https://github.com/AntelopeJS/dms/pull/273))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.8.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.0...v0.8.1)
