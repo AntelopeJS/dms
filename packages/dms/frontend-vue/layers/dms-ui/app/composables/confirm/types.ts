@@ -76,7 +76,7 @@ export interface ConfirmOptions
  */
 export interface ConfirmFromOptions {
   /**
-   * Fill-ins of the URL's `{placeholders}` and of the dialog's texts (a
+   * Fill-ins of the URL's `{{row.X}}` tokens and of the dialog's texts (a
    * record's fields); the dialog's own `params` win in its texts.
    */
   params?: Record<string, unknown>;

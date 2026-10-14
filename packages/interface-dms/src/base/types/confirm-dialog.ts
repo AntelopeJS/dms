@@ -109,9 +109,9 @@ export interface ConfirmDialog {
 /**
  * A confirmation the server words for the row an action targets: a URL
  * answering a {@link ConfirmDialogSerialized}. On a row action, built-in or
- * custom, `{id}` is filled in with the row's id (read through the table's
- * `rowIdKey`) and `{{row.<field>}}` (or `{<field>}`) with any of the row's
- * fields; a bulk custom action appends its selection to the query instead.
+ * custom, `{{row.id}}` is filled in with the row's id (read through the
+ * table's `rowIdKey`) and `{{row.<field>}}` with any of the row's fields;
+ * a bulk custom action appends its selection to the query instead.
  * The page URL's `{{params.X}}` / `{{query.X}}` are filled first, as in an
  * action's target URL.
  */

@@ -72,8 +72,8 @@ export interface SidePanelTargetOptions {
 export interface DownloadActionTarget {
   type: "download";
   /**
-   * The file to fetch, with the user's session: takes the same `{field}` and
-   * page URL tokens (`{{params.X}}`, `{{query.X}}`) as a `page` target, a
+   * The file to fetch, with the user's session: takes the same
+   * `{{row.field}}` and page URL tokens (`{{params.X}}`, `{{query.X}}`) as a `page` target, a
    * query pair whose token the page has no value for being left out.
    * @example "/api/lang/translations/export?workspace={{query.workspace}}&locale={{query.locale}}"
    */
@@ -123,7 +123,8 @@ export type ActionTarget =
   | {
       type: "page";
       /**
-       * The page to open. On a row action the row's fields fill `{field}`;
+       * The page to open. On a row action the row's fields fill
+       * `{{row.field}}`;
        * `{{params.X}}` and `{{query.X}}` name the page the action sits on, a
        * query pair whose token the page has no value for being left out.
        */
@@ -131,7 +132,7 @@ export type ActionTarget =
     }
   | {
       type: "external";
-      /** Takes the same `{field}` and page URL tokens as a `page` target. */
+      /** Takes the same `{{row.field}}` and page URL tokens as `page`. */
       url: string;
       newTab?: boolean;
     }
@@ -167,9 +168,9 @@ export type ActionTarget =
       /** Takes the page URL tokens and `{{row.field}}`, as a `page` target. */
       url: string;
       method?: "GET" | "POST";
-      /** As `url`, plus `{jobId}`: the id of the job the start answered. */
+      /** As `url`, plus `{{job.id}}`: the id of the job the start answered. */
       statusUrl?: string;
-      /** As `url`, plus `{jobId}`: the id of the job the start answered. */
+      /** As `url`, plus `{{job.id}}`: the id of the job the start answered. */
       downloadUrl?: string;
       labels?: {
         title?: string;

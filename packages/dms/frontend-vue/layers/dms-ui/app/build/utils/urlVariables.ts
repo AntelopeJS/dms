@@ -140,6 +140,15 @@ const UNRESOLVED_ROUTE_TOKEN = tokenPattern(ROUTE_KEY);
 const UNRESOLVED_ROUTE_VALUE = new RegExp(
   `^${tokenPattern(ROUTE_KEY, "").source}$`,
 );
+
+/**
+ * Whether a text names a value of the page (`{{params.X}}`, `{{query.X}}`):
+ * the route is only read for one that does.
+ */
+export function namesPageValue(text: string): boolean {
+  return new RegExp(UNRESOLVED_ROUTE_TOKEN.source).test(text);
+}
+
 const QUERY_SEPARATOR = "?";
 const FRAGMENT_SEPARATOR = "#";
 const PAIR_SEPARATOR = "&";

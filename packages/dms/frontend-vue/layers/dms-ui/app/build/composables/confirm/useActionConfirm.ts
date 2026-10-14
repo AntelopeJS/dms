@@ -16,7 +16,7 @@ import {
 import type { DownloadFetch } from "../../utils/fileDownload";
 import { secondaryTargetRunner } from "./secondaryTarget";
 import {
-  hasUrlVariables,
+  namesPageValue,
   resolveLinkVariables,
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
@@ -25,7 +25,7 @@ import { currentPageUrlValues } from "../page/pageUrlValues";
 export interface ActionConfirmRequest {
   /** The row the action targets: its fields fill the texts and `from` URL. */
   row?: Record<string, unknown>;
-  /** Fill-ins of a `from` URL besides the row's fields (`{id}`). */
+  /** Fill-ins of a `from` URL besides the row's fields (`{{row.id}}`). */
   urlParams?: Record<string, unknown>;
   /**
    * The look of the action, where the dialog leaves it out (an archive's
@@ -60,7 +60,7 @@ export function useActionConfirm() {
     request: ActionConfirmRequest,
   ): Promise<ConfirmDialog | undefined> => {
     if (!isConfirmFrom(declared)) return declared;
-    const from = hasUrlVariables(declared.from)
+    const from = namesPageValue(declared.from)
       ? resolveLinkVariables(declared.from, currentPageUrlValues())
       : declared.from;
     const url = interpolateUrl(from, {

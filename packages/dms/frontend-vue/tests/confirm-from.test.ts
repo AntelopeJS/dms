@@ -59,7 +59,7 @@ describe("confirmFrom", () => {
     });
     const onConfirm = vi.fn(async () => undefined);
     const confirmed = await mountConfirmFrom().confirmFrom(
-      "/api/campaigns/{id}/delete-confirm",
+      "/api/campaigns/{{row.id}}/delete-confirm",
       {
         params: { id: "c1", name: "Spring" },
         fallback: { icon: "i-ph-trash" },

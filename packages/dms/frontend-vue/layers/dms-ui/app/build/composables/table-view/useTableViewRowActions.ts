@@ -1,3 +1,4 @@
+import { namesRowField } from "#dms-core/app/utils/url-interpolation";
 import {
   fillFormPageUrl,
   type FormContainer,
@@ -91,7 +92,6 @@ interface BulkActionConfig {
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
 
-const ROW_URL_PLACEHOLDER = /\{[^}]+\}/;
 /** Options of a delete: from the archive, it is a permanent one. */
 interface DeleteRowsOptions {
   permanently?: boolean;
@@ -634,7 +634,7 @@ export const useTableRowActions = <T extends Data>(
    * reaches: a `from` dialog is worded for one row, so several rows keep the
    * generic confirmation. Undefined when none applies.
    */
-  // A `from` URL naming a row (`{id}`, `{_id}`…) is worded for that row
+  // A `from` URL naming a row (`{{row.id}}`, `{{row._id}}`…) is worded for that row
   // alone; one naming none receives the rows as `?ids=`, one or several, like
   // the `from` of a bulk custom action.
   const declaredBulkConfirm = (
@@ -643,7 +643,7 @@ export const useTableRowActions = <T extends Data>(
   ): ActionConfirm | undefined => {
     const declared = normalizeActionConfig(actionConfig).confirm;
     if (!declared || !isConfirmFrom(declared)) return declared;
-    if (ROW_URL_PLACEHOLDER.test(declared.from)) {
+    if (namesRowField(declared.from)) {
       return ids.length === 1 ? declared : undefined;
     }
     return {

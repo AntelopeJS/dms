@@ -52,13 +52,13 @@ import {
   findServedQuickAction,
 } from "../../utils/dispatchQuickActionTarget";
 import {
-  hasUrlVariables,
+  namesPageValue,
   resolveLinkVariables,
   resolveTextVariables,
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
-import { interpolateLiteral } from "../../utils/literalText";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
+import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -71,26 +71,28 @@ type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
  * action runs, so it carries the URL as it is then.
  */
 function targetUrl(url: string, rowData?: Data): string {
-  const withPageValues = hasUrlVariables(url)
+  const withPageValues = namesPageValue(url)
     ? resolveLinkVariables(url, currentPageUrlValues())
     : url;
   return rowData ? interpolateUrl(withPageValues, rowData) : withPageValues;
 }
 
 /**
- * A download target's file name with the page's tokens filled as they are
- * (a name, not a URL: nothing is encoded), then the row's `{field}`. A token
- * the page has no value for leaves no name: the server's one is used.
+ * A download target's file name with the row's `{{row.field}}` and the
+ * page's tokens filled as they are (a name, not a URL: nothing is encoded). A
+ * token without a value leaves no name: the server's one is used.
  */
 function downloadTargetFilename(
   filename: string | undefined,
   rowData?: Data,
 ): string | undefined {
   if (!filename) return undefined;
-  const withPageValues = resolveTextVariables(filename, currentPageUrlValues());
-  if (!withPageValues || !rowData) return withPageValues;
-  return interpolateLiteral(withPageValues, rowData);
+  const withRow = rowData ? interpolateRowText(filename, rowData) : filename;
+  return resolveTextVariables(withRow, currentPageUrlValues());
 }
+
+// The id an export job's start answered, in its `statusUrl` / `downloadUrl`.
+const JOB_ID_TOKEN = /\{\{\s*job\.id\s*\}\}/g;
 
 /** Where the buttons run: the requests they send, what they refresh. */
 export interface ActionTargetsConfig {
@@ -112,7 +114,7 @@ export interface ActionTargetsConfig {
    */
   onRecordShown?: (id?: string) => void;
   /**
-   * The field a row's id is read from (`_id` by default): it fills `{id}` in
+   * The field a row's id is read from (`_id` by default): it fills `{{row.id}}` in
    * the `from` URL of a row action's confirmation, as on a built-in action.
    */
   rowIdKey?: string;
@@ -268,7 +270,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const statusUrlTemplate = target.statusUrl;
     const downloadUrlTemplate = target.downloadUrl;
     const interpolate = (template: string, ticket: ExportJobTicket): string =>
-      targetUrl(template, { ...(rowData ?? {}), jobId: ticket.jobId });
+      targetUrl(
+        template.replace(JOB_ID_TOKEN, encodeURIComponent(ticket.jobId)),
+        rowData,
+      );
     await runExportJob({
       startUrl: url,
       startMethod: target.method ?? "POST",
@@ -590,7 +595,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     },
   };
 
-  // `{id}` of a confirmation's `from` URL, when the row carries an id.
+  // `{{row.id}}` of a confirmation's `from` URL, when the row carries an id.
   const rowUrlParams = (rowData?: Data) => {
     const id = rowData
       ? get(rowData, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)

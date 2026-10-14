@@ -8,9 +8,11 @@
 import { createApp, defineComponent, h, reactive, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
-import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  interpolateUrl,
+} from "../layers/dms-core/app/utils/url-interpolation";
 import { HttpMethod } from "../layers/dms-core/app/types/http";
-import { interpolateLiteral } from "../layers/dms-ui/app/build/utils/literalText";
 import {
   replaceUrlVariables,
   resolveLinkVariables,
@@ -114,22 +116,22 @@ describe("token syntax", () => {
     ).toBe("/orders/o-9?store=north");
   });
 
-  it("names a row field with {{row.X}}, {X} staying its shorthand", () => {
+  it("names a row field with {{row.X}}, a dotted path reaching into it", () => {
     const row = { _id: "a 1", customer: { name: "Ada" } };
     expect(interpolateUrl("/o/{{row._id}}/{{ row.customer.name }}", row)).toBe(
       "/o/a%201/Ada",
     );
-    expect(interpolateUrl("/o/{_id}", row)).toBe("/o/a%201");
-    expect(interpolateLiteral("Refund {{row._id}}?", row)).toBe("Refund a 1?");
+    expect(interpolateRowText("{{row._id}}.csv", row)).toBe("a 1.csv");
+  });
+
+  it("does not take a single-brace name for a row field", () => {
+    expect(interpolateUrl("/o/{_id}", { _id: "a" })).toBe("/o/{_id}");
   });
 
   it("leaves another scope's token whole when filling a row", () => {
-    expect(interpolateUrl("/s/{{params.id}}/o/{_id}", { _id: "a" })).toBe(
-      "/s/{{params.id}}/o/a",
-    );
-    expect(interpolateLiteral("{{query.x}} {name}", { name: "n" })).toBe(
-      "{{query.x}} n",
-    );
+    expect(
+      interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" }),
+    ).toBe("/s/{{params.id}}/o/a");
   });
 });
 
@@ -161,7 +163,7 @@ describe("page tokens in links and requested routes", () => {
           target: {
             type: "download",
             url: "/api/stores/{{params.id}}/orders/{{row._id}}",
-            filename: "{{query.store}}-{name}.json",
+            filename: "{{query.store}}-{{row.name}}.json",
           },
         },
       },
@@ -217,8 +219,8 @@ describe("an action target's URL", () => {
       target: {
         type: "exportJob",
         url: "/api/stores/{{params.id}}/export?store={{query.store}}",
-        statusUrl: "/api/stores/{{params.id}}/export/{jobId}",
-        downloadUrl: "/api/stores/{{params.id}}/export/{jobId}/file",
+        statusUrl: "/api/stores/{{params.id}}/export/{{job.id}}",
+        downloadUrl: "/api/stores/{{params.id}}/export/{{ job.id }}/file",
       },
     };
     mountTargets().handleCustomButton(button);

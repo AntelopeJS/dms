@@ -1,5 +1,5 @@
 import {
-  hasUrlVariables,
+  namesPageValue,
   type ReplaceUrlVariablesContext,
   resolveLinkVariables,
   resolveUrlVariables,
@@ -26,7 +26,7 @@ export function currentPageUrlValues(): ReplaceUrlVariablesContext {
 export function pageLink(to: string): string;
 export function pageLink(to: string | undefined): string | undefined;
 export function pageLink(to: string | undefined): string | undefined {
-  if (!to || !hasUrlVariables(to)) return to;
+  if (!to || !namesPageValue(to)) return to;
   return resolveLinkVariables(to, currentPageUrlValues());
 }
 
@@ -36,6 +36,6 @@ export function pageLink(to: string | undefined): string | undefined {
  * `fetchUrl`.
  */
 export function pageRequestUrl(url: string | undefined): string | undefined {
-  if (!url || !hasUrlVariables(url)) return url;
+  if (!url || !namesPageValue(url)) return url;
   return resolveUrlVariables(url, currentPageUrlValues());
 }

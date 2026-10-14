@@ -200,7 +200,7 @@ async function guardMemberRemoval(
 }
 
 const memberApiTarget = (action: string) =>
-  `${MEMBERS_PAGE_PATH}/{_id}/${action}`;
+  `${MEMBERS_PAGE_PATH}/{{row._id}}/${action}`;
 
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",

@@ -31,7 +31,7 @@ export interface SidePanelTargetOptions {
  */
 export interface DownloadActionTarget {
   type: "download";
-  /** Takes the `{field}` and `{{params.X}}` / `{{query.X}}` tokens. */
+  /** Takes the `{{row.field}}` and `{{params.X}}` / `{{query.X}}` tokens. */
   url: string;
   /** Saved under; the response's `Content-Disposition` name, else the URL's. */
   filename?: string;

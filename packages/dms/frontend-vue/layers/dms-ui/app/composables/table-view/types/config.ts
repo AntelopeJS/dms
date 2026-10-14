@@ -224,7 +224,7 @@ export interface TableViewSourceCapabilities {
 /** Where a `TableView.fromSource` table reads its rows (backend `source`). */
 export interface TableViewSourceConfig {
   fetchUrl: string;
-  /** Route answering one row, `{id}` its id (backend `fetchRowUrl`). */
+  /** Route answering one row, `{{row.id}}` its id (backend `fetchRowUrl`). */
   fetchRowUrl?: string;
   capabilities: TableViewSourceCapabilities;
   /** Id of the `PeriodSelector` whose period is sent to `fetchUrl`. */

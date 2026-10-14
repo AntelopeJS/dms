@@ -282,7 +282,7 @@ export class inviteSettingDataAPI extends DataController(
 // id it had as a user-category page, so the roles that already grant it are
 // unchanged.
 const inviteApiTarget = (action: string) =>
-  `${INVITES_PAGE_PATH}/{_id}/${action}`;
+  `${INVITES_PAGE_PATH}/{{row._id}}/${action}`;
 
 // Pending invitations only: an expired one can be resent or removed.
 const PENDING = { field: "status", equals: true } as const;

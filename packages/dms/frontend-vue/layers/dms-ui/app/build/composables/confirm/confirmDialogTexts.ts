@@ -3,7 +3,10 @@ import type {
   ConfirmDialogSecondaryAction,
   ConfirmDialogSecondaryTarget,
 } from "#dms-core/app/types/confirm-dialog";
-import { interpolateUrl } from "#dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  interpolateUrl,
+} from "#dms-core/app/utils/url-interpolation";
 import { readTranslationKey } from "#dms-core/app/composables/translation/useTranslation";
 import type {
   ConfirmOptions,
@@ -12,7 +15,7 @@ import type {
 import { processFieldI18n } from "../../utils/fieldOptionsI18n";
 import { interpolateLiteral } from "../../utils/literalText";
 import {
-  hasUrlVariables,
+  namesPageValue,
   resolveLinkVariables,
   resolveTextVariables,
 } from "../../utils/urlVariables";
@@ -50,20 +53,20 @@ export type SecondaryTargetRun = (
 // The page's `{{params.X}}` / `{{query.X}}` come first, as on an action's own
 // target; the route is only read for a text holding such a token.
 function withPageLink(url: string): string {
-  return hasUrlVariables(url)
+  return namesPageValue(url)
     ? resolveLinkVariables(url, currentPageUrlValues())
     : url;
 }
 
 function withPageText(text: string): string | undefined {
-  return hasUrlVariables(text)
+  return namesPageValue(text)
     ? resolveTextVariables(text, currentPageUrlValues())
     : text;
 }
 
 /**
  * A dialog's secondary target with its URL (and file name) filled in with
- * the page's values, then the same parameters as its texts.
+ * the page's values and, as `{{row.X}}`, the same parameters as its texts.
  */
 function resolveSecondaryTarget(
   target: ConfirmDialogSecondaryTarget,
@@ -73,11 +76,10 @@ function resolveSecondaryTarget(
   if (target.type !== "download" || target.filename === undefined) {
     return { ...target, url };
   }
-  const filename = withPageText(target.filename);
   return {
     ...target,
     url,
-    filename: filename && interpolateLiteral(filename, params),
+    filename: withPageText(interpolateRowText(target.filename, params)),
   };
 }
 

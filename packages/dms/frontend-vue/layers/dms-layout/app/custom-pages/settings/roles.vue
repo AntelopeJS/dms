@@ -32,7 +32,7 @@ interface RoleEditorHandle {
 
 const NAME_REQUIRED = "$page.settings.roles.error.name_required";
 const NAME_TAKEN = "$page.settings.roles.error.name_taken";
-const ROLE_DELETE_CONFIRM_URL = `${ROLES_API_PATH}/{id}/delete-confirm`;
+const ROLE_DELETE_CONFIRM_URL = `${ROLES_API_PATH}/{{row.id}}/delete-confirm`;
 
 const api = useRolesApi();
 const { t } = useI18n();

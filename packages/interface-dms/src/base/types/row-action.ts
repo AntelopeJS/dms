@@ -60,8 +60,8 @@ export interface RowActionConfig<
   icon?: string;
   /**
    * Asked before the action runs: a fixed dialog, or `{ from }`, a URL
-   * (`{id}` and the row's fields are filled in) answering the dialog the
-   * server words for that row — what it takes with it, or why it cannot go.
+   * (`{{row.id}}` and the row's `{{row.field}}` filled in) answering the
+   * dialog the server words for that row — what it takes with it, or why it cannot go.
    * Delete and archive ask a generic confirmation without it; a `from`
    * dialog applies to one row, several rows at once keep the generic one.
    */
@@ -128,8 +128,8 @@ export interface CustomRowAction<
    */
   id?: string;
   /**
-   * The action's name, its `{field}` braces filled from the row
-   * (`"Translate {name}"`), as `target`'s URL is. `$`: an i18n key, whose
+   * The action's name, its `{field}` braces filled from the row as
+   * translation parameters (`"Translate {name}"`). `$`: an i18n key, whose
    * translation receives the row's fields as parameters. On the selection
    * bar (`bulk`) it names several rows: keep row fields out of it there.
    */
@@ -139,8 +139,8 @@ export interface CustomRowAction<
   /**
    * Asked before the action runs, whatever its target: a fixed dialog (its
    * texts receive the row's fields as parameters, "Remove {name}?"), or
-   * `{ from }`, a URL (`{id}` and the row's fields are filled in) answering
-   * the dialog the server words for the row.
+   * `{ from }`, a URL (`{{row.id}}` and the row's `{{row.field}}` filled
+   * in) answering the dialog the server words for the row.
    */
   confirm?: ActionConfirm;
   rule?: RowActionRule<T>;
