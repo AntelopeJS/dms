@@ -28,6 +28,7 @@ import * as realtimeImpl from "../../../../implementations/dms/realtime";
 import { Banner } from "@antelopejs/interface-dms/base/banner";
 import { ChartLine } from "@antelopejs/interface-dms/base/chart";
 import { ChartCard } from "@antelopejs/interface-dms/base/chart-card";
+import { Guard } from "@antelopejs/interface-dms/base/guard";
 import { TopListCard } from "@antelopejs/interface-dms/base/top-list-card";
 import { Meter } from "@antelopejs/interface-dms/base/meter";
 import { StatGroup } from "@antelopejs/interface-dms/base/stat-group";
@@ -64,6 +65,7 @@ const CHART_TOPICS = ["page-topics:first", "page-topics:second"];
 const OWN_TOPIC = "page-topics:own";
 const OTHER_TOPIC = "page-topics:other";
 const BANNER_TOPIC = "page-topics:banner";
+const GUARD_TOPIC = "page-topics:guard";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 class Row extends Table {
@@ -279,6 +281,21 @@ describe("[unit] interfaces/dms/realtime — page topics", () => {
     RunWithModuleContext(owner, () => banner.onPageCreated?.(meta));
     try {
       expect(topicsOf(SharedPage)).to.deep.equal([BANNER_TOPIC]);
+    } finally {
+      destroyModule(owner);
+    }
+  });
+
+  it("registers a guard's topics on the page it is placed on", () => {
+    const owner = moduleContext("page-topics-guard");
+    const guard = Guard({
+      fetchUrl: "/api/routes/activity",
+      realtimeTopic: GUARD_TOPIC,
+    });
+    const meta = GetMetadata(SharedPage, PageMetadata);
+    RunWithModuleContext(owner, () => guard.onPageCreated?.(meta));
+    try {
+      expect(topicsOf(SharedPage)).to.deep.equal([GUARD_TOPIC]);
     } finally {
       destroyModule(owner);
     }
