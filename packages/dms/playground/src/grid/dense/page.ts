@@ -7,6 +7,7 @@ import { pageCategory } from "../category";
 const GRID_GAP = "1rem";
 const PLACEHOLDER_HEIGHT = "100px";
 const MIN_COLUMN_WIDTH = "220px";
+const COMPACT_MIN_COLUMN_WIDTH = "160px";
 
 const kpi = (title: string, icon: string, value: number, delta: number) =>
   KpiCard({
@@ -30,9 +31,12 @@ export class PageGridDense extends PageController("grid-dense", {
   category: pageCategory,
   order: 40,
   description:
-    "Six KPI cards on one row, the same six with minColumnWidth (they wrap instead of shrinking past 220 px), and rows of 4 and 2. Narrow the window to compare.",
+    "Six KPI cards on one row (minColumnWidth 160 px), the same six at 220 px (they wrap instead of shrinking), and rows of 4 and 2. Narrow the window to compare.",
 }) {
-  static kpis = Grid({ gap: GRID_GAP }).child(
+  static kpis = Grid({
+    gap: GRID_GAP,
+    minColumnWidth: COMPACT_MIN_COLUMN_WIDTH,
+  }).child(
     "row",
     GridRow()
       .child("sends", kpi("Sends", "i-ph-paper-plane-tilt", 128400, 4.2))

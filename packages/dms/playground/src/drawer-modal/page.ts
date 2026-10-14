@@ -7,7 +7,7 @@ import { drawerModalCategory } from "./category";
 export class PageDrawerModalDemo extends PageController(
   "demo",
   {
-    displayName: "Drawer & Modal",
+    displayName: "useDrawer & useModal",
     description:
       "useDrawer() and useModal() open DMS-themed containers from a module's code. Pick a drawer edge or a modal size and open one; a third modal counts down with patch() and closes itself",
     icon: "i-ph-cards",

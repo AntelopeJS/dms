@@ -20,6 +20,7 @@ const SMALL_BOX_WIDTH = "80px";
 const SMALL_BOX_HEIGHT = "60px";
 const WRAPPED_BOX_COUNT = 10;
 const WRAPPED_BOX_WIDTH = "120px";
+const LABEL_BOX_WIDTH = "180px";
 
 function smallBox(label: string) {
   return Placeholder({
@@ -38,7 +39,7 @@ function distributionRow(distribution: StackDistribution) {
       Placeholder({
         label: distribution,
         height: SMALL_BOX_HEIGHT,
-        width: "140px",
+        width: LABEL_BOX_WIDTH,
       }),
     )
     .child("a", smallBox("A"))

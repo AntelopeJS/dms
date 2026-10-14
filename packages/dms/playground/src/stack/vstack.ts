@@ -17,6 +17,10 @@ const COLUMN_DISTRIBUTIONS: StackDistribution[] = [
   "space-evenly",
 ];
 
+// The sibling stacks are full width and squeeze the ruler: its label stays
+// one short word.
+const RULER_WIDTH = "112px";
+
 // A VStack only has height to distribute when its row stretches it: the
 // 300 px placeholder beside the columns sets that height.
 function distributedColumn(distribution: StackDistribution) {
@@ -31,7 +35,11 @@ function distributedColumns() {
       row.child(distribution, distributedColumn(distribution)),
     HStack({ alignment: "stretch", spacing: "12px" }).child(
       "ruler",
-      Placeholder({ label: "300 px", height: COLUMN_HEIGHT, width: "80px" }),
+      Placeholder({
+        label: "300",
+        height: COLUMN_HEIGHT,
+        width: RULER_WIDTH,
+      }),
     ),
   );
 }
@@ -47,19 +55,19 @@ export class PageVStack extends PageController("stack-vstack", {
 }) {
   static alignStart = VStack({ alignment: "start" })
     .child("ex1", Placeholder({ label: "Align Start", height: "100px" }))
-    .child("ex2", Placeholder({ height: "100px" }));
+    .child("ex2", Placeholder({ label: "Second block", height: "100px" }));
 
   static alignCenter = VStack({ alignment: "center" })
     .child("ex1", Placeholder({ label: "Align Center", height: "100px" }))
-    .child("ex2", Placeholder({ height: "100px" }));
+    .child("ex2", Placeholder({ label: "Second block", height: "100px" }));
 
   static alignEnd = VStack({ alignment: "end" })
     .child("ex1", Placeholder({ label: "Align End", height: "100px" }))
-    .child("ex2", Placeholder({ height: "100px" }));
+    .child("ex2", Placeholder({ label: "Second block", height: "100px" }));
 
   static alignStretch = VStack({ alignment: "stretch" })
     .child("ex1", Placeholder({ label: "Align Stretch", height: "100px" }))
-    .child("ex2", Placeholder({ height: "100px" }));
+    .child("ex2", Placeholder({ label: "Second block", height: "100px" }));
 
   static distributions = distributedColumns();
 }
