@@ -4,6 +4,7 @@ import type { DefaultComponentProps } from "../../../../dms-core/app/types/compo
 import { GRID_CONTEXT, type GridContext } from "./constants";
 import {
   GRID_DEFAULT_MIN_COLUMN_WIDTH,
+  gridCollapsedCellStyles,
   gridColumnsTemplate,
   gridResponsiveStyles,
   gridScopeId,
@@ -39,13 +40,20 @@ const columnsTemplate = computed(() =>
 // its spans reach are container queries on its own width, identical in the
 // server render and the browser (see gridResponsiveStyles).
 const scope = gridScopeId(props.componentId || useId());
+// Its cells close over the ones their blocks leave empty
+// (see gridCollapsedCellStyles).
 const responsiveStyles = computed(() =>
-  gridResponsiveStyles(
-    scope,
-    maxColumns.value,
-    gap.value,
-    minColumnWidth.value,
-  ),
+  [
+    gridCollapsedCellStyles(scope, maxColumns.value),
+    gridResponsiveStyles(
+      scope,
+      maxColumns.value,
+      gap.value,
+      minColumnWidth.value,
+    ),
+  ]
+    .filter(Boolean)
+    .join("\n"),
 );
 
 const rowStyle = computed(() => ({

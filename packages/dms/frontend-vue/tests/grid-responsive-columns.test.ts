@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   GRID_TRACKS_VAR,
+  gridCollapsedCellStyles,
   gridColumnsTemplate,
   gridResponsiveStyles,
   gridScopeId,
@@ -143,5 +144,37 @@ describe("grid responsive styles", () => {
   it("builds a valid container name from any id", () => {
     expect(gridScopeId("v-0-1")).toBe("dms-grid-v-0-1");
     expect(gridScopeId("a.b:c d")).toBe("dms-grid-a_b_c_d");
+  });
+});
+
+describe("grid collapsed cell styles", () => {
+  const scope = gridScopeId("grid-child-row2");
+  const cells = `[data-dms-grid="${scope}"] > `;
+
+  it("takes no track for a cell its block leaves empty, but keeps spacers", () => {
+    const [hide] = gridCollapsedCellStyles(scope, 2).split("\n");
+    expect(hide).toBe(`${cells}:empty:not(.dms-spacer) { display: none; }`);
+  });
+
+  it("widens the last filled cell over each run of trailing empty cells", () => {
+    const rules = gridCollapsedCellStyles(scope, 3).split("\n");
+    expect(rules).toHaveLength(3);
+    expect(rules[1]).toContain(
+      ":has(+ :empty:not(.dms-spacer) + style:last-child)",
+    );
+    expect(rules[1]).toContain(
+      `grid-column: span min(2, var(${GRID_TRACKS_VAR}, 2));`,
+    );
+    expect(rules[2]).toContain(
+      ":has(+ :empty:not(.dms-spacer) + :empty:not(.dms-spacer) + style:last-child)",
+    );
+    expect(rules[2]).toContain(
+      `grid-column: span min(3, var(${GRID_TRACKS_VAR}, 3));`,
+    );
+  });
+
+  it("gives a single-column row no rules", () => {
+    expect(gridCollapsedCellStyles(scope, 1)).toBe("");
+    expect(gridCollapsedCellStyles(scope, 0)).toBe("");
   });
 });
