@@ -56,11 +56,11 @@ describe("DmsSaveStatus: a failed save", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
-  it("turns the header pill red, its wording unchanged", async () => {
+  it("turns the header pill red and says it was not saved", async () => {
     await mount(() => h(InstantSaveBadge, { state: "error" }));
     const pill = host.querySelector<HTMLElement>("[data-instant-save-badge]")!;
 
-    expect(pill.textContent?.trim()).toBe("Saved instantly");
+    expect(pill.textContent?.trim()).toBe("Not saved");
     expect(pill.className).toContain("text-error");
   });
 });

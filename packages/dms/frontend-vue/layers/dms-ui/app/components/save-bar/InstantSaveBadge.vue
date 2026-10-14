@@ -3,10 +3,11 @@ import type { SaveStatusState } from "./SaveStatus.vue";
 
 interface InstantSaveBadgeProps {
   /**
-   * Save activity of the page, for a subtle "just saved" flash: the icon
-   * spins while a change is being written and turns into a tick once it is,
-   * and the pill turns red while a save failed (the control says which).
-   * The wording never changes. Defaults to `idle` (a lightning bolt).
+   * Save activity of the page, for a subtle "just saved" flash: the pill
+   * reads "Saving" with a spinning icon while a change is being written,
+   * then "Saved instantly" with a tick once it is, and turns red with "Not
+   * saved" while a save failed (the control says which). Defaults to `idle`
+   * (a lightning bolt and "Saved instantly").
    */
   state?: SaveStatusState;
 }
@@ -21,6 +22,13 @@ const ICONS: Record<SaveStatusState, string> = {
   saving: "i-ph-circle-notch",
   saved: "i-ph-check",
   error: "i-ph-warning-circle",
+};
+
+const LABELS: Record<SaveStatusState, string> = {
+  idle: "dms.save_bar.instant",
+  saving: "dms.save_bar.saving",
+  saved: "dms.save_bar.instant",
+  error: "dms.save_bar.not_saved",
 };
 
 const TONE_CLASSES = {
@@ -49,6 +57,6 @@ const TONE_CLASSES = {
       class="size-3.5 shrink-0"
       :class="{ 'animate-spin': props.state === 'saving' }"
     />
-    {{ t("dms.save_bar.instant") }}
+    {{ t(LABELS[props.state]) }}
   </span>
 </template>

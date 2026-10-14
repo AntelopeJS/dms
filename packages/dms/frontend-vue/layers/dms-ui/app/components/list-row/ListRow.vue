@@ -125,6 +125,7 @@ const theme = tv({
     dot: "size-2 rounded-full bg-(--dms-accent-fill) shadow-[0_0_0_3px_var(--dms-accent-tint)]",
     body: "min-w-0 flex-1",
     title: "flex items-center gap-2",
+    titleText: "",
     description: "text-muted mt-0.5 text-[12.5px]",
     // The "·" closes each entry followed by another (rather than opening it),
     // so a wrapped line never starts with a separator.
@@ -188,7 +189,11 @@ const theme = tv({
     // end, so the title and meta wrap there instead.
     truncate: {
       true: {
-        title: "truncate max-sm:whitespace-normal",
+        title:
+          "truncate flex-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
+        // The text box, not the flex title, carries the ellipsis: a flex
+        // container only clips its overflowing children.
+        titleText: "truncate max-sm:whitespace-normal",
         meta: "flex-nowrap overflow-hidden whitespace-nowrap max-sm:flex-wrap max-sm:whitespace-normal",
         detail: "truncate max-sm:whitespace-normal",
       },
@@ -281,7 +286,9 @@ const unreadText = computed(
           :class="ui.title()"
           :title="props.truncate ? props.title : undefined"
         >
-          <slot>{{ props.title }}</slot>
+          <slot>
+            <span :class="ui.titleText()">{{ props.title }}</span>
+          </slot>
         </div>
         <p v-if="hasDescription" :class="ui.description()">
           <slot name="description">{{ props.description }}</slot>

@@ -75,7 +75,7 @@ const ICONS: Record<
     ok: "i-ph-check",
     warn: "i-ph-warning",
     error: "i-ph-x",
-    pending: "i-ph-x",
+    pending: "i-ph-circle",
     info: "i-ph-arrow-right",
   },
 };
