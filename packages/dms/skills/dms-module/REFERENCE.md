@@ -21,6 +21,7 @@ first-party modules follow `dms-<name>` purely for discoverability.
         implementations/<name>/index.ts  # implementation of the module's own interface
       frontend-vue/                 # Vue module: dms.frontend.ts, app/, i18n/locales/,
                                     # package.json (engines: the loader releases it supports)
+      skills/<name>/SKILL.md        # when and how agents use the module (antelopeJs.skills)
       package.json / tsconfig.json
     interface-<name>/               # the module's OWN interface, its own published package
       src/index.ts                  # (rare — many modules ship none)
@@ -34,7 +35,8 @@ first-party modules follow `dms-<name>` purely for discoverability.
   "main": "dist/index.js", "types": "dist/index.d.ts",
   "antelopeJs": {
     "baseUrl": "dist",
-    "implements": ["<your-interface-package>"]   // the interface THIS module provides (omit/[] if none)
+    "implements": ["<your-interface-package>"],  // the interface THIS module provides (omit/[] if none)
+    "skills": ["./skills"]                         // skills/<name>/SKILL.md, synced to agents
   },
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
@@ -75,8 +77,8 @@ AntelopeJS — see the **antelopejs** plugin's author/consume skills. The DMS-sp
    own interface published as a standalone `interface-*` package → `dms-automation`.
 3. **Scaffold the layout above**: `src/index.ts`, `src/pages/`, `src/routes/` (if it serves data),
    `packages/interface-<name>/` + `src/implementations/<name>/` (only if it exposes one),
-   `frontend-vue/` (components registered from the root `dms.frontend.ts`), and the manifest
-   (`antelopeJs` block, plus the interface package's `exports`).
+   `frontend-vue/` (components registered from the root `dms.frontend.ts`), `skills/<name>/SKILL.md`,
+   and the manifest (`antelopeJs` block with `skills`, plus the interface package's `exports`).
 4. **Wire the basics**: `RegisterModule({ id, title, icon, … })`, one `@RegisterPage()` page,
    the `AddFrontendModule` call. Add the `$dms_<name>.*` keys to **every** locale file under
    `frontend-vue/i18n/locales/`.

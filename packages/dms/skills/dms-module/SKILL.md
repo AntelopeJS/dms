@@ -1,6 +1,7 @@
 ---
 name: dms-module
 description: Packages a DISTRIBUTABLE DMS extension module (a reusable module other projects install, like the official dms-* modules — the package name itself is free). Use when creating a publishable DMS module, editing its package.json antelopeJs.implements manifest, registering it with RegisterModule, or defining the module's own AntelopeJS interface. For an app that just USES the DMS, see dms-project instead.
+icon: i-ph-package
 category: packaging
 tags: [module, packaging, distribution, interfaces, frontend, inertia]
 ---
@@ -31,6 +32,11 @@ when they provide none (`dms-lang`, `dms-saas`); consumed interfaces are plain `
 (no manifest field). Typical dependencies: `@antelopejs/dms` plus
 `@antelopejs/interface-{core,api,api-util,auth,database,database-decorators}`. The frontend is
 attached at runtime by the `AddFrontendModule` call in `construct`; there is no manifest field for it.
+
+**Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
+`description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
+`files`, and declare `"antelopeJs": { "skills": ["./skills"] }`. The **antelopejs** plugin links it into
+Claude Code projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
 
 ## The lifecycle entry (`src/index.ts`)
 

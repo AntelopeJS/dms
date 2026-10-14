@@ -1,6 +1,7 @@
 ---
 name: dms-dev
 description: Starts, stops, or restarts the AntelopeJS DMS backend and Inertia frontend.
+icon: i-ph-terminal-window
 category: tooling
 tags: [dev-server, restart, backend, inertia, workflow]
 allowed-tools: Bash(bash:*), Bash(pgrep:*), Bash(tail:*), Bash(curl:*), Read, Write

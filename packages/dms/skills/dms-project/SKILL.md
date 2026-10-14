@@ -1,6 +1,7 @@
 ---
 name: dms-project
 description: Sets up an AntelopeJS project that uses the DMS, including its Inertia frontend module and lifecycle.
+icon: i-ph-folder-simple-plus
 category: setup
 tags: [project, setup, config, lifecycle, frontend, inertia]
 ---
@@ -21,7 +22,9 @@ through first-admin setup before adding pages. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when
 AdonisJS must own the process. Evaluate these existing templates before proposing another.
 
-Preserve the package names declared by the template.
+Preserve the package names declared by the template. Both templates ship `.claude/settings.json`, which makes Claude Code offer the
+**antelopejs** plugin; elsewhere, install it once with `claude plugin marketplace add
+AntelopeJS/claude-antelopejs` and `claude plugin install antelopejs@antelopejs`.
 
 ## What a project is
 
