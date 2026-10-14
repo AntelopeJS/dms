@@ -113,6 +113,43 @@ export function gridResponsiveStyles(
 }
 
 /**
+ * A cell whose block renders nothing (an element holding only comments):
+ * a block hidden by its own condition, not a spacer, which is empty on
+ * purpose to line the next cells up.
+ */
+const COLLAPSED_CELL = ":empty:not(.dms-spacer)";
+
+/**
+ * The rules that let a row close over the cells its blocks leave empty, as a
+ * stylesheet: an empty cell takes no track, and the last filled cell before a
+ * run of trailing empty ones spans their tracks too, so a block whose
+ * neighbour turned itself off fills the row instead of leaving a hole beside
+ * it. The span is clamped to the tracks left like any other (see
+ * `gridResponsiveStyles`). The row's own stylesheet is its last child, which
+ * is what closes the trailing run.
+ */
+export function gridCollapsedCellStyles(
+  scope: string,
+  maxColumns: number,
+): string {
+  const columns = Math.max(maxColumns, SINGLE_COLUMN);
+  if (columns <= SINGLE_COLUMN) return "";
+  const cells = `[data-dms-grid="${scope}"] > `;
+  const rules = [`${cells}${COLLAPSED_CELL} { display: none; }`];
+  for (let trailing = SINGLE_COLUMN; trailing < columns; trailing++) {
+    const run = Array.from(
+      { length: trailing },
+      () => `+ ${COLLAPSED_CELL} `,
+    ).join("");
+    const span = trailing + SINGLE_COLUMN;
+    rules.push(
+      `${cells}:not(${COLLAPSED_CELL}):has(${run}+ style:last-child) { grid-column: span min(${span}, var(${GRID_TRACKS_VAR}, ${span})); }`,
+    );
+  }
+  return rules.join("\n");
+}
+
+/**
  * Prints a grid's responsive stylesheet inside the grid element. A render
  * function rather than template text: the server escapes interpolated text,
  * and entities are not decoded inside a <style> element, so the CSS has to go
