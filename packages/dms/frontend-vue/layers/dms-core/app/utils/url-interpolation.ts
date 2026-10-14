@@ -3,6 +3,10 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 // A row field is named `{{row.<field>}}` (a dotted path reaching into it), as
 // the page's values are `{{params.X}}` / `{{query.X}}`, filled elsewhere.
 const ROW_TOKEN = /\{\{\s*row\.([^{}\s]+)\s*\}\}/g;
+// A template that is one row token and nothing else takes a whole URL from the
+// row (`{{row.invoiceUrl}}`): encoding it would turn its `/` and `?` into
+// `%2F` and `%3F`, leaving no URL to open.
+const WHOLE_ROW_TOKEN = new RegExp(`^\\s*${ROW_TOKEN.source}\\s*$`);
 
 /** Whether a template names a field of a row (`{{row.X}}`). */
 export const namesRowField = (template: string): boolean =>
@@ -30,18 +34,25 @@ function hasSafeScheme(url: string): boolean {
   return scheme === undefined || SAFE_SCHEMES.has(scheme.toLowerCase());
 }
 
+const fillRowTokens = (url: string, data: Record<string, unknown>): string => {
+  const wholeKey = WHOLE_ROW_TOKEN.exec(url)?.[1];
+  if (wholeKey !== undefined) return rowValue(data, wholeKey);
+  return url.replace(ROW_TOKEN, (_, key: string) =>
+    encodeURIComponent(rowValue(data, key)).replace(ENCODED_COLON, ":"),
+  );
+};
+
 /**
  * Fills the `{{row.field}}` tokens of a URL template with encoded row values,
- * a field the row lacks left empty. A result with a scheme other than http,
- * https or mailto comes back empty.
+ * a field the row lacks left empty. A template that is a single token takes
+ * the field as the whole URL, unencoded. A result with a scheme other than
+ * http, https or mailto comes back empty.
  */
 export const interpolateUrl = (
   url: string,
   data: Record<string, unknown>,
 ): string => {
-  const interpolated = url.replace(ROW_TOKEN, (_, key: string) =>
-    encodeURIComponent(rowValue(data, key)).replace(ENCODED_COLON, ":"),
-  );
+  const interpolated = fillRowTokens(url, data);
   return hasSafeScheme(interpolated) ? interpolated : REFUSED_URL;
 };
 
