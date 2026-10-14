@@ -16,37 +16,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The checks run as parallel jobs: one sequential job waited for the sum of
+# them, the slowest alone is enough. Every job builds what it reads exactly
+# once, then sets DMS_PREBUILT so the package scripts and the test harness use
+# that build rather than compiling it again.
 jobs:
-  ubuntu:
+  static:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    env:
+      DMS_PREBUILT: "1"
     steps:
       - uses: actions/checkout@v4
-
-      # Before setup-node, which needs pnpm on PATH to resolve the store it
-      # caches. The version comes from the root `packageManager` field.
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
-
-      - uses: actions/setup-node@v4
+      # `dms lint` runs the Vue layer's ESLint too.
+      - uses: ./.github/actions/setup
         with:
-          # .nvmrc is the version of record. oxlint needs at least 22.18 to
-          # read a TypeScript config, which every value there clears.
-          node-version-file: .nvmrc
-          cache: pnpm
-          # The Vue layer is installed on its own, the way the loader installs
-          # it, so its lockfile has to key the cache too.
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            packages/dms/frontend-vue/pnpm-lock.yaml
+          frontend: "true"
+          interface: "true"
 
-      # `...` selects the dependencies too, so the workspace interface comes
-      # along and nothing else in the workspace is installed for nothing.
-      - run: pnpm install --filter @antelopejs/dms... --frozen-lockfile
-      - run: pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
-
-      # The runtime compiles against the interface's declarations, so the
-      # interface is built before anything reads them.
-      - run: pnpm --dir packages/interface-dms build
       - run: pnpm --dir packages/interface-dms lint
       - run: pnpm --dir packages/interface-dms typecheck
       - run: pnpm --dir packages/interface-dms knip
@@ -65,11 +52,78 @@ jobs:
       # exports, which the interface architecture makes noisy enough to need a
       # human, so they stay out of the gate.
       - run: pnpm --dir packages/dms knip
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, integration]
+    env:
+      DMS_PREBUILT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          frontend: "true"
+
+      # The MongoDB binary the harness downloads and the provider modules it
+      # installs into its cache folder are both pinned in antelope.test.ts.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/mongodb-binaries
+            packages/dms/.antelope/cache
+          key: dms-test-harness-${{ runner.os }}-${{ hashFiles('packages/dms/src/test/antelope.test.ts') }}
+
+      # Also the compile gate: the separate `build` step this job replaces
+      # had nothing else to check.
       - run: pnpm --dir packages/dms build
-      # `test:unit` builds first, so this also gates on compile errors.
-      - run: pnpm --dir packages/dms test:unit
       # Needs no service: the harness starts an in-memory MongoDB replica set
       # and lets the OS pick the api port.
-      - run: pnpm --dir packages/dms test:integration
-      - run: pnpm --dir packages/dms/frontend-vue test
+      - run: pnpm --dir packages/dms test:${{ matrix.suite }}
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      # Some tests import the interface's chart helpers at runtime.
+      - uses: ./.github/actions/setup
+        with:
+          frontend: "true"
+          interface: "true"
+
+      # Most of the suite's time is the per-file jsdom setup, which splits
+      # evenly across shards.
+      - run: pnpm --dir packages/dms/frontend-vue test --shard=${{ matrix.shard }}/2
+
+  frontend-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          frontend: "true"
+          interface: "true"
+
+      # `ajs dms verify-source`: the client, SSR and e-mail builds, the bundle
+      # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
+
+  # The one check branch protection requires was the single job's name, so it
+  # stays: green only when every job above is.
+  ubuntu:
+    if: always()
+    needs: [static, backend, frontend-test, frontend-verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
