@@ -87,6 +87,16 @@ describe("scatter points", () => {
     expect(format(120, labelContext(0))).toBe("Acme");
     expect(format(340, labelContext(1))).toBe(340);
   });
+
+  it("lifts a point's label off the point it names", () => {
+    const labels = sectionOf(
+      optionsFor({ type: "scatter", showLabels: true }),
+      "dataLabels",
+    );
+    expect(labels.offsetY).toBeLessThan(0);
+    const line = sectionOf(optionsFor({ type: "line" }), "dataLabels");
+    expect(line.offsetY).toBe(0);
+  });
 });
 
 describe("rawOptions paths", () => {

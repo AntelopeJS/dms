@@ -7,6 +7,7 @@ import { isReducedMotionActive } from "../../build/utils/accessibilityPreference
 import {
   axisLabelStyle,
   buildDataLabels,
+  dataLabelOffset,
   buildGrid,
   buildLegend,
   buildMarkers,
@@ -469,6 +470,7 @@ function buildBaseOptions(
         ringFitsSliceLabels(input),
       theme,
       config.isCircular,
+      dataLabelOffset(input),
     ),
     stroke: buildStroke(
       input,
@@ -602,7 +604,6 @@ function applyOptionalSections(
   if (isCircular) {
     baseOptions.labels = buildCircularLabels(input.donutData).labels;
   }
-
 }
 
 function projectSeries(

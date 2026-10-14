@@ -23,6 +23,9 @@ const HOVER_POINT_SIZE_OFFSET = 2;
 /** A scatter is nothing but its points, so it draws them without `pointSize`. */
 const DEFAULT_POINT_SIZE = 6;
 const POINT_MARKER_TYPES: ChartType[] = ["scatter"];
+/** Half a data label's box and a gap: lifts the label off the point it names. */
+const POINT_LABEL_CLEARANCE = 11;
+const HALF = 2;
 const HEAD_MARKER_SIZE = 5;
 const SOLID_GRID = 0;
 const HEAD_MARKER_TYPES: ChartType[] = ["line", "area"];
@@ -152,7 +155,7 @@ export function buildMarkers(
 ): Record<string, unknown> {
   if (POINT_MARKER_TYPES.includes(input.type)) {
     return {
-      size: input.pointSize ?? DEFAULT_POINT_SIZE,
+      size: pointSize(input),
       strokeWidth: 0,
       hover: { sizeOffset: HOVER_POINT_SIZE_OFFSET },
     };
@@ -166,6 +169,19 @@ export function buildMarkers(
     hover: { size: HOVER_MARKER_SIZE },
     discrete: showsHead ? headMarker(series, colors[0], theme) : [],
   };
+}
+
+function pointSize(input: UseApexChartInput): number {
+  return input.pointSize ?? DEFAULT_POINT_SIZE;
+}
+
+/**
+ * How far a data label moves up: Apex centres it on its point, which hides a
+ * scatter's point under its own label.
+ */
+export function dataLabelOffset(input: UseApexChartInput): number {
+  if (!POINT_MARKER_TYPES.includes(input.type)) return 0;
+  return -(pointSize(input) / HALF + POINT_LABEL_CLEARANCE);
 }
 
 /** Where Apex is drawing a data label. */
@@ -193,9 +209,11 @@ export function buildDataLabels(
   enabled: boolean,
   theme: ApexThemeColors,
   isCircular = false,
+  offsetY = 0,
 ): Record<string, unknown> {
   return {
     enabled,
+    offsetY,
     dropShadow: { enabled: false },
     style: {
       fontSize: DATA_LABEL_FONT_SIZE,
