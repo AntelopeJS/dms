@@ -8,6 +8,7 @@ interface VStackProps {
   alignment?: StackAlignment;
   distribution?: StackDistribution;
   spacing?: string;
+  grow?: number;
 }
 
 const props = withDefaults(defineProps<VStackProps>(), {
@@ -26,6 +27,7 @@ const props = withDefaults(defineProps<VStackProps>(), {
       justifyContent: distributionMap[props.distribution],
       gap: props.spacing,
       '--dms-stack-gap': props.spacing,
+      flexGrow: props.grow,
     }"
     class="dms-vstack w-full"
   >

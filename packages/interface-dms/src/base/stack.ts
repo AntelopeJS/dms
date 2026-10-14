@@ -45,6 +45,14 @@ export interface HStackOptions {
    * @default false
    */
   wrap?: boolean;
+
+  /**
+   * Share of its parent stack's free space this stack takes, against its
+   * siblings' (`2` beside a sibling at `1` takes two thirds). Unset, a stack
+   * nested in an HStack shares the row equally with its sibling stacks, or
+   * keeps its content width when the row has a Spacer to push it aside.
+   */
+  grow?: number;
 }
 
 /**
@@ -68,6 +76,14 @@ export interface VStackOptions {
    * @default '8px'
    */
   spacing?: string;
+
+  /**
+   * Share of its parent stack's free space this stack takes, against its
+   * siblings' (`2` beside a sibling at `1` takes two thirds). Unset, a stack
+   * nested in an HStack shares the row equally with its sibling stacks, or
+   * keeps its content width when the row has a Spacer to push it aside.
+   */
+  grow?: number;
 }
 
 /**
@@ -142,6 +158,16 @@ const spacingOption = () =>
     { label: "Spacing", group: "layout" },
   );
 
+const growOption = () =>
+  ui(
+    z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Share of the parent stack's free space the stack takes."),
+    { label: "Grow", group: "layout", widget: "number", min: 0 },
+  );
+
 /** The options `HStack` accepts. */
 export const HStackSchema = z.object({
   alignment: alignmentOption(),
@@ -156,6 +182,7 @@ export const HStackSchema = z.object({
       ),
     { label: "Wrap", group: "layout", widget: "switch" },
   ),
+  grow: growOption(),
 }) satisfies BlockOptionsFor<HStackOptions>;
 
 /** The options `VStack` accepts. */
@@ -163,6 +190,7 @@ export const VStackSchema = z.object({
   alignment: alignmentOption(),
   distribution: distributionOption(),
   spacing: spacingOption(),
+  grow: growOption(),
 }) satisfies BlockOptionsFor<VStackOptions>;
 
 /** The options `Spacer` accepts. */

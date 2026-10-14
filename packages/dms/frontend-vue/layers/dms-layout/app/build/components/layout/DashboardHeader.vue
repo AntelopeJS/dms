@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import type { BreadcrumbItem, DropdownMenuItem } from "@nuxt/ui";
+import { onMounted, ref } from "vue";
 import NotificationPopover from "../notification/NotificationPopover.vue";
 import QuickActionsPopover from "./QuickActionsPopover.vue";
 import { useSidebarState } from "./sidebarState";
-import { useHeaderActionControls } from "../../composables/layout/useHeaderActionControls";
+import {
+  isPlainDataHeaderAction,
+  useHeaderActionControls,
+} from "../../composables/layout/useHeaderActionControls";
 import { usePageRecordLabel } from "#dms-core/app/composables/page/usePageRecordLabel";
 import type { CategoryInfo } from "../../../types/page";
 import { resolveModuleLandingSlug } from "../../../utils/moduleLanding";
@@ -30,7 +34,19 @@ const { open: sidebarOpen, collapsed: sidebarCollapsed } = useSidebarState();
 
 // Modules register their own header buttons through this generic registry, so
 // core has no knowledge of any specific module.
-const { actions: registeredActions } = useHeaderActions();
+const { actions: visibleActions } = useHeaderActions();
+// A `.client` plugin's action is missing from the server markup: drawn while
+// hydrating, its button would be patched onto the next one's node. It joins
+// once the header has mounted.
+const isMounted = ref(false);
+onMounted(() => {
+  isMounted.value = true;
+});
+const registeredActions = computed(() =>
+  isMounted.value
+    ? visibleActions.value
+    : visibleActions.value.filter(isPlainDataHeaderAction),
+);
 
 // The builder button keeps its fixed slot first in the toolbar, and only
 // exists when a module (the Builder) registers the action that drives it.

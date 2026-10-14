@@ -9,6 +9,7 @@ interface HStackProps {
   distribution?: StackDistribution;
   spacing?: string;
   wrap?: boolean;
+  grow?: number;
 }
 
 const props = withDefaults(defineProps<HStackProps>(), {
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<HStackProps>(), {
       justifyContent: distributionMap[props.distribution],
       gap: props.spacing,
       '--dms-stack-gap': props.spacing,
+      flexGrow: props.grow,
       flexWrap: props.wrap ? 'wrap' : 'nowrap',
     }"
     class="dms-hstack w-full"
@@ -35,3 +37,17 @@ const props = withDefaults(defineProps<HStackProps>(), {
     <slot />
   </div>
 </template>
+
+<style>
+/* A stack fills what holds it, except along a row, where it is one item among
+   its siblings: sibling stacks share the row (in their `grow` ratio), and in
+   a row with a Spacer they keep their content width so the Spacer can push
+   them aside. An inline `grow` wins over both. */
+.dms-hstack > :is(.dms-hstack, .dms-vstack) {
+  width: auto;
+  flex: 1 1 0%;
+}
+.dms-hstack:has(> .dms-spacer) > :is(.dms-hstack, .dms-vstack) {
+  flex: 0 1 auto;
+}
+</style>

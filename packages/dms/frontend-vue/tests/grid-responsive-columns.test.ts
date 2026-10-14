@@ -87,6 +87,15 @@ describe("grid column template", () => {
     expect(gridColumnsTemplate(1, GAP, MIN)).toContain("(100% - 0 * 1rem)");
   });
 
+  it("reads a unitless gap or minimum as pixels, which calc() requires", () => {
+    const template = gridColumnsTemplate(2, "0", "160");
+    expect(template).toContain("(100% - 1 * 0px)");
+    expect(template).toContain("max(160px,");
+    expect(resolveColumnCount(template, 553, 0)).toBe(2);
+    const css = gridResponsiveStyles(gridScopeId("nested"), 2, "0", MIN);
+    expect(css).toContain(`calc(2 * ${MIN} + 1 * 0px)`);
+  });
+
   it("honours a caller-supplied minimum", () => {
     expect(gridColumnsTemplate(4, GAP, "120px")).toContain("120px");
     expect(

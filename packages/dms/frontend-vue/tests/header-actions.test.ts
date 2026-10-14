@@ -2,6 +2,7 @@
 import {
   computed,
   createApp,
+  createSSRApp,
   defineComponent,
   h,
   nextTick,
@@ -10,6 +11,7 @@ import {
   type App,
   type Ref,
 } from "vue";
+import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardHeader from "../layers/dms-layout/app/build/components/layout/DashboardHeader.vue";
 import {
@@ -97,16 +99,42 @@ function installRuntime(): void {
   );
 }
 
-function mountHeader(): HTMLElement {
+function createHeaderApp(create: typeof createApp): App {
+  const header = create(DashboardHeader);
+  header.component("UButton", ButtonStub);
+  ["UDashboardNavbar", "UTooltip", "UBreadcrumb", "UDropdownMenu"].forEach(
+    (name) => header.component(name, SlotsStub),
+  );
+  return header;
+}
+
+async function mountHeader(): Promise<HTMLElement> {
   const host = document.createElement("div");
   document.body.append(host);
-  app = createApp(DashboardHeader);
-  app.component("UButton", ButtonStub);
-  ["UDashboardNavbar", "UTooltip", "UBreadcrumb", "UDropdownMenu"].forEach(
-    (name) => app?.component(name, SlotsStub),
-  );
+  app = createHeaderApp(createApp);
+  app.mount(host);
+  await nextTick();
+  return host;
+}
+
+/**
+ * Renders the header on the "server", runs what only the client runs (a
+ * `.client` plugin), then hydrates the server markup.
+ */
+async function hydrateHeader(runOnClient: () => void): Promise<HTMLElement> {
+  const host = document.createElement("div");
+  host.innerHTML = await renderToString(createHeaderApp(createSSRApp));
+  document.body.append(host);
+  runOnClient();
+  app = createHeaderApp(createSSRApp);
   app.mount(host);
   return host;
+}
+
+function hydrationWarnings(spies: ReturnType<typeof vi.spyOn>[]): string[] {
+  return spies
+    .flatMap((spy) => spy.mock.calls.map((call) => String(call[0])))
+    .filter((message) => message.includes("Hydration"));
 }
 
 function button(host: HTMLElement, label: string): HTMLButtonElement | null {
@@ -145,7 +173,7 @@ describe("header action buttons", () => {
       action("toggle", { onSelect: vi.fn(), isActive: () => isOn.value }),
     );
     registerHeaderAction(action("plain", { onSelect: vi.fn() }));
-    const host = mountHeader();
+    const host = await mountHeader();
     const toggle = button(host, "toggle");
     expect(toggle?.dataset.color).toBe(IDLE_COLOR);
     expect(toggle?.getAttribute("aria-pressed")).toBe("false");
@@ -160,7 +188,7 @@ describe("header action buttons", () => {
     registerHeaderAction(
       action("panel", { label: "$panel.toggle", sidePanelId: PANEL_ID }),
     );
-    const host = mountHeader();
+    const host = await mountHeader();
     const toggle = button(host, "t:panel.toggle");
     const { isOpen } = useSidePanel(PANEL_ID);
     toggle?.click();
@@ -182,10 +210,28 @@ describe("header action buttons", () => {
         isActive: () => true,
       }),
     );
-    const host = mountHeader();
+    const host = await mountHeader();
     const builder = button(host, "Edit");
     builder?.click();
     expect(onSelect).toHaveBeenCalledOnce();
     expect(builder?.dataset.color).toBe(ACTIVE_COLOR);
+  });
+});
+
+describe("header action hydration", () => {
+  it("draws a client-only action once mounted, not over the server markup", async () => {
+    const spies = [
+      vi.spyOn(console, "warn").mockImplementation(() => undefined),
+      vi.spyOn(console, "error").mockImplementation(() => undefined),
+    ];
+    registerHeaderAction(action("panel", { sidePanelId: PANEL_ID }));
+    const host = await hydrateHeader(() =>
+      registerHeaderAction(action("client", { onSelect: vi.fn() })),
+    );
+    expect(hydrationWarnings(spies)).toEqual([]);
+    expect(button(host, "panel")).not.toBeNull();
+    await nextTick();
+    expect(button(host, "client")).not.toBeNull();
+    spies.forEach((spy) => spy.mockRestore());
   });
 });
