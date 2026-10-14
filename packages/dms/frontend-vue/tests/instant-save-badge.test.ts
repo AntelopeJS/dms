@@ -51,13 +51,20 @@ afterEach(() => {
 });
 
 describe("DmsInstantSaveBadge", () => {
-  it("reads exactly 'Saved instantly' in en-GB, whatever the save state", async () => {
+  it("says what the save state is, in en-GB", async () => {
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
     );
-    for (const state of [undefined, "idle", "saving", "saved"] as const) {
+    const labels = [
+      [undefined, "Saved instantly"],
+      ["idle", "Saved instantly"],
+      ["saving", "Saving"],
+      ["saved", "Saved instantly"],
+      ["error", "Not saved"],
+    ] as const;
+    for (const [state, label] of labels) {
       await mount({ render: () => h(InstantSaveBadge, { state }) });
-      expect(badge()?.textContent?.trim()).toBe("Saved instantly");
+      expect(badge()?.textContent?.trim()).toBe(label);
       expect(badge()?.dataset.state).toBe(state ?? "idle");
       expect(badge()?.title).toBeTruthy();
       app?.unmount();
@@ -82,7 +89,7 @@ describe("DmsInstantSaveBadge", () => {
     }
   });
 
-  it("uses one key, translated in French", async () => {
+  it("is translated in French", async () => {
     vi.stubGlobal("useI18n", () => ({ t: translator(uiFr) }));
     const { default: InstantSaveBadge } = await import(
       "../layers/dms-ui/app/components/save-bar/InstantSaveBadge.vue"
