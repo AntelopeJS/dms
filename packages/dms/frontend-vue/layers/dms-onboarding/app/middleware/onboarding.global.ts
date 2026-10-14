@@ -1,5 +1,8 @@
 const ONBOARDING_PATH = "/onboarding";
 const LOGIN_PATH = "/auth";
+// The block preview a docs site embeds draws blocks only, so an instance not
+// yet set up still serves it rather than the wizard.
+const BLOCK_PREVIEW_PATH = "/dms-preview";
 
 // Where a visit to the finished wizard lands: the app for a signed-in user, the
 // login page for anyone else rather than a homepage whose 401 would bounce
@@ -10,6 +13,7 @@ function completedOnboardingDestination(): string {
 }
 
 export default defineDmsMiddleware(async (to) => {
+  if (to.path === BLOCK_PREVIEW_PATH) return;
   const isOnboardingRoute = to.path.startsWith(ONBOARDING_PATH);
 
   // While the instance has no admin yet, funnel every route to the onboarding

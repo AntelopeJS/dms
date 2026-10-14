@@ -46,6 +46,9 @@ export default defineConfig({
           signInCountry: { database: false },
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
+        // Serves /dms-preview, the page the documentation embeds to render
+        // live blocks and the screenshot script captures.
+        docsPreview: true,
       },
     },
     playground: {
@@ -65,7 +68,7 @@ export default defineConfig({
       },
       config: {
         url: process.env.MONGO_URL ?? "mongodb://localhost:27017",
-        database: "playground_dms",
+        database: process.env.MONGO_DATABASE ?? "playground_dms",
       },
       importOverrides: [],
       disabledExports: [],

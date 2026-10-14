@@ -185,6 +185,12 @@ export interface Config {
   uploads?: Partial<UploadsConfig>;
   frontend?: FrontendConfig;
   store?: StoreConfig;
+  /**
+   * Serves `/dms-preview`, a public hidden page rendering any tree of
+   * registered blocks it is handed, for documentation sites to embed. Off by
+   * default; the `DMS_DOCS_PREVIEW=1` environment variable turns it on too.
+   */
+  docsPreview?: boolean;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -252,6 +258,17 @@ export function setDevApiBaseUrl(url: string | undefined): void {
 
 export function getApiBaseUrl(): string | undefined {
   return devApiBaseUrl ?? globalConfig.apiBaseUrl;
+}
+
+const DOCS_PREVIEW_ENV = "DMS_DOCS_PREVIEW";
+const DOCS_PREVIEW_ENV_ENABLED = "1";
+
+/** Whether `/dms-preview` is served: by configuration or by environment. */
+export function isDocsPreviewEnabled(): boolean {
+  return (
+    globalConfig.docsPreview === true ||
+    process.env[DOCS_PREVIEW_ENV] === DOCS_PREVIEW_ENV_ENABLED
+  );
 }
 
 export function getAuthConfig(): AuthConfig {
