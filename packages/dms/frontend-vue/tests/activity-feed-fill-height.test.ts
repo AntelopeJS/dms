@@ -87,6 +87,13 @@ it("keeps each day's separator on top of the scrolled entries", async () => {
   expect(html).toMatch(/<div[^>]*class="[^"]*\bsticky top-0\b[^"]*"[^>]*><h3/);
 });
 
+it("keeps the fold button in sight at the foot of the scrolled entries", async () => {
+  const html = await render({ fillHeight: true, visibleItems: 3 });
+  expect(html).toMatch(
+    /class="dms-activity-feed__fold[^"]*\bsticky bottom-0\b[^"]*"/,
+  );
+});
+
 it("names the region after the feed when it has no title", async () => {
   const area = scrollArea(await render({ fillHeight: true, title: undefined }));
   expect(area).toContain('aria-label="dms.activity_feed.list_label"');
