@@ -4,7 +4,10 @@ import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 describe("interpolateUrl", () => {
   it("fills row fields into the URL, encoded", () => {
     expect(
-      interpolateUrl("/items/{{row._id}}/tag/{{row.name}}", { _id: "a1", name: "a b/c" }),
+      interpolateUrl("/items/{{row._id}}/tag/{{row.name}}", {
+        _id: "a1",
+        name: "a b/c",
+      }),
     ).toBe("/items/a1/tag/a%20b%2Fc");
   });
 
@@ -25,6 +28,14 @@ describe("interpolateUrl", () => {
     expect(interpolateUrl("mailto:{{row.email}}", { email: "a@b.c" })).toBe(
       "mailto:a%40b.c",
     );
+  });
+
+  it("takes a field forming the whole URL as it is", () => {
+    const url = "https://pay.stripe.com/invoice/acct_1/x/pdf?s=ap";
+    expect(interpolateUrl("{{row.invoiceUrl}}", { invoiceUrl: url })).toBe(url);
+    expect(
+      interpolateUrl(" {{ row.links.self }} ", { links: { self: "/a/b?c=d" } }),
+    ).toBe("/a/b?c=d");
   });
 
   it("refuses a scheme the row data brings in", () => {
