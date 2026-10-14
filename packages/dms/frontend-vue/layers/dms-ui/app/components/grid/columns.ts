@@ -5,6 +5,18 @@ const SINGLE_COLUMN = 1;
 /** Track floor below which a column stops being usable, as a CSS length. */
 export const GRID_DEFAULT_MIN_COLUMN_WIDTH = "240px";
 
+const UNITLESS_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)$/;
+
+/**
+ * A length usable inside `calc()`. A bare `0` is a valid `gap` but not a
+ * length in a calculation, where it would void the whole template and leave
+ * the grid on a single column; a unitless number reads as pixels.
+ */
+function calcLength(value: string): string {
+  const trimmed = value.trim();
+  return UNITLESS_NUMBER.test(trimmed) ? `${trimmed}px` : trimmed;
+}
+
 /**
  * The column track template a `Grid` and every `GridRow` inside it share.
  *
@@ -26,8 +38,8 @@ export function gridColumnsTemplate(
   minColumnWidth: string,
 ): string {
   const columns = Math.max(maxColumns, SINGLE_COLUMN);
-  const columnShare = `(100% - ${columns - SINGLE_COLUMN} * ${gap}) / ${columns}`;
-  return `repeat(auto-fill, minmax(min(100%, max(${minColumnWidth}, ${columnShare})), 1fr))`;
+  const columnShare = `(100% - ${columns - SINGLE_COLUMN} * ${calcLength(gap)}) / ${columns}`;
+  return `repeat(auto-fill, minmax(min(100%, max(${calcLength(minColumnWidth)}, ${columnShare})), 1fr))`;
 }
 
 /** Custom property a `Grid` / `GridRow` hands its cells: the tracks left. */
@@ -43,7 +55,7 @@ function trackBreakpoint(
   gap: string,
   minColumnWidth: string,
 ): string {
-  return `calc(${columns} * ${minColumnWidth} + ${columns - SINGLE_COLUMN} * ${gap})`;
+  return `calc(${columns} * ${calcLength(minColumnWidth)} + ${columns - SINGLE_COLUMN} * ${calcLength(gap)})`;
 }
 
 /** A container name / attribute value built from any id. */
