@@ -1,3 +1,4 @@
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import { layoutUrlWithQuery } from "../../utils/pageQuery";
 import { withoutTrailingSlash } from "ufo";
 
@@ -97,6 +98,30 @@ export function extractRouteParams(
     .map((segment) => segment.substring(1));
 
   return buildParamBag(paramNames, match.slice(1));
+}
+
+/**
+ * A partial reload of the page on screen: the server sends the site layout
+ * and the page fresh, and they replace the browser's copies, the layout
+ * Inertia carries from page to page included. A failure rejects and leaves
+ * the page as it is: Inertia would otherwise show the error in its place.
+ */
+function reloadSiteLayoutAndPage(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let failure: unknown;
+    inertiaRouter.reload({
+      only: ["shared", "page"],
+      onHttpException: (response) => {
+        failure = new Error(`Site layout reload failed (${response.status})`);
+        return false;
+      },
+      onNetworkError: (error) => {
+        failure = error;
+        return false;
+      },
+      onFinish: () => (failure ? reject(failure) : resolve()),
+    });
+  });
 }
 
 export const useSiteLayout = () => {
@@ -275,6 +300,19 @@ export const useSiteLayout = () => {
     await loadingPromise.value;
   };
 
+  /**
+   * Re-reads the menu and the page on screen from the server, for a change
+   * the backend announced (a realtime menu invalidation). A navigation that
+   * starts meanwhile drops the reload's answer, and the page it opens still
+   * carries the layout the reload meant to replace: that page is reloaded
+   * in turn.
+   */
+  const resync = async (): Promise<void> => {
+    const path = window.location.pathname;
+    await reloadSiteLayoutAndPage();
+    if (window.location.pathname !== path) await reloadSiteLayoutAndPage();
+  };
+
   const refreshIfStale = async () => {
     const elapsed = Date.now() - lastRefreshTime.value;
     if (elapsed < STALE_THRESHOLD_MS) {
@@ -440,6 +478,7 @@ export const useSiteLayout = () => {
     loadSiteLayout,
     loadPageLayout,
     refresh,
+    resync,
     refreshIfStale,
     findMatchingRoute,
     findMatchingRouteOrCategory,

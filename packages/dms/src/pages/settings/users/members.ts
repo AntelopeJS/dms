@@ -68,6 +68,7 @@ import {
   announceMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
+import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(memberSettingDataAPI);
@@ -518,6 +519,8 @@ export class MembersSettingsController extends PageController("members", {
       memberId,
       isTenantOwner,
     );
+    // Ownership opens or closes every page of the workspace to the member.
+    if (change !== null) notifyMenuAccessChanged(getRequestTenantId(ctx));
     if (change !== null && member.userId !== user._id) {
       fireAndForget(
         notifyOwnershipChanged(member.userId, isTenantOwner, {
