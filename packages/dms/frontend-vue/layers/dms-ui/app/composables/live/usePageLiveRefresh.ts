@@ -50,8 +50,7 @@ export interface PageLiveRefresh {
  * the component.
  *
  * ```ts
- * const { useFetchAuth } = useAuthFetch();
- * const { data, refresh } = useFetchAuth<Health>("/api/health");
+ * const { data, refresh } = useApiData<Health>("/api/health");
  * usePageLiveRefresh(() => void refresh(), {
  *   realtimeTopic: "api:requests",
  *   idleRefresh: 60,

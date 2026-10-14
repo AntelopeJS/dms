@@ -1,6 +1,5 @@
 import type { ComputedRef } from "vue";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
-import { useServerRenderedAsyncData } from "./useServerRenderedAsyncData";
 import type { useTableRows } from "./useTableRows";
 import { buildTableDataKey } from "./utils/tableQuery";
 
@@ -51,7 +50,10 @@ const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
 };
 
 /**
- * The page of rows a table view shows. The key names the source URL: a
+ * The page of rows a table view shows: awaited by a server render, which
+ * transfers it, but not by a client navigation, which paints the list chrome
+ * and its skeleton at once (`lazy`). Read the loading state from `data`
+ * (`null` until the first result). The key names the source URL: a
  * navigation that remounts the page while the previous one is still on screen
  * binds to the cached entry of its key, so another URL needs another key to be
  * requested at all, and the watch covers a page kept mounted.
@@ -69,7 +71,7 @@ export function useTableListData<T extends Record<string, unknown>>(
     isSelfManaged: isSelfManaged.value,
     sourceUrl: rows.sourceUrl.value,
   });
-  return useServerRenderedAsyncData(
+  return useDmsLazyAsyncData(
     key,
     // `null` while a source waits on its period scope: the table's skeleton.
     (): Promise<TableViewListResponse<T> | null> =>
@@ -95,7 +97,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
   const { rows, queries, archiveQuery } = options;
   const heldQuery = options.heldQuery ?? NO_HELD_QUERY;
   const sourceSuffix = rows.sourceUrl.value ? `-${rows.sourceUrl.value}` : "";
-  return useServerRenderedAsyncData<Record<string, number> | null>(
+  return useDmsLazyAsyncData<Record<string, number> | null>(
     `table-view-${options.componentId}-${options.pageId}-tab-counts${sourceSuffix}`,
     async () => {
       if (rows.isPeriodPending.value) return null;
