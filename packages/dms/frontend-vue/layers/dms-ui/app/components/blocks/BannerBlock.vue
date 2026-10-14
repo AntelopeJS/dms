@@ -8,13 +8,15 @@ import DmsBlockActions, {
 import { useActionTargets } from "../../build/composables/actions/useActionTargets";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { refreshPageBlocks } from "../../utils/blockRefresh";
+import {
+  BANNER_TONE_ICONS,
+  type BannerTone,
+} from "../../utils/bannerToneIcons";
 import type { CustomButton } from "../../composables/table-view/types/custom-button";
 import { useWatch } from "../../../../dms-core/app/composables/watch/useWatch";
 import { useComposedText } from "../../../../dms-core/app/composables/translation/useComposedText";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 import type { BlockText } from "../../../../dms-core/app/types/composed-text";
-
-type BannerTone = "info" | "success" | "warning" | "error" | "primary";
 
 /** What a banner shows (interface-dms `BannerContent`). */
 interface BannerContent {
@@ -82,14 +84,6 @@ const DISMISSED_MAX_KEYS = 40;
 // outside a page (a preview).
 const FALLBACK_COMPONENT_ID = "banner";
 const FALLBACK_PAGE_ID = "page";
-
-const TONE_ICONS: Record<BannerTone, string> = {
-  info: "i-ph-info",
-  success: "i-ph-check-circle",
-  warning: "i-ph-warning",
-  error: "i-ph-warning-circle",
-  primary: "i-ph-sparkle",
-};
 
 const { state: watchState } = useWatch(
   props.watchActions || [],
@@ -183,7 +177,7 @@ function press(action: BlockButtonAction): void {
     :description="
       banner.description ? processText(banner.description) : undefined
     "
-    :icon="banner.icon ?? TONE_ICONS[banner.tone]"
+    :icon="banner.icon ?? BANNER_TONE_ICONS[banner.tone]"
     :tone="banner.tone"
     :size="banner.size"
     :dismissible="banner.dismissible"

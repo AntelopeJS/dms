@@ -7,6 +7,7 @@ import {
   blockRealtimeTopicOption,
 } from "./display";
 import { type EmptyStateProps, EmptyStateSchema } from "./empty-state";
+import { attachRealtimeTopicsHook } from "./internal/realtime-topics";
 import type { EnumOption } from "./types/enum-option";
 import type { HttpMethod } from "./types/http";
 
@@ -133,13 +134,16 @@ export const GuardSchema = z.object({
  * ```
  */
 export function Guard(options: GuardOptions): ComponentBuilder<GuardOptions> {
-  return new ComponentBuilder<GuardOptions>(GUARD_COMPONENT_NAME)
-    .options({ when: GUARD_DEFAULT_CONDITION, ...options })
-    .meta({
-      name: "Guard",
-      icon: GUARD_ICON,
-      description: "Shows its children unless a route says there is nothing",
-    });
+  return attachRealtimeTopicsHook(
+    new ComponentBuilder<GuardOptions>(GUARD_COMPONENT_NAME)
+      .options({ when: GUARD_DEFAULT_CONDITION, ...options })
+      .meta({
+        name: "Guard",
+        icon: GUARD_ICON,
+        description: "Shows its children unless a route says there is nothing",
+      }),
+    options.realtimeTopic,
+  );
 }
 
 RegisterBlockType({

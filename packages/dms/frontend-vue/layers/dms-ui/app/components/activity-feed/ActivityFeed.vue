@@ -237,6 +237,11 @@ const scrollArea = computed(() =>
 const dayHeadClass = computed(
   () => props.fillHeight && "sticky top-0 z-[1] bg-(--dms-surface-card)",
 );
+// …and the "Show N more" button at its foot, where entries taller than the
+// row would otherwise push it out of sight.
+const foldClass = computed(
+  () => props.fillHeight && "sticky bottom-0 z-[1] bg-(--dms-surface-card)",
+);
 
 const Wrapper = props.card ? resolveComponent("DmsCard") : "div";
 const wrapperProps = computed(() =>
@@ -373,6 +378,7 @@ const wrapperProps = computed(() =>
         <div
           v-if="foldedCount > 0"
           class="dms-activity-feed__fold border-t border-(--ui-border-muted) px-[18px] pt-2 pb-1"
+          :class="foldClass"
         >
           <UButton
             :label="foldLabel"
