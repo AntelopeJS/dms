@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick } from "vue";
 import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import TableEmpty from "#dms-ui/app/build/components/table/Empty.vue";
 import TablePagination from "#dms-ui/app/build/components/table/Pagination.vue";
@@ -63,12 +64,21 @@ const sourceOf = (
   return labelKey ? { label: t(labelKey), isModule: false } : undefined;
 };
 
-// A change of a row is listed again, from the server.
+// A change made here moves the counts too (the write's answer, then its
+// realtime echo): the watcher below leaves it to the one read that follows it.
+let ownChanges = 0;
+
+// A change of a row is listed again, from the server, once.
 const runThenRefresh = async (action: () => Promise<unknown>) => {
+  ownChanges++;
   try {
     await action();
+    // What the action changed reaches the watcher before the guard drops.
+    await nextTick();
   } catch {
     toast.add({ title: t("dms.form.error_title"), color: "error" });
+  } finally {
+    ownChanges--;
   }
   await props.context.refresh();
 };
@@ -88,10 +98,13 @@ const toggleRead = (notification: UserNotification) =>
   );
 
 // What the stream changes elsewhere (a notification arriving, read in
-// another tab) is listed again here.
+// another tab) is listed again here: once per change of the count or of the
+// newest notification, not each time the bell's lists are rebuilt.
 watch(
-  () => [unreadCount.value, notifications.value[0]?._id],
-  () => void props.context.refresh(),
+  [unreadCount, () => notifications.value[0]?._id],
+  () => {
+    if (ownChanges === 0) void props.context.refresh();
+  },
 );
 
 </script>

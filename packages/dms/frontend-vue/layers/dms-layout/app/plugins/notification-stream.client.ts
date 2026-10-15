@@ -1,4 +1,7 @@
-import type { UserNotification } from "../composables/notification/useNotifications";
+import type {
+  FeedCounts,
+  UserNotification,
+} from "../composables/notification/useNotifications";
 
 const NOTIFICATION_TOPIC_PREFIX = "notifications:user:";
 const NOTIFICATION_NEW_TYPE = "notification:new";
@@ -9,6 +12,8 @@ const NOTIFICATION_UNREAD_TYPE = "notification:unread";
 interface IncomingPayload {
   notification?: UserNotification;
   ids?: string[];
+  /** The whole feed's counts after a read state change. */
+  counts?: FeedCounts;
 }
 
 const isNotificationEvent = (
@@ -35,13 +40,13 @@ export default defineDmsPlugin(() => {
       if (payload?.notification) handleIncomingNotification(payload.notification);
     },
     [NOTIFICATION_READ_TYPE]: async (payload) => {
-      if (Array.isArray(payload?.ids)) await handleRemoteRead(payload.ids);
+      if (Array.isArray(payload?.ids)) await handleRemoteRead(payload.ids, payload.counts);
     },
     [NOTIFICATION_UNREAD_TYPE]: async (payload) => {
-      if (Array.isArray(payload?.ids)) await handleRemoteUnread(payload.ids);
+      if (Array.isArray(payload?.ids)) await handleRemoteUnread(payload.ids, payload.counts);
     },
-    [NOTIFICATION_ALL_READ_TYPE]: async () => {
-      await handleRemoteAllRead();
+    [NOTIFICATION_ALL_READ_TYPE]: async (payload) => {
+      await handleRemoteAllRead(payload?.counts);
     },
   };
 

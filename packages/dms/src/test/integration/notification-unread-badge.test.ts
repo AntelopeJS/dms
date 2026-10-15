@@ -6,6 +6,7 @@ import type {
   NotificationData,
   NotificationTone,
 } from "@antelopejs/interface-dms/notifications/types";
+import { buildUserNotificationTopic, getRealtimeBroker } from "../../realtime";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
@@ -35,6 +36,11 @@ interface FeedCounts {
   all: number;
   unread: number;
   unreadTone?: NotificationTone;
+}
+
+interface FeedEvent {
+  type: string;
+  payload?: { counts?: FeedCounts };
 }
 
 interface MenuEntry {
@@ -86,6 +92,18 @@ describe("[integration] notifications unread badge", () => {
     return row._id;
   };
 
+  /** What the user's open tabs are told, from now on. */
+  const recordEvents = () => {
+    const events: FeedEvent[] = [];
+    const unsubscribe = getRealtimeBroker().subscribe(
+      buildUserNotificationTopic(userId),
+      (event) => {
+        events.push(event as FeedEvent);
+      },
+    );
+    return { events, unsubscribe };
+  };
+
   before(async () => {
     await resetDatabase();
     const owner = await registerUser({ owner: true });
@@ -134,8 +152,50 @@ describe("[integration] notifications unread badge", () => {
     expect(await counts()).to.include({ unread: 2, unreadTone: "primary" });
   });
 
+  it("answers each change with the counts after it, and tells the user's tabs the same", async () => {
+    const { events, unsubscribe } = recordEvents();
+    try {
+      const info = await idOf("info");
+      const read = await client.put(`${LOCATION}/mark-read/${info}`);
+      expect(read.status, JSON.stringify(read.data)).to.equal(HTTP_OK);
+      const afterRead = await counts();
+      expect(afterRead).to.include({ unread: 1, unreadTone: "primary" });
+      expect(read.data.counts).to.deep.equal(afterRead);
+
+      const unread = await client.put(`${LOCATION}/mark-unread/${info}`);
+      const afterUnread = await counts();
+      expect(afterUnread).to.include({ unread: 2, unreadTone: "primary" });
+      expect(unread.data.counts).to.deep.equal(afterUnread);
+
+      await send("disposable", "error");
+      const removed = await client.delete(
+        `${LOCATION}/delete/${await idOf("disposable")}`,
+      );
+      expect(removed.data.counts).to.deep.equal(await counts());
+      expect(removed.data.counts).to.include({ unreadTone: "primary" });
+
+      expect(
+        events
+          .filter((event) => event.type !== "notification:new")
+          .map((event) => [event.type, event.payload?.counts]),
+      ).to.deep.equal([
+        ["notification:read", afterRead],
+        ["notification:unread", afterUnread],
+      ]);
+    } finally {
+      unsubscribe();
+    }
+  });
+
   it("shows no badge once everything is read", async () => {
-    await client.put(`${LOCATION}/mark-all-read`);
+    const { events, unsubscribe } = recordEvents();
+    const marked = await client.put(`${LOCATION}/mark-all-read`);
+    unsubscribe();
+    expect(marked.data.counts).to.deep.equal(await counts());
+    expect(marked.data.counts).to.include({ unread: 0 });
+    expect(events.map((event) => [event.type, event.payload])).to.deep.equal([
+      ["notification:all-read", { counts: marked.data.counts }],
+    ]);
 
     const bell = await counts();
     expect(bell.unread).to.equal(0);

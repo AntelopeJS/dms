@@ -38,6 +38,14 @@ export interface FeedCounts {
   unreadTone?: NotificationTone;
 }
 
+/**
+ * What a write on the feed answers (marking read or unread, deleting), and
+ * what its realtime event carries: the whole feed's counts after it.
+ */
+interface FeedWriteResult {
+  counts?: FeedCounts;
+}
+
 const API_BASE = pageRoutePath("/settings/user/notifications");
 const BELL_COUNTS_DATA_KEY = "dms-notification-bell-counts";
 const NOTIFICATION_COMPONENT_ID = "global-notifications";
@@ -152,6 +160,16 @@ export const useNotifications = () => {
     }
   };
 
+  /**
+   * Takes the counts a write answered or its realtime event carried. A
+   * write's own event brings the same counts again, which changes nothing;
+   * without counts (a server before they were sent) they are read.
+   */
+  const takeWriteCounts = async (counts: FeedCounts | undefined) => {
+    if (counts) applyBellCounts(counts);
+    else await fetchBellCounts();
+  };
+
   const fetchUnreadPreview = async () => {
     const data = await $authFetch<UserNotification[]>(
       `${API_BASE}/unread-preview`,
@@ -180,30 +198,33 @@ export const useNotifications = () => {
   };
 
   const markAsRead = async (notificationId: string) => {
-    await $authFetch(`${API_BASE}/mark-read/${notificationId}`, {
-      method: "PUT",
-    });
+    const { counts } = await $authFetch<FeedWriteResult>(
+      `${API_BASE}/mark-read/${notificationId}`,
+      { method: "PUT" },
+    );
     setReadState([notificationId], true);
     unreadPreview.value = unreadPreview.value.filter((n) => !n.isRead);
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
     emitRead([notificationId]);
   };
 
   const markAsUnread = async (notificationId: string) => {
-    await $authFetch(`${API_BASE}/mark-unread/${notificationId}`, {
-      method: "PUT",
-    });
+    const { counts } = await $authFetch<FeedWriteResult>(
+      `${API_BASE}/mark-unread/${notificationId}`,
+      { method: "PUT" },
+    );
     setReadState([notificationId], false);
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
     emitCount();
   };
 
   const deleteNotification = async (notificationId: string) => {
-    await $authFetch(`${API_BASE}/delete/${notificationId}`, {
-      method: "DELETE",
-    });
+    const { counts } = await $authFetch<FeedWriteResult>(
+      `${API_BASE}/delete/${notificationId}`,
+      { method: "DELETE" },
+    );
     removeFromLists([notificationId]);
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
 
     sendComponentEvent(
       NotificationEvents.NOTIFICATION_DELETED,
@@ -212,24 +233,26 @@ export const useNotifications = () => {
     );
   };
 
-  const handleRemoteRead = async (ids: string[]) => {
+  // The realtime events of the user's feed, this tab's own writes included:
+  // each carries the feed's counts after it.
+  const handleRemoteRead = async (ids: string[], counts?: FeedCounts) => {
     if (ids.length === 0) return;
     setReadState(ids, true);
     unreadPreview.value = unreadPreview.value.filter((n) => !n.isRead);
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
     emitRead(ids);
   };
 
-  const handleRemoteUnread = async (ids: string[]) => {
+  const handleRemoteUnread = async (ids: string[], counts?: FeedCounts) => {
     if (ids.length === 0) return;
     setReadState(ids, false);
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
     emitCount();
   };
 
-  const handleRemoteAllRead = async () => {
+  const handleRemoteAllRead = async (counts?: FeedCounts) => {
     setAllRead();
-    await fetchBellCounts();
+    await takeWriteCounts(counts);
     emitCount();
   };
 

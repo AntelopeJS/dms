@@ -118,6 +118,7 @@ describe("[integration] notifications inbox table", () => {
     const marked = await client.put(`${LOCATION}/mark-all-read`);
     expect(marked.status, JSON.stringify(marked.data)).to.equal(HTTP_OK);
     expect(marked.data.batchId).to.be.a("string");
+    expect(marked.data.counts).to.include({ unread: 0 });
     expect(marked.data).not.to.have.property("ids");
     expect(
       (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
@@ -128,6 +129,7 @@ describe("[integration] notifications inbox table", () => {
     );
     expect(undone.status, JSON.stringify(undone.data)).to.equal(HTTP_OK);
     expect(undone.data.ids).to.have.length(unreadBefore);
+    expect(undone.data.counts).to.include({ unread: unreadBefore });
     expect(
       (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
     ).to.equal(unreadBefore);
