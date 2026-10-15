@@ -7,6 +7,7 @@ import {
 import { defu } from "defu";
 import appConfig from "./layers/dms-layout/app/app.config";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
+import permissionsPreloadPlugin from "./layers/dms-auth/app/plugins/permissions-preload";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
@@ -19,6 +20,7 @@ import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
+import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -164,6 +166,11 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       await plugin.default(context);
     }, clientOnly);
   }
+  // First: the requests the middlewares wait on start with the app, alongside
+  // the ones the plugins below and the page make, instead of one after the
+  // other once the page has set up.
+  sdk.registerPlugin(onboardingPreloadPlugin);
+  sdk.registerPlugin(permissionsPreloadPlugin);
   sdk.registerPlugin(colorModePlugin);
   sdk.registerPlugin(permissionPreviewPrepaintPlugin);
   sdk.registerPlugin(fontPreloadPlugin);
