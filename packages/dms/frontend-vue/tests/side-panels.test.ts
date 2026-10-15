@@ -141,6 +141,8 @@ function installRuntime(): void {
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
     useUserSession: () => ({ loggedIn }),
+    // The page brought its site layout.
+    useRenderedSiteLayout: () => {},
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

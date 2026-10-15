@@ -46,6 +46,9 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 providePageFillHeight(toRef(props, "fillHeight"));
+// A custom page brings no site layout: read with the page, and taken over by
+// the browser before the sidebar, the header and the banners render it.
+useRenderedSiteLayout();
 
 useVisitNavBadges();
 

@@ -1,8 +1,11 @@
 import { router as inertiaRouter } from "@inertiajs/vue3";
 import { layoutUrlWithQuery } from "../../utils/pageQuery";
+import { onBeforeMount, toRaw } from "vue";
 import { withoutTrailingSlash } from "ufo";
 
 const STALE_THRESHOLD_MS = 300_000;
+const SITE_LAYOUT_ENDPOINT = "/dms/sitelayout";
+const RENDERED_SITE_LAYOUT_KEY = "dms-rendered-site-layout";
 const IN_FLIGHT_SITE_LAYOUT_KEY = "__dmsInFlightSiteLayout";
 const IN_FLIGHT_PAGE_LAYOUTS_KEY = "__dmsInFlightPageLayouts";
 
@@ -149,24 +152,60 @@ function reloadSiteLayoutAndPage(): Promise<void> {
   });
 }
 
+interface SiteLayoutResponse {
+  siteLayout: SiteLayout;
+  siteLayoutTree: SiteLayoutTree;
+  quickActions: QuickActionsPayload;
+  modules: Record<string, ModuleWithAccess>;
+  isOwner: boolean;
+}
+
+/** The shared site layout, as a page's props or `/dms/sitelayout` set it. */
+function useSiteLayoutState() {
+  return {
+    siteLayout: useDmsState<SiteLayout | undefined>(
+      "dms-siteLayout",
+      () => undefined,
+    ),
+    siteLayoutTree: useDmsState<SiteLayoutTree | undefined>(
+      "dms-pageTree",
+      () => undefined,
+    ),
+    quickActions: useDmsState<QuickActionsPayload | undefined>(
+      "dms-quickActions",
+      () => undefined,
+    ),
+    modules: useDmsState<Record<string, ModuleWithAccess> | undefined>(
+      "dms-modules",
+      () => undefined,
+    ),
+    isOwner: useDmsState<boolean>("dms-isOwner", () => false),
+    lastRefreshTime: useDmsState<number>("dms-lastRefreshTime", () => 0),
+  };
+}
+
+function applySiteLayoutResponse(
+  state: ReturnType<typeof useSiteLayoutState>,
+  result: SiteLayoutResponse,
+): void {
+  state.siteLayout.value = result.siteLayout;
+  state.siteLayoutTree.value = result.siteLayoutTree;
+  state.quickActions.value = result.quickActions;
+  state.modules.value = result.modules;
+  state.isOwner.value = result.isOwner;
+  state.lastRefreshTime.value = Date.now();
+}
+
 export const useSiteLayout = () => {
-  const siteLayout = useDmsState<SiteLayout | undefined>(
-    "dms-siteLayout",
-    () => undefined,
-  );
-  const siteLayoutTree = useDmsState<SiteLayoutTree | undefined>(
-    "dms-pageTree",
-    () => undefined,
-  );
-  const quickActions = useDmsState<QuickActionsPayload | undefined>(
-    "dms-quickActions",
-    () => undefined,
-  );
-  const modules = useDmsState<Record<string, ModuleWithAccess> | undefined>(
-    "dms-modules",
-    () => undefined,
-  );
-  const isOwner = useDmsState<boolean>("dms-isOwner", () => false);
+  const state = useSiteLayoutState();
+  const {
+    siteLayout,
+    siteLayoutTree,
+    quickActions,
+    modules,
+    isOwner,
+    lastRefreshTime,
+  } = state;
 
   const isLoading = useDmsState<boolean>("dms-loading", () => false);
   const loadingError = useDmsState<string | null>("dms-error", () => null);
@@ -175,7 +214,6 @@ export const useSiteLayout = () => {
     "dms-pageLayouts",
     () => ({}),
   );
-  const lastRefreshTime = useDmsState<number>("dms-lastRefreshTime", () => 0);
 
   // Held on the DMS app rather than in a per-call ref: every caller of
   // useSiteLayout writes the same shared layout state, so they have to see the
@@ -198,27 +236,9 @@ export const useSiteLayout = () => {
     },
   };
 
-  interface SiteLayoutResponse {
-    siteLayout: SiteLayout;
-    siteLayoutTree: SiteLayoutTree;
-    quickActions: QuickActionsPayload;
-    modules: Record<string, ModuleWithAccess>;
-    isOwner: boolean;
-  }
-
-  const SITE_LAYOUT_ENDPOINT = "/dms/sitelayout";
   const SITE_LAYOUT_ERROR_MESSAGE = "Error loading siteLayout";
   const UNKNOWN_SITE_LAYOUT_ERROR = "Unknown error loading siteLayout";
   const HTTP_INTERNAL_ERROR = 500;
-
-  const applySiteLayoutResponse = (result: SiteLayoutResponse) => {
-    siteLayout.value = result.siteLayout;
-    siteLayoutTree.value = result.siteLayoutTree;
-    quickActions.value = result.quickActions;
-    modules.value = result.modules;
-    isOwner.value = result.isOwner;
-    lastRefreshTime.value = Date.now();
-  };
 
   const handleSiteLayoutError = (error: unknown) => {
     const errorMessage =
@@ -251,7 +271,7 @@ export const useSiteLayout = () => {
             ).filter((url) => !nextCache[url]);
         if (!urls.length) {
           if (!fatal) pageLayouts.value = nextCache;
-          applySiteLayoutResponse(result);
+          applySiteLayoutResponse(state, result);
           return true;
         }
         const layouts = await Promise.all(
@@ -484,7 +504,7 @@ export const useSiteLayout = () => {
         return false;
       }
       clearPageLayoutCaches();
-      applySiteLayoutResponse(result);
+      applySiteLayoutResponse(state, result);
       return true;
     } catch {
       return false;
@@ -511,3 +531,41 @@ export const useSiteLayout = () => {
     probeAndCommitRoute,
   };
 };
+
+/**
+ * The site layout for the component rendering it (the sidebar), called in
+ * its setup. A page the backend describes brings it with its props; a page
+ * only a frontend layer knows (a custom page) does not, and this loads it
+ * with the page then: a server render waits for it before rendering the
+ * component, and hands it to the browser, which takes it over before the
+ * component mounts instead of asking again.
+ */
+export function useRenderedSiteLayout(): void {
+  const state = useSiteLayoutState();
+  if (state.siteLayout.value) return;
+  const layout = useSiteLayout();
+  // Through `loadSiteLayout`, which sets the state: a middleware loading it
+  // at the same time (the auth guard of a custom page) joins this request.
+  const { data } = useApiData<SiteLayoutResponse | null>(
+    RENDERED_SITE_LAYOUT_KEY,
+    async () => {
+      await layout.loadSiteLayout();
+      const { siteLayout, siteLayoutTree, quickActions, modules, isOwner } =
+        state;
+      // What the page payload carries: the plain values, not the state.
+      return siteLayout.value
+        ? {
+            siteLayout: toRaw(siteLayout.value),
+            siteLayoutTree: toRaw(siteLayoutTree.value!),
+            quickActions: toRaw(quickActions.value!),
+            modules: toRaw(modules.value!),
+            isOwner: isOwner.value,
+          }
+        : null;
+    },
+  );
+  onBeforeMount(() => {
+    if (data.value && !state.siteLayout.value)
+      applySiteLayoutResponse(state, data.value);
+  });
+}

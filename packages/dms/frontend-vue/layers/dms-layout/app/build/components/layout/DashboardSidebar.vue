@@ -84,9 +84,6 @@ onBeforeUnmount(() =>
 );
 
 const siteLayout = useSiteLayout();
-if (!siteLayout.siteLayout.value) {
-  void siteLayout.loadSiteLayout();
-}
 
 const favoritePages = useFavoritePages();
 

@@ -1,38 +1,26 @@
 <script setup lang="ts">
-interface FileMetadataResponse {
-  resourceKey: string;
-  filename: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  expiresAt?: number;
-}
+import { useFileMetadata } from "../../build/composables/files/useFileMetadata";
 
 const props = defineProps<{
   resourceKey: string;
   storage?: string;
 }>();
 
-const { $authFetch } = useAuthFetch();
-const metadata = ref<FileMetadataResponse | null>(null);
-const isLoading = ref(true);
+// Read with the page: the server renders the file's name and link.
+const files = useFileMetadata(props.storage);
+watch(
+  () => props.resourceKey,
+  (key) => void files.resolve(key),
+  { immediate: true },
+);
+const metadata = computed(() => files.metadata(props.resourceKey));
+const isLoading = computed(
+  () => !metadata.value && !files.isUnavailable(props.resourceKey),
+);
 
 const isImage = computed(
   () => metadata.value?.mimetype.startsWith("image/") ?? false,
 );
-
-onMounted(async () => {
-  try {
-    metadata.value = await $authFetch<FileMetadataResponse>(
-      `/api/files/metadata`,
-      { query: { resourceKey: props.resourceKey, storage: props.storage } },
-    );
-  } catch {
-    metadata.value = null;
-  } finally {
-    isLoading.value = false;
-  }
-});
 </script>
 
 <template>

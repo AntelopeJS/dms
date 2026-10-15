@@ -2,7 +2,6 @@
 import DmsFieldError from "../../field-error/FieldError.vue";
 import { fieldErrorId } from "#dms-core/app/composables/useFieldErrors";
 import { FORM_FIELD_LOADING_KEY } from "../../../composables/form/types/field-loading";
-import { FORM_CONTENT_LANGUAGE_KEY } from "../../../composables/form/types/content-language";
 import type { PresignResponse } from "../../../composables/form/useUploadWithProgress";
 import { useKeyboardPlatform } from "../../../composables/global/keyboardPlatform";
 import {
@@ -13,10 +12,7 @@ import {
   type ImageResizeBounds,
   resizeImageToBounds,
 } from "../../../utils/imageResize";
-import {
-  isDefinitiveMetadataFailure,
-  resolveMetadataRetryDelay,
-} from "../../../utils/metadataRetry";
+import { useFileMetadata } from "../../../build/composables/files/useFileMetadata";
 
 export type ImageConstraints = FileFieldConstraints;
 
@@ -51,16 +47,6 @@ interface GalleryItem {
   principal: boolean;
   status: ItemStatus;
   progress: number;
-  expiresAt?: number;
-}
-
-interface FileMetadataResponse {
-  resourceKey: string;
-  filename: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  expiresAt?: number;
 }
 
 const props = defineProps<ImageProps>();
@@ -79,10 +65,10 @@ const { formatShortcut } = useKeyboardPlatform();
 const pasteShortcut = computed(() => formatShortcut(["meta", "v"]));
 const { uploadWithProgress } = useUploadWithProgress();
 const setFieldLoading = inject(FORM_FIELD_LOADING_KEY, null);
-const contentLanguage = inject(FORM_CONTENT_LANGUAGE_KEY, undefined);
+// Read with the page for the stored value, in the browser for a new one.
+const files = useFileMetadata(props.storage);
 
 const DEFAULT_ACCEPT = "image/*";
-const URL_REFRESH_LEAD_MS = 5000;
 const FAILURE_LABEL_KEYS: Partial<Record<ItemStatus, string>> = {
   error: "dms.form.image.upload_failed",
   unavailable: "dms.form.image.file_unavailable",
@@ -114,10 +100,6 @@ const dragItemId = ref<string | null>(null);
 const dragOverItemId = ref<string | null>(null);
 const detailItemId = ref<string | null>(null);
 const detailAltDraft = ref("");
-const metadataTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const metadataFailures = new Map<string, number>();
-const pendingMetadata = new Set<string>();
-let isDisposed = false;
 
 const toValueArray = (
   value: ImageItemValue | ImageItemValue[] | null | undefined,
@@ -126,84 +108,43 @@ const toValueArray = (
   return Array.isArray(value) ? value : [value];
 };
 
-const createItemFromValue = (value: ImageItemValue): GalleryItem => ({
-  id: crypto.randomUUID(),
-  key: value.key,
-  file: null,
-  url: "",
-  filename: value.key,
-  size: null,
-  width: null,
-  height: null,
-  alt: value.alt ?? "",
-  principal: value.principal ?? false,
-  status: "done",
-  progress: 100,
-});
-
-const scheduleItemMetadataRefresh = (item: GalleryItem, delay: number) => {
-  if (import.meta.env.SSR) return;
-  if (isDisposed || !items.value.some(({ id }) => id === item.id)) return;
-  const currentTimer = metadataTimers.get(item.id);
-  if (currentTimer) clearTimeout(currentTimer);
-  metadataTimers.set(
-    item.id,
-    setTimeout(() => fetchItemMetadata(item, true), delay),
-  );
-};
-
-const scheduleItemExpiryRefresh = (item: GalleryItem) => {
-  if (item.expiresAt === undefined) return;
-  const remaining = Math.max(item.expiresAt - Date.now(), 0);
-  const refreshLead = Math.min(URL_REFRESH_LEAD_MS, remaining / 2);
-  scheduleItemMetadataRefresh(item, remaining - refreshLead);
-};
-
-const handleItemMetadataFailure = (item: GalleryItem, error: unknown) => {
-  if (
-    isDefinitiveMetadataFailure(error) ||
-    !item.url ||
-    (item.expiresAt !== undefined && item.expiresAt <= Date.now())
-  ) {
-    item.url = "";
-    item.status = "unavailable";
-  }
-  const failures = (metadataFailures.get(item.id) ?? 0) + 1;
-  metadataFailures.set(item.id, failures);
-  const delay = resolveMetadataRetryDelay(error, failures);
-  if (delay !== null) scheduleItemMetadataRefresh(item, delay);
-};
-
-const fetchItemMetadata = async (item: GalleryItem, force = false) => {
-  if (isDisposed) return;
-  if (!item.key || (!force && item.url) || pendingMetadata.has(item.id)) return;
-
-  pendingMetadata.add(item.id);
-  try {
-    const metadata = await $authFetch<FileMetadataResponse>(
-      "/api/files/metadata",
-      {
-        query: { resourceKey: item.key, storage: props.storage },
-        headers: contentLanguage
-          ? { [CONTENT_LANGUAGE_HEADER]: contentLanguage }
-          : undefined,
+/**
+ * A stored image: what the tile shows of the file (its URL, name, size,
+ * whether it can be read) follows its shared metadata, so the server renders
+ * it and the URL stays fresh; the rest is the field's own.
+ */
+const createItemFromValue = (value: ImageItemValue): GalleryItem =>
+  Object.defineProperties(
+    {
+      id: crypto.randomUUID(),
+      key: value.key,
+      file: null,
+      width: null,
+      height: null,
+      alt: value.alt ?? "",
+      principal: value.principal ?? false,
+      progress: 100,
+    },
+    {
+      url: {
+        get: () => files.metadata(value.key)?.url ?? "",
+        enumerable: true,
       },
-    );
-    if (isDisposed || !items.value.some(({ id }) => id === item.id)) return;
-    item.url = metadata.url;
-    item.filename = metadata.filename;
-    item.size = metadata.size;
-    item.expiresAt = metadata.expiresAt;
-    item.status = "done";
-    metadataFailures.delete(item.id);
-    scheduleItemExpiryRefresh(item);
-  } catch (error) {
-    if (isDisposed || !items.value.some(({ id }) => id === item.id)) return;
-    handleItemMetadataFailure(item, error);
-  } finally {
-    pendingMetadata.delete(item.id);
-  }
-};
+      filename: {
+        get: () => files.lastRead(value.key)?.filename ?? value.key,
+        enumerable: true,
+      },
+      size: {
+        get: () => files.lastRead(value.key)?.size ?? null,
+        enumerable: true,
+      },
+      status: {
+        get: (): ItemStatus =>
+          files.isUnavailable(value.key) ? "unavailable" : "done",
+        enumerable: true,
+      },
+    },
+  ) as GalleryItem;
 
 const valueSignature = (values: ImageItemValue[]): string =>
   JSON.stringify(
@@ -225,17 +166,13 @@ const currentSignature = (): string =>
 
 const releaseItem = (item: GalleryItem) => {
   if (item.file && item.url) URL.revokeObjectURL(item.url);
-  const timer = metadataTimers.get(item.id);
-  if (timer) clearTimeout(timer);
-  metadataTimers.delete(item.id);
-  metadataFailures.delete(item.id);
 };
 
 const initializeFromModelValue = () => {
   items.value.forEach(releaseItem);
   const values = toValueArray(props.modelValue);
   items.value = values.map(createItemFromValue);
-  items.value.forEach((item) => fetchItemMetadata(item));
+  values.forEach((value) => void files.resolve(value.key));
 };
 
 initializeFromModelValue();
@@ -594,9 +531,7 @@ const itemMeta = (item: GalleryItem): string => {
 };
 
 onBeforeUnmount(() => {
-  isDisposed = true;
   items.value.forEach(releaseItem);
-  metadataTimers.forEach(clearTimeout);
 });
 </script>
 
