@@ -1,7 +1,7 @@
 import { computed, markRaw, ref, type ComputedRef, type Ref } from "vue";
 import { isRelativePreset } from "./presetResolvers";
 import { resolvesPeriodsAsBrowser } from "./periodTimeZone";
-import type { PeriodState } from "./types";
+import type { PeriodPreset, PeriodState } from "./types";
 
 interface PeriodScopeRegistration {
   state: ComputedRef<PeriodState>;
@@ -103,6 +103,26 @@ export function usePeriodScope(
     !isRelativePreset(state.preset) &&
     resolvesPeriodsAsBrowser();
   return computed(() => (resolvesAsBrowser ? state : null));
+}
+
+/**
+ * The preset of a period scope (`this-month`, `last-24h`), `null` while no
+ * selector registers it: what a badge naming the period shows.
+ *
+ * A preset is the same in every time zone and at every instant, so a server
+ * render knows it whenever the selector set up before the caller, also where
+ * `usePeriodScope` leaves the bounds to the browser. Like `usePeriodScope`,
+ * the server reads it once, as the caller sets up, and the browser follows it.
+ */
+export function usePeriodScopePreset(
+  id: string | undefined,
+): ComputedRef<PeriodPreset | null> {
+  if (!id) return computed(() => null);
+  const registry = usePeriodScopeRegistry();
+  if (typeof window !== "undefined")
+    return computed(() => readPeriodScope(registry, id)?.preset ?? null);
+  const preset = readPeriodScope(registry, id)?.preset ?? null;
+  return computed(() => preset);
 }
 
 /**
