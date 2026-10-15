@@ -102,15 +102,6 @@ const paddingLeft = computed(() => {
 const chevronClass = (isOpen: boolean) => {
   return theme({ isOpen }).chevron();
 };
-
-const { prefetchPageLayout } = usePrefetch();
-
-function onLinkHover(): void {
-  const { to } = props.item;
-  if (typeof to === "string") {
-    prefetchPageLayout(stripQueryAndHash(to));
-  }
-}
 </script>
 
 <template>
@@ -128,7 +119,6 @@ function onLinkHover(): void {
         :is="item.to ? DmsLink : 'div'"
         :to="item.to"
         :class="ui.topLevelButton()"
-        @mouseenter="onLinkHover"
       >
         <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
         <UIcon
@@ -150,7 +140,6 @@ function onLinkHover(): void {
       :class="ui.link()"
       :style="{ paddingLeft }"
       :title="item.title"
-      @mouseenter="onLinkHover"
     >
       <UIcon v-if="item.icon" :name="item.icon" :class="ui.icon()" />
       <span>{{ item.label }}</span>

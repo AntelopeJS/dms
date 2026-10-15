@@ -198,8 +198,6 @@ describe("NavigationMenu in a role preview", () => {
       if (!state.has(key)) state.set(key, ref(initial()));
       return state.get(key);
     });
-    vi.stubGlobal("usePrefetch", () => ({ prefetchPageLayout: vi.fn() }));
-    vi.stubGlobal("stripQueryAndHash", (path: string) => path);
     vi.stubGlobal("MENU_STATUS_TEXT_CLASSES", MENU_STATUS_TEXT_CLASSES);
     host = document.createElement("div");
     document.body.append(host);

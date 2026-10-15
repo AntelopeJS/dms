@@ -60,7 +60,7 @@ describe("[unit] pages/settings/users roles delete dialog", () => {
     expect(dialog.fields).to.equal(undefined);
   });
 
-  async function refusal(run: () => Promise<void>): Promise<HTTPResult> {
+  async function refusal(run: () => Promise<unknown>): Promise<HTTPResult> {
     try {
       await run();
     } catch (error) {

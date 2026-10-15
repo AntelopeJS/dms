@@ -1,8 +1,10 @@
 const MENU_CHANGED_EVENT_TYPE = "menu-changed";
 
 // A module signalled that the data behind the menu changed (a project created,
-// an access scope edited). The event carries no data: the site layout and the
-// permission set are re-fetched, each resolved server-side against this user.
+// an access scope edited, a role or a membership changed). The event carries
+// no data: the site layout, the page on screen and the permission set are
+// re-fetched, each resolved server-side against this user. The layout comes
+// back through Inertia, so the copy each visit carries over is the new one.
 export default defineDmsPlugin(() => {
   const realtime = useUserRealtime();
   const siteLayout = useSiteLayout();
@@ -16,7 +18,7 @@ export default defineDmsPlugin(() => {
         await Promise.all([
           // Background resync: a transient failure is logged below, never
           // escalated to the fatal error page over a working session.
-          siteLayout.refresh({ fatal: false }),
+          siteLayout.resync(),
           permissions.fetchPermissions(),
         ]);
       })

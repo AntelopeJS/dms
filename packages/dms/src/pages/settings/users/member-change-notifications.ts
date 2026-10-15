@@ -1,6 +1,7 @@
 // Notifications about members someone else edited or removed through the
 // members table. Its guards run before the write and know the row as it was;
 // the work they hand back runs once the write is done, in the same request.
+// A change of what a member may open also reloads the menus of the workspace.
 
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -10,6 +11,7 @@ import {
   type TenantMember,
   TenantMemberModel,
 } from "@antelopejs/interface-dms/db";
+import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils/notification-rules";
 import {
   type NotificationActor,
@@ -29,9 +31,18 @@ async function announceEdit(
   actor: NotificationActor,
 ): Promise<void> {
   const after = await GetModel(TenantMemberModel, tenantId).get(before._id);
+  if (!after) return;
+  const rolesChanged = !haveSameMembers(
+    before.roleIds ?? [],
+    after.roleIds ?? [],
+  );
+  // Compared as booleans: a row can hold null, which is not an owner either.
+  const isOwner = after.isTenantOwner === true;
+  const ownershipChanged = (before.isTenantOwner === true) !== isOwner;
+  if (rolesChanged || ownershipChanged) notifyMenuAccessChanged(tenantId);
   // Users changing their own membership know what they did.
-  if (!after || after.userId === actor.id) return;
-  if (!haveSameMembers(before.roleIds ?? [], after.roleIds ?? [])) {
+  if (after.userId === actor.id) return;
+  if (rolesChanged) {
     await notifyRolesChanged({
       tenantId,
       userId: after.userId,
@@ -39,9 +50,7 @@ async function announceEdit(
       actor,
     });
   }
-  // Compared as booleans: a row can hold null, which is not an owner either.
-  const isOwner = after.isTenantOwner === true;
-  if ((before.isTenantOwner === true) !== isOwner) {
+  if (ownershipChanged) {
     await notifyOwnershipChanged(after.userId, isOwner, actor);
   }
 }
@@ -52,8 +61,13 @@ async function announceRemovals(
   actor: NotificationActor,
 ): Promise<void> {
   const model = GetModel(TenantMemberModel, tenantId);
+  const removed: TenantMember[] = [];
   for (const member of members) {
-    if (await model.get(member._id)) continue;
+    if (!(await model.get(member._id))) removed.push(member);
+  }
+  // A removed member's open sessions lose the workspace's pages.
+  if (removed.length > 0) notifyMenuAccessChanged(tenantId);
+  for (const member of removed) {
     await notifyMemberRemoved({
       tenantId,
       removedUserId: member.userId,

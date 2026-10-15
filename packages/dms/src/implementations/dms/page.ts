@@ -544,6 +544,16 @@ export function NotifyMenuChanged(tenantId?: string): void {
   schedulePublishMenuChanged(tenantId);
 }
 
+/**
+ * What the sessions of a tenant may open changed (a role's permissions, a
+ * member's roles or ownership, a removal): their menus reload. The menu's
+ * structure did not change, so unlike {@link NotifyMenuChanged} the dev
+ * resync, which re-probes routes after a hot reload, stays out of it.
+ */
+export function notifyMenuAccessChanged(tenantId: string): void {
+  schedulePublishMenuChanged(tenantId);
+}
+
 const MODULE_CONTEXT_GONE = "ERR_MODULE_CONTEXT_INVALIDATED";
 
 function isModuleContextGone(error: unknown): boolean {

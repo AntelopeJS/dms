@@ -1,4 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -19,6 +20,7 @@ import {
   GetCategoryPermissionIds,
   GetMenuEntryPermissionIds,
   GetMenuOrder,
+  notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils/notification-rules";
 import {
@@ -314,10 +316,10 @@ export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
   values: Record<string, unknown> | undefined,
-): Promise<void> {
+): Promise<AfterWrite | undefined> {
   if (!values) {
     for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);
-    return;
+    return undefined;
   }
   const { reassignTo } = assertValidation(values, (v) =>
     roleDeleteSchema.parse(v),
@@ -336,4 +338,7 @@ export async function prepareRoleDeletion(
   for (const roleId of roleIds) {
     await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined);
   }
+  // The holders now hold another role, or none: their menus reload once the
+  // roles are gone.
+  return () => notifyMenuAccessChanged(tenantId);
 }
