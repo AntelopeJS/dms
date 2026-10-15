@@ -27,6 +27,16 @@ import {
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 import type { PageValidation } from "../layers/dms-layout/app/types/page";
 
+// The page's data refresh and the visit's navigation badges read the
+// realtime session and Inertia's page, which these tests do not run.
+vi.mock(
+  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
+  () => ({ usePageDataRefresh: () => {} }),
+);
+vi.mock(
+  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
+  () => ({ useVisitNavBadges: () => {} }),
+);
 vi.mock(
   "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
   async () => {

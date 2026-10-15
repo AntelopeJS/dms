@@ -282,7 +282,7 @@ it("asks the delete dialog the server words, then deletes with the picked role",
   await flush();
 
   expect(authFetch).toHaveBeenCalledWith(
-    "/settings/workspace/roles/role-1/delete-confirm",
+    "/dms/pages/settings/workspace/roles/role-1/delete-confirm",
   );
   expect(api.deleteRole).toHaveBeenCalledWith("role-1", {
     reassignTo: "role-2",
