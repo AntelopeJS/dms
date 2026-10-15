@@ -1,7 +1,9 @@
 import type {
   DmsAsyncDataKey,
   DmsAsyncDataResult,
+  DmsPagedDataResult,
   UseAsyncDataOptions,
+  UseDmsPagedDataOptions,
   UseFetchOptions,
 } from "#dms/frontend-module";
 import type { MaybeRefOrGetter } from "vue";
@@ -56,8 +58,10 @@ export type ApiDataResult<T> = DmsAsyncDataResult<T>;
  *   data to the browser (for what only the browser knows).
  * - `immediate: false` waits for `execute()`: a dialog or a drawer reads
  *   what it shows once it opens.
- * - `refreshInterval: ms` reads again on an interval while a component shows
- *   the data and the page is visible: polling.
+ * - `refreshInterval: ms` reads again on an interval while the caller shows
+ *   the data and the page is visible: polling. A ref or a getter changes it,
+ *   and `0` or `null` stops it; a call from a plugin polls for as long as
+ *   the application runs.
  * - The page's refreshes (`refreshPageBlocks()`) and the events of its
  *   realtime topics read the data again; `refreshOnPageRefresh: false` opts
  *   out, for data with refresh triggers of its own.
@@ -92,4 +96,52 @@ export function useApiData<T>(
     ...handlerOrOptions,
     $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
   });
+}
+
+/** What a handler reading one page of API data receives. */
+export interface ApiPagedDataContext<TCursor> extends ApiDataContext {
+  /** The page to read: `initialCursor` (none by default) for the first one. */
+  cursor: TCursor | undefined;
+  /** Its position, from `0`. */
+  index: number;
+}
+
+export type ApiPagedDataHandler<TPage, TCursor> = (
+  context: ApiPagedDataContext<TCursor>,
+) => Promise<TPage>;
+
+/**
+ * What `useApiPagedData` returns: `useApiData`'s result over the pages
+ * loaded, with `pages`, `hasMore`, `loadingMore` and `loadMore()`.
+ */
+export type ApiPagedDataResult<TPage, TCursor> = DmsPagedDataResult<
+  TPage,
+  TCursor
+>;
+
+/**
+ * Reads a backend list page by page under one key: a "load more" button, an
+ * infinite list. The handler reads the page at `cursor` through `$authFetch`;
+ * `nextCursor(page, pages)` gives the next page's cursor, or `null` at the
+ * end. A server render shows the first page, `loadMore()` appends the next
+ * one, and a revalidation (a mount, the page's refreshes, the polling)
+ * reads every page loaded so far again. Put what filters the list in the
+ * key (a ref or a getter for it): a new key starts from its first page.
+ *
+ * @param key The key, or a ref or getter for it
+ * @param handler Reads one page
+ * @param options `nextCursor`, `initialCursor` and `useApiData`'s options
+ */
+export function useApiPagedData<TPage, TCursor = unknown>(
+  key: MaybeRefOrGetter<DmsAsyncDataKey>,
+  handler: ApiPagedDataHandler<TPage, TCursor>,
+  options: UseDmsPagedDataOptions<TPage, TCursor>,
+): ApiPagedDataResult<TPage, TCursor> {
+  const { $authFetch } = useAuthFetch();
+  return useDmsPagedData<TPage, TCursor>(
+    key,
+    ({ cursor, index, signal }) =>
+      handler({ $authFetch, cursor, index, signal }),
+    options,
+  );
 }

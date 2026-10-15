@@ -40,10 +40,11 @@ const { useAuthFetch } = await import(
   "../layers/dms-core/app/composables/auth/useAuthFetch"
 );
 vi.stubGlobal("useAuthFetch", useAuthFetch);
-const { useApiData } = await import(
+const { useApiData, useApiPagedData } = await import(
   "../layers/dms-core/app/composables/auth/useApiData"
 );
 vi.stubGlobal("useApiData", useApiData);
+vi.stubGlobal("useDmsPagedData", engine.useDmsPagedData);
 
 interface Sent {
   url: string;
@@ -139,9 +140,12 @@ describe("useApiData", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
     expect(sent[0]!.signal).toBeInstanceOf(AbortSignal);
-    expect(Object.values(payload.data)).toEqual([
-      { url: "/api/orders", page: 1 },
-    ]);
+    expect(payload.data).toEqual({
+      [engine.dmsRequestKey("/api/orders", { query: { page: 1 } })!]: {
+        url: "/api/orders",
+        page: 1,
+      },
+    });
 
     sent.length = 0;
     const container = hydrate(Orders, html, payload);
@@ -270,7 +274,120 @@ describe("useApiData", () => {
     expect(sent).toHaveLength(afterUnmount);
   });
 
+  it("follows a reactive refreshInterval, and stops at 0", async () => {
+    const interval = ref(20);
+    const Install = defineComponent({
+      setup() {
+        useApiData("/api/install-check", { refreshInterval: interval });
+        return () => h("p");
+      },
+    });
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp(Install);
+    engine.provideDmsFrontendRuntime(app, runtime);
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent.length).toBeGreaterThan(1);
+
+    interval.value = 0;
+    await settle();
+    const stopped = sent.length;
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent).toHaveLength(stopped);
+  });
+
+  it("polls from a plugin, outside any component", async () => {
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp({ render: () => null });
+    engine.provideDmsFrontendRuntime(app, runtime);
+    const polling = ref(true);
+    await settle();
+    app.runWithContext(() =>
+      useApiData("/api/_ai/status", {
+        refreshInterval: () => (polling.value ? 20 : null),
+      }),
+    );
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent.length).toBeGreaterThan(1);
+
+    polling.value = false;
+    await settle();
+    const stopped = sent.length;
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent).toHaveLength(stopped);
+    runtime.scope.stop();
+  });
+
   it("is the one read helper: useAuthFetch returns $authFetch alone", () => {
     expect(Object.keys(useAuthFetch())).toEqual(["$authFetch"]);
+  });
+});
+
+describe("useApiPagedData", () => {
+  interface Listing {
+    url: string;
+    page: number | null;
+  }
+  const LAST_PAGE = 3;
+
+  function listing() {
+    let list: ReturnType<typeof useApiPagedData<Listing, number>> | undefined;
+    const Explorer = defineComponent({
+      setup() {
+        list = useApiPagedData<Listing, number>(
+          "media:root",
+          ({ $authFetch, cursor, signal }) =>
+            $authFetch<Listing>("/api/media", {
+              query: { page: cursor },
+              signal,
+            }),
+          {
+            initialCursor: 1,
+            nextCursor: (page) =>
+              (page.page ?? LAST_PAGE) < LAST_PAGE ? page.page! + 1 : null,
+          },
+        );
+        return () =>
+          h("p", list!.pages.value.map((page) => page.page).join(","));
+      },
+    });
+    return { Explorer, list: () => list! };
+  }
+
+  it("renders the first page on the server, then loads more in the browser", async () => {
+    const server = listing();
+    const { html, payload } = await serverRender(server.Explorer);
+    expect(html).toBe("<p>1</p>");
+    expect(sent[0]!.headers.get("x-content-language")).toBe("fr");
+
+    sent.length = 0;
+    const browser = listing();
+    const container = hydrate(browser.Explorer, html, payload);
+    await settle();
+    expect(sent).toEqual([]);
+
+    await browser.list().loadMore();
+    await browser.list().loadMore();
+    await settle();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 2 }, { page: 3 }]);
+    expect(container.textContent).toBe("1,2,3");
+    expect(browser.list().hasMore.value).toBe(false);
+  });
+
+  it("reads every loaded page again on a refresh", async () => {
+    const { Explorer, list } = listing();
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp(Explorer);
+    engine.provideDmsFrontendRuntime(app, runtime);
+    app.mount(document.createElement("div"));
+    mounted.push(app);
+    await settle();
+    await list().loadMore();
+    sent.length = 0;
+
+    await list().refresh();
+    expect(sent.map(({ query }) => query)).toEqual([{ page: 1 }, { page: 2 }]);
+    expect(list().pages.value).toHaveLength(2);
   });
 });

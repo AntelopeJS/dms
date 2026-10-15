@@ -11,6 +11,15 @@ export const BLOCK_REFRESH_EVENT = "DmsComponent.Block.Refresh";
  */
 export const LIVE_BLOCK_REFRESH_EVENT = "DmsComponent.Block.LiveRefresh";
 
+/**
+ * The detail of a `refreshPageBlocks()` event: a listener whose refresh
+ * takes time hands its promise to `waitUntil`, and the call resolves once
+ * every one settled.
+ */
+export interface PageBlocksRefreshDetail {
+  waitUntil(work: Promise<unknown>): void;
+}
+
 /** The watch functions every block can name (see interface-dms). */
 export const BlockFunctions = {
   REFRESH_PAGE: "DmsComponent.Block.RefreshPage",
@@ -23,10 +32,30 @@ export const BlockFunctions = {
  * through `BlockFunctions.REFRESH_PAGE` once it saved. A user action always
  * refreshes: on a page declared with `live` it reads even while paused, and
  * the blocks it reads no longer count what they had missed.
+ *
+ * @returns Resolves once the page's data refresh (its `useApiData` reads)
+ *   is done, failed reads included: they keep their `error`
  */
-export function refreshPageBlocks(): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(BLOCK_REFRESH_EVENT));
+export function refreshPageBlocks(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  const pending: Array<Promise<unknown>> = [];
+  const detail: PageBlocksRefreshDetail = {
+    waitUntil: (work) => void pending.push(work),
+  };
+  window.dispatchEvent(new CustomEvent(BLOCK_REFRESH_EVENT, { detail }));
+  return Promise.allSettled(pending).then(() => undefined);
+}
+
+/**
+ * Has `refreshPageBlocks()` wait for `work` too, when `event` is one of its
+ * events.
+ */
+export function waitForPageBlocksRefresh(
+  event: Event,
+  work: Promise<unknown>,
+): void {
+  const detail = (event as CustomEvent<PageBlocksRefreshDetail | null>).detail;
+  detail?.waitUntil(work);
 }
 
 /**

@@ -9,7 +9,7 @@ import { createApp } from "vue";
 import { vi } from "vitest";
 
 const engine = await import("#dms/frontend-module");
-const { useApiData } = await import(
+const { useApiData, useApiPagedData } = await import(
   "../../layers/dms-core/app/composables/auth/useApiData"
 );
 
@@ -17,9 +17,11 @@ const ENGINE_GLOBALS = {
   useDmsAsyncData: engine.useDmsAsyncData,
   useDmsLazyAsyncData: engine.useDmsLazyAsyncData,
   useDmsFetch: engine.useDmsFetch,
+  useDmsPagedData: engine.useDmsPagedData,
   useDmsState: engine.useDmsState,
   useDmsCookie: engine.useDmsCookie,
   useApiData,
+  useApiPagedData,
 };
 
 export function useRealDataEngine(): ReturnType<

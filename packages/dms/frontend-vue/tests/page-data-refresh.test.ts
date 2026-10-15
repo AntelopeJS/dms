@@ -12,9 +12,12 @@ import { useRealDataEngine } from "./fixtures/dataEngine";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 
 const requests: string[] = [];
+// Holds the answers back while set.
+let held: Promise<void> | undefined;
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: async (url: string) => {
     requests.push(url);
+    await held;
     return { url };
   },
 }));
@@ -78,6 +81,30 @@ describe("the page's data refresh", () => {
     refreshPageBlocks();
     await settle();
 
+    expect(requests).toEqual(["/api/orders"]);
+  });
+
+  it("resolves refreshPageBlocks() once the page's data is read again", async () => {
+    await mountPage();
+    requests.length = 0;
+    let release!: () => void;
+    held = new Promise<void>((resolve) => (release = resolve));
+    let done = false;
+    const refreshed = refreshPageBlocks().then(() => (done = true));
+    await settle();
+    expect(requests).toEqual(["/api/orders"]);
+    expect(done).toBe(false);
+
+    release();
+    held = undefined;
+    await refreshed;
+    expect(done).toBe(true);
+  });
+
+  it("joins the refreshes of one burst", async () => {
+    await mountPage();
+    requests.length = 0;
+    await Promise.all([refreshPageBlocks(), refreshPageBlocks()]);
     expect(requests).toEqual(["/api/orders"]);
   });
 
