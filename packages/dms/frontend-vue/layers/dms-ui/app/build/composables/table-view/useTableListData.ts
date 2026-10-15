@@ -78,7 +78,11 @@ export function useTableListData<T extends Record<string, unknown>>(
       isSelfManaged.value
         ? Promise.resolve(EMPTY_LIST_RESULT)
         : rows.list({ ...query.value, ...archiveQuery.value, ...heldQuery() }),
-    { watch: [query, archiveQuery, isSelfManaged, rows.sourceUrl] },
+    {
+      watch: [query, archiveQuery, isSelfManaged, rows.sourceUrl],
+      // The table reads again on its own triggers, through its live hold.
+      refreshOnPageRefresh: false,
+    },
   );
 }
 
@@ -109,6 +113,9 @@ export function useTableCountsData<T extends Record<string, unknown>>(
         })),
       );
     },
-    { watch: [queries, archiveQuery, rows.sourceUrl] },
+    {
+      watch: [queries, archiveQuery, rows.sourceUrl],
+      refreshOnPageRefresh: false,
+    },
   );
 }

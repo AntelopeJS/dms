@@ -3,6 +3,7 @@ import { withoutTrailingSlash } from "ufo";
 import { holdPageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import { useDevReloading } from "../build/composables/dev-reload/useDevReloadHolder";
 import { usePageLiveHost } from "#dms-ui/app/build/composables/live/usePageLiveHost";
+import { usePageDataRefresh } from "#dms-ui/app/build/composables/live/usePageDataRefresh";
 import { pageValidationRedirect } from "../build/utils/pageValidationRedirect";
 
 defineOptions({ inheritAttrs: false });
@@ -246,6 +247,8 @@ usePageLiveHost(
   }),
   { isStreamConnected: () => !!realtime.sessionId.value },
 );
+// The page's `useApiData` reads follow its refreshes and its realtime events.
+usePageDataRefresh(realtime);
 
 function buildPageSetupContext(
   pageInfo: PageInfo,

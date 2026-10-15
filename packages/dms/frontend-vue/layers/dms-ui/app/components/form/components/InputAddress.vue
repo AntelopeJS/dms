@@ -271,6 +271,8 @@ const dynamicCountryData = props.searchUrl
       lazy: true,
       immediate: false,
       watch: [countrySearchTermDebounced],
+      // Options to pick from, not the page's data.
+      refreshOnPageRefresh: false,
     })
   : { data: ref(null), status: ref("idle"), execute: () => {} };
 

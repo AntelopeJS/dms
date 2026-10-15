@@ -83,7 +83,8 @@ const { data, status, execute } = await useDmsAsyncData(
       },
     });
   },
-  { lazy: true, immediate: false },
+  // Options to pick from, not the page's data.
+  { lazy: true, immediate: false, refreshOnPageRefresh: false },
 );
 
 const keyMapping = computed(() => resolveCascaderKeyMapping(props.keyMapping));

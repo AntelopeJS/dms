@@ -51,9 +51,7 @@ export function useTableFooter(options: TableFooterOptions) {
     ids: summaries.map((summary) => summary.id),
   }));
 
-  const { data: values, refresh } = useDmsLazyAsyncData<
-    Record<string, number>
-  >(
+  const { data: values, refresh } = useDmsLazyAsyncData<Record<string, number>>(
     `${options.dataKey}-summary`,
     () =>
       summaries.length === 0
@@ -61,7 +59,8 @@ export function useTableFooter(options: TableFooterOptions) {
         : $authFetch<Record<string, number>>(`${location}/summary`, {
             query: summaryQuery.value,
           }),
-    { watch: [summaryQuery] },
+    // Read again with the table's rows, on the table's own triggers.
+    { watch: [summaryQuery], refreshOnPageRefresh: false },
   );
 
   const formatSummary = (

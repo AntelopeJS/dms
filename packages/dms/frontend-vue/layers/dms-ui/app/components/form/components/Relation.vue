@@ -235,6 +235,8 @@ const { data, status, execute } = await useDmsAsyncData(
     lazy: true,
     immediate: false,
     watch: [searchTermDebounced],
+    // Options to pick from, not the page's data.
+    refreshOnPageRefresh: false,
   },
 );
 

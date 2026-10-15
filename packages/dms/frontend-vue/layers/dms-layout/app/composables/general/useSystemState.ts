@@ -25,6 +25,8 @@ export const useSystemState = () => {
     {
       default: () => ({ ...DEFAULT_SYSTEM_STATE }),
       server: true,
+      // The deployment's state, not the page's data.
+      refreshOnPageRefresh: false,
     },
   );
 

@@ -10,6 +10,8 @@ export interface PageRealtimeApi {
   subscribe(topic: string, handler: RealtimeTopicHandler): () => void;
   sessionId: Ref<string | undefined>;
   pageId: Ref<string | undefined>;
+  /** The page's realtime topics, once the session is subscribed to it. */
+  pageTopics: Ref<string[]>;
 }
 
 interface PageClaim {
@@ -70,6 +72,7 @@ export function usePageRealtime(
     subscribe: user.subscribe,
     sessionId: user.sessionId,
     pageId: resolvedPageId,
+    pageTopics: user.pageTopics,
   };
 }
 

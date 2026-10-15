@@ -190,6 +190,9 @@ export function useChartFetch<T>(
     lazy: true,
     default: () => readStaticData(options.staticData) as T,
     watch: [() => request.current.value.watched],
+    // Read again on its own triggers (realtime topic, page refresh, live
+    // gate): left out of the page's data refresh, which would read it twice.
+    refreshOnPageRefresh: false,
   });
   const { data, status, error } = loaded;
   // A 404 says what the block showed is gone (another tab deleted it, the

@@ -137,7 +137,11 @@ const { data, status, refresh } = await useDmsLazyAsyncData(
       boardColumns.value.map((col, index) => [col.value, pages[index]]),
     );
   },
-  { watch: [boardColumnsKey, () => props.baseQuery, pageSize] },
+  {
+    watch: [boardColumnsKey, () => props.baseQuery, pageSize],
+    // Its table view refreshes it, on the table's own triggers.
+    refreshOnPageRefresh: false,
+  },
 );
 
 // Nothing fetched yet (a client navigation paints first): the columns hold
