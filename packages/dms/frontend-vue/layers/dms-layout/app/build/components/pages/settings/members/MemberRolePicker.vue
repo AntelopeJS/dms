@@ -84,10 +84,9 @@ const showsOwnerHint = computed(() =>
 );
 
 // Read with the form: a page-mode form renders the pills on the server; a
-// drawer opened again reads the roles again (one may have been added since).
-const roleOptions = useApiData<RoleOptionsResponse>(() => props.rolesUrl, {
-  refreshOnMount: true,
-});
+// drawer opened again shows the roles at once and reads them again in the
+// background (one may have been added since).
+const roleOptions = useApiData<RoleOptionsResponse>(() => props.rolesUrl);
 const options = computed<RoleOptionsResponse>(
   () => roleOptions.data.value ?? { roles: [], totalPermissions: 0 },
 );
