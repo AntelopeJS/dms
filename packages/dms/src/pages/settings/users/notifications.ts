@@ -455,9 +455,10 @@ export class NotificationsApiController extends Controller(
     await this.assertOwnNotification(notificationsModel, id);
 
     await notificationsModel.markAsRead(id);
-    await publishNotificationsRead(this.user._id, [id]);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsRead(this.user._id, [id], counts);
 
-    return { success: true };
+    return { success: true, counts };
   }
 
   @Put("/mark-unread/:id")
@@ -469,9 +470,10 @@ export class NotificationsApiController extends Controller(
     await this.assertOwnNotification(notificationsModel, id);
 
     await notificationsModel.markAsUnread(id);
-    await publishNotificationsUnread(this.user._id, [id]);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsUnread(this.user._id, [id], counts);
 
-    return { success: true };
+    return { success: true, counts };
   }
 
   @Delete("/delete/:id")
@@ -484,12 +486,13 @@ export class NotificationsApiController extends Controller(
 
     await notificationsModel.delete(id);
 
-    return { success: true };
+    return { success: true, counts: await this.feedCounts(notificationsModel) };
   }
 
   /**
    * Marks the whole feed read, or only what the inbox filter keeps. Returns
-   * the batch id that `PUT /mark-all-read/:batchId/undo` takes to undo it.
+   * the batch id that `PUT /mark-all-read/:batchId/undo` takes to undo it,
+   * and the feed's counts after it.
    */
   @Put("/mark-all-read")
   async markAllAsRead(
@@ -502,14 +505,15 @@ export class NotificationsApiController extends Controller(
       this.user._id,
       filter,
     );
+    const counts = await this.feedCounts(notificationsModel);
     // A filtered pass names its rows: "all read" would clear the others too.
     if (isFilteredFeed(filter)) {
-      await publishNotificationsRead(this.user._id, ids);
+      await publishNotificationsRead(this.user._id, ids, counts);
     } else {
-      await publishAllNotificationsRead(this.user._id);
+      await publishAllNotificationsRead(this.user._id, counts);
     }
 
-    return { success: true, batchId };
+    return { success: true, batchId, counts };
   }
 
   /**
@@ -526,9 +530,10 @@ export class NotificationsApiController extends Controller(
       this.user._id,
       batchId,
     );
-    await publishNotificationsUnread(this.user._id, ids);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsUnread(this.user._id, ids, counts);
 
-    return { success: true, ids };
+    return { success: true, ids, counts };
   }
 
   /** Deletes the whole feed, or only what the inbox filter keeps. */
@@ -541,6 +546,17 @@ export class NotificationsApiController extends Controller(
     await notificationsModel.deleteAll(this.user._id, readFeedFilter(context));
 
     return { success: true };
+  }
+
+  /**
+   * The whole feed's counts after a write, which the write answers and its
+   * realtime event carries: the bell of the tab that wrote and of every other
+   * tab of the user takes them as they are, without reading them again.
+   */
+  private feedCounts(
+    notificationsModel: UserNotificationsModel,
+  ): Promise<UserNotificationCounts> {
+    return notificationsModel.countFeedWithUnreadTone(this.user._id);
   }
 
   private async assertOwnNotification(
