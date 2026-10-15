@@ -30,13 +30,13 @@ const NOW = new Date("2026-10-15T12:00:00Z").getTime();
 const MINUTE = 60_000;
 
 const ANSWERS: Record<string, unknown> = {
-  "/settings/user/security": {
+  "/dms/pages/settings/user/security": {
     activeSessions: 2,
     attention: ["two_factor_off"],
     attentionTone: "warning",
     attentionTones: { two_factor_off: "warning" },
   },
-  "/settings/user/security/sessions": [
+  "/dms/pages/settings/user/security/sessions": [
     {
       _id: "other",
       browser: "Firefox",
@@ -46,14 +46,14 @@ const ANSWERS: Record<string, unknown> = {
       isCurrent: false,
     },
   ],
-  "/settings/user/notifications/categories": {
+  "/dms/pages/settings/user/notifications/categories": {
     categories: [{ id: "core", labelKey: "Core", icon: "i-ph-bell" }],
     subjects: [
       { id: "login", labelKey: "Login", category: { id: "core" } },
       { id: "mention", labelKey: "Mention", category: { id: "core" } },
     ],
   },
-  "/settings/user/notifications/preferences": { "core:mention": false },
+  "/dms/pages/settings/user/notifications/preferences": { "core:mention": false },
 };
 
 const authFetch = vi.fn(async (url: string, options?: { method?: string }) => {
@@ -121,7 +121,7 @@ describe("Security", () => {
     const { html, server, browser, hydrationWarnings } =
       await renderAndHydrate(Page);
     expect(html).toBe("<div><p>2:two_factor_off</p><p>2:two_factor_off</p></div>");
-    expect(server).toEqual(["/settings/user/security"]);
+    expect(server).toEqual(["/dms/pages/settings/user/security"]);
     expect(browser).toEqual([]);
     expect(hydrationWarnings).toEqual([]);
   });
@@ -212,8 +212,8 @@ describe("Notification preferences", () => {
       "<div><ul><li>login:true</li><li>mention:false</li></ul><p>Core</p></div>",
     );
     expect(server.sort()).toEqual([
-      "/settings/user/notifications/categories",
-      "/settings/user/notifications/preferences",
+      "/dms/pages/settings/user/notifications/categories",
+      "/dms/pages/settings/user/notifications/preferences",
     ]);
     expect(browser).toEqual([]);
     expect(hydrationWarnings).toEqual([]);

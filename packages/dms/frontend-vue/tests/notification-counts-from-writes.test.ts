@@ -142,16 +142,16 @@ it("takes the counts a write answers, and reads nothing for its echo after the a
 
   streamHandler!(echo("notification:read", ["risk"]));
   await settle();
-  expect(requests).toEqual(["PUT /settings/user/notifications/mark-read/risk"]);
+  expect(requests).toEqual(["PUT /dms/pages/settings/user/notifications/mark-read/risk"]);
   expect(bell.unreadCount.value).toBe(1);
 
   await bell.markAsUnread("risk");
   await bell.deleteNotification("check");
   await settle();
   expect(requests).toEqual([
-    "PUT /settings/user/notifications/mark-read/risk",
-    "PUT /settings/user/notifications/mark-unread/risk",
-    "DELETE /settings/user/notifications/delete/check",
+    "PUT /dms/pages/settings/user/notifications/mark-read/risk",
+    "PUT /dms/pages/settings/user/notifications/mark-unread/risk",
+    "DELETE /dms/pages/settings/user/notifications/delete/check",
   ]);
   expect([bell.unreadCount.value, bell.unreadTone.value]).toEqual([
     1,
@@ -176,7 +176,7 @@ it("reads nothing when the write's echo comes before its answer", async () => {
   await writing;
   await settle();
   expect(requests).toEqual([
-    "PUT /settings/user/notifications/mark-read/check",
+    "PUT /dms/pages/settings/user/notifications/mark-read/check",
   ]);
   expect(bell.unreadCount.value).toBe(1);
 });
@@ -212,7 +212,7 @@ it("reads the counts when an event carries none", async () => {
   feed[0]!.isRead = true;
   streamHandler!({ type: "notification:read", payload: { ids: ["risk"] } });
   await settle();
-  expect(requests).toEqual(["GET /settings/user/notifications/counts"]);
+  expect(requests).toEqual(["GET /dms/pages/settings/user/notifications/counts"]);
   expect(bell.unreadCount.value).toBe(1);
 });
 
@@ -220,7 +220,7 @@ it("keeps the counts when a write fails", async () => {
   failWrites = true;
   await expect(bell.markAsRead("risk")).rejects.toThrow("refused");
   await settle();
-  expect(requests).toEqual(["PUT /settings/user/notifications/mark-read/risk"]);
+  expect(requests).toEqual(["PUT /dms/pages/settings/user/notifications/mark-read/risk"]);
   expect([bell.unreadCount.value, bell.unreadTone.value]).toEqual([
     2,
     "error",

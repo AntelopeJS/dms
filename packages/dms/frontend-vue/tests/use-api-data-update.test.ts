@@ -85,10 +85,12 @@ describe("useDmsData on a useApiData read", () => {
   it("applies a realtime change to a read another component shows", async () => {
     const Archive = defineComponent({
       setup() {
+        // In place changes need a deep read: reads are shallow by default.
         const { data } = useApiData<Task[]>(
           "task-archive",
           ({ $authFetch, signal }) =>
             $authFetch<Task[]>("/api/archive", { signal }),
+          { deep: true },
         );
         return () => h("p", titles(data.value));
       },
