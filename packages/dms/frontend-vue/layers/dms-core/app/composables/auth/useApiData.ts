@@ -68,7 +68,8 @@ export type ApiDataRequest = MaybeRefOrGetter<string | null | undefined>;
  * leaves the data to the browser (for what only the browser knows), and
  * `immediate: false` waits for `execute()`, and `refreshOnPageRefresh` reads
  * again with the page's blocks. A mutation or a read on a click stays an
- * `$authFetch` call.
+ * `$authFetch` call; `useDmsData(key)` puts its answer in the data in place
+ * (the URL form names its key with `key`).
  */
 export function useApiData<T>(
   url: ApiDataRequest,
