@@ -143,6 +143,7 @@ function installRuntime(): void {
     useUserSession: () => ({ loggedIn }),
     // The page brought its site layout.
     useRenderedSiteLayout: () => {},
+    useRenderedBellCounts: () => {},
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

@@ -3,6 +3,7 @@ import {
   computed,
   createApp,
   defineComponent,
+  effectScope,
   h,
   onMounted,
   ref,
@@ -308,13 +309,26 @@ describe("Security page badge", () => {
     const { useSecurityOverview } = await import(
       "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview"
     );
+    const { engine, browserRuntime } = await import(
+      "./helpers/api-data-runtime"
+    );
+    const { useApiData } = await import(
+      "../layers/dms-core/app/composables/auth/useApiData"
+    );
+    vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+    vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
+    vi.stubGlobal("useApiData", useApiData);
     vi.stubGlobal("useAuthFetch", () => ({
       $authFetch: vi.fn(async () => ({
         attention: ["backup_codes_low", "backup_codes_unsaved"],
         attentionTone: "error",
       })),
     }));
-    await useSecurityOverview().refresh();
+    browserRuntime();
+    const scope = effectScope();
+    const overview = scope.run(() => useSecurityOverview())!;
+    await overview.refresh();
+    scope.stop();
     expect(liveBadges()?.value["settings.user.security"]).toEqual({
       label: "2",
       tone: "error",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, useTemplateRef } from "vue";
+import { useTemplateRef } from "vue";
 import * as z from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui";
 import StageCard from "../../../../dms-layout/app/build/components/layout/StageCard.vue";
@@ -78,7 +78,6 @@ const config = useDmsRuntimeConfig();
 const homepage = useHomepage();
 const dmsApp = useDmsApp();
 const { formError, clearFormError, showError } = useAuthFormError();
-const { $authFetch } = useAuthFetch();
 const form = useTemplateRef<AuthFormHandle>("form");
 
 const route = useDmsRoute();
@@ -91,33 +90,31 @@ const hasInvitationToken = computed(
   () => typeof queryToken.value === "string" && queryToken.value !== "",
 );
 
-const invitationState = ref<InvitationState>(
-  hasInvitationToken.value ? "checking" : "invalid",
+// A revoked, replaced or expired link says so as the page opens, rather than
+// after the whole form was filled: checked with the page, so the server
+// renders the notice. The server answers with the very check the signup
+// runs; any other failure leaves the form to the signup to settle.
+const invitationCheck = useApiData(
+  () => (hasInvitationToken.value ? "/api/auth/validate-invite-token" : null),
+  {
+    method: "POST",
+    body: () => ({ token: queryToken.value, email: queryEmail.value }),
+  },
 );
+// The invitation can be retired while the form is open: the signup says so.
+const closedOnSignup = ref<ClosedInvitation>();
+const invitationState = computed<InvitationState>(() => {
+  if (!hasInvitationToken.value) return "invalid";
+  if (closedOnSignup.value) return closedOnSignup.value;
+  const { status, error } = invitationCheck;
+  if (status.value === "idle" || status.value === "pending") return "checking";
+  return error.value ? (closedInvitationOf(error.value) ?? "open") : "open";
+});
 const closedInvitation = computed(() =>
   invitationState.value in CLOSED_INVITATION_NOTICES
     ? CLOSED_INVITATION_NOTICES[invitationState.value as ClosedInvitation]
     : undefined,
 );
-
-// A revoked, replaced or expired link says so as the page opens, rather than
-// after the whole form was filled. The server answers with the very check the
-// signup runs; any other failure leaves the form to the signup to settle.
-async function checkInvitation(): Promise<void> {
-  try {
-    await $authFetch("/api/auth/validate-invite-token", {
-      method: "POST",
-      body: { token: queryToken.value, email: queryEmail.value },
-    });
-    invitationState.value = "open";
-  } catch (error: unknown) {
-    invitationState.value = closedInvitationOf(error) ?? "open";
-  }
-}
-
-onMounted(() => {
-  if (invitationState.value === "checking") void checkInvitation();
-});
 
 // The invitation link carries the language the invitee was invited in: the
 // page opens in it, and the footer switcher still lets them pick another one
@@ -167,7 +164,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     // The invitation can be retired while the form is open.
     const closed = closedInvitationOf(error);
     if (closed) {
-      invitationState.value = closed;
+      closedOnSignup.value = closed;
       return;
     }
     // A refused value (an address already used) shows under its field;

@@ -1,4 +1,5 @@
 import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
+import { onBeforeMount } from "vue";
 import { NotificationEvents } from "./types/events";
 import { unreadToneWith } from "../../build/components/pages/settings/notification/notificationDisplay";
 
@@ -31,13 +32,14 @@ export interface UserNotification {
  * bell, the Notifications entry): the most important unread notification's,
  * which the server weighs as the inbox draws it.
  */
-interface FeedCounts {
+export interface FeedCounts {
   all: number;
   unread: number;
   unreadTone?: NotificationTone;
 }
 
 const API_BASE = pageRoutePath("/settings/user/notifications");
+const BELL_COUNTS_DATA_KEY = "dms-notification-bell-counts";
 const NOTIFICATION_COMPONENT_ID = "global-notifications";
 const NOTIFICATIONS_PAGE_SIZE = 20;
 
@@ -131,11 +133,20 @@ export const useNotifications = () => {
     unreadTone.value = counts.unread > 0 ? counts.unreadTone : undefined;
   };
 
+  /** Reads the whole feed's unread count and tone, the bell's badge. */
+  const readBellCounts = (signal?: AbortSignal) =>
+    $authFetch<FeedCounts>(`${API_BASE}/counts`, { signal });
+
+  /** Takes counts as the bell's: from now on, they are known. */
+  const applyBellCounts = (counts: FeedCounts | undefined) => {
+    if (counts) applyFeedCounts(counts);
+    areCountsLoaded.value = true;
+  };
+
   /** Loads the whole feed's unread count and tone, the bell's badge. */
   const fetchBellCounts = async () => {
     try {
-      const counts = await $authFetch<FeedCounts>(`${API_BASE}/counts`);
-      if (counts) applyFeedCounts(counts);
+      applyBellCounts(await readBellCounts());
     } finally {
       areCountsLoaded.value = true;
     }
@@ -252,6 +263,8 @@ export const useNotifications = () => {
     notifications,
     hasMore,
     fetchBellCounts,
+    readBellCounts,
+    applyBellCounts,
     fetchUnreadPreview,
     fetchNotifications,
     markAsRead,
@@ -263,3 +276,29 @@ export const useNotifications = () => {
     handleRemoteAllRead,
   };
 };
+
+/**
+ * The header bell's counts (the unread total and its tone) for the chrome
+ * drawing the bell, called in its setup: read with the page for a signed-in
+ * user, so a server render shows the badge, and the bell's state starts from
+ * the same counts in the browser before anything renders them. The browser
+ * neither asks again nor sees them move as it hydrates (which the inbox would
+ * take for a new notification and list again). The bell then keeps them
+ * current (realtime, its own refreshes).
+ */
+export function useRenderedBellCounts(): void {
+  const notifications = useNotifications();
+  if (!useUserSession().loggedIn.value || notifications.areCountsLoaded.value)
+    return;
+  const { data } = useApiData<FeedCounts>(
+    BELL_COUNTS_DATA_KEY,
+    async ({ signal }) => {
+      const counts = await notifications.readBellCounts(signal);
+      notifications.applyBellCounts(counts);
+      return counts;
+    },
+  );
+  onBeforeMount(() => {
+    if (data.value) notifications.applyBellCounts(data.value);
+  });
+}

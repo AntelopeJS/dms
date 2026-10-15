@@ -25,6 +25,7 @@ const { processI18n } = useTranslation();
 const {
   unreadCount,
   unreadTone,
+  areCountsLoaded,
   notifications,
   hasMore,
   fetchBellCounts,
@@ -89,7 +90,8 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  await refreshCounts();
+  // Read with the page (`useRenderedBellCounts`) unless that read failed.
+  if (!areCountsLoaded.value) await refreshCounts();
 
   window.addEventListener(
     FormEvents.SUBMIT_SUCCESS,

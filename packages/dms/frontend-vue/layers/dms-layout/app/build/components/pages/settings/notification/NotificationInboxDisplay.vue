@@ -94,9 +94,6 @@ watch(
   () => void props.context.refresh(),
 );
 
-onMounted(() => {
-  if (!catalog.isLoaded.value) void catalog.loadCatalog();
-});
 </script>
 
 <template>

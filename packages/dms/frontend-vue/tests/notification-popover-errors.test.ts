@@ -22,6 +22,7 @@ const NOTIFICATIONS_PAGE = "settings.user.notifications";
 interface NotificationsStub {
   unreadCount: Ref<number>;
   unreadTone: Ref<string | undefined>;
+  areCountsLoaded: Ref<boolean>;
   notifications: Ref<unknown[]>;
   fetchBellCounts: ReturnType<typeof vi.fn>;
   fetchNotifications: ReturnType<typeof vi.fn>;
@@ -175,6 +176,9 @@ beforeEach(() => {
   notifications = {
     unreadCount: ref(0),
     unreadTone: ref(undefined),
+    // Not read with the page (signed in since the app started): the bell
+    // reads them once mounted.
+    areCountsLoaded: ref(false),
     notifications: ref([]),
     fetchBellCounts: vi.fn(),
     fetchNotifications: vi.fn(),
@@ -297,4 +301,20 @@ it("keeps the page alive when the notification list is refused on open", async (
   await vi.waitFor(() => expect(console.warn).toHaveBeenCalled());
   expect(errorHandler).not.toHaveBeenCalled();
   expect(host.textContent).toContain("notification.dropdown.no_notifications");
+});
+
+it("does not read the counts again when the page brought them", async () => {
+  notifications.areCountsLoaded.value = true;
+  notifications.unreadCount.value = 2;
+  app = createApp(NotificationPopover);
+  app.config.globalProperties.$t = (key: string) => key;
+  for (const name of ["UButton", "USeparator", "UIcon"])
+    app.component(name, Passthrough);
+  app.component("UPopover", Popover);
+  app.component("UCard", Card);
+  app.mount(host);
+  await nextTick();
+  await new Promise((done) => setTimeout(done, 0));
+  expect(notifications.fetchBellCounts).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("2");
 });

@@ -13,6 +13,7 @@ import {
 } from "../layers/dms-layout/app/build/composables/settings/profile/preferencesSummary";
 import type { NotificationSubject } from "../layers/dms-layout/app/build/composables/notification/useNotificationCatalog";
 import { DEFAULT_ACCESSIBILITY_PREFERENCES } from "../layers/dms-ui/app/build/utils/accessibilityPreferences";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const KEY = "page.settings.profile.preferences";
 
@@ -221,7 +222,8 @@ const colorMode = ref<"light" | "dark" | "system">("dark");
 const prefersDark = ref(false);
 let authFetch: ReturnType<typeof vi.fn>;
 let resolveAccess: (value: unknown) => void;
-const loadPreferences = vi.fn(async () => {});
+// Whether the section reads the notification preferences (its row shows).
+let readsPreferences: () => boolean = () => false;
 
 vi.mock("@vueuse/core", () => ({ usePreferredDark: () => prefersDark }));
 vi.mock("#dms-ui/app/components/icon-well/IconWell.vue", async () => {
@@ -308,12 +310,14 @@ vi.mock(
   async () => {
     const { ref } = await import("vue");
     return {
-      useNotificationPreferences: () => ({
-        isLoading: preferencesLoading,
-        loadFailed: ref(false),
-        isEnabled: (s: { id: string }) => s.id !== "c",
-        load: loadPreferences,
-      }),
+      useNotificationPreferences: (enabled: () => boolean) => {
+        readsPreferences = enabled;
+        return {
+          isLoading: preferencesLoading,
+          loadFailed: ref(false),
+          isEnabled: (s: { id: string }) => s.id !== "c",
+        };
+      },
     };
   },
 );
@@ -357,6 +361,7 @@ async function mountSection(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/profile/ProfilePreferencesSummary.vue"
   );
   app = createApp(ProfilePreferencesSummary);
+  browserRuntime(app);
   app.component(
     "USkeleton",
     defineComponent({
@@ -403,7 +408,6 @@ beforeEach(() => {
   preferencesLoading.value = true;
   colorMode.value = "dark";
   prefersDark.value = false;
-  loadPreferences.mockClear();
   authFetch = vi.fn(
     () =>
       new Promise((resolve) => {
@@ -411,7 +415,7 @@ beforeEach(() => {
       }),
   );
   vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData((...args: unknown[]) => authFetch(...(args as [])));
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -440,7 +444,7 @@ describe("Preferences & access section", () => {
       "/settings/user/notifications",
       "/settings/user/appearance",
     ]);
-    expect(loadPreferences).toHaveBeenCalledOnce();
+    expect(readsPreferences()).toBe(true);
 
     // The preferences answer first: still a skeleton until the bell's count.
     preferencesLoading.value = false;
@@ -502,7 +506,7 @@ describe("Preferences & access section", () => {
     await mountSection();
     expect(host.querySelectorAll(":scope > div > div")).toHaveLength(1);
     expect(buttons()).toEqual([]);
-    expect(loadPreferences).not.toHaveBeenCalled();
+    expect(readsPreferences()).toBe(false);
 
     resolveAccess({ roles: [], workspaceOwner: false, platformOwner: false });
     await flush();

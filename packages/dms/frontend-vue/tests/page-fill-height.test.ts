@@ -191,6 +191,7 @@ function installRuntime(): void {
     }),
     // The page brought its site layout.
     useRenderedSiteLayout: () => {},
+    useRenderedBellCounts: () => {},
     useSiteLayout: () => ({
       siteLayout: ref({ pages: {} }),
       siteLayoutTree: ref([]),

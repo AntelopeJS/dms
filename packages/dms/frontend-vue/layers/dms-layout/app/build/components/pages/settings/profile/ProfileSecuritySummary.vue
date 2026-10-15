@@ -7,7 +7,7 @@ import { iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import ProfileSummaryRow from "./ProfileSummaryRow.vue";
 
 const { t, locale } = useI18n();
-const { overview, attention, attentionTone, isUnavailable, refresh } =
+const { overview, attention, attentionTone, isUnavailable } =
   useSecurityOverview();
 
 const needsAttention = computed(() => attention.value.length > 0);
@@ -52,7 +52,6 @@ const placeholder = computed(
     )}`,
 );
 
-onMounted(refresh);
 </script>
 
 <template>

@@ -47,9 +47,9 @@ const toast = useToast();
 const { $authFetch } = useAuthFetch();
 const { processApiMessage } = useTranslation();
 const { user, refresh: refreshSession } = useCurrentUser();
-const { upload, resolveUrl } = useProfileAvatar(
-  () => props.avatarField?.component?.options ?? {},
-);
+const avatarOptions = () => props.avatarField?.component?.options ?? {};
+const { upload } = useProfileAvatar(avatarOptions);
+const avatarUrls = useFileReadUrls(avatarOptions().storage);
 // A refused name or picture shows under its field; a failed request is a
 // toast.
 const fieldErrors = useFieldErrors({
@@ -57,13 +57,29 @@ const fieldErrors = useFieldErrors({
   codes: { [INVALID_AVATAR]: "avatar" },
 });
 
-const saved = ref<ProfileResponse>({
-  name: user.value?.name,
-  email: user.value?.email,
-});
+// Read with the page: the server renders the name, the address with its
+// verification, and the picture. The form edits a copy of it.
+const profile = await useApiData<ProfileResponse>(() => props.endpoint);
+const isProfileLoaded = computed(
+  () => profile.status.value === "success" || profile.status.value === "error",
+);
+
+const saved = ref<ProfileResponse>(
+  profile.data.value ?? { name: user.value?.name, email: user.value?.email },
+);
 const name = ref(saved.value.name ?? "");
-const avatar = ref<AvatarValue | null>(null);
-const avatarUrl = ref<string | null>(null);
+const avatar = ref<AvatarValue | null>(saved.value.avatar ?? null);
+// A picture picked here shows from the file until the profile is saved.
+const pickedAvatarUrl = ref<string | null>(null);
+const avatarUrl = computed(() => {
+  if (!avatar.value) return null;
+  return pickedAvatarUrl.value ?? avatarUrls.getUrl(avatar.value.key) ?? null;
+});
+watch(
+  () => avatar.value?.key,
+  (key) => key && void avatarUrls.resolve(key),
+  { immediate: true },
+);
 const isUploading = ref(false);
 const isSaving = ref(false);
 const fileInput = useTemplateRef<HTMLInputElement>("fileInput");
@@ -86,14 +102,12 @@ const canSave = computed(() => !!name.value.trim() && !isUploading.value);
 
 watch(name, () => fieldErrors.clear("name"));
 
-async function applyProfile(profile: ProfileResponse): Promise<void> {
+function applyProfile(answer: ProfileResponse): void {
   fieldErrors.clear();
-  saved.value = profile;
-  name.value = profile.name ?? "";
-  avatar.value = profile.avatar ?? null;
-  avatarUrl.value = profile.avatar
-    ? await resolveUrl(profile.avatar.key)
-    : null;
+  saved.value = answer;
+  name.value = answer.name ?? "";
+  avatar.value = answer.avatar ?? null;
+  pickedAvatarUrl.value = null;
 }
 
 function pickFile(): void {
@@ -117,7 +131,7 @@ async function onFileChange(event: Event): Promise<void> {
       return;
     }
     avatar.value = { key: result.key! };
-    avatarUrl.value = URL.createObjectURL(file);
+    pickedAvatarUrl.value = URL.createObjectURL(file);
   } catch {
     toast.add({
       title: t("page.settings.profile.avatar_error"),
@@ -131,11 +145,11 @@ async function onFileChange(event: Event): Promise<void> {
 function removeAvatar(): void {
   fieldErrors.clear("avatar");
   avatar.value = null;
-  avatarUrl.value = null;
+  pickedAvatarUrl.value = null;
 }
 
-async function discard(): Promise<void> {
-  await applyProfile(saved.value);
+function discard(): void {
+  applyProfile(saved.value);
 }
 
 async function save(): Promise<void> {
@@ -146,11 +160,11 @@ async function save(): Promise<void> {
   if (!canSave.value) return;
   isSaving.value = true;
   try {
-    const profile = await $authFetch<ProfileResponse>(props.endpoint, {
+    const answer = await $authFetch<ProfileResponse>(props.endpoint, {
       method: "POST",
       body: { name: name.value.trim(), avatar: avatar.value },
     });
-    await applyProfile(profile);
+    applyProfile(answer);
     toast.add({ title: t("page.settings.profile.saved"), color: "success" });
     await refreshSession();
   } catch (error) {
@@ -162,17 +176,6 @@ async function save(): Promise<void> {
   }
 }
 
-// The verification state comes with the profile, fetched after mount: a
-// skeleton holds the badge's place until then.
-const isProfileLoaded = ref(false);
-
-onMounted(async () => {
-  try {
-    await applyProfile(await $authFetch<ProfileResponse>(props.endpoint));
-  } finally {
-    isProfileLoaded.value = true;
-  }
-});
 </script>
 
 <template>
