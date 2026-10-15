@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.6.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.6.0...v0.6.1)
+
+### 🚀 Enhancements
+
+- **blocks:** Fit the simple options to someone building a page without code ([#251](https://github.com/AntelopeJS/dms/pull/251))
+
+### 🩹 Fixes
+
+- **grid:** Collapse grid row cells whose block renders nothing ([#272](https://github.com/AntelopeJS/dms/pull/272))
+- **links:** Open a row field holding a whole URL as written ([#273](https://github.com/AntelopeJS/dms/pull/273))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.8.0 ([c3f4a875](https://github.com/AntelopeJS/dms/commit/c3f4a875))
+- **release:** @antelopejs/dms v0.8.1 ([a43baf77](https://github.com/AntelopeJS/dms/commit/a43baf77))
+- **release:** @antelopejs/dms v0.8.2 ([9030f932](https://github.com/AntelopeJS/dms/commit/9030f932))
+
+### 🤖 CI
+
+- Speed up pipeline ([#271](https://github.com/AntelopeJS/dms/pull/271))
+
+### ❤️ Contributors
+
+- Glastis ([@Glastis](http://github.com/Glastis))
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.6.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.5.13...v0.6.0)
