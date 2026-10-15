@@ -313,7 +313,7 @@ export function useRenderedBellCounts(): void {
   const notifications = useNotifications();
   if (!useUserSession().loggedIn.value || notifications.areCountsLoaded.value)
     return;
-  const { data } = useApiData<FeedCounts>(
+  const read = useApiData<FeedCounts>(
     BELL_COUNTS_DATA_KEY,
     async ({ signal }) => {
       const counts = await notifications.readBellCounts(signal);
@@ -321,7 +321,22 @@ export function useRenderedBellCounts(): void {
       return counts;
     },
   );
+  // A client navigation into the dashboard mounts the bell before this read
+  // answers: the bell waits for it instead of reading the counts again.
+  if (!import.meta.env.SSR)
+    renderedBellCountsRead = Promise.resolve(read).then(
+      () => undefined,
+      () => undefined,
+    );
   onBeforeMount(() => {
-    if (data.value) notifications.applyBellCounts(data.value);
+    if (read.data.value) notifications.applyBellCounts(read.data.value);
   });
+}
+
+/** The browser's last `useRenderedBellCounts` read, settled or not. */
+let renderedBellCountsRead: Promise<void> | undefined;
+
+/** Waits for the counts `useRenderedBellCounts` reads, if it reads any. */
+export function settledRenderedBellCounts(): Promise<void> | undefined {
+  return renderedBellCountsRead;
 }

@@ -3,7 +3,10 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
-import type { UserNotification } from "../../../composables/notification/useNotifications";
+import {
+  settledRenderedBellCounts,
+  type UserNotification,
+} from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
 import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
@@ -91,6 +94,7 @@ const handleFormSubmitSuccess = async (event: Event) => {
 onMounted(async () => {
   if (!loggedIn.value) return;
   // Read with the page (`useRenderedBellCounts`) unless that read failed.
+  if (!areCountsLoaded.value) await settledRenderedBellCounts();
   if (!areCountsLoaded.value) await refreshCounts();
 
   window.addEventListener(
