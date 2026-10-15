@@ -5,7 +5,15 @@
  * one keeps the default look. A duration may also be written in milliseconds
  * whatever its size (`format: "ms"`).
  */
-import { createApp, defineComponent, h, type App, type VNodeChild } from "vue";
+import {
+  createApp,
+  createSSRApp,
+  defineComponent,
+  h,
+  type App,
+  type VNodeChild,
+} from "vue";
+import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DataType } from "../layers/dms-core/app/composables/data-types/useDataType";
 import { isObject } from "../layers/dms-core/app/utils/type-check";
@@ -172,5 +180,32 @@ describe("plain text cell", () => {
       expect(toned.className).toBe("text-error");
       app?.unmount();
     }
+  });
+});
+
+describe("empty plain text cell", () => {
+  it("renders nothing, with or without a tone field", () => {
+    expect(cell("string", "", undefined)).toBeNull();
+    expect(
+      cell("string", "", { toneField: "messageTone" }, { messageTone: "ok" }),
+    ).toBeNull();
+  });
+
+  it("hydrates the server's HTML without a mismatch", async () => {
+    // As Table.vue draws it: the formatter's output is the cell's root.
+    const Cell = defineComponent({
+      setup: () => () => cell("string", "", undefined) as VNodeChild,
+    });
+    const Row = { render: () => h("div", [h("b", "id"), h(Cell)]) };
+    const container = document.createElement("div");
+    container.innerHTML = await renderToString(createSSRApp(Row));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    app = createSSRApp(Row);
+    app.mount(container);
+    const mismatches = warn.mock.calls.filter((call) =>
+      /hydration/i.test(String(call[0])),
+    );
+    warn.mockRestore();
+    expect(mismatches).toEqual([]);
   });
 });
