@@ -106,6 +106,24 @@ export function usePeriodScope(
 }
 
 /**
+ * The preset of a period scope, `null` while no selector registers it: what
+ * a card's period badge names. A server render reads it once, as the caller
+ * sets up, like `usePeriodScope`, but whatever bounds the browser would
+ * resolve the period to: a preset is the same name on both sides, so the
+ * server prints the badge the browser hydrates.
+ */
+export function usePeriodScopePreset(
+  id: string | undefined,
+): ComputedRef<PeriodState["preset"] | null> {
+  if (!id) return computed(() => null);
+  const registry = usePeriodScopeRegistry();
+  if (typeof window !== "undefined")
+    return computed(() => readPeriodScope(registry, id)?.preset ?? null);
+  const preset = readPeriodScope(registry, id)?.preset ?? null;
+  return computed(() => preset);
+}
+
+/**
  * `url` with `state` as query parameters: `from` / `to`, `compareFrom` /
  * `compareTo` when a comparison range is set, `preset` and `comparison`.
  * Every period (`all`) has no bounds, so it sends no `from` / `to`.
