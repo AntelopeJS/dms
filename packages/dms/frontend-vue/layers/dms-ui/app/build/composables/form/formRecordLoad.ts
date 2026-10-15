@@ -1,4 +1,4 @@
-import { type Ref, ref } from "vue";
+import { type Ref, ref, watch } from "vue";
 import { apiErrorStatus } from "#dms-core/app/composables/useFieldErrors";
 import { HTTP_FORBIDDEN } from "#dms-core/app/utils/http-status";
 
@@ -27,9 +27,7 @@ export function missingRecordFailure(
   address: FormRecordAddress,
 ): FormLoadFailure | null {
   const isMissing =
-    !!address.requiresRecord &&
-    !!address.fetchUrl &&
-    !address.resolvedFetchUrl;
+    !!address.requiresRecord && !!address.fetchUrl && !address.resolvedFetchUrl;
   return isMissing ? "missing" : null;
 }
 
@@ -56,15 +54,31 @@ export function formLoadFailure(error: unknown): FormLoadFailure | null {
   return apiErrorStatus(error) === HTTP_FORBIDDEN ? "forbidden" : "error";
 }
 
+/** How a form takes the answers of its record's later reads. */
+export interface FormRecordLoadOptions {
+  /**
+   * Whether the user holds edits a later read must not replace: the read is
+   * then left for the next opening (a save reads the record again).
+   */
+  isEditing?: () => boolean;
+  /** Called once a later read was applied: its values are the saved ones. */
+  onReloaded?: () => void;
+}
+
 /**
  * Follow a form's record load: `apply` receives the record once it loaded,
  * and only then. A failed load is never applied, not even the values a
  * previous opening left in the cache: a form showing them, or its defaults,
  * would read as the record and save over it.
+ *
+ * The record is read again in the background each time the form mounts on a
+ * cached one, and when the page refreshes its data: the form opens on the
+ * cached values, then takes the new ones, unless the user started editing.
  */
 export function trackFormRecordLoad<T>(
   load: FormLoadSource<T>,
   apply: (payload: T) => void,
+  options: FormRecordLoadOptions = {},
 ): FormRecordLoad {
   const failure = ref<FormLoadFailure | null>(null);
   const retrying = ref(false);
@@ -74,6 +88,11 @@ export function trackFormRecordLoad<T>(
     if (!failure.value && payload) apply(payload);
   };
   settle();
+  watch([load.data, load.error], () => {
+    if (options.isEditing?.()) return;
+    settle();
+    if (!failure.value) options.onReloaded?.();
+  });
   return {
     failure,
     retrying,

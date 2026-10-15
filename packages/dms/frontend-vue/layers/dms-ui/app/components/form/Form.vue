@@ -549,30 +549,32 @@ allFields.value.forEach((field) => {
 
 let recordLoad: FormRecordLoad | undefined;
 if (props.fetchUrl) {
+  // Keyed on the record too: the load outlives a drawer or modal, and the
+  // next opening on another row must not show this one's values. A reopening
+  // on the same row shows the cached values at once and reads them again.
   const formLoad = await useDmsAsyncData(
-    `form-${props.componentId}-${props.pageId}`,
+    `form-${props.componentId}-${props.pageId}-${resolvedFetchUrl.value ?? ""}`,
     async () => ({
       values: await fetchData(),
       initial: initialValues.value,
     }),
   );
 
-  // The load is cached under this key, and outlives a drawer or modal: a
-  // reopening would show the values of the previous one, stale if the row
-  // changed since (here or elsewhere). Marked idle once read, every mounting
-  // fetches the row again.
-  onMounted(() => {
-    formLoad.status.value = "idle";
-  });
-
-  recordLoad = trackFormRecordLoad(formLoad, (payload) => {
-    if (payload.values && Object.keys(payload.values).length > 0) {
-      Object.assign(state.value, payload.values);
-    }
-    if (payload.initial && payload.initial !== initialValues.value) {
-      initialValues.value = { ...initialValues.value, ...payload.initial };
-    }
-  });
+  recordLoad = trackFormRecordLoad(
+    formLoad,
+    (payload) => {
+      if (payload.values && Object.keys(payload.values).length > 0) {
+        Object.assign(state.value, payload.values);
+      }
+      if (payload.initial && payload.initial !== initialValues.value) {
+        initialValues.value = { ...initialValues.value, ...payload.initial };
+      }
+    },
+    {
+      isEditing: () => changedFields.value.length > 0,
+      onReloaded: markFormClean,
+    },
+  );
 }
 
 const loadFailure = computed(
