@@ -1,22 +1,10 @@
 import { createHmac, randomUUID } from "node:crypto";
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type IncomingMessage, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-// The renderer's built-in routes, which the DMS's own replace: each request
-// below goes to both, and both must answer, write cookies and call the
-// backend alike, so sessions and clients survive the move.
-import {
-  RequestBodyError,
-  UpstreamError,
-} from "@antelopejs/dms-frontend/templates/vue/server/auth/backend.mjs";
-import { handleAuth } from "@antelopejs/dms-frontend/templates/vue/server/auth/routes.mjs";
+// The DMS serves its session, sign-in, provider sign-in and e-mail render
+// routes from its own `dms.server.ts`: the renderer has none of its own
+// since 0.6.0, so each request below reaches the DMS's routes alone.
 import { readSealedCookie } from "@antelopejs/dms-frontend/templates/vue/server/auth/session.mjs";
-import { builtInFallbacks } from "@antelopejs/dms-frontend/templates/vue/server/built-in-routes.mjs";
-import { handleEmailRender } from "@antelopejs/dms-frontend/templates/vue/server/email.mjs";
 import { serveModuleRoutes } from "@antelopejs/dms-frontend/templates/vue/server/module-testing.mjs";
 import dmsServer from "../dms.server";
 
@@ -125,28 +113,6 @@ function close(server: Server): Promise<void> {
   return new Promise((settle) => {
     server.closeAllConnections();
     server.close(() => settle());
-  });
-}
-
-/** The built-in routes, answering failures as the frontend server does. */
-function builtInServer(): Server {
-  return createServer((request: IncomingMessage, response: ServerResponse) => {
-    const url = new URL(request.url ?? "/", "http://frontend.local");
-    const route =
-      url.pathname === "/api/html/render" ? handleEmailRender : handleAuth;
-    Promise.resolve(route(request, response, url)).catch((error: unknown) => {
-      const failure = error as { status?: number; message?: string };
-      const known =
-        error instanceof UpstreamError || error instanceof RequestBodyError;
-      response.writeHead(failure.status ?? 502, {
-        "content-type": "application/json",
-      });
-      response.end(
-        JSON.stringify({
-          message: known ? failure.message : "error.500.description",
-        }),
-      );
-    });
   });
 }
 
@@ -260,8 +226,6 @@ function renderToken(): string {
 describe("the DMS's server routes", () => {
   const environment = { ...process.env };
   let backend: Server;
-  let builtIn: Server;
-  let builtInUrl = "";
   let moduleRoutes: Awaited<ReturnType<typeof serveModuleRoutes>>;
 
   beforeAll(async () => {
@@ -287,8 +251,6 @@ describe("the DMS's server routes", () => {
     process.env.DMS_OAUTH_RELAY_SECRET = RELAY_SECRET;
     process.env.DMS_HTML_RENDER_SECRET = RENDER_SECRET;
     process.env.DMS_AUTH_ESTABLISH_ENDPOINTS = ESTABLISH_ENDPOINT;
-    builtIn = builtInServer();
-    builtInUrl = await listen(builtIn);
     moduleRoutes = await serveModuleRoutes([{ id: "dms", setup: dmsServer }], {
       privateOptions: {
         dms: {
@@ -302,40 +264,44 @@ describe("the DMS's server routes", () => {
 
   afterAll(async () => {
     await moduleRoutes.close();
-    await close(builtIn);
     await close(backend);
     process.env = environment;
   });
 
-  /** Asks both servers, and expects the same answer from each. */
-  async function same(
+  /** Asks the DMS's routes. */
+  async function askDms(
     path: string,
     init:
       | Parameters<typeof ask>[2]
       | ((base: string) => Promise<Parameters<typeof ask>[2]>) = {},
   ): Promise<Answer> {
-    const options = async (base: string) =>
-      typeof init === "function" ? init(base) : init;
-    const before = await ask(builtInUrl, path, await options(builtInUrl));
-    const after = await ask(
-      moduleRoutes.url,
-      path,
-      await options(moduleRoutes.url),
-    );
-    expect(after).toEqual(before);
-    return after;
+    const options =
+      typeof init === "function" ? await init(moduleRoutes.url) : init;
+    return ask(moduleRoutes.url, path, options);
   }
 
-  it("declares every route and hook with no warning, leaving the renderer only the API tester's", () => {
+  it("declares every route and hook with no warning", () => {
     expect(moduleRoutes.warnings).toEqual([]);
-    // The API tester is DMS API's to serve.
-    expect(builtInFallbacks(moduleRoutes.modules)).toEqual([
-      "Built-in routes the renderer still serves, until 0.6.0 (no module serves them): POST /api/_dms/tester",
-    ]);
+  });
+
+  it("proxies the backend's /api and /dms prefixes with the session, and nothing else", () => {
+    const proxies = moduleRoutes.modules.proxies.map(
+      (proxy: { path: string; auth: string; owner: string }) => ({
+        path: proxy.path,
+        auth: proxy.auth,
+      }),
+    );
+    expect(proxies).toEqual(
+      expect.arrayContaining([
+        { path: "/api/**", auth: "session" },
+        { path: "/dms/**", auth: "session" },
+      ]),
+    );
+    expect(proxies).toHaveLength(2);
   });
 
   it("signs in for the browser session only, unless asked to keep it", async () => {
-    const browserOnly = await same("/auth/login", {
+    const browserOnly = await askDms("/auth/login", {
       body: { email: "ada@example.test", password: "secret" },
     });
     expect(browserOnly.status).toBe(200);
@@ -344,7 +310,7 @@ describe("the DMS's server routes", () => {
       "Path=/; HttpOnly; SameSite=Lax",
       "Path=/; HttpOnly; SameSite=Lax",
     ]);
-    const kept = await same("/auth/login", {
+    const kept = await askDms("/auth/login", {
       body: { email: "ada@example.test", password: "secret", keep_login: true },
     });
     expect(
@@ -356,12 +322,12 @@ describe("the DMS's server routes", () => {
   });
 
   it("refuses bad credentials with the backend's message, and a login from another site", async () => {
-    const refused = await same("/auth/login", {
+    const refused = await askDms("/auth/login", {
       body: { email: "ada@example.test", password: "wrong" },
     });
     expect(refused.status).toBe(401);
     expect(refused.body).toEqual({ message: "error.auth.invalid_credentials" });
-    const crossSite = await same("/auth/login", {
+    const crossSite = await askDms("/auth/login", {
       origin: false,
       body: { email: "ada@example.test", password: "secret" },
     });
@@ -370,13 +336,13 @@ describe("the DMS's server routes", () => {
   });
 
   it("carries the keep-me-signed-in choice across the 2FA step", async () => {
-    const challenge = await same("/auth/login", {
+    const challenge = await askDms("/auth/login", {
       body: { email: "2fa@example.test", password: "secret", keep_login: true },
     });
     expect(challenge.cookies[0].attributes).toBe(
       "Path=/auth/verify-2fa; HttpOnly; SameSite=Lax; Max-Age=300",
     );
-    const verified = await same("/auth/verify-2fa", async (base) => ({
+    const verified = await askDms("/auth/verify-2fa", async (base) => ({
       cookie: await cookiesOf(base, "/auth/login", {
         body: {
           email: "2fa@example.test",
@@ -403,7 +369,7 @@ describe("the DMS's server routes", () => {
           keep_login: true,
         },
       });
-    const read = await same("/api/_auth/session", async (base) => ({
+    const read = await askDms("/api/_auth/session", async (base) => ({
       method: "GET",
       origin: false,
       cookie: await signedIn(base),
@@ -412,16 +378,16 @@ describe("the DMS's server routes", () => {
       user: USER,
       session: { activeTenantId: "t1" },
     });
-    const renewed = await same("/api/_auth/session", async (base) => ({
+    const renewed = await askDms("/api/_auth/session", async (base) => ({
       cookie: await signedIn(base),
     }));
     expect(renewed.body).toMatchObject({ session: { activeTenantId: "t2" } });
-    const ended = await same("/api/_auth/session", async (base) => ({
+    const ended = await askDms("/api/_auth/session", async (base) => ({
       method: "DELETE",
       cookie: await signedIn(base),
     }));
     expect(ended.calls.map((call) => call.path)).toEqual(["/api/auth/logout"]);
-    const other = await same("/api/_auth/session", {
+    const other = await askDms("/api/_auth/session", {
       method: "PUT",
       origin: false,
     });
@@ -455,20 +421,20 @@ describe("the DMS's server routes", () => {
       "validate-account",
       "remove-account",
     ]) {
-      const answer = await same(`/auth/${action}`, async (base) => {
+      const answer = await askDms(`/auth/${action}`, async (base) => {
         const cookie = await twoAccounts(base);
         return { cookie, body: { accountId: accountOf(cookie) } };
       });
       expect(answer.status).toBe(200);
     }
-    const expired = await same("/auth/switch-account", {
+    const expired = await askDms("/auth/switch-account", {
       body: { accountId: randomUUID() },
     });
     expect(expired.status).toBe(401);
   });
 
   it("switches tenant, opens a declared session and relays the 2FA e-mail", async () => {
-    const tenant = await same("/auth/switch-tenant", async (base) => ({
+    const tenant = await askDms("/auth/switch-tenant", async (base) => ({
       cookie: await cookiesOf(base, "/auth/login", {
         body: { email: "ada@example.test", password: "secret" },
       }),
@@ -476,18 +442,19 @@ describe("the DMS's server routes", () => {
     }));
     expect(tenant.body).toMatchObject({ success: true });
     expect(
-      (await same("/auth/switch-tenant", { body: { tenantId: "t2" } })).status,
+      (await askDms("/auth/switch-tenant", { body: { tenantId: "t2" } }))
+        .status,
     ).toBe(401);
-    const established = await same("/auth/establish", {
+    const established = await askDms("/auth/establish", {
       body: { endpoint: ESTABLISH_ENDPOINT, payload: { token: "x" } },
     });
     expect(established.status).toBe(200);
-    const refused = await same("/auth/establish", {
+    const refused = await askDms("/auth/establish", {
       body: { endpoint: "/api/auth/login", payload: {} },
     });
     expect(refused.status).toBe(403);
     expect(refused.calls).toEqual([]);
-    const relayed = await same("/auth/request-2fa-email", {
+    const relayed = await askDms("/auth/request-2fa-email", {
       body: { token: "challenge-1" },
     });
     expect(relayed.calls.map((call) => call.path)).toEqual([
@@ -496,10 +463,13 @@ describe("the DMS's server routes", () => {
   });
 
   it("runs a provider sign-in: start, callback, handoff", async () => {
-    const start = await same("/auth/oauth/github/start?redirect=%2Fprojects", {
-      method: "GET",
-      origin: false,
-    });
+    const start = await askDms(
+      "/auth/oauth/github/start?redirect=%2Fprojects",
+      {
+        method: "GET",
+        origin: false,
+      },
+    );
     expect(start.status).toBe(302);
     expect(start.location).toBe("https://github.example/authorize");
     expect(start.calls[0].relay).toBe(RELAY_SECRET);
@@ -512,7 +482,7 @@ describe("the DMS's server routes", () => {
       }).then(
         (response) => response.headers.getSetCookie()[0].split(";", 1)[0],
       );
-    const callback = await same(
+    const callback = await askDms(
       "/auth/oauth/github/callback?code=c&state=state-1",
       async (base) => ({
         method: "GET",
@@ -522,7 +492,7 @@ describe("the DMS's server routes", () => {
     );
     expect(callback.location).toBe("/auth/oauth/complete?redirect=%2Fprojects");
     expect(callback.calls[0].relay).toBe(RELAY_SECRET);
-    const forged = await same(
+    const forged = await askDms(
       "/auth/oauth/github/callback?code=c&state=other",
       async (base) => ({
         method: "GET",
@@ -531,7 +501,7 @@ describe("the DMS's server routes", () => {
       }),
     );
     expect(forged.location).toBe("/auth?oauth_error=error.oauth.invalid_state");
-    const cancelled = await same(
+    const cancelled = await askDms(
       "/auth/oauth/github/callback?error=access_denied",
       {
         method: "GET",
@@ -539,19 +509,19 @@ describe("the DMS's server routes", () => {
       },
     );
     expect(cancelled.location).toBe("/auth?oauth_error=error.oauth.cancelled");
-    const handoff = await same("/auth/oauth/handoff", {});
+    const handoff = await askDms("/auth/oauth/handoff", {});
     expect(handoff.body).toEqual({ kind: "none" });
   });
 
   it("renders e-mails for the backend's service token only", async () => {
-    const refused = await same("/api/html/render", {
+    const refused = await askDms("/api/html/render", {
       origin: false,
       body: { templateName: "EmailLayout", props: {} },
     });
     expect(refused.status).toBe(401);
     expect(refused.body).toEqual({ message: "Invalid service token" });
-    // No e-mail bundle is built here: both answer that the render failed.
-    const missing = await same("/api/html/render", () =>
+    // No e-mail bundle is built here: the render fails once the token passes.
+    const missing = await askDms("/api/html/render", () =>
       Promise.resolve({
         origin: false,
         headers: { "x-dms-service-token": renderToken() },

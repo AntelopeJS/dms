@@ -6,9 +6,14 @@ import { renderHtml } from "./layers/dms-layout/server/html-render";
 
 // What the DMS serves from the frontend server: its session, sign-in and
 // provider sign-in routes, the session logic the server runs outside them,
-// and the e-mail render the backend asks for. Same paths and payloads as when
-// the renderer served them.
+// the e-mail render the backend asks for, and the backend prefixes the
+// browser reaches through it. The renderer proxies no path on its own.
 export default defineDmsServer((server) => {
+  // The backend's API and the DMS's own routes (menu, page, page layouts,
+  // permissions, realtime), with the session's token added server-side.
+  server.registerBackendProxy("/api/**");
+  server.registerBackendProxy("/dms/**");
+
   server.registerRoute("GET", "/api/_auth/session", session.readSessionRoute);
   server.registerRoute(
     "POST",
