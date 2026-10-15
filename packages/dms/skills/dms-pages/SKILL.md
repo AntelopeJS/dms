@@ -83,7 +83,10 @@ decorators (`Controller`, `Get`, `Post`, `@Parameter`, `@JSONBody`), return a pl
 for 200 or throw `new HTTPResult(status, body)`. `GetModel(Model)` (from
 `@antelopejs/interface-database-decorators`) gives `get` / `getAll` / `insert` / `update` /
 `delete`. Routes under a controller that a page or DataController wraps **inherit** its auth —
-already gated to logged-in callers (see **dms-auth**).
+already gated to logged-in callers (see **dms-auth**). A route declared on a page class is
+served under `/dms/pages`, not at the page's own path (which is the page): name it with
+`pageRoutePath(slug, "/route")` from `@antelopejs/interface-dms/page` in a `fetchUrl` /
+`submitUrl`. A plain `Controller` the frontend calls sits under `/api/<module>/`.
 
 A **`TableView` is normally backed by a `DataController`**: a class
 `extends DataController(TableClass, TableViewRoutes.All, Controller("/path"))` registered
