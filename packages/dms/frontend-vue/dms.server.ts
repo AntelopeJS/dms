@@ -29,7 +29,7 @@ export default defineDmsServer((server) => {
   );
 
   server.registerRoute("POST", "/auth/login", actions.login);
-  server.registerRoute("POST", "/auth/signup", actions.signup);
+  server.registerRoute("POST", "/auth/register", actions.signup);
   server.registerRoute("POST", "/auth/verify-2fa", actions.verifyTwoFactor);
   server.registerRoute(
     "POST",

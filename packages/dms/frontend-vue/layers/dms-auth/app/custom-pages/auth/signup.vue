@@ -146,7 +146,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
     isLoading.value = true;
     clearFormError();
 
-    await $fetch("/auth/signup", {
+    await $fetch("/auth/register", {
       method: "POST",
       body: {
         ...payload.data,

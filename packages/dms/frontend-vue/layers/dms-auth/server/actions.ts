@@ -74,7 +74,7 @@ export async function login(event: DmsServerEvent) {
   );
 }
 
-/** `POST /auth/signup`. */
+/** `POST /auth/register`: the signup page itself is `/auth/signup`. */
 export async function signup(event: DmsServerEvent) {
   return establishWith(event, "/api/auth/signup", await event.readJson());
 }
