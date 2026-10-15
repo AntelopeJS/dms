@@ -531,6 +531,32 @@ describe("the DMS's server routes", () => {
     expect(missing.status).toBe(404);
   });
 
+  it("prefers the manifest's secrets to the environment's", async () => {
+    const environmentSecrets = {
+      render: process.env.DMS_HTML_RENDER_SECRET,
+      relay: process.env.DMS_OAUTH_RELAY_SECRET,
+    };
+    process.env.DMS_HTML_RENDER_SECRET = "a-stale-render-secret";
+    process.env.DMS_OAUTH_RELAY_SECRET = "a-stale-relay-secret";
+    try {
+      const accepted = await askDms("/api/html/render", {
+        origin: false,
+        headers: { "x-dms-service-token": renderToken() },
+        body: { templateName: "EmailLayout", props: {} },
+      });
+      // Accepted: the render itself fails, no e-mail bundle is built here.
+      expect(accepted.status).toBe(404);
+      const start = await askDms("/auth/oauth/github/start", {
+        method: "GET",
+        origin: false,
+      });
+      expect(start.calls[0].relay).toBe(RELAY_SECRET);
+    } finally {
+      process.env.DMS_HTML_RENDER_SECRET = environmentSecrets.render;
+      process.env.DMS_OAUTH_RELAY_SECRET = environmentSecrets.relay;
+    }
+  });
+
   it("takes the secrets from the environment when the manifest withheld the private options", async () => {
     const withheld = await serveModuleRoutes([{ id: "dms", setup: dmsServer }]);
     try {

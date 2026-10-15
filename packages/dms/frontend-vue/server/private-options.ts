@@ -2,10 +2,10 @@ import type { DmsServerEvent } from "#dms/server";
 
 /**
  * A secret of the DMS's private options, as the frontend server hands them
- * to its routes: the manifest's value, which the environment variable of the
- * same secret replaces. A frontend built without the bootstrap credential
- * gets no private options at all; the environment variable alone then
- * configures it, as it did when the renderer served these routes.
+ * to its routes. The manifest's value wins; the environment variable of the
+ * same secret is the fallback, read only when the manifest holds none. A
+ * frontend built without the bootstrap credential gets no private options at
+ * all, so the environment variable alone configures it there.
  *
  * @param event The route's event
  * @param section The private options' section (`htmlRender`, `oauth`)
