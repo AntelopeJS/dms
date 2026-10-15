@@ -208,7 +208,7 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
   // The serialized map is what the client resolves a URL against, so a
   // transparent section in it would answer for its parent's slug — the winner
   // decided by module registration order.
-  it("serializes navigable categories only, keyed by slug", async () => {
+  it("serializes every category once, keyed by full id, and names it by id", async () => {
     const section = registerTransparentSection("payload-section");
     cleanups.push(section.cleanup);
     const navigable = registerNavigableCategory(
@@ -223,14 +223,27 @@ describe("[unit] implementations/dms/page — category slug registry", () => {
     ]);
     const serialized = payload.siteLayout.categories;
 
-    expect(serialized[navigable.category.fullSlug]?.fullId).to.equal(
-      navigable.category.fullId,
+    expect(serialized[navigable.category.fullId]?.fullSlug).to.equal(
+      navigable.category.fullSlug,
     );
-    expect(
-      Object.values(serialized).map((entry) => entry.fullId),
-    ).to.not.include(section.category.fullId);
-    // Still reachable where the sidebar reads it: the tree is keyed by fullId.
-    expect(findTreeNode(payload.siteLayoutTree, section.category.fullId)).to
-      .exist;
+    // The browser resolves URLs against the categories that are not
+    // transparent only: it can tell them apart.
+    expect(serialized[section.category.fullId]?.urlTransparent).to.equal(true);
+    expect(serialized[navigable.category.fullId]?.urlTransparent).to.not.equal(
+      true,
+    );
+    expect(serialized[section.category.fullId]?.categoryId).to.equal(
+      pagesCategory.fullId,
+    );
+    // No entry carries a copy of its category: it names it.
+    for (const entry of [
+      ...Object.values(serialized),
+      ...Object.values(payload.siteLayout.pages),
+    ]) {
+      expect(entry).to.not.have.property("category");
+    }
+    const node = findTreeNode(payload.siteLayoutTree, section.category.fullId);
+    expect(node).to.exist;
+    expect(node).to.not.have.property("category");
   });
 });

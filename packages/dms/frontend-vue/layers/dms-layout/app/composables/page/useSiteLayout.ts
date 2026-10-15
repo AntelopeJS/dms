@@ -33,6 +33,31 @@ interface MatchRouteOptions {
   includeCategories: boolean;
 }
 
+// The categories a URL resolves against, by slug, per served layout: the
+// layout lists them by full id, and a `urlTransparent` one answers at its
+// parent's slug, so it is never a URL's target.
+const navigableCategoriesByLayout = new WeakMap<
+  SiteLayout,
+  Map<string, CategoryInfo>
+>();
+
+/** The category of the layout a URL resolves to, by its slug. */
+export function findNavigableCategory(
+  layout: SiteLayout,
+  slug: string,
+): CategoryInfo | undefined {
+  let bySlug = navigableCategoriesByLayout.get(layout);
+  if (!bySlug) {
+    bySlug = new Map(
+      Object.values(layout.categories)
+        .filter((category) => !category.urlTransparent)
+        .map((category) => [category.fullSlug, category]),
+    );
+    navigableCategoriesByLayout.set(layout, bySlug);
+  }
+  return bySlug.get(slug);
+}
+
 interface MatchRouteResult {
   pattern: string;
   metadata: PageInfo | CategoryInfo;
@@ -375,12 +400,11 @@ export const useSiteLayout = () => {
       };
     }
 
-    if (options.includeCategories && layout.categories[normalizedPath]) {
-      return {
-        pattern: normalizedPath,
-        metadata: layout.categories[normalizedPath],
-        params: {},
-      };
+    const category = options.includeCategories
+      ? findNavigableCategory(layout, normalizedPath)
+      : undefined;
+    if (category) {
+      return { pattern: normalizedPath, metadata: category, params: {} };
     }
 
     for (const [pattern, metadata] of Object.entries(layout.pages)) {

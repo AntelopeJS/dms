@@ -2,6 +2,7 @@ import type {
   ModuleCatalogEntry,
   ModuleStatus,
   PageInfo,
+  SiteLayout,
 } from "../../types/page";
 
 /** Category of the modules that declare none. */
@@ -148,11 +149,10 @@ export function sortModules(
 
 /**
  * A page as `/dms/sitelayout` serves it: the payload also carries the
- * owning module and the parent category, which the shared type leaves out.
+ * owning module, which the shared type leaves out.
  */
 type ServedPage = PageInfo & {
   module?: string;
-  category?: { displayName?: string; isModuleRoot?: boolean };
 };
 
 function isOpenablePage(page: ServedPage): boolean {
@@ -169,19 +169,21 @@ function isOpenablePage(page: ServedPage): boolean {
  * the empty state can point to where the thing actually lives.
  */
 export function findModulePageMatch(
-  pages: Record<string, PageInfo> | undefined,
+  siteLayout: Pick<SiteLayout, "pages" | "categories"> | undefined,
   query: string,
   installedModuleIds: ReadonlySet<string>,
   resolve: DisplayResolver,
 ): ModulePageMatch | null {
   const needle = normalizeQuery(query);
-  if (!needle || !pages) return null;
-  for (const page of Object.values(pages) as ServedPage[]) {
+  if (!needle || !siteLayout) return null;
+  for (const page of Object.values(siteLayout.pages) as ServedPage[]) {
     if (!page.module || !installedModuleIds.has(page.module)) continue;
     if (!isOpenablePage(page)) continue;
     const pageTitle = resolve(page.displayName);
     if (!pageTitle.toLocaleLowerCase().includes(needle)) continue;
-    const parent = page.category;
+    const parent = page.categoryId
+      ? siteLayout.categories[page.categoryId]
+      : undefined;
     const sectionTitle =
       parent?.displayName && !parent.isModuleRoot
         ? resolve(parent.displayName)

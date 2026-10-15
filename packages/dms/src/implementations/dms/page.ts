@@ -88,6 +88,12 @@ import {
 } from "./layout-banners";
 import { fillRouteParams } from "./route-params";
 import { resolveMenuNavBadges } from "./nav-badges";
+import {
+  treeWithCategoryRefs,
+  type TreeWithCategoryRefs,
+  type WithCategoryRef,
+  withCategoryRefs,
+} from "./menu-categories";
 import type { ResolvedNavBadges } from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
@@ -117,11 +123,11 @@ type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   layoutUrl?: string;
   hasAccess?: boolean;
 };
-// `SiteLayoutWithAccess` is the serialized shape the browser resolves a URL
-// against, so both of its maps are keyed by slug. These registries are not that
-// shape: pages own their slug, but any number of `urlTransparent` categories
-// share their parent's, so only `fullId` identifies a category. The names carry
-// the key to keep the two from being confused again.
+// Pages own their slug, but any number of `urlTransparent` categories share
+// their parent's, so only `fullId` identifies a category: the serialized
+// layout (`SiteLayoutWithAccess`) keys its pages by slug and its categories by
+// full id, as these registries do. The names carry the key to keep the two
+// from being confused.
 const pagesBySlug: Record<string, PageInfo> = {};
 const categoriesByFullId: Record<string, CategoryInfo> = {};
 const navigationTree: SiteLayoutTree = {
@@ -170,19 +176,6 @@ function findNavigableCategoryBySlug(slug: string): CategoryInfo | undefined {
   return Object.values(categoriesByFullId).find(
     (category) => !category.urlTransparent && category.fullSlug === slug,
   );
-}
-
-// The slug view of the category registry, as the client resolves URLs against
-// it. `urlTransparent` categories are left out: they answer at their parent's
-// slug, so including them would shadow whichever surface actually owns it —
-// with the winner decided by module registration order.
-function buildNavigableCategoryIndex(): Record<string, CategoryInfo> {
-  const bySlug: Record<string, CategoryInfo> = {};
-  for (const category of Object.values(categoriesByFullId)) {
-    if (category.urlTransparent) continue;
-    bySlug[category.fullSlug] = category;
-  }
-  return bySlug;
 }
 
 function findEntryByFullId<T extends { fullId: string }>(
@@ -968,9 +961,18 @@ interface AccessFlag {
   hasAccess: boolean;
 }
 
+/** A page of the site layout: its category named by id. */
+type ServedPage = WithCategoryRef<PageInfo & AccessFlag>;
+
 interface SiteLayoutWithAccess {
-  pages: Record<string, PageInfo & AccessFlag>;
-  categories: Record<string, CategoryInfo & AccessFlag>;
+  /** By slug, the key a URL is resolved against. */
+  pages: Record<string, ServedPage>;
+  /**
+   * Every category, once, by full id: the pages and categories name theirs
+   * by id (`categoryId`). A browser resolves a URL against the ones that are
+   * not `urlTransparent`, by `fullSlug`.
+   */
+  categories: Record<string, WithCategoryRef<CategoryInfo & AccessFlag>>;
   /**
    * Carried inside the site layout rather than beside it: every renderer
    * already hydrates this object from a page's shared payload, so the banners
@@ -981,14 +983,14 @@ interface SiteLayoutWithAccess {
 
 export interface SiteLayoutPayload {
   siteLayout: SiteLayoutWithAccess;
-  siteLayoutTree: SiteLayoutTree;
+  siteLayoutTree: TreeWithCategoryRefs<SiteLayoutTree>;
   quickActions: QuickActionsPayload;
   modules: Record<string, ModuleInfo & AccessFlag>;
   isOwner: boolean;
 }
 
 export interface PagePayload {
-  route: PageInfo & AccessFlag;
+  route: ServedPage;
   shared: SiteLayoutPayload;
   layout: PageLayout;
   /**
@@ -1811,10 +1813,9 @@ async function annotateSiteLayoutAccess(
   banners: Promise<LayoutBannerSerialized[]>,
 ): Promise<SiteLayoutWithAccess> {
   return {
-    pages: await annotateRegistryAccess(pagesBySlug, context),
-    categories: await annotateRegistryAccess(
-      buildNavigableCategoryIndex(),
-      context,
+    pages: withCategoryRefs(await annotateRegistryAccess(pagesBySlug, context)),
+    categories: withCategoryRefs(
+      await annotateRegistryAccess(categoriesByFullId, context),
     ),
     banners: await banners,
   };
@@ -1917,11 +1918,13 @@ async function buildSiteLayoutFor(
 
   return {
     siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
-    siteLayoutTree: await addAccessToTree(
-      navigationTree,
-      accessContext,
-      true,
-      dynamicChildren,
+    siteLayoutTree: treeWithCategoryRefs(
+      await addAccessToTree(
+        navigationTree,
+        accessContext,
+        true,
+        dynamicChildren,
+      ),
     ),
     quickActions: await getQuickActionsForUser((target) =>
       resolveQuickActionTarget(target, accessContext),

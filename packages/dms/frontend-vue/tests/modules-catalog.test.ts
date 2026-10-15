@@ -117,7 +117,7 @@ describe("findModulePageMatch", () => {
     "/modules/saas/billing/invoices": page("/modules/saas/billing/invoices", {
       displayName: "Invoices",
       module: "saas",
-      category: { displayName: "Billing" },
+      categoryId: "saas.billing",
     }),
     "/modules/saas/invoice/:id": page("/modules/saas/invoice/:id", {
       displayName: "Invoice detail",
@@ -130,9 +130,22 @@ describe("findModulePageMatch", () => {
     }),
   };
 
+  // Every category once, by full id: a page names its own.
+  const layout = {
+    pages,
+    categories: {
+      "saas.billing": {
+        id: "billing",
+        fullId: "saas.billing",
+        fullSlug: "/modules/saas/billing",
+        displayName: "Billing",
+      },
+    },
+  };
+
   it("finds an openable page of an installed module and its section", () => {
     expect(
-      findModulePageMatch(pages, "invoice", new Set(["saas"]), resolve),
+      findModulePageMatch(layout, "invoice", new Set(["saas"]), resolve),
     ).toEqual({
       moduleId: "saas",
       path: "/modules/saas/billing/invoices",
@@ -143,10 +156,10 @@ describe("findModulePageMatch", () => {
 
   it("ignores hidden pages, parameterised pages and other modules", () => {
     expect(
-      findModulePageMatch(pages, "detail", new Set(["saas"]), resolve),
+      findModulePageMatch(layout, "detail", new Set(["saas"]), resolve),
     ).toBeNull();
     expect(
-      findModulePageMatch(pages, "invoices", new Set(["hidden"]), resolve),
+      findModulePageMatch(layout, "invoices", new Set(["hidden"]), resolve),
     ).toBeNull();
   });
 });

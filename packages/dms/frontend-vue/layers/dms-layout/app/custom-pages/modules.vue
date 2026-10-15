@@ -204,7 +204,7 @@ const trimmedQuery = computed(() => query.value.trim());
 const pageMatch = computed(() => {
   if (visibleModules.value.length > 0 || !trimmedQuery.value) return null;
   const match = findModulePageMatch(
-    siteLayout.siteLayout.value?.pages,
+    siteLayout.siteLayout.value,
     trimmedQuery.value,
     new Set(modules.value.map((entry) => entry.id)),
     processI18n,
