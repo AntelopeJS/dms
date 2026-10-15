@@ -549,21 +549,17 @@ allFields.value.forEach((field) => {
 
 let recordLoad: FormRecordLoad | undefined;
 if (props.fetchUrl) {
+  // The load outlives a drawer or a modal until the next navigation: each
+  // opening reads the row again, which may have changed since (here or
+  // elsewhere), and waits for it.
   const formLoad = await useDmsAsyncData(
     `form-${props.componentId}-${props.pageId}`,
     async () => ({
       values: await fetchData(),
       initial: initialValues.value,
     }),
+    { refreshOnMount: true },
   );
-
-  // The load is cached under this key, and outlives a drawer or modal: a
-  // reopening would show the values of the previous one, stale if the row
-  // changed since (here or elsewhere). Marked idle once read, every mounting
-  // fetches the row again.
-  onMounted(() => {
-    formLoad.status.value = "idle";
-  });
 
   recordLoad = trackFormRecordLoad(formLoad, (payload) => {
     if (payload.values && Object.keys(payload.values).length > 0) {
