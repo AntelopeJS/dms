@@ -69,7 +69,8 @@ export type ApiDataResult<T> = DmsAsyncDataResult<T>;
  *   `deep: true`.
  *
  * A write stays an `$authFetch` call; once it is done, the page's refresh
- * reads what changed.
+ * reads what changed, or `useDmsData(key)` puts its answer in the data in
+ * place (the URL form names its key with `key`).
  */
 export function useApiData<T>(
   url: ApiDataRequest,
