@@ -367,41 +367,41 @@ defineExpose(flow);
    halo (which only targets the built-in node types), keeping node and edge
    selection states visually consistent. */
 .dms-flow-canvas .vue-flow__node.selected {
-  box-shadow: 0 0 0 1.5px var(--color-dms-500);
+  box-shadow: 0 0 0 1.5px var(--ui-color-primary-500);
 }
 
-/* Handles: DMS cyan accent, ringed with the card surface for contrast. */
+/* Handles: primary accent, ringed with the card surface for contrast. */
 .dms-flow-canvas .vue-flow__handle {
   width: 9px;
   height: 9px;
-  background: var(--color-dms-500);
+  background: var(--ui-color-primary-500);
   border: 2px solid var(--dms-surface-card);
   border-radius: 9999px;
 }
 
 .dms-flow-canvas .vue-flow__handle:hover {
-  background: var(--color-dms-400);
+  background: var(--ui-color-primary-400);
 }
 
-/* Edges: hairline by default, cyan accent on selection / animation. */
+/* Edges: hairline by default, primary accent on selection / animation. */
 .dms-flow-canvas .vue-flow__edge-path {
   stroke: var(--ui-border-accented);
   stroke-width: 1.5;
 }
 
 .dms-flow-canvas .vue-flow__edge.animated .vue-flow__edge-path {
-  stroke: var(--color-dms-500);
+  stroke: var(--ui-color-primary-500);
 }
 
 .dms-flow-canvas .vue-flow__edge.selected .vue-flow__edge-path,
 .dms-flow-canvas .vue-flow__edge:focus .vue-flow__edge-path,
 .dms-flow-canvas .vue-flow__edge:focus-visible .vue-flow__edge-path {
-  stroke: var(--color-dms-500);
+  stroke: var(--ui-color-primary-500);
   stroke-width: 2;
 }
 
 .dms-flow-canvas .vue-flow__connection-path {
-  stroke: var(--color-dms-500);
+  stroke: var(--ui-color-primary-500);
   stroke-width: 2;
 }
 
@@ -514,7 +514,7 @@ defineExpose(flow);
 }
 
 .dms-flow-canvas__delete-button:focus-visible {
-  outline: 2px solid var(--color-dms-500);
+  outline: 2px solid var(--ui-color-primary-500);
   outline-offset: 1px;
 }
 </style>

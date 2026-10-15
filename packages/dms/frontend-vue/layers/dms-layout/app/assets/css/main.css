@@ -125,11 +125,23 @@
 
     /* Accent for text, icons and lines. The light theme needs the deep dms-700
      to stay readable on white; solid fills keep the bright dms-400 through
-     --dms-accent-fill instead, with dark ink on top, in both themes. */
+     --dms-accent-fill instead, with dark ink on top, in both themes. The
+     whole accent family derives from the primary palette, so pointing
+     `ui.colors.primary` elsewhere leaves no cyan behind. The fill hover and
+     its ink sit between shades: on the dms palette they come within a few
+     units of the v2 design's #5fe0ec and #04181b. */
     --ui-primary: var(--ui-color-primary-700);
     --dms-accent-fill: var(--ui-color-primary-400);
-    --dms-accent-fill-hover: #5fe0ec;
-    --dms-accent-on-fill: #04181b;
+    --dms-accent-fill-hover: color-mix(
+      in srgb,
+      var(--ui-color-primary-400) 75%,
+      var(--ui-color-primary-200)
+    );
+    --dms-accent-on-fill: color-mix(
+      in srgb,
+      var(--ui-color-primary-950) 50%,
+      black
+    );
 
     /* v2 status inks: the light theme uses the 700 shades so success, warning
      and error text stays readable on white; tints and lines stay bright. */
@@ -191,11 +203,13 @@
       0 0 0 1px color-mix(in srgb, var(--dms-accent) 30%, transparent),
       0 0 24px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
     --dms-focus-ring:
-      0 0 0 2px var(--ui-bg-muted), 0 0 0 4px rgb(27 162 175 / 0.55);
+      0 0 0 2px var(--ui-bg-muted),
+      0 0 0 4px color-mix(in srgb, var(--ui-color-primary-600) 55%, transparent);
     /* Command palette: the deepest shadow, plus an accent halo ring. */
     --dms-shadow-cmdk:
       0 1px 2px rgb(11 17 20 / 0.06), 0 30px 80px rgb(11 17 20 / 0.18);
-    --dms-halo-accent: 0 0 0 6px rgb(27 162 175 / 0.12);
+    --dms-halo-accent: 0 0 0 6px
+      color-mix(in srgb, var(--ui-color-primary-600) 12%, transparent);
     /* Assistant mode swaps the accent halo for a violet (secondary) one,
        and tints its surfaces and lines with the same violet. Plain rgb():
        Chromium fringes the anti-aliased edge of an oklab colour-mix border
@@ -213,16 +227,30 @@
       0 1px 2px rgb(11 17 20 / 0.06), 0 24px 64px rgb(11 17 20 / 0.16);
     --dms-overlay: rgb(11 17 20 / 0.28);
     --dms-glow-accent:
-      0 0 0 1px var(--ui-color-primary-600), 0 4px 16px rgb(27 162 175 / 0.18);
+      0 0 0 1px var(--ui-color-primary-600),
+      0 4px 16px
+        color-mix(in srgb, var(--ui-color-primary-600) 18%, transparent);
 
     --dms-accent: var(--ui-color-primary-500);
 
     /* Form controls (v2 --accent-tint*, --error-tint, --border-top,
      --btn-highlight): the 3px focus halo around fields, the strongest border
      (unchecked boxes, dropzones) and the highlight on accent fills. */
-    --dms-accent-tint: rgb(27 162 175 / 0.09);
-    --dms-accent-tint-strong: rgb(27 162 175 / 0.15);
-    --dms-accent-line: rgb(27 162 175 / 0.35);
+    --dms-accent-tint: color-mix(
+      in srgb,
+      var(--ui-color-primary-600) 9%,
+      transparent
+    );
+    --dms-accent-tint-strong: color-mix(
+      in srgb,
+      var(--ui-color-primary-600) 15%,
+      transparent
+    );
+    --dms-accent-line: color-mix(
+      in srgb,
+      var(--ui-color-primary-600) 35%,
+      transparent
+    );
     --dms-error-tint: rgb(220 38 38 / 0.08);
     --dms-border-top: #c9d1d7;
     --dms-field-border-hover: color-mix(
@@ -231,7 +259,8 @@
       var(--ui-text-muted)
     );
     --dms-fill-highlight:
-      inset 0 1px 0 rgb(255 255 255 / 0.45), 0 1px 2px rgb(6 46 53 / 0.18);
+      inset 0 1px 0 rgb(255 255 255 / 0.45),
+      0 1px 2px color-mix(in srgb, var(--ui-color-primary-950) 18%, transparent);
 
     /* Charts and dashboards (v2 --chart-*, --sparkline, --skeleton): step 1
      is the main series, step 2 (violet) always the comparison. Lines use
@@ -285,12 +314,12 @@
     --dms-bg-muted: #0d1114;
     --dms-canvas-glow: radial-gradient(
       900px 600px at 85% -10%,
-      rgb(77 217 230 / 0.055),
+      color-mix(in srgb, var(--ui-color-primary-400) 5.5%, transparent),
       transparent 70%
     );
     --dms-stage-glow: radial-gradient(
       closest-side,
-      rgb(77 217 230 / 0.1),
+      color-mix(in srgb, var(--ui-color-primary-400) 10%, transparent),
       transparent
     );
 
@@ -316,10 +345,12 @@
       0 0 0 1px color-mix(in srgb, var(--dms-accent) 35%, transparent),
       0 0 32px -4px color-mix(in srgb, var(--dms-accent) 45%, transparent);
     --dms-focus-ring:
-      0 0 0 2px var(--ui-bg-muted), 0 0 0 4px rgb(77 217 230 / 0.6);
+      0 0 0 2px var(--ui-bg-muted),
+      0 0 0 4px color-mix(in srgb, var(--ui-color-primary-400) 60%, transparent);
     --dms-shadow-cmdk:
       0 50px 140px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
-    --dms-halo-accent: 0 0 0 8px rgb(77 217 230 / 0.07);
+    --dms-halo-accent: 0 0 0 8px
+      color-mix(in srgb, var(--ui-color-primary-400) 7%, transparent);
     --dms-assistant-halo: 0 0 0 8px rgb(167 139 250 / 0.09);
     --dms-assistant-tint: rgb(167 139 250 / 0.12);
     --dms-assistant-line: rgb(167 139 250 / 0.4);
@@ -329,12 +360,25 @@
       0 40px 120px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.04);
     --dms-overlay: rgb(3 5 6 / 0.62);
     --dms-glow-accent:
-      0 0 0 1px var(--ui-color-primary-400), 0 0 40px rgb(77 217 230 / 0.25);
+      0 0 0 1px var(--ui-color-primary-400),
+      0 0 40px color-mix(in srgb, var(--ui-color-primary-400) 25%, transparent);
     --dms-accent: var(--ui-color-primary-400);
 
-    --dms-accent-tint: rgb(77 217 230 / 0.1);
-    --dms-accent-tint-strong: rgb(77 217 230 / 0.16);
-    --dms-accent-line: rgb(77 217 230 / 0.35);
+    --dms-accent-tint: color-mix(
+      in srgb,
+      var(--ui-color-primary-400) 10%,
+      transparent
+    );
+    --dms-accent-tint-strong: color-mix(
+      in srgb,
+      var(--ui-color-primary-400) 16%,
+      transparent
+    );
+    --dms-accent-line: color-mix(
+      in srgb,
+      var(--ui-color-primary-400) 35%,
+      transparent
+    );
     --dms-error-tint: rgb(248 113 113 / 0.13);
     --dms-border-top: #3a4550;
     --dms-field-border-hover: color-mix(
@@ -380,7 +424,11 @@
     --ui-border-accented: #8a949d;
     --dms-border-top: #8a949d;
     --dms-chart-grid: #dfe4e8;
-    --dms-accent-line: rgb(27 162 175 / 0.6);
+    --dms-accent-line: color-mix(
+      in srgb,
+      var(--ui-color-primary-600) 60%,
+      transparent
+    );
     --dms-success-line: rgb(22 163 74 / 0.55);
     --dms-warning-line: rgb(217 119 6 / 0.6);
     --dms-error-line: rgb(220 38 38 / 0.55);
@@ -398,7 +446,11 @@
     --ui-border-accented: #5f6b76;
     --dms-border-top: #6b7782;
     --dms-chart-grid: #262e36;
-    --dms-accent-line: rgb(77 217 230 / 0.6);
+    --dms-accent-line: color-mix(
+      in srgb,
+      var(--ui-color-primary-400) 60%,
+      transparent
+    );
     --dms-success-line: rgb(74 222 128 / 0.6);
     --dms-warning-line: rgb(251 191 36 / 0.6);
     --dms-error-line: rgb(248 113 113 / 0.6);

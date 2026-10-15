@@ -1,3 +1,7 @@
+import type {
+  DmsBrandingLogo,
+  DmsUiColors,
+} from "#dms-core/shared/types/app-config";
 import { EYEBROW_CLASS } from "#dms-ui/app/build/utils/eyebrow";
 import { actionsTheme } from "./theme/actions";
 import { dataTheme } from "./theme/data";
@@ -8,21 +12,44 @@ import {
 } from "./theme/navigation";
 import { surfacesTheme } from "./theme/surfaces";
 
+const ANTELOPE_ICON = "/images/antelope-logo/icon.svg";
+
+// The palettes and logos are built afresh for each place that holds them: a
+// merged app config keeps the very objects no layer overrides, so a live edit
+// of `ui.colors` or `branding.logo` would otherwise rewrite
+// `branding.defaults` too.
+
+function dmsColors(): DmsUiColors {
+  return {
+    primary: "dms",
+    // The AI accent of the v2 design.
+    secondary: "violet",
+    neutral: "neutral",
+    // Design semantic hexes map exactly onto these Tailwind palettes:
+    // success #10b981 (emerald), warning #f59e0b (amber),
+    // error #ef4444 (red), info #06b6d4 (cyan).
+    success: "emerald",
+    warning: "amber",
+    error: "red",
+    info: "cyan",
+  };
+}
+
+// No email logo: the AntelopeJS logos are SVG, which mail clients refuse.
+function dmsLogo(): DmsBrandingLogo {
+  return {
+    default: {
+      light: "/images/antelope-logo/light.svg",
+      dark: "/images/antelope-logo/dark.svg",
+    },
+    collapsed: { light: ANTELOPE_ICON, dark: ANTELOPE_ICON },
+    favicon: { light: ANTELOPE_ICON, dark: ANTELOPE_ICON },
+  };
+}
+
 export default {
   ui: {
-    colors: {
-      primary: "dms",
-      // The AI accent of the v2 design.
-      secondary: "violet",
-      neutral: "neutral",
-      // Design semantic hexes map exactly onto these Tailwind palettes:
-      // success #10b981 (emerald), warning #f59e0b (amber),
-      // error #ef4444 (red), info #06b6d4 (cyan).
-      success: "emerald",
-      warning: "amber",
-      error: "red",
-      info: "cyan",
-    },
+    colors: dmsColors(),
     icons: {
       arrowDown: "i-ph-arrow-down-light",
       arrowLeft: "i-ph-arrow-left-light",
@@ -184,16 +211,8 @@ export default {
     },
   },
   branding: {
-    logo: {
-      default: {
-        light: "/images/antelope-logo/light.svg",
-        dark: "/images/antelope-logo/dark.svg",
-      },
-      collapsed: {
-        light: "/images/antelope-logo/icon.svg",
-        dark: "/images/antelope-logo/icon.svg",
-      },
-    },
+    logo: dmsLogo(),
+    defaults: { logo: dmsLogo(), colors: dmsColors() },
     footer: {
       copyright: "Antelope",
       githubStar: true,
