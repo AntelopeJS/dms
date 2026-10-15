@@ -16,7 +16,7 @@ import ShowcaseSection from "../showcase/ShowcaseSection.vue";
  * opens a dialog the server words.
  */
 
-const DIALOG_URL = "/api/form-confirm/dialog/{id}";
+const DIALOG_URL = "/api/form-confirm/dialog/{{row.id}}";
 const SECONDARY_DELAY_MS = 800;
 const CONFIRM_DELAY_MS = 600;
 
@@ -280,11 +280,11 @@ const openFrom = () =>
     <ShowcaseSection
       id="use-confirm-from"
       title="useConfirmFrom() · a dialog the server words"
-      description="confirmFrom(url, { params, fallback }) reads a serializeConfirmDialog answer, fills {id} in the URL and {name} in its texts, then opens it."
+      description="confirmFrom(url, { params, fallback }) reads a serializeConfirmDialog answer, fills {{row.id}} in the URL and {name} in its texts, then opens it."
       :columns="1"
     >
       <ShowcaseDemo
-        label="confirmFrom('/api/form-confirm/dialog/{id}', { params: { id: 'acme', name: 'Acme' }, fallback })"
+        label="confirmFrom('/api/form-confirm/dialog/{{row.id}}', { params: { id: 'acme', name: 'Acme' }, fallback })"
       >
         <UButton
           label="Confirm from the server"

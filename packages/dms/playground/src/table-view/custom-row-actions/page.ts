@@ -32,7 +32,7 @@ export class PageTableViewCustomRowActions extends PageController(
     },
     {
       label: "The ⋯ menu",
-      text: 'menuLabel names it "Actions for <task>". Its entries: an api call copying the answer (copy), a confirmed "Cancel {name}" (a "not" rule, permission "edit"), a download, a modal, a quick action, a page link filled with {status}.',
+      text: 'menuLabel names it "Actions for <task>". Its entries: an api call copying the answer (copy), a confirmed "Cancel {name}" (a "not" rule, permission "edit"), a download, a modal, a quick action, a page link filled with {{row.status}}.',
     },
     {
       label: "Rename, Delete",
@@ -113,7 +113,7 @@ export class PageTableViewCustomRowActions extends PageController(
       menuLabel: "Actions for {name}",
       edit: { label: "Rename", icon: "i-ph-pencil-simple" },
       delete: {
-        confirm: { from: `${ROUTES}/removal-confirm?id={_id}` },
+        confirm: { from: `${ROUTES}/removal-confirm?id={{row._id}}` },
         successMessage: "{count} task deleted | {count} tasks deleted",
       },
       custom: [
@@ -128,7 +128,7 @@ export class PageTableViewCustomRowActions extends PageController(
           rule: { field: "status", notIn: ["completed", "cancelled"] },
           target: {
             type: "api",
-            url: `${ROUTES}/complete?id={_id}`,
+            url: `${ROUTES}/complete?id={{row._id}}`,
             method: "POST",
             successMessage: "Task completed",
           },
@@ -138,7 +138,7 @@ export class PageTableViewCustomRowActions extends PageController(
           icon: "i-ph-link",
           target: {
             type: "api",
-            url: `${ROUTES}/share?id={_id}`,
+            url: `${ROUTES}/share?id={{row._id}}`,
             method: "POST",
             copy: "url",
             successMessage: "Share link copied",
@@ -160,7 +160,7 @@ export class PageTableViewCustomRowActions extends PageController(
           },
           target: {
             type: "api",
-            url: `${ROUTES}/cancel?id={_id}`,
+            url: `${ROUTES}/cancel?id={{row._id}}`,
             method: "POST",
             successMessage: "Task cancelled",
           },
@@ -170,8 +170,8 @@ export class PageTableViewCustomRowActions extends PageController(
           icon: "i-ph-file-arrow-down",
           target: {
             type: "download",
-            url: `${ROUTES}/export?id={_id}`,
-            filename: "task-{_id}.json",
+            url: `${ROUTES}/export?id={{row._id}}`,
+            filename: "task-{{row._id}}.json",
           },
         },
         {
@@ -194,7 +194,7 @@ export class PageTableViewCustomRowActions extends PageController(
           icon: "i-ph-arrow-square-out",
           target: {
             type: "page",
-            url: "/table-view/table-view-tasks-by-status/{status}",
+            url: "/table-view/table-view-tasks-by-status/{{row.status}}",
           },
         },
         {

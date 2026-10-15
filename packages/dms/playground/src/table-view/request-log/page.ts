@@ -110,7 +110,7 @@ export class PageTableViewRequestLog extends PageController(
   static requests = TableView.fromSource({
     caption: "Requests",
     fetchUrl: "/api/playground/request-log-server",
-    fetchRowUrl: "/api/playground/request-log-server/rows/{id}",
+    fetchRowUrl: "/api/playground/request-log-server/rows/{{row.id}}",
     rowIdKey: "requestId",
     labelKey: "path",
     capabilities: { filter: true, search: true, sort: true, paginate: true },
@@ -163,8 +163,8 @@ export class PageTableViewRequestLog extends PageController(
           icon: "i-ph-file-arrow-down",
           target: {
             type: "download",
-            url: "/api/playground/request-log-server/rows/{requestId}",
-            filename: "{requestId}.json",
+            url: "/api/playground/request-log-server/rows/{{row.requestId}}",
+            filename: "{{row.requestId}}.json",
           },
         },
       ],
