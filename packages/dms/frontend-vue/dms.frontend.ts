@@ -8,6 +8,7 @@ import { defu } from "defu";
 import appConfig from "./layers/dms-layout/app/app.config";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
 import permissionsPreloadPlugin from "./layers/dms-auth/app/plugins/permissions-preload";
+import asyncDataScopePlugin from "./layers/dms-core/app/plugins/async-data-scope";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
@@ -166,6 +167,8 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       await plugin.default(context);
     }, clientOnly);
   }
+  // Before any data is read: every key lives in the session's scope.
+  sdk.registerPlugin(asyncDataScopePlugin);
   // First: the requests the middlewares wait on start with the app, alongside
   // the ones the plugins below and the page make, instead of one after the
   // other once the page has set up.

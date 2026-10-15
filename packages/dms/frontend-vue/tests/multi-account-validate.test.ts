@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { validateAccount } from "../layers/dms-core/app/composables/auth/useMultiAccount";
+import {
+  refreshSessionSurfaces,
+  validateAccount,
+} from "../layers/dms-core/app/composables/auth/useMultiAccount";
 import type { StoredAccount } from "../layers/dms-core/app/types/auth";
 
 function makeAccount(overrides: Partial<StoredAccount> = {}): StoredAccount {
@@ -95,5 +98,24 @@ describe("validateAccount", () => {
 
     expect(account.isExpired).toBe(false);
     expect(account).not.toHaveProperty("refreshToken");
+  });
+});
+
+describe("refreshSessionSurfaces", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reads the session again, then reloads the site layout through Inertia", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("useSiteLayout", () => ({
+      resync: vi.fn(async () => calls.push("inertia reload")),
+      refresh: vi.fn(async () => calls.push("site layout fetch")),
+    }));
+    vi.stubGlobal("usePermissions", () => ({
+      clear: () => calls.push("permissions cleared"),
+    }));
+
+    await refreshSessionSurfaces(async () => calls.push("session"));
+
+    expect(calls).toEqual(["session", "permissions cleared", "inertia reload"]);
   });
 });
