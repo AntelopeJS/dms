@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import {
+  listDroppedBackendProxies,
   type ManifestModuleEntry,
   type ModuleManifestShape,
   stripPrivateManifestFields,
@@ -134,5 +135,32 @@ describe("[unit] manifest field policy", () => {
       authEstablishEndpoints: false,
     });
     expect(manifest).to.deep.equal(buildManifest());
+  });
+});
+
+describe("[unit] dropped backend proxies", () => {
+  it("names each proxy withheld from a caller without the routing declarations", () => {
+    const { modules } = buildManifest();
+    modules[1].backendProxies = [{ path: "/files/*" }];
+    expect(
+      listDroppedBackendProxies(modules, {
+        privateOptions: false,
+        path: false,
+        authEstablishEndpoints: false,
+      }),
+    ).to.deep.equal([
+      "@scope/dms-frontend /media/**",
+      "@scope/dms-lang-layer /files/*",
+    ]);
+  });
+
+  it("names none when the caller receives them", () => {
+    expect(
+      listDroppedBackendProxies(buildManifest().modules, {
+        privateOptions: true,
+        path: true,
+        authEstablishEndpoints: true,
+      }),
+    ).to.deep.equal([]);
   });
 });

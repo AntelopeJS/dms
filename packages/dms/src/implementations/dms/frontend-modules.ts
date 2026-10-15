@@ -22,6 +22,7 @@ import {
   assertFrontendBootstrap,
   type BootstrapOutcome,
   decideLayerAccess,
+  degradedLayerAccessWarning,
   resolveBootstrapOutcome,
 } from "./frontend-bootstrap";
 import {
@@ -29,6 +30,7 @@ import {
   type FrontendManifest,
   type ManifestFieldPolicy,
   type ManifestModuleEntry,
+  listDroppedBackendProxies,
   type ModuleManifestShape,
   resolveClientOrigin,
   resolveRequestOrigin,
@@ -310,18 +312,19 @@ export function GetFrontendModules(): FrontendModuleMetadata[] {
   }));
 }
 
-function enforceLayerAccess(outcome: BootstrapOutcome, route: string): void {
+function enforceLayerAccess(
+  outcome: BootstrapOutcome,
+  route: string,
+  droppedProxies: () => string[] = () => [],
+): void {
   const decision = decideLayerAccess(outcome);
   if (decision === "allow") return;
   if (decision === "refuse") assertFrontendBootstrap(outcome);
+  const dropped = droppedProxies();
   warnOnceFor(
     modules,
-    route,
-    `[DMS] ${route} was served to a caller presenting no valid bootstrap credential, ` +
-      "because this instance configures none. Private layer options were withheld, so " +
-      "server-side HTML rendering and OAuth login will fail in a frontend built from this " +
-      "response. Set frontend.bootstrapSecret in the backend config and DMS_BOOTSTRAP_SECRET " +
-      "where the frontend is built; the route is then refused to unauthenticated callers.",
+    `${route} ${dropped.join(",")}`,
+    degradedLayerAccessWarning(route, dropped),
   );
 }
 
@@ -366,7 +369,14 @@ export async function buildFrontendManifest(
   bootstrapHeader: string | undefined,
 ): Promise<FrontendManifest<ServedModule>> {
   const outcome = resolveBootstrapOutcome(bootstrapHeader);
-  enforceLayerAccess(outcome, "GET /dms/frontend");
+  // Refused before the selection is read: an anonymous caller learns nothing
+  // of the renderers served.
+  enforceLayerAccess(outcome, "GET /dms/frontend", () =>
+    listDroppedBackendProxies(
+      selectedModules(resolveFrontendSelection(renderer, rendererVersion)),
+      resolveManifestFieldPolicy(outcome, false),
+    ),
+  );
   const selection = resolveFrontendSelection(renderer, rendererVersion);
   const { dev } = await GetRuntimeInfo();
   let shaped: ModuleManifestShape<ServedModule> = stripPrivateManifestFields(

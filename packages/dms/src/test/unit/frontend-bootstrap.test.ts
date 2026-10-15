@@ -3,6 +3,7 @@ import { expect } from "chai";
 import {
   assertFrontendBootstrap,
   decideLayerAccess,
+  degradedLayerAccessWarning,
   matchesFrontendBootstrap,
   resolveBootstrapOutcome,
 } from "../../implementations/dms/frontend-bootstrap";
@@ -103,6 +104,25 @@ describe("[unit] frontend bootstrap", () => {
     it("refuses an anonymous caller when enforcement is asked for without a secret", () => {
       expect(decideLayerAccess("anonymous", false, "enforce")).to.equal(
         "refuse",
+      );
+    });
+  });
+
+  describe("degraded layer access warning", () => {
+    it("names the declared backend proxies it dropped", () => {
+      const message = degradedLayerAccessWarning("GET /dms/frontend", [
+        "@scope/dms-frontend /media/**",
+        "@scope/dms-lang-layer /files/*",
+      ]);
+      expect(message).to.contain("backend proxies were dropped");
+      expect(message).to.contain(
+        "@scope/dms-frontend /media/**, @scope/dms-lang-layer /files/*",
+      );
+    });
+
+    it("mentions no proxy when none was declared", () => {
+      expect(degradedLayerAccessWarning("GET /dms/frontend")).to.not.contain(
+        "proxies",
       );
     });
   });

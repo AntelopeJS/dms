@@ -192,3 +192,33 @@ export function stripPrivateManifestFields<T extends ManifestModuleEntry>(
     modules: manifest.modules.map((module) => applyFieldPolicy(module, keep)),
   };
 }
+
+interface NamedManifestModule extends ManifestModuleEntry {
+  name: string;
+}
+
+function proxyPath(proxy: unknown): string | undefined {
+  if (!proxy || typeof proxy !== "object") return undefined;
+  const { path } = proxy as { path?: unknown };
+  return typeof path === "string" ? path : undefined;
+}
+
+/**
+ * The backend proxies a manifest shaped by `keep` withholds, each named
+ * `<module> <path>`: none when the caller may receive them.
+ *
+ * @param modules The modules before the field policy applies
+ * @param keep Which sensitive fields this caller may receive
+ * @returns The withheld proxies, in the modules' order
+ */
+export function listDroppedBackendProxies(
+  modules: NamedManifestModule[],
+  keep: ManifestFieldPolicy,
+): string[] {
+  if (keep.authEstablishEndpoints) return [];
+  return modules.flatMap((module) =>
+    (module.backendProxies ?? []).map(
+      (proxy) => `${module.name} ${proxyPath(proxy) ?? "(no path)"}`,
+    ),
+  );
+}
