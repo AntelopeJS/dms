@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import type { PassThrough } from "node:stream";
 import { buffer } from "node:stream/consumers";
 import type { RequestContext } from "@antelopejs/interface-api";
@@ -36,6 +36,7 @@ import {
   resolveRequestOrigin,
   stripPrivateManifestFields,
 } from "./manifest";
+import { isStoreOperationRunning } from "../../store/activity";
 import { warnOnceFor } from "./warn-once";
 import {
   copyPublicEndpoints,
@@ -281,6 +282,40 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   scheduleBroadcast();
 }
 
+function isInsideFolder(candidate: string, folder: string): boolean {
+  const relativePath = relative(folder, candidate);
+  return !relativePath.startsWith("..") && !isAbsolute(relativePath);
+}
+
+/** Names of the frontend modules whose sources live under `folder`. */
+export function frontendModuleNamesUnder(folder: string): string[] {
+  return Object.values(modules)
+    .filter((module) => isInsideFolder(module.path, folder))
+    .map((module) => module.name);
+}
+
+/**
+ * Drops the frontend modules whose sources live under `folder`, the folder of
+ * a module the store just took down. `AddFrontendModule` is a plain interface
+ * function, not a registering proxy, so nothing else releases a destroyed
+ * module's layer: it would stay in the manifest until the process restarts.
+ *
+ * @returns The names of the dropped frontend modules
+ */
+export function removeFrontendModulesUnder(folder: string): string[] {
+  const removed = Object.entries(modules).filter(([, module]) =>
+    isInsideFolder(module.path, folder),
+  );
+  for (const [identity] of removed) {
+    delete modules[identity];
+  }
+  if (removed.length > 0) {
+    cachedModulesArchives.clear();
+    scheduleBroadcast();
+  }
+  return removed.map(([, module]) => module.name);
+}
+
 function copyFrontendValue(value: FrontendModuleValue): FrontendModuleValue {
   if (value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(copyFrontendValue);
@@ -396,7 +431,12 @@ export async function buildFrontendManifest(
       outcome,
     );
   }
-  return { version: 1, archive: shaped.pack, modules: shaped.modules };
+  return {
+    version: 1,
+    archive: shaped.pack,
+    modules: shaped.modules,
+    settling: isStoreOperationRunning(),
+  };
 }
 
 export async function writeFrontendModules(

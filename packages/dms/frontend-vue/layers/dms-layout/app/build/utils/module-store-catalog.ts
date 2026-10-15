@@ -1,137 +1,155 @@
+import type { Tone } from "#dms-ui/app/types/tone";
+import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
+import type {
+  StoreListingEntry,
+  StoreModuleState,
+  StoreOperationKind,
+} from "../../types/module-store";
 import type { DisplayResolver } from "./modules-catalog";
 
-/**
- * One official module offered by the module store preview. The list below is
- * static for now: it stands in for the AntelopeJS module registry the store
- * will read once installing from the dashboard is possible.
- */
-export interface ModuleStoreEntry {
-  /**
-   * Id the module registers in the catalog (`RegisterModule({ id })`): a
-   * store entry whose id is installed is hidden.
-   */
-  id: string;
-  /** npm package the AntelopeJS CLI adds to the project. */
-  packageName: string;
-  /** Display name, a `$i18n.key`. */
-  title: string;
-  /** One-line summary, a `$i18n.key`. */
-  description: string;
-  /** Iconify name, the icon the module registers once installed. */
-  icon: string;
-  /** Store category, a `$i18n.key`. */
+/** A store module as the Modules page filters and draws it. */
+export type ModuleStoreEntry = StoreListingEntry & {
+  /** Store category, a `$i18n.key` (what the category chips read). */
   catalogCategory: string;
+};
+
+/** Which store modules the store section shows. */
+export type StoreScope = "all" | "available" | "installed";
+
+/** What a store tile's pill says. */
+export interface StoreTileStatus {
+  tone: Tone;
+  /** i18n key under `modules.store.state`. */
+  labelKey: string;
+  dot?: StatusPillDot;
 }
 
-const CATEGORY = {
-  ai: "$modules.store.category.ai",
-  business: "$modules.store.category.business",
-  content: "$modules.store.category.content",
-  data: "$modules.store.category.data",
-  developer: "$modules.store.category.developer",
-  growth: "$modules.store.category.growth",
-  operations: "$modules.store.category.operations",
-} as const;
+/** One action a store tile offers. */
+export interface StoreAction {
+  kind: StoreOperationKind;
+  /** i18n key under `modules.store.actions`. */
+  labelKey: string;
+  icon: string;
+  /** The action runs only once the owner confirms it. */
+  confirm?: boolean;
+  /**
+   * Offered in the tile's menu only, never as its button: pausing or
+   * removing a running module is not what its tile should invite.
+   */
+  isMenuOnly?: boolean;
+}
 
-function storeEntry(
-  id: string,
-  packageName: string,
-  icon: string,
-  catalogCategory: string,
-): ModuleStoreEntry {
+const CATEGORY_PREFIX = "$modules.store.category";
+
+/** The command that turns a production frontend into one serving new layers. */
+export const FRONTEND_BUILD_COMMAND = "ajs dms build";
+
+const STATUSES: Record<StoreModuleState, StoreTileStatus> = {
+  available: { tone: "neutral", labelKey: "available", dot: "none" },
+  busy: { tone: "info", labelKey: "busy", dot: "live" },
+  active: { tone: "success", labelKey: "active" },
+  disabled: { tone: "neutral", labelKey: "disabled" },
+  error: { tone: "error", labelKey: "error" },
+  pending: { tone: "warning", labelKey: "pending" },
+  config: { tone: "secondary", labelKey: "config", dot: "none" },
+};
+
+const ACTIONS: Record<StoreOperationKind, StoreAction> = {
+  install: {
+    kind: "install",
+    labelKey: "install",
+    icon: "i-ph-download-simple",
+  },
+  update: { kind: "update", labelKey: "update", icon: "i-ph-arrow-circle-up" },
+  enable: { kind: "enable", labelKey: "enable", icon: "i-ph-play" },
+  disable: {
+    kind: "disable",
+    labelKey: "disable",
+    icon: "i-ph-pause",
+    isMenuOnly: true,
+  },
+  uninstall: {
+    kind: "uninstall",
+    labelKey: "uninstall",
+    icon: "i-ph-trash",
+    confirm: true,
+    isMenuOnly: true,
+  },
+  apply: { kind: "apply", labelKey: "apply", icon: "i-ph-arrows-clockwise" },
+};
+
+/** States of a module that sits in the desired-state file or in the config. */
+const INSTALLED_STATES = new Set<StoreModuleState>([
+  "active",
+  "disabled",
+  "pending",
+  "config",
+]);
+
+export function toModuleStoreEntry(entry: StoreListingEntry): ModuleStoreEntry {
   return {
-    id,
-    packageName,
-    title: `$modules.store.catalog.${id}.title`,
-    description: `$modules.store.catalog.${id}.description`,
-    icon,
-    catalogCategory,
+    ...entry,
+    catalogCategory: `${CATEGORY_PREFIX}.${entry.category}`,
   };
 }
 
-/**
- * The official AntelopeJS DMS modules (one repository each under the
- * AntelopeJS organisation). Ids and icons are the ones each module registers;
- * Media and Builder register no catalog module, so theirs come from their
- * settings page and the v2 design.
- */
-export const MODULE_STORE_CATALOG: readonly ModuleStoreEntry[] = [
-  storeEntry("ai", "@antelopejs/dms-ai", "i-ph-robot", CATEGORY.ai),
-  storeEntry(
-    "api",
-    "@antelopejs/dms-api",
-    "i-ph-brackets-curly",
-    CATEGORY.developer,
-  ),
-  storeEntry(
-    "automation",
-    "@antelopejs/dms-automation",
-    "i-ph-flow-arrow",
-    CATEGORY.operations,
-  ),
-  storeEntry(
-    "builder",
-    "@antelopejs/dms-builder",
-    "i-ph-hammer",
-    CATEGORY.developer,
-  ),
-  storeEntry(
-    "cicd",
-    "@antelopejs-private/dms-cicd",
-    "i-ph-rocket-launch",
-    CATEGORY.operations,
-  ),
-  storeEntry(
-    "database",
-    "@antelopejs/dms-database",
-    "i-ph-database",
-    CATEGORY.data,
-  ),
-  storeEntry(
-    "lang",
-    "@antelopejs/dms-lang",
-    "i-ph-translate",
-    CATEGORY.content,
-  ),
-  storeEntry(
-    "mailing",
-    "@antelopejs/dms-mailing",
-    "i-ph-envelope-simple",
-    CATEGORY.growth,
-  ),
-  storeEntry(
-    "marketing",
-    "@antelopejs/dms-marketing",
-    "i-ph-chart-line-up",
-    CATEGORY.growth,
-  ),
-  storeEntry("media", "@antelopejs/dms-media", "i-ph-images", CATEGORY.content),
-  storeEntry(
-    "saas",
-    "@antelopejs/dms-saas",
-    "i-ph-buildings",
-    CATEGORY.business,
-  ),
-];
+/** Whether the module is installed, from the store or by the config. */
+export function isInstalled(entry: StoreListingEntry): boolean {
+  if (INSTALLED_STATES.has(entry.state)) return true;
+  return entry.installedVersion !== undefined;
+}
 
-/** The AntelopeJS CLI command that adds a package module to a project. */
-export const MODULE_INSTALL_COMMAND = "ajs project modules add";
+export function filterByScope<T extends StoreListingEntry>(
+  entries: readonly T[],
+  scope: StoreScope,
+): T[] {
+  if (scope === "all") return [...entries];
+  const wantsInstalled = scope === "installed";
+  return entries.filter((entry) => isInstalled(entry) === wantsInstalled);
+}
 
-/** The full CLI command that adds the module to a project. */
-export function moduleInstallCommand(entry: ModuleStoreEntry): string {
-  return `${MODULE_INSTALL_COMMAND} ${entry.packageName}`;
+/** The store modules, alphabetical by their shown name. */
+export function sortStoreModules<T extends StoreListingEntry>(
+  entries: readonly T[],
+  resolve: DisplayResolver,
+): T[] {
+  return [...entries].sort((a, b) =>
+    resolve(a.title).localeCompare(resolve(b.title)),
+  );
+}
+
+export function storeTileStatus(entry: StoreListingEntry): StoreTileStatus {
+  if (entry.state === "active" && entry.updateAvailable) {
+    return { tone: "warning", labelKey: "update_available" };
+  }
+  return STATUSES[entry.state];
 }
 
 /**
- * The store entries not installed on this platform, alphabetical by their
- * shown name.
+ * What the tile offers, the main action first. A module in error offers to
+ * try its last step again: installing it when the file does not hold it,
+ * applying the file otherwise.
  */
-export function availableStoreModules(
-  catalog: readonly ModuleStoreEntry[],
-  installedIds: ReadonlySet<string>,
-  resolve: DisplayResolver,
-): ModuleStoreEntry[] {
-  return catalog
-    .filter((entry) => !installedIds.has(entry.id))
-    .sort((a, b) => resolve(a.title).localeCompare(resolve(b.title)));
+export function storeActions(entry: StoreListingEntry): StoreAction[] {
+  const installed = entry.installedVersion !== undefined;
+  const byState: Record<StoreModuleState, StoreOperationKind[]> = {
+    available: ["install"],
+    busy: [],
+    active: entry.updateAvailable
+      ? ["update", "disable", "uninstall"]
+      : ["disable", "uninstall"],
+    disabled: ["enable", "uninstall"],
+    error: installed ? ["apply", "uninstall"] : ["install"],
+    pending: ["apply", "uninstall"],
+    config: [],
+  };
+  return byState[entry.state].map((kind) => ACTIONS[kind]);
+}
+
+/**
+ * Whether the page waits on the frontend for this module: its backend side
+ * changed and the frontend server has not reported serving it yet.
+ */
+export function isAwaitingFrontend(entry: StoreListingEntry): boolean {
+  return entry.state !== "busy" && entry.frontend === "pending";
 }

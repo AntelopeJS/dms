@@ -735,18 +735,87 @@
     },
     "store": {
       "title": "Module store",
-      "description": "Official AntelopeJS modules not installed on this platform.",
-      "soon": "Coming soon",
-      "banner": {
-        "title": "Coming soon",
-        "description": "Browse and install official modules from the AntelopeJS catalog directly from your dashboard."
+      "description": "Official AntelopeJS modules: install, update, pause or remove them without touching the project’s code.",
+      "scope": {
+        "label": "Show",
+        "all": "All · {count}",
+        "available": "Available · {count}",
+        "installed": "Installed · {count}"
       },
+      "state": {
+        "available": "Available",
+        "busy": "Working",
+        "active": "Active",
+        "disabled": "Paused",
+        "error": "Failed",
+        "pending": "Not applied",
+        "config": "From config",
+        "update_available": "Update"
+      },
+      "actions": {
+        "install": "Install",
+        "update": "Update",
+        "enable": "Resume",
+        "disable": "Pause",
+        "uninstall": "Uninstall",
+        "apply": "Apply",
+        "manage": "Manage"
+      },
+      "steps": {
+        "resolve": "Find the latest release",
+        "unload": "Stop the running version",
+        "load": "Download and start",
+        "save": "Write dms-modules.json"
+      },
+      "progress": {
+        "install": "Installing",
+        "update": "Updating",
+        "enable": "Resuming",
+        "disable": "Pausing",
+        "uninstall": "Uninstalling",
+        "apply": "Applying"
+      },
+      "more_actions": "More actions",
+      "incompatible": "Needs {'@'}antelopejs/interface-dms {range}: update the DMS first",
+      "no_release": "The npm registry has no release of it this platform can read",
+      "locked": "Another module is being changed",
+      "config_hint": "Declared in antelope.config.ts: the store leaves it to the config.",
+      "pending_hint": "dms-modules.json and the running platform disagree: Apply brings them in line.",
+      "uninstall_confirm": {
+        "title": "Uninstall {module}?",
+        "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."
+      },
+      "action_failed": "{module} could not be changed",
+      "errors": {
+        "store_busy": "Another module is being changed. Try again once it is done.",
+        "store_module_unknown": "This module is not in the catalog.",
+        "store_disabled": "The store is read-only on this platform.",
+        "store_invalid_state": "The module changed in the meantime. The list is up to date again.",
+        "store_managed_by_config": "This module is declared in antelope.config.ts.",
+        "unauthorized": "Only platform owners manage modules."
+      },
+      "frontend": {
+        "dev": {
+          "title": "Reloading the interface for {modules}",
+          "description": "The dev frontend picks up the change and the page reloads by itself."
+        },
+        "production": {
+          "title": "{modules}: rebuild the frontend",
+          "description": "The module runs on the backend. Run {command} and restart the frontend to show its pages."
+        },
+        "unknown": {
+          "title": "{modules}: restart the frontend",
+          "description": "The module runs on the backend, but no frontend server reported what it serves. Restart it ({command} in production) to show the module's pages."
+        }
+      },
+      "state_error": "{file} could not be read",
+      "disabled": {
+        "title": "The store is read-only",
+        "description": "store.enabled is false in the DMS configuration: modules are listed, not changed."
+      },
+      "load_error": "The module store could not be loaded",
       "search_placeholder": "Search the store",
       "category_label": "Store category",
-      "available_soon": "Available soon",
-      "install": "Install",
-      "install_soon": "Coming soon",
-      "command_label": "Install command",
       "no_result": {
         "title": "No module in the store matches “{query}”",
         "title_filtered": "No module in the store matches these filters"

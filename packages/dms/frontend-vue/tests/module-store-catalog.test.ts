@@ -5,11 +5,16 @@ import {
   moduleCategoryOptions,
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
-  MODULE_STORE_CATALOG,
-  availableStoreModules,
-  moduleInstallCommand,
   type ModuleStoreEntry,
+  filterByScope,
+  isAwaitingFrontend,
+  sortStoreModules,
+  storeActions,
+  storeTileStatus,
+  toModuleStoreEntry,
 } from "../layers/dms-layout/app/build/utils/module-store-catalog";
+import type { StoreListingEntry } from "../layers/dms-layout/app/types/module-store";
+import catalogDocument from "../../data/module-store/catalog.json";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
 
@@ -33,16 +38,31 @@ const resolve = (value: string): string => {
   return typeof text === "string" ? text : value;
 };
 
+function listingEntry(
+  id: string,
+  overrides: Partial<StoreListingEntry> = {},
+): StoreListingEntry {
+  return {
+    id,
+    package: `@antelopejs/dms-${id}`,
+    icon: "i-ph-cube",
+    category: "data",
+    title: id[0].toUpperCase() + id.slice(1),
+    description: `${id} description`,
+    state: "available",
+    updateAvailable: false,
+    compatible: true,
+    frontend: "none",
+    ...overrides,
+  };
+}
+
 function storeEntry(
   id: string,
   overrides: Partial<ModuleStoreEntry> = {},
 ): ModuleStoreEntry {
   return {
-    id,
-    packageName: `@antelopejs/dms-${id}`,
-    title: id[0].toUpperCase() + id.slice(1),
-    description: `${id} description`,
-    icon: "i-ph-cube",
+    ...toModuleStoreEntry(listingEntry(id)),
     catalogCategory: "Data",
     ...overrides,
   };
@@ -53,32 +73,92 @@ const catalog = [
     catalogCategory: "Content",
     description: "Asset library",
   }),
-  storeEntry("database"),
+  storeEntry("database", { state: "active", installedVersion: "0.1.2" }),
   storeEntry("lang", { title: "Translations", catalogCategory: "Content" }),
-  storeEntry("ai", { catalogCategory: "AI" }),
+  storeEntry("ai", { catalogCategory: "AI", state: "config" }),
 ];
 
-describe("module store catalog", () => {
-  it("hides the modules already installed", () => {
-    const available = availableStoreModules(
-      catalog,
-      new Set(["database", "demo"]),
-      resolve,
-    );
-    expect(available.map((entry) => entry.id)).toEqual(["ai", "media", "lang"]);
-  });
+const actionKinds = (entry: StoreListingEntry) =>
+  storeActions(entry).map((action) => action.kind);
 
-  it("lists every module, by name, when none is installed", () => {
+describe("module store catalog", () => {
+  it("sorts the modules by their shown name", () => {
     expect(
-      availableStoreModules(catalog, new Set(), resolve).map(
-        (entry) => entry.title,
-      ),
+      sortStoreModules(catalog, resolve).map((entry) => entry.title),
     ).toEqual(["Ai", "Database", "Media", "Translations"]);
   });
 
-  it("is empty once every module is installed", () => {
-    const installed = new Set(catalog.map((entry) => entry.id));
-    expect(availableStoreModules(catalog, installed, resolve)).toEqual([]);
+  it("splits installed modules, the config's included, from available ones", () => {
+    expect(
+      filterByScope(catalog, "installed").map((entry) => entry.id),
+    ).toEqual(["database", "ai"]);
+    expect(
+      filterByScope(catalog, "available").map((entry) => entry.id),
+    ).toEqual(["media", "lang"]);
+    expect(filterByScope(catalog, "all")).toHaveLength(4);
+  });
+
+  it("counts a failed install as available, a failed update as installed", () => {
+    const failedInstall = listingEntry("api", { state: "error" });
+    const failedUpdate = listingEntry("api", {
+      state: "error",
+      installedVersion: "0.3.0",
+    });
+    expect(filterByScope([failedInstall], "available")).toHaveLength(1);
+    expect(filterByScope([failedUpdate], "installed")).toHaveLength(1);
+    expect(actionKinds(failedInstall)).toEqual(["install"]);
+    expect(actionKinds(failedUpdate)).toEqual(["apply", "uninstall"]);
+  });
+
+  it("offers each state its actions, the main one first", () => {
+    expect(actionKinds(listingEntry("a"))).toEqual(["install"]);
+    expect(actionKinds(listingEntry("a", { state: "active" }))).toEqual([
+      "disable",
+      "uninstall",
+    ]);
+    expect(
+      actionKinds(
+        listingEntry("a", { state: "active", updateAvailable: true }),
+      ),
+    ).toEqual(["update", "disable", "uninstall"]);
+    expect(actionKinds(listingEntry("a", { state: "disabled" }))).toEqual([
+      "enable",
+      "uninstall",
+    ]);
+    expect(actionKinds(listingEntry("a", { state: "busy" }))).toEqual([]);
+    expect(actionKinds(listingEntry("a", { state: "config" }))).toEqual([]);
+  });
+
+  it("asks for confirmation before uninstalling only", () => {
+    const confirmed = storeActions(listingEntry("a", { state: "disabled" }))
+      .filter((action) => action.confirm)
+      .map((action) => action.kind);
+    expect(confirmed).toEqual(["uninstall"]);
+  });
+
+  it("flags an update on an active module's pill", () => {
+    expect(
+      storeTileStatus(
+        listingEntry("a", { state: "active", updateAvailable: true }),
+      ).labelKey,
+    ).toBe("update_available");
+    expect(storeTileStatus(listingEntry("a", { state: "busy" })).dot).toBe(
+      "live",
+    );
+  });
+
+  it("waits on the frontend only once the operation is over", () => {
+    expect(isAwaitingFrontend(listingEntry("a", { frontend: "pending" }))).toBe(
+      true,
+    );
+    expect(
+      isAwaitingFrontend(
+        listingEntry("a", { state: "busy", frontend: "pending" }),
+      ),
+    ).toBe(false);
+    expect(isAwaitingFrontend(listingEntry("a", { frontend: "unknown" }))).toBe(
+      false,
+    );
   });
 
   it("searches the name, description, category and id", () => {
@@ -95,23 +175,6 @@ describe("module store catalog", () => {
     expect(search("payments")).toEqual([]);
   });
 
-  it("filters by category, combined with the search", () => {
-    expect(
-      filterModules(catalog, {
-        query: "",
-        category: "Content",
-        resolve,
-      }).map((entry) => entry.id),
-    ).toEqual(["media", "lang"]);
-    expect(
-      filterModules(catalog, {
-        query: "lang",
-        category: "Data",
-        resolve,
-      }),
-    ).toEqual([]);
-  });
-
   it("offers the categories present, with their counts", () => {
     expect(moduleCategoryOptions(catalog, resolve)).toEqual([
       { value: "AI", label: "AI", count: 1 },
@@ -119,31 +182,28 @@ describe("module store catalog", () => {
       { value: "Data", label: "Data", count: 1 },
     ]);
   });
-
-  it("shows the AntelopeJS CLI command that adds the package", () => {
-    expect(moduleInstallCommand(storeEntry("media"))).toBe(
-      "ajs project modules add @antelopejs/dms-media",
-    );
-  });
 });
 
-describe("official module list", () => {
+describe("bundled module catalog", () => {
+  const entries = catalogDocument.modules.map((entry) =>
+    toModuleStoreEntry(listingEntry(entry.id, { category: entry.category })),
+  );
+
   it("has unique ids and packages", () => {
-    const ids = MODULE_STORE_CATALOG.map((entry) => entry.id);
-    const packages = MODULE_STORE_CATALOG.map((entry) => entry.packageName);
+    const ids = catalogDocument.modules.map((entry) => entry.id);
+    const packages = catalogDocument.modules.map((entry) => entry.package);
     expect(new Set(ids).size).toBe(ids.length);
     expect(new Set(packages).size).toBe(packages.length);
   });
 
   it("translates every name, description and category in both locales", () => {
     for (const messages of [en, fr]) {
-      for (const entry of MODULE_STORE_CATALOG) {
+      for (const entry of entries) {
         for (const key of [
-          entry.title,
-          entry.description,
+          `$modules.store.catalog.${entry.id}.title`,
+          `$modules.store.catalog.${entry.id}.description`,
           entry.catalogCategory,
         ]) {
-          expect(key.startsWith("$")).toBe(true);
           expect(typeof lookup(messages, key.slice(1)), key).toBe("string");
         }
       }

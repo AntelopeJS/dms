@@ -739,18 +739,87 @@
     },
     "store": {
       "title": "Store de modules",
-      "description": "Les modules AntelopeJS officiels qui ne sont pas installés sur cette plateforme.",
-      "soon": "Bientôt",
-      "banner": {
-        "title": "Bientôt disponible",
-        "description": "Parcourez et installez les modules officiels du catalogue AntelopeJS directement depuis votre tableau de bord."
+      "description": "Les modules officiels AntelopeJS : installez-les, mettez-les à jour, mettez-les en pause ou retirez-les sans toucher au code du projet.",
+      "scope": {
+        "label": "Afficher",
+        "all": "Tous · {count}",
+        "available": "Disponibles · {count}",
+        "installed": "Installés · {count}"
       },
+      "state": {
+        "available": "Disponible",
+        "busy": "En cours",
+        "active": "Actif",
+        "disabled": "En pause",
+        "error": "Échec",
+        "pending": "Non appliqué",
+        "config": "Via la config",
+        "update_available": "Mise à jour"
+      },
+      "actions": {
+        "install": "Installer",
+        "update": "Mettre à jour",
+        "enable": "Reprendre",
+        "disable": "Mettre en pause",
+        "uninstall": "Désinstaller",
+        "apply": "Appliquer",
+        "manage": "Gérer"
+      },
+      "steps": {
+        "resolve": "Trouver la dernière version",
+        "unload": "Arrêter la version en cours",
+        "load": "Télécharger et démarrer",
+        "save": "Écrire dms-modules.json"
+      },
+      "progress": {
+        "install": "Installation",
+        "update": "Mise à jour",
+        "enable": "Reprise",
+        "disable": "Mise en pause",
+        "uninstall": "Désinstallation",
+        "apply": "Application"
+      },
+      "more_actions": "Autres actions",
+      "incompatible": "Demande {'@'}antelopejs/interface-dms {range} : mettez d’abord le DMS à jour",
+      "no_release": "Le registre npm ne propose aucune version lisible depuis cette plateforme",
+      "locked": "Un autre module est en cours de modification",
+      "config_hint": "Déclaré dans antelope.config.ts : le store le laisse à la config.",
+      "pending_hint": "dms-modules.json et la plateforme ne concordent pas : Appliquer les remet d’accord.",
+      "uninstall_confirm": {
+        "title": "Désinstaller {module} ?",
+        "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."
+      },
+      "action_failed": "{module} n’a pas pu être modifié",
+      "errors": {
+        "store_busy": "Un autre module est en cours de modification. Réessayez une fois terminé.",
+        "store_module_unknown": "Ce module n’est pas dans le catalogue.",
+        "store_disabled": "Le store est en lecture seule sur cette plateforme.",
+        "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
+        "store_managed_by_config": "Ce module est déclaré dans antelope.config.ts.",
+        "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules."
+      },
+      "frontend": {
+        "dev": {
+          "title": "Rechargement de l’interface pour {modules}",
+          "description": "Le frontend de dev prend le changement en compte et la page se recharge toute seule."
+        },
+        "production": {
+          "title": "{modules} : reconstruisez le frontend",
+          "description": "Le module tourne côté backend. Lancez {command} puis redémarrez le frontend pour afficher ses pages."
+        },
+        "unknown": {
+          "title": "{modules} : redémarrez le frontend",
+          "description": "Le module tourne côté backend, mais aucun serveur frontend n’a indiqué ce qu’il sert. Redémarrez-le ({command} en production) pour afficher les pages du module."
+        }
+      },
+      "state_error": "{file} n’a pas pu être lu",
+      "disabled": {
+        "title": "Le store est en lecture seule",
+        "description": "store.enabled vaut false dans la configuration du DMS : les modules sont listés, pas modifiés."
+      },
+      "load_error": "Le store de modules n’a pas pu être chargé",
       "search_placeholder": "Rechercher dans le store",
       "category_label": "Catégorie du store",
-      "available_soon": "Bientôt disponible",
-      "install": "Installer",
-      "install_soon": "Bientôt disponible",
-      "command_label": "Commande d’installation",
       "no_result": {
         "title": "Aucun module du store ne correspond à « {query} »",
         "title_filtered": "Aucun module du store ne correspond à ces filtres"

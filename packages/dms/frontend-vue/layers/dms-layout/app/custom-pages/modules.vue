@@ -30,9 +30,17 @@ import {
   type ModuleSortMode,
 } from "../build/utils/modules-catalog";
 import {
-  MODULE_STORE_CATALOG,
-  availableStoreModules,
+  type ModuleStoreEntry,
+  type StoreScope,
+  FRONTEND_BUILD_COMMAND,
+  filterByScope,
+  isAwaitingFrontend,
+  sortStoreModules,
+  toModuleStoreEntry,
 } from "../build/utils/module-store-catalog";
+import { useModuleStore } from "../composables/page/useModuleStore";
+import { useConfirm } from "#dms-ui/app/composables/confirm";
+import type { StoreOperationKind } from "../types/module-store";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
@@ -197,26 +205,49 @@ function clearFilters(): void {
   category.value = MODULE_CATEGORY_ALL;
 }
 
-// ── Module store (preview) ─────────────────────────────────────────
-// A static list of the official modules not installed here: nothing installs
-// yet, only the search and the category chips work, locally.
+// ── Module store ───────────────────────────────────────────────────
+const moduleStore = useModuleStore();
+const toast = useToast();
+const { confirm } = useConfirm();
+
+onMounted(() => {
+  if (isOwner.value) void moduleStore.load();
+});
+onBeforeUnmount(() => moduleStore.stop());
+
+const storeListing = computed(() => moduleStore.listing.value);
+const isStoreLoading = computed(
+  () => storeListing.value === undefined && !moduleStore.loadingError.value,
+);
 const storeModules = computed(() =>
-  availableStoreModules(
-    MODULE_STORE_CATALOG,
-    new Set((modulesListing.modules.value ?? []).map((entry) => entry.id)),
+  sortStoreModules(
+    (storeListing.value?.modules ?? []).map(toModuleStoreEntry),
     processI18n,
   ),
 );
+const storeScope = ref<StoreScope>("all");
 const storeQuery = ref("");
 const storeCategory = ref<string>(MODULE_CATEGORY_ALL);
+
+const storeScopeItems = computed(() =>
+  (["all", "available", "installed"] as const).map((scope) => ({
+    value: scope,
+    label: t(`modules.store.scope.${scope}`, {
+      count: filterByScope(storeModules.value, scope).length,
+    }),
+  })),
+);
+const scopedStoreModules = computed(() =>
+  filterByScope(storeModules.value, storeScope.value),
+);
 
 const storeCategoryOptions = computed(() => [
   {
     value: MODULE_CATEGORY_ALL,
     label: t("modules.category.all"),
-    count: storeModules.value.length,
+    count: scopedStoreModules.value.length,
   },
-  ...moduleCategoryOptions(storeModules.value, processI18n),
+  ...moduleCategoryOptions(scopedStoreModules.value, processI18n),
 ]);
 
 watch(storeCategoryOptions, (options) => {
@@ -226,7 +257,7 @@ watch(storeCategoryOptions, (options) => {
 });
 
 const visibleStoreModules = computed(() =>
-  filterModules(storeModules.value, {
+  filterModules(scopedStoreModules.value, {
     query: storeQuery.value,
     category: storeCategory.value,
     resolve: processI18n,
@@ -237,6 +268,71 @@ const trimmedStoreQuery = computed(() => storeQuery.value.trim());
 function clearStoreFilters(): void {
   storeQuery.value = "";
   storeCategory.value = MODULE_CATEGORY_ALL;
+}
+
+/** Store modules whose interface the running frontend does not match yet. */
+const frontendLagging = computed(() =>
+  storeModules.value.filter(
+    (entry) =>
+      isAwaitingFrontend(entry) ||
+      (entry.frontend === "unknown" &&
+        moduleStore.awaitingReload.value.has(entry.id)),
+  ),
+);
+const frontendNotice = computed(() => {
+  const lagging = frontendLagging.value;
+  if (lagging.length === 0) return null;
+  const names = lagging.map((entry) => processI18n(entry.title)).join(", ");
+  const hasReported = lagging.every((entry) => entry.frontend !== "unknown");
+  const key = !hasReported
+    ? "unknown"
+    : storeListing.value?.dev
+      ? "dev"
+      : "production";
+  return { key, names };
+});
+
+async function runStoreAction(
+  kind: StoreOperationKind,
+  entry: ModuleStoreEntry,
+): Promise<void> {
+  const title = processI18n(entry.title);
+  if (kind === "uninstall") {
+    await confirm({
+      title: t("modules.store.uninstall_confirm.title", { module: title }),
+      description: t("modules.store.uninstall_confirm.description", {
+        module: title,
+      }),
+      confirmLabel: t("modules.store.actions.uninstall"),
+      color: "error",
+      icon: "i-ph-trash",
+      onConfirm: () => moduleStore.run(kind, entry),
+    });
+    return;
+  }
+  try {
+    await moduleStore.run(kind, entry);
+  } catch (error) {
+    toast.add({
+      color: "error",
+      icon: "i-ph-warning-circle",
+      title: t("modules.store.action_failed", { module: title }),
+      description: resolveStoreError(error),
+    });
+  }
+}
+
+/** What a refused store request carries: the server's error key, if any. */
+interface StoreRequestError {
+  data?: unknown;
+  message?: string;
+}
+
+function resolveStoreError(error: unknown): string {
+  const details = error as StoreRequestError | undefined;
+  const key = typeof details?.data === "string" ? details.data : undefined;
+  if (!key) return details?.message ?? "";
+  return t(`modules.store.errors.${key.replace("error.", "")}`);
 }
 
 // ── Actions ────────────────────────────────────────────────────────
@@ -506,49 +602,123 @@ const summaryCards = computed<StatGroupItem[]>(() =>
         </div>
       </section>
 
-      <!-- Module store: a preview, nothing installs from here yet. -->
+      <!-- Module store: the official modules, installed or not. -->
       <section class="mt-10" aria-labelledby="module-store-title">
         <DmsSectionHeader
           class="mb-3"
-          :count="isInitiallyLoading ? undefined : storeModules.length"
+          :count="isStoreLoading ? undefined : storeModules.length"
           :description="t('modules.store.description')"
         >
           <template #title>
             <span id="module-store-title">{{ t("modules.store.title") }}</span>
           </template>
-          <template #badge>
-            <DmsStatusPill
-              tone="info"
-              :label="t('modules.store.soon')"
+          <template #trailing>
+            <DmsSegmented
+              v-model="storeScope"
+              :items="storeScopeItems"
               size="sm"
-              uppercase
+              :aria-label="t('modules.store.scope.label')"
             />
           </template>
         </DmsSectionHeader>
 
         <DmsBanner
+          v-if="storeListing?.stateError"
+          class="mb-4"
+          tone="error"
+          size="sm"
+          icon="i-ph-file-x"
+          :title="
+            t('modules.store.state_error', { file: storeListing.stateFile })
+          "
+          :description="storeListing.stateError"
+        />
+        <DmsBanner
+          v-else-if="storeListing && !storeListing.enabled"
           class="mb-4"
           tone="info"
           size="sm"
-          icon="i-ph-storefront"
-          :title="t('modules.store.banner.title')"
-          :description="t('modules.store.banner.description')"
+          icon="i-ph-lock-simple"
+          :title="t('modules.store.disabled.title')"
+          :description="t('modules.store.disabled.description')"
         />
 
-        <!-- Which modules are installed is unknown until the listing loads:
-             the store list waits for it. -->
-        <DmsCard
-          v-if="!isInitiallyLoading && storeModules.length === 0"
-          :padded="false"
+        <!-- The interface lags behind the backend: say what follows. -->
+        <DmsBanner
+          v-if="frontendNotice"
+          class="mb-4"
+          :tone="frontendNotice.key === 'dev' ? 'info' : 'warning'"
+          size="sm"
+          :icon="
+            frontendNotice.key === 'dev'
+              ? 'i-ph-circle-notch'
+              : 'i-ph-arrows-clockwise'
+          "
+          :title="
+            t(`modules.store.frontend.${frontendNotice.key}.title`, {
+              modules: frontendNotice.names,
+            })
+          "
         >
-          <DmsEmptyState
-            icon="i-ph-check-circle"
-            :title="t('modules.store.all_installed.title')"
-            :description="t('modules.store.all_installed.description')"
-          />
-        </DmsCard>
+          <template #description>
+            <i18n-t
+              :keypath="`modules.store.frontend.${frontendNotice.key}.description`"
+              scope="global"
+              tag="span"
+            >
+              <template #command>
+                <code
+                  :class="[
+                    MONO_CHIP_CLASS,
+                    'bg-elevated text-highlighted text-xs',
+                  ]"
+                >
+                  {{ FRONTEND_BUILD_COMMAND }}
+                </code>
+              </template>
+            </i18n-t>
+          </template>
+        </DmsBanner>
 
-        <template v-else-if="!isInitiallyLoading">
+        <div v-if="isStoreLoading" :class="TILE_GRID_CLASS" aria-busy="true">
+          <DmsCard
+            v-for="placeholder in skeletonItems"
+            :key="placeholder"
+            :padded="false"
+            class="flex min-h-[228px] flex-col gap-3 p-4"
+          >
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="size-9 rounded-[10px]"
+            />
+            <USkeleton
+              :aria-label="t('dms.a11y.loading')"
+              class="mt-auto h-2.5 w-3/5"
+            />
+          </DmsCard>
+        </div>
+
+        <!-- Only when nothing is on screen yet: a follow-up read that fails
+             while the frontend restarts keeps the tiles and tries again. -->
+        <DmsBanner
+          v-else-if="moduleStore.loadingError.value && !storeListing"
+          tone="error"
+          size="sm"
+          icon="i-ph-plugs"
+          :title="t('modules.store.load_error')"
+        >
+          <template #actions>
+            <UButton
+              color="error"
+              size="sm"
+              icon="i-ph-arrows-clockwise"
+              :label="t('modules.error.retry')"
+              @click="moduleStore.load()"
+            />
+          </template>
+        </DmsBanner>
+
+        <template v-else>
           <div :class="TOOLBAR_CLASS">
             <DmsSearchInput
               v-model="storeQuery"
@@ -564,7 +734,18 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             />
           </div>
 
-          <DmsCard v-if="visibleStoreModules.length === 0" :padded="false">
+          <DmsCard
+            v-if="scopedStoreModules.length === 0 && storeScope === 'available'"
+            :padded="false"
+          >
+            <DmsEmptyState
+              icon="i-ph-check-circle"
+              :title="t('modules.store.all_installed.title')"
+              :description="t('modules.store.all_installed.description')"
+            />
+          </DmsCard>
+
+          <DmsCard v-else-if="visibleStoreModules.length === 0" :padded="false">
             <DmsEmptyState
               variant="no-result"
               :title="
@@ -592,6 +773,11 @@ const summaryCards = computed<StatGroupItem[]>(() =>
               v-for="entry in visibleStoreModules"
               :key="entry.id"
               :entry="entry"
+              :is-locked="
+                !storeListing?.enabled ||
+                (storeListing?.busy === true && entry.state !== 'busy')
+              "
+              @action="runStoreAction($event, entry)"
             />
           </div>
         </template>

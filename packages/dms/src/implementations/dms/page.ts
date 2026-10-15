@@ -3,7 +3,9 @@ import {
   Context,
   Controller,
   Get,
+  JSONBody,
   Parameter,
+  Post,
   type RequestContext,
   WriteStream,
 } from "@antelopejs/interface-api";
@@ -70,6 +72,7 @@ import {
 } from "../../realtime";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 import { scheduleBroadcast, setSlugProvider } from "./dev-reload";
+import { acknowledgeFrontendReady } from "./frontend-ready";
 import { assertPageSessionAccepted } from "./stale-session";
 import {
   buildFrontendManifest,
@@ -813,6 +816,11 @@ export class DMSController extends Controller("/dms") {
       rendererVersion,
       this.bootstrapHeader,
     );
+  }
+
+  @Post("/frontend/ready")
+  frontendReady(@JSONBody() body: unknown): void {
+    acknowledgeFrontendReady(body, this.bootstrapHeader);
   }
 
   @Get("/permissions")
@@ -1947,6 +1955,25 @@ async function buildSiteLayoutFor(
     modules: await buildModuleAccessMap(accessContext),
     isOwner: accessContext.gated.isOwner,
   };
+}
+
+/**
+ * Whether the caller is a platform owner, the same test `modules-listing`
+ * applies: a tenant access gate that denies the tenant denies it too.
+ */
+export async function isPlatformOwner(
+  user: User | undefined,
+  memberModel: TenantMemberModel,
+  roleModel: RoleModel,
+  tenantId: string,
+): Promise<boolean> {
+  const context = await buildAccessContext(
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+  );
+  return context.gated.isOwner;
 }
 
 async function buildAccessContext(

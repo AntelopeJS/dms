@@ -20,6 +20,11 @@ export interface FrontendManifest<T extends ManifestModuleEntry> {
   version: number;
   archive: string;
   modules: T[];
+  /**
+   * True while the module store changes the set of loaded modules: a
+   * frontend following the set waits for it to settle before rebuilding.
+   */
+  settling?: boolean;
 }
 
 export interface ManifestUrls {
