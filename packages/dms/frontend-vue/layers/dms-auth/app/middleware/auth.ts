@@ -10,12 +10,10 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
 }
 
 async function loadPermissionsIfNeeded() {
-  const { isLoaded, fetchPermissions } = usePermissions();
-
-  if (isLoaded.value) return;
+  const { loadPermissions } = usePermissions();
 
   try {
-    await fetchPermissions();
+    await loadPermissions();
   } catch {
     /* ignore — permissions load failure is not fatal here */
   }

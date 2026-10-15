@@ -71,4 +71,26 @@ describe("createTrailingDeduper", () => {
 
     expect(task).toHaveBeenCalledTimes(2);
   });
+
+  it("lets a join share the run in flight without queueing a pass", async () => {
+    const first = deferred();
+    const task = vi.fn(() => first.promise);
+    const deduper = createTrailingDeduper();
+
+    const inFlight = deduper.run(task);
+    const joined = deduper.join(task);
+    first.resolve();
+    await Promise.all([inFlight, joined]);
+
+    expect(task).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a run for a join when nothing is in flight", async () => {
+    const task = vi.fn(async () => undefined);
+    const deduper = createTrailingDeduper();
+
+    await deduper.join(task);
+
+    expect(task).toHaveBeenCalledTimes(1);
+  });
 });
