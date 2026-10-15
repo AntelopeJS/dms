@@ -15,6 +15,12 @@ export default defineConfig({
         __dirname,
         "node_modules/@antelopejs/dms-frontend/templates/vue/frontend-module.ts",
       ),
+      // The server routes run under Vitest through the renderer's own router
+      // (`module-testing.mjs`), so their import resolves to its definitions.
+      "#dms/server": resolve(
+        __dirname,
+        "node_modules/@antelopejs/dms-frontend/templates/vue/server-module.ts",
+      ),
       "#shortcuts-aggregated": resolve(
         __dirname,
         "layers/dms-ui/app/config/shortcuts-registry.ts",
