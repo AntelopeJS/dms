@@ -9,6 +9,7 @@ import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-r
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
 import accessibilityPlugin from "./layers/dms-layout/app/plugins/accessibility";
 import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
+import faviconPlugin from "./layers/dms-layout/app/plugins/favicon";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
 import fontPreloadPlugin from "./layers/dms-layout/app/plugins/font-preload";
 import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/permission-preview-prepaint";
@@ -168,6 +169,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(accessibilityPlugin);
   sdk.registerPlugin(regionalPreferencesPlugin);
   sdk.registerPlugin(seoPlugin);
+  sdk.registerPlugin(faviconPlugin);
   sdk.registerPlugin(sidePanelHostPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);

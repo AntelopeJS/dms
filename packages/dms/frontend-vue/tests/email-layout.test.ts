@@ -3,8 +3,16 @@ import { createSSRApp, defineComponent, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import EmailLayout from "../layers/dms-layout/app/emails/components/EmailLayout.vue";
 import { emailLogoUrl } from "../layers/dms-layout/app/emails/components/index";
+import type { DmsLogoSources } from "../layers/dms-core/shared/types/app-config";
+
+/** `branding.logo` as an email reads it: a path stands for `default.light`. */
+interface EmailLogos {
+  default?: Partial<DmsLogoSources>;
+  email?: Partial<DmsLogoSources>;
+}
 
 const PUBLIC_BASE = "https://admin.example.com";
+const DARK_SOURCE_MEDIA = 'media="(prefers-color-scheme: dark)"';
 const ELEMENTS: Record<string, string> = {
   EHtml: "html",
   EHead: "head",
@@ -29,12 +37,11 @@ function element(tag: string) {
 
 async function renderLayout(
   props: Record<string, unknown>,
-  logo = "/images/logo.png",
+  logo: string | EmailLogos = "/images/logo.png",
   clientBaseUrl = PUBLIC_BASE,
 ): Promise<string> {
-  vi.stubGlobal("useDmsAppConfig", () => ({
-    branding: { logo: { default: { light: logo } } },
-  }));
+  const logos = typeof logo === "string" ? { default: { light: logo } } : logo;
+  vi.stubGlobal("useDmsAppConfig", () => ({ branding: { logo: logos } }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { clientBaseUrl } },
   }));
@@ -87,6 +94,61 @@ describe("EmailLayout", () => {
       await renderLayout(guarded, "/logo.png", "http://localhost:3001"),
     ).not.toContain("<img");
     expect(await renderLayout(guarded)).toContain(
+      `<img src="${PUBLIC_BASE}/images/logo.png" alt="Logo">`,
+    );
+  });
+});
+
+describe("EmailLayout email logo", () => {
+  const guarded = { title: "Hi", publicLogoOnly: true };
+
+  it("draws the email logo in place of the default one", async () => {
+    const html = await renderLayout(guarded, {
+      default: { light: "/images/logo.svg" },
+      email: { light: "/branding/email.png" },
+    });
+    expect(html).toContain(
+      `<img src="${PUBLIC_BASE}/branding/email.png" alt="Logo">`,
+    );
+    expect(html).not.toContain("<picture>");
+  });
+
+  it("offers the dark email logo to the clients in dark mode", async () => {
+    const html = await renderLayout(guarded, {
+      email: { light: "/branding/email.png", dark: "/branding/email-dark.png" },
+    });
+    expect(html).toContain(
+      `<picture><source ${DARK_SOURCE_MEDIA} srcset="${PUBLIC_BASE}/branding/email-dark.png"><img src="${PUBLIC_BASE}/branding/email.png" alt="Logo"></picture>`,
+    );
+  });
+
+  it("keeps a single image when the dark logo is the same or unusable", async () => {
+    for (const dark of ["/branding/email.png", "/branding/email-dark.svg"]) {
+      const html = await renderLayout(guarded, {
+        email: { light: "/branding/email.png", dark },
+      });
+      expect(html).not.toContain("<picture>");
+      expect(html).toContain(
+        `<img src="${PUBLIC_BASE}/branding/email.png" alt="Logo">`,
+      );
+    }
+  });
+
+  it("draws no dark logo without a light one", async () => {
+    const html = await renderLayout(guarded, {
+      default: { light: "/images/logo.svg" },
+      email: { light: "", dark: "/branding/email-dark.png" },
+    });
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<source");
+  });
+
+  it("falls back to the default logo without an email one", async () => {
+    const html = await renderLayout(guarded, {
+      default: { light: "/images/logo.png", dark: "/images/logo-dark.png" },
+    });
+    expect(html).not.toContain("<picture>");
+    expect(html).toContain(
       `<img src="${PUBLIC_BASE}/images/logo.png" alt="Logo">`,
     );
   });

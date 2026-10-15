@@ -1,15 +1,19 @@
 <script setup lang="ts">
+import type { DmsLogoSources } from "#dms-core/shared/types/app-config";
 import { emailLogoUrl, emailStyles } from "./index";
+
+interface EmailLogoConfig {
+  default?: Partial<DmsLogoSources>;
+  email?: Partial<DmsLogoSources>;
+}
 
 interface EmailAppConfig {
   branding?: {
-    logo?: {
-      default?: {
-        light?: string;
-      };
-    };
+    logo?: EmailLogoConfig;
   };
 }
+
+const DARK_SCHEME_MEDIA = "(prefers-color-scheme: dark)";
 
 const props = withDefaults(
   defineProps<{
@@ -33,13 +37,20 @@ const props = withDefaults(
 const appConfig = useDmsAppConfig() as EmailAppConfig;
 const runtimeConfig = useDmsRuntimeConfig();
 
-const logoPath = appConfig.branding?.logo?.default?.light;
+const logo = appConfig.branding?.logo;
 const clientBaseUrl = runtimeConfig.public.dms?.clientBaseUrl ?? "";
-const logoUrl = props.publicLogoOnly
-  ? emailLogoUrl(logoPath, clientBaseUrl)
-  : logoPath?.startsWith("/")
-    ? `${clientBaseUrl}${logoPath}`
-    : logoPath;
+
+function logoSource(path: string | undefined): string {
+  if (props.publicLogoOnly) return emailLogoUrl(path, clientBaseUrl);
+  return path?.startsWith("/") ? `${clientBaseUrl}${path}` : (path ?? "");
+}
+
+const logoUrl = logoSource(logo?.email?.light || logo?.default?.light);
+// Offered to the mail clients that follow the reader's dark mode; the others
+// skip the picture's source and draw the light image. Taken from the email
+// slot only, so an instance that sets none keeps its single image.
+const darkCandidate = logoSource(logo?.email?.dark);
+const darkLogoUrl = darkCandidate === logoUrl ? "" : darkCandidate;
 </script>
 
 <template>
@@ -52,7 +63,16 @@ const logoUrl = props.publicLogoOnly
       <EContainer :style="emailStyles.container">
         <ESection :style="emailStyles.card">
           <ESection v-if="logoUrl" :style="emailStyles.logo">
+            <picture v-if="darkLogoUrl">
+              <source :media="DARK_SCHEME_MEDIA" :srcset="darkLogoUrl" />
+              <EImg
+                :src="logoUrl"
+                :alt="logoAlt"
+                :style="emailStyles.logoImage"
+              />
+            </picture>
             <EImg
+              v-else
               :src="logoUrl"
               :alt="logoAlt"
               :style="emailStyles.logoImage"
