@@ -521,7 +521,8 @@ export class MembersSettingsController extends PageController("members", {
       isTenantOwner,
     );
     // Ownership opens or closes every page of the workspace to the member.
-    if (change !== null) notifyMenuAccessChanged(getRequestTenantId(ctx));
+    if (change !== null)
+      notifyMenuAccessChanged(getRequestTenantId(ctx), [member.userId]);
     if (change !== null && member.userId !== user._id) {
       fireAndForget(
         notifyOwnershipChanged(member.userId, isTenantOwner, {

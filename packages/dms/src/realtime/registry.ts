@@ -1,11 +1,21 @@
 const USER_NOTIFICATION_TOPIC_PREFIX = "notifications:user:";
 const MENU_TOPIC_PREFIX = "menu:tenant:";
+const MEMBER_MENU_TOPIC_PREFIX = "menu:member:";
 
 export const MENU_CHANGED_EVENT_TYPE = "menu-changed";
 
 /** Every session of one tenant, for menu invalidations scoped to it. */
 export function buildMenuTopic(tenantId: string): string {
   return `${MENU_TOPIC_PREFIX}${tenantId}`;
+}
+
+/**
+ * The sessions of one user in one tenant, for a change of what that member
+ * may open (their roles, their ownership, a role they hold): only their menus
+ * reload, not the whole workspace's.
+ */
+export function buildMemberMenuTopic(tenantId: string, userId: string): string {
+  return `${MEMBER_MENU_TOPIC_PREFIX}${tenantId}:${userId}`;
 }
 
 /**

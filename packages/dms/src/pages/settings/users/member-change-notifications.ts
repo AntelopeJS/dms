@@ -1,7 +1,7 @@
 // Notifications about members someone else edited or removed through the
 // members table. Its guards run before the write and know the row as it was;
 // the work they hand back runs once the write is done, in the same request.
-// A change of what a member may open also reloads the menus of the workspace.
+// A change of what a member may open also reloads that member's menus.
 
 import type { RequestContext } from "@antelopejs/interface-api";
 import { GetModel } from "@antelopejs/interface-database-decorators";
@@ -39,7 +39,8 @@ async function announceEdit(
   // Compared as booleans: a row can hold null, which is not an owner either.
   const isOwner = after.isTenantOwner === true;
   const ownershipChanged = (before.isTenantOwner === true) !== isOwner;
-  if (rolesChanged || ownershipChanged) notifyMenuAccessChanged(tenantId);
+  if (rolesChanged || ownershipChanged)
+    notifyMenuAccessChanged(tenantId, [after.userId]);
   // Users changing their own membership know what they did.
   if (after.userId === actor.id) return;
   if (rolesChanged) {
@@ -66,7 +67,10 @@ async function announceRemovals(
     if (!(await model.get(member._id))) removed.push(member);
   }
   // A removed member's open sessions lose the workspace's pages.
-  if (removed.length > 0) notifyMenuAccessChanged(tenantId);
+  notifyMenuAccessChanged(
+    tenantId,
+    removed.map((member) => member.userId),
+  );
   for (const member of removed) {
     await notifyMemberRemoved({
       tenantId,

@@ -1,10 +1,34 @@
+import { type Ref, watch } from "vue";
+
 const MENU_CHANGED_EVENT_TYPE = "menu-changed";
 
+/**
+ * Calls `onReconnect` each time the realtime stream opens again after it was
+ * lost: the events sent meanwhile never arrived. Not on its first opening,
+ * which follows the page load that brought the current menu.
+ *
+ * @param sessionId The stream's session id, unset while it is closed
+ * @param onReconnect What to run once it is back
+ */
+export function watchRealtimeReconnects(
+  sessionId: Ref<string | undefined>,
+  onReconnect: () => void,
+): void {
+  let hasConnected = !!sessionId.value;
+  watch(sessionId, (next, previous) => {
+    if (!next || next === previous) return;
+    if (hasConnected) onReconnect();
+    hasConnected = true;
+  });
+}
+
 // A module signalled that the data behind the menu changed (a project created,
-// an access scope edited, a role or a membership changed). The event carries
-// no data: the site layout, the page on screen and the permission set are
-// re-fetched, each resolved server-side against this user. The layout comes
-// back through Inertia, so the copy each visit carries over is the new one.
+// an access scope edited, a role or a membership changed): on the workspace's
+// topic, or on this member's own when only their access changed. The event
+// carries no data: the site layout, the page on screen and the permission set
+// are re-fetched, each resolved server-side against this user. The layout
+// comes back through Inertia, so the copy each visit carries over is the new
+// one. A stream that reconnects resyncs too: it missed what was sent meanwhile.
 export default defineDmsPlugin(() => {
   const realtime = useUserRealtime();
   const siteLayout = useSiteLayout();
@@ -31,6 +55,8 @@ export default defineDmsPlugin(() => {
     if (!("type" in event) || event.type !== MENU_CHANGED_EVENT_TYPE) return;
     void refresh();
   };
+
+  watchRealtimeReconnects(realtime.sessionId, () => void refresh());
 
   const unsubscribes: Array<() => void> = [];
 

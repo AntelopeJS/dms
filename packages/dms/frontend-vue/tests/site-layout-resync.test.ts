@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // screen through Inertia, which replaces the site layout every visit carries
 // over (a once prop) along with the state.
 const reload = vi.hoisted(() => vi.fn());
-vi.mock("@inertiajs/vue3", () => ({ router: { reload } }));
+const flushAll = vi.hoisted(() => vi.fn());
+vi.mock("@inertiajs/vue3", () => ({ router: { reload, flushAll } }));
 
 const { useSiteLayout } = await import(
   "../layers/dms-layout/app/composables/page/useSiteLayout"
@@ -36,6 +37,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   reload.mockReset();
+  flushAll.mockReset();
 });
 
 describe("useSiteLayout resync", () => {
@@ -44,6 +46,15 @@ describe("useSiteLayout resync", () => {
     await useSiteLayout().resync();
     expect(reload).toHaveBeenCalledTimes(1);
     expect(reload.mock.calls[0]![0].only).toEqual(["shared", "page"]);
+  });
+
+  it("drops the pages prefetched with the previous menu before reloading", async () => {
+    reload.mockImplementation((options: ReloadOptions) => options.onFinish());
+    await useSiteLayout().resync();
+    expect(flushAll).toHaveBeenCalledOnce();
+    expect(flushAll.mock.invocationCallOrder[0]).toBeLessThan(
+      reload.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("rejects a failed reload and keeps the page on screen", async () => {

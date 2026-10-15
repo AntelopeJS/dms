@@ -59,6 +59,7 @@ import type {
 import {
   createRole,
   duplicateRole,
+  listRoleHolderIds,
   loadRoleDeleteConfirm,
   loadRoleEditorTree,
   loadRolesOverview,
@@ -389,7 +390,10 @@ export class RolesSettingsController extends PageController("roles", {
     const { name, permissionsChanged } = await updateRole(actor, roleId, input);
     if (permissionsChanged) {
       // What the role's holders may open changed: their menus reload.
-      notifyMenuAccessChanged(actor.tenantId);
+      notifyMenuAccessChanged(
+        actor.tenantId,
+        await listRoleHolderIds(actor.tenantId, roleId),
+      );
       fireAndForget(
         notifyRolePermissionsChanged({
           tenantId: actor.tenantId,

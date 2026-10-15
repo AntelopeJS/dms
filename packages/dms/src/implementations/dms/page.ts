@@ -61,6 +61,7 @@ import {
   resolveComponentTarget,
 } from "@antelopejs/interface-dms/page/internal/component-target";
 import {
+  buildMemberMenuTopic,
   buildMenuTopic,
   clearPageTopics,
   getRealtimeBroker,
@@ -530,7 +531,7 @@ const ERROR_UNAUTHORIZED = "error.unauthorized";
 function notifyStructureChanged(): void {
   previewStructureVersion++;
   scheduleBroadcast();
-  schedulePublishMenuChanged(undefined);
+  schedulePublishMenuChanged(MENU_BROADCAST_TOPIC);
 }
 
 /**
@@ -541,17 +542,29 @@ function notifyStructureChanged(): void {
  */
 export function NotifyMenuChanged(tenantId?: string): void {
   scheduleBroadcast();
-  schedulePublishMenuChanged(tenantId);
+  schedulePublishMenuChanged(
+    tenantId ? buildMenuTopic(tenantId) : MENU_BROADCAST_TOPIC,
+  );
 }
 
 /**
- * What the sessions of a tenant may open changed (a role's permissions, a
- * member's roles or ownership, a removal): their menus reload. The menu's
- * structure did not change, so unlike {@link NotifyMenuChanged} the dev
- * resync, which re-probes routes after a hot reload, stays out of it.
+ * What some members of a tenant may open changed (a role's permissions for
+ * its holders, a member's roles or ownership, a removal): their own sessions
+ * reload their menus, on each one's topic, and the rest of the workspace is
+ * left alone. The menu's structure did not change, so unlike
+ * {@link NotifyMenuChanged} the dev resync, which re-probes routes after a hot
+ * reload, stays out of it.
+ *
+ * @param tenantId The tenant whose access changed
+ * @param userIds The members whose access changed
  */
-export function notifyMenuAccessChanged(tenantId: string): void {
-  schedulePublishMenuChanged(tenantId);
+export function notifyMenuAccessChanged(
+  tenantId: string,
+  userIds: Iterable<string>,
+): void {
+  for (const userId of new Set(userIds)) {
+    schedulePublishMenuChanged(buildMemberMenuTopic(tenantId, userId));
+  }
 }
 
 const MODULE_CONTEXT_GONE = "ERR_MODULE_CONTEXT_INVALIDATED";
@@ -578,10 +591,9 @@ const pendingMenuNotifications = new Map<string, NodeJS.Timeout>();
 // connected sessions. Publishing leads the window and the rest of a burst
 // collapses into one trailing publish: an isolated change still reaches
 // clients immediately, which is the point of the signal, while a burst costs
-// two rounds instead of N. Targets are independent — one tenant's burst never
-// delays another's.
-function schedulePublishMenuChanged(tenantId: string | undefined): void {
-  const target = tenantId ?? MENU_BROADCAST_TOPIC;
+// two rounds instead of N. Targets (a topic each) are independent — one burst never
+// delays another target's.
+function schedulePublishMenuChanged(target: string): void {
   // The module can be taken down between scheduling and firing -- the last page
   // to unregister schedules one on its way out. Both calls below reach an
   // interface bound to the module context, and they fail differently once that
@@ -594,7 +606,7 @@ function schedulePublishMenuChanged(tenantId: string | undefined): void {
     lastMenuPublishAt.set(target, Date.now());
     try {
       fireAndForget(
-        publishMenuChanged(tenantId).catch(ignoreModuleContextGone),
+        publishMenuChanged(target).catch(ignoreModuleContextGone),
         "menu change notification",
       );
     } catch (error) {
@@ -632,9 +644,9 @@ export function cancelPendingMenuNotifications(): void {
   pendingMenuNotifications.clear();
 }
 
-async function publishMenuChanged(tenantId: string | undefined): Promise<void> {
+async function publishMenuChanged(topic: string): Promise<void> {
   await getRealtimeBroker().publish({
-    topic: tenantId ? buildMenuTopic(tenantId) : MENU_BROADCAST_TOPIC,
+    topic,
     type: MENU_CHANGED_EVENT_TYPE,
     ts: Date.now(),
   });

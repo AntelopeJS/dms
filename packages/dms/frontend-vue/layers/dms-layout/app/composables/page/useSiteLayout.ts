@@ -302,12 +302,14 @@ export const useSiteLayout = () => {
 
   /**
    * Re-reads the menu and the page on screen from the server, for a change
-   * the backend announced (a realtime menu invalidation). A navigation that
-   * starts meanwhile drops the reload's answer, and the page it opens still
-   * carries the layout the reload meant to replace: that page is reloaded
-   * in turn.
+   * the backend announced (a realtime menu invalidation) or a switch of
+   * session. The pages prefetched on hover are dropped first: each carries
+   * the layout and the access of before. A navigation that starts meanwhile
+   * drops the reload's answer, and the page it opens still carries the layout
+   * the reload meant to replace: that page is reloaded in turn.
    */
   const resync = async (): Promise<void> => {
+    inertiaRouter.flushAll();
     const path = window.location.pathname;
     await reloadSiteLayoutAndPage();
     if (window.location.pathname !== path) await reloadSiteLayoutAndPage();
