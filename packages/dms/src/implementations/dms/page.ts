@@ -142,6 +142,9 @@ const navigationTree: SiteLayoutTree = {
 const OMIT_SHARED_PAGE_QUERY_VALUE = "false";
 // The `/dms/pagelayout` parameter naming the page; the rest of its query is the page URL's.
 const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
+// The `/dms/page` parameters naming the page and its parts; the rest of its
+// query, when the renderer sends it, is the page URL's.
+const PAGE_REQUEST_PARAMETERS = ["path", "shared"];
 
 setSlugProvider(() => Object.keys(pagesBySlug));
 
@@ -924,12 +927,16 @@ export class DMSController extends Controller("/dms") {
 }
 
 /**
- * The query of the page URL a `/dms/pagelayout` request carries next to its
- * `slug`: everything but the slug, one value per name.
+ * The query of the page URL a page request carries next to its own
+ * parameters (`/dms/pagelayout`'s `slug`, `/dms/page`'s `path` and `shared`):
+ * everything else, one value per name.
  */
-function pageQueryOf(requestContext: RequestContext): Record<string, string> {
+function pageQueryOf(
+  requestContext: Pick<RequestContext, "url">,
+  ownParameters: string[] = [PAGE_LAYOUT_SLUG_PARAMETER],
+): Record<string, string> {
   const query = Object.fromEntries(requestContext.url.searchParams);
-  delete query[PAGE_LAYOUT_SLUG_PARAMETER];
+  for (const name of ownParameters) delete query[name];
   return query;
 }
 
@@ -1090,7 +1097,15 @@ export async function buildPagePayload(
     tenantId,
   );
   const [layout, navBadges] = await Promise.all([
-    handler(user, memberModel, roleModel, tenantId),
+    // Header buttons resolve against the page URL's query, as `/pagelayout`
+    // does: the layout then matches the one the browser would read again.
+    handler(
+      user,
+      memberModel,
+      roleModel,
+      tenantId,
+      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+    ),
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
