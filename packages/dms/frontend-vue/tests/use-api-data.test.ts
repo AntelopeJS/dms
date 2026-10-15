@@ -6,6 +6,7 @@
  * keeps `$authFetch`'s headers and session retry.
  */
 import {
+  createApp,
   createSSRApp,
   defineComponent,
   h,
@@ -218,20 +219,58 @@ describe("useApiData", () => {
     ]);
   });
 
-  it("is what useFetchAuth reads through, under its former name", async () => {
-    const Health = defineComponent({
+  it("waits for execute() with immediate: false, as a dialog does", async () => {
+    let execute: (() => Promise<void>) | undefined;
+    const Dialog = defineComponent({
       setup() {
-        const { useFetchAuth } = useAuthFetch();
-        const { data } = useFetchAuth<{ url: string }>("/api/health");
+        const result = useApiData<{ url: string }>("/api/invoice", {
+          immediate: false,
+        });
+        execute = () => result.execute();
+        return () => h("p", result.data.value?.url ?? "closed");
+      },
+    });
+    const container = document.createElement("div");
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const dialog = createApp(Dialog);
+    engine.provideDmsFrontendRuntime(dialog, runtime);
+    dialog.mount(container);
+    mounted.push(dialog);
+    await settle();
+    expect(sent).toEqual([]);
+    expect(container.textContent).toBe("closed");
+
+    await execute!();
+    await settle();
+    expect(sent.map(({ url }) => url)).toEqual(["/api/invoice"]);
+    expect(container.textContent).toBe("/api/invoice");
+  });
+
+  it("polls with refreshInterval while a component shows the data", async () => {
+    const Status = defineComponent({
+      setup() {
+        const { data } = useApiData<{ url: string }>("/api/status", {
+          refreshInterval: 20,
+        });
         return () => h("p", data.value?.url ?? "none");
       },
     });
-
-    const { html, payload } = await serverRender(Health);
-    expect(html).toBe("<p>/api/health</p>");
-    sent.length = 0;
-    hydrate(Health, html, payload);
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp(Status);
+    engine.provideDmsFrontendRuntime(app, runtime);
+    app.mount(document.createElement("div"));
     await settle();
-    expect(sent).toEqual([]);
+    expect(sent).toHaveLength(1);
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent.length).toBeGreaterThan(1);
+
+    app.unmount();
+    const afterUnmount = sent.length;
+    await new Promise((done) => setTimeout(done, 70));
+    expect(sent).toHaveLength(afterUnmount);
+  });
+
+  it("is the one read helper: useAuthFetch returns $authFetch alone", () => {
+    expect(Object.keys(useAuthFetch())).toEqual(["$authFetch"]);
   });
 });

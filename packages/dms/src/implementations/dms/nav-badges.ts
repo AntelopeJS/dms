@@ -1,29 +1,20 @@
 // The navigation badges the pages publish (a table view tab declared with
-// `navBadge`), counted for the caller when the menu is served and written
-// where a static `badge` would sit, in the tree and on the page entries. The
-// tone rides next to the count (`badgeTone`), so a frontend that does not
-// read it still shows the number.
+// `navBadge`), counted for the caller on each page visit and served next to
+// the page (`navBadges`), never in the site layout a browser keeps for
+// minutes: a count read once would stay on screen that long.
 
 import type { RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
-import type { Tone } from "@antelopejs/interface-dms/base/types/tone";
 import {
   ResolveNavBadgeEntries,
   type ResolvedNavBadges,
 } from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 
-/** What the menu payload carries per entry, as far as the badges go. */
+/** A page entry, as far as counting its badge goes. */
 interface BadgedEntry {
   fullId: string;
-  badge?: string;
-  /** The tone of a counted badge; neutral when absent. */
-  badgeTone?: Tone;
   hasAccess?: boolean;
-}
-
-interface BadgedTree extends BadgedEntry {
-  children: Record<string, BadgedTree>;
 }
 
 /**
@@ -48,29 +39,4 @@ export async function resolveMenuNavBadges(
   } catch {
     return {};
   }
-}
-
-/** `entry` with its page's badge and tone, unless it declares a static one. */
-export function withNavBadge<T extends BadgedEntry>(
-  entry: T,
-  badges: ResolvedNavBadges,
-): T {
-  const resolved = badges[entry.fullId];
-  if (resolved === undefined || entry.badge !== undefined) return entry;
-  const { badge, tone } = resolved;
-  return tone ? { ...entry, badge, badgeTone: tone } : { ...entry, badge };
-}
-
-/** The menu tree with each page's badge, at every level. */
-export function withTreeNavBadges<T extends BadgedTree>(
-  node: T,
-  badges: ResolvedNavBadges,
-): T {
-  const children = Object.fromEntries(
-    Object.entries(node.children).map(([key, child]) => [
-      key,
-      withTreeNavBadges(child, badges),
-    ]),
-  );
-  return { ...withNavBadge(node, badges), children };
 }

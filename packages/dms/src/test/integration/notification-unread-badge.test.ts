@@ -11,8 +11,9 @@ import { resetDatabase } from "../helpers/db";
 import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The unread badge: the header bell (`/counts`) and the Notifications entry
-// of the menu (`/dms/sitelayout`) count the unread notifications, in the
-// tone of the most important one, and opening the bell changes neither.
+// of the menu (`navBadges`, which each page visit carries, never the cached
+// site layout) count the unread notifications, in the tone of the most
+// important one, and opening the bell changes neither.
 
 const LOCATION = pageRoutePath("/settings/user/notifications");
 const NOTIFICATIONS_PAGE_ID = "settings.user.notifications";
@@ -37,7 +38,6 @@ interface FeedCounts {
 }
 
 interface MenuEntry {
-  fullId: string;
   badge?: string;
   badgeTone?: string;
 }
@@ -58,12 +58,18 @@ describe("[integration] notifications unread badge", () => {
   };
 
   const menuEntry = async (): Promise<MenuEntry | undefined> => {
-    const response = await client.get("/dms/sitelayout");
+    // Any page visit carries them, with or without the site layout.
+    const response = await client.get("/dms/page", {
+      params: { path: "/settings", shared: "false" },
+    });
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
-    const pages = Object.values(
-      response.data.siteLayout.pages as Record<string, MenuEntry>,
-    );
-    return pages.find((page) => page.fullId === NOTIFICATIONS_PAGE_ID);
+    const served = (
+      response.data.navBadges as Record<
+        string,
+        { badge: string; tone?: string }
+      >
+    )[NOTIFICATIONS_PAGE_ID];
+    return served && { badge: served.badge, badgeTone: served.tone };
   };
 
   const send = (title: string, tone?: NotificationTone) =>

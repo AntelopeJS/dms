@@ -87,11 +87,8 @@ import {
   type LayoutBannerSerialized,
 } from "./layout-banners";
 import { fillRouteParams } from "./route-params";
-import {
-  resolveMenuNavBadges,
-  withNavBadge,
-  withTreeNavBadges,
-} from "./nav-badges";
+import { resolveMenuNavBadges } from "./nav-badges";
+import type { ResolvedNavBadges } from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
 import {
@@ -849,7 +846,6 @@ export class DMSController extends Controller("/dms") {
       memberModel,
       roleModel,
       getRequestTenantId(requestContext),
-      requestContext,
     );
   }
 
@@ -995,6 +991,12 @@ export interface PagePayload {
   route: PageInfo & AccessFlag;
   shared: SiteLayoutPayload;
   layout: PageLayout;
+  /**
+   * The counted navigation badges of the pages the caller can open, by page
+   * full id: computed on each visit, never part of the site layout a browser
+   * keeps for minutes.
+   */
+  navBadges: ResolvedNavBadges;
 }
 
 export interface PageResponsePayload extends Omit<PagePayload, "shared"> {
@@ -1079,31 +1081,30 @@ export async function buildPagePayload(
   assert(handler, 404, "error.page_not_found");
   const route = pagesBySlug[registeredSlug];
   assert(route, 404, "error.page_not_found");
+  const context = await buildAccessContext(
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+  );
+  const [layout, navBadges] = await Promise.all([
+    handler(user, memberModel, roleModel, tenantId),
+    resolvePageNavBadges(user, context, requestContext),
+  ]);
   if (!includeShared) {
-    const layout = await handler(user, memberModel, roleModel, tenantId);
-    const context = await buildAccessContext(
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-    );
     const routes = await annotateRegistryAccess(
       { [registeredSlug]: route },
       context,
     );
-    return { route: routes[registeredSlug], layout };
+    return { route: routes[registeredSlug], layout, navBadges };
   }
-  const [layout, shared] = await Promise.all([
-    handler(user, memberModel, roleModel, tenantId),
-    buildSiteLayoutPayload(
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-      requestContext,
-    ),
-  ]);
-  return { route: shared.siteLayout.pages[registeredSlug], shared, layout };
+  const shared = await buildSiteLayoutFor(user, tenantId, context);
+  return {
+    route: shared.siteLayout.pages[registeredSlug],
+    shared,
+    layout,
+    navBadges,
+  };
 }
 
 /** The page a permission preview runs on, read with the viewer's own access. */
@@ -1836,12 +1837,17 @@ function buildLayoutBannerContext(
   };
 }
 
+/**
+ * The site layout of a caller: the menu, with each entry's access, the quick
+ * actions and the modules. A browser keeps it for minutes (an Inertia once
+ * prop), so it holds nothing that moves between visits: the counted
+ * navigation badges travel with each page instead (`navBadges`).
+ */
 export async function buildSiteLayoutPayload(
   user: User | undefined,
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
-  requestContext?: RequestContext,
 ): Promise<SiteLayoutPayload> {
   const accessContext = await buildAccessContext(
     user,
@@ -1849,7 +1855,55 @@ export async function buildSiteLayoutPayload(
     roleModel,
     tenantId,
   );
+  return buildSiteLayoutFor(user, tenantId, accessContext);
+}
 
+/**
+ * The counted navigation badges of the pages `user` can open, by page full
+ * id; none for a page that declares a static `badge`, which the menu keeps.
+ */
+async function resolvePageNavBadges(
+  user: User | undefined,
+  context: RequestAccessContext,
+  requestContext: RequestContext | undefined,
+): Promise<ResolvedNavBadges> {
+  if (!user || !requestContext) return {};
+  const entries = await Promise.all(
+    Object.values(pagesBySlug)
+      .filter((page) => page.badge === undefined)
+      .map(async (page) => ({
+        fullId: page.fullId,
+        hasAccess: await computeEntryAccess(page, context),
+      })),
+  );
+  return resolveMenuNavBadges(requestContext, user, entries);
+}
+
+/**
+ * {@link resolvePageNavBadges} for a caller: what a page visit carries next
+ * to its layout.
+ */
+export async function buildNavBadges(
+  user: User | undefined,
+  memberModel: TenantMemberModel,
+  roleModel: RoleModel,
+  tenantId: string,
+  requestContext: RequestContext | undefined,
+): Promise<ResolvedNavBadges> {
+  const context = await buildAccessContext(
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+  );
+  return resolvePageNavBadges(user, context, requestContext);
+}
+
+async function buildSiteLayoutFor(
+  user: User | undefined,
+  tenantId: string,
+  accessContext: RequestAccessContext,
+): Promise<SiteLayoutPayload> {
   // Started before the menu providers so both sets of resolvers run together;
   // it never rejects, so it cannot surface as an unhandled rejection meanwhile.
   const banners = resolveLayoutBanners(
@@ -1861,31 +1915,13 @@ export async function buildSiteLayoutPayload(
     accessContext,
   );
 
-  const siteLayout = await annotateSiteLayoutAccess(accessContext, banners);
-  const navBadges = await resolveMenuNavBadges(
-    requestContext,
-    user,
-    Object.values(siteLayout.pages),
-  );
-
   return {
-    siteLayout: {
-      ...siteLayout,
-      pages: Object.fromEntries(
-        Object.entries(siteLayout.pages).map(([slug, page]) => [
-          slug,
-          withNavBadge(page, navBadges),
-        ]),
-      ),
-    },
-    siteLayoutTree: withTreeNavBadges(
-      await addAccessToTree(
-        navigationTree,
-        accessContext,
-        true,
-        dynamicChildren,
-      ),
-      navBadges,
+    siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
+    siteLayoutTree: await addAccessToTree(
+      navigationTree,
+      accessContext,
+      true,
+      dynamicChildren,
     ),
     quickActions: await getQuickActionsForUser((target) =>
       resolveQuickActionTarget(target, accessContext),

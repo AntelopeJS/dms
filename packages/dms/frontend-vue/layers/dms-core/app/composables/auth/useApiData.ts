@@ -26,9 +26,19 @@ export type UseApiDataOptions<T> = Omit<UseFetchOptions<T>, "$fetch">;
 export type ApiDataRequest = MaybeRefOrGetter<string | null | undefined>;
 
 /**
+ * What `useApiData` returns: `data`, `status`, `pending`, `error`, the `key`
+ * the data is loaded under, `placeholder` (a reactive request still showing
+ * the previous answer), `execute()`, `refresh()` and `clear()`. Usable at
+ * once, or awaited until the data is there.
+ */
+export type ApiDataResult<T> = DmsAsyncDataResult<T>;
+
+/**
  * Reads backend data for a component: the one way a module loads what it
  * renders. A server render waits for it and hands it to the browser with the
  * page, which then does not ask again; the callers of one request share it.
+ * Data read before shows at once and is read again in the background on each
+ * mount (stale while revalidate).
  *
  * - `useApiData(url, options)` reads one URL, like Nuxt's `useFetch`. The URL,
  *   `method`, `query`, `params` and `body` may be refs or getters, read again
@@ -39,25 +49,38 @@ export type ApiDataRequest = MaybeRefOrGetter<string | null | undefined>;
  *   receives `$authFetch` and the `signal` to pass to each request.
  *
  * Requests go through `$authFetch` (session retry, language and realtime
- * headers). `lazy` spares a client navigation the wait, `server: false`
- * leaves the data to the browser (for what only the browser knows), and
- * `immediate: false` waits for `execute()`. A mutation or a read on a click
- * stays an `$authFetch` call.
+ * headers), and the data is kept per account and workspace: a switch of
+ * either reads it again. The options are the renderer's:
+ *
+ * - `lazy` spares a client navigation the wait; `server: false` leaves the
+ *   data to the browser (for what only the browser knows).
+ * - `immediate: false` waits for `execute()`: a dialog or a drawer reads
+ *   what it shows once it opens.
+ * - `refreshInterval: ms` reads again on an interval while a component shows
+ *   the data and the page is visible: polling.
+ * - The page's refreshes (`refreshPageBlocks()`) and the events of its
+ *   realtime topics read the data again; `refreshOnPageRefresh: false` opts
+ *   out, for data with refresh triggers of its own.
+ * - `data` is a shallow ref: replace the value to change it, or pass
+ *   `deep: true`.
+ *
+ * A write stays an `$authFetch` call; once it is done, the page's refresh
+ * reads what changed.
  */
 export function useApiData<T>(
   url: ApiDataRequest,
   options?: UseApiDataOptions<T>,
-): DmsAsyncDataResult<T>;
+): ApiDataResult<T>;
 export function useApiData<T>(
   key: MaybeRefOrGetter<DmsAsyncDataKey>,
   handler: ApiDataHandler<T>,
   options?: UseAsyncDataOptions<T>,
-): DmsAsyncDataResult<T>;
+): ApiDataResult<T>;
 export function useApiData<T>(
   source: ApiDataRequest,
   handlerOrOptions?: ApiDataHandler<T> | UseApiDataOptions<T>,
   options?: UseAsyncDataOptions<T>,
-): DmsAsyncDataResult<T> {
+): ApiDataResult<T> {
   const { $authFetch } = useAuthFetch();
   if (typeof handlerOrOptions === "function")
     return useDmsAsyncData<T>(

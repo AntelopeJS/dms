@@ -6,6 +6,7 @@ import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
   internal as pageImplInternal,
+  buildNavBadges,
   buildSiteLayoutPayload,
 } from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
@@ -36,7 +37,7 @@ import {
 const TENANT = "nb-tenant";
 const USER = { _id: "nb-member" } as User;
 const REQUEST = {
-  url: new URL("http://localhost/dms/sitelayout"),
+  url: new URL("http://localhost/dms/page"),
 } as RequestContext;
 
 const counting = (count: number): NavBadgeSource => ({
@@ -133,24 +134,44 @@ interface ServedBadge {
   badgeTone?: Tone;
 }
 
+/** The badges a page visit carries (`navBadges`), by page full id. */
 async function servedBadgesFor(
   grantedPermissions: string[],
   requestContext: RequestContext | null = REQUEST,
 ): Promise<Record<string, ServedBadge>> {
   const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
-  const payload = await buildSiteLayoutPayload(
+  const badges = await buildNavBadges(
     USER,
     memberModel,
     roleModel,
     TENANT,
     requestContext ?? undefined,
   );
+  return Object.fromEntries(
+    Object.entries(badges).map(([fullId, { badge, tone }]) => [
+      fullId,
+      { badge, badgeTone: tone },
+    ]),
+  );
+}
+
+/** The badges the site layout's tree serves, by page full id. */
+async function menuBadgesFor(
+  grantedPermissions: string[],
+): Promise<Record<string, string | undefined>> {
+  const { memberModel, roleModel } = stubPageAccessModels(grantedPermissions);
+  const payload = await buildSiteLayoutPayload(
+    USER,
+    memberModel,
+    roleModel,
+    TENANT,
+  );
   const pages = payload.siteLayoutTree.children.pages?.children ?? {};
   return Object.fromEntries(
-    Object.values(pages).map((page) => {
-      const { badge, badgeTone } = page as ServedBadge;
-      return [page.fullId, { badge, badgeTone }];
-    }),
+    Object.values(pages).map((page) => [
+      page.fullId,
+      (page as ServedBadge).badge,
+    ]),
   );
 }
 
@@ -164,7 +185,7 @@ async function badgesFor(
   );
 }
 
-describe("[unit] implementations/dms/page — navigation badges", () => {
+describe("[unit] implementations/dms/page — navigation badges of a page visit", () => {
   const cleanups: Array<() => void> = [];
 
   before(async () => {
@@ -235,11 +256,19 @@ describe("[unit] implementations/dms/page — navigation badges", () => {
     });
   });
 
-  it("keeps a page's declared badge, and drops a count that fails", async () => {
+  it("leaves a page's declared badge to the menu, and drops a count that fails", async () => {
     const badges = await badgesFor(ALL_PAGES);
 
-    expect(badges["pages.nb-static"]).to.equal("new");
+    expect(badges["pages.nb-static"]).to.equal(undefined);
+    expect((await menuBadgesFor(ALL_PAGES))["pages.nb-static"]).to.equal("new");
     expect(badges["pages.nb-failing"]).to.equal(undefined);
+  });
+
+  it("keeps the counts out of the site layout a browser keeps for minutes", async () => {
+    const badges = await menuBadgesFor(ALL_PAGES);
+
+    expect(badges["pages.nb-members"]).to.equal(undefined);
+    expect(badges["pages.nb-toned"]).to.equal(undefined);
   });
 
   it("counts only for the pages the caller can open", async () => {

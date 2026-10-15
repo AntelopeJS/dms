@@ -6,6 +6,7 @@ import DashboardBanners from "./DashboardBanners.vue";
 import GithubStarPrompt from "./GithubStarPrompt.vue";
 import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
+import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadges";
 import {
   sidePanelWidthStyle,
   useActiveSidePanel,
@@ -45,6 +46,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 providePageFillHeight(toRef(props, "fillHeight"));
+
+useVisitNavBadges();
 
 const { widgets: appWidgets } = useAppWidgets();
 // A fill-height page has nothing to scroll past the dock: no clearance.

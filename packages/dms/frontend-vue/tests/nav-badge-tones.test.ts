@@ -84,6 +84,43 @@ describe("useNavBadges", () => {
   });
 });
 
+describe("the counts a page visit carries", () => {
+  it("draws each one, over a static badge", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({
+      "settings.user.notifications": { badge: "4", tone: "error" },
+    });
+    expect(
+      navBadgeOf({ fullId: "settings.user.notifications", badge: "new" }),
+    ).toEqual({ label: "4", tone: "error" });
+  });
+
+  it("drops the badge of an entry the next visit no longer counts", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({
+      "settings.user.notifications": { badge: "4" },
+      "settings.workspace.invites": { badge: "2" },
+    });
+    applyCountedNavBadges({ "settings.workspace.invites": { badge: "1" } });
+
+    expect(
+      navBadgeOf({ fullId: "settings.user.notifications" }),
+    ).toBeUndefined();
+    expect(navBadgeOf({ fullId: "settings.workspace.invites" })).toEqual({
+      label: "1",
+    });
+  });
+
+  it("leaves the badges alone when a visit carries none, such as a frontend page", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({ "settings.user.notifications": { badge: "4" } });
+    applyCountedNavBadges(undefined);
+    expect(navBadgeOf({ fullId: "settings.user.notifications" })).toEqual({
+      label: "4",
+    });
+  });
+});
+
 describe("NavigationMenu badges", () => {
   // Renders each entry's badge the way UNavigationMenu hands it over.
   const MenuStub = defineComponent({
