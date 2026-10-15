@@ -24,8 +24,7 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 const { processApiMessage } = useTranslation();
 const { formatRelativeTime } = useRegionalFormat();
-const { useFetchAuth } = useAuthFetch();
-const { data, refresh } = useFetchAuth<Health>(props.healthUrl);
+const { data, refresh } = useApiData<Health>(props.healthUrl);
 
 const { missed, refreshNow } = usePageLiveRefresh(() => void refresh(), {
   realtimeTopic: props.realtimeTopic,

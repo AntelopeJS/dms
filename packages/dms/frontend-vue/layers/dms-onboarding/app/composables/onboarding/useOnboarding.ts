@@ -6,11 +6,19 @@ interface OnboardingInfoResponse {
   has_onboarded: boolean;
 }
 
+/**
+ * Transferred: the global middleware reads it while a server renders the
+ * page, and the browser's run of the middleware then finds it instead of
+ * asking again. It holds nothing private.
+ */
+function useOnboardingCache() {
+  return useDmsState<OnboardingInfo | null>("dms-onboarding-info", () => null, {
+    transfer: true,
+  });
+}
+
 export const useOnboarding = async (): Promise<OnboardingInfo> => {
-  const cache = useDmsState<OnboardingInfo | null>(
-    "dms-onboarding-info",
-    () => null,
-  );
+  const cache = useOnboardingCache();
 
   if (cache.value) return cache.value;
 
@@ -31,9 +39,5 @@ export const useOnboarding = async (): Promise<OnboardingInfo> => {
 
 /** Release the cached onboarding guard after the backend creates the admin. */
 export const setOnboardingComplete = () => {
-  const cache = useDmsState<OnboardingInfo | null>(
-    "dms-onboarding-info",
-    () => null,
-  );
-  cache.value = { hasOnboarded: true };
+  useOnboardingCache().value = { hasOnboarded: true };
 };

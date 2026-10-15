@@ -4,7 +4,6 @@ import type {
   TableViewFooter,
   TableViewFooterSummaryConfig,
 } from "../../../composables/table-view/types";
-import { useServerRenderedAsyncData } from "./useServerRenderedAsyncData";
 import type {
   TableFooterLegendItem,
   TableFooterTexts,
@@ -35,7 +34,7 @@ const UNSORTED_KEYS = new Set(["sortKey", "sortDirection"]);
  * route computes over every listed row — a sum read like its column's cells
  * unless a `format` is given — and the legend of a select column.
  */
-export async function useTableFooter(options: TableFooterOptions) {
+export function useTableFooter(options: TableFooterOptions) {
   const { footer, columns, location } = options;
   const summaries = footer?.summary ?? [];
   const { $authFetch } = useAuthFetch();
@@ -52,7 +51,7 @@ export async function useTableFooter(options: TableFooterOptions) {
     ids: summaries.map((summary) => summary.id),
   }));
 
-  const { data: values, refresh } = await useServerRenderedAsyncData<
+  const { data: values, refresh } = useDmsLazyAsyncData<
     Record<string, number>
   >(
     `${options.dataKey}-summary`,

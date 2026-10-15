@@ -293,14 +293,14 @@ export function createDevReloadCoordinator(
 // has been (re)committed for the current route. Kept separate from the layout
 // commit so the commit can stay atomic with its route check (see
 // probeAndCommitRoute) — the 404-prone part was committing the layout, not this.
-async function postLayoutRefresh(currentRoutePath: string): Promise<void> {
+// The page layouts reload with the layout commit, which empties their cache:
+// no async data key holds them.
+async function postLayoutRefresh(): Promise<void> {
   const permissions = usePermissions();
   // fetchPermissions() refetches and swaps the set atomically, so there is no
   // need to clear() first — clearing would briefly empty permissions and flash
   // permission-gated UI.
   await permissions.fetchPermissions();
-  await refreshDmsData(currentRoutePath);
-  await refreshDmsData(`layout-${currentRoutePath}`);
 }
 
 interface DevReloadHolder {

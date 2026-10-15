@@ -865,7 +865,9 @@ const liveHold = useTableLiveHold({
   },
 });
 
-const { data, status, error, refresh } = await useTableListData<T>({
+// The list, its counters and its footer figures load in parallel: a server
+// render waits for each before rendering, whether or not the setup awaits it.
+const { data, status, error, refresh } = useTableListData<T>({
   componentId,
   pageId,
   rows: tableRows,
@@ -1017,7 +1019,7 @@ const tabCountsQuery = computed(() => [
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useTableCountsData<T>({
+  useTableCountsData<T>({
     componentId,
     pageId,
     rows: tableRows,
@@ -1069,7 +1071,7 @@ const baseQuery = computed<Record<string, unknown>>(() => {
   return { ...query, ...archiveQuery.value };
 });
 
-const { footer: resolvedFooter, refreshSummaries } = await useTableFooter({
+const { footer: resolvedFooter, refreshSummaries } = useTableFooter({
   footer: props.footer,
   columns: props.columns,
   location,
