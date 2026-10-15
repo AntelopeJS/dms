@@ -39,7 +39,7 @@ const HANDOFF_ACTIONS: HandoffActions = {
       },
       REPLACE,
     ),
-  none: () => usePostLoginRedirect(redirect.value),
+  none: () => usePostLoginRedirect(redirect.value, REPLACE),
 };
 
 function runHandoffAction(handoff: OAuthHandoff): unknown {

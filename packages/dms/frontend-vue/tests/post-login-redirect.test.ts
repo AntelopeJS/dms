@@ -37,7 +37,7 @@ describe("post-login redirect", () => {
     await usePostLoginRedirect(resolveDestination);
 
     expect(resolveDestination).toHaveBeenCalledOnce();
-    expect(navigateTo).toHaveBeenCalledWith("/dashboard");
+    expect(navigateTo).toHaveBeenCalledWith("/dashboard", {});
     expect(refreshUser.mock.invocationCallOrder[0]).toBeLessThan(
       refreshLayout.mock.invocationCallOrder[0]!,
     );
@@ -45,12 +45,17 @@ describe("post-login redirect", () => {
 
   it("preserves explicit login destinations", async () => {
     await usePostLoginRedirect("/reports");
-    expect(navigateTo).toHaveBeenCalledWith("/reports");
+    expect(navigateTo).toHaveBeenCalledWith("/reports", {});
+  });
+
+  it("opens the destination in place of the current page when asked", async () => {
+    await usePostLoginRedirect("/reports", { replace: true });
+    expect(navigateTo).toHaveBeenCalledWith("/reports", { replace: true });
   });
 
   it("falls back to the homepage when no page is accessible", async () => {
     await usePostLoginRedirect(() => undefined);
-    expect(navigateTo).toHaveBeenCalledWith("/");
+    expect(navigateTo).toHaveBeenCalledWith("/", {});
   });
 
   it("does not navigate when session refresh fails", async () => {

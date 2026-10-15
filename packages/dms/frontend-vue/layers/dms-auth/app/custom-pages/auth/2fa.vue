@@ -115,7 +115,9 @@ async function verify() {
       },
     });
 
-    await usePostLoginRedirect();
+    // The sign-in token in this page's URL is spent: the destination takes
+    // its place in the history.
+    await usePostLoginRedirect(undefined, { replace: true });
   } catch (error: unknown) {
     pin.value = [];
     await showError(error, "page.2fa.error_title", {
