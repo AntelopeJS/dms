@@ -1,5 +1,4 @@
 import { computed, markRaw, ref, type ComputedRef, type Ref } from "vue";
-import { isRelativePreset } from "./presetResolvers";
 import { resolvesPeriodsAsBrowser } from "./periodTimeZone";
 import type { PeriodState } from "./types";
 
@@ -88,7 +87,8 @@ function readPeriodScope(
  * up later (further down the page) leaves the caller to the browser, whose
  * first render must match the HTML. It also answers `null` for a period the
  * browser could resolve to other bounds: before the browser's cookie names
- * its time zone, or a relative preset, which follows the instant it is read.
+ * its time zone. A relative preset resolves from the instant the server
+ * hands the browser (`periodRenderNow`), so both read the same bounds.
  */
 export function usePeriodScope(
   id: string | undefined,
@@ -98,10 +98,7 @@ export function usePeriodScope(
   if (typeof window !== "undefined")
     return computed(() => readPeriodScope(registry, id));
   const state = readPeriodScope(registry, id);
-  const resolvesAsBrowser =
-    state !== null &&
-    !isRelativePreset(state.preset) &&
-    resolvesPeriodsAsBrowser();
+  const resolvesAsBrowser = state !== null && resolvesPeriodsAsBrowser();
   return computed(() => (resolvesAsBrowser ? state : null));
 }
 

@@ -19,7 +19,7 @@ import {
   type ComparisonControl,
   resolveComparisonControl,
 } from "../../build/composables/period/periodComparisonControl";
-import { isRelativePreset } from "#dms-core/app/composables/period/presetResolvers";
+import { readerClock } from "#dms-core/app/composables/period/periodClock";
 import { usePeriodLocation } from "../../build/composables/period/usePeriodLocation";
 import {
   type CalendarRange,
@@ -332,20 +332,14 @@ const committedRangeLabel = computed(() => {
   return range ? formatPeriodRange(range, locale.value) : null;
 });
 
-/**
- * The instant a relative label is read from: a rolling window's own end, so
- * it holds still with the window while the page is paused.
- */
-function labelNow(preset: PeriodPreset, range: PeriodRange): Date {
-  return isRelativePreset(preset) ? range.to : new Date();
-}
-
 // Only a window reaching now reads "since …"; one that has ended keeps its
-// bounds.
+// bounds. "Now" is the instant the period was resolved from: it holds still
+// with the period while the page is paused, and is the server's while the
+// browser hydrates its render.
 const relativeRangeLabel = computed<string | null>(() => {
-  const { preset, range } = period.state.value;
+  const { range } = period.state.value;
   if (props.rangeLabel !== RELATIVE_RANGE_LABEL || !range) return null;
-  const now = labelNow(preset, range);
+  const now = period.resolvedAt.value;
   if (range.to.getTime() < now.getTime()) return null;
   const from = formatRelativeInstant(range.from, now, locale.value);
   return t("dms.period.since", { from }, `since ${from}`);
@@ -421,7 +415,9 @@ function comparisonKeyClass(active: boolean): string {
 }
 
 function compareRangeText(compare: PeriodRange, main: PeriodRange): string {
-  const sameYear = compare.to.getFullYear() === main.to.getFullYear();
+  // In the reader's calendar, on the server as in the browser.
+  const clock = readerClock();
+  const sameYear = clock.wall(compare.to).year === clock.wall(main.to).year;
   return formatPeriodRange(compare, locale.value, !sameYear);
 }
 

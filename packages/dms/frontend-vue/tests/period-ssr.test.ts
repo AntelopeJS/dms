@@ -2,7 +2,7 @@
  * A server render of a dashboard, through the runtime's real async data: a
  * card bound to a period scope renders its data when the server resolves the
  * period as the browser will (in the browser's time zone, read in its cookie;
- * a calendar preset; a selector set up before the card), and its placeholder
+ * a selector set up before the card), and its placeholder
  * otherwise, requesting nothing. Each request has its scopes.
  */
 import { createSSRApp, defineComponent, h, ref, type Component } from "vue";
@@ -140,14 +140,18 @@ describe("a period-scoped card in a server render", () => {
     expect(to.month).toBe(from.month);
   });
 
-  it("leaves a relative preset to the browser, which reads it later", async () => {
-    const { html } = await serverRender(
+  it("renders a relative preset too, from the instant it hands the browser", async () => {
+    const { html, payload } = await serverRender(
       [selector("last-24h"), Card],
       zoneCookie(browserTimeZone()),
     );
 
-    expect(html).toContain("SKELETON");
-    expect(requests).toEqual([]);
+    expect(html).toContain("value:last-24h");
+    expect(requests).toHaveLength(1);
+    const query = new URL(requests[0]!, "http://dms.local").searchParams;
+    expect(payload.state["dms-period-render-now"]).toBe(
+      new Date(query.get("to")!).getTime(),
+    );
   });
 
   it("leaves it to the browser when its selector sets up after it", async () => {
