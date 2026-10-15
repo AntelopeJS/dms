@@ -144,7 +144,13 @@ async function ssrThenHydrate(
   const container = document.createElement("div");
   container.innerHTML = html;
   document.body.appendChild(container);
+  // The browser starts from what the page carried, as it does after a server
+  // render: its first mount takes the data over instead of reading it again.
+  const payload = structuredClone(engine.serializeDmsPayload(renderRuntime));
+  const browser = engine.createDmsFrontendRuntime(undefined, {});
+  engine.restoreDmsPayload(browser, payload);
   const app = withComponents(createSSRApp(root as never), components);
+  engine.provideDmsFrontendRuntime(app, browser);
   app.mount(container);
   mounted.push(app);
   const deadline = Date.now() + SETTLE_MS;
@@ -164,7 +170,12 @@ function withComponents<
   return app;
 }
 
-beforeEach(() => useRealDataEngine());
+const engine = await import("#dms/frontend-module");
+let renderRuntime: ReturnType<typeof useRealDataEngine>;
+
+beforeEach(() => {
+  renderRuntime = useRealDataEngine();
+});
 
 beforeEach(() => {
   requests.length = 0;

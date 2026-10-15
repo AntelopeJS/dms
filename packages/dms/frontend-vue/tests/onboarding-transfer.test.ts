@@ -19,6 +19,21 @@ vi.stubGlobal("useHomepage", () => "/dashboard");
 
 const $authFetch = vi.fn(async () => ({ has_onboarded: true }));
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch }));
+// The status is read once per app however many callers ask (the preload
+// started with the app, the middleware).
+// No DMS app runs here: each runtime holds the deduper on a state of its own.
+vi.stubGlobal(
+  "useDmsApp",
+  () => engine.useDmsState("onboarding-test-app", () => ({})).value,
+);
+const { createTrailingDeduper } = await import(
+  "../layers/dms-core/app/utils/trailingDeduper"
+);
+vi.stubGlobal("createTrailingDeduper", createTrailingDeduper);
+const { useTrailingDeduper } = await import(
+  "../layers/dms-core/app/composables/useTrailingDeduper"
+);
+vi.stubGlobal("useTrailingDeduper", useTrailingDeduper);
 
 const { useOnboarding } = await import(
   "../layers/dms-onboarding/app/composables/onboarding/useOnboarding"

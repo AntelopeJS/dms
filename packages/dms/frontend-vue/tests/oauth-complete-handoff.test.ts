@@ -169,7 +169,9 @@ afterEach(() => {
 
 it("consumes the handoff once when the identity refresh remounts the page", async () => {
   mountCompletionPage();
-  await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith(HOMEPAGE));
+  await vi.waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith(HOMEPAGE, { replace: true }),
+  );
   await settle();
 
   expect(fetchHandoff).toHaveBeenCalledOnce();

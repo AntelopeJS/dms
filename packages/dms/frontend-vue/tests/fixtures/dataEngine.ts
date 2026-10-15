@@ -22,7 +22,9 @@ const ENGINE_GLOBALS = {
   useApiData,
 };
 
-export function useRealDataEngine(): void {
+export function useRealDataEngine(): ReturnType<
+  typeof engine.createDmsFrontendRuntime
+> {
   for (const [name, composable] of Object.entries(ENGINE_GLOBALS))
     vi.stubGlobal(name, composable);
   const isServer = typeof window === "undefined";
@@ -37,4 +39,5 @@ export function useRealDataEngine(): void {
       createApp({ render: () => null }),
       runtime,
     );
+  return runtime;
 }
