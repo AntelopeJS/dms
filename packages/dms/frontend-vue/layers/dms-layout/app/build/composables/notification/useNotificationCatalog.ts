@@ -32,34 +32,31 @@ export const buildPreferenceKey = (categoryId: string, subjectId: string) =>
 export const subjectPreferenceKey = (subject: NotificationSubject) =>
   buildPreferenceKey(subject.category.id, subject.id);
 
-/**
- * The registered notification categories and subjects, loaded once and
- * shared by the preferences matrix and the inbox (which tags each
- * notification with its source).
- */
-export const useNotificationCatalog = () => {
-  const { $authFetch } = useAuthFetch();
-  const categories = useDmsState<NotificationCategory[]>(
-    "notification-catalog-categories",
-    () => [],
-  );
-  const subjects = useDmsState<NotificationSubject[]>(
-    "notification-catalog-subjects",
-    () => [],
-  );
-  const isLoaded = useDmsState<boolean>(
-    "notification-catalog-loaded",
-    () => false,
-  );
+const CATALOG_URL = "/settings/user/notifications/categories";
 
-  const loadCatalog = async () => {
-    const response = await $authFetch<NotificationCatalogResponse>(
-      "/settings/user/notifications/categories",
-    );
-    categories.value = response.categories;
-    subjects.value = response.subjects;
-    isLoaded.value = true;
-  };
+/** Whether a read has answered with a failure, and no retry is running. */
+export const hasFailed = (read: ApiDataResult<unknown>): boolean =>
+  !!read.error.value && read.status.value !== "pending";
+
+/**
+ * The registered notification categories and subjects, read once with the
+ * page and shared by the preferences matrix and the inbox (which tags each
+ * notification with its source).
+ *
+ * @param enabled Whether the page shows them: nothing is read otherwise
+ */
+export const useNotificationCatalog = (enabled: () => boolean = () => true) => {
+  const catalog = useApiData<NotificationCatalogResponse>(() =>
+    enabled() ? CATALOG_URL : null,
+  );
+  const categories = computed(() => catalog.data.value?.categories ?? []);
+  const subjects = computed(() => catalog.data.value?.subjects ?? []);
+  const isLoaded = computed(() => !!catalog.data.value);
+  const loadFailed = computed(() => !isLoaded.value && hasFailed(catalog));
+
+  /** Reads the catalog again (a retry). */
+  const loadCatalog = (): Promise<void> =>
+    catalog.refresh({ dedupe: "defer" });
 
   const subjectsOf = (categoryId: string) =>
     subjects.value.filter((subject) => subject.category.id === categoryId);
@@ -77,6 +74,7 @@ export const useNotificationCatalog = () => {
     categories,
     subjects,
     isLoaded,
+    loadFailed,
     loadCatalog,
     subjectsOf,
     findCategory,

@@ -50,16 +50,15 @@ const MONDAY = 1;
  * and each one's sentence, `undefined` while it is not known yet (the row
  * shows a skeleton then, never a made-up "0 unread").
  *
- * Nothing is awaited before render. The roles and the notification
- * preferences are fetched after mount; the unread count is the header bell's
- * own; the regional and appearance sentences, which depend on the browser
- * (time zone, today's date, the system theme), are written after mount so
- * the server and the hydrating browser render the same skeleton.
+ * The roles and the notification preferences are read with the page (a
+ * server render shows them and hands them over); the unread count is the
+ * header bell's own; the regional and appearance sentences, which depend on
+ * the browser (time zone, today's date, the system theme), are written after
+ * mount so the server and the hydrating browser render the same skeleton.
  */
 export function useProfilePreferences() {
   const { t: translate, locale } = useI18n();
   const t = translate as SummaryTranslate;
-  const { $authFetch } = useAuthFetch();
   const { groups } = useSettingsNavigation();
   const isOwner = useIsOwner();
   const isMounted = ref(false);
@@ -76,22 +75,13 @@ export function useProfilePreferences() {
     ),
   );
 
-  const access = ref<ProfileAccess>();
-  const accessFailed = ref(false);
+  const access = useApiData<ProfileAccess>(PROFILE_ACCESS_ENDPOINT);
   const accessSummary = computed(() => {
-    if (access.value) return buildAccessSummary(t, access.value);
-    return accessFailed.value
+    if (access.data.value) return buildAccessSummary(t, access.data.value);
+    return access.error.value
       ? t("page.settings.profile.preferences.access_unavailable")
       : undefined;
   });
-
-  async function loadAccess(): Promise<void> {
-    try {
-      access.value = await $authFetch<ProfileAccess>(PROFILE_ACCESS_ENDPOINT);
-    } catch {
-      accessFailed.value = true;
-    }
-  }
 
   const { uniqueLocales } = useUniqueLocales();
   const regional = useUserRegionalPreferences();
@@ -117,8 +107,12 @@ export function useProfilePreferences() {
     });
   });
 
-  const notificationPreferences = useNotificationPreferences();
-  const { subjects } = useNotificationCatalog();
+  const notificationPreferences = useNotificationPreferences(
+    () => rows.value.notifications.visible,
+  );
+  const { subjects } = useNotificationCatalog(
+    () => rows.value.notifications.visible,
+  );
   const { unreadCount, unreadTone, areCountsLoaded } = useNotifications();
   const isNotificationsLoading = computed(
     () => notificationPreferences.isLoading.value || !areCountsLoaded.value,
@@ -188,8 +182,6 @@ export function useProfilePreferences() {
   onMounted(() => {
     today = new Date();
     isMounted.value = true;
-    void loadAccess();
-    if (rows.value.notifications.visible) void notificationPreferences.load();
   });
 
   return {

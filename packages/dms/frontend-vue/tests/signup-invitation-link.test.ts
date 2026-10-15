@@ -13,6 +13,12 @@ import {
 } from "vue";
 import * as z from "zod";
 import SignupPage from "../layers/dms-auth/app/custom-pages/auth/signup.vue";
+import {
+  browserRuntime,
+  hydrate,
+  serverRender,
+  stubApiData,
+} from "./helpers/api-data-runtime";
 
 const route = reactive<{ query: Record<string, unknown> }>({ query: {} });
 let app: App;
@@ -54,7 +60,7 @@ function installRuntime() {
     runWithContext: (fn: () => unknown) => fn(),
   }));
   vi.stubGlobal("useDmsRoute", () => route);
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(authFetch);
   vi.stubGlobal("passwordSchema", z.string());
   vi.stubGlobal("usePasswordStrength", () => ({
     strength: ref([]),
@@ -66,6 +72,7 @@ function installRuntime() {
 function mountSignup(query: Record<string, unknown>) {
   route.query = query;
   app = createApp(SignupPage);
+  browserRuntime(app);
   app.config.globalProperties.$t = (key: string) => key;
   for (const name of [
     "DmsCard",
@@ -83,10 +90,10 @@ function mountSignup(query: Record<string, unknown>) {
   app.mount(host);
 }
 
-/** Let the invitation check the page starts on mount settle. */
+/** Let the invitation check the page starts settle. */
 async function settle() {
-  await Promise.resolve();
-  await nextTick();
+  for (let tick = 0; tick < 4; tick++) await nextTick();
+  await new Promise((done) => setTimeout(done, 0));
 }
 
 function refusal(code: string) {
@@ -132,10 +139,13 @@ it("shows the signup form once the server accepts the invitation", async () => {
 
   await settle();
 
-  expect(authFetch).toHaveBeenCalledWith("/api/auth/validate-invite-token", {
-    method: "POST",
-    body: { token: "invite-token", email: "new@local.test" },
-  });
+  expect(authFetch).toHaveBeenCalledWith(
+    "/api/auth/validate-invite-token",
+    expect.objectContaining({
+      method: "POST",
+      body: { token: "invite-token", email: "new@local.test" },
+    }),
+  );
   expect(host.querySelector('[data-testid="signup-invalid-invitation"]')).toBe(
     null,
   );
@@ -197,3 +207,41 @@ it.each([{}, { lang: "en" }, { lang: "de" }, { lang: ["fr", "en"] }])(
     expect(locale.value).toBe("en");
   },
 );
+
+// Checked with the page: the server renders the notice, and the browser
+// hydrates it without asking again (no form flashing first).
+it("renders a refused invitation's notice on the server, and the browser does not check it again", async () => {
+  authFetch.mockRejectedValue(refusal("error.invite_revoked"));
+  route.query = { token: "stale-token", email: "new@local.test" };
+  const register = (application: App) => {
+    application.config.globalProperties.$t = (key: string) => key;
+    for (const name of [
+      "DmsCard",
+      "UIcon",
+      "UForm",
+      "UFormField",
+      "UInput",
+      "DmsOAuthButtons",
+      "DmsPasswordStrength",
+      "DmsLink",
+    ])
+      application.component(name, Passthrough);
+    application.component("UButton", LinkButton);
+  };
+  vi.stubEnv("SSR", true);
+  const { html, payload } = await serverRender(SignupPage, register);
+  vi.stubEnv("SSR", false);
+  expect(html).toContain("page.signup.invitation_revoked_title");
+  expect(html).not.toContain("page.signup.submit");
+  expect(authFetch).toHaveBeenCalledTimes(1);
+
+  authFetch.mockClear();
+  const hydrated = hydrate(SignupPage, html, payload, register);
+  app = hydrated.app;
+  await settle();
+  expect(authFetch).not.toHaveBeenCalled();
+  expect(hydrated.container.textContent).toContain(
+    "page.signup.invitation_revoked_title",
+  );
+  vi.unstubAllEnvs();
+});

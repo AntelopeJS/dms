@@ -48,6 +48,9 @@ providePageFillHeight(toRef(props, "fillHeight"));
 // A custom page brings no site layout: read with the page, and taken over by
 // the browser before the sidebar, the header and the banners render it.
 useRenderedSiteLayout();
+// The bell's counts, read with the page too, before the header and the page
+// (the inbox, the profile's summary) show them.
+useRenderedBellCounts();
 
 const { widgets: appWidgets } = useAppWidgets();
 // A fill-height page has nothing to scroll past the dock: no clearance.
