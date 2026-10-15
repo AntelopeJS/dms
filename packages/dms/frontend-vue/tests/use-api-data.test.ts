@@ -27,7 +27,9 @@ vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({
   public: { dms: { baseURL: "" } },
 }));
-vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: { value: "fr" } } }));
+// The app's language, which a test may switch.
+const appLocale = ref("fr");
+vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: appLocale } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);
 vi.stubGlobal("useUserSession", () => ({ loggedIn: { value: true } }));
 const refreshSession = vi.fn(async () => true);
@@ -317,6 +319,21 @@ describe("useApiData", () => {
     await new Promise((done) => setTimeout(done, 70));
     expect(sent).toHaveLength(stopped);
     runtime.scope.stop();
+  });
+
+  it("asks in the language current when each request leaves", async () => {
+    const runtime = engine.createDmsFrontendRuntime(transport);
+    const app = createApp({ render: () => null });
+    engine.provideDmsFrontendRuntime(app, runtime);
+    const { $authFetch } = app.runWithContext(() => useAuthFetch());
+    try {
+      appLocale.value = "de";
+      await app.runWithContext(() => $authFetch("/api/orders"));
+      expect(sent[0]!.headers.get("x-content-language")).toBe("de");
+    } finally {
+      appLocale.value = "fr";
+      runtime.scope.stop();
+    }
   });
 
   it("is the one read helper: useAuthFetch returns $authFetch alone", () => {

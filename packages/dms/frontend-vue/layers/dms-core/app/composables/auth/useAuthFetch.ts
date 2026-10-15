@@ -1,4 +1,3 @@
-
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
 const RETRY_HEADER = "x-auth-retry";
@@ -50,10 +49,12 @@ export const useAuthFetch = () => {
 
   const baseFetch = $fetch.create({
     baseURL: config.public.dms.baseURL,
-    headers: {
-      [CONTENT_LANGUAGE_HEADER]: dmsApp.$i18n.locale.value,
-    },
     onRequest({ options }) {
+      // Read as each request leaves: a `$authFetch` kept across a language
+      // change asks in the new language. A header the caller sets wins.
+      if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
+        options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
+      }
       if (realtimeSessionId.value) {
         options.headers.set(REALTIME_SESSION_HEADER, realtimeSessionId.value);
       }
