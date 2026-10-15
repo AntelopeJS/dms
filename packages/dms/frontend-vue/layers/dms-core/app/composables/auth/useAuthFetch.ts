@@ -1,5 +1,8 @@
-import type { DmsAsyncDataResult } from "#dms/frontend-module";
-import type { ApiDataRequest, UseApiDataOptions } from "./useApiData";
+import type {
+  ApiDataRequest,
+  ApiDataResult,
+  UseApiDataOptions,
+} from "./useApiData";
 
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
@@ -122,7 +125,7 @@ export const useAuthFetch = () => {
   function useFetchAuth<T>(
     url: ApiDataRequest,
     options?: UseApiDataOptions<T>,
-  ): DmsAsyncDataResult<T> {
+  ): ApiDataResult<T> {
     return useApiData<T>(url, options);
   }
 

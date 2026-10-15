@@ -5,6 +5,7 @@ import type {
   UseFetchOptions,
 } from "#dms/frontend-module";
 import type { MaybeRefOrGetter } from "vue";
+import { followPageRefresh } from "../../build/composables/auth/pageRefreshReads";
 
 /** The authenticated fetch `useAuthFetch` returns. */
 type AuthFetch = ReturnType<typeof useAuthFetch>["$authFetch"];
@@ -19,8 +20,32 @@ export interface ApiDataContext {
 
 export type ApiDataHandler<T> = (context: ApiDataContext) => Promise<T>;
 
+/** What `useApiData` adds to the renderer's options, in both forms. */
+export interface ApiDataRefreshOptions {
+  /**
+   * Reads again each time the page refreshes its blocks: an action of the
+   * user (`refreshPageBlocks()`: the page header's buttons, a form once
+   * saved) at once, and a refresh nobody asked for (`refreshLivePageBlocks()`)
+   * through the page's Live / Pause gate, as the built-in blocks do. The
+   * callers of one request read it once. Browser only, from setup to unmount.
+   */
+  refreshOnPageRefresh?: boolean;
+}
+
 /** `useDmsFetch`'s options, the fetch function aside: it is `$authFetch`. */
-export type UseApiDataOptions<T> = Omit<UseFetchOptions<T>, "$fetch">;
+export type UseApiDataOptions<T> = Omit<UseFetchOptions<T>, "$fetch"> &
+  ApiDataRefreshOptions;
+
+/** `useDmsAsyncData`'s options, for the handler form. */
+export type UseApiDataHandlerOptions<T> = UseAsyncDataOptions<T> &
+  ApiDataRefreshOptions;
+
+/**
+ * What `useApiData` returns: `data`, `error`, `status`, `pending`,
+ * `refresh()`, `execute()` and `clear()`, usable at once or awaited until the
+ * data is there. The type a composable returning a read declares.
+ */
+export type ApiDataResult<T> = DmsAsyncDataResult<T>;
 
 /** A backend URL to read, or nothing to read while it is null or undefined. */
 export type ApiDataRequest = MaybeRefOrGetter<string | null | undefined>;
@@ -41,32 +66,60 @@ export type ApiDataRequest = MaybeRefOrGetter<string | null | undefined>;
  * Requests go through `$authFetch` (session retry, language and realtime
  * headers). `lazy` spares a client navigation the wait, `server: false`
  * leaves the data to the browser (for what only the browser knows), and
- * `immediate: false` waits for `execute()`. A mutation or a read on a click
- * stays an `$authFetch` call.
+ * `immediate: false` waits for `execute()`, and `refreshOnPageRefresh` reads
+ * again with the page's blocks. A mutation or a read on a click stays an
+ * `$authFetch` call.
  */
 export function useApiData<T>(
   url: ApiDataRequest,
   options?: UseApiDataOptions<T>,
-): DmsAsyncDataResult<T>;
+): ApiDataResult<T>;
 export function useApiData<T>(
   key: MaybeRefOrGetter<DmsAsyncDataKey>,
   handler: ApiDataHandler<T>,
-  options?: UseAsyncDataOptions<T>,
-): DmsAsyncDataResult<T>;
+  options?: UseApiDataHandlerOptions<T>,
+): ApiDataResult<T>;
 export function useApiData<T>(
   source: ApiDataRequest,
   handlerOrOptions?: ApiDataHandler<T> | UseApiDataOptions<T>,
-  options?: UseAsyncDataOptions<T>,
-): DmsAsyncDataResult<T> {
+  handlerOptions?: UseApiDataHandlerOptions<T>,
+): ApiDataResult<T> {
   const { $authFetch } = useAuthFetch();
-  if (typeof handlerOrOptions === "function")
-    return useDmsAsyncData<T>(
-      source,
-      ({ signal }) => handlerOrOptions({ $authFetch, signal }),
-      options,
+  if (typeof handlerOrOptions === "function") {
+    const { refreshOnPageRefresh, ...options } = handlerOptions ?? {};
+    return followingPage(
+      useDmsAsyncData<T>(
+        source,
+        ({ signal }) => handlerOrOptions({ $authFetch, signal }),
+        options,
+      ),
+      refreshOnPageRefresh,
     );
-  return useDmsFetch<T>(source, {
-    ...handlerOrOptions,
-    $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
-  });
+  }
+  const { refreshOnPageRefresh, ...options } = handlerOrOptions ?? {};
+  return followingPage(
+    useDmsFetch<T>(source, {
+      ...options,
+      $fetch: $authFetch as UseFetchOptions<T>["$fetch"],
+    }),
+    refreshOnPageRefresh,
+  );
+}
+
+/**
+ * `result`, read again with the page's blocks when the caller asks it: each
+ * caller follows the page, the first refresh reads and the others join it.
+ * A read that never ran (`immediate: false` before `execute()`, a null URL)
+ * stays as it is.
+ */
+function followingPage<T>(
+  result: ApiDataResult<T>,
+  refreshOnPageRefresh: boolean | undefined,
+): ApiDataResult<T> {
+  if (refreshOnPageRefresh)
+    followPageRefresh(async () => {
+      if (result.status.value === "idle") return;
+      await result.refresh({ dedupe: "defer" });
+    });
+  return result;
 }
