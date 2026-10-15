@@ -877,9 +877,18 @@ const { data, status, error, refresh } = useTableListData<T>({
   heldQuery: liveHold.heldQuery,
 });
 
+// The failure of the last answer. The async data keeps it while the next run
+// is in flight; the table shows that run (its skeleton, or the rows it has)
+// rather than the failure it may replace.
+const settledError = computed(() =>
+  status.value === "pending" ? null : error.value,
+);
+
 // Nothing listed yet (a client navigation paints before the first page
 // arrives): the table draws its skeleton, never the empty state.
-const isFirstPageLoading = computed(() => data.value === null && !error.value);
+const isFirstPageLoading = computed(
+  () => data.value === null && !settledError.value,
+);
 const isListLoading = computed(
   () => status.value === "pending" || isFirstPageLoading.value,
 );
@@ -892,10 +901,11 @@ const isListLoading = computed(
 // or HTML, which must never reach the screen); the HTTP status is the fallback
 // that keeps a refusal distinguishable from a server failure.
 const listLoadError = computed(() => {
-  if (!error.value) return undefined;
-  const message = resolveApiErrorMessage(error.value);
+  const failure = settledError.value;
+  if (!failure) return undefined;
+  const message = resolveApiErrorMessage(failure);
   if (te(`${message}.description`) || te(message)) return message;
-  const status = (error.value as { statusCode?: number }).statusCode;
+  const status = (failure as { statusCode?: number }).statusCode;
   return status && te(`error.${status}.description`)
     ? `error.${status}`
     : "error.500";
