@@ -61,9 +61,9 @@ function installRuntime() {
   }));
 }
 
-function mountError(statusCode: number) {
+function mountError(statusCode: number, message = TECHNICAL_MESSAGE) {
   app = createApp(ErrorPage, {
-    error: { statusCode, message: TECHNICAL_MESSAGE },
+    error: { statusCode, message },
   });
   app.config.globalProperties.$t = (key: string) => key;
   app.component("DmsAppLogo", Passthrough);
@@ -95,4 +95,27 @@ it.each([HTTP_NOT_FOUND, HTTP_FORBIDDEN])(
 
 it("still shows the message of an unexpected error", () => {
   expect(mountError(500)).toContain(TECHNICAL_MESSAGE);
+});
+
+it("never shows the backend's address a failed request names", () => {
+  const text = mountError(
+    502,
+    '[GET] "http://10.0.0.4:5010/dms/page?path=%2Fprojects": 502 Bad Gateway',
+  );
+  expect(text).toContain("502 Bad Gateway");
+  expect(text).not.toContain("10.0.0.4");
+  expect(text).not.toContain("/dms/page");
+});
+
+it("drops an address anywhere in the message, and an empty remainder", async () => {
+  const { publicErrorMessage } = await import(
+    "../layers/dms-layout/app/build/utils/publicErrorMessage"
+  );
+  expect(
+    publicErrorMessage(
+      "fetch failed: connect ECONNREFUSED http://127.0.0.1:5010/api",
+    ),
+  ).toBe("fetch failed: connect ECONNREFUSED");
+  expect(publicErrorMessage("http://127.0.0.1:5010/api")).toBeUndefined();
+  expect(publicErrorMessage(undefined)).toBeUndefined();
 });
