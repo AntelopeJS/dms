@@ -222,10 +222,16 @@ export const PeriodSelectorSchema = z.object({
     group: "behavior",
     widget: "select",
   }),
-  presets: ui(z.array(presetSchema).optional().describe("Ranges offered."), {
-    label: "Available ranges",
-    group: "behavior",
-  }),
+  presets: ui(
+    z
+      .array(presetSchema)
+      .optional()
+      .describe("The periods people can pick from."),
+    {
+      label: "Available ranges",
+      group: "behavior",
+    },
+  ),
   comparisons: ui(z.array(comparisonSchema).optional(), {
     label: "Available comparisons",
     group: "behavior",
@@ -259,7 +265,9 @@ export const PeriodSelectorSchema = z.object({
     z
       .enum(PERIOD_RANGE_LABELS)
       .optional()
-      .describe("`relative` shows the start of the window from now."),
+      .describe(
+        "Relative says how long ago the period starts, rather than its dates.",
+      ),
     { label: "Range format", group: "appearance", widget: "segmented" },
   ),
   comparisonControl: ui(
@@ -280,7 +288,7 @@ export const PeriodSelectorSchema = z.object({
     z
       .enum(PERIOD_SELECTOR_VARIANTS)
       .optional()
-      .describe("`segmented` shows the ranges as inline pills."),
+      .describe("Segmented shows the periods as buttons side by side."),
     { label: "Variant", group: "appearance", widget: "segmented" },
   ),
   maxDays: ui(

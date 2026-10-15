@@ -161,19 +161,22 @@ export const BannerSchema = z.object({
   tone: ui(
     toneEnum(BANNER_TONES)
       .default(BANNER_DEFAULTS.tone)
-      .describe("Colour of the wash and the icon."),
+      .describe("The colour of the banner and of its icon."),
     { label: "Tone", group: "appearance", widget: "select" },
   ),
-  icon: ui(z.string().optional().describe("Overrides the tone's icon."), {
-    label: "Icon",
-    group: "appearance",
-    widget: "icon",
-  }),
+  icon: ui(
+    z.string().optional().describe("Replaces the icon the tone comes with."),
+    {
+      label: "Icon",
+      group: "appearance",
+      widget: "icon",
+    },
+  ),
   size: ui(
     z
       .enum(BANNER_SIZES)
       .default(BANNER_DEFAULTS.size)
-      .describe("`sm` is the compact one-line banner."),
+      .describe("Compact keeps the banner to one line."),
     {
       label: "Size",
       group: "appearance",
@@ -182,7 +185,12 @@ export const BannerSchema = z.object({
     },
   ),
   dismissible: ui(
-    z.boolean().optional().describe("Adds a close button, remembered."),
+    z
+      .boolean()
+      .optional()
+      .describe(
+        "Adds a close button; once closed, the banner stays hidden for that person.",
+      ),
     { label: "Dismissible", group: "behavior", widget: "switch" },
   ),
   dismissKey: ui(

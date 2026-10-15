@@ -34,6 +34,39 @@ describe("[unit] interfaces/dms-base/table-view — its row actions in the catal
 });
 
 /**
+ * Someone building a page without code reads what the simple view shows: the
+ * table's technical options are left to the developer view, and a meter's
+ * source is one an editor can generate, its maximum staying the meter's own.
+ */
+describe("[unit] interfaces/dms-base — options for a page built without code", () => {
+  it("leaves a table's technical options to the developer view", () => {
+    const table = configOf("TableView");
+    for (const option of [
+      "maxHeight",
+      "expandable",
+      "searchShortcut",
+      "pinnedRows",
+      "liveHold",
+    ]) {
+      expect(table[option]?.ui?.advanced, option).to.equal(true);
+    }
+    expect(table.caption?.ui?.advanced, "its title").to.equal(undefined);
+  });
+
+  it("offers a meter's source with the arrangement it reads", () => {
+    const source = configOf("Meter").fetchUrl?.ui;
+    expect(source?.responseShape).to.equal("value");
+    expect(source?.advanced).to.equal(undefined);
+  });
+
+  it("keeps a source no editor can generate for the developer view", () => {
+    const source = configOf("ActivityFeed").fetchUrl?.ui;
+    expect(source?.responseShape).to.equal(undefined);
+    expect(source?.advanced).to.equal(true);
+  });
+});
+
+/**
  * A chart inside a card draws the series the card fetched, under the card's
  * heading. Its own source and title are never read, and a builder offering
  * them would let an author wire a source that does nothing.

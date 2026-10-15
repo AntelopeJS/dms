@@ -103,7 +103,7 @@ const StatGroupItemSchema = z.object({
     label: "Tone",
     widget: "select",
   }),
-  eyebrow: ui(blockTextSchema().describe("Mono label above the value."), {
+  eyebrow: ui(blockTextSchema().describe("Small label above the figure."), {
     label: "Label",
     widget: "text",
   }),
@@ -118,10 +118,13 @@ const StatGroupItemSchema = z.object({
     label: "Detail tone",
     widget: "select",
   }),
-  to: ui(z.string().optional().describe("Route, `#anchor` or URL."), {
-    label: "Link",
-    widget: "url",
-  }),
+  to: ui(
+    z.string().optional().describe("The page it opens, or a web address."),
+    {
+      label: "Link",
+      widget: "url",
+    },
+  ),
 }) satisfies BlockOptionsFor<StatGroupItem>;
 
 /** The options `StatGroup` accepts. */
@@ -149,7 +152,7 @@ export const StatGroupSchema = z.object({
       .min(1)
       .max(6)
       .optional()
-      .describe("Columns on wide screens; defaults to the number of cells."),
+      .describe("How many columns on a wide screen; by default, one per cell."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 6 },
   ),
   label: ui(z.string().optional().describe("Accessible name of the group."), {

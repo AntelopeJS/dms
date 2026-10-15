@@ -328,26 +328,28 @@ export const TableViewSchema = z.object({
       .describe(
         "Height of the rows' own scroll area, under a sticky header, e.g. 60vh.",
       ),
-    { label: "Max height", group: "appearance" },
+    { label: "Max height", group: "appearance", advanced: true },
   ),
   rowClick: ui(
     z
       .enum(["single", "double"])
       .optional()
-      .describe("What runs a row's click action: a single or a double click."),
+      .describe("Whether a row opens with one click or two."),
     { label: "Row click", group: "features", widget: "segmented" },
   ),
   expandable: ui(
     expandableSchema
       .optional()
       .describe("A caret column opens a detail band under each row."),
-    { label: "Expandable rows", group: "features" },
+    { label: "Expandable rows", group: "features", advanced: true },
   ),
   layout: ui(
     z
       .enum(["full", "compact"])
       .optional()
-      .describe("Full dashboard grid, or the compact list of a settings page."),
+      .describe(
+        "Full for a page of its own, compact for a short list in a settings page.",
+      ),
     { label: "Layout", group: "appearance", widget: "segmented" },
   ),
   searchPlaceholder: ui(z.string().optional(), {
@@ -361,7 +363,7 @@ export const TableViewSchema = z.object({
       .describe(
         'Key opening the search, as defineShortcuts names it ("/", "shift_f").',
       ),
-    { label: "Search shortcut", group: "features" },
+    { label: "Search shortcut", group: "features", advanced: true },
   ),
   quickFilters: ui(z.array(quickFilterSchema).optional(), {
     label: "Quick filters",
@@ -392,7 +394,10 @@ export const TableViewSchema = z.object({
     fieldAspect: "listable",
   }),
   labelKey: ui(
-    z.string().optional().describe("Field naming a row in dialog titles."),
+    z
+      .string()
+      .optional()
+      .describe("The column that names a row in the titles of its windows."),
     {
       label: "Label field",
       order: 2,
@@ -445,7 +450,7 @@ export const TableViewSchema = z.object({
     opaqueOption<RowActionRule>()
       .optional()
       .describe("Rows listed first whatever the sort: a rule on their fields."),
-    { label: "Pinned rows", group: "data", widget: "json" },
+    { label: "Pinned rows", group: "data", widget: "json", advanced: true },
   ),
   queryParamFilters: ui(z.record(queryParamFilterSchema).optional(), {
     label: "Query parameter filters",
@@ -495,7 +500,12 @@ export const TableViewSchema = z.object({
       .describe(
         "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also holds them in Direct, `missedLabel` words the new rows.",
       ),
-    { label: "Hold rows while paused", group: "data", widget: "switch" },
+    {
+      label: "Hold rows while paused",
+      group: "data",
+      widget: "switch",
+      advanced: true,
+    },
   ),
   kanban: ui(kanbanSchema.optional(), { label: "Kanban", group: "advanced" }),
   card: ui(cardSchema.optional(), {

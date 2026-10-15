@@ -150,12 +150,12 @@ export const MeterSchema = z.object({
     group: "content",
     widget: "text",
   }),
-  value: ui(z.number().optional().describe("Filled amount."), {
+  value: ui(z.number().optional().describe("How much of the bar is filled."), {
     label: "Value",
     group: "data",
     widget: "number",
   }),
-  max: ui(z.number().optional().describe("Total the bar stands for."), {
+  max: ui(z.number().optional().describe("The amount a full bar stands for."), {
     label: "Maximum",
     group: "data",
     widget: "number",
@@ -185,31 +185,52 @@ export const MeterSchema = z.object({
     group: "appearance",
     widget: "select",
   }),
-  warnAt: ui(z.number().optional().describe("Percent of the maximum."), {
-    label: "Warning from",
-    group: "behavior",
-    widget: "number",
-    min: 0,
-    max: 100,
-  }),
-  errorAt: ui(z.number().optional().describe("Percent of the maximum."), {
-    label: "Error from",
-    group: "behavior",
-    widget: "number",
-    min: 0,
-    max: 100,
-  }),
+  warnAt: ui(
+    z
+      .number()
+      .optional()
+      .describe(
+        "The bar turns to a warning colour from this percent of the maximum.",
+      ),
+    {
+      label: "Warning from",
+      group: "behavior",
+      widget: "number",
+      min: 0,
+      max: 100,
+    },
+  ),
+  errorAt: ui(
+    z
+      .number()
+      .optional()
+      .describe(
+        "The bar turns to an error colour from this percent of the maximum.",
+      ),
+    {
+      label: "Error from",
+      group: "behavior",
+      widget: "number",
+      min: 0,
+      max: 100,
+    },
+  ),
   size: ui(z.enum(METER_SIZES).optional(), {
     label: "Size",
     group: "appearance",
     widget: "segmented",
   }),
-  fetchUrl: blockFetchUrlOption("Where the figures come from.", "periodScope"),
+  // A generated source answers the value; the maximum stays the block's own.
+  fetchUrl: blockFetchUrlOption(
+    "Where the figures come from.",
+    "periodScope",
+    "value",
+  ),
   fetchUrlMethod: blockFetchUrlMethodOption(),
   periodScope: blockPeriodScopeOption(),
   realtimeTopic: blockRealtimeTopicOption(),
   card: blockCardOption(false),
-  actions: blockActionsOption("Link buttons under the bar."),
+  actions: blockActionsOption("Buttons under the bar, each opening a page."),
 }) satisfies BlockOptionsFor<MeterProps>;
 
 RegisterBlockType({

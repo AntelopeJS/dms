@@ -124,7 +124,7 @@ const NavCardItemSchema = z.object({
     label: "Icon tone",
     widget: "select",
   }),
-  to: ui(z.string().describe("Route, `#anchor` or URL."), {
+  to: ui(z.string().describe("The page it opens, or a web address."), {
     label: "Link",
     widget: "url",
   }),
@@ -141,7 +141,7 @@ const NavCardItemSchema = z.object({
 
 /** The options `NavCardGrid` accepts. */
 export const NavCardGridSchema = z.object({
-  title: ui(z.string().optional().describe("Section title above the grid."), {
+  title: ui(z.string().optional().describe("Heading above the cards."), {
     label: "Title",
     group: "content",
   }),
@@ -161,7 +161,7 @@ export const NavCardGridSchema = z.object({
       .min(1)
       .max(4)
       .default(NAV_CARD_GRID_DEFAULT_COLUMNS)
-      .describe("Columns on wide screens."),
+      .describe("How many columns on a wide screen."),
     { label: "Columns", group: "layout", widget: "number", min: 1, max: 4 },
   ),
   categoryId: ui(

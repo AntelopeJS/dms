@@ -36,14 +36,18 @@ export const PlaceholderSchema = z.object({
     z
       .string()
       .optional()
-      .describe("Box height, as a CSS length. Fills its cell when omitted."),
+      .describe(
+        "How tall the box is, such as 200px; left empty, it fills its place.",
+      ),
     { label: "Height", group: "appearance" },
   ),
   width: ui(
     z
       .string()
       .optional()
-      .describe("Box width, as a CSS length. Fills its column when omitted."),
+      .describe(
+        "How wide the box is, such as 300px; left empty, it fills its column.",
+      ),
     { label: "Width", group: "appearance" },
   ),
 }) satisfies BlockOptionsFor<PlaceholderOptions>;

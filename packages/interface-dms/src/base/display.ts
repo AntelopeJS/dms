@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { type BlockOptionsFor, ui } from "./block-registry";
+import {
+  type BlockOptionsFor,
+  type BlockResponseShape,
+  ui,
+} from "./block-registry";
 import type { EnumOption } from "./types/enum-option";
 import { HttpMethod } from "./types/http";
 import { type Tone, TONES } from "./types/tone";
@@ -34,7 +38,7 @@ export interface BlockLinkAction {
 
 export const BlockLinkActionSchema = z.object({
   label: ui(z.string().describe("Button text."), { label: "Label" }),
-  to: ui(z.string().describe("Route, `#anchor` or absolute URL."), {
+  to: ui(z.string().describe("The page the button opens, or a web address."), {
     label: "Link",
     widget: "url",
   }),
@@ -88,24 +92,30 @@ export const blockCardOption = (isOnByDefault: boolean) =>
     z
       .boolean()
       .default(isOnByDefault)
-      .describe("Card surface around the block; off inside a `Card`."),
+      .describe(
+        "Draws the block on a card; turn it off when it already sits in one.",
+      ),
     { label: "In a card", group: "appearance", widget: "switch" },
   );
 
 /**
  * The `fetchUrl` option of a block, picked in the editor's source list.
  * `periodOption` names the block's option holding the period scope the
- * source follows, for a block that can follow one.
+ * source follows, for a block that can follow one. `responseShape` names
+ * the arrangement the block reads, for a block a no-code editor can generate
+ * a source for: such a source is offered to whoever builds the page, where
+ * one only a developer can write is left to the developer view.
  */
 export const blockFetchUrlOption = (
   description: string,
   periodOption?: string,
+  responseShape?: BlockResponseShape,
 ) =>
   ui(z.string().optional().describe(description), {
     label: "Data source",
     group: "data",
     widget: "dataSource",
-    advanced: true,
+    ...(responseShape ? { responseShape } : { advanced: true }),
     ...(periodOption ? { periodOption } : {}),
   });
 

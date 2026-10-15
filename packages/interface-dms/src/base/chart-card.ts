@@ -110,9 +110,7 @@ export const ChartCardSchema = z.object({
     widget: "icon",
   }),
   chart: ui(
-    requiredOpaqueOption<Component>().describe(
-      "The chart block the card wraps.",
-    ),
+    requiredOpaqueOption<Component>().describe("The chart the card draws."),
     {
       label: "Chart",
       group: "data",
