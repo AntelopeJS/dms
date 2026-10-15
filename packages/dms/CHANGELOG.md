@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.2...v0.8.3)
+
+### 🚀 Enhancements
+
+- **blocks:** Fit the simple options to someone building a page without code ([#251](https://github.com/AntelopeJS/dms/pull/251))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.6.1 ([ad8a713c](https://github.com/AntelopeJS/dms/commit/ad8a713c))
+
+### ❤️ Contributors
+
+- Glastis ([@Glastis](http://github.com/Glastis))
+
 ## v0.8.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.1...v0.8.2)
