@@ -1094,9 +1094,9 @@ export async function buildPagePayload(
     resolvePageNavBadges(user, context, requestContext),
   ]);
   if (!includeShared) {
-    const routes = await annotateRegistryAccess(
-      { [registeredSlug]: route },
-      context,
+    // The same entry the site layout serves, its category named by id.
+    const routes = withCategoryRefs(
+      await annotateRegistryAccess({ [registeredSlug]: route }, context),
     );
     return { route: routes[registeredSlug], layout, navBadges };
   }

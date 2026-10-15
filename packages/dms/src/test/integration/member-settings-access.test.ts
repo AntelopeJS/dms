@@ -78,7 +78,7 @@ describe("[integration] a member without a role and their own settings", () => {
   });
 
   it("is served the inbox and the preferences of the notifications page", async () => {
-    const response = await layout(NOTIFICATIONS);
+    const response = await layout("/settings/user/notifications");
     expect(Object.keys(response.data.components)).to.include.members([
       "notificationsComponent",
       "inbox",
