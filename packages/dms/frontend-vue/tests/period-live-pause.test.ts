@@ -7,6 +7,7 @@
  */
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createPageLiveController } from "../layers/dms-ui/app/build/composables/live/pageLiveController";
 import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 import { usePageLive } from "../layers/dms-ui/app/composables/live/usePageLive";
@@ -56,6 +57,8 @@ function mountPageWithChart(): UsePeriodReturn {
   apps.push(() => app.unmount());
   return period!;
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   vi.useFakeTimers();

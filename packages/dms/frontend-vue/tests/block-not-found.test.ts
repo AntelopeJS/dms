@@ -16,6 +16,7 @@ import {
   ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { readFetchNotFound } from "../layers/dms-ui/app/build/utils/fetchNotFound";
 
 interface FetchFailure extends Error {
@@ -91,6 +92,8 @@ function mount(component: Component): HTMLElement {
   mounted.push(app);
   return host;
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   answers.clear();

@@ -14,6 +14,7 @@ import {
   type PeriodRange,
 } from "#dms-core/app/composables/period/types";
 import { regionalDateTimeFormat } from "#dms-core/app/utils/regional";
+import { readerClock } from "#dms-core/app/composables/period/periodClock";
 
 /** A day range as the range calendar reads and writes it. */
 export interface CalendarRange {
@@ -102,20 +103,16 @@ export function isBeyondMaxDays(
   return Math.abs(date.compare(pickedDay)) >= maxDays;
 }
 
+// A period's days are the reader's calendar days (`readerClock`), on the
+// server as in the browser.
 function isStartOfDay(date: Date): boolean {
-  return (
-    date.getHours() === 0 &&
-    date.getMinutes() === 0 &&
-    date.getSeconds() === 0 &&
-    date.getMilliseconds() === 0
-  );
+  const { hours, minutes, seconds, milliseconds } = readerClock().wall(date);
+  return hours === 0 && minutes === 0 && seconds === 0 && milliseconds === 0;
 }
 
 function isEndOfDay(date: Date): boolean {
-  return (
-    date.getHours() === END_OF_DAY_HOURS &&
-    date.getMinutes() === END_OF_DAY_MINUTES
-  );
+  const { hours, minutes } = readerClock().wall(date);
+  return hours === END_OF_DAY_HOURS && minutes === END_OF_DAY_MINUTES;
 }
 
 // Up to a day and an hour: `last-24h` plus slack for a DST shift.
@@ -207,11 +204,16 @@ const YESTERDAY_OFFSET = -1;
 const WEEKDAY_FORMAT: FormatOptions = { weekday: "short" };
 
 function localDayStart(date: Date): number {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
+  const clock = readerClock();
+  return clock
+    .instant({
+      ...clock.wall(date),
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      milliseconds: 0,
+    })
+    .getTime();
 }
 
 function daysBefore(date: Date, now: Date): number {
@@ -235,7 +237,8 @@ function relativeDayPrefix(date: Date, now: Date, locale: string): string {
   if (days < DAYS_PER_WEEK) {
     return `${formatWith(date, locale, WEEKDAY_FORMAT)} `;
   }
-  const sameYear = date.getFullYear() === now.getFullYear();
+  const clock = readerClock();
+  const sameYear = clock.wall(date).year === clock.wall(now).year;
   const day: FormatOptions = sameYear
     ? DAY_FORMAT
     : { ...DAY_FORMAT, year: "numeric" };

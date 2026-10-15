@@ -1,6 +1,7 @@
 import { createSSRApp, defineComponent, h, ref, type PropType } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import ChartCard from "../layers/dms-ui/app/components/chart/ChartCard.vue";
 import Chart from "../layers/dms-ui/app/components/chart/Chart.vue";
 import KpiCard from "../layers/dms-ui/app/components/kpi/KpiCard.vue";
@@ -118,6 +119,8 @@ async function renderCards(
 }
 
 afterEach(() => vi.unstubAllGlobals());
+
+beforeEach(() => useRealDataEngine());
 
 describe("card → nested chart → Apex format propagation", () => {
   it.each(["EUR", "JPY", "KWD"])(

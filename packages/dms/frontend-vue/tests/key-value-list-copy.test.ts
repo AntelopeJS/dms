@@ -6,6 +6,7 @@
  */
 import { createApp, defineComponent, h, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
 
 const i18n = createI18n({
@@ -65,6 +66,8 @@ function render(props: Record<string, unknown>): HTMLElement {
 function copyButtons(root: HTMLElement): HTMLButtonElement[] {
   return [...root.querySelectorAll<HTMLButtonElement>("button[title]")];
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   fetchedItems = [];

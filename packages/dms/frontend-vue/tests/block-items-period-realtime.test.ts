@@ -7,6 +7,7 @@
  */
 import { createApp, defineComponent, h, nextTick, reactive, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 
 const requests: string[] = [];
@@ -105,6 +106,8 @@ function mountRealtimeBlock(probe: ItemsProbe) {
   app.mount(document.createElement("div"));
   mounted.push(app);
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   requests.length = 0;
