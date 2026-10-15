@@ -36,7 +36,6 @@ import {
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
-const MODULES_LISTING_DATA_KEY = "modules-page-listing";
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
@@ -91,31 +90,10 @@ if (!isOwner.value) {
   });
 }
 
-// Whatever is cached from an earlier visit shows at once; stale live figures
-// are then refreshed in the background on mount. The hydration reuses the
-// listing the server rendered: fetched again before hydrating, its live
-// readouts (an uptime a minute on) would no longer match the markup.
-if (isOwner.value) {
-  const { data: renderedListing } = await useDmsAsyncData<
-    ModuleCatalogEntry[] | null
-  >(MODULES_LISTING_DATA_KEY, async () => {
-    await modulesListing.loadModulesListing();
-    return modulesListing.modules.value ?? null;
-  });
-  if (modulesListing.modules.value === undefined) {
-    if (renderedListing.value) {
-      modulesListing.modules.value = renderedListing.value;
-    } else {
-      await modulesListing.loadModulesListing();
-    }
-  }
-}
-
-onMounted(() => {
-  if (isOwner.value && modulesListing.modules.value !== undefined) {
-    void modulesListing.revalidate();
-  }
-});
+// Read with the page, which the server renders and hands over: the
+// hydration reuses the listing the server rendered (read again, its live
+// readouts, an uptime a minute on, would no longer match the markup).
+await modulesListing.loadModulesListing();
 
 const isForbidden = computed(
   () =>

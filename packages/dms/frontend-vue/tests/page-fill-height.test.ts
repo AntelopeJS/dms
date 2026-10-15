@@ -179,6 +179,8 @@ function installRuntime(): void {
       reconcileSession: async () => {},
       redirectToAuth: async () => {},
     }),
+    // The page brought its site layout.
+    useRenderedSiteLayout: () => {},
     useSiteLayout: () => ({
       siteLayout: ref({ pages: {} }),
       siteLayoutTree: ref([]),

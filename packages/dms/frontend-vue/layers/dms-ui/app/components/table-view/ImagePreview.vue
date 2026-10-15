@@ -1,12 +1,5 @@
 <script setup lang="ts">
-interface FileMetadataResponse {
-  resourceKey: string;
-  filename: string;
-  size: number;
-  mimetype: string;
-  url: string;
-  expiresAt?: number;
-}
+import { useFileMetadata } from "../../build/composables/files/useFileMetadata";
 
 const props = defineProps<{
   images: ImageItemValue[];
@@ -15,9 +8,7 @@ const props = defineProps<{
 
 const MAX_THUMBNAILS = 3;
 
-const { $authFetch } = useAuthFetch();
-const urls = ref<Map<string, string>>(new Map());
-const isLoading = ref(true);
+const files = useFileMetadata(props.storage);
 
 const sortedImages = computed(() =>
   [...props.images].sort(
@@ -33,22 +24,19 @@ const overflowCount = computed(
   () => props.images.length - visibleImages.value.length,
 );
 
-onMounted(async () => {
-  await Promise.all(
-    visibleImages.value.map(async (image) => {
-      try {
-        const metadata = await $authFetch<FileMetadataResponse>(
-          "/api/files/metadata",
-          { query: { resourceKey: image.key, storage: props.storage } },
-        );
-        urls.value.set(image.key, metadata.url);
-      } catch {
-        urls.value.set(image.key, "");
-      }
-    }),
-  );
-  isLoading.value = false;
-});
+// Read with the page: the server renders the thumbnails.
+watch(
+  visibleImages,
+  (images) => images.forEach((image) => void files.resolve(image.key)),
+  { immediate: true },
+);
+
+const urlOf = (key: string): string | undefined => files.metadata(key)?.url;
+const isLoading = computed(() =>
+  visibleImages.value.some(
+    (image) => !urlOf(image.key) && !files.isUnavailable(image.key),
+  ),
+);
 </script>
 
 <template>
@@ -61,8 +49,8 @@ onMounted(async () => {
         class="ring-bg bg-elevated inline-block size-7 overflow-hidden rounded-md ring-2"
       >
         <img
-          v-if="urls.get(image.key)"
-          :src="urls.get(image.key)"
+          v-if="urlOf(image.key)"
+          :src="urlOf(image.key)"
           :alt="image.alt ?? ''"
           class="h-full w-full object-cover"
         />
