@@ -1,4 +1,4 @@
-import type { ComputedRef } from "vue";
+import { computed, type ComputedRef } from "vue";
 import type { TableViewListResponse } from "../../../composables/table-view/types";
 import type { useTableRows } from "./useTableRows";
 import { buildTableDataKey } from "./utils/tableQuery";
@@ -42,6 +42,14 @@ export interface TableCountsDataOptions<T extends Record<string, unknown>> {
 
 const NO_HELD_QUERY = (): Query => ({});
 
+/**
+ * A watch source following `source` by value: a query rebuilt equal (its
+ * inputs recomputed to the same values, a period re-resolved to the same
+ * bounds) must not read the rows again.
+ */
+const byValue = (source: ComputedRef<unknown>): ComputedRef<string> =>
+  computed(() => JSON.stringify(source.value));
+
 const EMPTY_LIST_RESULT: TableViewListResponse<never> = {
   results: [],
   total: 0,
@@ -74,12 +82,20 @@ export function useTableListData<T extends Record<string, unknown>>(
   return useDmsLazyAsyncData(
     key,
     // `null` while a source waits on its period scope: the table's skeleton.
-    (): Promise<TableViewListResponse<T> | null> =>
+    ({ signal }): Promise<TableViewListResponse<T> | null> =>
       isSelfManaged.value
         ? Promise.resolve(EMPTY_LIST_RESULT)
-        : rows.list({ ...query.value, ...archiveQuery.value, ...heldQuery() }),
+        : rows.list(
+            { ...query.value, ...archiveQuery.value, ...heldQuery() },
+            signal,
+          ),
     {
-      watch: [query, archiveQuery, isSelfManaged, rows.sourceUrl],
+      watch: [
+        byValue(query),
+        byValue(archiveQuery),
+        isSelfManaged,
+        rows.sourceUrl,
+      ],
       // The table reads again on its own triggers, through its live hold.
       refreshOnPageRefresh: false,
     },
@@ -103,7 +119,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
   const sourceSuffix = rows.sourceUrl.value ? `-${rows.sourceUrl.value}` : "";
   return useDmsLazyAsyncData<Record<string, number> | null>(
     `table-view-${options.componentId}-${options.pageId}-tab-counts${sourceSuffix}`,
-    async () => {
+    async ({ signal }) => {
       if (rows.isPeriodPending.value) return null;
       if (queries.value.length === 0) return {};
       return await rows.countBatch(
@@ -111,10 +127,11 @@ export function useTableCountsData<T extends Record<string, unknown>>(
           id,
           query: { ...query, ...archiveQuery.value, ...heldQuery() },
         })),
+        signal,
       );
     },
     {
-      watch: [queries, archiveQuery, rows.sourceUrl],
+      watch: [byValue(queries), byValue(archiveQuery), rows.sourceUrl],
       refreshOnPageRefresh: false,
     },
   );

@@ -185,6 +185,7 @@ export function useTableRows<T extends Record<string, unknown>>(
   const listFromSource = async (
     sourceConfig: TableViewSourceConfig,
     query: Query,
+    signal?: AbortSignal,
   ): Promise<TableViewListResponse<T> | null> => {
     if (isPeriodPending.value) return null;
     const url = sourceUrl.value;
@@ -192,6 +193,7 @@ export function useTableRows<T extends Record<string, unknown>>(
     const { capabilities } = sourceConfig;
     const response = await api<{ results: T[]; total: number }>(url, {
       query: sourceRouteQuery(query, capabilities),
+      signal,
     });
     if (capabilities.paginate) {
       return {
@@ -214,30 +216,39 @@ export function useTableRows<T extends Record<string, unknown>>(
   ): TableViewListResponse<T> | null =>
     page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
 
-  const list = async (query: Query): Promise<TableViewListResponse<T> | null> =>
+  // `signal` aborts the request once its answer is no longer wanted.
+  const list = async (
+    query: Query,
+    signal?: AbortSignal,
+  ): Promise<TableViewListResponse<T> | null> =>
     withPinnedRows(
       source
-        ? await listFromSource(source, query)
-        : await api<TableViewListResponse<T>>(`${location}/list`, { query }),
+        ? await listFromSource(source, query, signal)
+        : await api<TableViewListResponse<T>>(`${location}/list`, {
+            query,
+            signal,
+          }),
     );
 
   // A source answers its totals one list at a time.
   const countBatch = async (
     queries: TableCountQuery[],
+    signal?: AbortSignal,
   ): Promise<Record<string, number>> => {
     if (!source) {
       return api<Record<string, number>>(`${location}/count/batch`, {
         method: "POST",
         body: { queries },
+        signal,
       });
     }
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {
-        const page = await listFromSource(source, {
-          ...query,
-          offset: 0,
-          limit: 1,
-        });
+        const page = await listFromSource(
+          source,
+          { ...query, offset: 0, limit: 1 },
+          signal,
+        );
         return page ? [[id, page.total] as const] : [];
       }),
     );
