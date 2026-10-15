@@ -814,8 +814,8 @@
       },
       "state_error": "{file} n’a pas pu être lu",
       "disabled": {
-        "title": "Le store est en lecture seule",
-        "description": "store.enabled vaut false dans la configuration du DMS : les modules sont listés, pas modifiés."
+        "title": "Le store est en lecture seule ici",
+        "description": "Les modules s’installent depuis le développement, où dms-modules.json les enregistre ; cette plateforme charge ce que contient ce fichier. Passez store.enabled à true dans la configuration du DMS pour les modifier d’ici."
       },
       "load_error": "Le store de modules n’a pas pu être chargé",
       "search_placeholder": "Rechercher dans le store",

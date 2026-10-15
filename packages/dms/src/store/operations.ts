@@ -1,7 +1,7 @@
 import { assert } from "@antelopejs/interface-api-util";
 import { Logging } from "@antelopejs/interface-core/logging";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { getStoreConfig } from "../config";
+import { isStoreEditable } from "../config";
 import { removeFrontendModulesUnder } from "../implementations/dms/frontend-modules";
 import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
@@ -278,11 +278,8 @@ export async function startStoreOperation(
   kind: StoreOperationKind,
   id: string,
 ): Promise<void> {
-  assert(
-    getStoreConfig().enabled !== false,
-    HTTP_FORBIDDEN,
-    "error.store_disabled",
-  );
+  const { dev } = await GetRuntimeInfo();
+  assert(isStoreEditable(dev), HTTP_FORBIDDEN, "error.store_disabled");
   assert(!current, HTTP_CONFLICT, "error.store_busy");
   setCurrent({ moduleId: id, kind, step: "resolve", startedAt: Date.now() });
   try {
@@ -346,10 +343,11 @@ async function reconcileAll(runGeneration: number): Promise<void> {
 /**
  * Schedules the boot reconciliation behind the DMS's own start, without
  * waiting for it: loading a module constructs it through the runtime, which
- * must not happen while the runtime is still starting the DMS.
+ * must not happen while the runtime is still starting the DMS. It runs even
+ * when the store is read-only: the file is what the project ships, and a
+ * production platform loads what development installed.
  */
 export function scheduleStoreReconciliation(): void {
-  if (getStoreConfig().enabled === false) return;
   const runGeneration = ++generation;
   setImmediate(() => {
     void enqueue(() => reconcileAll(runGeneration)).catch((error: unknown) =>

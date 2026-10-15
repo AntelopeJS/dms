@@ -1,6 +1,6 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import { gt, valid } from "semver";
-import { getStoreConfig } from "../config";
+import { isStoreEditable } from "../config";
 import { frontendModuleNamesUnder } from "../implementations/dms/frontend-modules";
 import {
   type FrontendAcknowledgement,
@@ -135,7 +135,7 @@ export async function buildStoreListing(): Promise<StoreListing> {
   const interfaceVersion = installedInterfaceVersion();
   const acknowledgement = getFrontendAcknowledgement();
   return {
-    enabled: getStoreConfig().enabled !== false,
+    enabled: isStoreEditable(dev),
     modules: catalog.map((catalogEntry, index) =>
       buildEntry({
         catalogEntry,

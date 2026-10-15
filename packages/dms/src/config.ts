@@ -160,7 +160,9 @@ export interface FrontendConfig {
 export interface StoreConfig {
   /**
    * Whether owners can install, update and remove modules from the Modules
-   * page. Defaults to true; false keeps the store read-only.
+   * page. Defaults to on in development and off in production, where a new
+   * module also needs a frontend rebuild: the store then lists modules
+   * read-only. The modules `dms-modules.json` holds load either way.
    */
   enabled?: boolean;
   /**
@@ -274,6 +276,11 @@ export function getFrontendConfig(): FrontendConfig {
 
 export function getStoreConfig(): StoreConfig {
   return globalConfig.store ?? {};
+}
+
+/** Whether owners may change modules from the store, `dev` being the runtime's mode. */
+export function isStoreEditable(dev: boolean): boolean {
+  return getStoreConfig().enabled ?? dev;
 }
 
 /**

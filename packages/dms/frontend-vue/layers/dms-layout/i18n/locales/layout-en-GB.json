@@ -810,8 +810,8 @@
       },
       "state_error": "{file} could not be read",
       "disabled": {
-        "title": "The store is read-only",
-        "description": "store.enabled is false in the DMS configuration: modules are listed, not changed."
+        "title": "The store is read-only here",
+        "description": "Modules are installed from development, where dms-modules.json records them; this platform loads what that file holds. Set store.enabled to true in the DMS configuration to change them from here."
       },
       "load_error": "The module store could not be loaded",
       "search_placeholder": "Search the store",

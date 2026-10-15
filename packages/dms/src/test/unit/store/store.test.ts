@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect } from "chai";
+import { isStoreEditable } from "../../../config";
 import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
 import {
@@ -120,5 +121,12 @@ describe("[unit] store/runtime", () => {
     expect(isDeclaredByConfig(runtime, "@antelopejs/dms-media")).to.equal(
       false,
     );
+  });
+});
+
+describe("[unit] store/editable", () => {
+  it("follows the runtime mode by default", () => {
+    expect(isStoreEditable(true)).to.equal(true);
+    expect(isStoreEditable(false)).to.equal(false);
   });
 });
