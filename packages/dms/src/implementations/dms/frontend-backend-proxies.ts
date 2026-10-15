@@ -55,7 +55,7 @@ export function resolveBackendProxies(
       `Frontend module "${config.name}" declares invalid backendProxies: ` +
         `${invalid.map((proxy) => JSON.stringify(proxy)).join(", ")}. ` +
         'Each entry is { path: "/x", "/x/*" or "/x/**" (first segment ' +
-        'literal, outside /api/_dms, /@, /assets and /node_modules), auth?: ' +
+        "literal, outside /api/_dms, /@, /assets and /node_modules), auth?: " +
         '"session" | "none" }.',
     );
   }
