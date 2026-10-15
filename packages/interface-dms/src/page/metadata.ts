@@ -54,6 +54,7 @@ import {
 } from "./internal/extension-assembly";
 import { collectExtensionErrors } from "./internal/extension-validation";
 import { PageDeclarationConflictError } from "./declaration-conflict";
+import { pageRoutePath } from "./page-routes";
 import { type ComponentNodeMap, filterComponents } from "./layout-filter";
 import {
   filterLayoutHeaderActions,
@@ -248,7 +249,7 @@ export class PageMetadata {
     const parentFullId = resolvedCategory?.fullId ?? "";
     const fullId = parentFullId ? `${parentFullId}.${id}` : id;
 
-    const location = `${fullSlug}/pagelayout`.replace(/\/+/g, "/");
+    const location = pageRoutePath(fullSlug, "/pagelayout");
 
     const pageInfo: PageInfo = {
       ...menuOptions,

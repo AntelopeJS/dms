@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 export type NotificationTogglePermission = "allowed" | "forbidden" | "default";
 
 export interface NotificationCategory {
@@ -54,7 +55,7 @@ export const useNotificationCatalog = () => {
 
   const loadCatalog = async () => {
     const response = await $authFetch<NotificationCatalogResponse>(
-      "/settings/user/notifications/categories",
+      pageRoutePath("/settings/user/notifications", "/categories"),
     );
     categories.value = response.categories;
     subjects.value = response.subjects;

@@ -24,6 +24,7 @@ export {
   AddFrontendModule,
   type AddFrontendModuleOptions,
   Category,
+  type FrontendBackendProxy,
   type FrontendModuleMetadata,
   type FrontendModuleOptions,
   type FrontendModuleValue,
@@ -41,6 +42,7 @@ export {
 export { PageDeclarationConflictError } from "./page/declaration-conflict";
 export { FormPageRouteConflictError } from "./page/form-page-routes";
 export { PageMetadata } from "./page/metadata";
+export * from "./page/page-routes";
 export {
   ClearPageLayoutBySlug,
   GetComponentPermissionIds,

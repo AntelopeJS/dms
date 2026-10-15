@@ -59,7 +59,7 @@ export function resolvePreferenceRows(
   };
 }
 
-/** What `GET /settings/user/profile/access` answers. */
+/** What `GET /dms/pages/settings/user/profile/access` answers. */
 export interface ProfileAccess {
   roles: string[];
   workspaceOwner: boolean;

@@ -1,8 +1,9 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import type { Tone } from "#dms-ui/app/types/tone";
 
 /** Base URL of the Security page API. */
-export const SECURITY_ENDPOINT = "/settings/user/security";
+export const SECURITY_ENDPOINT = pageRoutePath("/settings/user/security");
 /** Route of the Security page. */
 export const SECURITY_PAGE_PATH = "/settings/user/security";
 const SECURITY_PAGE_ID = "settings.user.security";

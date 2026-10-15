@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { FormEvents } from "#dms-ui/app/composables/form/types/events";
 import type { ComponentEventData } from "#dms-core/app/types/component";
 
@@ -5,7 +6,10 @@ interface FormSubmitSuccessPayload {
   submitUrl?: string;
 }
 
-const REGION_PREFERENCES_ROUTE = "/settings/user/region/preferences";
+const REGION_PREFERENCES_ROUTE = pageRoutePath(
+  "/settings/user/region",
+  "/preferences",
+);
 
 /** The forms that edit the signed-in user's own record. */
 const SESSION_FORM_ROUTES = new Set([PROFILE_ROUTE, REGION_PREFERENCES_ROUTE]);

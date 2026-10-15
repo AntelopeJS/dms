@@ -7,13 +7,17 @@ import type { InviteRoleOptions } from "../../pages/settings/users/member-role-o
 import type { RoleEditorPermissionNode } from "../../pages/settings/users/role-editor";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // Managing members, invitations or roles lets the holder make themselves an
 // owner. That is intended, so the roles editor and the role pickers warn
 // about it, from the warnings the pages declare on those permissions.
 
-const EDITOR_TREE = "/settings/workspace/roles/editor-tree";
-const MEMBER_ROLE_OPTIONS = "/settings/workspace/members/role-options";
+const EDITOR_TREE = pageRoutePath("/settings/workspace/roles", "/editor-tree");
+const MEMBER_ROLE_OPTIONS = pageRoutePath(
+  "/settings/workspace/members",
+  "/role-options",
+);
 const WARNINGS = "$page.settings.roles.warning";
 const HTTP_OK = 200;
 

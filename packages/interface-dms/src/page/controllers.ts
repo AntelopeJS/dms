@@ -13,6 +13,7 @@ import {
 } from "./internal/categories";
 import { internal } from "./categories";
 import { PageMetadata } from "./metadata";
+import { pageRoutePath } from "./page-routes";
 import type {
   CategoryInfo,
   DynamicMenuProviderInfo,
@@ -220,7 +221,7 @@ export function PageController(
   validateNotInsideSettings(resolvedOptions.module, resolvedCategory);
 
   const fullSlug = calculateFullSlug(id, resolvedOptions);
-  const cl = class extends Controller(fullSlug) {};
+  const cl = class extends Controller(pageRoutePath(fullSlug)) {};
 
   const meta = GetMetadata(cl, PageMetadata);
   meta.SetInfo(id, fullSlug, resolvedOptions, layout);
@@ -237,7 +238,7 @@ export function RootPageController(
 ) {
   assertValidLiveOptions(id, options);
   const fullSlug = calculateFullSlug(id, options);
-  const cl = class extends Controller(fullSlug) {};
+  const cl = class extends Controller(pageRoutePath(fullSlug)) {};
 
   const meta = GetMetadata(cl, PageMetadata);
   meta.SetInfo(id, fullSlug, options, layout);
@@ -402,6 +403,34 @@ export interface AddFrontendModuleOptions {
    * {@link FrontendPublicEndpoint}).
    */
   publicEndpoints?: FrontendPublicEndpoint[];
+  /**
+   * Backend prefixes, outside `/api/**` and `/dms/**`, the browser reaches
+   * through the frontend server: a media prefix, a webhook prefix.
+   *
+   * The frontend server proxies only the prefixes declared to it and answers
+   * every other path with a page, so a backend route this module's frontend,
+   * a provider or a link calls outside the DMS's prefixes is declared here.
+   * Malformed entries are rejected at registration (see
+   * {@link FrontendBackendProxy}).
+   */
+  backendProxies?: FrontendBackendProxy[];
+}
+
+/** A backend prefix the frontend server proxies. */
+export interface FrontendBackendProxy {
+  /**
+   * `/x` (that path), `/x/*` (one segment below) or `/x/**` (the path and
+   * everything below); the first segment literal, and outside the
+   * renderer's own paths (`/api/_dms`, `/@`, `/assets`, `/node_modules`).
+   */
+  path: string;
+  /**
+   * `session` (the default): the frontend server adds the session's access
+   * token, and a state-changing request needs the frontend's own `Origin`.
+   * `none`: never sends the session, for media or a webhook that
+   * authenticates its caller itself.
+   */
+  auth?: "session" | "none";
 }
 
 /** A backend route a frontend module serves to anyone. */
@@ -447,6 +476,13 @@ export interface FrontendModuleMetadata {
    * field.
    */
   publicEndpoints?: FrontendPublicEndpoint[];
+  /**
+   * The backend prefixes this module declares, as
+   * {@link AddFrontendModuleOptions.backendProxies}, each with its `auth`.
+   * Empty when the module declared none, absent when the DMS serving this
+   * metadata predates the field.
+   */
+  backendProxies?: Required<FrontendBackendProxy>[];
 }
 
 /** Returns registered frontend source metadata for server-side module discovery, excluding private options. */

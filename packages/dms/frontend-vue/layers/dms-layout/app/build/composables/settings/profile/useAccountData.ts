@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import UFormField from "@nuxt/ui/components/FormField.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import UInput from "@nuxt/ui/components/Input.vue";
@@ -12,7 +13,7 @@ import { resolveFieldErrors } from "#dms-core/app/composables/useFieldErrors";
 import { REQUIRED_MESSAGE } from "#dms-core/app/composables/useFormValidation";
 import { useSecurityFormat } from "../security/useSecurityFormat";
 
-const PROFILE_ENDPOINT = "/settings/user/profile";
+const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 const EXPORT_ENDPOINT = `${PROFILE_ENDPOINT}/account-export`;
 const DELETION_ENDPOINT = `${PROFILE_ENDPOINT}/account-deletion`;
 const EXPORT_FILE_PREFIX = "dms-account-export";

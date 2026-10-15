@@ -2,10 +2,14 @@ import { HttpMethod } from "@antelopejs/interface-dms/base";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import { Form } from "@antelopejs/interface-dms/base/form";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 import { DASHBOARD_LANGUAGE_ITEMS } from "./dashboard-languages";
 import { AUTOMATIC_PREFERENCE } from "./regional-preferences";
 
-export const REGION_PREFERENCES_URL = "/settings/user/region/preferences";
+export const REGION_PREFERENCES_URL = pageRoutePath(
+  "/settings/user/region",
+  "/preferences",
+);
 
 const TEXTS = "$page.settings.region";
 const SUNDAY = 0;

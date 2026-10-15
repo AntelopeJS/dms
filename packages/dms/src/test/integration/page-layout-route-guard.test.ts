@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { RoleModel } from "@antelopejs/interface-dms/db";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // `/base-notes` carries a page-mode TableView (src/test/attachment-host), so
 // the table view registers a form page for each kind under it, each one's
@@ -13,8 +14,8 @@ import { resetDatabase } from "../helpers/db";
 
 const PAGE = "base-notes";
 const TABLE = `${PAGE}.content`;
-const PAGE_LAYOUT = `/${PAGE}/pagelayout`;
-const NEW_FORM_LAYOUT = `/${PAGE}/content/new/pagelayout`;
+const PAGE_LAYOUT = pageRoutePath(PAGE, "/pagelayout");
+const NEW_FORM_LAYOUT = pageRoutePath(PAGE, "/content/new/pagelayout");
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
 

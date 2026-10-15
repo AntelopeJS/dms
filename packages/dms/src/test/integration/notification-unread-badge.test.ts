@@ -8,12 +8,13 @@ import type {
 } from "@antelopejs/interface-dms/notifications/types";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The unread badge: the header bell (`/counts`) and the Notifications entry
 // of the menu (`/dms/sitelayout`) count the unread notifications, in the
 // tone of the most important one, and opening the bell changes neither.
 
-const LOCATION = "/settings/user/notifications";
+const LOCATION = pageRoutePath("/settings/user/notifications");
 const NOTIFICATIONS_PAGE_ID = "settings.user.notifications";
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;

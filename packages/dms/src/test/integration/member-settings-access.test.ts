@@ -6,6 +6,7 @@ import type { NotificationSubjectInfo } from "@antelopejs/interface-dms/notifica
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { createClient } from "../helpers/http";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // A member holding no role at all still owns their account settings: the user
 // settings category is `memberAccess`, the workspace one is not.
@@ -13,9 +14,12 @@ import { resetDatabase } from "../helpers/db";
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
-const PERMISSIONS_TREE = "/settings/workspace/roles/editor-tree";
+const PERMISSIONS_TREE = pageRoutePath(
+  "/settings/workspace/roles",
+  "/editor-tree",
+);
 const SETTINGS_OVERVIEW = "/settings";
-const NOTIFICATIONS = "/settings/user/notifications";
+const NOTIFICATIONS = pageRoutePath("/settings/user/notifications");
 const PERSONAL_SLUGS = [
   "/settings/user/profile",
   "/settings/user/security",
@@ -46,7 +50,7 @@ describe("[integration] a member without a role and their own settings", () => {
 
   // The page's own layout route: the one its page permission guards.
   const layout = (slug: string) =>
-    member.get<PageLayoutResponse>(`${slug}/pagelayout`);
+    member.get<PageLayoutResponse>(pageRoutePath(slug, "/pagelayout"));
 
   before(async () => {
     await resetDatabase();
@@ -104,9 +108,9 @@ describe("[integration] a member without a role and their own settings", () => {
 
   it("opens the settings overview, its account summary and its activity", async () => {
     for (const path of [
-      `${SETTINGS_OVERVIEW}/pagelayout`,
-      `${SETTINGS_OVERVIEW}/account-summary`,
-      `${SETTINGS_OVERVIEW}/activity`,
+      pageRoutePath(SETTINGS_OVERVIEW, "/pagelayout"),
+      pageRoutePath(SETTINGS_OVERVIEW, "/account-summary"),
+      pageRoutePath(SETTINGS_OVERVIEW, "/activity"),
     ]) {
       const response = await member.get(path);
       expect(

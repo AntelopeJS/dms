@@ -1,4 +1,5 @@
-const PROFILE_ENDPOINT = "/settings/user/profile";
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
+const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 
 /**
  * Switches the interface language and stores it on the user's profile, then

@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import { useInstantSave } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
 import {
@@ -9,7 +10,10 @@ import {
 
 type PreferenceMap = Record<string, boolean>;
 
-const PREFERENCES_URL = "/settings/user/notifications/preferences";
+const PREFERENCES_URL = pageRoutePath(
+  "/settings/user/notifications",
+  "/preferences",
+);
 
 /**
  * State of the notification preferences matrix. Each switch saves on its

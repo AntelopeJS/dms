@@ -13,7 +13,11 @@ import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel, Model } from "@antelopejs/interface-database-decorators";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  pageRoutePath,
+  RegisterPage,
+} from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -99,16 +103,21 @@ const INBOX_TOTALS: Record<
 };
 
 const INBOX_PAGE_SIZE = 20;
+/**
+ * The notifications page's routes, and the user's own notification routes
+ * next to them: where the browser reaches them.
+ */
+const NOTIFICATIONS_API = pageRoutePath("/settings/user/notifications");
 const NOTIFICATION_TEXTS = "$page.settings.notifications";
 
 /**
  * The inbox of the notifications page: a read-only table over the user's own
- * feed, served by `GET /settings/user/notifications/inbox`. Its rows are drawn
+ * feed, served by `GET /dms/pages/settings/user/notifications/inbox`. Its rows are drawn
  * by the `dms:inbox` display, grouped by day; All / Unread are its tabs.
  */
 export function notificationInboxTable() {
   return TableView.fromSource({
-    fetchUrl: "/settings/user/notifications/inbox",
+    fetchUrl: `${NOTIFICATIONS_API}/inbox`,
     capabilities: { paginate: true, filter: true, sort: true, search: true },
     columns: {
       title: { name: "Title", type: new DefaultDataTypes.StringType() },
@@ -148,7 +157,7 @@ export function notificationInboxTable() {
         target: {
           type: "api",
           method: "PUT",
-          url: "/settings/user/notifications/mark-all-read",
+          url: `${NOTIFICATIONS_API}/mark-all-read`,
           successMessage: `${NOTIFICATION_TEXTS}.mark_all_read_done`,
         },
       },
@@ -157,11 +166,11 @@ export function notificationInboxTable() {
         label: `${NOTIFICATION_TEXTS}.delete_all`,
         icon: "i-ph-trash",
         variant: ButtonVariant.ghost,
-        confirm: { from: "/settings/user/notifications/delete-all/confirm" },
+        confirm: { from: `${NOTIFICATIONS_API}/delete-all/confirm` },
         target: {
           type: "api",
           method: "DELETE",
-          url: "/settings/user/notifications/delete-all",
+          url: `${NOTIFICATIONS_API}/delete-all`,
           successMessage: `${NOTIFICATION_TEXTS}.delete_all_done`,
         },
       },
@@ -262,9 +271,7 @@ export class NotificationsSettingsController extends PageController(
   declare user: User;
 }
 
-export class NotificationsApiController extends Controller(
-  "/settings/user/notifications",
-) {
+export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
   // A user's own notifications are not tenant data: no membership and no
   // tenant access gate. The header bell polls them on every page, including
   // the billing page a blocked tenant needs, and a member removed from their

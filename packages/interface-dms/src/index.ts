@@ -90,6 +90,7 @@ export {
   ModuleReadoutTone,
   ModuleStatus,
   NotifyMenuChanged,
+  PAGE_ROUTE_PREFIX,
   PageController,
   PageExtensionComponent,
   PageExtensionInfo,
@@ -109,6 +110,7 @@ export {
   RootPageController,
   isInsideModule,
   modulesCategory,
+  pageRoutePath,
   pagesCategory,
   settingsCategory,
 } from "./page";

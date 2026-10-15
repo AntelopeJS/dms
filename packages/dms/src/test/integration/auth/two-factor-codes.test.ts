@@ -20,13 +20,14 @@ import {
   renderedEmails,
 } from "../../helpers/emails";
 import { createClient } from "../../helpers/http";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The codes of a second factor: a sign-in challenge takes a handful of them
 // and opens one session, an account a few more across its challenges, an
 // emailed code is stored hashed, an authenticator code works once, and email
 // codes turn on only once one of them came back.
 
-const TWO_FACTOR = "/settings/user/security/two-factor";
+const TWO_FACTOR = pageRoutePath("/settings/user/security", "/two-factor");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_UNAUTHORIZED = 401;

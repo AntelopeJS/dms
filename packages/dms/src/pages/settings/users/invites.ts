@@ -31,6 +31,7 @@ import {
 import { inviteeDisplayName } from "@antelopejs/interface-dms/invites";
 import {
   PageController,
+  pageRoutePath,
   RegisterPage,
   workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
@@ -84,7 +85,10 @@ const HTTP_NOT_FOUND = 404;
 const HTTP_GONE = 410;
 const INVITE_NOT_FOUND = "$page.settings.invites.error.not_found";
 /** Roles the invitation's edit form offers, a route of the invites page. */
-const INVITE_ROLE_OPTIONS_URL = `${INVITES_PAGE_PATH}/role-options`;
+const INVITE_ROLE_OPTIONS_URL = pageRoutePath(
+  INVITES_PAGE_PATH,
+  "/role-options",
+);
 
 /** A pending invitation's signup link, for the inviter to share by hand. */
 export interface InviteLinkResponse {
@@ -282,7 +286,7 @@ export class inviteSettingDataAPI extends DataController(
 // id it had as a user-category page, so the roles that already grant it are
 // unchanged.
 const inviteApiTarget = (action: string) =>
-  `${INVITES_PAGE_PATH}/{{row._id}}/${action}`;
+  pageRoutePath(INVITES_PAGE_PATH, `/{{row._id}}/${action}`);
 
 // Pending invitations only: an expired one can be resent or removed.
 const PENDING = { field: "status", equals: true } as const;

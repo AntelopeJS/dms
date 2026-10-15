@@ -28,6 +28,7 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
         publicEndpoints: [
           { path: "/api/hooks/*", methods: ["POST"], headers: [] },
         ],
+        backendProxies: [{ path: "/media/**", auth: "none" }],
       },
       {
         name: "@scope/dms-lang-layer",
@@ -89,6 +90,7 @@ describe("[unit] manifest field policy", () => {
       expect(module).to.not.have.property("path");
       expect(module).to.not.have.property("authEstablishEndpoints");
       expect(module).to.not.have.property("publicEndpoints");
+      expect(module).to.not.have.property("backendProxies");
     }
   });
 
@@ -102,6 +104,9 @@ describe("[unit] manifest field policy", () => {
       "/api/saas/register/finalize",
     ]);
     expect(shaped.modules[0].publicEndpoints).to.have.length(1);
+    expect(shaped.modules[0].backendProxies).to.deep.equal([
+      { path: "/media/**", auth: "none" },
+    ]);
     expect(shaped.modules[1]).to.not.have.property("authEstablishEndpoints");
   });
 

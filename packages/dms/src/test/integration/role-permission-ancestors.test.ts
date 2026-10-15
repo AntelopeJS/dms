@@ -5,6 +5,7 @@ import type { AxiosInstance } from "axios";
 import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // A permission is worth nothing without the ones it sits under: the role
 // routes store a grant with every id above it, and a role stored without
@@ -12,7 +13,7 @@ import { resetDatabase } from "../helpers/db";
 // table's edit is stored with its view too, the read its form loads the row
 // through.
 
-const ROLES = "/settings/workspace/roles";
+const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
 const ROLES_PAGE = "settings.workspace.roles";
 const ROLES_TABLE_COMPONENT = `${ROLES_PAGE}.table`;

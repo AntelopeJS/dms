@@ -7,6 +7,7 @@ import { assert } from "@antelopejs/interface-api-util";
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
 import type {
   AddFrontendModuleOptions,
+  FrontendBackendProxy,
   FrontendModuleMetadata,
   FrontendPublicEndpoint,
   FrontendModuleOptions,
@@ -38,6 +39,10 @@ import {
   copyPublicEndpoints,
   resolvePublicEndpoints,
 } from "./frontend-public-endpoints";
+import {
+  copyBackendProxies,
+  resolveBackendProxies,
+} from "./frontend-backend-proxies";
 
 interface FrontendModule {
   name: string;
@@ -50,6 +55,7 @@ interface FrontendModule {
   renderer: AddFrontendModuleOptions["renderer"];
   authEstablishEndpoints: string[];
   publicEndpoints: Required<FrontendPublicEndpoint>[];
+  backendProxies: Required<FrontendBackendProxy>[];
 }
 
 interface FrontendSelection {
@@ -60,11 +66,12 @@ interface FrontendSelection {
 
 type ServedModule = Omit<
   FrontendModule,
-  "path" | "authEstablishEndpoints" | "publicEndpoints"
+  "path" | "authEstablishEndpoints" | "publicEndpoints" | "backendProxies"
 > & {
   path?: string;
   authEstablishEndpoints?: string[];
   publicEndpoints?: Required<FrontendPublicEndpoint>[];
+  backendProxies?: Required<FrontendBackendProxy>[];
 };
 
 const BUILD_ARTIFACT_PATTERNS = [
@@ -251,6 +258,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
   const identity = moduleIdentity(config);
   const authEstablishEndpoints = resolveAuthEstablishEndpoints(config);
   const publicEndpoints = resolvePublicEndpoints(config);
+  const backendProxies = resolveBackendProxies(config);
   const registeredModule = modules[identity];
   if (registeredModule && registeredModule.priority > (config.priority ?? 0)) {
     return;
@@ -266,6 +274,7 @@ export function AddFrontendModule(config: AddFrontendModuleOptions): void {
     renderer: config.renderer,
     authEstablishEndpoints,
     publicEndpoints,
+    backendProxies,
   };
   scheduleBroadcast();
 }
@@ -297,6 +306,7 @@ export function GetFrontendModules(): FrontendModuleMetadata[] {
     options: copyFrontendOptions(module.options ?? {}),
     authEstablishEndpoints: [...module.authEstablishEndpoints],
     publicEndpoints: copyPublicEndpoints(module.publicEndpoints),
+    backendProxies: copyBackendProxies(module.backendProxies),
   }));
 }
 

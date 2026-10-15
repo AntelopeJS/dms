@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { NotificationEvents } from "./types/events";
 import { unreadToneWith } from "../../build/components/pages/settings/notification/notificationDisplay";
 
@@ -36,7 +37,7 @@ interface FeedCounts {
   unreadTone?: NotificationTone;
 }
 
-const API_BASE = "/settings/user/notifications";
+const API_BASE = pageRoutePath("/settings/user/notifications");
 const NOTIFICATION_COMPONENT_ID = "global-notifications";
 const NOTIFICATIONS_PAGE_SIZE = 20;
 

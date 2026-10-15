@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { usePreferredDark } from "@vueuse/core";
 import { computed, onMounted, ref } from "vue";
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
@@ -24,7 +25,10 @@ import {
   tallySubjects,
 } from "./preferencesSummary";
 
-export const PROFILE_ACCESS_ENDPOINT = "/settings/user/profile/access";
+export const PROFILE_ACCESS_ENDPOINT = pageRoutePath(
+  "/settings/user/profile",
+  "/access",
+);
 // Sample values the skeletons are shaped from.
 const SAMPLE_ACCESS: ProfileAccess = {
   roles: ["Admin", "Finance"],

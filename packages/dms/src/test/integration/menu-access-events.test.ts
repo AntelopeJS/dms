@@ -14,15 +14,16 @@ import {
   registerUser,
 } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // A browser keeps the site layout it was sent for a few minutes (an Inertia
 // once prop) and reloads it when the backend announces a menu change. A
 // change of what a member may open is one: it reaches every session of the
 // workspace, whichever page made it.
 
-const ROLES = "/settings/workspace/roles";
+const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
-const MEMBERS = "/settings/workspace/members";
+const MEMBERS = pageRoutePath("/settings/workspace/members");
 const MEMBERS_TABLE = "/api/tables/members";
 const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;

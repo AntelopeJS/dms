@@ -8,6 +8,7 @@ import { expect } from "chai";
 import { internal } from "../../implementations/dms-notifications";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // A member removed from their only workspace stays signed in. Their
 // notifications belong to them, not to the workspace: they still read them,
@@ -16,7 +17,7 @@ import { resetDatabase } from "../helpers/db";
 const HTTP_OK = 200;
 const HTTP_FORBIDDEN = 403;
 const MEMBERS_API = "/api/tables/members";
-const NOTIFICATIONS = "/settings/user/notifications";
+const NOTIFICATIONS = pageRoutePath("/settings/user/notifications");
 const TITLE = "You were removed from the workspace";
 
 const subject: NotificationSubjectInfo = {
@@ -102,7 +103,9 @@ describe("[integration] a member removed from their workspace", () => {
   });
 
   it("is still refused the workspace's data", async () => {
-    const members = await removed.get("/settings/workspace/members/pagelayout");
+    const members = await removed.get(
+      pageRoutePath("/settings/workspace/members", "/pagelayout"),
+    );
     expect(members.status).to.equal(HTTP_FORBIDDEN);
     const table = await removed.get(`${MEMBERS_API}/list`);
     expect(table.status).to.equal(HTTP_FORBIDDEN);

@@ -60,7 +60,7 @@ describe("[integration] account deletion", () => {
     expect(await FileExists(resourceKey)).to.equal(true);
 
     const response = await authorizedClient(member.accessToken).post(
-      "/settings/user/profile/account-deletion",
+      "/dms/pages/settings/user/profile/account-deletion",
       { password: member.password, confirmation: member.email },
     );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
@@ -87,7 +87,7 @@ describe("[integration] account deletion", () => {
       .empty;
 
     const response = await authorizedClient(accessToken).post(
-      "/settings/user/profile/account-deletion",
+      "/dms/pages/settings/user/profile/account-deletion",
       { password: member.password, confirmation: member.email },
     );
     expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);

@@ -304,7 +304,9 @@ describe("[unit] interfaces/dms/page — layout route request context", () => {
       expect(Object.keys(controllerMeta.computed_props)).to.have.members(
         LAYOUT_REQUEST_PROPERTIES,
       );
-      expect(routeCount("/layout-context-delayed/pagelayout")).to.equal(1);
+      expect(
+        routeCount("/dms/pages/layout-context-delayed/pagelayout"),
+      ).to.equal(1);
     } finally {
       delayed.resolve();
       await registration;

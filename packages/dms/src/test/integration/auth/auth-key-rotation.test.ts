@@ -11,12 +11,13 @@ import {
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // A password change and "Sign out other sessions" rotate the account's auth
 // key: every token issued so far stops working, the other sessions go, and
 // the caller's own session gets a handoff that buys it a new pair once.
 
-const SECURITY = "/settings/user/security";
+const SECURITY = pageRoutePath("/settings/user/security");
 const NEW_PASSWORD = "Rotated26!";
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;

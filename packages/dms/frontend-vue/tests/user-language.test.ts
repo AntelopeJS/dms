@@ -35,10 +35,13 @@ describe("useUserLanguage", () => {
     await useUserLanguage().changeLanguage("fr");
 
     expect(harness.setLocale).toHaveBeenCalledWith("fr");
-    expect(harness.authFetch).toHaveBeenCalledWith("/settings/user/profile", {
-      method: "POST",
-      body: { name: "Ada", email: "ada@example.com", language: "fr" },
-    });
+    expect(harness.authFetch).toHaveBeenCalledWith(
+      "/dms/pages/settings/user/profile",
+      {
+        method: "POST",
+        body: { name: "Ada", email: "ada@example.com", language: "fr" },
+      },
+    );
     expect(harness.refreshUser).toHaveBeenCalled();
   });
 
