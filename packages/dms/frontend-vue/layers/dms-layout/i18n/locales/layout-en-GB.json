@@ -711,6 +711,9 @@
         "member": "Member",
         "two_factor_on_short": "On"
       }
+    },
+    "dms_preview": {
+      "title": "Block preview"
     }
   },
   "modules": {

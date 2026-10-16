@@ -715,6 +715,9 @@
         "member": "Membre",
         "two_factor_on_short": "Activée"
       }
+    },
+    "dms_preview": {
+      "title": "Aperçu de blocs"
     }
   },
   "modules": {
