@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.7.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.0...v0.7.1)
+
+### 🚀 Enhancements
+
+- **dms:** Install, update, pause and remove modules from the Modules page ([#285](https://github.com/AntelopeJS/dms/pull/285))
+
+### 🩹 Fixes
+
+- **auth:** Write the user's activity before the request's own user writes ([#301](https://github.com/AntelopeJS/dms/pull/301))
+- **deps:** Require @antelopejs/interface-core 0.2.2 and @antelopejs/core 1.15.1 ([#302](https://github.com/AntelopeJS/dms/pull/302))
+
+### 📖 Documentation
+
+- **period:** Document usePeriodScopePreset and test the top list badge through hydration ([#300](https://github.com/AntelopeJS/dms/pull/300))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.9.0 ([5873abe2](https://github.com/AntelopeJS/dms/commit/5873abe2))
+- **release:** @antelopejs/dms v0.9.1 ([0220ff71](https://github.com/AntelopeJS/dms/commit/0220ff71))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.6.1...v0.7.0)
