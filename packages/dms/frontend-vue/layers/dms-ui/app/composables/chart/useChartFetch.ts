@@ -1,6 +1,8 @@
 import {
   computed,
+  getCurrentScope,
   onMounted,
+  onScopeDispose,
   ref,
   shallowRef,
   watch,
@@ -218,14 +220,28 @@ export function useChartFetch<T>(
   // A realtime event or a page refresh (refreshPageBlocks) means the data
   // behind unchanged inputs moved: read again once a burst holds still. The
   // values on screen stay current until the new answer replaces them.
+  // `refreshPageBlocks()` waits for the read the burst ends with.
   let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let burst: Promise<void> | null = null;
+  let endBurst = () => {};
   useRefreshTriggers(options.realtimeTopic, () => {
     if (refreshTimer) clearTimeout(refreshTimer);
+    burst ??= new Promise<void>((resolve) => (endBurst = resolve));
     refreshTimer = setTimeout(() => {
       refreshTimer = null;
-      void loaded.refresh();
+      burst = null;
+      void loaded.refresh().finally(endBurst);
     }, DEBOUNCE_FRAME_MS);
+    return burst;
   });
+  // An unmounted block reads nothing more: the refresh waiting on it ends.
+  if (getCurrentScope())
+    onScopeDispose(() => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = null;
+      burst = null;
+      endBurst();
+    });
   return { data: data as Ref<T | null>, isLoading, error, refresh };
 }
 

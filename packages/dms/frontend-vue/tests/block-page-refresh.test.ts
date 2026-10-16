@@ -129,3 +129,25 @@ it("runs from the REFRESH_PAGE watch function", async () => {
   await settle();
   expect(requests).toEqual(["/api/ws/ws-1/facts", "/api/ws/ws-1/facts"]);
 });
+
+it("resolves once every block read the new answer", async () => {
+  const facts = mountBlock("/api/ws/{{params.id}}/facts");
+  const counts = mountBlock("/api/ws/{{params.id}}/tab-counts");
+  apps.push(facts.unmount, counts.unmount);
+  await settle();
+
+  answer = 2;
+  await refreshPageBlocks();
+  // No wait of its own: what the caller (a form that saved) reads next is
+  // the new answer of every block.
+  expect(facts.probe.data?.value).toEqual({ value: 2 });
+  expect(counts.probe.data?.value).toEqual({ value: 2 });
+});
+
+it("does not wait on a block unmounted before its read", async () => {
+  const block = mountBlock("/api/ws/{{params.id}}/facts");
+  await settle();
+  const refreshed = refreshPageBlocks();
+  block.unmount();
+  await expect(refreshed).resolves.toBeUndefined();
+});
