@@ -13,7 +13,7 @@ This is the **most common** way to use the DMS: a normal AntelopeJS **project** 
 the DMS as a dependency and registers *its own* admin pages, data, and logic — rather than a
 distributable DMS module (to ship a reusable extension instead, see **dms-module** — same APIs,
 different packaging). For the model see **dms**; for `ajs` CLI / module-loading mechanics
-the **antelopejs** plugin; full walkthrough: `docs/02.building/01.project-setup.md`.
+the **ajs-cli** skill; full walkthrough: `docs/02.building/01.project-setup.md`.
 
 ## Starting a new application
 

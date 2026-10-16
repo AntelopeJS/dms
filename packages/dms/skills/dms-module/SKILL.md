@@ -14,7 +14,7 @@ tags: [module, packaging, distribution, interfaces, frontend, inertia]
 > The page/component/auth APIs are identical to a project; only the packaging differs.
 
 For the mental model see the **dms** skill; for the framework underneath
-(`ImplementInterface`, the `ajs` CLI) see the **antelopejs** plugin. A DMS module is an
+(`ImplementInterface`, the `ajs` CLI) see the **antelopejs** skill. A DMS module is an
 ordinary AntelopeJS module that (1) depends on **`@antelopejs/dms`**, (2) registers a
 module + pages on load, and (3) attaches a Vue 3 module via `AddFrontendModule` for any custom
 frontend. A consumer installs it and adds it to their `antelope.config.ts` as a
@@ -36,7 +36,7 @@ attached at runtime by the `AddFrontendModule` call in `construct`; there is no 
 **Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
 `description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
 `files`, and declare `"antelopeJs": { "skills": ["./skills"] }`. The **antelopejs** plugin links it into
-Claude Code projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
+Claude Code and Codex projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
 
 ## The lifecycle entry (`src/index.ts`)
 

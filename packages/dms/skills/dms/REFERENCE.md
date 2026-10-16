@@ -29,12 +29,13 @@ shape: one `interface-<name>` package per module.
 
 Three ways to read a contract:
 
-1. **The resolver** — the **antelopejs** plugin's script, which fetches a published interface
-   package from npm (honouring `.npmrc`) or reads a local checkout:
+1. **The resolver** — `npx -y github:AntelopeJS/agent-skills interface` (`/antelopejs:interface`
+   when the **antelopejs** plugin is installed), which fetches a published interface package from
+   npm (honouring `.npmrc`) or reads a local checkout:
 
    ```bash
-   node "<antelopejs-plugin>/scripts/resolve-interface.mjs" show @antelopejs/interface-dms
-   node "<antelopejs-plugin>/scripts/resolve-interface.mjs" show <scope>/interface-<name>
+   npx -y github:AntelopeJS/agent-skills interface show @antelopejs/interface-dms
+   npx -y github:AntelopeJS/agent-skills interface show <scope>/interface-<name>
    ```
 
 2. **The prose reference** — `docs/07.interfaces/`, one folder per domain, with the whole subpath

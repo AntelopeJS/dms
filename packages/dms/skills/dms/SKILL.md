@@ -13,7 +13,7 @@ The AntelopeJS DMS ("dashboard management system") is a **backend-driven admin f
 admin screen by writing backend TypeScript — a page and its blocks — and a shared Vue 3 + Inertia SSR
 frontend renders that description; you almost never write Vue. For the framework underneath (the
 core, the `ajs` CLI, interfaces as versioned contracts, `ImplementInterface`), use the **antelopejs**
-plugin.
+skill (shipped with `@antelopejs/core`).
 
 ## The model in one screen
 

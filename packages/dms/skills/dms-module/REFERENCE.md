@@ -52,7 +52,7 @@ subpath of the runtime package — it goes in the companion interface package, w
 ## Defining the module's own interface
 
 Interface authoring (`InterfaceFunction`, `RegisteringProxy`, implementation shape) is pure
-AntelopeJS — see the **antelopejs** plugin's author/consume skills. The DMS-specific parts:
+AntelopeJS — see the **ajs-author-interface** and **ajs-consume-interface** skills. The DMS-specific parts:
 
 - **Define** in a companion package, `packages/interface-<name>/src/`, **implement** at
   `src/implementations/<name>/index.ts` in the module, **wire** with `ImplementInterface` in
