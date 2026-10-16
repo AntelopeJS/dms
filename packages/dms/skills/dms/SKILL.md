@@ -1,130 +1,60 @@
 ---
 name: dms
-description: Provides the core mental model and router for the AntelopeJS DMS. Use whenever building an app that uses the DMS, working in the @antelopejs/dms package or any DMS module (e.g. the official dms-* modules), building an admin page or dashboard, or when the user mentions the AntelopeJS DMS. Routes to dms-project, dms-module, dms-dev, and the sibling dms-pages / dms-auth skills.
+description: Gives the mental model of the AntelopeJS DMS (backend-described pages and blocks rendered by a shared frontend) and routes to the right DMS skill. Use when the user mentions the AntelopeJS DMS, when building an app, admin page or dashboard on it, or when working in @antelopejs/dms or any dms-* module. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module and dms-frontend.
+icon: i-ph-squares-four
 category: overview
 tags: [dms, architecture, mental-model, router]
 ---
 
 # AntelopeJS DMS
 
-The AntelopeJS DMS is a **backend-driven admin framework** built *on* AntelopeJS. Its own docs call
-it the **DMS** ("dashboard management system") — same product; historical module names keep the
-`dms-` prefix. It ships as the **`@antelopejs/dms`** package your project depends on — the
-package these skills ship with. You add an admin screen by writing backend TypeScript — a page and
-its components — and a shared Vue 3 + Inertia SSR frontend renders that description; you almost never write Vue.
-For the framework underneath (the core, `ajs` CLI, interfaces as versioned contracts,
-`ImplementInterface`), use the **antelopejs** plugin — the DMS assumes its mechanics.
+The AntelopeJS DMS ("dashboard management system") is a **backend-driven admin framework** built
+*on* AntelopeJS. It ships as **`@antelopejs/dms`**, the package these skills ship with. You add an
+admin screen by writing backend TypeScript — a page and its blocks — and a shared Vue 3 + Inertia SSR
+frontend renders that description; you almost never write Vue. For the framework underneath (the
+core, the `ajs` CLI, interfaces as versioned contracts, `ImplementInterface`), use the **antelopejs**
+skill (shipped with `@antelopejs/core`).
 
 ## The model in one screen
 
-- **Two coupled packages.** **`@antelopejs/dms`** is the backend: an AntelopeJS module
-  providing the page system, component builders, DataTypes, auth, and platform services,
-  auto-registering its **base Vue dashboard frontend** (`frontend-vue/`). **`@antelopejs/dms-frontend`**
-  is the frontend loader (the `ajs dms` CLI): an Inertia SSR app whose single catch-all
-  route renders the component tree the backend describes. In dev: two processes, `ajs project dev -w`
-  (legacy alias: `ajs project run`) and `ajs dms dev` (auto-discovers a backend; `-b <url>` optional) —
-  see **Running**.
-- **Two ways to build — usually a project.** Most commonly you build a **project**: your own app
-  loading the DMS via `antelope.config.ts`, registering *its own* pages and data — **dms-project**.
-  Rarer: a **distributable module** (like `dms-database`) — **dms-module**. Same APIs; only packaging.
-- **Pages are classes; UI is data.** A page extends `PageController(id, opts)` decorated with
-  `@RegisterPage()`. Its **static fields are components** — `Form`, `TableView`, `Chart*`,
-  `Grid`, `KpiCard`, … — fluent builders producing a **serializable description**, not live UI: the
-  frontend renders it. **Components fetch their own data** via URLs (`fetchUrl`, `submitUrl`, …) —
-  routes often declared `@Get`/`@Post` on the same page class, served under `/dms/pages<slug>`
-  (`pageRoutePath(slug, route)`); the backend stays the source of truth.
-  A URL names the record of its page with `{{params.id}}` / `{{query.X}}` (filled from the page URL, percent-encoded;
-  nothing is fetched while one is unresolved) — every token is `{{<scope>.<key>}}`: `params`, `query`, `row` (an
-  action's row), `response` (a form's redirect), and the same page tokens work in every URL and link option, and `.watch(FormEvents.SUBMIT_SUCCESS,
-  BlockFunctions.REFRESH_PAGE)` makes the page's data blocks (table views included) re-fetch after a form saves;
-  `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a `PeriodSelector`
-  (which keeps its period in the page URL, `?<id>.period=`), and
-  `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each `PublishMessage`.
-  A monitoring page that must not refetch on every event declares `live: { maxRate }` in its page options
-  (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"` to share the
-  choice between pages; `maxRate` is also the polling interval while the stream is down) and places a
-  `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
-  `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
-  whileSearching, whileSorted }` also holds the table alone, its strip saying why ("Table on hold ·
-  search active"); `liveHold.missedLabel` words its "N new", and paused, it adds the
-  `setMissedDetail()` breakdown ("12 new requests · 2 in 5xx"). Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a
-  module may batch publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.
-  A custom component follows that state with `usePageLive()`, holds the page with `hold(reason)` /
-  `release()` and adds a breakdown with `setMissedDetail()`; a custom component that reads its own data
-  on a topic calls `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })`, gated exactly like a
-  built-in block (never a throttle of its own); `refreshPageBlocks()` (user actions) always
-  reads, `refreshLivePageBlocks()` (timers, feeds) is held while paused.
-  A custom component on a record page names its record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)` (auto-imported; never the `build/` path).
-  A custom component formats through `useRegionalFormat()` (`formatNumber` & co. return `string` for a
-  number); `useRegionalFormat({ locale: "format" })` writes in `formatLocale`, the locale of the DMS's
-  texts (`en` → `en-GB`) — never a hand-rolled `en` → `en-GB` mapping.
-  A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers
-  a `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`)
-  or `null` for no banner — the block then draws nothing.
-  A text naming values (an amount, a date, a count) is sent as a `ComposedText` —
-  `{ key, params: { amount: { type: "money", value: 92200, currency: "EUR" } } }` — that the
-  browser writes in the reader's language: StatGroup / KeyValueList / Banner / NavCardGrid /
-  ActivityFeed / Meter / TopListCard item texts (and ActivityFeed `params`, typed `count` for
-  plurals) and layout
-  banners (`RegisterLayoutBanner({ resolve })` → `{ text, actions }`) take it; never format text server-side.
-  A table cell's secondary line is a row field holding one (or `{ text, tone }`), named by
-  `StatusPillDisplay({ subField })`, `IdentityDisplay({ subtitleField })` or
-  `TwoLineDisplay({ subField })`; `IdentityDisplay({ emptyLabel, emptyIcon })` draws an empty row,
-  and `IdentityDisplay({ iconField })` reads each row's tile icon from a row field.
-  `StatusPillDisplay({ toneField })` reads the pill's tone from a row field (an HTTP status class);
-  `DurationDisplay({ toneField })` and `TextDisplay({ toneField })` colour their text with it (a slow
-  duration, an error message), and `DurationDisplay({ format: "ms" })` writes "2,149 ms" on every row;
-  and a `PillsDisplay` item may be `{ label, tone?, variant: "soft" | "outline" }`, styled per row.
-  A `StatGroup` detail and a `NavCardGrid` card title take up to two lines before their ellipsis.
-  An `ActivityFeed` whose entries must be read whole sets `wrap: true` (no ellipsis; leave `fillHeight`
-  off so the card grows) and `visibleItems: N` for a "Show N more" fold.
-  A unit after a number field is `NumberType({ suffix: "$…days" })`, a character counter on a
-  text field `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
-  A `TableView` over a shared controller hides a column on one page with
-  `columns: { hidden: ["workspace"] }` (as `isVisible: false`, for that table view only) — no view
-  just to hide it.
-  A long sectioned `Form` groups its navigation with `FormSection.navGroup` ("Billing", "Legal"),
-  in the side list and in the `sectionNav: "jump"` chips alike (a form whose side column holds a preview).
-  A module's own `inputComponent` submits its form, adds a validator and focuses a field with
-  `useEnclosingForm()` (never `closest("form")` / `requestSubmit()`), and a link ending in `#<fieldId>`
-  opens the form on that field, focused. `DmsInputNumber` emits `adjust` (`{ typed, value, reason:
-  "min" | "max" | "step" }`) when it keeps another value than the one typed, and redraws the kept
-  value itself: a note "1020 → 1,000" listens to it — never a forced remount (`:key`).
-  `TopListCard({ actions })` puts link buttons in its head ("Catalogue →"), and `Tab({ fit: true })`
-  keeps a pill tab list to its tabs' width; with `persistState` the URL names the open tab by its slot
-  (`?tab=tester`, an index still read), and a tab `badge` takes a `$` key or a `ComposedText`. A `ChartCard` plotting several series names them with
-  `showSeriesLegend: true` (placed by the chart's `legendPosition: "top" | "bottom"`) — never a raw
-  Apex `legend` in `rawOptions`.
-  A custom component brings a block of its page into view with `scrollToBlock("tabs.statistics")`
-  (the block's key path; `false` when it is not on screen) — never a DOM query of its own.
-  Code in a custom component is a `DmsCodeSnippet` (`language`, `title`, `maxLines` or a CSS
-  `maxHeight`, `wrap: true | "anywhere"`; without title and language its copy button floats in the
-  corner) — never a `<pre>` and copy button of the module's own.
-  A `KeyValueList` row takes `copy: true` (a copy button for its shown value) or `copyValue`
-  (the text to copy instead, e.g. a full URL behind a short label).
-  A table ordered by hand (`reorder: { field }`) moves its rows on the grid and its cards on
-  the `cards` display alike; a `card.component` receives a `reorder` prop and `v-bind`s
-  `reorder.handle` on a button — no custom display just to drag cards.
-- **It's interfaces all the way down.** Everything you consume from the DMS is an AntelopeJS
-  interface imported as an `@antelopejs/interface-dms/...` subpath (see the imports below);
-  a distributable module exposes its own from a companion `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.
+- **Two coupled packages.** **`@antelopejs/dms`** is the backend: the page system, the block
+  builders, DataTypes, auth and platform services, plus its base Vue dashboard (`frontend-vue/`).
+  **`@antelopejs/dms-frontend`** is the frontend loader (`ajs dms`): an Inertia SSR app whose
+  catch-all route renders what the backend describes. In dev: `ajs project dev -w` and `ajs dms dev`
+  (see **dms-project**).
+- **Usually a project.** Most work is a **project** loading the DMS via `antelope.config.ts` and
+  registering its own pages (**dms-project**). Rarer: a **distributable module** like `dms-database`
+  (**dms-module**). Same APIs; only the packaging differs.
+- **Pages are classes; UI is blocks.** A page extends `PageController(id, opts)` decorated with
+  `@RegisterPage()`. Its **static fields are blocks** — `Form`, `TableView`, `Grid`, `KpiCard`,
+  `ChartCard`, … — fluent builders producing a serializable description; every block type is
+  registered in the block catalog (`ListBlockTypes()`). Each field and `.child()` is a permission.
+- **Blocks fetch their own data** through URLs (`fetchUrl`, `submitUrl`), usually routes declared
+  with `@Get` / `@Post` on the same page class, served under `/dms/pages<slug>` (name them with
+  `pageRoutePath(slug, route)`); a plain `Controller` the frontend calls sits under
+  `/api/<module>/`. A URL names the page's record with `{{params.id}}` /
+  `{{query.X}}`; `periodScope` binds a block to a `PeriodSelector`; `realtimeTopic` re-fetches on a
+  `PublishMessage`. Texts are `$` i18n keys or `ComposedText`, never formatted server-side.
+- **It's interfaces all the way down.** Everything you consume is imported from an
+  `@antelopejs/interface-dms/...` subpath; a distributable module exposes its own API from a companion
+  `@antelopejs/interface-<name>` package listed in `antelopeJs.implements`.
 
 ```ts
 import { PageController, RegisterPage, pagesCategory } from "@antelopejs/interface-dms/page";
 import { Form } from "@antelopejs/interface-dms/base/form";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
+
 @RegisterPage()
 export class SubmitRecipePage extends PageController("submit-recipe", {
-  displayName: "Submit Recipe",
+  displayName: "$cookbook.submit.title",
   icon: "i-ph-cooking-pot",
-  category: pagesCategory, // attach under the dashboard's Pages section (the usual anchor)
+  category: pagesCategory,
 }) {
   static form = Form({
-    title: "Submit a Recipe",
+    title: "$cookbook.submit.form_title",
     fields: [
-      { id: "chef",  label: "Chef Name", type: new DefaultDataTypes.StringType({ maxLength: 100 }) },
-      { id: "email", label: "Email",     type: new DefaultDataTypes.EmailType() },
+      { id: "chef", label: "$cookbook.submit.chef", type: new DefaultDataTypes.StringType({ maxLength: 100 }) },
+      { id: "email", label: "$cookbook.submit.email", type: new DefaultDataTypes.EmailType() },
     ],
   });
 }
@@ -134,40 +64,36 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 
 | Task | Skill |
 | --- | --- |
-| **Set up a project that uses the DMS** — `antelope.config.ts`, lifecycle, `AddFrontendModule`, running | **dms-project** |
-| Add an admin screen — pages, categories, components, DataTypes, routes that feed them | **dms-pages** |
-| Protect a page or route, define and check permissions, users/roles/tenants | **dms-auth** |
-| Run, stop, or restart the dev servers to test a change live | **dms-dev** |
-| Package a *distributable* module — `antelopeJs` manifest, `RegisterModule` | **dms-module** |
+| **Before building or changing any page**, before writing a `CustomComponent`, or when the user hands you a design, mockup or screenshot | **dms-best-practices** |
+| Set up a project that uses the DMS — `antelope.config.ts`, lifecycle, `AddFrontendModule` — and run, stop or restart its dev servers to test a change live | **dms-project** |
+| Add a screen — pages, categories, blocks, DataTypes, the routes that feed them | **dms-pages** |
+| Protect a page or route, define and check permissions, users / roles / tenants | **dms-auth** |
+| Package a *distributable* module — `antelopeJs` manifest, `RegisterModule`, its own skill | **dms-module** |
+| The `ajs dms` CLI, a frontend module's `dms.server.ts` / `dms.frontend.build.ts`, building and deploying the frontend server (ships with `@antelopejs/dms-frontend`) | **dms-frontend** |
 
-The deep page/component and auth guidance ships **in this same package**: the sibling **dms-pages**
-and **dms-auth** skills (under `skills/`, declared via `antelopeJs.skills`), carrying the concrete
-package names and current API surface — route that work there. They are also auto-synced into
-consumer projects' `.claude/skills/` by the **antelopejs** plugin's hooks and loaded by the dms-ai
-chatbox.
+These skills ship in this package (`skills/`, declared via `antelopeJs.skills`). The **antelopejs**
+plugin links them into a project's `.claude/skills/`, and the dms-ai assistant loads them for every
+loaded module.
 
-## Docs & exact interface surfaces (read for depth)
+## Docs & exact interface surfaces
 
-Long-form reference docs live in this package's `docs/` directory (shipped with the package; also
-at the repo root), in seven numbered sections — the last, `docs/07.interfaces/`, is the contract
-reference for `@antelopejs/interface-dms` domain by domain. DataTypes, component builder options, and auth
-decorators are **versioned interface contracts** — look them up rather than hand-recalling; treat
-skill examples as patterns, not gospel. See [REFERENCE.md](REFERENCE.md) for the docs map and the
-resolver commands that fetch an interface's exact surface.
+The long-form docs live in this package's `docs/` directory, and the exact surface of
+`@antelopejs/interface-dms` is a versioned contract: look it up rather than recall it, and treat skill
+examples as patterns. [REFERENCE.md](REFERENCE.md) maps the docs and gives the resolver commands.
 
-## Running the DMS (use the dms-dev skill — don't reinvent it)
+## Running the DMS
 
-Backend and frontend are **coupled**: the `@antelopejs/dms-frontend` loader materializes layers into `~/.antelopejs/dms-frontend/` and
-serves from those copies. Whenever anything looks stale (`RegisterModule "already registered"`, a
-layer edit not showing, phantom UI state), the documented fix is a **full restart, backend first,
-then frontend** — restart before verifying a change rather than trusting hot reload. The sibling
-**dms-dev** skill owns this dance — use its bundled `scripts/dms-dev.sh` (invocation documented there).
+Backend and frontend are **coupled**: the loader materializes layers into
+`~/.antelopejs/dms-frontend/` and serves those copies. When anything looks stale
+(`RegisterModule "already registered"`, a layer edit not showing), the fix is a **full restart,
+backend first, then frontend** — the **dms-project** skill and its `scripts/dms-dev.sh` own that.
 
 ## Conventions (enforced across all DMS repos)
 
-The general rules live in this package's `AGENTS.md` (**pnpm only**, no `switch`/`case`, named interfaces, TSDoc-only comments, …) — match the surrounding code. Four DMS-specific rules:
+The general rules live in the repo's `AGENTS.md` (**pnpm only**, no `switch` / `case`, named
+interfaces, TSDoc-only comments, …). Four DMS-specific rules:
 
-- **Table rows use `_id`, not `id`.** Database records carry `_id`; don't alias to `id`.
-- **Consumer-facing APIs must live in the interface package** — never a new runtime `package.json` export subpath.
-- **`/** @internal */` marks the provider-side `internal` namespaces of interface files** (a repo-wide convention) — never strip it.
-- **`pnpm build` only typechecks `src/`.** Frontend errors require the frontend lint/tests or a live verification (dms-dev); a clean root build does not mean the page renders.
+- **Table rows use `_id`, not `id`.** Database records carry `_id`; never alias it to `id`.
+- **Consumer-facing APIs live in the interface package** — never a new runtime `package.json` export subpath.
+- **`/** @internal */` marks the provider-side `internal` namespaces** of interface files — never strip it.
+- **`pnpm build` only typechecks `src/`.** Frontend errors need the frontend lint / tests or a live check (**dms-project**).

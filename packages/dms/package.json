@@ -1,9 +1,24 @@
 {
   "name": "@antelopejs/dms",
   "version": "0.9.2",
+  "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
+  "keywords": [
+    "antelopejs",
+    "dms",
+    "dashboard",
+    "admin",
+    "backoffice",
+    "inertia",
+    "vue"
+  ],
+  "homepage": "https://dms.antelopejs.com/docs",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AntelopeJS/dms.git"
+    "url": "git+https://github.com/AntelopeJS/dms.git",
+    "directory": "packages/dms"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +51,10 @@
     "prepack": "pnpm run build && pnpm run country-database",
     "country-database": "node scripts/fetch-country-database.mjs",
     "knip": "knip --dependencies",
-    "knip:all": "knip"
+    "knip:all": "knip",
+    "docs:catalog": "node scripts/docs-catalog.mjs",
+    "docs:catalog:check": "node scripts/docs-catalog.mjs --check",
+    "docs:screenshots": "node scripts/docs-screenshots.mjs"
   },
   "antelopeJs": {
     "implements": [
@@ -91,6 +109,7 @@
     "oxfmt": "^0.66.0",
     "oxlint": "1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "playwright-core": "~1.56.1",
     "release-it": "^19.2.4",
     "release-it-changelogen": "^0.1.0",
     "rimraf": "^6.1.3",

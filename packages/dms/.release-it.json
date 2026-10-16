@@ -10,7 +10,12 @@
   },
   "hooks": {
     "before:init": ["pnpm lint"],
-    "after:bump": ["git add CHANGELOG.md", "node scripts/publish.mjs"]
+    "after:bump": [
+      "git add CHANGELOG.md",
+      "node scripts/docs-catalog.mjs",
+      "git add docs-data/blocks.json",
+      "node scripts/publish.mjs"
+    ]
   },
   "plugins": {
     "release-it-changelogen": {
