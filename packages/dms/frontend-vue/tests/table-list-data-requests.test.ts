@@ -12,7 +12,6 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
-vi.stubGlobal("useDmsLazyAsyncData", engine.useDmsLazyAsyncData);
 
 const { useTableRows } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableRows"

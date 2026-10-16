@@ -79,7 +79,7 @@ export function useTableListData<T extends Record<string, unknown>>(
     isSelfManaged: isSelfManaged.value,
     sourceUrl: rows.sourceUrl.value,
   });
-  return useDmsLazyAsyncData(
+  return useDmsAsyncData(
     key,
     // `null` while a source waits on its period scope: the table's skeleton.
     ({ signal }): Promise<TableViewListResponse<T> | null> =>
@@ -96,6 +96,7 @@ export function useTableListData<T extends Record<string, unknown>>(
         isSelfManaged,
         rows.sourceUrl,
       ],
+      lazy: true,
       // The table reads again on its own triggers, through its live hold.
       refreshOnPageRefresh: false,
     },
@@ -117,7 +118,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
   const { rows, queries, archiveQuery } = options;
   const heldQuery = options.heldQuery ?? NO_HELD_QUERY;
   const sourceSuffix = rows.sourceUrl.value ? `-${rows.sourceUrl.value}` : "";
-  return useDmsLazyAsyncData<Record<string, number> | null>(
+  return useDmsAsyncData<Record<string, number> | null>(
     `table-view-${options.componentId}-${options.pageId}-tab-counts${sourceSuffix}`,
     async ({ signal }) => {
       if (rows.isPeriodPending.value) return null;
@@ -132,6 +133,7 @@ export function useTableCountsData<T extends Record<string, unknown>>(
     },
     {
       watch: [byValue(queries), byValue(archiveQuery), rows.sourceUrl],
+      lazy: true,
       refreshOnPageRefresh: false,
     },
   );

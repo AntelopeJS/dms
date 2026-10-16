@@ -15,7 +15,6 @@ const { useApiData, useApiPagedData } = await import(
 
 const ENGINE_GLOBALS = {
   useDmsAsyncData: engine.useDmsAsyncData,
-  useDmsLazyAsyncData: engine.useDmsLazyAsyncData,
   useDmsFetch: engine.useDmsFetch,
   useDmsPagedData: engine.useDmsPagedData,
   useDmsState: engine.useDmsState,

@@ -37,7 +37,6 @@ const UNSORTED_KEYS = new Set(["sortKey", "sortDirection"]);
 export function useTableFooter(options: TableFooterOptions) {
   const { footer, columns, location } = options;
   const summaries = footer?.summary ?? [];
-  const { $authFetch } = useAuthFetch();
   const { locale } = useI18n();
   const { processI18n } = useTranslation();
   const { renderValue } = useColumnValueRenderer();
@@ -51,16 +50,17 @@ export function useTableFooter(options: TableFooterOptions) {
     ids: summaries.map((summary) => summary.id),
   }));
 
-  const { data: values, refresh } = useDmsLazyAsyncData<Record<string, number>>(
+  const { data: values, refresh } = useApiData<Record<string, number>>(
     `${options.dataKey}-summary`,
-    () =>
+    ({ $authFetch, signal }) =>
       summaries.length === 0
         ? Promise.resolve({})
         : $authFetch<Record<string, number>>(`${location}/summary`, {
             query: summaryQuery.value,
+            signal,
           }),
     // Read again with the table's rows, on the table's own triggers.
-    { watch: [summaryQuery], refreshOnPageRefresh: false },
+    { lazy: true, watch: [summaryQuery], refreshOnPageRefresh: false },
   );
 
   const formatSummary = (

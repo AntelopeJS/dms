@@ -23,7 +23,6 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 const engine = await import("#dms/frontend-module");
 vi.stubGlobal("computed", computed);
 vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
-vi.stubGlobal("useDmsLazyAsyncData", engine.useDmsLazyAsyncData);
 vi.stubGlobal("useI18n", () => ({ locale: { value: "en" } }));
 vi.stubGlobal("useTranslation", () => ({
   processI18n: (text: string) => text,
@@ -61,6 +60,11 @@ const api = (async (url: string) =>
 vi.stubGlobal("useAuthFetch", () => ({
   $authFetch: (url: string) => answer(url, { sum: 42 }),
 }));
+
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
+);
+vi.stubGlobal("useApiData", useApiData);
 
 const { useTableRows } = await import(
   "../layers/dms-ui/app/build/composables/table-view/useTableRows"
