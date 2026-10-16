@@ -192,11 +192,11 @@ importers:
         version: 3.24.4
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.13.4 <2'
-        version: 1.13.5
+        specifier: '>=1.15.0 <2'
+        version: 1.15.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.6.0 <0.7.0'
-        version: 0.6.0(@antelopejs/core@1.13.5)
+        specifier: '>=0.6.1 <0.7.0'
+        version: 0.6.1(@antelopejs/core@1.15.0)
       '@types/node':
         specifier: ^20.5.7
         version: 20.19.43
@@ -293,8 +293,13 @@ packages:
     engines: {node: '>=20.19'}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.6.0':
-    resolution: {integrity: sha512-1514XxAK7qPRdOrGDd4/lJ8Xo9Fq9nMUY+7HZe1isRTbuwkJoFiUUHsssICm5hWeTWtuTEtLe+Pwe6wHokYSaA==}
+  '@antelopejs/core@1.15.0':
+    resolution: {integrity: sha512-QpcZqnzwq8uZz4rY0DBZB4OTqWXAGP5MqKXKdbgUbSeirW/ZeBMtCnCfpexKVS+MoJnFJ3RtVJvQcslOMD+8Bw==}
+    engines: {node: '>=20.19'}
+    hasBin: true
+
+  '@antelopejs/dms-frontend@0.6.1':
+    resolution: {integrity: sha512-Dii4YhtlMsfJTjHWCvYdcJmoo7PoMOfW9MVAutNJGNIIMJ4zmF37vZVA2OskpaWFZGI+WdsgI2e2MMOm/8x9QQ==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
@@ -319,6 +324,9 @@ packages:
 
   '@antelopejs/interface-core@0.1.1':
     resolution: {integrity: sha512-nGxElt51KGWIwGsUcFdGT7ikQEqDB+mLj4NQ/eFL/DI1+j65GJqq9PdkVT4x3/YKchNA48iMbzXyW7bKUsQ8Iw==}
+
+  '@antelopejs/interface-core@0.2.1':
+    resolution: {integrity: sha512-yVUov8QS1mnbKlU1GTpCXoB/0UkHFLHIPpowBu8LrR8xG1sEmyjitlRdxT/ClTRmQtF2Acf38LdwHj4I9JB7pA==}
 
   '@antelopejs/interface-data-api@0.2.0':
     resolution: {integrity: sha512-1o7aoE6/7y1COkMx2+9LjrG28B3FokOWVa3NQDJKFiFTwl9d/LoUT5uOTj5OO1gwyuClq5Hm6527e2imGZovHA==}
@@ -3121,9 +3129,24 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.6.0(@antelopejs/core@1.13.5)':
+  '@antelopejs/core@1.15.0':
     dependencies:
-      '@antelopejs/core': 1.13.5
+      '@antelopejs/interface-core': 0.2.1
+      '@clack/prompts': 1.8.1
+      '@types/proper-lockfile': 4.1.4
+      commander: 13.1.0
+      inly: 5.0.1
+      jiti: 2.7.0
+      mocha: 11.7.6
+      picocolors: 1.1.1
+      proper-lockfile: 4.1.2
+      reflect-metadata: 0.2.2
+      semver: 7.8.5
+      typescript: 5.9.3
+
+  '@antelopejs/dms-frontend@0.6.1(@antelopejs/core@1.15.0)':
+    dependencies:
+      '@antelopejs/core': 1.15.0
       chokidar: 4.0.3
       commander: 13.1.0
       ignore: 7.0.5
@@ -3151,6 +3174,10 @@ snapshots:
       '@antelopejs/interface-core': 0.1.1
 
   '@antelopejs/interface-core@0.1.1':
+    dependencies:
+      reflect-metadata: 0.2.2
+
+  '@antelopejs/interface-core@0.2.1':
     dependencies:
       reflect-metadata: 0.2.2
 

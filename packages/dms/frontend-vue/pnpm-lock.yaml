@@ -157,11 +157,11 @@ importers:
         version: 3.25.76
     devDependencies:
       '@antelopejs/core':
-        specifier: '>=1.13.4 <2'
-        version: 1.13.5
+        specifier: '>=1.15.0 <2'
+        version: 1.15.0
       '@antelopejs/dms-frontend':
-        specifier: '>=0.6.0 <0.7.0'
-        version: 0.6.0(@antelopejs/core@1.13.5)
+        specifier: '>=0.6.1 <0.7.0'
+        version: 0.6.1(@antelopejs/core@1.15.0)
       '@eslint/js':
         specifier: ^8.57.0
         version: 8.57.0
@@ -232,20 +232,20 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@antelopejs/core@1.13.5':
-    resolution: {integrity: sha512-a1Apu8dUvC18j7r7zK4WNpyjRy+xPlL/2bTG1PArrs/b4iWp2UI2ALDJfefJlSa7VNftDevHx7PqVWDl7pX0jg==}
+  '@antelopejs/core@1.15.0':
+    resolution: {integrity: sha512-QpcZqnzwq8uZz4rY0DBZB4OTqWXAGP5MqKXKdbgUbSeirW/ZeBMtCnCfpexKVS+MoJnFJ3RtVJvQcslOMD+8Bw==}
     engines: {node: '>=20.19'}
     hasBin: true
 
-  '@antelopejs/dms-frontend@0.6.0':
-    resolution: {integrity: sha512-1514XxAK7qPRdOrGDd4/lJ8Xo9Fq9nMUY+7HZe1isRTbuwkJoFiUUHsssICm5hWeTWtuTEtLe+Pwe6wHokYSaA==}
+  '@antelopejs/dms-frontend@0.6.1':
+    resolution: {integrity: sha512-Dii4YhtlMsfJTjHWCvYdcJmoo7PoMOfW9MVAutNJGNIIMJ4zmF37vZVA2OskpaWFZGI+WdsgI2e2MMOm/8x9QQ==}
     engines: {node: '>=20.12.0'}
     hasBin: true
     peerDependencies:
       '@antelopejs/core': '>=1.13.2 <2'
 
-  '@antelopejs/interface-core@0.1.1':
-    resolution: {integrity: sha512-nGxElt51KGWIwGsUcFdGT7ikQEqDB+mLj4NQ/eFL/DI1+j65GJqq9PdkVT4x3/YKchNA48iMbzXyW7bKUsQ8Iw==}
+  '@antelopejs/interface-core@0.2.1':
+    resolution: {integrity: sha512-yVUov8QS1mnbKlU1GTpCXoB/0UkHFLHIPpowBu8LrR8xG1sEmyjitlRdxT/ClTRmQtF2Acf38LdwHj4I9JB7pA==}
 
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
@@ -2689,10 +2689,6 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
 
-  jiti@2.6.1:
-    resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
-    hasBin: true
-
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
@@ -4193,9 +4189,9 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@antelopejs/core@1.13.5':
+  '@antelopejs/core@1.15.0':
     dependencies:
-      '@antelopejs/interface-core': 0.1.1
+      '@antelopejs/interface-core': 0.2.1
       '@clack/prompts': 1.8.1
       '@types/proper-lockfile': 4.1.4
       commander: 13.1.0
@@ -4208,9 +4204,9 @@ snapshots:
       semver: 7.8.5
       typescript: 5.9.3
 
-  '@antelopejs/dms-frontend@0.6.0(@antelopejs/core@1.13.5)':
+  '@antelopejs/dms-frontend@0.6.1(@antelopejs/core@1.15.0)':
     dependencies:
-      '@antelopejs/core': 1.13.5
+      '@antelopejs/core': 1.15.0
       chokidar: 4.0.3
       commander: 13.1.0
       ignore: 7.0.6
@@ -4223,7 +4219,7 @@ snapshots:
       '@oxc-parser/binding-linux-x64-gnu': 0.95.0
       '@oxc-parser/binding-win32-x64-msvc': 0.95.0
 
-  '@antelopejs/interface-core@0.1.1':
+  '@antelopejs/interface-core@0.2.1':
     dependencies:
       reflect-metadata: 0.2.2
 
@@ -6533,7 +6529,7 @@ snapshots:
       defu: 6.1.7
       esbuild: 0.27.7
       fontaine: 0.8.0
-      jiti: 2.6.1
+      jiti: 2.7.0
       lightningcss: 1.30.2
       magic-string: 0.30.21
       ohash: 2.0.11
@@ -6795,8 +6791,6 @@ snapshots:
       tar-fs: 2.1.5
       tar-stream: 2.2.0
       try-to-catch: 3.0.1
-
-  jiti@2.6.1: {}
 
   jiti@2.7.0: {}
 

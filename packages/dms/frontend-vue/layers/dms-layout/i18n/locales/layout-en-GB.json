@@ -735,18 +735,85 @@
     },
     "store": {
       "title": "Module store",
-      "description": "Official AntelopeJS modules not installed on this platform.",
-      "soon": "Coming soon",
-      "banner": {
-        "title": "Coming soon",
-        "description": "Browse and install official modules from the AntelopeJS catalog directly from your dashboard."
+      "description": "Official AntelopeJS modules: install, update, pause or remove them without touching the project’s code.",
+      "scope": {
+        "label": "Show",
+        "all": "All · {count}",
+        "available": "Available · {count}",
+        "installed": "Installed · {count}"
       },
+      "state": {
+        "available": "Available",
+        "busy": "Working",
+        "active": "Active",
+        "disabled": "Paused",
+        "error": "Failed",
+        "pending": "Not applied",
+        "update_available": "Update"
+      },
+      "actions": {
+        "install": "Install",
+        "update": "Update",
+        "enable": "Resume",
+        "disable": "Pause",
+        "uninstall": "Uninstall",
+        "apply": "Apply",
+        "manage": "Manage"
+      },
+      "steps": {
+        "resolve": "Find the latest release",
+        "unload": "Stop the running version",
+        "load": "Download and start",
+        "save": "Write antelope.config.ts",
+        "dependencies": "Install the required modules"
+      },
+      "progress": {
+        "install": "Installing",
+        "update": "Updating",
+        "enable": "Resuming",
+        "disable": "Pausing",
+        "uninstall": "Uninstalling",
+        "apply": "Applying"
+      },
+      "more_actions": "More actions",
+      "incompatible": "Needs {'@'}antelopejs/interface-dms {range}: update the DMS first",
+      "no_release": "The npm registry has no release of it this platform can read",
+      "locked": "Another module is being changed",
+      "pending_hint": "antelope.config.ts and the running platform disagree: Apply brings them in line.",
+      "uninstall_confirm": {
+        "title": "Uninstall {module}?",
+        "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."
+      },
+      "action_failed": "{module} could not be changed",
+      "errors": {
+        "store_busy": "Another module is being changed. Try again once it is done.",
+        "store_module_unknown": "This module is not in the catalog.",
+        "store_disabled": "The store is read-only on this platform.",
+        "store_invalid_state": "The module changed in the meantime. The list is up to date again.",
+        "unauthorized": "Only platform owners manage modules.",
+        "store_module_required": "Other running modules need this one. Remove them first."
+      },
+      "frontend": {
+        "dev": {
+          "title": "Reloading the interface for {modules}",
+          "description": "The dev frontend picks up the change and the page reloads by itself."
+        },
+        "production": {
+          "title": "{modules}: rebuild the frontend",
+          "description": "The module runs on the backend. Run {command} and restart the frontend to show its pages."
+        },
+        "unknown": {
+          "title": "{modules}: restart the frontend",
+          "description": "The module runs on the backend, but no frontend server reported what it serves. Restart it ({command} in production) to show the module's pages."
+        }
+      },
+      "disabled": {
+        "title": "The store is read-only here",
+        "description": "Modules are installed from development, which writes them to antelope.config.ts; this platform loads what that file declares. Set store.enabled to true in the DMS configuration to change them from here."
+      },
+      "load_error": "The module store could not be loaded",
       "search_placeholder": "Search the store",
       "category_label": "Store category",
-      "available_soon": "Available soon",
-      "install": "Install",
-      "install_soon": "Coming soon",
-      "command_label": "Install command",
       "no_result": {
         "title": "No module in the store matches “{query}”",
         "title_filtered": "No module in the store matches these filters"
@@ -808,6 +875,37 @@
         "saas": {
           "title": "SaaS",
           "description": "Plans, workspaces, billing with Stripe and customer lifecycle."
+        }
+      },
+      "config_error": "antelope.config.ts cannot be edited from here",
+      "frontend_requirement": {
+        "needs": "Needs dms-frontend {range}, this project runs {running}.",
+        "run": "To move the project to dms-frontend {target}, run:",
+        "breaks": "dms-frontend {target} would refuse these installed layers:",
+        "supports": "supports {range}",
+        "no_target": "No published dms-frontend matches this range."
+      },
+      "requires": "Requires: {interfaces}",
+      "requires_first": "Needs {interfaces}, which no running module implements: install a module that does first.",
+      "used_by": "Used by: {modules}. Remove them first.",
+      "frontend_version": {
+        "label": "dms-frontend {version}",
+        "reported": "Reported by the running frontend server",
+        "project": "Read from the project’s dependencies: no frontend server reported its version"
+      },
+      "install_dialog": {
+        "title": "Install {module}",
+        "description": "{module} needs interfaces that no running module implements. Pick a module for each: it is installed first.",
+        "other": "Other npm package",
+        "package_label": "npm package",
+        "package_placeholder": "{'@'}scope/package",
+        "config_label": "Config (JSON)",
+        "config_hint": "Optional",
+        "note": "These modules are added to antelope.config.ts as their own entries, where their config can be edited later.",
+        "errors": {
+          "package_required": "Enter an npm package name.",
+          "package_invalid": "Not an npm package name: git and local sources are not allowed.",
+          "config_invalid": "Must be a JSON object."
         }
       }
     },

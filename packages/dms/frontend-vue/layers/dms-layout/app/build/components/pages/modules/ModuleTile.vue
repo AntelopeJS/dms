@@ -23,6 +23,11 @@ interface ModuleTileProps {
   status: ModuleTileStatus;
   /** Where the tile leads; without it, the tile is a placeholder. */
   to?: string;
+  /**
+   * A tile with no link that still stands for a module running here (one
+   * the store manages): drawn solid rather than dashed.
+   */
+  isSolid?: boolean;
 }
 
 interface ModuleTileSlots {
@@ -36,6 +41,7 @@ interface ModuleTileSlots {
 
 const props = withDefaults(defineProps<ModuleTileProps>(), {
   to: undefined,
+  isSolid: false,
 });
 defineSlots<ModuleTileSlots>();
 
@@ -58,10 +64,18 @@ const theme = tv({
         footer: "py-[7px]",
       },
     },
+    isSolid: {
+      true: {
+        root: "dms-card border-solid",
+        footer: "bg-(--dms-bg-muted) py-[7px]",
+      },
+    },
   },
 });
 
-const ui = computed(() => theme({ isPlaceholder: !props.to }));
+const ui = computed(() =>
+  theme({ isPlaceholder: !props.to, isSolid: !props.to && props.isSolid }),
+);
 </script>
 
 <template>
@@ -72,7 +86,10 @@ const ui = computed(() => theme({ isPlaceholder: !props.to }));
     :class="ui.root()"
   >
     <div class="flex items-start justify-between gap-2.5">
-      <DmsIconWell :icon="props.icon" :tone="props.to ? undefined : 'muted'" />
+      <DmsIconWell
+        :icon="props.icon"
+        :tone="props.to || props.isSolid ? undefined : 'muted'"
+      />
       <DmsStatusPill
         :tone="props.status.tone"
         :dot="props.status.dot"

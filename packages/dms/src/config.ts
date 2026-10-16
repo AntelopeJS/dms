@@ -157,6 +157,23 @@ export interface FrontendConfig {
   requireBootstrap?: BootstrapEnforcement;
 }
 
+export interface StoreConfig {
+  /**
+   * Whether owners can install, update and remove modules from the Modules
+   * page. Defaults to on in development and off in production, where a new
+   * module also needs a frontend rebuild: the store then lists modules
+   * read-only. What the store installed lives in antelope.config.ts, which
+   * every environment loads.
+   */
+  enabled?: boolean;
+  /**
+   * Remote catalog of official modules, a JSON document shaped like the
+   * bundled `data/module-store/catalog.json`. The bundled catalog is used when
+   * unset or when the URL cannot be read.
+   */
+  catalogUrl?: string;
+}
+
 export interface Config {
   auth?: AuthConfig;
   htmlRender?: HtmlRenderConfig;
@@ -167,6 +184,7 @@ export interface Config {
   meta?: DmsMetaConfig;
   uploads?: Partial<UploadsConfig>;
   frontend?: FrontendConfig;
+  store?: StoreConfig;
 }
 
 const REFRESH_TOKEN_LIFETIME_DAYS = 30;
@@ -250,6 +268,15 @@ export function getUploadsConfig(): UploadsConfig {
 
 export function getFrontendConfig(): FrontendConfig {
   return globalFrontendConfig;
+}
+
+export function getStoreConfig(): StoreConfig {
+  return globalConfig.store ?? {};
+}
+
+/** Whether owners may change modules from the store, `dev` being the runtime's mode. */
+export function isStoreEditable(dev: boolean): boolean {
+  return getStoreConfig().enabled ?? dev;
 }
 
 /**

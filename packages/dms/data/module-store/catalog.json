@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "ai",
+      "package": "@antelopejs/dms-ai",
+      "icon": "i-ph-robot",
+      "category": "ai"
+    },
+    {
+      "id": "api",
+      "package": "@antelopejs/dms-api",
+      "icon": "i-ph-brackets-curly",
+      "category": "developer"
+    },
+    {
+      "id": "automation",
+      "package": "@antelopejs/dms-automation",
+      "icon": "i-ph-flow-arrow",
+      "category": "operations"
+    },
+    {
+      "id": "builder",
+      "package": "@antelopejs/dms-builder",
+      "icon": "i-ph-hammer",
+      "category": "developer"
+    },
+    {
+      "id": "cicd",
+      "package": "@antelopejs-private/dms-cicd",
+      "icon": "i-ph-rocket-launch",
+      "category": "operations"
+    },
+    {
+      "id": "database",
+      "package": "@antelopejs/dms-database",
+      "icon": "i-ph-database",
+      "category": "data"
+    },
+    {
+      "id": "lang",
+      "package": "@antelopejs/dms-lang",
+      "icon": "i-ph-translate",
+      "category": "content"
+    },
+    {
+      "id": "mailing",
+      "package": "@antelopejs/dms-mailing",
+      "icon": "i-ph-envelope-simple",
+      "category": "growth"
+    },
+    {
+      "id": "marketing",
+      "package": "@antelopejs/dms-marketing",
+      "icon": "i-ph-chart-line-up",
+      "category": "growth"
+    },
+    {
+      "id": "media",
+      "package": "@antelopejs/dms-media",
+      "icon": "i-ph-images",
+      "category": "content"
+    },
+    {
+      "id": "saas",
+      "package": "@antelopejs/dms-saas",
+      "icon": "i-ph-buildings",
+      "category": "business"
+    }
+  ]
+}
