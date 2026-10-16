@@ -3,13 +3,23 @@
  * A page's `useApiData` reads follow the page: `refreshPageBlocks()` (an
  * action of the user) and an event on one of the page's realtime topics read
  * them again through `refreshDmsPageData()`, without a `refresh()` of their
- * own. A read that refreshes on its own triggers opts out.
+ * own. A read that refreshes on its own triggers opts out. On a page declared
+ * with `live`, what nobody asked for waits while the page is paused, and an
+ * action of the user reads at once.
  */
 import { type App, createApp, defineComponent, h, nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RealtimeTopicHandler } from "../layers/dms-core/app/composables/realtime/useUserRealtime";
 import { useRealDataEngine } from "./fixtures/dataEngine";
-import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
+import {
+  refreshLivePageBlocks,
+  refreshPageBlocks,
+} from "../layers/dms-ui/app/utils/blockRefresh";
+import {
+  createPageLiveController,
+  type PageLiveController,
+} from "../layers/dms-ui/app/build/composables/live/pageLiveController";
+import { setCurrentPageLive } from "../layers/dms-ui/app/build/composables/live/currentPageLive";
 
 const requests: string[] = [];
 // Holds the answers back while set.
@@ -45,6 +55,15 @@ function publish(topic: string, event: object): void {
 }
 
 const mounted: App[] = [];
+const controllers: PageLiveController[] = [];
+
+/** The controller of a page declared with `live`, as the page renderer installs it. */
+function installLive(): PageLiveController {
+  const controller = createPageLiveController("shop.orders", {});
+  controllers.push(controller);
+  setCurrentPageLive(controller);
+  return controller;
+}
 
 async function mountPage(): Promise<void> {
   const Page = defineComponent({
@@ -70,6 +89,9 @@ beforeEach(() => {
 
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount());
+  controllers.splice(0).forEach((controller) => controller.dispose());
+  setCurrentPageLive(null);
+  window.localStorage.clear();
 });
 
 describe("the page's data refresh", () => {
@@ -135,6 +157,49 @@ describe("the page's data refresh", () => {
     requests.length = 0;
 
     publish("table:orders", { topic: "table:orders", type: "updated" });
+    await settle();
+    expect(requests).toEqual([]);
+  });
+});
+
+describe("the page's data refresh on a page declared with live", () => {
+  it("holds what nobody asked for while paused, and reads it once on resume", async () => {
+    const live = installLive();
+    await mountPage();
+    pageTopics.value = ["table:orders"];
+    await nextTick();
+    requests.length = 0;
+
+    live.pause();
+    publish("table:orders", { topic: "table:orders", type: "updated" });
+    publish("table:orders", { topic: "table:orders", type: "updated" });
+    refreshLivePageBlocks();
+    await settle();
+    expect(requests).toEqual([]);
+
+    live.resume();
+    await settle();
+    expect(requests).toEqual(["/api/orders"]);
+  });
+
+  it("reads at once on an action of the user, paused, and forgets what it missed", async () => {
+    const live = installLive();
+    await mountPage();
+    pageTopics.value = ["table:orders"];
+    await nextTick();
+    requests.length = 0;
+
+    live.pause();
+    publish("table:orders", { topic: "table:orders", type: "updated" });
+    await settle();
+    expect(requests).toEqual([]);
+
+    await refreshPageBlocks();
+    expect(requests).toEqual(["/api/orders"]);
+
+    // The user's refresh read what the event announced: nothing left to read.
+    requests.length = 0;
+    live.resume();
     await settle();
     expect(requests).toEqual([]);
   });
