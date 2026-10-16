@@ -30,35 +30,35 @@
   }
 }
 
-/* Self-hosted Geist (SIL OFL 1.1, files in /public/fonts + LICENSE.txt).
+/* Self-hosted Geist (SIL OFL 1.1, files and LICENSE.txt in ../fonts).
    Variable files cover weights 100–900 and keep builds deterministic offline. */
 @font-face {
   font-family: "Geist";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
 }
 @font-face {
   font-family: "Geist";
   font-style: italic;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/Geist-Italic-Variable.woff2") format("woff2");
+  src: url("../fonts/Geist-Italic-Variable.woff2") format("woff2");
 }
 @font-face {
   font-family: "Geist Mono";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
 }
 @font-face {
   font-family: "Geist Mono";
   font-style: italic;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/GeistMono-Italic-Variable.woff2") format("woff2");
+  src: url("../fonts/GeistMono-Italic-Variable.woff2") format("woff2");
 }
 
 /* Interface scale: Nuxt UI / Tailwind sizing is rem-based, so scaling the
