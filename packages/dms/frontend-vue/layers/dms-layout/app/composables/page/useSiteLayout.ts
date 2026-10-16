@@ -14,24 +14,6 @@ interface PageLayoutRequest {
   promise: Promise<PageLayout>;
 }
 
-function getCachedLayoutUrls(
-  previousSite: SiteLayout | undefined,
-  previousCache: Record<string, PageLayout>,
-  nextSite: SiteLayout,
-): string[] {
-  const urls = Object.entries(previousSite?.pages ?? {}).flatMap(
-    ([path, page]) => {
-      const nextPage = nextSite.pages[path];
-      return previousCache[page.layoutUrl] &&
-        nextPage?.layoutUrl &&
-        nextPage.hasAccess !== false
-        ? [nextPage.layoutUrl]
-        : [];
-    },
-  );
-  return [...new Set(urls)];
-}
-
 interface MatchRouteOptions {
   includeCategories: boolean;
 }
@@ -251,46 +233,25 @@ export const useSiteLayout = () => {
     });
   };
 
-  const requestSiteLayout = async (fatal: boolean): Promise<boolean> => {
+  const requestSiteLayout = async (): Promise<boolean> => {
     const initialLayout = siteLayout.value;
     const initialCache = pageLayouts.value;
+    // A layout another request committed meanwhile is newer than this one.
     const isCurrent = () =>
       siteLayout.value === initialLayout && pageLayouts.value === initialCache;
     const { $authFetch } = useAuthFetch();
     try {
       const result = await $authFetch<SiteLayoutResponse>(SITE_LAYOUT_ENDPOINT);
-      const nextCache: Record<string, PageLayout> = {};
-      // Initial page loads mutate this cache in place; identity guards cannot detect those additions.
-      while (isCurrent()) {
-        const urls = fatal
-          ? []
-          : getCachedLayoutUrls(
-              initialLayout,
-              initialCache,
-              result.siteLayout,
-            ).filter((url) => !nextCache[url]);
-        if (!urls.length) {
-          if (!fatal) pageLayouts.value = nextCache;
-          applySiteLayoutResponse(state, result);
-          return true;
-        }
-        const layouts = await Promise.all(
-          urls.map(
-            async (url) => [url, await $authFetch<PageLayout>(url)] as const,
-          ),
-        );
-        Object.assign(nextCache, Object.fromEntries(layouts));
-      }
+      if (isCurrent()) applySiteLayoutResponse(state, result);
       return true;
     } catch (error) {
-      // Failed background refreshes must not leave a fatal error for the next navigation.
-      if (fatal && isCurrent()) handleSiteLayoutError(error);
+      if (isCurrent()) handleSiteLayoutError(error);
       throw error;
     }
   };
 
-  const startSiteLayoutFetch = (fatal = true): Promise<boolean> => {
-    const started = requestSiteLayout(fatal).finally(() => {
+  const startSiteLayoutFetch = (): Promise<boolean> => {
+    const started = requestSiteLayout().finally(() => {
       isLoading.value = false;
       // A waiting refresh may already have started its replacement request.
       if (loadingPromise.value === started) loadingPromise.value = null;
@@ -316,12 +277,9 @@ export const useSiteLayout = () => {
     pageLayouts.value = {};
   }
 
-  // `fatal: false` keeps a failed refetch from swapping the app for the error
-  // page — for background resyncs (a realtime menu invalidation), where a
-  // network blip must not destroy a working session.
-  const refresh = async (options?: { fatal?: boolean }) => {
-    // Background refreshes stage page layouts before committing; identity refreshes clear immediately.
-    if (options?.fatal !== false) clearPageLayoutCaches();
+  // A background resync (a realtime menu invalidation) goes through `resync`.
+  const refresh = async () => {
+    clearPageLayoutCaches();
 
     // A fetch already in flight was started before whatever prompted this
     // call, so its answer cannot contain the change: joining it would report
@@ -340,7 +298,7 @@ export const useSiteLayout = () => {
     if (!loadingPromise.value) {
       isLoading.value = true;
       loadingError.value = null;
-      loadingPromise.value = startSiteLayoutFetch(options?.fatal ?? true);
+      loadingPromise.value = startSiteLayoutFetch();
     }
     await loadingPromise.value;
   };
