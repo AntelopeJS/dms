@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.1
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.0...v0.9.1)
+
+### 🚀 Enhancements
+
+- **dms:** Install, update, pause and remove modules from the Modules page ([#285](https://github.com/AntelopeJS/dms/pull/285))
+
+### 📖 Documentation
+
+- **period:** Document usePeriodScopePreset and test the top list badge through hydration ([#300](https://github.com/AntelopeJS/dms/pull/300))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.9.0
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.8.3...v0.9.0)
