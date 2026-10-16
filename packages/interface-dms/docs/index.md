@@ -19,6 +19,8 @@ The DMS ships one public AntelopeJS interface package, `@antelopejs/interface-dm
 
 This section is the contract reference: the exact symbol names, options and return types, grouped by domain. The DMS guide covers the same ground task by task, organised around what you are building.
 
+Separately published extension interfaces have their own [module interface references](/docs/modules#interface-references), including Builder. This page covers `@antelopejs/interface-dms` itself.
+
 ## One installed copy
 
 The host and every module must resolve **the same installed copy** of `@antelopejs/interface-dms`. The package holds live state, not just types: the page, category and extension registries, the permission tree, the hook registry, the data-type and block registries and the component slot resolvers. A second copy gets its own empty registries: pages register into a tree nobody reads, permissions never reach the roles form, and hooks never fire, without any error. `@antelopejs/core` checks this before constructing modules and fails with `Incompatible interface package resolution` when a module resolves another copy.
@@ -48,6 +50,9 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `@antelopejs/interface-dms` | The root barrel over the core surface below | [Core](/docs/interfaces/core/introduction) |
 | `/page` | Pages, categories, modules, layouts, page extensions, dynamic menus, frontend modules | [Core](/docs/interfaces/core/pages-and-modules) |
 | `/component` | `Component`, `ComponentBuilder`, actions, watches | [Core](/docs/interfaces/core/components) |
+| `/component-slots` | `RegisterComponentSlot`, `ComponentSlotResolver`, `SlotOptions` | [Core](/docs/interfaces/core/components#registercomponentslot) |
+| `/attachments` | `SaveComponentFiles` and its request, field and result types | [Core](/docs/interfaces/core/pages-and-modules#savecomponentfiles) |
+| `/permission-gate` | Shared `PermissionGate` fields for permission-filtered UI | [Base](/docs/interfaces/base/types#permissiongate) |
 | `/permissions` | The permission registry and the permission computation | [Core](/docs/interfaces/core/permissions) |
 | `/permissions-resolver` | Registering and running permission resolvers | [Core](/docs/interfaces/core/permissions) |
 | `/guards` | `AuthUserWithPermission`, `AuthTenantOwner`, `AuthTenantMember` | [Core](/docs/interfaces/core/permissions) |
@@ -57,8 +62,11 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/tenant-scoped-model` | `TenantScopedModel` | [Core](/docs/interfaces/core/tenancy) |
 | `/tenant-access` | Tenant access gates | [Core](/docs/interfaces/core/tenancy) |
 | `/tenant-ownership` | Membership and ownership writes | [Core](/docs/interfaces/core/tenancy) |
+| `/tenant-lifecycle` | Producer admission and permanent closure before tenant deletion | [Core](/docs/interfaces/core/tenancy#tenant-lifecycle-admission) |
 | `/data-controllers` | The built-in members and roles data controllers | [Core](/docs/interfaces/core/tenancy) |
 | `/invites` | Inviting a user into a tenant | [Core](/docs/interfaces/core/invites) |
+| `/invite-extensions` | Invite form contributions, validation, delivery and availability | [Core](/docs/interfaces/core/invites#registerinviteextension) |
+| `/invite-resolution` | Durable terminal decisions and retryable invite effects | [Core](/docs/interfaces/core/invites#durable-invite-resolution) |
 | `/hooks` | The `Hook` enum, handlers and dispatch | [Core](/docs/interfaces/core/hooks) |
 | `/tenant-export` | The tenant export archive, contribution and manifest types | [Core](/docs/interfaces/core/hooks) |
 | `/realtime` | Page topics, publishing and backend subscription | [Core](/docs/interfaces/core/realtime) |
@@ -79,9 +87,9 @@ Each subpath is its own entry point: importing one does not pull the others in, 
 | `/notifications`, `/notifications/types` | Categories, subjects, the notification builder and its dispatch targets | [Notifications](/docs/interfaces/notifications/introduction) |
 | `/html-render` | `RegisterHtmlTemplate`, `GenerateHtml` and the template reference types | [HTML Render](/docs/interfaces/html-render/introduction) |
 
-Beyond these entry points, every file under the package's `src` is importable through its `./*` export (`@antelopejs/interface-dms/base/form-types`), so moving or renaming one is a breaking change, like removing an export.
+Beyond these entry points, built files are importable through the `./*` export (`@antelopejs/interface-dms/base/form-types`). Moving or renaming a public path is a breaking change, like removing an export.
 
-Symbols under an `internal` namespace are the wiring between the interface and its implementation, and are not part of the contract.
+Importability does not make a declaration public. Paths under `internal/`, symbols tagged `@internal`, and `internal` namespaces are wiring between the interface and its implementation, not supported consumer APIs. This includes compatibility exports retained at old paths. Public types named by a supported signature remain part of its contract; use the documented entry points rather than calling internal proxies or raw writer helpers.
 
 ## How to Read a Domain
 

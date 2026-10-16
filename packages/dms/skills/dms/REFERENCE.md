@@ -5,7 +5,7 @@ look up exact interface surfaces.
 
 ## The DMS's own documentation
 
-List a section to see its files:
+List a section to see its files. Guide paths below are relative to `packages/dms`; interface reference paths are relative to the repository root.
 
 | Doc | Covers |
 | --- | --- |
@@ -15,7 +15,7 @@ List a section to see its files:
 | `docs/04.components/` | One page per block, grouped: `02.block-fundamentals.md` (nesting, data, composed texts, permissions), `03.layout-and-containers/`, `04.charts-and-widgets/` (+ `6.charts/`, one page per chart type), `05.display-blocks/`, `06.lists-and-settings/`, `07.forms/`, `08.tables/`, `09.custom-component.md`, then DataTypes, DataController, derived controller, file storage |
 | `docs/05.extending-the-dashboard/` | Dashboard chrome, theming, custom DataTypes (frontend side), table-view displays, component events, period filtering |
 | `docs/06.frontend-composables/` | Composables a custom frontend module's Vue calls: auth'd requests, realtime, page context, UI toolkit |
-| `docs/07.interfaces/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
+| `packages/interface-dms/docs/` | The contract reference for `@antelopejs/interface-dms`, one folder per domain: `core`, `auth`, `base`, `notifications`, `html-render` |
 | `docs/08.ai-and-claude-code/` | The skill suite, installing it in Claude Code, dms-ai, best practices, design fidelity, the `/dms-preview` page, shipping a module skill |
 
 ## Exact interface surfaces: don't memorize, look them up
@@ -24,8 +24,8 @@ Everything the DMS exposes to a consumer ships in **one** package, `@antelopejs/
 split into subpaths: `/page`, `/component`, `/permissions`, `/guards`, `/db`, `/hooks`, `/realtime`,
 `/quick-actions`, `/layout-banners`, `/auth` (+ `/auth/db`), `/base` (+ `/base/form`, `/base/table-view`,
 `/base/data-types`, `/base/block-types`, `/base/types`, …), `/notifications`, `/html-render`.
-Nothing is imported through the runtime package `@antelopejs/dms`. Other modules follow the same
-shape: one `interface-<name>` package per module.
+Nothing is imported through the runtime package `@antelopejs/dms`. Modules that publish their
+own interface follow the same shape; a UI module does not necessarily have an interface package.
 
 Three ways to read a contract:
 
@@ -38,8 +38,8 @@ Three ways to read a contract:
    npx -y github:AntelopeJS/agent-skills interface show <scope>/interface-<name>
    ```
 
-2. **The prose reference** — `docs/07.interfaces/`, one folder per domain, with the whole subpath
-   map in its `index.md`.
+2. **The prose reference** — `packages/interface-dms/docs/` in this repository, or `docs/` in the
+   installed `@antelopejs/interface-dms` package, with the whole subpath map in `index.md`.
 
 3. **The sources** — in this workspace, `packages/interface-dms/src/<subpath>`; in an installed
    package, `dist/<subpath>/*.d.ts`. The block catalog (`ListBlockTypes()`) lists every block with

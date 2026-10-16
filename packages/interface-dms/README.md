@@ -63,9 +63,11 @@ export class SalesPage extends PageController("sales", {
 
 ## Documentation
 
-- [The DMS interface](https://dms.antelopejs.com/docs/interfaces): every subpath, domain by domain
-- [Core](https://dms.antelopejs.com/docs/interfaces/core/introduction), [Auth](https://dms.antelopejs.com/docs/interfaces/auth/introduction), [Base](https://dms.antelopejs.com/docs/interfaces/base/introduction), [Notifications](https://dms.antelopejs.com/docs/interfaces/notifications/introduction), [HTML Render](https://dms.antelopejs.com/docs/interfaces/html-render/introduction)
+- [The DMS interface](./docs/index.md): the canonical consumer reference, shipped with this package and published at [docs/interfaces](https://dms.antelopejs.com/docs/interfaces)
+- [Core](./docs/1.core/1.introduction.md), [Auth](./docs/2.auth/1.introduction.md), [Base](./docs/3.base/1.introduction.md), [Notifications](./docs/4.notifications/1.introduction.md), [HTML Render](./docs/5.html-render/1.introduction.md)
 - [Pages and components](https://dms.antelopejs.com/docs/building/pages-and-components): the task-by-task guide
+
+An importable file is not necessarily a supported API. Paths under `internal/`, symbols tagged `@internal`, and `internal` namespaces are implementation wiring, even when the wildcard export makes them reachable. Use the public declarations and contracts documented here.
 
 ## Contributing
 

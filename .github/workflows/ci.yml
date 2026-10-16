@@ -34,6 +34,16 @@ jobs:
           frontend: "true"
           interface: "true"
 
+      - uses: AntelopeJS/tooling-configs/actions/docs@310e3d861b2da2244902854379176c91e1ebc68e
+        with:
+          files: |
+            README.md
+            packages/dms/README.md
+            packages/dms/docs
+            packages/interface-dms/README.md
+            packages/interface-dms/docs
+          typescript-project: packages/interface-dms/docs/tsconfig.json
+
       - run: pnpm --dir packages/interface-dms lint
       - run: pnpm --dir packages/interface-dms typecheck
       - run: pnpm --dir packages/interface-dms knip
