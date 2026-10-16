@@ -25,7 +25,9 @@ AdonisJS must own the process. Evaluate these existing templates before proposin
 
 Preserve the package names declared by the template. Both templates ship `.claude/settings.json`, which makes Claude Code offer the
 **antelopejs** plugin; elsewhere, install it once with `claude plugin marketplace add
-AntelopeJS/claude-antelopejs` and `claude plugin install antelopejs@antelopejs`.
+AntelopeJS/agent-skills` and `claude plugin install antelopejs@antelopejs`. In Codex, run
+`codex plugin marketplace add AntelopeJS/agent-skills`, install `antelopejs` from `/plugins`, and
+sync the skills with `npx -y github:AntelopeJS/agent-skills sync --target codex`.
 
 ## What a project is
 
