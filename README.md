@@ -124,35 +124,6 @@ pnpm --dir packages/dms docs:catalog       # docs-data/blocks.json from ListBloc
 pnpm --dir packages/dms docs:screenshots   # docs/images/blocks/<example>.<theme>.png from docs-data/examples.json
 ```
 
-### Hosted documentation playground
-
-`Dockerfile.playground` builds the backend and production frontend, regenerates
-the block catalog, and captures every example in both themes against a temporary
-MongoDB. CI builds this image and starts its shipped artifacts against a fresh
-database. A failed render or startup fails the `ci` workflow.
-
-The image runs two processes in the same pod, alongside a disposable MongoDB:
-
-```bash
-node packages/dms/scripts/docs-playground.mjs backend
-node packages/dms/scripts/docs-playground.mjs frontend
-```
-
-The backend listens on 5010 and the frontend on 3001. Keep
-`DMS_API_BASE_URL=http://127.0.0.1:5010`: that address also identifies the built
-frontend workspace. Set `MONGO_URL` and `DMS_CLIENT_BASE_URL` at runtime. The
-`docs` environment enables preview, generates disposable signing/session
-secrets, and directs attempted email sends to a closed local port. It is a
-read-only documentation demo, not a persistent user dashboard.
-
-The GitOps pipeline consumes successful main-push `ci` events, rebuilds the
-playground at that SHA, and passes its immutable image digest to antelope-web's
-`Dockerfile.dms`. The site copies `packages/dms/docs` and `docs-data` from that
-image, so prose, block definitions, examples and fallback screenshots update
-together. Runtime deployment, GET/HEAD-only public routing and the live preview
-URL belong to `AntelopeJS/k8s-gitops-infra`; no GitHub Actions cluster credential
-or manual pod restart is needed.
-
 ## License
 
 [Apache-2.0](./LICENSE). The runtime package ships the DB-IP IP to Country Lite database under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): see [`packages/dms`](./packages/dms#third-party-data).
