@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dmsVersion": "0.8.2",
+  "dmsVersion": "0.9.1",
   "blocks": [
     {
       "type": "ActivityFeed",
@@ -15,7 +15,7 @@
         "title": {
           "type": "string",
           "optional": true,
-          "description": "Eyebrow title of the card.",
+          "description": "Small heading at the top of the card.",
           "ui": {
             "label": "Title",
             "group": "content"
@@ -367,7 +367,7 @@
               "date": {
                 "type": "string",
                 "optional": true,
-                "description": "ISO date of the event.",
+                "description": "When the event happened.",
                 "ui": {
                   "label": "Date"
                 }
@@ -451,7 +451,7 @@
         "count": {
           "type": "number",
           "optional": true,
-          "description": "Count beside the title; a `count` the route answers wins.",
+          "description": "A number shown beside the title; a data source can replace it.",
           "ui": {
             "label": "Count",
             "group": "content",
@@ -645,7 +645,7 @@
             }
           ],
           "optional": true,
-          "description": "Soft badge in the card head, e.g. the window covered.",
+          "description": "A short tag at the top of the card, such as the period it covers.",
           "ui": {
             "label": "Badge",
             "group": "content",
@@ -697,7 +697,7 @@
         "fillHeight": {
           "type": "boolean",
           "optional": true,
-          "description": "Fills the grid cell, the entries scrolling inside, rather than growing with them.",
+          "description": "Takes the full height of its place, the entries scrolling inside, rather than growing with them.",
           "ui": {
             "label": "Fill the cell",
             "group": "appearance",
@@ -718,7 +718,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -768,7 +768,7 @@
             }
           },
           "optional": true,
-          "description": "Link buttons in the card head.",
+          "description": "Buttons at the top of the card, each opening a page.",
           "ui": {
             "label": "Actions",
             "group": "content"
@@ -883,7 +883,7 @@
         "card": {
           "type": "boolean",
           "default": true,
-          "description": "Card surface around the block; off inside a `Card`.",
+          "description": "Draws the block on a card; turn it off when it already sits in one.",
           "ui": {
             "label": "In a card",
             "group": "appearance",
@@ -1303,7 +1303,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -1369,7 +1369,7 @@
             "primary"
           ],
           "default": "info",
-          "description": "Colour of the wash and the icon.",
+          "description": "The colour of the banner and of its icon.",
           "ui": {
             "label": "Tone",
             "group": "appearance",
@@ -1379,7 +1379,7 @@
         "icon": {
           "type": "string",
           "optional": true,
-          "description": "Overrides the tone's icon.",
+          "description": "Replaces the icon the tone comes with.",
           "ui": {
             "label": "Icon",
             "group": "appearance",
@@ -1393,7 +1393,7 @@
             "sm"
           ],
           "default": "md",
-          "description": "`sm` is the compact one-line banner.",
+          "description": "Compact keeps the banner to one line.",
           "ui": {
             "label": "Size",
             "group": "appearance",
@@ -1407,7 +1407,7 @@
         "dismissible": {
           "type": "boolean",
           "optional": true,
-          "description": "Adds a close button, remembered.",
+          "description": "Adds a close button; once closed, the banner stays hidden for that person.",
           "ui": {
             "label": "Dismissible",
             "group": "behavior",
@@ -1515,7 +1515,7 @@
         "title": {
           "type": "string",
           "optional": true,
-          "description": "Eyebrow title of the head.",
+          "description": "Small heading at the top of the card.",
           "ui": {
             "label": "Title",
             "group": "content"
@@ -1532,7 +1532,7 @@
             }
           ],
           "optional": true,
-          "description": "Mono count after the title.",
+          "description": "A number shown after the title.",
           "ui": {
             "label": "Count",
             "group": "content"
@@ -1560,7 +1560,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -1610,7 +1610,7 @@
             }
           },
           "optional": true,
-          "description": "Link buttons on the right of the head.",
+          "description": "Buttons at the top right of the card, each opening a page.",
           "ui": {
             "label": "Actions",
             "group": "content"
@@ -1619,7 +1619,7 @@
         "footer": {
           "type": "string",
           "optional": true,
-          "description": "Muted text in the foot band.",
+          "description": "Small text along the bottom of the card.",
           "ui": {
             "label": "Footer",
             "group": "content"
@@ -1628,7 +1628,7 @@
         "padded": {
           "type": "boolean",
           "default": true,
-          "description": "Pads the body; off for a list or table edge to edge.",
+          "description": "Leaves space around the content; turn it off for a list or table that runs to the edges.",
           "ui": {
             "label": "Padded body",
             "group": "layout",
@@ -3158,7 +3158,7 @@
         },
         "chart": {
           "type": "unknown",
-          "description": "The chart block the card wraps.",
+          "description": "The chart the card draws.",
           "ui": {
             "label": "Chart",
             "group": "data",
@@ -7654,7 +7654,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -7830,7 +7830,7 @@
         "card": {
           "type": "boolean",
           "default": true,
-          "description": "Card surface around the block; off inside a `Card`.",
+          "description": "Draws the block on a card; turn it off when it already sits in one.",
           "ui": {
             "label": "In a card",
             "group": "appearance",
@@ -8605,7 +8605,7 @@
         "redirectOnSuccess": {
           "type": "string",
           "optional": true,
-          "description": "Path to navigate to after a submit.",
+          "description": "The page to open once the form is sent.",
           "ui": {
             "label": "Redirect on success",
             "group": "behavior"
@@ -8834,7 +8834,7 @@
                   },
                   "to": {
                     "type": "string",
-                    "description": "Route, `#anchor` or absolute URL.",
+                    "description": "The page the button opens, or a web address.",
                     "ui": {
                       "label": "Link",
                       "widget": "url"
@@ -9013,7 +9013,7 @@
               "type": "boolean",
               "optional": true,
               "default": true,
-              "description": "Card surface around the block; off inside a `Card`.",
+              "description": "Draws the block on a card; turn it off when it already sits in one.",
               "ui": {
                 "label": "In a card",
                 "group": "appearance",
@@ -9129,7 +9129,7 @@
         "title": {
           "type": "string",
           "optional": true,
-          "description": "Eyebrow title of the card.",
+          "description": "Small heading at the top of the card.",
           "ui": {
             "label": "Title",
             "group": "content"
@@ -9371,7 +9371,7 @@
         "card": {
           "type": "boolean",
           "default": true,
-          "description": "Card surface around the block; off inside a `Card`.",
+          "description": "Draws the block on a card; turn it off when it already sits in one.",
           "ui": {
             "label": "In a card",
             "group": "appearance",
@@ -9381,7 +9381,7 @@
         "dense": {
           "type": "boolean",
           "optional": true,
-          "description": "Tighter rows.",
+          "description": "Rows closer together.",
           "ui": {
             "label": "Dense",
             "group": "appearance",
@@ -9391,7 +9391,7 @@
         "columns": {
           "type": "number",
           "default": 1,
-          "description": "Columns on wide screens.",
+          "description": "How many columns on a wide screen.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -9403,7 +9403,7 @@
         "currency": {
           "type": "string",
           "optional": true,
-          "description": "Default ISO code of money values.",
+          "description": "The currency of amounts, as a three-letter code such as EUR.",
           "ui": {
             "label": "Currency",
             "group": "appearance"
@@ -9543,7 +9543,7 @@
         "icon": {
           "type": "string",
           "optional": true,
-          "description": "Icon name, e.g. `i-ph-trend-up`.",
+          "description": "The icon shown on the card.",
           "ui": {
             "label": "Icon",
             "group": "appearance",
@@ -9557,7 +9557,7 @@
             "stat"
           ],
           "optional": true,
-          "description": "`stat` renders the compact DMS look.",
+          "description": "Stat draws the card in a compact style.",
           "ui": {
             "label": "Variant",
             "group": "appearance",
@@ -9621,7 +9621,7 @@
         "currencyCode": {
           "type": "string",
           "optional": true,
-          "description": "ISO code used when the format is currency.",
+          "description": "The currency, as a three-letter code such as EUR, when the value is an amount.",
           "ui": {
             "label": "Currency",
             "group": "appearance"
@@ -9979,7 +9979,7 @@
         "value": {
           "type": "number",
           "optional": true,
-          "description": "Filled amount.",
+          "description": "How much of the bar is filled.",
           "ui": {
             "label": "Value",
             "group": "data",
@@ -9989,7 +9989,7 @@
         "max": {
           "type": "number",
           "optional": true,
-          "description": "Total the bar stands for.",
+          "description": "The amount a full bar stands for.",
           "ui": {
             "label": "Maximum",
             "group": "data",
@@ -10324,7 +10324,7 @@
         "warnAt": {
           "type": "number",
           "optional": true,
-          "description": "Percent of the maximum.",
+          "description": "The bar turns to a warning colour from this percent of the maximum.",
           "ui": {
             "label": "Warning from",
             "group": "behavior",
@@ -10336,7 +10336,7 @@
         "errorAt": {
           "type": "number",
           "optional": true,
-          "description": "Percent of the maximum.",
+          "description": "The bar turns to an error colour from this percent of the maximum.",
           "ui": {
             "label": "Error from",
             "group": "behavior",
@@ -10367,7 +10367,7 @@
             "label": "Data source",
             "group": "data",
             "widget": "dataSource",
-            "advanced": true,
+            "responseShape": "value",
             "periodOption": "periodScope"
           }
         },
@@ -10422,7 +10422,7 @@
         "card": {
           "type": "boolean",
           "default": false,
-          "description": "Card surface around the block; off inside a `Card`.",
+          "description": "Draws the block on a card; turn it off when it already sits in one.",
           "ui": {
             "label": "In a card",
             "group": "appearance",
@@ -10443,7 +10443,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -10493,7 +10493,7 @@
             }
           },
           "optional": true,
-          "description": "Link buttons under the bar.",
+          "description": "Buttons under the bar, each opening a page.",
           "ui": {
             "label": "Actions",
             "group": "content"
@@ -10517,7 +10517,7 @@
         "title": {
           "type": "string",
           "optional": true,
-          "description": "Section title above the grid.",
+          "description": "Heading above the cards.",
           "ui": {
             "label": "Title",
             "group": "content"
@@ -10673,7 +10673,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or URL.",
+                "description": "The page it opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -10848,7 +10848,7 @@
         "columns": {
           "type": "number",
           "default": 3,
-          "description": "Columns on wide screens.",
+          "description": "How many columns on a wide screen.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -11094,7 +11094,7 @@
             }
           },
           "optional": true,
-          "description": "Ranges offered.",
+          "description": "The periods people can pick from.",
           "ui": {
             "label": "Available ranges",
             "group": "behavior"
@@ -11249,7 +11249,7 @@
             "relative"
           ],
           "optional": true,
-          "description": "`relative` shows the start of the window from now.",
+          "description": "Relative says how long ago the period starts, rather than its dates.",
           "ui": {
             "label": "Range format",
             "group": "appearance",
@@ -11287,7 +11287,7 @@
             "segmented"
           ],
           "optional": true,
-          "description": "`segmented` shows the ranges as inline pills.",
+          "description": "Segmented shows the periods as buttons side by side.",
           "ui": {
             "label": "Variant",
             "group": "appearance",
@@ -11330,7 +11330,7 @@
         "height": {
           "type": "string",
           "optional": true,
-          "description": "Box height, as a CSS length. Fills its cell when omitted.",
+          "description": "How tall the box is, such as 200px; left empty, it fills its place.",
           "ui": {
             "label": "Height",
             "group": "appearance"
@@ -11339,7 +11339,7 @@
         "width": {
           "type": "string",
           "optional": true,
-          "description": "Box width, as a CSS length. Fills its column when omitted.",
+          "description": "How wide the box is, such as 300px; left empty, it fills its column.",
           "ui": {
             "label": "Width",
             "group": "appearance"
@@ -11437,7 +11437,7 @@
         "redirectOnSuccess": {
           "type": "string",
           "optional": true,
-          "description": "Path to open once saved; {{response._id}} is the row just written.",
+          "description": "The page to open once saved; {{response._id}} stands for the row just saved.",
           "ui": {
             "label": "Then open",
             "group": "behavior"
@@ -11503,7 +11503,7 @@
         "danger": {
           "type": "boolean",
           "optional": true,
-          "description": "Marks a block of destructive actions.",
+          "description": "Draws the section in red, for actions that delete or cannot be undone.",
           "ui": {
             "label": "Danger zone",
             "group": "appearance",
@@ -11513,7 +11513,7 @@
         "card": {
           "type": "boolean",
           "default": true,
-          "description": "Card surface around the block; off inside a `Card`.",
+          "description": "Draws the block on a card; turn it off when it already sits in one.",
           "ui": {
             "label": "In a card",
             "group": "appearance",
@@ -11663,7 +11663,7 @@
                     }
                   }
                 ],
-                "description": "Mono label above the value.",
+                "description": "Small label above the figure.",
                 "ui": {
                   "label": "Label",
                   "widget": "text"
@@ -11784,7 +11784,7 @@
               "to": {
                 "type": "string",
                 "optional": true,
-                "description": "Route, `#anchor` or URL.",
+                "description": "The page it opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -11820,7 +11820,7 @@
         "columns": {
           "type": "number",
           "optional": true,
-          "description": "Columns on wide screens; defaults to the number of cells.",
+          "description": "How many columns on a wide screen; by default, one per cell.",
           "ui": {
             "label": "Columns",
             "group": "layout",
@@ -12206,7 +12206,7 @@
         "fit": {
           "type": "boolean",
           "optional": true,
-          "description": "Pill tabs as wide as their labels.",
+          "description": "Each tab only as wide as its label.",
           "ui": {
             "label": "Fit the tabs",
             "group": "layout",
@@ -12283,7 +12283,8 @@
           "description": "Height of the rows' own scroll area, under a sticky header, e.g. 60vh.",
           "ui": {
             "label": "Max height",
-            "group": "appearance"
+            "group": "appearance",
+            "advanced": true
           }
         },
         "rowClick": {
@@ -12293,7 +12294,7 @@
             "double"
           ],
           "optional": true,
-          "description": "What runs a row's click action: a single or a double click.",
+          "description": "Whether a row opens with one click or two.",
           "ui": {
             "label": "Row click",
             "group": "features",
@@ -12424,7 +12425,8 @@
           "description": "A caret column opens a detail band under each row.",
           "ui": {
             "label": "Expandable rows",
-            "group": "features"
+            "group": "features",
+            "advanced": true
           }
         },
         "layout": {
@@ -12434,7 +12436,7 @@
             "compact"
           ],
           "optional": true,
-          "description": "Full dashboard grid, or the compact list of a settings page.",
+          "description": "Full for a page of its own, compact for a short list in a settings page.",
           "ui": {
             "label": "Layout",
             "group": "appearance",
@@ -12455,7 +12457,8 @@
           "description": "Key opening the search, as defineShortcuts names it (\"/\", \"shift_f\").",
           "ui": {
             "label": "Search shortcut",
-            "group": "features"
+            "group": "features",
+            "advanced": true
           }
         },
         "quickFilters": {
@@ -12547,7 +12550,7 @@
         "labelKey": {
           "type": "string",
           "optional": true,
-          "description": "Field naming a row in dialog titles.",
+          "description": "The column that names a row in the titles of its windows.",
           "ui": {
             "label": "Label field",
             "order": 2,
@@ -13182,7 +13185,8 @@
           "ui": {
             "label": "Pinned rows",
             "group": "data",
-            "widget": "json"
+            "widget": "json",
+            "advanced": true
           }
         },
         "queryParamFilters": {
@@ -13455,7 +13459,8 @@
           "ui": {
             "label": "Hold rows while paused",
             "group": "data",
-            "widget": "switch"
+            "widget": "switch",
+            "advanced": true
           }
         },
         "kanban": {
@@ -13729,7 +13734,7 @@
         "valueSuffix": {
           "type": "string",
           "optional": true,
-          "description": "Unit after each value, space included, e.g. \" ms\".",
+          "description": "Text after each value, such as \" ms\" (with its leading space).",
           "ui": {
             "label": "Value unit",
             "group": "appearance"
@@ -14055,7 +14060,7 @@
               },
               "to": {
                 "type": "string",
-                "description": "Route, `#anchor` or absolute URL.",
+                "description": "The page the button opens, or a web address.",
                 "ui": {
                   "label": "Link",
                   "widget": "url"
@@ -14105,7 +14110,7 @@
             }
           },
           "optional": true,
-          "description": "Link buttons in the card head.",
+          "description": "Buttons at the top of the card, each opening a page.",
           "ui": {
             "label": "Actions",
             "group": "content"
