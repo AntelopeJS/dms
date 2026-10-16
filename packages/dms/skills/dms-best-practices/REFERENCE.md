@@ -31,18 +31,19 @@ Nothing matches — a canvas, a map, a bespoke visualization — → a custom bl
 
 ## `PreviewBlocks` (dms-ai only)
 
-`PreviewBlocks({ title, description?, tree, reference?, variants? })` — non-blocking; it shows an attachment card in the chat, and a click opens a modal rendering the real blocks next to the reference image, one tab per variant. `tree` is one `PreviewNode` or a list: `{ type, options?, children? }`, children also taking `id`, `slot` and `colSpan`. Use `static*` options (`staticValue`, `staticDataset`, `staticItems`, `items`) so the preview shows data without a route; URL options must be relative paths. `TableView` and `ResourceForm` need a backend class and render as a notice — describe them in the question instead.
+`PreviewBlocks({ title, description?, label?, tree?, sketch?, reference?, variants?: [{ label, tree?, sketch? }] })` — non-blocking; it shows an attachment card in the chat, and a click opens a modal rendering the real blocks next to the reference image, one tab for the main view (named by `label`, default "Proposed") and one per variant. Every view needs a `tree`, a `sketch` or both (both are drawn side by side). `reference` is `{ attachmentId?, url?, caption? }`: `attachmentId` is the file name of an image the user attached in the conversation, or `"latest"`; `url` is a same-origin path. `tree` is one `PreviewNode` or a list: `{ type, options?, children? }`, children also taking `id`, `slot` and `colSpan`. Use `static*` options (`staticValue`, `staticDataset`, `staticItems`, `items`) so the preview shows data without a route; URL options must be relative paths. `TableView` and `ResourceForm` need a backend class and render as a notice — describe them in the question instead.
 
-A variant holds a `tree` (the DMS block with other options), a `sketch` (static HTML and CSS standing for the custom block you would build), or both, so the user compares it with the DMS option before any Vue exists. Keep a sketch to the element alone: static markup, images as `data:` URLs, and the `--sketch-*` theme variables the tool describes for colors, so it follows light and dark mode.
+A variant holds a `tree` (the DMS block with other options), a `sketch` (`{ html, css?, caption?, height? }`: static HTML and CSS standing for the custom block you would build, `height` in px from 80 to 1200, default 320), or both, so the user compares it with the DMS option before any Vue exists. Keep a sketch to the element alone: static markup with no script, event handler, `@import` or external URL (the tool refuses them with `invalid_sketch`), images as `data:` URLs, and the `--sketch-*` theme variables the tool describes for colors, so it follows light and dark mode.
 
 ```ts
 PreviewBlocks({
   title: "Revenue tile",
   description: "Your tile as a DMS KPI card, adjusted, and as a custom block",
+  label: "DMS KpiCard",
   tree: { type: "KpiCard", options: { title: "Revenue", valueFormat: "currency", currencyCode: "EUR",
     staticValue: 48200, staticDelta: 12.4, showDelta: true, showSparkline: true,
     staticSparkline: [31, 34, 33, 38, 41, 39, 44, 48] } },
-  reference: { attachmentId: "<the user's image attachment>", caption: "Your design" },
+  reference: { attachmentId: "latest", caption: "Your design" },
   variants: [
     { label: "DMS, compact", tree: { type: "KpiCard", options: { title: "Revenue", variant: "stat", staticValue: 48200 } } },
     { label: "Custom sketch", sketch: {

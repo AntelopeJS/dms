@@ -47,7 +47,7 @@ A custom block is a deviation, and you **propose** it: the user decides, after t
 Run this path before writing a `CustomComponent` or its Vue, one element at a time:
 
 1. **Search the catalog.** In dms-ai with the Builder loaded, `BuilderCatalog`; otherwise the block catalog of the DMS (`GET /api/block-preview/types` on a running instance, or `docs-data/blocks.json` of AntelopeJS/dms); otherwise the exports of `@antelopejs/interface-dms/base`. Try the block's options first, then a composition of blocks (`Card` + `KeyValueList`, `ChartCard` + a chart, `Grid` of `KpiCard`).
-2. **Show the comparison.** In dms-ai, call `PreviewBlocks` with the closest DMS option as `tree`, the user's mockup as `reference`, and a **sketch variant** of the custom block (`variants: [{ label, tree }, { label, sketch: { html, css?, caption? } }]`). Elsewhere, write the text table of [REFERENCE.md](REFERENCE.md).
+2. **Show the comparison.** In dms-ai, call `PreviewBlocks` with the closest DMS option as `tree`, the user's mockup as `reference`, and a **sketch variant** of the custom block (`label` naming the DMS tab, and `variants: [{ label, tree }, { label, sketch: { html, css?, caption?, height? } }]`). Elsewhere, write the text table of [REFERENCE.md](REFERENCE.md).
 3. **Ask.** One closed question (`AskUser` in dms-ai) with three options: *Keep the DMS block* / *Adjust it through its options* / *Build a custom block*.
 4. **Build.** On *Adjust*, change the block's options and preview again. Only on *Build a custom block*, build that block alone, under the rules above, with `.meta()`; the rest of the page stays blocks.
 
