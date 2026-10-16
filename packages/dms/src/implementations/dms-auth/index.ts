@@ -95,7 +95,7 @@ async function validateUserToken(
     throw new HTTPResult(HTTP_UNAUTHORIZED, getErrorMessage(error));
   }
 
-  recordUserActivity(userModel, user);
+  await recordUserActivity(userModel, user);
 
   if (checkEmailValidation) {
     const config = getAuthConfig();

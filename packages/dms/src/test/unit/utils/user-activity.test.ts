@@ -9,15 +9,10 @@ import {
 } from "../../../utils/user-activity";
 
 const NOW = new Date("2026-09-30T12:00:00.000Z");
-const SETTLE_MS = 50;
 const PASSWORD = "activity-test-password";
 
 function msBefore(date: Date, ms: number): Date {
   return new Date(date.getTime() - ms);
-}
-
-function settle(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, SETTLE_MS));
 }
 
 describe("[unit] utils/user-activity", () => {
@@ -69,8 +64,7 @@ describe("[unit] utils/user-activity", () => {
 
     it("stores the first activity of a user", async () => {
       const model = GetModel(UserModel);
-      recordUserActivity(model, user, NOW);
-      await settle();
+      await recordUserActivity(model, user, NOW);
       const stored = await model.get(user._id);
       expect(new Date(stored?.lastActiveAt ?? 0).getTime()).to.equal(
         NOW.getTime(),
@@ -81,21 +75,18 @@ describe("[unit] utils/user-activity", () => {
     // storage: recording activity must never cost the user their password.
     it("keeps the password verifiable", async () => {
       const model = GetModel(UserModel);
-      recordUserActivity(model, user, NOW);
-      await settle();
+      await recordUserActivity(model, user, NOW);
       const stored = await model.get(user._id);
       expect(stored?.testHash("password", PASSWORD)).to.equal(true);
     });
 
     it("skips the write while the last one is recent", async () => {
       const model = GetModel(UserModel);
-      recordUserActivity(model, user, NOW);
-      await settle();
+      await recordUserActivity(model, user, NOW);
       const soon = new Date(
         NOW.getTime() + USER_ACTIVITY_WRITE_INTERVAL_MS / 2,
       );
-      recordUserActivity(model, user, soon);
-      await settle();
+      await recordUserActivity(model, user, soon);
       const stored = await model.get(user._id);
       expect(new Date(stored?.lastActiveAt ?? 0).getTime()).to.equal(
         NOW.getTime(),
