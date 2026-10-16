@@ -5,6 +5,8 @@
  * scope, and a switch of account or workspace drops the previous session's
  * data instead of showing it under the new one.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   type App,
   createApp,
@@ -117,5 +119,59 @@ describe("the async data scope", () => {
 
     expect(browser.asyncData.size).toBe(0);
     expect(host.textContent).toBe("none");
+  });
+
+  it("is set before a higher-priority module's plugin reads at setup", async () => {
+    // How the DMS registers its scope plugin (dms.frontend.ts imports every
+    // layer, too much to set up here): before every other plugin.
+    const entry = readFileSync(resolve(__dirname, "../dms.frontend.ts"), "utf8");
+    expect(entry).toMatch(
+      /registerPlugin\(asyncDataScopePlugin, \{ enforce: "pre" \}\)/,
+    );
+
+    const read = vi.fn(async () => "sidecar running");
+    let status: { value: unknown } | undefined;
+    await engine.setupFrontendModules([
+      {
+        // dms-ai's assistant: of higher priority, it reads as it starts.
+        options: { public: {} },
+        module: {
+          setup(sdk) {
+            sdk.registerPlugin(() => {
+              status = engine.useDmsAsyncData("sidecar-info", read).data;
+            });
+          },
+        },
+      },
+      {
+        options: { public: {} },
+        module: {
+          setup(sdk) {
+            sdk.registerPlugin(
+asyncDataScopePlugin, { enforce: "pre" });
+          },
+        },
+      },
+    ]);
+    const browser = engine.createDmsFrontendRuntime(undefined, {});
+    const app = createApp(Root);
+    engine.provideDmsFrontendRuntime(app, browser);
+    app.runWithContext(() => {
+      engine.useDmsState("dms-session", () => null).value = ACCOUNT_A;
+    });
+    await engine.installDmsPlugins(
+      app,
+      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      browser,
+      async () => ({}),
+      ["en"],
+    );
+    await settle();
+
+    expect(read).toHaveBeenCalledOnce();
+    expect(status?.value).toBe("sidecar running");
+    expect([...browser.asyncData.keys()]).toEqual([
+      `${asyncDataScopeOf(ACCOUNT_A)}|sidecar-info`,
+    ]);
   });
 });

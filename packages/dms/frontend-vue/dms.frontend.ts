@@ -165,8 +165,10 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       await plugin.default(context);
     }, clientOnly);
   }
-  // Before any data is read: every key lives in the session's scope.
-  sdk.registerPlugin(asyncDataScopePlugin);
+  // Before any data is read, a higher-priority module's plugins included:
+  // every key lives in the session's scope, and a new scope aborts the reads
+  // started before it.
+  sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });
   // First: the requests the middlewares wait on start with the app, alongside
   // the ones the plugins below and the page make, instead of one after the
   // other once the page has set up.
