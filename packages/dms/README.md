@@ -47,6 +47,35 @@ pnpm build
 pnpm test
 ```
 
+## Block preview for documentation
+
+Set `docsPreview: true` in the module config, or `DMS_DOCS_PREVIEW=1` in the environment, to serve
+`/dms-preview`: a public, hidden page that renders a tree of registered blocks, for a documentation
+site to embed in an iframe. It is off by default; the playground turns it on.
+
+- `?state=<base64url(JSON)>` carries `{ tree, theme?, locale?, padding? }`, where `tree` is a node or
+  a list of nodes `{ type, options?, children? }` (`type` is a block registry type such as `KpiCard`).
+- The parent page posts `{ channel: "dms-preview", type: "render", tree, theme?, locale? }` or
+  `{ channel: "dms-preview", type: "theme", theme }`; the page answers `ready`, `resize` (with
+  `height`) and `error` (with `message`) on the same channel.
+- Only registered block types render. URL options must be paths of the site, data is only read
+  (`GET`), and a block built on a controller class renders only from a route
+  (`TableView.fromSource`); anything else shows an inline notice.
+
+Inside the dashboard, `<DmsBlockPreview :tree="node" />` renders the same tree, reading the allowed
+block types from `GET /api/block-preview/types` (signed-in members).
+
+Two scripts keep the documentation data in step with the code:
+
+```bash
+pnpm --dir packages/dms docs:catalog        # docs-data/blocks.json from ListBlockTypes(); CI runs docs:catalog:check
+pnpm --dir packages/dms docs:screenshots    # docs/images/blocks/<example>.<theme>.png from docs-data/examples.json
+```
+
+`docs:screenshots` drives a running DMS with the preview enabled (the playground, on
+`http://localhost:3001` unless `--base-url` or `DMS_PREVIEW_URL` says otherwise); `--only` and
+`--theme` narrow it.
+
 ## Third-party data
 
 The package ships the DB-IP IP to Country Lite database (`data/`) to tell which

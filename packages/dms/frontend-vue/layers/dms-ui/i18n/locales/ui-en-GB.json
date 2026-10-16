@@ -763,6 +763,14 @@
       "not_found_description": "The link points to an entry that was deleted, or that this list cannot show.",
       "failed_title": "This entry could not be opened",
       "failed_description": "Loading it failed. Try again in a moment."
+    },
+    "block_preview": {
+      "unknown_block": "“{name}” is not a registered block type.",
+      "needs_backend": "{name} reads a backend resource, which a preview does not have.",
+      "unsafe_url": "{name} was not drawn: “{value}” is not a path of this site.",
+      "invalid_state": "The preview state could not be read.",
+      "empty": "Nothing to preview yet.",
+      "unsafe_method": "{name} was not drawn: a preview only reads its data, and {value} writes."
     }
   }
 }
