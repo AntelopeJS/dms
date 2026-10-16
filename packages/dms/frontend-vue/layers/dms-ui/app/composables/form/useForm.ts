@@ -629,7 +629,10 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
       };
       return processBeforeStateMappers(fetchedData, props.fields, getDataType);
     } catch (error) {
-      showFetchErrorToast(error);
+      // A server render shows the failure in the form (FormLoadError) and
+      // hands it to the browser; a toast it added would show in its HTML
+      // alone, which the browser's toasts never hold.
+      if (!import.meta.env.SSR) showFetchErrorToast(error);
       throw error;
     }
   };
