@@ -1,6 +1,7 @@
 ---
 name: dms-module
-description: Packages a DISTRIBUTABLE DMS extension module (a reusable module other projects install, like the official dms-* modules — the package name itself is free). Use when creating a publishable DMS module, editing its package.json antelopeJs.implements manifest, registering it with RegisterModule, or defining the module's own AntelopeJS interface. For an app that just USES the DMS, see dms-project instead.
+description: Packages a distributable DMS extension module, one other projects install like the official dms-* modules. Use when creating a publishable DMS module, editing its package.json antelopeJs manifest (implements, skills), registering it with RegisterModule, or defining the module's own AntelopeJS interface package. For an app that only uses the DMS, use dms-project.
+icon: i-ph-package
 category: packaging
 tags: [module, packaging, distribution, interfaces, frontend, inertia]
 ---
@@ -13,7 +14,7 @@ tags: [module, packaging, distribution, interfaces, frontend, inertia]
 > The page/component/auth APIs are identical to a project; only the packaging differs.
 
 For the mental model see the **dms** skill; for the framework underneath
-(`ImplementInterface`, the `ajs` CLI) see the **antelopejs** plugin. A DMS module is an
+(`ImplementInterface`, the `ajs` CLI) see the **antelopejs** skill. A DMS module is an
 ordinary AntelopeJS module that (1) depends on **`@antelopejs/dms`**, (2) registers a
 module + pages on load, and (3) attaches a Vue 3 module via `AddFrontendModule` for any custom
 frontend. A consumer installs it and adds it to their `antelope.config.ts` as a
@@ -31,6 +32,11 @@ when they provide none (`dms-lang`, `dms-saas`); consumed interfaces are plain `
 (no manifest field). Typical dependencies: `@antelopejs/dms` plus
 `@antelopejs/interface-{core,api,api-util,auth,database,database-decorators}`. The frontend is
 attached at runtime by the `AddFrontendModule` call in `construct`; there is no manifest field for it.
+
+**Ship a skill.** Add `skills/<module-name>/SKILL.md` (frontmatter `name`, a trigger-rich
+`description`, `icon`, `category`, `tags`) saying when and how to use the module, list `"skills"` in
+`files`, and declare `"antelopeJs": { "skills": ["./skills"] }`. The **antelopejs** plugin links it into
+Claude Code and Codex projects and dms-ai loads it — `docs/08.ai-and-claude-code/7.module-skills.md`.
 
 ## The lifecycle entry (`src/index.ts`)
 
@@ -107,7 +113,7 @@ in a **project** page instead.
 
 - `pnpm build` compiles `src/` only (`tsc`) — Vue template/compile errors surface only in the
   running frontend. When a change doesn't show — or `RegisterModule` throws "already
-  registered" on rebuild — **full-restart via the dms-dev skill** (its pitfalls also cover
+  registered" on rebuild — **full-restart via the dms-project skill** (its pitfalls also cover
   stubbornly stale `~/.antelopejs/dms-frontend` workspaces).
 
 ## Scaffolding (no DMS-specific generator)

@@ -1,0 +1,2089 @@
+{
+  "ActivityFeed": {
+    "type": "ActivityFeed",
+    "options": {
+      "title": "Recent activity",
+      "items": [
+        {
+          "icon": "i-ph-user-plus",
+          "tone": "success",
+          "title": "Camille Martin joined the workspace",
+          "meta": ["Invited by Hugo"],
+          "date": "2026-10-14",
+          "time": "09:42"
+        },
+        {
+          "icon": "i-ph-receipt",
+          "tone": "primary",
+          "title": "Invoice INV-2048 paid",
+          "meta": ["€1,290.00", "Stripe"],
+          "date": "2026-10-14",
+          "time": "08:15"
+        },
+        {
+          "icon": "i-ph-warning",
+          "tone": "warning",
+          "title": "Storage at 82 %",
+          "detail": "Exports and attachments use 41 of 50 GB.",
+          "date": "2026-10-13",
+          "time": "17:03"
+        },
+        {
+          "icon": "i-ph-key",
+          "tone": "neutral",
+          "title": "API key “CI deploy” rotated",
+          "meta": ["By Lea"],
+          "date": "2026-10-13",
+          "time": "11:20"
+        }
+      ]
+    }
+  },
+  "Banner": {
+    "type": "Banner",
+    "options": {
+      "tone": "info",
+      "icon": "i-ph-info",
+      "title": "Scheduled maintenance on Sunday",
+      "description": "The dashboard stays read-only from 02:00 to 03:00 UTC while the database is upgraded.",
+      "actions": [
+        {
+          "label": "Read the notice",
+          "to": "/status",
+          "variant": "link"
+        }
+      ]
+    }
+  },
+  "Card": {
+    "type": "Card",
+    "options": {
+      "title": "Team",
+      "description": "Who can access the acme workspace.",
+      "count": 8,
+      "actions": [
+        {
+          "label": "Invite",
+          "to": "/settings/workspace/members",
+          "icon": "i-ph-user-plus"
+        }
+      ],
+      "footer": "2 invitations pending"
+    },
+    "children": [
+      {
+        "id": "members",
+        "type": "KeyValueList",
+        "options": {
+          "card": false,
+          "columns": 2,
+          "items": [
+            {
+              "label": "Owners",
+              "value": "2"
+            },
+            {
+              "label": "Admins",
+              "value": "3"
+            },
+            {
+              "label": "Members",
+              "value": "3"
+            },
+            {
+              "label": "Seats left",
+              "value": "2",
+              "tone": "success"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "ChartArea": {
+    "type": "ChartArea",
+    "options": {
+      "title": "Quarterly revenue",
+      "description": "Filled area under this year's revenue",
+      "staticDataset": [
+        {
+          "name": "2026",
+          "data": [
+            {
+              "x": "Q1",
+              "y": 12000
+            },
+            {
+              "x": "Q2",
+              "y": 18500
+            },
+            {
+              "x": "Q3",
+              "y": 14200
+            },
+            {
+              "x": "Q4",
+              "y": 22100
+            }
+          ]
+        }
+      ],
+      "fillOpacity": 0.4,
+      "height": "280px"
+    }
+  },
+  "ChartBar": {
+    "type": "ChartBar",
+    "options": {
+      "title": "Signups by month",
+      "description": "Horizontal bars",
+      "staticDataset": [
+        {
+          "name": "Signups",
+          "data": [
+            {
+              "x": "Apr",
+              "y": 452
+            },
+            {
+              "x": "May",
+              "y": 530
+            },
+            {
+              "x": "Jun",
+              "y": 498
+            },
+            {
+              "x": "Jul",
+              "y": 610
+            },
+            {
+              "x": "Aug",
+              "y": 672
+            },
+            {
+              "x": "Sep",
+              "y": 705
+            }
+          ]
+        }
+      ],
+      "orientation": "horizontal",
+      "roundedCorners": true,
+      "height": "280px"
+    }
+  },
+  "ChartCandlestick": {
+    "type": "ChartCandlestick",
+    "options": {
+      "title": "ACME share price",
+      "description": "Open, high, low and close per day",
+      "staticDataset": [
+        {
+          "name": "Price",
+          "data": [
+            {
+              "x": "Mon",
+              "y": [110, 118, 105, 115]
+            },
+            {
+              "x": "Tue",
+              "y": [115, 120, 112, 118]
+            },
+            {
+              "x": "Wed",
+              "y": [118, 119, 108, 110]
+            },
+            {
+              "x": "Thu",
+              "y": [110, 116, 109, 114]
+            },
+            {
+              "x": "Fri",
+              "y": [114, 124, 113, 122]
+            },
+            {
+              "x": "Sat",
+              "y": [122, 126, 117, 119]
+            },
+            {
+              "x": "Sun",
+              "y": [119, 123, 115, 121]
+            }
+          ]
+        }
+      ],
+      "height": "280px"
+    }
+  },
+  "ChartColumn": {
+    "type": "ChartColumn",
+    "options": {
+      "title": "Revenue per quarter",
+      "description": "This year against last year",
+      "staticDataset": [
+        {
+          "name": "2026",
+          "data": [
+            {
+              "x": "Q1",
+              "y": 12000
+            },
+            {
+              "x": "Q2",
+              "y": 18500
+            },
+            {
+              "x": "Q3",
+              "y": 14200
+            },
+            {
+              "x": "Q4",
+              "y": 22100
+            }
+          ]
+        },
+        {
+          "name": "2025",
+          "data": [
+            {
+              "x": "Q1",
+              "y": 9800
+            },
+            {
+              "x": "Q2",
+              "y": 16100
+            },
+            {
+              "x": "Q3",
+              "y": 13500
+            },
+            {
+              "x": "Q4",
+              "y": 19400
+            }
+          ]
+        }
+      ],
+      "roundedCorners": true,
+      "showLegend": true,
+      "legendPosition": "bottom",
+      "height": "280px"
+    }
+  },
+  "ChartDonut": {
+    "type": "ChartDonut",
+    "options": {
+      "title": "Traffic sources",
+      "staticDataset": [
+        {
+          "label": "Search",
+          "value": 6500
+        },
+        {
+          "label": "Direct",
+          "value": 4200
+        },
+        {
+          "label": "Social",
+          "value": 2100
+        },
+        {
+          "label": "Email",
+          "value": 1800
+        }
+      ],
+      "centralLabel": "Total",
+      "centralSubLabel": "Sessions",
+      "arcWidth": 30,
+      "showLegend": true,
+      "height": "280px"
+    }
+  },
+  "ChartHeatmap": {
+    "type": "ChartHeatmap",
+    "options": {
+      "title": "Load by hour",
+      "description": "Requests per hour slot, Monday to Friday",
+      "staticDataset": [
+        {
+          "name": "Mon",
+          "data": [
+            {
+              "x": "08h",
+              "y": 49
+            },
+            {
+              "x": "10h",
+              "y": 56
+            },
+            {
+              "x": "12h",
+              "y": 63
+            },
+            {
+              "x": "14h",
+              "y": 70
+            },
+            {
+              "x": "16h",
+              "y": 77
+            },
+            {
+              "x": "18h",
+              "y": 84
+            }
+          ]
+        },
+        {
+          "name": "Tue",
+          "data": [
+            {
+              "x": "08h",
+              "y": 98
+            },
+            {
+              "x": "10h",
+              "y": 12
+            },
+            {
+              "x": "12h",
+              "y": 26
+            },
+            {
+              "x": "14h",
+              "y": 40
+            },
+            {
+              "x": "16h",
+              "y": 54
+            },
+            {
+              "x": "18h",
+              "y": 68
+            }
+          ]
+        },
+        {
+          "name": "Wed",
+          "data": [
+            {
+              "x": "08h",
+              "y": 47
+            },
+            {
+              "x": "10h",
+              "y": 68
+            },
+            {
+              "x": "12h",
+              "y": 89
+            },
+            {
+              "x": "14h",
+              "y": 10
+            },
+            {
+              "x": "16h",
+              "y": 31
+            },
+            {
+              "x": "18h",
+              "y": 52
+            }
+          ]
+        },
+        {
+          "name": "Thu",
+          "data": [
+            {
+              "x": "08h",
+              "y": 96
+            },
+            {
+              "x": "10h",
+              "y": 24
+            },
+            {
+              "x": "12h",
+              "y": 52
+            },
+            {
+              "x": "14h",
+              "y": 80
+            },
+            {
+              "x": "16h",
+              "y": 8
+            },
+            {
+              "x": "18h",
+              "y": 36
+            }
+          ]
+        },
+        {
+          "name": "Fri",
+          "data": [
+            {
+              "x": "08h",
+              "y": 45
+            },
+            {
+              "x": "10h",
+              "y": 80
+            },
+            {
+              "x": "12h",
+              "y": 15
+            },
+            {
+              "x": "14h",
+              "y": 50
+            },
+            {
+              "x": "16h",
+              "y": 85
+            },
+            {
+              "x": "18h",
+              "y": 20
+            }
+          ]
+        }
+      ],
+      "color": "secondary",
+      "distributed": true,
+      "height": "280px"
+    }
+  },
+  "ChartLine": {
+    "type": "ChartLine",
+    "options": {
+      "title": "Quarterly revenue",
+      "description": "This year against last year",
+      "staticDataset": [
+        {
+          "name": "2026",
+          "data": [
+            {
+              "x": "Q1",
+              "y": 12000
+            },
+            {
+              "x": "Q2",
+              "y": 18500
+            },
+            {
+              "x": "Q3",
+              "y": 14200
+            },
+            {
+              "x": "Q4",
+              "y": 22100
+            }
+          ]
+        },
+        {
+          "name": "2025",
+          "data": [
+            {
+              "x": "Q1",
+              "y": 9800
+            },
+            {
+              "x": "Q2",
+              "y": 16100
+            },
+            {
+              "x": "Q3",
+              "y": 13500
+            },
+            {
+              "x": "Q4",
+              "y": 19400
+            }
+          ]
+        }
+      ],
+      "smooth": true,
+      "showLegend": true,
+      "legendPosition": "bottom",
+      "height": "280px"
+    }
+  },
+  "ChartMixed": {
+    "type": "ChartMixed",
+    "options": {
+      "title": "Latency",
+      "description": "p50 – p99 band with the p95 line",
+      "staticDataset": [
+        {
+          "name": "p50 – p99",
+          "type": "rangeArea",
+          "data": [
+            {
+              "x": "00:00",
+              "y": [42, 118]
+            },
+            {
+              "x": "02:00",
+              "y": [40, 110]
+            },
+            {
+              "x": "04:00",
+              "y": [38, 96]
+            },
+            {
+              "x": "06:00",
+              "y": [45, 130]
+            },
+            {
+              "x": "08:00",
+              "y": [61, 182]
+            },
+            {
+              "x": "10:00",
+              "y": [70, 210]
+            },
+            {
+              "x": "12:00",
+              "y": [74, 236]
+            },
+            {
+              "x": "14:00",
+              "y": [68, 205]
+            },
+            {
+              "x": "16:00",
+              "y": [72, 221]
+            },
+            {
+              "x": "18:00",
+              "y": [64, 190]
+            },
+            {
+              "x": "20:00",
+              "y": [52, 150]
+            },
+            {
+              "x": "22:00",
+              "y": [46, 126]
+            }
+          ]
+        },
+        {
+          "name": "p95",
+          "type": "line",
+          "data": [
+            {
+              "x": "00:00",
+              "y": 97
+            },
+            {
+              "x": "02:00",
+              "y": 90
+            },
+            {
+              "x": "04:00",
+              "y": 80
+            },
+            {
+              "x": "06:00",
+              "y": 106
+            },
+            {
+              "x": "08:00",
+              "y": 148
+            },
+            {
+              "x": "10:00",
+              "y": 171
+            },
+            {
+              "x": "12:00",
+              "y": 191
+            },
+            {
+              "x": "14:00",
+              "y": 167
+            },
+            {
+              "x": "16:00",
+              "y": 179
+            },
+            {
+              "x": "18:00",
+              "y": 155
+            },
+            {
+              "x": "20:00",
+              "y": 123
+            },
+            {
+              "x": "22:00",
+              "y": 104
+            }
+          ]
+        }
+      ],
+      "seriesDefs": [
+        {
+          "name": "p50 – p99",
+          "type": "rangeArea"
+        },
+        {
+          "name": "p95",
+          "type": "line"
+        }
+      ],
+      "color": ["secondary", "primary"],
+      "showLegend": true,
+      "legendPosition": "bottom",
+      "height": "280px"
+    }
+  },
+  "ChartPie": {
+    "type": "ChartPie",
+    "options": {
+      "title": "Plan mix",
+      "staticDataset": [
+        {
+          "label": "Starter",
+          "value": 540
+        },
+        {
+          "label": "Business",
+          "value": 310
+        },
+        {
+          "label": "Enterprise",
+          "value": 72
+        }
+      ],
+      "showLegend": true,
+      "height": "280px"
+    }
+  },
+  "ChartRadar": {
+    "type": "ChartRadar",
+    "options": {
+      "title": "Customer feedback",
+      "description": "Average score per topic, out of 10",
+      "staticDataset": [
+        {
+          "name": "Score",
+          "data": [
+            {
+              "x": "Speed",
+              "y": 8.4
+            },
+            {
+              "x": "Reliability",
+              "y": 9.1
+            },
+            {
+              "x": "Support",
+              "y": 7.2
+            },
+            {
+              "x": "Pricing",
+              "y": 6.5
+            },
+            {
+              "x": "Docs",
+              "y": 7.9
+            },
+            {
+              "x": "Integrations",
+              "y": 8.8
+            }
+          ]
+        }
+      ],
+      "fillOpacity": 0.25,
+      "color": "success",
+      "height": "280px"
+    }
+  },
+  "ChartRadialBar": {
+    "type": "ChartRadialBar",
+    "options": {
+      "title": "Quarter goals",
+      "description": "Share of each goal reached",
+      "staticDataset": [
+        {
+          "label": "Revenue",
+          "value": 82
+        },
+        {
+          "label": "Signups",
+          "value": 64
+        },
+        {
+          "label": "NPS",
+          "value": 91
+        }
+      ],
+      "showTotal": true,
+      "showLegend": true,
+      "height": "280px"
+    }
+  },
+  "ChartRangeArea": {
+    "type": "ChartRangeArea",
+    "options": {
+      "title": "Response time",
+      "description": "p50 to p99 band, in ms",
+      "staticDataset": [
+        {
+          "name": "p50 – p99",
+          "data": [
+            {
+              "x": "00:00",
+              "y": [42, 118]
+            },
+            {
+              "x": "02:00",
+              "y": [40, 110]
+            },
+            {
+              "x": "04:00",
+              "y": [38, 96]
+            },
+            {
+              "x": "06:00",
+              "y": [45, 130]
+            },
+            {
+              "x": "08:00",
+              "y": [61, 182]
+            },
+            {
+              "x": "10:00",
+              "y": [70, 210]
+            },
+            {
+              "x": "12:00",
+              "y": [74, 236]
+            },
+            {
+              "x": "14:00",
+              "y": [68, 205]
+            },
+            {
+              "x": "16:00",
+              "y": [72, 221]
+            },
+            {
+              "x": "18:00",
+              "y": [64, 190]
+            },
+            {
+              "x": "20:00",
+              "y": [52, 150]
+            },
+            {
+              "x": "22:00",
+              "y": [46, 126]
+            }
+          ]
+        }
+      ],
+      "fillOpacity": 0.25,
+      "height": "280px"
+    }
+  },
+  "ChartScatter": {
+    "type": "ChartScatter",
+    "options": {
+      "title": "Deals by age",
+      "description": "Days open against amount (k€)",
+      "staticDataset": [
+        {
+          "name": "Deals",
+          "data": [
+            {
+              "x": 3,
+              "y": 120,
+              "label": "Acme"
+            },
+            {
+              "x": 7,
+              "y": 340,
+              "label": "Globex"
+            },
+            {
+              "x": 12,
+              "y": 210,
+              "label": "Initech"
+            },
+            {
+              "x": 18,
+              "y": 460,
+              "label": "Umbrella"
+            },
+            {
+              "x": 25,
+              "y": 380,
+              "label": "Stark"
+            }
+          ]
+        }
+      ],
+      "xaxisType": "numeric",
+      "showLabels": true,
+      "pointSize": 8,
+      "yRange": {
+        "min": 0,
+        "max": 500
+      },
+      "color": "secondary",
+      "height": "280px"
+    }
+  },
+  "ChartCard": {
+    "type": "ChartCard",
+    "options": {
+      "title": "Sales",
+      "description": "Revenue of the last 30 days",
+      "icon": "i-ph-currency-eur",
+      "fetchUrl": "/api/dashboard/sales",
+      "valueFormat": "currency",
+      "currencyCode": "EUR"
+    },
+    "children": [
+      {
+        "id": "chart",
+        "type": "ChartArea",
+        "options": {
+          "xaxisType": "datetime",
+          "smooth": true
+        }
+      }
+    ]
+  },
+  "CodeBlock": {
+    "type": "CodeBlock",
+    "options": {
+      "title": "Create a webhook",
+      "language": "shell",
+      "code": "curl -X POST https://api.acme.io/v1/webhooks \\\n  -H \"Authorization: Bearer $ACME_TOKEN\" \\\n  -d url=https://example.com/hooks/acme \\\n  -d events=invoice.paid,invoice.failed",
+      "copy": true
+    }
+  },
+  "EmptyState": {
+    "type": "EmptyState",
+    "options": {
+      "variant": "no-data",
+      "icon": "i-ph-plugs",
+      "title": "No integration yet",
+      "description": "Connect a CRM or a billing provider to sync customers automatically.",
+      "actions": [
+        {
+          "label": "Browse integrations",
+          "to": "/settings/integrations",
+          "icon": "i-ph-plus"
+        }
+      ],
+      "card": true
+    }
+  },
+  "FieldRow": {
+    "type": "FieldRow",
+    "options": {
+      "label": "Billing email",
+      "description": "Invoices and payment reminders are sent here.",
+      "required": true,
+      "layout": "form"
+    },
+    "children": [
+      {
+        "id": "value",
+        "type": "KeyValueList",
+        "options": {
+          "card": false,
+          "items": [
+            {
+              "label": "Current",
+              "value": "billing@acme.io",
+              "copy": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "Form": {
+    "type": "Form",
+    "options": {
+      "title": "Workspace profile",
+      "description": "Shown on invoices and in emails sent to members.",
+      "submitLabel": "Save changes",
+      "fields": [
+        {
+          "id": "name",
+          "label": "Workspace name",
+          "component": {
+            "componentName": "dms-input-text",
+            "options": {
+              "placeholder": "Acme Inc."
+            },
+            "children": []
+          },
+          "type": "string"
+        },
+        {
+          "id": "email",
+          "label": "Billing email",
+          "description": "Invoices are sent here.",
+          "component": {
+            "componentName": "dms-input-email",
+            "options": {
+              "placeholder": "billing@acme.io"
+            },
+            "children": []
+          },
+          "type": "email"
+        },
+        {
+          "id": "plan",
+          "label": "Plan",
+          "component": {
+            "componentName": "dms-select",
+            "options": {
+              "items": [
+                {
+                  "label": "Starter",
+                  "value": "starter"
+                },
+                {
+                  "label": "Business",
+                  "value": "business"
+                },
+                {
+                  "label": "Enterprise",
+                  "value": "enterprise"
+                }
+              ]
+            },
+            "children": []
+          },
+          "type": "select"
+        },
+        {
+          "id": "notifications",
+          "label": "Weekly summary",
+          "description": "A digest of activity every Monday.",
+          "component": {
+            "componentName": "dms-switch",
+            "options": {},
+            "children": []
+          },
+          "type": "boolean"
+        }
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": ["string", "null"]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["starter", "business", "enterprise"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notifications": {
+            "type": ["boolean", "null"]
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  },
+  "Grid": {
+    "type": "Grid",
+    "options": {
+      "gap": "1rem",
+      "minColumnWidth": "200px"
+    },
+    "width": 960,
+    "children": [
+      {
+        "id": "row",
+        "type": "GridRow",
+        "children": [
+          {
+            "id": "revenue",
+            "type": "KpiCard",
+            "options": {
+              "title": "Revenue",
+              "icon": "i-ph-currency-eur",
+              "staticValue": 48210,
+              "staticDelta": 12.4,
+              "valueFormat": "currency",
+              "currencyCode": "EUR"
+            }
+          },
+          {
+            "id": "orders",
+            "type": "KpiCard",
+            "options": {
+              "title": "Orders",
+              "icon": "i-ph-shopping-cart",
+              "staticValue": 1284,
+              "staticDelta": 6.1,
+              "valueFormat": "number"
+            }
+          },
+          {
+            "id": "churn",
+            "type": "KpiCard",
+            "options": {
+              "title": "Churn",
+              "icon": "i-ph-user-minus",
+              "staticValue": 2.3,
+              "staticDelta": -0.4,
+              "valueFormat": "percent",
+              "invert": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "GridRow": {
+    "type": "Grid",
+    "options": {
+      "gap": "1rem",
+      "minColumnWidth": "200px"
+    },
+    "width": 960,
+    "children": [
+      {
+        "id": "row",
+        "type": "GridRow",
+        "children": [
+          {
+            "id": "wide",
+            "colSpan": 2,
+            "type": "Banner",
+            "options": {
+              "tone": "success",
+              "icon": "i-ph-check-circle",
+              "title": "All systems operational",
+              "description": "A GridRow child spanning two columns."
+            }
+          },
+          {
+            "id": "uptime",
+            "type": "KpiCard",
+            "options": {
+              "title": "Uptime",
+              "icon": "i-ph-heartbeat",
+              "staticValue": 99.98,
+              "staticDelta": 0.02,
+              "valueFormat": "percent"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "Guard": {
+    "type": "Guard",
+    "options": {
+      "fetchUrl": "/api/blocks/guard/records/r1",
+      "when": "notFound"
+    },
+    "children": [
+      {
+        "id": "facts",
+        "type": "KeyValueList",
+        "options": {
+          "title": "Customer",
+          "fetchUrl": "/api/blocks/guard/records/r1/facts"
+        }
+      }
+    ]
+  },
+  "HStack": {
+    "type": "HStack",
+    "options": {
+      "alignment": "center",
+      "distribution": "space-between",
+      "spacing": "1rem"
+    },
+    "width": 960,
+    "children": [
+      {
+        "id": "selector",
+        "type": "PeriodSelector",
+        "options": {
+          "id": "hstack-period",
+          "variant": "segmented",
+          "defaultPreset": "last-7-days",
+          "presets": ["today", "last-7-days", "last-30-days"],
+          "comparisonControl": "hidden"
+        }
+      },
+      {
+        "id": "live",
+        "type": "LiveToggle",
+        "options": {
+          "variant": "pill"
+        }
+      }
+    ]
+  },
+  "KeyValueList": {
+    "type": "KeyValueList",
+    "options": {
+      "title": "Subscription",
+      "columns": 2,
+      "items": [
+        {
+          "label": "Plan",
+          "value": "Business",
+          "type": "status",
+          "tone": "primary"
+        },
+        {
+          "label": "Amount",
+          "value": 129,
+          "type": "money",
+          "currency": "EUR",
+          "detail": "per month"
+        },
+        {
+          "label": "Renews on",
+          "value": "2026-11-01",
+          "type": "date"
+        },
+        {
+          "label": "Customer ID",
+          "value": "cus_Q3k9LmX2",
+          "type": "mono",
+          "copy": true
+        }
+      ]
+    }
+  },
+  "KpiCard": {
+    "type": "KpiCard",
+    "options": {
+      "title": "Monthly revenue",
+      "icon": "i-ph-currency-eur",
+      "staticValue": 48210,
+      "staticDelta": 12.4,
+      "valueFormat": "currency",
+      "currencyCode": "EUR",
+      "compareLabel": "vs last month",
+      "showSparkline": true,
+      "staticSparkline": [31, 34, 33, 38, 41, 40, 44, 48]
+    }
+  },
+  "Meter": {
+    "type": "Meter",
+    "options": {
+      "label": "Storage",
+      "hint": "Files, images and exports",
+      "value": 38.2,
+      "max": 50,
+      "valueLabel": "38.2 / 50 GB",
+      "warnAt": 75,
+      "errorAt": 95,
+      "card": true,
+      "actions": [
+        {
+          "label": "Upgrade",
+          "to": "/settings/billing"
+        }
+      ]
+    }
+  },
+  "NavCardGrid": {
+    "type": "NavCardGrid",
+    "options": {
+      "title": "Settings",
+      "description": "Everything about the acme workspace.",
+      "columns": 3,
+      "items": [
+        {
+          "title": "Members",
+          "description": "Invite people and manage roles.",
+          "icon": "i-ph-users",
+          "to": "/settings/workspace/members",
+          "state": "8 members"
+        },
+        {
+          "title": "Billing",
+          "description": "Plan, invoices and payment method.",
+          "icon": "i-ph-credit-card",
+          "to": "/settings/billing",
+          "state": "Business",
+          "stateTone": "primary"
+        },
+        {
+          "title": "Security",
+          "description": "Two-factor, sessions and SSO.",
+          "icon": "i-ph-shield-check",
+          "iconTone": "success",
+          "to": "/settings/security",
+          "state": "2FA on",
+          "stateTone": "success"
+        }
+      ]
+    },
+    "width": 960
+  },
+  "PeriodSelector": {
+    "type": "PeriodSelector",
+    "options": {
+      "id": "docs-period",
+      "defaultPreset": "last-30-days",
+      "defaultComparison": "previous-period",
+      "presets": [
+        "today",
+        "last-7-days",
+        "last-30-days",
+        "this-quarter",
+        "ytd"
+      ],
+      "showRangeLabel": true
+    }
+  },
+  "Placeholder": {
+    "type": "Placeholder",
+    "options": {
+      "label": "Chart coming soon",
+      "height": "160px"
+    }
+  },
+  "Section": {
+    "type": "Section",
+    "options": {
+      "title": "Plan & usage",
+      "description": "Seats and storage of the acme workspace."
+    },
+    "children": [
+      {
+        "id": "seats",
+        "type": "FieldRow",
+        "options": {
+          "label": "Seats",
+          "description": "Billed monthly, per active member.",
+          "layout": "form"
+        },
+        "children": [
+          {
+            "id": "meter",
+            "type": "Meter",
+            "options": {
+              "max": 10,
+              "hint": "8 in use · 2 free",
+              "segments": [
+                {
+                  "value": 6,
+                  "label": "6 members"
+                },
+                {
+                  "value": 2,
+                  "tone": "soft",
+                  "label": "2 pending invites"
+                }
+              ],
+              "legend": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "storage",
+        "type": "FieldRow",
+        "options": {
+          "label": "Storage",
+          "description": "Files, images and exports.",
+          "layout": "form"
+        },
+        "children": [
+          {
+            "id": "meter",
+            "type": "Meter",
+            "options": {
+              "value": 38.2,
+              "max": 50,
+              "valueLabel": "38.2 / 50 GB",
+              "warnAt": 75,
+              "errorAt": 95
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "Spacer": {
+    "type": "HStack",
+    "options": {
+      "alignment": "center",
+      "spacing": "0.75rem"
+    },
+    "children": [
+      {
+        "id": "title",
+        "type": "Banner",
+        "options": {
+          "size": "sm",
+          "tone": "info",
+          "title": "Left"
+        }
+      },
+      {
+        "id": "spacer",
+        "type": "Spacer",
+        "options": {
+          "grow": 1
+        }
+      },
+      {
+        "id": "right",
+        "type": "Banner",
+        "options": {
+          "size": "sm",
+          "tone": "success",
+          "title": "Pushed right by a Spacer"
+        }
+      }
+    ]
+  },
+  "StatGroup": {
+    "type": "StatGroup",
+    "options": {
+      "items": [
+        {
+          "icon": "i-ph-users",
+          "eyebrow": "Members",
+          "value": 8,
+          "detail": "2 pending"
+        },
+        {
+          "icon": "i-ph-shopping-cart",
+          "eyebrow": "Orders",
+          "value": 1284,
+          "detail": "+86 this week",
+          "detailTone": "success"
+        },
+        {
+          "icon": "i-ph-warning",
+          "tone": "warning",
+          "eyebrow": "Overdue",
+          "value": 3,
+          "detail": "€4,120 outstanding"
+        }
+      ]
+    },
+    "width": 960
+  },
+  "Tab": {
+    "type": "Tab",
+    "options": {
+      "items": [
+        {
+          "label": "Overview",
+          "icon": "i-ph-info",
+          "slot": "overview"
+        },
+        {
+          "label": "Members",
+          "icon": "i-ph-users",
+          "slot": "members",
+          "badge": 8
+        },
+        {
+          "label": "Invoices",
+          "icon": "i-ph-receipt",
+          "slot": "invoices"
+        }
+      ]
+    },
+    "children": [
+      {
+        "id": "overview",
+        "slot": "overview",
+        "type": "KeyValueList",
+        "options": {
+          "title": "Subscription",
+          "columns": 2,
+          "items": [
+            {
+              "label": "Plan",
+              "value": "Business",
+              "type": "status",
+              "tone": "primary"
+            },
+            {
+              "label": "Amount",
+              "value": 129,
+              "type": "money",
+              "currency": "EUR",
+              "detail": "per month"
+            },
+            {
+              "label": "Renews on",
+              "value": "2026-11-01",
+              "type": "date"
+            },
+            {
+              "label": "Customer ID",
+              "value": "cus_Q3k9LmX2",
+              "type": "mono",
+              "copy": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "members",
+        "slot": "members",
+        "type": "EmptyState",
+        "options": {
+          "title": "Members",
+          "variant": "no-data"
+        }
+      },
+      {
+        "id": "invoices",
+        "slot": "invoices",
+        "type": "EmptyState",
+        "options": {
+          "title": "Invoices",
+          "variant": "no-data"
+        }
+      }
+    ]
+  },
+  "TopListCard": {
+    "type": "TopListCard",
+    "options": {
+      "title": "Top products",
+      "description": "Revenue over the last 30 days",
+      "valueFormat": "currency",
+      "currencyCode": "EUR",
+      "showRank": true,
+      "showBar": true,
+      "showDelta": true,
+      "staticItems": [
+        {
+          "id": "pro",
+          "title": "Pro plan",
+          "description": "Monthly",
+          "value": 18420,
+          "delta": 8.2
+        },
+        {
+          "id": "team",
+          "title": "Team plan",
+          "description": "Yearly",
+          "value": 12960,
+          "delta": 3.1
+        },
+        {
+          "id": "addon",
+          "title": "Extra storage",
+          "description": "Add-on",
+          "value": 4310,
+          "delta": -2.4
+        },
+        {
+          "id": "support",
+          "title": "Priority support",
+          "description": "Add-on",
+          "value": 2180,
+          "delta": 12.7
+        }
+      ]
+    }
+  },
+  "VStack": {
+    "type": "VStack",
+    "options": {
+      "spacing": "1rem",
+      "alignment": "stretch"
+    },
+    "children": [
+      {
+        "id": "banner",
+        "type": "Banner",
+        "options": {
+          "size": "sm",
+          "tone": "warning",
+          "icon": "i-ph-warning",
+          "title": "Card expires next month"
+        }
+      },
+      {
+        "id": "kpi",
+        "type": "KpiCard",
+        "options": {
+          "title": "Outstanding",
+          "icon": "i-ph-receipt",
+          "staticValue": 4120,
+          "staticDelta": -12.0,
+          "valueFormat": "currency",
+          "currencyCode": "EUR",
+          "invert": true
+        }
+      }
+    ]
+  },
+  "TableView": {
+    "type": "TableView",
+    "options": {
+      "location": "/api/playground/request-log-server",
+      "columns": [
+        {
+          "id": "method",
+          "header": "Method",
+          "type": {
+            "id": "select",
+            "compareModes": ["is", "is_not", "is_empty", "is_not_empty"],
+            "defaultCompareMode": "is",
+            "filterComponents": {
+              "default": {
+                "componentName": "dms-select",
+                "options": {
+                  "items": [
+                    {
+                      "label": "GET",
+                      "value": "GET"
+                    },
+                    {
+                      "label": "POST",
+                      "value": "POST"
+                    },
+                    {
+                      "label": "PUT",
+                      "value": "PUT"
+                    },
+                    {
+                      "label": "DELETE",
+                      "value": "DELETE"
+                    }
+                  ]
+                },
+                "children": []
+              },
+              "is_empty": "noInput",
+              "is_not_empty": "noInput"
+            },
+            "inputComponent": {
+              "componentName": "dms-select",
+              "options": {
+                "items": [
+                  {
+                    "label": "GET",
+                    "value": "GET"
+                  },
+                  {
+                    "label": "POST",
+                    "value": "POST"
+                  },
+                  {
+                    "label": "PUT",
+                    "value": "PUT"
+                  },
+                  {
+                    "label": "DELETE",
+                    "value": "DELETE"
+                  }
+                ]
+              },
+              "children": []
+            }
+          },
+          "accessorKey": "method",
+          "listable": true,
+          "enableSorting": true,
+          "enableColumnFilter": true,
+          "size": 100,
+          "readonlyBehavior": "default"
+        },
+        {
+          "id": "path",
+          "header": "Path",
+          "type": {
+            "id": "string",
+            "compareModes": [
+              "is",
+              "is_not",
+              "contains",
+              "not_contains",
+              "is_empty",
+              "is_not_empty"
+            ],
+            "defaultCompareMode": "contains",
+            "filterComponents": {
+              "default": {
+                "componentName": "dms-input-text",
+                "options": {},
+                "children": []
+              },
+              "is_empty": "noInput",
+              "is_not_empty": "noInput"
+            },
+            "inputComponent": {
+              "componentName": "dms-input-text",
+              "options": {},
+              "children": []
+            }
+          },
+          "accessorKey": "path",
+          "listable": true,
+          "enableSorting": true,
+          "enableColumnFilter": false,
+          "size": 260,
+          "display": {
+            "type": "mono",
+            "options": {}
+          },
+          "readonlyBehavior": "default"
+        },
+        {
+          "id": "status",
+          "header": "Status",
+          "type": {
+            "id": "number",
+            "compareModes": [
+              "is",
+              "is_not",
+              "greater_than",
+              "greater_than_or_equal_to",
+              "less_than",
+              "less_than_or_equal_to",
+              "is_empty",
+              "is_not_empty"
+            ],
+            "defaultCompareMode": "is",
+            "filterComponents": {
+              "default": {
+                "componentName": "dms-input-number",
+                "options": {},
+                "children": []
+              },
+              "is_empty": "noInput",
+              "is_not_empty": "noInput"
+            },
+            "inputComponent": {
+              "componentName": "dms-input-number",
+              "options": {},
+              "children": []
+            }
+          },
+          "accessorKey": "status",
+          "listable": true,
+          "enableSorting": true,
+          "enableColumnFilter": false,
+          "size": 110,
+          "display": {
+            "type": "status_pill",
+            "options": {
+              "toneField": "statusTone"
+            }
+          },
+          "readonlyBehavior": "default"
+        },
+        {
+          "id": "durationMs",
+          "header": "Duration",
+          "type": {
+            "id": "number",
+            "compareModes": [
+              "is",
+              "is_not",
+              "greater_than",
+              "greater_than_or_equal_to",
+              "less_than",
+              "less_than_or_equal_to",
+              "is_empty",
+              "is_not_empty"
+            ],
+            "defaultCompareMode": "is",
+            "filterComponents": {
+              "default": {
+                "componentName": "dms-input-number",
+                "options": {},
+                "children": []
+              },
+              "is_empty": "noInput",
+              "is_not_empty": "noInput"
+            },
+            "inputComponent": {
+              "componentName": "dms-input-number",
+              "options": {},
+              "children": []
+            }
+          },
+          "accessorKey": "durationMs",
+          "listable": true,
+          "enableSorting": true,
+          "enableColumnFilter": false,
+          "size": 120,
+          "display": {
+            "type": "duration",
+            "options": {
+              "format": "ms",
+              "toneField": "durationTone"
+            }
+          },
+          "readonlyBehavior": "default"
+        },
+        {
+          "id": "at",
+          "header": "Time",
+          "type": {
+            "id": "date",
+            "compareModes": [
+              "is",
+              "less_than",
+              "greater_than",
+              "is_between",
+              "is_empty",
+              "is_not_empty"
+            ],
+            "defaultCompareMode": "is",
+            "filterComponents": {
+              "default": {
+                "componentName": "dms-date-picker",
+                "options": {},
+                "children": []
+              },
+              "is_between": {
+                "componentName": "dms-date-picker-range",
+                "options": {},
+                "children": []
+              },
+              "is_empty": "noInput",
+              "is_not_empty": "noInput"
+            },
+            "inputComponent": {
+              "componentName": "dms-date-picker",
+              "options": {},
+              "children": []
+            }
+          },
+          "accessorKey": "at",
+          "listable": true,
+          "enableSorting": true,
+          "enableColumnFilter": false,
+          "display": {
+            "type": "relative_date"
+          },
+          "readonlyBehavior": "default"
+        }
+      ],
+      "source": {
+        "fetchUrl": "/api/playground/request-log-server",
+        "capabilities": {
+          "filter": true,
+          "search": true,
+          "sort": true,
+          "paginate": true
+        }
+      },
+      "rowActions": {
+        "delete": false,
+        "duplicate": false,
+        "details": false,
+        "edit": false,
+        "copyLink": false,
+        "add": false
+      },
+      "rowIdKey": "requestId",
+      "labelKey": "path",
+      "caption": "Requests",
+      "pageSize": 6,
+      "searchable": true,
+      "searchPlaceholder": "Search a method or a path",
+      "quickFilters": [
+        {
+          "field": "method",
+          "allLabel": "Any method"
+        }
+      ],
+      "displays": [
+        {
+          "id": "table"
+        }
+      ],
+      "defaultSort": {
+        "field": "at",
+        "desc": true
+      },
+      "enableTableExport": false,
+      "realtime": false,
+      "formComponents": {}
+    },
+    "width": 1100
+  },
+  "ResourceForm": {
+    "type": "Form",
+    "options": {
+      "title": "Edit workspace",
+      "description": "A ResourceForm draws this same form from a resource's fields, reading and saving the row through its controller.",
+      "submitLabel": "Save changes",
+      "fields": [
+        {
+          "id": "name",
+          "label": "Workspace name",
+          "component": {
+            "componentName": "dms-input-text",
+            "options": {
+              "placeholder": "Acme Inc."
+            },
+            "children": []
+          },
+          "type": "string"
+        },
+        {
+          "id": "email",
+          "label": "Billing email",
+          "description": "Invoices are sent here.",
+          "component": {
+            "componentName": "dms-input-email",
+            "options": {
+              "placeholder": "billing@acme.io"
+            },
+            "children": []
+          },
+          "type": "email"
+        },
+        {
+          "id": "plan",
+          "label": "Plan",
+          "component": {
+            "componentName": "dms-select",
+            "options": {
+              "items": [
+                {
+                  "label": "Starter",
+                  "value": "starter"
+                },
+                {
+                  "label": "Business",
+                  "value": "business"
+                },
+                {
+                  "label": "Enterprise",
+                  "value": "enterprise"
+                }
+              ]
+            },
+            "children": []
+          },
+          "type": "select"
+        },
+        {
+          "id": "notifications",
+          "label": "Weekly summary",
+          "description": "A digest of activity every Monday.",
+          "component": {
+            "componentName": "dms-switch",
+            "options": {},
+            "children": []
+          },
+          "type": "boolean"
+        }
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": ["string", "null"]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["starter", "business", "enterprise"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notifications": {
+            "type": ["boolean", "null"]
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  },
+  "LiveToggle": {
+    "type": "LiveToggle",
+    "options": {
+      "align": "left"
+    }
+  },
+  "live-toggle-pill": {
+    "type": "LiveToggle",
+    "options": {
+      "variant": "pill",
+      "align": "left"
+    }
+  },
+  "kpi-card-stat": {
+    "type": "KpiCard",
+    "options": {
+      "title": "Active users",
+      "icon": "i-ph-users",
+      "staticValue": 1832,
+      "staticDelta": 4.6,
+      "valueFormat": "number",
+      "variant": "stat"
+    }
+  },
+  "banner-warning": {
+    "type": "Banner",
+    "options": {
+      "tone": "warning",
+      "icon": "i-ph-warning",
+      "title": "Your trial ends in 3 days",
+      "description": "Pick a plan to keep your data and members.",
+      "actions": [
+        {
+          "label": "Choose a plan",
+          "to": "/settings/billing",
+          "variant": "solid"
+        }
+      ]
+    }
+  },
+  "empty-state-no-access": {
+    "type": "EmptyState",
+    "options": {
+      "variant": "no-access",
+      "title": "You can't see this report",
+      "description": "Ask a workspace owner for the Finance role.",
+      "card": true
+    }
+  },
+  "guard-fallback": {
+    "type": "Guard",
+    "options": {
+      "fetchUrl": "/api/blocks/guard/alerts",
+      "when": "empty",
+      "fallback": {
+        "title": "No open alert",
+        "description": "Alerts show here when a monitor fails.",
+        "icon": "i-ph-bell-simple"
+      }
+    },
+    "children": [
+      {
+        "id": "stats",
+        "type": "StatGroup",
+        "options": {
+          "items": [
+            {
+              "eyebrow": "Open alerts",
+              "value": 3,
+              "tone": "error"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "stat-group-cards": {
+    "type": "StatGroup",
+    "options": {
+      "items": [
+        {
+          "icon": "i-ph-users",
+          "eyebrow": "Members",
+          "value": 8,
+          "detail": "2 pending"
+        },
+        {
+          "icon": "i-ph-shopping-cart",
+          "eyebrow": "Orders",
+          "value": 1284,
+          "detail": "+86 this week",
+          "detailTone": "success"
+        },
+        {
+          "icon": "i-ph-warning",
+          "tone": "warning",
+          "eyebrow": "Overdue",
+          "value": 3,
+          "detail": "€4,120 outstanding"
+        }
+      ],
+      "layout": "cards"
+    },
+    "width": 960
+  },
+  "chart-card-donut": {
+    "type": "ChartCard",
+    "options": {
+      "title": "Channels",
+      "description": "Sessions per channel",
+      "icon": "i-ph-chart-donut",
+      "fetchUrl": "/api/dashboard/cards/channels",
+      "valueFormat": "number",
+      "showDelta": false
+    },
+    "children": [
+      {
+        "id": "chart",
+        "type": "ChartDonut",
+        "options": {
+          "centralLabel": "Sessions",
+          "arcWidth": 30
+        }
+      }
+    ]
+  },
+  "period-selector-segmented": {
+    "type": "PeriodSelector",
+    "options": {
+      "id": "docs-period-segmented",
+      "variant": "segmented",
+      "defaultPreset": "last-7-days",
+      "presets": ["today", "last-7-days", "last-30-days"],
+      "comparisonControl": "hidden"
+    }
+  }
+}
