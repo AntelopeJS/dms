@@ -1214,10 +1214,7 @@ const refreshAll = async () => {
 // block's action): a topic of the backend or a page refresh reads them again,
 // keeping the current rows on screen until the answer lands. On a live page
 // the row events below go through the same gate.
-const liveGate = useRefreshTriggers(
-  props.realtimeTopic,
-  () => void refreshAll(),
-);
+const liveGate = useRefreshTriggers(props.realtimeTopic, () => refreshAll());
 // What the user asks for (a row action, the refresh button, ⌘R, a display's
 // own action) reads at once, even while the live page is paused, and brings
 // a held table up to date.

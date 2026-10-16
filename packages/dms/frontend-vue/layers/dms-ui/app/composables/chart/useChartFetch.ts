@@ -1,6 +1,8 @@
 import {
   computed,
+  getCurrentScope,
   onMounted,
+  onScopeDispose,
   ref,
   shallowRef,
   watch,
@@ -157,6 +159,40 @@ function useScopeWait(isWaiting: () => boolean): ComputedRef<boolean> {
   return computed(() => isWaiting() && !gaveUp.value);
 }
 
+function useDebouncedRefresh(
+  refresh: () => Promise<unknown>,
+  isPending: () => boolean,
+): () => Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let waiting: Promise<void> | null = null;
+  let resolveWaiting = () => {};
+  const finish = () => {
+    resolveWaiting();
+    waiting = null;
+  };
+  const finishIfSettled = () => {
+    if (!timer && !isPending()) finish();
+  };
+  watch(isPending, finishIfSettled);
+  if (getCurrentScope())
+    onScopeDispose(() => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      finish();
+    });
+  return () => {
+    if (timer) clearTimeout(timer);
+    waiting ??= new Promise<void>((resolve) => (resolveWaiting = resolve));
+    timer = setTimeout(() => {
+      timer = null;
+      // Cancellation ends one execution, not the refresh its callers await.
+      // Keep waiting while a replacement read is pending.
+      void refresh().then(finishIfSettled, finishIfSettled);
+    }, DEBOUNCE_FRAME_MS);
+    return waiting;
+  };
+}
+
 /**
  * The data of a block that reads `fetchUrl`, through `useApiData`: a server
  * render requests it and hands it to the browser, unless the URL waits for a
@@ -220,14 +256,14 @@ export function useChartFetch<T>(
   // A realtime event or a page refresh (refreshPageBlocks) means the data
   // behind unchanged inputs moved: read again once a burst holds still. The
   // values on screen stay current until the new answer replaces them.
-  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-  useRefreshTriggers(options.realtimeTopic, () => {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => {
-      refreshTimer = null;
-      void loaded.refresh();
-    }, DEBOUNCE_FRAME_MS);
-  });
+  // `refreshPageBlocks()` waits for the read the burst ends with.
+  useRefreshTriggers(
+    options.realtimeTopic,
+    useDebouncedRefresh(
+      () => loaded.refresh(),
+      () => status.value === "pending",
+    ),
+  );
   return { data: data as Ref<T | null>, isLoading, error, refresh };
 }
 
