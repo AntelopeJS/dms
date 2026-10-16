@@ -15,6 +15,11 @@ Owns the dev-server lifecycle for an AntelopeJS DMS project. Ships with the
 resolve the project path. For authoring see the sibling **dms**, **dms-module**,
 **dms-pages**, and **dms-auth** skills.
 
+This skill only runs the two dev servers. For the `ajs dms` CLI itself (every command and
+flag, `.env` loading, workspaces, `verify-source`), a frontend module's files
+(`dms.frontend.ts`, `dms.server.ts`, `dms.frontend.build.ts`) and building or deploying the
+frontend server, use the **dms-frontend** skill shipped by `@antelopejs/dms-frontend`.
+
 ## Never from inside the DMS
 
 An agent that runs inside the DMS -- the dms-ai assistant, whose sidecar the backend
@@ -36,7 +41,7 @@ script is for local shells, not managed orbs: its processes do not survive orb u
 The DMS has two coupled processes, both started from the DMS backend package directory:
 
 - **Backend**: the AntelopeJS project — `ajs project dev -w` (`ajs project run` is the legacy alias). Ready when the log emits `Server started, listening on <url>`; the real endpoint is recorded in the project's `.antelope/dev.json` (`servers.api.endpoints`), `http://localhost:5010` by default.
-- **Frontend**: the `@antelopejs/dms-frontend` loader — `ajs dms dev`. It auto-discovers the running backend via `.antelope/dev.json`, so `-b <backend-url>` is optional. Ready when the log emits `Server ready on <url>` (`http://localhost:3001` by default).
+- **Frontend**: the `@antelopejs/dms-frontend` loader — `ajs dms dev`. It auto-discovers the running backend via `.antelope/dev.json`, so `-b <backend-url>` is optional. Ready when the log prints `Dev server ready` and its `Local: <url>` line (`http://localhost:3001` by default; loaders before 0.6 printed `Server ready on <url>`).
 
 By default the script runs each via the project's `pnpm dev` / `pnpm frontend:dev` scripts — a convention our playground projects adopt that expands to the two commands above. Those script names aren't shipped by the DMS, so if a project starts its servers differently, override the actual commands with the `DMS_BACK_CMD` / `DMS_FRONT_CMD` env vars (the script reads them; readiness detection and process cleanup already cover `ajs`, `ajs dms`, and the loader's Node entry point directly).
 
@@ -98,7 +103,7 @@ The script writes the long-running server logs to `/tmp/dms-back.log` and `/tmp/
 - The user says "restart the dms", "restart servers", "reload", or "test it now". Run `restart` -- unless you run inside the DMS, in which case say so and let the user restart.
 - A browser smoke test fails in a way that looks like stale state. Run `restart` before diagnosing.
 - The user asks "is the dms running?". Run `status`.
-- A boot fails (backend never prints "Server started" or frontend never prints "Server ready on"). Print the relevant `back-log` / `front-log` tail to diagnose; common causes include `RegisterModule … already registered` (a previous stop failed — run `stop` then `restart`), port already in use (kill the listed PID), or a missing dependency (run `pnpm install` in the offending module).
+- A boot fails (backend never prints "Server started" or frontend never prints its `Local:` URL). Print the relevant `back-log` / `front-log` tail to diagnose; common causes include `RegisterModule … already registered` (a previous stop failed — run `stop` then `restart`), port already in use (kill the listed PID), or a missing dependency (run `pnpm install` in the offending module).
 - **You are handing off to the user for manual testing** (e.g. a plan phase whose acceptance criterion is "user verifies in browser"). Run `restart` yourself first, wait for both ready strings, and only *then* tell the user what to click. Never ask the user to start the servers themselves — that's the whole reason this skill exists. The one exception is an agent running inside the DMS, which already runs on live servers.
 
 ## Common pitfalls

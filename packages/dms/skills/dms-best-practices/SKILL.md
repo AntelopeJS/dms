@@ -51,5 +51,5 @@ The step is done when every visibly different component has an answer and every 
 
 - Every page field and child is a DMS block, except custom blocks the user chose or that have no equivalent.
 - Every `CustomComponent` has `.meta({ name, description, icon })` with `$` keys present in every locale file.
-- Data comes from routes (`fetchUrl`) rather than options computed at registration.
+- Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
 - Verified live with **dms-dev** (the build only typechecks `src/`).

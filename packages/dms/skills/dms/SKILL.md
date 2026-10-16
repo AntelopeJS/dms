@@ -1,6 +1,6 @@
 ---
 name: dms
-description: Provides the core mental model and router for the AntelopeJS DMS. Use whenever building an app that uses the DMS, working in the @antelopejs/dms package or any DMS module (e.g. the official dms-* modules), building an admin page or dashboard, or when the user mentions the AntelopeJS DMS. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module and dms-dev.
+description: Provides the core mental model and router for the AntelopeJS DMS. Use whenever building an app that uses the DMS, working in the @antelopejs/dms package or any DMS module (e.g. the official dms-* modules), building an admin page or dashboard, or when the user mentions the AntelopeJS DMS. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module, dms-dev and dms-frontend.
 icon: i-ph-squares-four
 category: overview
 tags: [dms, architecture, mental-model, router]
@@ -31,7 +31,8 @@ plugin.
   registered in the block catalog (`ListBlockTypes()`). Each field and `.child()` is a permission.
 - **Blocks fetch their own data** through URLs (`fetchUrl`, `submitUrl`), usually routes declared
   with `@Get` / `@Post` on the same page class, served under `/dms/pages<slug>` (name them with
-  `pageRoutePath(slug, route)`); a plain `Controller` the frontend calls sits under `/api/<module>/`. A URL names the page's record with `{{params.id}}` /
+  `pageRoutePath(slug, route)`); a plain `Controller` the frontend calls sits under
+  `/api/<module>/`. A URL names the page's record with `{{params.id}}` /
   `{{query.X}}`; `periodScope` binds a block to a `PeriodSelector`; `realtimeTopic` re-fetches on a
   `PublishMessage`. Texts are `$` i18n keys or `ComposedText`, never formatted server-side.
 - **It's interfaces all the way down.** Everything you consume is imported from an
@@ -69,6 +70,7 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 | Protect a page or route, define and check permissions, users / roles / tenants | **dms-auth** |
 | Run, stop or restart the dev servers to test a change live | **dms-dev** |
 | Package a *distributable* module — `antelopeJs` manifest, `RegisterModule`, its own skill | **dms-module** |
+| The `ajs dms` CLI, a frontend module's `dms.server.ts` / `dms.frontend.build.ts`, building and deploying the frontend server (ships with `@antelopejs/dms-frontend`) | **dms-frontend** |
 
 These skills ship in this package (`skills/`, declared via `antelopeJs.skills`). The **antelopejs**
 plugin links them into a project's `.claude/skills/`, and the dms-ai assistant loads them for every
