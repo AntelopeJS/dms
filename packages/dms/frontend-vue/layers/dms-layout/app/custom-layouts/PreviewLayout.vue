@@ -20,4 +20,15 @@ html:has([data-dms-preview-transparent]) body,
 html:has([data-dms-preview-transparent]) [data-dms-page-content] {
   background: transparent;
 }
+
+/* A browser paints an opaque backdrop behind an iframe whose color scheme
+   differs from the embedding page's: declare the theme's own scheme, so a dark
+   docs page (`color-scheme: dark`) shows through a dark preview. */
+html.dark:has([data-dms-preview-transparent]) {
+  color-scheme: dark;
+}
+
+html.light:has([data-dms-preview-transparent]) {
+  color-scheme: light;
+}
 </style>
