@@ -1,6 +1,6 @@
 ---
 name: dms-project
-description: Sets up and runs an AntelopeJS project that uses the DMS — template, `antelope.config.ts`, the `src/index.ts` lifecycle, `AddFrontendModule` — and starts, stops or restarts its backend and frontend dev servers with a bundled script. Use when creating or configuring a DMS app, wiring the modules it loads, running or restarting the dev servers, reading their logs, or when a change does not show live.
+description: Sets up and runs an AntelopeJS project that uses the DMS — template, `antelope.config.ts`, the `src/index.ts` lifecycle, `AddFrontendModule`, or the embedded mode of an AdonisJS app that calls `createRuntime` — and starts, stops or restarts its backend and frontend dev servers with a bundled script. Use when creating or configuring a DMS app, wiring or adding the modules it loads (including in an AdonisJS or other host app), running or restarting the dev servers, reading their logs, or when a change does not show live.
 icon: i-ph-folder-simple-plus
 category: setup
 tags: [project, setup, config, lifecycle, dev-server, restart]
@@ -21,7 +21,8 @@ Use [template-dms-demo](https://github.com/AntelopeJS/template-dms-demo) for the
 CLI-owned backend and Nuxt dashboard. Follow `docs/01.getting-started/03.quickstart.md`
 through first-admin setup before adding pages. Use
 [template-dms-adonis](https://github.com/AntelopeJS/template-dms-adonis) only when
-AdonisJS must own the process. Evaluate these existing templates before proposing another.
+AdonisJS must own the process (**embedded** mode, below; walkthrough:
+`docs/01.getting-started/07.adonisjs.md`). Evaluate these existing templates before proposing another.
 
 Preserve the package names declared by the template. Both templates ship `.claude/settings.json`, which makes Claude Code offer the
 **antelopejs** plugin; elsewhere, install it once with `claude plugin marketplace add
@@ -71,6 +72,34 @@ both; remaining DMS keys: `docs/02.building/02.configuration.md`. Optional infra
 file storage, email), the standalone `data-api` note, and `envOverrides` / `environments` are in
 [REFERENCE.md](REFERENCE.md).
 
+## Embedded mode (AdonisJS and other host apps)
+
+Everything above and below describes **standalone** mode, where the `ajs` CLI owns the process. In
+**embedded** mode a host application owns it and starts the runtime itself. Recognize it before
+you run any `ajs project` command: the project has **no `antelope.config.*`**, depends on
+`@antelopejs/core`, and a host file calls `createRuntime(...)` from it — in template-dms-adonis,
+`providers/antelope_provider.ts`, an AdonisJS provider that starts the runtime in `start()` and stops
+it in `shutdown()`.
+
+- **The module list is code.** Each module is a key of the `modules` map passed to `createRuntime`,
+  with its options under `config` (read from AdonisJS's `env`, not `envOverrides` / `environments`).
+- **Adding a module** (e.g. `@antelopejs/dms-lang`): `pnpm add` the package (modules resolve from
+  the app's `node_modules`, or a local path — not the `~/.antelopejs` cache), add
+  `'@antelopejs/dms-lang': {}` to the `modules` map, restart `pnpm dev`, then rebuild the dashboard
+  with `pnpm frontend:build` and restart `pnpm frontend:start`. Never `ajs project modules add`:
+  no `ajs project …` command applies here.
+- **No `ajs dms dev`.** The embedded runtime forces `dev: false`, so the DMS does not publish the
+  layer source paths the hot-reload server needs. The dashboard runs from `pnpm frontend:build` +
+  `pnpm frontend:start` (`:3001`), rebuilt after a module is added or removed; it reads
+  `DMS_BOOTSTRAP_SECRET` (the DMS `frontend.bootstrapSecret`) and `DMS_SESSION_SECRET` from `.env`.
+- **Separate API port.** `@antelopejs/api` listens on its own port (`DMS_API_PORT`, `5010`), not in
+  the AdonisJS server (`3333`), and needs `publicBaseUrl`.
+- **Host code calls `runtime.use()`**, never an `@antelopejs/interface-*` import (the template's
+  `GET /dms/info` route shows it). The `src/index.ts` lifecycle below applies to standalone projects.
+
+Mechanism and limitations: the framework's embedded runtime guide
+(<https://framework.antelopejs.com/docs/guides/embedded-runtime>).
+
 ## The project lifecycle (`src/index.ts`)
 
 Your project is a module with the standard lifecycle. `construct(config)` gets the `local` config;
@@ -117,8 +146,9 @@ under the built-in `pagesCategory` (`RegisterModule` is for distributable module
 
 ## Running the dev servers
 
-A DMS project runs two coupled processes, both started from the project's DMS backend package
-directory:
+A standalone DMS project runs two coupled processes, both started from the project's DMS backend
+package directory (embedded mode: `pnpm dev`, then build + start the dashboard, as above — the
+script below does not apply):
 
 - **Backend**: `ajs project dev -w` (`ajs project run` is the legacy alias; `-e STAGING` picks an
   environment). Ready when its log prints `Server started, listening on <url>`;
