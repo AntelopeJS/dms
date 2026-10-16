@@ -1,0 +1,11 @@
+.git
+.amp
+**/node_modules
+**/dist
+**/.antelope
+**/.env
+**/.env.*
+**/.cache
+**/.output
+**/.nuxt
+**/*.log
