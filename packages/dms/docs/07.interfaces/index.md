@@ -19,6 +19,14 @@ The DMS ships one public AntelopeJS interface package, `@antelopejs/interface-dm
 
 This section is the contract reference: the exact symbol names, options and return types, grouped by domain. The DMS guide covers the same ground task by task, organised around what you are building.
 
+## One installed copy
+
+The host and every module must resolve **the same installed copy** of `@antelopejs/interface-dms`. The package holds live state, not just types: the page, category and extension registries, the permission tree, the hook registry, the data-type and block registries and the component slot resolvers. A second copy gets its own empty registries: pages register into a tree nobody reads, permissions never reach the roles form, and hooks never fire, without any error. `@antelopejs/core` checks this before constructing modules and fails with `Incompatible interface package resolution` when a module resolves another copy.
+
+Depend on the package with a wide range, raising the lower bound to the version you need rather than pinning an upper one, so package managers can deduplicate, and never vendor or bundle it into a module. `@antelopejs/dms`, which implements the interface, is the exception: it caps its range below the next minor, so a breaking minor never reaches an older DMS.
+
+The runtime also hands a module a per-context view of the values it receives through an interface, so reference equality does not survive the round trip. Compare registrations on a field, never with `===`, and compare plain data rather than the views themselves: `isDeepStrictEqual` and `assert.deepStrictEqual` refuse two views that hold equal values.
+
 ## The Domains
 
 | Domain | What it is for | Import prefix |
