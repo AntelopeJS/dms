@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.7.0
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.6.1...v0.7.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Dms 0.9.0 and interface-dms 0.7.0, server rendering on renderer 0.6 ([#299](https://github.com/AntelopeJS/dms/pull/299))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.8.3 ([d3934db3](https://github.com/AntelopeJS/dms/commit/d3934db3))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Dms 0.9.0 and interface-dms 0.7.0, server rendering on renderer 0.6 ([#299](https://github.com/AntelopeJS/dms/pull/299))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.6.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.6.0...v0.6.1)
