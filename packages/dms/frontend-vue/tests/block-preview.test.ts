@@ -27,6 +27,7 @@ describe("preview state parameter", () => {
       theme: "dark",
       locale: "fr-FR",
       padding: false,
+      transparent: true,
     };
     const encoded = encodePreviewState(state);
     expect(encoded).toMatch(/^[\w-]+$/);
@@ -48,6 +49,13 @@ describe("preview state parameter", () => {
       decodePreviewState(encode({ tree: { type: "KpiCard" }, theme: "sepia" })),
     ).toBeUndefined();
     expect(decodePreviewState(encode({ tree: [{ type: 3 }] }))).toBeUndefined();
+  });
+
+  it("refuses a transparent flag that is not a boolean", () => {
+    const encoded = Buffer.from(
+      JSON.stringify({ tree: { type: "KpiCard" }, transparent: "yes" }),
+    ).toString("base64url");
+    expect(decodePreviewState(encoded)).toBeUndefined();
   });
 });
 
@@ -176,6 +184,7 @@ describe("preview messages", () => {
       type: "render",
       tree: [{ type: "KpiCard" }],
       theme: "dark",
+      transparent: true,
     };
     expect(parsePreviewMessage(render)).toEqual(render);
     expect(
@@ -204,6 +213,14 @@ describe("preview messages", () => {
     ).toBeUndefined();
     expect(
       parsePreviewMessage({ channel: PREVIEW_CHANNEL, type: "constructor" }),
+    ).toBeUndefined();
+    expect(
+      parsePreviewMessage({
+        channel: PREVIEW_CHANNEL,
+        type: "render",
+        tree: [],
+        transparent: 1,
+      }),
     ).toBeUndefined();
     expect(parsePreviewMessage("render")).toBeUndefined();
   });

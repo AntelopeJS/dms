@@ -33,6 +33,8 @@ export interface PreviewState {
   locale?: string;
   /** Pads the blocks off the frame's edges. Defaults to true. */
   padding?: boolean;
+  /** Paints no background, so the embedding page shows through. */
+  transparent?: boolean;
 }
 
 /** What the preview knows of one registered block type. */
@@ -83,6 +85,8 @@ export interface PreviewRenderMessage {
   tree: PreviewTree;
   theme?: PreviewTheme;
   locale?: string;
+  /** Paints no background; kept from the previous state when absent. */
+  transparent?: boolean;
 }
 
 /** Parent → iframe: switch the color mode. */
@@ -153,10 +157,16 @@ export function isPreviewTheme(value: unknown): value is PreviewTheme {
   return PREVIEW_THEMES.some((theme) => theme === value);
 }
 
+function isOptionalBoolean(value: unknown): boolean {
+  return value === undefined || typeof value === "boolean";
+}
+
 function hasValidStateExtras(value: Record<string, unknown>): boolean {
   if (value.theme !== undefined && !isPreviewTheme(value.theme)) return false;
   if (!isOptionalString(value.locale)) return false;
-  return value.padding === undefined || typeof value.padding === "boolean";
+  return (
+    isOptionalBoolean(value.padding) && isOptionalBoolean(value.transparent)
+  );
 }
 
 function isPreviewState(value: unknown): value is PreviewState {
@@ -205,7 +215,8 @@ const INBOUND_VALIDATORS: Record<
   render: (data) =>
     isPreviewTree(data.tree) &&
     (data.theme === undefined || isPreviewTheme(data.theme)) &&
-    isOptionalString(data.locale),
+    isOptionalString(data.locale) &&
+    isOptionalBoolean(data.transparent),
   theme: (data) => isPreviewTheme(data.theme),
 };
 

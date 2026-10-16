@@ -26,6 +26,8 @@ export interface BlockPreviewEmbed {
   tree: Ref<PreviewTree | undefined>;
   /** Bumped on each `render`, so the blocks remount with fresh state. */
   revision: Ref<number>;
+  /** Whether the page leaves its background to the embedding page. */
+  transparent: Ref<boolean>;
   /** Tells the embedding page what went wrong. */
   reportError: (message: string) => void;
 }
@@ -71,6 +73,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   const tree = ref<PreviewTree | undefined>(options.initialState?.tree);
   const theme = ref(options.initialState?.theme);
   const locale = ref(options.initialState?.locale);
+  const transparent = ref(options.initialState?.transparent ?? false);
   const revision = ref(0);
   let observer: ResizeObserver | undefined;
 
@@ -83,6 +86,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
       tree.value = render.tree;
       theme.value = render.theme ?? theme.value;
       locale.value = render.locale ?? locale.value;
+      transparent.value = render.transparent ?? transparent.value;
       revision.value += 1;
     },
     theme: (message) => {
@@ -113,6 +117,7 @@ export function useBlockPreviewEmbed(options: EmbedOptions): BlockPreviewEmbed {
   return {
     tree,
     revision,
+    transparent,
     reportError: (message) => postToParent(previewErrorMessage(message)),
   };
 }

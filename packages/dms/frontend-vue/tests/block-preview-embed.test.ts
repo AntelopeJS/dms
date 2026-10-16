@@ -104,6 +104,22 @@ describe("embedded block preview", () => {
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
+  it("keeps the transparent flag of ?state= until a render changes it", async () => {
+    mount({ tree: { type: "KpiCard" }, transparent: true });
+    expect(embed.transparent.value).toBe(true);
+    postFromParent({ channel: PREVIEW_CHANNEL, type: "render", tree: [] });
+    await nextTick();
+    expect(embed.transparent.value).toBe(true);
+    postFromParent({
+      channel: PREVIEW_CHANNEL,
+      type: "render",
+      tree: [],
+      transparent: false,
+    });
+    await nextTick();
+    expect(embed.transparent.value).toBe(false);
+  });
+
   it("switches the theme on a theme message", async () => {
     mount({ tree: { type: "KpiCard" }, theme: "dark" });
     postFromParent({ channel: PREVIEW_CHANNEL, type: "theme", theme: "light" });

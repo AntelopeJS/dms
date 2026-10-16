@@ -11,3 +11,13 @@ defineOptions({
     <slot />
   </main>
 </template>
+
+<style>
+/* A transparent preview (`transparent: true`) lets the embedding page's own
+   background show through the iframe, e.g. a docs site in dark mode. */
+html:has([data-dms-preview-transparent]),
+html:has([data-dms-preview-transparent]) body,
+html:has([data-dms-preview-transparent]) [data-dms-page-content] {
+  background: transparent;
+}
+</style>

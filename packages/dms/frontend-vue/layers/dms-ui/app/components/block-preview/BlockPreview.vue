@@ -18,7 +18,8 @@ import { childComponentId } from "../../utils/componentId";
  *
  * In a dashboard, hand it the tree: `<DmsBlockPreview :tree="node" />`. On
  * `/dms-preview` (`embed`), it reads `?state=` and the parent window's
- * `postMessage` instead, and reports back its height.
+ * `postMessage` instead, and reports back its height. There, `transparent`
+ * marks the root so the preview layout paints no background.
  *
  * Only registered block types are drawn; any other node, a block needing a
  * backend resource, or one whose URL options are not relative paths of this
@@ -74,6 +75,7 @@ const fetchedBlockTypes = ref<PreviewBlockTypes>();
 const blockTypes = computed(() => props.blockTypes ?? fetchedBlockTypes.value);
 const tree = computed(() => (embed ? embed.tree.value : props.tree));
 const revision = computed(() => embed?.revision.value ?? 0);
+const isTransparent = computed(() => embed?.transparent.value ?? false);
 const isPadded = computed(
   () => initialState?.padding ?? (props.embed || props.padding),
 );
@@ -132,7 +134,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div ref="root" data-dms-block-preview :class="{ 'p-4 sm:p-6': isPadded }">
+  <div
+    ref="root"
+    data-dms-block-preview
+    :data-dms-preview-transparent="isTransparent || undefined"
+    :class="{ 'p-4 sm:p-6': isPadded }"
+  >
     <UAlert
       v-if="isStateInvalid"
       color="error"
