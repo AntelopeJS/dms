@@ -80,6 +80,8 @@ export class SalesPage extends PageController("sales", {
 | 0.9 | 0.7 | `>=0.6.1 <0.7.0` |
 | 0.8 | 0.6 | `>=0.5.2 <0.6.0` |
 
+**Embedded / AdonisJS 6**: tested with `@antelopejs/core` 1.15.2, `@antelopejs/dms` 0.9.2 and `@antelopejs/dms-frontend` 0.6.1 in an AdonisJS 6 application (see [Run the DMS inside AdonisJS](https://dms.antelopejs.com/docs/getting-started/adonisjs)).
+
 `@antelopejs/dms` 0.9.2 needs `@antelopejs/core` `>=1.15.2 <2` (its peer dependency). Every renderer release is listed in the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility).
 
 ## Packages
