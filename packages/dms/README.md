@@ -82,7 +82,7 @@ export class SalesPage extends PageController("sales", {
 | 0.9 | 0.7 | `>=0.6.1 <0.7.0` |
 | 0.8 | 0.6 | `>=0.5.2 <0.6.0` |
 
-`@antelopejs/dms` 0.9.2 needs `@antelopejs/core` `>=1.15.2 <2` (its peer dependency). Moving from 0.8: see [Upgrading to DMS 0.9](https://dms.antelopejs.com/docs/building/upgrading-to-0-9); every renderer release is listed in the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility).
+`@antelopejs/dms` 0.9.2 needs `@antelopejs/core` `>=1.15.2 <2` (its peer dependency). Every renderer release is listed in the frontend's [compatibility table](https://dms.antelopejs.com/docs/frontend/introduction#compatibility).
 
 ## Documentation
 
