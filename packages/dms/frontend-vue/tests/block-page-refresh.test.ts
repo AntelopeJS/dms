@@ -15,10 +15,29 @@ import {
 
 const requests: string[] = [];
 let answer = 1;
+interface FetchOptions {
+  signal: AbortSignal;
+}
+interface Answer {
+  value: number;
+}
+interface DeferredRead {
+  signal: AbortSignal;
+  resolve: (value: Answer) => void;
+  reject: (reason: unknown) => void;
+}
+let deferredReads: DeferredRead[] | null = null;
 
 vi.stubGlobal("useAuthFetch", () => ({
-  $authFetch: async (url: string) => {
+  $authFetch: async (url: string, options: FetchOptions) => {
     requests.push(url);
+    if (deferredReads)
+      return new Promise<Answer>((resolve, reject) => {
+        deferredReads?.push({ signal: options.signal, resolve, reject });
+        options.signal.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError")),
+        );
+      });
     return { value: answer };
   },
 }));
@@ -70,6 +89,7 @@ beforeEach(() => useRealDataEngine());
 beforeEach(() => {
   requests.length = 0;
   answer = 1;
+  deferredReads = null;
 });
 
 afterEach(() => {
@@ -151,3 +171,61 @@ it("does not wait on a block unmounted before its read", async () => {
   block.unmount();
   await expect(refreshed).resolves.toBeUndefined();
 });
+
+it("keeps both refresh callers waiting for the replacement read", async () => {
+  const block = mountBlock("/api/ws/{{params.id}}/facts");
+  apps.push(block.unmount);
+  await settle();
+  deferredReads = [];
+  let firstDone = false;
+  let secondDone = false;
+  const first = refreshPageBlocks().then(() => (firstDone = true));
+  await settle();
+  const second = refreshPageBlocks().then(() => (secondDone = true));
+  await settle();
+
+  expect(deferredReads).toHaveLength(2);
+  expect(deferredReads[0]!.signal.aborted).toBe(true);
+  expect(block.probe.data?.value).toEqual({ value: 1 });
+  expect(block.probe.isLoading?.value).toBe(true);
+  expect({ firstDone, secondDone }).toEqual({
+    firstDone: false,
+    secondDone: false,
+  });
+  deferredReads[1]!.resolve({ value: 2 });
+  await Promise.all([first, second]);
+  expect(block.probe.data?.value).toEqual({ value: 2 });
+  expect(block.probe.isLoading?.value).toBe(false);
+});
+
+it("releases active refresh callers when the block unmounts", async () => {
+  const block = mountBlock("/api/ws/{{params.id}}/facts");
+  await settle();
+  deferredReads = [];
+  const first = refreshPageBlocks();
+  await settle();
+  const second = refreshPageBlocks();
+  await settle();
+  block.unmount();
+  await expect(Promise.all([first, second])).resolves.toEqual([
+    undefined,
+    undefined,
+  ]);
+  expect(deferredReads.every((read) => read.signal.aborted)).toBe(true);
+});
+
+it.each([new Error("Unavailable"), new DOMException("Aborted", "AbortError")])(
+  "releases refresh callers when the final read fails: %s",
+  async (failure) => {
+    const block = mountBlock("/api/ws/{{params.id}}/facts");
+    apps.push(block.unmount);
+    await settle();
+    deferredReads = [];
+    const refreshed = refreshPageBlocks();
+    await settle();
+    deferredReads[0]!.reject(failure);
+    await expect(refreshed).resolves.toBeUndefined();
+    expect(block.probe.isLoading?.value).toBe(false);
+    expect(block.probe.data?.value).toEqual({ value: 1 });
+  },
+);
