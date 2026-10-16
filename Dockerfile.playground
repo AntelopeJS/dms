@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+FROM node:24-bookworm-slim AS build
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=/pnpm:$PATH
+ENV HOME=/opt/dms-home
+ENV NODE_OPTIONS=--max-old-space-size=6144
+WORKDIR /opt/dms
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.2.0 --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,target=/pnpm/store pnpm fetch --store-dir=/pnpm/store
+COPY . .
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --offline --store-dir=/pnpm/store
+RUN pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
+RUN pnpm --dir packages/dms exec playwright-core install --with-deps chromium
+
+# The frontend and every screenshot are built against this checkout's backend,
+# with a temporary MongoDB. No live playground or production credential is read.
+RUN node packages/dms/scripts/docs-playground.mjs build
+
+FROM node:24-bookworm-slim AS runtime
+ENV HOME=/opt/dms-home
+ENV NODE_ENV=production
+ENV DMS_API_BASE_URL=http://127.0.0.1:5010
+WORKDIR /opt/dms
+COPY --from=build --chown=1000:1000 /opt/dms /opt/dms
+COPY --from=build --chown=1000:1000 /opt/dms-home/.antelopejs /opt/dms-home/.antelopejs
+ARG BUILD_DATE
+ARG VCS_REF
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.revision=$VCS_REF
+USER 1000:1000
+EXPOSE 3001
+CMD ["node", "packages/dms/scripts/docs-playground.mjs", "frontend"]

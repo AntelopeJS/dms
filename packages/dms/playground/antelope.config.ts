@@ -38,7 +38,7 @@ export default defineConfig({
           // serving a page that holds a File/Image field and starting an OAuth
           // flow fail with a 500. Development value: a real deployment must
           // supply its own.
-          jwtSecret: "dev",
+          jwtSecret: process.env.DMS_JWT_SECRET ?? "dev",
           // The DB-IP database is only downloaded when a release is packed,
           // and the playground's sign-ins come from a local address no
           // database places in a country anyway: without this, every start
@@ -46,6 +46,10 @@ export default defineConfig({
           signInCountry: { database: false },
         },
         apiBaseUrl: "${@api.API_PUBLIC_BASE_URL}",
+        clientBaseUrl: dmsClientUrl,
+        frontend: {
+          bootstrapSecret: process.env.DMS_BOOTSTRAP_SECRET,
+        },
         // Serves /dms-preview, the page the documentation embeds to render
         // live blocks and the screenshot script captures.
         docsPreview: true,
@@ -80,7 +84,7 @@ export default defineConfig({
         version: "^1.0.3",
       },
       config: {
-        secret: "dev",
+        secret: process.env.AUTH_JWT_SECRET ?? "dev",
       },
     },
     api: {
@@ -91,6 +95,7 @@ export default defineConfig({
       },
       config: {
         servers: [{ protocol: "http", port: preferredApiPort }],
+        publicBaseUrl: dmsClientUrl,
         cors: {
           allowedOrigins: [
             "http://localhost:3001",
@@ -127,6 +132,18 @@ export default defineConfig({
       },
       config: {
         ethereal: true,
+      },
+    },
+  },
+  environments: {
+    docs: {
+      logging: { channelFilter: { "*": "warn" } },
+      // Keep the required email interface, but never contact Ethereal or SMTP
+      // outside the pod. An attempted send fails on the closed discard port.
+      modules: {
+        nodemailer: {
+          config: { ethereal: false, host: "127.0.0.1", port: 9 },
+        },
       },
     },
   },

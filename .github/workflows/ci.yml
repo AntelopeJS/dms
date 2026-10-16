@@ -120,11 +120,47 @@ jobs:
       # check and vue-tsc, in a workspace of its own.
       - run: pnpm --dir packages/dms/frontend-vue typecheck
 
+  docs-playground:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # This also renders every documentation example in both themes. A broken
+      # preview must fail before the successful main CI event reaches GitOps.
+      - run: docker build -f Dockerfile.playground -t dms-playground:ci .
+      - name: Start the shipped artifacts against a fresh database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker logs docs-backend || true
+            docker logs docs-frontend || true
+            docker rm -f docs-frontend docs-backend docs-mongo || true
+          }
+          trap cleanup EXIT
+          docker run -d --name docs-mongo mongo:8.0.8 --bind_ip 127.0.0.1
+          docker run -d --name docs-backend --network container:docs-mongo \
+            -e MONGO_URL=mongodb://127.0.0.1:27017 dms-playground:ci \
+            node packages/dms/scripts/docs-playground.mjs backend
+          docker run -d --name docs-frontend --network container:docs-mongo dms-playground:ci
+          for attempt in $(seq 1 90); do
+            if docker exec docs-frontend node -e '
+              const preview = await fetch("http://127.0.0.1:3001/dms-preview");
+              const source = await fetch("http://127.0.0.1:5010/dms/frontend");
+              if (preview.status !== 200 || source.status !== 401) process.exit(1);
+            '; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The built playground did not become ready" >&2
+          exit 1
+
   # The one check branch protection requires was the single job's name, so it
   # stays: green only when every job above is.
   ubuntu:
     if: always()
-    needs: [static, backend, frontend-test, frontend-verify]
+    needs: [static, backend, frontend-test, frontend-verify, docs-playground]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
