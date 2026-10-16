@@ -145,7 +145,8 @@ describe("a source table bound to a period scope", () => {
     const period = registerSelector();
     mountTable();
     await settle();
-    expect(requests).toHaveLength(2);
+    // The list and the counter of its tab without filter: one request.
+    expect(requests).toHaveLength(1);
     expect(listed!.value).toMatchObject({ total: 1 });
     const range = period.state.value.range!;
     expect(periodOf(requests[0]!)).toEqual({

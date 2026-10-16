@@ -140,6 +140,45 @@ export function processSourceRows<T extends Record<string, unknown>>(
   };
 }
 
+type SourceAnswer<T> = { results: T[]; total: number };
+
+/** A source read some callers wait on, and what cancels it. */
+interface SharedRead<T> {
+  answer: Promise<SourceAnswer<T>>;
+  controller: AbortController;
+  /** The callers still waiting on it. */
+  waiting: number;
+}
+
+/**
+ * The key of one read of a source: its URL and the query sent, whatever the
+ * order its keys were built in.
+ */
+const sourceReadKey = (url: string, query: Query): string =>
+  JSON.stringify([url, Object.entries(query).sort(([a], [b]) => a.localeCompare(b))]);
+
+/**
+ * Settles with `answer`, or rejects as soon as `signal` aborts, calling
+ * `leave` once then.
+ */
+function awaitUnlessAborted<R>(
+  answer: Promise<R>,
+  signal: AbortSignal,
+  leave: () => void,
+): Promise<R> {
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      leave();
+      reject(signal.reason);
+    };
+    if (signal.aborted) return abort();
+    signal.addEventListener("abort", abort, { once: true });
+    answer.then(resolve, reject).finally(() =>
+      signal.removeEventListener("abort", abort),
+    );
+  });
+}
+
 /** A page with no rows: what a source shows while its URL is unresolved. */
 function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
   return {
@@ -182,6 +221,44 @@ export function useTableRows<T extends Record<string, unknown>>(
     return source.periodScope ? appendPeriodToUrl(url, periodScope.value) : url;
   });
 
+  // Reads of the same source with the same query, while one is in flight,
+  // share it: the list and the counter of a tab that filters nothing the
+  // route handles ask it the same thing at the same time. The request is
+  // cancelled once every caller waiting on it has given up.
+  const sharedReads = new Map<string, SharedRead<T>>();
+  const readSource = (
+    url: string,
+    query: Query,
+    signal?: AbortSignal,
+  ): Promise<SourceAnswer<T>> => {
+    const key = sourceReadKey(url, query);
+    let read = sharedReads.get(key);
+    if (!read) {
+      const controller = new AbortController();
+      const answer = api<SourceAnswer<T>>(url, {
+        query,
+        signal: controller.signal,
+      });
+      const started: SharedRead<T> = { answer, controller, waiting: 0 };
+      sharedReads.set(key, started);
+      const forget = () => {
+        if (sharedReads.get(key) === started) sharedReads.delete(key);
+      };
+      answer.then(forget, forget);
+      read = started;
+    }
+    const joined = read;
+    // A caller without a signal never gives up: the request stays.
+    joined.waiting += 1;
+    if (!signal) return joined.answer;
+    return awaitUnlessAborted(joined.answer, signal, () => {
+      joined.waiting -= 1;
+      if (joined.waiting > 0) return;
+      if (sharedReads.get(key) === joined) sharedReads.delete(key);
+      joined.controller.abort(signal.reason);
+    });
+  };
+
   const listFromSource = async (
     sourceConfig: TableViewSourceConfig,
     query: Query,
@@ -191,10 +268,11 @@ export function useTableRows<T extends Record<string, unknown>>(
     const url = sourceUrl.value;
     if (!url) return emptySourcePage(query);
     const { capabilities } = sourceConfig;
-    const response = await api<{ results: T[]; total: number }>(url, {
-      query: sourceRouteQuery(query, capabilities),
+    const response = await readSource(
+      url,
+      sourceRouteQuery(query, capabilities),
       signal,
-    });
+    );
     if (capabilities.paginate) {
       return {
         ...response,

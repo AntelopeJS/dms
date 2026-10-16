@@ -133,22 +133,116 @@ describe("a source table's requests", () => {
     },
   };
 
-  it("carry the signal given to the list and the counters", async () => {
+  const filterable = {
+    ...source,
+    capabilities: { ...source.capabilities, filter: true },
+  };
+
+  it("ask the route once when the list and a counter ask the same", async () => {
+    const Table = defineComponent({
+      setup() {
+        const rows = useTableRows({
+          api,
+          location: LOCATION,
+          columns: COLUMNS,
+          source: filterable as never,
+        });
+        const keys = { componentId: "report", pageId: "stats", rows };
+        const archiveQuery = computed(() => ({}));
+        useTableListData({
+          ...keys,
+          query: computed(() => ({ limit: 10, offset: 0 })),
+          archiveQuery,
+          isSelfManaged: computed(() => false),
+        });
+        useTableCountsData({
+          ...keys,
+          queries: computed(() => [
+            { id: "all", query: {} },
+            { id: "open", query: { filter_status: "is:open" } },
+          ]),
+          archiveQuery,
+        });
+        return () => h("i");
+      },
+    });
+    const app = createApp(Table);
+    engine.provideDmsFrontendRuntime(
+      app,
+      engine.createDmsFrontendRuntime(undefined, {}),
+    );
+    app.mount(document.createElement("div"));
+    unmounts.push(() => app.unmount());
+    await settle();
+
+    // The route pages nothing: the list and the "all" counter both read
+    // every row, the same request.
+    expect(
+      calls.map(({ url, query }) => [url, query?.filter_status]).sort(),
+    ).toEqual([
+      ["/api/report", undefined],
+      ["/api/report", "is:open"],
+    ]);
+  });
+
+  /** A route answering only when `answer` is called. */
+  function pendingApi() {
+    let answer: () => void = () => undefined;
+    const answered = new Promise<void>((resolve) => (answer = resolve));
+    const held = (async (url: string, options: Omit<Call, "url"> = {}) => {
+      calls.push({ url, ...options });
+      await answered;
+      return { results: [{ total: 1 }], total: 1 };
+    }) as never;
+    return { held, answer };
+  }
+
+  it("keep a shared request while a caller still waits on it", async () => {
+    const { held, answer } = pendingApi();
     const rows = useTableRows({
-      api,
+      api: held,
       location: LOCATION,
       columns: COLUMNS,
       source: source as never,
     });
-    const controller = new AbortController();
-    await rows.list({}, controller.signal).catch(() => undefined);
-    await rows
-      .countBatch([{ id: "all", query: {} }], controller.signal)
-      .catch(() => undefined);
+    const listing = new AbortController();
+    const counting = new AbortController();
+    const list = rows.list({}, listing.signal);
+    const counts = rows.countBatch(
+      [{ id: "all", query: {} }],
+      counting.signal,
+    );
+    listing.abort();
+    answer();
 
-    expect(calls.map(({ signal }) => signal)).toEqual([
-      controller.signal,
-      controller.signal,
-    ]);
+    await expect(list).rejects.toBeDefined();
+    await expect(counts).resolves.toEqual({ all: 1 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.signal?.aborted).toBe(false);
+  });
+
+  it("cancel the request once every caller gave up", async () => {
+    const { held } = pendingApi();
+    const rows = useTableRows({
+      api: held,
+      location: LOCATION,
+      columns: COLUMNS,
+      source: source as never,
+    });
+    const listing = new AbortController();
+    const counting = new AbortController();
+    const list = rows.list({}, listing.signal);
+    const counts = rows.countBatch(
+      [{ id: "all", query: {} }],
+      counting.signal,
+    );
+    listing.abort();
+    expect(calls[0]!.signal?.aborted).toBe(false);
+    counting.abort();
+
+    await expect(list).rejects.toBeDefined();
+    await expect(counts).rejects.toBeDefined();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.signal?.aborted).toBe(true);
   });
 });
