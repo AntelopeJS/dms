@@ -14,6 +14,7 @@ export const INTERFACE_PACKAGE = "@antelopejs/interface-dms";
 interface NpmViewResult {
   version?: string;
   dependencies?: Record<string, string>;
+  antelopeJs?: { implements?: unknown };
 }
 
 interface CachedRelease {
@@ -24,31 +25,46 @@ interface CachedRelease {
 const releases = new Map<string, CachedRelease>();
 const pending = new Map<string, Promise<PackageRelease | undefined>>();
 
+/**
+ * `npm view <spec> <fields> --json`, run in the project so its npm
+ * configuration (private registry, credentials) applies. Undefined when the
+ * registry has nothing to say.
+ */
+export async function npmView(
+  spec: string,
+  fields: readonly string[],
+  projectPath: string,
+): Promise<unknown> {
+  try {
+    const { stdout } = await execFileAsync(
+      "npm",
+      ["view", spec, ...fields, "--json"],
+      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },
+    );
+    return stdout.trim() ? (JSON.parse(stdout) as unknown) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function viewLatest(
   packageName: string,
   projectPath: string,
 ): Promise<PackageRelease | undefined> {
-  try {
-    const { stdout } = await execFileAsync(
-      "npm",
-      [
-        "view",
-        `${packageName}@${LATEST_TAG}`,
-        "version",
-        "dependencies",
-        "--json",
-      ],
-      { cwd: projectPath, timeout: NPM_VIEW_TIMEOUT_MS },
-    );
-    const view = JSON.parse(stdout) as NpmViewResult;
-    if (!view.version) return undefined;
-    return {
-      version: view.version,
-      interfaceRange: view.dependencies?.[INTERFACE_PACKAGE],
-    };
-  } catch {
-    return undefined;
-  }
+  const view = (await npmView(
+    `${packageName}@${LATEST_TAG}`,
+    ["version", "dependencies", "antelopeJs"],
+    projectPath,
+  )) as NpmViewResult | undefined;
+  if (!view?.version) return undefined;
+  return {
+    version: view.version,
+    interfaceRange: view.dependencies?.[INTERFACE_PACKAGE],
+    dependencies: view.dependencies ?? {},
+    implements: Array.isArray(view.antelopeJs?.implements)
+      ? view.antelopeJs.implements.map(String)
+      : [],
+  };
 }
 
 function isFresh(cached: CachedRelease | undefined): boolean {

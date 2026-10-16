@@ -768,7 +768,8 @@
         "resolve": "Trouver la dernière version",
         "unload": "Arrêter la version en cours",
         "load": "Télécharger et démarrer",
-        "save": "Écrire antelope.config.ts"
+        "save": "Écrire antelope.config.ts",
+        "dependencies": "Installer les modules requis"
       },
       "progress": {
         "install": "Installation",
@@ -793,7 +794,8 @@
         "store_module_unknown": "Ce module n’est pas dans le catalogue.",
         "store_disabled": "Le store est en lecture seule sur cette plateforme.",
         "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
-        "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules."
+        "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules.",
+        "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord."
       },
       "frontend": {
         "dev": {
@@ -879,7 +881,37 @@
           "description": "Offres, espaces de travail, facturation Stripe et cycle de vie client."
         }
       },
-      "config_error": "antelope.config.ts ne peut pas être modifié d’ici"
+      "config_error": "antelope.config.ts ne peut pas être modifié d’ici",
+      "frontend_requirement": {
+        "needs": "Demande dms-frontend {range}, ce projet utilise {running}.",
+        "run": "Pour passer le projet à dms-frontend {target}, exécutez :",
+        "breaks": "dms-frontend {target} refuserait ces couches frontend installées :",
+        "supports": "accepte {range}",
+        "no_target": "Aucune version publiée de dms-frontend ne correspond à cette plage."
+      },
+      "requires": "Requiert : {interfaces}",
+      "requires_first": "Demande {interfaces}, qu’aucun module en cours d’exécution n’implémente : installez d’abord un module qui le fait.",
+      "used_by": "Utilisé par : {modules}. Retirez-les d’abord.",
+      "frontend_version": {
+        "label": "dms-frontend {version}",
+        "reported": "Indiquée par le serveur frontend en cours d’exécution",
+        "project": "Lue dans les dépendances du projet : aucun serveur frontend n’a indiqué sa version"
+      },
+      "install_dialog": {
+        "title": "Installer {module}",
+        "description": "{module} demande des interfaces qu’aucun module en cours d’exécution n’implémente. Choisissez un module pour chacune : il est installé en premier.",
+        "other": "Autre paquet npm",
+        "package_label": "Paquet npm",
+        "package_placeholder": "{'@'}scope/paquet",
+        "config_label": "Configuration (JSON)",
+        "config_hint": "Facultatif",
+        "note": "Ces modules sont ajoutés à antelope.config.ts comme entrées distinctes, où leur configuration reste modifiable par la suite.",
+        "errors": {
+          "package_required": "Saisissez un nom de paquet npm.",
+          "package_invalid": "Ce n’est pas un nom de paquet npm : les sources git et locales ne sont pas acceptées.",
+          "config_invalid": "Doit être un objet JSON."
+        }
+      }
     },
     "sort": {
       "label": "Tri",

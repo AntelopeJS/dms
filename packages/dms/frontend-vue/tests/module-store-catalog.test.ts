@@ -8,12 +8,26 @@ import {
   type ModuleStoreEntry,
   filterByScope,
   isAwaitingFrontend,
+  needsDependencyChoice,
   sortStoreModules,
+  storeActionBlock,
   storeActions,
   storeTileStatus,
   toModuleStoreEntry,
 } from "../layers/dms-layout/app/build/utils/module-store-catalog";
-import type { StoreListingEntry } from "../layers/dms-layout/app/types/module-store";
+import {
+  OTHER_PACKAGE_CHOICE,
+  areDependencyDraftsValid,
+  buildInstallBody,
+  createDependencyDrafts,
+  isNpmPackageName,
+  parseDependencyConfig,
+  validateDependencyDraft,
+} from "../layers/dms-layout/app/build/utils/module-store-install";
+import type {
+  MissingInterface,
+  StoreListingEntry,
+} from "../layers/dms-layout/app/types/module-store";
 import catalogDocument from "../../data/module-store/catalog.json";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
@@ -53,6 +67,8 @@ function listingEntry(
     updateAvailable: false,
     compatible: true,
     frontend: "none",
+    missingInterfaces: [],
+    dependents: [],
     ...overrides,
   };
 }
@@ -184,6 +200,146 @@ describe("module store catalog", () => {
       { value: "Content", label: "Content", count: 2 },
       { value: "Data", label: "Data", count: 1 },
     ]);
+  });
+});
+
+const REDIS: MissingInterface = {
+  interfacePackage: "@antelopejs/interface-redis",
+  candidates: [
+    { name: "redis", package: "@antelopejs/redis" },
+    { name: "valkey", package: "@antelopejs/valkey" },
+  ],
+};
+const QUEUE: MissingInterface = {
+  interfacePackage: "@antelopejs/interface-queue",
+  candidates: [],
+};
+
+const FRONTEND_REQUIREMENT = {
+  range: ">=0.7.0",
+  running: "0.6.0",
+  target: "0.7.2",
+  command: "pnpm add @antelopejs/dms-frontend@0.7.2",
+  breaks: [],
+};
+
+describe("module store blocked actions", () => {
+  const released = (overrides: Partial<StoreListingEntry> = {}) =>
+    listingEntry("cache", { latestVersion: "1.0.0", ...overrides });
+
+  it("lets a releasable module install and update", () => {
+    expect(storeActionBlock(released(), "install")).toBeUndefined();
+    expect(storeActionBlock(released(), "update")).toBeUndefined();
+  });
+
+  it("blocks a release without a version, on another interface or dms-frontend", () => {
+    expect(storeActionBlock(listingEntry("cache"), "install")).toBe(
+      "no_release",
+    );
+    expect(storeActionBlock(released({ compatible: false }), "update")).toBe(
+      "incompatible",
+    );
+    expect(
+      storeActionBlock(
+        released({ frontendRequirement: FRONTEND_REQUIREMENT }),
+        "install",
+      ),
+    ).toBe("frontend");
+  });
+
+  it("asks for the missing interfaces on install, refuses them on update", () => {
+    const missing = released({ missingInterfaces: [REDIS] });
+    expect(storeActionBlock(missing, "install")).toBeUndefined();
+    expect(needsDependencyChoice(missing, "install")).toBe(true);
+    expect(storeActionBlock(missing, "update")).toBe("interfaces");
+    expect(needsDependencyChoice(missing, "update")).toBe(false);
+    expect(needsDependencyChoice(released(), "install")).toBe(false);
+  });
+
+  it("keeps a module others need from being paused or removed", () => {
+    const needed = released({ state: "active", dependents: ["@acme/jobs"] });
+    expect(storeActionBlock(needed, "disable")).toBe("dependents");
+    expect(storeActionBlock(needed, "uninstall")).toBe("dependents");
+    expect(storeActionBlock(needed, "enable")).toBeUndefined();
+    expect(
+      storeActionBlock(released({ state: "active" }), "uninstall"),
+    ).toBeUndefined();
+  });
+});
+
+describe("module store install dialog", () => {
+  it("accepts npm package names only", () => {
+    expect(isNpmPackageName("redis")).toBe(true);
+    expect(isNpmPackageName("@antelopejs/redis")).toBe(true);
+    expect(isNpmPackageName("Redis")).toBe(false);
+    expect(isNpmPackageName("git+https://github.com/a/b.git")).toBe(false);
+    expect(isNpmPackageName("./local/module")).toBe(false);
+    expect(isNpmPackageName("@scope")).toBe(false);
+    expect(isNpmPackageName("a".repeat(215))).toBe(false);
+  });
+
+  it("reads an empty config as none and refuses anything but an object", () => {
+    expect(parseDependencyConfig("  ")).toEqual({ isValid: true });
+    expect(parseDependencyConfig('{ "url": "redis://cache" }')).toEqual({
+      isValid: true,
+      config: { url: "redis://cache" },
+    });
+    expect(parseDependencyConfig("[]").isValid).toBe(false);
+    expect(parseDependencyConfig("null").isValid).toBe(false);
+    expect(parseDependencyConfig("{ url: }").isValid).toBe(false);
+  });
+
+  it("preselects the first candidate, or the other package without one", () => {
+    expect(
+      createDependencyDrafts([REDIS, QUEUE]).map((draft) => draft.choice),
+    ).toEqual(["@antelopejs/redis", OTHER_PACKAGE_CHOICE]);
+  });
+
+  it("keeps what an earlier attempt picked for the same interface", () => {
+    const [earlier] = createDependencyDrafts([REDIS]);
+    const edited = { ...earlier!, choice: "@antelopejs/valkey", config: "{}" };
+    expect(createDependencyDrafts([REDIS, QUEUE], [edited])[0]).toEqual(edited);
+  });
+
+  it("flags a missing or invalid package and a config that is not an object", () => {
+    const [draft] = createDependencyDrafts([QUEUE]);
+    expect(validateDependencyDraft(draft!)).toEqual({
+      package: "package_required",
+    });
+    expect(
+      validateDependencyDraft({
+        ...draft!,
+        otherPackage: "github:acme/queue",
+        config: "[1]",
+      }),
+    ).toEqual({ package: "package_invalid", config: "config_invalid" });
+    expect(
+      areDependencyDraftsValid([{ ...draft!, otherPackage: " @acme/queue " }]),
+    ).toBe(true);
+  });
+
+  it("builds the install body, leaving out an empty config", () => {
+    const [redis, queue] = createDependencyDrafts([REDIS, QUEUE]);
+    expect(
+      buildInstallBody("cache", [
+        redis!,
+        { ...queue!, otherPackage: "@acme/queue", config: '{"size":2}' },
+      ]),
+    ).toEqual({
+      id: "cache",
+      dependencies: [
+        {
+          interfacePackage: "@antelopejs/interface-redis",
+          package: "@antelopejs/redis",
+        },
+        {
+          interfacePackage: "@antelopejs/interface-queue",
+          package: "@acme/queue",
+          config: { size: 2 },
+        },
+      ],
+    });
+    expect(buildInstallBody("cache", [])).toEqual({ id: "cache" });
   });
 });
 

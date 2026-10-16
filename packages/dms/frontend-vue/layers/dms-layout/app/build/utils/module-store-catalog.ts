@@ -150,3 +150,54 @@ export function storeActions(entry: StoreListingEntry): StoreAction[] {
 export function isAwaitingFrontend(entry: StoreListingEntry): boolean {
   return entry.state !== "busy" && entry.frontend === "pending";
 }
+
+/** Why an action the tile offers cannot run, as the tile explains it. */
+export type StoreActionBlock =
+  | "no_release"
+  | "incompatible"
+  | "frontend"
+  | "interfaces"
+  | "dependents";
+
+/** Actions that load a new release of the module. */
+const RELEASE_ACTIONS = new Set<StoreOperationKind>(["install", "update"]);
+/**
+ * Actions that pick the missing interfaces' modules in a dialog; the others
+ * refuse a release that misses one.
+ */
+const PICKS_DEPENDENCIES = new Set<StoreOperationKind>(["install"]);
+/** Actions that take a running module down. */
+const TAKE_DOWN_ACTIONS = new Set<StoreOperationKind>(["disable", "uninstall"]);
+
+function releaseBlock(
+  entry: StoreListingEntry,
+  kind: StoreOperationKind,
+): StoreActionBlock | undefined {
+  if (!entry.latestVersion) return "no_release";
+  if (!entry.compatible) return "incompatible";
+  if (entry.frontendRequirement) return "frontend";
+  if (!PICKS_DEPENDENCIES.has(kind) && entry.missingInterfaces.length > 0) {
+    return "interfaces";
+  }
+  return undefined;
+}
+
+/** Why `kind` cannot run on the module, or undefined when it can. */
+export function storeActionBlock(
+  entry: StoreListingEntry,
+  kind: StoreOperationKind,
+): StoreActionBlock | undefined {
+  if (RELEASE_ACTIONS.has(kind)) return releaseBlock(entry, kind);
+  if (TAKE_DOWN_ACTIONS.has(kind) && entry.dependents.length > 0) {
+    return "dependents";
+  }
+  return undefined;
+}
+
+/** Whether `kind` first asks which modules implement the missing interfaces. */
+export function needsDependencyChoice(
+  entry: StoreListingEntry,
+  kind: StoreOperationKind,
+): boolean {
+  return PICKS_DEPENDENCIES.has(kind) && entry.missingInterfaces.length > 0;
+}

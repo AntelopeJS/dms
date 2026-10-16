@@ -122,6 +122,14 @@ export async function listCatalogDeclarations(
   return result;
 }
 
+/** Whether antelope.config.ts has an entry under `key`, whatever its source. */
+export async function hasDeclaration(key: string): Promise<boolean> {
+  const declarations = await withTimeout(
+    declarationFunctions().ListModuleDeclarations(),
+  );
+  return Object.hasOwn(declarations, key);
+}
+
 export function saveDeclaration(
   key: string,
   changes: ModuleDeclarationChanges,

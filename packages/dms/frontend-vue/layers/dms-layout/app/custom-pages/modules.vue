@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref, VNode } from "vue";
 import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
@@ -13,6 +14,7 @@ import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlat
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
+import ModuleStoreDependencyPicker from "../build/components/pages/modules/ModuleStoreDependencyPicker.vue";
 import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import {
   ENDPOINT_MODULES_LISTING,
@@ -35,12 +37,25 @@ import {
   FRONTEND_BUILD_COMMAND,
   filterByScope,
   isAwaitingFrontend,
+  needsDependencyChoice,
   sortStoreModules,
   toModuleStoreEntry,
 } from "../build/utils/module-store-catalog";
+import {
+  type DependencyDraft,
+  areDependencyDraftsValid,
+  buildInstallBody,
+  createDependencyDrafts,
+} from "../build/utils/module-store-install";
 import { useModuleStore } from "../composables/page/useModuleStore";
-import { useConfirm } from "#dms-ui/app/composables/confirm";
-import type { StoreOperationKind } from "../types/module-store";
+import {
+  ConfirmActionError,
+  useConfirm,
+} from "#dms-ui/app/composables/confirm";
+import type {
+  StoreActionBody,
+  StoreOperationKind,
+} from "../types/module-store";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
@@ -292,11 +307,93 @@ const frontendNotice = computed(() => {
   return { key, names };
 });
 
+/**
+ * Runs `kind` from a dialog: a refusal is worded as the toast words it and
+ * shown in the dialog, which stays open.
+ */
+async function runFromDialog(
+  kind: StoreOperationKind,
+  entry: ModuleStoreEntry,
+  body?: StoreActionBody,
+): Promise<void> {
+  try {
+    await moduleStore.run(kind, entry, body);
+  } catch (error) {
+    throw new ConfirmActionError({
+      title: t("modules.store.action_failed", {
+        module: processI18n(entry.title),
+      }),
+      description: resolveStoreError(error),
+    });
+  }
+}
+
+/** What the owner last picked in a module's install dialog, for a retry. */
+const lastDependencyDrafts = new Map<string, DependencyDraft[]>();
+
+function renderDependencyPicker(
+  entry: ModuleStoreEntry,
+  drafts: Ref<DependencyDraft[]>,
+  showErrors: boolean,
+): VNode {
+  return h(ModuleStoreDependencyPicker, {
+    missing: entry.missingInterfaces,
+    drafts: drafts.value,
+    showErrors,
+    onUpdate: (index: number, patch: Partial<DependencyDraft>) => {
+      drafts.value = drafts.value.map((draft, position) =>
+        position === index ? { ...draft, ...patch } : draft,
+      );
+    },
+  });
+}
+
+/**
+ * Asks which modules implement the interfaces the release misses, then
+ * installs them with it. A refusal shows in the dialog, kept open.
+ */
+async function installWithDependencies(entry: ModuleStoreEntry): Promise<void> {
+  const title = processI18n(entry.title);
+  const drafts = ref(
+    createDependencyDrafts(
+      entry.missingInterfaces,
+      lastDependencyDrafts.get(entry.id),
+    ),
+  );
+  const showErrors = ref(false);
+  await confirm({
+    title: t("modules.store.install_dialog.title", { module: title }),
+    description: t("modules.store.install_dialog.description", {
+      module: title,
+    }),
+    confirmLabel: t("modules.store.actions.install"),
+    confirmIcon: "i-ph-download-simple",
+    icon: "i-ph-puzzle-piece",
+    body: () => renderDependencyPicker(entry, drafts, showErrors.value),
+    validate: () => {
+      showErrors.value = true;
+      return areDependencyDraftsValid(drafts.value);
+    },
+    onConfirm: async () => {
+      lastDependencyDrafts.set(entry.id, drafts.value);
+      await runFromDialog(
+        "install",
+        entry,
+        buildInstallBody(entry.id, drafts.value),
+      );
+    },
+  });
+}
+
 async function runStoreAction(
   kind: StoreOperationKind,
   entry: ModuleStoreEntry,
 ): Promise<void> {
   const title = processI18n(entry.title);
+  if (needsDependencyChoice(entry, kind)) {
+    await installWithDependencies(entry);
+    return;
+  }
   if (kind === "uninstall") {
     await confirm({
       title: t("modules.store.uninstall_confirm.title", { module: title }),
@@ -306,7 +403,7 @@ async function runStoreAction(
       confirmLabel: t("modules.store.actions.uninstall"),
       color: "error",
       icon: "i-ph-trash",
-      onConfirm: () => moduleStore.run(kind, entry),
+      onConfirm: () => runFromDialog(kind, entry),
     });
     return;
   }
@@ -613,6 +710,26 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             <span id="module-store-title">{{ t("modules.store.title") }}</span>
           </template>
           <template #trailing>
+            <span
+              v-if="storeListing?.frontendVersion"
+              :class="[
+                MONO_CHIP_CLASS,
+                'text-dimmed border border-(--ui-border) text-[11px] max-sm:hidden',
+              ]"
+              :title="
+                storeListing.frontendVersionSource
+                  ? t(
+                      `modules.store.frontend_version.${storeListing.frontendVersionSource}`,
+                    )
+                  : undefined
+              "
+            >
+              {{
+                t("modules.store.frontend_version.label", {
+                  version: storeListing.frontendVersion,
+                })
+              }}
+            </span>
             <DmsSegmented
               v-model="storeScope"
               :items="storeScopeItems"

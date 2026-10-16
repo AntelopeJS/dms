@@ -764,7 +764,8 @@
         "resolve": "Find the latest release",
         "unload": "Stop the running version",
         "load": "Download and start",
-        "save": "Write antelope.config.ts"
+        "save": "Write antelope.config.ts",
+        "dependencies": "Install the required modules"
       },
       "progress": {
         "install": "Installing",
@@ -789,7 +790,8 @@
         "store_module_unknown": "This module is not in the catalog.",
         "store_disabled": "The store is read-only on this platform.",
         "store_invalid_state": "The module changed in the meantime. The list is up to date again.",
-        "unauthorized": "Only platform owners manage modules."
+        "unauthorized": "Only platform owners manage modules.",
+        "store_module_required": "Other running modules need this one. Remove them first."
       },
       "frontend": {
         "dev": {
@@ -875,7 +877,37 @@
           "description": "Plans, workspaces, billing with Stripe and customer lifecycle."
         }
       },
-      "config_error": "antelope.config.ts cannot be edited from here"
+      "config_error": "antelope.config.ts cannot be edited from here",
+      "frontend_requirement": {
+        "needs": "Needs dms-frontend {range}, this project runs {running}.",
+        "run": "To move the project to dms-frontend {target}, run:",
+        "breaks": "dms-frontend {target} would refuse these installed layers:",
+        "supports": "supports {range}",
+        "no_target": "No published dms-frontend matches this range."
+      },
+      "requires": "Requires: {interfaces}",
+      "requires_first": "Needs {interfaces}, which no running module implements: install a module that does first.",
+      "used_by": "Used by: {modules}. Remove them first.",
+      "frontend_version": {
+        "label": "dms-frontend {version}",
+        "reported": "Reported by the running frontend server",
+        "project": "Read from the project’s dependencies: no frontend server reported its version"
+      },
+      "install_dialog": {
+        "title": "Install {module}",
+        "description": "{module} needs interfaces that no running module implements. Pick a module for each: it is installed first.",
+        "other": "Other npm package",
+        "package_label": "npm package",
+        "package_placeholder": "{'@'}scope/package",
+        "config_label": "Config (JSON)",
+        "config_hint": "Optional",
+        "note": "These modules are added to antelope.config.ts as their own entries, where their config can be edited later.",
+        "errors": {
+          "package_required": "Enter an npm package name.",
+          "package_invalid": "Not an npm package name: git and local sources are not allowed.",
+          "config_invalid": "Must be a JSON object."
+        }
+      }
     },
     "sort": {
       "label": "Sort",

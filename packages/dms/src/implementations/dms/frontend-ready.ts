@@ -14,13 +14,22 @@ import {
  */
 export interface FrontendAcknowledgement {
   modules: Set<string>;
+  /** The dms-frontend release that reported, when it says. */
+  version?: string;
   receivedAt: number;
 }
 
 let acknowledgement: FrontendAcknowledgement | undefined;
 
-export function recordFrontendReady(moduleNames: string[]): void {
-  acknowledgement = { modules: new Set(moduleNames), receivedAt: Date.now() };
+export function recordFrontendReady(
+  moduleNames: string[],
+  version?: string,
+): void {
+  acknowledgement = {
+    modules: new Set(moduleNames),
+    version,
+    receivedAt: Date.now(),
+  };
 }
 
 /** The last report, or undefined when no frontend server has reported yet. */
@@ -31,9 +40,12 @@ export function getFrontendAcknowledgement():
 }
 
 const MAX_REPORTED_MODULES = 500;
+const MAX_VERSION_LENGTH = 64;
 
+/** A dms-frontend that predates `version` reports the modules only. */
 const frontendReadySchema = z.object({
   modules: z.array(z.string().min(1)).max(MAX_REPORTED_MODULES),
+  version: z.string().min(1).max(MAX_VERSION_LENGTH).optional(),
 });
 
 /**
@@ -48,8 +60,8 @@ export function acknowledgeFrontendReady(
   if (decideLayerAccess(outcome) === "refuse") {
     assertFrontendBootstrap(outcome);
   }
-  const { modules } = assertValidation(body, (value) =>
+  const { modules, version } = assertValidation(body, (value) =>
     frontendReadySchema.parse(value),
   );
-  recordFrontendReady(modules);
+  recordFrontendReady(modules, version);
 }

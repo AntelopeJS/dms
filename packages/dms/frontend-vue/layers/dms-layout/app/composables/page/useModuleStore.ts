@@ -1,4 +1,5 @@
 import type {
+  StoreActionBody,
   StoreListing,
   StoreListingEntry,
   StoreOperationKind,
@@ -9,10 +10,6 @@ export const ENDPOINT_STORE_LISTING = "/dms/store/listing";
 const ENDPOINT_STORE_ACTION = "/dms/store";
 /** How often the listing is read while an operation or the frontend runs. */
 const FOLLOW_INTERVAL_MS = 1000;
-
-interface StoreActionBody {
-  id: string;
-}
 
 /**
  * The module store of the Modules page: the listing, the operations, and the
@@ -78,12 +75,15 @@ export const useModuleStore = () => {
     followTimer = setTimeout(() => void load(), FOLLOW_INTERVAL_MS);
   }
 
-  /** Starts `kind` on `entry`; rejects with the server's answer when refused. */
+  /**
+   * Starts `kind` on `entry`, with `body` when it carries more than the id;
+   * rejects with the server's answer when refused.
+   */
   async function run(
     kind: StoreOperationKind,
     entry: StoreListingEntry,
+    body: StoreActionBody = { id: entry.id },
   ): Promise<void> {
-    const body: StoreActionBody = { id: entry.id };
     listing.value = await $authFetch<StoreListing>(
       `${ENDPOINT_STORE_ACTION}/${kind}`,
       { method: "POST", body },

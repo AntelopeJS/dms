@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
+import ModuleStoreRequirements from "./ModuleStoreRequirements.vue";
 import {
   type ModuleStoreEntry,
   type StoreAction,
+  type StoreActionBlock,
+  storeActionBlock,
   storeActions,
   storeTileStatus,
 } from "../../../utils/module-store-catalog";
@@ -33,15 +36,19 @@ const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
 /** The steps an operation shows, in the order they run. */
 const PROGRESS_STEPS: StoreOperationStep[] = [
   "resolve",
+  "dependencies",
   "unload",
   "load",
   "save",
 ];
-/** Steps an operation of this kind goes through. */
+/**
+ * Steps an operation of this kind goes through. The file is written last:
+ * it only ever names a module that loaded.
+ */
 const KIND_STEPS: Record<StoreOperationKind, StoreOperationStep[]> = {
-  install: ["resolve", "save", "load"],
-  update: ["resolve", "unload", "save", "load"],
-  enable: ["save", "load"],
+  install: ["resolve", "dependencies", "load", "save"],
+  update: ["resolve", "unload", "load", "save"],
+  enable: ["load", "save"],
   disable: ["unload", "save"],
   uninstall: ["unload", "save"],
   apply: ["load"],
@@ -59,6 +66,7 @@ const secondary = computed(() =>
       label: t(`modules.store.actions.${action.labelKey}`),
       icon: action.icon,
       color: action.kind === "uninstall" ? ("error" as const) : undefined,
+      disabled: storeActionBlock(props.entry, action.kind) !== undefined,
       onSelect: () => emit("action", action.kind),
     })),
 );
@@ -66,26 +74,71 @@ const secondary = computed(() =>
 const isInstalledHere = computed(
   () => props.entry.installedVersion !== undefined,
 );
+const LIST_SEPARATOR = ", ";
+
+const BLOCK_MESSAGES: Record<StoreActionBlock, () => string> = {
+  no_release: () => t("modules.store.no_release"),
+  incompatible: () =>
+    t("modules.store.incompatible", {
+      range: props.entry.requiredInterfaceRange ?? "",
+    }),
+  frontend: () =>
+    t("modules.store.frontend_requirement.needs", {
+      range: props.entry.frontendRequirement?.range ?? "",
+      running: props.entry.frontendRequirement?.running ?? "",
+    }),
+  interfaces: () =>
+    t("modules.store.requires_first", {
+      interfaces: props.entry.missingInterfaces
+        .map((missing) => missing.interfacePackage)
+        .join(LIST_SEPARATOR),
+    }),
+  dependents: () =>
+    t("modules.store.used_by", {
+      modules: props.entry.dependents.join(LIST_SEPARATOR),
+    }),
+};
+
 /** Why the main action waits, when it does. */
 const blockedReason = computed(() => {
   if (props.isLocked) return t("modules.store.locked");
-  if (primary.value?.kind !== "install") return undefined;
-  if (!props.entry.latestVersion) return t("modules.store.no_release");
-  if (!props.entry.compatible) {
-    return t("modules.store.incompatible", {
-      range: props.entry.requiredInterfaceRange ?? "",
-    });
-  }
-  return undefined;
+  if (!primary.value) return undefined;
+  const block = storeActionBlock(props.entry, primary.value.kind);
+  return block ? BLOCK_MESSAGES[block]() : undefined;
 });
 const isBlocked = computed(() => blockedReason.value !== undefined);
 
 const operation = computed(() => props.entry.operation);
+/**
+ * Whether the running install loads modules for missing interfaces. Kept
+ * for the whole operation: once they run, the listing no longer misses them.
+ */
+const isInstallingDependencies = ref(false);
+watch(
+  operation,
+  (running) => {
+    if (!running) {
+      isInstallingDependencies.value = false;
+      return;
+    }
+    if (
+      running.step === "dependencies" ||
+      (running.kind === "install" && props.entry.missingInterfaces.length > 0)
+    ) {
+      isInstallingDependencies.value = true;
+    }
+  },
+  { immediate: true },
+);
+
 const steps = computed(() => {
   const kind = operation.value?.kind;
   if (!kind) return [];
   const current = PROGRESS_STEPS.indexOf(operation.value.step);
-  return KIND_STEPS[kind].map((step) => {
+  const kindSteps = KIND_STEPS[kind].filter(
+    (step) => step !== "dependencies" || isInstallingDependencies.value,
+  );
+  return kindSteps.map((step) => {
     const index = PROGRESS_STEPS.indexOf(step);
     const state =
       index < current ? "done" : index === current ? "running" : "todo";
@@ -178,6 +231,8 @@ const versionLabel = computed(() => {
     >
       <span class="truncate">{{ props.entry.package }}</span>
     </div>
+
+    <ModuleStoreRequirements v-if="steps.length === 0" :entry="props.entry" />
 
     <template #footer>
       <span class="truncate">

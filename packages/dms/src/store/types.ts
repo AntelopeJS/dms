@@ -34,6 +34,10 @@ export interface PackageRelease {
   version: string;
   /** Range of `@antelopejs/interface-dms` the release depends on. */
   interfaceRange?: string;
+  /** The release's `dependencies`, interface packages among them. */
+  dependencies?: Record<string, string>;
+  /** Interfaces the release implements, its own interface included. */
+  implements?: string[];
 }
 
 /** A module loaded in the runtime, reduced to what the store compares. */
@@ -54,7 +58,12 @@ export type StoreOperationKind =
   | "apply";
 
 /** Where a running operation is. */
-export type StoreOperationStep = "resolve" | "unload" | "load" | "save";
+export type StoreOperationStep =
+  | "resolve"
+  | "dependencies"
+  | "unload"
+  | "load"
+  | "save";
 
 /** The operation the store is running, if any. */
 export interface StoreOperation {
@@ -87,6 +96,52 @@ export type StoreModuleState =
  */
 export type StoreFrontendState = "none" | "synced" | "pending" | "unknown";
 
+/** A module of the AntelopeJS interfaces registry that implements an interface. */
+export interface InterfaceImplementation {
+  /** Name the registry gives it, such as `redis`. */
+  name: string;
+  /** npm package it is installed from. */
+  package: string;
+}
+
+/**
+ * An interface a release depends on that no running module implements: the
+ * core refuses to load the release until one does.
+ */
+export interface MissingInterface {
+  interfacePackage: string;
+  /** Registry modules that implement it, npm packages only. */
+  candidates: InterfaceImplementation[];
+}
+
+/** A frontend layer that would stop loading on another dms-frontend. */
+export interface FrontendBreak {
+  /** Name of the frontend layer. */
+  name: string;
+  /** The dms-frontend range the layer supports. */
+  range: string;
+}
+
+/**
+ * Why a release cannot load on the running dms-frontend, and what moving
+ * dms-frontend would take.
+ */
+export interface FrontendRequirement {
+  /** The dms-frontend range the release supports. */
+  range: string;
+  /** The dms-frontend version that runs. */
+  running: string;
+  /** Latest published dms-frontend in the range, when there is one. */
+  target?: string;
+  /** Command that moves the project to `target`. */
+  command?: string;
+  /** Layers already loaded that `target` would refuse. */
+  breaks: FrontendBreak[];
+}
+
+/** Where the store read the running dms-frontend version. */
+export type FrontendVersionSource = "reported" | "project";
+
 /** One module of the store listing. */
 export interface StoreListingEntry {
   id: string;
@@ -108,6 +163,17 @@ export interface StoreListingEntry {
   error?: string;
   operation?: StoreOperation;
   frontend: StoreFrontendState;
+  /** The dms-frontend range the release to install declares, when it does. */
+  frontendRange?: string;
+  /** Set when that range excludes the running dms-frontend. */
+  frontendRequirement?: FrontendRequirement;
+  /** Interfaces the release to install needs and nothing implements. */
+  missingInterfaces: MissingInterface[];
+  /**
+   * Running modules that need an interface only this one implements: it
+   * cannot be paused or removed while they run.
+   */
+  dependents: string[];
 }
 
 /** `GET /dms/store/listing`. */
@@ -125,4 +191,19 @@ export interface StoreListing {
   dev: boolean;
   /** Why antelope.config.ts cannot be read or edited, when it cannot. */
   configError?: string;
+  /** The dms-frontend version that runs, when the store can tell. */
+  frontendVersion?: string;
+  frontendVersionSource?: FrontendVersionSource;
+}
+
+/**
+ * A module the owner picked to implement a missing interface, installed with
+ * the module that needs it.
+ */
+export interface StoreDependencyChoice {
+  interfacePackage: string;
+  /** npm package, never a git or local source. */
+  package: string;
+  /** Config written to its antelope.config.ts entry. */
+  config?: Record<string, unknown>;
 }

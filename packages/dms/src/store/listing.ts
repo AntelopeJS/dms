@@ -9,12 +9,25 @@ import {
 import { loadStoreCatalog } from "./catalog";
 import { installedInterfaceVersion, isCompatible } from "./compatibility";
 import { listCatalogDeclarations } from "./declarations";
+import {
+  frontendRequirement,
+  releaseFrontendRange,
+  type RunningFrontend,
+  runningFrontend,
+} from "./frontend-compatibility";
+import {
+  findDependents,
+  findMissingInterfaces,
+  implementedInterfaces,
+} from "./interfaces";
 import { currentOperation, removedLayerNames, storeError } from "./operations";
 import { latestRelease } from "./registry";
 import { isLive, listRuntimeModules } from "./runtime";
 import type {
   PackageRelease,
   RuntimeModule,
+  FrontendRequirement,
+  MissingInterface,
   StoreCatalogEntry,
   StoreDeclaration,
   StoreFrontendState,
@@ -33,6 +46,22 @@ interface EntrySources {
   release: PackageRelease | undefined;
   interfaceVersion: string;
   acknowledgement: FrontendAcknowledgement | undefined;
+}
+
+/** What the listing knows of the platform as a whole. */
+interface PlatformState {
+  projectPath: string;
+  live: RuntimeModule[];
+  implemented: ReadonlySet<string>;
+  frontend: RunningFrontend | undefined;
+}
+
+/** What an entry needs before it can be installed, updated or taken down. */
+interface EntryRequirements {
+  frontendRange?: string;
+  frontendRequirement?: FrontendRequirement;
+  missingInterfaces: MissingInterface[];
+  dependents: string[];
 }
 
 interface DeclarationsRead {
@@ -89,7 +118,84 @@ function isRangeBehind(
   return declared !== null && !satisfies(latest, declared);
 }
 
-function buildEntry(sources: EntrySources): StoreListingEntry {
+/**
+ * The release the next install or update would load: the latest one, when
+ * the module is not declared or its range has fallen behind.
+ */
+function pendingRelease(sources: EntrySources): PackageRelease | undefined {
+  const { release, declaration } = sources;
+  if (!release) return undefined;
+  if (!declaration) return release;
+  return isRangeBehind(release.version, declaration.range)
+    ? release
+    : undefined;
+}
+
+async function checkFrontend(
+  sources: EntrySources,
+  release: PackageRelease,
+  platform: PlatformState,
+): Promise<Pick<EntryRequirements, "frontendRange" | "frontendRequirement">> {
+  const range = await releaseFrontendRange(
+    sources.catalogEntry.package,
+    release.version,
+    platform.projectPath,
+  );
+  if (!range) return {};
+  const requirement = platform.frontend
+    ? await frontendRequirement({
+        range,
+        running: platform.frontend.version,
+        projectPath: platform.projectPath,
+        replacedFolder: runtimeModule(sources)?.localPath,
+      })
+    : undefined;
+  return { frontendRange: range, frontendRequirement: requirement };
+}
+
+/**
+ * What keeps a declared module that does not run from starting: the core
+ * refuses it while an interface it needs has no implementation.
+ */
+async function stalledOn(
+  sources: EntrySources,
+  platform: PlatformState,
+): Promise<MissingInterface[]> {
+  const { declaration, release } = sources;
+  if (!declaration || declaration.disabled || !release) return [];
+  if (isLive(runtimeModule(sources))) return [];
+  return findMissingInterfaces(
+    release,
+    platform.implemented,
+    platform.projectPath,
+  );
+}
+
+async function inspectRequirements(
+  sources: EntrySources,
+  platform: PlatformState,
+): Promise<EntryRequirements> {
+  const module = runtimeModule(sources);
+  const dependents =
+    module && isLive(module) ? await findDependents(module, platform.live) : [];
+  const release = pendingRelease(sources);
+  if (!release) {
+    return {
+      missingInterfaces: await stalledOn(sources, platform),
+      dependents,
+    };
+  }
+  const [frontend, missingInterfaces] = await Promise.all([
+    checkFrontend(sources, release, platform),
+    findMissingInterfaces(release, platform.implemented, platform.projectPath),
+  ]);
+  return { ...frontend, missingInterfaces, dependents };
+}
+
+function buildEntry(
+  sources: EntrySources,
+  requirements: EntryRequirements,
+): StoreListingEntry {
   const { catalogEntry, release, declaration } = sources;
   const { id } = catalogEntry;
   const compatible =
@@ -109,6 +215,20 @@ function buildEntry(sources: EntrySources): StoreListingEntry {
     error: storeError(id),
     operation: operation?.moduleId === id ? { ...operation } : undefined,
     frontend: resolveFrontend(sources),
+    ...requirements,
+  };
+}
+
+async function readPlatformState(
+  projectPath: string,
+  runtime: ReadonlyMap<string, RuntimeModule>,
+): Promise<PlatformState> {
+  const live = [...runtime.values()].filter((module) => isLive(module));
+  return {
+    projectPath,
+    live,
+    implemented: await implementedInterfaces(live),
+    frontend: runningFrontend(projectPath),
   };
 }
 
@@ -141,21 +261,28 @@ export async function buildStoreListing(): Promise<StoreListing> {
   ]);
   const interfaceVersion = installedInterfaceVersion();
   const acknowledgement = getFrontendAcknowledgement();
+  const platform = await readPlatformState(projectPath, runtime);
+  const sources = catalog.map((catalogEntry, index) => ({
+    catalogEntry,
+    declaration: read.declarations.get(catalogEntry.id),
+    runtime,
+    release: releases[index],
+    interfaceVersion,
+    acknowledgement,
+  }));
+  const requirements = await Promise.all(
+    sources.map((entry) => inspectRequirements(entry, platform)),
+  );
   return {
     enabled: isStoreEditable(dev) && !read.error,
-    modules: catalog.map((catalogEntry, index) =>
-      buildEntry({
-        catalogEntry,
-        declaration: read.declarations.get(catalogEntry.id),
-        runtime,
-        release: releases[index],
-        interfaceVersion,
-        acknowledgement,
-      }),
+    modules: sources.map((entry, index) =>
+      buildEntry(entry, requirements[index]),
     ),
     busy: currentOperation() !== undefined,
     interfaceVersion,
     dev,
     configError: read.error,
+    frontendVersion: platform.frontend?.version,
+    frontendVersionSource: platform.frontend?.source,
   };
 }

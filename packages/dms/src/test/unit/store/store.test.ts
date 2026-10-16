@@ -3,7 +3,10 @@ import { isStoreEditable } from "../../../config";
 import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
 import { packageDeclarationSource } from "../../../store/declarations";
+import { supportsFrontend } from "../../../store/frontend-compatibility";
 import { isLive } from "../../../store/runtime";
+import { readTarFile } from "../../../store/tarball";
+import { storeInstallSchema } from "../../../validation/store.schema";
 import type { RuntimeModule } from "../../../store/types";
 
 function runtimeModule(status: string): RuntimeModule {
@@ -83,5 +86,62 @@ describe("[unit] store/editable", () => {
   it("follows the runtime mode by default", () => {
     expect(isStoreEditable(true)).to.equal(true);
     expect(isStoreEditable(false)).to.equal(false);
+  });
+});
+
+function tarEntry(name: string, content: string): Buffer {
+  const header = Buffer.alloc(512);
+  header.write(name, 0);
+  header.write(`${content.length.toString(8).padStart(11, "0")}\0`, 124);
+  header.write("0", 156);
+  const body = Buffer.alloc(Math.ceil(content.length / 512) * 512);
+  body.write(content);
+  return Buffer.concat([header, body]);
+}
+
+describe("[unit] store/tarball", () => {
+  it("reads one file of an npm archive by its path in the package", () => {
+    const archive = Buffer.concat([
+      tarEntry("package/package.json", '{"name":"a"}'),
+      tarEntry("package/frontend-vue/package.json", '{"engines":{}}'),
+      Buffer.alloc(1024),
+    ]);
+    expect(
+      readTarFile(archive, "frontend-vue/package.json")?.toString(),
+    ).to.equal('{"engines":{}}');
+    expect(readTarFile(archive, "missing.json")).to.equal(undefined);
+  });
+});
+
+describe("[unit] store/frontend-compatibility", () => {
+  it("checks a prerelease as the release it leads to", () => {
+    expect(supportsFrontend(">=0.6.0 <0.7.0", "0.6.0")).to.equal(true);
+    expect(supportsFrontend(">=0.6.0 <0.7.0", "0.7.0-next.1")).to.equal(false);
+    expect(supportsFrontend("<0.6.0", "0.6.0")).to.equal(false);
+  });
+});
+
+describe("[unit] validation/store", () => {
+  const install = (packageName: string) =>
+    storeInstallSchema.safeParse({
+      id: "lang",
+      dependencies: [
+        {
+          interfacePackage: "@antelopejs/interface-redis",
+          package: packageName,
+        },
+      ],
+    }).success;
+
+  it("takes an npm package for a dependency", () => {
+    expect(install("@antelopejs/redis")).to.equal(true);
+    expect(install("redis-module")).to.equal(true);
+  });
+
+  it("refuses a git, URL or local source for a dependency", () => {
+    expect(install("git+https://github.com/a/b.git")).to.equal(false);
+    expect(install("../redis")).to.equal(false);
+    expect(install("file:/tmp/redis")).to.equal(false);
+    expect(install("github:a/b")).to.equal(false);
   });
 });

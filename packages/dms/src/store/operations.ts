@@ -7,11 +7,19 @@ import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
 import { isCompatible, installedInterfaceVersion } from "./compatibility";
 import {
+  hasDeclaration,
   listCatalogDeclarations,
   packageDeclarationSource,
   removeDeclaration,
   saveDeclaration,
 } from "./declarations";
+import {
+  assertFrontendSupports,
+  assertNoDependents,
+  caretRange,
+  installDependency,
+  pickDependencies,
+} from "./requirements";
 import { INTERFACE_PACKAGE, latestRelease } from "./registry";
 import {
   describeRuntimeModule,
@@ -20,8 +28,10 @@ import {
   unloadStoreModule,
 } from "./runtime";
 import type {
+  PackageRelease,
   StoreCatalogEntry,
   StoreDeclaration,
+  StoreDependencyChoice,
   StoreOperation,
   StoreOperationKind,
   StoreOperationStep,
@@ -30,8 +40,6 @@ import type {
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
-/** The store writes a caret range: patches and minors load on their own. */
-const RANGE_PREFIX = "^";
 
 /** Everything an operation needs, gathered before it runs. */
 interface OperationContext {
@@ -44,6 +52,15 @@ interface OperationContext {
   declaration?: StoreDeclaration;
   /** The entry the operation wrote, if it got that far. */
   written: boolean;
+  /** Modules the owner picked for the interfaces the release misses. */
+  dependencies: StoreDependencyChoice[];
+  /** Keys of the dependencies this operation loaded, undone on failure. */
+  installedDependencies: string[];
+}
+
+/** What an operation may carry besides the module it acts on. */
+export interface StoreOperationOptions {
+  dependencies?: StoreDependencyChoice[];
 }
 
 type OperationRunner = (context: OperationContext) => Promise<void>;
@@ -122,7 +139,9 @@ async function writeEntry(
  * refused when it needs another `@antelopejs/interface-dms` than the one
  * installed, as the runtime would refuse to load it.
  */
-async function resolveTargetRange(context: OperationContext): Promise<string> {
+async function resolveTargetRelease(
+  context: OperationContext,
+): Promise<PackageRelease> {
   setStep("resolve");
   const { package: packageName } = context.catalogEntry;
   const release = await latestRelease(packageName, context.projectPath, true);
@@ -138,7 +157,21 @@ async function resolveTargetRange(context: OperationContext): Promise<string> {
     );
   }
   if (current) current.targetVersion = release.version;
-  return `${RANGE_PREFIX}${release.version}`;
+  await assertFrontendSupports(context, release);
+  return release;
+}
+
+async function installDependencies(
+  context: OperationContext,
+  release: PackageRelease,
+): Promise<void> {
+  const label = `${context.catalogEntry.package}@${release.version}`;
+  const picked = await pickDependencies(context, release, label);
+  if (picked.size === 0) return;
+  setStep("dependencies");
+  for (const [interfacePackage, choice] of picked) {
+    await installDependency(context, interfacePackage, choice);
+  }
 }
 
 function sourceFor(context: OperationContext, range: string) {
@@ -151,7 +184,9 @@ function sourceFor(context: OperationContext, range: string) {
  * never fails on it.
  */
 async function runInstall(context: OperationContext): Promise<void> {
-  const range = await resolveTargetRange(context);
+  const release = await resolveTargetRelease(context);
+  await installDependencies(context, release);
+  const range = caretRange(release);
   await load(context, range);
   await writeEntry(context, () =>
     saveDeclaration(context.key, {
@@ -163,7 +198,13 @@ async function runInstall(context: OperationContext): Promise<void> {
 
 async function runUpdate(context: OperationContext): Promise<void> {
   const declaration = requireDeclaration(context);
-  const range = await resolveTargetRange(context);
+  const release = await resolveTargetRelease(context);
+  await pickDependencies(
+    context,
+    release,
+    `${context.catalogEntry.package}@${release.version}`,
+  );
+  const range = caretRange(release);
   await unload(context);
   if (!declaration.disabled) await load(context, range, declaration.config);
   await writeEntry(context, () =>
@@ -250,6 +291,14 @@ async function restoreDeclaration(context: OperationContext): Promise<void> {
  * and the previous version running again when it ran before.
  */
 async function rollback(context: OperationContext): Promise<void> {
+  await rollbackModule(context);
+  for (const key of [...context.installedDependencies].reverse()) {
+    await unloadStoreModule(key);
+    if (await hasDeclaration(key)) await removeDeclaration(key);
+  }
+}
+
+async function rollbackModule(context: OperationContext): Promise<void> {
   if (context.written) await restoreDeclaration(context);
   const previous = context.declaration;
   const live = isLive(await describeRuntimeModule(context.key));
@@ -283,9 +332,13 @@ async function execute(
   }
 }
 
+/** Operations that take a running module down. */
+const TAKES_DOWN = new Set<StoreOperationKind>(["disable", "uninstall"]);
+
 async function prepareContext(
   kind: StoreOperationKind,
   id: string,
+  options: StoreOperationOptions,
 ): Promise<OperationContext> {
   const catalogEntry = await findCatalogEntry(id);
   assert(catalogEntry, HTTP_NOT_FOUND, "error.store_module_unknown");
@@ -296,14 +349,18 @@ async function prepareContext(
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );
-  return {
+  const context: OperationContext = {
     id,
     catalogEntry,
     projectPath,
     key: declaration?.key ?? catalogEntry.package,
     declaration,
     written: false,
+    dependencies: options.dependencies ?? [],
+    installedDependencies: [],
   };
+  if (TAKES_DOWN.has(kind)) await assertNoDependents(context);
+  return context;
 }
 
 function enqueue(work: () => Promise<void>): Promise<void> {
@@ -321,13 +378,14 @@ function enqueue(work: () => Promise<void>): Promise<void> {
 export async function startStoreOperation(
   kind: StoreOperationKind,
   id: string,
+  options: StoreOperationOptions = {},
 ): Promise<void> {
   const { dev } = await GetRuntimeInfo();
   assert(isStoreEditable(dev), HTTP_FORBIDDEN, "error.store_disabled");
   assert(!current, HTTP_CONFLICT, "error.store_busy");
   setCurrent({ moduleId: id, kind, step: "resolve", startedAt: Date.now() });
   try {
-    const context = await prepareContext(kind, id);
+    const context = await prepareContext(kind, id, options);
     void enqueue(() =>
       execute(kind, context).finally(() => {
         setCurrent(undefined);

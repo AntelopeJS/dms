@@ -16,7 +16,10 @@ import { isPlatformOwner } from "../implementations/dms/page";
 import { buildStoreListing } from "../store/listing";
 import { startStoreOperation } from "../store/operations";
 import type { StoreListing, StoreOperationKind } from "../store/types";
-import { storeOperationSchema } from "../validation/store.schema";
+import {
+  storeInstallSchema,
+  storeOperationSchema,
+} from "../validation/store.schema";
 
 const HTTP_FORBIDDEN = 403;
 const ERROR_UNAUTHORIZED = "error.unauthorized";
@@ -68,8 +71,13 @@ export class ModuleStoreController extends Controller("/dms/store") {
   }
 
   @Post("/install")
-  install(@JSONBody() body: unknown): Promise<StoreListing> {
-    return this.run("install", body);
+  async install(@JSONBody() body: unknown): Promise<StoreListing> {
+    await this.assertOwner();
+    const { id, dependencies } = assertValidation(body, (value) =>
+      storeInstallSchema.parse(value),
+    );
+    await startStoreOperation("install", id, { dependencies });
+    return buildStoreListing();
   }
 
   @Post("/update")
