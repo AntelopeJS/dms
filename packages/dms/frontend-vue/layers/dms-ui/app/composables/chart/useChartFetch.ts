@@ -233,7 +233,9 @@ export function useChartFetch<T>(
   const { data, status, error } = loaded;
   // A 404 says what the block showed is gone (another tab deleted it, the
   // URL now names another record): its last values must not stay on screen
-  // as if they still belonged to it. Any other failure keeps them.
+  // as if they still belonged to it. Any other failure of a read of the same
+  // request keeps them; a failure of a different (reactive) request shows
+  // none, as they belong to the record it replaced.
   watch(error, (failure) => {
     if (failure && readFetchNotFound(failure)) data.value = null;
   });

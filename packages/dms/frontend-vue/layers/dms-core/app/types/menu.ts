@@ -7,8 +7,9 @@ export type MenuItemVariant = "default" | "accent";
 export type MenuItemStatus = "success" | "warning" | "error" | "neutral";
 
 /**
- * Tone of a counted menu badge, mirroring `Tone` in the backend: the server
- * serves it as `badgeTone` next to `badge`; neutral when absent.
+ * Tone of a counted menu badge, mirroring `Tone` in the backend: the page's
+ * `navBadges` entry carries it next to `badge` (`{ badge, tone? }`); neutral
+ * when absent.
  */
 export type MenuItemBadgeTone =
   | "neutral"

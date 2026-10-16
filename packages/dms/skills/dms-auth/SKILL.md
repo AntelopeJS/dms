@@ -1,6 +1,7 @@
 ---
 name: dms-auth
 description: Wires authentication and RBAC permissions on the AntelopeJS DMS. Use when protecting a route with @AuthUser / @AuthUserWithPermission, gating a page via its PageController options, registering permissions, or working with the user, role, and tenant models under @antelopejs/interface-dms/auth and @antelopejs/interface-dms.
+icon: i-ph-lock-key
 category: security
 tags: [auth, permissions, rbac, users, roles, tenants]
 ---
@@ -61,7 +62,9 @@ checks; only add finer ones (ownership, a specific permission).
 Permissions are **hierarchical and auto-derived** from the page → component → action tree.
 A component's permission id is the page's **`fullId`** (category chain + page id) followed by
 the component key, then the action (e.g. `pages.recipes.submit-recipe.form.delete`), registered
-automatically when the page loads. Users hold roles; roles hold granted permission ids; the
+automatically when the page loads. The roles editor titles each one with the component's metadata: DMS blocks set
+their own, and a `CustomComponent` needs `.meta({ name, description, icon })` with `$` keys (see
+**dms-best-practices**). Users hold roles; roles hold granted permission ids; the
 platform **owner** holds everything. **Module pages are special**: prefixed
 `modules.<moduleId>.…`, never grantable in the Roles tree, owner-only regardless of grants.
 

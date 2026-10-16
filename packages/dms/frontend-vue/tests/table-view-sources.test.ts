@@ -86,6 +86,7 @@ describe("source tables", () => {
     const page = await rows.list({ offset: 20, limit: 10, search: "x" });
     expect(api).toHaveBeenCalledWith("/api/log", {
       query: { offset: 20, limit: 10 },
+      signal: expect.any(AbortSignal),
     });
     expect(page).toMatchObject({ total: 120, offset: 20, limit: 10 });
     expect(await rows.getRow("a")).toBeUndefined();
@@ -142,7 +143,7 @@ describe("source tables", () => {
       await rows.list({});
       expect(api).toHaveBeenCalledWith(
         "/api/ws/ws-1/requests?route=GET%20%2Fapi%2Fa%3Fb%3Dc",
-        { query: {} },
+        { query: {}, signal: expect.any(AbortSignal) },
       );
     });
 

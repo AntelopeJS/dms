@@ -1,6 +1,7 @@
 ---
 name: dms-pages
-description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid builders imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
+description: Declares admin pages and composes backend-driven UI on the AntelopeJS DMS. Use when adding a dashboard screen, writing a @RegisterPage / PageController class, composing Form / TableView / Chart / Grid / KpiCard blocks imported from @antelopejs/interface-dms/base, or choosing DataTypes and wiring the routes and DataControllers that feed them.
+icon: i-ph-layout
 category: dashboard
 tags: [pages, components, forms, tables, data-types, navigation]
 ---
@@ -9,9 +10,10 @@ tags: [pages, components, forms, tables, data-types, navigation]
 
 The DMS is backend-driven: you declare a **page** and attach **components** to it as static
 fields. The builders produce a serializable description that the shared Vue 3 + Inertia frontend
-renders — you write no Vue for standard screens. Depth: `docs/02.building/03.pages-and-components.md`
-(pages), `docs/02.building/04.navigation.md` (nav tree), and the `docs/04.components/`
-catalog (one chapter per component family).
+renders — you write no Vue for standard screens. **Before composing a page, apply
+dms-best-practices** (blocks only, custom for the missing block, `.meta()`, design fidelity). Depth:
+`docs/02.building/03.pages-and-components.md` (pages), `docs/02.building/04.navigation.md` (nav
+tree), and `docs/04.components/` (one page per block, with its options).
 
 ## Declaring a page
 
@@ -70,11 +72,10 @@ The full catalog — `Form`, `TableView`, the charts, layout containers, dashboa
 widgets, `CustomComponent` — plus nesting rules and the behavioral DSL (permissioned
 `.action()`s, `.watch()` reactivity) is in [REFERENCE.md](REFERENCE.md).
 
-**Custom UI: decompose, don't monolith.** Never build a whole screen as one full-page
-`CustomComponent` SFC — that silently opts out of per-component permissions,
-`.action()`/`.watch()` reactivity, `PeriodSelector` scoping, and backend-driven layout. Use
-built-in builders wherever they suffice and one small `CustomComponent` per part that
-genuinely needs Vue (`docs/04.components/04.custom-component.md`).
+**Custom UI: only the missing block.** A screen is always a tree of DMS blocks; a part with no
+DMS equivalent becomes one `CustomComponent` (from `@antelopejs/interface-dms/base/custom`) carrying
+`.meta({ name, description, icon })` with `$` keys — the rules and the design-fidelity protocol are
+in **dms-best-practices** (`docs/04.components/09.custom-component.md`).
 
 ## Feeding components with data
 
@@ -97,7 +98,7 @@ with `@RegisterDataController()` (both from `@antelopejs/interface-data-api`).
 class-level `@ColumnGroup(id, config)`), `@Listable` / `@Sortable` from
 `@antelopejs/interface-data-api/metadata`. Read a
 real one first: `@antelopejs/interface-dms/data-controllers` (`members`); guide in
-`docs/04.components/09.data-controller.md` (+ `06.tables/`). Database rows carry **`_id`**
+`docs/04.components/11.data-controller.md` (+ `08.tables/`). Database rows carry **`_id`**
 as the primary key — return and type it as `_id`, never alias to `id`.
 
 ## DataTypes
@@ -109,6 +110,6 @@ built-in types and how to register custom ones.
 ## Verify in the browser
 
 The build only typechecks `src/` — it will not catch a Vue error in a custom component or a
-wrong URL. After editing pages, full-restart and click through (see **dms-dev**). A hand-written link
+wrong URL. After editing pages, full-restart and click through (see **dms-project**). A hand-written link
 to a module page must include the `/modules/<moduleId>` prefix (or read `fullSlug` from the
 layout) — a missing prefix 404s through the frontend catch-all even though the build is clean.

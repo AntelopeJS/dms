@@ -33,6 +33,7 @@ import {
   getConfig,
   getFrontendConfig,
   getHtmlRenderConfig,
+  isDocsPreviewEnabled,
 } from "./config";
 import {
   CLEANUP_USER_INVITES_CRON_NAME,
@@ -68,6 +69,7 @@ import {
   startPendingExtensionReport,
   stopPendingExtensionReport,
 } from "./page-extensions/pending-report";
+import { registerDocsPreviewPage } from "./pages/public/preview";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
@@ -102,6 +104,10 @@ export async function construct(config: Config): Promise<void> {
 
   await implementInterfaces();
   await registerDmsFrontend();
+
+  if (isDocsPreviewEnabled()) {
+    registerDocsPreviewPage();
+  }
 }
 
 async function setupFrontendBootstrap(): Promise<void> {

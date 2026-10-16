@@ -1,7 +1,9 @@
 <script setup lang="ts" generic="T extends Data">
-import Draggable from "vuedraggable";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type { Data } from "../../build/components/table/Table.vue";
+import SortableList, {
+  type SortableListChange,
+} from "../../build/components/sortable/SortableList.vue";
 import {
   AccessMode,
   type TableViewColumn,
@@ -184,6 +186,13 @@ const loadMore = async (col: KanbanColumnDef) => {
   }
 };
 
+// A drag hands each list it changed its new cards.
+const setColumnItems = (col: KanbanColumnDef, items: T[]) => {
+  const cell = cells.value[col.value];
+  if (cell) cell.items = items;
+  else cells.value[col.value] = { items, total: 0, loadingMore: false };
+};
+
 const hasMore = (col: KanbanColumnDef): boolean => {
   const cell = cells.value[col.value];
   return !!cell && cell.items.length < cell.total;
@@ -220,11 +229,6 @@ const canDeleteItem = (item: T): boolean =>
 // the others move.
 const isItemLocked = (item: T): boolean =>
   isDragEnabled.value && !canDragItem(item);
-
-interface DraggableChangeEvent {
-  added?: { element: T; newIndex: number };
-  removed?: { element: T; oldIndex: number };
-}
 
 // The edit route requires the full editable field set in the body (absent
 // fields would fail the mandatory check or be blanked), so fetch the item and
@@ -316,7 +320,7 @@ const notifyMoveError = (error: unknown) => {
 
 const onColumnChange = async (
   target: KanbanColumnDef,
-  event: DraggableChangeEvent,
+  event: SortableListChange<T>,
 ) => {
   const added = event.added;
   if (!added) return;
@@ -326,7 +330,7 @@ const onColumnChange = async (
 
   if (!itemId) {
     // No stable ID — the move cannot be persisted; refresh to undo the
-    // local reorder vuedraggable already applied.
+    // local move the list already applied.
     await refresh();
     return;
   }
@@ -507,20 +511,18 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
             </div>
           </div>
 
-          <Draggable
+          <SortableList
             v-else
             :list="cells[col.value]?.items ?? []"
             :group="`kanban-${componentId}`"
             :disabled="!isDragEnabled"
-            :item-key="rowIdKey"
+            :item-key="getRowId"
             filter=".kanban-card-locked"
-            :prevent-on-filter="false"
             class="flex min-h-16 flex-col gap-2"
+            @update:list="(items) => setColumnItems(col, items)"
             ghost-class="dms-kanban-ghost"
             drag-class="dms-kanban-drag"
-            @change="
-              (event: DraggableChangeEvent) => onColumnChange(col, event)
-            "
+            @change="(event) => onColumnChange(col, event)"
           >
             <template #item="{ element }">
               <div :class="{ 'kanban-card-locked': !canDragItem(element) }">
@@ -585,7 +587,7 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
                 </div>
               </div>
             </template>
-          </Draggable>
+          </SortableList>
         </div>
 
         <div v-if="hasMore(col)" class="px-2 pb-2">
