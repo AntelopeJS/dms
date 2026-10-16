@@ -4,10 +4,10 @@ import type { Column } from "@tanstack/vue-table";
 import { tv } from "tailwind-variants";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import type { ShallowRef } from "vue";
-import Draggable from "vuedraggable";
 
 import type { TableSharedData, Data } from "./Table.vue";
 import type { TableColumnMeta } from "../../composables/table/types";
+import SortableList from "../sortable/SortableList.vue";
 
 const theme = tv({
   slots: {
@@ -40,20 +40,21 @@ const rawColumns = computed(
   () => tableSharedData?.value?.table.getAllColumns() || [],
 );
 
-const columns = computed({
-  get() {
-    return mapColumns();
-  },
-  set(newValue) {
-    if (!tableSharedData?.value) return;
-    const updatedOrder = [
-      "select",
-      ...newValue.map((col) => col.id),
-      "actions",
-    ];
-    tableSharedData.value.columnOrderState.value = [...updatedOrder];
-  },
-});
+const columns = computed(() => mapColumns());
+type ListedColumn = (typeof columns.value)[number];
+
+// A drag gives the columns in their new order; `select` stays first and
+// `actions` last.
+function applyColumnOrder(ordered: ListedColumn[]) {
+  if (!tableSharedData?.value) return;
+  tableSharedData.value.columnOrderState.value = [
+    "select",
+    ...ordered.map((col) => col.id),
+    "actions",
+  ];
+}
+
+const columnKey = (column: ListedColumn) => column.id;
 
 function mapColumns() {
   return order.value
@@ -67,7 +68,7 @@ function mapColumns() {
 }
 
 function toggleColumnVisibility(
-  column: Column<unknown>,
+  column: Column<T>,
   visibility?: boolean | "indeterminate",
 ) {
   column.toggleVisibility(!!visibility);
@@ -78,7 +79,7 @@ const PIN_ICONS = {
   unpinned: "i-ph-push-pin",
 } as const;
 
-function togglePin(column: Column<unknown>) {
+function togglePin(column: Column<T>) {
   column.pin(column.getIsPinned() ? false : "left");
 }
 
@@ -98,11 +99,12 @@ const uiTableMenuColumn = computed(() => uiTableMenuColumnVariant());
 
 <template>
   <div :class="uiTableMenuColumn.root()">
-    <Draggable
-      v-model="columns"
+    <SortableList
+      :list="columns"
+      :item-key="columnKey"
       :class="uiTableMenuColumn.list()"
-      item-key="id"
       handle="#column-handler"
+      @update:list="applyColumnOrder"
     >
       <template #item="{ element: column }">
         <li :class="uiTableMenuColumn.item()">
@@ -145,7 +147,7 @@ const uiTableMenuColumn = computed(() => uiTableMenuColumnVariant());
           />
         </li>
       </template>
-    </Draggable>
+    </SortableList>
 
     <div :class="uiTableMenuColumn.actions()">
       <UButton
