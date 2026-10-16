@@ -42,8 +42,13 @@ interface RegisteredEntry {
   owner?: string;
 }
 
+/**
+ * What this suite reads of a `RegisteringProxy`: the registrations it holds,
+ * a private field of `@antelopejs/interface-core` since 0.2.0, where each
+ * proxy keeps its own state. No public API says which module owns one.
+ */
 interface InspectableProxy {
-  state: { registered: Map<string, RegisteredEntry> };
+  registered: Map<string, RegisteredEntry>;
 }
 
 function settle(): Promise<void> {
@@ -55,7 +60,7 @@ function pageId(page: string): string {
 }
 
 function ownerOf(proxy: unknown, id: string): string | undefined {
-  return (proxy as InspectableProxy).state.registered.get(id)?.owner;
+  return (proxy as InspectableProxy).registered.get(id)?.owner;
 }
 
 function permissionOwner(id: string): string | undefined {

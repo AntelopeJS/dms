@@ -52,7 +52,7 @@
     "2fa": "^0.1.2",
     "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
     "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
-    "@antelopejs/interface-core": ">=0.1.1 <1.0.0",
+    "@antelopejs/interface-core": ">=0.2.2 <1.0.0",
     "@antelopejs/interface-data-api": ">=0.2.0 <1.0.0",
     "@antelopejs/interface-database": ">=0.1.8 <1.0.0",
     "@antelopejs/interface-database-decorators": ">=0.1.7 <1.0.0",
@@ -73,7 +73,7 @@
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.13.4 <2",
+    "@antelopejs/core": ">=1.15.1 <2",
     "@antelopejs/tooling-configs": ">=0.0.7 <1.0.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
@@ -115,7 +115,7 @@
     "@antelopejs/interface-redis": ">=0.0.8 <1.0.0"
   },
   "peerDependencies": {
-    "@antelopejs/core": ">=1.13.2 <2"
+    "@antelopejs/core": ">=1.15.1 <2"
   },
   "peerDependenciesMeta": {
     "@antelopejs/core": {
