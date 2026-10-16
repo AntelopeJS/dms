@@ -38,8 +38,9 @@ multiple backend instances.
 
 The [components reference](./docs/04.components/01.overview.md) documents every block with a live
 preview. To build with Claude Code, install the
-[AntelopeJS skill suite](./docs/08.ai-and-claude-code/2.install.md): this package ships the `dms-*`
-skills, including [`dms-best-practices`](./skills/dms-best-practices/SKILL.md).
+[AntelopeJS skill suite](./docs/08.ai-and-claude-code/2.install.md): this package ships the core
+`dms` skills, including [`dms-best-practices`](./skills/dms-best-practices/SKILL.md); the
+[skill catalog](./docs/08.ai-and-claude-code/3.skill-catalog.md) lists the whole suite.
 
 ## Development
 
