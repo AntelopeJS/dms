@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import {
   DestroyModule,
   GetModuleInfo,
@@ -5,10 +7,10 @@ import {
   LoadModule,
   StopModule,
 } from "@antelopejs/interface-core/modules";
-import type { DesiredModule, RuntimeModule } from "./types";
+import type { RuntimeModule } from "./types";
 
 const PACKAGE_SOURCE_TYPE = "package";
-const STORE_MODULE_PREFIX = "store-";
+const PACKAGE_JSON = "package.json";
 /**
  * Statuses of a module that still holds an instance. A destroyed one is back
  * to `loaded`: its code stays in the registry until the process restarts, but
@@ -22,17 +24,31 @@ interface PackageSource {
   version?: string;
 }
 
-/** The runtime id of the module the store installs for catalog id `id`. */
-export function storeModuleId(id: string): string {
-  return `${STORE_MODULE_PREFIX}${id}`;
+interface PackageManifest {
+  version?: string;
 }
 
-export function isStoreModuleId(moduleId: string): boolean {
-  return moduleId.startsWith(STORE_MODULE_PREFIX);
+/** What the store loads: a catalog package, at a version range. */
+export interface StoreModuleLoad {
+  package: string;
+  range: string;
+  config?: unknown;
 }
 
 export function isLive(module: RuntimeModule | undefined): boolean {
   return module !== undefined && LIVE_STATUSES.has(module.status);
+}
+
+/** The version of the package the module was loaded from, read from disk. */
+async function loadedVersion(localPath: string): Promise<string | undefined> {
+  try {
+    const manifest = JSON.parse(
+      await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
+    ) as PackageManifest;
+    return manifest.version;
+  } catch {
+    return undefined;
+  }
 }
 
 async function describeModule(
@@ -45,27 +61,13 @@ async function describeModule(
     return {
       id: moduleId,
       packageName: isPackage ? source.package : undefined,
-      version: isPackage ? source.version : undefined,
+      version: isPackage ? await loadedVersion(info.localPath) : undefined,
       status: info.status,
       localPath: info.localPath,
     };
   } catch {
     return undefined;
   }
-}
-
-/**
- * Whether `antelope.config.ts` already declares a module from `packageName`:
- * the store then leaves the package to the config.
- */
-export function isDeclaredByConfig(
-  runtime: ReadonlyMap<string, RuntimeModule>,
-  packageName: string,
-): boolean {
-  return [...runtime.values()].some(
-    (module) =>
-      !isStoreModuleId(module.id) && module.packageName === packageName,
-  );
 }
 
 /** Every module the runtime holds, by runtime id. */
@@ -83,39 +85,43 @@ export async function listRuntimeModules(): Promise<
 }
 
 /**
- * Downloads, constructs and starts the module `entry` describes. A module that
- * fails half-way is destroyed again, so a failed install leaves nothing
- * running.
+ * Downloads, constructs and starts `load` as module `moduleId`, the key of
+ * its entry in antelope.config.ts, so the core loads it under the same id at
+ * the next start. A module that fails half-way is destroyed again.
  */
 export async function loadStoreModule(
-  id: string,
-  entry: DesiredModule,
+  moduleId: string,
+  load: StoreModuleLoad,
 ): Promise<void> {
-  const moduleId = storeModuleId(id);
   try {
     await LoadModule(
       moduleId,
       {
         source: {
           type: PACKAGE_SOURCE_TYPE,
-          package: entry.package,
-          version: entry.version,
+          package: load.package,
+          version: load.range,
         },
-        config: entry.config ?? {},
+        config: load.config ?? {},
       },
       true,
     );
   } catch (error) {
-    await unloadStoreModule(id).catch(() => undefined);
+    await unloadStoreModule(moduleId).catch(() => undefined);
     throw error;
   }
 }
 
-/** Stops and destroys the module installed for `id`, when one runs. */
-export async function unloadStoreModule(id: string): Promise<void> {
-  const moduleId = storeModuleId(id);
+/** Stops and destroys module `moduleId`, when the runtime holds it. */
+export async function unloadStoreModule(moduleId: string): Promise<void> {
   const module = await describeModule(moduleId);
   if (!module) return;
   await StopModule(moduleId);
   await DestroyModule(moduleId);
+}
+
+export async function describeRuntimeModule(
+  moduleId: string,
+): Promise<RuntimeModule | undefined> {
+  return describeModule(moduleId);
 }

@@ -1,6 +1,6 @@
 /** One official module the store offers, as the catalog lists it. */
 export interface StoreCatalogEntry {
-  /** Catalog id, also the key of the module in the desired-state file. */
+  /** Catalog id, the join key with the module registry. */
   id: string;
   /** npm package the module is installed from. */
   package: string;
@@ -16,19 +16,17 @@ export interface StoreCatalog {
   modules: StoreCatalogEntry[];
 }
 
-/** What the desired-state file asks for one store module. */
-export interface DesiredModule {
+/**
+ * A catalog module as antelope.config.ts declares it, from npm, under `key`
+ * in its `modules`.
+ */
+export interface StoreDeclaration {
+  key: string;
   package: string;
-  /** Exact version, pinned when the module is installed or updated. */
-  version: string;
-  enabled: boolean;
-  /** Passed to the module as its configuration. */
-  config?: Record<string, unknown>;
-}
-
-/** The desired-state file: every module the store manages, by catalog id. */
-export interface DesiredState {
-  modules: Record<string, DesiredModule>;
+  /** The version range the entry asks for. */
+  range: string;
+  disabled: boolean;
+  config?: unknown;
 }
 
 /** The latest release of a package, as the npm registry describes it. */
@@ -69,11 +67,10 @@ export interface StoreOperation {
 }
 
 /**
- * What a store module is, crossing the catalog, the desired-state file and
- * the runtime. `config` is a module the project declares in
- * `antelope.config.ts`: the store shows it and leaves it alone. `pending` is a
- * file entry the runtime does not match yet (a hand edit), which Apply
- * reconciles.
+ * What a store module is, crossing the catalog, antelope.config.ts and the
+ * runtime. `pending` is an entry the runtime does not match: enabled but not
+ * running (it failed to start, optional, or was added by hand), or disabled
+ * but still running. Apply reconciles it.
  */
 export type StoreModuleState =
   | "available"
@@ -81,8 +78,7 @@ export type StoreModuleState =
   | "active"
   | "disabled"
   | "error"
-  | "pending"
-  | "config";
+  | "pending";
 
 /**
  * Whether the running frontend serves the module's interface: `none` when
@@ -100,7 +96,10 @@ export interface StoreListingEntry {
   title: string;
   description: string;
   state: StoreModuleState;
+  /** The version the runtime loaded, or the declared range when not loaded. */
   installedVersion?: string;
+  /** The range antelope.config.ts declares. */
+  declaredRange?: string;
   latestVersion?: string;
   updateAvailable: boolean;
   compatible: boolean;
@@ -124,8 +123,6 @@ export interface StoreListing {
    * layer up by itself; a production frontend has to be rebuilt.
    */
   dev: boolean;
-  /** The desired-state file, relative to the project. */
-  stateFile: string;
-  /** Why the desired-state file could not be read, when it could not. */
-  stateError?: string;
+  /** Why antelope.config.ts cannot be read or edited, when it cannot. */
+  configError?: string;
 }

@@ -5,22 +5,23 @@ import { isStoreEditable } from "../config";
 import { removeFrontendModulesUnder } from "../implementations/dms/frontend-modules";
 import { setStoreOperationRunning } from "./activity";
 import { findCatalogEntry } from "./catalog";
-import { readDesiredState, writeDesiredState } from "./desired-state";
 import { isCompatible, installedInterfaceVersion } from "./compatibility";
+import {
+  listCatalogDeclarations,
+  packageDeclarationSource,
+  removeDeclaration,
+  saveDeclaration,
+} from "./declarations";
 import { INTERFACE_PACKAGE, latestRelease } from "./registry";
 import {
-  isDeclaredByConfig,
+  describeRuntimeModule,
   isLive,
-  listRuntimeModules,
   loadStoreModule,
-  storeModuleId,
   unloadStoreModule,
 } from "./runtime";
 import type {
-  DesiredModule,
-  DesiredState,
-  RuntimeModule,
   StoreCatalogEntry,
+  StoreDeclaration,
   StoreOperation,
   StoreOperationKind,
   StoreOperationStep,
@@ -29,23 +30,26 @@ import type {
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
+/** The store writes a caret range: patches and minors load on their own. */
+const RANGE_PREFIX = "^";
 
 /** Everything an operation needs, gathered before it runs. */
 interface OperationContext {
   id: string;
   catalogEntry: StoreCatalogEntry;
   projectPath: string;
-  state: DesiredState;
-  /** The file as it was before the operation, written back if it fails. */
-  snapshot: DesiredState;
+  /** The module's key in antelope.config.ts, existing or about to be. */
+  key: string;
+  /** The entry as it was before the operation, restored if it fails. */
+  declaration?: StoreDeclaration;
+  /** The entry the operation wrote, if it got that far. */
+  written: boolean;
 }
 
 type OperationRunner = (context: OperationContext) => Promise<void>;
 
 let current: StoreOperation | undefined;
 let queue: Promise<void> = Promise.resolve();
-/** Bumped on shutdown: a queued boot reconciliation then stops early. */
-let generation = 0;
 const errors = new Map<string, string>();
 /**
  * Layers of a module the store took down, until the frontend stops serving
@@ -74,10 +78,6 @@ function setStep(step: StoreOperationStep): void {
   if (current) current.step = step;
 }
 
-function cloneState(state: DesiredState): DesiredState {
-  return structuredClone(state);
-}
-
 function describeError(error: unknown): string {
   if (error instanceof AggregateError && error.errors.length > 0) {
     return error.errors.map(describeError).join("; ");
@@ -85,33 +85,44 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function load(id: string, entry: DesiredModule): Promise<void> {
+async function load(
+  context: OperationContext,
+  range: string,
+  config?: unknown,
+): Promise<void> {
   setStep("load");
-  await loadStoreModule(id, entry);
-  removedLayers.delete(id);
+  await loadStoreModule(context.key, {
+    package: context.catalogEntry.package,
+    range,
+    config,
+  });
+  removedLayers.delete(context.id);
 }
 
-async function unload(id: string): Promise<void> {
+async function unload(context: OperationContext): Promise<void> {
   setStep("unload");
-  const runtime = await listRuntimeModules();
-  const module = runtime.get(storeModuleId(id));
-  if (!isLive(module) || !module) return;
-  await unloadStoreModule(id);
+  const module = await describeRuntimeModule(context.key);
+  if (!module || !isLive(module)) return;
+  await unloadStoreModule(context.key);
   const removed = removeFrontendModulesUnder(module.localPath);
-  if (removed.length > 0) removedLayers.set(id, removed);
+  if (removed.length > 0) removedLayers.set(context.id, removed);
 }
 
-async function save(context: OperationContext): Promise<void> {
+async function writeEntry(
+  context: OperationContext,
+  write: () => Promise<void>,
+): Promise<void> {
   setStep("save");
-  await writeDesiredState(context.projectPath, context.state);
+  context.written = true;
+  await write();
 }
 
 /**
- * The version an install or an update moves to: the latest release, refused
- * when it needs another `@antelopejs/interface-dms` than the one installed,
- * as the runtime would refuse to load it.
+ * The range an install or an update writes: a caret on the latest release,
+ * refused when it needs another `@antelopejs/interface-dms` than the one
+ * installed, as the runtime would refuse to load it.
  */
-async function resolveTarget(context: OperationContext): Promise<string> {
+async function resolveTargetRange(context: OperationContext): Promise<string> {
   setStep("resolve");
   const { package: packageName } = context.catalogEntry;
   const release = await latestRelease(packageName, context.projectPath, true);
@@ -127,57 +138,76 @@ async function resolveTarget(context: OperationContext): Promise<string> {
     );
   }
   if (current) current.targetVersion = release.version;
-  return release.version;
+  return `${RANGE_PREFIX}${release.version}`;
 }
 
+function sourceFor(context: OperationContext, range: string) {
+  return packageDeclarationSource(context.catalogEntry.package, range);
+}
+
+/**
+ * Loads the module first and writes it to antelope.config.ts once it runs:
+ * the file only ever names a module that loaded. Optional, so a later start
+ * never fails on it.
+ */
 async function runInstall(context: OperationContext): Promise<void> {
-  const version = await resolveTarget(context);
-  const entry: DesiredModule = {
-    package: context.catalogEntry.package,
-    version,
-    enabled: true,
-    config: {},
-  };
-  context.state.modules[context.id] = entry;
-  await save(context);
-  await load(context.id, entry);
+  const range = await resolveTargetRange(context);
+  await load(context, range);
+  await writeEntry(context, () =>
+    saveDeclaration(context.key, {
+      source: sourceFor(context, range),
+      optional: true,
+    }),
+  );
 }
 
 async function runUpdate(context: OperationContext): Promise<void> {
-  const entry = context.state.modules[context.id];
-  const version = await resolveTarget(context);
-  await unload(context.id);
-  context.state.modules[context.id] = { ...entry, version };
-  await save(context);
-  if (entry.enabled) await load(context.id, { ...entry, version });
+  const declaration = requireDeclaration(context);
+  const range = await resolveTargetRange(context);
+  await unload(context);
+  if (!declaration.disabled) await load(context, range, declaration.config);
+  await writeEntry(context, () =>
+    saveDeclaration(context.key, { source: sourceFor(context, range) }),
+  );
 }
 
 async function runEnable(context: OperationContext): Promise<void> {
-  const entry = { ...context.state.modules[context.id], enabled: true };
-  context.state.modules[context.id] = entry;
-  await save(context);
-  await load(context.id, entry);
+  const declaration = requireDeclaration(context);
+  await load(context, declaration.range, declaration.config);
+  await writeEntry(context, () =>
+    saveDeclaration(context.key, { disabled: undefined }),
+  );
 }
 
 async function runDisable(context: OperationContext): Promise<void> {
-  await unload(context.id);
-  context.state.modules[context.id].enabled = false;
-  await save(context);
+  await unload(context);
+  await writeEntry(context, () =>
+    saveDeclaration(context.key, { disabled: true }),
+  );
 }
 
 async function runUninstall(context: OperationContext): Promise<void> {
-  await unload(context.id);
-  delete context.state.modules[context.id];
-  await save(context);
+  await unload(context);
+  await writeEntry(context, () => removeDeclaration(context.key));
 }
 
-/** Brings the runtime in line with the file for one module. */
+/** Brings the runtime in line with antelope.config.ts for one module. */
 async function runApply(context: OperationContext): Promise<void> {
-  const entry = context.state.modules[context.id];
-  const runtime = await listRuntimeModules();
-  const live = isLive(runtime.get(storeModuleId(context.id)));
-  if (entry?.enabled && !live) await load(context.id, entry);
-  if (!entry?.enabled && live) await unload(context.id);
+  const declaration = requireDeclaration(context);
+  const live = isLive(await describeRuntimeModule(context.key));
+  if (!declaration.disabled && !live) {
+    await load(context, declaration.range, declaration.config);
+  }
+  if (declaration.disabled && live) await unload(context);
+}
+
+function requireDeclaration(context: OperationContext): StoreDeclaration {
+  if (!context.declaration) {
+    throw new Error(
+      `${context.catalogEntry.package} is not in antelope.config.ts`,
+    );
+  }
+  return context.declaration;
 }
 
 const RUNNERS: Record<StoreOperationKind, OperationRunner> = {
@@ -189,29 +219,48 @@ const RUNNERS: Record<StoreOperationKind, OperationRunner> = {
   apply: runApply,
 };
 
-/** Which state of the file entry each operation starts from. */
+/** Which state of the config entry each operation starts from. */
 const PRECONDITIONS: Record<
   StoreOperationKind,
-  (entry: DesiredModule | undefined) => boolean
+  (entry: StoreDeclaration | undefined) => boolean
 > = {
   install: (entry) => entry === undefined,
   update: (entry) => entry !== undefined,
-  enable: (entry) => entry?.enabled === false,
-  disable: (entry) => entry?.enabled === true,
+  enable: (entry) => entry?.disabled === true,
+  disable: (entry) => entry?.disabled === false,
   uninstall: (entry) => entry !== undefined,
-  apply: () => true,
+  apply: (entry) => entry !== undefined,
 };
 
+/** Puts the entry back as it was before the operation wrote it. */
+async function restoreDeclaration(context: OperationContext): Promise<void> {
+  const previous = context.declaration;
+  if (!previous) {
+    await removeDeclaration(context.key);
+    return;
+  }
+  await saveDeclaration(context.key, {
+    source: sourceFor(context, previous.range),
+    disabled: previous.disabled ? true : undefined,
+  });
+}
+
 /**
- * Puts the file back as it was and, for an update, the previous version back
- * in the runtime: a failed operation leaves the platform as it found it.
+ * Leaves the platform as the operation found it: the config entry as it was,
+ * and the previous version running again when it ran before.
  */
 async function rollback(context: OperationContext): Promise<void> {
-  await writeDesiredState(context.projectPath, context.snapshot);
-  const previous = context.snapshot.modules[context.id];
-  const runtime = await listRuntimeModules();
-  const live = isLive(runtime.get(storeModuleId(context.id)));
-  if (previous?.enabled && !live) await loadStoreModule(context.id, previous);
+  if (context.written) await restoreDeclaration(context);
+  const previous = context.declaration;
+  const live = isLive(await describeRuntimeModule(context.key));
+  if (!previous && live) await unloadStoreModule(context.key);
+  if (previous && !previous.disabled && !live) {
+    await loadStoreModule(context.key, {
+      package: context.catalogEntry.package,
+      range: previous.range,
+      config: previous.config,
+    });
+  }
 }
 
 async function execute(
@@ -234,32 +283,27 @@ async function execute(
   }
 }
 
-async function assertNotDeclaredByConfig(
-  catalogEntry: StoreCatalogEntry,
-): Promise<void> {
-  const runtime = await listRuntimeModules();
-  assert(
-    !isDeclaredByConfig(runtime, catalogEntry.package),
-    HTTP_CONFLICT,
-    "error.store_managed_by_config",
-  );
-}
-
 async function prepareContext(
   kind: StoreOperationKind,
   id: string,
 ): Promise<OperationContext> {
   const catalogEntry = await findCatalogEntry(id);
   assert(catalogEntry, HTTP_NOT_FOUND, "error.store_module_unknown");
-  await assertNotDeclaredByConfig(catalogEntry);
   const { projectPath } = await GetRuntimeInfo();
-  const state = await readDesiredState(projectPath);
+  const declaration = (await listCatalogDeclarations([catalogEntry])).get(id);
   assert(
-    PRECONDITIONS[kind](state.modules[id]),
+    PRECONDITIONS[kind](declaration),
     HTTP_CONFLICT,
     "error.store_invalid_state",
   );
-  return { id, catalogEntry, projectPath, state, snapshot: cloneState(state) };
+  return {
+    id,
+    catalogEntry,
+    projectPath,
+    key: declaration?.key ?? catalogEntry.package,
+    declaration,
+    written: false,
+  };
 }
 
 function enqueue(work: () => Promise<void>): Promise<void> {
@@ -295,67 +339,4 @@ export async function startStoreOperation(
     setCurrent(undefined);
     throw error;
   }
-}
-
-async function reconcileEntry(
-  id: string,
-  entry: DesiredModule,
-  runtime: ReadonlyMap<string, RuntimeModule>,
-): Promise<void> {
-  if (!entry.enabled || isLive(runtime.get(storeModuleId(id)))) return;
-  setCurrent({
-    moduleId: id,
-    kind: "apply",
-    step: "load",
-    startedAt: Date.now(),
-  });
-  try {
-    if (isDeclaredByConfig(runtime, entry.package)) {
-      throw new Error(
-        `${entry.package} is also declared in antelope.config.ts`,
-      );
-    }
-    await load(id, entry);
-    errors.delete(id);
-  } catch (error) {
-    errors.set(id, describeError(error));
-    Logging.Error(`[DMS] Module store: loading ${id} at boot failed`, error);
-  } finally {
-    setCurrent(undefined);
-  }
-}
-
-/**
- * Loads every enabled module of the desired-state file that is not running.
- * A module that fails is marked in error and the others still load: a store
- * module never keeps the DMS from starting.
- */
-async function reconcileAll(runGeneration: number): Promise<void> {
-  const { projectPath } = await GetRuntimeInfo();
-  const state = await readDesiredState(projectPath);
-  const runtime = await listRuntimeModules();
-  for (const [id, entry] of Object.entries(state.modules)) {
-    if (runGeneration !== generation) return;
-    await reconcileEntry(id, entry, runtime);
-  }
-}
-
-/**
- * Schedules the boot reconciliation behind the DMS's own start, without
- * waiting for it: loading a module constructs it through the runtime, which
- * must not happen while the runtime is still starting the DMS. It runs even
- * when the store is read-only: the file is what the project ships, and a
- * production platform loads what development installed.
- */
-export function scheduleStoreReconciliation(): void {
-  const runGeneration = ++generation;
-  setImmediate(() => {
-    void enqueue(() => reconcileAll(runGeneration)).catch((error: unknown) =>
-      Logging.Error("[DMS] Module store: boot reconciliation failed", error),
-    );
-  });
-}
-
-export function stopStoreReconciliation(): void {
-  generation += 1;
 }

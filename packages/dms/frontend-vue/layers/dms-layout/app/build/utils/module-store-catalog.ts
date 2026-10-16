@@ -51,7 +51,6 @@ const STATUSES: Record<StoreModuleState, StoreTileStatus> = {
   disabled: { tone: "neutral", labelKey: "disabled" },
   error: { tone: "error", labelKey: "error" },
   pending: { tone: "warning", labelKey: "pending" },
-  config: { tone: "secondary", labelKey: "config", dot: "none" },
 };
 
 const ACTIONS: Record<StoreOperationKind, StoreAction> = {
@@ -78,12 +77,11 @@ const ACTIONS: Record<StoreOperationKind, StoreAction> = {
   apply: { kind: "apply", labelKey: "apply", icon: "i-ph-arrows-clockwise" },
 };
 
-/** States of a module that sits in the desired-state file or in the config. */
+/** States of a module that antelope.config.ts declares. */
 const INSTALLED_STATES = new Set<StoreModuleState>([
   "active",
   "disabled",
   "pending",
-  "config",
 ]);
 
 export function toModuleStoreEntry(entry: StoreListingEntry): ModuleStoreEntry {
@@ -141,7 +139,6 @@ export function storeActions(entry: StoreListingEntry): StoreAction[] {
     disabled: ["enable", "uninstall"],
     error: installed ? ["apply", "uninstall"] : ["install"],
     pending: ["apply", "uninstall"],
-    config: [],
   };
   return byState[entry.state].map((kind) => ACTIONS[kind]);
 }

@@ -162,7 +162,8 @@ export interface StoreConfig {
    * Whether owners can install, update and remove modules from the Modules
    * page. Defaults to on in development and off in production, where a new
    * module also needs a frontend rebuild: the store then lists modules
-   * read-only. The modules `dms-modules.json` holds load either way.
+   * read-only. What the store installed lives in antelope.config.ts, which
+   * every environment loads.
    */
   enabled?: boolean;
   /**
@@ -171,11 +172,6 @@ export interface StoreConfig {
    * unset or when the URL cannot be read.
    */
   catalogUrl?: string;
-  /**
-   * The desired-state file, relative to the project folder. Defaults to
-   * `dms-modules.json`.
-   */
-  stateFile?: string;
 }
 
 export interface Config {

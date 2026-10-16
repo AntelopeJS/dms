@@ -753,7 +753,6 @@
         "disabled": "En pause",
         "error": "Échec",
         "pending": "Non appliqué",
-        "config": "Via la config",
         "update_available": "Mise à jour"
       },
       "actions": {
@@ -769,7 +768,7 @@
         "resolve": "Trouver la dernière version",
         "unload": "Arrêter la version en cours",
         "load": "Télécharger et démarrer",
-        "save": "Écrire dms-modules.json"
+        "save": "Écrire antelope.config.ts"
       },
       "progress": {
         "install": "Installation",
@@ -783,8 +782,7 @@
       "incompatible": "Demande {'@'}antelopejs/interface-dms {range} : mettez d’abord le DMS à jour",
       "no_release": "Le registre npm ne propose aucune version lisible depuis cette plateforme",
       "locked": "Un autre module est en cours de modification",
-      "config_hint": "Déclaré dans antelope.config.ts : le store le laisse à la config.",
-      "pending_hint": "dms-modules.json et la plateforme ne concordent pas : Appliquer les remet d’accord.",
+      "pending_hint": "antelope.config.ts et la plateforme ne concordent pas : Appliquer les remet d’accord.",
       "uninstall_confirm": {
         "title": "Désinstaller {module} ?",
         "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."
@@ -795,7 +793,6 @@
         "store_module_unknown": "Ce module n’est pas dans le catalogue.",
         "store_disabled": "Le store est en lecture seule sur cette plateforme.",
         "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
-        "store_managed_by_config": "Ce module est déclaré dans antelope.config.ts.",
         "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules."
       },
       "frontend": {
@@ -812,10 +809,9 @@
           "description": "Le module tourne côté backend, mais aucun serveur frontend n’a indiqué ce qu’il sert. Redémarrez-le ({command} en production) pour afficher les pages du module."
         }
       },
-      "state_error": "{file} n’a pas pu être lu",
       "disabled": {
         "title": "Le store est en lecture seule ici",
-        "description": "Les modules s’installent depuis le développement, où dms-modules.json les enregistre ; cette plateforme charge ce que contient ce fichier. Passez store.enabled à true dans la configuration du DMS pour les modifier d’ici."
+        "description": "Les modules s’installent depuis le développement, qui les écrit dans antelope.config.ts ; cette plateforme charge ce que déclare ce fichier. Passez store.enabled à true dans la configuration du DMS pour les modifier d’ici."
       },
       "load_error": "Le store de modules n’a pas pu être chargé",
       "search_placeholder": "Rechercher dans le store",
@@ -882,7 +878,8 @@
           "title": "SaaS",
           "description": "Offres, espaces de travail, facturation Stripe et cycle de vie client."
         }
-      }
+      },
+      "config_error": "antelope.config.ts ne peut pas être modifié d’ici"
     },
     "sort": {
       "label": "Tri",

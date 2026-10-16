@@ -8,8 +8,7 @@ export type StoreModuleState =
   | "active"
   | "disabled"
   | "error"
-  | "pending"
-  | "config";
+  | "pending";
 
 export type StoreFrontendState = "none" | "synced" | "pending" | "unknown";
 
@@ -43,6 +42,8 @@ export interface StoreListingEntry {
   description: string;
   state: StoreModuleState;
   installedVersion?: string;
+  /** The version range antelope.config.ts declares. */
+  declaredRange?: string;
   latestVersion?: string;
   updateAvailable: boolean;
   compatible: boolean;
@@ -58,6 +59,6 @@ export interface StoreListing {
   busy: boolean;
   interfaceVersion: string;
   dev: boolean;
-  stateFile: string;
-  stateError?: string;
+  /** Why antelope.config.ts cannot be read or edited, when it cannot. */
+  configError?: string;
 }

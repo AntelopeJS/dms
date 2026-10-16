@@ -749,7 +749,6 @@
         "disabled": "Paused",
         "error": "Failed",
         "pending": "Not applied",
-        "config": "From config",
         "update_available": "Update"
       },
       "actions": {
@@ -765,7 +764,7 @@
         "resolve": "Find the latest release",
         "unload": "Stop the running version",
         "load": "Download and start",
-        "save": "Write dms-modules.json"
+        "save": "Write antelope.config.ts"
       },
       "progress": {
         "install": "Installing",
@@ -779,8 +778,7 @@
       "incompatible": "Needs {'@'}antelopejs/interface-dms {range}: update the DMS first",
       "no_release": "The npm registry has no release of it this platform can read",
       "locked": "Another module is being changed",
-      "config_hint": "Declared in antelope.config.ts: the store leaves it to the config.",
-      "pending_hint": "dms-modules.json and the running platform disagree: Apply brings them in line.",
+      "pending_hint": "antelope.config.ts and the running platform disagree: Apply brings them in line.",
       "uninstall_confirm": {
         "title": "Uninstall {module}?",
         "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."
@@ -791,7 +789,6 @@
         "store_module_unknown": "This module is not in the catalog.",
         "store_disabled": "The store is read-only on this platform.",
         "store_invalid_state": "The module changed in the meantime. The list is up to date again.",
-        "store_managed_by_config": "This module is declared in antelope.config.ts.",
         "unauthorized": "Only platform owners manage modules."
       },
       "frontend": {
@@ -808,10 +805,9 @@
           "description": "The module runs on the backend, but no frontend server reported what it serves. Restart it ({command} in production) to show the module's pages."
         }
       },
-      "state_error": "{file} could not be read",
       "disabled": {
         "title": "The store is read-only here",
-        "description": "Modules are installed from development, where dms-modules.json records them; this platform loads what that file holds. Set store.enabled to true in the DMS configuration to change them from here."
+        "description": "Modules are installed from development, which writes them to antelope.config.ts; this platform loads what that file declares. Set store.enabled to true in the DMS configuration to change them from here."
       },
       "load_error": "The module store could not be loaded",
       "search_placeholder": "Search the store",
@@ -878,7 +874,8 @@
           "title": "SaaS",
           "description": "Plans, workspaces, billing with Stripe and customer lifecycle."
         }
-      }
+      },
+      "config_error": "antelope.config.ts cannot be edited from here"
     },
     "sort": {
       "label": "Sort",

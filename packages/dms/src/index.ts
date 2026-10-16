@@ -44,10 +44,6 @@ import {
   startModuleUpdateWatcher,
   stopModuleUpdateWatcher,
 } from "./dev/module-update-notifications";
-import {
-  scheduleStoreReconciliation,
-  stopStoreReconciliation,
-} from "./store/operations";
 import { registerInviteExtensionCleanup } from "./hooks/invite-extensions";
 import { registerTenantDeletedCleanup } from "./hooks/tenant-deleted";
 import { registerTenantInstanceProvisioning } from "./hooks/tenant-instances";
@@ -291,12 +287,10 @@ export async function start(): Promise<void> {
   await registerAutomationNodes();
   await startModuleUpdateWatcher();
   startPendingExtensionReport();
-  scheduleStoreReconciliation();
 }
 
 export async function stop(): Promise<void> {
   UnsettleHook(Hook.DATABASE_INITIALIZED);
-  stopStoreReconciliation();
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
   await unregisterAutomationNodes();

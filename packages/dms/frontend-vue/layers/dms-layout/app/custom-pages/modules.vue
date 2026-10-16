@@ -623,15 +623,13 @@ const summaryCards = computed<StatGroupItem[]>(() =>
         </DmsSectionHeader>
 
         <DmsBanner
-          v-if="storeListing?.stateError"
+          v-if="storeListing?.configError"
           class="mb-4"
           tone="error"
           size="sm"
           icon="i-ph-file-x"
-          :title="
-            t('modules.store.state_error', { file: storeListing.stateFile })
-          "
-          :description="storeListing.stateError"
+          :title="t('modules.store.config_error')"
+          :description="storeListing.configError"
         />
         <DmsBanner
           v-else-if="storeListing && !storeListing.enabled"

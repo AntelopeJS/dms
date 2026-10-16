@@ -75,7 +75,11 @@ const catalog = [
   }),
   storeEntry("database", { state: "active", installedVersion: "0.1.2" }),
   storeEntry("lang", { title: "Translations", catalogCategory: "Content" }),
-  storeEntry("ai", { catalogCategory: "AI", state: "config" }),
+  storeEntry("ai", {
+    catalogCategory: "AI",
+    state: "disabled",
+    installedVersion: "0.2.1",
+  }),
 ];
 
 const actionKinds = (entry: StoreListingEntry) =>
@@ -88,7 +92,7 @@ describe("module store catalog", () => {
     ).toEqual(["Ai", "Database", "Media", "Translations"]);
   });
 
-  it("splits installed modules, the config's included, from available ones", () => {
+  it("splits installed modules, paused ones included, from available ones", () => {
     expect(
       filterByScope(catalog, "installed").map((entry) => entry.id),
     ).toEqual(["database", "ai"]);
@@ -126,7 +130,6 @@ describe("module store catalog", () => {
       "uninstall",
     ]);
     expect(actionKinds(listingEntry("a", { state: "busy" }))).toEqual([]);
-    expect(actionKinds(listingEntry("a", { state: "config" }))).toEqual([]);
   });
 
   it("asks for confirmation before uninstalling only", () => {

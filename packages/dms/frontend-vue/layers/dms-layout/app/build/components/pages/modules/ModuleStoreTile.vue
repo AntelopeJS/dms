@@ -64,9 +64,7 @@ const secondary = computed(() =>
 );
 
 const isInstalledHere = computed(
-  () =>
-    props.entry.installedVersion !== undefined ||
-    props.entry.state === "config",
+  () => props.entry.installedVersion !== undefined,
 );
 /** Why the main action waits, when it does. */
 const blockedReason = computed(() => {
@@ -101,15 +99,23 @@ const STEP_ICONS: Record<string, string> = {
   todo: "i-ph-circle",
 };
 
+const PLAIN_VERSION = /^\d/;
+
+/** A version as the footer shows it: `v1.2.3`, or a range as written. */
+function formatVersion(version: string): string {
+  return PLAIN_VERSION.test(version) ? `v${version}` : version;
+}
+
 const versionLabel = computed(() => {
   const { installedVersion, latestVersion, operation: running } = props.entry;
   if (running?.targetVersion && installedVersion && running.kind === "update") {
-    return `${installedVersion} → ${running.targetVersion}`;
+    return `${formatVersion(installedVersion)} → ${formatVersion(running.targetVersion)}`;
   }
   if (props.entry.updateAvailable && installedVersion && latestVersion) {
-    return `${installedVersion} → ${latestVersion}`;
+    return `${formatVersion(installedVersion)} → ${formatVersion(latestVersion)}`;
   }
-  return installedVersion ?? latestVersion;
+  const version = installedVersion ?? latestVersion;
+  return version ? formatVersion(version) : undefined;
 });
 </script>
 
@@ -157,10 +163,6 @@ const versionLabel = computed(() => {
       <span class="line-clamp-3 break-words">{{ props.entry.error }}</span>
     </p>
 
-    <p v-else-if="props.entry.state === 'config'" class="text-dimmed text-xs">
-      {{ t("modules.store.config_hint") }}
-    </p>
-
     <p
       v-else-if="props.entry.state === 'pending'"
       class="text-xs text-(--ui-warning)"
@@ -186,7 +188,7 @@ const versionLabel = computed(() => {
         class="shrink-0"
         :class="props.entry.updateAvailable ? 'text-(--ui-warning)' : ''"
       >
-        v{{ versionLabel }}
+        {{ versionLabel }}
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
         <UTooltip

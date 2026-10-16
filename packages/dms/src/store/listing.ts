@@ -1,5 +1,5 @@
 import { GetRuntimeInfo } from "@antelopejs/interface-core/runtime";
-import { gt, valid } from "semver";
+import { satisfies, valid, validRange } from "semver";
 import { isStoreEditable } from "../config";
 import { frontendModuleNamesUnder } from "../implementations/dms/frontend-modules";
 import {
@@ -8,20 +8,15 @@ import {
 } from "../implementations/dms/frontend-ready";
 import { loadStoreCatalog } from "./catalog";
 import { installedInterfaceVersion, isCompatible } from "./compatibility";
-import { readDesiredState, stateFileName } from "./desired-state";
+import { listCatalogDeclarations } from "./declarations";
 import { currentOperation, removedLayerNames, storeError } from "./operations";
 import { latestRelease } from "./registry";
-import {
-  isDeclaredByConfig,
-  isLive,
-  listRuntimeModules,
-  storeModuleId,
-} from "./runtime";
+import { isLive, listRuntimeModules } from "./runtime";
 import type {
-  DesiredState,
   PackageRelease,
   RuntimeModule,
   StoreCatalogEntry,
+  StoreDeclaration,
   StoreFrontendState,
   StoreListing,
   StoreListingEntry,
@@ -33,27 +28,31 @@ const CATALOG_I18N_PREFIX = "$modules.store.catalog";
 /** What one listing entry is computed from. */
 interface EntrySources {
   catalogEntry: StoreCatalogEntry;
-  state: DesiredState;
+  declaration: StoreDeclaration | undefined;
   runtime: ReadonlyMap<string, RuntimeModule>;
   release: PackageRelease | undefined;
   interfaceVersion: string;
   acknowledgement: FrontendAcknowledgement | undefined;
 }
 
-interface DesiredStateRead {
-  state: DesiredState;
+interface DeclarationsRead {
+  declarations: Map<string, StoreDeclaration>;
   error?: string;
 }
 
+function runtimeModule(sources: EntrySources): RuntimeModule | undefined {
+  const key = sources.declaration?.key;
+  return key === undefined ? undefined : sources.runtime.get(key);
+}
+
 function resolveState(sources: EntrySources): StoreModuleState {
-  const { id, package: packageName } = sources.catalogEntry;
+  const { id } = sources.catalogEntry;
   if (currentOperation()?.moduleId === id) return "busy";
-  if (isDeclaredByConfig(sources.runtime, packageName)) return "config";
-  const desired = sources.state.modules[id];
   if (storeError(id)) return "error";
-  if (!desired) return "available";
-  const live = isLive(sources.runtime.get(storeModuleId(id)));
-  if (desired.enabled) return live ? "active" : "pending";
+  const { declaration } = sources;
+  if (!declaration) return "available";
+  const live = isLive(runtimeModule(sources));
+  if (!declaration.disabled) return live ? "active" : "pending";
   return live ? "pending" : "disabled";
 }
 
@@ -63,7 +62,7 @@ function resolveState(sources: EntrySources): StoreModuleState {
  */
 function resolveFrontend(sources: EntrySources): StoreFrontendState {
   const { id } = sources.catalogEntry;
-  const module = sources.runtime.get(storeModuleId(id));
+  const module = runtimeModule(sources);
   const live = isLive(module) && module !== undefined;
   const layers = live
     ? frontendModuleNamesUnder(module.localPath)
@@ -77,17 +76,22 @@ function resolveFrontend(sources: EntrySources): StoreFrontendState {
   return isSynced ? "synced" : "pending";
 }
 
-function isNewer(latest: string | undefined, installed: string | undefined) {
-  if (!latest || !installed || !valid(latest) || !valid(installed)) {
-    return false;
-  }
-  return gt(latest, installed);
+/**
+ * Whether the latest release falls outside the declared range: within it,
+ * the next start picks it up by itself; outside, the range has to move.
+ */
+function isRangeBehind(
+  latest: string | undefined,
+  range: string | undefined,
+): boolean {
+  if (!latest || !range || !valid(latest)) return false;
+  const declared = validRange(range);
+  return declared !== null && !satisfies(latest, declared);
 }
 
 function buildEntry(sources: EntrySources): StoreListingEntry {
-  const { catalogEntry, release } = sources;
+  const { catalogEntry, release, declaration } = sources;
   const { id } = catalogEntry;
-  const installedVersion = sources.state.modules[id]?.version;
   const compatible =
     !release || isCompatible(release, sources.interfaceVersion);
   const operation = currentOperation();
@@ -96,9 +100,10 @@ function buildEntry(sources: EntrySources): StoreListingEntry {
     title: `${CATALOG_I18N_PREFIX}.${id}.title`,
     description: `${CATALOG_I18N_PREFIX}.${id}.description`,
     state: resolveState(sources),
-    installedVersion,
+    installedVersion: runtimeModule(sources)?.version ?? declaration?.range,
+    declaredRange: declaration?.range,
     latestVersion: release?.version,
-    updateAvailable: isNewer(release?.version, installedVersion),
+    updateAvailable: isRangeBehind(release?.version, declaration?.range),
     compatible,
     requiredInterfaceRange: compatible ? undefined : release?.interfaceRange,
     error: storeError(id),
@@ -107,39 +112,41 @@ function buildEntry(sources: EntrySources): StoreListingEntry {
   };
 }
 
-async function readStateSafely(projectPath: string): Promise<DesiredStateRead> {
+async function readDeclarationsSafely(
+  catalog: readonly StoreCatalogEntry[],
+): Promise<DeclarationsRead> {
   try {
-    return { state: await readDesiredState(projectPath) };
+    return { declarations: await listCatalogDeclarations(catalog) };
   } catch (error) {
     return {
-      state: { modules: {} },
+      declarations: new Map(),
       error: error instanceof Error ? error.message : String(error),
     };
   }
 }
 
 /**
- * The store listing: every catalog module with what the desired-state file,
- * the runtime, the registry and the frontend say about it.
+ * The store listing: every catalog module with what antelope.config.ts, the
+ * runtime, the registry and the frontend say about it.
  */
 export async function buildStoreListing(): Promise<StoreListing> {
   const { projectPath, dev } = await GetRuntimeInfo();
-  const [catalog, stateRead, runtime] = await Promise.all([
-    loadStoreCatalog(),
-    readStateSafely(projectPath),
+  const catalog = await loadStoreCatalog();
+  const [read, runtime, releases] = await Promise.all([
+    readDeclarationsSafely(catalog),
     listRuntimeModules(),
+    Promise.all(
+      catalog.map((entry) => latestRelease(entry.package, projectPath)),
+    ),
   ]);
-  const releases = await Promise.all(
-    catalog.map((entry) => latestRelease(entry.package, projectPath)),
-  );
   const interfaceVersion = installedInterfaceVersion();
   const acknowledgement = getFrontendAcknowledgement();
   return {
-    enabled: isStoreEditable(dev),
+    enabled: isStoreEditable(dev) && !read.error,
     modules: catalog.map((catalogEntry, index) =>
       buildEntry({
         catalogEntry,
-        state: stateRead.state,
+        declaration: read.declarations.get(catalogEntry.id),
         runtime,
         release: releases[index],
         interfaceVersion,
@@ -149,7 +156,6 @@ export async function buildStoreListing(): Promise<StoreListing> {
     busy: currentOperation() !== undefined,
     interfaceVersion,
     dev,
-    stateFile: stateFileName(),
-    stateError: stateRead.error,
+    configError: read.error,
   };
 }
