@@ -7,10 +7,15 @@
     "dms",
     "interface"
   ],
+  "homepage": "https://dms.antelopejs.com/docs/interfaces",
+  "bugs": {
+    "url": "https://github.com/AntelopeJS/dms/issues"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AntelopeJS/dms.git"
+    "url": "git+https://github.com/AntelopeJS/dms.git",
+    "directory": "packages/interface-dms"
   },
   "files": [
     "dist",
