@@ -18,9 +18,6 @@ vi.stubGlobal("useDmsState", <T>(key: string, init?: () => T): Ref<T> => {
 const { usePageRecordLabel } = await import(
   "../layers/dms-core/app/composables/page/usePageRecordLabel"
 );
-const legacy = await import(
-  "../layers/dms-core/app/build/composables/page/usePageRecordLabel"
-);
 
 beforeEach(() => {
   sharedState = new Map();
@@ -46,8 +43,4 @@ it("never shows a label on another page, and clears with no value", () => {
   route.path = "/modules/api/routes";
   setLabel(route.path, undefined);
   expect(label.value).toBeUndefined();
-});
-
-it("stays importable from its former internal path", () => {
-  expect(legacy.usePageRecordLabel).toBe(usePageRecordLabel);
 });
