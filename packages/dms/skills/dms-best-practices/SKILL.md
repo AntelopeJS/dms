@@ -1,6 +1,6 @@
 ---
 name: dms-best-practices
-description: Non-negotiable rules for building AntelopeJS DMS pages — every page described backend-side as DMS blocks, custom only for the missing block, `.meta()` on every custom block — plus the design-fidelity protocol. Use before creating or changing any DMS page, dashboard or screen, before writing a CustomComponent or Vue for one, and whenever the user provides a design, mockup, Figma frame or screenshot to reproduce.
+description: Enforces the rules for building AntelopeJS DMS pages — every page described backend-side as DMS blocks, custom code only for the missing block, `.meta()` on every custom block — and runs the design-fidelity protocol. Use when creating or changing any DMS page, dashboard or screen, before writing a CustomComponent or Vue for one, or when the user provides a design, mockup, Figma frame or screenshot to reproduce.
 icon: i-ph-seal-check
 category: dashboard
 tags: [pages, blocks, custom-component, permissions, design, mockup]
@@ -52,4 +52,4 @@ The step is done when every visibly different component has an answer and every 
 - Every page field and child is a DMS block, except custom blocks the user chose or that have no equivalent.
 - Every `CustomComponent` has `.meta({ name, description, icon })` with `$` keys present in every locale file.
 - Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
-- Verified live with **dms-dev** (the build only typechecks `src/`).
+- Verified live with **dms-project** (the build only typechecks `src/`).

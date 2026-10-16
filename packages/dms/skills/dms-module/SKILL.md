@@ -1,6 +1,6 @@
 ---
 name: dms-module
-description: Packages a DISTRIBUTABLE DMS extension module (a reusable module other projects install, like the official dms-* modules — the package name itself is free). Use when creating a publishable DMS module, editing its package.json antelopeJs.implements manifest, registering it with RegisterModule, or defining the module's own AntelopeJS interface. For an app that just USES the DMS, see dms-project instead.
+description: Packages a distributable DMS extension module, one other projects install like the official dms-* modules. Use when creating a publishable DMS module, editing its package.json antelopeJs manifest (implements, skills), registering it with RegisterModule, or defining the module's own AntelopeJS interface package. For an app that only uses the DMS, use dms-project.
 icon: i-ph-package
 category: packaging
 tags: [module, packaging, distribution, interfaces, frontend, inertia]
@@ -113,7 +113,7 @@ in a **project** page instead.
 
 - `pnpm build` compiles `src/` only (`tsc`) — Vue template/compile errors surface only in the
   running frontend. When a change doesn't show — or `RegisterModule` throws "already
-  registered" on rebuild — **full-restart via the dms-dev skill** (its pitfalls also cover
+  registered" on rebuild — **full-restart via the dms-project skill** (its pitfalls also cover
   stubbornly stale `~/.antelopejs/dms-frontend` workspaces).
 
 ## Scaffolding (no DMS-specific generator)

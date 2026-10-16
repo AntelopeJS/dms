@@ -1,6 +1,6 @@
 ---
 name: dms
-description: Provides the core mental model and router for the AntelopeJS DMS. Use whenever building an app that uses the DMS, working in the @antelopejs/dms package or any DMS module (e.g. the official dms-* modules), building an admin page or dashboard, or when the user mentions the AntelopeJS DMS. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module, dms-dev and dms-frontend.
+description: Gives the mental model of the AntelopeJS DMS (backend-described pages and blocks rendered by a shared frontend) and routes to the right DMS skill. Use when the user mentions the AntelopeJS DMS, when building an app, admin page or dashboard on it, or when working in @antelopejs/dms or any dms-* module. Routes to dms-best-practices, dms-project, dms-pages, dms-auth, dms-module and dms-frontend.
 icon: i-ph-squares-four
 category: overview
 tags: [dms, architecture, mental-model, router]
@@ -21,7 +21,7 @@ plugin.
   builders, DataTypes, auth and platform services, plus its base Vue dashboard (`frontend-vue/`).
   **`@antelopejs/dms-frontend`** is the frontend loader (`ajs dms`): an Inertia SSR app whose
   catch-all route renders what the backend describes. In dev: `ajs project dev -w` and `ajs dms dev`
-  (see **dms-dev**).
+  (see **dms-project**).
 - **Usually a project.** Most work is a **project** loading the DMS via `antelope.config.ts` and
   registering its own pages (**dms-project**). Rarer: a **distributable module** like `dms-database`
   (**dms-module**). Same APIs; only the packaging differs.
@@ -65,10 +65,9 @@ export class SubmitRecipePage extends PageController("submit-recipe", {
 | Task | Skill |
 | --- | --- |
 | **Before building or changing any page**, before writing a `CustomComponent`, or when the user hands you a design, mockup or screenshot | **dms-best-practices** |
-| Set up a project that uses the DMS — `antelope.config.ts`, lifecycle, `AddFrontendModule` | **dms-project** |
+| Set up a project that uses the DMS — `antelope.config.ts`, lifecycle, `AddFrontendModule` — and run, stop or restart its dev servers to test a change live | **dms-project** |
 | Add a screen — pages, categories, blocks, DataTypes, the routes that feed them | **dms-pages** |
 | Protect a page or route, define and check permissions, users / roles / tenants | **dms-auth** |
-| Run, stop or restart the dev servers to test a change live | **dms-dev** |
 | Package a *distributable* module — `antelopeJs` manifest, `RegisterModule`, its own skill | **dms-module** |
 | The `ajs dms` CLI, a frontend module's `dms.server.ts` / `dms.frontend.build.ts`, building and deploying the frontend server (ships with `@antelopejs/dms-frontend`) | **dms-frontend** |
 
@@ -87,7 +86,7 @@ examples as patterns. [REFERENCE.md](REFERENCE.md) maps the docs and gives the r
 Backend and frontend are **coupled**: the loader materializes layers into
 `~/.antelopejs/dms-frontend/` and serves those copies. When anything looks stale
 (`RegisterModule "already registered"`, a layer edit not showing), the fix is a **full restart,
-backend first, then frontend** — the **dms-dev** skill and its `scripts/dms-dev.sh` own that.
+backend first, then frontend** — the **dms-project** skill and its `scripts/dms-dev.sh` own that.
 
 ## Conventions (enforced across all DMS repos)
 
@@ -97,4 +96,4 @@ interfaces, TSDoc-only comments, …). Four DMS-specific rules:
 - **Table rows use `_id`, not `id`.** Database records carry `_id`; never alias it to `id`.
 - **Consumer-facing APIs live in the interface package** — never a new runtime `package.json` export subpath.
 - **`/** @internal */` marks the provider-side `internal` namespaces** of interface files — never strip it.
-- **`pnpm build` only typechecks `src/`.** Frontend errors need the frontend lint / tests or a live check (**dms-dev**).
+- **`pnpm build` only typechecks `src/`.** Frontend errors need the frontend lint / tests or a live check (**dms-project**).

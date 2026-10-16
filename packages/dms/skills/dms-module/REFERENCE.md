@@ -84,5 +84,5 @@ AntelopeJS — see the **antelopejs** plugin's author/consume skills. The DMS-sp
    `frontend-vue/i18n/locales/`.
 5. **Load and verify**: add the module to a consumer project's `antelope.config.ts` (the
    backend's `playground` is the reference consumer) as a `package`/`git`/local-path module,
-   then **full-restart via dms-dev** — don't rely on hot reload. Keep the repo conventions
+   then **full-restart via dms-project** — don't rely on hot reload. Keep the repo conventions
    (**dms**: pnpm only, `_id` rows, no `switch`/`case`, TSDoc-only comments).

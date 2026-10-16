@@ -110,6 +110,6 @@ built-in types and how to register custom ones.
 ## Verify in the browser
 
 The build only typechecks `src/` — it will not catch a Vue error in a custom component or a
-wrong URL. After editing pages, full-restart and click through (see **dms-dev**). A hand-written link
+wrong URL. After editing pages, full-restart and click through (see **dms-project**). A hand-written link
 to a module page must include the `/modules/<moduleId>` prefix (or read `fullSlug` from the
 layout) — a missing prefix 404s through the frontend catch-all even though the build is clean.
