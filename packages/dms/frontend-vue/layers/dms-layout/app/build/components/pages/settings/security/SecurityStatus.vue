@@ -152,7 +152,6 @@ const retryActions = computed(() => [
   },
 ]);
 
-onMounted(refresh);
 </script>
 
 <template>

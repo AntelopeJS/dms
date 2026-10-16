@@ -23,6 +23,12 @@ interface SessionInfo {
   isCurrent: boolean;
 }
 
+/** The sessions, and when they were read: what "active 5 minutes ago" counts from. */
+interface SessionsRead {
+  sessions: SessionInfo[];
+  readAt: number;
+}
+
 interface SessionsRevokedResponse {
   count: number;
   sessionHandoff?: SessionHandoff;
@@ -47,10 +53,25 @@ const adoptSessionHandoff = useSessionHandoff();
 const { overview, refresh: refreshOverview } = useSecurityOverview();
 const { formatDate, formatRelative, errorMessage } = useSecurityFormat();
 
-const isLoading = ref(true);
-// The list could not be loaded: shown as such, never as "no sessions".
-const hasLoadError = ref(false);
-const sessions = ref<SessionInfo[]>([]);
+// Read with the page: the server renders the list and hands it over, and
+// the browser says "active 5 minutes ago" as of the same read.
+const list = useApiData<SessionsRead>(SESSIONS_URL, {
+  transform: (sessions) => ({
+    sessions: sessions as SessionInfo[],
+    readAt: Date.now(),
+  }),
+});
+const sessions = computed(() => list.data.value?.sessions ?? []);
+const readAt = computed(() => list.data.value?.readAt);
+// The list could not be loaded: shown as such, never as "no sessions". A
+// failed reload keeps the list on screen.
+const hasLoadError = computed(
+  () =>
+    !list.data.value &&
+    !!list.error.value &&
+    list.status.value !== "pending",
+);
+const isLoading = computed(() => !list.data.value && !hasLoadError.value);
 const revokingId = ref<string | null>(null);
 const isConfirmOpen = ref(false);
 const isSigningOutOthers = ref(false);
@@ -73,18 +94,17 @@ const sessionName = (session: SessionInfo): string =>
 const sessionPlace = (session: SessionInfo): string =>
   session.location || t("page.settings.sessions.unknown_location");
 
-async function fetchSessions(): Promise<void> {
-  sessions.value = await $authFetch<SessionInfo[]>(SESSIONS_URL);
-  hasLoadError.value = false;
-}
+const fetchSessions = (): Promise<void> => list.refresh({ dedupe: "defer" });
 
 async function revoke(session: SessionInfo): Promise<void> {
   revokingId.value = session._id;
   try {
     await $authFetch(`${SESSIONS_URL}/${session._id}`, { method: "DELETE" });
-    sessions.value = sessions.value.filter(
-      (entry) => entry._id !== session._id,
-    );
+    if (list.data.value)
+      list.data.value = {
+        ...list.data.value,
+        sessions: sessions.value.filter((entry) => entry._id !== session._id),
+      };
     toast.add({ title: t("page.settings.sessions.revoked"), color: "success" });
     await refreshOverview();
   } catch (error) {
@@ -131,22 +151,10 @@ watch(
   () => overview.value?.activeSessions,
   (count, previous) => {
     if (previous !== undefined && count !== sessions.value.length) {
-      // A failed reload keeps the list on screen.
-      fetchSessions().catch(() => {});
+      void fetchSessions();
     }
   },
 );
-
-async function loadSessions(): Promise<void> {
-  isLoading.value = true;
-  try {
-    await fetchSessions();
-  } catch {
-    hasLoadError.value = true;
-  } finally {
-    isLoading.value = false;
-  }
-}
 
 const retryActions = computed(() => [
   {
@@ -154,11 +162,10 @@ const retryActions = computed(() => [
     icon: "i-ph-arrows-clockwise",
     color: "neutral" as const,
     variant: "outline" as const,
-    onClick: () => void loadSessions(),
+    onClick: () => void fetchSessions(),
   },
 ]);
 
-onMounted(loadSessions);
 </script>
 
 <template>
@@ -249,7 +256,7 @@ onMounted(loadSessions);
           <span v-else>
             {{
               t("page.settings.security.sessions.active_ago", {
-                time: formatRelative(session.lastActiveAt),
+                time: formatRelative(session.lastActiveAt, readAt),
               })
             }}
           </span>
@@ -323,7 +330,7 @@ onMounted(loadSessions);
                 {{
                   session.isCurrent
                     ? t("page.settings.security.sessions.active_now_lower")
-                    : formatRelative(session.lastActiveAt)
+                    : formatRelative(session.lastActiveAt, readAt)
                 }}
               </small>
             </span>

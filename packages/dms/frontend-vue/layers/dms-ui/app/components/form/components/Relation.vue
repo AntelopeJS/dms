@@ -107,13 +107,11 @@ const { $authFetch } = useAuthFetch();
 const toast = useToast();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
-const { hasPermission, isLoaded, fetchPermissions } = usePermissions();
+const { hasPermission, loadPermissions } = usePermissions();
 const { open: openDrawer } = useDrawer();
 const { clearGuards } = useLeaveGuard();
 
-if (!isLoaded.value) {
-  await fetchPermissions().catch(() => {});
-}
+await loadPermissions().catch(() => {});
 
 const addContainerId = `relation-add-${useId()}`;
 // Shallow: `SelectMenuItem` carries a string index signature, so a deeply
@@ -237,6 +235,8 @@ const { data, status, execute } = await useDmsAsyncData(
     lazy: true,
     immediate: false,
     watch: [searchTermDebounced],
+    // Options to pick from, not the page's data.
+    refreshOnPageRefresh: false,
   },
 );
 

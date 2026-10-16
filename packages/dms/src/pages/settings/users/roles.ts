@@ -42,6 +42,7 @@ import {
   type PermissionPreviewGrants,
   type PermissionPreviewPage,
   type PreviewPageLossCheck,
+  notifyMenuAccessChanged,
   resolvePermissionPreviewAccess,
 } from "../../../implementations/dms/page";
 import { notifyRolePermissionsChanged } from "../../../utils/workspace-notifications";
@@ -58,6 +59,7 @@ import type {
 import {
   createRole,
   duplicateRole,
+  listRoleHolderIds,
   loadRoleDeleteConfirm,
   loadRoleEditorTree,
   loadRolesOverview,
@@ -387,6 +389,11 @@ export class RolesSettingsController extends PageController("roles", {
     const actor = await resolveActor(ctx, user);
     const { name, permissionsChanged } = await updateRole(actor, roleId, input);
     if (permissionsChanged) {
+      // What the role's holders may open changed: their menus reload.
+      notifyMenuAccessChanged(
+        actor.tenantId,
+        await listRoleHolderIds(actor.tenantId, roleId),
+      );
       fireAndForget(
         notifyRolePermissionsChanged({
           tenantId: actor.tenantId,

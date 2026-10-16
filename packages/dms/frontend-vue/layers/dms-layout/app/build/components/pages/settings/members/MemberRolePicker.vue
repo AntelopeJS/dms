@@ -67,7 +67,6 @@ const props = defineProps<Props>();
 const model = defineModel<string[] | null | undefined>();
 
 const { t } = useI18n();
-const { $authFetch } = useAuthFetch();
 // The wrapping UFormField's error ("pick at least one role") marks the group
 // invalid, describes it and rings the pills in the error ink.
 const { ariaAttrs } = useFormField();
@@ -84,17 +83,19 @@ const showsOwnerHint = computed(() =>
   props.ownerField ? isOwner.value : props.disabled,
 );
 
-const options = ref<RoleOptionsResponse>({ roles: [], totalPermissions: 0 });
-const isFetching = ref(true);
-const isLoading = computed(() => isFetching.value || props.loading);
-
-onMounted(async () => {
-  try {
-    options.value = await $authFetch<RoleOptionsResponse>(props.rolesUrl);
-  } finally {
-    isFetching.value = false;
-  }
-});
+// Read with the form: a page-mode form renders the pills on the server; a
+// drawer opened again shows the roles at once and reads them again in the
+// background (one may have been added since).
+const roleOptions = useApiData<RoleOptionsResponse>(() => props.rolesUrl);
+const options = computed<RoleOptionsResponse>(
+  () => roleOptions.data.value ?? { roles: [], totalPermissions: 0 },
+);
+const isLoading = computed(
+  () =>
+    props.loading ||
+    roleOptions.status.value === "idle" ||
+    roleOptions.status.value === "pending",
+);
 
 const selectedIds = computed(() => new Set(model.value ?? []));
 const roleItems = computed<ChipGroupItem[]>(() =>

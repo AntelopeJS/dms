@@ -57,7 +57,7 @@ export class PageTableViewCardsDisplay extends PageController(
           icon: "i-ph-tabs",
           target: {
             type: "page",
-            url: "/table-view/table-view-tabs?tab={status}",
+            url: "/table-view/table-view-tabs?tab={{row.status}}",
           },
         },
       ],

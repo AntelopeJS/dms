@@ -13,6 +13,7 @@ import type {
 } from "@antelopejs/interface-dms/notifications/types";
 import { UserNotificationPreferencesModel } from "../../db/models/userNotificationPreferences.model";
 import {
+  type UserNotificationCounts,
   UserNotificationsModel,
   buildNewUserNotification,
 } from "../../db/models/userNotifications.model";
@@ -61,19 +62,32 @@ async function publishNotificationEvent(
   }
 }
 
+/**
+ * Tells the user's open tabs these notifications are read, with the whole
+ * feed's counts after it (`countFeedWithUnreadTone`): each tab takes its
+ * badge from the event instead of asking for it.
+ */
 export async function publishNotificationsRead(
   userId: string,
   ids: string[],
+  counts: UserNotificationCounts,
 ): Promise<void> {
-  await publishNotificationEvent(userId, NOTIFICATION_READ_EVENT, { ids });
+  await publishNotificationEvent(userId, NOTIFICATION_READ_EVENT, {
+    ids,
+    counts,
+  });
 }
 
-/** Tells the user's open tabs these notifications are unread again. */
+/** Tells the user's open tabs these notifications are unread again, with the feed's counts after it. */
 export async function publishNotificationsUnread(
   userId: string,
   ids: string[],
+  counts: UserNotificationCounts,
 ): Promise<void> {
-  await publishNotificationEvent(userId, NOTIFICATION_UNREAD_EVENT, { ids });
+  await publishNotificationEvent(userId, NOTIFICATION_UNREAD_EVENT, {
+    ids,
+    counts,
+  });
 }
 
 /** Refuses a notification without a title, which would store an empty row. */
@@ -145,10 +159,14 @@ async function store(
   );
 }
 
+/** Tells the user's open tabs the whole feed is read, with its counts after it. */
 export async function publishAllNotificationsRead(
   userId: string,
+  counts: UserNotificationCounts,
 ): Promise<void> {
-  await publishNotificationEvent(userId, NOTIFICATION_ALL_READ_EVENT);
+  await publishNotificationEvent(userId, NOTIFICATION_ALL_READ_EVENT, {
+    counts,
+  });
 }
 
 export namespace internal {

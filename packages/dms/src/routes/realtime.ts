@@ -17,6 +17,7 @@ import { AuthRawUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { userCanAccessPage } from "../implementations/dms/page";
 import {
+  buildMemberMenuTopic,
   buildMenuTopic,
   buildUserNotificationTopic,
   getPageTopics,
@@ -41,6 +42,14 @@ const SESSION_HEADER = "x-realtime-session";
 
 type RealtimeAck = { ok: boolean };
 
+/**
+ * A page subscription's answer: the page's topics, whose events the browser
+ * reads its page's data again on.
+ */
+interface PageSubscriptionAck extends RealtimeAck {
+  topics: string[];
+}
+
 interface PresenceRequestBody {
   pageId?: string;
   topic?: string;
@@ -64,20 +73,27 @@ const isValidPresenceBody = (
   );
 };
 
-// Menu invalidations: the session's own tenant, plus the broadcast topic a
-// NotifyMenuChanged() call that names no tenant lands on. The session subscribes
-// to these and the greeting announces them, so both must read the same list.
-const menuTopicsFor = (tenantId: string | undefined): string[] =>
-  tenantId
-    ? [MENU_BROADCAST_TOPIC, buildMenuTopic(tenantId)]
-    : [MENU_BROADCAST_TOPIC];
+// Menu invalidations: the session's own tenant, its user's access in that
+// tenant, plus the broadcast topic a NotifyMenuChanged() call that names no
+// tenant lands on. The session subscribes to these and the greeting announces
+// them, so both must read the same list.
+export const menuTopicsFor = (
+  tenantId: string | undefined,
+  userId: string | undefined,
+): string[] => {
+  if (!tenantId) return [MENU_BROADCAST_TOPIC];
+  const topics = [MENU_BROADCAST_TOPIC, buildMenuTopic(tenantId)];
+  if (userId) topics.push(buildMemberMenuTopic(tenantId, userId));
+  return topics;
+};
 
 const computeDesiredTopics = (sessionId: string): Set<string> => {
   const info = getSessionInfo(sessionId);
   const topics = new Set<string>();
   if (!info) return topics;
   if (info.user) topics.add(buildUserNotificationTopic(info.user._id));
-  for (const topic of menuTopicsFor(info.tenantId)) topics.add(topic);
+  for (const topic of menuTopicsFor(info.tenantId, info.user?._id))
+    topics.add(topic);
   if (info.pageId) {
     for (const topic of getPageTopics(info.pageId)) topics.add(topic);
   }
@@ -156,7 +172,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     stream.send(HELLO_EVENT, {
       sessionId,
       ts: Date.now(),
-      menuTopics: menuTopicsFor(tenantId),
+      menuTopics: menuTopicsFor(tenantId, user._id),
     });
     let isClosed = false;
     // Awaited so that stopRealtime() releases presence before the broker
@@ -185,8 +201,10 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     @TenantScopedModel(RoleModel) roleModel: RoleModel,
     @TenantScopedModel(TenantMemberModel) memberModel: TenantMemberModel,
     @AuthRawUser() user: User,
-  ): Promise<RealtimeAck> {
-    if (!sessionId || !getSessionInfo(sessionId)) return { ok: false };
+  ): Promise<PageSubscriptionAck> {
+    if (!sessionId || !getSessionInfo(sessionId)) {
+      return { ok: false, topics: [] };
+    }
     const canAccess = await userCanAccessPage(
       user,
       pageId,
@@ -196,7 +214,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     );
     assert(canAccess, 403, "error.forbidden");
     await ensureSessionOnPage(sessionId, pageId);
-    return { ok: true };
+    return { ok: true, topics: [...getPageTopics(pageId)] };
   }
 
   @Post("/unsubscribe")

@@ -1,7 +1,13 @@
-import type { ControllerClass } from "@antelopejs/interface-api";
+import type {
+  ControllerClass,
+  RequestContext,
+} from "@antelopejs/interface-api";
 import { GetMetadata, ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
-import { internal as pageImplInternal } from "../../../../implementations/dms/page";
+import {
+  buildPagePayload,
+  internal as pageImplInternal,
+} from "../../../../implementations/dms/page";
 import * as permissionsImpl from "../../../../implementations/dms/permissions";
 import * as permissionsResolverImpl from "../../../../implementations/dms/permissions-resolver";
 import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access";
@@ -121,6 +127,34 @@ describe("[unit] interfaces/dms/page — header availability reads the page quer
       "download",
       "add-language",
     ]);
+  });
+
+  it("resolves the page request's buttons with the page query it carries", async () => {
+    const pageRequest = (query: string) =>
+      ({
+        url: new URL(
+          `http://dms.test/dms/page?path=${encodeURIComponent(slug)}&shared=false${query}`,
+        ),
+      }) as RequestContext;
+    const served = async (query: string) =>
+      (
+        await buildPagePayload(
+          slug,
+          MEMBER,
+          models.memberModel,
+          models.roleModel,
+          TENANT,
+          false,
+          pageRequest(query),
+        )
+      ).layout.layout?.options as ServedOptions;
+
+    const withQuery = await served("&workspace=web");
+    expect(withQuery.headerActions[0]).to.not.have.property("disabled");
+    expect(withQuery.headerActionsQuery).to.deep.equal({ workspace: "web" });
+    const bare = await served("");
+    expect(bare.headerActions[0]).to.deep.include({ disabled: true });
+    expect(bare.headerActionsQuery).to.deep.equal({});
   });
 
   it("reads one value per name from the layout request", () => {

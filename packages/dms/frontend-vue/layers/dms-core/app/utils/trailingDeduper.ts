@@ -1,5 +1,11 @@
 export interface TrailingDeduper {
   run(task: () => Promise<void>): Promise<void>;
+  /**
+   * Joins the run in flight, or starts one: for a caller that needs a result
+   * rather than a fresh one, such as a first load, which a run started
+   * before it answers as well as its own would.
+   */
+  join(task: () => Promise<void>): Promise<void>;
 }
 
 /**
@@ -38,5 +44,8 @@ export function createTrailingDeduper(): TrailingDeduper {
     return trailing;
   };
 
-  return { run };
+  const join = (task: () => Promise<void>): Promise<void> =>
+    inFlight ?? run(task);
+
+  return { run, join };
 }

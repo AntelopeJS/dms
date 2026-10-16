@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { createSSRApp, defineComponent, h, ref } from "vue";
+import { createSSRApp, defineComponent, h, nextTick, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FormLoadError from "../layers/dms-ui/app/build/components/form/FormLoadError.vue";
@@ -66,11 +66,65 @@ describe("a form's record load", () => {
     expect(apply).toHaveBeenCalledWith(ROW);
   });
 
+  it("takes a later read of the record, its values becoming the saved ones", async () => {
+    const apply = vi.fn();
+    const onReloaded = vi.fn();
+    const source = loadOf(ROW, null);
+    trackFormRecordLoad(source, apply, { onReloaded });
+    const fresh = { values: { email: "fresh@example.com" }, initial: {} };
+    source.data.value = fresh;
+    await nextTick();
+    expect(apply).toHaveBeenLastCalledWith(fresh);
+    expect(onReloaded).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a later read out while the user edits", async () => {
+    const apply = vi.fn();
+    const onReloaded = vi.fn();
+    const source = loadOf(ROW, null);
+    trackFormRecordLoad(source, apply, {
+      isEditing: () => true,
+      onReloaded,
+    });
+    source.data.value = { values: { email: "other@example.com" }, initial: {} };
+    await nextTick();
+    expect(apply).toHaveBeenCalledOnce();
+    expect(onReloaded).not.toHaveBeenCalled();
+  });
+
+  it("stops showing the cached record once a later read is refused", async () => {
+    const apply = vi.fn();
+    const source = loadOf(ROW, null);
+    const load = trackFormRecordLoad(source, apply);
+    source.error.value = FORBIDDEN;
+    await nextTick();
+    expect(load.failure.value).toBe("forbidden");
+  });
+
   it("applies a record that loaded", () => {
     const apply = vi.fn();
     const load = trackFormRecordLoad(loadOf(ROW, null), apply);
     expect(load.failure.value).toBe(null);
     expect(apply).toHaveBeenCalledWith(ROW);
+  });
+});
+
+describe("Form.vue", () => {
+  const source = readFileSync(
+    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
+    "utf8",
+  );
+
+  it("leaves reading the record again on mount to the data layer", () => {
+    // The renderer reads cached data again on each mount (stale while
+    // revalidate): no status reset forces it any more.
+    expect(source).not.toMatch(/status\.value\s*=\s*"idle"/);
+  });
+
+  it("keys the record's load on the record it reads", () => {
+    expect(source).toMatch(
+      /`form-\$\{props\.componentId\}-\$\{props\.pageId\}-\$\{resolvedFetchUrl\.value/,
+    );
   });
 });
 

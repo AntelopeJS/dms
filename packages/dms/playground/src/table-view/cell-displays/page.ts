@@ -67,7 +67,7 @@ export class PageTableViewCellDisplays extends PageController(
           icon: "i-ph-user-plus",
           target: {
             type: "api",
-            url: "/api/playground/cell-accounts/assign-to-me?id={_id}",
+            url: "/api/playground/cell-accounts/assign-to-me?id={{row._id}}",
             successMessage: "Account assigned to you",
           },
         },

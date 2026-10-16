@@ -1,9 +1,22 @@
 type PostLoginDestination = string | (() => string | undefined);
 
+interface PostLoginRedirectOptions {
+  /**
+   * Open the destination in place of the current page in the history. For a
+   * page that consumed a one-time sign-in token (the OAuth completion, the
+   * second factor): back on it, the user would only meet a dead token, or a
+   * page sending them forward again.
+   */
+  replace?: boolean;
+}
+
 /** Refresh authenticated state before resolving and opening the destination. */
-export async function usePostLoginRedirect(redirectUrl?: PostLoginDestination) {
+export async function usePostLoginRedirect(
+  redirectUrl?: PostLoginDestination,
+  options: PostLoginRedirectOptions = {},
+) {
   const dmsApp = useDmsApp();
-  const { fetch: refreshUser, user } = useUserSession();
+  const { fetch: refreshUser, user } = useDmsUserSession();
   const { addCurrentAccount } = useMultiAccount();
   const siteLayout = useSiteLayout();
   const homepage = useHomepage();
@@ -24,5 +37,5 @@ export async function usePostLoginRedirect(redirectUrl?: PostLoginDestination) {
 
   const destination =
     typeof redirectUrl === "function" ? redirectUrl() : redirectUrl;
-  await navigateDms(destination || homepage);
+  await navigateDms(destination || homepage, options);
 }

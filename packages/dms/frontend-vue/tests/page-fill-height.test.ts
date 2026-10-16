@@ -28,6 +28,16 @@ import {
   usePageFillHeight,
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 
+// The page's data refresh and the visit's navigation badges read the
+// realtime session and Inertia's page, which these tests do not run.
+vi.mock(
+  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
+  () => ({ usePageDataRefresh: () => {} }),
+);
+vi.mock(
+  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
+  () => ({ useVisitNavBadges: () => {} }),
+);
 vi.mock(
   "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue",
   () => ({ default: () => null }),
@@ -151,7 +161,7 @@ function installRuntime(): void {
     PAGE_FILL_HEIGHT_CLASSES,
     providePageFillHeight,
     usePageFillHeight,
-    createError: vi.fn(),
+    createDmsError: vi.fn(),
     defineDmsPageMeta: vi.fn(),
     firstAccessiblePagePath: vi.fn(),
     navigateDms: vi.fn(),
@@ -159,7 +169,7 @@ function installRuntime(): void {
     providePageRealtime: vi.fn(),
     resolveDmsComponent: () => "div",
     runCustomValidation: vi.fn(),
-    showError: vi.fn(),
+    showDmsError: vi.fn(),
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDmsCookie: <T>(_name: string, options: { default?: () => T } = {}) =>
@@ -179,6 +189,9 @@ function installRuntime(): void {
       reconcileSession: async () => {},
       redirectToAuth: async () => {},
     }),
+    // The page brought its site layout.
+    useRenderedSiteLayout: () => {},
+    useRenderedBellCounts: () => {},
     useSiteLayout: () => ({
       siteLayout: ref({ pages: {} }),
       siteLayoutTree: ref([]),
@@ -197,7 +210,7 @@ function installRuntime(): void {
     }),
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
-    useUserSession: () => ({ loggedIn: ref(true) }),
+    useDmsUserSession: () => ({ loggedIn: ref(true) }),
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

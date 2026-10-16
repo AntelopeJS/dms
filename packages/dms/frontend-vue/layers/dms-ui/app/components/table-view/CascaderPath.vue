@@ -47,7 +47,8 @@ const { data } = await useDmsAsyncData(
           params: { limit: CASCADER_FETCH_LIMIT },
         })
       : Promise.resolve(undefined),
-  { lazy: true },
+  // The labels of a path, not the page's data.
+  { lazy: true, refreshOnPageRefresh: false },
 );
 
 const pathOf = (item: unknown): string[] =>

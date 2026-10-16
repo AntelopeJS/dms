@@ -74,11 +74,16 @@ const installFetch = (server: FakeServer): void => {
       return openUserStream(server, init!.signal!);
     }
     const headers = init?.headers as Record<string, string>;
+    const pageId = url.slice(SUBSCRIBE_URL_PREFIX.length);
     server.subscriptions.push({
-      pageId: url.slice(SUBSCRIBE_URL_PREFIX.length),
+      pageId,
       sessionId: headers[SESSION_HEADER]!,
     });
-    return { ok: true, status: 200 };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, topics: [`table:${pageId}`] }),
+    };
   }) as unknown as typeof fetch;
 };
 
@@ -113,7 +118,7 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useUserSession", () => ({ loggedIn }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},
@@ -157,6 +162,20 @@ describe("useUserRealtime reconnection", () => {
       { pageId: PAGE_ID, sessionId: "session-1" },
       { pageId: PAGE_ID, sessionId: "session-2" },
     ]);
+  });
+
+  it("holds the page's topics its subscription answered, until the stream drops", async () => {
+    const api = await loadApi();
+    await settle();
+    await api.setPage(PAGE_ID);
+    expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
+
+    lastStream().end();
+    await settle();
+    expect(api.pageTopics.value).toEqual([]);
+    await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
+    await settle();
+    expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
   });
 
   it("backs off further while the server stays unreachable", async () => {

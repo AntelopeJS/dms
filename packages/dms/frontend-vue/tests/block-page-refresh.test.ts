@@ -7,6 +7,7 @@
  */
 import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import {
   BlockFunctions,
   refreshPageBlocks,
@@ -63,6 +64,8 @@ function mountBlock(fetchUrl: string) {
 }
 
 const apps: Array<() => void> = [];
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   requests.length = 0;

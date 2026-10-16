@@ -1,4 +1,5 @@
-const PROFILE_ENDPOINT = "/settings/user/profile";
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
+const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 
 /**
  * Switches the interface language and stores it on the user's profile, then
@@ -9,7 +10,7 @@ const PROFILE_ENDPOINT = "/settings/user/profile";
 export function useUserLanguage() {
   const dmsApp = useDmsApp();
   const { $authFetch } = useAuthFetch();
-  const { user, fetch: refreshUser } = useUserSession();
+  const { user, fetch: refreshUser } = useDmsUserSession();
 
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);

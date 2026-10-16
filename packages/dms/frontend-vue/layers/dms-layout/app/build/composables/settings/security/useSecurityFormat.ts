@@ -53,9 +53,12 @@ export function useSecurityFormat() {
       Math.floor((Date.now() - new Date(value).getTime()) / MS_PER_DAY),
     );
 
-  /** "3 days ago", "in an hour"… or "now" under a minute. */
-  const formatRelative = (value: DateInput): string => {
-    const elapsed = new Date(value).getTime() - Date.now();
+  /**
+   * "3 days ago", "in an hour"… or "now" under a minute, as of `now` (a
+   * list's read time, which the server and the hydrating browser share).
+   */
+  const formatRelative = (value: DateInput, now = Date.now()): string => {
+    const elapsed = new Date(value).getTime() - now;
     const formatter = new Intl.RelativeTimeFormat(locale.value, {
       numeric: "auto",
     });

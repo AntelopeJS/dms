@@ -1,17 +1,17 @@
 import { defineAsyncComponent, type Component } from "vue";
 import {
   type DmsFrontendModule,
-  useDmsAppConfig,
   useDmsRuntimeConfig,
 } from "#dms/frontend-module";
-import { defu } from "defu";
-import appConfig from "./layers/dms-layout/app/app.config";
 import authMiddleware from "./layers/dms-auth/app/middleware/auth";
+import permissionsPreloadPlugin from "./layers/dms-auth/app/plugins/permissions-preload";
+import asyncDataScopePlugin from "./layers/dms-core/app/plugins/async-data-scope";
 import homepageRedirectMiddleware from "./layers/dms-layout/app/middleware/homepage-redirect.global";
 import moduleRoutingMiddleware from "./layers/dms-layout/app/middleware/module-routing.global";
 import pageLeaveGuardMiddleware from "./layers/dms-layout/app/middleware/page-leave-guard.global";
 import accessibilityPlugin from "./layers/dms-layout/app/plugins/accessibility";
 import colorModePlugin from "./layers/dms-layout/app/plugins/color-mode";
+import faviconPlugin from "./layers/dms-layout/app/plugins/favicon";
 import interfaceScalePlugin from "./layers/dms-layout/app/plugins/interface-scale";
 import fontPreloadPlugin from "./layers/dms-layout/app/plugins/font-preload";
 import permissionPreviewPrepaintPlugin from "./layers/dms-layout/app/plugins/permission-preview-prepaint";
@@ -19,6 +19,7 @@ import regionalPreferencesPlugin from "./layers/dms-layout/app/plugins/regional-
 import seoPlugin from "./layers/dms-layout/app/plugins/seo";
 import sidePanelHostPlugin from "./layers/dms-layout/app/plugins/side-panel-host";
 import onboardingMiddleware from "./layers/dms-onboarding/app/middleware/onboarding.global";
+import onboardingPreloadPlugin from "./layers/dms-onboarding/app/plugins/onboarding-preload";
 import registerPlugin from "./layers/dms-ui/app/plugins/register";
 import shortcutsPlugin from "./layers/dms-ui/app/plugins/shortcuts";
 import tableViewDisplaysPlugin from "./layers/dms-ui/app/plugins/table-view-displays";
@@ -164,6 +165,13 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
       await plugin.default(context);
     }, clientOnly);
   }
+  // Before any data is read: every key lives in the session's scope.
+  sdk.registerPlugin(asyncDataScopePlugin);
+  // First: the requests the middlewares wait on start with the app, alongside
+  // the ones the plugins below and the page make, instead of one after the
+  // other once the page has set up.
+  sdk.registerPlugin(onboardingPreloadPlugin);
+  sdk.registerPlugin(permissionsPreloadPlugin);
   sdk.registerPlugin(colorModePlugin);
   sdk.registerPlugin(permissionPreviewPrepaintPlugin);
   sdk.registerPlugin(fontPreloadPlugin);
@@ -171,6 +179,7 @@ function registerPlugins(sdk: Parameters<DmsFrontendModule["setup"]>[0]): void {
   sdk.registerPlugin(accessibilityPlugin);
   sdk.registerPlugin(regionalPreferencesPlugin);
   sdk.registerPlugin(seoPlugin);
+  sdk.registerPlugin(faviconPlugin);
   sdk.registerPlugin(sidePanelHostPlugin);
   sdk.registerPlugin(registerPlugin);
   sdk.registerPlugin(shortcutsPlugin);
@@ -195,12 +204,13 @@ function registerMiddleware(
 
 const frontendModule: DmsFrontendModule = {
   componentPrefix: "Dms",
+  // The layout's app config is not merged here: the loader applies every
+  // layer's `app/app.config.ts` before any module is set up, and a second
+  // merge would repeat the arrays defu concatenates.
   setup(sdk) {
     const runtimeDms = (useDmsRuntimeConfig().public as DmsPublicOptions).dms;
     if (runtimeDms && typeof window !== "undefined")
       runtimeDms.baseURL = window.location.origin;
-    const runtimeAppConfig = useDmsAppConfig();
-    Object.assign(runtimeAppConfig, defu(runtimeAppConfig, appConfig));
     registerPlugins(sdk);
     registerMiddleware(sdk);
     registerComponents(sdk);

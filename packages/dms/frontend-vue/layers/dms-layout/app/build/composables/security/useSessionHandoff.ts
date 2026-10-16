@@ -28,7 +28,7 @@ interface BrowserSession {
  * account entry, and the old entry — holding a dead refresh token — is dropped.
  */
 export function useSessionHandoff() {
-  const { session, fetch: refreshUser } = useUserSession<
+  const { session, fetch: refreshUser } = useDmsUserSession<
     unknown,
     BrowserSession
   >();

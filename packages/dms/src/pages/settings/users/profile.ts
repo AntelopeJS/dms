@@ -15,6 +15,7 @@ import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import {
   GetComponentPermissionIds,
   PageController,
+  pageRoutePath,
   RegisterPage,
 } from "@antelopejs/interface-dms/page";
 import { sanitizeUser } from "@antelopejs/interface-dms/auth";
@@ -57,7 +58,7 @@ import {
   type UpdateProfileInput,
 } from "./profile-helpers";
 
-const PROFILE_URL = "/settings/user/profile";
+const PROFILE_URL = pageRoutePath("/settings/user/profile");
 const IMAGE_FIELD_TYPE = "image";
 const HTTP_TOO_MANY_REQUESTS = 429;
 const ACCOUNT_EXPORT_WINDOW_MS = 10_000;

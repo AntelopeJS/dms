@@ -5,7 +5,7 @@ const LOGIN_PATH = "/auth";
 // login page for anyone else rather than a homepage whose 401 would bounce
 // them there anyway.
 function completedOnboardingDestination(): string {
-  const { loggedIn } = useUserSession();
+  const { loggedIn } = useDmsUserSession();
   return loggedIn.value ? useHomepage() : LOGIN_PATH;
 }
 

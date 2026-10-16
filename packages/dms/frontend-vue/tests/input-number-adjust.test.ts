@@ -78,7 +78,21 @@ async function mount(props: Record<string, unknown>) {
   app.component("UInputNumber", NumberField);
   app.mount(host);
   await nextTick();
+  await untilListenersAttached();
   return { value, adjustments, input: host.querySelector("input")! };
+}
+
+// Vue ignores an event that reaches one of its listeners in the millisecond
+// that listener was attached (runtime-dom's `_vts` check, against events
+// fired while the patch that attached it runs). Enter bubbles from the field's
+// own listener to the wrapper's, so an Enter fired in the millisecond of the
+// mount never settled the field: about one run in two. A person never types
+// that fast, so the field is used once the clock has moved on.
+async function untilListenersAttached() {
+  const attached = Date.now();
+  while (Date.now() <= attached) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
 }
 
 async function type(input: HTMLInputElement, text: string) {

@@ -19,6 +19,7 @@ import {
 } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import type { PeriodState } from "../layers/dms-core/app/composables/period/types";
 
 const requests: string[] = [];
@@ -143,7 +144,13 @@ async function ssrThenHydrate(
   const container = document.createElement("div");
   container.innerHTML = html;
   document.body.appendChild(container);
+  // The browser starts from what the page carried, as it does after a server
+  // render: its first mount takes the data over instead of reading it again.
+  const payload = structuredClone(engine.serializeDmsPayload(renderRuntime));
+  const browser = engine.createDmsFrontendRuntime(undefined, {});
+  engine.restoreDmsPayload(browser, payload);
   const app = withComponents(createSSRApp(root as never), components);
+  engine.provideDmsFrontendRuntime(app, browser);
   app.mount(container);
   mounted.push(app);
   const deadline = Date.now() + SETTLE_MS;
@@ -162,6 +169,13 @@ function withComponents<
   }
   return app;
 }
+
+const engine = await import("#dms/frontend-module");
+let renderRuntime: ReturnType<typeof useRealDataEngine>;
+
+beforeEach(() => {
+  renderRuntime = useRealDataEngine();
+});
 
 beforeEach(() => {
   requests.length = 0;
@@ -238,6 +252,8 @@ describe("period-scoped cards on first paint", () => {
     }
   });
 
+  // Its period unknown to the server (no selector registered it before the
+  // card set up), a card renders its placeholder, never an empty value.
   it("shows a loading placeholder server-side rather than an empty value", async () => {
     const app = createSSRApp({
       render: () =>
@@ -246,7 +262,7 @@ describe("period-scoped cards on first paint", () => {
           componentId: "card",
           pageId: "page",
           fetchUrl: "/api/metrics/kpi/revenue",
-          periodScope: SCOPE,
+          periodScope: "unregistered-scope",
         }),
     });
     withComponents(app, {

@@ -1,3 +1,4 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 // "Preview as role" (roles editor): the shapes the preview endpoint answers
 // with, how a preview session travels from the editor tab to the preview tab,
 // and which requests a preview tab may still send. Pure: no Vue, no window.
@@ -9,7 +10,7 @@ export type PermissionPreviewBlock =
 
 export type PermissionPreviewState = PermissionPreviewBlock["state"];
 
-/** Answer of `POST /settings/workspace/roles/preview`. */
+/** Answer of `POST /dms/pages/settings/workspace/roles/preview`. */
 export interface PermissionPreviewResult {
   page: { fullId: string; displayName: string; hidden: boolean } | null;
   /** Blocks keyed by layout path (component key, then child ids). */
@@ -44,7 +45,10 @@ export interface PermissionPreviewSession {
 }
 
 /** Endpoint the preview tab asks; a POST, so the request guard lets it through. */
-export const PERMISSION_PREVIEW_ENDPOINT = "/settings/workspace/roles/preview";
+export const PERMISSION_PREVIEW_ENDPOINT = pageRoutePath(
+  "/settings/workspace/roles",
+  "/preview",
+);
 /** Query parameter that hands a preview session to a new tab. */
 export const PERMISSION_PREVIEW_QUERY_KEY = "dms-preview";
 /** `localStorage` key prefix of the sessions the editor shares with its preview tabs. */

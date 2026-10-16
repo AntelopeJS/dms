@@ -61,6 +61,7 @@ import {
   resolveComponentTarget,
 } from "@antelopejs/interface-dms/page/internal/component-target";
 import {
+  buildMemberMenuTopic,
   buildMenuTopic,
   clearPageTopics,
   getRealtimeBroker,
@@ -86,11 +87,14 @@ import {
   type LayoutBannerSerialized,
 } from "./layout-banners";
 import { fillRouteParams } from "./route-params";
+import { resolveMenuNavBadges } from "./nav-badges";
 import {
-  resolveMenuNavBadges,
-  withNavBadge,
-  withTreeNavBadges,
-} from "./nav-badges";
+  treeWithCategoryRefs,
+  type TreeWithCategoryRefs,
+  type WithCategoryRef,
+  withCategoryRefs,
+} from "./menu-categories";
+import type { ResolvedNavBadges } from "@antelopejs/interface-dms/page/internal/nav-badges";
 import { withResolverTimeout } from "./resolver-timeout";
 import { warnOnceFor } from "./warn-once";
 import {
@@ -119,11 +123,11 @@ type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
   layoutUrl?: string;
   hasAccess?: boolean;
 };
-// `SiteLayoutWithAccess` is the serialized shape the browser resolves a URL
-// against, so both of its maps are keyed by slug. These registries are not that
-// shape: pages own their slug, but any number of `urlTransparent` categories
-// share their parent's, so only `fullId` identifies a category. The names carry
-// the key to keep the two from being confused again.
+// Pages own their slug, but any number of `urlTransparent` categories share
+// their parent's, so only `fullId` identifies a category: the serialized
+// layout (`SiteLayoutWithAccess`) keys its pages by slug and its categories by
+// full id, as these registries do. The names carry the key to keep the two
+// from being confused.
 const pagesBySlug: Record<string, PageInfo> = {};
 const categoriesByFullId: Record<string, CategoryInfo> = {};
 const navigationTree: SiteLayoutTree = {
@@ -138,6 +142,9 @@ const navigationTree: SiteLayoutTree = {
 const OMIT_SHARED_PAGE_QUERY_VALUE = "false";
 // The `/dms/pagelayout` parameter naming the page; the rest of its query is the page URL's.
 const PAGE_LAYOUT_SLUG_PARAMETER = "slug";
+// The `/dms/page` parameters naming the page and its parts; the rest of its
+// query, when the renderer sends it, is the page URL's.
+const PAGE_REQUEST_PARAMETERS = ["path", "shared"];
 
 setSlugProvider(() => Object.keys(pagesBySlug));
 
@@ -172,19 +179,6 @@ function findNavigableCategoryBySlug(slug: string): CategoryInfo | undefined {
   return Object.values(categoriesByFullId).find(
     (category) => !category.urlTransparent && category.fullSlug === slug,
   );
-}
-
-// The slug view of the category registry, as the client resolves URLs against
-// it. `urlTransparent` categories are left out: they answer at their parent's
-// slug, so including them would shadow whichever surface actually owns it —
-// with the winner decided by module registration order.
-function buildNavigableCategoryIndex(): Record<string, CategoryInfo> {
-  const bySlug: Record<string, CategoryInfo> = {};
-  for (const category of Object.values(categoriesByFullId)) {
-    if (category.urlTransparent) continue;
-    bySlug[category.fullSlug] = category;
-  }
-  return bySlug;
 }
 
 function findEntryByFullId<T extends { fullId: string }>(
@@ -530,7 +524,7 @@ const ERROR_UNAUTHORIZED = "error.unauthorized";
 function notifyStructureChanged(): void {
   previewStructureVersion++;
   scheduleBroadcast();
-  schedulePublishMenuChanged(undefined);
+  schedulePublishMenuChanged(MENU_BROADCAST_TOPIC);
 }
 
 /**
@@ -541,7 +535,29 @@ function notifyStructureChanged(): void {
  */
 export function NotifyMenuChanged(tenantId?: string): void {
   scheduleBroadcast();
-  schedulePublishMenuChanged(tenantId);
+  schedulePublishMenuChanged(
+    tenantId ? buildMenuTopic(tenantId) : MENU_BROADCAST_TOPIC,
+  );
+}
+
+/**
+ * What some members of a tenant may open changed (a role's permissions for
+ * its holders, a member's roles or ownership, a removal): their own sessions
+ * reload their menus, on each one's topic, and the rest of the workspace is
+ * left alone. The menu's structure did not change, so unlike
+ * {@link NotifyMenuChanged} the dev resync, which re-probes routes after a hot
+ * reload, stays out of it.
+ *
+ * @param tenantId The tenant whose access changed
+ * @param userIds The members whose access changed
+ */
+export function notifyMenuAccessChanged(
+  tenantId: string,
+  userIds: Iterable<string>,
+): void {
+  for (const userId of new Set(userIds)) {
+    schedulePublishMenuChanged(buildMemberMenuTopic(tenantId, userId));
+  }
 }
 
 const MODULE_CONTEXT_GONE = "ERR_MODULE_CONTEXT_INVALIDATED";
@@ -568,10 +584,9 @@ const pendingMenuNotifications = new Map<string, NodeJS.Timeout>();
 // connected sessions. Publishing leads the window and the rest of a burst
 // collapses into one trailing publish: an isolated change still reaches
 // clients immediately, which is the point of the signal, while a burst costs
-// two rounds instead of N. Targets are independent — one tenant's burst never
-// delays another's.
-function schedulePublishMenuChanged(tenantId: string | undefined): void {
-  const target = tenantId ?? MENU_BROADCAST_TOPIC;
+// two rounds instead of N. Targets (a topic each) are independent — one burst never
+// delays another target's.
+function schedulePublishMenuChanged(target: string): void {
   // The module can be taken down between scheduling and firing -- the last page
   // to unregister schedules one on its way out. Both calls below reach an
   // interface bound to the module context, and they fail differently once that
@@ -584,7 +599,7 @@ function schedulePublishMenuChanged(tenantId: string | undefined): void {
     lastMenuPublishAt.set(target, Date.now());
     try {
       fireAndForget(
-        publishMenuChanged(tenantId).catch(ignoreModuleContextGone),
+        publishMenuChanged(target).catch(ignoreModuleContextGone),
         "menu change notification",
       );
     } catch (error) {
@@ -622,9 +637,9 @@ export function cancelPendingMenuNotifications(): void {
   pendingMenuNotifications.clear();
 }
 
-async function publishMenuChanged(tenantId: string | undefined): Promise<void> {
+async function publishMenuChanged(topic: string): Promise<void> {
   await getRealtimeBroker().publish({
-    topic: tenantId ? buildMenuTopic(tenantId) : MENU_BROADCAST_TOPIC,
+    topic,
     type: MENU_CHANGED_EVENT_TYPE,
     ts: Date.now(),
   });
@@ -827,7 +842,6 @@ export class DMSController extends Controller("/dms") {
       memberModel,
       roleModel,
       getRequestTenantId(requestContext),
-      requestContext,
     );
   }
 
@@ -913,12 +927,16 @@ export class DMSController extends Controller("/dms") {
 }
 
 /**
- * The query of the page URL a `/dms/pagelayout` request carries next to its
- * `slug`: everything but the slug, one value per name.
+ * The query of the page URL a page request carries next to its own
+ * parameters (`/dms/pagelayout`'s `slug`, `/dms/page`'s `path` and `shared`):
+ * everything else, one value per name.
  */
-function pageQueryOf(requestContext: RequestContext): Record<string, string> {
+function pageQueryOf(
+  requestContext: Pick<RequestContext, "url">,
+  ownParameters: string[] = [PAGE_LAYOUT_SLUG_PARAMETER],
+): Record<string, string> {
   const query = Object.fromEntries(requestContext.url.searchParams);
-  delete query[PAGE_LAYOUT_SLUG_PARAMETER];
+  for (const name of ownParameters) delete query[name];
   return query;
 }
 
@@ -950,9 +968,18 @@ interface AccessFlag {
   hasAccess: boolean;
 }
 
+/** A page of the site layout: its category named by id. */
+type ServedPage = WithCategoryRef<PageInfo & AccessFlag>;
+
 interface SiteLayoutWithAccess {
-  pages: Record<string, PageInfo & AccessFlag>;
-  categories: Record<string, CategoryInfo & AccessFlag>;
+  /** By slug, the key a URL is resolved against. */
+  pages: Record<string, ServedPage>;
+  /**
+   * Every category, once, by full id: the pages and categories name theirs
+   * by id (`categoryId`). A browser resolves a URL against the ones that are
+   * not `urlTransparent`, by `fullSlug`.
+   */
+  categories: Record<string, WithCategoryRef<CategoryInfo & AccessFlag>>;
   /**
    * Carried inside the site layout rather than beside it: every renderer
    * already hydrates this object from a page's shared payload, so the banners
@@ -963,16 +990,22 @@ interface SiteLayoutWithAccess {
 
 export interface SiteLayoutPayload {
   siteLayout: SiteLayoutWithAccess;
-  siteLayoutTree: SiteLayoutTree;
+  siteLayoutTree: TreeWithCategoryRefs<SiteLayoutTree>;
   quickActions: QuickActionsPayload;
   modules: Record<string, ModuleInfo & AccessFlag>;
   isOwner: boolean;
 }
 
 export interface PagePayload {
-  route: PageInfo & AccessFlag;
+  route: ServedPage;
   shared: SiteLayoutPayload;
   layout: PageLayout;
+  /**
+   * The counted navigation badges of the pages the caller can open, by page
+   * full id: computed on each visit, never part of the site layout a browser
+   * keeps for minutes.
+   */
+  navBadges: ResolvedNavBadges;
 }
 
 export interface PageResponsePayload extends Omit<PagePayload, "shared"> {
@@ -1057,31 +1090,38 @@ export async function buildPagePayload(
   assert(handler, 404, "error.page_not_found");
   const route = pagesBySlug[registeredSlug];
   assert(route, 404, "error.page_not_found");
-  if (!includeShared) {
-    const layout = await handler(user, memberModel, roleModel, tenantId);
-    const context = await buildAccessContext(
+  const context = await buildAccessContext(
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+  );
+  const [layout, navBadges] = await Promise.all([
+    // Header buttons resolve against the page URL's query, as `/pagelayout`
+    // does: the layout then matches the one the browser would read again.
+    handler(
       user,
       memberModel,
       roleModel,
       tenantId,
-    );
-    const routes = await annotateRegistryAccess(
-      { [registeredSlug]: route },
-      context,
-    );
-    return { route: routes[registeredSlug], layout };
-  }
-  const [layout, shared] = await Promise.all([
-    handler(user, memberModel, roleModel, tenantId),
-    buildSiteLayoutPayload(
-      user,
-      memberModel,
-      roleModel,
-      tenantId,
-      requestContext,
+      requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
     ),
+    resolvePageNavBadges(user, context, requestContext),
   ]);
-  return { route: shared.siteLayout.pages[registeredSlug], shared, layout };
+  if (!includeShared) {
+    // The same entry the site layout serves, its category named by id.
+    const routes = withCategoryRefs(
+      await annotateRegistryAccess({ [registeredSlug]: route }, context),
+    );
+    return { route: routes[registeredSlug], layout, navBadges };
+  }
+  const shared = await buildSiteLayoutFor(user, tenantId, context);
+  return {
+    route: shared.siteLayout.pages[registeredSlug],
+    shared,
+    layout,
+    navBadges,
+  };
 }
 
 /** The page a permission preview runs on, read with the viewer's own access. */
@@ -1788,10 +1828,9 @@ async function annotateSiteLayoutAccess(
   banners: Promise<LayoutBannerSerialized[]>,
 ): Promise<SiteLayoutWithAccess> {
   return {
-    pages: await annotateRegistryAccess(pagesBySlug, context),
-    categories: await annotateRegistryAccess(
-      buildNavigableCategoryIndex(),
-      context,
+    pages: withCategoryRefs(await annotateRegistryAccess(pagesBySlug, context)),
+    categories: withCategoryRefs(
+      await annotateRegistryAccess(categoriesByFullId, context),
     ),
     banners: await banners,
   };
@@ -1814,12 +1853,17 @@ function buildLayoutBannerContext(
   };
 }
 
+/**
+ * The site layout of a caller: the menu, with each entry's access, the quick
+ * actions and the modules. A browser keeps it for minutes (an Inertia once
+ * prop), so it holds nothing that moves between visits: the counted
+ * navigation badges travel with each page instead (`navBadges`).
+ */
 export async function buildSiteLayoutPayload(
   user: User | undefined,
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
-  requestContext?: RequestContext,
 ): Promise<SiteLayoutPayload> {
   const accessContext = await buildAccessContext(
     user,
@@ -1827,7 +1871,55 @@ export async function buildSiteLayoutPayload(
     roleModel,
     tenantId,
   );
+  return buildSiteLayoutFor(user, tenantId, accessContext);
+}
 
+/**
+ * The counted navigation badges of the pages `user` can open, by page full
+ * id; none for a page that declares a static `badge`, which the menu keeps.
+ */
+async function resolvePageNavBadges(
+  user: User | undefined,
+  context: RequestAccessContext,
+  requestContext: RequestContext | undefined,
+): Promise<ResolvedNavBadges> {
+  if (!user || !requestContext) return {};
+  const entries = await Promise.all(
+    Object.values(pagesBySlug)
+      .filter((page) => page.badge === undefined)
+      .map(async (page) => ({
+        fullId: page.fullId,
+        hasAccess: await computeEntryAccess(page, context),
+      })),
+  );
+  return resolveMenuNavBadges(requestContext, user, entries);
+}
+
+/**
+ * {@link resolvePageNavBadges} for a caller: what a page visit carries next
+ * to its layout.
+ */
+export async function buildNavBadges(
+  user: User | undefined,
+  memberModel: TenantMemberModel,
+  roleModel: RoleModel,
+  tenantId: string,
+  requestContext: RequestContext | undefined,
+): Promise<ResolvedNavBadges> {
+  const context = await buildAccessContext(
+    user,
+    memberModel,
+    roleModel,
+    tenantId,
+  );
+  return resolvePageNavBadges(user, context, requestContext);
+}
+
+async function buildSiteLayoutFor(
+  user: User | undefined,
+  tenantId: string,
+  accessContext: RequestAccessContext,
+): Promise<SiteLayoutPayload> {
   // Started before the menu providers so both sets of resolvers run together;
   // it never rejects, so it cannot surface as an unhandled rejection meanwhile.
   const banners = resolveLayoutBanners(
@@ -1839,31 +1931,15 @@ export async function buildSiteLayoutPayload(
     accessContext,
   );
 
-  const siteLayout = await annotateSiteLayoutAccess(accessContext, banners);
-  const navBadges = await resolveMenuNavBadges(
-    requestContext,
-    user,
-    Object.values(siteLayout.pages),
-  );
-
   return {
-    siteLayout: {
-      ...siteLayout,
-      pages: Object.fromEntries(
-        Object.entries(siteLayout.pages).map(([slug, page]) => [
-          slug,
-          withNavBadge(page, navBadges),
-        ]),
-      ),
-    },
-    siteLayoutTree: withTreeNavBadges(
+    siteLayout: await annotateSiteLayoutAccess(accessContext, banners),
+    siteLayoutTree: treeWithCategoryRefs(
       await addAccessToTree(
         navigationTree,
         accessContext,
         true,
         dynamicChildren,
       ),
-      navBadges,
     ),
     quickActions: await getQuickActionsForUser((target) =>
       resolveQuickActionTarget(target, accessContext),

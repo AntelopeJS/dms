@@ -21,6 +21,7 @@ import { ResolveInviteAvailability } from "@antelopejs/interface-dms/invite-exte
 import { CollectInviteExtensionPayloads } from "@antelopejs/interface-dms/invite-extensions/internal/delivery";
 import {
   PageController,
+  pageRoutePath,
   RegisterPage,
   workspaceSettingsCategory,
 } from "@antelopejs/interface-dms/page";
@@ -68,6 +69,7 @@ import {
   announceMemberRemovals,
 } from "./member-change-notifications";
 import { notifyOwnershipChanged } from "../../../utils/workspace-notifications";
+import { notifyMenuAccessChanged } from "../../../implementations/dms/page";
 import { fireAndForget } from "@antelopejs/interface-dms/utils/fire-and-forget";
 
 RegisterDataController()(memberSettingDataAPI);
@@ -200,7 +202,7 @@ async function guardMemberRemoval(
 }
 
 const memberApiTarget = (action: string) =>
-  `${MEMBERS_PAGE_PATH}/{{row._id}}/${action}`;
+  pageRoutePath(MEMBERS_PAGE_PATH, `/{{row._id}}/${action}`);
 
 export const membersTable = TableView(memberSettingDataAPI, {
   caption: "$page.settings.members.table.caption",
@@ -446,7 +448,7 @@ export class MembersSettingsController extends PageController("members", {
 
   /**
    * The roles the "Change roles" form offers: the members data API's
-   * `roleIds` column reads them from `/settings/workspace/members/role-options`.
+   * `roleIds` column reads them from `/dms/pages/settings/workspace/members/role-options`.
    */
   @Get("/role-options")
   memberRoleOptions(
@@ -518,6 +520,9 @@ export class MembersSettingsController extends PageController("members", {
       memberId,
       isTenantOwner,
     );
+    // Ownership opens or closes every page of the workspace to the member.
+    if (change !== null)
+      notifyMenuAccessChanged(getRequestTenantId(ctx), [member.userId]);
     if (change !== null && member.userId !== user._id) {
       fireAndForget(
         notifyOwnershipChanged(member.userId, isTenantOwner, {

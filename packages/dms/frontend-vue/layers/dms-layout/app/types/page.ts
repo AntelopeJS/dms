@@ -41,6 +41,13 @@ export interface CategoryInfo extends Omit<MenuOptions, "category"> {
   fullSlug: string;
   hasAccess?: boolean;
   isModuleRoot?: boolean;
+  /**
+   * The full id of the category this entry sits in, listed once in
+   * `SiteLayout.categories`; none at the root.
+   */
+  categoryId?: string;
+  /** Answers at its parent's slug: never the target of a URL of its own. */
+  urlTransparent?: boolean;
 }
 
 // Mirror of ModuleInfo and MODULE_URL_PREFIX from @antelopejs/interface-dms/page.
@@ -120,7 +127,13 @@ export interface LayoutBanner {
 }
 
 export type SiteLayout = {
+  /** By slug, the key a URL is resolved against. */
   pages: Record<string, PageInfo>;
+  /**
+   * Every category, once, by full id: pages and categories name theirs by
+   * `categoryId`. A URL resolves against the ones that are not
+   * `urlTransparent`, by `fullSlug`.
+   */
   categories: Record<string, CategoryInfo>;
   /** Absent when the backend predates layout banners. */
   banners?: LayoutBanner[];

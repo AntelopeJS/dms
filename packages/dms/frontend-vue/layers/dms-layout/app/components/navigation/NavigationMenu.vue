@@ -206,6 +206,9 @@ function decorateMenuItem(item: DmsMenuItem): DmsMenuItem {
 
   return {
     ...item,
+    // Inertia prefetches the page on hover, the way a `DmsLink` does: the
+    // visit then shows it without a request, and its components load early.
+    ...(item.to ? { prefetch: true } : {}),
     ...(variant.link ? { class: [item.class, variant.link] } : {}),
     ...(statusClass ? { trailingIcon: STATUS_DOT_ICON } : {}),
     badge,
@@ -231,18 +234,6 @@ const groupedItems = computed((): NavigationMenuItem[][] => {
     ),
   );
 });
-
-const { prefetchPageLayout } = usePrefetch();
-
-function onMenuMouseover(event: MouseEvent): void {
-  const target = (event.target as HTMLElement).closest("a[href]");
-  if (!target) return;
-
-  const href = target.getAttribute("href");
-  if (href && href.startsWith("/")) {
-    prefetchPageLayout(stripQueryAndHash(href));
-  }
-}
 
 function isDesiredOpen(id: string): boolean {
   return props.modelValue?.includes(id) ?? false;
@@ -271,7 +262,6 @@ function onStateChange(id: string, open: boolean): void {
     :orientation="orientation"
     :highlight="orientation === 'vertical'"
     value-key="id"
-    @mouseover="onMenuMouseover"
   >
     <template #item-leading="{ item, active, ui }">
       <DmsAccordionItemSync

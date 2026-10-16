@@ -75,7 +75,7 @@ export class PageTableViewKanbanCustomCard extends PageController(
           rule: { field: "status", equals: "pending" },
           target: {
             type: "api",
-            url: "/api/tasks/kanban-custom-card/start?id={_id}",
+            url: "/api/tasks/kanban-custom-card/start?id={{row._id}}",
             method: "POST",
             successMessage: "Task started",
           },

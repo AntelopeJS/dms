@@ -16,6 +16,7 @@ import {
   ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { readFetchNotFound } from "../layers/dms-ui/app/build/utils/fetchNotFound";
 
 interface FetchFailure extends Error {
@@ -92,6 +93,8 @@ function mount(component: Component): HTMLElement {
   return host;
 }
 
+beforeEach(() => useRealDataEngine());
+
 beforeEach(() => {
   answers.clear();
   route.query = { workspace: "web" };
@@ -157,11 +160,22 @@ describe("useChartFetch on a 404", () => {
     );
   });
 
-  it("keeps them on any other failure", async () => {
+  it("keeps them when a read of the same request fails otherwise", async () => {
+    const state = mountFetch();
+    await settle();
+    answers.set("/api/kpis?workspace=web", failure(500));
+    await state.refresh?.();
+    await settle();
+    expect(state.data?.value).toEqual({ items: [{ label: "web" }] });
+  });
+
+  it("never shows a record's values for another request that failed", async () => {
+    // They belong to another workspace: the card shows its failure instead.
     const state = mountFetch();
     await settle();
     await switchWorkspace("down");
-    expect(state.data?.value).toEqual({ items: [{ label: "web" }] });
+    expect(state.data?.value).toBeNull();
+    expect(state.error?.value).toBeTruthy();
   });
 });
 

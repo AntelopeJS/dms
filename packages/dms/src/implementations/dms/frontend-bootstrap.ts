@@ -128,3 +128,30 @@ export function assertFrontendBootstrap(outcome: BootstrapOutcome): void {
     BOOTSTRAP_REQUIRED_MESSAGE,
   );
 }
+
+/**
+ * The warning for a layer route served without a valid bootstrap credential,
+ * naming the declared backend proxies the response withheld, if any.
+ *
+ * @param route The route served, e.g. `GET /dms/frontend`
+ * @param droppedProxies The withheld proxies, each `<module> <path>`
+ * @returns The message to log
+ */
+export function degradedLayerAccessWarning(
+  route: string,
+  droppedProxies: string[] = [],
+): string {
+  const proxies =
+    droppedProxies.length > 0
+      ? ` The declared backend proxies were dropped as well, so the frontend server ` +
+        `will not forward them: ${droppedProxies.join(", ")}.`
+      : "";
+  return (
+    `[DMS] ${route} was served to a caller presenting no valid bootstrap credential, ` +
+    "because this instance configures none. Private layer options were withheld, so " +
+    "server-side HTML rendering and OAuth login will fail in a frontend built from this " +
+    `response.${proxies} Set frontend.bootstrapSecret in the backend config and ` +
+    "DMS_BOOTSTRAP_SECRET where the frontend is built; the route is then refused to " +
+    "unauthenticated callers."
+  );
+}

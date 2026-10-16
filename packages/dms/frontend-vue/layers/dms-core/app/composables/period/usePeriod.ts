@@ -1,8 +1,10 @@
 import {
   computed,
   getCurrentScope,
+  onMounted,
   onScopeDispose,
   ref,
+  shallowRef,
   watch,
   type ComputedRef,
   type Ref,
@@ -23,6 +25,7 @@ import {
   resolvePresetRange,
 } from "./presetResolvers";
 import { resolveComparisonRange } from "./compareResolvers";
+import { periodRenderNow } from "./periodRenderNow";
 
 export interface UsePeriodOptions {
   defaultPreset?: PeriodPreset;
@@ -47,6 +50,11 @@ export interface UsePeriodReturn {
   presets: ComputedRef<PeriodPreset[]>;
   comparisons: ComputedRef<PeriodComparison[]>;
   state: ComputedRef<PeriodState>;
+  /**
+   * The instant `state` was resolved from: what a label relative to now
+   * reads, so it holds still with the period (see `periodRenderNow`).
+   */
+  resolvedAt: ComputedRef<Date>;
   setPreset: (preset: PeriodPreset) => void;
   setComparison: (comparison: PeriodComparison) => void;
   setCustomRange: (range: PeriodRange | null) => void;
@@ -135,8 +143,7 @@ interface PeriodRefs {
   customCompareRange: Ref<PeriodRange | null>;
 }
 
-function buildState(refs: PeriodRefs): PeriodState {
-  const now = new Date();
+function buildState(refs: PeriodRefs, now: Date): PeriodState {
   const fallback = refs.customRange.value ?? defaultFallbackRange(now);
   const range = resolvePresetRange(refs.preset.value, now, fallback);
   const compareRange = resolveComparisonRange(
@@ -176,6 +183,9 @@ function makeSetters(refs: PeriodRefs) {
  * Reactive period state machine behind `PeriodSelector` — presets,
  * comparisons and custom ranges resolved into a publishable `state`.
  *
+ * A server render and the browser hydrating it resolve from the same instant
+ * (`periodRenderNow`), so both render the same bounds.
+ *
  * Relative presets (`last-hour`, `last-24h`) re-resolve every minute, and
  * calendar presets (`today`, `last-7-days`, `this-month`...) at each local
  * midnight, so a page left open overnight moves on to the new day.
@@ -201,10 +211,28 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
     () => options.comparisons ?? DEFAULT_COMPARISONS,
   );
   const presetClock = usePresetClock(refs.preset, options.holdClock);
-  const state = computed<PeriodState>(() => {
+  // The server render's instant, until the clock ticks or the period changes
+  // once on screen: what the setup applies (the URL's period) the server
+  // applied as well.
+  const renderNow = shallowRef(periodRenderNow());
+  if (renderNow.value) {
+    onMounted(() => {
+      watch(
+        [presetClock, ...Object.values(refs)],
+        () => {
+          renderNow.value = null;
+        },
+        { flush: "sync" },
+      );
+    });
+  }
+  const resolution = computed(() => {
     void presetClock.value;
-    return buildState(refs);
+    const now = renderNow.value ?? new Date();
+    return { now, state: buildState(refs, now) };
   });
+  const state = computed<PeriodState>(() => resolution.value.state);
+  const resolvedAt = computed<Date>(() => resolution.value.now);
   const setters = makeSetters(refs);
 
   return {
@@ -212,6 +240,7 @@ export function usePeriod(options: UsePeriodOptions = {}): UsePeriodReturn {
     presets,
     comparisons,
     state,
+    resolvedAt,
     ...setters,
   };
 }

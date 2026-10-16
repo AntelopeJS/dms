@@ -10,17 +10,25 @@ export interface NavBadge {
 /** A menu entry as the server serves it, as far as its badge goes. */
 export interface ServedNavBadge {
   fullId?: string;
+  /** A static badge the page declares. */
   badge?: string;
-  /** The tone of a counted badge; neutral when absent. */
   badgeTone?: Tone;
 }
 
+/** A badge a page visit carries (`navBadges`), counted for this visit. */
+export interface CountedNavBadge {
+  badge: string;
+  /** Neutral when absent. */
+  tone?: Tone;
+}
+
 /**
- * Fresh counts a page publishes for its navigation entry, by page full id
+ * The counts of the navigation entries, by page full id
  * (`settings.workspace.members` → `{ label: "7" }`, `""` for none), with
- * their tone. The server counts a table view tab declared with `navBadge`
- * when the menu loads; the table publishes its own counter here once shown,
- * which navigation surfaces draw over the server's badge.
+ * their tone. Each page visit brings the ones the server counted for it
+ * (`navBadges`, a page prop: the site layout a browser keeps for minutes
+ * holds none), and a table view tab declared with `navBadge` publishes its
+ * own counter once shown; navigation surfaces draw them over a static badge.
  *
  * Shared state, so a count published on one page stays shown on the others.
  */
@@ -29,6 +37,7 @@ export const useNavBadges = () => {
     "dms-nav-badges",
     () => ({}),
   );
+  const servedIds = useDmsState<string[]>("dms-served-nav-badges", () => []);
 
   /** Sets, or with `undefined` clears, the badge of a page. */
   function setNavBadge(
@@ -61,5 +70,23 @@ export const useNavBadges = () => {
     return badge?.label ? badge : undefined;
   }
 
-  return { badges, setNavBadge, navBadgeOf };
+  /**
+   * Takes the counts a page visit carries: each one replaces the entry's
+   * badge, and an entry the previous visit counted that this one does not
+   * (its count fell to zero) loses its badge.
+   */
+  function applyCountedNavBadges(
+    counted: Record<string, CountedNavBadge> | undefined,
+  ): void {
+    if (!counted) return;
+    for (const fullId of servedIds.value) {
+      if (!(fullId in counted)) setNavBadge(fullId, "");
+    }
+    for (const [fullId, { badge, tone }] of Object.entries(counted)) {
+      setNavBadge(fullId, badge, tone);
+    }
+    servedIds.value = Object.keys(counted);
+  }
+
+  return { badges, setNavBadge, navBadgeOf, applyCountedNavBadges };
 };

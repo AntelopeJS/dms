@@ -5,12 +5,13 @@ import { SendableNotification } from "@antelopejs/interface-dms/notifications/se
 import type { NotificationData } from "@antelopejs/interface-dms/notifications/types";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The routes behind the notifications page's inbox table
 // (`notificationInboxTable`): a page of the feed per read-state tab, and the
 // dialog "Delete all" asks in, and the undo of "Mark all as read".
 
-const LOCATION = "/settings/user/notifications";
+const LOCATION = pageRoutePath("/settings/user/notifications");
 const HTTP_OK = 200;
 const SENT = 3;
 
@@ -117,6 +118,7 @@ describe("[integration] notifications inbox table", () => {
     const marked = await client.put(`${LOCATION}/mark-all-read`);
     expect(marked.status, JSON.stringify(marked.data)).to.equal(HTTP_OK);
     expect(marked.data.batchId).to.be.a("string");
+    expect(marked.data.counts).to.include({ unread: 0 });
     expect(marked.data).not.to.have.property("ids");
     expect(
       (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
@@ -127,6 +129,7 @@ describe("[integration] notifications inbox table", () => {
     );
     expect(undone.status, JSON.stringify(undone.data)).to.equal(HTTP_OK);
     expect(undone.data.ids).to.have.length(unreadBefore);
+    expect(undone.data.counts).to.include({ unread: unreadBefore });
     expect(
       (await inbox({ limit: 1, filter_isRead: "is:false" })).total,
     ).to.equal(unreadBefore);

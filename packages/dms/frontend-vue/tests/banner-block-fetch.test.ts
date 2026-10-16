@@ -7,6 +7,7 @@
  */
 import { createApp, defineComponent, h, reactive, ref } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { refreshPageBlocks } from "../layers/dms-ui/app/utils/blockRefresh";
 
 const requests: string[] = [];
@@ -92,6 +93,8 @@ function mountBanner(props: Record<string, unknown>) {
     },
   };
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   requests.length = 0;

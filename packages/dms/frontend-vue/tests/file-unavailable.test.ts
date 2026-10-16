@@ -7,11 +7,13 @@ import {
   inject,
   onScopeDispose,
   ref,
+  shallowReactive,
   watch,
   type App,
 } from "vue";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import File from "../layers/dms-ui/app/components/form/components/File.vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const STORED_KEY = "files/profile/avatar.pdf";
 const authFetch = vi.fn();
@@ -29,6 +31,7 @@ function mountFile(): { app: App; container: HTMLElement } {
     render: () => h(File, { modelValue: STORED_KEY }),
   });
   app.config.globalProperties.$t = (key: string) => key;
+  browserRuntime(app);
   app.component("UFileUpload", passthrough);
   app.component("ULink", passthrough);
   app.component("UButton", defineComponent({ setup: () => () => h("button") }));
@@ -54,7 +57,8 @@ beforeEach(() => {
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("shallowReactive", shallowReactive);
+  stubApiData(authFetch);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));

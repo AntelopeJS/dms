@@ -5,6 +5,7 @@ import { resetCountryLookup } from "../../../utils/sign-in-country";
 import { authorizedClient, registerUser } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { createClient } from "../../helpers/http";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The "New sign-in" check reads a sign-in's country through the proxy header
 // the deployment names: the same browser and system from another country is
@@ -47,7 +48,9 @@ describe("[integration] auth/sign-in country", () => {
   };
 
   const newSignInNotices = async (): Promise<StoredNotification[]> => {
-    const response = await owner.get("/settings/user/notifications/list");
+    const response = await owner.get(
+      pageRoutePath("/settings/user/notifications", "/list"),
+    );
     expect(response.status).to.equal(HTTP_OK);
     return (response.data as StoredNotification[]).filter(
       (notification) => notification.title === NEW_LOGIN_TITLE,

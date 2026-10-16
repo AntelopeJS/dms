@@ -42,7 +42,8 @@ interface Props extends DefaultComponentProps {
 }
 
 // The comparison series takes palette step 2 (v2 violet), re-resolved on
-// theme changes via useThemeRevision so it tracks light/dark mode.
+// theme changes via useThemeRevision so it tracks light/dark mode. Its legend
+// key reads the same token in CSS.
 const COMPARISON_COLOR_TOKEN = "--dms-chart-2";
 const themeRevision = useThemeRevision();
 const comparisonColor = computed(() => {
@@ -236,9 +237,11 @@ const hasMeta = computed(
           {{ primaryLegendLabel }}
         </span>
         <span class="flex items-center gap-1.5">
+          <!-- The token itself, not its resolved value: a server render
+            cannot read the theme, and must draw what the browser draws. -->
           <span
             :class="LEGEND_KEY_CLASS"
-            :style="{ background: comparisonColor }"
+            class="bg-(--dms-chart-2)"
             aria-hidden="true"
           />
           {{ comparisonLegendLabel }}

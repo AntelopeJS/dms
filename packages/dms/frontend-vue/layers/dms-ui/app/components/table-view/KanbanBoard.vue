@@ -11,7 +11,6 @@ import {
   buildKanbanColumns,
   type KanbanColumnDef,
 } from "../../composables/table-view/kanban";
-import { useServerRenderedAsyncData } from "../../build/composables/table-view/useServerRenderedAsyncData";
 import type { TableViewDisplayContext } from "../../composables/table-view/types/display";
 import {
   buildCardProps,
@@ -128,7 +127,7 @@ const boardColumnsKey = computed(() =>
 // `refresh` is assigned below and only called once setup has completed.
 defineExpose({ refresh: () => refresh() });
 
-const { data, status, refresh } = await useServerRenderedAsyncData(
+const { data, status, refresh } = await useDmsAsyncData(
   `kanban-${props.componentId}-${props.pageId}-${instanceId}`,
   async () => {
     const pages = await Promise.all(
@@ -138,7 +137,12 @@ const { data, status, refresh } = await useServerRenderedAsyncData(
       boardColumns.value.map((col, index) => [col.value, pages[index]]),
     );
   },
-  { watch: [boardColumnsKey, () => props.baseQuery, pageSize] },
+  {
+    watch: [boardColumnsKey, () => props.baseQuery, pageSize],
+    lazy: true,
+    // Its table view refreshes it, on the table's own triggers.
+    refreshOnPageRefresh: false,
+  },
 );
 
 // Nothing fetched yet (a client navigation paints first): the columns hold

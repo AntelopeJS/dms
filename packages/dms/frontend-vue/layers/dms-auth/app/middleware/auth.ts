@@ -10,12 +10,10 @@ function isAuthOptions(value: MiddlewareMeta): value is AuthMiddlewareOptions {
 }
 
 async function loadPermissionsIfNeeded() {
-  const { isLoaded, fetchPermissions } = usePermissions();
-
-  if (isLoaded.value) return;
+  const { loadPermissions } = usePermissions();
 
   try {
-    await fetchPermissions();
+    await loadPermissions();
   } catch {
     /* ignore — permissions load failure is not fatal here */
   }
@@ -26,7 +24,7 @@ function handleAuthenticatedUser(
   options: MiddlewareMeta,
 ) {
   const authConfig = useDmsRuntimeConfig().public.dms;
-  const { user } = useUserSession();
+  const { user } = useDmsUserSession();
 
   if (authConfig.mustValidateEmail && !user.value?.isValidated) {
     if (to.path === "/auth/validate") return;
@@ -76,14 +74,14 @@ export default defineDmsMiddleware(async (to) => {
   // is committed and rendered with its own status. Re-throwing it here would
   // reject the pending navigation the SSR render awaits, turning that 404 into
   // a 500 fallback render.
-  if (useError().value) return abortNavigation();
+  if (useDmsError().value) return abortDmsNavigation();
 
   const options = to.meta.auth as MiddlewareMeta | undefined;
   if (!options) return;
 
   if (await isPublicAccessRoute(to)) return;
 
-  const { loggedIn } = useUserSession();
+  const { loggedIn } = useDmsUserSession();
 
   if (loggedIn.value) {
     await loadPermissionsIfNeeded();

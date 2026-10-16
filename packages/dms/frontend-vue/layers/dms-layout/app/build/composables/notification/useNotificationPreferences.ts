@@ -1,6 +1,8 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import type { SaveStatusState } from "#dms-ui/app/components/save-bar/SaveStatus.vue";
 import { useInstantSave } from "#dms-ui/app/build/composables/instant-save/useInstantSave";
 import {
+  hasFailed,
   type NotificationCategory,
   type NotificationSubject,
   subjectPreferenceKey,
@@ -9,19 +11,45 @@ import {
 
 type PreferenceMap = Record<string, boolean>;
 
-const PREFERENCES_URL = "/settings/user/notifications/preferences";
+const PREFERENCES_URL = pageRoutePath(
+  "/settings/user/notifications",
+  "/preferences",
+);
 
 /**
- * State of the notification preferences matrix. Each switch saves on its
- * own through the shared instant save (a PATCH of the keys it changes); a
- * failed save puts the switches back and keeps the change for a retry.
+ * State of the notification preferences matrix, read with the page (the
+ * stored preferences and the catalog). Each switch saves on its own through
+ * the shared instant save (a PATCH of the keys it changes); a failed save
+ * puts the switches back and keeps the change for a retry.
+ *
+ * @param enabled Whether the page shows them: nothing is read otherwise
  */
-export const useNotificationPreferences = () => {
+export const useNotificationPreferences = (
+  enabled: () => boolean = () => true,
+) => {
   const { $authFetch } = useAuthFetch();
-  const catalog = useNotificationCatalog();
-  const preferences = ref<PreferenceMap>({});
-  const isLoading = ref(true);
-  const loadFailed = ref(false);
+  const catalog = useNotificationCatalog(enabled);
+  const stored = useApiData<PreferenceMap>(() =>
+    enabled() ? PREFERENCES_URL : null,
+  );
+  // The switches edit the read's data in place.
+  const preferences = computed<PreferenceMap>({
+    get: () => stored.data.value ?? {},
+    set: (value) => {
+      stored.data.value = value;
+    },
+  });
+  // A user who never changed a switch has no stored preferences (null).
+  const isStoredRead = computed(
+    () => stored.status.value === "success" || stored.data.value != null,
+  );
+  const loadFailed = computed(
+    () => (!isStoredRead.value && hasFailed(stored)) || catalog.loadFailed.value,
+  );
+  const isLoading = computed(
+    () =>
+      !(isStoredRead.value && catalog.isLoaded.value) && !loadFailed.value,
+  );
 
   const instant = useInstantSave<PreferenceMap>({
     read: (key) => preferences.value[key] ?? true,
@@ -54,21 +82,14 @@ export const useNotificationPreferences = () => {
       ),
     );
 
+  /** Reads the preferences and the catalog again (a retry). */
   const load = async () => {
-    isLoading.value = true;
-    loadFailed.value = false;
-    try {
-      const [stored] = await Promise.all([
-        $authFetch<PreferenceMap>(PREFERENCES_URL),
-        catalog.loadCatalog(),
-      ]);
-      preferences.value = stored ?? {};
-      instant.confirm(preferences.value);
-    } catch {
-      loadFailed.value = true;
-    } finally {
-      isLoading.value = false;
-    }
+    await Promise.all([
+      stored.refresh({ dedupe: "defer" }),
+      catalog.loadCatalog(),
+    ]);
+    // A failed save then puts back what the server holds now.
+    if (stored.status.value === "success") instant.confirm(preferences.value);
   };
 
   return {

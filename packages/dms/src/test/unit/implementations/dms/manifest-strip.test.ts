@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import {
+  listDroppedBackendProxies,
   type ManifestModuleEntry,
   type ModuleManifestShape,
   stripPrivateManifestFields,
@@ -28,6 +29,7 @@ function buildManifest(): ModuleManifestShape<LayerEntry> {
         publicEndpoints: [
           { path: "/api/hooks/*", methods: ["POST"], headers: [] },
         ],
+        backendProxies: [{ path: "/media/**", auth: "none" }],
       },
       {
         name: "@scope/dms-lang-layer",
@@ -89,6 +91,7 @@ describe("[unit] manifest field policy", () => {
       expect(module).to.not.have.property("path");
       expect(module).to.not.have.property("authEstablishEndpoints");
       expect(module).to.not.have.property("publicEndpoints");
+      expect(module).to.not.have.property("backendProxies");
     }
   });
 
@@ -102,6 +105,9 @@ describe("[unit] manifest field policy", () => {
       "/api/saas/register/finalize",
     ]);
     expect(shaped.modules[0].publicEndpoints).to.have.length(1);
+    expect(shaped.modules[0].backendProxies).to.deep.equal([
+      { path: "/media/**", auth: "none" },
+    ]);
     expect(shaped.modules[1]).to.not.have.property("authEstablishEndpoints");
   });
 
@@ -129,5 +135,32 @@ describe("[unit] manifest field policy", () => {
       authEstablishEndpoints: false,
     });
     expect(manifest).to.deep.equal(buildManifest());
+  });
+});
+
+describe("[unit] dropped backend proxies", () => {
+  it("names each proxy withheld from a caller without the routing declarations", () => {
+    const { modules } = buildManifest();
+    modules[1].backendProxies = [{ path: "/files/*" }];
+    expect(
+      listDroppedBackendProxies(modules, {
+        privateOptions: false,
+        path: false,
+        authEstablishEndpoints: false,
+      }),
+    ).to.deep.equal([
+      "@scope/dms-frontend /media/**",
+      "@scope/dms-lang-layer /files/*",
+    ]);
+  });
+
+  it("names none when the caller receives them", () => {
+    expect(
+      listDroppedBackendProxies(buildManifest().modules, {
+        privateOptions: true,
+        path: true,
+        authEstablishEndpoints: true,
+      }),
+    ).to.deep.equal([]);
   });
 });

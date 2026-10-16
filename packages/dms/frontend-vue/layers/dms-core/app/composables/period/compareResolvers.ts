@@ -1,16 +1,25 @@
+import { readerClock } from "./periodClock";
 import type { PeriodComparison, PeriodRange } from "./types";
 
 const NON_OVERLAP_GAP_MS = 1;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// In the reader's calendar (`readerClock`), as the range was resolved.
 function isLocalMidnight(date: Date): boolean {
-  return (
-    date.getHours() === 0 &&
-    date.getMinutes() === 0 &&
-    date.getSeconds() === 0 &&
-    date.getMilliseconds() === 0
-  );
+  const { hours, minutes, seconds, milliseconds } = readerClock().wall(date);
+  return hours === 0 && minutes === 0 && seconds === 0 && milliseconds === 0;
+}
+
+/** `date` moved by whole calendar days and years, its time of day kept. */
+function shiftCalendar(date: Date, days: number, years: number): Date {
+  const clock = readerClock();
+  const wall = clock.wall(date);
+  return clock.instant({
+    ...wall,
+    year: wall.year + years,
+    day: wall.day + days,
+  });
 }
 
 /** A range of whole local days: midnight to the last millisecond of a day. */
@@ -27,10 +36,8 @@ function shiftPreviousPeriod(range: PeriodRange): PeriodRange {
   if (isWholeDayRange(range)) {
     const end = range.to.getTime() + NON_OVERLAP_GAP_MS;
     const days = Math.round((end - range.from.getTime()) / MS_PER_DAY);
-    const from = new Date(range.from);
-    from.setDate(from.getDate() - days);
     return {
-      from,
+      from: shiftCalendar(range.from, -days, 0),
       to: new Date(range.from.getTime() - NON_OVERLAP_GAP_MS),
     };
   }
@@ -44,11 +51,10 @@ function shiftPreviousPeriod(range: PeriodRange): PeriodRange {
 }
 
 function shiftPreviousYear(range: PeriodRange): PeriodRange {
-  const previousFrom = new Date(range.from);
-  previousFrom.setFullYear(previousFrom.getFullYear() - 1);
-  const previousTo = new Date(range.to);
-  previousTo.setFullYear(previousTo.getFullYear() - 1);
-  return { from: previousFrom, to: previousTo };
+  return {
+    from: shiftCalendar(range.from, 0, -1),
+    to: shiftCalendar(range.to, 0, -1),
+  };
 }
 
 const COMPARISON_RESOLVERS: Record<

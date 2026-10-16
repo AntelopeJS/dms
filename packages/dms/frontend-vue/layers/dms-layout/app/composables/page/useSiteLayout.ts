@@ -1,7 +1,11 @@
+import { router as inertiaRouter } from "@inertiajs/vue3";
 import { layoutUrlWithQuery } from "../../utils/pageQuery";
+import { onBeforeMount, toRaw } from "vue";
 import { withoutTrailingSlash } from "ufo";
 
 const STALE_THRESHOLD_MS = 300_000;
+const SITE_LAYOUT_ENDPOINT = "/dms/sitelayout";
+const RENDERED_SITE_LAYOUT_KEY = "dms-rendered-site-layout";
 const IN_FLIGHT_SITE_LAYOUT_KEY = "__dmsInFlightSiteLayout";
 const IN_FLIGHT_PAGE_LAYOUTS_KEY = "__dmsInFlightPageLayouts";
 
@@ -10,26 +14,33 @@ interface PageLayoutRequest {
   promise: Promise<PageLayout>;
 }
 
-function getCachedLayoutUrls(
-  previousSite: SiteLayout | undefined,
-  previousCache: Record<string, PageLayout>,
-  nextSite: SiteLayout,
-): string[] {
-  const urls = Object.entries(previousSite?.pages ?? {}).flatMap(
-    ([path, page]) => {
-      const nextPage = nextSite.pages[path];
-      return previousCache[page.layoutUrl] &&
-        nextPage?.layoutUrl &&
-        nextPage.hasAccess !== false
-        ? [nextPage.layoutUrl]
-        : [];
-    },
-  );
-  return [...new Set(urls)];
-}
-
 interface MatchRouteOptions {
   includeCategories: boolean;
+}
+
+// The categories a URL resolves against, by slug, per served layout: the
+// layout lists them by full id, and a `urlTransparent` one answers at its
+// parent's slug, so it is never a URL's target.
+const navigableCategoriesByLayout = new WeakMap<
+  SiteLayout,
+  Map<string, CategoryInfo>
+>();
+
+/** The category of the layout a URL resolves to, by its slug. */
+export function findNavigableCategory(
+  layout: SiteLayout,
+  slug: string,
+): CategoryInfo | undefined {
+  let bySlug = navigableCategoriesByLayout.get(layout);
+  if (!bySlug) {
+    bySlug = new Map(
+      Object.values(layout.categories)
+        .filter((category) => !category.urlTransparent)
+        .map((category) => [category.fullSlug, category]),
+    );
+    navigableCategoriesByLayout.set(layout, bySlug);
+  }
+  return bySlug.get(slug);
 }
 
 interface MatchRouteResult {
@@ -99,24 +110,84 @@ export function extractRouteParams(
   return buildParamBag(paramNames, match.slice(1));
 }
 
+/**
+ * A partial reload of the page on screen: the server sends the site layout
+ * and the page fresh, and they replace the browser's copies, the layout
+ * Inertia carries from page to page included. A failure rejects and leaves
+ * the page as it is: Inertia would otherwise show the error in its place.
+ */
+function reloadSiteLayoutAndPage(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let failure: unknown;
+    inertiaRouter.reload({
+      only: ["shared", "page"],
+      onHttpException: (response) => {
+        failure = new Error(`Site layout reload failed (${response.status})`);
+        return false;
+      },
+      onNetworkError: (error) => {
+        failure = error;
+        return false;
+      },
+      onFinish: () => (failure ? reject(failure) : resolve()),
+    });
+  });
+}
+
+interface SiteLayoutResponse {
+  siteLayout: SiteLayout;
+  siteLayoutTree: SiteLayoutTree;
+  quickActions: QuickActionsPayload;
+  modules: Record<string, ModuleWithAccess>;
+  isOwner: boolean;
+}
+
+/** The shared site layout, as a page's props or `/dms/sitelayout` set it. */
+function useSiteLayoutState() {
+  return {
+    siteLayout: useDmsState<SiteLayout | undefined>(
+      "dms-siteLayout",
+      () => undefined,
+    ),
+    siteLayoutTree: useDmsState<SiteLayoutTree | undefined>(
+      "dms-pageTree",
+      () => undefined,
+    ),
+    quickActions: useDmsState<QuickActionsPayload | undefined>(
+      "dms-quickActions",
+      () => undefined,
+    ),
+    modules: useDmsState<Record<string, ModuleWithAccess> | undefined>(
+      "dms-modules",
+      () => undefined,
+    ),
+    isOwner: useDmsState<boolean>("dms-isOwner", () => false),
+    lastRefreshTime: useDmsState<number>("dms-lastRefreshTime", () => 0),
+  };
+}
+
+function applySiteLayoutResponse(
+  state: ReturnType<typeof useSiteLayoutState>,
+  result: SiteLayoutResponse,
+): void {
+  state.siteLayout.value = result.siteLayout;
+  state.siteLayoutTree.value = result.siteLayoutTree;
+  state.quickActions.value = result.quickActions;
+  state.modules.value = result.modules;
+  state.isOwner.value = result.isOwner;
+  state.lastRefreshTime.value = Date.now();
+}
+
 export const useSiteLayout = () => {
-  const siteLayout = useDmsState<SiteLayout | undefined>(
-    "dms-siteLayout",
-    () => undefined,
-  );
-  const siteLayoutTree = useDmsState<SiteLayoutTree | undefined>(
-    "dms-pageTree",
-    () => undefined,
-  );
-  const quickActions = useDmsState<QuickActionsPayload | undefined>(
-    "dms-quickActions",
-    () => undefined,
-  );
-  const modules = useDmsState<Record<string, ModuleWithAccess> | undefined>(
-    "dms-modules",
-    () => undefined,
-  );
-  const isOwner = useDmsState<boolean>("dms-isOwner", () => false);
+  const state = useSiteLayoutState();
+  const {
+    siteLayout,
+    siteLayoutTree,
+    quickActions,
+    modules,
+    isOwner,
+    lastRefreshTime,
+  } = state;
 
   const isLoading = useDmsState<boolean>("dms-loading", () => false);
   const loadingError = useDmsState<string | null>("dms-error", () => null);
@@ -125,7 +196,6 @@ export const useSiteLayout = () => {
     "dms-pageLayouts",
     () => ({}),
   );
-  const lastRefreshTime = useDmsState<number>("dms-lastRefreshTime", () => 0);
 
   // Held on the DMS app rather than in a per-call ref: every caller of
   // useSiteLayout writes the same shared layout state, so they have to see the
@@ -148,79 +218,40 @@ export const useSiteLayout = () => {
     },
   };
 
-  interface SiteLayoutResponse {
-    siteLayout: SiteLayout;
-    siteLayoutTree: SiteLayoutTree;
-    quickActions: QuickActionsPayload;
-    modules: Record<string, ModuleWithAccess>;
-    isOwner: boolean;
-  }
-
-  const SITE_LAYOUT_ENDPOINT = "/dms/sitelayout";
   const SITE_LAYOUT_ERROR_MESSAGE = "Error loading siteLayout";
   const UNKNOWN_SITE_LAYOUT_ERROR = "Unknown error loading siteLayout";
   const HTTP_INTERNAL_ERROR = 500;
-
-  const applySiteLayoutResponse = (result: SiteLayoutResponse) => {
-    siteLayout.value = result.siteLayout;
-    siteLayoutTree.value = result.siteLayoutTree;
-    quickActions.value = result.quickActions;
-    modules.value = result.modules;
-    isOwner.value = result.isOwner;
-    lastRefreshTime.value = Date.now();
-  };
 
   const handleSiteLayoutError = (error: unknown) => {
     const errorMessage =
       error instanceof Error ? error.message : UNKNOWN_SITE_LAYOUT_ERROR;
     loadingError.value = errorMessage;
-    showError({
+    showDmsError({
       statusCode: HTTP_INTERNAL_ERROR,
       statusMessage: SITE_LAYOUT_ERROR_MESSAGE,
       message: errorMessage,
     });
   };
 
-  const requestSiteLayout = async (fatal: boolean): Promise<boolean> => {
+  const requestSiteLayout = async (): Promise<boolean> => {
     const initialLayout = siteLayout.value;
     const initialCache = pageLayouts.value;
+    // A layout another request committed meanwhile is newer than this one.
     const isCurrent = () =>
       siteLayout.value === initialLayout && pageLayouts.value === initialCache;
     const { $authFetch } = useAuthFetch();
     try {
       const result = await $authFetch<SiteLayoutResponse>(SITE_LAYOUT_ENDPOINT);
-      const nextCache: Record<string, PageLayout> = {};
-      // Initial page loads mutate this cache in place; identity guards cannot detect those additions.
-      while (isCurrent()) {
-        const urls = fatal
-          ? []
-          : getCachedLayoutUrls(
-              initialLayout,
-              initialCache,
-              result.siteLayout,
-            ).filter((url) => !nextCache[url]);
-        if (!urls.length) {
-          if (!fatal) pageLayouts.value = nextCache;
-          applySiteLayoutResponse(result);
-          return true;
-        }
-        const layouts = await Promise.all(
-          urls.map(
-            async (url) => [url, await $authFetch<PageLayout>(url)] as const,
-          ),
-        );
-        Object.assign(nextCache, Object.fromEntries(layouts));
-      }
+      if (isCurrent()) applySiteLayoutResponse(state, result);
       return true;
     } catch (error) {
-      // Failed background refreshes must not leave a fatal error for the next navigation.
-      if (fatal && isCurrent()) handleSiteLayoutError(error);
+      if (isCurrent()) handleSiteLayoutError(error);
       throw error;
     }
   };
 
-  const startSiteLayoutFetch = (fatal = true): Promise<boolean> => {
-    const started = requestSiteLayout(fatal).finally(() => {
+  const startSiteLayoutFetch = (): Promise<boolean> => {
+    const started = requestSiteLayout().finally(() => {
       isLoading.value = false;
       // A waiting refresh may already have started its replacement request.
       if (loadingPromise.value === started) loadingPromise.value = null;
@@ -246,12 +277,9 @@ export const useSiteLayout = () => {
     pageLayouts.value = {};
   }
 
-  // `fatal: false` keeps a failed refetch from swapping the app for the error
-  // page — for background resyncs (a realtime menu invalidation), where a
-  // network blip must not destroy a working session.
-  const refresh = async (options?: { fatal?: boolean }) => {
-    // Background refreshes stage page layouts before committing; identity refreshes clear immediately.
-    if (options?.fatal !== false) clearPageLayoutCaches();
+  // A background resync (a realtime menu invalidation) goes through `resync`.
+  const refresh = async () => {
+    clearPageLayoutCaches();
 
     // A fetch already in flight was started before whatever prompted this
     // call, so its answer cannot contain the change: joining it would report
@@ -270,9 +298,24 @@ export const useSiteLayout = () => {
     if (!loadingPromise.value) {
       isLoading.value = true;
       loadingError.value = null;
-      loadingPromise.value = startSiteLayoutFetch(options?.fatal ?? true);
+      loadingPromise.value = startSiteLayoutFetch();
     }
     await loadingPromise.value;
+  };
+
+  /**
+   * Re-reads the menu and the page on screen from the server, for a change
+   * the backend announced (a realtime menu invalidation) or a switch of
+   * session. The pages prefetched on hover are dropped first: each carries
+   * the layout and the access of before. A navigation that starts meanwhile
+   * drops the reload's answer, and the page it opens still carries the layout
+   * the reload meant to replace: that page is reloaded in turn.
+   */
+  const resync = async (): Promise<void> => {
+    inertiaRouter.flushAll();
+    const path = window.location.pathname;
+    await reloadSiteLayoutAndPage();
+    if (window.location.pathname !== path) await reloadSiteLayoutAndPage();
   };
 
   const refreshIfStale = async () => {
@@ -335,12 +378,11 @@ export const useSiteLayout = () => {
       };
     }
 
-    if (options.includeCategories && layout.categories[normalizedPath]) {
-      return {
-        pattern: normalizedPath,
-        metadata: layout.categories[normalizedPath],
-        params: {},
-      };
+    const category = options.includeCategories
+      ? findNavigableCategory(layout, normalizedPath)
+      : undefined;
+    if (category) {
+      return { pattern: normalizedPath, metadata: category, params: {} };
     }
 
     for (const [pattern, metadata] of Object.entries(layout.pages)) {
@@ -420,7 +462,7 @@ export const useSiteLayout = () => {
         return false;
       }
       clearPageLayoutCaches();
-      applySiteLayoutResponse(result);
+      applySiteLayoutResponse(state, result);
       return true;
     } catch {
       return false;
@@ -440,9 +482,48 @@ export const useSiteLayout = () => {
     loadSiteLayout,
     loadPageLayout,
     refresh,
+    resync,
     refreshIfStale,
     findMatchingRoute,
     findMatchingRouteOrCategory,
     probeAndCommitRoute,
   };
 };
+
+/**
+ * The site layout for the component rendering it (the sidebar), called in
+ * its setup. A page the backend describes brings it with its props; a page
+ * only a frontend layer knows (a custom page) does not, and this loads it
+ * with the page then: a server render waits for it before rendering the
+ * component, and hands it to the browser, which takes it over before the
+ * component mounts instead of asking again.
+ */
+export function useRenderedSiteLayout(): void {
+  const state = useSiteLayoutState();
+  if (state.siteLayout.value) return;
+  const layout = useSiteLayout();
+  // Through `loadSiteLayout`, which sets the state: a middleware loading it
+  // at the same time (the auth guard of a custom page) joins this request.
+  const { data } = useApiData<SiteLayoutResponse | null>(
+    RENDERED_SITE_LAYOUT_KEY,
+    async () => {
+      await layout.loadSiteLayout();
+      const { siteLayout, siteLayoutTree, quickActions, modules, isOwner } =
+        state;
+      // What the page payload carries: the plain values, not the state.
+      return siteLayout.value
+        ? {
+            siteLayout: toRaw(siteLayout.value),
+            siteLayoutTree: toRaw(siteLayoutTree.value!),
+            quickActions: toRaw(quickActions.value!),
+            modules: toRaw(modules.value!),
+            isOwner: isOwner.value,
+          }
+        : null;
+    },
+  );
+  onBeforeMount(() => {
+    if (data.value && !state.siteLayout.value)
+      applySiteLayoutResponse(state, data.value);
+  });
+}

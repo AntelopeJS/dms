@@ -2,6 +2,7 @@
 import { type OAuthHandoff, sanitizeRedirectPath } from "../../../shared/oauth";
 
 const OAUTH_FAILED_KEY = "error.oauth.failed";
+const IN_FLIGHT_COMPLETION_KEY = "__dmsInFlightOAuthCompletion";
 
 const route = useDmsRoute();
 const homepage = useHomepage();
@@ -39,7 +40,7 @@ const HANDOFF_ACTIONS: HandoffActions = {
       },
       REPLACE,
     ),
-  none: () => usePostLoginRedirect(redirect.value),
+  none: () => usePostLoginRedirect(redirect.value, REPLACE),
 };
 
 function runHandoffAction(handoff: OAuthHandoff): unknown {
@@ -56,7 +57,7 @@ function redirectToLoginWithError(): unknown {
   );
 }
 
-onMounted(async () => {
+async function completeOAuth(): Promise<void> {
   try {
     const handoff = await $fetch<OAuthHandoff>("/auth/oauth/handoff", {
       method: "POST",
@@ -65,7 +66,29 @@ onMounted(async () => {
   } catch {
     await dmsApp.runWithContext(() => redirectToLoginWithError());
   }
-});
+}
+
+// One completion per visit, held on the DMS app rather than by this instance.
+// The post-login redirect refreshes the site layout for the new identity,
+// which empties the page layout cache: the page unmounts this component and
+// mounts a new one while its layout is fetched again. Starting over from that
+// mount consumed the handoff once more and refreshed again, so the page
+// remounted in a loop instead of leaving. The new instance joins the running
+// completion; a later visit, once it has settled, starts its own.
+function joinCompletion(): Promise<void> {
+  const holder = dmsApp as unknown as Record<PropertyKey, unknown>;
+  const running = holder[IN_FLIGHT_COMPLETION_KEY] as Promise<void> | undefined;
+  if (running) return running;
+  const completion = completeOAuth().finally(() => {
+    if (holder[IN_FLIGHT_COMPLETION_KEY] === completion) {
+      holder[IN_FLIGHT_COMPLETION_KEY] = undefined;
+    }
+  });
+  holder[IN_FLIGHT_COMPLETION_KEY] = completion;
+  return completion;
+}
+
+onMounted(joinCompletion);
 </script>
 
 <template>

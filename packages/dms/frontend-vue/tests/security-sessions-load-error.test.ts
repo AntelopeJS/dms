@@ -11,6 +11,7 @@ import {
   watch,
   type App,
 } from "vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const overview = ref({ activeSessions: 1 });
 const authFetch = vi.fn();
@@ -77,6 +78,7 @@ async function mount(): Promise<void> {
     "../layers/dms-layout/app/build/components/pages/settings/security/SecuritySessions.vue"
   );
   app = createApp(SecuritySessions);
+  browserRuntime(app);
   app.component("DmsSection", Passthrough);
   app.component("DmsEmptyState", EmptyState);
   for (const name of ["USkeleton", "UButton", "DmsListRow", "UModal"]) {
@@ -93,7 +95,7 @@ beforeEach(() => {
   vi.stubGlobal("onMounted", onMounted);
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
   vi.stubGlobal("useToast", () => ({ add: vi.fn() }));
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(authFetch);
   authFetch.mockReset();
   host = document.createElement("div");
   document.body.append(host);

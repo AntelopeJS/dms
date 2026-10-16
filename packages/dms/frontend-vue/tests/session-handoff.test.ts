@@ -18,7 +18,7 @@ beforeEach(() => {
     fetchCalls.push([url, options]);
     return {};
   });
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     session: ref({ accountId: "account-before" }),
     fetch: refreshUser,
   }));

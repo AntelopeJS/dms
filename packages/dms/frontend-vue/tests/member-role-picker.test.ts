@@ -16,6 +16,7 @@ import {
   formStateInjectionKey,
 } from "@nuxt/ui/composables/useFormField";
 import { sameFormValue } from "../layers/dms-ui/app/build/composables/unsaved-changes/formValue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 
 const ROLES_URL = "/settings/workspace/members/role-options";
 const ROLE_OPTIONS = {
@@ -74,6 +75,7 @@ async function mountPicker(props: Record<string, unknown> = {}) {
     },
   });
   app = createApp(Field);
+  browserRuntime(app);
   const stub = (tag: string) =>
     defineComponent({
       setup:
@@ -110,7 +112,7 @@ beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t: translate }));
   authFetch.mockReset();
   authFetch.mockResolvedValue(ROLE_OPTIONS);
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(authFetch);
   fieldError.value = undefined;
   formState.value = {};
   model.value = [];
@@ -127,7 +129,7 @@ afterEach(() => {
 it("offers the server's roles and picks and unpicks them", async () => {
   await mountPicker();
 
-  expect(authFetch).toHaveBeenCalledWith(ROLES_URL);
+  expect(authFetch).toHaveBeenCalledWith(ROLES_URL, expect.anything());
   expect(
     [...host.querySelectorAll("button[data-value]")].map((b) =>
       b.textContent?.trim(),

@@ -1,4 +1,5 @@
 import { HTTPResult } from "@antelopejs/interface-api";
+import type { AfterWrite } from "@antelopejs/interface-dms/base/types/guards";
 import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel } from "@antelopejs/interface-database-decorators";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
@@ -19,6 +20,7 @@ import {
   GetCategoryPermissionIds,
   GetMenuEntryPermissionIds,
   GetMenuOrder,
+  notifyMenuAccessChanged,
 } from "../../../implementations/dms/page";
 import { haveSameMembers } from "../../../utils/notification-rules";
 import {
@@ -227,24 +229,39 @@ async function assertRoleUnused(
   assert(holders === 0, HTTP_CONFLICT, IN_USE_MESSAGE);
 }
 
+/** The users holding `roleId` in the tenant. */
+export async function listRoleHolderIds(
+  tenantId: string,
+  roleId: string,
+): Promise<string[]> {
+  const members = await GetModel(TenantMemberModel, tenantId).listAll();
+  return members
+    .filter((member) => member.roleIds?.includes(roleId))
+    .map((member) => member.userId);
+}
+
+/** Moves the holders of `roleId` to `replacementId`; returns the members moved. */
 async function moveRoleHolders(
   tenantId: string,
   roleId: string,
   replacementId?: string,
-): Promise<void> {
+): Promise<string[]> {
   const memberModel = GetModel(TenantMemberModel, tenantId);
   const inviteModel = GetModel(UserInviteModel, tenantId);
   const [members, invites] = await Promise.all([
     memberModel.listAll(),
     inviteModel.getAll(),
   ]);
+  const moved: string[] = [];
   for (const member of members) {
     const roleIds = replaceRoleReference(
       member.roleIds ?? [],
       roleId,
       replacementId,
     );
-    if (roleIds) await memberModel.update(member._id, { roleIds });
+    if (!roleIds) continue;
+    await memberModel.update(member._id, { roleIds });
+    moved.push(member.userId);
   }
   for (const invite of invites) {
     const rolesIds = replaceRoleReference(
@@ -254,6 +271,7 @@ async function moveRoleHolders(
     );
     if (rolesIds) await inviteModel.update(invite._id, { roles_ids: rolesIds });
   }
+  return moved;
 }
 
 /**
@@ -314,10 +332,10 @@ export async function prepareRoleDeletion(
   tenantId: string,
   roleIds: string[],
   values: Record<string, unknown> | undefined,
-): Promise<void> {
+): Promise<AfterWrite | undefined> {
   if (!values) {
     for (const roleId of roleIds) await assertRoleUnused(tenantId, roleId);
-    return;
+    return undefined;
   }
   const { reassignTo } = assertValidation(values, (v) =>
     roleDeleteSchema.parse(v),
@@ -333,7 +351,13 @@ export async function prepareRoleDeletion(
     }
     await requireRole(tenantId, reassignTo);
   }
+  const holders: string[] = [];
   for (const roleId of roleIds) {
-    await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined);
+    holders.push(
+      ...(await moveRoleHolders(tenantId, roleId, reassignTo ?? undefined)),
+    );
   }
+  // The holders now hold another role, or none: their menus reload once the
+  // roles are gone.
+  return () => notifyMenuAccessChanged(tenantId, holders);
 }

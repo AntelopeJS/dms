@@ -4,6 +4,7 @@ import { renderToString } from "vue/server-renderer";
 import { createI18n } from "vue-i18n";
 import en from "../layers/dms-layout/i18n/locales/layout-en-GB.json";
 import fr from "../layers/dms-layout/i18n/locales/layout-fr-FR.json";
+import type { DmsBrandingLogo } from "../layers/dms-core/shared/types/app-config";
 
 interface EmailModule {
   default: Component;
@@ -17,6 +18,10 @@ const emailModules = import.meta.glob<EmailModule>(
 const PUBLIC_BASE = "https://admin.example.com";
 const PUBLIC_PNG_LOGO = "/images/logo.png";
 const SVG_LOGO = "/images/logo.svg";
+const EMAIL_LOGOS: Partial<DmsBrandingLogo> = {
+  default: { light: SVG_LOGO, dark: SVG_LOGO },
+  email: { light: "/branding/email.png", dark: "/branding/email-dark.png" },
+};
 const ELEMENTS: Record<string, string> = {
   EHtml: "html",
   EHead: "head",
@@ -41,6 +46,11 @@ function element(tag: string) {
   });
 }
 
+/** A path stands for `branding.logo.default.light`. */
+function brandingLogo(logo: string | Partial<DmsBrandingLogo>) {
+  return typeof logo === "string" ? { default: { light: logo } } : logo;
+}
+
 function templateName(path: string): string {
   return path.split("/").pop()?.replace(".vue", "") ?? path;
 }
@@ -56,11 +66,11 @@ const EMAIL_PROPS = {
 
 async function renderEmail(
   component: Component,
-  logo: string,
+  logo: string | Partial<DmsBrandingLogo>,
   locale = "en",
 ): Promise<string> {
   vi.stubGlobal("useDmsAppConfig", () => ({
-    branding: { logo: { default: { light: logo } } },
+    branding: { logo: brandingLogo(logo) },
   }));
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { clientBaseUrl: PUBLIC_BASE } },
@@ -99,6 +109,17 @@ describe("built-in emails", () => {
     const html = await renderEmail(component, PUBLIC_PNG_LOGO);
     expect(html).toContain(`<img src="${PUBLIC_BASE}${PUBLIC_PNG_LOGO}"`);
   });
+
+  it.each(templates)(
+    "%s draws the email logo, with its dark variant",
+    async (_name, component) => {
+      const html = await renderEmail(component, EMAIL_LOGOS);
+      expect(html).toContain(
+        `<source media="(prefers-color-scheme: dark)" srcset="${PUBLIC_BASE}/branding/email-dark.png">`,
+      );
+      expect(html).toContain(`<img src="${PUBLIC_BASE}/branding/email.png"`);
+    },
+  );
 
   it.each(templates)("%s is written in French", async (_name, component) => {
     const html = await renderEmail(component, PUBLIC_PNG_LOGO, "fr");

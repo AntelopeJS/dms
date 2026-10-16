@@ -9,12 +9,13 @@ import { expect } from "chai";
 import { authorizedClient, registerUser } from "../helpers/auth";
 import { resetDatabase } from "../helpers/db";
 import { listUserInvitesByEmail, seedUserInvite } from "../helpers/fixtures";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // Deleting a role its members and pending invitations still hold, through the
 // table's own delete: refused without the delete dialog's answer as the body,
 // and with `reassignTo` they all move to the role picked.
 
-const ROLES = "/settings/workspace/roles";
+const ROLES = pageRoutePath("/settings/workspace/roles");
 const ROLES_TABLE = "/api/tables/roles";
 const HTTP_OK = 200;
 const HTTP_NO_CONTENT = 204;

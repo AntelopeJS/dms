@@ -10,12 +10,14 @@ import {
   onBeforeUnmount,
   onScopeDispose,
   ref,
+  shallowReactive,
   useId,
   watch,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import File from "../layers/dms-ui/app/components/form/components/File.vue";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import { browserRuntime, stubApiData } from "./helpers/api-data-runtime";
 import {
   isDefinitiveMetadataFailure,
   resolveMetadataRetryDelay,
@@ -80,6 +82,7 @@ function mountField(field: FieldCase): { app: App; container: HTMLElement } {
   const app = createApp({
     render: () => h(field.component, { modelValue: field.modelValue }),
   });
+  browserRuntime(app);
   app.config.globalProperties.$t = (key: string) => key;
   for (const name of ["UFileUpload", "ULink", "UTooltip"])
     app.component(name, passthrough);
@@ -104,7 +107,8 @@ beforeEach(() => {
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  vi.stubGlobal("shallowReactive", shallowReactive);
+  stubApiData(authFetch);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));

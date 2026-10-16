@@ -41,6 +41,10 @@ import {
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 
 vi.mock(
+  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
+  () => ({ useVisitNavBadges: () => {} }),
+);
+vi.mock(
   "../layers/dms-layout/app/build/components/layout/DashboardSidebar.vue",
   () => ({ default: () => null }),
 );
@@ -136,7 +140,10 @@ function installRuntime(): void {
     useDmsState,
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
-    useUserSession: () => ({ loggedIn }),
+    useDmsUserSession: () => ({ loggedIn }),
+    // The page brought its site layout.
+    useRenderedSiteLayout: () => {},
+    useRenderedBellCounts: () => {},
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

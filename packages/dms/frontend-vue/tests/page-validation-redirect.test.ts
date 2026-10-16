@@ -27,6 +27,16 @@ import {
 } from "../layers/dms-layout/app/composables/layout/usePageFillHeight";
 import type { PageValidation } from "../layers/dms-layout/app/types/page";
 
+// The page's data refresh and the visit's navigation badges read the
+// realtime session and Inertia's page, which these tests do not run.
+vi.mock(
+  "../layers/dms-ui/app/build/composables/live/usePageDataRefresh",
+  () => ({ usePageDataRefresh: () => {} }),
+);
+vi.mock(
+  "../layers/dms-layout/app/build/composables/navigation/useVisitNavBadges",
+  () => ({ useVisitNavBadges: () => {} }),
+);
 vi.mock(
   "../layers/dms-layout/app/build/composables/dev-reload/useDevReloadHolder",
   async () => {
@@ -72,7 +82,7 @@ function installRuntime(): void {
     PAGE_FILL_HEIGHT_CLASSES,
     providePageFillHeight,
     usePageFillHeight,
-    createError: ({ statusCode }: { statusCode: number }) =>
+    createDmsError: ({ statusCode }: { statusCode: number }) =>
       new HttpError(statusCode),
     defineDmsPageMeta: vi.fn(),
     firstAccessiblePagePath: vi.fn(),
@@ -81,7 +91,7 @@ function installRuntime(): void {
     providePageRealtime: vi.fn(),
     resolveDmsComponent: () => "div",
     runCustomValidation,
-    showError: vi.fn(),
+    showDmsError: vi.fn(),
     validateRequiredQueryParams,
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDmsRoute: () => ({ path: PAGE_PATH, query: pageQuery.value }),

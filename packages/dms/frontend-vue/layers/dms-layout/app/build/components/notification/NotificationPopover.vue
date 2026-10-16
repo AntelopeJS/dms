@@ -3,7 +3,10 @@ import { formatRelativeTime } from "#dms-core/app/utils/formatter";
 import NotificationCard from "./NotificationCard.vue";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import { settleWidgetRequest } from "./widgetRequest";
-import type { UserNotification } from "../../../composables/notification/useNotifications";
+import {
+  settledRenderedBellCounts,
+  type UserNotification,
+} from "../../../composables/notification/useNotifications";
 import { resolveNotificationTone } from "../pages/settings/notification/notificationDisplay";
 import { DMS_TONE_SOLID, iconWellToneOf } from "#dms-ui/app/build/utils/tone";
 import DmsRowSkeleton from "#dms-ui/app/build/components/skeleton/RowSkeleton.vue";
@@ -20,11 +23,12 @@ const SKELETON_ROW_COUNT = 4;
 const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
 const { t, locale } = useI18n();
-const { loggedIn } = useUserSession();
+const { loggedIn } = useDmsUserSession();
 const { processI18n } = useTranslation();
 const {
   unreadCount,
   unreadTone,
+  areCountsLoaded,
   notifications,
   hasMore,
   fetchBellCounts,
@@ -89,7 +93,9 @@ const handleFormSubmitSuccess = async (event: Event) => {
 
 onMounted(async () => {
   if (!loggedIn.value) return;
-  await refreshCounts();
+  // Read with the page (`useRenderedBellCounts`) unless that read failed.
+  if (!areCountsLoaded.value) await settledRenderedBellCounts();
+  if (!areCountsLoaded.value) await refreshCounts();
 
   window.addEventListener(
     FormEvents.SUBMIT_SUCCESS,

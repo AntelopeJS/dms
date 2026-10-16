@@ -13,7 +13,11 @@ import { assert, assertValidation } from "@antelopejs/interface-api-util";
 import { GetModel, Model } from "@antelopejs/interface-database-decorators";
 import { AuthUser } from "@antelopejs/interface-dms/auth";
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
-import { PageController, RegisterPage } from "@antelopejs/interface-dms/page";
+import {
+  PageController,
+  pageRoutePath,
+  RegisterPage,
+} from "@antelopejs/interface-dms/page";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { CustomComponent } from "@antelopejs/interface-dms/base/custom";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
@@ -99,16 +103,21 @@ const INBOX_TOTALS: Record<
 };
 
 const INBOX_PAGE_SIZE = 20;
+/**
+ * The notifications page's routes, and the user's own notification routes
+ * next to them: where the browser reaches them.
+ */
+const NOTIFICATIONS_API = pageRoutePath("/settings/user/notifications");
 const NOTIFICATION_TEXTS = "$page.settings.notifications";
 
 /**
  * The inbox of the notifications page: a read-only table over the user's own
- * feed, served by `GET /settings/user/notifications/inbox`. Its rows are drawn
+ * feed, served by `GET /dms/pages/settings/user/notifications/inbox`. Its rows are drawn
  * by the `dms:inbox` display, grouped by day; All / Unread are its tabs.
  */
 export function notificationInboxTable() {
   return TableView.fromSource({
-    fetchUrl: "/settings/user/notifications/inbox",
+    fetchUrl: `${NOTIFICATIONS_API}/inbox`,
     capabilities: { paginate: true, filter: true, sort: true, search: true },
     columns: {
       title: { name: "Title", type: new DefaultDataTypes.StringType() },
@@ -148,7 +157,7 @@ export function notificationInboxTable() {
         target: {
           type: "api",
           method: "PUT",
-          url: "/settings/user/notifications/mark-all-read",
+          url: `${NOTIFICATIONS_API}/mark-all-read`,
           successMessage: `${NOTIFICATION_TEXTS}.mark_all_read_done`,
         },
       },
@@ -157,11 +166,11 @@ export function notificationInboxTable() {
         label: `${NOTIFICATION_TEXTS}.delete_all`,
         icon: "i-ph-trash",
         variant: ButtonVariant.ghost,
-        confirm: { from: "/settings/user/notifications/delete-all/confirm" },
+        confirm: { from: `${NOTIFICATIONS_API}/delete-all/confirm` },
         target: {
           type: "api",
           method: "DELETE",
-          url: "/settings/user/notifications/delete-all",
+          url: `${NOTIFICATIONS_API}/delete-all`,
           successMessage: `${NOTIFICATION_TEXTS}.delete_all_done`,
         },
       },
@@ -262,9 +271,7 @@ export class NotificationsSettingsController extends PageController(
   declare user: User;
 }
 
-export class NotificationsApiController extends Controller(
-  "/settings/user/notifications",
-) {
+export class NotificationsApiController extends Controller(NOTIFICATIONS_API) {
   // A user's own notifications are not tenant data: no membership and no
   // tenant access gate. The header bell polls them on every page, including
   // the billing page a blocked tenant needs, and a member removed from their
@@ -455,9 +462,10 @@ export class NotificationsApiController extends Controller(
     await this.assertOwnNotification(notificationsModel, id);
 
     await notificationsModel.markAsRead(id);
-    await publishNotificationsRead(this.user._id, [id]);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsRead(this.user._id, [id], counts);
 
-    return { success: true };
+    return { success: true, counts };
   }
 
   @Put("/mark-unread/:id")
@@ -469,9 +477,10 @@ export class NotificationsApiController extends Controller(
     await this.assertOwnNotification(notificationsModel, id);
 
     await notificationsModel.markAsUnread(id);
-    await publishNotificationsUnread(this.user._id, [id]);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsUnread(this.user._id, [id], counts);
 
-    return { success: true };
+    return { success: true, counts };
   }
 
   @Delete("/delete/:id")
@@ -484,12 +493,13 @@ export class NotificationsApiController extends Controller(
 
     await notificationsModel.delete(id);
 
-    return { success: true };
+    return { success: true, counts: await this.feedCounts(notificationsModel) };
   }
 
   /**
    * Marks the whole feed read, or only what the inbox filter keeps. Returns
-   * the batch id that `PUT /mark-all-read/:batchId/undo` takes to undo it.
+   * the batch id that `PUT /mark-all-read/:batchId/undo` takes to undo it,
+   * and the feed's counts after it.
    */
   @Put("/mark-all-read")
   async markAllAsRead(
@@ -502,14 +512,15 @@ export class NotificationsApiController extends Controller(
       this.user._id,
       filter,
     );
+    const counts = await this.feedCounts(notificationsModel);
     // A filtered pass names its rows: "all read" would clear the others too.
     if (isFilteredFeed(filter)) {
-      await publishNotificationsRead(this.user._id, ids);
+      await publishNotificationsRead(this.user._id, ids, counts);
     } else {
-      await publishAllNotificationsRead(this.user._id);
+      await publishAllNotificationsRead(this.user._id, counts);
     }
 
-    return { success: true, batchId };
+    return { success: true, batchId, counts };
   }
 
   /**
@@ -526,9 +537,10 @@ export class NotificationsApiController extends Controller(
       this.user._id,
       batchId,
     );
-    await publishNotificationsUnread(this.user._id, ids);
+    const counts = await this.feedCounts(notificationsModel);
+    await publishNotificationsUnread(this.user._id, ids, counts);
 
-    return { success: true, ids };
+    return { success: true, ids, counts };
   }
 
   /** Deletes the whole feed, or only what the inbox filter keeps. */
@@ -541,6 +553,17 @@ export class NotificationsApiController extends Controller(
     await notificationsModel.deleteAll(this.user._id, readFeedFilter(context));
 
     return { success: true };
+  }
+
+  /**
+   * The whole feed's counts after a write, which the write answers and its
+   * realtime event carries: the bell of the tab that wrote and of every other
+   * tab of the user takes them as they are, without reading them again.
+   */
+  private feedCounts(
+    notificationsModel: UserNotificationsModel,
+  ): Promise<UserNotificationCounts> {
+    return notificationsModel.countFeedWithUnreadTone(this.user._id);
   }
 
   private async assertOwnNotification(

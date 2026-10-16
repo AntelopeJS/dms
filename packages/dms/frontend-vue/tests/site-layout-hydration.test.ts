@@ -70,13 +70,13 @@ it("does not show a stale request error after successful Inertia navigation", as
       fail = reject;
     }),
   );
-  const showError = vi.fn();
-  vi.stubGlobal("showError", showError);
+  const showDmsError = vi.fn();
+  vi.stubGlobal("showDmsError", showDmsError);
   const layout = useSiteLayout();
   const request = layout.loadSiteLayout();
   state.get("dms-siteLayout")!.value = { pages: { fresh: {} }, categories: {} };
   fail(new Error("old account request"));
   await expect(request).rejects.toThrow("old account request");
-  expect(showError).not.toHaveBeenCalled();
+  expect(showDmsError).not.toHaveBeenCalled();
   expect(layout.loadingError.value).toBeNull();
 });

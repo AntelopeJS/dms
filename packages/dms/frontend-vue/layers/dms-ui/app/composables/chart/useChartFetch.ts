@@ -2,6 +2,7 @@ import {
   computed,
   onMounted,
   ref,
+  shallowRef,
   watch,
   type ComputedRef,
   type Ref,
@@ -10,13 +11,13 @@ import {
   appendPeriodToUrl,
   usePeriodScope,
 } from "../../../../dms-core/app/composables/period/usePeriodScope";
-import type { PeriodState } from "../../../../dms-core/app/composables/period/types";
 import {
   hasUrlVariables,
   resolveUrlVariables,
 } from "../../build/utils/urlVariables";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
 import { readFetchNotFound } from "../../build/utils/fetchNotFound";
+import type { UseApiDataOptions } from "../../../../dms-core/app/composables/auth/useApiData";
 
 export interface UseChartFetchOptions<T> {
   /**
@@ -51,7 +52,6 @@ export interface UseChartFetchReturn<T> {
 }
 
 const DEBOUNCE_FRAME_MS = 180;
-const DEFAULT_HTTP_METHOD = "GET";
 // How long a card waits for its period scope to register before it stops
 // claiming to load. The selector registers the scope from its own lazily
 // loaded chunk, which on a slow network lands seconds after the card mounts:
@@ -59,78 +59,15 @@ const DEFAULT_HTTP_METHOD = "GET";
 // scope is merely late. Only a scope no selector ever registers reaches it.
 export const PENDING_SCOPE_TIMEOUT_MS = 10_000;
 
-function buildFinalUrl(
-  url: string | undefined,
-  scopeState: PeriodState | null,
-  scope: string | undefined,
-): string | undefined {
-  if (!url) return url;
-  if (!scope) return url;
-  return appendPeriodToUrl(url, scopeState);
+/** What a card asks for: its URL with its period, and the state it watches. */
+interface ChartRequest {
+  /** `null` while a token or the period scope has no value yet. */
+  url: string | null;
+  watched: string;
 }
 
-/** What one fetch requests. */
-interface FetchRequest {
-  url: string | undefined;
-  method: string | undefined;
-  periodScope: string | undefined;
-}
-
-interface FetchRunner {
-  hasFetchedOnce: boolean;
-  /** Inputs the last fetch was started for, to collapse duplicate triggers. */
-  lastInputs: string | null;
-  pendingTimer: ReturnType<typeof setTimeout> | null;
-  activeAbort: AbortController | null;
-}
-
-type AuthFetcher = <T>(
-  url: string,
-  opts: { method: string; signal: AbortSignal },
-) => Promise<T>;
-
-async function runFetch<T>(
-  authFetch: AuthFetcher,
-  request: FetchRequest,
-  scopeState: PeriodState | null,
-  runner: FetchRunner,
-  data: Ref<T | null>,
-  isLoading: Ref<boolean>,
-  error: Ref<unknown>,
-): Promise<void> {
-  if (!request.url) return;
-  if (request.periodScope && !scopeState) return;
-  const url = buildFinalUrl(request.url, scopeState, request.periodScope);
-  if (!url) return;
-  if (runner.activeAbort) runner.activeAbort.abort();
-  const controller = new AbortController();
-  runner.activeAbort = controller;
-  isLoading.value = true;
-  error.value = null;
-  try {
-    const response = await authFetch<T>(url, {
-      method: request.method || DEFAULT_HTTP_METHOD,
-      signal: controller.signal,
-    });
-    if (runner.activeAbort !== controller) return;
-    data.value = response;
-  } catch (err) {
-    if (runner.activeAbort !== controller) return;
-    if ((err as { name?: string })?.name === "AbortError") return;
-    error.value = err;
-    // A 404 says what the block showed is gone (another tab deleted it, the
-    // URL now names another record): its last values must not stay on screen
-    // as if they still belonged to it. Any other failure keeps them.
-    if (readFetchNotFound(err)) data.value = null;
-  } finally {
-    // A request a newer one superseded leaves the loading flag to that one:
-    // clearing it here would show the empty state while the newer answer is
-    // still on its way.
-    if (runner.activeAbort === controller) {
-      runner.activeAbort = null;
-      isLoading.value = false;
-    }
-  }
+function isSameRequest(left: ChartRequest, right: ChartRequest): boolean {
+  return left.url === right.url && left.watched === right.watched;
 }
 
 function readStaticData<T>(
@@ -158,131 +95,158 @@ function useResolvedFetchUrl<T>(
   );
 }
 
+interface ScheduledRequest {
+  /** The request the card is on. */
+  current: Ref<ChartRequest>;
+  /** Inputs changed, and their request waits for them to hold still. */
+  isScheduled: Ref<boolean>;
+  /** Moves to the latest inputs at once; whether the request changed. */
+  flush(): boolean;
+}
+
+/**
+ * The request the card is on: the first one at once, each later one once the
+ * inputs have held still for a frame, so a period changed and changed back
+ * requests nothing. A server render keeps the one its setup saw.
+ */
+function useScheduledRequest(
+  target: ComputedRef<ChartRequest>,
+): ScheduledRequest {
+  const current = shallowRef(target.value);
+  const isScheduled = ref(false);
+  if (typeof window === "undefined")
+    return { current, isScheduled, flush: () => false };
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    isScheduled.value = false;
+    if (isSameRequest(current.value, target.value)) return false;
+    current.value = target.value;
+    return true;
+  };
+  watch(target, (next) => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (isSameRequest(next, current.value)) {
+      isScheduled.value = false;
+      return;
+    }
+    if (current.value.url === null) {
+      flush();
+      return;
+    }
+    isScheduled.value = true;
+    timer = setTimeout(flush, DEBOUNCE_FRAME_MS);
+  });
+  return { current, isScheduled, flush };
+}
+
+/**
+ * Whether a card bound to a period scope is still waiting for it to register:
+ * until a selector does, or `PENDING_SCOPE_TIMEOUT_MS` after mounting.
+ */
+function useScopeWait(isWaiting: () => boolean): ComputedRef<boolean> {
+  const gaveUp = ref(false);
+  onMounted(() => {
+    if (!isWaiting()) return;
+    setTimeout(() => {
+      gaveUp.value = true;
+    }, PENDING_SCOPE_TIMEOUT_MS);
+  });
+  return computed(() => isWaiting() && !gaveUp.value);
+}
+
+/**
+ * The data of a block that reads `fetchUrl`, through `useApiData`: a server
+ * render requests it and hands it to the browser, unless the URL waits for a
+ * period the server cannot resolve as the browser would (see
+ * `usePeriodScope`); the browser then requests it once mounted. The period of
+ * `periodScope` is sent with the request, and the block reads again when the
+ * period, the watched state or the URL's tokens change (once they hold still
+ * for a frame) and on each event of `realtimeTopic`.
+ */
 export function useChartFetch<T>(
+  options: UseChartFetchOptions<T>,
+): UseChartFetchReturn<T> {
+  if (!options.fetchUrl) return useStaticChartData(options);
+  const resolvedUrl = useResolvedFetchUrl(options);
+  const scopeState = usePeriodScope(options.periodScope);
+  const target = computed<ChartRequest>(() => {
+    const url = resolvedUrl.value;
+    const waitsForScope = !!options.periodScope && !scopeState.value;
+    return {
+      url:
+        !url || waitsForScope
+          ? null
+          : (appendPeriodToUrl(url, scopeState.value) ?? null),
+      watched: JSON.stringify(options.watchSource?.() ?? null),
+    };
+  });
+  const request = useScheduledRequest(target);
+  const loaded = useApiData<T>(() => request.current.value.url, {
+    method: options.fetchUrlMethod as UseApiDataOptions<T>["method"],
+    // A block never holds a navigation: it draws its skeleton meanwhile.
+    lazy: true,
+    default: () => readStaticData(options.staticData) as T,
+    watch: [() => request.current.value.watched],
+    // Read again on its own triggers (realtime topic, page refresh, live
+    // gate): left out of the page's data refresh, which would read it twice.
+    refreshOnPageRefresh: false,
+  });
+  const { data, status, error } = loaded;
+  // A 404 says what the block showed is gone (another tab deleted it, the
+  // URL now names another record): its last values must not stay on screen
+  // as if they still belonged to it. Any other failure keeps them.
+  watch(error, (failure) => {
+    if (failure && readFetchNotFound(failure)) data.value = null;
+  });
+  const isWaitingForScope = useScopeWait(
+    () => !!resolvedUrl.value && !!options.periodScope && !scopeState.value,
+  );
+  const isLoading = computed(
+    () =>
+      request.isScheduled.value ||
+      status.value === "pending" ||
+      (status.value === "idle" && request.current.value.url !== null) ||
+      isWaitingForScope.value,
+  );
+  const refresh = async () => {
+    // A request that changed loads as it moves: joined, not started twice.
+    await loaded.refresh(request.flush() ? { dedupe: "defer" } : undefined);
+  };
+  // A realtime event or a page refresh (refreshPageBlocks) means the data
+  // behind unchanged inputs moved: read again once a burst holds still. The
+  // values on screen stay current until the new answer replaces them.
+  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  useRefreshTriggers(options.realtimeTopic, () => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      refreshTimer = null;
+      void loaded.refresh();
+    }, DEBOUNCE_FRAME_MS);
+  });
+  return { data: data as Ref<T | null>, isLoading, error, refresh };
+}
+
+/** A block without `fetchUrl`: its `staticData`, followed as it changes. */
+function useStaticChartData<T>(
   options: UseChartFetchOptions<T>,
 ): UseChartFetchReturn<T> {
   const data = ref<T | null>(
     readStaticData(options.staticData),
   ) as Ref<T | null>;
-  // A card that fetches has nothing to show until its first response lands.
-  // SSR cannot help: registerPeriodScope() is a client-only no-op, so a
-  // period-scoped card renders server-side with no scope and no data. Start
-  // in the loading state so consumers show a skeleton instead of a hard zero
-  // for the whole hydrate-then-fetch window.
-  const resolvedUrl = useResolvedFetchUrl(options);
-  const isLoading = ref(Boolean(resolvedUrl.value));
-  const error = ref<unknown>(null);
-  const scopeState = usePeriodScope(options.periodScope);
-  const { $authFetch } = useAuthFetch();
-  const runner: FetchRunner = {
-    hasFetchedOnce: false,
-    lastInputs: null,
-    pendingTimer: null,
-    activeAbort: null,
-  };
-
-  const performFetch = () =>
-    runFetch(
-      $authFetch as AuthFetcher,
-      {
-        url: resolvedUrl.value,
-        method: options.fetchUrlMethod,
-        periodScope: options.periodScope,
-      },
-      scopeState.value,
-      runner,
-      data,
-      isLoading,
-      error,
-    );
-
-  const refresh = async () => {
-    if (runner.pendingTimer) clearTimeout(runner.pendingTimer);
-    runner.pendingTimer = null;
-    await performFetch();
-  };
-
-  const currentInputs = () =>
-    `${resolvedUrl.value}|${scopeState.value?.key ?? ""}|${JSON.stringify(options.watchSource?.() ?? null)}`;
-
-  const fetchScheduledInputs = () => {
-    runner.pendingTimer = null;
-    runner.lastInputs = currentInputs();
-    void performFetch();
-  };
-
-  // A debounced refresh the inputs took back (a period changed and changed
-  // back) leaves nothing to wait for unless a request is still running.
-  const settleCancelledRefresh = (hadPending: boolean) => {
-    if (hadPending && !runner.activeAbort) isLoading.value = false;
-  };
-
-  // A period scope registers during the PeriodSelector's setup, which lands
-  // before or after a card's own mount depending on which chunk resolves
-  // first. Either way both the watcher and onMounted end up looking at the
-  // same freshly registered scope and each ask for a refresh; keying on the
-  // inputs the last fetch was started for collapses that into one request.
-  const scheduleRefreshWith = (announcePending: boolean) => {
-    const hadPending = runner.pendingTimer !== null;
-    if (runner.pendingTimer) clearTimeout(runner.pendingTimer);
-    runner.pendingTimer = null;
-    if (!resolvedUrl.value || (options.periodScope && !scopeState.value)) {
-      settleCancelledRefresh(hadPending);
-      return;
-    }
-    const inputs = currentInputs();
-    if (inputs === runner.lastInputs) {
-      settleCancelledRefresh(hadPending);
-      return;
-    }
-    if (!runner.hasFetchedOnce) {
-      runner.hasFetchedOnce = true;
-      fetchScheduledInputs();
-      return;
-    }
-    // The values on screen belong to the previous inputs from now on: say so
-    // through the debounce as well, not only once the request leaves.
-    if (announcePending) isLoading.value = true;
-    runner.pendingTimer = setTimeout(fetchScheduledInputs, DEBOUNCE_FRAME_MS);
-  };
-  const scheduleRefresh = () => scheduleRefreshWith(true);
-
-  // A realtime event or a page refresh (refreshPageBlocks) means the data
-  // behind unchanged inputs moved, so it has to bypass the deduplication
-  // above. The inputs did not change, so the values on screen stay current
-  // until the new answer replaces them.
-  const refreshSameInputs = () => {
-    runner.lastInputs = null;
-    scheduleRefreshWith(false);
-  };
-
-  const fetchOnMount = () => {
-    scheduleRefresh();
-    if (runner.hasFetchedOnce) return;
-    // The scope has not registered yet, and may never. Keep the skeleton
-    // while its selector may still be loading, then drop the loading state
-    // so a misconfigured scope shows its empty value rather than a skeleton
-    // that never resolves.
-    setTimeout(() => {
-      if (!runner.hasFetchedOnce) isLoading.value = false;
-    }, PENDING_SCOPE_TIMEOUT_MS);
-  };
-
-  if (options.fetchUrl) {
-    watch(
-      () => [resolvedUrl.value, scopeState.value?.key, options.watchSource?.()],
-      scheduleRefresh,
-    );
-    onMounted(fetchOnMount);
-    useRefreshTriggers(options.realtimeTopic, refreshSameInputs);
-  } else if (typeof options.staticData === "function") {
+  if (typeof options.staticData === "function")
     watch(
       () => readStaticData(options.staticData),
       (next) => {
         data.value = next;
       },
     );
-  }
-
-  return { data, isLoading, error, refresh };
+  return {
+    data,
+    isLoading: ref(false),
+    error: ref<unknown>(null),
+    refresh: async () => {},
+  };
 }

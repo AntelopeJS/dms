@@ -54,6 +54,7 @@ import {
 } from "./internal/extension-assembly";
 import { collectExtensionErrors } from "./internal/extension-validation";
 import { PageDeclarationConflictError } from "./declaration-conflict";
+import { pageRoutePath } from "./page-routes";
 import { type ComponentNodeMap, filterComponents } from "./layout-filter";
 import {
   filterLayoutHeaderActions,
@@ -248,7 +249,7 @@ export class PageMetadata {
     const parentFullId = resolvedCategory?.fullId ?? "";
     const fullId = parentFullId ? `${parentFullId}.${id}` : id;
 
-    const location = `${fullSlug}/pagelayout`.replace(/\/+/g, "/");
+    const location = pageRoutePath(fullSlug, "/pagelayout");
 
     const pageInfo: PageInfo = {
       ...menuOptions,
@@ -371,6 +372,7 @@ export class PageMetadata {
       }
     });
 
+    this.ownRouteProperties();
     this.applyAuthDecorators(pageInfo);
     RequestQueryProperty()(this.target.prototype, "pageQuery");
     this.registerLayoutRoute(pageInfo);
@@ -1058,6 +1060,24 @@ export class PageMetadata {
       this.ownComponents,
       [...this.extensionEntries.values()].flat(),
     );
+  }
+
+  /**
+   * Give the page's controller its own copy of every route property it
+   * inherited, before decorating them.
+   *
+   * A page whose controller extends another page's — each page-mode form of a
+   * TableView extends the page carrying it — inherits that page's route
+   * properties by reference: `ControllerMeta.inherit` copies the map, not its
+   * entries. Decorating `user` here then rewrote the parent page's own guard
+   * too, so the page's `/pagelayout` route ended up asking for the permission
+   * of its last form (`<table>.view`), and a form page for the one after it.
+   */
+  private ownRouteProperties(): void {
+    const properties = GetMetadata(this.target, ControllerMeta).computed_props;
+    for (const [key, property] of Object.entries(properties)) {
+      properties[key] = { ...property, modifiers: [...property.modifiers] };
+    }
   }
 
   private applyAuthDecorators(pageInfo: PageInfo): void {

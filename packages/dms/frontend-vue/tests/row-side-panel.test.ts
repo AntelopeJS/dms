@@ -142,7 +142,7 @@ function installRuntime(): void {
         params ? `${value}(${params.index}/${params.total})` : value,
       processApiMessage: (value: string) => value,
     }),
-    useUserSession: () => ({ loggedIn: ref(true) }),
+    useDmsUserSession: () => ({ loggedIn: ref(true) }),
     useToast: () => ({ add: vi.fn() }),
     useModal: () => ({ open: vi.fn() }),
     useDrawer: () => ({ open: vi.fn() }),

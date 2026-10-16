@@ -1,5 +1,3 @@
-import type { UseFetchOptions } from "#dms/frontend-module";
-
 export const CONTENT_LANGUAGE_HEADER = "x-content-language";
 
 const RETRY_HEADER = "x-auth-retry";
@@ -38,7 +36,7 @@ function isUnauthorized(error: unknown): boolean {
 }
 
 export const useAuthFetch = () => {
-  const { loggedIn: isLoggedIn } = useUserSession();
+  const { loggedIn: isLoggedIn } = useDmsUserSession();
   const { refreshSession, reconcileSession, redirectToAuth } =
     useSessionRecovery();
   const config = useDmsRuntimeConfig();
@@ -51,10 +49,12 @@ export const useAuthFetch = () => {
 
   const baseFetch = $fetch.create({
     baseURL: config.public.dms.baseURL,
-    headers: {
-      [CONTENT_LANGUAGE_HEADER]: dmsApp.$i18n.locale.value,
-    },
     onRequest({ options }) {
+      // Read as each request leaves: a `$authFetch` kept across a language
+      // change asks in the new language. A header the caller sets wins.
+      if (!options.headers.has(CONTENT_LANGUAGE_HEADER)) {
+        options.headers.set(CONTENT_LANGUAGE_HEADER, dmsApp.$i18n.locale.value);
+      }
       if (realtimeSessionId.value) {
         options.headers.set(REALTIME_SESSION_HEADER, realtimeSessionId.value);
       }
@@ -117,18 +117,5 @@ export const useAuthFetch = () => {
     baseFetch.raw(request, options),
   ) as AuthFetch["raw"];
 
-  function useFetchAuth<T>(
-    url: string | (() => string),
-    options?: UseFetchOptions<T>,
-  ) {
-    return useDmsFetch(url, {
-      ...options,
-      $fetch: $authFetch,
-    });
-  }
-
-  return {
-    $authFetch,
-    useFetchAuth,
-  };
+  return { $authFetch };
 };

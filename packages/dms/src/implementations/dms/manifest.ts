@@ -6,6 +6,7 @@ export interface ManifestModuleEntry {
   path?: string;
   authEstablishEndpoints?: string[];
   publicEndpoints?: unknown[];
+  backendProxies?: unknown[];
 }
 
 export interface ModuleManifestShape<
@@ -146,7 +147,7 @@ export function applyDevManifestUrls<T extends ManifestModuleEntry>(
 export interface ManifestFieldPolicy {
   privateOptions: boolean;
   path: boolean;
-  /** Also governs `publicEndpoints`, the other routing declaration. */
+  /** Also governs `publicEndpoints` and `backendProxies`, the other routing declarations. */
   authEstablishEndpoints: boolean;
 }
 
@@ -157,11 +158,13 @@ function applyFieldPolicy<T extends ManifestModuleEntry>(
   const shaped = { ...module };
   if (!keep.privateOptions) delete shaped.privateOptions;
   if (!keep.path) delete shaped.path;
-  // The routing declarations go together: an anonymous build gets neither,
-  // and its frontend server then opens no session and no public route.
+  // The routing declarations go together: an anonymous build gets none of
+  // them, and its frontend server then opens no session, no public route and
+  // no module prefix.
   if (!keep.authEstablishEndpoints) {
     delete shaped.authEstablishEndpoints;
     delete shaped.publicEndpoints;
+    delete shaped.backendProxies;
   }
   return shaped;
 }
@@ -188,4 +191,34 @@ export function stripPrivateManifestFields<T extends ManifestModuleEntry>(
     ...manifest,
     modules: manifest.modules.map((module) => applyFieldPolicy(module, keep)),
   };
+}
+
+interface NamedManifestModule extends ManifestModuleEntry {
+  name: string;
+}
+
+function proxyPath(proxy: unknown): string | undefined {
+  if (!proxy || typeof proxy !== "object") return undefined;
+  const { path } = proxy as { path?: unknown };
+  return typeof path === "string" ? path : undefined;
+}
+
+/**
+ * The backend proxies a manifest shaped by `keep` withholds, each named
+ * `<module> <path>`: none when the caller may receive them.
+ *
+ * @param modules The modules before the field policy applies
+ * @param keep Which sensitive fields this caller may receive
+ * @returns The withheld proxies, in the modules' order
+ */
+export function listDroppedBackendProxies(
+  modules: NamedManifestModule[],
+  keep: ManifestFieldPolicy,
+): string[] {
+  if (keep.authEstablishEndpoints) return [];
+  return modules.flatMap((module) =>
+    (module.backendProxies ?? []).map(
+      (proxy) => `${module.name} ${proxyPath(proxy) ?? "(no path)"}`,
+    ),
+  );
 }

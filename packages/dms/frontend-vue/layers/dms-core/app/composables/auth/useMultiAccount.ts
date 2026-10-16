@@ -116,13 +116,23 @@ async function requestAccountSwitch(account: StoredAccount) {
   account.isExpired = false;
 }
 
-async function refreshSessionSurfaces(refreshUser: () => Promise<unknown>) {
+/**
+ * Moves what the browser shows to the session it switched to. The session
+ * read again moves the data scope (the previous account's data is dropped)
+ * and drops the prefetched pages; the site layout and the page come back
+ * through Inertia, whose once prop is keyed on the account and workspace.
+ *
+ * @internal
+ */
+export async function refreshSessionSurfaces(
+  refreshUser: () => Promise<unknown>,
+): Promise<void> {
   await refreshUser();
 
-  const { refresh: refreshSiteLayout } = useSiteLayout();
+  const { resync: reloadSiteLayout } = useSiteLayout();
   const { clear: clearPermissions } = usePermissions();
   clearPermissions();
-  await refreshSiteLayout();
+  await reloadSiteLayout();
 }
 
 export async function validateAccount(account: StoredAccount) {
@@ -187,8 +197,11 @@ function createValidateAllAccounts(
 
 export function useMultiAccount() {
   const accounts = useAccountsStorage();
-  const { user, session, fetch: refreshUser } =
-    useUserSession<User, BrowserSession>();
+  const {
+    user,
+    session,
+    fetch: refreshUser,
+  } = useDmsUserSession<User, BrowserSession>();
 
   const getActiveAccount = (): StoredAccount | undefined =>
     buildActiveAccount(

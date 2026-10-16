@@ -51,12 +51,18 @@ export interface UserRealtimeApi {
    * announced in the greeting.
    */
   menuTopics: Ref<string[]>;
+  /**
+   * The realtime topics of the page this session is on, as its subscription
+   * answered them: an event on one means the page's data moved.
+   */
+  pageTopics: Ref<string[]>;
 }
 
 interface UserRealtimeState {
   sessionId: Ref<string | undefined>;
   pageId: Ref<string | undefined>;
   menuTopics: Ref<string[]>;
+  pageTopics: Ref<string[]>;
   appliedPageId: Ref<string | null>;
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
@@ -230,22 +236,42 @@ const connectWithBackoff = (
   };
 };
 
+interface PageSubscriptionAnswer {
+  topics?: unknown;
+}
+
+/** The topics a page subscription answered, none when it answered none. */
+const readPageTopics = async (response: Response): Promise<string[]> => {
+  let answer: PageSubscriptionAnswer | null;
+  try {
+    answer = (await response.json()) as PageSubscriptionAnswer | null;
+  } catch {
+    return [];
+  }
+  const topics = answer?.topics;
+  return Array.isArray(topics)
+    ? topics.filter((topic): topic is string => typeof topic === "string")
+    : [];
+};
+
+/** Subscribes the session to `pageId`, or to no page; returns its topics. */
 const callPageEndpoint = async (
   state: UserRealtimeState,
   pageId: string | null,
   baseUrl: string,
-): Promise<void> => {
+): Promise<string[]> => {
   const sessionId = state.sessionId.value;
-  if (!sessionId) return;
+  if (!sessionId) return [];
   const headers: Record<string, string> = { [SESSION_HEADER]: sessionId };
   const url = pageId
     ? `${baseUrl}${REALTIME_SUBSCRIBE_PATH_PREFIX}${pageId}`
     : `${baseUrl}${REALTIME_UNSUBSCRIBE_PATH}`;
-  await fetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers,
     credentials: "include",
   });
+  return pageId && response.ok ? readPageTopics(response) : [];
 };
 
 const applyDesiredPage = async (
@@ -256,11 +282,12 @@ const applyDesiredPage = async (
   const sessionId = state.sessionId.value;
   if (state.appliedPageId.value === desired) return;
   if (!sessionId) return;
-  await callPageEndpoint(state, desired, baseUrl);
+  const topics = await callPageEndpoint(state, desired, baseUrl);
   // A reconnect during the call replaced the session: the page is applied to
   // the dead one, and the new one still needs it.
   if (state.sessionId.value !== sessionId) return;
   state.appliedPageId.value = desired;
+  state.pageTopics.value = topics;
 };
 
 /**
@@ -288,6 +315,7 @@ const reconcilePage = (
 const resetSession = (state: UserRealtimeState): void => {
   state.sessionId.value = undefined;
   state.appliedPageId.value = null;
+  state.pageTopics.value = [];
   state.snapshots.clear();
 };
 
@@ -299,10 +327,12 @@ const buildApi = (): UserRealtimeApi => {
   const menuTopics = useDmsState<string[]>(MENU_TOPICS_STATE_KEY, () => []);
   const appliedPageId = ref<string | null>(null);
   const pageId = ref<string | undefined>(undefined);
+  const pageTopics = ref<string[]>([]);
   const state: UserRealtimeState = {
     sessionId,
     pageId,
     menuTopics,
+    pageTopics,
     appliedPageId,
     handlers: new Map(),
     snapshots: new Map(),
@@ -310,7 +340,7 @@ const buildApi = (): UserRealtimeApi => {
   };
 
   const config = useDmsRuntimeConfig();
-  const { loggedIn } = useUserSession();
+  const { loggedIn } = useDmsUserSession();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL as string;
 
@@ -366,7 +396,7 @@ const buildApi = (): UserRealtimeApi => {
     await reconcilePage(state, baseUrl);
   };
 
-  return { subscribe, setPage, sessionId, pageId, menuTopics };
+  return { subscribe, setPage, sessionId, pageId, menuTopics, pageTopics };
 };
 
 export function useUserRealtime(): UserRealtimeApi {

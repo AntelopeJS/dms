@@ -4,7 +4,6 @@ import type {
   TableViewFooter,
   TableViewFooterSummaryConfig,
 } from "../../../composables/table-view/types";
-import { useServerRenderedAsyncData } from "./useServerRenderedAsyncData";
 import type {
   TableFooterLegendItem,
   TableFooterTexts,
@@ -35,10 +34,9 @@ const UNSORTED_KEYS = new Set(["sortKey", "sortDirection"]);
  * route computes over every listed row — a sum read like its column's cells
  * unless a `format` is given — and the legend of a select column.
  */
-export async function useTableFooter(options: TableFooterOptions) {
+export function useTableFooter(options: TableFooterOptions) {
   const { footer, columns, location } = options;
   const summaries = footer?.summary ?? [];
-  const { $authFetch } = useAuthFetch();
   const { locale } = useI18n();
   const { processI18n } = useTranslation();
   const { renderValue } = useColumnValueRenderer();
@@ -52,17 +50,17 @@ export async function useTableFooter(options: TableFooterOptions) {
     ids: summaries.map((summary) => summary.id),
   }));
 
-  const { data: values, refresh } = await useServerRenderedAsyncData<
-    Record<string, number>
-  >(
+  const { data: values, refresh } = useApiData<Record<string, number>>(
     `${options.dataKey}-summary`,
-    () =>
+    ({ $authFetch, signal }) =>
       summaries.length === 0
         ? Promise.resolve({})
         : $authFetch<Record<string, number>>(`${location}/summary`, {
             query: summaryQuery.value,
+            signal,
           }),
-    { watch: [summaryQuery] },
+    // Read again with the table's rows, on the table's own triggers.
+    { lazy: true, watch: [summaryQuery], refreshOnPageRefresh: false },
   );
 
   const formatSummary = (

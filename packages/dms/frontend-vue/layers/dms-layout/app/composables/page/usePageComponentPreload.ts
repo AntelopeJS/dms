@@ -57,13 +57,3 @@ export function preloadPageLayoutComponents(
 
   loadPageLayoutComponents(layout).catch(() => {});
 }
-
-/**
- * Same as preloadPageLayoutComponents, for speculative loading (e.g. link
- * hover) where the user may never navigate to the page.
- */
-export function prefetchPageLayoutComponents(
-  layout: PageLayout | null | undefined,
-): void {
-  preloadPageLayoutComponents(layout);
-}

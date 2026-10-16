@@ -2,30 +2,29 @@ import { readFileSync } from "node:fs";
 import { transpileModule } from "typescript";
 import {
   computed,
-  createSSRApp,
+  createApp,
   defineComponent,
   effectScope,
   getCurrentInstance,
   h,
   nextTick,
   onScopeDispose,
-  onServerPrefetch,
   reactive,
   ref,
+  shallowReactive,
   watch,
   useId,
+  type App,
   type EffectScope,
   type Ref,
 } from "vue";
-import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
 import { useKeyboardPlatform } from "../layers/dms-ui/app/composables/global/keyboardPlatform";
 import { fieldErrorId } from "../layers/dms-core/app/composables/useFieldErrors";
-import {
-  isDefinitiveMetadataFailure,
-  resolveMetadataRetryDelay,
-} from "../layers/dms-ui/app/utils/metadataRetry";
+import { useFileMetadata } from "../layers/dms-ui/app/build/composables/files/useFileMetadata";
+import { FORM_CONTENT_LANGUAGE_KEY } from "../layers/dms-ui/app/composables/form/types/content-language";
+import { engine, serverRender, stubApiData } from "./helpers/api-data-runtime";
 
 interface ImageValue {
   key: string;
@@ -47,13 +46,14 @@ interface ImageHarness {
   emitValue: () => void;
   removeItem: (id: string) => void;
   addFiles: (files: File[]) => void;
-  fetchItemMetadata: (item: GalleryEntry, force?: boolean) => Promise<void>;
 }
 
 const emit = vi.fn();
 const authFetch = vi.fn();
 const upload = vi.fn();
 let scope: EffectScope;
+// The application the script runs in: its DMS runtime reads the metadata.
+let app: App;
 const props = reactive({ modelValue: [] as ImageValue[], multiple: true });
 const original: ImageValue = {
   key: "legacy/private.png",
@@ -78,15 +78,26 @@ function loadImage(): ImageHarness {
     .replaceAll("import.meta.env.SSR", "false")
     .replace(/^export type /gm, "type ");
   const { outputText } = transpileModule(source, {});
-  return scope.run(() =>
-    new Function(
-      `${outputText}; return { items, emitValue, removeItem, addFiles, fetchItemMetadata };`,
-    )(),
+  return app.runWithContext(() =>
+    scope.run(() =>
+      new Function(
+        `${outputText}; return { items, emitValue, removeItem, addFiles };`,
+      )(),
+    ),
   )!;
 }
 
+/** Lets the metadata reads answer. */
+const settle = async () => {
+  for (let tick = 0; tick < 5; tick++) await nextTick();
+  await new Promise((done) => setTimeout(done, 0));
+};
+
 beforeEach(() => {
   scope = effectScope();
+  app = createApp({});
+  engine.provideDmsFrontendRuntime(app, engine.createDmsFrontendRuntime());
+  vi.stubEnv("SSR", false);
   props.modelValue = [original, sibling];
   authFetch.mockImplementation((_url, options) =>
     options.query?.resourceKey === original.key
@@ -98,8 +109,8 @@ beforeEach(() => {
         }),
   );
   vi.stubGlobal("defineProps", () => props);
-  vi.stubGlobal("isDefinitiveMetadataFailure", isDefinitiveMetadataFailure);
-  vi.stubGlobal("resolveMetadataRetryDelay", resolveMetadataRetryDelay);
+  vi.stubGlobal("useFileMetadata", useFileMetadata);
+  vi.stubGlobal("shallowReactive", shallowReactive);
   vi.stubGlobal("defineEmits", () => emit);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("computed", computed);
@@ -107,10 +118,9 @@ beforeEach(() => {
   vi.stubGlobal("inject", () => null);
   vi.stubGlobal("useId", () => (getCurrentInstance() ? useId() : "image"));
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
-  vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
   vi.stubGlobal("onBeforeUnmount", onScopeDispose);
-  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
+  stubApiData(authFetch);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: upload,
   }));
@@ -135,13 +145,14 @@ beforeEach(() => {
 
 afterEach(() => {
   scope.stop();
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.resetAllMocks();
 });
 
 it("preserves a denied image when another image is removed", async () => {
   const image = loadImage();
-  await nextTick();
+  await settle();
   expect(image.items.value[0]!.status).toBe("unavailable");
   image.removeItem(image.items.value[1]!.id);
   expect(emit).toHaveBeenLastCalledWith("update:modelValue", [original]);
@@ -149,7 +160,7 @@ it("preserves a denied image when another image is removed", async () => {
 
 it("preserves a denied image on value echo without reinitializing its identity", async () => {
   const image = loadImage();
-  await nextTick();
+  await settle();
   const id = image.items.value[0]!.id;
   props.modelValue = [{ ...original }, { ...sibling }];
   await nextTick();
@@ -163,7 +174,7 @@ it("preserves a denied image on value echo without reinitializing its identity",
 
 it("removes a denied reference only when explicitly removed", async () => {
   const image = loadImage();
-  await nextTick();
+  await settle();
   image.removeItem(image.items.value[0]!.id);
   expect(emit).toHaveBeenLastCalledWith("update:modelValue", [
     { ...sibling, principal: true },
@@ -172,7 +183,7 @@ it("removes a denied reference only when explicitly removed", async () => {
 
 it("excludes a failed new upload while retaining existing references", async () => {
   const image = loadImage();
-  await nextTick();
+  await settle();
   authFetch.mockRejectedValueOnce(new Error("Upload failed"));
   image.addFiles([new File(["bytes"], "new.png", { type: "image/png" })]);
   await vi.waitFor(() =>
@@ -187,35 +198,34 @@ it("excludes a failed new upload while retaining existing references", async () 
 });
 
 it("keeps the denied image and its explicit deletion control in rendered markup", async () => {
-  vi.stubGlobal("useAuthFetch", () => ({
-    $authFetch: () => {
-      const denied = Promise.reject(new Error("403"));
-      onServerPrefetch(() => denied.catch(() => undefined));
-      return denied;
-    },
-  }));
-  const app = createSSRApp({
-    render: () => h(Image, { modelValue: [original], multiple: true }),
-  });
-  app.component(
-    "UButton",
-    defineComponent({
-      props: ["label"],
-      setup: (buttonProps) => () => h("button", buttonProps.label),
-    }),
+  authFetch.mockRejectedValue(
+    Object.assign(new Error("Forbidden"), { statusCode: 403 }),
   );
-  app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
-  app.component(
-    "UTooltip",
-    defineComponent({
-      setup:
-        (_, { slots }) =>
-        () =>
-          slots.default?.(),
-    }),
+  const register = (app: App) => {
+    app.component(
+      "UButton",
+      defineComponent({
+        props: ["label"],
+        setup: (buttonProps) => () => h("button", buttonProps.label),
+      }),
+    );
+    app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
+    app.component(
+      "UTooltip",
+      defineComponent({
+        setup:
+          (_, { slots }) =>
+          () =>
+            slots.default?.(),
+      }),
+    );
+    app.component("UModal", defineComponent({ setup: () => () => null }));
+  };
+  vi.stubEnv("SSR", true);
+  const { html } = await serverRender(
+    { render: () => h(Image, { modelValue: [original], multiple: true }) },
+    register,
   );
-  app.component("UModal", defineComponent({ setup: () => () => null }));
-  const html = await renderToString(app);
   expect(html).toContain("dms.form.image.file_unavailable");
   expect(html).not.toContain("dms.form.image.upload_failed");
   expect(html).toContain("dms.form.image.delete</button>");
@@ -225,11 +235,7 @@ it("keeps the denied image and its explicit deletion control in rendered markup"
 it("refreshes an expiring image preview and retries a transient failure", async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-14T12:00:00Z"));
-  const contentLanguageKey = Symbol();
-  vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", contentLanguageKey);
-  vi.stubGlobal("inject", (key: symbol) =>
-    key === contentLanguageKey ? "*" : null,
-  );
+  app.provide(FORM_CONTENT_LANGUAGE_KEY, "*");
   props.modelValue = [original];
   authFetch
     .mockReset()
@@ -248,7 +254,7 @@ it("refreshes an expiring image preview and retries a transient failure", async 
     });
 
   const image = loadImage();
-  await nextTick();
+  await vi.advanceTimersByTimeAsync(0);
   await vi.advanceTimersByTimeAsync(55000);
   expect(image.items.value[0]!.url).toBe("https://example.test/first.png");
   await vi.advanceTimersByTimeAsync(1000);

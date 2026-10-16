@@ -19,7 +19,7 @@ const { formError, showFormError, clearFormError, showError } =
   useAuthFormError();
 
 if (!route.query.email) {
-  throw createError({
+  throw createDmsError({
     statusCode: HTTP_BAD_REQUEST,
     statusMessage: INVALID_REQUEST,
     message: "Missing required email parameter",

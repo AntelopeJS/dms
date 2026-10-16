@@ -46,7 +46,7 @@ describe("[unit] pages/settings/members — the roles field", () => {
     expect(
       (roles.component as { options: Record<string, unknown> }).options,
     ).to.include({
-      rolesUrl: "/settings/workspace/members/role-options",
+      rolesUrl: "/dms/pages/settings/workspace/members/role-options",
       ownerField: "isTenantOwner",
     });
   });

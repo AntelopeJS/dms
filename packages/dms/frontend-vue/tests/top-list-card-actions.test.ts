@@ -6,6 +6,7 @@
 import { createSSRApp, defineComponent, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import TopListCard from "../layers/dms-ui/app/components/top-list/TopListCard.vue";
 
 vi.mock("../layers/dms-ui/app/composables/chart/useChartFetch", () => ({
@@ -54,6 +55,8 @@ async function render(props: Record<string, unknown>): Promise<string> {
   app.component("DmsTopListRow", Slot);
   return renderToString(app);
 }
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ locale: ref("en-US"), t: String }));

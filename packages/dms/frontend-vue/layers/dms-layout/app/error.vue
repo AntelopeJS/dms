@@ -4,6 +4,7 @@ import StageCard, {
   type StageCardTone,
 } from "./build/components/layout/StageCard.vue";
 import EmptyLayout from "./custom-layouts/EmptyLayout.vue";
+import { publicErrorMessage } from "./build/utils/publicErrorMessage";
 
 interface ErrorConfig {
   icon: string;
@@ -66,10 +67,12 @@ const statusCode = computed(
   () => props.error.statusCode || DEFAULT_STATUS_CODE,
 );
 
+// Never the backend's address a failed request names (see
+// `publicErrorMessage`).
 const visibleErrorMessage = computed(() =>
   STATUSES_WITHOUT_ERROR_MESSAGE.has(statusCode.value)
     ? undefined
-    : props.error.message,
+    : publicErrorMessage(props.error.message),
 );
 
 const errorConfig = computed(
@@ -89,7 +92,7 @@ const description = computed(() =>
 );
 
 const handleError = async () => {
-  clearError();
+  clearDmsError();
   if (!loggedIn.value) {
     await redirectToAuth(homepage);
   } else {

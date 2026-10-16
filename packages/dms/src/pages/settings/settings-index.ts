@@ -16,6 +16,7 @@ import {
 import { AuthUserWithPermission } from "@antelopejs/interface-dms/guards";
 import { NavCardGrid } from "@antelopejs/interface-dms/base/nav-card-grid";
 import {
+  pageRoutePath,
   RegisterPage,
   settingsCategory,
   workspaceSettingsCategory,
@@ -31,8 +32,9 @@ import { userCategory } from "./users/category";
 import { extractSessionId } from "./users/profile-helpers";
 
 const TEXTS = "$page.settings.overview";
-const ACCOUNT_SUMMARY_URL = "/settings/account-summary";
-const ACTIVITY_URL = "/settings/activity";
+const SETTINGS_PATH = "/settings";
+const ACCOUNT_SUMMARY_URL = pageRoutePath(SETTINGS_PATH, "/account-summary");
+const ACTIVITY_URL = pageRoutePath(SETTINGS_PATH, "/activity");
 const PROFILE_PATH = "/settings/user/profile";
 // Wide enough for a label and its value side by side: below two of them,
 // the cards stack.

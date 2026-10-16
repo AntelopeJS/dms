@@ -742,7 +742,9 @@ interface TextOptions {
 /**
  * `string`: the value as written, in the tone the row gives (`toneField`) when
  * it gives one; a row without one keeps the bare value, as a string column
- * always drew it.
+ * always drew it. An empty one is `null`: a cell rendering `""` as its root
+ * leaves no node in the server's HTML, which the browser hydrates as a
+ * mismatch, where `null` renders a placeholder both sides agree on.
  */
 function renderText(
   value: unknown,
@@ -750,6 +752,7 @@ function renderText(
   options?: unknown,
   row?: Row,
 ): unknown {
+  if (value === "") return null;
   const tone = readRowTone(
     row,
     (options as TextOptions | undefined)?.toneField,

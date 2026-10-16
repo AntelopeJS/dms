@@ -1,19 +1,20 @@
 // @vitest-environment jsdom
 import {
   computed,
-  createSSRApp,
   defineComponent,
   h,
   inject,
   onBeforeUnmount,
+  onScopeDispose,
   ref,
+  shallowReactive,
   useId,
   watch,
   type App,
 } from "vue";
-import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import Image from "../layers/dms-ui/app/components/form/components/Image.vue";
+import { hydrate, serverRender, stubApiData } from "./helpers/api-data-runtime";
 
 const STORED_IMAGE = { key: "files/profile/cover.png", alt: "Cover" };
 
@@ -25,16 +26,14 @@ const passthrough = defineComponent({
       slots.default?.(),
 });
 
-function createImageApp(): App {
-  const app = createSSRApp({
-    render: () => h(Image, { modelValue: STORED_IMAGE }),
-  });
+const Root = { render: () => h(Image, { modelValue: STORED_IMAGE }) };
+
+function register(app: App): void {
   app.component("UButton", defineComponent({ setup: () => () => h("button") }));
   app.component("UIcon", defineComponent({ setup: () => () => h("span") }));
   app.component("UInput", defineComponent({ setup: () => () => h("input") }));
   app.component("UTooltip", passthrough);
   app.component("UModal", defineComponent({ setup: () => () => null }));
-  return app;
 }
 
 beforeEach(() => {
@@ -44,12 +43,17 @@ beforeEach(() => {
   vi.stubGlobal("inject", inject);
   vi.stubGlobal("useId", useId);
   vi.stubGlobal("onBeforeUnmount", onBeforeUnmount);
+  vi.stubGlobal("onScopeDispose", onScopeDispose);
+  vi.stubGlobal("shallowReactive", shallowReactive);
   vi.stubGlobal("FORM_FIELD_LOADING_KEY", Symbol());
   vi.stubGlobal("FORM_CONTENT_LANGUAGE_KEY", Symbol());
   vi.stubGlobal("CONTENT_LANGUAGE_HEADER", "x-content-language");
-  vi.stubGlobal("useAuthFetch", () => ({
-    $authFetch: () => new Promise(() => undefined),
-  }));
+  stubApiData((async () => ({
+    resourceKey: STORED_IMAGE.key,
+    filename: "cover.png",
+    size: 10,
+    url: "https://files.test/cover.png",
+  })) as never);
   vi.stubGlobal("useUploadWithProgress", () => ({
     uploadWithProgress: vi.fn(),
   }));
@@ -72,15 +76,16 @@ afterEach(() => {
 });
 
 it("hydrates a stored single image without an attribute mismatch", async () => {
-  const html = await renderToString(createImageApp());
-  const container = document.createElement("div");
-  container.innerHTML = html;
+  vi.stubEnv("SSR", true);
+  const { html, payload } = await serverRender(Root, register);
+  vi.unstubAllEnvs();
   const warnings: string[] = [];
-  const app = createImageApp();
-  app.config.warnHandler = (message) => warnings.push(message);
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
-  app.mount(container);
+  const { app, container } = hydrate(Root, html, payload, (application) => {
+    register(application);
+    application.config.warnHandler = (message) => warnings.push(message);
+  });
 
   expect(warnings.filter((message) => message.includes("Hydration"))).toEqual(
     [],

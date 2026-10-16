@@ -865,7 +865,9 @@ const liveHold = useTableLiveHold({
   },
 });
 
-const { data, status, error, refresh } = await useTableListData<T>({
+// The list, its counters and its footer figures load in parallel: a server
+// render waits for each before rendering, whether or not the setup awaits it.
+const { data, status, error, refresh } = useTableListData<T>({
   componentId,
   pageId,
   rows: tableRows,
@@ -875,9 +877,18 @@ const { data, status, error, refresh } = await useTableListData<T>({
   heldQuery: liveHold.heldQuery,
 });
 
+// The failure of the last answer. The async data keeps it while the next run
+// is in flight; the table shows that run (its skeleton, or the rows it has)
+// rather than the failure it may replace.
+const settledError = computed(() =>
+  status.value === "pending" ? null : error.value,
+);
+
 // Nothing listed yet (a client navigation paints before the first page
 // arrives): the table draws its skeleton, never the empty state.
-const isFirstPageLoading = computed(() => data.value === null && !error.value);
+const isFirstPageLoading = computed(
+  () => data.value === null && !settledError.value,
+);
 const isListLoading = computed(
   () => status.value === "pending" || isFirstPageLoading.value,
 );
@@ -890,10 +901,11 @@ const isListLoading = computed(
 // or HTML, which must never reach the screen); the HTTP status is the fallback
 // that keeps a refusal distinguishable from a server failure.
 const listLoadError = computed(() => {
-  if (!error.value) return undefined;
-  const message = resolveApiErrorMessage(error.value);
+  const failure = settledError.value;
+  if (!failure) return undefined;
+  const message = resolveApiErrorMessage(failure);
   if (te(`${message}.description`) || te(message)) return message;
-  const status = (error.value as { statusCode?: number }).statusCode;
+  const status = (failure as { statusCode?: number }).statusCode;
   return status && te(`error.${status}.description`)
     ? `error.${status}`
     : "error.500";
@@ -1017,7 +1029,7 @@ const tabCountsQuery = computed(() => [
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
 const { data: tabCountsData, refresh: refreshTabCounts } =
-  await useTableCountsData<T>({
+  useTableCountsData<T>({
     componentId,
     pageId,
     rows: tableRows,
@@ -1069,7 +1081,7 @@ const baseQuery = computed<Record<string, unknown>>(() => {
   return { ...query, ...archiveQuery.value };
 });
 
-const { footer: resolvedFooter, refreshSummaries } = await useTableFooter({
+const { footer: resolvedFooter, refreshSummaries } = useTableFooter({
   footer: props.footer,
   columns: props.columns,
   location,
@@ -1431,7 +1443,7 @@ const realtimePresenceTopic = computed(() =>
 );
 
 const presenceByRow = ref<RealtimePresenceMap>({});
-const { user: realtimeUser } = useUserSession();
+const { user: realtimeUser } = useDmsUserSession();
 
 const getRowId = (row: T): string | undefined => {
   const value = (row as Record<string, unknown>)[rowIdKey];

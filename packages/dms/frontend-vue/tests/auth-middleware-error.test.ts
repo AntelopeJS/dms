@@ -8,14 +8,14 @@ const navigateDms = vi.fn();
 beforeEach(() => {
   vi.resetModules();
   vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
-  vi.stubGlobal("useError", () => pageError);
-  vi.stubGlobal("abortNavigation", () => false);
+  vi.stubGlobal("useDmsError", () => pageError);
+  vi.stubGlobal("abortDmsNavigation", () => false);
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useSiteLayout", () => ({
     siteLayout: { value: {} },
     findMatchingRoute: () => ({ metadata: {} }),
   }));
-  vi.stubGlobal("useUserSession", () => ({ loggedIn: { value: false } }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: false } }));
 });
 
 afterEach(() => {

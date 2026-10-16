@@ -123,7 +123,7 @@ export class FormConfirmAPIController extends Controller(FORM_CONFIRM_API) {
         target: {
           type: "download",
           url: `${FORM_CONFIRM_API}/backup`,
-          filename: "{name}.json",
+          filename: "{{row.name}}.json",
         },
       },
     });

@@ -49,9 +49,15 @@ export interface PageLiveRefresh {
  * of the page. Call it from a component's setup; the subscriptions end with
  * the component.
  *
+ * A `useApiData` read already follows the page's refreshes and the events of
+ * the page's own topics: this is for a topic of the component's own, or an
+ * idle refresh. Its read then opts out of the page's data refresh, which
+ * would read it a second time.
+ *
  * ```ts
- * const { useFetchAuth } = useAuthFetch();
- * const { data, refresh } = useFetchAuth<Health>("/api/health");
+ * const { data, refresh } = useApiData<Health>("/api/health", {
+ *   refreshOnPageRefresh: false,
+ * });
  * usePageLiveRefresh(() => void refresh(), {
  *   realtimeTopic: "api:requests",
  *   idleRefresh: 60,

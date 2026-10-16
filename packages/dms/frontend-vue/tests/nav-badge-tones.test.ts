@@ -3,6 +3,7 @@ import {
   computed,
   createApp,
   defineComponent,
+  effectScope,
   h,
   onMounted,
   ref,
@@ -51,8 +52,6 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
   }));
-  vi.stubGlobal("usePrefetch", () => ({ prefetchPageLayout: vi.fn() }));
-  vi.stubGlobal("stripQueryAndHash", (path: string) => path);
   vi.stubGlobal("MENU_STATUS_TEXT_CLASSES", MENU_STATUS_TEXT_CLASSES);
   host = document.createElement("div");
   document.body.append(host);
@@ -86,6 +85,43 @@ describe("useNavBadges", () => {
   });
 });
 
+describe("the counts a page visit carries", () => {
+  it("draws each one, over a static badge", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({
+      "settings.user.notifications": { badge: "4", tone: "error" },
+    });
+    expect(
+      navBadgeOf({ fullId: "settings.user.notifications", badge: "new" }),
+    ).toEqual({ label: "4", tone: "error" });
+  });
+
+  it("drops the badge of an entry the next visit no longer counts", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({
+      "settings.user.notifications": { badge: "4" },
+      "settings.workspace.invites": { badge: "2" },
+    });
+    applyCountedNavBadges({ "settings.workspace.invites": { badge: "1" } });
+
+    expect(
+      navBadgeOf({ fullId: "settings.user.notifications" }),
+    ).toBeUndefined();
+    expect(navBadgeOf({ fullId: "settings.workspace.invites" })).toEqual({
+      label: "1",
+    });
+  });
+
+  it("leaves the badges alone when a visit carries none, such as a frontend page", () => {
+    const { navBadgeOf, applyCountedNavBadges } = useNavBadges();
+    applyCountedNavBadges({ "settings.user.notifications": { badge: "4" } });
+    applyCountedNavBadges(undefined);
+    expect(navBadgeOf({ fullId: "settings.user.notifications" })).toEqual({
+      label: "4",
+    });
+  });
+});
+
 describe("NavigationMenu badges", () => {
   // Renders each entry's badge the way UNavigationMenu hands it over.
   const MenuStub = defineComponent({
@@ -102,6 +138,7 @@ describe("NavigationMenu badges", () => {
           "data-badge": item.badge?.label,
           "data-color": item.badge?.color,
           "data-variant": item.badge?.variant,
+          "data-prefetch": String(item.prefetch),
         });
       return () => h("nav", props.items.flat().map(renderItem));
     },
@@ -148,6 +185,19 @@ describe("NavigationMenu badges", () => {
       color: "error",
     });
     expect(badgeOf("settings.user.notifications").color).toBe("primary");
+  });
+
+  it("lets Inertia prefetch each linked page on hover, with no fetch of its own", () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    vi.stubGlobal("$fetch", fetch);
+    mount();
+    for (const item of ITEMS)
+      expect(badgeOf(item.fullId as string).prefetch).toBe("true");
+    host
+      .querySelector("nav")!
+      .dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("follows the live count and tone, and hides the badge at zero", async () => {
@@ -259,13 +309,26 @@ describe("Security page badge", () => {
     const { useSecurityOverview } = await import(
       "../layers/dms-layout/app/build/composables/settings/security/useSecurityOverview"
     );
+    const { engine, browserRuntime } = await import(
+      "./helpers/api-data-runtime"
+    );
+    const { useApiData } = await import(
+      "../layers/dms-core/app/composables/auth/useApiData"
+    );
+    vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+    vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
+    vi.stubGlobal("useApiData", useApiData);
     vi.stubGlobal("useAuthFetch", () => ({
       $authFetch: vi.fn(async () => ({
         attention: ["backup_codes_low", "backup_codes_unsaved"],
         attentionTone: "error",
       })),
     }));
-    await useSecurityOverview().refresh();
+    browserRuntime();
+    const scope = effectScope();
+    const overview = scope.run(() => useSecurityOverview())!;
+    await overview.refresh();
+    scope.stop();
     expect(liveBadges()?.value["settings.user.security"]).toEqual({
       label: "2",
       tone: "error",

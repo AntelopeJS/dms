@@ -17,7 +17,7 @@ function stubComposables(authFetch = vi.fn(async () => ({}))): LanguageHarness {
     $i18n: { setLocale: harness.setLocale },
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: harness.authFetch }));
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     user: { value: { name: "Ada", email: "ada@example.com", language: "en" } },
     fetch: harness.refreshUser,
   }));
@@ -35,10 +35,13 @@ describe("useUserLanguage", () => {
     await useUserLanguage().changeLanguage("fr");
 
     expect(harness.setLocale).toHaveBeenCalledWith("fr");
-    expect(harness.authFetch).toHaveBeenCalledWith("/settings/user/profile", {
-      method: "POST",
-      body: { name: "Ada", email: "ada@example.com", language: "fr" },
-    });
+    expect(harness.authFetch).toHaveBeenCalledWith(
+      "/dms/pages/settings/user/profile",
+      {
+        method: "POST",
+        body: { name: "Ada", email: "ada@example.com", language: "fr" },
+      },
+    );
     expect(harness.refreshUser).toHaveBeenCalled();
   });
 

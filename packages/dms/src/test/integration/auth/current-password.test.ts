@@ -7,12 +7,13 @@ import {
 } from "../../helpers/auth";
 import { resetDatabase } from "../../helpers/db";
 import { captureEmails } from "../../helpers/emails";
+import { pageRoutePath } from "@antelopejs/interface-dms/page";
 
 // The account password asked again by a signed-in session gets the sign-in
 // form's budget of tries, shared by every form that asks for it, so a
 // borrowed session cannot guess it any faster than the sign-in form allows.
 
-const SECURITY = "/settings/user/security";
+const SECURITY = pageRoutePath("/settings/user/security");
 const HTTP_OK = 200;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_TOO_MANY_REQUESTS = 429;

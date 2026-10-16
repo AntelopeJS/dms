@@ -65,7 +65,6 @@ const failureMessage = computed(() => {
     : t("page.settings.notifications.save_failed_on");
 });
 
-onMounted(load);
 </script>
 
 <template>

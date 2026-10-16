@@ -11,6 +11,7 @@ interface RenderResponse {
 }
 
 interface RenderErrorResponse {
+  message?: string;
   error?: string | boolean;
   statusMessage?: string;
 }
@@ -38,8 +39,11 @@ export async function GenerateHtml<TData = unknown>(
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as RenderErrorResponse;
+    const errorData = (await response
+      .json()
+      .catch(() => ({}))) as RenderErrorResponse;
     const errorMessage =
+      errorData.message ||
       (typeof errorData.error === "string" ? errorData.error : null) ||
       errorData.statusMessage ||
       `HTTP ${response.status}`;

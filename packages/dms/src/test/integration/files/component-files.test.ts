@@ -246,7 +246,7 @@ describe("[integration] native component file security", () => {
       image: { key: image.key },
     });
     expect(foreign.status).to.equal(403);
-    const failed = await client.post("/settings/user/profile", {
+    const failed = await client.post("/dms/pages/settings/user/profile", {
       avatar: { key: image.key },
       email: "invalid",
       name: "Test",
@@ -263,7 +263,7 @@ describe("[integration] native component file security", () => {
     expect((await axios.get(retained.data.url)).data).to.equal(
       CONTENT.toString(),
     );
-    const saved = await client.post("/settings/user/profile", {
+    const saved = await client.post("/dms/pages/settings/user/profile", {
       avatar: { key: image.key },
       email: user.email,
       name: "Test",

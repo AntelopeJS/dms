@@ -1,4 +1,5 @@
-/** A permission of the roles editor tree (`GET /settings/workspace/roles/editor-tree`). */
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
+/** A permission of the roles editor tree (`GET /dms/pages/settings/workspace/roles/editor-tree`). */
 export interface RolePermissionNode {
   id: string;
   label: string;
@@ -17,7 +18,7 @@ export interface RoleMemberPreview {
   name: string;
 }
 
-/** One role of the roles list (`GET /settings/workspace/roles/overview`). */
+/** One role of the roles list (`GET /dms/pages/settings/workspace/roles/overview`). */
 export interface RoleSummary {
   _id: string;
   name: string;
@@ -42,7 +43,7 @@ export interface RoleEditorCapabilities {
   canDelete: boolean;
 }
 
-/** Payload of `GET /settings/workspace/roles/overview`. */
+/** Payload of `GET /dms/pages/settings/workspace/roles/overview`. */
 export interface RolesOverview {
   roles: RoleSummary[];
   owners: RoleOwnersSummary;
@@ -78,7 +79,7 @@ export const OWNER_ENTRY_ID = "__owner__";
 export const NEW_ROLE_ENTRY_ID = "__new__";
 
 /** Base path of the roles page API. */
-export const ROLES_API_PATH = "/settings/workspace/roles";
+export const ROLES_API_PATH = pageRoutePath("/settings/workspace/roles");
 
 /** The roles' table data routes, which delete a role. */
 export const ROLES_TABLE_API_PATH = "/api/tables/roles";

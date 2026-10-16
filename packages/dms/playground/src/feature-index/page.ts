@@ -50,7 +50,7 @@ export class PlaygroundFeatureIndexPage extends PageController(
           label: "Open the demo",
           icon: "i-ph-arrow-right",
           isDefault: true,
-          target: { type: "page", url: "{demo}" },
+          target: { type: "page", url: "{{row.demo}}" },
         },
       ],
     },

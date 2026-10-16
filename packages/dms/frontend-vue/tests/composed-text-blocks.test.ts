@@ -13,6 +13,7 @@ import {
   type Component,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRealDataEngine } from "./fixtures/dataEngine";
 import { createI18n } from "vue-i18n";
 import { setRegionalPreferencesSource } from "../layers/dms-core/app/utils/regional";
 
@@ -117,6 +118,8 @@ const seats = (value: number) => ({
   key: "saas.seats",
   params: { count: { type: "count", value } },
 });
+
+beforeEach(() => useRealDataEngine());
 
 beforeEach(() => {
   i18n.global.locale.value = "en";

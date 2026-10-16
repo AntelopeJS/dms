@@ -12,7 +12,6 @@ import {
 } from "#dms-ui/app/utils/imageResize";
 
 const PRESIGN_URL = "/api/files/presign";
-const METADATA_URL = "/api/files/metadata";
 
 /** Upload options the backend serialized for the avatar image field. */
 export interface AvatarFieldOptions {
@@ -24,10 +23,6 @@ export interface AvatarFieldOptions {
 
 /** Why a picked file was refused before any upload. */
 export type AvatarRejection = "mimetype" | "size";
-
-interface FileMetadataResponse {
-  url: string;
-}
 
 /** Outcome of an avatar upload: a staged key, or why it was refused. */
 export interface AvatarUploadResult {
@@ -79,17 +74,5 @@ export function useProfileAvatar(options: () => AvatarFieldOptions) {
     return { key: presign.resourceKey };
   }
 
-  /** @returns A short-lived URL to display a stored avatar */
-  async function resolveUrl(key: string): Promise<string | null> {
-    try {
-      const metadata = await $authFetch<FileMetadataResponse>(METADATA_URL, {
-        query: { resourceKey: key, storage: options().storage },
-      });
-      return metadata.url;
-    } catch {
-      return null;
-    }
-  }
-
-  return { progress, upload, resolveUrl };
+  return { progress, upload };
 }

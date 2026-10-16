@@ -4,11 +4,13 @@ import {
   createApp,
   defineComponent,
   h,
+  nextTick,
   onMounted,
   ref,
   watch,
   type App,
   type Component,
+  type Ref,
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationInboxDisplay from "../layers/dms-layout/app/build/components/pages/settings/notification/NotificationInboxDisplay.vue";
@@ -19,16 +21,20 @@ const notifications = vi.hoisted(() => ({
   deleteNotification: vi.fn(async () => {}),
 }));
 
+// The bell's state the display watches, shared like `useDmsState`.
+const bell = vi.hoisted(() => ({
+  unreadCount: undefined as unknown as Ref<number>,
+  notifications: undefined as unknown as Ref<{ _id: string }[]>,
+}));
+
 vi.mock(
   "../layers/dms-layout/app/composables/notification/useNotifications",
   async () => {
     const vue = await import("vue");
+    bell.unreadCount = vue.ref(0);
+    bell.notifications = vue.ref([]);
     return {
-      useNotifications: () => ({
-        ...notifications,
-        unreadCount: vue.ref(0),
-        notifications: vue.ref([]),
-      }),
+      useNotifications: () => ({ ...notifications, ...bell }),
     };
   },
 );
@@ -113,6 +119,8 @@ function mount(component: Component, props: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  bell.unreadCount.value = 0;
+  bell.notifications.value = [];
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("watch", watch);
   vi.stubGlobal("onMounted", onMounted);
@@ -165,5 +173,49 @@ describe("notifications inbox display", () => {
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(3));
     expect(notifications.markAsUnread).toHaveBeenCalledWith("n2");
     expect(notifications.deleteNotification).toHaveBeenCalledWith("n2");
+  });
+
+  it("lists the feed again once per change made here, though the change moves the counts", async () => {
+    const refresh = vi.fn(async () => {});
+    const container = mount(NotificationInboxDisplay as Component, {
+      context: contextOf(refresh),
+    });
+    // As the bell does: the write's echo, then its answer, move the count and
+    // rebuild the bell's lists.
+    notifications.markAsRead.mockImplementationOnce(async () => {
+      bell.unreadCount.value = 4;
+      bell.notifications.value = [{ _id: "n1" }];
+      await new Promise((done) => setTimeout(done, 0));
+      bell.unreadCount.value = 3;
+      bell.notifications.value = [{ _id: "n1" }];
+    });
+    container.querySelector<HTMLButtonElement>("article .toggle")!.click();
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    await new Promise((done) => setTimeout(done, 10));
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists the feed again once per change the stream brings, not when the bell rebuilds its lists", async () => {
+    const refresh = vi.fn(async () => {});
+    mount(NotificationInboxDisplay as Component, {
+      context: contextOf(refresh),
+    });
+    bell.notifications.value = [{ _id: "n1" }, { _id: "n2" }];
+    await nextTick();
+    refresh.mockClear();
+
+    // A read state changing elsewhere rebuilds the lists, then the count moves.
+    bell.notifications.value = [{ _id: "n1" }, { _id: "n2" }];
+    await nextTick();
+    expect(refresh).not.toHaveBeenCalled();
+    bell.unreadCount.value += 1;
+    await nextTick();
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // A notification arriving: listed first and counted, together.
+    bell.notifications.value = [{ _id: "n0" }, ...bell.notifications.value];
+    bell.unreadCount.value += 1;
+    await nextTick();
+    expect(refresh).toHaveBeenCalledTimes(2);
   });
 });

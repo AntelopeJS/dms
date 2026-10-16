@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { useMounted } from "@vueuse/core";
 import DmsEmptyState from "../empty-state/EmptyState.vue";
 import DmsSectionHeader from "../section-header/SectionHeader.vue";
 import DmsBlockActions, {
@@ -13,7 +12,7 @@ import DmsTopListRow from "./internal/TopListRow.vue";
 import { useChartFetch } from "../../composables/chart/useChartFetch";
 import { formatValue } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
-import { usePeriodScope } from "#dms-core/app/composables/period/usePeriodScope";
+import { usePeriodScopePreset } from "#dms-core/app/composables/period/usePeriodScope";
 import {
   hasUrlVariables,
   resolveLinkVariables,
@@ -217,16 +216,14 @@ function sparklineAccentFor(item: TopListItem): string {
   });
 }
 
-const scopeState = usePeriodScope(props.periodScope);
-// The scope registers in the browser only, so the server cannot print the
-// preset: the badge slot is drawn on both sides from the start (a skeleton
-// until mounted), and the label follows once the scope is known.
-const isMounted = useMounted();
+// The preset is a name, the same on both sides: the server prints the badge
+// of a selector set up before the card, and the browser hydrates it. A
+// selector set up after it draws a skeleton in its place until it registers.
+const scopePreset = usePeriodScopePreset(props.periodScope);
 const badgeLabel = computed<string | null>(() => {
-  if (!props.periodScope || !isMounted.value) return null;
-  const state = scopeState.value;
-  if (!state) return null;
-  return t(`${PRESET_LABEL_KEY_PREFIX}.${state.preset}`, state.preset);
+  const preset = scopePreset.value;
+  if (!props.periodScope || !preset) return null;
+  return t(`${PRESET_LABEL_KEY_PREFIX}.${preset}`, preset);
 });
 
 const isFirstLoad = computed(() => isLoading.value && data.value === null);

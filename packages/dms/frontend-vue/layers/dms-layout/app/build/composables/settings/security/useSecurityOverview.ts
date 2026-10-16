@@ -1,8 +1,9 @@
+import { pageRoutePath } from "#dms-core/app/utils/pageRoutes";
 import { useNavBadges } from "#dms-ui/app/build/composables/navigation/useNavBadges";
 import type { Tone } from "#dms-ui/app/types/tone";
 
 /** Base URL of the Security page API. */
-export const SECURITY_ENDPOINT = "/settings/user/security";
+export const SECURITY_ENDPOINT = pageRoutePath("/settings/user/security");
 /** Route of the Security page. */
 export const SECURITY_PAGE_PATH = "/settings/user/security";
 const SECURITY_PAGE_ID = "settings.user.security";
@@ -68,21 +69,19 @@ const ATTENTION_TONE_ORDER: Tone[] = [
 
 /**
  * Shared Security summary: the status strip, every Security block and the
- * profile pointer card read the same state, and any change refreshes it for
- * all of them. It also keeps the navigation badge of the Security page, the
+ * profile pointer card read the same request, with the page (a server
+ * render shows it and hands it over), and any change refreshes it for all
+ * of them. It also keeps the navigation badge of the Security page, the
  * count of what needs attention in the tone the server gives it, in sync
  * after a change.
  */
 export function useSecurityOverview() {
-  const overview = useDmsState<SecurityOverview | null>(
-    "dms-security-overview",
-    () => null,
+  const summary = useApiData<SecurityOverview>(SECURITY_ENDPOINT);
+  const overview = computed(() => summary.data.value ?? null);
+  // A retry in progress is not a failure to show.
+  const isUnavailable = computed(
+    () => !!summary.error.value && summary.status.value !== "pending",
   );
-  const isUnavailable = useDmsState<boolean>(
-    "dms-security-overview-unavailable",
-    () => false,
-  );
-  const { $authFetch } = useAuthFetch();
   const { setNavBadge } = useNavBadges();
 
   const attention = computed<SecurityAttention[]>(
@@ -105,14 +104,10 @@ export function useSecurityOverview() {
     return ATTENTION_TONE_ORDER.find((tone) => present.includes(tone));
   }
 
+  /** Reads the summary again after a change: every block follows. */
   async function refresh(): Promise<void> {
-    try {
-      overview.value = await $authFetch<SecurityOverview>(SECURITY_ENDPOINT);
-      isUnavailable.value = false;
-    } catch {
-      isUnavailable.value = true;
-      return;
-    }
+    await summary.refresh({ dedupe: "defer" });
+    if (summary.error.value) return;
     const count = attention.value.length;
     setNavBadge(
       SECURITY_PAGE_ID,
