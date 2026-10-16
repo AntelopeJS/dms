@@ -14,6 +14,7 @@ import {
   defineComponent,
   h,
   nextTick,
+  type Ref,
   Suspense,
 } from "vue";
 import { renderToString } from "vue/server-renderer";
@@ -124,13 +125,16 @@ describe("the async data scope", () => {
   it("is set before a higher-priority module's plugin reads at setup", async () => {
     // How the DMS registers its scope plugin (dms.frontend.ts imports every
     // layer, too much to set up here): before every other plugin.
-    const entry = readFileSync(resolve(__dirname, "../dms.frontend.ts"), "utf8");
+    const entry = readFileSync(
+      resolve(__dirname, "../dms.frontend.ts"),
+      "utf8",
+    );
     expect(entry).toMatch(
       /registerPlugin\(asyncDataScopePlugin, \{ enforce: "pre" \}\)/,
     );
 
     const read = vi.fn(async () => "sidecar running");
-    let status: { value: unknown } | undefined;
+    let status: Ref<unknown> | undefined;
     await engine.setupFrontendModules([
       {
         // dms-ai's assistant: of higher priority, it reads as it starts.
@@ -147,8 +151,7 @@ describe("the async data scope", () => {
         options: { public: {} },
         module: {
           setup(sdk) {
-            sdk.registerPlugin(
-asyncDataScopePlugin, { enforce: "pre" });
+            sdk.registerPlugin(asyncDataScopePlugin, { enforce: "pre" });
           },
         },
       },
