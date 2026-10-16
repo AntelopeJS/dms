@@ -27,7 +27,7 @@ function localeTimeFormat(locale: string): TimeFormatPreference {
  * the values themselves, such as a calendar's `weekStartsOn`.
  */
 export function useUserRegionalPreferences() {
-  const { user } = useUserSession<RegionalPreferenceFields>();
+  const { user } = useDmsUserSession<RegionalPreferenceFields>();
   const { locale } = useI18n();
 
   const preferences = computed<RegionalPreferences>(() =>

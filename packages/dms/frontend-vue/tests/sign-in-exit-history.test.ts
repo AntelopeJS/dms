@@ -119,7 +119,7 @@ function installRuntime() {
     runWithContext: (fn: () => unknown) => fn(),
     $i18n: { setLocale: vi.fn() },
   }));
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     fetch: async () => undefined,
     user: ref({ _id: "user" }),
   }));

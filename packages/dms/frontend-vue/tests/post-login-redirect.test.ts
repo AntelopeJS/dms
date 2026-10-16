@@ -9,7 +9,7 @@ const navigateTo = vi.fn();
 
 beforeEach(() => {
   vi.stubGlobal("useDmsApp", () => ({ $i18n: { setLocale } }));
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     fetch: refreshUser,
     user: { value: { language: "fr" } },
   }));
@@ -66,7 +66,7 @@ describe("post-login redirect", () => {
   });
 
   it("rejects a session refresh that resolves without an authenticated user", async () => {
-    vi.stubGlobal("useUserSession", () => ({
+    vi.stubGlobal("useDmsUserSession", () => ({
       fetch: refreshUser,
       user: { value: null },
     }));

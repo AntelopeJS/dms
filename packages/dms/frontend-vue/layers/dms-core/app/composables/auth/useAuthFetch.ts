@@ -36,7 +36,7 @@ function isUnauthorized(error: unknown): boolean {
 }
 
 export const useAuthFetch = () => {
-  const { loggedIn: isLoggedIn } = useUserSession();
+  const { loggedIn: isLoggedIn } = useDmsUserSession();
   const { refreshSession, reconcileSession, redirectToAuth } =
     useSessionRecovery();
   const config = useDmsRuntimeConfig();

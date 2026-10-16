@@ -59,7 +59,7 @@ beforeEach(() => {
     "useDmsApp",
     () => getCurrentInstance()!.appContext.config.globalProperties,
   );
-  vi.stubGlobal("showError", vi.fn());
+  vi.stubGlobal("showDmsError", vi.fn());
 });
 
 afterEach(() => {
@@ -71,7 +71,9 @@ afterEach(() => {
 it("renders the menu of a page without a site layout, and the browser does not read it again", async () => {
   authFetch.mockResolvedValue(RESPONSE);
   const { html, payload } = await serverRender(Layout);
-  expect(html).toBe("<main><div><nav>/orders</nav><nav>/orders</nav></div></main>");
+  expect(html).toBe(
+    "<main><div><nav>/orders</nav><nav>/orders</nav></div></main>",
+  );
   expect(authFetch).toHaveBeenCalledTimes(1);
   expect(authFetch).toHaveBeenCalledWith("/dms/sitelayout");
 
@@ -93,7 +95,9 @@ it("reads nothing when the page brought its site layout", async () => {
       engine.useDmsState("dms-siteLayout").value = RESPONSE.siteLayout;
     }),
   );
-  expect(html).toBe("<main><div><nav>/orders</nav><nav>/orders</nav></div></main>");
+  expect(html).toBe(
+    "<main><div><nav>/orders</nav><nav>/orders</nav></div></main>",
+  );
   expect(authFetch).not.toHaveBeenCalled();
   expect(payload.data).toEqual({});
 });

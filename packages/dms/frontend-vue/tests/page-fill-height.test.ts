@@ -161,7 +161,7 @@ function installRuntime(): void {
     PAGE_FILL_HEIGHT_CLASSES,
     providePageFillHeight,
     usePageFillHeight,
-    createError: vi.fn(),
+    createDmsError: vi.fn(),
     defineDmsPageMeta: vi.fn(),
     firstAccessiblePagePath: vi.fn(),
     navigateDms: vi.fn(),
@@ -169,7 +169,7 @@ function installRuntime(): void {
     providePageRealtime: vi.fn(),
     resolveDmsComponent: () => "div",
     runCustomValidation: vi.fn(),
-    showError: vi.fn(),
+    showDmsError: vi.fn(),
     validateRequiredQueryParams: vi.fn(),
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDmsCookie: <T>(_name: string, options: { default?: () => T } = {}) =>
@@ -210,7 +210,7 @@ function installRuntime(): void {
     }),
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
-    useUserSession: () => ({ loggedIn: ref(true) }),
+    useDmsUserSession: () => ({ loggedIn: ref(true) }),
   };
   Object.entries(runtime).forEach(([name, value]) =>
     vi.stubGlobal(name, value),

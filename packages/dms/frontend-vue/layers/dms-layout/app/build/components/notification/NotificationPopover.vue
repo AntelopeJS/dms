@@ -23,7 +23,7 @@ const SKELETON_ROW_COUNT = 4;
 const NOTIFICATIONS_SETTINGS_PAGE = "settings.user.notifications";
 
 const { t, locale } = useI18n();
-const { loggedIn } = useUserSession();
+const { loggedIn } = useDmsUserSession();
 const { processI18n } = useTranslation();
 const {
   unreadCount,

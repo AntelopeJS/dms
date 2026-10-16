@@ -311,7 +311,10 @@ export const useNotifications = () => {
  */
 export function useRenderedBellCounts(): void {
   const notifications = useNotifications();
-  if (!useUserSession().loggedIn.value || notifications.areCountsLoaded.value)
+  if (
+    !useDmsUserSession().loggedIn.value ||
+    notifications.areCountsLoaded.value
+  )
     return;
   const read = useApiData<FeedCounts>(
     BELL_COUNTS_DATA_KEY,

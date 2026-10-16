@@ -2,7 +2,7 @@ import { watch } from "vue";
 import {
   defineDmsPlugin,
   setDmsAsyncDataScope,
-  useUserSession,
+  useDmsUserSession,
 } from "#dms/frontend-module";
 import {
   asyncDataScopeOf,
@@ -17,7 +17,7 @@ import {
  * instead of showing it under the new session.
  */
 export default defineDmsPlugin(() => {
-  const { session } = useUserSession<unknown, ScopedSession>();
+  const { session } = useDmsUserSession<unknown, ScopedSession>();
   const scope = () => asyncDataScopeOf(session.value);
   setDmsAsyncDataScope(scope());
   // One app per request on a server: its session never changes there.

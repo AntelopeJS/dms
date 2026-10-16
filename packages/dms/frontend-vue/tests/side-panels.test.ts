@@ -140,7 +140,7 @@ function installRuntime(): void {
     useDmsState,
     useI18n: () => ({ t: (key: string) => key }),
     useTranslation: () => ({ processI18n: (value: string) => value }),
-    useUserSession: () => ({ loggedIn }),
+    useDmsUserSession: () => ({ loggedIn }),
     // The page brought its site layout.
     useRenderedSiteLayout: () => {},
     useRenderedBellCounts: () => {},

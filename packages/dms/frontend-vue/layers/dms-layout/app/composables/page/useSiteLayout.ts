@@ -226,7 +226,7 @@ export const useSiteLayout = () => {
     const errorMessage =
       error instanceof Error ? error.message : UNKNOWN_SITE_LAYOUT_ERROR;
     loadingError.value = errorMessage;
-    showError({
+    showDmsError({
       statusCode: HTTP_INTERNAL_ERROR,
       statusMessage: SITE_LAYOUT_ERROR_MESSAGE,
       message: errorMessage,

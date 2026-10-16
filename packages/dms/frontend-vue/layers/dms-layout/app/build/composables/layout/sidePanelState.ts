@@ -172,7 +172,7 @@ export function useActiveSidePanel(): ActiveSidePanel {
   const { panels } = useAppSidePanels();
   const preferences = useSidePanelPreferences();
   const dragWidth = useSidePanelDragWidth();
-  const { loggedIn } = useUserSession();
+  const { loggedIn } = useDmsUserSession();
   const panel = computed(() => {
     if (!loggedIn.value) return null;
     const { openId } = readSidePanelPreferences(preferences.value);

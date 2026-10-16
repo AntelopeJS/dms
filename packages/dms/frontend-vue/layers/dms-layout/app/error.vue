@@ -92,7 +92,7 @@ const description = computed(() =>
 );
 
 const handleError = async () => {
-  clearError();
+  clearDmsError();
   if (!loggedIn.value) {
     await redirectToAuth(homepage);
   } else {

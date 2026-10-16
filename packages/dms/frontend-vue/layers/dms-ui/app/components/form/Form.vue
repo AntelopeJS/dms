@@ -812,7 +812,7 @@ const realtimeContext = computed(() =>
   parseRealtimeContext(resolvedFetchUrl.value),
 );
 const showConcurrentEditBanner = ref(false);
-const { user: realtimeUser } = useUserSession();
+const { user: realtimeUser } = useDmsUserSession();
 const { $authFetch } = useAuthFetch();
 const pageRealtime = useUserRealtime();
 const acquired = ref<{

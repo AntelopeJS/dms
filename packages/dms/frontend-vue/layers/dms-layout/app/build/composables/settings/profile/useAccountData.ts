@@ -65,7 +65,7 @@ export function accountExportFilename(at: Date = new Date()): string {
 export function useAccountData() {
   const { $authFetch } = useAuthFetch();
   const { confirm } = useConfirm();
-  const { user, clear } = useUserSession<User>();
+  const { user, clear } = useDmsUserSession<User>();
   const { removeAccount } = useMultiAccount();
   const { processI18n, processApiMessage } = useTranslation();
   const { errorMessage, errorCode } = useSecurityFormat();

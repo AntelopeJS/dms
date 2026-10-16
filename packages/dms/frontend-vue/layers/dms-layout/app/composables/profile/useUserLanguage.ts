@@ -10,7 +10,7 @@ const PROFILE_ENDPOINT = pageRoutePath("/settings/user/profile");
 export function useUserLanguage() {
   const dmsApp = useDmsApp();
   const { $authFetch } = useAuthFetch();
-  const { user, fetch: refreshUser } = useUserSession();
+  const { user, fetch: refreshUser } = useDmsUserSession();
 
   async function changeLanguage(language: string): Promise<void> {
     await dmsApp.$i18n.setLocale(language);

@@ -17,7 +17,7 @@ function stubComposables(authFetch = vi.fn(async () => ({}))): LanguageHarness {
     $i18n: { setLocale: harness.setLocale },
   }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: harness.authFetch }));
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     user: { value: { name: "Ada", email: "ada@example.com", language: "en" } },
     fetch: harness.refreshUser,
   }));

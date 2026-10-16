@@ -12,7 +12,7 @@ beforeEach(() => {
   vi.stubGlobal("defineDmsMiddleware", (handler: Middleware) => handler);
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useOnboarding", onboarding);
-  vi.stubGlobal("useUserSession", () => session);
+  vi.stubGlobal("useDmsUserSession", () => session);
   vi.stubGlobal("useHomepage", () => "/dashboard");
 });
 

@@ -64,7 +64,7 @@ const VIEW_NAME_FIELD = "label";
  */
 export function useTableViews(options: TableViewsOptions) {
   const { views, defaults, state, preferences, urlScope } = options;
-  const { user } = useUserSession();
+  const { user } = useDmsUserSession();
   const { t } = useI18n();
   const { processI18n } = useTranslation();
   const toast = useToast();

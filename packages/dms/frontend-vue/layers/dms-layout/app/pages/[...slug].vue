@@ -43,7 +43,7 @@ async function checkPageMetadata(
     if (import.meta.env.DEV && devReloading.value) {
       return;
     }
-    throw showError({
+    throw showDmsError({
       statusCode: HTTP_NOT_FOUND,
       statusMessage: "Page not found",
     });
@@ -77,7 +77,7 @@ async function recheckAccessWithFreshSession(): Promise<void> {
     if (import.meta.env.DEV && devReloading.value) {
       return;
     }
-    throw showError({
+    throw showDmsError({
       statusCode: HTTP_NOT_FOUND,
       statusMessage: "Page not found",
     });
@@ -91,7 +91,7 @@ async function recheckAccessWithFreshSession(): Promise<void> {
     return;
   }
 
-  throw showError({
+  throw showDmsError({
     statusCode: HTTP_FORBIDDEN,
     statusMessage: "Access denied",
   });
@@ -141,7 +141,7 @@ async function enforcePageValidation(): Promise<void> {
     routeQuery: query,
   });
   if (!redirect) {
-    throw createError({
+    throw createDmsError({
       statusCode: HTTP_NOT_FOUND,
       statusMessage: "Page not found",
     });
@@ -173,7 +173,7 @@ const pagelayoutMetadata = computed(() => routeMatch.value?.metadata);
 const routeParams = computed(() => routeMatch.value?.params || {});
 
 if (siteLayout.loadingError && siteLayout.loadingError.value) {
-  throw createError({
+  throw createDmsError({
     statusCode: HTTP_INTERNAL_SERVER_ERROR,
     statusMessage: "Error loading site layout",
     message: siteLayout.loadingError.value || "Unknown error occurred",
@@ -187,7 +187,7 @@ await checkPageMetadata(pagelayoutMetadata.value);
 // flight the page is unregistered for a moment, and the plugin is already
 // waiting for it to come back.
 if (!pagelayoutMetadata.value && !(import.meta.env.DEV && devReloading.value)) {
-  throw createError({
+  throw createDmsError({
     statusCode: HTTP_NOT_FOUND,
     statusMessage: "Page not found",
   });
@@ -203,9 +203,9 @@ if (import.meta.env.DEV) {
   // the flag back with nobody watching.
   watch(devReloading, (reloading) => {
     if (!reloading && !pagelayoutMetadata.value) {
-      // `showError` commits the error itself; throwing on top of it would only
+      // `showDmsError` commits the error itself; throwing on top of it would only
       // add a second report of the same thing.
-      showError({
+      showDmsError({
         statusCode: HTTP_NOT_FOUND,
         statusMessage: "Page not found",
       });
@@ -498,7 +498,7 @@ if (import.meta.env.DEV) {
         void navigateDms(moved[0]);
         return;
       }
-      showError({
+      showDmsError({
         statusCode: HTTP_NOT_FOUND,
         statusMessage: "Page not found",
       });

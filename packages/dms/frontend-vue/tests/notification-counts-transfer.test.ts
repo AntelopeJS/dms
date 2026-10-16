@@ -20,7 +20,7 @@ const loggedIn = ref(true);
 const mounted: App[] = [];
 
 stubApiData(authFetch as never);
-vi.stubGlobal("useUserSession", () => ({ loggedIn }));
+vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
 vi.stubGlobal("useComponentEvent", () => ({ sendComponentEvent: vi.fn() }));
 const { useNotifications, useRenderedBellCounts } = await import(
   "../layers/dms-layout/app/composables/notification/useNotifications"

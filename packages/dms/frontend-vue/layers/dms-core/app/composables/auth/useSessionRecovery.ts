@@ -5,7 +5,7 @@ const IN_FLIGHT_REFRESH_KEY = "__dmsAuthInFlightRefresh";
 
 export const useSessionRecovery = () => {
   const dmsApp = useDmsApp();
-  const { loggedIn, fetch: fetchSession } = useUserSession();
+  const { loggedIn, fetch: fetchSession } = useDmsUserSession();
   // useDmsRoute() must not be called here: this composable runs inside route
   // middleware (via useAuthFetch), where the DMS runtime warns that useDmsRoute is
   // misleading. Resolve the route lazily from the router instead.

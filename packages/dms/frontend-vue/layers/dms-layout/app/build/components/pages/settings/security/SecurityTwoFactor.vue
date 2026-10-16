@@ -73,7 +73,7 @@ const { formatDate, errorMessage } = useSecurityFormat();
 const isProcessing = ref(false);
 const isTotpOpen = ref(false);
 const totpSetup = ref<TotpSetup | null>(null);
-const { user } = useUserSession<User>();
+const { user } = useDmsUserSession<User>();
 const {
   codes,
   isRegenerated,

@@ -201,7 +201,7 @@ export function useMultiAccount() {
     user,
     session,
     fetch: refreshUser,
-  } = useUserSession<User, BrowserSession>();
+  } = useDmsUserSession<User, BrowserSession>();
 
   const getActiveAccount = (): StoredAccount | undefined =>
     buildActiveAccount(

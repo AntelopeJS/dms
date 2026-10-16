@@ -228,7 +228,7 @@ describe("useTableViews", () => {
         });
       },
     };
-    vi.stubGlobal("useUserSession", () => ({
+    vi.stubGlobal("useDmsUserSession", () => ({
       user: ref({ _id: options.userId ?? "u1" }),
     }));
     vi.stubGlobal("useDmsRoute", () => ({ query: options.query ?? {} }));

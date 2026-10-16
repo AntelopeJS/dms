@@ -82,7 +82,7 @@ function installRuntime(): void {
     PAGE_FILL_HEIGHT_CLASSES,
     providePageFillHeight,
     usePageFillHeight,
-    createError: ({ statusCode }: { statusCode: number }) =>
+    createDmsError: ({ statusCode }: { statusCode: number }) =>
       new HttpError(statusCode),
     defineDmsPageMeta: vi.fn(),
     firstAccessiblePagePath: vi.fn(),
@@ -91,7 +91,7 @@ function installRuntime(): void {
     providePageRealtime: vi.fn(),
     resolveDmsComponent: () => "div",
     runCustomValidation,
-    showError: vi.fn(),
+    showDmsError: vi.fn(),
     validateRequiredQueryParams,
     useDefinedFunctions: () => ({ getFunction: () => undefined }),
     useDmsRoute: () => ({ path: PAGE_PATH, query: pageQuery.value }),

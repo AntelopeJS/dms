@@ -84,7 +84,7 @@ if (!siteLayout.siteLayout.value) {
 // 403 page, the same answer as any page they may not open (the entry is not in
 // their menu either).
 if (!isOwner.value) {
-  throw showError({
+  throw showDmsError({
     statusCode: HTTP_FORBIDDEN,
     statusMessage: "Access denied",
   });

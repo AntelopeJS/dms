@@ -21,8 +21,8 @@ for (const name of [
   "useDmsRoute",
   "defineDmsMiddleware",
   "defineDmsPlugin",
-  "useError",
-  "abortNavigation",
+  "useDmsError",
+  "abortDmsNavigation",
   "navigateDms",
 ] as const) {
   vi.stubGlobal(name, engine[name]);
@@ -32,7 +32,7 @@ vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
 vi.stubGlobal("useHomepage", () => "/home");
 
 const session = { loggedIn: { value: true } };
-vi.stubGlobal("useUserSession", () => ({
+vi.stubGlobal("useDmsUserSession", () => ({
   ...session,
   user: { value: { isValidated: true } },
 }));

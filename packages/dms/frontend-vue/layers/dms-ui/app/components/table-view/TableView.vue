@@ -1443,7 +1443,7 @@ const realtimePresenceTopic = computed(() =>
 );
 
 const presenceByRow = ref<RealtimePresenceMap>({});
-const { user: realtimeUser } = useUserSession();
+const { user: realtimeUser } = useDmsUserSession();
 
 const getRowId = (row: T): string | undefined => {
   const value = (row as Record<string, unknown>)[rowIdKey];

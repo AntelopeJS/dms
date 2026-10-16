@@ -118,7 +118,7 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useUserSession", () => ({ loggedIn }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},

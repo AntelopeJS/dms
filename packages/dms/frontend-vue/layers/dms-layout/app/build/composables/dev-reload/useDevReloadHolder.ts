@@ -256,7 +256,8 @@ async function awaitRoute(
   }
 
   // Deadline spent waiting on someone else's pass.
-  if (state.refreshing || deps.now() >= deadline) return deps.isRouteKnown(path);
+  if (state.refreshing || deps.now() >= deadline)
+    return deps.isRouteKnown(path);
 
   const committed = await runRefresh(state, path, deadline);
   // A trailing re-run booked over ours may be the one that brought the route
@@ -326,7 +327,7 @@ export function useDevReloadHolder(): DevReloadHolder {
   const reloading = import.meta.env.DEV ? useDevReloading() : ref(false);
   const siteLayout = useSiteLayout();
   const router = useDmsRouter();
-  const currentError = useError();
+  const currentError = useDmsError();
 
   const coordinator = createDevReloadCoordinator({
     isDev: import.meta.env.DEV,
@@ -343,7 +344,7 @@ export function useDevReloadHolder(): DevReloadHolder {
       if (router.currentRoute.value.path !== recoveredPath) return;
       const err = currentError.value;
       if (!err || err.statusCode !== HTTP_NOT_FOUND) return;
-      void clearError();
+      void clearDmsError();
     },
     setReloading: (value) => {
       reloading.value = value;

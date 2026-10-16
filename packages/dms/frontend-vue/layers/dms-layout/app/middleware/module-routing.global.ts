@@ -89,7 +89,7 @@ export default defineDmsMiddleware(async (to, from) => {
   const moduleEntry = siteLayout.modules.value?.[moduleId];
 
   if (!moduleId || !moduleEntry) {
-    throw createError({
+    throw createDmsError({
       statusCode: MODULE_NOT_FOUND_STATUS,
       statusMessage: MODULE_NOT_FOUND_MESSAGE,
       data: { kind: MODULE_NOT_FOUND_KIND },

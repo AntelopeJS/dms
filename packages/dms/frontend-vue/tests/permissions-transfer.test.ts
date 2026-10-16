@@ -24,8 +24,8 @@ const { createTrailingDeduper } = await import(
 vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("useDmsApp", engine.useDmsApp);
 vi.stubGlobal("defineDmsMiddleware", engine.defineDmsMiddleware);
-vi.stubGlobal("useError", engine.useError);
-vi.stubGlobal("abortNavigation", engine.abortNavigation);
+vi.stubGlobal("useDmsError", engine.useDmsError);
+vi.stubGlobal("abortDmsNavigation", engine.abortDmsNavigation);
 vi.stubGlobal("navigateDms", engine.navigateDms);
 vi.stubGlobal("createTrailingDeduper", createTrailingDeduper);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
@@ -33,7 +33,7 @@ vi.stubGlobal("useSiteLayout", () => ({
   siteLayout: { value: {} },
   findMatchingRoute: () => ({ metadata: {} }),
 }));
-vi.stubGlobal("useUserSession", () => ({
+vi.stubGlobal("useDmsUserSession", () => ({
   loggedIn: { value: true },
   user: { value: { isValidated: true } },
 }));

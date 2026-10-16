@@ -8,7 +8,7 @@
  * that was not asked before. A failure stays the middleware's to handle.
  */
 export default defineDmsPlugin(() => {
-  if (!useUserSession().loggedIn.value) return;
+  if (!useDmsUserSession().loggedIn.value) return;
   const page = useSiteLayout().findMatchingRoute(useDmsRoute().path);
   if (!page || page.metadata.publicAccess === true) return;
   usePermissions()

@@ -14,7 +14,7 @@ const engine = await import("#dms/frontend-module");
 vi.stubGlobal("useDmsState", engine.useDmsState);
 vi.stubGlobal("defineDmsMiddleware", engine.defineDmsMiddleware);
 vi.stubGlobal("navigateDms", engine.navigateDms);
-vi.stubGlobal("useUserSession", () => ({ loggedIn: { value: true } }));
+vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: true } }));
 vi.stubGlobal("useHomepage", () => "/dashboard");
 
 const $authFetch = vi.fn(async () => ({ has_onboarded: true }));

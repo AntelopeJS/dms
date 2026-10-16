@@ -16,7 +16,7 @@ import { useTimeZoneCookie } from "#dms-core/app/composables/period/periodTimeZo
 export default defineDmsPlugin(() => {
   setRegionalPreferencesSource(() =>
     readRegionalPreferences(
-      useUserSession<RegionalPreferenceFields>().user.value,
+      useDmsUserSession<RegionalPreferenceFields>().user.value,
     ),
   );
   // A server render writes dates, and resolves periods, in the zone of the

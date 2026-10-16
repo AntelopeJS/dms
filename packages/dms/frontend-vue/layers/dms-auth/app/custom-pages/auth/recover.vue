@@ -23,7 +23,7 @@ const { formError, clearFormError, showError } = useAuthFormError();
 const form = useTemplateRef<AuthFormHandle>("form");
 
 if (!route.query.token || !route.query.email) {
-  throw createError({
+  throw createDmsError({
     statusCode: HTTP_BAD_REQUEST,
     statusMessage: INVALID_REQUEST,
     message: "Missing required authentication parameters",

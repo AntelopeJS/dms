@@ -16,7 +16,7 @@ export async function usePostLoginRedirect(
   options: PostLoginRedirectOptions = {},
 ) {
   const dmsApp = useDmsApp();
-  const { fetch: refreshUser, user } = useUserSession();
+  const { fetch: refreshUser, user } = useDmsUserSession();
   const { addCurrentAccount } = useMultiAccount();
   const siteLayout = useSiteLayout();
   const homepage = useHomepage();

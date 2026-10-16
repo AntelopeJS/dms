@@ -103,7 +103,7 @@ function installRuntime() {
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("useSiteLayout", useSiteLayout);
   vi.stubGlobal("useHomepage", () => HOMEPAGE);
-  vi.stubGlobal("useUserSession", () => ({
+  vi.stubGlobal("useDmsUserSession", () => ({
     fetch: async () => undefined,
     user: ref({ _id: "user" }),
   }));

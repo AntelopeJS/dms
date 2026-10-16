@@ -79,10 +79,7 @@ function stubSiteLayout(moduleRoot: TreeNode, landingPage?: string) {
   }));
 }
 
-async function enter(
-  fullPath: string,
-  drawnThere = false,
-): Promise<unknown> {
+async function enter(fullPath: string, drawnThere = false): Promise<unknown> {
   const middleware = (
     await import("../layers/dms-layout/app/middleware/module-routing.global")
   ).default as unknown as Middleware;
@@ -98,7 +95,7 @@ beforeEach(() => {
   vi.stubGlobal("navigateDms", navigateDms);
   vi.stubGlobal("useHomepage", () => "/dashboard");
   vi.stubGlobal("useModuleHistory", () => ({ record: vi.fn() }));
-  vi.stubGlobal("createError", (error: unknown) => error);
+  vi.stubGlobal("createDmsError", (error: unknown) => error);
 });
 
 afterEach(() => {

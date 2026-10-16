@@ -106,7 +106,7 @@ function installRuntime(): void {
     return state.get(key);
   });
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key, locale: "en" }));
-  vi.stubGlobal("useUserSession", () => ({ loggedIn: ref(true) }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: ref(true) }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (value: string) => value,
   }));

@@ -340,7 +340,7 @@ const buildApi = (): UserRealtimeApi => {
   };
 
   const config = useDmsRuntimeConfig();
-  const { loggedIn } = useUserSession();
+  const { loggedIn } = useDmsUserSession();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL as string;
 

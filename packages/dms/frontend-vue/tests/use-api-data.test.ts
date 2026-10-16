@@ -31,7 +31,7 @@ vi.stubGlobal("useDmsRuntimeConfig", () => ({
 const appLocale = ref("fr");
 vi.stubGlobal("useDmsApp", () => ({ $i18n: { locale: appLocale } }));
 vi.stubGlobal("HTTP_UNAUTHORIZED", 401);
-vi.stubGlobal("useUserSession", () => ({ loggedIn: { value: true } }));
+vi.stubGlobal("useDmsUserSession", () => ({ loggedIn: { value: true } }));
 const refreshSession = vi.fn(async () => true);
 vi.stubGlobal("useSessionRecovery", () => ({
   refreshSession,
