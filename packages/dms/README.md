@@ -96,6 +96,8 @@ export class SalesPage extends PageController("sales", {
 - [AI and Claude Code](https://dms.antelopejs.com/docs/ai-and-claude-code/overview): the skill suite and the AI assistant
 - [Modules](https://dms.antelopejs.com/docs/modules) and [Frontend](https://dms.antelopejs.com/docs/frontend)
 
+The runtime guides live in [`docs/`](./docs). The canonical contract reference belongs to [`@antelopejs/interface-dms`](../interface-dms/docs/index.md), not this runtime package.
+
 The package ships the core Claude Code skills (`dms`, `dms-auth`, `dms-best-practices`, `dms-module`, `dms-pages`, `dms-project`) in [`skills/`](https://github.com/AntelopeJS/dms/tree/main/packages/dms/skills), declared under `antelopeJs.skills`; [Install the plugin](https://dms.antelopejs.com/docs/ai-and-claude-code/install) to use them.
 
 ## Contributing

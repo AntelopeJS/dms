@@ -103,7 +103,7 @@ The dashboard's frontend loader and Vue renderer live in [AntelopeJS/dms-fronten
 - [AI and Claude Code](https://dms.antelopejs.com/docs/ai-and-claude-code/overview): the skill suite and the AI assistant
 - [Modules](https://dms.antelopejs.com/docs/modules) and [Frontend](https://dms.antelopejs.com/docs/frontend)
 
-The guide's sources live in [`packages/dms/docs`](./packages/dms/docs).
+The runtime guides live in [`packages/dms/docs`](./packages/dms/docs). The canonical consumer contract reference lives in [`packages/interface-dms/docs`](./packages/interface-dms/docs/index.md), published at the existing `/docs/interfaces` URLs.
 
 ## Contributing
 
