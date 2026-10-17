@@ -35,6 +35,8 @@ interface Props extends DefaultComponentProps {
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /** A rising value is the bad outcome: the delta's colours swap. */
+  invert?: boolean;
   showLegend?: boolean;
   /** The wrapped chart draws its own legend, naming each series. */
   showSeriesLegend?: boolean;
@@ -216,7 +218,7 @@ const hasMeta = computed(
           class="mt-1.5 flex flex-wrap items-center gap-2 transition-opacity"
           :class="isRefreshing && 'opacity-55'"
         >
-          <DmsTrendBadge v-if="showTrend" :delta="delta" />
+          <DmsTrendBadge v-if="showTrend" :delta="delta" :invert="invert" />
           <span v-if="previousFormatted" class="text-dimmed text-xs">
             vs {{ previousFormatted }}
           </span>
