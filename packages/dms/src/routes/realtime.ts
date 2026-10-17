@@ -33,19 +33,34 @@ import {
   subscribeRealtime,
 } from "../realtime";
 import {
+  getConnectionInfo,
   getSessionInfo,
   getSessionSubscriptions,
+  registerConnection,
   registerSession,
   setSessionPage,
+  unregisterConnection,
   unregisterSession,
 } from "../realtime/sessions";
 
 const REALTIME_BASE = "/api/realtime";
 const HELLO_EVENT = "hello";
 const SNAPSHOT_EVENT = "snapshot";
+/** A session's frame on a shared connection, enveloped with its session id. */
+const SESSION_EVENT = "session";
 const SESSION_HEADER = "x-realtime-session";
+const CONNECTION_HEADER = "x-realtime-connection";
 
 type RealtimeAck = { ok: boolean };
+
+/**
+ * A session opened on a shared connection: what the greeting of a stream of
+ * its own carries.
+ */
+interface SessionGreeting extends RealtimeAck {
+  sessionId?: string;
+  menuTopics?: string[];
+}
 
 /**
  * A page subscription's answer: the page's topics, whose events the browser
@@ -142,6 +157,11 @@ const cleanupSession = async (sessionId: string): Promise<void> => {
   await getPresenceTracker().releaseAllForSession(sessionId);
 };
 
+const warnUnlessClosed = (sessionId: string) => (error: unknown) => {
+  if (!getSessionInfo(sessionId)) return;
+  Logging.Warn("Realtime: applySessionTopics failed", error);
+};
+
 const ensureSessionOnPage = async (
   sessionId: string,
   pageId: string,
@@ -158,6 +178,11 @@ const ensureSessionOnPage = async (
 };
 
 export class RealtimeController extends Controller(REALTIME_BASE) {
+  /**
+   * A stream of one session, the transport of a client that cannot share a
+   * connection between its tabs. Each one holds an HTTP/1.1 connection of the
+   * browser's six per host for as long as it lives.
+   */
   @Get("/user")
   async userStream(
     @Context() ctx: RequestContext,
@@ -204,6 +229,88 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       if (isClosed) return;
       Logging.Warn("Realtime: applySessionTopics failed", error);
     });
+  }
+
+  /**
+   * One stream per browser, shared by its tabs: a tab opens its session on it
+   * with `POST /session`, and the stream carries each session's frames inside
+   * a `session` event that names it. Ending the stream ends its sessions.
+   */
+  @Get("/connection")
+  async connectionStream(
+    @Context() ctx: RequestContext,
+    @AuthRawUser() user: User,
+  ): Promise<void> {
+    const connectionId = randomUUID();
+    const stream = openSseStream(ctx);
+    registerConnection(connectionId, {
+      userId: user._id,
+      send: stream.send,
+      close: stream.close,
+    });
+    stream.send(HELLO_EVENT, { connectionId, ts: Date.now() });
+    stream.onClose(async () => {
+      const sessionIds = unregisterConnection(connectionId);
+      await Promise.all(
+        sessionIds.map((sessionId) =>
+          cleanupSession(sessionId).catch((error) =>
+            Logging.Warn("Realtime: cleanupSession failed", error),
+          ),
+        ),
+      );
+    });
+  }
+
+  /**
+   * Opens a tab's session on a shared connection. The session takes this
+   * request's tenant, so tabs on different workspaces share one connection.
+   * Its frames may reach the browser before this answer does.
+   */
+  @Post("/session")
+  async openSession(
+    @Context() ctx: RequestContext,
+    @Parameter(CONNECTION_HEADER, "header") connectionId: string,
+    @AuthRawUser() user: User,
+  ): Promise<SessionGreeting> {
+    const connection = connectionId
+      ? getConnectionInfo(connectionId)
+      : undefined;
+    if (!connection) return { ok: false };
+    // The connection id is the browser's: another user's request holding it
+    // must not read that user's events.
+    assert(connection.userId === user._id, 403, "error.forbidden");
+    const sessionId = randomUUID();
+    const tenantId = getRequestTenantId(ctx);
+    registerSession(sessionId, {
+      user,
+      tenantId,
+      connectionId,
+      send: (eventName, data) =>
+        connection.send(SESSION_EVENT, { sessionId, event: eventName, data }),
+      close: connection.close,
+    });
+    void applySessionTopics(sessionId).catch(warnUnlessClosed(sessionId));
+    return {
+      ok: true,
+      sessionId,
+      menuTopics: menuTopicsFor(tenantId, user._id),
+    };
+  }
+
+  /**
+   * Ends a session of a shared connection: its tab is gone, or opened another.
+   * The connection and the other sessions on it stay open.
+   */
+  @Post("/session/close")
+  async closeSession(
+    @Parameter(SESSION_HEADER, "header") sessionId: string,
+    @AuthRawUser() user: User,
+  ): Promise<RealtimeAck> {
+    const info = sessionId ? getSessionInfo(sessionId) : undefined;
+    if (!info?.connectionId || info.user?._id !== user._id)
+      return { ok: false };
+    await cleanupSession(sessionId);
+    return { ok: true };
   }
 
   @Post("/subscribe/:pageId")
