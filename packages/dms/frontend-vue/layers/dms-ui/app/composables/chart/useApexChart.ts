@@ -287,6 +287,12 @@ function applySeriesStroke(
 }
 
 const HIGH_CONTRAST_YAXIS_TYPES: ChartType[] = ["radar"];
+/**
+ * Charts whose Y axis lists categories (a heatmap's rows: its series names)
+ * rather than values: a card's value format would write each name as NaN.
+ * Their values are still formatted, in the tooltip.
+ */
+const CATEGORY_YAXIS_TYPES: ChartType[] = ["heatmap"];
 
 function buildYAxis(
   input: UseApexChartInput,
@@ -303,8 +309,11 @@ function buildYAxis(
     yaxis.min = input.yRange.min;
     yaxis.max = input.yRange.max;
   }
+  const valueFormatter = CATEGORY_YAXIS_TYPES.includes(input.type)
+    ? undefined
+    : input.yAxisFormatter;
   (yaxis.labels as Record<string, unknown>).formatter =
-    input.yAxisFormatter ?? formatPlainAxisValue;
+    valueFormatter ?? formatPlainAxisValue;
   return yaxis;
 }
 
