@@ -161,6 +161,13 @@ const CONFIRM_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "restore",
 ]);
 
+// Their route writes the body it reads: the guard is handed that body parsed,
+// and the route writes it as the guard left it.
+const WRITE_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
+  "new",
+  "edit",
+]);
+
 /** @internal */
 export const createGuardedRoute = (
   baseRoute: DataControllerCallback,
@@ -176,8 +183,16 @@ export const createGuardedRoute = (
       ...routeArgs: unknown[]
     ) {
       const confirmBody = readsConfirmBody ? routeArgs.pop() : undefined;
-      const args = readsConfirmBody ? [confirmBody] : routeArgs;
       const guard = getGuardForAction(this, actionName);
+      const writtenBody =
+        guard && WRITE_BODY_ACTIONS.has(actionName)
+          ? parseGuardBody(routeArgs[0])
+          : undefined;
+      const args = readsConfirmBody
+        ? [confirmBody]
+        : writtenBody
+          ? [writtenBody, ...routeArgs.slice(1)]
+          : routeArgs;
       const afterWrite = guard
         ? await config.invokeGuard(
             this,
@@ -188,7 +203,16 @@ export const createGuardedRoute = (
             getIdField(this),
           )
         : undefined;
-      const result = await baseRoute.func.call(this, ctx, params, ...routeArgs);
+      // The data API parses the raw body it is handed.
+      const writtenArgs = writtenBody
+        ? [Buffer.from(JSON.stringify(writtenBody)), ...routeArgs.slice(1)]
+        : routeArgs;
+      const result = await baseRoute.func.call(
+        this,
+        ctx,
+        params,
+        ...writtenArgs,
+      );
       if (afterWrite) await runAfterWrite(afterWrite, actionName);
       return result;
     },

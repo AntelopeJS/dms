@@ -101,6 +101,15 @@ export class ComputedTasksPage extends RootPageController("computed-tasks", {
 }) {
   static content = TableView(ComputedTaskController, {
     realtime: false,
-    rowActions: { add: true },
+    rowActions: { add: true, edit: true },
+    // Guards amending the body their route writes.
+    guards: {
+      new: (_ctx, { body }) => {
+        body.spent ??= 0;
+      },
+      edit: (_ctx, { body }) => {
+        if (typeof body.title === "string") body.title = body.title.trim();
+      },
+    },
   });
 }
