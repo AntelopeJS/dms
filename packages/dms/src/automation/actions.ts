@@ -4,11 +4,8 @@ import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
 import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
-import {
-  AutomationSubject,
-  Notification,
-} from "@antelopejs/interface-dms/notifications";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
+import { sendNotificationAction } from "./send-notification";
 
 interface SendEmailInput {
   to: string;
@@ -58,69 +55,6 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
       messageId: result.messageId,
       error: result.error?.message,
     };
-  },
-};
-
-interface SendNotificationInput {
-  userIds?: string[];
-  roleIds?: string[];
-  title: string;
-  description: string;
-  icon?: string;
-  linkTo?: string;
-}
-
-interface SendNotificationOutput {
-  ok: boolean;
-}
-
-const DEFAULT_NOTIFICATION_ICON = "i-ph-bell";
-
-const sendNotificationAction: ActionType<
-  SendNotificationInput,
-  SendNotificationOutput
-> = {
-  id: "dms.send-notification",
-  name: "Send notification",
-  description:
-    "Send an in-app notification to specific users and/or every user holding one of the given roles",
-  icon: DEFAULT_NOTIFICATION_ICON,
-  inputSchema: {
-    type: "object",
-    properties: {
-      userIds: { type: "array", items: { type: "string" } },
-      roleIds: { type: "array", items: { type: "string" } },
-      title: { type: "string" },
-      description: { type: "string" },
-      icon: { type: "string" },
-      linkTo: { type: "string" },
-    },
-    required: ["title", "description"],
-    anyOf: [{ required: ["userIds"] }, { required: ["roleIds"] }],
-  },
-  outputSchema: {
-    type: "object",
-    properties: { ok: { type: "boolean" } },
-  },
-  async execute(input) {
-    const userIds = input.userIds ?? [];
-    const roleIds = input.roleIds ?? [];
-    if (userIds.length === 0 && roleIds.length === 0) {
-      throw new Error(
-        "dms.send-notification requires at least one of userIds / roleIds",
-      );
-    }
-    const base = Notification()
-      .icon(input.icon ?? DEFAULT_NOTIFICATION_ICON)
-      .title(input.title)
-      .description(input.description)
-      .subject(AutomationSubject);
-    const sendable = input.linkTo
-      ? base.linkTo(input.linkTo).build()
-      : base.build();
-    if (userIds.length > 0) await sendable.toUsers(userIds);
-    if (roleIds.length > 0) await sendable.toRoles(roleIds);
-    return { ok: true };
   },
 };
 
