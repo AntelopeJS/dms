@@ -12,6 +12,10 @@ import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import { formatValue } from "../../composables/chart/formatValue";
 import { toDonutRecords } from "../../composables/chart/donutRecords";
 import {
+  localizeDonutRecords,
+  localizeSeries,
+} from "../../composables/chart/localizeSeries";
+import {
   CHART_EVENT_NAMES,
   isSegmentChart,
   readPointValue,
@@ -117,16 +121,26 @@ const themeRevision = useThemeRevision();
 
 const isCircular = computed(() => CIRCULAR_CHART_TYPES.includes(props.type));
 
+// A bare chart's own series and slices are translated like a card's: the
+// `$` keys of a name, a category or a label reach Apex in the reader's
+// language. A nested chart receives its card's series already translated.
+function localized(series: ChartSeries[]): ChartSeries[] {
+  return series.map((entry) => localizeSeries(entry, processI18n));
+}
+
 const staticSeries = computed<ChartSeries[]>(() => {
   if (isCircular.value) return [];
   if (!props.staticDataset) return [];
-  return props.staticDataset as ChartSeries[];
+  return localized(props.staticDataset as ChartSeries[]);
 });
 
 const staticDonut = computed<DonutRecord[]>(() => {
   if (!isCircular.value) return [];
   if (!props.staticDataset) return [];
-  return props.staticDataset as DonutRecord[];
+  return localizeDonutRecords(
+    props.staticDataset as DonutRecord[],
+    processI18n,
+  );
 });
 
 const isNested = computed(() => !!nestedContext);
@@ -148,7 +162,7 @@ const seriesFromCtx = computed<ChartSeries[]>(() => {
 
 const fetchSeries = computed<ChartSeries[]>(() => {
   if (!data.value) return [];
-  return data.value.series ?? [];
+  return localized(data.value.series ?? []);
 });
 
 const finalSeries = computed<ChartSeries[]>(() => {
