@@ -347,7 +347,11 @@ export class TableViewMeta {
       label: options.name ?? key,
       description: options.description,
       type: options.type,
-      inputComponent: options.inputComponent?.serializeSync(),
+      // A read-only field displays its value: what only editing uses (a
+      // relation's add form) stays out of it.
+      inputComponent:
+        options.inputComponent?.serializeSync() ??
+        (isDisabled ? options.type.describedInputComponent() : undefined),
       disabled: isDisabled,
       required: isRequired,
       defaultValue: options.defaultValue,
