@@ -67,7 +67,15 @@ const forwardedProps = computed(() => {
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
 });
-const forwarded = useForwardPropsEmits(forwardedProps, emits);
+const forwardedPropsEmits = useForwardPropsEmits(forwardedProps, emits);
+// The picks go through `handleUpdateModelValue` alone: forwarded as well,
+// the "add new entry" item reached the form as the field's value.
+const forwarded = computed(() => {
+  const { "onUpdate:modelValue": _, ...rest } = forwardedPropsEmits.value as {
+    "onUpdate:modelValue"?: unknown;
+  };
+  return rest as typeof forwardedPropsEmits.value;
+});
 
 type ModelValue = SelectMenuEmits<T, "value", M>["update:modelValue"][0];
 
@@ -79,15 +87,14 @@ function isAddNewValue(value: unknown): boolean {
 
 function handleUpdateModelValue(value: ModelValue) {
   if (isAddNewValue(value)) {
-    openAddDrawer();
+    // The field keeps its value: the "add" item is no pick.
     if (Array.isArray(value)) {
       emits(
         "update:modelValue",
         (value as unknown[]).filter((v) => v !== ADD_NEW_VALUE) as ModelValue,
       );
-    } else {
-      emits("update:modelValue", props.modelValue as ModelValue);
     }
+    void openAddDrawerOnceClosed();
     return;
   }
   const shouldDeselect =
@@ -326,10 +333,25 @@ watch(
   { immediate: true },
 );
 
+const isMenuOpen = ref(false);
+
 function onOpen(isOpen: boolean) {
+  isMenuOpen.value = isOpen;
   if (isOpen && !data.value?.results?.length) {
     execute();
   }
+}
+
+/**
+ * Opens the add form once the menu has closed: opened while the menu still
+ * held the focus, the drawer took the focus going back to the field for a
+ * click outside it, and closed at once.
+ */
+async function openAddDrawerOnceClosed(): Promise<void> {
+  isMenuOpen.value = false;
+  await nextTick();
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  openAddDrawer();
 }
 
 function openAddDrawer() {
@@ -428,6 +450,7 @@ const addFormOptions = computed(() => {
     v-model:search-term="searchTerm"
     :trailing-icon="props.trailingIcon ?? FIELD_TRIGGER_ICON"
     :model-value="props.modelValue"
+    :open="isMenuOpen"
     :items="displayItems as T"
     :loading="status === 'pending'"
     value-key="value"
