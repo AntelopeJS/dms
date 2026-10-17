@@ -19,6 +19,7 @@ import {
   writeRecordId,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+import { interpolateUrl } from "../layers/dms-core/app/utils/url-interpolation";
 
 describe("bulk selection requests", () => {
   it("sends the ids, or the filters of every matching row", () => {
@@ -52,6 +53,36 @@ describe("bulk selection requests", () => {
       component: { componentName: "RunDrawer" },
     };
     expect(targetWithSelection(drawer, { ids: ["a"] })).toBe(drawer);
+  });
+
+  it("keeps a URL's own query as written, its tokens still to fill", () => {
+    expect(
+      withQuery("/api/runs/rerun?site={{query.site}}", { ids: ["a"] }),
+    ).toBe("/api/runs/rerun?site={{query.site}}&ids=a");
+    expect(withQuery("/rerun?", { ids: ["a"] })).toBe("/rerun?ids=a");
+    expect(withQuery("/rerun#top", { ids: ["a"] })).toBe("/rerun?ids=a#top");
+    expect(withQuery("/rerun?x=1", {})).toBe("/rerun?x=1");
+  });
+
+  it("takes a row token out of a URL the selection bar sends, as an unresolved page token", () => {
+    expect(
+      targetWithSelection(
+        { type: "api", url: "/rerun?ids={{row._id}}&force=1" },
+        { ids: ["a", "b"] },
+      ),
+    ).toEqual({ type: "api", url: "/rerun?force=1&ids=a&ids=b" });
+    expect(
+      targetWithSelection(
+        { type: "download", url: "/export?ids={{ row._id }}" },
+        { ids: ["a"] },
+      ),
+    ).toEqual({ type: "download", url: "/export?ids=a" });
+    expect(
+      targetWithSelection(
+        { type: "page", url: "/runs/{{row._id}}/compare?mode=x" },
+        { ids: ["a"] },
+      ),
+    ).toEqual({ type: "page", url: "/runs//compare?mode=x&ids=a" });
   });
 
   it("tells actions reaching every matching row", () => {
@@ -237,6 +268,73 @@ describe("action targets on a selection and on a listed row", () => {
     app?.unmount();
     app = undefined;
     vi.unstubAllGlobals();
+  });
+
+  describe("a bulk action run on one row", () => {
+    const bulkApi = (url: string): CustomRowAction => ({
+      label: "Re-run",
+      bulk: true,
+      target: { type: "api", url },
+    });
+
+    beforeEach(() => vi.stubGlobal("interpolateUrl", interpolateUrl));
+
+    it("sends that row's id as the selection bar sends the selection's", async () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(bulkApi("/api/runs/rerun"), { _id: "r 1" });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?ids=r+1");
+    });
+
+    it("reads the id through the table's rowIdKey", async () => {
+      const targets = mountTargets({ rowIdKey: "code" });
+      targets.handleCustomRowAction(bulkApi("/api/runs/rerun?force=1"), {
+        _id: "x",
+        code: "R-7",
+      });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?force=1&ids=R-7");
+    });
+
+    it("fills a URL naming the row itself rather than adding ids, and the bar drops it", async () => {
+      const targets = mountTargets();
+      const action = bulkApi("/api/runs/rerun?ids={{row._id}}");
+      targets.handleCustomRowAction(action, { _id: "r1" });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/rerun?ids=r1");
+
+      targets.handleBulkCustomAction(action, { ids: ["a", "b"], count: 2 });
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+      expect(api.mock.calls[1]?.[0]).toBe("/api/runs/rerun?ids=a&ids=b");
+    });
+
+    it("leaves an action that is not bulk as it is", async () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        { label: "Run", target: { type: "api", url: "/api/runs/run" } },
+        { _id: "r1" },
+      );
+      await vi.waitFor(() => expect(api).toHaveBeenCalledTimes(1));
+      expect(api.mock.calls[0]?.[0]).toBe("/api/runs/run");
+    });
+
+    it("hands a drawer its row, not ids", () => {
+      const targets = mountTargets();
+      targets.handleCustomRowAction(
+        {
+          label: "Inspect",
+          bulk: true,
+          target: { type: "drawer", component: { componentName: "RunDrawer" } },
+        },
+        { _id: "r1" },
+      );
+      const options = drawers[0]?.options.componentOptions as Record<
+        string,
+        unknown
+      >;
+      expect(options.rowData).toEqual({ _id: "r1" });
+      expect(options.selection).toBeUndefined();
+    });
   });
 
   it("calls an api bulk action with the selection, its toast counting the rows", async () => {

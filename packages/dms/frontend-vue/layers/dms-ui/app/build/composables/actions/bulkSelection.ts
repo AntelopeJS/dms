@@ -1,5 +1,7 @@
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { CustomRowAction } from "../../../types/row-action";
+import { namesRowField } from "#dms-core/app/utils/url-interpolation";
+import { dropRowTokens } from "../../utils/urlVariables";
 
 /** Query flag of a bulk request covering every matching row. */
 export const ALL_MATCHING_QUERY_KEY = "allMatching";
@@ -34,17 +36,27 @@ export function bulkSelectionQuery(
   return query;
 }
 
-/** `url` with `query` appended, a list value as a repeated key. */
+const FRAGMENT_SEPARATOR = "#";
+
+/**
+ * `url` with `query` appended, a list value as a repeated key. The URL's own
+ * query is kept as written: its tokens (`{{query.X}}`, `{{row.X}}`) are filled
+ * after, which percent-encoded braces would no longer match.
+ */
 export function withQuery(url: string, query: Record<string, QueryValue>) {
-  const [path, search = ""] = url.split("?");
-  const params = new URLSearchParams(search);
+  const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     for (const entry of Array.isArray(value) ? value : [value]) {
       params.append(key, entry);
     }
   }
-  const joined = params.toString();
-  return joined ? `${path}?${joined}` : (path ?? url);
+  const appended = params.toString();
+  if (!appended) return url;
+  const [base = "", ...fragment] = url.split(FRAGMENT_SEPARATOR);
+  const separator = !base.includes("?") ? "?" : /[?&]$/.test(base) ? "" : "&";
+  return [`${base}${separator}${appended}`, ...fragment].join(
+    FRAGMENT_SEPARATOR,
+  );
 }
 
 const URL_TARGET_TYPES = new Set([
@@ -55,14 +67,36 @@ const URL_TARGET_TYPES = new Set([
   "exportJob",
 ]);
 
-/** A target sending the selection along: its URL carries the query. */
+type UrlTarget = ActionTarget & { url: string };
+
+const isUrlTarget = (target: ActionTarget): target is UrlTarget =>
+  URL_TARGET_TYPES.has(target.type);
+
+/**
+ * A target sending the selection along: its URL carries the query. Sent
+ * without a row, its `{{row.X}}` tokens are taken out (a `?ids={{row._id}}`
+ * pair gives way to the selection's `ids`).
+ */
 export function targetWithSelection(
   target: ActionTarget,
   query: Record<string, QueryValue>,
 ): ActionTarget {
-  if (!URL_TARGET_TYPES.has(target.type)) return target;
-  const { url } = target as ActionTarget & { url: string };
-  return { ...target, url: withQuery(url, query) } as ActionTarget;
+  if (!isUrlTarget(target)) return target;
+  const url = withQuery(dropRowTokens(target.url), query);
+  return { ...target, url } as ActionTarget;
+}
+
+/**
+ * A bulk action's target run on one row: its URL carries that row's id as the
+ * selection bar's carries the selection's, unless it names the row itself
+ * (`{{row._id}}`), which then fills it.
+ */
+export function targetForRow(
+  target: ActionTarget,
+  query: Record<string, QueryValue>,
+): ActionTarget {
+  if (!isUrlTarget(target) || namesRowField(target.url)) return target;
+  return { ...target, url: withQuery(target.url, query) } as ActionTarget;
 }
 
 /** Whether a custom action runs on the selection bar. */

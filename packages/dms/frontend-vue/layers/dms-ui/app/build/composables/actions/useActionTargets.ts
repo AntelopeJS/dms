@@ -17,6 +17,8 @@ import type { ContainerInstance } from "../../../composables/containers/types";
 import {
   type BulkSelection,
   bulkSelectionQuery,
+  isBulkAction,
+  targetForRow,
   targetWithSelection,
   withQuery,
 } from "./bulkSelection";
@@ -58,7 +60,11 @@ import {
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
-import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  namesRowField,
+} from "#dms-core/app/utils/url-interpolation";
+import { dropRowTokens } from "../../utils/urlVariables";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -653,14 +659,30 @@ export function useActionTargets(config: ActionTargetsConfig) {
     );
   };
 
+  // A bulk action offered on a row runs on that row as the selection bar runs
+  // on several: a URL target, and a `from` confirmation, carry `?ids=<id>` —
+  // unless the URL names the row itself (`{{row._id}}`), which fills it.
+  const rowRun = (action: CustomRowAction, rowData?: Data) => {
+    const id = rowIdOf(rowData);
+    if (!isBulkAction(action) || id === undefined) {
+      return { target: action.target, confirm: action.confirm };
+    }
+    const query = bulkSelectionQuery({ ids: [id], count: 1 });
+    const { confirm } = action;
+    return {
+      target: targetForRow(action.target, query),
+      confirm:
+        confirm && isConfirmFrom(confirm) && !namesRowField(confirm.from)
+          ? { from: withQuery(confirm.from, query) }
+          : confirm,
+    };
+  };
+
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    void handleActionTarget(
-      action.target,
-      action.label,
-      rowData,
-      action.confirm,
-      { deepLink: isDeepLinkAction(action) },
-    );
+    const { target, confirm } = rowRun(action, rowData);
+    void handleActionTarget(target, action.label, rowData, confirm, {
+      deepLink: isDeepLinkAction(action),
+    });
   };
 
   /**
@@ -675,7 +697,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const query = bulkSelectionQuery(selection);
     const declared =
       action.confirm && isConfirmFrom(action.confirm)
-        ? { from: withQuery(action.confirm.from, query) }
+        ? { from: withQuery(dropRowTokens(action.confirm.from), query) }
         : action.confirm;
     void handleActionTarget(
       targetWithSelection(action.target, query),
