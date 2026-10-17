@@ -116,6 +116,29 @@ describe("token syntax", () => {
     ).toBe("/orders/o-9?store=north");
   });
 
+  it("names the row a create wrote by the key it answered", () => {
+    // A DataController's `new` answers the list of keys it inserted.
+    const created = { routeQuery: {}, response: ["66f0c1"] };
+    for (const token of ["_id", "id", "0"]) {
+      expect(
+        resolveLinkVariables(
+          `/customers?record={{response.${token}}}`,
+          created,
+        ),
+        token,
+      ).toBe("/customers?record=66f0c1");
+    }
+    expect(replaceUrlVariables("/c/{{response.name}}", created)).toBe(
+      "/c/{{response.name}}",
+    );
+    expect(
+      replaceUrlVariables("/c/{{response._id}}", {
+        routeQuery: {},
+        response: ["a", "b"],
+      }),
+    ).toBe("/c/{{response._id}}");
+  });
+
   it("names a row field with {{row.X}}, a dotted path reaching into it", () => {
     const row = { _id: "a 1", customer: { name: "Ada" } };
     expect(interpolateUrl("/o/{{row._id}}/{{ row.customer.name }}", row)).toBe(
@@ -129,9 +152,9 @@ describe("token syntax", () => {
   });
 
   it("leaves another scope's token whole when filling a row", () => {
-    expect(
-      interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" }),
-    ).toBe("/s/{{params.id}}/o/a");
+    expect(interpolateUrl("/s/{{params.id}}/o/{{row._id}}", { _id: "a" })).toBe(
+      "/s/{{params.id}}/o/a",
+    );
   });
 });
 

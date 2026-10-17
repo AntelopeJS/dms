@@ -587,7 +587,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   );
 
   const buildUrlContext = (
-    response?: Record<string, unknown>,
+    response?: ReplaceUrlVariablesContext["response"],
   ): ReplaceUrlVariablesContext => ({
     routeParams: props.routeParams,
     routeQuery: route.query as Record<string, unknown>,
@@ -780,7 +780,7 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     if (props.redirectOnSuccess) {
       const target = resolveLinkVariables(
         props.redirectOnSuccess,
-        buildUrlContext(response as Record<string, unknown> | undefined),
+        buildUrlContext(response as ReplaceUrlVariablesContext["response"]),
       );
       await navigateDms(target);
     }

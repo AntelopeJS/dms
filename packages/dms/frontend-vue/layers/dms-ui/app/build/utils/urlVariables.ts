@@ -24,7 +24,12 @@ const TOKEN_OPENING = "{{";
 export interface ReplaceUrlVariablesContext {
   routeParams?: Record<string, string>;
   routeQuery: Record<string, unknown>;
-  response?: Record<string, unknown>;
+  /**
+   * The body a submit answered: an object, or the list of keys a create
+   * wrote (a DataController's `new`), whose one key `{{response._id}}`,
+   * `{{response.id}}` and `{{response.0}}` all name.
+   */
+  response?: Record<string, unknown> | unknown[];
 }
 
 type EncodeValue = (value: string) => string;
@@ -69,18 +74,39 @@ function fillRouteTokens(
     });
 }
 
+// A DataController's `new` answers the keys it wrote (`["66f…"]`), not the
+// row: its one key is what `{{response._id}}` or `{{response.id}}` names.
+const CREATED_KEY_NAMES = new Set(["_id", "id"]);
+
+function isKeyValue(value: unknown): value is string | number {
+  return typeof value === "string" || typeof value === "number";
+}
+
+/** The value a response token names: a path into the body, or a created key. */
+function responseValue(
+  response: Record<string, unknown> | unknown[],
+  key: string,
+): unknown {
+  const value: unknown = get(response, key);
+  if (value !== undefined || !Array.isArray(response)) return value;
+  const [created] = response;
+  return response.length === 1 &&
+    CREATED_KEY_NAMES.has(key) &&
+    isKeyValue(created)
+    ? created
+    : undefined;
+}
+
 // Written as answered: a response may hand back a whole path to open next
 // (`redirectOnSuccess: "{{response.redirectPath}}"`), which encoding would break.
 function fillResponseTokens(
   text: string,
-  response: Record<string, unknown> | undefined,
+  response: Record<string, unknown> | unknown[] | undefined,
 ): string {
   if (!response) return text;
   return text.replace(RESPONSE_TOKEN, (match, key: string) => {
-    const value: unknown = get(response, key);
-    return typeof value === "string" || typeof value === "number"
-      ? String(value)
-      : match;
+    const value = responseValue(response, key);
+    return isKeyValue(value) ? String(value) : match;
   });
 }
 
