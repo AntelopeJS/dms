@@ -1,11 +1,4 @@
-import { getCurrentInstance } from "vue";
-import { isHydratingComponent } from "../hydration/isHydratingComponent";
-
-/**
- * The instant a server render resolves its periods from, handed to the
- * browser with the page.
- */
-const RENDER_NOW_STATE_KEY = "dms-period-render-now";
+import { serverRenderNow } from "../../build/composables/renderNow";
 
 /**
  * The instant a period set up now resolves from, or `null` for the clock's.
@@ -18,17 +11,6 @@ const RENDER_NOW_STATE_KEY = "dms-period-render-now";
  * outside a component) it is `null`: the period follows the clock.
  */
 export function periodRenderNow(): Date | null {
-  if (!getCurrentInstance()) return null;
-  if (typeof window === "undefined") {
-    const now = useDmsState<number>(RENDER_NOW_STATE_KEY, () => Date.now(), {
-      transfer: true,
-    });
-    return new Date(now.value);
-  }
-  if (!isHydratingComponent()) return null;
-  const transferred = useDmsState<number | null>(
-    RENDER_NOW_STATE_KEY,
-    () => null,
-  ).value;
-  return typeof transferred === "number" ? new Date(transferred) : null;
+  const now = serverRenderNow();
+  return now === null ? null : new Date(now);
 }
