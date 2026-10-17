@@ -134,9 +134,10 @@ describe("[unit] interfaces/dms-base — table view form watches", () => {
   it("declares each kind's watches on its generated form, as .watch() does", () => {
     const table = TableView(ContactAPI, { formWatches, realtime: false });
     const options = table.serializeSync().options as TableViewOptionsSerialized;
-    const [watch] = (
-      options.formComponents.edit?.options as { watchActions: WatchAction[] }
-    ).watchActions;
+    const editOptions = options.formComponents.edit?.options as
+      | { watchActions: WatchAction[] }
+      | undefined;
+    const [watch] = editOptions?.watchActions ?? [];
 
     expect(watchesOf(options)).to.deep.equal({
       new: [FormFunctions.SET_FIELD_HIDDEN, FormFunctions.SET_FIELD_REQUIRED],
