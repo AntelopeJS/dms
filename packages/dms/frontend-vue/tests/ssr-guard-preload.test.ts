@@ -17,6 +17,7 @@ const { createTrailingDeduper } = await import(
 );
 for (const name of [
   "useDmsState",
+  "useDmsAsyncData",
   "useDmsApp",
   "useDmsRoute",
   "defineDmsMiddleware",
@@ -91,6 +92,10 @@ const $authFetch = vi.fn(
     }),
 );
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch }));
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
+);
+vi.stubGlobal("useApiData", useApiData);
 
 const settle = async () => {
   await nextTick();
