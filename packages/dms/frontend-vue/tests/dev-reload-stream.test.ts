@@ -1,5 +1,12 @@
+import { nextTick, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { openDevReloadStream } from "../layers/dms-layout/app/build/utils/dev-reload-stream";
+import {
+  DEV_RELOAD_TOPIC,
+  followDevReload,
+  openDevReloadStream,
+  openSharedDevReloadStream,
+} from "../layers/dms-layout/app/build/utils/dev-reload-stream";
+import { createFakeBrowser } from "./fixtures/fakeBrowser";
 
 const ENDPOINT = "http://backend.test/dms/dev/reload";
 // Comfortably past the delay before a source the browser gave up on is reopened.
@@ -135,5 +142,159 @@ describe("dev reload stream", () => {
 
     expect(FakeEventSource.instances).toHaveLength(1);
     expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
+  });
+});
+
+/**
+ * A signed-in tab hears of backend reloads through its user realtime stream:
+ * a reload stream of its own as well made two long-lived connections per tab,
+ * and three tabs then filled the six a browser allows per HTTP/1.1 host.
+ */
+describe("dev reload over the user's realtime stream", () => {
+  // A browser without Web Locks: the fallback stream is the tab's own.
+  const NO_SHARING = {};
+  const carrier = () => {
+    const handlers = new Map<string, () => void>();
+    return {
+      carriesDevReload: ref(false),
+      handlers,
+      subscribe: (topic: string, handler: () => void) => {
+        handlers.set(topic, handler);
+        return () => handlers.delete(topic);
+      },
+    };
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    FakeEventSource.instances = [];
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("opens no stream of its own while the user stream carries the signal", async () => {
+    const realtime = carrier();
+    realtime.carriesDevReload.value = true;
+    const onReload = vi.fn();
+    followDevReload({ endpoint: ENDPOINT, onReload }, realtime, NO_SHARING);
+
+    expect(FakeEventSource.instances).toHaveLength(0);
+    realtime.handlers.get(DEV_RELOAD_TOPIC)?.();
+    expect(onReload).toHaveBeenCalledOnce();
+    await nextTick();
+    expect(FakeEventSource.instances).toHaveLength(0);
+  });
+
+  it("holds its own stream only while no user stream carries it", async () => {
+    const realtime = carrier();
+    const onReload = vi.fn();
+    const follow = followDevReload(
+      { endpoint: ENDPOINT, onReload },
+      realtime,
+      NO_SHARING,
+    );
+    // Signed out: the sign-in page still follows the reloads.
+    expect(FakeEventSource.instances).toHaveLength(1);
+    latestSource().emit("reload");
+    expect(onReload).toHaveBeenCalledOnce();
+
+    realtime.carriesDevReload.value = true;
+    await nextTick();
+    expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
+
+    // The user stream dropped (a backend restart): the tab falls back until
+    // it is back.
+    realtime.carriesDevReload.value = false;
+    await nextTick();
+    expect(FakeEventSource.instances).toHaveLength(2);
+    expect(latestSource().readyState).toBe(FakeEventSource.CONNECTING);
+
+    follow.close();
+    expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
+    expect(realtime.handlers.size).toBe(0);
+  });
+});
+
+describe("shared dev reload stream", () => {
+  const flush = () => vi.advanceTimersByTimeAsync(0);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal("EventSource", FakeEventSource);
+    FakeEventSource.instances = [];
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("opens one source for every tab and relays its reloads to each", async () => {
+    const browser = createFakeBrowser();
+    const reloads = [vi.fn(), vi.fn(), vi.fn()];
+    for (const onReload of reloads) {
+      openSharedDevReloadStream(
+        { endpoint: ENDPOINT, onReload },
+        browser.openTab().environment,
+      );
+    }
+    await flush();
+
+    expect(FakeEventSource.instances).toHaveLength(1);
+    latestSource().emit("reload");
+    await flush();
+
+    for (const onReload of reloads) expect(onReload).toHaveBeenCalledOnce();
+  });
+
+  it("shares the fallback of signed-out tabs, and leaves it once carried", async () => {
+    const browser = createFakeBrowser();
+    const carriers = [ref(false), ref(false)];
+    for (const carriesDevReload of carriers) {
+      followDevReload(
+        { endpoint: ENDPOINT, onReload: vi.fn() },
+        { carriesDevReload, subscribe: () => () => {} },
+        browser.openTab().environment,
+      );
+    }
+    await flush();
+    expect(FakeEventSource.instances).toHaveLength(1);
+
+    for (const carriesDevReload of carriers) carriesDevReload.value = true;
+    await flush();
+    expect(latestSource().readyState).toBe(FakeEventSource.CLOSED);
+    expect(FakeEventSource.instances).toHaveLength(1);
+  });
+
+  it("reopens the source in another tab when the holding tab goes", async () => {
+    const browser = createFakeBrowser();
+    const leaderTab = browser.openTab();
+    const leader = openSharedDevReloadStream(
+      { endpoint: ENDPOINT, onReload: vi.fn() },
+      leaderTab.environment,
+    );
+    const onReload = vi.fn();
+    openSharedDevReloadStream(
+      { endpoint: ENDPOINT, onReload },
+      browser.openTab().environment,
+    );
+    await flush();
+    const first = latestSource();
+
+    leaderTab.cut();
+    leader.close();
+    await flush();
+
+    expect(first.readyState).toBe(FakeEventSource.CLOSED);
+    expect(FakeEventSource.instances).toHaveLength(2);
+    latestSource().emit("reload");
+    await flush();
+    expect(onReload).toHaveBeenCalledOnce();
   });
 });
