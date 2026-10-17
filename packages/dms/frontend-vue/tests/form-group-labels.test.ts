@@ -22,7 +22,10 @@ import {
   FORM_ENTRY_CONTEXT_KEY,
   type FormEntryContext,
 } from "../layers/dms-ui/app/build/composables/form/formEntryContext";
-import { FORM_LAYOUT_CLASSES } from "../layers/dms-ui/app/build/composables/form/formLayout";
+import {
+  FORM_LAYOUT_CLASSES,
+  GROUP_FIELDS_CLASSES,
+} from "../layers/dms-ui/app/build/composables/form/formLayout";
 import type {
   FormField,
   FormFieldOrGroup,
@@ -146,5 +149,27 @@ describe("a field group", () => {
       [...host.querySelectorAll("label")].map((label) => text(label)),
     ).toEqual(["Phone"]);
     expect(host.querySelectorAll("[data-control]")).toHaveLength(2);
+  });
+
+  it("wraps a horizontal group's members instead of squeezing them", async () => {
+    await mount([
+      {
+        id: "status",
+        label: "Status",
+        orientation: "horizontal",
+        fields: ["region", "team", "active", "color", "since"].map((id) =>
+          field(id, id),
+        ),
+      },
+    ]);
+    const cluster =
+      host.querySelector("[data-control]")?.parentElement?.parentElement;
+    expect(cluster?.className).toBe(GROUP_FIELDS_CLASSES.horizontal);
+    expect(cluster?.children).toHaveLength(5);
+    // A minimum track width, not equal shares of the row: five controls in a
+    // modal wrap onto a second line rather than draw over one another.
+    expect(GROUP_FIELDS_CLASSES.horizontal).toMatch(
+      /grid-cols-\[repeat\(auto-fit,minmax\(min\(100%,\d+rem\),1fr\)\)\]/,
+    );
   });
 });
