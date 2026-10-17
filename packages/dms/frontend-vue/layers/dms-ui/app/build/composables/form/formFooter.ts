@@ -3,8 +3,9 @@
  *
  * - `record` (default): a record, a settings page, a table view's form. It
  *   keeps its values once saved; Cancel while there is nothing to save when
- *   it has somewhere to go back to, then "Unsaved changes" with Discard and
- *   Save.
+ *   it has somewhere to go back to, then "Unsaved changes" with Save and,
+ *   beside it, Cancel again (discard and leave) or, with nowhere to go back
+ *   to, Discard.
  * - `action`: a form that does something each time (send a notification,
  *   invite someone, run a job). Its own submit label, always ready: what it
  *   holds untouched, its defaults included, is a payload too. Beside it,
@@ -39,7 +40,10 @@ export interface SaveBarContext {
   resettable: boolean;
 }
 
-/** The button beside the submit: Discard / Reset, or Cancel. */
+/**
+ * The button beside the submit: Discard / Reset (values back, the form
+ * stays), or Cancel (values back, the form is left).
+ */
 export type SaveBarSecondary = "discard" | "cancel";
 
 /** What a form's save bar shows. */
@@ -67,11 +71,20 @@ const HIDDEN_BAR: SaveBarState = {
 };
 
 /**
- * A record form's bar: "Unsaved changes" with Discard and Save once a value
- * changed, Cancel before that when it has somewhere to go back to.
+ * A record form's bar: "Unsaved changes" and Save once a value changed, Cancel
+ * before that when it has somewhere to go back to. Beside Save, a form with
+ * somewhere to go back to keeps Cancel, which drops the changes and leaves,
+ * the same as before any change: one click, never a reverted form left open.
+ * A form with nowhere to go back to offers Discard.
  */
 function recordSaveBar(context: SaveBarContext): SaveBarState {
-  if (context.dirty) return { ...HIDDEN_BAR, isHidden: false };
+  if (context.dirty) {
+    return {
+      ...HIDDEN_BAR,
+      secondary: context.cancellable ? "cancel" : "discard",
+      isHidden: false,
+    };
+  }
   if (!context.cancellable) return HIDDEN_BAR;
   return {
     showsStatus: false,

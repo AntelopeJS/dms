@@ -481,11 +481,13 @@ const hasChangeableFields = computed(() =>
 const router = useDmsRouter();
 const route = useDmsRoute();
 /**
- * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
- * form for the page the user came from (its list, when opened from one), or
- * its `backTo` when the form was opened directly.
+ * Cancel: drops what was changed, then closes the drawer or modal, or leaves
+ * a page form for the page the user came from (its list, when opened from
+ * one), or its `backTo` when the form was opened directly. Discarding first
+ * means leaving never asks about changes the user just chose to drop.
  */
 function cancelForm(): void {
+  if (isDirty.value) discardChanges();
   if (container) {
     void container.close();
     return;

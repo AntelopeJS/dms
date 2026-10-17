@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   formSaveMode,
@@ -35,6 +36,18 @@ describe("saveBarState of a record form", () => {
     expect(saveBarState(context({ dirty: true }))).toEqual({
       showsStatus: true,
       secondary: "discard",
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
+  });
+
+  it("keeps Cancel beside Save once changed, when it can be left", () => {
+    expect(
+      saveBarState(context({ dirty: true, cancellable: true })),
+    ).toEqual({
+      showsStatus: true,
+      secondary: "cancel",
       showsSubmit: true,
       isSubmitHeld: false,
       isHidden: false,
@@ -97,5 +110,17 @@ describe("saveBarState of an action form", () => {
       isSubmitHeld: false,
       isHidden: false,
     });
+  });
+});
+
+describe("Form.vue's Cancel", () => {
+  const source = readFileSync(
+    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
+    "utf8",
+  );
+
+  it("drops the changes before it leaves, so leaving asks nothing", () => {
+    const body = /function cancelForm\(\): void \{\s*([^\r\n]*)/.exec(source);
+    expect(body?.[1]).toBe("if (isDirty.value) discardChanges();");
   });
 });
