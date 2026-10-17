@@ -123,3 +123,34 @@ describe("relative date cell", () => {
     app.unmount();
   });
 });
+
+describe("relative date cell, day style", () => {
+  const NOW = new Date("2026-10-17T12:00:00Z").getTime();
+  const DayCell = (value: string) =>
+    defineComponent({
+      setup: () => () =>
+        formatters.get("relative_date")!(
+          value,
+          "en-GB",
+          { style: "day" },
+          {},
+        ) as VNodeChild,
+    });
+  const shown = (value: string) => {
+    const { app, container } = mountInBrowser(DayCell(value));
+    const text = container.textContent;
+    app.unmount();
+    return text;
+  };
+
+  it("names the year of a date in another year", () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: NOW });
+    expect(shown("2018-04-02T12:00:00Z")).toBe("2 Apr 2018");
+    expect(shown("2027-01-05T12:00:00Z")).toBe("5 Jan 2027");
+  });
+
+  it("leaves the year out of a date this year", () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: NOW });
+    expect(shown("2026-04-02T12:00:00Z")).toBe("2 Apr");
+  });
+});

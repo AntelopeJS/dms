@@ -628,7 +628,7 @@ function renderRelativeDate(
   const style = (isPast ? opts.pastStyle : undefined) ?? opts.style;
   let text =
     style === "day"
-      ? formatDayMonth(date, locale)
+      ? formatDayMonth(date, locale, now)
       : formatRelativeDate(date, locale, now);
   const isSoon = !isPast && !!opts.soonWithinMs && deltaMs < opts.soonWithinMs;
   const tone = isPast
