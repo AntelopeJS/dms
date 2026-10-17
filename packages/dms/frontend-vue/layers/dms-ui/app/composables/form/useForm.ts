@@ -361,6 +361,26 @@ export function resolveSubmitDefaults(
   return Object.keys(resolved).length > 0 ? resolved : undefined;
 }
 
+/**
+ * The values a form's fields start from among its submit defaults: a field
+ * the form submits under anyway (the parent a table is filtered on by a route
+ * parameter) shows it from the start, and a mandatory one is filled. A
+ * default with no field of the form is only submitted.
+ */
+export function fieldValuesOfSubmitDefaults(
+  fields: ReadonlyArray<{ id: string }>,
+  submitDefaults: Record<string, unknown> | undefined,
+): FormData {
+  const values: FormData = {};
+  if (!submitDefaults) return values;
+  for (const { id } of fields) {
+    if (id in submitDefaults) {
+      values[id] = submitDefaults[id] as FormFieldValue;
+    }
+  }
+  return values;
+}
+
 export function makeFieldSchemaRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
     return makeFieldSchemaRequired(schema.unwrap());
@@ -914,5 +934,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     isFieldGroup,
     submitSucceeded,
     resolvedFetchUrl,
+    effectiveSubmitDefaults,
   };
 };
