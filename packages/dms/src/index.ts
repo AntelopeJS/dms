@@ -105,7 +105,8 @@ export async function construct(config: Config): Promise<void> {
   await implementInterfaces();
   await registerDmsFrontend();
 
-  if (isDocsPreviewEnabled()) {
+  const { dev } = await GetRuntimeInfo();
+  if (isDocsPreviewEnabled(dev)) {
     registerDocsPreviewPage();
   }
 }
