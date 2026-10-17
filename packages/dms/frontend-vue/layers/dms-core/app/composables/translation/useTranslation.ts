@@ -6,9 +6,9 @@ export type I18nTranslate = (
 ) => string;
 
 /**
- * i18n access for DMS app plugins, where `useI18n()` is unavailable: returns the
- * global composer plus an {@link I18nTranslate} bound to it. Inside
- * components prefer `useI18n` / {@link useTranslation}.
+ * i18n access for DMS app plugins and data-type formatters, where `useI18n()`
+ * is unavailable: returns the global composer plus an {@link I18nTranslate}
+ * bound to it. Inside components prefer `useI18n` / {@link useTranslation}.
  */
 export function getPluginI18n() {
   const { $i18n: i18n } = useDmsApp();
@@ -88,9 +88,9 @@ export function resolveOptionalI18nKey(
   return isUntranslatedKey ? undefined : resolved;
 }
 
-export const useTranslation = () => {
-  const { t } = useI18n();
+type ComposerTranslate = ReturnType<typeof useI18n>["t"];
 
+function translationOf(t: ComposerTranslate) {
   function processI18n(key: string, params?: Record<string, unknown> | null) {
     return resolveI18nKey(t, key, params);
   }
@@ -106,4 +106,16 @@ export const useTranslation = () => {
     processI18n,
     processApiMessage,
   };
-};
+}
+
+export const useTranslation = () => translationOf(useI18n().t);
+
+/**
+ * {@link useTranslation} for code that runs wherever a value is drawn — a
+ * data-type formatter, a render function, a `computed` read by a watcher, an
+ * export — with no component setup active, where `useI18n()` throws. It reads
+ * the application's global composer (the one `useI18n()` returns), and each
+ * call reads its active locale, so a text written in a `computed` follows a
+ * language switch.
+ */
+export const getAppTranslation = () => translationOf(getPluginI18n().i18n.t);
