@@ -6,8 +6,8 @@ import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPil
 
 // v2 .mc-tile, the frame of the Modules page's tiles: an installed module's
 // card (a link into it) or a store module's dashed placeholder. Both read
-// the same: icon and status, the name low in the tile, its description, a
-// mono footer band.
+// the same: icon and status, name and description, optional content, and a
+// bottom-aligned mono footer band.
 
 /** The status pill of the tile's head. */
 export interface ModuleTileStatus {
@@ -31,7 +31,7 @@ interface ModuleTileProps {
 }
 
 interface ModuleTileSlots {
-  /** Above the name (a live readout). */
+  /** Under the description (a live readout). */
   readout?: () => unknown;
   /** Under the description (an install command). */
   default?: () => unknown;
@@ -49,7 +49,7 @@ const theme = tv({
   slots: {
     root: "flex min-h-[228px] flex-col gap-3 overflow-hidden px-4 pt-4",
     footer:
-      "text-dimmed -mx-4 mt-0.5 flex items-center gap-2 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
+      "text-dimmed -mx-4 mt-auto flex items-center gap-2 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
   },
   variants: {
     isPlaceholder: {
@@ -99,16 +99,16 @@ const ui = computed(() =>
       />
     </div>
 
-    <slot name="readout" />
-
     <div
-      class="text-highlighted mt-auto truncate text-lg font-[650] tracking-[-0.02em]"
+      class="text-highlighted truncate text-lg font-[650] tracking-[-0.02em]"
     >
       {{ props.title }}
     </div>
     <p class="text-muted -mt-1.5 line-clamp-2 text-sm leading-[1.45]">
       {{ props.description }}
     </p>
+
+    <slot name="readout" />
 
     <slot />
 
