@@ -45,6 +45,7 @@ import {
   resolveDeepLinkedRow,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/recordLink";
 import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrigger";
+import { resolveRowClickAction } from "../layers/dms-ui/app/utils/rowClickAction";
 import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
@@ -378,7 +379,9 @@ describe("row side panel navigation", () => {
 
 describe("row tokens in a row panel's component options", () => {
   // A block declared on the backend (a ResourceForm in view mode) reads its
-  // row from its options, not from `rowData`.
+  // row from its options, not from `rowData`; it loads the row its options
+  // name when it sets up.
+  let loadedRowIds: Array<string | undefined> = [];
   const BlockPanel = defineComponent({
     props: {
       fetchUrl: { type: String, default: undefined },
@@ -389,6 +392,7 @@ describe("row tokens in a row panel's component options", () => {
       },
     },
     setup(props) {
+      loadedRowIds.push(props.rowId);
       return () =>
         h("p", { "data-block": "" }, [
           `${props.fetchUrl}|${props.rowId}|${props.heading?.text}`,
@@ -410,9 +414,33 @@ describe("row tokens in a row panel's component options", () => {
     query(host, "[data-block]")?.textContent?.trim();
 
   beforeEach(() => {
+    loadedRowIds = [];
     vi.stubGlobal("resolveDmsComponent", (name: string) =>
       name === "BlockPanel" ? BlockPanel : undefined,
     );
+  });
+
+  it("fills them on a click on a row, before any ?record= is written", async () => {
+    const { host, targets } = mountPanel();
+    const action = blockAction();
+    // As Table.vue runs a row click (`rowClick: "single"`): the row's default
+    // action, handed the clicked row.
+    const row = document.createElement("tr");
+    row.addEventListener("click", (event) => {
+      if (!isRowClickTrigger("single", event)) return;
+      const clicked = resolveRowClickAction({ custom: [action] }, rows[1]!);
+      if (clicked && typeof clicked !== "string")
+        targets.handleCustomRowAction(clicked, rows[1]);
+    });
+    document.body.append(row);
+    expect(window.location.search).toBe("");
+    row.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    await settle();
+    expect(loadedRowIds).toEqual(["r2"]);
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r2&site={{query.site}}|r2|Second run",
+    );
+    expect(window.location.search).toBe("?record=r2");
   });
 
   it("fills them with the row shown, again on each step and showRow", async () => {
