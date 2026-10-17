@@ -89,3 +89,17 @@ export const GROUP_FIELDS_CLASSES: Record<FormOrientation, string> = {
   horizontal: "flex flex-col gap-2.5 @min-[560px]:flex-row",
   vertical: "flex flex-col gap-2.5",
 };
+
+/** Classes of a grouped field: its own label above its control. */
+export interface GroupMemberClasses {
+  root: string;
+  label: string;
+}
+
+// A member's label is a step below the group's (FieldRow's 13px semibold
+// label), which heads the cluster.
+export const GROUP_MEMBER_CLASSES: GroupMemberClasses = {
+  root: "grid min-w-0 flex-1 content-start gap-1.5",
+  label:
+    "flex flex-wrap items-center gap-1 text-[12.5px] font-medium text-toned",
+};
