@@ -1,7 +1,13 @@
 import { type Ref, watch } from "vue";
+import {
+  type CrossTabEnvironment,
+  shareAcrossTabs,
+} from "#dms-core/app/build/utils/crossTab";
 
 const RELOAD_EVENT_NAME = "reload";
 const REOPEN_DELAY_MS = 2000;
+const SHARED_STREAM_NAME_PREFIX = "dms-dev-reload";
+const RELOAD_MESSAGE = "reload";
 
 export interface DevReloadStreamOptions {
   endpoint: string;
@@ -81,6 +87,30 @@ export function openDevReloadStream(
   };
 }
 
+/**
+ * The `reload` stream of every tab of the browser, held by one of them: a
+ * stream per tab would take one of the browser's six HTTP/1.1 connections to
+ * the dev server each. When the holding tab goes, another one opens it.
+ */
+export function openSharedDevReloadStream(
+  options: DevReloadStreamOptions,
+  environment?: CrossTabEnvironment,
+): DevReloadStream {
+  const leave = shareAcrossTabs(
+    `${SHARED_STREAM_NAME_PREFIX}:${options.endpoint}`,
+    (emit) =>
+      openDevReloadStream({
+        endpoint: options.endpoint,
+        onReload: () => emit(RELOAD_MESSAGE),
+      }).close,
+    (message) => {
+      if (message === RELOAD_MESSAGE) options.onReload();
+    },
+    environment,
+  );
+  return { close: leave };
+}
+
 /** The topic the user's realtime stream carries the reload signal under. */
 export const DEV_RELOAD_TOPIC = "dms:dev-reload";
 
@@ -93,13 +123,14 @@ export interface DevReloadCarrier {
 
 /**
  * Follows the backend's reloads over the user's realtime stream while it is
- * open and carries them, and over a reload stream of its own only while it
- * does not (signed out, reconnecting): a tab holds one long-lived connection
- * to the backend, not two, of the six HTTP/1.1 allows per host.
+ * open and carries them, and over the reload stream the browser's tabs share
+ * only while it does not (signed out, reconnecting): a tab adds no long-lived
+ * connection of its own to the six HTTP/1.1 allows per host.
  */
 export function followDevReload(
   options: DevReloadStreamOptions,
   carrier: DevReloadCarrier,
+  environment?: CrossTabEnvironment,
 ): DevReloadStream {
   let stream: DevReloadStream | undefined;
   const unsubscribe = carrier.subscribe(DEV_RELOAD_TOPIC, () =>
@@ -113,7 +144,7 @@ export function followDevReload(
         stream = undefined;
         return;
       }
-      stream ??= openDevReloadStream(options);
+      stream ??= openSharedDevReloadStream(options, environment);
     },
     { immediate: true },
   );
