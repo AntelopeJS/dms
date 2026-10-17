@@ -202,8 +202,8 @@ export interface FormProps extends BaseComponentProps {
   /**
    * What the form edits. `record` (the default): a record, a settings page,
    * a table view's form; it keeps its values once saved, and offers Cancel
-   * while clean when it has somewhere to go back to (`backTo`, or the drawer
-   * or modal it sits in). `action`: a form that does something each time it
+   * when it has somewhere to go back to (`backTo`, or the drawer or modal it
+   * sits in): changes or not, Cancel drops them and leaves, in one click. `action`: a form that does something each time it
    * is sent — send a message, invite someone, run a job; its `submitLabel`
    * shows from the start, so its defaults can be sent as they are, with
    * Reset once a value changes (in a drawer or a modal, Cancel before that),
@@ -222,7 +222,9 @@ export interface FormProps extends BaseComponentProps {
    * substitution as `submitUrl` (`{{params.X}}`, `{{query.X}}`) plus
    * `{{response.X}}` which resolves against the JSON response body of the
    * submit request — useful for redirecting to the detail page of a freshly
-   * created entity (e.g. `/items/{{response.id}}/edit`).
+   * created entity (e.g. `/items/{{response.id}}/edit`). A submit answering
+   * the list of keys it wrote, as a DataController's `new` does, names its one
+   * key with `{{response._id}}`, `{{response.id}}` or `{{response.0}}`.
    */
   redirectOnSuccess?: string;
   /**

@@ -274,6 +274,8 @@ export interface TableViewConfig<T extends Data>
   location: string;
   enableTableExport?: boolean;
   archiveMode?: boolean;
+  /** Caption count while the archived rows show; "Archived: {count}" else. */
+  archivedCountLabel?: string;
   defaultFilters?: TableFilter[];
   columns: TableViewColumn[];
   labelKey?: string;

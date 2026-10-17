@@ -70,6 +70,7 @@ import {
 } from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
+import { scrollWithin } from "../../build/utils/scrollWithin";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -171,13 +172,14 @@ async function focusField(name: string | undefined): Promise<void> {
     target.focus();
     return;
   }
-  row?.scrollIntoView({ block: "center" });
+  if (row) scrollWithin(row, { block: "center" });
 }
 
 /** Brings a field into view and focuses it: a link's anchor, a field's request. */
 async function revealField(fieldId: string): Promise<void> {
   await formSettled();
-  fieldRow(fieldId)?.scrollIntoView({ block: "center" });
+  const row = fieldRow(fieldId);
+  if (row) scrollWithin(row, { block: "center" });
   await focusField(fieldId);
 }
 
@@ -251,6 +253,7 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
+  createsRecord,
 } = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
 watch(
@@ -346,10 +349,12 @@ watch(
 
 const { t, locale, locales } = useI18n();
 
+// A new row is created, not "changes" saved.
+const DEFAULT_SUBMIT_LABEL = createsRecord
+  ? "dms.button.create"
+  : "dms.button.save_changes";
 const submitButtonLabel = computed(() =>
-  props.submitLabel
-    ? processI18n(props.submitLabel)
-    : t("dms.button.save_changes"),
+  props.submitLabel ? processI18n(props.submitLabel) : t(DEFAULT_SUBMIT_LABEL),
 );
 
 watch(disabledFields, (newDisabled, oldDisabled) => {
@@ -479,11 +484,13 @@ const hasChangeableFields = computed(() =>
 const router = useDmsRouter();
 const route = useDmsRoute();
 /**
- * Cancel, with nothing to save: closes the drawer or modal, or leaves a page
- * form for the page the user came from (its list, when opened from one), or
- * its `backTo` when the form was opened directly.
+ * Cancel: drops what was changed, then closes the drawer or modal, or leaves
+ * a page form for the page the user came from (its list, when opened from
+ * one), or its `backTo` when the form was opened directly. Discarding first
+ * means leaving never asks about changes the user just chose to drop.
  */
 function cancelForm(): void {
+  if (isDirty.value) discardChanges();
   if (container) {
     void container.close();
     return;
@@ -684,7 +691,9 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
-  showsChanges: !isInstant && !isActionForm,
+  // A new row has no earlier value to compare with: "Changed · was empty"
+  // on every field it fills would say nothing.
+  showsChanges: !isInstant && !isActionForm && !createsRecord,
   isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
   baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
   fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",
@@ -1014,7 +1023,10 @@ onUnmounted(async () => {
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
-        :save-label="usesSaveBar ? props.submitLabel : submitButtonLabel"
+        :save-label="
+          usesSaveBar && !createsRecord ? props.submitLabel : submitButtonLabel
+        "
+        :creates="createsRecord"
         :cancellable="canCancel"
         :resettable="hasChangeableFields"
         :class="usesSaveBar ? 'mx-3' : surfaceClasses.foot"

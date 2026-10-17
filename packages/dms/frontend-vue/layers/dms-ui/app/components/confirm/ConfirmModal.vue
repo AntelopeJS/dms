@@ -382,7 +382,7 @@ function handleCancel() {
         size="sm"
         square
         :disabled="isPending"
-        :aria-label="$t('dms.confirm.cancel')"
+        :aria-label="$t('dms.confirm.close')"
         @click="handleCancel"
       />
     </template>

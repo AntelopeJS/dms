@@ -194,6 +194,8 @@ type TableStatePreference = [TableField, Ref<unknown>, unknown];
 interface TableViewProps<T extends Data> extends TableViewConfig<T> {
   /** Expandable rows: caret column + detail band (backend `expandable`). */
   expandable?: TableViewExpandableConfig;
+  /** Caption count while the archived rows show (backend `archivedCountLabel`). */
+  archivedCountLabel?: string;
   /** Placeholder of the search field. */
   searchPlaceholder?: string;
   /** Key opening the search (`defineShortcuts` notation); `shift_f` else. */
@@ -2132,6 +2134,7 @@ onMounted(() => {
     :url-filters="shownUrlFilters"
     :default-page-size="props.pageSize"
     :archive-toggle="canToggleArchived"
+    :archived-count-label="props.archivedCountLabel"
     :displays="availableDisplays"
     :active-capabilities="activeCapabilities"
     :kanban-group-by-options="kanbanGroupByOptions"

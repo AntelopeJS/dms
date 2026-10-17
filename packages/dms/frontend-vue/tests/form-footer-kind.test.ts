@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   formSaveMode,
@@ -41,6 +42,18 @@ describe("saveBarState of a record form", () => {
     });
   });
 
+  it("keeps Cancel beside Save once changed, when it can be left", () => {
+    expect(
+      saveBarState(context({ dirty: true, cancellable: true })),
+    ).toEqual({
+      showsStatus: true,
+      secondary: "cancel",
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
+  });
+
   it("offers Cancel alone while clean, when it has somewhere to go back to", () => {
     expect(saveBarState(context({ cancellable: true }))).toMatchObject({
       showsStatus: false,
@@ -52,6 +65,35 @@ describe("saveBarState of a record form", () => {
 
   it("hides, keeping its place, with nothing to offer", () => {
     expect(saveBarState(context({})).isHidden).toBe(true);
+  });
+});
+
+describe("saveBarState of a create form", () => {
+  const create = (overrides: Partial<SaveBarContext>) =>
+    saveBarState(context({ creates: true, ...overrides }));
+
+  it("can be saved as it opened: a duplicate needs no change first", () => {
+    expect(create({ cancellable: true })).toEqual({
+      showsStatus: false,
+      secondary: "cancel",
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
+  });
+
+  it("lists no unsaved changes once filled, Cancel still beside Save", () => {
+    expect(create({ cancellable: true, dirty: true })).toMatchObject({
+      showsStatus: false,
+      secondary: "cancel",
+      showsSubmit: true,
+    });
+  });
+
+  it("offers Discard once filled with nowhere to go back to", () => {
+    expect(create({}).secondary).toBeUndefined();
+    expect(create({ dirty: true }).secondary).toBe("discard");
+    expect(create({}).isHidden).toBe(false);
   });
 });
 
@@ -97,5 +139,17 @@ describe("saveBarState of an action form", () => {
       isSubmitHeld: false,
       isHidden: false,
     });
+  });
+});
+
+describe("Form.vue's Cancel", () => {
+  const source = readFileSync(
+    new URL("../layers/dms-ui/app/components/form/Form.vue", import.meta.url),
+    "utf8",
+  );
+
+  it("drops the changes before it leaves, so leaving asks nothing", () => {
+    const body = /function cancelForm\(\): void \{\s*([^\r\n]*)/.exec(source);
+    expect(body?.[1]).toBe("if (isDirty.value) discardChanges();");
   });
 });

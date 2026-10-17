@@ -6,6 +6,7 @@ import type {
 } from "../../composables/form/formSections";
 import DmsFormEntries from "./FormEntries.vue";
 import DmsFormSectionNav from "./FormSectionNav.vue";
+import { scrollWithin } from "../../utils/scrollWithin";
 
 interface FormSectionsProps {
   layout: FormSectionsLayout;
@@ -30,9 +31,8 @@ function anchorId(sectionId: string): string {
 
 function scrollToSection(sectionId: string): void {
   activeId.value = sectionId;
-  document
-    .getElementById(anchorId(sectionId))
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const section = document.getElementById(anchorId(sectionId));
+  if (section) scrollWithin(section, { behavior: "smooth", block: "start" });
   history.replaceState(history.state, "", `#${anchorId(sectionId)}`);
 }
 
