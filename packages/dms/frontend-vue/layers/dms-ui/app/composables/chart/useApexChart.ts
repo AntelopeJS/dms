@@ -3,6 +3,7 @@ import { APEX_TYPE_CONFIGS } from "./apexTypeConfigs";
 import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
 import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
+import { heatmapRangeColors, isDarkSurface } from "./heatmapColors";
 import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
   axisLabelStyle,
@@ -21,6 +22,7 @@ import {
   readThemeBorderAccented,
   readThemeHighlighted,
   readThemeMuted,
+  readThemeSurface,
 } from "./useChartTheme";
 import type {
   ChartSeries,
@@ -577,6 +579,12 @@ function buildValueBasedRanges(
   });
 }
 
+/**
+ * Several colours split a heatmap's values into ranges, one colour each,
+ * laid over the card surface from faint to full: low values fade into the
+ * card in either theme. Apex's own shading is off there, as it would lighten
+ * each range towards white again.
+ */
 function applyValueBasedColorScale(
   plotOptions: Record<string, unknown>,
   input: UseApexChartInput,
@@ -586,13 +594,35 @@ function applyValueBasedColorScale(
   if (!VALUE_SCALED_TYPES.includes(input.type)) return;
   if (input.distributed) return;
   if (palette.length < 2) return;
-  const ranges = buildValueBasedRanges(extractNumericValues(series), palette);
-  if (ranges.length === 0) return;
   const subKey = VALUE_SCALED_PLOT_KEY[input.type]!;
   const subOptions =
     (plotOptions[subKey] as Record<string, unknown> | undefined) ?? {};
+  const colors = heatmapRangeColors(
+    palette,
+    readThemeSurface(),
+    Number(subOptions.shadeIntensity ?? 1),
+  );
+  const ranges = buildValueBasedRanges(extractNumericValues(series), colors);
+  if (ranges.length === 0) return;
   subOptions.colorScale = { ranges };
+  subOptions.enableShades = false;
   plotOptions[subKey] = subOptions;
+}
+
+/**
+ * A heatmap with one colour, or one per row (`distributed`), is shaded by
+ * Apex: towards white unless told the theme is dark, where it shades towards
+ * black, the side of a dark card. Only the shading reads this mode: every
+ * colour Apex would take from it is set explicitly.
+ */
+function applyHeatmapThemeMode(
+  baseOptions: Record<string, unknown>,
+  input: UseApexChartInput,
+): void {
+  if (!VALUE_SCALED_TYPES.includes(input.type)) return;
+  baseOptions.theme = {
+    mode: isDarkSurface(readThemeSurface()) ? "dark" : "light",
+  };
 }
 
 function applyOptionalSections(
@@ -604,6 +634,7 @@ function applyOptionalSections(
 ): void {
   const plotOptions = buildPlotOptions(input);
   applyValueBasedColorScale(plotOptions, input, series, palette);
+  applyHeatmapThemeMode(baseOptions, input);
   if (Object.keys(plotOptions).length > 0)
     baseOptions.plotOptions = plotOptions;
 
