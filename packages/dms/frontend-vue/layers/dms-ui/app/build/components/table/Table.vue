@@ -201,6 +201,12 @@ export interface TableProps<T> {
    */
   archiveToggle?: boolean;
   /**
+   * Caption count while the archived rows show: a `$` key receiving
+   * `{ count }` and pluralized on it, or a text with `{count}`. Defaults to
+   * "Archived: {count}".
+   */
+  archivedCountLabel?: string;
+  /**
    * Controls drawn around the rows (the resolved backend `chrome`). Defaults
    * to the full chrome.
    */
@@ -440,6 +446,7 @@ import TableRowSelection from "./RowSelection.vue";
 import TableTabs from "./Tabs.vue";
 import { createTableViewDeleteShortcut } from "../../../composables/table-view/shortcuts/tableViewDelete";
 import { FULL_TABLE_CHROME } from "../../composables/table-view/utils/chrome";
+import { formatArchivedCount } from "../../composables/table/utils/archivedCount";
 import {
   clearTableColumnFilters,
   clearTableFilters,
@@ -1059,7 +1066,12 @@ const formattedRowCount = computed(() =>
 
 const captionCountLabel = computed(() =>
   isShowingArchived.value
-    ? t("dms.table.archived_count", { count: formattedRowCount.value })
+    ? formatArchivedCount(
+        t,
+        rowCount.value,
+        formattedRowCount.value,
+        props.archivedCountLabel,
+      )
     : formattedRowCount.value,
 );
 
