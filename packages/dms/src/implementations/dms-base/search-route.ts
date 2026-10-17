@@ -278,7 +278,42 @@ export async function buildFilteredQuery(
     }
   }
 
-  return { meta, model, query, queryTotal, deferredJoined };
+  return {
+    meta,
+    model,
+    query,
+    queryTotal,
+    deferredJoined,
+    filters: filtersWithArchive,
+  };
+}
+
+/**
+ * The `@Computed` fields a page of rows still has to compute: the listed
+ * ones the query has not merged already. `Query.List` merges a computed field
+ * only when a filter or the sort reads it, so a field shown and nothing more
+ * is computed here, after the slice, for the rows returned alone -- as the
+ * data API's own list does.
+ */
+// @internal
+export function displayOnlyComputedFields(
+  meta: DataAPIMeta,
+  filters: Parameters.ListParameters["filters"],
+  sortKey: string | undefined,
+  pluck: Set<string> | undefined,
+): Set<string> {
+  const merged = new Set(
+    Object.keys(filters ?? {}).filter((name) => name in meta.filters),
+  );
+  if (sortKey) merged.add(sortKey);
+  return new Set(
+    Object.entries(meta.fields)
+      .filter(
+        ([name, field]) =>
+          field.computed && !merged.has(name) && (!pluck || pluck.has(name)),
+      )
+      .map(([name]) => name),
+  );
 }
 
 export async function countWithSearch(
@@ -318,9 +353,7 @@ export async function listWithSearch(
     user,
     permissions,
   );
-  const { meta, model, queryTotal, deferredJoined } = built;
-  let query = built.query;
-
+  const { meta, model, queryTotal, deferredJoined, filters } = built;
   const pluck: Set<string> | undefined = meta.pluck[params.pluckMode ?? "list"];
   assert(
     params.noPluck || pluck,
@@ -328,18 +361,9 @@ export async function listWithSearch(
     `No fields found for pluckMode '${params.pluckMode ?? "list"}'`,
   );
 
-  if (!params.noForeign) {
-    query = Query.Foreign(
-      model.database,
-      meta,
-      query as any,
-      params.noPluck ? undefined : pluck,
-    );
-  }
-
   const offset = params.offset || 0;
   const limit = params.limit || 10;
-  let queryPaged = query.slice(offset, limit);
+  let queryPaged = built.query.slice(offset, limit);
 
   const joinedFields = new Set(
     [...deferredJoined].filter((field) => params.noPluck || pluck?.has(field)),
@@ -350,6 +374,32 @@ export async function listWithSearch(
       meta,
       queryPaged as any,
       joinedFields,
+    );
+  }
+
+  const displayComputed = displayOnlyComputedFields(
+    meta,
+    filters,
+    params.sortKey,
+    params.noPluck ? undefined : pluck,
+  );
+  if (displayComputed.size > 0) {
+    queryPaged = Query.Computed(
+      model.database,
+      meta,
+      queryPaged,
+      displayComputed,
+    );
+  }
+
+  // Last: a relation's lookup replaces its key with the related row, which a
+  // computed expression reading that key would no longer find.
+  if (!params.noForeign) {
+    queryPaged = Query.Foreign(
+      model.database,
+      meta,
+      queryPaged as any,
+      params.noPluck ? undefined : pluck,
     );
   }
 

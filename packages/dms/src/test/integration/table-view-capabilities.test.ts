@@ -8,6 +8,7 @@ import { countRawDocuments, resetDatabase } from "../helpers/db";
 // filter tokens resolved per caller, and a bulk route finding its rows.
 
 const LOCATION = "/api/capabilities/invoices";
+const BULK_LOCATION = "/api/capabilities/invoice-bulk";
 const COLLECTION = "capability-invoices";
 const SLUG = "/capability-invoices";
 const HTTP_OK = 200;
@@ -229,6 +230,32 @@ describe("[integration] table view capabilities", () => {
       `${LOCATION}/mark-paid?ids=${invoice!._id}`,
     );
     expect(selected.status, JSON.stringify(selected.data)).to.equal(
+      HTTP_FORBIDDEN,
+    );
+  });
+
+  it("finds a table's rows from a route outside its controller, under its list permission", async () => {
+    const sorted = (ids: string[]) =>
+      [...ids].sort((a, b) => a.localeCompare(b));
+    const idOf = (invoice: Invoice) => invoice._id;
+    const mine = await list(client, `&filter_ownerId=is:${userId}`);
+    expect(mine).to.have.length(2);
+    const matching = await client.post(
+      `${BULK_LOCATION}/matching?allMatching=true&filter_ownerId=is:${userId}`,
+    );
+    expect(matching.status, JSON.stringify(matching.data)).to.equal(HTTP_OK);
+    expect(sorted(matching.data.ids)).to.deep.equal(sorted(mine.map(idOf)));
+
+    const selected = await client.post(
+      `${BULK_LOCATION}/matching?ids=${mine[0]!._id}`,
+    );
+    expect(selected.data.ids).to.deep.equal([mine[0]!._id]);
+
+    const member = await registerUser();
+    const refused = await authorizedClient(member.accessToken).post(
+      `${BULK_LOCATION}/matching?allMatching=true`,
+    );
+    expect(refused.status, JSON.stringify(refused.data)).to.equal(
       HTTP_FORBIDDEN,
     );
   });

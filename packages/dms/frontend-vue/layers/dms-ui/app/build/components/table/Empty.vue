@@ -211,10 +211,11 @@ const builtInActions = computed(() => {
     ];
   }
   if (props.canAddRow) {
+    const add = tableSharedData.value?.addAction;
     return [
       {
-        label: t("dms.table.new_row"),
-        icon: "i-ph-plus",
+        label: add?.label ? processI18n(add.label) : t("dms.table.new_row"),
+        icon: add?.icon ?? "i-ph-plus",
         color: "primary" as const,
         size: "md" as const,
         onClick: () => tableSharedData.value?.emits("add"),

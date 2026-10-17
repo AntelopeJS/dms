@@ -8,6 +8,7 @@ import type {
 import type { FormField } from "../../composables/form/types/field";
 import {
   cloneFormValue,
+  fieldValuesOfSubmitDefaults,
   type FormServerFieldError,
   formShowsActions,
   isAcceptanceField,
@@ -251,6 +252,7 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
+  effectiveSubmitDefaults,
 } = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
 watch(
@@ -546,6 +548,15 @@ allFields.value.forEach((field) => {
     field.defaultValue,
   ) as FormFieldValue;
 });
+
+// A field the form submits a default under (the parent a table is filtered
+// on) holds it from the start: it shows, and a mandatory one is filled.
+for (const [id, value] of Object.entries(
+  fieldValuesOfSubmitDefaults(allFields.value, effectiveSubmitDefaults.value),
+)) {
+  state.value[id] = cloneFormValue(value);
+  initialValues.value[id] = cloneFormValue(value) as FormFieldValue;
+}
 
 let recordLoad: FormRecordLoad | undefined;
 if (props.fetchUrl) {

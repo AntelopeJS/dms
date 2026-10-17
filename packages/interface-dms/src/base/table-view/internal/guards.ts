@@ -12,7 +12,7 @@ import {
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import { Logging } from "@antelopejs/interface-core/logging";
 import type { AfterWrite, GuardFn } from "../../types/guards";
-import { fetchRowForGuard } from "../data-functions";
+import { fetchRowForGuard, getTableViewRow } from "../data-functions";
 import { TableViewMeta } from "../meta";
 import { DEFAULT_ROW_ID_FIELD } from "../options";
 import { normalizeToArray } from "./row-rules";
@@ -122,15 +122,31 @@ const getGuardForAction = (
   return meta.controllerGuards?.[actionName] as GuardFn<any> | undefined;
 };
 
-/** @internal */
-export const guardedGetRoute = DefaultRoutes.WithGetGuard(
-  async function (ctx, current, params) {
-    await getGuardForAction(this, "get")?.call(this, ctx, {
-      id: params.id,
-      current,
-    });
-  },
-);
+const getGuard: DefaultRoutes.GetGuard = async function (ctx, current, params) {
+  await getGuardForAction(this, "get")?.call(this, ctx, {
+    id: params.id,
+    current,
+  });
+};
+
+/**
+ * The `get` route of `DefaultRoutes`, its guard included, reading the row the
+ * way the list does: a relation is resolved after the computed fields, which
+ * may read its key, and is never lost to them.
+ *
+ * @internal
+ */
+export const guardedGetRoute: DataControllerCallback<Parameters.GetParameters> =
+  {
+    ...DefaultRoutes.Get,
+    func: function (
+      this: unknown,
+      ctx: RequestContext,
+      params: Parameters.GetParameters,
+    ) {
+      return getTableViewRow(this, ctx, params, getGuard);
+    },
+  };
 
 const getIdField = (controller: unknown): string => {
   const meta = GetMetadata(
@@ -161,6 +177,13 @@ const CONFIRM_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
   "restore",
 ]);
 
+// Their route writes the body it reads: the guard is handed that body parsed,
+// and the route writes it as the guard left it.
+const WRITE_BODY_ACTIONS: ReadonlySet<GuardedActionName> = new Set([
+  "new",
+  "edit",
+]);
+
 /** @internal */
 export const createGuardedRoute = (
   baseRoute: DataControllerCallback,
@@ -176,8 +199,16 @@ export const createGuardedRoute = (
       ...routeArgs: unknown[]
     ) {
       const confirmBody = readsConfirmBody ? routeArgs.pop() : undefined;
-      const args = readsConfirmBody ? [confirmBody] : routeArgs;
       const guard = getGuardForAction(this, actionName);
+      const writtenBody =
+        guard && WRITE_BODY_ACTIONS.has(actionName)
+          ? parseGuardBody(routeArgs[0])
+          : undefined;
+      const args = readsConfirmBody
+        ? [confirmBody]
+        : writtenBody
+          ? [writtenBody, ...routeArgs.slice(1)]
+          : routeArgs;
       const afterWrite = guard
         ? await config.invokeGuard(
             this,
@@ -188,7 +219,16 @@ export const createGuardedRoute = (
             getIdField(this),
           )
         : undefined;
-      const result = await baseRoute.func.call(this, ctx, params, ...routeArgs);
+      // The data API parses the raw body it is handed.
+      const writtenArgs = writtenBody
+        ? [Buffer.from(JSON.stringify(writtenBody)), ...routeArgs.slice(1)]
+        : routeArgs;
+      const result = await baseRoute.func.call(
+        this,
+        ctx,
+        params,
+        ...writtenArgs,
+      );
       if (afterWrite) await runAfterWrite(afterWrite, actionName);
       return result;
     },

@@ -125,6 +125,8 @@ export function resolveConfirmDialog(
     description: text(dialog.description),
     confirmLabel: text(dialog.confirmLabel),
     cancelLabel: text(dialog.cancelLabel),
+    // The text to type, the row's name more often than not ("{name}").
+    confirmText: text(dialog.confirmText),
     impact: dialog.impact?.map((entry) => ({
       ...entry,
       label: text(entry.label) ?? "",

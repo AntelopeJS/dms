@@ -18,7 +18,10 @@ import {
   groupedSorting,
   groupFilter,
   isGroupableColumn,
+  listTableSorting,
   NO_GROUP_KEY,
+  orderGroupedRows,
+  pickedTableSorting,
   rowGroupKey,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/groupedRows";
 import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-view/types";
@@ -92,6 +95,71 @@ describe("grouped rows", () => {
     ]);
     expect(groupedSorting([], { groupByField: "status" })).toEqual([
       { id: "status", desc: false },
+    ]);
+  });
+});
+
+describe("grouped display sorting", () => {
+  const grouped = { groupByField: "status" };
+  const base = {
+    canSort: true,
+    sorting: [{ id: "title", desc: true }],
+    defaultSorting: [{ id: "createdAt", desc: true }],
+  };
+
+  it("lists a hand-ordered table on its grouped column, not its order field", () => {
+    const input = { ...base, reorderField: "position", grouped };
+    expect(listTableSorting(input)).toEqual([{ id: "status", desc: false }]);
+    expect(pickedTableSorting(input)).toEqual([
+      { id: "position", desc: false },
+    ]);
+    // Off the grouped display the order field sorts the list.
+    expect(listTableSorting({ ...input, grouped: undefined })).toEqual([
+      { id: "position", desc: false },
+    ]);
+  });
+
+  it("keeps the sort a view opened the grouped display with, though it hides the picker", () => {
+    const input = { ...base, canSort: false, grouped };
+    expect(pickedTableSorting(input)).toEqual([{ id: "title", desc: true }]);
+    expect(listTableSorting(input)).toEqual([{ id: "status", desc: false }]);
+    // A display without the picker, and not grouped, keeps the default.
+    expect(listTableSorting({ ...input, grouped: undefined })).toEqual(
+      base.defaultSorting,
+    );
+  });
+
+  it("orders each group's rows by the picked sort, keeping the groups in place", () => {
+    const rows = [
+      { id: "a", status: "open", position: 3 },
+      { id: "b", status: "open", position: 1 },
+      { id: "c", status: "closed", position: 2 },
+      { id: "d", status: "open", position: 2 },
+      { id: "e", status: "closed", position: 1 },
+    ];
+    const ids = (sorting: { id: string; desc: boolean }[]) =>
+      orderGroupedRows(rows, grouped, sorting, "en-GB").map((row) => row.id);
+    expect(ids([{ id: "position", desc: false }])).toEqual([
+      "b",
+      "d",
+      "a",
+      "e",
+      "c",
+    ]);
+    expect(ids([{ id: "position", desc: true }])).toEqual([
+      "a",
+      "d",
+      "b",
+      "c",
+      "e",
+    ]);
+    // A sort on the grouped column itself leaves the listed order.
+    expect(ids([{ id: "status", desc: false }])).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
     ]);
   });
 });

@@ -8,6 +8,7 @@ import { GetMetadata } from "@antelopejs/interface-core";
 import {
   type DataControllerCallback,
   type DataControllerCallbackWithOptions,
+  type DefaultRoutes,
   GetDataControllerMeta,
 } from "@antelopejs/interface-data-api";
 import {
@@ -41,12 +42,16 @@ import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
+  displayOnlyComputedFields,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
 
 type DataControllerThis =
   | DataControllerCallback
   | DataControllerCallbackWithOptions;
+
+/** The index a row is read by when the request names none. */
+const PRIMARY_INDEX = "_id";
 
 /** Rows read from the database per export page. */
 export const EXPORT_BATCH_SIZE = 100;
@@ -152,7 +157,8 @@ async function buildIdsExportQuery(
     }
   }
 
-  return { query, queryTotal: query.count(), model };
+  // Read without `Query.List`: no computed field is merged yet.
+  return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
 /** What the export reads from. */
@@ -182,6 +188,7 @@ async function buildExportQuery({
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
+    mergedBy: { filters: built.filters, sortKey: listParams.sortKey },
   };
 }
 
@@ -235,7 +242,7 @@ export async function generateTableViewExport({
 
   writer.writeHeaders(headers);
 
-  const { query, queryTotal, model } = await buildExportQuery({
+  const { query, queryTotal, model, mergedBy } = await buildExportQuery({
     controller,
     controllerMetadata,
     ctx,
@@ -245,11 +252,26 @@ export async function generateTableViewExport({
   });
 
   const totalRecordsCount = await queryTotal;
+  const displayComputed = displayOnlyComputedFields(
+    controllerMetadata,
+    mergedBy?.filters,
+    mergedBy?.sortKey,
+    listParams.noPluck ? undefined : selectedFields,
+  );
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
     // `Stream.slice` takes (offset, count), not (start, end): passing an end
     // index grows every page and re-reads rows the previous one wrote.
     let pendingRecordBatch = query.slice(i, EXPORT_BATCH_SIZE);
+
+    if (displayComputed.size > 0) {
+      pendingRecordBatch = Query.Computed(
+        model.database,
+        controllerMetadata,
+        pendingRecordBatch,
+        displayComputed,
+      );
+    }
 
     if (!listParams.noPluck && selectedFields) {
       pendingRecordBatch = pendingRecordBatch.pluck(
@@ -366,6 +388,39 @@ export async function downloadExport(
     exportId,
     buildTableViewAccessForController(controller),
   );
+}
+
+/**
+ * One row read alone, as the list reads its rows: a stream, so a relation is
+ * resolved by a lookup after the computed fields, which may read its key.
+ * The data API's own `get` resolves relations on a single value, where a
+ * computed sub-query beside them left every single relation null.
+ */
+export async function getTableViewRow(
+  controller: any,
+  reqCtx: RequestContext,
+  params: Parameters.GetParameters,
+  guard?: DefaultRoutes.GetGuard,
+): Promise<Record<string, unknown>> {
+  const meta = GetDataControllerMeta(controller);
+  const model = Query.GetModel(controller, meta);
+  let query: Stream<unknown> = model.table.getAll(
+    [params.id],
+    params.index ?? PRIMARY_INDEX,
+  );
+  query = Query.Joined(model.database, meta, query);
+  query = Query.Computed(model.database, meta, query);
+  if (!params.noForeign) {
+    query = Query.Foreign(model.database, meta, query);
+  }
+  const [row] = await query.slice(0, 1);
+  const current = row ? model.constructor.fromDatabase(row) : undefined;
+  assert(current, 404, "Not Found");
+  Validation.Unlock(controller, meta, current);
+  await guard?.call(controller, reqCtx, current, params);
+  const result = await Query.ReadProperties(controller, meta, current, "get");
+  Validation.ClearInternal(meta, result);
+  return result;
 }
 
 interface RuleValidationResult {

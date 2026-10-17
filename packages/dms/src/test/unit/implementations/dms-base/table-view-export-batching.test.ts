@@ -4,10 +4,11 @@ import type { Parameters } from "@antelopejs/interface-data-api/components";
 import {
   Access,
   AccessMode,
+  Computed,
   ModelReference,
   Sortable,
 } from "@antelopejs/interface-data-api/metadata";
-import { Schema } from "@antelopejs/interface-database";
+import { Schema, type ValueProxy } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
@@ -61,6 +62,11 @@ class InvoiceAPI extends DataController(
   @Sortable()
   @Access(AccessMode.ReadOnly)
   declare position: number;
+
+  // Computed in the database, and neither sorted nor filtered on.
+  @Exported()
+  @Computed((row) => (row.key("position") as ValueProxy<number>).add(1))
+  declare rank: number;
 }
 
 class CollectingWriter implements ExportWriter {
@@ -144,5 +150,15 @@ describe("[unit] implementations/dms-base/table-view — export batching", () =>
 
     expect(exportedIds).to.have.lengthOf(ROW_COUNT);
     expect(new Set(exportedIds).size).to.equal(ROW_COUNT);
+  });
+
+  it("exports the computed fields of every row, listed or selected", async () => {
+    for (const writer of [await exportAll(), await exportAll(sourceIds)]) {
+      expect(writer.headers).to.include("rank");
+      const wrong = writer.rows.filter(
+        (row) => row.rank !== Number(row.position) + 1,
+      );
+      expect(wrong).to.deep.equal([]);
+    }
   });
 });

@@ -145,6 +145,22 @@ export class CapabilityInvoiceController extends DataController(
   }
 }
 
+// A route outside the invoices' data controller (a page's would do the same)
+// finding the rows of their table by naming the controller's class.
+export class InvoiceBulkController extends Controller(
+  "/api/capabilities/invoice-bulk",
+) {
+  @Post("matching")
+  async matching(
+    @Context() ctx: RequestContext,
+    @AuthUser() user: User,
+  ): Promise<{ ids: string[] }> {
+    return {
+      ids: await resolveBulkRowIds(CapabilityInvoiceController, ctx, user),
+    };
+  }
+}
+
 // The same invoices behind a route scope: every list-like route, the tab
 // counters' batch count included, only ever sees the open ones.
 const OPEN_SCOPE = { filters: { status: ["open", "is"] as [string, string] } };

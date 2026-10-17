@@ -11,6 +11,7 @@ import {
   resolveUrlVariables,
 } from "../../utils/urlVariables";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
+import { compareValues, textOf } from "./utils/compareValues";
 import { pinRows } from "./utils/pinnedRows";
 import {
   appendPeriodToUrl,
@@ -86,18 +87,6 @@ export function sourceRouteQuery(
   );
 }
 
-const textOf = (value: unknown): string =>
-  value === null || value === undefined
-    ? ""
-    : typeof value === "object"
-      ? JSON.stringify(value)
-      : String(value);
-
-const compareValues = (a: unknown, b: unknown): number => {
-  if (typeof a === "number" && typeof b === "number") return a - b;
-  return textOf(a).localeCompare(textOf(b), undefined, { numeric: true });
-};
-
 /**
  * The rows the browser narrows, sorts and pages itself, for what the source
  * route left to it: a search over the listed columns' text, the sort on one
@@ -155,7 +144,10 @@ interface SharedRead<T> {
  * order its keys were built in.
  */
 const sourceReadKey = (url: string, query: Query): string =>
-  JSON.stringify([url, Object.entries(query).sort(([a], [b]) => a.localeCompare(b))]);
+  JSON.stringify([
+    url,
+    Object.entries(query).sort(([a], [b]) => a.localeCompare(b)),
+  ]);
 
 /**
  * Settles with `answer`, or rejects as soon as `signal` aborts, calling
@@ -173,9 +165,9 @@ function awaitUnlessAborted<R>(
     };
     if (signal.aborted) return abort();
     signal.addEventListener("abort", abort, { once: true });
-    answer.then(resolve, reject).finally(() =>
-      signal.removeEventListener("abort", abort),
-    );
+    answer
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", abort));
   });
 }
 

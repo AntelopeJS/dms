@@ -27,6 +27,8 @@ export interface PageHeaderButtonSerialized extends Omit<
   buttonId?: string;
   /** Place among the header's buttons (`PageHeaderButton.order`). */
   order?: number;
+  /** Acts on the page's record (`PageHeaderButton.requiresRecord`). */
+  requiresRecord?: boolean;
 }
 
 /**
