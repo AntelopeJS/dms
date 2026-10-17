@@ -81,7 +81,7 @@ export default defineConfig({
       source: {
         type: "package",
         package: "@antelopejs/auth-jwt",
-        version: "^1.0.3",
+        version: "^1.0.4",
       },
       config: {
         secret: process.env.AUTH_JWT_SECRET ?? "dev",
