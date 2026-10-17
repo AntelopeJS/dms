@@ -427,6 +427,44 @@ describe("action targets on a selection and on a listed row", () => {
     drawer!.settle();
   });
 
+  it("names the open row in a drawer's {{query.record}} options", async () => {
+    window.history.replaceState(null, "", "/quotes");
+    const rows = [{ _id: "q1" }, { _id: "q2" }];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id" },
+      recordScope: { tableId: "quotes", isSoleTableView: true },
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Open",
+        deepLink: true,
+        target: {
+          type: "drawer",
+          component: {
+            componentName: "QuoteForm",
+            options: {
+              rowId: "{{query.record}}",
+              fetchUrl: "/api/quotes/get?id={{query.record}}",
+            },
+          },
+        },
+      },
+      rows[0],
+    );
+    await vi.waitFor(() => expect(drawers).toHaveLength(1));
+    const [drawer] = drawers;
+    expect(drawer!.options.componentOptions).toMatchObject({
+      rowId: "q1",
+      fetchUrl: "/api/quotes/get?id=q1",
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
+    expect(drawer!.patches[0]!.componentOptions).toMatchObject({
+      rowId: "q2",
+      fetchUrl: "/api/quotes/get?id=q2",
+    });
+    drawer!.settle();
+  });
+
   it("hands a bulk drawer the selection instead of a row", async () => {
     const targets = mountTargets();
     targets.handleBulkCustomAction(

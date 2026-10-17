@@ -42,6 +42,7 @@ import {
   useRowSidePanelContent,
 } from "#dms-layout/app/build/composables/layout/rowSidePanel";
 import type { TableUrlScope } from "../table-view/utils/views";
+import { withRecordTokens } from "./recordTokens";
 import { useActionConfirm } from "../confirm/useActionConfirm";
 import {
   type ConfirmTranslate,
@@ -335,6 +336,11 @@ export function useActionTargets(config: ActionTargetsConfig) {
     return id === undefined || id === null ? undefined : String(id);
   };
 
+  // A component opened on a row reads it from its options as from the URL
+  // (`{{query.record}}`), which the table writes in place.
+  const rowComponentOptions = (options: object | undefined, row?: Data) =>
+    withRecordTokens(options, config.recordScope ?? {}, rowIdOf(row));
+
   // A deep-linked action keeps the row it has open in the URL, by id;
   // `undefined` removes it, but only the row this run wrote, on the page it
   // wrote it: closing as the user navigates leaves the next page's
@@ -415,7 +421,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
       positionLabel: run.target.positionLabel,
       component: resolveTargetComponent(componentName),
       componentOptions: {
-        ...run.target.component?.options,
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -434,6 +439,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     function showRow(row?: Data) {
       openRowSidePanel({
         ...panel,
+        componentOptions: {
+          ...rowComponentOptions(run.target.component?.options, row),
+          ...panel.componentOptions,
+        },
         rowTitle: rowTitleOf(run.target, row),
         row,
         rowKey: rowIdOf(row),
@@ -443,7 +452,15 @@ export function useActionTargets(config: ActionTargetsConfig) {
       recordId(rowIdOf(row));
     }
     function showMissing(id: string) {
-      openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+      openRowSidePanel({
+        ...panel,
+        componentOptions: {
+          ...run.target.component?.options,
+          ...panel.componentOptions,
+        },
+        notFound: notFoundOf(run.target),
+        showRow,
+      });
       recordId(id);
     }
     if (run.missingId) return showMissing(run.missingId);
@@ -470,7 +487,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       navigation =
         row && source ? rowNavigation(source, row, showRow) : undefined;
       return {
-        ...run.target.component?.options,
+        ...rowComponentOptions(run.target.component?.options, row),
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
