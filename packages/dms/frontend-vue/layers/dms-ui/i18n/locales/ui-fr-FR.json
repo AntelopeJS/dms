@@ -257,6 +257,7 @@
       "reset": "Réinitialiser",
       "cancel": "Annuler",
       "save_changes": "Enregistrer les modifications",
+      "create": "Créer",
       "refresh_data": "Actualiser les données",
       "export_data": "Exporter les données"
     },

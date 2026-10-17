@@ -607,6 +607,9 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const isRecordUpdate = computed(
     () => !!resolvedFetchUrl.value && props.submitUrlMethod !== HttpMethod.post,
   );
+  // A form that posts creates a row, empty or seeded by the one it
+  // duplicates: what it holds is new as a whole, nothing "changed" in it.
+  const createsRecord = props.submitUrlMethod === HttpMethod.post;
 
   const fetchData = async () => {
     if (!props.fetchUrl) return undefined;
@@ -914,5 +917,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     isFieldGroup,
     submitSucceeded,
     resolvedFetchUrl,
+    createsRecord,
   };
 };

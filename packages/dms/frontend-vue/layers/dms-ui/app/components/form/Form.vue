@@ -253,6 +253,7 @@ const {
   isFieldGroup,
   submitSucceeded,
   resolvedFetchUrl,
+  createsRecord,
 } = useForm(props, { showFieldErrors, onSaved: markFormClean });
 
 watch(
@@ -348,10 +349,12 @@ watch(
 
 const { t, locale, locales } = useI18n();
 
+// A new row is created, not "changes" saved.
+const DEFAULT_SUBMIT_LABEL = createsRecord
+  ? "dms.button.create"
+  : "dms.button.save_changes";
 const submitButtonLabel = computed(() =>
-  props.submitLabel
-    ? processI18n(props.submitLabel)
-    : t("dms.button.save_changes"),
+  props.submitLabel ? processI18n(props.submitLabel) : t(DEFAULT_SUBMIT_LABEL),
 );
 
 watch(disabledFields, (newDisabled, oldDisabled) => {
@@ -688,7 +691,9 @@ provide(FORM_ENTRY_CONTEXT_KEY, {
   isFieldHidden,
   isFieldDisabled,
   isFieldRequired,
-  showsChanges: !isInstant && !isActionForm,
+  // A new row has no earlier value to compare with: "Changed · was empty"
+  // on every field it fills would say nothing.
+  showsChanges: !isInstant && !isActionForm && !createsRecord,
   isFieldChanged: (fieldId) => changedFieldIds.value.has(fieldId),
   baselineValue: (fieldId) => formDirty.baseline.value[fieldId],
   fieldSaveState: (fieldId) => instantSave?.states[fieldId] ?? "idle",

@@ -257,6 +257,7 @@
       "reset": "Reset",
       "cancel": "Cancel",
       "save_changes": "Save changes",
+      "create": "Create",
       "refresh_data": "Refresh data",
       "export_data": "Export data"
     },
