@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - packages/dms/frontend-vue
   # Installed like a project consuming the DMS, but from inside the workspace so
   # it resolves the two packages by link rather than through a committed
   # `file:` override.

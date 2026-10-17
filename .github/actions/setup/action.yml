@@ -1,12 +1,9 @@
 name: Set up the workspace
 description: >
-  pnpm, Node, the workspace install, optionally the Vue layer install and the
+  pnpm, Node, the complete workspace install and optionally the
   interface build -- the part every ci.yml job shares.
 
 inputs:
-  frontend:
-    description: Also install the Vue layer (packages/dms/frontend-vue).
-    default: "false"
   interface:
     description: Also build the interface, which the runtime and some Vue tests import.
     default: "false"
@@ -24,20 +21,10 @@ runs:
         # read a TypeScript config, which every value there clears.
         node-version-file: .nvmrc
         cache: pnpm
-        # The Vue layer is installed on its own, the way the loader installs
-        # it, so its lockfile has to key the cache too.
-        cache-dependency-path: |
-          pnpm-lock.yaml
-          packages/dms/frontend-vue/pnpm-lock.yaml
+        cache-dependency-path: pnpm-lock.yaml
 
-    # `...` selects the dependencies too, so the workspace interface comes
-    # along and nothing else in the workspace is installed for nothing.
     - shell: bash
-      run: pnpm install --filter @antelopejs/dms... --frozen-lockfile
-
-    - if: inputs.frontend == 'true'
-      shell: bash
-      run: pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
+      run: pnpm install --frozen-lockfile
 
     # The runtime compiles against the interface's declarations, so the
     # interface is built before anything reads them.

@@ -15,7 +15,6 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 RUN --mount=type=cache,target=/pnpm/store pnpm fetch --store-dir=/pnpm/store
 COPY . .
 RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --offline --store-dir=/pnpm/store
-RUN pnpm --dir packages/dms/frontend-vue install --frozen-lockfile
 RUN pnpm --dir packages/dms exec playwright-core install --with-deps chromium
 
 # The frontend and every screenshot are built against this checkout's backend,

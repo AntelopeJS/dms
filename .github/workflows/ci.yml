@@ -31,7 +31,6 @@ jobs:
       # `dms lint` runs the Vue layer's ESLint too.
       - uses: ./.github/actions/setup
         with:
-          frontend: "true"
           interface: "true"
 
       - uses: AntelopeJS/tooling-configs/actions/docs@310e3d861b2da2244902854379176c91e1ebc68e
@@ -78,8 +77,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        with:
-          frontend: "true"
 
       # The MongoDB binary the harness downloads and the provider modules it
       # installs into its cache folder are both pinned in antelope.test.ts.
@@ -109,7 +106,6 @@ jobs:
       # Some tests import the interface's chart helpers at runtime.
       - uses: ./.github/actions/setup
         with:
-          frontend: "true"
           interface: "true"
 
       # Most of the suite's time is the per-file jsdom setup, which splits
@@ -123,7 +119,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
         with:
-          frontend: "true"
           interface: "true"
 
       # `ajs dms verify-source`: the client, SSR and e-mail builds, the bundle
