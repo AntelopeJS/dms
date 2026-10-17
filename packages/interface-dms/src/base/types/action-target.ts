@@ -114,7 +114,8 @@ export type ActionTarget =
        * position among the rows shown ("3 of 20"), previous and next buttons
        * (J and K too) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
-       * anew on each row. One panel is open at a time: opening it closes a
+       * anew on each row, its options' `{{row.X}}` tokens filled with that
+       * row (a `ResourceForm` reading `rowId: "{{row._id}}"`). One panel is open at a time: opening it closes a
        * module's side panel, and the other way round.
        */
       type: "sidePanel";

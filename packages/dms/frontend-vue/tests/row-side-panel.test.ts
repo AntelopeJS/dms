@@ -366,6 +366,79 @@ describe("row side panel navigation", () => {
   });
 });
 
+describe("row tokens in a row panel's component options", () => {
+  // A block declared on the backend (a ResourceForm in view mode) reads its
+  // row from its options, not from `rowData`.
+  const BlockPanel = defineComponent({
+    props: {
+      fetchUrl: { type: String, default: undefined },
+      rowId: { type: String, default: undefined },
+      heading: {
+        type: Object as PropType<{ text: string }>,
+        default: undefined,
+      },
+    },
+    setup(props) {
+      return () =>
+        h("p", { "data-block": "" }, [
+          `${props.fetchUrl}|${props.rowId}|${props.heading?.text}`,
+        ]);
+    },
+  });
+  const blockAction = () =>
+    panelAction({
+      component: {
+        componentName: "BlockPanel",
+        options: {
+          fetchUrl: "/api/runs/get?id={{row._id}}&site={{query.site}}",
+          rowId: "{{row.id}}",
+          heading: { text: "{{row.name}} run" },
+        },
+      },
+    } as Partial<CustomRowAction["target"]>);
+  const shownBlock = (host: ParentNode) =>
+    query(host, "[data-block]")?.textContent?.trim();
+
+  beforeEach(() => {
+    vi.stubGlobal("resolveDmsComponent", (name: string) =>
+      name === "BlockPanel" ? BlockPanel : undefined,
+    );
+  });
+
+  it("fills them with the row shown, again on each step and showRow", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(blockAction(), rows[0]);
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r1&site={{query.site}}|r1|First run",
+    );
+    query(host, "[data-dms-row-side-panel-next]")?.click();
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r2&site={{query.site}}|r2|Second run",
+    );
+    press("j");
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r3&site={{query.site}}|r3|Third run",
+    );
+    await useRowSidePanelContent().value?.showRow?.(rows[0]!);
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=r1&site={{query.site}}|r1|First run",
+    );
+  });
+
+  it("encodes a URL option's value, and leaves another as it is", async () => {
+    const { host, targets } = mountPanel(ref([{ _id: "a b", name: "A/B" }]));
+    targets.handleCustomRowAction(blockAction(), { _id: "a b", name: "A/B" });
+    await settle();
+    expect(shownBlock(host)).toBe(
+      "/api/runs/get?id=a%20b&site={{query.site}}|a b|A/B run",
+    );
+  });
+});
+
 describe("row side panel deep link", () => {
   it("keeps the open row in the URL, following the steps", async () => {
     const { targets } = mountPanel();

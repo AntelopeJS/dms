@@ -366,6 +366,73 @@ describe("action targets on a selection and on a listed row", () => {
     );
   });
 
+  it("fills a row drawer's component options with each row it steps to", () => {
+    const rows = [{ _id: "r1" }, { _id: "r2" }];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id" },
+    });
+    targets.handleCustomRowAction(
+      {
+        label: "Details",
+        target: {
+          type: "drawer",
+          component: {
+            componentName: "dms-form",
+            options: {
+              fetchUrl: "/api/runs/get?id={{row._id}}",
+              submitUrl: "/api/runs/edit?id={{row.id}}",
+              rowActions: {
+                custom: [{ target: { type: "page", url: "/s/{{row._id}}" } }],
+              },
+              fetchRowUrl: "/api/steps/{{row.id}}",
+            },
+          },
+        },
+      },
+      rows[0],
+    );
+    const opened = drawers[0]?.options.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(opened.fetchUrl).toBe("/api/runs/get?id=r1");
+    expect(opened.submitUrl).toBe("/api/runs/edit?id=r1");
+    expect(opened.rowActions).toEqual({
+      custom: [{ target: { type: "page", url: "/s/{{row._id}}" } }],
+    });
+    expect(opened.fetchRowUrl).toBe("/api/steps/{{row.id}}");
+    (opened.navigation as { next: () => void }).next();
+    const patched = drawers[0]?.patches[0]?.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(patched.fetchUrl).toBe("/api/runs/get?id=r2");
+    expect(patched.submitUrl).toBe("/api/runs/edit?id=r2");
+  });
+
+  it("hands a bulk drawer its options as declared, with no row to fill them", () => {
+    const targets = mountTargets();
+    targets.handleBulkCustomAction(
+      {
+        label: "Inspect",
+        bulk: true,
+        target: {
+          type: "drawer",
+          component: {
+            componentName: "RunDrawer",
+            options: { fetchUrl: "/api/runs/get?id={{row._id}}" },
+          },
+        },
+      },
+      { ids: ["a"], count: 1 },
+    );
+    const opened = drawers[0]?.options.componentOptions as Record<
+      string,
+      unknown
+    >;
+    expect(opened.fetchUrl).toBe("/api/runs/get?id={{row._id}}");
+  });
+
   it("steps a row's drawer through the rows shown and keeps it in the URL", async () => {
     window.history.replaceState(null, "", "/runs");
     const rows = [{ _id: "r1" }, { _id: "r2" }];

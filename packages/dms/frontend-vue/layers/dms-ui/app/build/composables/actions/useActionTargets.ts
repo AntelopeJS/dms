@@ -65,6 +65,7 @@ import {
   namesRowField,
 } from "#dms-core/app/utils/url-interpolation";
 import { dropRowTokens } from "../../utils/urlVariables";
+import { fillRowOptions } from "./rowComponentOptions";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -383,6 +384,17 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
   };
 
+  // The target's component options for the row shown, its `{{row.X}}`
+  // tokens filled (`{{row.id}}` being the row's id); without a row (a bulk
+  // selection, a toolbar button) they are handed as declared.
+  const targetOptionsFor = (target: ActionTarget, row?: Data): Data => {
+    const { component } = target as { component?: { options?: Data } };
+    const options = component?.options ?? {};
+    if (!row) return options;
+    const id = rowIdOf(row);
+    return fillRowOptions(options, id === undefined ? row : { ...row, id });
+  };
+
   const rowRecorder = (deepLink?: boolean) => {
     const recordId = recordRecorder(deepLink);
     return (row?: Data): void => recordId(rowIdOf(row));
@@ -421,7 +433,6 @@ export function useActionTargets(config: ActionTargetsConfig) {
       positionLabel: run.target.positionLabel,
       component: resolveTargetComponent(componentName),
       componentOptions: {
-        ...run.target.component?.options,
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -440,6 +451,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     function showRow(row?: Data) {
       openRowSidePanel({
         ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target, row),
+          ...panel.componentOptions,
+        },
         rowTitle: rowTitleOf(run.target, row),
         row,
         rowKey: rowIdOf(row),
@@ -449,7 +464,15 @@ export function useActionTargets(config: ActionTargetsConfig) {
       recordId(rowIdOf(row));
     }
     function showMissing(id: string) {
-      openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+      openRowSidePanel({
+        ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target),
+          ...panel.componentOptions,
+        },
+        notFound: notFoundOf(run.target),
+        showRow,
+      });
       recordId(id);
     }
     if (run.missingId) return showMissing(run.missingId);
@@ -476,7 +499,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       navigation =
         row && source ? rowNavigation(source, row, showRow) : undefined;
       return {
-        ...run.target.component?.options,
+        ...targetOptionsFor(run.target, row),
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
