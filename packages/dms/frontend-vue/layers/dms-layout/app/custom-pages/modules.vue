@@ -236,7 +236,9 @@ const isStoreLoading = computed(
 );
 const storeModules = computed(() =>
   sortStoreModules(
-    (storeListing.value?.modules ?? []).map(toModuleStoreEntry),
+    (storeListing.value?.modules ?? []).map((entry) =>
+      toModuleStoreEntry(entry, modulesListing.modules.value ?? []),
+    ),
     processI18n,
   ),
 );
