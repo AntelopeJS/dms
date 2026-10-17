@@ -529,9 +529,22 @@ export type TableViewEmptyStatesSerialized = Partial<
 export interface TableViewCardOptions {
   /**
    * Columns shown on the card below its title (`labelKey`), each value
-   * rendered with its column's data type, like a cell.
+   * drawn like a cell: through its column's `display`, else its data type.
    */
   fields?: string[];
+  /**
+   * Row field holding the image the `cards` display draws beside the title
+   * (an image value or a URL), in place of its initials. Left out, the
+   * `avatarField` of the label column's `IdentityDisplay`.
+   */
+  imageField?: string;
+  /**
+   * Row field the `cards` display draws under the title: a string, or a
+   * `ComposedText` or `CellSubline`, as an `IdentityDisplay` reads its
+   * `subtitleField`. Left out, the `subtitleField` of the label column's
+   * `IdentityDisplay`; without one, the card has no secondary line.
+   */
+  subtitleField?: string;
   /**
    * Frontend component drawing the whole card, resolved by name from the
    * global registry; its directory must be declared globally. Both displays
@@ -549,6 +562,8 @@ export interface TableViewCardOptions {
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
 export interface TableViewCardOptionsSerialized {
   fields?: string[];
+  imageField?: string;
+  subtitleField?: string;
   component?: ComponentInfoSerialized;
 }
 

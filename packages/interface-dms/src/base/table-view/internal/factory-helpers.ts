@@ -309,8 +309,12 @@ export interface TableViewDisplaySources {
 function serializeCard({
   card,
 }: TableViewDisplaySources): TableViewCardOptionsSerialized | undefined {
-  if (!card?.fields && !card?.component) return undefined;
-  return { fields: card.fields, component: card.component?.serializeSync() };
+  if (!card) return undefined;
+  const { component, ...look } = card;
+  if (!component && Object.values(look).every((value) => !value)) {
+    return undefined;
+  }
+  return { ...look, component: component?.serializeSync() };
 }
 
 /** The options a built-in display takes from the table view's own options. */

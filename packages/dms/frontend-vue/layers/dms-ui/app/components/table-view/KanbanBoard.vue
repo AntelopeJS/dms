@@ -18,6 +18,7 @@ import {
   buildCardProps,
   cardFieldColumns,
 } from "../../build/composables/table-view/utils/card";
+import { useCardFields } from "../../build/composables/table-view/useCardFields";
 
 const DEFAULT_COLUMN_PAGE_SIZE = 10;
 const DEFAULT_COLUMN_MAX_HEIGHT = "60vh";
@@ -76,7 +77,7 @@ const groupByField = defineModel<string>("groupByField", { required: true });
 const { $authFetch } = useAuthFetch();
 const { processI18n, processApiMessage } = useTranslation();
 const { getDataType } = useDataTypes();
-const { locale, t } = useI18n();
+const { t } = useI18n();
 const toast = useToast();
 
 const rowIdKey = computed(() => props.rowIdKey ?? DEFAULT_ROW_ID_KEY);
@@ -403,27 +404,10 @@ const getCardTitle = (item: T): string => {
 };
 
 // Renders a card field value the same way table cells do: through the
-// formatter registered for the column's data type.
-const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
-  const value = get(fieldProps.item, fieldProps.column.accessorKey);
-  const options = fieldProps.column.type.inputComponent?.options as
-    | Record<string, unknown>
-    | undefined;
-
-  if (value === null || value === undefined) {
-    return h("span", (options?.fallback as string) ?? "-");
-  }
-
-  const formatter = getDataType(fieldProps.column.type.id)?.formatter;
-  const rendered = formatter
-    ? formatter.default(value, locale.value, options)
-    : value;
-
-  if (typeof rendered === "string" || typeof rendered === "number") {
-    return h("span", String(rendered));
-  }
-  return rendered as ReturnType<typeof h>;
-};
+// column's display, else its data type.
+const { renderField } = useCardFields();
+const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) =>
+  renderField(fieldProps.column, fieldProps.item);
 </script>
 
 <template>

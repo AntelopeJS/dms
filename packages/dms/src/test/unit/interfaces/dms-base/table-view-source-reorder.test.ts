@@ -287,6 +287,22 @@ describe("[unit] interfaces/dms-base — table view sources and reorder", () => 
     });
   });
 
+  it("serves the image and subtitle fields a card sets, without a component", () => {
+    const options = optionsOf({
+      labelKey: "name",
+      displays: [{ id: CARDS_DISPLAY_ID }],
+      defaultDisplay: CARDS_DISPLAY_ID,
+      card: { imageField: "logo", subtitleField: "lead" },
+    });
+    const cards = options.displays?.find(
+      (display) => display.id === CARDS_DISPLAY_ID,
+    );
+    expect(cards?.options?.card).to.deep.include({
+      imageField: "logo",
+      subtitleField: "lead",
+    });
+  });
+
   it("refuses a reorder field the rows cannot be sorted on nor saved by", () => {
     expect(() => optionsOf({ reorder: { field: "name" } })).to.throw(
       /must be a NumberType column/,
