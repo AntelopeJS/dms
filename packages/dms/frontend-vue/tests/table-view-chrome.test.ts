@@ -114,6 +114,16 @@ describe("TableView quick filters", () => {
     expect(quickFilterMode(column("select"), "is_not")).toBe("is_not");
   });
 
+  it("matches inside a tags column's list and offers its suggested tags", () => {
+    const tags = column("tags", { suggestions: ["battery", "solar"] });
+    expect(quickFilterMode(tags)).toBe("array_contains_string");
+    expect(staticQuickFilterItems(tags, translate)).toEqual([
+      { value: "battery", label: "battery" },
+      { value: "solar", label: "solar" },
+    ]);
+    expect(staticQuickFilterItems(column("tags"), translate)).toEqual([]);
+  });
+
   const roles = { field: "roleIds", mode: "array_contains_string" } as const;
   const dueDate = {
     accessorKey: "dueDate",
@@ -135,9 +145,9 @@ describe("TableView quick filters", () => {
     ]);
     expect(quickFilterValue(filters, roles)).toBe("r1");
     expect(applyQuickFilter(filters, roles, "r2")).toHaveLength(2);
-    expect(quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles)).toBe(
-      "r2",
-    );
+    expect(
+      quickFilterValue(applyQuickFilter(filters, roles, "r2"), roles),
+    ).toBe("r2");
   });
 
   it("clears its filter on All, leaving the others", () => {

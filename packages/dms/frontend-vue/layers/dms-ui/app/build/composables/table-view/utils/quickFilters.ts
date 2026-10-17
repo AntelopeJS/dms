@@ -29,6 +29,8 @@ export interface QuickFilterRelationSource {
 
 interface ColumnInputOptions {
   items?: Array<{ value: unknown; label: string }>;
+  /** A tags column's suggested tags: the values it offers. */
+  suggestions?: string[];
   multiple?: boolean;
   searchUrl?: string;
   keyMapping?: { label?: string; value?: string };
@@ -38,26 +40,31 @@ const DEFAULT_LABEL_KEY = "name";
 const DEFAULT_VALUE_KEY = "_id";
 const ARRAY_MODE: TableViewQuickFilterMode = "array_contains_string";
 const SCALAR_MODE: TableViewQuickFilterMode = "is";
+// Types whose value is always a list, whatever their options.
+const LIST_TYPE_IDS = new Set(["tags"]);
 
 const inputOptions = (column: TableViewColumn | undefined) =>
   (column?.type?.inputComponent?.options ?? {}) as ColumnInputOptions;
 
 /**
  * The compare mode a quick filter applies: the declared one, else "contains"
- * for a multiple select or relation (the row holds a list) and equality
- * otherwise.
+ * for a multiple select or relation and for tags (the row holds a list) and
+ * equality otherwise.
  */
 export function quickFilterMode(
   column: TableViewColumn | undefined,
   declared?: TableViewQuickFilterMode,
 ): TableViewQuickFilterMode {
   if (declared) return declared;
-  return inputOptions(column).multiple ? ARRAY_MODE : SCALAR_MODE;
+  const holdsList =
+    inputOptions(column).multiple || LIST_TYPE_IDS.has(column?.type?.id ?? "");
+  return holdsList ? ARRAY_MODE : SCALAR_MODE;
 }
 
 /**
- * The values a select or boolean column offers, known from its declaration;
- * `undefined` for a column whose values must be fetched (a relation).
+ * The values a select, boolean or tags column offers (a select's items, a
+ * tags column's `suggestions`), known from its declaration; `undefined` for a
+ * column whose values must be fetched (a relation).
  */
 export function staticQuickFilterItems(
   column: TableViewColumn | undefined,
@@ -74,12 +81,15 @@ export function staticQuickFilterItems(
       },
     ];
   }
-  const items = inputOptions(column).items;
+  const { items, suggestions } = inputOptions(column);
   if (items) {
     return items.map((item) => ({
       value: String(item.value),
       label: translate(item.label),
     }));
+  }
+  if (suggestions) {
+    return suggestions.map((tag) => ({ value: tag, label: tag }));
   }
   return relationQuickFilterSource(column) ? undefined : [];
 }
@@ -118,7 +128,8 @@ export function relationQuickFilterItems(
 const isQuickFilterOf =
   (quickFilter: Pick<ResolvedQuickFilter, "field" | "mode">) =>
   (filter: TableFilter): boolean =>
-    filter.accessorKey === quickFilter.field && filter.mode === quickFilter.mode;
+    filter.accessorKey === quickFilter.field &&
+    filter.mode === quickFilter.mode;
 
 /**
  * The value a quick filter shows as picked: the one its column's filter holds
