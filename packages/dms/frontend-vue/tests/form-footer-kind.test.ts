@@ -68,6 +68,35 @@ describe("saveBarState of a record form", () => {
   });
 });
 
+describe("saveBarState of a create form", () => {
+  const create = (overrides: Partial<SaveBarContext>) =>
+    saveBarState(context({ creates: true, ...overrides }));
+
+  it("can be saved as it opened: a duplicate needs no change first", () => {
+    expect(create({ cancellable: true })).toEqual({
+      showsStatus: false,
+      secondary: "cancel",
+      showsSubmit: true,
+      isSubmitHeld: false,
+      isHidden: false,
+    });
+  });
+
+  it("lists no unsaved changes once filled, Cancel still beside Save", () => {
+    expect(create({ cancellable: true, dirty: true })).toMatchObject({
+      showsStatus: false,
+      secondary: "cancel",
+      showsSubmit: true,
+    });
+  });
+
+  it("offers Discard once filled with nowhere to go back to", () => {
+    expect(create({}).secondary).toBeUndefined();
+    expect(create({ dirty: true }).secondary).toBe("discard");
+    expect(create({}).isHidden).toBe(false);
+  });
+});
+
 describe("saveBarState of an action form", () => {
   const action = (overrides: Partial<SaveBarContext>) =>
     saveBarState(context({ kind: "action", ...overrides }));

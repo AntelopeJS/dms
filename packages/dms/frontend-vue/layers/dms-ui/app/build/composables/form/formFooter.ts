@@ -38,6 +38,11 @@ export interface SaveBarContext {
   cancellable: boolean;
   /** Something in the form can be changed, hence reset. */
   resettable: boolean;
+  /**
+   * A `record` form that creates a row: a new one, or a duplicate seeded by
+   * the row it copies.
+   */
+  creates?: boolean;
 }
 
 /**
@@ -78,6 +83,7 @@ const HIDDEN_BAR: SaveBarState = {
  * A form with nowhere to go back to offers Discard.
  */
 function recordSaveBar(context: SaveBarContext): SaveBarState {
+  if (context.creates) return createSaveBar(context);
   if (context.dirty) {
     return {
       ...HIDDEN_BAR,
@@ -93,6 +99,24 @@ function recordSaveBar(context: SaveBarContext): SaveBarState {
     isSubmitHeld: false,
     isHidden: false,
   };
+}
+
+/**
+ * A create form's bar: its submit from the start, since a duplicate (or a
+ * row its defaults fill) is saved as it is, with no "Unsaved changes" list,
+ * since all it holds is new. Beside it, Cancel when it has somewhere to go
+ * back to, Discard once a value changed otherwise.
+ */
+function createSaveBar(context: SaveBarContext): SaveBarState {
+  const bar: SaveBarState = {
+    showsStatus: false,
+    showsSubmit: true,
+    isSubmitHeld: false,
+    isHidden: false,
+  };
+  if (context.cancellable) return { ...bar, secondary: "cancel" };
+  if (context.dirty) return { ...bar, secondary: "discard" };
+  return bar;
 }
 
 /**

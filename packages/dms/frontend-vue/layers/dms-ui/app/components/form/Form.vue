@@ -1023,7 +1023,10 @@ onUnmounted(async () => {
         :saving="loading || isAnyFieldLoading"
         :changes="changedFieldLabels"
         :form="formElementId"
-        :save-label="usesSaveBar ? props.submitLabel : submitButtonLabel"
+        :save-label="
+          usesSaveBar && !createsRecord ? props.submitLabel : submitButtonLabel
+        "
+        :creates="createsRecord"
         :cancellable="canCancel"
         :resettable="hasChangeableFields"
         :class="usesSaveBar ? 'mx-3' : surfaceClasses.foot"
