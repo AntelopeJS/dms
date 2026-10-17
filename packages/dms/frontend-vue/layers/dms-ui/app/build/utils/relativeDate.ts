@@ -19,15 +19,29 @@ export function formatRelativeDate(
   );
 }
 
-/** "Sep 27": day and short month. */
+const DAY_MONTH_FORMAT: Intl.DateTimeFormatOptions = {
+  month: "short",
+  day: "numeric",
+};
+const YEAR_FORMAT: Intl.DateTimeFormatOptions = { year: "numeric" };
+
+/**
+ * "Sep 27": day and short month, read against `now`; a date of another year
+ * ("Apr 2, 2018") names its year as well.
+ */
 export function formatDayMonth(
   date: string | number | Date,
   locale: string,
+  now: number = Date.now(),
 ): string {
-  return regionalDateTimeFormat(locale, {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(date));
+  const day = new Date(date);
+  // Years read in the reader's time zone, as the date is written.
+  const year = regionalDateTimeFormat(locale, YEAR_FORMAT);
+  const isOtherYear = year.format(day) !== year.format(now);
+  return regionalDateTimeFormat(
+    locale,
+    isOtherYear ? { ...DAY_MONTH_FORMAT, ...YEAR_FORMAT } : DAY_MONTH_FORMAT,
+  ).format(day);
 }
 
 /** First word of a name, for "Sep 27 · by Camille". */
