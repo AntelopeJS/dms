@@ -103,6 +103,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A route that must word a text reads the request's `x-content-language` header (the language on
+  screen), never `users.language` (the profile's, for mails).
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
   `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`) or
   `null` for no banner.
@@ -117,6 +119,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   their labels' width; with `persistState` the URL names the open tab by its slot (`?tab=tester`).
 - A `ChartCard` plotting several series names them with `showSeriesLegend: true` (placed by the
   chart's `legendPosition`) — never a raw Apex `legend` in `rawOptions`.
+- A chart route sends series names, categories (`x`) and point labels as `$` keys, bare chart or
+  `ChartCard` alike: the browser translates them, so donut slices are `{ x: "$app.plan.pro", y }`.
 
 ### Tables
 
