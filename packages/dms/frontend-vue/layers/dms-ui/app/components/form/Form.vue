@@ -70,6 +70,7 @@ import {
 } from "../../build/composables/form/formRecordLoad";
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
+import { scrollWithin } from "../../build/utils/scrollWithin";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -171,13 +172,14 @@ async function focusField(name: string | undefined): Promise<void> {
     target.focus();
     return;
   }
-  row?.scrollIntoView({ block: "center" });
+  if (row) scrollWithin(row, { block: "center" });
 }
 
 /** Brings a field into view and focuses it: a link's anchor, a field's request. */
 async function revealField(fieldId: string): Promise<void> {
   await formSettled();
-  fieldRow(fieldId)?.scrollIntoView({ block: "center" });
+  const row = fieldRow(fieldId);
+  if (row) scrollWithin(row, { block: "center" });
   await focusField(fieldId);
 }
 
