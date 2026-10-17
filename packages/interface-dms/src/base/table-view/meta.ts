@@ -55,6 +55,14 @@ const FORM_MODE_BY_VIEW_MODE: Record<"view" | "edit" | "new", FormMode> = {
   new: FormMode.new,
 };
 
+// The data-api action each form runs, whose `@Access` override applies: a
+// form shows a row it read through `get`.
+const ACCESS_ACTION_BY_FORM_MODE: Record<FormMode, string> = {
+  [FormMode.new]: "new",
+  [FormMode.edit]: "edit",
+  [FormMode.view]: "get",
+};
+
 /** Insertion-ordered set of weakly held objects; `live` drops the collected ones. */
 class WeakRefList<T extends object> {
   private readonly refs = new Set<WeakRef<T>>();
@@ -302,6 +310,16 @@ export class TableViewMeta {
     return readonlyBehavior[mode] || ReadonlyBehaviorType.default;
   }
 
+  /**
+   * Whether a field is read-only in a form: its `@Access` for the action the
+   * form runs (`{ new: AccessMode.ReadOnly }`), else its default access, as
+   * the data API reads and writes it.
+   */
+  private isReadOnlyIn(meta: FieldMetadata, mode: FormMode): boolean {
+    const action = ACCESS_ACTION_BY_FORM_MODE[mode];
+    return (meta.modeOverrides?.[action] ?? meta.mode) === AccessMode.ReadOnly;
+  }
+
   private getRequiredForMode(data: FieldMetadata, mode: FormMode): boolean {
     if (mode === FormMode.view) return false;
     return data.mandatory?.has(mode) || false;
@@ -320,7 +338,7 @@ export class TableViewMeta {
     );
     const isDisabled =
       formMode === FormMode.view ||
-      meta.mode === AccessMode.ReadOnly ||
+      this.isReadOnlyIn(meta, formMode) ||
       behavior === ReadonlyBehaviorType.disabled;
     const isRequired = this.getRequiredForMode(meta, formMode);
 
@@ -329,7 +347,11 @@ export class TableViewMeta {
       label: options.name ?? key,
       description: options.description,
       type: options.type,
-      inputComponent: options.inputComponent?.serializeSync(),
+      // A read-only field displays its value: what only editing uses (a
+      // relation's add form) stays out of it.
+      inputComponent:
+        options.inputComponent?.serializeSync() ??
+        (isDisabled ? options.type.describedInputComponent() : undefined),
       disabled: isDisabled,
       required: isRequired,
       defaultValue: options.defaultValue,
@@ -348,9 +370,9 @@ export class TableViewMeta {
     const sortedEntries = Object.entries(this.columns)
       .sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0))
       .filter(([key, options]) => {
-        const meta = metadata.fields[key];
+        const meta = metadata.fields[key] as FieldMetadata;
 
-        if (meta.mode === AccessMode.ReadOnly) {
+        if (this.isReadOnlyIn(meta, formMode)) {
           const behavior = this.resolveReadonlyBehavior(
             options.readonlyBehavior,
             formMode,

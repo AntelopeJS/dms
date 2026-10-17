@@ -17,6 +17,8 @@ import type { ContainerInstance } from "../../../composables/containers/types";
 import {
   type BulkSelection,
   bulkSelectionQuery,
+  isBulkAction,
+  targetForRow,
   targetWithSelection,
   withQuery,
 } from "./bulkSelection";
@@ -58,7 +60,14 @@ import {
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
-import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  namesRowField,
+} from "#dms-core/app/utils/url-interpolation";
+import { dropRowTokens } from "../../utils/urlVariables";
+import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
+import { resolveComponentChildren } from "../../../utils/componentTree";
+import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -327,6 +336,16 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const resolveTargetComponent = (componentName: string): Component =>
     (resolveDmsComponent(componentName) || componentName) as Component;
 
+  // A container block (a Card, a VStack, a Tab) mounts its children as a
+  // page does; a single block is mounted as it is.
+  const targetComponentOf = (
+    componentName: string,
+    info: ComponentInfo,
+  ): Component =>
+    info.children?.length
+      ? TargetComponentTree
+      : resolveTargetComponent(componentName);
+
   const rowIdOf = (row?: Data): string | undefined => {
     if (!row) return undefined;
     const idKey =
@@ -377,6 +396,29 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
   };
 
+  // The target's component options for the row shown, its `{{row.X}}`
+  // tokens filled (`{{row.id}}` being the row's id); without a row (a bulk
+  // selection, a toolbar button) they are handed as declared.
+  const targetOptionsFor = (target: ActionTarget, row?: Data): Data => {
+    const { component } = target as { component?: ComponentInfo<Data> };
+    const id = rowIdOf(row);
+    const tokens = row && id !== undefined ? { ...row, id } : row;
+    const declared = component?.options ?? {};
+    const options = tokens ? fillRowOptions(declared, tokens) : declared;
+    const children = component?.children;
+    if (!component?.componentName || !children?.length) return options;
+    // The container's children read the row through the same tokens.
+    const targetTree: ResolvedComponentInfo = {
+      id: component.componentName,
+      component: resolveTargetComponent(component.componentName),
+      componentName: component.componentName,
+      children: resolveComponentChildren(
+        tokens ? fillRowChildren(children, tokens) : children,
+      ),
+    };
+    return { ...options, targetTree };
+  };
+
   const rowRecorder = (deepLink?: boolean) => {
     const recordId = recordRecorder(deepLink);
     return (row?: Data): void => recordId(rowIdOf(row));
@@ -413,9 +455,8 @@ export function useActionTargets(config: ActionTargetsConfig) {
       ownerKey,
       title: run.title,
       positionLabel: run.target.positionLabel,
-      component: resolveTargetComponent(componentName),
+      component: targetComponentOf(componentName, run.target.component),
       componentOptions: {
-        ...run.target.component?.options,
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -434,6 +475,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     function showRow(row?: Data) {
       openRowSidePanel({
         ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target, row),
+          ...panel.componentOptions,
+        },
         rowTitle: rowTitleOf(run.target, row),
         row,
         rowKey: rowIdOf(row),
@@ -443,7 +488,15 @@ export function useActionTargets(config: ActionTargetsConfig) {
       recordId(rowIdOf(row));
     }
     function showMissing(id: string) {
-      openRowSidePanel({ ...panel, notFound: notFoundOf(run.target), showRow });
+      openRowSidePanel({
+        ...panel,
+        componentOptions: {
+          ...targetOptionsFor(run.target),
+          ...panel.componentOptions,
+        },
+        notFound: notFoundOf(run.target),
+        showRow,
+      });
       recordId(id);
     }
     if (run.missingId) return showMissing(run.missingId);
@@ -456,7 +509,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
-    const component = resolveTargetComponent(componentName);
+    const component = targetComponentOf(componentName, run.target.component);
     const source = config.rowNavigation;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
@@ -470,7 +523,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       navigation =
         row && source ? rowNavigation(source, row, showRow) : undefined;
       return {
-        ...run.target.component?.options,
+        ...targetOptionsFor(run.target, row),
         pageId: config.pageId,
         componentId: config.componentId,
         containerId: run.containerId,
@@ -653,14 +706,30 @@ export function useActionTargets(config: ActionTargetsConfig) {
     );
   };
 
+  // A bulk action offered on a row runs on that row as the selection bar runs
+  // on several: a URL target, and a `from` confirmation, carry `?ids=<id>` —
+  // unless the URL names the row itself (`{{row._id}}`), which fills it.
+  const rowRun = (action: CustomRowAction, rowData?: Data) => {
+    const id = rowIdOf(rowData);
+    if (!isBulkAction(action) || id === undefined) {
+      return { target: action.target, confirm: action.confirm };
+    }
+    const query = bulkSelectionQuery({ ids: [id], count: 1 });
+    const { confirm } = action;
+    return {
+      target: targetForRow(action.target, query),
+      confirm:
+        confirm && isConfirmFrom(confirm) && !namesRowField(confirm.from)
+          ? { from: withQuery(confirm.from, query) }
+          : confirm,
+    };
+  };
+
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
-    void handleActionTarget(
-      action.target,
-      action.label,
-      rowData,
-      action.confirm,
-      { deepLink: isDeepLinkAction(action) },
-    );
+    const { target, confirm } = rowRun(action, rowData);
+    void handleActionTarget(target, action.label, rowData, confirm, {
+      deepLink: isDeepLinkAction(action),
+    });
   };
 
   /**
@@ -675,7 +744,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
     const query = bulkSelectionQuery(selection);
     const declared =
       action.confirm && isConfirmFrom(action.confirm)
-        ? { from: withQuery(action.confirm.from, query) }
+        ? { from: withQuery(dropRowTokens(action.confirm.from), query) }
         : action.confirm;
     void handleActionTarget(
       targetWithSelection(action.target, query),
