@@ -14,6 +14,10 @@ import type {
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
+import {
+  type RelationFilterSource,
+  useRelationFilterLabels,
+} from "../../composables/table/useRelationFilterLabels";
 
 // v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
 // a chip opens its value editor in a popover.
@@ -47,6 +51,7 @@ const theme = tv({
 });
 
 const EMPTY_FILTER_VALUE = "—";
+const RELATION_COMPONENT = "dms-relation";
 
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -170,7 +175,37 @@ const itemLabels = (filter: TableFilter): string | undefined => {
   return labels.length ? labels.join(", ") : undefined;
 };
 
+type RelationFilterOptions = Partial<
+  Pick<RelationFilterSource, "searchUrl" | "keyMapping">
+>;
+
+// A relation filter holds the related rows' ids: its chip names the rows,
+// read from the relation's `select` route as its picker does.
+const relationSource = (
+  filter: TableFilter,
+): RelationFilterSource | undefined => {
+  const component = resolveFilterComponent(filter);
+  if (component?.componentName !== RELATION_COMPONENT) return undefined;
+  const options = component.options as RelationFilterOptions | undefined;
+  if (!isString(options?.searchUrl)) return undefined;
+  return {
+    searchUrl: options.searchUrl,
+    keyMapping: options.keyMapping,
+    value: filter.value,
+  };
+};
+
+const { labelsOf: relationLabels } = useRelationFilterLabels(() =>
+  [...urlFilters.value, ...filters.value].flatMap((filter) => {
+    const source = relationSource(filter);
+    return source ? [source] : [];
+  }),
+);
+
 const displayValue = (filter: TableFilter): string => {
+  const source = relationSource(filter);
+  const names = source ? relationLabels(source) : [];
+  if (names.length) return names.join(", ");
   const labels = itemLabels(filter);
   if (labels) return labels;
   const formatted = formatFilterValue(

@@ -3,6 +3,7 @@ import type {
   ButtonPermission,
   Component,
   ComponentInfoSerialized,
+  WatchOptions,
 } from "../../component";
 import type { FormPropsSerialized } from "../form-types";
 import type { BlockLinkAction } from "../display";
@@ -350,12 +351,12 @@ export type TableViewQuickFilterMode =
 
 /**
  * A one-click filter drawn in the toolbar as a dropdown button listing the
- * values of a column: a select's items, a boolean's two labels, or the rows
- * a relation points to. The picked value is the column's filter, the very one
- * the filters row edits: kept with the table's state, counted as an active
- * filter and cleared by "Reset filters". In the `compact` layout, which has
- * no filters row, the button names the column and its value ("Role: Admin")
- * next to a clear button.
+ * values of a column: a select's items, a boolean's two labels, a tags
+ * column's `suggestions`, or the rows a relation points to. The picked value
+ * is the column's filter, the very one the filters row edits: kept with the
+ * table's state, counted as an active filter and cleared by "Reset filters".
+ * In the `compact` layout, which has no filters row, the button names the
+ * column and its value ("Role: Admin") next to a clear button.
  */
 export interface TableViewQuickFilter {
   /** Filterable column the control filters on. */
@@ -368,7 +369,7 @@ export interface TableViewQuickFilter {
   allLabel?: string;
   /**
    * Compare mode of the filter. Defaults to `array_contains_string` for a
-   * multiple relation or select, `is` otherwise.
+   * multiple relation or select and for tags, `is` otherwise.
    */
   mode?: TableViewQuickFilterMode;
 }
@@ -672,6 +673,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "kanban"
   | "displays"
   | "formSlots"
+  | "formWatches"
   | "expandable"
   | "tabs"
   | "views"
@@ -771,6 +773,18 @@ export type FormContainer =
  * mounted on. They keep the `:id` placeholder of their slug: the frontend
  * substitutes the row id when it navigates.
  */
+/**
+ * A watch of a form a table view opens, as `.watch(event, functionId, opts)`
+ * declares one on a `Form`: the form event it listens for, the form function
+ * it runs, and the options `.watch()` takes.
+ */
+export interface TableViewFormWatch<
+  F extends string = string,
+> extends WatchOptions<F> {
+  event: string;
+  functionId: F;
+}
+
 export interface TableViewFormPageUrls {
   new: string;
   edit: string;
@@ -1140,6 +1154,26 @@ export interface TableViewOptions<
    * reach the data routes only if the controller reads them.
    */
   formSlots?: Partial<Record<"new" | "edit" | "view", string>>;
+  /**
+   * Watches of the forms the table view opens, by form kind, declared as
+   * `.watch()` takes them on a `Form`: conditional fields
+   * (`FormEvents.FIELD_CHANGE` running `FormFunctions.SET_FIELD_HIDDEN` or
+   * `SET_FIELD_REQUIRED`) without replacing the generated form by a custom
+   * page. They run in a drawer, a modal or a form page alike; the `new`
+   * form's also run on a duplicated row. A watch's `requirePermission` is
+   * checked per request, as on a page's own components.
+   *
+   * @example
+   * formWatches: {
+   *   new: [{
+   *     event: FormEvents.FIELD_CHANGE,
+   *     functionId: FormFunctions.SET_FIELD_HIDDEN,
+   *     params: { targetField: "companyName", setHidden: false },
+   *     onParam: [{ key: "fieldId", value: "kind" }, { key: "value", value: "company" }],
+   *   }],
+   * }
+   */
+  formWatches?: Partial<Record<"new" | "edit" | "view", TableViewFormWatch[]>>;
   /**
    * Skip the tenant access gate on every data route of this table view, the
    * table-view mirror of the guards' `bypassTenantAccessGate` option. Reserved
