@@ -2,15 +2,27 @@ import { GetModel } from "@antelopejs/interface-database-decorators";
 import { Send } from "@antelopejs/interface-email";
 import { DEFAULT_TENANT_ID } from "@antelopejs/interface-dms/constants";
 import { TenantMemberModel } from "@antelopejs/interface-dms/db";
-import { inviteUserToTenant } from "@antelopejs/interface-dms/invites";
+import {
+  GenerateHtml,
+  GetHtmlTemplate,
+} from "@antelopejs/interface-dms/html-render";
+import {
+  type InviteUserToTenantOptions,
+  inviteUserToTenant,
+} from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
 import { sendNotificationAction } from "./send-notification";
 
+export const SEND_EMAIL_ACTION_ID = "dms.send-email";
+
 interface SendEmailInput {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
+  template?: string;
+  props?: Record<string, unknown>;
+  language?: string;
 }
 
 interface SendEmailOutput {
@@ -19,10 +31,38 @@ interface SendEmailOutput {
   error?: string;
 }
 
+/** A user's language when the address belongs to one, for a rendered template. */
+async function recipientLanguage(email: string): Promise<string | undefined> {
+  const user = await GetModel(UserModel).getByEmail(email);
+  return user?.language || undefined;
+}
+
+/**
+ * The body to send: a registered template rendered in the given language (or
+ * the recipient's), else the literal HTML. A template name that no module
+ * registered fails the run rather than sending a blank email.
+ */
+async function emailBody(input: SendEmailInput): Promise<string> {
+  const template = input.template?.trim();
+  if (!template) {
+    if (typeof input.html === "string") return input.html;
+    throw new Error(`${SEND_EMAIL_ACTION_ID} requires html or a template`);
+  }
+  if (!(await GetHtmlTemplate(template))) {
+    throw new Error(
+      `${SEND_EMAIL_ACTION_ID}: no HTML template is registered as "${template}"`,
+    );
+  }
+  const language =
+    input.language?.trim() || (await recipientLanguage(input.to));
+  return GenerateHtml({ name: template }, input.props ?? {}, language);
+}
+
 const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
-  id: "dms.send-email",
+  id: SEND_EMAIL_ACTION_ID,
   name: "Send email",
-  description: "Send an HTML email through the configured email provider",
+  description:
+    "Send an HTML email through the configured email provider, written out or rendered from a registered HTML template",
   icon: "i-ph-envelope-simple",
   inputSchema: {
     type: "object",
@@ -30,8 +70,23 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
       to: { type: "string" },
       subject: { type: "string" },
       html: { type: "string" },
+      template: {
+        type: "string",
+        description:
+          "Name of a registered HTML template to render instead of html",
+      },
+      props: {
+        type: "object",
+        description: "Props the template is rendered with",
+      },
+      language: {
+        type: "string",
+        description:
+          "Language the template is rendered in; defaults to the recipient's when the address belongs to a user",
+      },
     },
-    required: ["to", "subject", "html"],
+    required: ["to", "subject"],
+    anyOf: [{ required: ["html"] }, { required: ["template"] }],
   },
   outputSchema: {
     type: "object",
@@ -45,7 +100,7 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
     const result = await Send({
       to: input.to,
       subject: input.subject,
-      html: input.html,
+      html: await emailBody(input),
     });
     if (!result.success) {
       ctx.log("error", `email to "${input.to}" failed`, result.error?.message);
@@ -58,12 +113,18 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
   },
 };
 
+export const INVITE_USER_ACTION_ID = "dms.invite-user";
+
 interface InviteUserInput {
   email: string;
   tenantId?: string;
   roleIds?: string[];
   asTenantOwner?: boolean;
   sendEmail?: boolean;
+  language?: string;
+  firstname?: string;
+  lastname?: string;
+  inviterName?: string;
 }
 
 interface InviteUserOutput {
@@ -72,8 +133,28 @@ interface InviteUserOutput {
   inviteId?: string;
 }
 
+type InvitationDetails = Pick<
+  InviteUserToTenantOptions,
+  "language" | "firstname" | "lastname" | "inviterName"
+>;
+
+// Each detail is passed only when given, so an empty port keeps the defaults
+// of inviteUserToTenant (an English invitation, without names).
+function invitationDetails(input: InviteUserInput): InvitationDetails {
+  const details: InvitationDetails = {};
+  const language = input.language?.trim();
+  const firstname = input.firstname?.trim();
+  const lastname = input.lastname?.trim();
+  const inviterName = input.inviterName?.trim();
+  if (language) details.language = language;
+  if (firstname) details.firstname = firstname;
+  if (lastname) details.lastname = lastname;
+  if (inviterName) details.inviterName = inviterName;
+  return details;
+}
+
 const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
-  id: "dms.invite-user",
+  id: INVITE_USER_ACTION_ID,
   name: "Invite user",
   description:
     "Invite an email address to a tenant: existing users are added as members directly, otherwise an invite is created (and its signup email sent unless sendEmail is false)",
@@ -89,6 +170,17 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       roleIds: { type: "array", items: { type: "string" } },
       asTenantOwner: { type: "boolean", default: false },
       sendEmail: { type: "boolean", default: true },
+      language: {
+        type: "string",
+        description:
+          "Language of the invitation email and of the account it creates; defaults to en",
+      },
+      firstname: { type: "string" },
+      lastname: { type: "string" },
+      inviterName: {
+        type: "string",
+        description: "Who the invitation email says it comes from",
+      },
     },
     required: ["email"],
   },
@@ -123,6 +215,7 @@ const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
       roleIds: input.roleIds ?? [],
       asTenantOwner: input.asTenantOwner ?? false,
       sendEmail: input.sendEmail ?? true,
+      ...invitationDetails(input),
     });
     if (result.kind === "added") {
       ctx.log(
