@@ -20,7 +20,7 @@ RUN pnpm --dir packages/dms exec playwright-core install --with-deps chromium
 
 # The frontend and every screenshot are built against this checkout's backend,
 # with a temporary MongoDB. No live playground or production credential is read.
-RUN node packages/dms/scripts/docs-playground.mjs build
+RUN DEBUG=MongoMS:MongoInstance node packages/dms/scripts/docs-playground.mjs build
 
 FROM node:24-bookworm-slim AS runtime
 ENV HOME=/opt/dms-home
