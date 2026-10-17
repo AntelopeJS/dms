@@ -836,7 +836,7 @@
       },
       "catalog": {
         "ai": {
-          "title": "AI assistant",
+          "title": "Assistant",
           "description": "A coding agent that inspects your modules and edits the project, for development."
         },
         "api": {

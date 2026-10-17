@@ -1,5 +1,6 @@
 import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
+import type { ModuleCatalogEntry } from "../../types/page";
 import type {
   StoreListingEntry,
   StoreModuleState,
@@ -84,9 +85,17 @@ const INSTALLED_STATES = new Set<StoreModuleState>([
   "pending",
 ]);
 
-export function toModuleStoreEntry(entry: StoreListingEntry): ModuleStoreEntry {
+export function toModuleStoreEntry(
+  entry: StoreListingEntry,
+  registeredModules: readonly Pick<ModuleCatalogEntry, "id" | "title">[] = [],
+): ModuleStoreEntry {
   return {
     ...entry,
+    // The registration also names Installed and navigation. Keep the catalog
+    // fallback for unloaded modules, whose translations may not be served.
+    title:
+      registeredModules.find((module) => module.id === entry.id)?.title ??
+      entry.title,
     catalogCategory: `${CATEGORY_PREFIX}.${entry.category}`,
   };
 }

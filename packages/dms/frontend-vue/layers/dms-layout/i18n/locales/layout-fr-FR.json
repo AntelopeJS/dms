@@ -840,7 +840,7 @@
       },
       "catalog": {
         "ai": {
-          "title": "Assistant IA",
+          "title": "Assistant",
           "description": "Un agent de code qui inspecte vos modules et modifie le projet, pour le développement."
         },
         "api": {
@@ -876,7 +876,7 @@
           "description": "Analytique de trafic sans cookie, entonnoirs de conversion avec tests A/B et cartes de clics."
         },
         "media": {
-          "title": "Médias",
+          "title": "Médiathèque",
           "description": "Médiathèque avec dossiers, permissions par dossier et déclinaisons d’images."
         },
         "saas": {

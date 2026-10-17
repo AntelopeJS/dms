@@ -102,6 +102,44 @@ const actionKinds = (entry: StoreListingEntry) =>
   storeActions(entry).map((action) => action.kind);
 
 describe("module store catalog", () => {
+  it("uses the registered module title for display, search and sorting", () => {
+    const installed = [
+      { id: "media", title: "$dms_media.title" },
+      { id: "ai", title: "Assistant" },
+    ];
+    const entries = [
+      listingEntry("ai", { title: "Z-old catalog name" }),
+      listingEntry("media", { title: "Médias" }),
+      listingEntry("builder", { title: "Builder" }),
+    ].map((entry) => toModuleStoreEntry(entry, installed));
+
+    expect(entries.map((entry) => entry.title)).toEqual([
+      "Assistant",
+      "$dms_media.title",
+      "Builder",
+    ]);
+    const translate = (value: string) =>
+      value === "$dms_media.title" ? "Médiathèque" : value;
+    expect(
+      sortStoreModules(entries, translate).map((entry) => entry.id),
+    ).toEqual(["ai", "builder", "media"]);
+    expect(
+      filterModules(entries, {
+        query: "Médiathèque",
+        category: MODULE_CATEGORY_ALL,
+        resolve: translate,
+      }).map((entry) => entry.id),
+    ).toEqual(["media"]);
+    expect(toModuleStoreEntry(listingEntry("ai"), []).title).toBe("Ai");
+  });
+
+  it("keeps unloaded module names aligned with their English and French registrations", () => {
+    expect(en.modules.store.catalog.ai.title).toBe("Assistant");
+    expect(fr.modules.store.catalog.ai.title).toBe("Assistant");
+    expect(en.modules.store.catalog.media.title).toBe("Media");
+    expect(fr.modules.store.catalog.media.title).toBe("Médiathèque");
+  });
+
   it("sorts the modules by their shown name", () => {
     expect(
       sortStoreModules(catalog, resolve).map((entry) => entry.title),
