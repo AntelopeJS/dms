@@ -1,4 +1,9 @@
-import type { RequestContext } from "@antelopejs/interface-api";
+import {
+  computeParameter,
+  type ControllerClass,
+  ControllerMeta,
+  type RequestContext,
+} from "@antelopejs/interface-api";
 import { assert } from "@antelopejs/interface-api-util";
 import { GetMetadata } from "@antelopejs/interface-core";
 import { GetDataControllerMeta } from "@antelopejs/interface-data-api";
@@ -21,16 +26,43 @@ const IDS_KEY = "ids";
 const HTTP_PAYLOAD_TOO_LARGE = 413;
 
 /**
+ * The data controller a bulk selection is read through. A route outside it
+ * (a page's, another controller's) names it by its class: the rows are then
+ * read on an instance holding the model the controller's own routes get for
+ * this request (its tenant's).
+ */
+async function bulkController(
+  target: unknown,
+  ctx: RequestContext,
+): Promise<object> {
+  if (typeof target !== "function") return target as object;
+  const controllerClass = target as ControllerClass;
+  const instance = Object.create(controllerClass.prototype) as Record<
+    string,
+    unknown
+  >;
+  const { modelKey } = GetDataControllerMeta(instance);
+  const provider = modelKey
+    ? GetMetadata(controllerClass, ControllerMeta).computed_props[modelKey]
+    : undefined;
+  if (modelKey && provider) {
+    instance[modelKey] = await computeParameter(ctx, provider, instance);
+  }
+  return instance;
+}
+
+/**
  * The rows a bulk custom action runs on: the selected ids, or every row the
  * table's filters, search and archive view match, read like the list reads
  * them. Either way the caller needs the table's `list` permission: a caller
  * who cannot see the rows does not pick them by id either.
  */
 export async function resolveBulkRowIds(
-  thisObj: unknown,
+  target: unknown,
   ctx: RequestContext,
   user: User,
 ): Promise<string[]> {
+  const thisObj = await bulkController(target, ctx);
   const permissions = await authorizeAction(
     thisObj,
     LIST_ACTION,

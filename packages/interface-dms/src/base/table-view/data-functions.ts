@@ -56,17 +56,20 @@ export const summarizeWithSearch = InterfaceFunction<
 >();
 
 /**
- * The ids of the rows a bulk custom action runs on, from inside its route on
- * the table's data controller (`this`): the `ids` the selection sent, or —
- * after "Select all N matching" (`allMatching=true`) — every row the table's
- * filters, search and archive view match. Either way it refuses (403) a
- * caller without the table's `list` permission; the route still checks the
- * permission of the action itself. The matching rows are capped (see
+ * The ids of the rows a bulk custom action runs on: the `ids` the selection
+ * sent, or — after "Select all N matching" (`allMatching=true`) — every row
+ * the table's filters, search and archive view match. Either way it refuses
+ * (403) a caller without the table's `list` permission; the route still checks
+ * the permission of the action itself. The matching rows are capped (see
  * `MAX_BULK_MATCHING_ROWS`).
+ *
+ * `table` is the table's data controller: `this` from a route on it, or its
+ * class from any other route (a page's, another controller's), which reads
+ * the rows with the model the controller's own routes get for the request.
  */
 export const resolveBulkRowIds =
   InterfaceFunction<
-    (thisObj: unknown, ctx: RequestContext, user: User) => Promise<string[]>
+    (table: unknown, ctx: RequestContext, user: User) => Promise<string[]>
   >();
 
 /** The most rows "Select all N matching" hands a bulk action at once. */
