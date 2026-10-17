@@ -18,6 +18,7 @@ const BLOCK_TYPES: PreviewBlockTypes = {
   ChartLine: { componentName: "dms-chart", fixedOptions: { type: "line" } },
   Card: { componentName: "dms-card-block" },
   TableView: { componentName: "dms-table-view", needsController: true },
+  ResourceForm: { componentName: "dms-form", needsController: true },
 };
 
 describe("preview state parameter", () => {
@@ -118,6 +119,32 @@ describe("preview allowlist", () => {
 });
 
 describe("route-sourced blocks", () => {
+  it("renders a serialized resource form only against the read-only demo record", () => {
+    const options = {
+      fields: [{ id: "name", component: { componentName: "dms-input-text" } }],
+      fetchUrl: "/api/block-preview/fixtures/workspace",
+    };
+    const [node] = resolvePreviewTree(
+      { type: "ResourceForm", options },
+      BLOCK_TYPES,
+    );
+    expect(node.issue).toBeUndefined();
+    expect(node.componentName).toBe("dms-form");
+    expect(node.options).toEqual(options);
+    for (const changed of [
+      { ...options, fetchUrl: "/api/private/workspace" },
+      { ...options, submitUrl: "/api/private/workspace" },
+      { ...options, fields: undefined },
+    ]) {
+      expect(
+        resolvePreviewTree(
+          { type: "ResourceForm", options: changed },
+          BLOCK_TYPES,
+        )[0].issue?.key,
+      ).toBe("needs_backend");
+    }
+  });
+
   it("draws a table view built from a route, checking its routes", () => {
     const fromSource = {
       location: "/api/requests",
