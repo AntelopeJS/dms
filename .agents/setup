@@ -3,7 +3,6 @@ set -euo pipefail
 
 readonly NODE_MAJOR="24"
 readonly PNPM_VERSION="10.2.0"
-readonly ANTELOPE_VERSION="1.10.1"
 readonly MONGODB_MAJOR="8.0"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -51,19 +50,6 @@ configure_pnpm() {
   fi
 
   pnpm --version
-}
-
-install_antelope_cli() {
-  local current_version=""
-  if command -v ajs >/dev/null 2>&1; then
-    current_version="$(ajs --version 2>/dev/null || true)"
-  fi
-
-  if [[ "$current_version" != "$ANTELOPE_VERSION" ]]; then
-    sudo npm install --global "@antelopejs/core@$ANTELOPE_VERSION"
-  fi
-
-  ajs --version
 }
 
 install_mongodb() {
@@ -121,6 +107,8 @@ start_mongodb() {
 
 install_dependencies() {
   pnpm install --frozen-lockfile
+  # Use the CLI and its interface-core from the same workspace lockfile.
+  pnpm exec ajs --version
   pnpm build
   pnpm --dir packages/dms/playground build
   pnpm --dir packages/dms/playground exec ajs project modules install
@@ -128,7 +116,6 @@ install_dependencies() {
 
 run_step "Install Node.js $NODE_MAJOR" install_node
 run_step "Configure pnpm $PNPM_VERSION" configure_pnpm
-run_step "Install AntelopeJS CLI $ANTELOPE_VERSION" install_antelope_cli
 run_step "Install MongoDB $MONGODB_MAJOR" install_mongodb
 run_step "Start MongoDB" start_mongodb
 run_step "Install locked Node.js dependencies" install_dependencies

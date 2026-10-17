@@ -112,14 +112,39 @@ Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request, and [AG
 One root install includes the runtime, interface, shipped Vue layer and playground, using a shared lockfile so the runtime and interface resolve the same dependencies. Use the root scripts below rather than recursive scripts, because the runtime already delegates checks to the interface and Vue layer.
 
 ```bash
-pnpm install
-pnpm --dir packages/dms dev            # playground backend
-pnpm --dir packages/dms frontend:dev   # dashboard, in a second terminal
+pnpm install --frozen-lockfile
+pnpm dev            # playground backend
+pnpm frontend:dev   # dashboard, in a second terminal
 pnpm build
 pnpm lint
 pnpm typecheck
 pnpm test
 ```
+
+### Recover an outdated playground installation
+
+Use Node 24 (see `.nvmrc`) and run these commands from the repository root. The
+playground requires AntelopeJS core 1.16.0 or later and `interface-core` 0.2.4;
+the lockfile installs compatible versions together. Use `pnpm exec ajs` for
+CLI commands rather than a separately installed global `ajs`.
+
+If startup reports `Incompatible interface package resolution` with a shared
+`interface-core` 0.1.1, stop the backend and frontend, then reinstall the local
+dependencies from the current lockfile:
+
+```bash
+pnpm install --frozen-lockfile --force
+pnpm exec ajs --version                    # 1.16.0 with the current lockfile
+pnpm --dir packages/dms/playground exec ajs project modules install
+pnpm dev
+# In a second terminal, from the repository root:
+pnpm frontend:dev
+```
+
+Do not downgrade the modules' interface requirements to 0.1.1 or delete the
+lockfile. The older CLI can supply its own outdated interface singleton even
+when the cached modules already have 0.2.4. Reinstalling dependencies preserves
+the MongoDB database and playground file storage.
 
 Two scripts keep the documentation data in step with the code (the [block preview page](https://dms.antelopejs.com/docs/ai-and-claude-code/block-preview-page) must be enabled for the screenshots):
 
