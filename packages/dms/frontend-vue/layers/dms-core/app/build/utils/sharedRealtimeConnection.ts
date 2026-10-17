@@ -38,7 +38,8 @@ interface ConnectionMessage {
 interface FrameMessage {
   kind: "frame";
   connectionId: string;
-  sessionId: string;
+  /** Unset on a frame of the connection itself, which every tab receives. */
+  sessionId?: string;
   event: string;
   data: unknown;
 }
@@ -74,7 +75,15 @@ export interface SharedRealtimeConnectionOptions extends StreamRecovery {
   sessionCloseUrl: string;
   /** The connection to open a session on; `undefined` while there is none. */
   onConnection: (connectionId: string | undefined) => void;
-  onFrame: (sessionId: string, eventName: string, data: unknown) => void;
+  /**
+   * A frame of one tab's session, or of the connection itself (the dev
+   * reload signal) when `sessionId` is unset.
+   */
+  onFrame: (
+    sessionId: string | undefined,
+    eventName: string,
+    data: unknown,
+  ) => void;
   environment?: CrossTabEnvironment;
 }
 
@@ -272,9 +281,13 @@ const lead = ({ options, environment, bus, tabId }: LeaderContext) => {
         publish(readConnectionId(data));
         return;
       }
+      if (!connectionId) return;
+      if (eventName !== SESSION_EVENT) {
+        bus.post({ kind: "frame", connectionId, event: eventName, data });
+        return;
+      }
       const frame = data as SessionFrame | null;
-      if (eventName !== SESSION_EVENT || !connectionId || !frame) return;
-      if (typeof frame.sessionId !== "string") return;
+      if (typeof frame?.sessionId !== "string") return;
       if (typeof frame.event !== "string") return;
       bus.post({
         kind: "frame",

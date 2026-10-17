@@ -3,6 +3,12 @@ import type { RequestContext } from "@antelopejs/interface-api";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { expect } from "chai";
 import {
+  cancelScheduledBroadcast,
+  DEV_RELOAD_TOPIC,
+  scheduleBroadcast,
+  setSlugProvider,
+} from "../../../implementations/dms/dev-reload";
+import {
   buildUserNotificationTopic,
   getRealtimeBroker,
   InMemoryBroker,
@@ -30,7 +36,11 @@ interface SessionGreeting {
   ok: boolean;
   sessionId?: string;
   menuTopics?: string[];
+  devReload?: boolean;
 }
+
+// Comfortably past the 250 ms dev reload broadcast debounce.
+const BROADCAST_SETTLE_MS = 400;
 
 const createFakeStream = (): FakeStream => {
   const frames: string[] = [];
@@ -191,6 +201,34 @@ describe("[unit] realtime — shared connection", () => {
       status = (error as { status?: number }).status;
     }
     expect(status).to.equal(403);
+  });
+
+  it("carries the dev reload signal once per connection, as its sessions say", async () => {
+    const stream = createFakeStream();
+    const connectionId = await openConnection(stream);
+    const greetings = [
+      await openSession(connectionId),
+      await openSession(connectionId),
+    ];
+    setSlugProvider(() => ["/orders"]);
+
+    scheduleBroadcast();
+    await new Promise((resolve) => setTimeout(resolve, BROADCAST_SETTLE_MS));
+
+    expect(greetings.map((greeting) => greeting.devReload)).to.deep.equal([
+      true,
+      true,
+    ]);
+    const reloads = parseFrames(stream).filter(
+      (frame) => frame.event === DEV_RELOAD_TOPIC,
+    );
+    expect(reloads).to.have.length(1);
+    expect(reloads[0]!.data).to.include({
+      topic: DEV_RELOAD_TOPIC,
+      type: "resync",
+    });
+    cancelScheduledBroadcast();
+    setSlugProvider(() => []);
   });
 
   it("ends a shared connection on stop, sessions or not", async () => {

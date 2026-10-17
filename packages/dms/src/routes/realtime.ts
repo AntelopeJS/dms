@@ -60,6 +60,8 @@ type RealtimeAck = { ok: boolean };
 interface SessionGreeting extends RealtimeAck {
   sessionId?: string;
   menuTopics?: string[];
+  /** The connection carries the dev reload signal (topic `dms:dev-reload`). */
+  devReload?: true;
 }
 
 /**
@@ -249,7 +251,17 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       close: stream.close,
     });
     stream.send(HELLO_EVENT, { connectionId, ts: Date.now() });
+    // Once per connection, outside any session: every tab of the browser
+    // hears it from the one stream.
+    const stopDevReload = addDevReloadListener((type) =>
+      stream.send(DEV_RELOAD_TOPIC, {
+        topic: DEV_RELOAD_TOPIC,
+        type,
+        ts: Date.now(),
+      }),
+    );
     stream.onClose(async () => {
+      stopDevReload();
       const sessionIds = unregisterConnection(connectionId);
       await Promise.all(
         sessionIds.map((sessionId) =>
@@ -294,6 +306,7 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
       ok: true,
       sessionId,
       menuTopics: menuTopicsFor(tenantId, user._id),
+      devReload: isDevReloadEnabled() || undefined,
     };
   }
 

@@ -155,6 +155,21 @@ describe("useUserRealtime across tabs", () => {
     expect(opened[1]!.received).toEqual([]);
   });
 
+  it("hands the connection's own frames to every tab once", async () => {
+    const opened = await openTabs(3);
+    const reloads = opened.map((tab) => {
+      const received: unknown[] = [];
+      tab.api.subscribe("dms:dev-reload", (event) => received.push(event));
+      return received;
+    });
+    const reload = { topic: "dms:dev-reload", type: "resync", ts: 3 };
+
+    server.lastConnection().write("dms:dev-reload", reload);
+    await settle();
+
+    for (const received of reloads) expect(received).toEqual([reload]);
+  });
+
   it("ends the session of a tab that goes, and nothing else", async () => {
     const [leader, follower, other] = await openTabs(3);
     const followerSession = sessionOf(follower!);

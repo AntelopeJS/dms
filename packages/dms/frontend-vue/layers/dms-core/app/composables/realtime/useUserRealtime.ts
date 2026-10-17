@@ -263,6 +263,11 @@ const connectTab = (
       if (next) void openSession(next);
     },
     onFrame: (sessionId, eventName, data) => {
+      // The connection's own frames reach a tab once it has a session on it.
+      if (sessionId === undefined) {
+        if (state.sessionId.value) dispatch(eventName, data);
+        return;
+      }
       if (sessionId === state.sessionId.value) {
         dispatch(eventName, data);
         return;
