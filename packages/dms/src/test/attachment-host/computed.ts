@@ -15,6 +15,7 @@ import type { ValueProxy } from "@antelopejs/interface-database";
 import {
   BasicDataModel,
   Field,
+  Index,
   Model,
   RegisterTable,
   Table,
@@ -28,6 +29,7 @@ import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/defa
 import { Searchable } from "@antelopejs/interface-dms/base/searchable";
 import {
   Column,
+  Select,
   TableView,
   TableViewRoutes,
 } from "@antelopejs/interface-dms/base/table-view";
@@ -37,12 +39,46 @@ import {
 // nor sorted by default, so the list must compute them for its page.
 
 const TABLE = "computed-tasks";
+const PROJECT_TABLE = "computed-projects";
+
+@RegisterTable(PROJECT_TABLE, CORE_SCHEMA_NAME)
+export class ComputedProject extends Table {
+  @Field("string") declare name: string;
+}
+
+export class ComputedProjectModel extends BasicDataModel(
+  ComputedProject,
+  PROJECT_TABLE,
+) {}
+
+@RegisterDataController()
+export class ComputedProjectController extends DataController(
+  ComputedProject,
+  TableViewRoutes.All,
+  Controller("/api/computed/projects"),
+) {
+  @ModelReference()
+  @Model(ComputedProjectModel)
+  declare model: ComputedProjectModel;
+
+  @Listable()
+  @Select()
+  @Access(AccessMode.ReadOnly)
+  declare _id: string;
+
+  @Listable()
+  @Select()
+  @Column({ name: "Name", type: new DefaultDataTypes.StringType() })
+  @Access(AccessMode.ReadWrite)
+  declare name: string;
+}
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 export class ComputedTask extends Table {
   @Field("string") declare title: string;
   @Field("number") declare estimate: number;
   @Field("number") declare spent: number;
+  @Index() @Field("string") declare projectId?: string;
 }
 
 export class ComputedTaskModel extends BasicDataModel(ComputedTask, TABLE) {}
@@ -87,6 +123,26 @@ export class ComputedTaskController extends DataController(
     ),
   )
   declare remaining: number;
+
+  @Listable()
+  @Column({
+    name: "Project",
+    type: new DefaultDataTypes.RelationType({
+      dataApiController: ComputedProjectController,
+    }),
+  })
+  @Access(AccessMode.ReadWrite)
+  declare projectId: string;
+
+  // A sub-query on the table: the tasks of the same project.
+  @Listable()
+  @Column({ name: "Siblings", type: new DefaultDataTypes.NumberType() })
+  @Computed(
+    (row, db) =>
+      db.table(TABLE).getAll(row.key("projectId"), "projectId").count(),
+    { default: 0 },
+  )
+  declare siblings: number;
 
   @Listable()
   @Column({ name: "Shout", type: new DefaultDataTypes.StringType() })

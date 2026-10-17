@@ -68,3 +68,50 @@ describe("[integration] table view computed fields", () => {
     expect(computedOf(tasks)).to.deep.equal([EXPECTED[1]]);
   });
 });
+
+describe("[integration] table view computed sub-query beside a relation", () => {
+  let client: AxiosInstance;
+  let taskId: string;
+  let projectId: string;
+
+  before(async () => {
+    await resetDatabase();
+    const owner = await registerUser({ owner: true });
+    client = authorizedClient(owner.accessToken);
+    const project = await client.post("/api/computed/projects/new", {
+      name: "Apollo",
+    });
+    expect(project.status, JSON.stringify(project.data)).to.equal(HTTP_OK);
+    const [created] = (await client.get("/api/computed/projects/list?limit=5"))
+      .data.results as { _id: string }[];
+    projectId = created!._id;
+    for (const title of ["Plan", "Build"]) {
+      const task = await client.post(`${LOCATION}/new`, {
+        title,
+        estimate: 2,
+        spent: 1,
+        projectId,
+      });
+      expect(task.status, JSON.stringify(task.data)).to.equal(HTTP_OK);
+    }
+    const listed = await client.get(`${LOCATION}/list?limit=5&sortKey=title`);
+    taskId = (listed.data.results as { _id: string }[])[0]!._id;
+  });
+
+  it("resolves a single relation of a row read alone", async () => {
+    const response = await client.get(`${LOCATION}/get?id=${taskId}`);
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    expect(response.data.siblings).to.equal(2);
+    expect(response.data.projectId).to.include({
+      _id: projectId,
+      name: "Apollo",
+    });
+  });
+
+  it("resolves it in the list too", async () => {
+    const response = await client.get(`${LOCATION}/list?limit=5`);
+    const [task] = response.data.results as Record<string, unknown>[];
+    expect(task!.siblings).to.equal(2);
+    expect(task!.projectId).to.include({ _id: projectId, name: "Apollo" });
+  });
+});

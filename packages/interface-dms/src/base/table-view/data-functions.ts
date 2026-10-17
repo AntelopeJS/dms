@@ -3,6 +3,7 @@ import { InterfaceFunction } from "@antelopejs/interface-core";
 import type {
   DataControllerCallback,
   DataControllerCallbackWithOptions,
+  DefaultRoutes,
 } from "@antelopejs/interface-data-api";
 import type { Parameters } from "@antelopejs/interface-data-api/components";
 import type { User } from "../../auth/db";
@@ -28,6 +29,22 @@ export const listWithSearch = InterfaceFunction<
     limit: number;
   }>
 >();
+
+/**
+ * One row of the table read alone (the `get` route), joined, computed and
+ * related fields included, `guard` run on it before its fields are read.
+ *
+ * @internal
+ */
+export const getTableViewRow =
+  InterfaceFunction<
+    (
+      thisObj: unknown,
+      ctx: RequestContext,
+      params: Parameters.GetParameters,
+      guard?: DefaultRoutes.GetGuard,
+    ) => Promise<Record<string, unknown>>
+  >();
 
 /** @internal */
 export const countWithSearch =
