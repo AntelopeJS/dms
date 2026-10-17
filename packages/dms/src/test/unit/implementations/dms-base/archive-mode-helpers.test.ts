@@ -96,14 +96,22 @@ describe("[unit] interfaces/dms-base/helpers/archive-mode-helpers", () => {
       });
     });
 
-    it("preserves user rule when provided", () => {
+    it("combines a user rule with the archive one rather than replacing it", () => {
       const customRule: RowActionRule = { field: "custom", equals: "value" };
       const input: TableViewRowActionOptions = {
-        edit: { isEnabled: true, rule: customRule },
+        edit: { isEnabled: true, rule: customRule, label: "Change" },
+        delete: { rule: customRule },
       };
       const result = applyArchiveModeDefaultRules(input, ARCHIVE_FIELD);
 
-      expect((result?.edit as RowActionConfig)?.rule).to.deep.equal(customRule);
+      expect(result?.edit).to.deep.equal({
+        isEnabled: true,
+        label: "Change",
+        rule: { and: [{ field: ARCHIVE_FIELD, notEquals: true }, customRule] },
+      });
+      expect((result?.delete as RowActionConfig)?.rule).to.deep.equal({
+        and: [{ field: ARCHIVE_FIELD, equals: true }, customRule],
+      });
     });
 
     it("adds default rule when user config has no rule", () => {
