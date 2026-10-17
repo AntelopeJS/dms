@@ -4,6 +4,13 @@ import { buildAnnotations } from "./apexAnnotations";
 import { buildPlotOptions, ringFitsSliceLabels } from "./apexPlotOptions";
 import { buildAutoYRange, formatPlainAxisValue } from "./apexYRange";
 import { heatmapRangeColors, isDarkSurface } from "./heatmapColors";
+import {
+  bucketAxisFormatter,
+  bucketTooltipFormatter,
+  detectDatetimeBuckets,
+  toBucketSeries,
+  type DatetimeBuckets,
+} from "./apexDatetimeBuckets";
 import { isReducedMotionActive } from "../../build/utils/accessibilityPreferences";
 import {
   axisLabelStyle,
@@ -649,16 +656,46 @@ function applyOptionalSections(
 function projectSeries(
   input: UseApexChartInput,
   isCircular: boolean,
+  buckets: DatetimeBuckets | null,
 ): ChartSeries[] {
   if (isCircular) return [];
   void input.themeRevision;
-  const series =
+  const mixed =
     input.type === "mixed"
       ? applyMixedSeriesDefs(input.series, input.seriesDefs)
       : input.series;
+  const series = buckets ? toBucketSeries(mixed, buckets) : mixed;
   return asComparisonLines(series, input).map((entry) =>
     entry.color ? { ...entry, color: resolveChartColor(entry.color) } : entry,
   );
+}
+
+/**
+ * Calendar buckets on a datetime axis become one category each: a column
+ * per month (or day), evenly spaced, under one label, the tooltip naming the
+ * whole bucket.
+ */
+function applyDatetimeBuckets(
+  options: Record<string, unknown>,
+  input: UseApexChartInput,
+  buckets: DatetimeBuckets | null,
+): void {
+  if (!buckets) return;
+  const xaxis = options.xaxis as Record<string, unknown>;
+  const { format: _datetimeFormat, ...labels } = xaxis.labels as Record<
+    string,
+    unknown
+  >;
+  options.xaxis = {
+    ...xaxis,
+    type: "category",
+    labels: { ...labels, formatter: bucketAxisFormatter(buckets, input) },
+  };
+  const tooltip = options.tooltip as Record<string, unknown>;
+  options.tooltip = {
+    ...tooltip,
+    x: { formatter: bucketTooltipFormatter(buckets, input) },
+  };
 }
 
 /**
@@ -740,6 +777,7 @@ function buildChartOptions(
   value: UseApexChartInput,
   cfg: (typeof APEX_TYPE_CONFIGS)[ChartType],
   finalSeries: ChartSeries[],
+  buckets: DatetimeBuckets | null,
 ): Record<string, unknown> {
   void value.themeRevision;
   const ctx = buildChartOptionsContext(value, cfg, finalSeries);
@@ -765,6 +803,7 @@ function buildChartOptions(
     finalSeries,
     ctx.baseColors,
   );
+  applyDatetimeBuckets(baseOptions, value, buckets);
   return injectRawOptions(baseOptions, value.rawOptions);
 }
 
@@ -772,8 +811,9 @@ export function useApexChart(
   input: () => UseApexChartInput,
 ): UseApexChartOutput {
   const config = computed(() => APEX_TYPE_CONFIGS[input().type]);
+  const buckets = computed(() => detectDatetimeBuckets(input()));
   const finalSeries = computed<ChartSeries[]>(() =>
-    projectSeries(input(), config.value.isCircular),
+    projectSeries(input(), config.value.isCircular, buckets.value),
   );
 
   const series = computed<unknown>(() => {
@@ -785,9 +825,12 @@ export function useApexChart(
   });
 
   const options = computed<Record<string, unknown>>(() =>
-    buildChartOptions(input(), config.value, finalSeries.value),
+    buildChartOptions(input(), config.value, finalSeries.value, buckets.value),
   );
 
   const apexType = computed(() => resolveApexType(input()));
-  return { apexType, options, series };
+  const sourcePointIndex = (seriesIndex: number, dataPointIndex: number) =>
+    buckets.value?.sourceIndexes[seriesIndex]?.[dataPointIndex] ??
+    dataPointIndex;
+  return { apexType, options, series, sourcePointIndex };
 }

@@ -199,14 +199,18 @@ function buildXyClickPayload(opts: {
   seriesIndex: number;
 }): ChartClickPayload {
   const series = finalSeries.value[opts.seriesIndex];
-  const point = series?.data[opts.dataPointIndex];
+  const dataPointIndex = apex.sourcePointIndex(
+    opts.seriesIndex,
+    opts.dataPointIndex,
+  );
+  const point = series?.data[dataPointIndex];
   const pointValue = readPointValue(point);
   const label =
     typeof point === "object" && point !== null && "label" in point
       ? (point as { label?: string }).label
       : undefined;
   return {
-    dataPointIndex: opts.dataPointIndex,
+    dataPointIndex,
     seriesIndex: opts.seriesIndex,
     ...pointValue,
     seriesName: series?.name ?? "",
@@ -290,6 +294,7 @@ const apex = useApexChart(() => ({
   xAxis: props.xAxis,
   xAxisFormatter: props.xAxisFormatter,
   yAxisFormatter: yAxisFormatter.value,
+  locale: locale.value,
   onDataPointClick: emitDataClick,
 }));
 
