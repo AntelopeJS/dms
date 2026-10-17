@@ -1,0 +1,70 @@
+import type { AxiosInstance } from "axios";
+import { expect } from "chai";
+import { authorizedClient, registerUser } from "../helpers/auth";
+import { resetDatabase } from "../helpers/db";
+
+// Database-computed fields of a table view (src/test/attachment-host/computed.ts):
+// the list returns them on every row, whether or not the request filters or
+// sorts on them, as the data API's own list does.
+
+const LOCATION = "/api/computed/tasks";
+const HTTP_OK = 200;
+
+interface Task {
+  title: string;
+  remaining?: number;
+  shout?: string;
+}
+
+describe("[integration] table view computed fields", () => {
+  let client: AxiosInstance;
+
+  before(async () => {
+    await resetDatabase();
+    const owner = await registerUser({ owner: true });
+    client = authorizedClient(owner.accessToken);
+    const rows = [
+      { title: "Plan", estimate: 8, spent: 3 },
+      { title: "Build", estimate: 5, spent: 5 },
+    ];
+    for (const row of rows) {
+      const created = await client.post(`${LOCATION}/new`, row);
+      expect(created.status, JSON.stringify(created.data)).to.equal(HTTP_OK);
+    }
+  });
+
+  async function list(query = ""): Promise<Task[]> {
+    const response = await client.get(`${LOCATION}/list?limit=50${query}`);
+    expect(response.status, JSON.stringify(response.data)).to.equal(HTTP_OK);
+    return response.data.results as Task[];
+  }
+
+  const computedOf = (tasks: Task[]) =>
+    tasks
+      .map(({ title, remaining, shout }) => ({ title, remaining, shout }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+
+  const EXPECTED = [
+    { title: "Build", remaining: 0, shout: "BUILD" },
+    { title: "Plan", remaining: 5, shout: "PLAN" },
+  ];
+
+  it("returns the computed fields of a page neither sorted nor filtered on them", async () => {
+    expect(computedOf(await list())).to.deep.equal(EXPECTED);
+  });
+
+  it("returns them on a page sorted on another field", async () => {
+    expect(computedOf(await list("&sortKey=title"))).to.deep.equal(EXPECTED);
+  });
+
+  it("returns them on a page sorted on one of them", async () => {
+    const tasks = await list("&sortKey=remaining&sortDirection=desc");
+    expect(tasks.map((task) => task.title)).to.deep.equal(["Plan", "Build"]);
+    expect(computedOf(tasks)).to.deep.equal(EXPECTED);
+  });
+
+  it("returns them on a searched page", async () => {
+    const tasks = await list("&search=pla");
+    expect(computedOf(tasks)).to.deep.equal([EXPECTED[1]]);
+  });
+});

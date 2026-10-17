@@ -41,6 +41,7 @@ import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
+  displayOnlyComputedFields,
   listWithSearch as listWithSearchFunc,
 } from "./search-route";
 
@@ -152,7 +153,8 @@ async function buildIdsExportQuery(
     }
   }
 
-  return { query, queryTotal: query.count(), model };
+  // Read without `Query.List`: no computed field is merged yet.
+  return { query, queryTotal: query.count(), model, mergedBy: undefined };
 }
 
 /** What the export reads from. */
@@ -182,6 +184,7 @@ async function buildExportQuery({
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
+    mergedBy: { filters: built.filters, sortKey: listParams.sortKey },
   };
 }
 
@@ -235,7 +238,7 @@ export async function generateTableViewExport({
 
   writer.writeHeaders(headers);
 
-  const { query, queryTotal, model } = await buildExportQuery({
+  const { query, queryTotal, model, mergedBy } = await buildExportQuery({
     controller,
     controllerMetadata,
     ctx,
@@ -245,11 +248,26 @@ export async function generateTableViewExport({
   });
 
   const totalRecordsCount = await queryTotal;
+  const displayComputed = displayOnlyComputedFields(
+    controllerMetadata,
+    mergedBy?.filters,
+    mergedBy?.sortKey,
+    listParams.noPluck ? undefined : selectedFields,
+  );
 
   for (let i = 0; i < totalRecordsCount; i += EXPORT_BATCH_SIZE) {
     // `Stream.slice` takes (offset, count), not (start, end): passing an end
     // index grows every page and re-reads rows the previous one wrote.
     let pendingRecordBatch = query.slice(i, EXPORT_BATCH_SIZE);
+
+    if (displayComputed.size > 0) {
+      pendingRecordBatch = Query.Computed(
+        model.database,
+        controllerMetadata,
+        pendingRecordBatch,
+        displayComputed,
+      );
+    }
 
     if (!listParams.noPluck && selectedFields) {
       pendingRecordBatch = pendingRecordBatch.pluck(
