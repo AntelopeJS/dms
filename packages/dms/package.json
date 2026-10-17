@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/dms",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "The AntelopeJS dashboard management system: admin dashboards declared in TypeScript, with auth and tenancy, data management, file uploads, notifications and realtime.",
   "keywords": [
     "antelopejs",
@@ -76,15 +76,15 @@
   },
   "dependencies": {
     "2fa": "^0.1.2",
-    "@antelopejs/interface-api": ">=0.0.13 <1.0.0",
-    "@antelopejs/interface-api-util": ">=0.1.2 <1.0.0",
-    "@antelopejs/interface-core": ">=0.2.3 <1.0.0",
-    "@antelopejs/interface-data-api": ">=0.2.0 <1.0.0",
-    "@antelopejs/interface-database": ">=0.1.8 <1.0.0",
-    "@antelopejs/interface-database-decorators": ">=0.1.7 <1.0.0",
-    "@antelopejs/interface-dms": ">=0.7.1 <0.8.0",
-    "@antelopejs/interface-email": ">=0.0.5 <1.0.0",
-    "@antelopejs/interface-file-storage": ">=0.1.3 <1.0.0",
+    "@antelopejs/interface-api": ">=0.0.15 <1.0.0",
+    "@antelopejs/interface-api-util": ">=0.1.3 <1.0.0",
+    "@antelopejs/interface-core": ">=0.2.4 <1.0.0",
+    "@antelopejs/interface-data-api": ">=0.2.2 <1.0.0",
+    "@antelopejs/interface-database": ">=0.1.10 <1.0.0",
+    "@antelopejs/interface-database-decorators": ">=0.1.9 <1.0.0",
+    "@antelopejs/interface-dms": ">=0.7.2 <0.8.0",
+    "@antelopejs/interface-email": ">=0.0.6 <1.0.0",
+    "@antelopejs/interface-file-storage": ">=0.1.4 <1.0.0",
     "archiver": "^7.0.1",
     "csv-stringify": "^6.7.0",
     "defu": "^6.1.4",
@@ -99,8 +99,8 @@
     "zod": "~3.24.2"
   },
   "devDependencies": {
-    "@antelopejs/core": ">=1.15.2 <2",
-    "@antelopejs/tooling-configs": ">=0.0.7 <1.0.0",
+    "@antelopejs/core": ">=1.16.0 <2",
+    "@antelopejs/tooling-configs": ">=0.0.9 <1.0.0",
     "@types/archiver": "^6.0.4",
     "@types/chai": "^4.3.20",
     "@types/jsonwebtoken": "^9.0.10",
@@ -138,11 +138,11 @@
     "registry": "https://registry.npmjs.org/"
   },
   "optionalDependencies": {
-    "@antelopejs/interface-dms-automation": ">=0.1.0 <1.0.0",
-    "@antelopejs/interface-redis": ">=0.0.8 <1.0.0"
+    "@antelopejs/interface-dms-automation": ">=0.2.1 <1.0.0",
+    "@antelopejs/interface-redis": ">=0.0.9 <1.0.0"
   },
   "peerDependencies": {
-    "@antelopejs/core": ">=1.15.2 <2"
+    "@antelopejs/core": ">=1.16.0 <2"
   },
   "peerDependenciesMeta": {
     "@antelopejs/core": {

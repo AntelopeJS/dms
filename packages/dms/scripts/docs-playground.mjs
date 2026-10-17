@@ -87,7 +87,9 @@ async function stopChildren() {
 async function build() {
   const { MongoMemoryServer } = await import("mongodb-memory-server-core");
   const mongo = await MongoMemoryServer.create({
-    binary: { version: "8.0.8" },
+    // MongoDB 8's allocator requires CPU sysfs unavailable in some build sandboxes.
+    // This disposable build database uses 7.0; runtime remains tested on MongoDB 8.
+    binary: { version: "7.0.45" },
   });
   process.env.MONGO_URL = mongo.getUri();
   try {
