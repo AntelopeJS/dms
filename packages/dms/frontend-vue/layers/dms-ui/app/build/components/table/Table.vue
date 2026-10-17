@@ -453,6 +453,7 @@ import {
   DEFAULT_PAGE_SIZE,
 } from "../../composables/table/constants";
 import { mergeColumnOrder } from "../../composables/table/utils/columnOrder";
+import { groupRows } from "../../composables/table-view/utils/groupedRows";
 import { EYEBROW_CLASS } from "../../utils/eyebrow";
 import { isRowClickTrigger } from "../../utils/rowClickTrigger";
 
@@ -1031,20 +1032,18 @@ const bodyEntries = computed<BodyEntry[]>(() => {
   const grouping = props.grouping;
   if (!grouping) return rows.map((row) => ({ kind: "row", id: row.id, row }));
   const entries: BodyEntry[] = [];
-  let currentKey: string | undefined;
-  for (const row of rows) {
-    const key = grouping.keyOf(row.original);
-    if (key !== currentKey) {
-      currentKey = key;
-      entries.push({
-        kind: "group",
-        id: GROUP_ENTRY_PREFIX + key,
-        row,
-        key,
-        header: () => grouping.header(key, row.original),
-      });
-    }
-    if (!collapsedGroups.value.includes(key)) {
+  for (const group of groupRows(rows, (row) => grouping.keyOf(row.original))) {
+    const { key } = group;
+    const [first] = group.rows as [TableRow];
+    entries.push({
+      kind: "group",
+      id: GROUP_ENTRY_PREFIX + key,
+      row: first,
+      key,
+      header: () => grouping.header(key, first.original),
+    });
+    if (collapsedGroups.value.includes(key)) continue;
+    for (const row of group.rows) {
       entries.push({ kind: "row", id: row.id, row });
     }
   }
