@@ -1,3 +1,5 @@
+import { type Ref, watch } from "vue";
+
 const RELOAD_EVENT_NAME = "reload";
 const REOPEN_DELAY_MS = 2000;
 
@@ -75,6 +77,52 @@ export function openDevReloadStream(
       if (state.reopenTimer) clearTimeout(state.reopenTimer);
       state.reopenTimer = null;
       state.source?.close();
+    },
+  };
+}
+
+/** The topic the user's realtime stream carries the reload signal under. */
+export const DEV_RELOAD_TOPIC = "dms:dev-reload";
+
+/** The user's realtime stream, as far as the reload signal goes. */
+export interface DevReloadCarrier {
+  /** Whether the open stream carries the reload signal. */
+  carriesDevReload: Ref<boolean>;
+  subscribe: (topic: string, handler: () => void) => () => void;
+}
+
+/**
+ * Follows the backend's reloads over the user's realtime stream while it is
+ * open and carries them, and over a reload stream of its own only while it
+ * does not (signed out, reconnecting): a tab holds one long-lived connection
+ * to the backend, not two, of the six HTTP/1.1 allows per host.
+ */
+export function followDevReload(
+  options: DevReloadStreamOptions,
+  carrier: DevReloadCarrier,
+): DevReloadStream {
+  let stream: DevReloadStream | undefined;
+  const unsubscribe = carrier.subscribe(DEV_RELOAD_TOPIC, () =>
+    options.onReload(),
+  );
+  const stopWatching = watch(
+    carrier.carriesDevReload,
+    (isCarried) => {
+      if (isCarried) {
+        stream?.close();
+        stream = undefined;
+        return;
+      }
+      stream ??= openDevReloadStream(options);
+    },
+    { immediate: true },
+  );
+  return {
+    close: () => {
+      stopWatching();
+      unsubscribe();
+      stream?.close();
+      stream = undefined;
     },
   };
 }

@@ -27,12 +27,16 @@ interface FakeServer {
   subscriptions: PageSubscription[];
   maxOpenStreams: number;
   isDown: boolean;
+  /** The greeting says the stream carries the dev reload signal. */
+  carriesDevReload?: boolean;
 }
 
 const encoder = new TextEncoder();
 
-const helloFrame = (sessionId: string): Uint8Array =>
-  encoder.encode(`event: hello\ndata: ${JSON.stringify({ sessionId })}\n\n`);
+const helloFrame = (sessionId: string, devReload?: boolean): Uint8Array =>
+  encoder.encode(
+    `event: hello\ndata: ${JSON.stringify({ sessionId, devReload })}\n\n`,
+  );
 
 const openStreamCount = (server: FakeServer): number =>
   server.streams.filter((stream) => stream.isOpen()).length;
@@ -63,7 +67,9 @@ const openUserStream = (server: FakeServer, signal: AbortSignal) => {
     server.maxOpenStreams,
     openStreamCount(server),
   );
-  controller.enqueue(helloFrame(`session-${server.streams.length}`));
+  controller.enqueue(
+    helloFrame(`session-${server.streams.length}`, server.carriesDevReload),
+  );
   return { ok: true, status: 200, body };
 };
 
@@ -176,6 +182,23 @@ describe("useUserRealtime reconnection", () => {
     await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
     await settle();
     expect(api.pageTopics.value).toEqual([`table:${PAGE_ID}`]);
+  });
+
+  it("says whether its stream carries the dev reload signal, while it is open", async () => {
+    server.carriesDevReload = true;
+    const api = await loadApi();
+    await settle();
+    expect(api.carriesDevReload.value).toBe(true);
+
+    lastStream().end();
+    await settle();
+    expect(api.carriesDevReload.value).toBe(false);
+
+    server.carriesDevReload = undefined;
+    await vi.advanceTimersByTimeAsync(INITIAL_DELAY_MS);
+    await settle();
+    expect(api.sessionId.value).toBe("session-2");
+    expect(api.carriesDevReload.value).toBe(false);
   });
 
   it("backs off further while the server stays unreachable", async () => {

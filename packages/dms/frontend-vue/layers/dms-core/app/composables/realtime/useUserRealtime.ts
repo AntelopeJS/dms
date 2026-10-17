@@ -56,6 +56,13 @@ export interface UserRealtimeApi {
    * answered them: an event on one means the page's data moved.
    */
   pageTopics: Ref<string[]>;
+  /**
+   * Whether the open stream carries the backend's development reload signal
+   * (topic `dms:dev-reload`), as its greeting said: the tab then needs no
+   * reload stream of its own. False while no stream is open, and in
+   * production.
+   */
+  carriesDevReload: Ref<boolean>;
 }
 
 interface UserRealtimeState {
@@ -63,6 +70,7 @@ interface UserRealtimeState {
   pageId: Ref<string | undefined>;
   menuTopics: Ref<string[]>;
   pageTopics: Ref<string[]>;
+  carriesDevReload: Ref<boolean>;
   appliedPageId: Ref<string | null>;
   handlers: Map<string, Set<RealtimeTopicHandler>>;
   snapshots: Map<string, RealtimeSnapshotEvent>;
@@ -109,6 +117,8 @@ const handleHello = (state: UserRealtimeState, data: unknown): void => {
   if (!data || typeof data !== "object" || !("sessionId" in data)) return;
   state.sessionId.value = String((data as { sessionId: unknown }).sessionId);
   state.menuTopics.value = readMenuTopics(data);
+  state.carriesDevReload.value =
+    (data as { devReload?: unknown }).devReload === true;
 };
 
 const handleEvent =
@@ -316,6 +326,7 @@ const resetSession = (state: UserRealtimeState): void => {
   state.sessionId.value = undefined;
   state.appliedPageId.value = null;
   state.pageTopics.value = [];
+  state.carriesDevReload.value = false;
   state.snapshots.clear();
 };
 
@@ -328,11 +339,13 @@ const buildApi = (): UserRealtimeApi => {
   const appliedPageId = ref<string | null>(null);
   const pageId = ref<string | undefined>(undefined);
   const pageTopics = ref<string[]>([]);
+  const carriesDevReload = ref(false);
   const state: UserRealtimeState = {
     sessionId,
     pageId,
     menuTopics,
     pageTopics,
+    carriesDevReload,
     appliedPageId,
     handlers: new Map(),
     snapshots: new Map(),
@@ -396,7 +409,15 @@ const buildApi = (): UserRealtimeApi => {
     await reconcilePage(state, baseUrl);
   };
 
-  return { subscribe, setPage, sessionId, pageId, menuTopics, pageTopics };
+  return {
+    subscribe,
+    setPage,
+    sessionId,
+    pageId,
+    menuTopics,
+    pageTopics,
+    carriesDevReload,
+  };
 };
 
 export function useUserRealtime(): UserRealtimeApi {

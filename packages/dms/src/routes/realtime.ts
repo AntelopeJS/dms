@@ -17,6 +17,11 @@ import { AuthRawUser } from "@antelopejs/interface-dms/auth";
 import type { User } from "@antelopejs/interface-dms/auth/db";
 import { userCanAccessPage } from "../implementations/dms/page";
 import {
+  addDevReloadListener,
+  DEV_RELOAD_TOPIC,
+  isDevReloadEnabled,
+} from "../implementations/dms/dev-reload";
+import {
   buildMemberMenuTopic,
   buildMenuTopic,
   buildUserNotificationTopic,
@@ -169,16 +174,28 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
     });
     // The menu topics travel with the greeting: the client cannot derive its
     // tenant's topic name on its own, and dispatch is keyed by topic.
+    // Outside production the stream also carries the reload signal (topic
+    // `dms:dev-reload`), so a tab holds one stream to the backend, not two:
+    // browsers allow six HTTP/1.1 connections per host.
     stream.send(HELLO_EVENT, {
       sessionId,
       ts: Date.now(),
       menuTopics: menuTopicsFor(tenantId, user._id),
+      devReload: isDevReloadEnabled() || undefined,
     });
+    const stopDevReload = addDevReloadListener((type) =>
+      stream.send(DEV_RELOAD_TOPIC, {
+        topic: DEV_RELOAD_TOPIC,
+        type,
+        ts: Date.now(),
+      }),
+    );
     let isClosed = false;
     // Awaited so that stopRealtime() releases presence before the broker
     // closes.
     stream.onClose(async () => {
       isClosed = true;
+      stopDevReload();
       await cleanupSession(sessionId).catch((error) =>
         Logging.Warn("Realtime: cleanupSession failed", error),
       );
