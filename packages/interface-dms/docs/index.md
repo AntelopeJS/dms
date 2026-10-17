@@ -19,6 +19,15 @@ The DMS ships one public AntelopeJS interface package, `@antelopejs/interface-dm
 
 This section is the contract reference: the exact symbol names, options and return types, grouped by domain. The DMS guide covers the same ground task by task, organised around what you are building.
 
+If you are learning the DMS, start with the [Quickstart](/docs/getting-started/quickstart) and [Pages & components](/docs/building/pages-and-components). Return here when you need an import path, a signature, or the exact behavior of an option; you do not need to read every domain before building a page.
+
+| Task | Guide with examples | Contract reference |
+| --- | --- | --- |
+| Build a page and choose its layout | [Pages & components](/docs/building/pages-and-components) | [Pages and modules](/docs/interfaces/core/pages-and-modules), [Layout](/docs/interfaces/base/layout) |
+| Add workspace settings | [Settings pages](/docs/building/settings-pages) | [Page access](/docs/interfaces/core/pages-and-modules#page-access) |
+| Protect a route and scope its data | [Auth & tenancy](/docs/auth-and-tenancy/overview) | [Authentication](/docs/interfaces/auth/authentication), [Tenancy](/docs/interfaces/core/tenancy) |
+| Extend another module's screen | [Page extensions](/docs/building/pages-and-components#extending-another-modules-page) | [Extend a page](/docs/interfaces/core/pages-and-modules#extend-a-page-from-another-module) |
+
 Separately published extension interfaces have their own [module interface references](/docs/modules#interface-references), including Builder. This page covers `@antelopejs/interface-dms` itself.
 
 ## One installed copy
