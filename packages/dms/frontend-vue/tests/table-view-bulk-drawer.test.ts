@@ -2,6 +2,7 @@
 import { createApp, defineComponent, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
+import TargetComponentTree from "../layers/dms-ui/app/build/components/containers/TargetComponentTree.vue";
 import {
   bulkSelectionQuery,
   isAllMatchingAction,
@@ -431,6 +432,76 @@ describe("action targets on a selection and on a listed row", () => {
       unknown
     >;
     expect(opened.fetchUrl).toBe("/api/runs/get?id={{row._id}}");
+  });
+
+  // `Card().child("facts", KeyValueList({ fetchUrl }))` as a drawer's
+  // component: the Card is drawn with its children, which read the row.
+  const cardTarget = {
+    type: "drawer" as const,
+    component: {
+      componentName: "Card",
+      options: { title: "{{row.name}}" },
+      children: [
+        {
+          id: "facts",
+          component: {
+            componentName: "KeyValueList",
+            options: { fetchUrl: "/x/{{row._id}}" },
+          },
+        },
+      ],
+    },
+  };
+  interface OpenedTree {
+    targetTree: {
+      componentName: string;
+      children: Array<{ id: string; options: Record<string, unknown> }>;
+    };
+    title: string;
+  }
+
+  it("draws a container drawer with its children, filled with each row", () => {
+    const rows = [
+      { _id: "r1", name: "First" },
+      { _id: "r2", name: "Second" },
+    ];
+    const targets = mountTargets({
+      rowNavigation: { rows: () => rows, rowIdKey: "_id" },
+    });
+    targets.handleCustomRowAction(
+      { label: "Facts", target: cardTarget },
+      rows[0],
+    );
+    expect(drawers[0]?.options.component).toBe(TargetComponentTree);
+    const opened = drawers[0]?.options
+      .componentOptions as unknown as OpenedTree & {
+      navigation: { next: () => void };
+    };
+    expect(opened.title).toBe("First");
+    expect(opened.targetTree.componentName).toBe("Card");
+    expect(opened.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/r1" } },
+    ]);
+    opened.navigation.next();
+    const patched = drawers[0]?.patches[0]
+      ?.componentOptions as unknown as OpenedTree;
+    expect(patched.title).toBe("Second");
+    expect(patched.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/r2" } },
+    ]);
+  });
+
+  it("hands a bulk container drawer its children as declared", () => {
+    const targets = mountTargets();
+    targets.handleBulkCustomAction(
+      { label: "Facts", bulk: true, target: cardTarget },
+      { ids: ["a"], count: 1 },
+    );
+    const opened = drawers[0]?.options
+      .componentOptions as unknown as OpenedTree;
+    expect(opened.targetTree.children).toMatchObject([
+      { id: "facts", options: { fetchUrl: "/x/{{row._id}}" } },
+    ]);
   });
 
   it("steps a row's drawer through the rows shown and keeps it in the URL", async () => {

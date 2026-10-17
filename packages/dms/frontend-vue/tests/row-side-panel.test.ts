@@ -27,6 +27,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import SidePanelHost from "../layers/dms-layout/app/build/components/layout/SidePanelHost.vue";
 import RowSidePanel from "../layers/dms-layout/app/build/components/layout/RowSidePanel.vue";
+import RecursiveComponent from "../layers/dms-ui/app/components/RecursiveComponent.vue";
 import {
   readSidePanelPreferences,
   SIDE_PANEL_COOKIE,
@@ -47,6 +48,14 @@ import { isRowClickTrigger } from "../layers/dms-ui/app/build/utils/rowClickTrig
 import { EYEBROW_CLASS } from "../layers/dms-ui/app/build/utils/eyebrow";
 import { REORDER_HANDLE_CLASS } from "../layers/dms-ui/app/build/composables/table-view/useReorderHandles";
 import type { CustomRowAction } from "../layers/dms-ui/app/types/row-action";
+
+vi.mock("#dms-core/app/build/composables/auth/usePermissionPreview", () => ({
+  usePermissionPreview: () => ({
+    blockFor: () => undefined,
+    isActive: { value: false },
+    session: { value: null },
+  }),
+}));
 
 const PANEL_COMPONENT = "RunPanel";
 const ROW_PANEL_COMPONENT = "DmsRowSidePanel";
@@ -223,6 +232,7 @@ function mountPanel(
   });
   app.component("UButton", ButtonStub);
   app.component(ROW_PANEL_COMPONENT, RowSidePanel);
+  app.component("DmsRecursiveComponent", RecursiveComponent);
   app.mount(host);
   return { host, targets: targets!, showTable };
 }
@@ -436,6 +446,107 @@ describe("row tokens in a row panel's component options", () => {
     expect(shownBlock(host)).toBe(
       "/api/runs/get?id=a%20b&site={{query.site}}|a b|A/B run",
     );
+  });
+});
+
+describe("a container block as a row panel's component", () => {
+  // A Card holding blocks: its body and its footer are slots the children
+  // are mounted in.
+  const CardStub = defineComponent({
+    props: {
+      title: { type: String, default: undefined },
+      rowData: { type: Object as PropType<Row>, default: undefined },
+    },
+    setup(props, { slots }) {
+      return () =>
+        h("section", { "data-card": "" }, [
+          h("h3", `${props.title}|${props.rowData?.name}`),
+          h("div", { "data-body": "" }, slots.default?.()),
+          h("footer", slots.footer?.()),
+        ]);
+    },
+  });
+  const StackStub = defineComponent({
+    setup:
+      (_, { slots }) =>
+      () =>
+        h("div", { "data-stack": "" }, slots.default?.()),
+  });
+  const FactsStub = defineComponent({
+    props: { fetchUrl: { type: String, default: undefined } },
+    setup: (props) => () => h("dl", { "data-facts": "" }, props.fetchUrl),
+  });
+  const blocks: Record<string, unknown> = { CardStub, StackStub, FactsStub };
+  const cardAction = () =>
+    panelAction({
+      component: {
+        componentName: "CardStub",
+        options: { title: "{{row.name}} facts" },
+        children: [
+          {
+            id: "facts",
+            component: {
+              componentName: "FactsStub",
+              options: { fetchUrl: "/x/{{row._id}}" },
+            },
+          },
+          {
+            id: "stack",
+            component: {
+              componentName: "StackStub",
+              children: [
+                {
+                  id: "nested",
+                  component: {
+                    componentName: "FactsStub",
+                    options: { fetchUrl: "/y/{{row.id}}?name={{row.name}}" },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            id: "note",
+            slot: "footer",
+            component: {
+              componentName: "FactsStub",
+              options: { fetchUrl: "/notes/{{row._id}}" },
+            },
+          },
+        ],
+      },
+    } as Partial<CustomRowAction["target"]>);
+  const shownCard = (host: ParentNode) => ({
+    heading: query(host, "[data-card] h3")?.textContent,
+    body: [...host.querySelectorAll("[data-body] [data-facts]")].map(
+      (facts) => facts.textContent,
+    ),
+    nested: query(host, "[data-stack] [data-facts]")?.textContent,
+    footer: query(host, "[data-card] footer [data-facts]")?.textContent,
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal("resolveDmsComponent", (name: string) => blocks[name]);
+  });
+
+  it("mounts its children, filled with the row shown, again on each step", async () => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(cardAction(), rows[0]);
+    await settle();
+    expect(shownCard(host)).toEqual({
+      heading: "First facts|First",
+      body: ["/x/r1", "/y/r1?name=First"],
+      nested: "/y/r1?name=First",
+      footer: "/notes/r1",
+    });
+    query(host, "[data-dms-row-side-panel-next]")?.click();
+    await settle();
+    expect(shownCard(host)).toEqual({
+      heading: "Second facts|Second",
+      body: ["/x/r2", "/y/r2?name=Second"],
+      nested: "/y/r2?name=Second",
+      footer: "/notes/r2",
+    });
   });
 });
 

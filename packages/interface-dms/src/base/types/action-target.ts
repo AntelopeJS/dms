@@ -115,8 +115,11 @@ export type ActionTarget =
        * (J and K too) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
        * anew on each row, its options' `{{row.X}}` tokens filled with that
-       * row (a `ResourceForm` reading `rowId: "{{row._id}}"`). One panel is open at a time: opening it closes a
-       * module's side panel, and the other way round.
+       * row (a `ResourceForm` reading `rowId: "{{row._id}}"`). A container
+       * block (a `Card` holding blocks) is drawn with its children, their
+       * options filled likewise, as in a drawer or a modal. One panel is open
+       * at a time: opening it closes a module's side panel, and the other way
+       * round.
        */
       type: "sidePanel";
       component: Component;

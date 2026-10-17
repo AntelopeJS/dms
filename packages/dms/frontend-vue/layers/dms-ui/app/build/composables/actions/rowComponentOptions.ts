@@ -51,3 +51,26 @@ export function fillRowOptions(options: Options, row: Options): Options {
     ]),
   );
 }
+
+/**
+ * The children of a container block (a Card, a VStack, a Tab) a row's
+ * drawer, modal or side panel shows, each child's options filled with the
+ * row as {@link fillRowOptions} fills the container's own, down the tree.
+ */
+export function fillRowChildren(
+  children: ComponentChild[],
+  row: Options,
+): ComponentChild[] {
+  return children.map((child) => ({
+    ...child,
+    component: {
+      ...child.component,
+      options: child.component.options
+        ? fillRowOptions(child.component.options as Options, row)
+        : child.component.options,
+      children: child.component.children
+        ? fillRowChildren(child.component.children, row)
+        : child.component.children,
+    },
+  }));
+}

@@ -65,7 +65,9 @@ import {
   namesRowField,
 } from "#dms-core/app/utils/url-interpolation";
 import { dropRowTokens } from "../../utils/urlVariables";
-import { fillRowOptions } from "./rowComponentOptions";
+import { fillRowChildren, fillRowOptions } from "./rowComponentOptions";
+import { resolveComponentChildren } from "../../../utils/componentTree";
+import TargetComponentTree from "../../components/containers/TargetComponentTree.vue";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -334,6 +336,16 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const resolveTargetComponent = (componentName: string): Component =>
     (resolveDmsComponent(componentName) || componentName) as Component;
 
+  // A container block (a Card, a VStack, a Tab) mounts its children as a
+  // page does; a single block is mounted as it is.
+  const targetComponentOf = (
+    componentName: string,
+    info: ComponentInfo,
+  ): Component =>
+    info.children?.length
+      ? TargetComponentTree
+      : resolveTargetComponent(componentName);
+
   const rowIdOf = (row?: Data): string | undefined => {
     if (!row) return undefined;
     const idKey =
@@ -388,11 +400,23 @@ export function useActionTargets(config: ActionTargetsConfig) {
   // tokens filled (`{{row.id}}` being the row's id); without a row (a bulk
   // selection, a toolbar button) they are handed as declared.
   const targetOptionsFor = (target: ActionTarget, row?: Data): Data => {
-    const { component } = target as { component?: { options?: Data } };
-    const options = component?.options ?? {};
-    if (!row) return options;
+    const { component } = target as { component?: ComponentInfo<Data> };
     const id = rowIdOf(row);
-    return fillRowOptions(options, id === undefined ? row : { ...row, id });
+    const tokens = row && id !== undefined ? { ...row, id } : row;
+    const declared = component?.options ?? {};
+    const options = tokens ? fillRowOptions(declared, tokens) : declared;
+    const children = component?.children;
+    if (!component?.componentName || !children?.length) return options;
+    // The container's children read the row through the same tokens.
+    const targetTree: ResolvedComponentInfo = {
+      id: component.componentName,
+      component: resolveTargetComponent(component.componentName),
+      componentName: component.componentName,
+      children: resolveComponentChildren(
+        tokens ? fillRowChildren(children, tokens) : children,
+      ),
+    };
+    return { ...options, targetTree };
   };
 
   const rowRecorder = (deepLink?: boolean) => {
@@ -431,7 +455,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       ownerKey,
       title: run.title,
       positionLabel: run.target.positionLabel,
-      component: resolveTargetComponent(componentName),
+      component: targetComponentOf(componentName, run.target.component),
       componentOptions: {
         pageId: config.pageId,
         componentId: config.componentId,
@@ -485,7 +509,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const handleComponentTarget = (run: ComponentTargetRun) => {
     const componentName = run.target.component?.componentName;
     if (!componentName) return;
-    const component = resolveTargetComponent(componentName);
+    const component = targetComponentOf(componentName, run.target.component);
     const source = config.rowNavigation;
     let instance: ContainerInstance | undefined;
     let navigation: RowNavigation | undefined;
