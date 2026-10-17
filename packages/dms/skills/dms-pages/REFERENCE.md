@@ -133,7 +133,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 
 ### Forms
 
-- A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
+- A unit after a number field is `NumberType({ suffix: "$…days" })` (written in its table cells,
+  cards and read-only fields too); a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
