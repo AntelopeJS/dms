@@ -6,14 +6,12 @@ import { satisfies, validRange } from "semver";
 const PACKAGE_ROOT = resolve(__dirname, "..", "..", "..");
 const RENDERER_PACKAGE = "@antelopejs/dms-frontend";
 const WORKSPACE_LOCKFILE = "../../pnpm-lock.yaml";
-const LAYER_LOCKFILE = "frontend-vue/pnpm-lock.yaml";
 /**
- * Where the renderer each layer runs on is locked: the workspace lockfile for
- * the playground, which loads both layers, and the layer's own lockfile, whose
- * renderer `pnpm --dir frontend-vue typecheck` compiles the layer against.
+ * The playground and shipped layer share the workspace's renderer resolutions,
+ * including the renderer used by `pnpm --dir frontend-vue typecheck`.
  */
 const RENDERER_LOCKFILES_BY_LAYER: Record<string, string[]> = {
-  "frontend-vue": [WORKSPACE_LOCKFILE, LAYER_LOCKFILE],
+  "frontend-vue": [WORKSPACE_LOCKFILE],
   "playground/frontend-vue": [WORKSPACE_LOCKFILE],
 };
 const LOCKED_RENDERER = /^ {2}'@antelopejs\/dms-frontend@([^'(]+)':$/gm;

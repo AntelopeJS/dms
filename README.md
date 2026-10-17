@@ -109,6 +109,8 @@ The runtime guides live in [`packages/dms/docs`](./packages/dms/docs). The canon
 
 Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request, and [AGENTS.md](./AGENTS.md) for the repository layout and conventions.
 
+One root install includes the runtime, interface, shipped Vue layer and playground, using a shared lockfile so the runtime and interface resolve the same dependencies. Use the root scripts below rather than recursive scripts, because the runtime already delegates checks to the interface and Vue layer.
+
 ```bash
 pnpm install
 pnpm --dir packages/dms dev            # playground backend

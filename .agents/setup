@@ -123,8 +123,6 @@ install_dependencies() {
   pnpm install --frozen-lockfile
   pnpm build
   pnpm --dir packages/dms/playground build
-  pnpm --dir packages/dms/playground install --frozen-lockfile
-  pnpm --dir packages/dms/frontend-vue install --frozen-lockfile --ignore-scripts
   pnpm --dir packages/dms/playground exec ajs project modules install
 }
 

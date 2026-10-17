@@ -1,9 +1,0 @@
-packages:
-  - "."
-
-onlyBuiltDependencies:
-  - sharp
-  - "@parcel/watcher"
-  - esbuild
-  - puppeteer
-  - vue-demi
