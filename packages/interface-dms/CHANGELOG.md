@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.7.2
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.1...v0.7.2)
+
+### 🚀 Enhancements
+
+- **preview:** Live block preview page, block catalog and screenshots for the docs ([#280](https://github.com/AntelopeJS/dms/pull/280))
+
+### 🔥 Performance
+
+- **layout:** Bundle the Geist fonts and preload only the text face ([#311](https://github.com/AntelopeJS/dms/pull/311))
+- **table:** Drag with SortableJS through useSortable instead of vuedraggable ([#312](https://github.com/AntelopeJS/dms/pull/312))
+- **table-view:** Share a source read between the list and a counter asking the same ([#313](https://github.com/AntelopeJS/dms/pull/313))
+
+### 🩹 Fixes
+
+- **deps:** Move to @antelopejs/core 1.15.2, @antelopejs/interface-core 0.2.3 and @antelopejs/interface-dms 0.7.1 ([#303](https://github.com/AntelopeJS/dms/pull/303))
+- **docs:** Regenerate the block catalog for dms 0.9.2 ([#315](https://github.com/AntelopeJS/dms/pull/315))
+- **form:** Leave a failed record read's toast to the browser ([#304](https://github.com/AntelopeJS/dms/pull/304))
+- **page:** Leave a page's layout out of the components its preload looks up ([#306](https://github.com/AntelopeJS/dms/pull/306))
+- **settings:** Suggest the reader's time zone in a server-rendered region page ([#308](https://github.com/AntelopeJS/dms/pull/308))
+- **frontend:** Set the async data scope before any module's plugin reads ([#305](https://github.com/AntelopeJS/dms/pull/305))
+- **blocks:** Have refreshPageBlocks() wait for the charts and tables it refreshes ([#307](https://github.com/AntelopeJS/dms/pull/307))
+
+### 📖 Documentation
+
+- **dms:** Restructure docs with per-block pages, live previews and an AI section ([#277](https://github.com/AntelopeJS/dms/pull/277))
+- Remove the DMS 0.9 upgrade page ([#316](https://github.com/AntelopeJS/dms/pull/316))
+- **dms:** Document running the DMS inside AdonisJS ([#318](https://github.com/AntelopeJS/dms/pull/318))
+- Make the DMS 0.9 upgrade notes accurate and complete ([#310](https://github.com/AntelopeJS/dms/pull/310))
+- Streamline agent guidance ([#317](https://github.com/AntelopeJS/dms/pull/317))
+- Colocate the DMS consumer reference with its interface ([#320](https://github.com/AntelopeJS/dms/pull/320))
+- Make dense guide sections easier to scan ([#321](https://github.com/AntelopeJS/dms/pull/321))
+
+### 📦 Build
+
+- **dms:** Leave tests and tooling out of the published package ([#314](https://github.com/AntelopeJS/dms/pull/314))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.9.2 ([beb09f9d](https://github.com/AntelopeJS/dms/commit/beb09f9d))
+- **release:** Propagate published dependency floors ([#323](https://github.com/AntelopeJS/dms/pull/323))
+
+### ✅ Tests
+
+- **live:** Hold the page's data refresh while paused, not a user's ([#309](https://github.com/AntelopeJS/dms/pull/309))
+
+### 🤖 CI
+
+- **docs:** Build and verify the hosted preview playground ([#319](https://github.com/AntelopeJS/dms/pull/319))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio
+
 ## v0.7.1
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.0...v0.7.1)
