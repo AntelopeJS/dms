@@ -17,6 +17,7 @@ import type { ContainerInstance } from "../../../composables/containers/types";
 import {
   type BulkSelection,
   bulkSelectionQuery,
+  isBulkAction,
   targetWithSelection,
   withQuery,
 } from "./bulkSelection";
@@ -59,7 +60,10 @@ import {
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
-import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
+import {
+  interpolateRowText,
+  namesRowField,
+} from "#dms-core/app/utils/url-interpolation";
 
 /** Runs a confirmed action from inside its dialog (see `onConfirm`). */
 type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
@@ -129,6 +133,8 @@ interface TargetRunExtras {
   selection?: BulkSelection;
   /** The open row is reflected in the URL. */
   deepLink?: boolean;
+  /** A bulk action run from a row: its drawer or modal gets the row too. */
+  keepsRow?: boolean;
 }
 
 type SidePanelTarget = ActionTarget & { type: "sidePanel" };
@@ -537,7 +543,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
         (target as { description?: string }).description || "",
       ),
       containerId: `${config.pageId}-${config.componentId}-${target.type}`,
-      rowData: extras?.selection ? undefined : rowData,
+      rowData: extras?.selection && !extras.keepsRow ? undefined : rowData,
       ...extras,
     });
 
@@ -546,7 +552,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       target: target as SidePanelTarget,
       title: processI18n((target as SidePanelTarget).title || label),
       containerId: `${config.pageId}-${config.componentId}-${target.type}`,
-      rowData: extras?.selection ? undefined : rowData,
+      rowData: extras?.selection && !extras.keepsRow ? undefined : rowData,
       ...extras,
     });
 
@@ -671,12 +677,42 @@ export function useActionTargets(config: ActionTargetsConfig) {
   };
 
   const handleCustomRowAction = (action: CustomRowAction, rowData?: Data) => {
+    const id = rowIdOf(rowData);
+    if (isBulkAction(action) && rowData && id !== undefined) {
+      runBulkOnRow(action, rowData, id);
+      return;
+    }
     void handleActionTarget(
       action.target,
       action.label,
       rowData,
       action.confirm,
       { deepLink: isDeepLinkAction(action) },
+    );
+  };
+
+  /**
+   * Runs a bulk custom action offered on a row as on a selection of that row:
+   * its URL receives `?ids=<id>` as from the selection bar, its texts the
+   * row's fields and `{ count: 1 }`, and a drawer or modal the row besides
+   * `selection`.
+   */
+  const runBulkOnRow = (action: CustomRowAction, rowData: Data, id: string) => {
+    const selection: BulkSelection = { ids: [id], count: 1 };
+    const query = bulkSelectionQuery(selection);
+    // A `from` naming the row reads its dialog for that row, as on any row.
+    const declared =
+      action.confirm &&
+      isConfirmFrom(action.confirm) &&
+      !namesRowField(action.confirm.from)
+        ? { from: withQuery(action.confirm.from, query) }
+        : action.confirm;
+    void handleActionTarget(
+      targetWithSelection(action.target, query),
+      action.label,
+      { ...rowData, count: selection.count },
+      declared,
+      { selection, keepsRow: true, deepLink: isDeepLinkAction(action) },
     );
   };
 
