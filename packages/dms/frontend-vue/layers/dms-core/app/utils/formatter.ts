@@ -312,16 +312,19 @@ const TIME_SPAN_UNITS: Record<string, keyof typeof TIME_UNITS> = {
   w: "w",
   d: "d",
   h: "h",
+  min: "m",
   m: "m",
   s: "s",
   ms: "ms",
 };
 
-// `01:30`, `26:00:30`: hours, then minutes and seconds under 60.
+// `01:30`, `8:15`, `26:00:30`: hours, then minutes and seconds under 60.
 const CLOCK_SPAN = /^(\d+):([0-5]\d)(?::([0-5]\d))?$/;
-// `1h30m`, `1h 30m`, `1h:30m` (what `formatTimeSpan` writes), `1.5h`.
-const UNIT_SPAN = /^(?:\d+(?:\.\d+)?(?:ms|mo|[Mmwydhs])[\s:]*)+$/;
-const UNIT_SPAN_PART = /(\d+(?:\.\d+)?)(ms|mo|[Mmwydhs])/g;
+// `8h15`, `8 h 05`: hours, then bare minutes, the way a time is often written.
+const HOUR_MINUTE_SPAN = /^(\d+)\s*h\s*([0-5]?\d)$/i;
+// `1h30m`, `1h 30m`, `7 h 30 min`, `1h:30m` (older displays), `1.5h`.
+const UNIT_SPAN = /^(?:\d+(?:[.,]\d+)?\s*(?:ms|mo|min|[Mmwydhs])[\s:]*)+$/;
+const UNIT_SPAN_PART = /(\d+(?:[.,]\d+)?)\s*(ms|mo|min|[Mmwydhs])/g;
 
 function readClockSpan(text: string): number | undefined {
   const match = CLOCK_SPAN.exec(text);
@@ -334,24 +337,33 @@ function readClockSpan(text: string): number | undefined {
   );
 }
 
+function readHourMinuteSpan(text: string): number | undefined {
+  const match = HOUR_MINUTE_SPAN.exec(text);
+  if (!match) return undefined;
+  const [, hours, minutes] = match;
+  return Number(hours) * TIME_UNITS.h + Number(minutes) * TIME_UNITS.m;
+}
+
 function readUnitSpan(text: string): number | undefined {
   if (!UNIT_SPAN.test(text)) return undefined;
   let total = 0;
   for (const [, amount, unit] of text.matchAll(UNIT_SPAN_PART)) {
-    total += Number.parseFloat(amount!) * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
+    const value = Number.parseFloat(amount!.replace(",", "."));
+    total += value * TIME_UNITS[TIME_SPAN_UNITS[unit!]!];
   }
   return total;
 }
 
 /**
- * A duration typed in, in milliseconds: a clock duration (`01:30`,
- * `26:00:30`) or units (`1h30m`, `1h 30m`, `1.5h`), or `undefined` for a
- * text that is neither.
+ * A duration typed in, in milliseconds: a clock duration (`01:30`, `8:15`,
+ * `26:00:30`), hours then minutes (`8h15`, `8h`) or units (`1h30m`,
+ * `1h 30m`, `7 h 30 min`, `1.5h`), or `undefined` for a text that is
+ * neither.
  */
 export function readTimeSpan(value: string): number | undefined {
   const text = value.trim();
   if (!text) return undefined;
-  return readClockSpan(text) ?? readUnitSpan(text);
+  return readClockSpan(text) ?? readHourMinuteSpan(text) ?? readUnitSpan(text);
 }
 
 export function parseTimeSpan(value: string | number): number {
@@ -359,7 +371,8 @@ export function parseTimeSpan(value: string | number): number {
   return readTimeSpan(value) ?? 0;
 }
 
-const DEFAULT_SEPARATOR = ":";
+// Units apart, so the text reads (and reads back) as `7h 30m`.
+const DEFAULT_SEPARATOR = " ";
 const ZERO_MS = "0ms";
 
 export function formatTimeSpan(
