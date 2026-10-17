@@ -2,6 +2,7 @@
 import DashboardFrame from "../build/components/layout/DashboardFrame.vue";
 import DashboardPageBody from "../build/components/layout/DashboardPageBody.vue";
 import type { LayoutHeaderAction } from "../build/components/layout/PageHeaderActionBar.vue";
+import type { PageRecordSource } from "../composables/layout/usePageRecord";
 import SettingsShell from "../build/components/pages/settings/shell/SettingsShell.vue";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
    * when one declares an `availability` (`headerActionsQuery`).
    */
   headerActionsQuery?: Record<string, string>;
+  /** The record the page shows, which header buttons may act on (`record`). */
+  record?: PageRecordSource;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -27,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   headerActions: () => [],
   headerActionsQuery: undefined,
+  record: undefined,
 });
 </script>
 
@@ -40,6 +44,7 @@ const props = withDefaults(defineProps<Props>(), {
         :description="props.description"
         :header-actions="props.headerActions"
         :header-actions-query="props.headerActionsQuery"
+        :record="props.record"
         header-class="pb-5"
       >
         <slot />

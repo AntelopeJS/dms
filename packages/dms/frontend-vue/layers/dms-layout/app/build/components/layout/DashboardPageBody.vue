@@ -5,6 +5,7 @@ import PageHeaderActionsOutlet from "./PageHeaderActionsOutlet.vue";
 import PageSkeleton from "./PageSkeleton.vue";
 import type { LayoutHeaderAction } from "./PageHeaderActionBar.vue";
 import { providePageHeaderActions } from "../../../composables/layout/usePageHeaderActions";
+import type { PageRecordSource } from "../../../composables/layout/usePageRecord";
 
 interface Props {
   hideHeader?: boolean;
@@ -18,6 +19,8 @@ interface Props {
    * when one declares an `availability` (`headerActionsQuery`).
    */
   headerActionsQuery?: Record<string, string>;
+  /** The record the page shows, which header buttons may act on (`record`). */
+  record?: PageRecordSource;
   /** Space between the page header and the page. */
   headerClass?: string;
 }
@@ -29,6 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   headerActions: () => [],
   headerActionsQuery: undefined,
+  record: undefined,
   headerClass: "pb-6",
 });
 
@@ -67,6 +71,7 @@ const PAGE_SLOT_CLASS =
       <PageHeaderActionsOutlet
         :actions="props.headerActions"
         :served-query="props.headerActionsQuery"
+        :record="props.record"
       />
     </template>
   </PageHeader>

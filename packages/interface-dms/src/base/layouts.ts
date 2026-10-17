@@ -18,6 +18,25 @@ export interface PageHeaderButton extends CustomButton {
    * "header"`) take `0`.
    */
   order?: number;
+  /**
+   * The button acts on the record the page shows (the layout's `record`): it
+   * is disabled while the record loads, and left out of a page whose record
+   * cannot be read (not found). A target naming `{{record.X}}` implies it.
+   */
+  requiresRecord?: boolean;
+}
+
+/**
+ * The record a page shows, which its header buttons read: a target may name
+ * its fields as `{{record.X}}` (an address in a maps link).
+ */
+export interface PageRecordSource {
+  /**
+   * URL answering the record, typically its controller's `get` route;
+   * `{{params.X}}` and `{{query.X}}` are filled in from the page URL.
+   * @example "/api/sites/get?id={{params.id}}"
+   */
+  fetchUrl: string;
 }
 
 export interface DefaultLayoutOptions {
@@ -48,6 +67,11 @@ export interface DefaultLayoutOptions {
    * An `availability` disables a button for one request, or hides it.
    */
   headerActions?: PageHeaderButton[];
+  /**
+   * The record the page shows, read by the browser for the header buttons
+   * that act on it (`requiresRecord`, or a `{{record.X}}` in their target).
+   */
+  record?: PageRecordSource;
 }
 
 // A button without an id is keyed by its place in the header.
