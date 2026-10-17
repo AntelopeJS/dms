@@ -11,6 +11,7 @@ import {
 import { formErrorsInjectionKey } from "@nuxt/ui/composables/useFormField";
 import DmsFormErrorText from "./FormErrorText.vue";
 import DmsFormFieldNotes from "./FormFieldNotes.vue";
+import { readonlyDisplayValue } from "../../composables/form/readonlyValue";
 
 interface FormFieldControlProps {
   field: FormField;
@@ -20,6 +21,7 @@ const props = defineProps<FormFieldControlProps>();
 const context = inject(FORM_ENTRY_CONTEXT_KEY)!;
 const { state, initialValues, loading } = context;
 const { processI18n } = useTranslation();
+const { getDataType } = useDataTypes();
 
 const isDisabled = computed(() => context.isFieldDisabled(props.field));
 const component = computed(() => {
@@ -37,6 +39,15 @@ const hasError = computed(() => {
   const pattern = fieldErrorPattern(props.field.id);
   return !!formErrors?.value.some((error) => pattern.test(error.name ?? ""));
 });
+// A relation's state holds ids: a read-only one shows the rows as loaded.
+const displayValue = computed(() =>
+  readonlyDisplayValue(
+    state.value[props.field.id],
+    initialValues.value?.[props.field.id],
+    props.field.type ? getDataType(props.field.type)?.isSameValue : undefined,
+    props.field.component.options,
+  ),
+);
 // What a read-only field shows beside its value: a pill, a link.
 const readonly = computed<FormFieldReadonly>(() =>
   typeof props.field.readonly === "object" ? props.field.readonly : {},
@@ -67,7 +78,7 @@ const readonly = computed<FormFieldReadonly>(() =>
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
         <DmsDisplay
-          :model-value="state[field.id]"
+          :model-value="displayValue"
           :type="field.type"
           :loading
           class="min-w-0"

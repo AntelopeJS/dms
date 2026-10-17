@@ -1,3 +1,4 @@
+import { namesRowField } from "#dms-core/app/utils/url-interpolation";
 import type { ActionTarget } from "../../../composables/table-view/types/action-target";
 import type { CustomRowAction } from "../../../types/row-action";
 
@@ -34,10 +35,18 @@ export function bulkSelectionQuery(
   return query;
 }
 
-/** `url` with `query` appended, a list value as a repeated key. */
+/**
+ * `url` with `query` appended, a list value as a repeated key. A pair of the
+ * URL naming a row field (`?ids={{row._id}}`) is left out: a bulk request
+ * runs on the selection, not on one row, and the selection's ids replace it.
+ */
 export function withQuery(url: string, query: Record<string, QueryValue>) {
   const [path, search = ""] = url.split("?");
-  const params = new URLSearchParams(search);
+  const params = new URLSearchParams(
+    [...new URLSearchParams(search)].filter(
+      ([, value]) => !namesRowField(value),
+    ),
+  );
   for (const [key, value] of Object.entries(query)) {
     for (const entry of Array.isArray(value) ? value : [value]) {
       params.append(key, entry);
