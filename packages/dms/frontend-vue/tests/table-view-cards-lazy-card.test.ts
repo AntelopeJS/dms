@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 /**
  * A cards display whose custom card loads lazily keeps its skeleton until the
- * card's code is there: an empty grid would lift the pagination footer for a
- * beat, then drop it when the cards land.
+ * card's code is there, and the code of the components the card draws: an
+ * empty grid would lift the pagination footer for a beat, then drop it when
+ * the cards land.
  */
 import {
   computed,
@@ -32,6 +33,16 @@ const SiteCard = {
 
 let resolveCard: (component: typeof SiteCard) => void = () => {};
 let lazyCard: ReturnType<typeof defineAsyncComponent>;
+let resolveRecordCard: ((component: typeof SiteCard) => void) | undefined;
+
+// A custom card drawn through a component that loads lazily in turn (the
+// DMS record card).
+let lazyRecord: ReturnType<typeof defineAsyncComponent>;
+const RecordSiteCard = {
+  props: { rowId: String },
+  setup: (props: { rowId?: string }) => () =>
+    h(lazyRecord, { rowId: props.rowId }),
+};
 
 let app: App | undefined;
 let container: HTMLElement;
@@ -62,6 +73,11 @@ const skeletons = () => container.querySelectorAll('[data-test="skeleton"]');
 const cards = () => container.querySelectorAll("article");
 
 beforeEach(() => {
+  resolveRecordCard = undefined;
+  lazyRecord = defineAsyncComponent(
+    () =>
+      new Promise<typeof SiteCard>((resolve) => (resolveRecordCard = resolve)),
+  );
   lazyCard = defineAsyncComponent(
     () => new Promise<typeof SiteCard>((resolve) => (resolveCard = resolve)),
   );
@@ -103,5 +119,19 @@ it("draws the cards at once when the card's code is already there", async () => 
   mount();
   await nextTick();
   expect(cards()).toHaveLength(2);
+  expect(skeletons()).toHaveLength(0);
+});
+
+it("keeps the skeleton while a component the card draws loads", async () => {
+  mount();
+  resolveCard(RecordSiteCard as typeof SiteCard);
+  // The card is in and draws its record card, still on its way.
+  await vi.waitFor(() => expect(resolveRecordCard).toBeDefined());
+  await nextTick();
+  expect(skeletons().length).toBeGreaterThan(0);
+  expect(cards()).toHaveLength(0);
+
+  resolveRecordCard!(SiteCard);
+  await vi.waitFor(() => expect(cards()).toHaveLength(2));
   expect(skeletons()).toHaveLength(0);
 });

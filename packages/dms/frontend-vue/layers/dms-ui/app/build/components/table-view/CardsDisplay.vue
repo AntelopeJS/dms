@@ -25,7 +25,6 @@ import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
 } from "../../composables/table-view/useReorderHandles";
-import { useComponentLoaded } from "../../composables/blocks/useComponentLoaded";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -77,9 +76,6 @@ const cardComponent = computed(() => {
   const name = card.value?.component?.componentName;
   return name ? resolveDmsComponent(name) || name : undefined;
 });
-// A custom card loads lazily: the skeleton stays until its code is there,
-// rather than an empty grid lifting the footer for a beat.
-const isCardComponentLoaded = useComponentLoaded(() => cardComponent.value);
 
 const fieldColumns = computed<TableViewColumn[]>(() =>
   cardFieldColumns(props.context.columns, card.value?.fields, {
@@ -132,7 +128,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
     <!-- v2 cards display: an auto-fit grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
-      v-if="props.context.firstPageLoading || !isCardComponentLoaded"
+      v-if="props.context.firstPageLoading"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
       :min-width="card?.minWidth"
@@ -143,12 +139,15 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
       :can-add-row="props.context.actions.canAdd"
     />
 
-    <div
-      v-else
-      :class="CARD_GRID_CLASS"
-      :style="cardGridStyle(card?.minWidth, props.context.items.length)"
-    >
-      <template v-if="cardComponent">
+    <!-- A custom card loads lazily, and so may the components it draws (a
+         record card, a pill): the skeleton stays until every one of them is
+         there, rather than an empty grid lifting the footer for a beat. A
+         server render and a hydration draw the cards at once. -->
+    <Suspense v-else-if="cardComponent">
+      <div
+        :class="CARD_GRID_CLASS"
+        :style="cardGridStyle(card?.minWidth, props.context.items.length)"
+      >
         <!-- A wrapper out of the grid's layout, catching the drop on the
              card whatever its root element. -->
         <div
@@ -167,83 +166,87 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
             }"
           />
         </div>
+      </div>
+      <template #fallback>
+        <CardGridSkeleton
+          :count="props.context.pagination.pageSize"
+          :fields="fieldColumns.length"
+          :min-width="card?.minWidth"
+        />
       </template>
-      <template v-else>
-        <article
-          v-for="(item, index) in props.context.items"
-          :key="rowId(item)"
-          class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
-          :class="{
-            'border-primary ring-primary ring-1':
-              props.context.selection.isSelected(rowId(item)),
-            'opacity-50': draggedIndex === index,
-          }"
-          tabindex="0"
-          @click="openItem(item)"
-          @keydown.enter.self="openItem(item)"
-          @dragover="allowDrop"
-          @drop="drop(index)"
-        >
-          <header class="flex items-center gap-2.5">
-            <button
-              v-if="props.context.reorder"
-              v-bind="handleFor(index)"
-              :class="['-ms-1.5', REORDER_HANDLE_CLASS]"
-            >
-              <UIcon name="i-ph-dots-six-vertical" />
-            </button>
-            <CardAvatar
-              :avatar="cardAvatar(item, identity)"
-              :storage="identity.storage"
-              :label="titleOf(item)"
-            />
-            <div class="min-w-0 flex-1">
-              <div
-                class="text-highlighted truncate text-[13px] font-semibold"
-                :title="titleOf(item)"
-              >
-                {{ titleOf(item) }}
-              </div>
-              <div
-                v-if="subtitleOf(item)"
-                class="text-dimmed truncate font-mono text-[11px]"
-                :title="subtitleOf(item)"
-              >
-                {{ subtitleOf(item) }}
-              </div>
-            </div>
-            <UCheckbox
-              :model-value="props.context.selection.isSelected(rowId(item))"
-              :aria-label="titleOf(item)"
-              @click.stop
-              @update:model-value="
-                props.context.selection.toggle(rowId(item), !!$event)
-              "
-            />
-          </header>
+    </Suspense>
 
-          <!-- A phone-narrow card stacks its fields: two columns would clip
-          every value. -->
-          <dl
-            class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+    <div
+      v-else
+      :class="CARD_GRID_CLASS"
+      :style="cardGridStyle(card?.minWidth, props.context.items.length)"
+    >
+      <article
+        v-for="(item, index) in props.context.items"
+        :key="rowId(item)"
+        class="group border-default hover:border-primary/35 @container cursor-pointer rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px] transition-colors focus-visible:outline-2 focus-visible:outline-(--dms-accent-line)"
+        :class="{
+          'border-primary ring-primary ring-1':
+            props.context.selection.isSelected(rowId(item)),
+          'opacity-50': draggedIndex === index,
+        }"
+        tabindex="0"
+        @click="openItem(item)"
+        @keydown.enter.self="openItem(item)"
+        @dragover="allowDrop"
+        @drop="drop(index)"
+      >
+        <header class="flex items-center gap-2.5">
+          <button
+            v-if="props.context.reorder"
+            v-bind="handleFor(index)"
+            :class="['-ms-1.5', REORDER_HANDLE_CLASS]"
           >
+            <UIcon name="i-ph-dots-six-vertical" />
+          </button>
+          <CardAvatar
+            :avatar="cardAvatar(item, identity)"
+            :storage="identity.storage"
+            :label="titleOf(item)"
+          />
+          <div class="min-w-0 flex-1">
             <div
-              v-for="column in fieldColumns"
-              :key="column.id"
-              class="min-w-0"
+              class="text-highlighted truncate text-[13px] font-semibold"
+              :title="titleOf(item)"
             >
-              <DmsEyebrow
-                as="dt"
-                truncate
-                :label="processI18n(column.header)"
-              />
-              <dd class="text-default mt-0.5 flex min-w-0">
-                <FieldValue :column="column" :item="item" />
-              </dd>
+              {{ titleOf(item) }}
             </div>
-          </dl>
-        </article>
-      </template>
+            <div
+              v-if="subtitleOf(item)"
+              class="text-dimmed truncate font-mono text-[11px]"
+              :title="subtitleOf(item)"
+            >
+              {{ subtitleOf(item) }}
+            </div>
+          </div>
+          <UCheckbox
+            :model-value="props.context.selection.isSelected(rowId(item))"
+            :aria-label="titleOf(item)"
+            @click.stop
+            @update:model-value="
+              props.context.selection.toggle(rowId(item), !!$event)
+            "
+          />
+        </header>
+
+        <!-- A phone-narrow card stacks its fields: two columns would clip
+          every value. -->
+        <dl
+          class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 max-sm:@max-[16rem]:grid-cols-1"
+        >
+          <div v-for="column in fieldColumns" :key="column.id" class="min-w-0">
+            <DmsEyebrow as="dt" truncate :label="processI18n(column.header)" />
+            <dd class="text-default mt-0.5 flex min-w-0">
+              <FieldValue :column="column" :item="item" />
+            </dd>
+          </div>
+        </dl>
+      </article>
     </div>
 
     <TablePagination />
