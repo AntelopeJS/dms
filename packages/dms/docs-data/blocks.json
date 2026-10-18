@@ -3384,6 +3384,16 @@
             "widget": "switch"
           }
         },
+        "invert": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Treat a falling value as the good outcome.",
+          "ui": {
+            "label": "Invert variation",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
         "showLegend": {
           "type": "boolean",
           "default": true,
@@ -3433,6 +3443,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "invert",
           "showLegend",
           "showSeriesLegend",
           "primaryLabel",
@@ -10011,6 +10022,27 @@
             "group": "advanced"
           }
         },
+        "realtimeTopic": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Topics whose events make the block read its data again.",
+          "ui": {
+            "label": "Realtime topics",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "valueFormat": {
           "type": "string",
           "enum": [
@@ -10040,6 +10072,16 @@
           "optional": true,
           "ui": {
             "label": "Show variation",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "showPreviousValue": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Show the figure the value is compared against.",
+          "ui": {
+            "label": "Show comparison value",
             "group": "appearance",
             "widget": "switch"
           }
@@ -10075,6 +10117,7 @@
         "compareLabel": {
           "type": "string",
           "optional": true,
+          "description": "Caption of the variation; follows the period selector's comparison when empty.",
           "ui": {
             "label": "Comparison label",
             "group": "content"
@@ -10095,6 +10138,15 @@
           "optional": true,
           "ui": {
             "label": "Static variation",
+            "group": "advanced",
+            "widget": "number"
+          }
+        },
+        "staticPreviousValue": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Static comparison value",
             "group": "advanced",
             "widget": "number"
           }
@@ -10123,6 +10175,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "showPreviousValue",
           "showSparkline",
           "sparklineAccent",
           "invert",
@@ -10177,6 +10230,20 @@
             "widget": "segmented"
           }
         },
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
         "missedLabel": {
           "type": "string",
           "optional": true,
@@ -10194,6 +10261,7 @@
           "align",
           "showUpdatedAt",
           "variant",
+          "size",
           "missedLabel"
         ]
       }
@@ -11424,6 +11492,63 @@
           "columns",
           "empty.title",
           "empty.description"
+        ]
+      }
+    },
+    {
+      "type": "PageToolbar",
+      "componentName": "dms-page-toolbar-block",
+      "container": true,
+      "meta": {
+        "name": "Page toolbar",
+        "icon": "i-ph-sliders-horizontal",
+        "description": "Context bar of a page: its scope, the last update, live mode and period.",
+        "group": "data"
+      },
+      "config": {
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "description": "The size of the controls the toolbar holds.",
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
+        "showUpdatedAt": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, shows how long ago the page last read its data.",
+          "ui": {
+            "label": "Show the last update",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "refresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, offers a button reading the page again.",
+          "ui": {
+            "label": "Refresh button",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        }
+      },
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "size",
+          "showUpdatedAt",
+          "refresh"
         ]
       }
     },

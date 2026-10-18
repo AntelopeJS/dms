@@ -16,12 +16,16 @@ const Skeleton = defineComponent({
   setup: () => () => h("i", { "data-skeleton": "" }),
 });
 
-async function renderCards(count: number): Promise<number> {
+function renderGrid(count: number, minWidth?: string): Promise<string> {
   const app = createSSRApp({
-    render: () => h(CardGridSkeleton, { count, fields: 2 }),
+    render: () => h(CardGridSkeleton, { count, fields: 2, minWidth }),
   });
   app.component("USkeleton", Skeleton);
-  const html = await renderToString(app);
+  return renderToString(app);
+}
+
+async function renderCards(count: number): Promise<number> {
+  const html = await renderGrid(count);
   return html.match(/rounded-\[10px\] border/g)?.length ?? 0;
 }
 
@@ -40,6 +44,12 @@ describe("the card grid's first-load placeholder", () => {
 
   it("stops at the largest page size", async () => {
     expect(await renderCards(MAX_PAGE_SIZE + 10)).toBe(MAX_PAGE_SIZE);
+  });
+
+  it("sizes its full page of cards with the table's card.minWidth", async () => {
+    const html = await renderGrid(24, "18rem");
+    expect(html).toContain("--dms-card-min-width:18rem");
+    expect(html).toContain("calc(24 * ");
   });
 });
 
