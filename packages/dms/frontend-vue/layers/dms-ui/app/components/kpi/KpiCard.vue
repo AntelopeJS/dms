@@ -161,8 +161,10 @@ const isStat = computed(() => props.variant === "stat");
       </span>
     </template>
     <!-- With no change to show (no comparison period), the trend's line
-         keeps its place: toggling a comparison never resizes the card. -->
-    <template v-if="showDelta || hasSparkline" #aside>
+         keeps its place: toggling a comparison never resizes the card. So
+         does the sparkline's box, from the first load on: the aside is taller
+         than the value column with it, and the card would grow. -->
+    <template v-if="showDelta || showSparkline" #aside>
       <div class="ml-auto grid shrink-0 justify-items-end gap-1">
         <DmsTrendBadge
           v-if="showTrend"
@@ -171,11 +173,17 @@ const isStat = computed(() => props.variant === "stat");
           variant="text"
         />
         <span v-else-if="showDelta" class="h-4" aria-hidden="true" />
-        <div v-if="hasSparkline" class="h-6 w-16">
+        <div v-if="showSparkline" class="h-6 w-16">
           <DmsSparkline
+            v-if="hasSparkline"
             :values="sparkline"
             :accent="resolvedSparklineAccent"
             :aria-label="processI18n(title)"
+          />
+          <USkeleton
+            v-else-if="isFirstLoad"
+            :aria-label="t('dms.a11y.loading')"
+            class="size-full"
           />
         </div>
       </div>
