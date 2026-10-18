@@ -12,6 +12,7 @@ import {
 } from "../../composables/chart/formatValue";
 import { resolveChartColor } from "../../composables/chart/useChartTheme";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
+import { usePeriodComparisonDisplay } from "../../build/composables/period/periodComparison";
 import {
   NESTED_CHART_INJECT_KEY,
   type ChartCardResponse,
@@ -80,9 +81,16 @@ const { data, isLoading } = useChartFetch<ChartCardResponse>({
   watchSource: () => watchKey.value,
 });
 
+// With no comparison selected on the scope, whatever comparison the data
+// still carries is not drawn: no change, no "vs" figure, no second series.
+const comparison = usePeriodComparisonDisplay(props.periodScope);
 const value = computed(() => data.value?.value);
-const previousValue = computed(() => data.value?.previousValue);
-const delta = computed(() => data.value?.delta ?? null);
+const previousValue = computed(() =>
+  comparison.isOff.value ? undefined : data.value?.previousValue,
+);
+const delta = computed(() =>
+  comparison.isOff.value ? null : (data.value?.delta ?? null),
+);
 
 // ApexCharts prints `name` verbatim in its legend and tooltip, so backend
 // series names carrying the `$` convention are resolved here, before the
@@ -96,10 +104,12 @@ const cardSeries = computed<ChartSeries[]>(() =>
 );
 
 const cardComparisonSeries = computed<ChartSeries[]>(() =>
-  (data.value?.comparisonSeries ?? []).map((entry) => ({
-    ...withResolvedName(entry),
-    color: entry.color ?? comparisonColor.value,
-  })),
+  comparison.isOff.value
+    ? []
+    : (data.value?.comparisonSeries ?? []).map((entry) => ({
+        ...withResolvedName(entry),
+        color: entry.color ?? comparisonColor.value,
+      })),
 );
 
 const formatted = computed(() =>
@@ -116,13 +126,15 @@ const formatted = computed(() =>
 
 const previousFormatted = computed(() =>
   previousValue.value !== undefined
-    ? formatValue(
-        previousValue.value,
-        props.valueFormat,
-        locale.value,
-        props.currencyCode,
-        props.valuePrecision,
-      )
+    ? t("dms.chart.versus_value", {
+        value: formatValue(
+          previousValue.value,
+          props.valueFormat,
+          locale.value,
+          props.currencyCode,
+          props.valuePrecision,
+        ),
+      })
     : null,
 );
 
@@ -155,10 +167,13 @@ const primaryLegendLabel = computed(() =>
     ? processI18n(props.primaryLabel)
     : t(DEFAULT_PRIMARY_LABEL_KEY, "Period"),
 );
+// The comparison the scope selects names its series ("Previous year"),
+// unless the card names it itself.
 const comparisonLegendLabel = computed(() =>
   props.comparisonLabel
     ? processI18n(props.comparisonLabel)
-    : t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison"),
+    : (comparison.legendLabel.value ??
+      t(DEFAULT_COMPARISON_LABEL_KEY, "Comparison")),
 );
 
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
@@ -217,7 +232,7 @@ const hasMeta = computed(
         >
           <DmsTrendBadge v-if="showTrend" :delta="delta" />
           <span v-if="previousFormatted" class="text-dimmed text-xs">
-            vs {{ previousFormatted }}
+            {{ previousFormatted }}
           </span>
           <span v-else-if="description" class="text-dimmed text-xs">
             {{ processI18n(description) }}

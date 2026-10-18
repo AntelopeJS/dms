@@ -46,6 +46,12 @@ export interface ChartCardProps extends BaseComponentProps {
    */
   showSeriesLegend?: boolean;
   primaryLabel?: string;
+  /**
+   * The legend's name for the comparison series. Optional: with a
+   * `periodScope`, it names the comparison its selector applies ("Previous
+   * year"), else "Comparison". With no comparison selected, the card draws no
+   * change, no "vs" figure and no comparison series.
+   */
   comparisonLabel?: string;
 }
 
