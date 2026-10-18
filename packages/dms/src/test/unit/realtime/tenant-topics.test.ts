@@ -164,6 +164,103 @@ describe("[unit] realtime — tenant-scoped page topics", () => {
   });
 });
 
+interface SharedFrame {
+  sessionId: string;
+  event: string;
+}
+
+/** The session frames a shared connection's stream carried. */
+const sharedFrames = (stream: FakeStream): SharedFrame[] =>
+  stream.frames
+    .filter((frame) => frame.startsWith("event: session\n"))
+    .map(
+      (frame) => JSON.parse(frame.split("\ndata: ")[1] ?? "{}") as SharedFrame,
+    );
+
+/** Opens a browser's shared connection and returns its id. */
+const openSharedConnection = async (stream: FakeStream): Promise<string> => {
+  await RealtimeController.prototype.connectionStream.call(
+    undefined,
+    stream.ctx,
+    USER as unknown as User,
+  );
+  const hello = stream.frames.find((frame) => frame.startsWith("event: hello"));
+  const data = hello?.split("\ndata: ")[1] ?? "{}";
+  return (JSON.parse(data) as { connectionId: string }).connectionId;
+};
+
+/** Opens a tab's session on the connection, in `tenantId`, on the page. */
+const openTabOnPage = async (
+  connectionId: string,
+  tenantId: string,
+): Promise<string> => {
+  const greeting = await RealtimeController.prototype.openSession.call(
+    undefined,
+    createFakeStream(tenantId).ctx,
+    { connectionId },
+    USER as unknown as User,
+  );
+  const sessionId = greeting.sessionId!;
+  await ensureSessionOnPage(sessionId, PAGE_ID, { userId: USER._id, tenantId });
+  return sessionId;
+};
+
+describe("[unit] realtime — tenant scoping on a connection shared by tabs", () => {
+  beforeEach(() => {
+    setRealtimeBroker(new InMemoryBroker());
+    registerPageTopic(PAGE_ID, TOPIC);
+  });
+
+  afterEach(async () => {
+    await stopRealtime();
+    clearPageTopics(PAGE_ID);
+    setRealtimeBroker(new InMemoryBroker());
+  });
+
+  it("delivers each tab's session the messages of its own workspace", async () => {
+    const stream = createFakeStream(TENANT_A);
+    const connectionId = await openSharedConnection(stream);
+    const tabA = await openTabOnPage(connectionId, TENANT_A);
+    const tabB = await openTabOnPage(connectionId, TENANT_B);
+
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_A });
+
+    const topicSessions = sharedFrames(stream)
+      .filter((frame) => frame.event === TOPIC)
+      .map((frame) => frame.sessionId);
+    expect(topicSessions).to.deep.equal([tabA]);
+    expect(topicSessions).not.to.include(tabB);
+  });
+
+  it("ends only the session whose page request comes from another workspace, and tells its tab", async () => {
+    const stream = createFakeStream(TENANT_A);
+    const connectionId = await openSharedConnection(stream);
+    const stale = await openTabOnPage(connectionId, TENANT_A);
+    const other = await openTabOnPage(connectionId, TENANT_A);
+
+    const isOnPage = await ensureSessionOnPage(stale, PAGE_ID, {
+      userId: USER._id,
+      tenantId: TENANT_B,
+    });
+
+    expect(isOnPage).to.equal(false);
+    expect(stream.isEnded()).to.equal(false);
+    expect(getSessionInfo(stale)).to.equal(undefined);
+    expect(getSessionInfo(other)).not.to.equal(undefined);
+    expect(
+      sharedFrames(stream).filter((frame) => frame.event === "session-ended"),
+    ).to.deep.equal([
+      { sessionId: stale, event: "session-ended", data: { sessionId: stale } },
+    ]);
+
+    await PublishMessage(TOPIC, EVENT_TYPE, { tenantId: TENANT_A });
+    const topicSessions = sharedFrames(stream)
+      .filter((frame) => frame.event === TOPIC)
+      .map((frame) => frame.sessionId);
+    expect(topicSessions).to.deep.equal([other]);
+  });
+});
+
 describe("[unit] realtime — tenant-scoped presence", () => {
   const PRESENCE_TOPIC = "tenant-topics:presence";
   const ACTOR = { id: "actor-1", displayName: "Actor" };
