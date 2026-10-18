@@ -56,6 +56,9 @@ target instead: a non-modal panel docked on the right whose header the DMS draws
 `rowTitle` naming the row from its fields, `positionLabel` "x of y", previous / next, J / K, close), `?record=` kept by default (`deepLink: false` opts out), a "not found" state on a 404 (`notFound: { title, description }`) and the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.
+A drawer, modal or side panel component reading its row by id names it `{{query.record}}`
+(`ResourceForm(controller, { mode: "view", rowId: "{{query.record}}" })`, a block's
+`fetchUrl`): the DMS fills it with the id of each row it opens, J / K included.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
 target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
 header button or an `api` target for it — `packages/interface-dms/docs/3.base/2.types.md`.
@@ -94,7 +97,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `setMissedDetail()`); one that reads its own data on a topic calls
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
-  held while paused.
+  held while paused. A table view's write (row/bulk action, its form saved) already
+  calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
 
 ### Texts
 
@@ -128,8 +132,14 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- A table of more than a few columns that phones will read offers the cards and opens them there:
+  `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`. Only a display the user
+  saved or the open view's own `display` overrides it: a `views.defaultView` that sets no display
+  still opens phones on the cards.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
+- A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
+  default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
 
 ### Forms
 

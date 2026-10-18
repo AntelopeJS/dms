@@ -150,6 +150,8 @@ export interface TableViewCardReorder {
 export interface TableViewCardConfig {
   fields?: string[];
   component?: ComponentInfo;
+  /** `cards` only: the narrowest a card gets, a CSS length (`230px` left out). */
+  minWidth?: string;
 }
 
 /**

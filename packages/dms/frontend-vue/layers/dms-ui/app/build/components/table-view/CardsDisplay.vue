@@ -3,6 +3,7 @@ import { get } from "@nuxt/ui/runtime/utils/index.js";
 import TablePagination from "../table/Pagination.vue";
 import TableEmpty from "../table/Empty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
+import CardAvatar from "./CardAvatar.vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
   TableViewCardConfig,
@@ -11,8 +12,15 @@ import type {
 } from "../../../composables/table-view/types/display";
 import {
   buildCardProps,
+  CARD_GRID_CLASS,
+  cardAvatar,
   cardFieldColumns,
+  cardGridStyle,
+  cardIdentity,
+  cardSubtitle,
 } from "../../composables/table-view/utils/card";
+import { readSubline } from "../../composables/data-types/cellHelpers";
+import { useComposedText } from "#dms-core/app/composables/translation/useComposedText";
 import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
@@ -24,12 +32,12 @@ interface CardsDisplayProps {
 
 const props = defineProps<CardsDisplayProps>();
 
-const INITIALS_LENGTH = 2;
 const EMPTY_VALUE = "—";
 
 const { locale } = useI18n();
 const { processI18n } = useTranslation();
 const { getDataType } = useDataTypes();
+const { processText } = useComposedText();
 
 const rowId = (item: T): string =>
   String(get(item, props.context.rowIdKey) ?? "");
@@ -43,13 +51,20 @@ const titleOf = (item: T): string => {
     : rowId(item);
 };
 
-const initialsOf = (item: T): string =>
-  titleOf(item)
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, INITIALS_LENGTH)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
+// The subtitle and avatar the title column's identity display declares.
+const identity = computed(() =>
+  cardIdentity(props.context.columns, props.context.labelKey),
+);
+
+// An id or an address is data: only a composed text is translated.
+const subtitleOf = (item: T): string | undefined =>
+  readSubline(
+    cardSubtitle(item, identity.value, {
+      labelKey: props.context.labelKey,
+      rowIdKey: props.context.rowIdKey,
+    }),
+    { processText, isStringTranslated: false },
+  )?.text;
 
 const card = computed(
   () =>
@@ -110,12 +125,13 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 
 <template>
   <div>
-    <!-- v2 cards display: an auto-fill grid inside the table card, sharing
+    <!-- v2 cards display: an auto-fit grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
       v-if="props.context.firstPageLoading"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
+      :min-width="card?.minWidth"
     />
 
     <TableEmpty
@@ -125,7 +141,8 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 
     <div
       v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      :class="CARD_GRID_CLASS"
+      :style="cardGridStyle(card?.minWidth, props.context.items.length)"
     >
       <template v-if="cardComponent">
         <!-- A wrapper out of the grid's layout, catching the drop on the
@@ -171,11 +188,11 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
             >
               <UIcon name="i-ph-dots-six-vertical" />
             </button>
-            <span
-              class="bg-accented text-default grid size-7 shrink-0 place-items-center rounded-[7px] font-mono text-[10.5px] font-bold"
-            >
-              {{ initialsOf(item) }}
-            </span>
+            <CardAvatar
+              :avatar="cardAvatar(item, identity)"
+              :storage="identity.storage"
+              :label="titleOf(item)"
+            />
             <div class="min-w-0 flex-1">
               <div
                 class="text-highlighted truncate text-[13px] font-semibold"
@@ -183,8 +200,12 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
               >
                 {{ titleOf(item) }}
               </div>
-              <div class="text-dimmed truncate font-mono text-[11px]">
-                {{ rowId(item) }}
+              <div
+                v-if="subtitleOf(item)"
+                class="text-dimmed truncate font-mono text-[11px]"
+                :title="subtitleOf(item)"
+              >
+                {{ subtitleOf(item) }}
               </div>
             </div>
             <UCheckbox
