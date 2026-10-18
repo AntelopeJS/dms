@@ -21,6 +21,7 @@ import type {
 } from "@tanstack/vue-table";
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useTable } from "../../composables/table/useTable";
+import { MAX_PAGE_SIZE } from "../../composables/table/constants";
 import type { LabeledColumn } from "../../composables/table/useTableColumns";
 import {
   defaultSortingState,
@@ -794,8 +795,10 @@ const isShowingArchived = computed(
   () => !!props.archiveToggle && showArchivedState.value,
 );
 
-// As many placeholder rows as the page will list (capped), fading out.
-const SKELETON_MAX_ROW_COUNT = 10;
+// As many placeholder rows as the page will list, fading out: the footer
+// (count, page size, pages) and what follows the table already stand where a
+// full page puts them, and do not move when the rows land.
+const SKELETON_MAX_ROW_COUNT = MAX_PAGE_SIZE;
 const SKELETON_TOTAL_FADE = 0.7;
 const SKELETON_WIDTHS = ["62%", "48%", "70%", "54%", "40%"];
 const skeletonWidth = (rowIndex: number, columnIndex: number): string =>

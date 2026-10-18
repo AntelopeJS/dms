@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { MAX_PAGE_SIZE } from "../../composables/table/constants";
+
 /**
  * Placeholder of a table view card grid while its first page loads: cards
  * built like the cards display's (same frame, same line boxes), so nothing
@@ -17,7 +19,9 @@ const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
   labelClass: "text-[10.5px] leading-[1.2]",
 });
 
-const MAX_CARD_COUNT = 12;
+// A full page of cards, as for the rows of a table: the pagination footer
+// below them stands where the loaded page puts it.
+const MAX_CARD_COUNT = MAX_PAGE_SIZE;
 const cardCount = computed(() =>
   Math.max(1, Math.min(props.count, MAX_CARD_COUNT)),
 );
