@@ -48,8 +48,10 @@ const { t } = useI18n();
 const translate = t as ConfirmTranslate;
 const live = usePageLive();
 
-// The state lives in the browser (its storage, its clock): the server and the
-// hydrating render draw nothing, the mounted block draws the real state.
+// The toggle is drawn from the server on, live (the remembered pause applies
+// once mounted), so it takes its place before the page paints. Only the
+// "updated N s ago" text waits for the browser's clock: the server's would
+// not match the hydrating render's.
 const isMounted = ref(false);
 const now = ref(Date.now());
 let ticker: ReturnType<typeof setInterval> | undefined;
@@ -77,7 +79,7 @@ const items = computed(() => [
 
 const updatedLabel = computed(() => {
   const at = live.lastUpdatedAt.value;
-  if (at === null) return "";
+  if (!isMounted.value || at === null) return "";
   const { unit, count } = formatElapsed(now.value - at);
   const updated = t(`dms.live.updated_${unit}`, { count }, count);
   return live.isPolling.value
@@ -122,7 +124,7 @@ useLiveToggleShortcut(() => live.toggle());
 
 <template>
   <div
-    v-if="isMounted && live.isEnabled.value"
+    v-if="live.isEnabled.value"
     class="dms-live-toggle flex flex-wrap items-center gap-x-2.5 gap-y-1"
     :class="[ALIGN_CLASSES[align], `dms-live-toggle--${variant}`]"
   >

@@ -1,6 +1,6 @@
 import { onMounted, onScopeDispose, watch } from "vue";
 import type { PageLiveOptions } from "../../../types/live";
-import { setCurrentPageLive } from "./currentPageLive";
+import { provideServerPageLive, setCurrentPageLive } from "./currentPageLive";
 import {
   createPageLiveController,
   type PageLiveController,
@@ -69,7 +69,9 @@ export function bindPageLiveEnvironment(
 
 /**
  * Gives the page on screen its live controller while it declares `live`, and
- * a new one when the renderer moves to another page. Browser only.
+ * a new one when the renderer moves to another page. A server render has no
+ * controller: it only tells the page's blocks whether the page is live, so
+ * they draw what the hydrating browser draws.
  *
  * @internal
  */
@@ -77,7 +79,13 @@ export function usePageLiveHost(
   source: () => PageLiveSource,
   environment: PageLiveEnvironment = {},
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    provideServerPageLive(() => {
+      const { pageId, live } = source();
+      return Boolean(pageId && live);
+    });
+    return;
+  }
   let controller: PageLiveController | null = null;
   let unbind: (() => void) | null = null;
   // The server renders every page live: the remembered pause applies once
