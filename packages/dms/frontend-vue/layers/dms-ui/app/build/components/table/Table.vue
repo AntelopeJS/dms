@@ -844,6 +844,17 @@ const { width: tableViewportWidth } = useElementSize(tableRootRef);
 const tableBaseRef = useTemplateRef<HTMLElement>("tableBase");
 const { width: tableContentWidth } = useElementSize(tableBaseRef);
 watch([tableViewportWidth, tableContentWidth], syncScrollEdges);
+// The column header band's height, for what the table view lays over the
+// first rows (the live hold's pill) to land under it, sticky or not; unset
+// while a custom display draws no header.
+const tableHeadRef = useTemplateRef<HTMLElement>("tableHead");
+const { height: tableHeadHeight } = useElementSize(tableHeadRef, undefined, {
+  box: "border-box",
+});
+const rootStyle = computed(() => ({
+  "--dms-table-head-height":
+    tableHeadHeight.value > 0 ? `${tableHeadHeight.value}px` : undefined,
+}));
 const tableRootStyle = computed(() => ({
   maxHeight: props.maxHeight,
   "--dms-table-viewport":
@@ -1359,7 +1370,7 @@ defineShortcuts({
 </script>
 
 <template>
-  <div :class="uiTable.root()">
+  <div :class="uiTable.root()" :style="rootStyle">
     <template v-if="resolvedCapabilities.header">
       <header
         :class="
@@ -1494,7 +1505,7 @@ defineShortcuts({
                 {{ caption }}
               </caption>
 
-              <thead>
+              <thead ref="tableHead">
                 <tr
                   v-for="headerGroup in table.getHeaderGroups()"
                   :key="headerGroup.id"

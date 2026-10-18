@@ -105,3 +105,14 @@ it("draws a pill over the rows when floating, in place of the strip", async () =
   host.querySelector("button")?.click();
   expect(onShow).toHaveBeenCalledTimes(1);
 });
+
+it("draws the pill opaque and lifted, announced, its Show a real button", async () => {
+  const host = await mountBanner({ count: 4, floating: true });
+  const pill = host.querySelector(".dms-live-hold-banner")!;
+
+  expect(pill.getAttribute("role")).toBe("status");
+  expect(pill.getAttribute("aria-live")).toBe("polite");
+  expect(pill.className).toContain("bg-(--ui-bg)");
+  expect(pill.className).toContain("shadow-(--dms-shadow-pop)");
+  expect(pill.querySelector("button")?.tagName).toBe("BUTTON");
+});

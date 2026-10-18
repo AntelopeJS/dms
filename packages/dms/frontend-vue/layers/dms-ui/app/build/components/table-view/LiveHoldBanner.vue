@@ -11,7 +11,7 @@ import type { PageLiveNote } from "../../../types/live";
  * live ("Table on hold · search active · 3 new · Show"), and followed, while
  * the page is paused, by the breakdown a component gave the page ("12 new
  * requests · 2 in 5xx · Show"). Show reads the rows once; the hold stays.
- * `floating`, it is a pill laid over the top of the rows instead: what came
+ * `floating`, it is a pill laid over the first rows, under the column header band instead: what came
  * in while the user had the rows on screen, or the page paused, says so
  * without pushing them down.
  */
@@ -31,11 +31,13 @@ const props = withDefaults(
   { reason: null, missedLabel: undefined, detail: null, floating: false },
 );
 
-// Literal class strings (Tailwind extracts them).
+// Literal class strings (Tailwind extracts them). The pill is opaque and
+// lifted by the theme's pop shadow (deeper in dark), so the rows under it
+// stay apart from it.
 const STRIP_CLASS =
   "border-b border-(--dms-info-line) bg-(--dms-info-tint) py-[7px] ps-[18px] pe-3.5 text-[13px]";
 const PILL_CLASS =
-  "rounded-full border border-(--dms-info-line) bg-(--ui-bg) py-1 ps-2.5 pe-3.5 text-[12.5px] shadow-md";
+  "rounded-full border border-(--dms-info-line) bg-(--ui-bg) py-1 ps-2.5 pe-3.5 text-[12.5px] shadow-(--dms-shadow-pop)";
 
 const emit = defineEmits<{ show: [] }>();
 
@@ -66,6 +68,7 @@ const detailNote = computed(() =>
 <template>
   <div
     role="status"
+    aria-live="polite"
     class="dms-live-hold-banner text-highlighted flex items-center gap-2.5"
     :class="props.floating ? PILL_CLASS : STRIP_CLASS"
   >

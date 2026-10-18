@@ -2212,11 +2212,14 @@ onMounted(() => {
       />
     </template>
     <!-- What came in while the rows were read or the page paused: a pill
-         over the rows, taking no room, so the rows stay where they are. -->
+         over the first rows, under the column header band (the table sets
+         its height; a sticky one stays put above a scrolled area, so the pill
+         stays under it), taking no room, so the rows stay where they are.
+         Above the pinned columns and the presence rail it overlaps. -->
     <template v-else-if="liveHold.newCount.value > 0" #notice>
-      <div class="relative z-10 h-0">
+      <div class="relative z-30 h-0">
         <div
-          class="pointer-events-none absolute inset-x-0 top-2 flex justify-center px-4"
+          class="pointer-events-none absolute inset-x-0 top-[calc(var(--dms-table-head-height,0px)+0.5rem)] flex justify-center px-4"
         >
           <LiveHoldBanner
             floating
