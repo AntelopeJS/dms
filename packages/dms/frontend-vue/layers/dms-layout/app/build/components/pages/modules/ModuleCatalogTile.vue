@@ -52,7 +52,11 @@ const { processI18n } = useTranslation();
 const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
 // Takes what the actions leave rather than wrapping them under it: the band
 // stays one line, and only the category is cut when even that is too short.
-const FOOTER_FACTS_CLASS = "flex min-w-0 grow basis-0 items-center gap-2";
+// The facts never shrink below the version and the source (the category's
+// zero width keeps its text out of that floor): a tile too narrow for those
+// and the actions drops the actions to a second line rather than run the
+// source under them.
+const FOOTER_FACTS_CLASS = "flex grow basis-0 items-center gap-2";
 
 // v2 .module-tile__viz: each readout line opens with a tone glyph.
 const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
@@ -133,17 +137,18 @@ const isBlocked = computed(() => blockedReason.value !== undefined);
     </template>
 
     <template #footer>
-      <!-- v0.5.0 · [npm] · Content: the state is the pill's to say. The
-           source is its icon, so Open and Manage fit beside the facts. -->
+      <!-- v0.5.0 · [icon] npm · Content, as the store tile says it: the
+           state is the pill's to say. Only the category gives way to Open
+           and Manage; the version and the source stay whole. -->
       <span :class="FOOTER_FACTS_CLASS">
-        <span v-if="props.entry.version" class="whitespace-nowrap">
+        <span v-if="props.entry.version" class="shrink-0 whitespace-nowrap">
           v{{ props.entry.version }}
         </span>
         <template v-if="props.entry.source">
           <span v-if="props.entry.version" aria-hidden="true">·</span>
-          <ModuleSourceLabel :source="props.entry.source" is-icon-only />
+          <ModuleSourceLabel :source="props.entry.source" />
         </template>
-        <span class="min-w-0 truncate" :title="category">
+        <span class="w-0 min-w-0 grow truncate" :title="category">
           <template v-if="props.entry.version || props.entry.source">
             ·
           </template>
