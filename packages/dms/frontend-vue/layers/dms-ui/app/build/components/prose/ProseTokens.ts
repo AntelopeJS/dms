@@ -1,18 +1,12 @@
-import {
-  defineComponent,
-  h,
-  type PropType,
-  resolveComponent,
-  type VNodeChild,
-} from "vue";
+import { defineComponent, h, type PropType, type VNodeChild } from "vue";
 import { decodeHTML } from "entities";
 import type { Token, Tokens } from "marked";
 import DmsCodeSnippet from "../../../components/code-snippet/CodeSnippet.vue";
 import DmsAutoLink from "../../../components/link/AutoLink.vue";
+import DmsProseCallout from "./ProseCallout.vue";
 import { EXTERNAL_LINK_ATTRIBUTES } from "../../utils/link";
 import {
   isSafeImageUrl,
-  type ProseCalloutKind,
   type ProseCalloutToken,
   type ProseHeadingToken,
   proseLinkKind,
@@ -22,42 +16,6 @@ import {
 // tokens: no HTML string is built, so nothing the Markdown says can inject
 // markup. Raw HTML tokens are dropped (the text between inline tags stays),
 // and a link or image whose address is refused is drawn as its text.
-
-/** How each callout kind is drawn: its tone's frame, icon and label. */
-interface CalloutLook {
-  frame: string;
-  title: string;
-  icon: string;
-}
-
-// Literal class strings: Tailwind only extracts classes it sees whole.
-const CALLOUT_LOOKS: Record<ProseCalloutKind, CalloutLook> = {
-  note: {
-    frame: "border-info/35 bg-info/5",
-    title: "text-info",
-    icon: "i-ph-info",
-  },
-  tip: {
-    frame: "border-success/35 bg-success/5",
-    title: "text-success",
-    icon: "i-ph-lightbulb",
-  },
-  important: {
-    frame: "border-primary/35 bg-primary/5",
-    title: "text-primary",
-    icon: "i-ph-chat-centered-text",
-  },
-  warning: {
-    frame: "border-warning/40 bg-warning/5",
-    title: "text-warning",
-    icon: "i-ph-warning",
-  },
-  caution: {
-    frame: "border-error/35 bg-error/5",
-    title: "text-error",
-    icon: "i-ph-warning-octagon",
-  },
-};
 
 const HEADING_CLASSES: Record<ProseHeadingToken["level"], string> = {
   2: "mt-10 mb-3 text-xl font-semibold tracking-tight sm:text-[1.375rem]",
@@ -83,8 +41,6 @@ const CLASSES = {
   taskItem: "flex items-start gap-2.5 [&>p]:my-0",
   checkbox: "accent-primary mt-[0.45em] size-3.5 shrink-0",
   quote: "border-accented text-muted my-5 border-s-2 ps-4",
-  callout: "my-5 rounded-[10px] border px-4 py-3 [&>*:last-child]:mb-0",
-  calloutTitle: "mb-1 flex items-center gap-1.5 text-[13px] font-semibold",
   code: "my-5",
   tableFrame: "border-default my-5 overflow-x-auto rounded-[10px] border",
   table: "w-full border-collapse text-sm [&_tr:last-child>td]:border-b-0",
@@ -103,7 +59,6 @@ type Translate = (key: string, params?: Record<string, unknown>) => string;
 /** One render pass: the tokens to draw and what drawing them needs. */
 interface RenderContext {
   t: Translate;
-  icon: ReturnType<typeof resolveComponent>;
 }
 
 /** The tokens a token nests, for the kinds that nest any. */
@@ -280,21 +235,8 @@ function renderQuote(
       { class: CLASSES.quote },
       renderBlocks(token.tokens, context),
     );
-  const look = CALLOUT_LOOKS[kind];
-  return h(
-    "aside",
-    { class: [CLASSES.callout, look.frame], "data-callout": kind },
-    [
-      h("p", { class: [CLASSES.calloutTitle, look.title] }, [
-        h(context.icon, {
-          name: look.icon,
-          class: "size-4",
-          "aria-hidden": "true",
-        }),
-        context.t(`dms.prose.callout.${kind}`),
-      ]),
-      ...renderBlocks(token.tokens, context),
-    ],
+  return h(DmsProseCallout, { kind }, () =>
+    renderBlocks(token.tokens, context),
   );
 }
 
@@ -387,10 +329,6 @@ export default defineComponent({
   },
   setup(props) {
     const { t } = useI18n();
-    return () =>
-      renderBlocks(props.tokens, {
-        t: t as Translate,
-        icon: resolveComponent("UIcon"),
-      });
+    return () => renderBlocks(props.tokens, { t: t as Translate });
   },
 });

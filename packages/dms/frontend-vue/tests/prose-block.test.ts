@@ -141,6 +141,11 @@ describe("ProseBlock", () => {
     expect(article.querySelector("[data-callout=tip]")?.textContent).toContain(
       "Import a CSV first.",
     );
+    expect(
+      article
+        .querySelector("[data-callout=tip] [data-stub=UIcon]")
+        ?.getAttribute("name"),
+    ).toBe("i-ph-lightbulb");
     expect(article.querySelector("blockquote")?.textContent).toContain(
       "A plain quote.",
     );
