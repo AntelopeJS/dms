@@ -134,6 +134,7 @@ import { useTableFooter } from "../../build/composables/table-view/useTableFoote
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import { useMobileDisplay } from "../../build/composables/table-view/useMobileDisplay";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
@@ -188,6 +189,7 @@ interface RealtimePresenceActor {
 type RealtimePresenceMap = Record<string, RealtimePresenceActor[]>;
 
 /** A kept field of the table, its state, and its default. */
+// The default may move once mounted (a phone's display): read when written.
 type TableStatePreference = [TableField, Ref<unknown>, unknown];
 
 // The backend options of a table view, declared here as well so the
@@ -609,6 +611,21 @@ const {
   },
   preferences: tablePreferences,
   urlScope,
+});
+
+// A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
+// after its first columns) unless a display was chosen: saved, set by an open
+// view, or the only way in.
+const displayDefault = useMobileDisplay({
+  mobileDisplay: props.mobileDisplay,
+  defaultDisplay,
+  offered: offeredDisplayIds,
+  display: activeDisplayId,
+  isDisplayChosen: () =>
+    isDefaultDisplayStandalone ||
+    activeViewId.value !== undefined ||
+    tablePreferences.get<string | undefined>("viewMode", undefined) !==
+      undefined,
 });
 
 const ALL_TAB_ID = "all";
@@ -2005,7 +2022,7 @@ const tableStatePreferences: TableStatePreference[] = [
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
   ["activeTab", activeTabId, ALL_TAB_ID],
-  ["viewMode", activeDisplayId, defaultDisplay],
+  ["viewMode", activeDisplayId, displayDefault],
   ["columnOrder", columnOrder, []],
   ["kanbanGroupBy", kanbanGroupBy, defaultKanbanGroupBy],
   ["groupedGroupBy", groupedGroupBy, defaultGroupedGroupBy],
@@ -2016,7 +2033,7 @@ tableStatePreferences.forEach(([field, state, defaultValue]) => {
   watch(
     state,
     (newValue) => {
-      tablePreferences.set(field, newValue, defaultValue);
+      tablePreferences.set(field, newValue, unref(defaultValue));
     },
     { deep: true },
   );

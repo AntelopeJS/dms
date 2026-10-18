@@ -1126,6 +1126,16 @@ export interface TableViewOptions<
    */
   defaultDisplay?: string;
   /**
+   * Display a phone opens on (a viewport narrower than 768px) when the user
+   * has no saved choice and no view sets one: `cards` gives a narrow screen a
+   * card per row instead of a grid cut after its first columns. One of the
+   * displays offered, so the switcher still leads back to the grid. Applied
+   * once mounted (the server cannot see the viewport) and not saved: the same
+   * user on a wide screen keeps `defaultDisplay`.
+   * @example { displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards" }
+   */
+  mobileDisplay?: string;
+  /**
    * Server-side guards that run before mutating actions (edit/delete/archive/
    * restore/new). Throw with `assert(...)` from `@antelopejs/interface-api-util`
    * to abort the operation with an HTTP error and an i18n message key.

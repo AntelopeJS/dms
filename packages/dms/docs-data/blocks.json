@@ -14135,6 +14135,14 @@
             "group": "advanced"
           }
         },
+        "mobileDisplay": {
+          "type": "string",
+          "optional": true,
+          "ui": {
+            "label": "Display on phones",
+            "group": "advanced"
+          }
+        },
         "guards": {
           "type": "unknown",
           "optional": true,

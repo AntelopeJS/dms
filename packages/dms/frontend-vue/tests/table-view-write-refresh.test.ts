@@ -21,7 +21,10 @@ const { useRefreshTriggers } = await import(
 );
 
 const tableView = readFileSync(
-  resolve(__dirname, "../layers/dms-ui/app/components/table-view/TableView.vue"),
+  resolve(
+    __dirname,
+    "../layers/dms-ui/app/components/table-view/TableView.vue",
+  ),
   "utf8",
 );
 

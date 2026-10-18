@@ -132,6 +132,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `{ label, tone?, variant: "soft" | "outline" }`.
 - A `TableView` over a shared controller hides a column on one page with
   `columns: { hidden: ["workspace"] }` — no view just to hide it.
+- A table of more than a few columns that phones will read offers the cards and opens them there:
+  `displays: [{ id: "table" }, { id: "cards" }], mobileDisplay: "cards"`.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 
