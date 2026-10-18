@@ -292,6 +292,22 @@ describe("an overlay row side panel", () => {
   const overlayAction = () =>
     panelAction({ overlay: true, size: "xl", deepLink: true });
 
+  it.each([
+    ["xl", "576px"],
+    ["3xl", "768px"],
+  ] as const)("opens over the page at %s's width (%s)", async (size, width) => {
+    const { host, targets } = mountPanel();
+    targets.handleCustomRowAction(
+      panelAction({ overlay: true, size }),
+      rows[0],
+    );
+    await settle();
+    expect(panelEl(host)?.dataset.size).toBe(size);
+    expect(
+      panelEl(host)?.style.getPropertyValue("--dms-side-panel-width"),
+    ).toBe(width);
+  });
+
   it("slides over the page, its header and row as a docked one's", async () => {
     const { host, targets } = mountPanel();
     targets.handleCustomRowAction(overlayAction(), rows[0]);

@@ -225,6 +225,14 @@ describe("the drawer container", () => {
     expect(rendered.ui?.content).toContain("max-sm:w-full max-sm:max-w-full");
   });
 
+  it.each(["xl", "3xl"] as const)(
+    "takes the %s modal width on the right too",
+    async (size) => {
+      await mountDrawer({ direction: "right", size });
+      expect(rendered.ui?.content?.split(" ")[0]).toBe(`w-${size}`);
+    },
+  );
+
   it("spans the window at `full`", async () => {
     await mountDrawer({ direction: "right", size: "full" });
     expect(rendered.ui?.content).toContain("w-full max-w-full rounded-none");
