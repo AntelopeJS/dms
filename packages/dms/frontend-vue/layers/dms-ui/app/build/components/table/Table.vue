@@ -22,6 +22,7 @@ import type {
 import type { DmsAppConfig } from "#dms-core/shared/types/app-config";
 import { useTable } from "../../composables/table/useTable";
 import { MAX_PAGE_SIZE } from "../../composables/table/constants";
+import { useRowScrollAnchor } from "../../composables/table/useRowScrollAnchor";
 import type { LabeledColumn } from "../../composables/table/useTableColumns";
 import {
   defaultSortingState,
@@ -1054,6 +1055,14 @@ const bodyEntries = computed<BodyEntry[]>(() => {
   return entries;
 });
 
+// Rows added above the ones the reader scrolled to (a live list's new rows)
+// do not push them down.
+useRowScrollAnchor(tableRootRef, () =>
+  bodyEntries.value
+    .filter((entry) => entry.kind === "row")
+    .map((entry) => entry.id),
+);
+
 const { t, locale } = useI18n();
 
 const formattedRowCount = computed(() =>
@@ -1557,6 +1566,7 @@ defineShortcuts({
                   </tr>
                   <template v-else>
                     <tr
+                      :data-row-id="id"
                       :data-selected="row.getIsSelected()"
                       :data-expanded="row.getIsExpanded()"
                       :data-open="isOpenRow(row.original) || undefined"
