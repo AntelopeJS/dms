@@ -13,6 +13,7 @@ import {
 import { resolveChartColor } from "../../composables/chart/useChartTheme";
 import { useThemeRevision } from "../../composables/chart/useThemeRevision";
 import { usePeriodComparisonDisplay } from "../../build/composables/period/periodComparison";
+import { localizeSeries } from "../../composables/chart/localizeSeries";
 import {
   NESTED_CHART_INJECT_KEY,
   type ChartCardResponse,
@@ -35,6 +36,8 @@ interface Props extends DefaultComponentProps {
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /** A rising value is the bad outcome: the delta's colours swap. */
+  invert?: boolean;
   showLegend?: boolean;
   /** The wrapped chart draws its own legend, naming each series. */
   showSeriesLegend?: boolean;
@@ -92,22 +95,22 @@ const delta = computed(() =>
   comparison.isOff.value ? null : (data.value?.delta ?? null),
 );
 
-// ApexCharts prints `name` verbatim in its legend and tooltip, so backend
-// series names carrying the `$` convention are resolved here, before the
-// array reaches the nested chart and the default slot.
-function withResolvedName(entry: ChartSeries): ChartSeries {
-  return { ...entry, name: processI18n(entry.name) };
+// ApexCharts prints names, categories and slice labels verbatim, so a
+// route's `$` keys are resolved here, before the array reaches the nested
+// chart and the default slot.
+function localized(entry: ChartSeries): ChartSeries {
+  return localizeSeries(entry, processI18n);
 }
 
 const cardSeries = computed<ChartSeries[]>(() =>
-  (data.value?.series ?? []).map(withResolvedName),
+  (data.value?.series ?? []).map(localized),
 );
 
 const cardComparisonSeries = computed<ChartSeries[]>(() =>
   comparison.isOff.value
     ? []
     : (data.value?.comparisonSeries ?? []).map((entry) => ({
-        ...withResolvedName(entry),
+        ...localized(entry),
         color: entry.color ?? comparisonColor.value,
       })),
 );
@@ -230,7 +233,7 @@ const hasMeta = computed(
           class="mt-1.5 flex flex-wrap items-center gap-2 transition-opacity"
           :class="isRefreshing && 'opacity-55'"
         >
-          <DmsTrendBadge v-if="showTrend" :delta="delta" />
+          <DmsTrendBadge v-if="showTrend" :delta="delta" :invert="invert" />
           <span v-if="previousFormatted" class="text-dimmed text-xs">
             {{ previousFormatted }}
           </span>

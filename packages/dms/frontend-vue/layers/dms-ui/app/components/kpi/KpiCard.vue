@@ -155,14 +155,29 @@ const showTrendLine = computed(
 const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
-// An explicit `compareLabel` wins, then the description, then the label of
-// the comparison the scope selects; with no comparison, only the description.
+// The comparison label names the period the change is measured against, so
+// it shows with the change only: an explicit `compareLabel` wins, then the
+// description, then the label of the comparison the scope selects. With no
+// change (no comparison selected, or none in the data) only the description.
 const footnote = computed(() => {
-  const label = comparison.isOff.value ? undefined : props.compareLabel;
-  const text = label || props.description;
+  const isComparing = delta.value !== null;
+  const text = (isComparing && props.compareLabel) || props.description;
   if (text) return processI18n(text);
-  return comparison.label.value ?? "";
+  return isComparing ? (comparison.label.value ?? "") : "";
 });
+// Known before any data: the skeleton draws it, and the loaded card holds it
+// empty while the change is still to come, so toggling a comparison moves
+// nothing. With no comparison selected, the trend's line goes and only a
+// description keeps this one.
+const hasFootnoteLine = computed(
+  () =>
+    !!props.description ||
+    (!comparison.isOff.value &&
+      !!(props.compareLabel || comparison.label.value)),
+);
+const holdsFootnoteLine = computed(
+  () => !footnote.value && hasFootnoteLine.value,
+);
 
 const resolvedSparklineAccent = computed(() =>
   resolveSparklineAccent(
@@ -287,14 +302,14 @@ const isStat = computed(() => props.variant === "stat");
     <!-- The trend (a 24px line) and the footnote (16px) as the loaded card
          lays them out; the footnote is a prop, so it is known up front. -->
     <div
-      v-if="isFirstLoad && (showTrendLine || footnote || showSparkline)"
+      v-if="isFirstLoad && (showTrendLine || hasFootnoteLine || showSparkline)"
       class="mt-auto flex items-end gap-2"
     >
       <div class="grid">
         <div v-if="showTrendLine" class="flex h-6 items-center">
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-[58px]" />
         </div>
-        <div v-if="footnote" class="flex h-4 items-center">
+        <div v-if="hasFootnoteLine" class="flex h-4 items-center">
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-2.5 w-28" />
         </div>
       </div>
@@ -310,7 +325,12 @@ const isStat = computed(() => props.variant === "stat");
          the line goes, and the comparison label with it. -->
     <div
       v-else-if="
-        !hasError && (showTrendLine || previousText || footnote || hasSparkline)
+        !hasError &&
+        (showTrendLine ||
+          previousText ||
+          footnote ||
+          holdsFootnoteLine ||
+          hasSparkline)
       "
       class="mt-auto flex items-end gap-2"
     >
@@ -338,6 +358,11 @@ const isStat = computed(() => props.variant === "stat");
         >
           {{ footnote }}
         </p>
+        <span
+          v-else-if="holdsFootnoteLine"
+          class="block h-4"
+          aria-hidden="true"
+        />
       </div>
       <div
         v-if="hasSparkline"

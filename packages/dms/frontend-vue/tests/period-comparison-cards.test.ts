@@ -230,6 +230,14 @@ describe("a KPI card bound to a period selector", () => {
     expect(html).toContain(TREND_BADGE);
   });
 
+  it("holds the label's line empty while the route answers no change yet", async () => {
+    response.value = { value: 48200 };
+    const html = await render(KpiCard, {}, periodState("previous-year"));
+    expect(html).not.toContain("vs previous year");
+    expect(html).toContain(KPI_TREND_LINE);
+    expect(html).toContain('class="block h-4"');
+  });
+
   it("keeps the static label of a card with no selector registered", async () => {
     const html = await render(
       KpiCard,

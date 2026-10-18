@@ -3384,6 +3384,16 @@
             "widget": "switch"
           }
         },
+        "invert": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Treat a falling value as the good outcome.",
+          "ui": {
+            "label": "Invert variation",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        },
         "showLegend": {
           "type": "boolean",
           "default": true,
@@ -3433,6 +3443,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "invert",
           "showLegend",
           "showSeriesLegend",
           "primaryLabel",

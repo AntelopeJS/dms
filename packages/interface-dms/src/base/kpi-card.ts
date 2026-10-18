@@ -57,7 +57,8 @@ export interface KpiCardProps extends BaseComponentProps {
   /**
    * The caption of the change. Optional: a card with a `periodScope` and no
    * `description` names the comparison its selector applies on its own, so
-   * set it only for a wording of your own. Hidden with no comparison.
+   * set it only for a wording of your own. Shown with the change only:
+   * without a comparison, `description` shows in its place.
    */
   compareLabel?: string;
   staticValue?: number;
