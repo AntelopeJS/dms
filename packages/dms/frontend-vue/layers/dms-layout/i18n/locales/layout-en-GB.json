@@ -783,7 +783,7 @@
       "no_release": "The npm registry has no release of it this platform can read",
       "locked": "Another module is being changed",
       "pending_hint": "antelope.config.ts and the running platform disagree: Apply brings them in line.",
-      "working_copy_hint": "Runs from a local copy that antelope.config.ts declares: manage it there.",
+      "working_copy_hint": "Local copy declared in antelope.config.ts.",
       "uninstall_confirm": {
         "title": "Uninstall {module}?",
         "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."

@@ -19,6 +19,11 @@ interface ModuleStoreTileProps {
   entry: ModuleStoreEntry;
   /** Another module's operation runs: every action waits for it. */
   isLocked?: boolean;
+  /**
+   * The installed module's landing page: the tile's main button opens it,
+   * and every store action moves to the Manage menu.
+   */
+  openTo?: string;
 }
 
 interface ModuleStoreTileEmits {
@@ -27,6 +32,7 @@ interface ModuleStoreTileEmits {
 
 const props = withDefaults(defineProps<ModuleStoreTileProps>(), {
   isLocked: false,
+  openTo: undefined,
 });
 const emit = defineEmits<ModuleStoreTileEmits>();
 const { t } = useI18n();
@@ -57,7 +63,7 @@ const KIND_STEPS: Record<StoreOperationKind, StoreOperationStep[]> = {
 const status = computed(() => storeTileStatus(props.entry));
 const actions = computed(() => storeActions(props.entry));
 const primary = computed<StoreAction | undefined>(() =>
-  actions.value.find((action) => !action.isMenuOnly),
+  props.openTo ? undefined : actions.value.find((action) => !action.isMenuOnly),
 );
 const secondary = computed(() =>
   actions.value
@@ -250,8 +256,17 @@ const versionLabel = computed(() => {
         {{ versionLabel }}
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
+        <UButton
+          v-if="props.openTo"
+          :to="props.openTo"
+          size="xs"
+          color="neutral"
+          variant="solid"
+          trailing-icon="i-ph-arrow-right"
+          :label="t('modules.open')"
+        />
         <UTooltip
-          v-if="primary"
+          v-else-if="primary"
           :text="blockedReason"
           :disabled="!blockedReason"
           :content="TOOLTIP_CONTENT"

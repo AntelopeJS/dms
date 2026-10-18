@@ -40,6 +40,7 @@ import {
   isAwaitingFrontend,
   needsDependencyChoice,
   sortStoreModules,
+  storeOpenTarget,
   toModuleStoreEntry,
   withStoreDetails,
 } from "../build/utils/module-store-catalog";
@@ -905,6 +906,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
               v-for="entry in visibleStoreModules"
               :key="entry.id"
               :entry="entry"
+              :open-to="storeOpenTarget(entry, modules)"
               :is-locked="
                 !storeListing?.enabled ||
                 (storeListing?.busy === true && entry.state !== 'busy')

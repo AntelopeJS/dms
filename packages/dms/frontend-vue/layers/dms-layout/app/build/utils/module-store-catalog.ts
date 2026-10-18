@@ -1,6 +1,6 @@
 import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
-import type { ModuleCatalogEntry } from "../../types/page";
+import { type ModuleCatalogEntry, MODULE_URL_PREFIX } from "../../types/page";
 import type {
   StoreListingEntry,
   StoreModuleState,
@@ -126,6 +126,26 @@ export function withStoreDetails<T extends ModuleCatalogEntry>(
         module.catalogCategory || `${CATEGORY_PREFIX}.${entry.category}`,
     };
   });
+}
+
+/**
+ * Where a store tile's Open button leads: the landing page of the installed
+ * module of the same id, when the caller may open it and it has pages (a
+ * module without one lands on its own address, which has nothing to show).
+ */
+export function storeOpenTarget(
+  entry: Pick<StoreListingEntry, "id">,
+  installedModules: readonly Pick<
+    ModuleCatalogEntry,
+    "id" | "hasAccess" | "landingSlug"
+  >[],
+): string | undefined {
+  const module = installedModules.find(
+    (candidate) => candidate.id === entry.id,
+  );
+  if (!module?.hasAccess || !module.landingSlug) return undefined;
+  const ownAddress = `${MODULE_URL_PREFIX}/${entry.id}`;
+  return module.landingSlug === ownAddress ? undefined : module.landingSlug;
 }
 
 /** Whether the module is installed, from the store or by the config. */

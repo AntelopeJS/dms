@@ -787,7 +787,7 @@
       "no_release": "Le registre npm ne propose aucune version lisible depuis cette plateforme",
       "locked": "Un autre module est en cours de modification",
       "pending_hint": "antelope.config.ts et la plateforme ne concordent pas : Appliquer les remet d’accord.",
-      "working_copy_hint": "Tourne depuis une copie locale déclarée dans antelope.config.ts : gérez-le là.",
+      "working_copy_hint": "Copie locale déclarée dans antelope.config.ts.",
       "uninstall_confirm": {
         "title": "Désinstaller {module} ?",
         "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."

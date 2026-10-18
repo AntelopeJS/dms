@@ -12,6 +12,7 @@ import {
   sortStoreModules,
   storeActionBlock,
   storeActions,
+  storeOpenTarget,
   storeTileStatus,
   toModuleStoreEntry,
   withStoreDetails,
@@ -477,5 +478,25 @@ describe("bundled module catalog", () => {
         }
       }
     }
+  });
+});
+
+describe("storeOpenTarget", () => {
+  const installed = [
+    { id: "cms", hasAccess: true, landingSlug: "/modules/cms/pages" },
+    { id: "jobs", hasAccess: true, landingSlug: "/modules/jobs" },
+    { id: "crm", hasAccess: false, landingSlug: "/modules/crm/leads" },
+  ];
+
+  it("opens an installed module on its landing page", () => {
+    expect(storeOpenTarget({ id: "cms" }, installed)).toBe(
+      "/modules/cms/pages",
+    );
+  });
+
+  it("offers no Open button for a module without pages, out of reach or not running", () => {
+    expect(storeOpenTarget({ id: "jobs" }, installed)).toBeUndefined();
+    expect(storeOpenTarget({ id: "crm" }, installed)).toBeUndefined();
+    expect(storeOpenTarget({ id: "media" }, installed)).toBeUndefined();
   });
 });
