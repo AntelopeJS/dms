@@ -310,6 +310,37 @@ describe("[unit] interfaces/dms-base/data-types/default-types", () => {
     });
   });
 
+  describe("RelationType filterBy", () => {
+    class SiteController {}
+    GetMetadata(SiteController, DataAPIMeta).filters.customer = () => true;
+
+    it("accepts a filterBy field the related controller can filter on", () => {
+      class Target {}
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController as never,
+        filterBy: { field: "customer" as never, from: "customer" },
+        filterOnly: true,
+      });
+
+      expect(() =>
+        rel.decorateField(Target.prototype, "site", {}),
+      ).to.not.throw();
+    });
+
+    it("refuses a filterBy field the search route would drop", () => {
+      class Target {}
+      const rel = new DefaultDataTypes.RelationType({
+        dataApiController: SiteController as never,
+        filterBy: { field: "region" as never, from: "region" },
+        filterOnly: true,
+      });
+
+      expect(() => rel.decorateField(Target.prototype, "site", {})).to.throw(
+        /filterBy\.field "region" is not filterable on SiteController/,
+      );
+    });
+  });
+
   describe("escapeRegex", () => {
     it("escapes regex special characters", () => {
       const escaped = DefaultDataCompareTypes.escapeRegex(

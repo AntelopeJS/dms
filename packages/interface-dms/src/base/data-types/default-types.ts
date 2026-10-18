@@ -791,6 +791,12 @@ export namespace DefaultDataTypes {
     }
   }
 
+  /** {@link FormComponents.RelationFilterBy}, `field` typed on the related row. */
+  export interface RelationFilterBy<T extends ControllerClass> {
+    field: keyof InstanceType<T> & string;
+    from: string;
+  }
+
   @RegisterDataType("relation")
   export class RelationType<T extends ControllerClass> extends DataType {
     constructor(
@@ -838,6 +844,13 @@ export namespace DefaultDataTypes {
          * entry".
          */
         addForm?: FormContainerPageTexts;
+        /**
+         * Lists only the related rows whose `field` equals the form's value
+         * of `from`, e.g. `{ field: "customer", from: "customer" }` for a
+         * ticket's site. `field` must be filterable on the related
+         * controller: declaring it otherwise throws at registration.
+         */
+        filterBy?: RelationFilterBy<T>;
       },
     ) {
       super(
@@ -872,6 +885,7 @@ export namespace DefaultDataTypes {
         deselectable: this.options.deselectable,
         searchUrl: location,
         keyMapping: this.options.keyMapping,
+        filterBy: this.options.filterBy,
         addForm: addOptions?.addForm,
         addPermissionIds: addOptions?.addPermissionIds,
         addFormTexts: this.options.addForm,
@@ -904,11 +918,27 @@ export namespace DefaultDataTypes {
       return this.options.multiple ? z.array(z.string()) : z.string();
     }
 
+    // The search route drops a filter the related controller does not
+    // declare, so an unfilterable `field` would offer every row in silence.
+    private assertFilterByFilterable(key: PropertyKey): void {
+      const field = this.options.filterBy?.field;
+      if (!field) return;
+      const { filters } = GetMetadata(
+        this.options.dataApiController,
+        DataAPIMeta,
+      );
+      if (filters[field]) return;
+      throw new Error(
+        `Relation "${String(key)}": filterBy.field "${field}" is not filterable on ${this.options.dataApiController.name}; declare it filterable: true there.`,
+      );
+    }
+
     public decorateField(
       target: unknown,
       key: PropertyKey,
       descriptor?: PropertyDescriptor,
     ): void {
+      this.assertFilterByFilterable(key);
       // Filter-only relations never resolve the related row: skip the join so
       // the raw scalar id stays in the `/list` output and the row id key is
       // preserved. The funnel filter still works (relation picker +

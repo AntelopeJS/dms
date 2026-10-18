@@ -135,6 +135,11 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 
 - A unit after a number field is `NumberType({ suffix: "$…days" })`; a character counter is
   `StringType({ maxLength, showCount: true })` — no custom `inputComponent` for either.
+- A relation picker depending on another field of the form takes `filterBy: { field, from }`:
+  `RelationType({ dataApiController: SiteController, filterBy: { field: "customer", from: "customer" } })`
+  lists only the picked customer's sites, searches again when it changes and clears a pick made for
+  the previous one — no custom picker. `field` must be filterable on the related controller (it
+  throws at registration otherwise) — `docs/04.components/10.data-types.md`.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

@@ -375,9 +375,31 @@ export namespace FormComponents {
     deselectable?: boolean;
   }
 
+  /**
+   * Narrows a relation picker to the related rows matching another field of
+   * the same form: the related table's `field` must equal the form's current
+   * value of `from` (a ticket's site among its customer's sites).
+   */
+  export interface RelationFilterBy {
+    /**
+     * Field of the related table to match. It must be filterable there
+     * (`filterable: true` or `@Filter`): the search route honors only the
+     * filters the related controller declares.
+     */
+    field: string;
+    /** Id of the form field whose value the related `field` must equal. */
+    from: string;
+  }
+
   export interface RelationOptions {
     placeholder?: string;
     searchUrl: string;
+    /**
+     * Lists only the related rows matching another field of the form. The
+     * picker searches again when that field changes and clears a pick made
+     * for its previous value. While it is empty, every row is offered.
+     */
+    filterBy?: RelationFilterBy;
     multiple?: boolean;
     deselectable?: boolean;
     keyMapping?: {

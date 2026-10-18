@@ -18,6 +18,13 @@ import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type { FormProps } from "../../../composables/form/types";
+import { sameFormValue } from "../../../build/composables/unsaved-changes/formValue";
+import { FORM_ENTRY_CONTEXT_KEY } from "../../../build/composables/form/formEntryContext";
+import {
+  type RelationFilterBy,
+  relationFilterParams,
+  resolveRelationPick,
+} from "../../../build/composables/data-types/relationFilter";
 
 const SEARCH_DEBOUNCE_MS = 200;
 const ADD_NEW_VALUE = "__dms_relation_add_new__";
@@ -38,6 +45,11 @@ interface RelationProps extends SelectMenuProps<T, "value", M> {
     avatar?: string;
     disabled?: string;
   };
+  /**
+   * Lists only the related rows whose `field` equals the value of the form
+   * field `from`; ignored outside a form (a filter's picker).
+   */
+  filterBy?: RelationFilterBy;
   addForm?: { componentName: string; options?: FormProps };
   addPermissionIds?: string[];
   /**
@@ -63,6 +75,7 @@ const forwardedProps = computed(() => {
     addForm: ______,
     addPermissionIds: _______,
     addFormTexts: ________,
+    filterBy: _________,
     ...rest
   } = props;
   return rest as SelectMenuProps<T, "value", M>;
@@ -102,6 +115,21 @@ const instanceId = useId();
 
 const searchTerm = ref("");
 const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
+
+// The form this picker fills, whose `filterBy.from` field narrows it.
+const formContext = inject(FORM_ENTRY_CONTEXT_KEY, null);
+const filterSourceValue = computed(() =>
+  props.filterBy && formContext
+    ? formContext.state.value[props.filterBy.from]
+    : undefined,
+);
+const filterParams = computed(() =>
+  relationFilterParams(props.filterBy, filterSourceValue.value),
+);
+// A string, so a recomputed but equal filter does not search again.
+const filterKey = computed(() => JSON.stringify(filterParams.value));
+// The source value the record loaded with, which its loaded pick matches.
+const loadedFilterSource = filterSourceValue.value;
 
 const { $authFetch } = useAuthFetch();
 const toast = useToast();
@@ -197,6 +225,7 @@ async function fetchRelationItems(): Promise<RelationItems> {
   const data = await $authFetch<RelationResponse>(url, {
     params: {
       search: searchTermDebounced.value || undefined,
+      ...filterParams.value,
     },
     onRequestError: ({ error }: { error: Error }) => {
       toast.add({
@@ -234,7 +263,7 @@ const { data, status, execute } = await useDmsAsyncData(
   {
     lazy: true,
     immediate: false,
-    watch: [searchTermDebounced],
+    watch: [searchTermDebounced, filterKey],
     // Options to pick from, not the page's data.
     refreshOnPageRefresh: false,
   },
@@ -246,6 +275,8 @@ function isMappableObject(value: unknown): value is Record<string, string> {
 
 const initialItems = computed(() => {
   if (!props.initialValue) return [];
+  // The loaded row matched the loaded source value, not another one.
+  if (!sameFormValue(filterSourceValue.value, loadedFilterSource)) return [];
 
   const values = Array.isArray(props.initialValue)
     ? props.initialValue
@@ -324,6 +355,33 @@ watch(
     }
   },
   { immediate: true },
+);
+
+// The pick as the form holds it, read alongside the source field: a record
+// loading both values changes them in the same tick.
+const pickValue = computed(() =>
+  formContext && props.id
+    ? formContext.state.value[props.id]
+    : props.modelValue,
+);
+let pickSource = loadedFilterSource;
+
+// A pick made for another value of the source field is void once it changes.
+watch(
+  [filterSourceValue, pickValue],
+  ([source, pick], [prevSource, prevPick]) => {
+    if (!props.filterBy || !formContext) return;
+    const outcome = resolveRelationPick({
+      source,
+      pick,
+      previousSource: prevSource,
+      previousPick: prevPick,
+      pickSource,
+    });
+    pickSource = outcome.pickSource;
+    if (!outcome.shouldClear) return;
+    emits("update:modelValue", (props.multiple ? [] : undefined) as ModelValue);
+  },
 );
 
 function onOpen(isOpen: boolean) {
