@@ -92,7 +92,7 @@ const openSession = (
   controller.openSession.call(
     undefined,
     createFakeStream().ctx,
-    connectionId,
+    { connectionId },
     user as unknown as User,
   );
 

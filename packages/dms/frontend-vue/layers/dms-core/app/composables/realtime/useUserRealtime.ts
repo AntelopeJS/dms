@@ -12,7 +12,6 @@ const REALTIME_SESSION_CLOSE_PATH = "/api/realtime/session/close";
 const REALTIME_SUBSCRIBE_PATH_PREFIX = "/api/realtime/subscribe/";
 const REALTIME_UNSUBSCRIBE_PATH = "/api/realtime/unsubscribe";
 const SESSION_HEADER = "x-realtime-session";
-const CONNECTION_HEADER = "x-realtime-connection";
 const CONNECTION_NAME_PREFIX = "dms-realtime";
 const SESSION_STATE_KEY = "dms.realtime.sessionId";
 const MENU_TOPICS_STATE_KEY = "dms.realtime.menuTopics";
@@ -222,7 +221,10 @@ const connectTab = (
     try {
       response = await fetch(`${baseUrl}${REALTIME_SESSION_PATH}`, {
         method: "POST",
-        headers: { [CONNECTION_HEADER]: forConnection },
+        // In the body, not a header of its own: the renderer's backend proxy
+        // relays only the headers it knows.
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ connectionId: forConnection }),
         credentials: "include",
       });
     } catch (error) {

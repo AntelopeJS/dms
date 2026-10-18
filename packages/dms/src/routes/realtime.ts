@@ -49,7 +49,6 @@ const SNAPSHOT_EVENT = "snapshot";
 /** A session's frame on a shared connection, enveloped with its session id. */
 const SESSION_EVENT = "session";
 const SESSION_HEADER = "x-realtime-session";
-const CONNECTION_HEADER = "x-realtime-connection";
 
 type RealtimeAck = { ok: boolean };
 
@@ -82,6 +81,13 @@ const buildActor = (user: User): PresenceActor => ({
   id: user._id,
   displayName: user.name || user.email,
 });
+
+/** The connection id of a `POST /session` body, or none. */
+const readConnectionId = (body: unknown): string | undefined => {
+  if (!body || typeof body !== "object") return undefined;
+  const { connectionId } = body as { connectionId?: unknown };
+  return typeof connectionId === "string" ? connectionId : undefined;
+};
 
 const isValidPresenceBody = (
   body: unknown,
@@ -276,14 +282,17 @@ export class RealtimeController extends Controller(REALTIME_BASE) {
   /**
    * Opens a tab's session on a shared connection. The session takes this
    * request's tenant, so tabs on different workspaces share one connection.
-   * Its frames may reach the browser before this answer does.
+   * Its frames may reach the browser before this answer does. The connection
+   * id comes in the body, `{ connectionId }`: a proxy in front of the DMS
+   * relays it, where it may drop a header it does not know.
    */
   @Post("/session")
   async openSession(
     @Context() ctx: RequestContext,
-    @Parameter(CONNECTION_HEADER, "header") connectionId: string,
+    @JSONBody() body: unknown,
     @AuthRawUser() user: User,
   ): Promise<SessionGreeting> {
+    const connectionId = readConnectionId(body);
     const connection = connectionId
       ? getConnectionInfo(connectionId)
       : undefined;

@@ -182,6 +182,16 @@ describe("useUserRealtime across tabs", () => {
     expect(other!.api.sessionId.value).toBeDefined();
   });
 
+  it("sends only headers the renderer's backend proxy relays", async () => {
+    const [first, second] = await openTabs(2);
+    await first!.api.setPage("orders");
+    await closeTab(second!);
+
+    expect(server.droppedHeaders).toEqual([]);
+    expect(first!.api.sessionId.value).toBeDefined();
+    expect(server.closedSessions).toHaveLength(1);
+  });
+
   it("hands the connection to another tab when the leader goes", async () => {
     const [leader, ...followers] = await openTabs(4);
     await followers[0]!.api.setPage("orders");

@@ -13,7 +13,21 @@ const SESSION_CLOSE_URL = `${BASE_URL}/api/realtime/session/close`;
 const SUBSCRIBE_URL_PREFIX = `${BASE_URL}/api/realtime/subscribe/`;
 const UNSUBSCRIBE_URL = `${BASE_URL}/api/realtime/unsubscribe`;
 const SESSION_HEADER = "x-realtime-session";
-const CONNECTION_HEADER = "x-realtime-connection";
+/**
+ * The request headers the DMS renderer's backend proxy relays
+ * (`backendHeaders`, @antelopejs/dms-frontend `templates/vue/server.mjs`):
+ * any other header the browser sends never reaches the backend.
+ */
+export const RELAYED_HEADERS: ReadonlySet<string> = new Set([
+  "accept",
+  "content-type",
+  "if-match",
+  "origin",
+  "referer",
+  "user-agent",
+  "x-content-language",
+  "x-realtime-session",
+]);
 const HTTP_OK = 200;
 const HTTP_NOT_FOUND = 404;
 
@@ -58,6 +72,8 @@ export interface FakeRealtimeServer {
   send(sessionId: string, eventName: string, data: unknown): void;
   /** Stream requests the browser made, refused ones included. */
   streamAttempts: number;
+  /** Request headers the renderer's proxy would have dropped. */
+  droppedHeaders: string[];
 }
 
 interface JsonAnswer {
@@ -167,21 +183,46 @@ export function createRealtimeServer(): FakeRealtimeServer {
       connection?.write("session", { sessionId, event: eventName, data });
     },
     streamAttempts: 0,
+    droppedHeaders: [],
   };
   return server;
 }
 
-/** Answers the browser's realtime requests from `server`. */
+/**
+ * The request's headers as the backend gets them through the renderer's
+ * proxy: the ones it does not relay are dropped, and noted on `server`.
+ */
+const relayHeaders = (
+  server: FakeRealtimeServer,
+  init: RequestInit | undefined,
+): Record<string, string> => {
+  const relayed: Record<string, string> = {};
+  for (const [name, value] of Object.entries(
+    (init?.headers ?? {}) as Record<string, string>,
+  )) {
+    if (RELAYED_HEADERS.has(name.toLowerCase())) relayed[name] = value;
+    else server.droppedHeaders.push(name);
+  }
+  return relayed;
+};
+
+/**
+ * Answers the browser's realtime requests from `server`, behind the
+ * renderer's backend proxy.
+ */
 export function installRealtimeFetch(server: FakeRealtimeServer): void {
   globalThis.fetch = vi.fn(async (url: string, init?: RequestInit) => {
-    const headers = (init?.headers ?? {}) as Record<string, string>;
+    const headers = relayHeaders(server, init);
     if (url === CONNECTION_URL) {
       server.streamAttempts += 1;
       if (server.isDown) throw new Error("connection refused");
       return openConnection(server, init!.signal!);
     }
     if (url === SESSION_URL) {
-      return openSession(server, headers[CONNECTION_HEADER]!);
+      const body = JSON.parse(String(init?.body ?? "{}")) as {
+        connectionId?: string;
+      };
+      return openSession(server, body.connectionId ?? "");
     }
     if (url === SESSION_CLOSE_URL) {
       server.closedSessions.push(headers[SESSION_HEADER]!);
