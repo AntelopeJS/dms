@@ -231,7 +231,9 @@ function onValidationError(event: { errors: Array<{ name?: string }> }): void {
 }
 
 // Once a submit is refused, the form lists what to fix above its fields
-// until it is saved.
+// until it is saved. The last fix empties the list, not the place it holds:
+// the fields, and the submit button with them, would move up under the
+// pointer on its way to it, and the click would land beside it.
 const showsErrorSummary = ref(false);
 
 const {
@@ -446,11 +448,20 @@ const isDirty = computed(
 
 useUnsavedChanges({ dirty: isDirty, containerId, element: form });
 
-// A form offers Cancel while clean when it has somewhere to go back to: its
-// drawer or modal, or `backTo` on a page. An action form (send, invite, run)
-// saves from its footer band, never from the floating bar.
+// A form offers Cancel when it has somewhere to go back to: its drawer or
+// modal, `backTo` on a page, or the page of the app the user came from. An
+// action form (send, invite, run) saves from its footer band, never from the
+// floating bar.
 const isActionForm = props.kind === "action";
-const canCancel = inFormContainer || !!container || !!props.backTo;
+// Read once mounted: the server renders no history.
+const cameFromAppPage = ref(false);
+onMounted(() => {
+  cameFromAppPage.value = !!previousAppPage();
+});
+const canCancel = computed(
+  () =>
+    inFormContainer || !!container || !!props.backTo || cameFromAppPage.value,
+);
 const usesSaveBar = saveMode === "bar" && !inFormContainer && !isActionForm;
 
 /** Validates one field alone: whether it holds no error. */
@@ -484,10 +495,21 @@ const hasChangeableFields = computed(() =>
 const router = useDmsRouter();
 const route = useDmsRoute();
 /**
+ * The page of the app this one was reached from, which the router records
+ * in the history entry: none for a page opened from a link outside the app,
+ * a bookmark or a new tab, where going back would leave the app.
+ */
+function previousAppPage(): string | undefined {
+  const back = (window.history.state as { back?: unknown } | null)?.back;
+  return typeof back === "string" ? back : undefined;
+}
+
+/**
  * Cancel: drops what was changed, then closes the drawer or modal, or leaves
- * a page form for the page the user came from (its list, when opened from
- * one), or its `backTo` when the form was opened directly. Discarding first
- * means leaving never asks about changes the user just chose to drop.
+ * a page form for the page of the app the user came from (its list, when
+ * opened from one), or its `backTo` when the form was opened directly.
+ * Discarding first means leaving never asks about changes the user just chose
+ * to drop.
  */
 function cancelForm(): void {
   if (isDirty.value) discardChanges();
@@ -495,10 +517,8 @@ function cancelForm(): void {
     void container.close();
     return;
   }
-  const navigation = (window as { navigation?: { canGoBack?: boolean } })
-    .navigation;
-  if (navigation?.canGoBack ?? window.history.length > 1) {
-    window.history.back();
+  if (previousAppPage()) {
+    router.back();
     return;
   }
   if (props.backTo) void router.push(pageLink(props.backTo));
@@ -748,10 +768,6 @@ const sectionOfField = computed(() => {
   return owners;
 });
 
-watch(invalidFields, (invalid) => {
-  if (invalid.size === 0) showsErrorSummary.value = false;
-});
-
 // One entry per row to fix: the unlabelled fields of a group share its
 // label, and its first invalid field stands for them.
 const errorSummaryItems = computed(() => {
@@ -972,7 +988,7 @@ onUnmounted(async () => {
         />
 
         <DmsFormErrorSummary
-          v-if="errorSummaryItems.length"
+          v-if="showsErrorSummary"
           :items="errorSummaryItems"
           :class="hasSections ? 'mb-5' : 'mt-4'"
           @select="focusField"
