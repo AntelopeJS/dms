@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `PageToolbar` (`pageToolbar()`), `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
@@ -86,6 +86,10 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   options (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"`
   to share the choice; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
+- A page with a period or live data starts with `pageToolbar({ leading, live, period })`
+  (`base/page-toolbar`): the same bar on every page — leading blocks, then "Updated N s ago",
+  Live / Pause, the window and the 1H / 24H / 7D / 30D presets, at one `size`. `live: false` or
+  `period: false` drops a control; without `live` it shows the last read and a refresh button.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
