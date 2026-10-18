@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { FormSectionNav } from "../../../composables/form/types/field";
-import type {
-  FormSectionState,
-  FormSectionsLayout,
+import {
+  currentSectionId,
+  type FormSectionState,
+  type FormSectionsLayout,
 } from "../../composables/form/formSections";
 import DmsFormEntries from "./FormEntries.vue";
 import DmsFormSectionNav from "./FormSectionNav.vue";
-import { scrollWithin } from "../../utils/scrollWithin";
+import { scrollParent, scrollWithin } from "../../utils/scrollWithin";
 
 interface FormSectionsProps {
   layout: FormSectionsLayout;
@@ -18,9 +19,15 @@ interface FormSectionsProps {
 
 const props = defineProps<FormSectionsProps>();
 
-// A section is current once its top passes this band near the top of the
-// viewport: the one being read, not the one merely peeking in at the bottom.
-const SPY_ROOT_MARGIN = "0px 0px -65% 0px";
+// A section is current once its top passes this line, a third of the way
+// down the visible area: the one being read, not the one merely peeking in
+// at the bottom.
+const READING_LINE_RATIO = 0.35;
+// A scroll this close to the end is at the end (subpixel rounding).
+const END_TOLERANCE_PX = 2;
+// A picked section stays current until the scroll it started has settled:
+// on its way, the smooth scroll passes the sections in between.
+const SCROLL_SETTLE_MS = 150;
 
 const activeId = ref(props.layout.sections[0]?.id);
 const sectionElements = useTemplateRef<HTMLElement[]>("sectionElements");
@@ -29,44 +36,116 @@ function anchorId(sectionId: string): string {
   return `${props.formId}-section-${sectionId}`;
 }
 
+let pickedTimer: ReturnType<typeof setTimeout> | undefined;
+let isPicked = false;
+
+function holdPicked(): void {
+  clearTimeout(pickedTimer);
+  pickedTimer = setTimeout(() => {
+    isPicked = false;
+  }, SCROLL_SETTLE_MS);
+}
+
 function scrollToSection(sectionId: string): void {
   activeId.value = sectionId;
+  isPicked = true;
+  holdPicked();
   const section = document.getElementById(anchorId(sectionId));
   if (section) scrollWithin(section, { behavior: "smooth", block: "start" });
   history.replaceState(history.state, "", `#${anchorId(sectionId)}`);
 }
 
-let observer: IntersectionObserver | undefined;
-const visible = new Set<string>();
+interface SpyViewport {
+  top: number;
+  height: number;
+  isAtEnd: boolean;
+}
 
-function onIntersect(entries: IntersectionObserverEntry[]): void {
-  for (const entry of entries) {
-    const id = (entry.target as HTMLElement).dataset.section;
-    if (!id) continue;
-    if (entry.isIntersecting) visible.add(id);
-    else visible.delete(id);
+// Scrolled at all, and to the end: a form that fits never scrolls, and its
+// first section stays current.
+function isScrolledToEnd(
+  scrollTop: number,
+  height: number,
+  scrollHeight: number,
+): boolean {
+  return scrollTop > 0 && scrollTop + height >= scrollHeight - END_TOLERANCE_PX;
+}
+
+function spyViewport(scroller: HTMLElement | null): SpyViewport {
+  if (scroller) {
+    return {
+      top: scroller.getBoundingClientRect().top,
+      height: scroller.clientHeight,
+      isAtEnd: isScrolledToEnd(
+        scroller.scrollTop,
+        scroller.clientHeight,
+        scroller.scrollHeight,
+      ),
+    };
   }
-  const first = props.layout.sections.find((section) =>
-    visible.has(section.id),
-  );
-  if (first) activeId.value = first.id;
+  const root = document.documentElement;
+  return {
+    top: 0,
+    height: window.innerHeight,
+    isAtEnd: isScrolledToEnd(
+      window.scrollY,
+      window.innerHeight,
+      root.scrollHeight,
+    ),
+  };
+}
+
+function updateActiveSection(): void {
+  const elements = sectionElements.value ?? [];
+  const first = elements[0];
+  if (!first) return;
+  const viewport = spyViewport(scrollParent(first));
+  const id = currentSectionId({
+    sections: elements.map((element) => ({
+      id: element.dataset.section ?? "",
+      top: element.getBoundingClientRect().top - viewport.top,
+    })),
+    readingLine: viewport.height * READING_LINE_RATIO,
+    isAtEnd: viewport.isAtEnd,
+  });
+  if (id) activeId.value = id;
+}
+
+let frame: number | undefined;
+
+// Captured on the document: whichever container scrolls the form (the page
+// body, a drawer, the window) reports here, even one that only became
+// scrollable once the form loaded.
+function onScroll(): void {
+  if (isPicked) {
+    holdPicked();
+    return;
+  }
+  if (frame !== undefined) return;
+  frame = requestAnimationFrame(() => {
+    frame = undefined;
+    updateActiveSection();
+  });
 }
 
 onMounted(() => {
-  if (props.nav === "none" || typeof IntersectionObserver === "undefined") {
-    return;
-  }
-  observer = new IntersectionObserver(onIntersect, {
-    rootMargin: SPY_ROOT_MARGIN,
+  if (props.nav === "none") return;
+  document.addEventListener("scroll", onScroll, {
+    capture: true,
+    passive: true,
   });
-  for (const element of sectionElements.value ?? []) observer.observe(element);
   const linked = props.layout.sections.find(
     (section) => location.hash === `#${anchorId(section.id)}`,
   );
   if (linked) scrollToSection(linked.id);
+  else updateActiveSection();
 });
 
-onBeforeUnmount(() => observer?.disconnect());
+onBeforeUnmount(() => {
+  document.removeEventListener("scroll", onScroll, { capture: true });
+  clearTimeout(pickedTimer);
+  if (frame !== undefined) cancelAnimationFrame(frame);
+});
 </script>
 
 <template>

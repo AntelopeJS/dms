@@ -133,3 +133,35 @@ export function sectionState(
     invalidCount: section.fieldIds.filter((id) => invalid.has(id)).length,
   };
 }
+
+/** Where a section's card starts, from the top of the visible area. */
+export interface SectionOffset {
+  id: string;
+  top: number;
+}
+
+/** What the side list reads to tell which section is being read. */
+export interface SectionSpyView {
+  /** The sections, in order. */
+  sections: SectionOffset[];
+  /** Offset of the reading line from the top of the visible area. */
+  readingLine: number;
+  /** Scrolled to the end: nothing below can rise to the reading line. */
+  isAtEnd: boolean;
+}
+
+/**
+ * The section being read: the last one whose top has passed the reading
+ * line, the first before any has, and the last once the form is scrolled to
+ * its end — the sections at the bottom of a long form never rise that far,
+ * and would otherwise never be current. One section at a time.
+ */
+export function currentSectionId(view: SectionSpyView): string | undefined {
+  if (view.isAtEnd) return view.sections.at(-1)?.id;
+  let current = view.sections[0]?.id;
+  for (const section of view.sections) {
+    if (section.top > view.readingLine) break;
+    current = section.id;
+  }
+  return current;
+}
