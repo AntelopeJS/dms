@@ -438,7 +438,8 @@
     "chart": {
       "no_data": "Aucune donnée",
       "legend_period": "Période",
-      "legend_comparison": "Comparaison"
+      "legend_comparison": "Comparaison",
+      "versus_value": "vs {value}"
     },
     "period": {
       "aria_label": "Sélecteur de période",
@@ -468,6 +469,11 @@
         "previous-period": "vs période précédente",
         "previous-year": "vs année précédente",
         "custom": "Personnalisé"
+      },
+      "compare_labels": {
+        "previous-period": "vs période précédente",
+        "previous-year": "vs année précédente",
+        "custom": "vs période de comparaison"
       },
       "compare_options": {
         "none": "Aucune comparaison",
