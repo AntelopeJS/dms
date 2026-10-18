@@ -22,4 +22,9 @@ export type ModalSize =
   | "2xl"
   | "3xl"
   | "4xl"
-  | "5xl";
+  | "5xl"
+  /**
+   * Near full-screen for a modal; the whole window for a side drawer or a
+   * side panel.
+   */
+  | "full";

@@ -63,6 +63,22 @@ export interface SidePanelTargetOptions {
    * @example { title: "$api.request.not_found_title", description: "$api.request.not_found_description" }
    */
   notFound?: SidePanelNotFoundTexts;
+  /**
+   * Width the panel opens at, before the user resizes it: a modal's width at
+   * that size (`sm` 384px … `5xl` 1024px), `full` the whole room the panel
+   * may have (docked, it leaves the page 40% of the window). Without one it is
+   * 440px, as today. Capped to the window, and full screen on a phone once
+   * set. Each size remembers the width the user gives it apart.
+   */
+  size?: ModalSize;
+  /**
+   * The panel slides over the page above a backdrop instead of docking next
+   * to it: the page keeps its width. Everything else stays: the header, row
+   * stepping (J / K), the deep link, the table's live hold; Esc and a click on
+   * the backdrop close it, and focus moves into it while it is open. Below
+   * `lg` every side panel is already such a sheet.
+   */
+  overlay?: boolean;
 }
 
 /**
@@ -99,6 +115,13 @@ export type ActionTarget =
        * window's height.
        */
       direction?: DrawerDirection;
+      /**
+       * Width of a `left` or `right` drawer: a modal's width at that size
+       * (`sm` 384px … `5xl` 1024px), `full` the whole window; 440px, a side
+       * panel's width, without one. Capped to the window, and full screen on a
+       * phone once set. A `top` or `bottom` drawer ignores it.
+       */
+      size?: ModalSize;
     }
   | {
       type: "modal";
@@ -195,6 +218,13 @@ export type ActionTargetSerialized =
        * window's height.
        */
       direction?: DrawerDirection;
+      /**
+       * Width of a `left` or `right` drawer: a modal's width at that size
+       * (`sm` 384px … `5xl` 1024px), `full` the whole window; 440px, a side
+       * panel's width, without one. Capped to the window, and full screen on a
+       * phone once set. A `top` or `bottom` drawer ignores it.
+       */
+      size?: ModalSize;
     }
   | {
       type: "modal";
