@@ -12,8 +12,10 @@ import type {
 } from "../../../composables/table-view/types/display";
 import {
   buildCardProps,
+  CARD_GRID_CLASS,
   cardAvatar,
   cardFieldColumns,
+  cardGridStyle,
   cardIdentity,
   cardSubtitle,
 } from "../../composables/table-view/utils/card";
@@ -123,12 +125,13 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 
 <template>
   <div>
-    <!-- v2 cards display: an auto-fill grid inside the table card, sharing
+    <!-- v2 cards display: an auto-fit grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
       v-if="props.context.firstPageLoading"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
+      :min-width="card?.minWidth"
     />
 
     <TableEmpty
@@ -138,7 +141,8 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
 
     <div
       v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(min(230px,100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]"
+      :class="CARD_GRID_CLASS"
+      :style="cardGridStyle(card?.minWidth, props.context.items.length)"
     >
       <template v-if="cardComponent">
         <!-- A wrapper out of the grid's layout, catching the drop on the

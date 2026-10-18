@@ -1,3 +1,4 @@
+import type { CSSProperties } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type {
   TableViewCardProps,
@@ -157,4 +158,43 @@ export function cardAvatar<T>(
     return typeof key === "string" && key ? { key } : undefined;
   }
   return undefined;
+}
+
+/** The narrowest a card of the `cards` display gets (backend `card.minWidth`). */
+export const DEFAULT_CARD_MIN_WIDTH = "230px";
+
+// The grid's gap and side padding, as `CARD_GRID_CLASS` sets them: the width
+// cap below adds them to the cards' own.
+const CARD_GRID_GAP = "0.75rem";
+const CARD_GRID_PADDING = "36px";
+
+// How much wider than `card.minWidth` a card may stretch when the row has room
+// for more cards than the list holds. A full row hardly reaches it: n cards
+// fit, but not n + 1, so each one stays under twice the minimum, give or take
+// a gap.
+const CARD_MAX_WIDTH_FACTOR = 2;
+
+/**
+ * The cards grid: auto-fit tracks of at least `--dms-card-min-width` (the
+ * whole row on a narrower screen), so a short list's empty tracks collapse
+ * and its cards stretch across the row instead of leaving a hole at its end.
+ */
+export const CARD_GRID_CLASS =
+  "grid grid-cols-[repeat(auto-fit,minmax(min(var(--dms-card-min-width),100%),1fr))] gap-3 px-[18px] pt-4 pb-[18px]";
+
+/**
+ * The style of a cards grid holding `count` cards of at least `minWidth` (a
+ * CSS length): the width its tracks start from, and a cap keeping one or two
+ * cards from stretching across a whole wide screen.
+ */
+export function cardGridStyle(
+  minWidth: string | undefined,
+  count: number,
+): CSSProperties {
+  const width = minWidth || DEFAULT_CARD_MIN_WIDTH;
+  const cards = Math.max(1, count);
+  return {
+    "--dms-card-min-width": width,
+    maxWidth: `calc(${cards} * ${CARD_MAX_WIDTH_FACTOR} * ${width} + ${cards - 1} * ${CARD_GRID_GAP} + ${CARD_GRID_PADDING})`,
+  };
 }

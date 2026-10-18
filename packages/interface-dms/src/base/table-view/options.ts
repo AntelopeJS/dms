@@ -544,12 +544,20 @@ export interface TableViewCardOptions {
    * `v-bind` on a button).
    */
   component?: Component;
+  /**
+   * `cards` display only: the narrowest a card gets, as a CSS length
+   * (`"300px"`, `"20rem"`). Defaults to `"230px"`. The row fits as many
+   * cards of that width as it can and stretches them to fill it; a list too
+   * short to fill a row stretches its cards up to twice that width.
+   */
+  minWidth?: string;
 }
 
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
 export interface TableViewCardOptionsSerialized {
   fields?: string[];
   component?: ComponentInfoSerialized;
+  minWidth?: string;
 }
 
 /** The kanban options as its display entry carries them. */

@@ -138,6 +138,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   still opens phones on the cards.
 - A table ordered by hand (`reorder: { field }`) moves rows on the grid and cards on the `cards`
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
+- A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
+  default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
 
 ### Forms
 
