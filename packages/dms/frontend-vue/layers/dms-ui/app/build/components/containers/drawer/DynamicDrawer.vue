@@ -5,6 +5,7 @@ import type {
   ContainerColor,
   DrawerDirection,
 } from "../../../../composables/containers/types";
+import type { ModalSize } from "../../../../types/modal";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
@@ -20,6 +21,8 @@ interface DynamicDrawerProps {
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
   direction?: DrawerDirection;
+  /** Width of a side drawer: a modal's at that size; 440px without one. */
+  size?: ModalSize;
   icon?: string;
   color?: ContainerColor;
 }
@@ -34,6 +37,7 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
   headerComponent: undefined,
   headerComponentOptions: undefined,
   direction: "bottom",
+  size: undefined,
   icon: undefined,
   color: "primary",
 });
@@ -44,6 +48,23 @@ const emit = defineEmits<DynamicDrawerEmits>();
 // Its own padding is the gutter: the containers drop theirs.
 const SIDE_DIRECTIONS: readonly DrawerDirection[] = ["left", "right"];
 const SIDE_DRAWER_CONTENT = "w-[440px]";
+// A modal's widths at the same size (see `DynamicModal`), `full` dropping the
+// gutter and the rounded edge.
+const SIDE_DRAWER_SIZE_CONTENT: Record<ModalSize, string> = {
+  sm: "w-sm",
+  md: "w-md",
+  lg: "w-lg",
+  xl: "w-xl",
+  "2xl": "w-2xl",
+  "3xl": "w-3xl",
+  "4xl": "w-4xl",
+  "5xl": "w-5xl",
+  full: "w-full max-w-full rounded-none",
+};
+// A sized side drawer fills a phone's screen; an unsized one keeps today's
+// gutter.
+const SIDE_DRAWER_PHONE_CONTENT =
+  "max-sm:w-full max-sm:max-w-full max-sm:rounded-none";
 const SIDE_CONTAINER_CLASS = "px-0 sm:px-0 lg:px-0";
 const EDGE_CONTAINER_CLASS = "max-sm:px-0";
 
@@ -51,8 +72,13 @@ const isSide = computed(() => SIDE_DIRECTIONS.includes(props.direction));
 const containerClass = computed(() =>
   isSide.value ? SIDE_CONTAINER_CLASS : EDGE_CONTAINER_CLASS,
 );
+const sideContentClass = computed(() =>
+  props.size
+    ? `${SIDE_DRAWER_SIZE_CONTENT[props.size]} ${SIDE_DRAWER_PHONE_CONTENT}`
+    : SIDE_DRAWER_CONTENT,
+);
 const drawerUi = computed(() => ({
-  ...(isSide.value && { content: SIDE_DRAWER_CONTENT }),
+  ...(isSide.value && { content: sideContentClass.value }),
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
   // The scroll area's bottom padding: a form's sticky footer sits flush
   // with the drawer's edge (see Form.vue).

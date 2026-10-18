@@ -17,7 +17,10 @@ import type { ActionTarget } from "../layers/dms-ui/app/composables/table-view/t
 
 vi.mock("reka-ui", () => {
   const passThrough = defineComponent({
-    setup: (_props, { slots }) => () => h("div", slots.default?.()),
+    setup:
+      (_props, { slots }) =>
+      () =>
+        h("div", slots.default?.()),
   });
   return {
     DialogTitle: passThrough,
@@ -118,6 +121,16 @@ describe("a drawer action target's direction", () => {
     expect(opened[0]!.direction).toBe("left");
   });
 
+  it("passes the target's size to the drawer", async () => {
+    const targets = mountTargets();
+    targets.handleCustomRowAction(
+      { label: "Inspect", target: { ...drawerTarget("right"), size: "3xl" } },
+      { _id: "r1" },
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    expect(opened[0]!.size).toBe("3xl");
+  });
+
   it("leaves the direction to the drawer when the target names none", async () => {
     const targets = mountTargets();
     targets.handleCustomButton({ label: "Inspect", target: drawerTarget() });
@@ -162,8 +175,10 @@ describe("the drawer container", () => {
     app.component(
       "UContainer",
       defineComponent({
-        setup: (_props, { slots }) => () =>
-          h("div", { "data-container": "" }, slots.default?.()),
+        setup:
+          (_props, { slots }) =>
+          () =>
+            h("div", { "data-container": "" }, slots.default?.()),
       }),
     );
     app.component("UButton", () => h("button"));
@@ -202,5 +217,21 @@ describe("the drawer container", () => {
     expect(rendered.ui?.content).toBe("w-[440px]");
     const containers = host.querySelectorAll("[data-container]");
     expect(containers[0]!.className).toContain("px-0 sm:px-0 lg:px-0");
+  });
+
+  it("takes a modal's width at its size, and fills a phone's screen", async () => {
+    await mountDrawer({ direction: "left", size: "3xl" });
+    expect(rendered.ui?.content).toContain("w-3xl");
+    expect(rendered.ui?.content).toContain("max-sm:w-full max-sm:max-w-full");
+  });
+
+  it("spans the window at `full`", async () => {
+    await mountDrawer({ direction: "right", size: "full" });
+    expect(rendered.ui?.content).toContain("w-full max-w-full rounded-none");
+  });
+
+  it("keeps a top or bottom drawer full width whatever its size", async () => {
+    await mountDrawer({ direction: "bottom", size: "xl" });
+    expect(rendered.ui?.content).toBe(undefined);
   });
 });

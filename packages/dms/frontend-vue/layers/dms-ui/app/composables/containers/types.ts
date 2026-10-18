@@ -43,6 +43,11 @@ export interface ContainerOptions {
 /** Options accepted by {@link useDrawer}'s `open`. */
 export interface DrawerOptions extends ContainerOptions {
   direction?: DrawerDirection;
+  /**
+   * Width of a `left` / `right` drawer: a modal's width at that size, `full`
+   * the whole window; 440px without one. A `top` / `bottom` drawer ignores it.
+   */
+  size?: ModalSize;
 }
 
 /** Options accepted by {@link useModal}'s `open`. */
