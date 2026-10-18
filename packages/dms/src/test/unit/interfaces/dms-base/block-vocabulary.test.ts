@@ -6,9 +6,11 @@ import {
   CodeBlock,
   EmptyState,
   FieldRow,
+  Hero,
   KeyValueList,
   Meter,
   NavCardGrid,
+  Prose,
   Section,
   StatGroup,
 } from "@antelopejs/interface-dms/base";
@@ -42,9 +44,11 @@ describe("[unit] interfaces/dms-base — block vocabulary", () => {
       CodeBlock(),
       EmptyState({ title: "Nothing" }),
       FieldRow(),
+      Hero(),
       KeyValueList(),
       Meter(),
       NavCardGrid(),
+      Prose(),
       Section(),
       StatGroup(),
     ];
