@@ -19,6 +19,31 @@ export type LayoutBannerVariant =
   (typeof LayoutBannerVariant)[keyof typeof LayoutBannerVariant];
 
 /**
+ * Which pages of the dashboard a layout banner shows on. The module area is
+ * everything under `MODULE_URL_PREFIX` (`/modules`): the modules page, the
+ * module store and every module's own pages.
+ */
+export const LayoutBannerScope = {
+  /**
+   * The application's pages, outside the module area: the default, for a
+   * banner about the application being built (overdue invoices, a stock
+   * alert) that has no business inside a module's back office.
+   */
+  APP: "app",
+  /** The module area only. */
+  MODULES: "modules",
+  /**
+   * Every page, module area included: for a workspace-wide state that must
+   * follow the user wherever they go (billing past due, a suspended
+   * workspace, a maintenance window).
+   */
+  EVERYWHERE: "everywhere",
+} as const;
+
+export type LayoutBannerScope =
+  (typeof LayoutBannerScope)[keyof typeof LayoutBannerScope];
+
+/**
  * What a banner's `visible` or `resolve` resolver decides on: the request the
  * site layout is being built for.
  */
@@ -96,6 +121,17 @@ interface LayoutBannerBase {
   /** Leading icon. Defaults to one matching the variant. */
   icon?: string;
   /**
+   * Which pages the banner shows on. Defaults to
+   * {@link LayoutBannerScope.APP}: the application's pages, not the module
+   * area. A workspace-wide state uses {@link LayoutBannerScope.EVERYWHERE}.
+   *
+   * The scope is applied by the dashboard against the current route, both
+   * when the page is server-rendered and on every client-side navigation, so
+   * moving in or out of the module area adds or removes the banner without
+   * re-fetching the site layout.
+   */
+  scope?: LayoutBannerScope;
+  /**
    * Whether the user can close the banner. A dismissal lasts for the browser
    * session and is remembered in a cookie, so the server-rendered page already
    * leaves the banner out. Defaults to `false`.
@@ -166,8 +202,9 @@ export interface LayoutBannerResolvedInfo extends LayoutBannerBase {
 }
 
 /**
- * A global banner rendered under the header of the dashboard layout, on every
- * page — tenant pages and module back-office pages alike.
+ * A global banner rendered under the header of the dashboard layout, on the
+ * pages its `scope` selects — by default the application's pages, leaving the
+ * module area (`/modules/...`) out.
  */
 export type LayoutBannerInfo =
   | LayoutBannerTextInfo
@@ -182,8 +219,9 @@ export namespace internal {
 }
 
 /**
- * Register a global banner under the dashboard header. Banners stack by
- * `order`, and each one's `visible` or `resolve` resolver is evaluated
+ * Register a global banner under the dashboard header, on the pages its
+ * `scope` selects (the application's pages by default, not the module area).
+ * Banners stack by `order`, and each one's `visible` or `resolve` resolver is evaluated
  * server-side for every site layout request, so the banner is in the
  * server-rendered page. When the state a resolver reads changes, call `NotifyMenuChanged(tenantId)` so the
  * connected clients re-fetch their site layout.

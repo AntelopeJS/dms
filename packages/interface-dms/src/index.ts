@@ -54,6 +54,7 @@ export {
   LayoutBannerComponentInfo,
   LayoutBannerContext,
   LayoutBannerInfo,
+  LayoutBannerScope,
   LayoutBannerTextInfo,
   LayoutBannerVariant,
   LayoutBannerVisibility,
