@@ -89,8 +89,11 @@ export interface BannerProps extends BaseComponentProps, BannerContent {
   actions?: BlockLinkAction[];
   /**
    * Route answering the banner's `BannerContent`, or `null`, `{}` or a 204
-   * when there is nothing to tell: the block then draws nothing, and nothing
-   * either until its first answer lands. It may name the page it is shown
+   * when there is nothing to tell: the block then draws nothing. It is read
+   * with the page: a server render and a client navigation both wait for its
+   * first answer, so the banner never lands late above the page's content
+   * (a URL still waiting for a period scope or a token loads after the
+   * page shows, as other blocks do). It may name the page it is shown
    * on: `{{params.X}}` and `{{query.X}}` name the page URL, as in
    * `BlockItemsSource.fetchUrl`.
    *

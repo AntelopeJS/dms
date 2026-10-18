@@ -35,6 +35,15 @@ export interface UseChartFetchOptions<T> {
   realtimeTopic?: string | string[];
   watchSource?: () => unknown;
   staticData?: T | null | (() => T | null);
+  /**
+   * Reads the data with the page, as the page's own data is: a client
+   * navigation waits for the first answer instead of showing the page with
+   * the block still empty, for a block that must not appear late and push
+   * the page (a fetched Banner). The caller awaits `ready` in its setup. Only
+   * a URL known at setup holds the navigation; one waiting for a token or a
+   * period scope loads afterwards, as usual.
+   */
+  holdNavigation?: boolean;
 }
 
 export interface UseChartFetchReturn<T> {
@@ -51,6 +60,11 @@ export interface UseChartFetchReturn<T> {
    */
   error: Ref<unknown>;
   refresh: () => Promise<void>;
+  /**
+   * Settles once the first answer is in with `holdNavigation`, at once
+   * otherwise. Awaited in a setup, it holds the page's client navigation.
+   */
+  ready: Promise<void>;
 }
 
 const DEBOUNCE_FRAME_MS = 180;
@@ -220,10 +234,13 @@ export function useChartFetch<T>(
     };
   });
   const request = useScheduledRequest(target);
+  const holdsNavigation =
+    !!options.holdNavigation && request.current.value.url !== null;
   const loaded = useApiData<T>(() => request.current.value.url, {
     method: options.fetchUrlMethod as UseApiDataOptions<T>["method"],
-    // A block never holds a navigation: it draws its skeleton meanwhile.
-    lazy: true,
+    // A block does not hold a navigation unless asked: it draws its skeleton
+    // meanwhile.
+    lazy: !holdsNavigation,
     default: () => readStaticData(options.staticData) as T,
     watch: [() => request.current.value.watched],
     // Read again on its own triggers (realtime topic, page refresh, live
@@ -264,7 +281,10 @@ export function useChartFetch<T>(
       () => status.value === "pending",
     ),
   );
-  return { data: data as Ref<T | null>, isLoading, error, refresh };
+  const ready = holdsNavigation
+    ? loaded.then(() => undefined)
+    : Promise.resolve();
+  return { data: data as Ref<T | null>, isLoading, error, refresh, ready };
 }
 
 /** A block without `fetchUrl`: its `staticData`, followed as it changes. */
@@ -286,5 +306,6 @@ function useStaticChartData<T>(
     isLoading: ref(false),
     error: ref<unknown>(null),
     refresh: async () => {},
+    ready: Promise.resolve(),
   };
 }
