@@ -9,9 +9,15 @@ import { readonly, ref, type Ref } from "vue";
  */
 export class LivePoller {
   private readonly active = ref(false);
+  private readonly hasPolled = ref(false);
   private timer: ReturnType<typeof setTimeout> | null = null;
-  /** The poller is running: the stream is down and the page reads by itself. */
-  readonly isPolling: Readonly<Ref<boolean>> = readonly(this.active);
+  /**
+   * The page reads by itself: the stream stayed down for a whole interval and
+   * the first poll ran. Not while a page's stream is still connecting (every
+   * full load starts "down" until it opens), which would flash the polling
+   * hint for a frame.
+   */
+  readonly isPolling: Readonly<Ref<boolean>> = readonly(this.hasPolled);
 
   constructor(
     private readonly intervalMs: () => number,
@@ -31,10 +37,12 @@ export class LivePoller {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.active.value = false;
+    this.hasPolled.value = false;
   }
 
   private schedule(): void {
     this.timer = setTimeout(() => {
+      this.hasPolled.value = true;
       this.poll();
       if (this.active.value) this.schedule();
     }, this.intervalMs());

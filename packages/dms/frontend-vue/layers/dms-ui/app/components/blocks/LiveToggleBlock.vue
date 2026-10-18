@@ -111,15 +111,9 @@ const items = computed(() => [
   { value: PAUSE, label: t("dms.live.pause"), icon: "i-ph-pause" },
 ]);
 
-const updatedLabel = computed(() => {
-  // The browser's clock only: the server's text would not match the
-  // hydrating render's.
-  const updated = isMounted.value ? updatedText.value : "";
-  if (!updated) return "";
-  return live.isPolling.value
-    ? `${updated} · ${t("dms.live.polling")}`
-    : updated;
-});
+// The browser's clock only: the server's text would not match the hydrating
+// render's.
+const updatedLabel = computed(() => (isMounted.value ? updatedText.value : ""));
 
 const missedText = computed(() => {
   const count = live.missedCount.value;
@@ -173,11 +167,21 @@ useLiveToggleShortcut(() => live.toggle());
     </span>
     <span
       v-else-if="showUpdatedAt"
-      class="text-muted tabular-nums"
+      class="text-muted inline-flex items-center gap-1.5 tabular-nums"
       :class="sizeClasses.text"
       aria-live="off"
     >
       {{ updatedLabel }}
+      <!-- The polling hint, its box always kept: showing it never widens the
+           toggle, which would wrap the toolbar and move the page. -->
+      <UIcon
+        name="i-ph-wifi-slash"
+        class="dms-live-toggle__polling size-3.5 shrink-0"
+        :class="!live.isPolling.value && 'invisible'"
+        :title="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-label="live.isPolling.value ? t('dms.live.polling') : undefined"
+        :aria-hidden="!live.isPolling.value || undefined"
+      />
     </span>
     <div
       v-if="variant === 'pill'"
