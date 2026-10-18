@@ -454,29 +454,40 @@ function segmentLabel(preset: PeriodPreset): string {
 
 interface SegmentItem {
   label: string;
+  ariaLabel: string;
   value: string;
   icon?: string;
 }
 
-function customSegmentLabel(): string {
+function customRangeText(): string | null {
   const { range } = period.state.value;
   return isCustomActive.value && range
     ? formatPeriodRange(range, locale.value, false)
-    : presetLabel(CUSTOM_PRESET);
+    : null;
+}
+
+// In a toolbar the custom segment is its calendar icon alone, like the short
+// codes beside it: the window beside them writes the range once chosen.
+// Named in full either way.
+function customSegment(): SegmentItem {
+  const range = customRangeText();
+  const name = presetLabel(CUSTOM_PRESET);
+  const visible = toolbar ? "" : (range ?? name);
+  return {
+    label: visible,
+    ariaLabel: range ? `${name}: ${range}` : name,
+    value: CUSTOM_PRESET,
+    icon: CALENDAR_ICON,
+  };
 }
 
 const segmentedItems = computed<SegmentItem[]>(() => {
   const items: SegmentItem[] = listedPresets.value.map((preset) => ({
     label: segmentLabel(preset),
+    ariaLabel: presetLabel(preset),
     value: preset,
   }));
-  if (isCustomEnabled.value) {
-    items.push({
-      label: customSegmentLabel(),
-      value: CUSTOM_PRESET,
-      icon: CALENDAR_ICON,
-    });
-  }
+  if (isCustomEnabled.value) items.push(customSegment());
   return items;
 });
 
