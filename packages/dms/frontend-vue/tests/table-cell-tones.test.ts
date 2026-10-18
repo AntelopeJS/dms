@@ -94,7 +94,7 @@ const cell = (
 describe("milliseconds format", () => {
   it("writes every duration in milliseconds, its digits grouped", () => {
     expect(formatMilliseconds(2149, "en-GB")).toBe("2,149 ms");
-    expect(formatMilliseconds(2149, "fr-FR")).toBe("2 149 ms");
+    expect(formatMilliseconds(2149, "fr-FR")).toBe("2 149 ms");
     expect(formatMilliseconds(2149, "es-ES")).toBe("2.149 ms");
     expect(formatMilliseconds(910.4, "en-GB")).toBe("910 ms");
     expect(formatMilliseconds(125_000, "en-GB")).toBe("125,000 ms");

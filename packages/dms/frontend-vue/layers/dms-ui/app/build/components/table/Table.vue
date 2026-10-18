@@ -1,4 +1,5 @@
 <script lang="ts">
+import { readableNumberFormat } from "#dms-core/app/utils/formatter";
 import type {
   ColumnDef,
   ColumnFiltersOptions,
@@ -1061,7 +1062,7 @@ const bodyEntries = computed<BodyEntry[]>(() => {
 const { t, locale } = useI18n();
 
 const formattedRowCount = computed(() =>
-  new Intl.NumberFormat(locale.value).format(rowCount.value),
+  readableNumberFormat(locale.value).format(rowCount.value),
 );
 
 const captionCountLabel = computed(() =>

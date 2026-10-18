@@ -229,9 +229,56 @@ export function formatDateTime(
   });
 }
 
+// The narrow no-break space French (and a few other locales) groups digits
+// with: the interface's font draws it a fraction of a digit wide, so "1 234"
+// read as "1234" beside a column's "12 345". Groups take a full no-break space.
+const NARROW_GROUP_SEPARATOR = " ";
+const GROUP_SEPARATOR = " ";
+
+/** `Intl.NumberFormat`, its digit groups always shown and visible. */
+export interface ReadableNumberFormat {
+  format(value: number): string;
+  formatToParts(value: number): Intl.NumberFormatPart[];
+  resolvedOptions(): Intl.ResolvedNumberFormatOptions;
+}
+
+function readablePart(part: Intl.NumberFormatPart): Intl.NumberFormatPart {
+  return part.type === "group" && part.value === NARROW_GROUP_SEPARATOR
+    ? { ...part, value: GROUP_SEPARATOR }
+    : part;
+}
+
 /**
- * A number written for `locale`; a value that is not a number is returned as
- * is. Options Intl refuses (an unknown currency) write the bare number.
+ * `new Intl.NumberFormat(locale, options)` the way the interface writes a
+ * figure: a four-digit one grouped like a longer one ("1 234" next to
+ * "12 345", where Spanish or Polish would leave "1234" by default), with a
+ * group separator wide enough to see. `options.useGrouping` still decides.
+ * Throws as `Intl.NumberFormat` does on options it refuses.
+ */
+export function readableNumberFormat(
+  locale?: string,
+  options?: Intl.NumberFormatOptions,
+): ReadableNumberFormat {
+  const format = new Intl.NumberFormat(locale, {
+    useGrouping: true,
+    ...options,
+  });
+  const formatToParts = (value: number) =>
+    format.formatToParts(value).map(readablePart);
+  return {
+    format: (value) =>
+      formatToParts(value)
+        .map((part) => part.value)
+        .join(""),
+    formatToParts,
+    resolvedOptions: () => format.resolvedOptions(),
+  };
+}
+
+/**
+ * A number written for `locale` (see {@link readableNumberFormat}); a value
+ * that is not a number is returned as is. Options Intl refuses (an unknown
+ * currency) write the bare number.
  */
 export function formatNumber(
   value: number,
@@ -250,7 +297,7 @@ export function formatNumber(
 ): unknown {
   if (!isNumber(value)) return value;
   try {
-    return new Intl.NumberFormat(locale, options).format(value);
+    return readableNumberFormat(locale, options).format(value);
   } catch {
     return String(value);
   }
