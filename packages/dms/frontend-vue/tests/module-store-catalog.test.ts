@@ -6,6 +6,8 @@ import {
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
 import {
   type ModuleStoreEntry,
+  DEFAULT_STORE_SCOPE,
+  STORE_SCOPES,
   filterByScope,
   isAwaitingFrontend,
   needsDependencyChoice,
@@ -158,6 +160,17 @@ describe("module store catalog", () => {
       filterByScope(catalog, "available").map((entry) => entry.id),
     ).toEqual(["media", "lang"]);
     expect(filterByScope(catalog, "all")).toHaveLength(4);
+  });
+
+  it("opens on the available modules, with all of them last", () => {
+    expect(DEFAULT_STORE_SCOPE).toBe("available");
+    expect(STORE_SCOPES).toEqual(["available", "installed", "all"]);
+    for (const scope of STORE_SCOPES) {
+      expect(en.modules.store.scope[scope]).toContain("{count}");
+      expect(fr.modules.store.scope[scope]).toContain("{count}");
+    }
+    expect(en.modules.store.all_installed.show_all).toBeTruthy();
+    expect(fr.modules.store.all_installed.show_all).toBeTruthy();
   });
 
   it("counts a failed install as available, a failed update as installed", () => {

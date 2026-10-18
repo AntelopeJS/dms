@@ -19,6 +19,8 @@ import {
 } from "../build/utils/modules-catalog";
 import {
   type StoreScope,
+  DEFAULT_STORE_SCOPE,
+  STORE_SCOPES,
   filterByScope,
   sortStoreModules,
   toModuleStoreEntry,
@@ -110,12 +112,12 @@ const { runStoreAction, frontendNotice } = useModuleStoreActions(
   storeModules,
 );
 
-const storeScope = ref<StoreScope>("all");
+const storeScope = ref<StoreScope>(DEFAULT_STORE_SCOPE);
 const storeQuery = ref("");
 const storeCategory = ref<string>(MODULE_CATEGORY_ALL);
 
 const storeScopeItems = computed(() =>
-  (["all", "available", "installed"] as const).map((scope) => ({
+  STORE_SCOPES.map((scope) => ({
     value: scope,
     label: t(`modules.store.scope.${scope}`, {
       count: filterByScope(storeModules.value, scope).length,
@@ -241,7 +243,17 @@ const skeletonItems = Array.from(
             icon="i-ph-check-circle"
             :title="t('modules.store.all_installed.title')"
             :description="t('modules.store.all_installed.description')"
-          />
+          >
+            <template #actions>
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="sm"
+                :label="t('modules.store.all_installed.show_all')"
+                @click="storeScope = 'all'"
+              />
+            </template>
+          </DmsEmptyState>
         </DmsCard>
 
         <DmsCard v-else-if="visibleStoreModules.length === 0" :padded="false">

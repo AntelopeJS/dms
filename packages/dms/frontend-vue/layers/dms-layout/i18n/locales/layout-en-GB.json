@@ -831,7 +831,8 @@
       },
       "all_installed": {
         "title": "Every official module is installed",
-        "description": "New modules from the AntelopeJS catalog will show up here."
+        "description": "Nothing is left to install. New modules from the AntelopeJS catalog will show up here.",
+        "show_all": "Show all modules"
       },
       "category": {
         "ai": "AI",

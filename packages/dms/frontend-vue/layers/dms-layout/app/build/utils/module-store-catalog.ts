@@ -22,6 +22,20 @@ export type ModuleStoreEntry = StoreListingEntry & {
 /** Which store modules the store section shows. */
 export type StoreScope = "all" | "available" | "installed";
 
+/**
+ * The scopes in the order the store's switch shows them. The store is for
+ * discovering, so it opens on what can still be installed; "all" comes last,
+ * the widest view.
+ */
+export const STORE_SCOPES: readonly StoreScope[] = [
+  "available",
+  "installed",
+  "all",
+];
+
+/** The scope the store opens on. */
+export const DEFAULT_STORE_SCOPE: StoreScope = "available";
+
 /** One action a store tile offers. */
 export interface StoreAction {
   kind: StoreOperationKind;
