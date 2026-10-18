@@ -35,8 +35,9 @@ async function placeholderRows(props: Record<string, unknown>) {
     app.component(name, Slot);
   }
   const html = await renderToString(app);
-  return [...html.matchAll(/class="flex items-center gap-3 px-\[18px\] ([^"]*)"/g)]
-    .map((match) => match[1]);
+  return [
+    ...html.matchAll(/class="flex items-center gap-3 px-\[18px\] ([^"]*)"/g),
+  ].map((match) => match[1]);
 }
 
 beforeEach(() => useRealDataEngine());

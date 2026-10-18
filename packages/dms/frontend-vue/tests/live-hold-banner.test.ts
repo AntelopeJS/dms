@@ -93,3 +93,15 @@ it("words the count with missedLabel and adds the paused page's breakdown", asyn
   expect(detail?.textContent?.trim()).toBe("api.live.in_5xx:2");
   expect(detail?.classList.contains("text-error")).toBe(true);
 });
+
+it("draws a pill over the rows when floating, in place of the strip", async () => {
+  const onShow = vi.fn();
+  const host = await mountBanner({ count: 6, floating: true, onShow });
+  const pill = host.querySelector(".dms-live-hold-banner")!;
+
+  expect(pill.className).toContain("rounded-full");
+  expect(pill.className).not.toContain("border-b");
+  expect(host.textContent).toContain("dms.live.new_rows:6");
+  host.querySelector("button")?.click();
+  expect(onShow).toHaveBeenCalledTimes(1);
+});

@@ -2202,10 +2202,7 @@ onMounted(() => {
     @remove-url-filter="removeUrlFilter"
     @edit="handleRowEdit"
   >
-    <template
-      v-if="liveHold.newCount.value > 0 || liveHold.reason.value"
-      #notice
-    >
+    <template v-if="liveHold.reason.value" #notice>
       <LiveHoldBanner
         :count="liveHold.newCount.value"
         :reason="liveHold.reason.value"
@@ -2213,6 +2210,24 @@ onMounted(() => {
         :detail="liveHold.missedDetail.value"
         @show="liveHold.showNew"
       />
+    </template>
+    <!-- What came in while the rows were read or the page paused: a pill
+         over the rows, taking no room, so the rows stay where they are. -->
+    <template v-else-if="liveHold.newCount.value > 0" #notice>
+      <div class="relative z-10 h-0">
+        <div
+          class="pointer-events-none absolute inset-x-0 top-2 flex justify-center px-4"
+        >
+          <LiveHoldBanner
+            floating
+            class="pointer-events-auto"
+            :count="liveHold.newCount.value"
+            :missed-label="liveHold.missedLabel"
+            :detail="liveHold.missedDetail.value"
+            @show="liveHold.showNew"
+          />
+        </div>
+      </div>
     </template>
     <template v-if="hasViews" #views>
       <TableViews

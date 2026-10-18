@@ -1063,16 +1063,20 @@ export interface TableViewOptions<
    * On a page declared with `live`, keeps the rows on screen while the page is
    * paused, through the user's own search, sort and pagination too, and shows
    * a "N new · Show" banner counting the events the table received since.
-   * Show reads the rows once without leaving the pause.
+   * Show reads the rows once without leaving the pause. The page in Direct,
+   * the table also keeps its rows while they are on screen or scrolled past:
+   * a new row at the top would push down the rows the user reads, so new ones
+   * wait behind a "N new · Show" pill laid over the rows, which moves nothing.
+   * A table still below the screen follows the feed.
    *
    * A `TableView.fromSource` route receives the moment the rows were frozen
    * as `liveHeldAt` (ISO 8601) on every list and count request made while
    * paused, so it can answer the rows as they stood then; a data controller's
    * rows are held against the realtime only. Ignored on a page without `live`.
    *
-   * An object holds the table alone, the rest of the page staying live, in
-   * more cases (see {@link TableViewLiveHoldOptions}); `true` and `{}` hold it
-   * only while the page is paused.
+   * An object also names why the table holds, the rest of the page staying
+   * live, in more cases (see {@link TableViewLiveHoldOptions}); `true` and
+   * `{}` hold it while the page is paused or its rows are on screen.
    *
    * ```ts
    * liveHold: { whileRowOpen: true, whileScrolled: true, whileSearching: true }

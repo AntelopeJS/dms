@@ -502,7 +502,7 @@ export const TableViewSchema = z.object({
       ])
       .optional()
       .describe(
-        "On a live page, keeps the rows while paused and shows what is new; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also holds them in Direct, `missedLabel` words the new rows.",
+        "On a live page, keeps the rows while paused or on screen and shows what is new over them; `{ whileRowOpen, whileScrolled, whileSearching, whileSorted }` also names why it holds in Direct, `missedLabel` words the new rows.",
       ),
     {
       label: "Hold rows while paused",

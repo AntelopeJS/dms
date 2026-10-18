@@ -198,7 +198,9 @@ it("holds the page while its period scope registers, then shows with it", async 
     computed(() => LAST_7_DAYS),
   );
   await settle();
-  expect(requests).toEqual(["/api/ws/ws-1/health?preset=last-7-days&comparison=none"]);
+  expect(requests).toEqual([
+    "/api/ws/ws-1/health?preset=last-7-days&comparison=none",
+  ]);
   expect(resolved).toBe(true);
   expect(banner.read()).toMatchObject({ title: "2 procedures degraded" });
   unregister();
