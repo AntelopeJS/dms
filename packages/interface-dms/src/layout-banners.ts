@@ -121,7 +121,8 @@ interface LayoutBannerBase {
   /** Leading icon. Defaults to one matching the variant. */
   icon?: string;
   /**
-   * Which pages the banner shows on. Defaults to
+   * Which pages the banner shows on, the same option on a text, a resolved
+   * and a component banner. Defaults to
    * {@link LayoutBannerScope.APP}: the application's pages, not the module
    * area. A workspace-wide state uses {@link LayoutBannerScope.EVERYWHERE}.
    *

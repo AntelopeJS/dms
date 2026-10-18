@@ -151,6 +151,52 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
     ]);
   });
 
+  it("takes the scope the same way on a text, a resolved and a component banner", async () => {
+    disposers.push(
+      RegisterLayoutBanner({ key: "text-default", variant: "info", text: "a" }),
+      RegisterLayoutBanner({
+        key: "resolved-default",
+        variant: "error",
+        resolve: () => ({ text: "b" }),
+      }),
+      RegisterLayoutBanner({
+        key: "component-default",
+        variant: "warning",
+        component: "MyBanner",
+      }),
+      RegisterLayoutBanner({
+        key: "text-everywhere",
+        variant: "info",
+        text: "c",
+        scope: LayoutBannerScope.EVERYWHERE,
+      }),
+      RegisterLayoutBanner({
+        key: "resolved-everywhere",
+        variant: "error",
+        scope: LayoutBannerScope.EVERYWHERE,
+        resolve: () => ({ text: "d" }),
+      }),
+      RegisterLayoutBanner({
+        key: "component-everywhere",
+        variant: "warning",
+        scope: LayoutBannerScope.EVERYWHERE,
+        component: "MyBanner",
+      }),
+    );
+
+    const scopes = Object.fromEntries(
+      (await bannersFor()).map(({ key, scope }) => [key, scope]),
+    );
+    expect(scopes).to.deep.equal({
+      "text-default": LayoutBannerScope.APP,
+      "resolved-default": LayoutBannerScope.APP,
+      "component-default": LayoutBannerScope.APP,
+      "text-everywhere": LayoutBannerScope.EVERYWHERE,
+      "resolved-everywhere": LayoutBannerScope.EVERYWHERE,
+      "component-everywhere": LayoutBannerScope.EVERYWHERE,
+    });
+  });
+
   it("stacks banners by order, ties in registration order", async () => {
     disposers.push(
       RegisterLayoutBanner({
