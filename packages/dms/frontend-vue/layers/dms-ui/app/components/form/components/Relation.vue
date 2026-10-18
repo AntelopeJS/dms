@@ -20,7 +20,10 @@ import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
 import type { FormProps } from "../../../composables/form/types";
 
 const SEARCH_DEBOUNCE_MS = 200;
-const ADD_NEW_VALUE = "__dms_relation_add_new__";
+// How long the menu's content gets to leave the page before the add form opens
+// anyway, and the beat its focus return takes once it has.
+const MENU_CLOSE_MAX_MS = 1000;
+const MENU_FOCUS_SETTLE_MS = 60;
 
 /** Title and description of the drawer a relation picker's "add" opens. */
 interface RelationAddFormTexts {
@@ -68,8 +71,8 @@ const forwardedProps = computed(() => {
   return rest as SelectMenuProps<T, "value", M>;
 });
 const forwardedPropsEmits = useForwardPropsEmits(forwardedProps, emits);
-// The picks go through `handleUpdateModelValue` alone: forwarded as well,
-// the "add new entry" item reached the form as the field's value.
+// The picks go through `handleUpdateModelValue` alone, which deselects a value
+// picked again: forwarded as well, the form got the pick it had undone.
 const forwarded = computed(() => {
   const { "onUpdate:modelValue": _, ...rest } = forwardedPropsEmits.value as {
     "onUpdate:modelValue"?: unknown;
@@ -79,24 +82,7 @@ const forwarded = computed(() => {
 
 type ModelValue = SelectMenuEmits<T, "value", M>["update:modelValue"][0];
 
-function isAddNewValue(value: unknown): boolean {
-  if (value === ADD_NEW_VALUE) return true;
-  if (Array.isArray(value)) return value.includes(ADD_NEW_VALUE);
-  return false;
-}
-
 function handleUpdateModelValue(value: ModelValue) {
-  if (isAddNewValue(value)) {
-    // The field keeps its value: the "add" item is no pick.
-    if (Array.isArray(value)) {
-      emits(
-        "update:modelValue",
-        (value as unknown[]).filter((v) => v !== ADD_NEW_VALUE) as ModelValue,
-      );
-    }
-    void openAddDrawerOnceClosed();
-    return;
-  }
   const shouldDeselect =
     props.deselectable && !props.multiple && value === props.modelValue;
   emits(
@@ -286,17 +272,6 @@ const mergedItems = computed<SelectMenuItem[]>(() => {
     }
   });
 
-  if (canAdd.value) {
-    if (merged.length > 0) {
-      merged.push({ type: "separator" });
-    }
-    merged.push({
-      label: t("dms.form.relation.add_new"),
-      value: ADD_NEW_VALUE,
-      icon: "i-ph-plus",
-    });
-  }
-
   return merged;
 });
 
@@ -335,6 +310,12 @@ watch(
 
 const isMenuOpen = ref(false);
 
+const slots = useSlots();
+// `content-bottom` is filled below, after the add entry.
+const forwardedSlotNames = computed(() =>
+  Object.keys(slots).filter((name) => name !== "content-bottom"),
+);
+
 function onOpen(isOpen: boolean) {
   isMenuOpen.value = isOpen;
   if (isOpen && !data.value?.results?.length) {
@@ -342,15 +323,35 @@ function onOpen(isOpen: boolean) {
   }
 }
 
+const addEntryRef = useTemplateRef<HTMLElement>("addEntry");
+
+function waitForDetached(element: HTMLElement | null): Promise<void> {
+  const startedAt = performance.now();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (
+        !element?.isConnected ||
+        performance.now() - startedAt > MENU_CLOSE_MAX_MS
+      ) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
+
 /**
- * Opens the add form once the menu has closed: opened while the menu still
- * held the focus, the drawer took the focus going back to the field for a
- * click outside it, and closed at once.
+ * Opens the add form once the menu has left the page: its content animates
+ * out, then hands the focus back to the field, and a drawer opened before
+ * that took the focus leaving it for a click outside and closed at once.
  */
 async function openAddDrawerOnceClosed(): Promise<void> {
+  const menuContent = addEntryRef.value;
   isMenuOpen.value = false;
-  await nextTick();
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  await waitForDetached(menuContent);
+  await new Promise((resolve) => setTimeout(resolve, MENU_FOCUS_SETTLE_MS));
   openAddDrawer();
 }
 
@@ -460,11 +461,27 @@ const addFormOptions = computed(() => {
     @update:open="onOpen"
     @update:model-value="handleUpdateModelValue"
   >
-    <template v-for="(_, name) in $slots" :key="name" #[name]="slotData">
+    <template v-for="name in forwardedSlotNames" :key="name" #[name]="slotData">
       <slot
         :name="name as keyof SelectMenuSlots<T, 'value', M>"
         v-bind="slotData ?? {}"
       />
+    </template>
+    <!-- The add entry is no item: picked, it became the field's value. -->
+    <template v-if="canAdd || $slots['content-bottom']" #content-bottom>
+      <div v-if="canAdd" ref="addEntry" class="border-default border-t p-1">
+        <UButton
+          :label="t('dms.form.relation.add_new')"
+          icon="i-ph-plus"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          block
+          class="justify-start"
+          @click="openAddDrawerOnceClosed"
+        />
+      </div>
+      <slot name="content-bottom" />
     </template>
   </USelectMenu>
 </template>

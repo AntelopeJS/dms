@@ -1,8 +1,10 @@
 /**
- * The "add new entry" item of a relation picker is no pick: it opens the add
- * form, and the field keeps its value. Forwarded to the form with the other
- * events, the item became the field's value and was refused as required; and
- * opened while the menu still held the focus, the drawer closed at once.
+ * The "add new entry" of a relation picker is no item: picked, it became the
+ * field's value (the select keeps an uncontrolled pick while the field is
+ * empty) and was refused as required. It is a button under the list, and the
+ * add form opens only once the menu has left the page: opened while the menu
+ * was closing, the drawer lost the focus the menu handed back to the field and
+ * closed at once.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -23,14 +25,22 @@ describe("a relation picker's add entry", () => {
     expect(source).toContain('@update:model-value="handleUpdateModelValue"');
   });
 
-  it("opens the add form once the menu has closed", () => {
-    const handler = /function handleUpdateModelValue[\s\S]*?\n\}/.exec(
+  it("is a button under the list, never an item to pick", () => {
+    const items = /const mergedItems = computed[\s\S]*?\n\}\);/.exec(
       source,
     )?.[0];
-    expect(handler).toContain("void openAddDrawerOnceClosed();");
-    expect(handler).not.toContain(
-      'emits("update:modelValue", props.modelValue',
-    );
+    expect(items).not.toContain("add_new");
+    expect(source).toMatch(/#content-bottom>[\s\S]*?ref="addEntry"/);
+    expect(source).toContain('@click="openAddDrawerOnceClosed"');
+  });
+
+  it("opens the add form once the menu has left the page", () => {
+    const opener = /async function openAddDrawerOnceClosed[\s\S]*?\n\}/.exec(
+      source,
+    )?.[0];
+    expect(opener).toContain("isMenuOpen.value = false;");
+    expect(opener).toContain("await waitForDetached(menuContent);");
+    expect(opener).toContain("MENU_FOCUS_SETTLE_MS");
     expect(source).toContain(':open="isMenuOpen"');
   });
 });
