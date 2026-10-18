@@ -50,7 +50,9 @@ const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
-const FOOTER_FACTS_CLASS = "flex min-w-0 items-center gap-2";
+// Takes what the actions leave rather than wrapping them under it: the band
+// stays one line, and only the category is cut when even that is too short.
+const FOOTER_FACTS_CLASS = "flex min-w-0 grow basis-0 items-center gap-2";
 
 // v2 .module-tile__viz: each readout line opens with a tone glyph.
 const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
@@ -71,6 +73,7 @@ const readout = computed<CheckListItem[]>(() =>
   })),
 );
 const title = computed(() => processI18n(props.entry.title));
+const category = computed(() => processI18n(moduleCategory(props.entry)));
 
 const actions = computed<StoreAction[]>(() =>
   props.storeEntry ? storeActions(props.storeEntry) : [],
@@ -130,21 +133,21 @@ const isBlocked = computed(() => blockedReason.value !== undefined);
     </template>
 
     <template #footer>
-      <!-- v0.5.0 · npm · Content: the state is the pill's to say. Kept
-           whole: the actions wrap under it rather than cut the category. -->
+      <!-- v0.5.0 · [npm] · Content: the state is the pill's to say. The
+           source is its icon, so Open and Manage fit beside the facts. -->
       <span :class="FOOTER_FACTS_CLASS">
         <span v-if="props.entry.version" class="whitespace-nowrap">
           v{{ props.entry.version }}
         </span>
         <template v-if="props.entry.source">
           <span v-if="props.entry.version" aria-hidden="true">·</span>
-          <ModuleSourceLabel :source="props.entry.source" />
+          <ModuleSourceLabel :source="props.entry.source" is-icon-only />
         </template>
-        <span class="min-w-0 truncate">
+        <span class="min-w-0 truncate" :title="category">
           <template v-if="props.entry.version || props.entry.source">
             ·
           </template>
-          {{ processI18n(moduleCategory(props.entry)) }}
+          {{ category }}
         </span>
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
