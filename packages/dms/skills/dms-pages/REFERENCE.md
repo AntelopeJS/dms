@@ -10,7 +10,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 
 | Group | Blocks |
 | --- | --- |
-| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
+| Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `PageToolbar` (`pageToolbar()`), `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
 | Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
@@ -80,7 +80,7 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   comparison drives the cards: `KpiCard` names it ("vs previous year", leave `compareLabel`
   unset) and prints the route's `previousValue`; "No comparison" hides the change, the value
   compared against and the label on `KpiCard`, `ChartCard` and `TopListCard`.
-- `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each
+- `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
   `PublishMessage`.
 
 ### Live pages
@@ -89,6 +89,14 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   options (`slowRateAfter: { period: "7d", maxRate: 60 }` for long periods, `rememberKey: "<module>"`
   to share the choice; `maxRate` is also the polling interval while the stream is down) and places a
   `LiveToggle()` (Live / Pause, L key; `variant: "pill"`, `missedLabel` for "N new requests").
+- A page with a period or live data starts with `pageToolbar({ leading, live, period })`
+  (`base/page-toolbar`): the same bar on every page — leading blocks, then "Updated N s ago",
+  Live / Pause, the window and the 1H / 24H / 7D / 30D presets, at one `size` and one height
+  (24 / 28 / 32 px, with live or not). `live: false` or `period: false` drops a control; without
+  `live` it shows the last read and a refresh button. A module's leading chip takes the toolbar's
+  height from `usePageToolbarSize().heightClass`. More than one comparison offered
+  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a "vs … ▾" menu; a single one
+  stays on without a control. A `custom` preset shows as a calendar icon, named in full.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
@@ -98,6 +106,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
   held while paused.
+- Making a block live: a built-in data block names a `realtimeTopic` (its builder registers the
+  topic on the page) and the backend calls `PublishMessage`; a table view follows its controller's
+  row events by itself. A block without a topic reads only on `refreshLivePageBlocks()`, the
+  polling while the stream is down and `refreshPageBlocks()` — no timer while the stream is up. A
+  custom component's own topic needs `RegisterPageTopic(pageId, topic)` in the backend.
+- Pause (user, hold, hidden tab) freezes every block of the page at once: realtime events, row
+  events, page-topic events behind `useApiData`, `refreshLivePageBlocks()`, `idleRefresh`, the
+  stream-down polling and a component's `useApiData` `refreshInterval`. Each block that missed
+  something reads once on resume. User actions and inputs (period, filter, search, sort, page)
+  still read; notifications, presence and the menu are not the page and keep updating.
 
 ### Texts
 

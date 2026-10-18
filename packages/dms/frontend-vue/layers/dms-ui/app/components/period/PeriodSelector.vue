@@ -35,6 +35,9 @@ import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalend
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { usePageLive } from "../../composables/live/usePageLive";
 import { useLivePeriodSpan } from "../../build/composables/live/useLivePeriodSpan";
+import { usePageToolbar } from "../../build/composables/page-toolbar/pageToolbarContext";
+import { toolbarControlHeightClass } from "../../build/composables/page-toolbar/toolbarControlHeight";
+import { PRESET_SHORT_LABELS } from "../../build/composables/period/periodShortLabels";
 
 interface Props extends DefaultComponentProps {
   id: string;
@@ -64,9 +67,12 @@ const RELATIVE_RANGE_LABEL: NonNullable<Props["rangeLabel"]> = "relative";
 // Two months side by side from this width; one below (design @container 760px).
 const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
+type PeriodSelectorSize = NonNullable<Props["size"]>;
+const DEFAULT_SIZE: PeriodSelectorSize = "sm";
+
 const props = withDefaults(defineProps<Props>(), {
   align: "right",
-  size: "sm",
+  size: undefined,
   showRangeLabel: true,
   rangeLabel: "absolute",
   variant: "default",
@@ -78,16 +84,14 @@ const ALIGN_CLASSES: Record<NonNullable<Props["align"]>, string> = {
   right: "justify-end",
 };
 
-/** Short mono codes, as trails in the preset list and segmented labels. */
-const PRESET_SHORT_LABELS: Partial<Record<PeriodPreset, string>> = {
-  "last-hour": "1H",
-  "last-24h": "24H",
-  today: "1D",
-  "last-7-days": "7D",
-  "last-30-days": "30D",
-  "last-90-days": "90D",
-  "this-quarter": "QTD",
-  ytd: "YTD",
+// The window beside the controls, at each size of a toolbar holding the
+// selector; outside one it keeps its size whatever the controls'.
+const RANGE_LABEL_SIZE_CLASSES: Record<PeriodSelectorSize, string> = {
+  xs: "text-[11px]",
+  sm: "text-[11.5px]",
+  md: "text-[12.5px]",
+  lg: "text-[13px]",
+  xl: "text-sm",
 };
 
 /** Rolling windows first, then calendar periods (design preset groups). */
@@ -112,6 +116,19 @@ useComponentEvent(props.componentId);
 useWatch(props.watchActions || [], props.componentId);
 
 const { t, locale } = useI18n();
+
+// In a toolbar, the selector takes its size, and its window scales with it.
+const toolbar = usePageToolbar();
+const size = computed<PeriodSelectorSize>(
+  () => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE,
+);
+const rangeLabelSizeClass = computed(
+  () => RANGE_LABEL_SIZE_CLASSES[toolbar ? size.value : DEFAULT_SIZE],
+);
+// In a toolbar, its buttons stand as tall as the segments and the live pill.
+const controlHeightClass = computed(() =>
+  toolbar ? toolbarControlHeightClass(size.value) : "",
+);
 
 // A paused live page keeps its period where it was: a relative preset
 // sliding every minute would refetch every block reading it.
@@ -437,29 +454,40 @@ function segmentLabel(preset: PeriodPreset): string {
 
 interface SegmentItem {
   label: string;
+  ariaLabel: string;
   value: string;
   icon?: string;
 }
 
-function customSegmentLabel(): string {
+function customRangeText(): string | null {
   const { range } = period.state.value;
   return isCustomActive.value && range
     ? formatPeriodRange(range, locale.value, false)
-    : presetLabel(CUSTOM_PRESET);
+    : null;
+}
+
+// In a toolbar the custom segment is its calendar icon alone, like the short
+// codes beside it: the window beside them writes the range once chosen.
+// Named in full either way.
+function customSegment(): SegmentItem {
+  const range = customRangeText();
+  const name = presetLabel(CUSTOM_PRESET);
+  const visible = toolbar ? "" : (range ?? name);
+  return {
+    label: visible,
+    ariaLabel: range ? `${name}: ${range}` : name,
+    value: CUSTOM_PRESET,
+    icon: CALENDAR_ICON,
+  };
 }
 
 const segmentedItems = computed<SegmentItem[]>(() => {
   const items: SegmentItem[] = listedPresets.value.map((preset) => ({
     label: segmentLabel(preset),
+    ariaLabel: presetLabel(preset),
     value: preset,
   }));
-  if (isCustomEnabled.value) {
-    items.push({
-      label: customSegmentLabel(),
-      value: CUSTOM_PRESET,
-      icon: CALENDAR_ICON,
-    });
-  }
+  if (isCustomEnabled.value) items.push(customSegment());
   return items;
 });
 
@@ -509,7 +537,11 @@ function onSegmentedClick(event: MouseEvent) {
           :icon="CALENDAR_ICON"
           :trailing-icon="isOpen ? CARET_UP_ICON : CARET_DOWN_ICON"
           :aria-label="$t('dms.period.preset_aria', 'Preset')"
-          :class="[triggerOrder, isOpen && OPEN_TRIGGER_CLASS]"
+          :class="[
+            triggerOrder,
+            controlHeightClass,
+            isOpen && OPEN_TRIGGER_CLASS,
+          ]"
           :ui="{ trailingIcon: 'text-dimmed -me-0.5' }"
         >
           <span
@@ -729,7 +761,10 @@ function onSegmentedClick(event: MouseEvent) {
       :aria-pressed="hasComparison"
       :disabled="isComparisonDisabled"
       class="order-2"
-      :class="hasComparison ? 'text-toned' : 'text-dimmed'"
+      :class="[
+        controlHeightClass,
+        hasComparison ? 'text-toned' : 'text-dimmed',
+      ]"
       @click="toggleComparison"
     >
       <template #leading>
@@ -756,6 +791,7 @@ function onSegmentedClick(event: MouseEvent) {
         :trailing-icon="CARET_DOWN_ICON"
         :aria-label="$t('dms.period.comparison_aria', 'Comparison')"
         class="text-muted order-2"
+        :class="controlHeightClass"
         :ui="{ trailingIcon: 'text-dimmed' }"
       >
         <template #leading>
@@ -775,8 +811,8 @@ function onSegmentedClick(event: MouseEvent) {
     <span
       v-if="showRangeLabel && rangeLabelText"
       data-allow-mismatch="text"
-      class="text-dimmed hidden font-mono text-[11.5px] font-medium whitespace-nowrap tabular-nums sm:inline"
-      :class="rangeLabelOrder"
+      class="dms-period-selector__range text-dimmed hidden font-mono font-medium whitespace-nowrap tabular-nums sm:inline"
+      :class="[rangeLabelOrder, rangeLabelSizeClass]"
     >
       <b class="text-toned font-[550]">{{ rangeLabelText }}</b>
       <template v-if="compareRangeLabel">
