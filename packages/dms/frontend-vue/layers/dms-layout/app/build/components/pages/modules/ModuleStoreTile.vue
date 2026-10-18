@@ -65,16 +65,21 @@ const actions = computed(() => storeActions(props.entry));
 const primary = computed<StoreAction | undefined>(() =>
   props.openTo ? undefined : actions.value.find((action) => !action.isMenuOnly),
 );
+// A menu action that cannot run stays listed, disabled, with why under it.
 const secondary = computed(() =>
   actions.value
     .filter((action) => action !== primary.value)
-    .map((action) => ({
-      label: t(`modules.store.actions.${action.labelKey}`),
-      icon: action.icon,
-      color: action.kind === "uninstall" ? ("error" as const) : undefined,
-      disabled: storeActionBlock(props.entry, action.kind) !== undefined,
-      onSelect: () => emit("action", action.kind),
-    })),
+    .map((action) => {
+      const block = storeActionBlock(props.entry, action.kind);
+      return {
+        label: t(`modules.store.actions.${action.labelKey}`),
+        description: block ? BLOCK_MESSAGES[block]() : undefined,
+        icon: action.icon,
+        color: action.kind === "uninstall" ? ("error" as const) : undefined,
+        disabled: block !== undefined,
+        onSelect: () => emit("action", action.kind),
+      };
+    }),
 );
 
 const isInstalledHere = computed(
@@ -99,6 +104,7 @@ const BLOCK_MESSAGES: Record<StoreActionBlock, () => string> = {
         .map((missing) => missing.interfacePackage)
         .join(LIST_SEPARATOR),
     }),
+  used_by_project: () => t("modules.store.used_by_project"),
   dependents: () =>
     t("modules.store.used_by", {
       modules: props.entry.dependents.join(LIST_SEPARATOR),

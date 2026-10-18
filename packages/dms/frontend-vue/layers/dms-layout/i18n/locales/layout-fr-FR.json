@@ -800,7 +800,8 @@
         "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
         "store_working_copy": "Ce module tourne depuis une copie locale déclarée dans antelope.config.ts : modifiez-le là.",
         "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules.",
-        "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord."
+        "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord.",
+        "store_module_used_by_project": "Le code du projet utilise ce module : retirez cet usage avant de le désinstaller."
       },
       "frontend": {
         "dev": {
@@ -897,6 +898,8 @@
       "requires": "Requiert : {interfaces}",
       "requires_first": "Demande {interfaces}, qu’aucun module en cours d’exécution n’implémente : installez d’abord un module qui le fait.",
       "used_by": "Utilisé par : {modules}. Retirez-les d’abord.",
+      "used_by_project": "Le code du projet utilise ce module : retirez cet usage avant de le désinstaller.",
+      "dependents": "Utilisé par : {modules}",
       "frontend_version": {
         "label": "dms-frontend {version}",
         "reported": "Indiquée par le serveur frontend en cours d’exécution",

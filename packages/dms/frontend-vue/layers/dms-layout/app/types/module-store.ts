@@ -105,6 +105,11 @@ export interface StoreListingEntry {
   missingInterfaces: MissingInterface[];
   /** Running modules that need an interface only this one implements. */
   dependents: string[];
+  /**
+   * The project's own code needs an interface only this module implements;
+   * absent from a backend that predates it.
+   */
+  usedByProject?: boolean;
 }
 
 export interface StoreListing {

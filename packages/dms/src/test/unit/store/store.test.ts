@@ -1,7 +1,11 @@
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { expect } from "chai";
 import { isStoreEditable } from "../../../config";
 import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
+import { findDependents, isProjectModule } from "../../../store/interfaces";
 import { packageDeclarationSource } from "../../../store/declarations";
 import { supportsFrontend } from "../../../store/frontend-compatibility";
 import { findWorkingCopy, isLive } from "../../../store/runtime";
@@ -159,5 +163,62 @@ describe("[unit] validation/store", () => {
     expect(install("../redis")).to.equal(false);
     expect(install("file:/tmp/redis")).to.equal(false);
     expect(install("github:a/b")).to.equal(false);
+  });
+});
+
+describe("[unit] store/interfaces", () => {
+  const INTERFACE = "@acme/interface-jobs";
+  let root: string;
+
+  async function moduleAt(
+    id: string,
+    manifest: Record<string, unknown>,
+  ): Promise<RuntimeModule> {
+    const localPath = path.join(root, id);
+    await mkdir(localPath, { recursive: true });
+    await writeFile(
+      path.join(localPath, "package.json"),
+      JSON.stringify({ name: id, ...manifest }),
+    );
+    return {
+      id,
+      packageName: id,
+      isPackageSource: true,
+      status: "active",
+      localPath,
+    };
+  }
+
+  before(async () => {
+    root = await mkdtemp(path.join(tmpdir(), "dms-store-"));
+  });
+  after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("tells the project apart from the modules that need an interface", async () => {
+    const provider = await moduleAt("jobs", {
+      antelopeJs: { implements: [INTERFACE] },
+    });
+    const consumer = await moduleAt("reports", {
+      dependencies: { [INTERFACE]: "^1.0.0" },
+    });
+    const project = await moduleAt("project", {
+      dependencies: { [INTERFACE]: "^1.0.0" },
+    });
+    const projectPath = project.localPath;
+    expect(isProjectModule(project, projectPath)).to.equal(true);
+    expect(isProjectModule(consumer, projectPath)).to.equal(false);
+
+    expect(
+      await findDependents(
+        provider,
+        [provider, consumer, project],
+        projectPath,
+      ),
+    ).to.deep.equal({ modules: ["reports"], usedByProject: true });
+    expect(
+      await findDependents(provider, [provider, project], projectPath),
+    ).to.deep.equal({ modules: [], usedByProject: true });
   });
 });

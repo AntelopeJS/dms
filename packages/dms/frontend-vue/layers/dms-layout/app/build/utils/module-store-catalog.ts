@@ -218,6 +218,7 @@ export type StoreActionBlock =
   | "incompatible"
   | "frontend"
   | "interfaces"
+  | "used_by_project"
   | "dependents";
 
 /** Actions that load a new release of the module. */
@@ -249,10 +250,10 @@ export function storeActionBlock(
   kind: StoreOperationKind,
 ): StoreActionBlock | undefined {
   if (RELEASE_ACTIONS.has(kind)) return releaseBlock(entry, kind);
-  if (TAKE_DOWN_ACTIONS.has(kind) && entry.dependents.length > 0) {
-    return "dependents";
-  }
-  return undefined;
+  if (!TAKE_DOWN_ACTIONS.has(kind)) return undefined;
+  // The project cannot be removed first: only a change to its code frees it.
+  if (entry.usedByProject) return "used_by_project";
+  return entry.dependents.length > 0 ? "dependents" : undefined;
 }
 
 /** Whether `kind` first asks which modules implement the missing interfaces. */

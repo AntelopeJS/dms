@@ -64,6 +64,7 @@ interface EntryRequirements {
   frontendRequirement?: FrontendRequirement;
   missingInterfaces: MissingInterface[];
   dependents: string[];
+  usedByProject: boolean;
 }
 
 interface DeclarationsRead {
@@ -178,20 +179,23 @@ async function inspectRequirements(
   platform: PlatformState,
 ): Promise<EntryRequirements> {
   const module = runtimeModule(sources);
-  const dependents =
-    module && isLive(module) ? await findDependents(module, platform.live) : [];
+  const { modules: dependents, usedByProject } =
+    module && isLive(module)
+      ? await findDependents(module, platform.live, platform.projectPath)
+      : { modules: [], usedByProject: false };
   const release = pendingRelease(sources);
   if (!release) {
     return {
       missingInterfaces: await stalledOn(sources, platform),
       dependents,
+      usedByProject,
     };
   }
   const [frontend, missingInterfaces] = await Promise.all([
     checkFrontend(sources, release, platform),
     findMissingInterfaces(release, platform.implemented, platform.projectPath),
   ]);
-  return { ...frontend, missingInterfaces, dependents };
+  return { ...frontend, missingInterfaces, dependents, usedByProject };
 }
 
 function buildEntry(

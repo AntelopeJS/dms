@@ -118,6 +118,14 @@ export interface MissingInterface {
   candidates: InterfaceImplementation[];
 }
 
+/** What keeps a running module from being paused or removed. */
+export interface ModuleDependents {
+  /** Other running modules, by package name: they can be removed first. */
+  modules: string[];
+  /** The project's own code needs it: only a change to that code frees it. */
+  usedByProject: boolean;
+}
+
 /** A frontend layer that would stop loading on another dms-frontend. */
 export interface FrontendBreak {
   /** Name of the frontend layer. */
@@ -181,9 +189,15 @@ export interface StoreListingEntry {
   missingInterfaces: MissingInterface[];
   /**
    * Running modules that need an interface only this one implements: it
-   * cannot be paused or removed while they run.
+   * cannot be paused or removed while they run. The project is never one of
+   * them, it is `usedByProject`.
    */
   dependents: string[];
+  /**
+   * The project's own code needs an interface only this module implements:
+   * it cannot be paused or removed until that code stops using it.
+   */
+  usedByProject: boolean;
 }
 
 /** `GET /dms/store/listing`. */

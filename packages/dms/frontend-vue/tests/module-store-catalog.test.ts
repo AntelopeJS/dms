@@ -376,6 +376,29 @@ describe("module store blocked actions", () => {
       storeActionBlock(released({ state: "active" }), "uninstall"),
     ).toBeUndefined();
   });
+
+  it("explains that the project's own code, not a module, holds a module", () => {
+    const used = released({
+      state: "active",
+      usedByProject: true,
+      dependents: ["@acme/jobs"],
+    });
+    expect(storeActionBlock(used, "disable")).toBe("used_by_project");
+    expect(storeActionBlock(used, "uninstall")).toBe("used_by_project");
+    expect(storeActionBlock(used, "update")).toBeUndefined();
+  });
+
+  it("words every block in both locales", () => {
+    for (const messages of [en, fr]) {
+      for (const key of [
+        "modules.store.used_by_project",
+        "modules.store.dependents",
+        "modules.store.errors.store_module_used_by_project",
+      ]) {
+        expect(lookup(messages, key)).toEqual(expect.any(String));
+      }
+    }
+  });
 });
 
 describe("module store install dialog", () => {
