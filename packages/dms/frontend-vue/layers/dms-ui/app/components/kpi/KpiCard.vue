@@ -12,9 +12,11 @@ import { readFetchNotFound } from "../../build/utils/fetchNotFound";
 import DmsBlockInlineStatus from "../../build/components/blocks/BlockInlineStatus.vue";
 import {
   ABSENT_VALUE_PARTS,
+  formatValue,
   formatValueParts,
 } from "../../composables/chart/formatValue";
 import { resolveSparklineAccent } from "../../composables/chart/resolveSparklineAccent";
+import { usePeriodComparisonDisplay } from "../../build/composables/period/periodComparison";
 import type {
   KpiCardResponse,
   ValueFormat,
@@ -38,12 +40,15 @@ interface Props extends DefaultComponentProps {
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /** "vs 1 234" next to the change, when the data carries `previousValue`. */
+  showPreviousValue?: boolean;
   showSparkline?: boolean;
   sparklineAccent?: string;
   invert?: boolean;
   compareLabel?: string;
   staticValue?: number;
   staticDelta?: number;
+  staticPreviousValue?: number;
   staticSparkline?: number[];
 }
 
@@ -54,6 +59,7 @@ const POSITIVE_SPARKLINE_ACCENT = "primary";
 const props = withDefaults(defineProps<Props>(), {
   variant: "default",
   showDelta: true,
+  showPreviousValue: true,
   showSparkline: false,
   valueFormat: "compact",
   sparklineAccent: "auto",
@@ -74,6 +80,7 @@ const staticData = computed<KpiCardResponse | null>(() => {
   return {
     value: props.staticValue,
     delta: props.staticDelta,
+    previousValue: props.staticPreviousValue,
     sparkline: props.staticSparkline,
   };
 });
@@ -87,8 +94,16 @@ const { data, isLoading, error, refresh } = useChartFetch<KpiCardResponse>({
   watchSource: () => watchKey.value,
 });
 
+// With no comparison selected on the scope, a change the data still carries
+// (a static one, a route ignoring `comparison`) is not shown either.
+const comparison = usePeriodComparisonDisplay(props.periodScope);
 const value = computed(() => data.value?.value);
-const delta = computed(() => data.value?.delta ?? null);
+const delta = computed(() =>
+  comparison.isOff.value ? null : (data.value?.delta ?? null),
+);
+const previousValue = computed(() =>
+  comparison.isOff.value ? undefined : data.value?.previousValue,
+);
 const sparkline = computed(() => data.value?.sparkline ?? []);
 
 const formattedParts = computed(() =>
@@ -103,6 +118,19 @@ const formattedParts = computed(() =>
       ),
 );
 
+// Formatted as the value is, unit and currency included: "vs €42,900".
+const previousText = computed(() => {
+  if (!props.showPreviousValue || previousValue.value === undefined) return "";
+  const formatted = formatValue(
+    previousValue.value,
+    props.valueFormat,
+    locale.value,
+    props.currencyCode,
+    props.valuePrecision,
+  );
+  return t("dms.chart.versus_value", { value: formatted });
+});
+
 const isFirstLoad = computed(() => isLoading.value && data.value === null);
 // v2 error state: a failed first load shows a message and a retry button in
 // place of the value; a failed refetch keeps the last value.
@@ -116,12 +144,21 @@ const notFound = computed(() =>
 // A refetch keeps the stale value on screen, faded, instead of a skeleton.
 const isRefreshing = computed(() => isLoading.value && data.value !== null);
 const showTrend = computed(() => props.showDelta && delta.value !== null);
+// The trend's line is held while the change is still to come, so toggling a
+// comparison never moves the footnote, and dropped with no comparison at all.
+const showTrendLine = computed(
+  () => props.showDelta && !comparison.isOff.value,
+);
 const hasSparkline = computed(
   () => props.showSparkline && sparkline.value.length > 0,
 );
+// An explicit `compareLabel` wins, then the description, then the label of
+// the comparison the scope selects; with no comparison, only the description.
 const footnote = computed(() => {
-  const text = props.compareLabel || props.description;
-  return text ? processI18n(text) : "";
+  const label = comparison.isOff.value ? undefined : props.compareLabel;
+  const text = label || props.description;
+  if (text) return processI18n(text);
+  return comparison.label.value ?? "";
 });
 
 const resolvedSparklineAccent = computed(() =>
@@ -160,17 +197,28 @@ const isStat = computed(() => props.variant === "stat");
         {{ formattedParts.unit }}
       </span>
     </template>
-    <!-- With no change to show (no comparison period), the trend's line
-         keeps its place: toggling a comparison never resizes the card. -->
-    <template v-if="showDelta || hasSparkline" #aside>
+    <!-- While the change is still to come, the trend's line keeps its
+         place: toggling a comparison never resizes the card. With no
+         comparison selected it goes. -->
+    <template v-if="showTrendLine || previousText || hasSparkline" #aside>
       <div class="ml-auto grid shrink-0 justify-items-end gap-1">
-        <DmsTrendBadge
-          v-if="showTrend"
-          :delta="delta"
-          :invert="invert"
-          variant="text"
-        />
-        <span v-else-if="showDelta" class="h-4" aria-hidden="true" />
+        <div
+          v-if="showTrendLine || previousText"
+          class="flex h-4 items-center gap-1.5"
+        >
+          <DmsTrendBadge
+            v-if="showTrend"
+            :delta="delta"
+            :invert="invert"
+            variant="text"
+          />
+          <span
+            v-if="previousText"
+            class="text-dimmed text-xs whitespace-nowrap tabular-nums"
+          >
+            {{ previousText }}
+          </span>
+        </div>
         <div v-if="hasSparkline" class="h-6 w-16">
           <DmsSparkline
             :values="sparkline"
@@ -236,11 +284,11 @@ const isStat = computed(() => props.variant === "stat");
     <!-- The trend (a 24px line) and the footnote (16px) as the loaded card
          lays them out; the footnote is a prop, so it is known up front. -->
     <div
-      v-if="isFirstLoad && (showDelta || footnote || showSparkline)"
+      v-if="isFirstLoad && (showTrendLine || footnote || showSparkline)"
       class="mt-auto flex items-end gap-2"
     >
       <div class="grid">
-        <div v-if="showDelta" class="flex h-6 items-center">
+        <div v-if="showTrendLine" class="flex h-6 items-center">
           <USkeleton :aria-label="t('dms.a11y.loading')" class="h-3 w-[58px]" />
         </div>
         <div v-if="footnote" class="flex h-4 items-center">
@@ -254,20 +302,32 @@ const isStat = computed(() => props.variant === "stat");
       />
     </div>
     <!-- The trend's line holds its place, as in the skeleton, while there is
-         no change to show (no comparison period): no "0%" stand-in, and
-         toggling a comparison never moves the footnote. -->
+         no change to show yet: no "0%" stand-in, and toggling a comparison
+         never moves the footnote. With no comparison selected on the scope,
+         the line goes, and the comparison label with it. -->
     <div
-      v-else-if="!hasError && (showDelta || footnote || hasSparkline)"
+      v-else-if="
+        !hasError && (showTrendLine || previousText || footnote || hasSparkline)
+      "
       class="mt-auto flex items-end gap-2"
     >
       <div class="min-w-0">
-        <div v-if="showDelta" class="flex h-6 items-center">
+        <div
+          v-if="showTrendLine || previousText"
+          class="flex h-6 min-w-0 items-center gap-2"
+        >
           <DmsTrendBadge
             v-if="showTrend"
             :delta="delta"
             :invert="invert"
             variant="text"
           />
+          <span
+            v-if="previousText"
+            class="text-dimmed truncate text-xs tabular-nums"
+          >
+            {{ previousText }}
+          </span>
         </div>
         <p
           v-if="footnote"

@@ -27,18 +27,36 @@ export interface KpiCardProps extends BaseComponentProps {
    */
   fetchUrl?: string;
   fetchUrlMethod?: EnumOption<HttpMethod>;
+  /**
+   * Id of the `PeriodSelector` driving the card. The comparison it selects
+   * names the card's change ("vs previous year"), and "no comparison" hides
+   * the change, the comparison value and the comparison label.
+   */
   periodScope?: string;
   valueFormat?: ValueFormat;
   currencyCode?: string;
   valuePrecision?: ValuePrecision;
   showDelta?: boolean;
+  /**
+   * Shows the figure the value is compared against ("vs €42,900"), formatted
+   * as the value, when the data carries `previousValue`. Defaults to `true`;
+   * `false` keeps a card compact.
+   */
+  showPreviousValue?: boolean;
   showSparkline?: boolean;
   sparklineAccent?: ChartColorValue | "auto";
   invert?: boolean;
+  /**
+   * The caption of the change. Optional: a card with a `periodScope` and no
+   * `description` names the comparison its selector applies on its own, so
+   * set it only for a wording of your own. Hidden with no comparison.
+   */
   compareLabel?: string;
   staticValue?: number;
   /** The change in percent, as a fetched `delta`: 12.5 reads +12.5 %. */
   staticDelta?: number;
+  /** The figure compared against, as a fetched `previousValue`. */
+  staticPreviousValue?: number;
   staticSparkline?: number[];
 }
 
@@ -124,6 +142,13 @@ export const KpiCardSchema = z.object({
     group: "appearance",
     widget: "switch",
   }),
+  showPreviousValue: ui(
+    z
+      .boolean()
+      .optional()
+      .describe("Show the figure the value is compared against."),
+    { label: "Show comparison value", group: "appearance", widget: "switch" },
+  ),
   showSparkline: ui(z.boolean().optional(), {
     label: "Show sparkline",
     group: "appearance",
@@ -141,16 +166,26 @@ export const KpiCardSchema = z.object({
       .describe("Treat a falling value as the good outcome."),
     { label: "Invert variation", group: "behavior", widget: "switch" },
   ),
-  compareLabel: ui(z.string().optional(), {
-    label: "Comparison label",
-    group: "content",
-  }),
+  compareLabel: ui(
+    z
+      .string()
+      .optional()
+      .describe(
+        "Caption of the variation; follows the period selector's comparison when empty.",
+      ),
+    { label: "Comparison label", group: "content" },
+  ),
   staticValue: ui(
     z.number().optional().describe("Value shown when no data source is set."),
     { label: "Static value", group: "advanced", widget: "number" },
   ),
   staticDelta: ui(z.number().optional(), {
     label: "Static variation",
+    group: "advanced",
+    widget: "number",
+  }),
+  staticPreviousValue: ui(z.number().optional(), {
+    label: "Static comparison value",
     group: "advanced",
     widget: "number",
   }),

@@ -10044,6 +10044,16 @@
             "widget": "switch"
           }
         },
+        "showPreviousValue": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Show the figure the value is compared against.",
+          "ui": {
+            "label": "Show comparison value",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
         "showSparkline": {
           "type": "boolean",
           "optional": true,
@@ -10075,6 +10085,7 @@
         "compareLabel": {
           "type": "string",
           "optional": true,
+          "description": "Caption of the variation; follows the period selector's comparison when empty.",
           "ui": {
             "label": "Comparison label",
             "group": "content"
@@ -10095,6 +10106,15 @@
           "optional": true,
           "ui": {
             "label": "Static variation",
+            "group": "advanced",
+            "widget": "number"
+          }
+        },
+        "staticPreviousValue": {
+          "type": "number",
+          "optional": true,
+          "ui": {
+            "label": "Static comparison value",
             "group": "advanced",
             "widget": "number"
           }
@@ -10123,6 +10143,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "showPreviousValue",
           "showSparkline",
           "sparklineAccent",
           "invert",

@@ -21,8 +21,8 @@ const Slot = defineComponent({
       h("div", slots.default?.()),
 });
 
-const TREND_LINE = 'class="flex h-6 items-center"';
-const STAT_TREND_PLACEHOLDER = 'class="h-4"';
+const TREND_LINE = 'class="flex h-6 min-w-0 items-center gap-2"';
+const STAT_TREND_PLACEHOLDER = 'class="flex h-4 items-center gap-1.5"';
 // The trend badge's own classes (the sparkline's gradient carries "%" too).
 const TREND_BADGE = "whitespace-nowrap tabular-nums transition-colors";
 
