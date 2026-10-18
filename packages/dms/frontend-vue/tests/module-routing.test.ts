@@ -117,6 +117,15 @@ describe("entering a module", () => {
     );
   });
 
+  it("lands on the landingPage, never on the page last visited in the module", async () => {
+    vi.stubGlobal("useModuleHistory", () => ({
+      record: vi.fn(),
+      getLast: () => "/modules/api/routes",
+    }));
+    stubSiteLayout(apiModule(), "overview");
+    expect(await enter("/modules/api")).toBe("/modules/api/overview");
+  });
+
   it("goes to the first page when there is no landingPage", async () => {
     stubSiteLayout(apiModule());
     expect(await enter("/modules/api")).toBe("/modules/api/routes");

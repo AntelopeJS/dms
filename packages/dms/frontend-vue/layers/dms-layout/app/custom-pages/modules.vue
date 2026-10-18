@@ -150,11 +150,8 @@ const modules = computed<ModuleCatalogEntry[]>(() =>
 );
 const summary = computed(() => summarizeModules(modules.value));
 
-// ── Navigation targets ─────────────────────────────────────────────
-function moduleTarget(entry: ModuleCatalogEntry): string {
-  return moduleHistory.getLast(entry.id) ?? entry.landingSlug;
-}
-
+// The history only orders the grid by last use: a tile always opens the
+// module on its landing page, never where it was left.
 const visitedAt = computed(
   () =>
     new Map(
@@ -714,7 +711,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
             v-for="entry in visibleModules"
             :key="entry.id"
             :entry="entry"
-            :to="moduleTarget(entry)"
+            :to="entry.landingSlug"
           />
         </div>
       </section>

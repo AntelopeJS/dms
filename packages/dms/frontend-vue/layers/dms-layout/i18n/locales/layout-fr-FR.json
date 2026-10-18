@@ -738,7 +738,7 @@
     },
     "installed": {
       "title": "Installés",
-      "description": "L’état et un relevé en direct de chaque module. Ouvrez un module pour reprendre là où vous en étiez."
+      "description": "L’état et un relevé en direct de chaque module. Ouvrez un module pour arriver sur sa page d’accueil."
     },
     "store": {
       "title": "Store de modules",

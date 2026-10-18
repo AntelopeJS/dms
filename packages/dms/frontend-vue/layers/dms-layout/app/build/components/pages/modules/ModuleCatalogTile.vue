@@ -14,7 +14,7 @@ import { moduleCategory, moduleStatus } from "../../../utils/modules-catalog";
 
 interface ModuleCatalogTileProps {
   entry: ModuleCatalogEntry;
-  /** Where the tile leads: the last page visited in the module, or its landing page. */
+  /** Where the tile leads: the module's landing page. */
   to: string;
 }
 
