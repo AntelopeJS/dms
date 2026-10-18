@@ -45,7 +45,7 @@ function normalizeHistory(raw: unknown): StoredHistory {
 /**
  * Last page visited in each module, kept in a cookie so it survives reloads
  * and the server renders the same "recently used" order as the browser. It
- * feeds that order and the command palette's recent pages; it never decides
+ * feeds that order and the command palette's recent modules; it never decides
  * where entering a module lands, which is always the module's landing page.
  */
 export const useModuleHistory = (): ModuleHistoryApi => {

@@ -1,9 +1,12 @@
 import type {
   ModuleCatalogEntry,
   ModuleStatus,
+  ModuleWithAccess,
   PageInfo,
   SiteLayout,
+  SiteLayoutTree,
 } from "../../types/page";
+import { resolveModuleLandingSlug } from "../../utils/moduleLanding";
 
 /** Category of the modules that declare none. */
 export const MODULE_CATEGORY_OTHER = "$modules.category_other";
@@ -235,4 +238,52 @@ export function findModulePageMatch(
     };
   }
   return null;
+}
+
+/** A visited module as the command palette's recent modules list it. */
+export interface RecentModule {
+  moduleId: string;
+  /** Display name, possibly a `$i18n.key`. */
+  title: string;
+  icon: string;
+  /** The module's landing page, never the page it was left on. */
+  to: string;
+}
+
+/** A visit of the module history, oldest first as it keeps them. */
+export interface ModuleVisit {
+  moduleId: string;
+}
+
+/**
+ * The visited modules the caller may still open, most recent first, each
+ * leading to its landing page: every way into a module lands there. A module
+ * with no page the caller may open is left out.
+ */
+export function recentModules(
+  visits: readonly ModuleVisit[],
+  modules: Readonly<Record<string, ModuleWithAccess>> | undefined,
+  tree: SiteLayoutTree | undefined,
+): RecentModule[] {
+  return visits
+    .slice()
+    .reverse()
+    .flatMap((visit) => {
+      const module = modules?.[visit.moduleId];
+      if (!module?.hasAccess) return [];
+      const to = resolveModuleLandingSlug(
+        tree,
+        visit.moduleId,
+        module.landingPage,
+      );
+      if (!to) return [];
+      return [
+        {
+          moduleId: visit.moduleId,
+          title: module.title,
+          icon: module.icon,
+          to,
+        },
+      ];
+    });
 }

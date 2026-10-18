@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type {
   ModuleCatalogEntry,
+  ModuleWithAccess,
   PageInfo,
+  SiteLayoutTree,
 } from "../layers/dms-layout/app/types/page";
 import {
   MODULE_CATEGORY_ALL,
@@ -11,6 +13,7 @@ import {
   DEFAULT_MODULE_SORT_MODE,
   moduleCategoryOptions,
   parseModuleSortMode,
+  recentModules,
   sortModules,
   summarizeModules,
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
@@ -197,5 +200,78 @@ describe("findModulePageMatch", () => {
     expect(
       findModulePageMatch(layout, "invoices", new Set(["hidden"]), resolve),
     ).toBeNull();
+  });
+});
+
+describe("recentModules", () => {
+  const landingTree = (moduleId: string, slugs: string[]): SiteLayoutTree => {
+    const pages = slugs.map((fullSlug, index) => ({
+      id: `page-${index}`,
+      fullSlug,
+      layoutUrl: "/layout",
+      children: {},
+      childrenOrders: [],
+    }));
+    const root = {
+      id: moduleId,
+      fullSlug: `/modules/${moduleId}`,
+      isModuleRoot: true,
+      children: Object.fromEntries(pages.map((page) => [page.id, page])),
+      childrenOrders: pages.map((page) => page.id),
+    };
+    return {
+      id: "",
+      fullSlug: "/",
+      children: {
+        modules: {
+          id: "modules",
+          fullSlug: "/modules",
+          children: { [moduleId]: root },
+          childrenOrders: [moduleId],
+        },
+      },
+      childrenOrders: ["modules"],
+    } as unknown as SiteLayoutTree;
+  };
+  const cms = {
+    id: "cms",
+    title: "$cms.title",
+    icon: "i-ph-article",
+    hasAccess: true,
+  } as ModuleWithAccess;
+
+  it("opens a recent module on its landing page, not where it was left", () => {
+    const tree = landingTree("cms", [
+      "/modules/cms/pages",
+      "/modules/cms/media",
+    ]);
+    const recent = recentModules(
+      [{ moduleId: "cms", path: "/modules/cms/media", visitedAt: 1 }],
+      { cms },
+      tree,
+    );
+    expect(recent).toEqual([
+      {
+        moduleId: "cms",
+        title: "$cms.title",
+        icon: "i-ph-article",
+        to: "/modules/cms/pages",
+      },
+    ]);
+  });
+
+  it("lists the most recent first and leaves out modules the caller cannot open", () => {
+    const tree = landingTree("cms", ["/modules/cms/pages"]);
+    const crm = { ...cms, id: "crm", hasAccess: false };
+    const recent = recentModules(
+      [
+        { moduleId: "crm", path: "/modules/crm", visitedAt: 2 },
+        { moduleId: "cms", path: "/modules/cms/pages", visitedAt: 1 },
+        { moduleId: "gone", path: "/modules/gone", visitedAt: 3 },
+      ],
+      { cms, crm },
+      tree,
+    );
+    expect(recent.map((module) => module.moduleId)).toEqual(["cms"]);
   });
 });
