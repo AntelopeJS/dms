@@ -138,6 +138,7 @@ import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
 import { useRefreshTriggers } from "../../build/composables/blocks/useRefreshTriggers";
+import { refreshPageBlocks } from "../../utils/blockRefresh";
 import { useTableLiveHold } from "../../build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../../types/live";
 import { usePageLive } from "../../composables/live/usePageLive";
@@ -1222,6 +1223,11 @@ const refreshByUser = () => {
   liveGate.acknowledge();
   return refreshAll();
 };
+// A write of the user's (a row or bulk action, a form saved) can move what
+// the rest of the page shows of the same records — a KPI, a tab's badge,
+// another list: every block of the page reads its data again, this table
+// among them, at once even on a paused live page.
+const refreshAfterWrite = () => refreshPageBlocks();
 
 // "Preview as role": a link tab to a page the previewed role could not open
 // is drawn locked, one to a page it opens partially is drawn partially
@@ -1299,7 +1305,7 @@ const {
   caption,
   labelKey,
   rowIdKey: props.rowIdKey,
-  refreshCallback: refreshByUser,
+  refreshCallback: refreshAfterWrite,
   formComponents,
   formContainer,
   formPages,

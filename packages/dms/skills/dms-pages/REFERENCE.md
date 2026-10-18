@@ -97,7 +97,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `setMissedDetail()`); one that reads its own data on a topic calls
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
-  held while paused.
+  held while paused. A table view's write (row/bulk action, its form saved) already
+  calls `refreshPageBlocks()`: KPIs and badges of the page need no wiring of their own.
 
 ### Texts
 
