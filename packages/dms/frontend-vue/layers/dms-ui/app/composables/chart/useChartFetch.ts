@@ -39,9 +39,12 @@ export interface UseChartFetchOptions<T> {
    * Reads the data with the page, as the page's own data is: a client
    * navigation waits for the first answer instead of showing the page with
    * the block still empty, for a block that must not appear late and push
-   * the page (a fetched Banner). The caller awaits `ready` in its setup. Only
-   * a URL known at setup holds the navigation; one waiting for a token or a
-   * period scope loads afterwards, as usual.
+   * the page (a fetched Banner). The caller awaits `ready` in its setup. A
+   * URL known at setup holds the navigation, and so does one waiting for its
+   * period scope in the browser: the page's selector registers it from its
+   * own lazily loaded chunk, within the same navigation (for at most
+   * `NAVIGATION_SCOPE_WAIT_MS`). One waiting for a token loads afterwards, as
+   * usual.
    */
   holdNavigation?: boolean;
 }
@@ -74,6 +77,10 @@ const DEBOUNCE_FRAME_MS = 180;
 // a short grace would drop the card to its empty state ("No data") while the
 // scope is merely late. Only a scope no selector ever registers reaches it.
 export const PENDING_SCOPE_TIMEOUT_MS = 10_000;
+// How long a `holdNavigation` read waiting for its period scope holds the
+// navigation: the selector's chunk lands within it on any usable network,
+// and a scope no selector registers does not hold a page for long.
+export const NAVIGATION_SCOPE_WAIT_MS = 1_500;
 
 /** What a card asks for: its URL with its period, and the state it watches. */
 interface ChartRequest {
@@ -281,10 +288,37 @@ export function useChartFetch<T>(
       () => status.value === "pending",
     ),
   );
-  const ready = holdsNavigation
-    ? loaded.then(() => undefined)
-    : Promise.resolve();
+  const holdsUntilScope =
+    !!options.holdNavigation &&
+    !holdsNavigation &&
+    typeof window !== "undefined" &&
+    isWaitingForScope.value;
+  let ready = Promise.resolve();
+  if (holdsNavigation) ready = loaded.then(() => undefined);
+  else if (holdsUntilScope)
+    ready = untilSettled(() => isLoading.value, NAVIGATION_SCOPE_WAIT_MS);
   return { data: data as Ref<T | null>, isLoading, error, refresh, ready };
+}
+
+/**
+ * Settles once `isPending` turns false (the scope registered and its first
+ * answer is in), or after `timeoutMs` whatever it says.
+ */
+function untilSettled(
+  isPending: () => boolean,
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      stop();
+      resolve();
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    const stop = watch(isPending, (pending) => {
+      if (!pending) finish();
+    });
+  });
 }
 
 /** A block without `fetchUrl`: its `staticData`, followed as it changes. */
