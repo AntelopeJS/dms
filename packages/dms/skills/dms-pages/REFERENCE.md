@@ -12,7 +12,7 @@ lists them with their option schemas); `docs/04.components/` has one page per bl
 | --- | --- |
 | Layout | `Grid` + `GridRow` (children must be rows; `{ colSpan }` child metadata), `HStack` / `VStack` / `Spacer`, `Card` (slots `actions`, `footer`), `Tab` (`{ slot }` per child), `Guard`, `Placeholder` |
 | Charts & widgets | `KpiCard`, `ChartCard` (wraps one chart), `TopListCard`, `PeriodSelector`, `LiveToggle`; charts `ChartLine`, `ChartArea`, `ChartRangeArea`, `ChartBar`, `ChartColumn`, `ChartScatter`, `ChartMixed`, `ChartRadar`, `ChartCandlestick`, `ChartDonut`, `ChartPie`, `ChartRadialBar`, `ChartHeatmap` |
-| Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`) |
+| Display | `StatGroup`, `KeyValueList`, `NavCardGrid`, `EmptyState` (its `code` shows a snippet), `Banner`, `CodeBlock` (`code` + `language`, or `fetchUrl` answering `{ code, language? }`), `Hero` (landing opener: `eyebrow`, `title` with `*highlighted*` words, `lead`, up to 3 `actions`, `proof` figures, `image` or `icons`), `Prose` (Markdown: `content` as a per-locale map `{ "en-GB": … }` or `fetchUrl` answering `{ markdown }` in the reader's language; `toc`, `width`) |
 | Lists & settings | `ActivityFeed`, `Meter`, `Section` + `FieldRow` |
 | Data | `Form`, `ResourceForm(controller, { mode: "new" \| "edit" \| "view" })` (from `/base/table-view`), `TableView(controller, options)` |
 | Escape hatch | `CustomComponent(name)` (deep import from `@antelopejs/interface-dms/base/custom` — not in the barrel), always with `.meta()` — see **dms-best-practices** |

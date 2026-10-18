@@ -1131,6 +1131,41 @@
       }
     ]
   },
+  "Hero": {
+    "type": "Hero",
+    "options": {
+      "eyebrow": "Customer portal",
+      "title": "Every order, *one place*",
+      "lead": "Follow orders from checkout to delivery, and answer customers in seconds.",
+      "actions": [
+        {
+          "label": "Open orders",
+          "to": "/orders",
+          "icon": "i-ph-package"
+        },
+        {
+          "label": "Read the guide",
+          "to": "https://example.com/guide"
+        }
+      ],
+      "proof": [
+        {
+          "value": "2 min",
+          "label": "to set up"
+        },
+        {
+          "value": "99.9 %",
+          "label": "uptime last year"
+        },
+        {
+          "value": "1,240",
+          "label": "teams using it"
+        }
+      ],
+      "icons": ["i-ph-package", "i-ph-truck", "i-ph-smiley"],
+      "background": "gradient"
+    }
+  },
   "HStack": {
     "type": "HStack",
     "options": {
@@ -1282,6 +1317,13 @@
     "options": {
       "label": "Chart coming soon",
       "height": "160px"
+    }
+  },
+  "Prose": {
+    "type": "Prose",
+    "options": {
+      "toc": true,
+      "content": "## Import your data\n\nStart from a **CSV export**: the importer proposes a field for each column. Read the [import guide](https://example.com/guide).\n\n> [!TIP]\n> Import a small file first: you can undo an import for 24 hours.\n\n### Check the mapping\n\n1. Pick the resource to import into.\n2. Match each column to a field.\n\n| Format | Max size |\n|:-------|---------:|\n| CSV    |    50 MB |\n| XLSX   |    20 MB |\n\n```shell\ncurl -X POST \"$API_URL/api/imports\" -F file=@customers.csv\n```"
     }
   },
   "Section": {

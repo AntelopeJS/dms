@@ -21,6 +21,8 @@ Material for [SKILL.md](SKILL.md): mapping design elements to DMS blocks, the `P
 | Empty / first-run screen | `EmptyState` (or `Guard` around blocks) | Illustration vs icon well |
 | Links to sub-pages as cards | `NavCardGrid` | Card height |
 | Code snippet | `CodeBlock` | Theme of the highlighting |
+| Landing headline, hero section | `Hero` (`background: "gradient"` or `"card"`) | Image cropping, no illustration of your own |
+| Article, guide, long text | `Prose` (Markdown, `toc: true` for a contents list) | Typography scale, callout look |
 | Panel with a title and actions | `Card` | Head layout |
 | Settings card with rows | `Section` + `FieldRow` | Label column width (`layout`) |
 | Form, settings form | `Form` / `ResourceForm` | Field layout (`fieldsOrientation`, sections) |

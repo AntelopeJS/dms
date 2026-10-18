@@ -9513,6 +9513,1287 @@
       }
     },
     {
+      "type": "Hero",
+      "componentName": "dms-hero-block",
+      "meta": {
+        "name": "Hero",
+        "icon": "i-ph-flag-banner",
+        "description": "Opening of a landing page: headline, lead, actions, figures and media.",
+        "group": "content"
+      },
+      "config": {
+        "eyebrow": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "record",
+                  "keys": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "union",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "union",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "money"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "date"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "datetime"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relative"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "number"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "decimal",
+                                  "percent",
+                                  "compact"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "count"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        ],
+                        "discriminator": "type"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "record",
+                            "keys": {
+                              "type": "string"
+                            },
+                            "values": {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            "optional": true
+                          },
+                          "plural": {
+                            "type": "string",
+                            "optional": true
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
+                "plural": {
+                  "type": "string",
+                  "optional": true
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Short label above the headline.",
+          "ui": {
+            "label": "Eyebrow",
+            "group": "content",
+            "widget": "text"
+          }
+        },
+        "title": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "record",
+                  "keys": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "union",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "union",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "money"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "date"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "datetime"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relative"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "number"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "decimal",
+                                  "percent",
+                                  "compact"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "count"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        ],
+                        "discriminator": "type"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "record",
+                            "keys": {
+                              "type": "string"
+                            },
+                            "values": {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            "optional": true
+                          },
+                          "plural": {
+                            "type": "string",
+                            "optional": true
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
+                "plural": {
+                  "type": "string",
+                  "optional": true
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "The headline; *words in asterisks* are highlighted.",
+          "ui": {
+            "label": "Headline",
+            "group": "content",
+            "widget": "text"
+          }
+        },
+        "highlight": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "record",
+                  "keys": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "union",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "union",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "money"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "date"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "datetime"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relative"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "number"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "decimal",
+                                  "percent",
+                                  "compact"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "count"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        ],
+                        "discriminator": "type"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "record",
+                            "keys": {
+                              "type": "string"
+                            },
+                            "values": {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            "optional": true
+                          },
+                          "plural": {
+                            "type": "string",
+                            "optional": true
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
+                "plural": {
+                  "type": "string",
+                  "optional": true
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Words of the headline to highlight.",
+          "ui": {
+            "label": "Highlighted words",
+            "group": "content",
+            "widget": "text"
+          }
+        },
+        "lead": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "record",
+                  "keys": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "union",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "union",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "money"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "date"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "datetime"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relative"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "number"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "decimal",
+                                  "percent",
+                                  "compact"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "count"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        ],
+                        "discriminator": "type"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "record",
+                            "keys": {
+                              "type": "string"
+                            },
+                            "values": {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            "optional": true
+                          },
+                          "plural": {
+                            "type": "string",
+                            "optional": true
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
+                "plural": {
+                  "type": "string",
+                  "optional": true
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Paragraph under the headline.",
+          "ui": {
+            "label": "Lead",
+            "group": "content",
+            "widget": "textarea"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Button text.",
+                "ui": {
+                  "label": "Label"
+                }
+              },
+              "to": {
+                "type": "string",
+                "description": "The page the button opens, or a web address.",
+                "ui": {
+                  "label": "Link",
+                  "widget": "url"
+                }
+              },
+              "icon": {
+                "type": "string",
+                "optional": true,
+                "ui": {
+                  "label": "Icon",
+                  "widget": "icon"
+                }
+              },
+              "variant": {
+                "type": "string",
+                "enum": [
+                  "solid",
+                  "outline",
+                  "soft",
+                  "subtle",
+                  "ghost",
+                  "link"
+                ],
+                "optional": true,
+                "ui": {
+                  "label": "Variant",
+                  "widget": "select"
+                }
+              },
+              "color": {
+                "type": "string",
+                "enum": [
+                  "neutral",
+                  "primary",
+                  "secondary",
+                  "success",
+                  "warning",
+                  "error",
+                  "info"
+                ],
+                "optional": true,
+                "ui": {
+                  "label": "Colour",
+                  "widget": "select"
+                }
+              }
+            }
+          },
+          "optional": true,
+          "description": "Up to three buttons; the first is the main action.",
+          "ui": {
+            "label": "Actions",
+            "group": "content"
+          }
+        },
+        "proof": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "union",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "record",
+                        "keys": {
+                          "type": "string"
+                        },
+                        "values": {
+                          "type": "union",
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            {
+                              "type": "object",
+                              "truncated": true
+                            }
+                          ]
+                        },
+                        "optional": true
+                      },
+                      "plural": {
+                        "type": "string",
+                        "optional": true
+                      }
+                    }
+                  }
+                ],
+                "description": "The figure.",
+                "ui": {
+                  "label": "Value"
+                }
+              },
+              "label": {
+                "type": "union",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "record",
+                        "keys": {
+                          "type": "string"
+                        },
+                        "values": {
+                          "type": "union",
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            {
+                              "type": "object",
+                              "truncated": true
+                            }
+                          ]
+                        },
+                        "optional": true
+                      },
+                      "plural": {
+                        "type": "string",
+                        "optional": true
+                      }
+                    }
+                  }
+                ],
+                "description": "What the figure counts.",
+                "ui": {
+                  "label": "Label"
+                }
+              }
+            }
+          },
+          "optional": true,
+          "description": "Figures under the lead, up to four.",
+          "ui": {
+            "label": "Figures",
+            "group": "content"
+          }
+        },
+        "image": {
+          "type": "string",
+          "optional": true,
+          "description": "Address of an image shown beside or under the texts.",
+          "ui": {
+            "label": "Image",
+            "group": "content",
+            "widget": "url"
+          }
+        },
+        "imageAlt": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "record",
+                  "keys": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "union",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "union",
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "money"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "currency": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "date"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "datetime"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "short",
+                                  "medium",
+                                  "long"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "relative"
+                                ]
+                              },
+                              "value": {
+                                "type": "union",
+                                "truncated": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "number"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              },
+                              "format": {
+                                "type": "string",
+                                "enum": [
+                                  "decimal",
+                                  "percent",
+                                  "compact"
+                                ],
+                                "optional": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "count"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        ],
+                        "discriminator": "type"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "record",
+                            "keys": {
+                              "type": "string"
+                            },
+                            "values": {
+                              "type": "union",
+                              "truncated": true
+                            },
+                            "optional": true
+                          },
+                          "plural": {
+                            "type": "string",
+                            "optional": true
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "optional": true
+                },
+                "plural": {
+                  "type": "string",
+                  "optional": true
+                }
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Describes the image for screen readers.",
+          "ui": {
+            "label": "Image description",
+            "group": "content",
+            "widget": "text"
+          }
+        },
+        "icons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "ui": {
+              "widget": "icon"
+            }
+          },
+          "optional": true,
+          "description": "Up to three icons, when there is no image.",
+          "ui": {
+            "label": "Icons",
+            "group": "content"
+          }
+        },
+        "mediaPosition": {
+          "type": "string",
+          "enum": [
+            "side",
+            "below"
+          ],
+          "default": "side",
+          "description": "Where the image or the icons sit.",
+          "ui": {
+            "label": "Media position",
+            "group": "layout",
+            "widget": "segmented",
+            "valueLabels": {
+              "side": "Beside",
+              "below": "Below"
+            }
+          }
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center"
+          ],
+          "default": "left",
+          "description": "How the texts line up.",
+          "ui": {
+            "label": "Alignment",
+            "group": "layout",
+            "widget": "segmented",
+            "valueLabels": {
+              "left": "Left",
+              "center": "Centre"
+            }
+          }
+        },
+        "size": {
+          "type": "string",
+          "enum": [
+            "md",
+            "lg"
+          ],
+          "default": "lg",
+          "description": "Large for a landing page, medium for a section.",
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented",
+            "valueLabels": {
+              "md": "Medium",
+              "lg": "Large"
+            }
+          }
+        },
+        "background": {
+          "type": "string",
+          "enum": [
+            "plain",
+            "gradient",
+            "card"
+          ],
+          "default": "plain",
+          "description": "What the hero is drawn on.",
+          "ui": {
+            "label": "Background",
+            "group": "appearance",
+            "widget": "segmented",
+            "valueLabels": {
+              "plain": "Plain",
+              "gradient": "Gradient",
+              "card": "Card"
+            }
+          }
+        }
+      },
+      "defaults": {
+        "mediaPosition": "side",
+        "align": "left",
+        "size": "lg",
+        "background": "plain"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "eyebrow",
+          "title",
+          "highlight",
+          "lead",
+          "image",
+          "imageAlt",
+          "mediaPosition",
+          "align",
+          "size",
+          "background"
+        ]
+      }
+    },
+    {
       "type": "KeyValueList",
       "componentName": "dms-key-value-list-block",
       "meta": {
@@ -11829,6 +13110,111 @@
         "version": 1,
         "paths": [
           "label"
+        ]
+      }
+    },
+    {
+      "type": "Prose",
+      "componentName": "dms-prose-block",
+      "meta": {
+        "name": "Prose",
+        "icon": "i-ph-article",
+        "description": "Long-form text written in Markdown, with headings, callouts, code and tables.",
+        "group": "content"
+      },
+      "config": {
+        "content": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "record",
+              "keys": {
+                "type": "string"
+              },
+              "values": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Markdown, a `$` i18n key, or one Markdown text per locale.",
+          "ui": {
+            "label": "Text",
+            "group": "content",
+            "widget": "textarea"
+          }
+        },
+        "toc": {
+          "type": "boolean",
+          "default": false,
+          "description": "Lists the headings above the text.",
+          "ui": {
+            "label": "Table of contents",
+            "group": "features",
+            "widget": "switch"
+          }
+        },
+        "width": {
+          "type": "string",
+          "enum": [
+            "readable",
+            "wide"
+          ],
+          "default": "readable",
+          "description": "Readable keeps lines short; wide takes the page width.",
+          "ui": {
+            "label": "Width",
+            "group": "layout",
+            "widget": "segmented",
+            "valueLabels": {
+              "readable": "Readable",
+              "wide": "Wide"
+            }
+          }
+        },
+        "fetchUrl": {
+          "type": "string",
+          "optional": true,
+          "description": "Route answering `{ markdown }` in the reader's language; when set it replaces the text.",
+          "ui": {
+            "label": "Data source",
+            "group": "data",
+            "widget": "dataSource",
+            "advanced": true
+          }
+        },
+        "fetchUrlMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "HTTP method",
+            "group": "advanced",
+            "widget": "select"
+          }
+        }
+      },
+      "defaults": {
+        "toc": false,
+        "width": "readable"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "content",
+          "toc",
+          "width"
         ]
       }
     },
