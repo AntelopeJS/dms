@@ -215,9 +215,10 @@ if (import.meta.env.DEV) {
 
 const { pageLayout } = await usePageLayout();
 
-watch(pageLayout, (layout) => preloadPageLayoutComponents(layout), {
-  immediate: true,
-});
+// A client navigation shows the page once its blocks' code is there: a lazy
+// block draws nothing until its chunk lands, then pushes the page down.
+await preloadPageLayoutComponents(pageLayout.value);
+watch(pageLayout, (layout) => void preloadPageLayoutComponents(layout));
 
 const { refreshIfStale: refreshPermissionsIfStale } = usePermissions();
 
