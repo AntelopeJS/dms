@@ -16,13 +16,35 @@ const FOLLOW_INTERVAL_MS = 1000;
  * follow-up that reads the listing again while something moves. An operation
  * the owner started here reloads the page once the frontend serves its
  * result, so a new module's pages appear without a manual refresh.
+ *
+ * The first read comes with the page, like the settings pages' data: a
+ * server render waits for it (`await store.ready()`) and hands it over, so
+ * the tiles render with their store details and never move once mounted.
  */
 export const useModuleStore = () => {
   // Taken once, in setup: the follow-up reads the listing from a timer,
   // outside any component context.
   const { $authFetch } = useAuthFetch();
-  const listing = ref<StoreListing | undefined>(undefined);
-  const loadingError = ref<unknown>(null);
+  const isOwner = useIsOwner();
+  // Platform owners only: a member's read would be refused.
+  const initial = useApiData<StoreListing>(() =>
+    isOwner.value ? ENDPOINT_STORE_LISTING : null,
+  );
+  // The follow-up reads write into the same data, so a later visit shows
+  // the latest listing at once.
+  const listing = computed<StoreListing | undefined>({
+    get: () => initial.data.value ?? undefined,
+    set: (value) => {
+      initial.data.value = value ?? null;
+    },
+  });
+  /** The last follow-up read's failure; `null` once one succeeds. */
+  const followError = ref<unknown>(undefined);
+  const loadingError = computed<unknown>(() =>
+    followError.value === undefined
+      ? (initial.error.value ?? null)
+      : followError.value,
+  );
   /** Modules an operation from this page changed, until the frontend follows. */
   const awaitingReload = ref(new Set<string>());
   let followTimer: ReturnType<typeof setTimeout> | undefined;
@@ -38,9 +60,27 @@ export const useModuleStore = () => {
   async function load(): Promise<void> {
     try {
       listing.value = await $authFetch<StoreListing>(ENDPOINT_STORE_LISTING);
-      loadingError.value = null;
+      followError.value = null;
     } catch (error) {
-      loadingError.value = error;
+      followError.value = error;
+    }
+    reloadWhenServed();
+    scheduleFollow();
+  }
+
+  /** Waits for the first read, the one the server renders. */
+  async function ready(): Promise<void> {
+    await initial;
+  }
+
+  /**
+   * Starts following once mounted: reads again only when the first read
+   * failed, or something moves; a listing already on screen stays as is.
+   */
+  function start(): void {
+    if (!listing.value) {
+      void load();
+      return;
     }
     reloadWhenServed();
     scheduleFollow();
@@ -103,6 +143,8 @@ export const useModuleStore = () => {
     isFollowing,
     awaitingReload,
     load,
+    ready,
+    start,
     run,
     stop,
   };

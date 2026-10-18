@@ -13,6 +13,7 @@ import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlat
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
+import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
 import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import {
   ENDPOINT_MODULES_LISTING,
@@ -107,10 +108,17 @@ if (!isOwner.value) {
   });
 }
 
+// Declared before the installed modules, which take the version, category and
+// source a registration leaves out from it, and the store actions.
+const moduleStore = useModuleStore();
+
 // Read with the page, which the server renders and hands over: the
 // hydration reuses the listing the server rendered (read again, its live
-// readouts, an uptime a minute on, would no longer match the markup).
-await modulesListing.loadModulesListing();
+// readouts, an uptime a minute on, would no longer match the markup). The
+// store listing comes with it: the tiles' source, version and state, and the
+// installed modules that register nothing, would otherwise move the grid and
+// its category counts once it answers.
+await Promise.all([modulesListing.loadModulesListing(), moduleStore.ready()]);
 
 const isForbidden = computed(
   () =>
@@ -129,11 +137,6 @@ const isInitiallyLoading = computed(
 );
 const isRetrying = ref(false);
 
-// Declared before the installed modules, which take the version, category and
-// source a registration leaves out from it, and the store actions.
-const moduleStore = useModuleStore();
-
-// Read once the store answers, after the first render.
 const storeModules = computed(() =>
   sortStoreModules(
     (moduleStore.listing.value?.modules ?? []).map((entry) =>
@@ -241,7 +244,7 @@ function clearFilters(): void {
 
 // ── Module store ───────────────────────────────────────────────────
 onMounted(() => {
-  if (isOwner.value) void moduleStore.load();
+  if (isOwner.value) moduleStore.start();
 });
 onBeforeUnmount(() => moduleStore.stop());
 
@@ -414,35 +417,10 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           :class="MODULE_TILE_GRID_CLASS"
           aria-busy="true"
         >
-          <DmsCard
+          <ModuleTileSkeleton
             v-for="placeholder in skeletonItems"
             :key="placeholder"
-            :padded="false"
-            class="flex min-h-[228px] flex-col gap-3 p-4"
-          >
-            <div class="flex items-start justify-between">
-              <USkeleton
-                :aria-label="t('dms.a11y.loading')"
-                class="size-9 rounded-[10px]"
-              />
-              <USkeleton
-                :aria-label="t('dms.a11y.loading')"
-                class="h-5 w-12 rounded-full"
-              />
-            </div>
-            <USkeleton
-              :aria-label="t('dms.a11y.loading')"
-              class="h-2.5 w-4/5"
-            />
-            <USkeleton
-              :aria-label="t('dms.a11y.loading')"
-              class="h-2.5 w-3/5"
-            />
-            <USkeleton
-              :aria-label="t('dms.a11y.loading')"
-              class="mt-auto h-4 w-2/5"
-            />
-          </DmsCard>
+          />
         </div>
 
         <!-- Nothing installed -->

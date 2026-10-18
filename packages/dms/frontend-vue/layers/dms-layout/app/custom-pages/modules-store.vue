@@ -7,6 +7,7 @@ import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
+import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
 import { usePageHeaderActions } from "../composables/layout/usePageHeaderActions";
 import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
@@ -87,7 +88,11 @@ if (!isOwner.value) {
   });
 }
 
-onMounted(() => void moduleStore.load());
+// Read with the page, like the Modules page: the server renders the tiles,
+// and the browser only follows what moves.
+await moduleStore.ready();
+
+onMounted(() => moduleStore.start());
 onBeforeUnmount(() => moduleStore.stop());
 
 const storeListing = computed(() => moduleStore.listing.value);
@@ -174,21 +179,11 @@ const skeletonItems = Array.from(
         :class="MODULE_TILE_GRID_CLASS"
         aria-busy="true"
       >
-        <DmsCard
+        <ModuleTileSkeleton
           v-for="placeholder in skeletonItems"
           :key="placeholder"
-          :padded="false"
-          class="flex min-h-[228px] flex-col gap-3 p-4"
-        >
-          <USkeleton
-            :aria-label="t('dms.a11y.loading')"
-            class="size-9 rounded-[10px]"
-          />
-          <USkeleton
-            :aria-label="t('dms.a11y.loading')"
-            class="mt-auto h-2.5 w-3/5"
-          />
-        </DmsCard>
+          is-store
+        />
       </div>
 
       <!-- Only when nothing is on screen yet: a follow-up read that fails
