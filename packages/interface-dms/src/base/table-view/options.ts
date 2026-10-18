@@ -1127,7 +1127,8 @@ export interface TableViewOptions<
   defaultDisplay?: string;
   /**
    * Display a phone opens on (a viewport narrower than 768px) when the user
-   * has no saved choice and no view sets one: `cards` gives a narrow screen a
+   * has no saved choice and the open view sets no `display` of its own (a
+   * `views.defaultView` without one opens on it too): `cards` gives a narrow screen a
    * card per row instead of a grid cut after its first columns. One of the
    * displays offered, so the switcher still leads back to the grid. Applied
    * once mounted (the server cannot see the viewport) and not saved: the same

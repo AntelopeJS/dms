@@ -567,10 +567,17 @@ const urlScope = {
   isSoleTableView: props.isSoleTableView,
 };
 
+// The display the table counts as its default: the phone's `mobileDisplay`
+// once applied (see `useMobileDisplay` below).
+const displayDefault = ref(
+  offeredDisplayIds.has(defaultDisplay) ? defaultDisplay : fallbackDisplayId,
+);
+
 // Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
   activeViewId,
+  activeView,
   isModified: isViewModified,
   canSaveViews,
   openView,
@@ -593,9 +600,10 @@ const {
     columnOrder: listableColumns.map(
       (column) => column.id ?? column.accessorKey,
     ),
-    display: offeredDisplayIds.has(defaultDisplay)
-      ? defaultDisplay
-      : fallbackDisplayId,
+    // Read when a view opens: a phone's `mobileDisplay` once applied.
+    get display() {
+      return displayDefault.value;
+    },
     density: props.density ?? DEFAULT_DENSITY,
     displays: offeredDisplayIds,
   },
@@ -614,16 +622,16 @@ const {
 });
 
 // A phone opens on the table's `mobileDisplay` (cards rather than a grid cut
-// after its first columns) unless a display was chosen: saved, set by an open
-// view, or the only way in.
-const displayDefault = useMobileDisplay({
+// after its first columns) unless a display was chosen: saved, fixed by the
+// open view, or the only way in.
+useMobileDisplay({
   mobileDisplay: props.mobileDisplay,
-  defaultDisplay,
+  defaultDisplay: displayDefault,
   offered: offeredDisplayIds,
   display: activeDisplayId,
+  activeView,
   isDisplayChosen: () =>
     isDefaultDisplayStandalone ||
-    activeViewId.value !== undefined ||
     tablePreferences.get<string | undefined>("viewMode", undefined) !==
       undefined,
 });

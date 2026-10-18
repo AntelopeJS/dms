@@ -5,12 +5,13 @@
  * chosen. The phone's display becomes the default the preference compares
  * with, so it is never saved as the user's choice.
  */
-import { createApp, defineComponent, h, type Ref, ref } from "vue";
+import { createApp, defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PHONE_VIEWPORT_QUERY,
   useMobileDisplay,
 } from "../layers/dms-ui/app/build/composables/table-view/useMobileDisplay";
+import type { TableViewViewStateConfig } from "../layers/dms-ui/app/composables/table-view/types";
 
 const OFFERED = new Set(["table", "cards"]);
 const mounted: Array<{ unmount: () => void }> = [];
@@ -24,16 +25,18 @@ function setViewport(isPhone: boolean) {
 function mountTable(
   mobileDisplay: string | undefined,
   isDisplayChosen = false,
+  activeView?: TableViewViewStateConfig,
 ) {
   const display = ref("table");
-  let displayDefault: Ref<string> | undefined;
+  const displayDefault = ref("table");
   const Table = defineComponent({
     setup() {
-      displayDefault = useMobileDisplay({
+      useMobileDisplay({
         mobileDisplay,
-        defaultDisplay: "table",
+        defaultDisplay: displayDefault,
         offered: OFFERED,
         display,
+        activeView: ref(activeView),
         isDisplayChosen: () => isDisplayChosen,
       });
       return () => h("div");
@@ -42,7 +45,7 @@ function mountTable(
   const app = createApp(Table);
   app.mount(document.createElement("div"));
   mounted.push(app);
-  return { display, displayDefault: displayDefault! };
+  return { display, displayDefault };
 }
 
 afterEach(() => {
@@ -67,6 +70,19 @@ describe("a table view's display on phones", () => {
   it("keeps a display someone chose", () => {
     setViewport(true);
     expect(mountTable("cards", true).display.value).toBe("table");
+  });
+
+  it("keeps the display an open view fixes, not the default of one that sets none", () => {
+    setViewport(true);
+    expect(mountTable("cards", false, { display: "table" }).display.value).toBe(
+      "table",
+    );
+    expect(mountTable("cards", false, { search: "x" }).display.value).toBe(
+      "cards",
+    );
+    expect(
+      mountTable("cards", false, { display: "kanban" }).display.value,
+    ).toBe("cards");
   });
 
   it("ignores a display the table does not offer, or none", () => {
