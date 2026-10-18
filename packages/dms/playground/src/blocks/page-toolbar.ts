@@ -91,15 +91,26 @@ export class PageToolbarReport extends PageController(
     category: blocksCategory,
     order: 82,
     description:
-      'The same toolbar on a page declared without live: no Live / Pause, but "Updated 12 s ago" counted from the page\'s last read, and a refresh button reading every block again.',
+      'The same toolbar on a page declared without live: no Live / Pause, but "Updated 12 s ago" counted from the page\'s last read, and a refresh button reading every block again. Its period offers three comparisons, so a "vs …" menu, and a custom range behind the calendar icon.',
   },
   DefaultLayout(),
 ) {
   // Period only: the updated label and the refresh button stand in for the
-  // live toggle.
+  // live toggle. Three comparisons draw the "vs …" menu, and the custom
+  // preset its calendar icon.
   static toolbar = pageToolbar({
     live: false,
-    period: { id: REPORT_SCOPE, comparisons: ["previous-period"] },
+    period: {
+      id: REPORT_SCOPE,
+      presets: [
+        "last-hour",
+        "last-24h",
+        "last-7-days",
+        "last-30-days",
+        "custom",
+      ],
+      comparisons: ["previous-period", "previous-year", "none"],
+    },
   });
 
   static stats = StatGroup({

@@ -91,7 +91,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   Live / Pause, the window and the 1H / 24H / 7D / 30D presets, at one `size` and one height
   (24 / 28 / 32 px, with live or not). `live: false` or `period: false` drops a control; without
   `live` it shows the last read and a refresh button. A module's leading chip takes the toolbar's
-  height from `usePageToolbarSize().heightClass`.
+  height from `usePageToolbarSize().heightClass`. More than one comparison offered
+  (`comparisons: ["previous-period", "previous-year", "none"]`) draws a "vs … ▾" menu; a single one
+  stays on without a control. A `custom` preset shows as a calendar icon, named in full.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch

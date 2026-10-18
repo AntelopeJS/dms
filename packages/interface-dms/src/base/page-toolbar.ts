@@ -4,6 +4,8 @@ import { type BlockOptionsFor, RegisterBlockType, ui } from "./block-registry";
 import { LiveToggle, type LiveToggleProps } from "./live-toggle";
 import {
   PeriodSelector,
+  type PeriodComparison,
+  type PeriodComparisonControl,
   type PeriodPreset,
   type PeriodSelectorProps,
 } from "./period-selector";
@@ -102,9 +104,11 @@ const TOOLBAR_PRESETS: PeriodPreset[] = [
 /**
  * The `PeriodSelector` of `pageToolbar()` unless its `period` says otherwise:
  * the start of the window from now ("since yesterday 11:29"), then the
- * 1H / 24H / 7D / 30D presets, on the last 24 hours by default. The
- * comparison, when the period offers one, stays on and reads "vs …" beside
- * the window, with no control of its own (`comparisonControl: "hidden"`).
+ * 1H / 24H / 7D / 30D presets, on the last 24 hours by default. Its
+ * comparison control depends on what the period offers: a menu
+ * ("vs previous period ▾") for more than one choice, `none` included, on its
+ * first comparison besides `none`; none for a single comparison, which then
+ * stays on and reads "vs …" beside the window.
  */
 export const PAGE_TOOLBAR_PERIOD_DEFAULTS: PeriodSelectorProps = {
   variant: "segmented",
@@ -112,8 +116,36 @@ export const PAGE_TOOLBAR_PERIOD_DEFAULTS: PeriodSelectorProps = {
   rangeLabel: "relative",
   presets: TOOLBAR_PRESETS,
   defaultPreset: "last-24h",
-  comparisonControl: "hidden",
 };
+
+const NO_COMPARISON: PeriodComparison = "none";
+// What a `PeriodSelector` offers without `comparisons`.
+const SELECTOR_DEFAULT_COMPARISONS: PeriodComparison[] = [
+  NO_COMPARISON,
+  "previous-period",
+  "previous-year",
+];
+
+/** The comparison setup of a toolbar's period. */
+interface ToolbarComparisonSetup {
+  comparisonControl: PeriodComparisonControl;
+  defaultComparison?: PeriodComparison;
+}
+
+// The comparison control of PAGE_TOOLBAR_PERIOD_DEFAULTS' doc, under what
+// the page's `period` sets itself.
+function toolbarComparisonSetup(
+  period: PeriodSelectorProps,
+): ToolbarComparisonSetup {
+  const offered = period.comparisons ?? SELECTOR_DEFAULT_COMPARISONS;
+  if (offered.length <= 1) return { comparisonControl: "hidden" };
+  const firstComparison = offered.find(
+    (comparison) => comparison !== NO_COMPARISON,
+  );
+  return firstComparison
+    ? { comparisonControl: "menu", defaultComparison: firstComparison }
+    : { comparisonControl: "menu" };
+}
 
 const LIVE_CHILD_ID = "live";
 const PERIOD_CHILD_ID = "period";
@@ -152,7 +184,11 @@ export function pageToolbar(
   if (period !== false) {
     toolbar.child(
       PERIOD_CHILD_ID,
-      PeriodSelector({ ...PAGE_TOOLBAR_PERIOD_DEFAULTS, ...period }),
+      PeriodSelector({
+        ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+        ...toolbarComparisonSetup(period ?? {}),
+        ...period,
+      }),
     );
   }
   return toolbar;

@@ -5,6 +5,7 @@ import {
   PAGE_TOOLBAR_PERIOD_DEFAULTS,
   PageToolbar,
   pageToolbar,
+  type PageToolbarOptions,
 } from "@antelopejs/interface-dms/base/page-toolbar";
 import { Spacer } from "@antelopejs/interface-dms/base/stack";
 
@@ -61,8 +62,11 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     expect(childOf(serialized, "live")?.options).to.deep.equal(
       PAGE_TOOLBAR_LIVE_DEFAULTS,
     );
+    // The selector's default comparisons: more than one choice, a menu.
     expect(childOf(serialized, "period")?.options).to.deep.equal({
       ...PAGE_TOOLBAR_PERIOD_DEFAULTS,
+      comparisonControl: "menu",
+      defaultComparison: "previous-period",
       id: "page",
     });
     expect(PAGE_TOOLBAR_LIVE_DEFAULTS).to.include({ variant: "pill" });
@@ -97,5 +101,45 @@ describe("[unit] interfaces/dms-base — page toolbar", () => {
     ]);
     const liveOnly = pageToolbar({ period: false }).serializeSync();
     expect(liveOnly.children?.map((child) => child.id)).to.deep.equal(["live"]);
+  });
+
+  it("offers the comparisons in a menu only when there is a choice", () => {
+    const periodOf = (period: PageToolbarOptions["period"]) =>
+      childOf(pageToolbar({ period }).serializeSync(), "period")?.options;
+
+    expect(
+      periodOf({ comparisons: ["previous-period", "previous-year", "none"] }),
+    ).to.deep.include({
+      comparisonControl: "menu",
+      defaultComparison: "previous-period",
+    });
+    expect(
+      periodOf({ comparisons: ["none", "previous-year"] }),
+    ).to.deep.include({
+      comparisonControl: "menu",
+      defaultComparison: "previous-year",
+    });
+    expect(
+      periodOf({
+        comparisons: ["previous-period", "previous-year"],
+        defaultComparison: "previous-year",
+      }),
+    ).to.deep.include({ defaultComparison: "previous-year" });
+
+    // A single comparison stays on without a control; none, nothing to draw.
+    const single = periodOf({ comparisons: ["previous-period"] });
+    expect(single).to.deep.include({ comparisonControl: "hidden" });
+    expect(single).to.not.have.property("defaultComparison");
+    expect(periodOf({ comparisons: ["none"] })).to.deep.include({
+      comparisonControl: "hidden",
+    });
+
+    // The page's own control wins.
+    expect(
+      periodOf({
+        comparisons: ["previous-period", "none"],
+        comparisonControl: "toggle",
+      }),
+    ).to.deep.include({ comparisonControl: "toggle" });
   });
 });
