@@ -7,7 +7,11 @@ import type {
   StoreModuleState,
   StoreOperationKind,
 } from "../../types/module-store";
-import { type DisplayResolver, compareDisplayNames } from "./modules-catalog";
+import {
+  type DisplayResolver,
+  compareDisplayNames,
+  moduleStatus,
+} from "./modules-catalog";
 
 /** A store module as the Modules page filters and draws it. */
 export type ModuleStoreEntry = StoreListingEntry & {
@@ -17,14 +21,6 @@ export type ModuleStoreEntry = StoreListingEntry & {
 
 /** Which store modules the store section shows. */
 export type StoreScope = "all" | "available" | "installed";
-
-/** What a store tile's pill says. */
-export interface StoreTileStatus {
-  tone: Tone;
-  /** i18n key under `modules.store.state`. */
-  labelKey: string;
-  dot?: StatusPillDot;
-}
 
 /** One action a store tile offers. */
 export interface StoreAction {
@@ -54,16 +50,6 @@ export const MODULE_SOURCE_ICONS: Record<ModuleSourceKind, string> = {
 
 /** The command that turns a production frontend into one serving new layers. */
 export const FRONTEND_BUILD_COMMAND = "ajs dms build";
-
-const STATUSES: Record<StoreModuleState, StoreTileStatus> = {
-  available: { tone: "neutral", labelKey: "available", dot: "none" },
-  busy: { tone: "info", labelKey: "busy", dot: "live" },
-  active: { tone: "success", labelKey: "active" },
-  // Paused: declared and configured, but not running.
-  disabled: { tone: "warning", labelKey: "disabled" },
-  error: { tone: "error", labelKey: "error" },
-  pending: { tone: "warning", labelKey: "pending" },
-};
 
 const ACTIONS: Record<StoreOperationKind, StoreAction> = {
   install: {
@@ -187,13 +173,6 @@ export function sortStoreModules<T extends StoreListingEntry>(
   );
 }
 
-export function storeTileStatus(entry: StoreListingEntry): StoreTileStatus {
-  if (entry.state === "active" && entry.updateAvailable) {
-    return { tone: "warning", labelKey: "update_available" };
-  }
-  return STATUSES[entry.state];
-}
-
 /**
  * What the tile offers, the main action first. A module in error offers to
  * try its last step again: installing it when the file does not hold it,
@@ -268,10 +247,103 @@ export function storeActionBlock(
   return entry.dependents.length > 0 ? "dependents" : undefined;
 }
 
+/** Translates an i18n key with its named parameters. */
+export type StoreTranslate = (
+  key: string,
+  params?: Record<string, string>,
+) => string;
+
+const LIST_SEPARATOR = ", ";
+
+const BLOCK_MESSAGES: Record<
+  StoreActionBlock,
+  (entry: StoreListingEntry, t: StoreTranslate) => string
+> = {
+  no_release: (_entry, t) => t("modules.store.no_release"),
+  incompatible: (entry, t) =>
+    t("modules.store.incompatible", {
+      range: entry.requiredInterfaceRange ?? "",
+    }),
+  frontend: (entry, t) =>
+    t("modules.store.frontend_requirement.needs", {
+      range: entry.frontendRequirement?.range ?? "",
+      running: entry.frontendRequirement?.running ?? "",
+    }),
+  interfaces: (entry, t) =>
+    t("modules.store.requires_first", {
+      interfaces: entry.missingInterfaces
+        .map((missing) => missing.interfacePackage)
+        .join(LIST_SEPARATOR),
+    }),
+  used_by_project: (_entry, t) => t("modules.store.used_by_project"),
+  dependents: (entry, t) =>
+    t("modules.store.used_by", {
+      modules: entry.dependents.join(LIST_SEPARATOR),
+    }),
+};
+
+/** Why `kind` cannot run on the module, worded for its tile, if it cannot. */
+export function storeBlockMessage(
+  entry: StoreListingEntry,
+  kind: StoreOperationKind,
+  t: StoreTranslate,
+): string | undefined {
+  const block = storeActionBlock(entry, kind);
+  return block ? BLOCK_MESSAGES[block](entry, t) : undefined;
+}
+
 /** Whether `kind` first asks which modules implement the missing interfaces. */
 export function needsDependencyChoice(
   entry: StoreListingEntry,
   kind: StoreOperationKind,
 ): boolean {
   return PICKS_DEPENDENCIES.has(kind) && entry.missingInterfaces.length > 0;
+}
+
+/** What an installed module's pill says. */
+export interface InstalledTileStatus {
+  tone: Tone;
+  /** Full i18n key of the label. */
+  labelKey: string;
+  dot?: StatusPillDot;
+}
+
+/** Store states an installed module's pill says before anything else. */
+const STORE_STATE_PILLS: Partial<
+  Record<StoreModuleState, InstalledTileStatus>
+> = {
+  busy: { tone: "info", labelKey: "modules.store.state.busy", dot: "live" },
+  error: { tone: "error", labelKey: "modules.store.state.error" },
+  disabled: { tone: "warning", labelKey: "modules.store.state.disabled" },
+  pending: { tone: "warning", labelKey: "modules.store.state.pending" },
+};
+
+const MODULE_STATUS_PILLS: Record<
+  ReturnType<typeof moduleStatus>,
+  InstalledTileStatus
+> = {
+  live: { tone: "success", labelKey: "modules.status.live" },
+  beta: { tone: "secondary", labelKey: "modules.status.beta" },
+  update: { tone: "warning", labelKey: "modules.status.update" },
+  attention: { tone: "error", labelKey: "modules.status.attention" },
+};
+
+/**
+ * The pill of an installed module: what the store says of it first (an
+ * operation, an error, paused, not applied, a frontend to restart, an
+ * update), then what the module reports of itself, Active otherwise.
+ */
+export function installedTileStatus(
+  module: ModuleCatalogEntry,
+  entry: StoreListingEntry | undefined,
+): InstalledTileStatus {
+  const storeStatus = entry && STORE_STATE_PILLS[entry.state];
+  if (storeStatus) return storeStatus;
+  if (entry && isAwaitingFrontend(entry)) {
+    return { tone: "warning", labelKey: "modules.status.restart_required" };
+  }
+  if (entry?.updateAvailable) {
+    return { tone: "warning", labelKey: "modules.status.update" };
+  }
+  return MODULE_STATUS_PILLS[moduleStatus(module)];
 }

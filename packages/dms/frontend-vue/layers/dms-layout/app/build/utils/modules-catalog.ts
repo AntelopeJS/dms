@@ -8,6 +8,16 @@ import type {
 } from "../../types/page";
 import { resolveModuleLandingSlug } from "../../utils/moduleLanding";
 
+/** The Modules page, which lists and manages the installed modules. */
+export const MODULES_PAGE_PATH = "/modules";
+/** The module store, its own view under the Modules page. */
+export const MODULE_STORE_PATH = `${MODULES_PAGE_PATH}/store`;
+
+/** Where an installed module's tile is, the one that manages it. */
+export function installedModuleLink(moduleId: string): string {
+  return `${MODULES_PAGE_PATH}#module-${moduleId}`;
+}
+
 /** Category of the modules that declare none. */
 export const MODULE_CATEGORY_OTHER = "$modules.category_other";
 /** Category filter value that shows every module. */

@@ -74,7 +74,9 @@ function stubSiteLayout(moduleRoot: TreeNode, landingPage?: string) {
     siteLayoutTree: ref(treeOf(moduleRoot)),
     modules: ref({ api: { id: "api", hasAccess: true, landingPage } }),
     findMatchingRoute: (path: string) =>
-      path.startsWith("/modules/api/") ? { metadata: {} } : null,
+      path.startsWith("/modules/api/") || path === "/modules/store"
+        ? { metadata: {} }
+        : null,
     loadSiteLayout: vi.fn(),
   }));
 }
@@ -154,6 +156,19 @@ describe("entering a module", () => {
     vi.stubGlobal("window", { location: { replace } });
     expect(await enter("/modules/api?live=0", true)).toBe(false);
     expect(replace).toHaveBeenCalledWith("/modules/api/overview?live=0");
+  });
+
+  it("leaves the module store alone, a page of the Modules page rather than a module", async () => {
+    stubSiteLayout(apiModule(), "overview");
+    expect(await enter("/modules/store")).toBeUndefined();
+    expect(navigateDms).not.toHaveBeenCalled();
+  });
+
+  it("still answers an unknown module with a not-found", async () => {
+    stubSiteLayout(apiModule(), "overview");
+    await expect(enter("/modules/crm")).rejects.toMatchObject({
+      statusCode: 404,
+    });
   });
 
   it("leaves a module page alone", async () => {

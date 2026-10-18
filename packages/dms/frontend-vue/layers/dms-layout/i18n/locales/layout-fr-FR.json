@@ -726,6 +726,7 @@
     "open": "Ouvrir",
     "owner_badge": "Propriétaires de la plateforme",
     "refresh": "Actualiser",
+    "browse_store": "Accéder au store",
     "empty": {
       "title": "Aucun module n’est encore installé",
       "description": "Les modules s’ajoutent au projet avec la CLI AntelopeJS, puis apparaissent ici après un redémarrage."
@@ -738,11 +739,15 @@
     },
     "installed": {
       "title": "Installés",
-      "description": "L’état et un relevé en direct de chaque module. Ouvrez un module pour arriver sur sa page d’accueil."
+      "description": "L’état, un relevé en direct et les actions du store de chaque module. Ouvrez un module pour arriver sur sa page d’accueil."
     },
     "store": {
       "title": "Store de modules",
-      "description": "Les modules officiels AntelopeJS : installez-les, mettez-les à jour, mettez-les en pause ou retirez-les sans toucher au code du projet.",
+      "description": "Les modules officiels AntelopeJS, à découvrir et à installer. Un module installé se gère depuis sa tuile parmi les modules installés.",
+      "back": "Modules installés",
+      "installed": "Installé",
+      "view_installed": "Voir dans les modules installés",
+      "update_available": "Mise à jour disponible",
       "scope": {
         "label": "Afficher",
         "all": "Tous · {count}",
@@ -938,7 +943,8 @@
       "live": "Actif",
       "beta": "Bêta",
       "update": "Mise à jour disponible",
-      "attention": "Attention"
+      "attention": "Attention",
+      "restart_required": "Redémarrage requis"
     },
     "source": {
       "npm": "npm",

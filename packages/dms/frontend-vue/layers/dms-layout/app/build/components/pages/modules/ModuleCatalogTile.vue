@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
+import ModuleManageMenu from "./ModuleManageMenu.vue";
 import ModuleSourceLabel from "./ModuleSourceLabel.vue";
-import type { Tone } from "#dms-ui/app/types/tone";
+import ModuleStoreOperation from "./ModuleStoreOperation.vue";
+import ModuleStoreRequirements from "./ModuleStoreRequirements.vue";
 import type {
   CheckListItem,
   CheckListState,
@@ -9,27 +11,45 @@ import type {
 import type {
   ModuleCatalogEntry,
   ModuleReadoutTone,
-  ModuleStatus,
 } from "../../../../types/page";
-import { moduleCategory, moduleStatus } from "../../../utils/modules-catalog";
+import type { StoreOperationKind } from "../../../../types/module-store";
+import { moduleCategory } from "../../../utils/modules-catalog";
+import {
+  type ModuleStoreEntry,
+  type StoreAction,
+  installedTileStatus,
+  storeActions,
+  storeBlockMessage,
+} from "../../../utils/module-store-catalog";
+
+// An installed module: its state, a live readout, and the one place it is
+// managed. Its button opens it on its landing page, or resumes it while it
+// is paused; the store actions it offers are in its Manage menu.
 
 interface ModuleCatalogTileProps {
   entry: ModuleCatalogEntry;
-  /** Where the tile leads: the module's landing page. */
-  to: string;
+  /** Where Open leads: the module's landing page, when it has pages. */
+  to?: string;
+  /** What the module store says of it, when the store lists it. */
+  storeEntry?: ModuleStoreEntry;
+  /** Another module's operation runs, or the store is read-only. */
+  isLocked?: boolean;
 }
 
-const props = defineProps<ModuleCatalogTileProps>();
+interface ModuleCatalogTileEmits {
+  action: [kind: StoreOperationKind];
+}
+
+const props = withDefaults(defineProps<ModuleCatalogTileProps>(), {
+  to: undefined,
+  storeEntry: undefined,
+  isLocked: false,
+});
+const emit = defineEmits<ModuleCatalogTileEmits>();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
-// v2 .module-tile__state: a mono uppercase pill with a leading dot.
-const STATUS_TONES: Record<ModuleStatus, Tone> = {
-  live: "success",
-  beta: "secondary",
-  update: "warning",
-  attention: "error",
-};
+const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
 
 // v2 .module-tile__viz: each readout line opens with a tone glyph.
 const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
@@ -39,7 +59,9 @@ const READOUT_STATES: Record<ModuleReadoutTone, CheckListState> = {
   error: "error",
 };
 
-const status = computed(() => moduleStatus(props.entry));
+const status = computed(() =>
+  installedTileStatus(props.entry, props.storeEntry),
+);
 const readout = computed<CheckListItem[]>(() =>
   (props.entry.readout ?? []).map((line, index) => ({
     id: String(index),
@@ -48,18 +70,40 @@ const readout = computed<CheckListItem[]>(() =>
   })),
 );
 const title = computed(() => processI18n(props.entry.title));
+
+const actions = computed<StoreAction[]>(() =>
+  props.storeEntry ? storeActions(props.storeEntry) : [],
+);
+/** The store action the button runs when there is nothing to open. */
+const primary = computed<StoreAction | undefined>(() =>
+  props.to ? undefined : actions.value.find((action) => !action.isMenuOnly),
+);
+const menuActions = computed(() =>
+  actions.value.filter((action) => action !== primary.value),
+);
+const isOperating = computed(() => props.storeEntry?.operation !== undefined);
+
+/** Why the button waits, when it does. */
+const blockedReason = computed(() => {
+  if (!primary.value || !props.storeEntry) return undefined;
+  if (props.isLocked) return t("modules.store.locked");
+  return storeBlockMessage(props.storeEntry, primary.value.kind, t);
+});
+const isBlocked = computed(() => blockedReason.value !== undefined);
 </script>
 
 <template>
   <ModuleTile
-    :to="props.to"
+    :id="`module-${props.entry.id}`"
     :icon="props.entry.icon"
     :title="title"
     :description="processI18n(props.entry.description)"
     :status="{
-      tone: STATUS_TONES[status],
-      label: t(`modules.status.${status}`),
+      tone: status.tone,
+      dot: status.dot,
+      label: t(status.labelKey),
     }"
+    is-solid
   >
     <template #readout>
       <DmsCheckList
@@ -73,6 +117,17 @@ const title = computed(() => processI18n(props.entry.title));
       />
     </template>
 
+    <template v-if="props.storeEntry">
+      <ModuleStoreOperation :entry="props.storeEntry" />
+      <p
+        v-if="!isOperating && props.storeEntry.state === 'pending'"
+        class="text-xs text-(--ui-warning)"
+      >
+        {{ t("modules.store.pending_hint") }}
+      </p>
+      <ModuleStoreRequirements v-if="!isOperating" :entry="props.storeEntry" />
+    </template>
+
     <template #footer>
       <!-- v0.5.0 · npm · Content: the state is the pill's to say. -->
       <span v-if="props.entry.version" class="whitespace-nowrap">
@@ -82,18 +137,44 @@ const title = computed(() => processI18n(props.entry.title));
         <span v-if="props.entry.version" aria-hidden="true">·</span>
         <ModuleSourceLabel :source="props.entry.source" />
       </template>
-      <span class="truncate">
+      <span class="min-w-0 truncate">
         <template v-if="props.entry.version || props.entry.source">·</template>
         {{ processI18n(moduleCategory(props.entry)) }}
       </span>
-      <span
-        class="text-primary ms-auto inline-flex shrink-0 items-center gap-1 font-sans text-xs font-semibold"
-      >
-        {{ t("modules.open") }}
-        <UIcon
-          name="i-ph-arrow-right"
-          class="size-3.5 transition-transform group-hover:translate-x-0.5"
-          :aria-hidden="true"
+      <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
+        <UButton
+          v-if="props.to"
+          :to="props.to"
+          size="xs"
+          color="primary"
+          variant="soft"
+          trailing-icon="i-ph-arrow-right"
+          :label="t('modules.open')"
+        />
+        <UTooltip
+          v-else-if="primary"
+          :text="blockedReason"
+          :disabled="!blockedReason"
+          :content="TOOLTIP_CONTENT"
+        >
+          <!-- aria-disabled rather than disabled: the button keeps its
+               tooltip, which says why it waits. -->
+          <UButton
+            size="xs"
+            :color="primary.kind === 'update' ? 'warning' : 'neutral'"
+            variant="outline"
+            :icon="primary.icon"
+            :label="t(`modules.store.actions.${primary.labelKey}`)"
+            :aria-disabled="isBlocked ? 'true' : undefined"
+            :class="{ 'cursor-not-allowed opacity-50': isBlocked }"
+            @click="!isBlocked && emit('action', primary.kind)"
+          />
+        </UTooltip>
+        <ModuleManageMenu
+          v-if="props.storeEntry && !props.isLocked"
+          :entry="props.storeEntry"
+          :actions="menuActions"
+          @action="emit('action', $event)"
         />
       </span>
     </template>

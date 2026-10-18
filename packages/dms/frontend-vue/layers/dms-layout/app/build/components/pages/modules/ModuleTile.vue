@@ -20,7 +20,8 @@ interface ModuleTileProps {
   icon: string;
   title: string;
   description: string;
-  status: ModuleTileStatus;
+  /** The pill of the tile's head; a tile without one shows none. */
+  status?: ModuleTileStatus;
   /** Where the tile leads; without it, the tile is a placeholder. */
   to?: string;
   /**
@@ -40,6 +41,7 @@ interface ModuleTileSlots {
 }
 
 const props = withDefaults(defineProps<ModuleTileProps>(), {
+  status: undefined,
   to: undefined,
   isSolid: false,
 });
@@ -91,6 +93,7 @@ const ui = computed(() =>
         :tone="props.to || props.isSolid ? undefined : 'muted'"
       />
       <DmsStatusPill
+        v-if="props.status"
         :tone="props.status.tone"
         :dot="props.status.dot"
         :label="props.status.label"

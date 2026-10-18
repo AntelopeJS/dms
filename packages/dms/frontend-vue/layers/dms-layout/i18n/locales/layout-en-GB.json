@@ -722,6 +722,7 @@
     "open": "Open",
     "owner_badge": "Platform owners",
     "refresh": "Refresh",
+    "browse_store": "Browse the store",
     "empty": {
       "title": "No module is installed yet",
       "description": "Modules are added to the project with the AntelopeJS CLI, then appear here after a restart."
@@ -734,11 +735,15 @@
     },
     "installed": {
       "title": "Installed",
-      "description": "Status and a live readout for each module. Open a module to start from its home page."
+      "description": "Status, a live readout and the store actions of each module. Open a module to start from its home page."
     },
     "store": {
       "title": "Module store",
-      "description": "Official AntelopeJS modules: install, update, pause or remove them without touching the project’s code.",
+      "description": "Official AntelopeJS modules to discover and install. An installed module is managed from its tile among the installed modules.",
+      "back": "Installed modules",
+      "installed": "Installed",
+      "view_installed": "View in installed modules",
+      "update_available": "Update available",
       "scope": {
         "label": "Show",
         "all": "All · {count}",
@@ -934,7 +939,8 @@
       "live": "Active",
       "beta": "Beta",
       "update": "Update available",
-      "attention": "Attention"
+      "attention": "Attention",
+      "restart_required": "Restart required"
     },
     "source": {
       "npm": "npm",

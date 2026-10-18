@@ -1,30 +1,29 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
 import ModuleSourceLabel from "./ModuleSourceLabel.vue";
+import ModuleStoreOperation from "./ModuleStoreOperation.vue";
 import ModuleStoreRequirements from "./ModuleStoreRequirements.vue";
 import {
   type ModuleStoreEntry,
   type StoreAction,
-  type StoreActionBlock,
-  storeActionBlock,
+  isInstalled,
   storeActions,
-  storeTileStatus,
+  storeBlockMessage,
 } from "../../../utils/module-store-catalog";
-import type {
-  StoreOperationKind,
-  StoreOperationStep,
-} from "../../../../types/module-store";
+import type { StoreOperationKind } from "../../../../types/module-store";
+
+// A module of the catalog, as the store presents it: what it is, whether it
+// is installed here, and Install when it is not. Everything else about an
+// installed module is managed from its tile among the installed modules,
+// which this one links to.
 
 interface ModuleStoreTileProps {
   /** The store module the tile presents. */
   entry: ModuleStoreEntry;
   /** Another module's operation runs: every action waits for it. */
   isLocked?: boolean;
-  /**
-   * The installed module's landing page: the tile's main button opens it,
-   * and every store action moves to the Manage menu.
-   */
-  openTo?: string;
+  /** Where the installed module's own tile is, the one that manages it. */
+  installedTo?: string;
 }
 
 interface ModuleStoreTileEmits {
@@ -33,137 +32,29 @@ interface ModuleStoreTileEmits {
 
 const props = withDefaults(defineProps<ModuleStoreTileProps>(), {
   isLocked: false,
-  openTo: undefined,
+  installedTo: undefined,
 });
 const emit = defineEmits<ModuleStoreTileEmits>();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 
 const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
-/** The steps an operation shows, in the order they run. */
-const PROGRESS_STEPS: StoreOperationStep[] = [
-  "resolve",
-  "dependencies",
-  "unload",
-  "load",
-  "save",
-];
-/**
- * Steps an operation of this kind goes through. The file is written last:
- * it only ever names a module that loaded.
- */
-const KIND_STEPS: Record<StoreOperationKind, StoreOperationStep[]> = {
-  install: ["resolve", "dependencies", "load", "save"],
-  update: ["resolve", "unload", "load", "save"],
-  enable: ["load", "save"],
-  disable: ["unload", "save"],
-  uninstall: ["unload", "save"],
-  apply: ["load"],
-};
+const INSTALLED_STATUS = { tone: "primary", dot: "none" } as const;
 
-const status = computed(() => storeTileStatus(props.entry));
-const actions = computed(() => storeActions(props.entry));
-const primary = computed<StoreAction | undefined>(() =>
-  props.openTo ? undefined : actions.value.find((action) => !action.isMenuOnly),
-);
-// A menu action that cannot run stays listed, disabled, with why under it.
-const secondary = computed(() =>
-  actions.value
-    .filter((action) => action !== primary.value)
-    .map((action) => {
-      const block = storeActionBlock(props.entry, action.kind);
-      return {
-        label: t(`modules.store.actions.${action.labelKey}`),
-        description: block ? BLOCK_MESSAGES[block]() : undefined,
-        icon: action.icon,
-        color: action.kind === "uninstall" ? ("error" as const) : undefined,
-        disabled: block !== undefined,
-        onSelect: () => emit("action", action.kind),
-      };
-    }),
+const isInstalledHere = computed(() => isInstalled(props.entry));
+const isOperating = computed(() => props.entry.operation !== undefined);
+/** Install, the one action a store tile offers, while it is not installed. */
+const install = computed<StoreAction | undefined>(() =>
+  storeActions(props.entry).find((action) => action.kind === "install"),
 );
 
-const isInstalledHere = computed(
-  () => props.entry.installedVersion !== undefined,
-);
-const LIST_SEPARATOR = ", ";
-
-const BLOCK_MESSAGES: Record<StoreActionBlock, () => string> = {
-  no_release: () => t("modules.store.no_release"),
-  incompatible: () =>
-    t("modules.store.incompatible", {
-      range: props.entry.requiredInterfaceRange ?? "",
-    }),
-  frontend: () =>
-    t("modules.store.frontend_requirement.needs", {
-      range: props.entry.frontendRequirement?.range ?? "",
-      running: props.entry.frontendRequirement?.running ?? "",
-    }),
-  interfaces: () =>
-    t("modules.store.requires_first", {
-      interfaces: props.entry.missingInterfaces
-        .map((missing) => missing.interfacePackage)
-        .join(LIST_SEPARATOR),
-    }),
-  used_by_project: () => t("modules.store.used_by_project"),
-  dependents: () =>
-    t("modules.store.used_by", {
-      modules: props.entry.dependents.join(LIST_SEPARATOR),
-    }),
-};
-
-/** Why the main action waits, when it does. */
+/** Why Install waits, when it does. */
 const blockedReason = computed(() => {
+  if (!install.value) return undefined;
   if (props.isLocked) return t("modules.store.locked");
-  if (!primary.value) return undefined;
-  const block = storeActionBlock(props.entry, primary.value.kind);
-  return block ? BLOCK_MESSAGES[block]() : undefined;
+  return storeBlockMessage(props.entry, install.value.kind, t);
 });
 const isBlocked = computed(() => blockedReason.value !== undefined);
-
-const operation = computed(() => props.entry.operation);
-/**
- * Whether the running install loads modules for missing interfaces. Kept
- * for the whole operation: once they run, the listing no longer misses them.
- */
-const isInstallingDependencies = ref(false);
-watch(
-  operation,
-  (running) => {
-    if (!running) {
-      isInstallingDependencies.value = false;
-      return;
-    }
-    if (
-      running.step === "dependencies" ||
-      (running.kind === "install" && props.entry.missingInterfaces.length > 0)
-    ) {
-      isInstallingDependencies.value = true;
-    }
-  },
-  { immediate: true },
-);
-
-const steps = computed(() => {
-  const kind = operation.value?.kind;
-  if (!kind) return [];
-  const current = PROGRESS_STEPS.indexOf(operation.value.step);
-  const kindSteps = KIND_STEPS[kind].filter(
-    (step) => step !== "dependencies" || isInstallingDependencies.value,
-  );
-  return kindSteps.map((step) => {
-    const index = PROGRESS_STEPS.indexOf(step);
-    const state =
-      index < current ? "done" : index === current ? "running" : "todo";
-    return { step, state };
-  });
-});
-
-const STEP_ICONS: Record<string, string> = {
-  done: "i-ph-check-circle-fill",
-  running: "i-ph-circle-notch",
-  todo: "i-ph-circle",
-};
 
 const PLAIN_VERSION = /^\d/;
 
@@ -190,66 +81,40 @@ const versionLabel = computed(() => {
     :icon="props.entry.icon"
     :title="processI18n(props.entry.title)"
     :description="processI18n(props.entry.description)"
-    :status="{
-      tone: status.tone,
-      dot: status.dot,
-      label: t(`modules.store.state.${status.labelKey}`),
-    }"
+    :status="
+      isInstalledHere
+        ? { ...INSTALLED_STATUS, label: t('modules.store.installed') }
+        : undefined
+    "
     :is-solid="isInstalledHere"
   >
-    <!-- Running operation: its steps, the current one spinning. -->
-    <ol
-      v-if="steps.length > 0"
-      class="flex flex-col gap-1 text-xs"
-      :aria-label="t(`modules.store.progress.${operation?.kind}`)"
-    >
-      <li
-        v-for="{ step, state } in steps"
-        :key="step"
-        class="flex items-center gap-1.5"
-        :class="state === 'todo' ? 'text-dimmed' : 'text-toned'"
+    <ModuleStoreOperation :entry="props.entry" />
+
+    <template v-if="!isOperating">
+      <p v-if="props.entry.isWorkingCopy" class="text-dimmed text-xs">
+        {{ t("modules.store.working_copy_hint") }}
+      </p>
+
+      <!-- The npm package the module comes from. -->
+      <div
+        v-else-if="!isInstalledHere"
+        class="text-dimmed flex h-[30px] min-w-0 items-center rounded-[8px] border border-(--ui-border) bg-(--dms-bg-muted) px-2.5 font-mono text-[11.5px]"
+        :title="props.entry.package"
       >
-        <UIcon
-          :name="STEP_ICONS[state]"
-          class="size-3.5 shrink-0"
-          :class="{
-            'animate-spin text-(--ui-primary)': state === 'running',
-            'text-(--ui-success)': state === 'done',
-          }"
-        />
-        {{ t(`modules.store.steps.${step}`) }}
-      </li>
-    </ol>
+        <span class="truncate">{{ props.entry.package }}</span>
+      </div>
 
-    <p
-      v-else-if="props.entry.state === 'error' && props.entry.error"
-      class="rounded-[8px] bg-(--ui-error)/8 px-2.5 py-1.5 text-xs text-(--ui-error)"
-      :title="props.entry.error"
-    >
-      <span class="line-clamp-3 break-words">{{ props.entry.error }}</span>
-    </p>
+      <ModuleStoreRequirements v-if="!isInstalledHere" :entry="props.entry" />
 
-    <p
-      v-else-if="props.entry.state === 'pending'"
-      class="text-xs text-(--ui-warning)"
-    >
-      {{ t("modules.store.pending_hint") }}
-    </p>
-
-    <p v-else-if="props.entry.isWorkingCopy" class="text-dimmed text-xs">
-      {{ t("modules.store.working_copy_hint") }}
-    </p>
-
-    <!-- The npm package the module comes from. -->
-    <div
-      v-else
-      class="text-dimmed flex h-[30px] min-w-0 items-center rounded-[8px] border border-(--ui-border) bg-(--dms-bg-muted) px-2.5 font-mono text-[11.5px]"
-      :title="props.entry.package"
-    >
-      <span class="truncate">{{ props.entry.package }}</span>
-    </div>
-
-    <ModuleStoreRequirements v-if="steps.length === 0" :entry="props.entry" />
+      <ULink
+        v-if="isInstalledHere && props.installedTo"
+        :to="props.installedTo"
+        class="text-primary inline-flex items-center gap-1 text-xs font-semibold"
+      >
+        {{ t("modules.store.view_installed") }}
+        <UIcon name="i-ph-arrow-right" class="size-3.5" :aria-hidden="true" />
+      </ULink>
+    </template>
 
     <template #footer>
       <!-- v0.5.0 · npm · Content, as on an installed module's tile. -->
@@ -269,17 +134,18 @@ const versionLabel = computed(() => {
         {{ processI18n(props.entry.catalogCategory) }}
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
+        <!-- An update is made where the module is managed. -->
         <UButton
-          v-if="props.openTo"
-          :to="props.openTo"
+          v-if="isInstalledHere && props.entry.updateAvailable"
+          :to="props.installedTo"
           size="xs"
-          color="neutral"
-          variant="solid"
-          trailing-icon="i-ph-arrow-right"
-          :label="t('modules.open')"
+          color="warning"
+          variant="soft"
+          icon="i-ph-arrow-circle-up"
+          :label="t('modules.store.update_available')"
         />
         <UTooltip
-          v-else-if="primary"
+          v-else-if="install"
           :text="blockedReason"
           :disabled="!blockedReason"
           :content="TOOLTIP_CONTENT"
@@ -288,37 +154,15 @@ const versionLabel = computed(() => {
                tooltip, which says why it waits. -->
           <UButton
             size="xs"
-            :color="primary.kind === 'update' ? 'warning' : 'neutral'"
-            :variant="primary.kind === 'install' ? 'solid' : 'outline'"
-            :icon="primary.icon"
-            :label="t(`modules.store.actions.${primary.labelKey}`)"
+            color="neutral"
+            variant="solid"
+            :icon="install.icon"
+            :label="t(`modules.store.actions.${install.labelKey}`)"
             :aria-disabled="isBlocked ? 'true' : undefined"
             :class="{ 'cursor-not-allowed opacity-50': isBlocked }"
-            @click="!isBlocked && emit('action', primary.kind)"
+            @click="!isBlocked && emit('action', install.kind)"
           />
         </UTooltip>
-        <UDropdownMenu
-          v-if="secondary.length > 0 && !props.isLocked"
-          :items="secondary"
-          :content="{ align: 'end' }"
-        >
-          <UButton
-            v-if="primary"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-ph-dots-three-vertical"
-            :aria-label="t('modules.store.more_actions')"
-          />
-          <UButton
-            v-else
-            size="xs"
-            color="neutral"
-            variant="outline"
-            trailing-icon="i-ph-caret-down"
-            :label="t('modules.store.actions.manage')"
-          />
-        </UDropdownMenu>
       </span>
     </template>
   </ModuleTile>

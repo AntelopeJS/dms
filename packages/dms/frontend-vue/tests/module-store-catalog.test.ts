@@ -11,9 +11,10 @@ import {
   needsDependencyChoice,
   sortStoreModules,
   storeActionBlock,
+  installedTileStatus,
   storeActions,
+  storeBlockMessage,
   storeOpenTarget,
-  storeTileStatus,
   toModuleStoreEntry,
   withStoreDetails,
 } from "../layers/dms-layout/app/build/utils/module-store-catalog";
@@ -195,25 +196,51 @@ describe("module store catalog", () => {
     expect(confirmed).toEqual(["uninstall"]);
   });
 
-  it("flags an update on an active module's pill", () => {
-    expect(
-      storeTileStatus(
-        listingEntry("a", { state: "active", updateAvailable: true }),
-      ).labelKey,
-    ).toBe("update_available");
-    expect(storeTileStatus(listingEntry("a", { state: "busy" })).dot).toBe(
-      "live",
+  it("says an installed module's state on its pill, the store's first", () => {
+    const module = {
+      id: "a",
+      title: "A",
+      description: "",
+      icon: "i-ph-cube",
+      hasAccess: true,
+      landingSlug: "/modules/a/home",
+    };
+    const pill = (overrides: Partial<StoreListingEntry>) =>
+      installedTileStatus(module, listingEntry("a", overrides));
+    expect(pill({ state: "active" })).toEqual({
+      tone: "success",
+      labelKey: "modules.status.live",
+    });
+    expect(pill({ state: "disabled" })).toEqual({
+      tone: "warning",
+      labelKey: "modules.store.state.disabled",
+    });
+    expect(pill({ state: "error" }).tone).toBe("error");
+    expect(pill({ state: "busy" }).dot).toBe("live");
+    expect(pill({ state: "active", updateAvailable: true }).labelKey).toBe(
+      "modules.status.update",
     );
+    expect(pill({ state: "active", frontend: "pending" }).labelKey).toBe(
+      "modules.status.restart_required",
+    );
+    expect(
+      installedTileStatus({ ...module, status: "attention" }, undefined)
+        .labelKey,
+    ).toBe("modules.status.attention");
   });
 
-  it("tells a running module from a paused one by its pill", () => {
-    expect(storeTileStatus(listingEntry("a", { state: "active" }))).toEqual({
-      tone: "success",
-      labelKey: "active",
+  it("words why a store action waits", () => {
+    const t = (key: string, params?: Record<string, string>) =>
+      `${key}${params ? JSON.stringify(params) : ""}`;
+    const used = listingEntry("a", {
+      state: "active",
+      usedByProject: true,
+      latestVersion: "1.0.0",
     });
-    expect(storeTileStatus(listingEntry("a", { state: "disabled" })).tone).toBe(
-      "warning",
+    expect(storeBlockMessage(used, "uninstall", t)).toBe(
+      "modules.store.used_by_project",
     );
+    expect(storeBlockMessage(used, "update", t)).toBeUndefined();
   });
 
   it("names every source in both locales", () => {
@@ -290,7 +317,6 @@ describe("module store catalog", () => {
       installedVersion: "0.5.0",
       isWorkingCopy: true,
     });
-    expect(storeTileStatus(entry).labelKey).toBe("active");
     expect(filterByScope([entry], "installed")).toEqual([entry]);
     expect(storeActions(entry)).toEqual([]);
   });
