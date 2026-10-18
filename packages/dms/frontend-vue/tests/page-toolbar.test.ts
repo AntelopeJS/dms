@@ -3,7 +3,8 @@
  * The PageToolbar block: its LiveToggle on a live page, at the toolbar's
  * size; "updated N s ago" and a refresh button where there is no toggle to
  * show (a page without `live`), counted from the page's last read; and every
- * preset of a period selector with a short code, `all` included.
+ * preset of a period selector with a short code, `all` included; and one
+ * height per size for every control it holds, with or without live.
  */
 import { createApp, h, nextTick, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +28,12 @@ import {
 } from "../layers/dms-ui/app/utils/blockRefresh";
 import { PRESET_SHORT_LABELS } from "../layers/dms-ui/app/build/composables/period/periodShortLabels";
 import { PERIOD_PRESETS } from "@antelopejs/interface-dms/base/period-selector";
+import {
+  PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES,
+  toolbarControlHeightClass,
+} from "../layers/dms-ui/app/build/composables/page-toolbar/toolbarControlHeight";
+import type { PageToolbarSize } from "../layers/dms-ui/app/build/composables/page-toolbar/pageToolbarContext";
+import { usePageToolbarSize } from "../layers/dms-ui/app/composables/page-toolbar/usePageToolbarSize";
 
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -41,11 +48,16 @@ interface ToolbarSetup {
 }
 
 async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
-  const [{ default: PageToolbarBlock }, { default: LiveToggleBlock }] =
-    await Promise.all([
-      import("../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue"),
-      import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"),
-    ]);
+  const [
+    { default: PageToolbarBlock },
+    { default: LiveToggleBlock },
+    { default: ScopeChip },
+  ] = await Promise.all([
+    import("../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue"),
+    import("../layers/dms-ui/app/components/blocks/LiveToggleBlock.vue"),
+    // A module's leading chip, sized by usePageToolbarSize().
+    import("../../playground/frontend-vue/app/components/ToolbarScopeChip.vue"),
+  ]);
   const block = { pageId: "api.logs" };
   app = createApp({
     render: () =>
@@ -53,7 +65,7 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
         PageToolbarBlock,
         { componentId: "toolbar", ...block, ...setup.toolbar },
         () => [
-          h("span", { class: "scope" }, "scope"),
+          h(ScopeChip, { label: "scope", class: "scope" }),
           setup.toggle === false
             ? null
             : h(LiveToggleBlock, {
@@ -102,6 +114,7 @@ beforeEach(() => {
   vi.stubGlobal("defineShortcuts", defineShortcuts);
   vi.stubGlobal("useComponentEvent", () => ({}));
   vi.stubGlobal("useWatch", () => ({}));
+  vi.stubGlobal("usePageToolbarSize", usePageToolbarSize);
   host = document.createElement("div");
   document.body.append(host);
   window.localStorage.clear();
@@ -214,6 +227,62 @@ describe("the page's read clock", () => {
     vi.advanceTimersByTime(2_000);
     await refreshPageBlocks();
     expect(pageReadAt.value).toBe(before + 2_000);
+  });
+});
+
+describe("one height per size", () => {
+  const SIZES: PageToolbarSize[] = ["xs", "sm", "md"];
+  const EXPECTED: Record<PageToolbarSize, string> = {
+    xs: "h-6",
+    sm: "h-7",
+    md: "h-8",
+  };
+  const heightOf = (element: Element | null | undefined) =>
+    element?.className.split(" ").find((name) => /^h-\d+$/.test(name));
+
+  it("shares the segmented track's and Nuxt UI's button steps", () => {
+    expect(PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES).toEqual(EXPECTED);
+    for (const size of SIZES) {
+      expect(toolbarControlHeightClass(size)).toBe(EXPECTED[size]);
+    }
+    expect(toolbarControlHeightClass("lg")).toBe("");
+  });
+
+  it.each(SIZES)("draws the live pill and the chip at %s", async (size) => {
+    installLive();
+    await mountToolbar({ toolbar: { size } });
+    const pill = host.querySelector('[role="group"]');
+    expect(heightOf(pill)).toBe(EXPECTED[size]);
+    // Its buttons fill it: no padding of their own sets the height.
+    const direct = host.querySelector('button[data-value="direct"]');
+    expect(direct?.className).toContain("h-full");
+    expect(direct?.className).not.toMatch(/\bpy-/);
+    expect(heightOf(host.querySelector(".scope"))).toBe(EXPECTED[size]);
+
+    live?.pause();
+    await nextTick();
+    const resume = host.querySelector('[data-action="resume"]');
+    expect(heightOf(resume)).toBe(EXPECTED[size]);
+    expect(resume?.getAttribute("data-size")).toBe(size);
+  });
+
+  it.each(SIZES)(
+    "draws the refresh button at %s without live",
+    async (size) => {
+      await mountToolbar({ toolbar: { size } });
+      expect(heightOf(refreshButton())).toBe(EXPECTED[size]);
+      expect(refreshButton()?.getAttribute("data-size")).toBe(size);
+      expect(heightOf(host.querySelector(".scope"))).toBe(EXPECTED[size]);
+    },
+  );
+
+  // The period's presets are the same segmented track, at the same size.
+  it.each(SIZES)("matches the segmented track at %s", async (size) => {
+    installLive();
+    await mountToolbar({ toolbar: { size }, toggle: { variant: "segmented" } });
+    expect(heightOf(host.querySelector('[role="radiogroup"]'))).toBe(
+      EXPECTED[size],
+    );
   });
 });
 

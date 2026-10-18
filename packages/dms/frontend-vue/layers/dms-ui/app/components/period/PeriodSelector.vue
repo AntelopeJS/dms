@@ -36,6 +36,7 @@ import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUs
 import { usePageLive } from "../../composables/live/usePageLive";
 import { useLivePeriodSpan } from "../../build/composables/live/useLivePeriodSpan";
 import { usePageToolbar } from "../../build/composables/page-toolbar/pageToolbarContext";
+import { toolbarControlHeightClass } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import { PRESET_SHORT_LABELS } from "../../build/composables/period/periodShortLabels";
 
 interface Props extends DefaultComponentProps {
@@ -123,6 +124,10 @@ const size = computed<PeriodSelectorSize>(
 );
 const rangeLabelSizeClass = computed(
   () => RANGE_LABEL_SIZE_CLASSES[toolbar ? size.value : DEFAULT_SIZE],
+);
+// In a toolbar, its buttons stand as tall as the segments and the live pill.
+const controlHeightClass = computed(() =>
+  toolbar ? toolbarControlHeightClass(size.value) : "",
 );
 
 // A paused live page keeps its period where it was: a relative preset
@@ -521,7 +526,11 @@ function onSegmentedClick(event: MouseEvent) {
           :icon="CALENDAR_ICON"
           :trailing-icon="isOpen ? CARET_UP_ICON : CARET_DOWN_ICON"
           :aria-label="$t('dms.period.preset_aria', 'Preset')"
-          :class="[triggerOrder, isOpen && OPEN_TRIGGER_CLASS]"
+          :class="[
+            triggerOrder,
+            controlHeightClass,
+            isOpen && OPEN_TRIGGER_CLASS,
+          ]"
           :ui="{ trailingIcon: 'text-dimmed -me-0.5' }"
         >
           <span
@@ -741,7 +750,10 @@ function onSegmentedClick(event: MouseEvent) {
       :aria-pressed="hasComparison"
       :disabled="isComparisonDisabled"
       class="order-2"
-      :class="hasComparison ? 'text-toned' : 'text-dimmed'"
+      :class="[
+        controlHeightClass,
+        hasComparison ? 'text-toned' : 'text-dimmed',
+      ]"
       @click="toggleComparison"
     >
       <template #leading>
@@ -768,6 +780,7 @@ function onSegmentedClick(event: MouseEvent) {
         :trailing-icon="CARET_DOWN_ICON"
         :aria-label="$t('dms.period.comparison_aria', 'Comparison')"
         class="text-muted order-2"
+        :class="controlHeightClass"
         :ui="{ trailingIcon: 'text-dimmed' }"
       >
         <template #leading>

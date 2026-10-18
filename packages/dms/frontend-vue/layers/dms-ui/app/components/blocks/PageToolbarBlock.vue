@@ -7,6 +7,7 @@ import {
   type PageToolbarSize,
   providePageToolbar,
 } from "../../build/composables/page-toolbar/pageToolbarContext";
+import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import { refreshPageBlocks } from "../../utils/blockRefresh";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
@@ -25,18 +26,12 @@ const props = withDefaults(defineProps<PageToolbarBlockProps>(), {
   refresh: true,
 });
 
-/** What each size changes: the updated label and the refresh button. */
-interface StatusSizeClasses {
-  text: string;
-  button: "xs" | "sm";
-}
-
-// The same steps as the live toggle's: the label reads alike with or
-// without `live`.
-const STATUS_SIZE_CLASSES: Record<PageToolbarSize, StatusSizeClasses> = {
-  xs: { text: "text-[11.5px]", button: "xs" },
-  sm: { text: "text-[12.5px]", button: "xs" },
-  md: { text: "text-[13px]", button: "sm" },
+// The updated label at the live toggle's steps, so it reads alike with or
+// without `live`; the refresh button stands as tall as the toggle's pill.
+const STATUS_TEXT_CLASSES: Record<PageToolbarSize, string> = {
+  xs: "text-[11.5px]",
+  sm: "text-[12.5px]",
+  md: "text-[13px]",
 };
 const REFRESH_ICON = "i-ph-arrow-clockwise";
 
@@ -46,7 +41,10 @@ useWatch(props.watchActions || [], props.componentId);
 const { t } = useI18n();
 const toolbar = providePageToolbar(computed(() => props.size));
 const live = usePageLive();
-const statusClasses = computed(() => STATUS_SIZE_CLASSES[props.size]);
+const statusTextClass = computed(() => STATUS_TEXT_CLASSES[props.size]);
+const heightClass = computed(
+  () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[props.size],
+);
 
 // The browser's clock: the server and the hydrating render draw no status.
 const isMounted = ref(false);
@@ -92,7 +90,7 @@ async function refreshPage() {
       <span
         v-if="props.showUpdatedAt && updatedLabel"
         class="text-muted tabular-nums"
-        :class="statusClasses.text"
+        :class="statusTextClass"
         aria-live="off"
       >
         {{ updatedLabel }}
@@ -103,7 +101,8 @@ async function refreshPage() {
         color="neutral"
         variant="ghost"
         square
-        :size="statusClasses.button"
+        :size="props.size"
+        :class="heightClass"
         :icon="REFRESH_ICON"
         :loading="isRefreshing"
         :aria-label="t('dms.live.refresh')"

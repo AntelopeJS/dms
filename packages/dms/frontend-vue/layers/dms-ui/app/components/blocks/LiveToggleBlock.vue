@@ -15,6 +15,7 @@ import {
   usePageToolbar,
   useToolbarLiveToggle,
 } from "../../build/composables/page-toolbar/pageToolbarContext";
+import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
 interface LiveToggleBlockProps extends DefaultComponentProps {
@@ -49,33 +50,29 @@ const ALIGN_CLASSES: Record<
   right: "justify-end",
 };
 const PILL_BUTTON_CLASS =
-  "focus-visible:outline-primary flex items-center rounded-[5px] font-medium transition-colors focus-visible:outline-2";
+  "focus-visible:outline-primary flex h-full items-center rounded-[5px] font-medium transition-colors focus-visible:outline-2";
 const PILL_IDLE_CLASS = "text-muted hover:text-default hover:bg-elevated";
 
-/** What each size changes: the texts, the pill's buttons, the Resume button. */
+/** What each size changes: the texts and the pill's buttons. */
 interface LiveToggleSizeClasses {
   text: string;
   pillButton: string;
-  resume: "xs" | "sm";
 }
 
-// `sm` is the toggle as it always was; the others scale it with the period
-// selector's segments beside it in a toolbar.
+// The pill takes the toolbar's one height (its buttons fill it), as the
+// period selector's segments beside it and the Resume button do.
 const SIZE_CLASSES: Record<PageToolbarSize, LiveToggleSizeClasses> = {
   xs: {
     text: "text-[11.5px]",
-    pillButton: "gap-1 px-1.5 py-0.5 text-[11px]",
-    resume: "xs",
+    pillButton: "gap-1 px-1.5 text-[11px]",
   },
   sm: {
     text: "text-[12.5px]",
-    pillButton: "gap-1.5 px-2 py-1 text-[12px]",
-    resume: "xs",
+    pillButton: "gap-1.5 px-2 text-[12px]",
   },
   md: {
     text: "text-[13px]",
-    pillButton: "gap-1.5 px-2.5 py-1 text-[13px]",
-    resume: "sm",
+    pillButton: "gap-1.5 px-2.5 text-[13px]",
   },
 };
 
@@ -86,6 +83,9 @@ const toolbar = usePageToolbar();
 useToolbarLiveToggle(toolbar);
 const size = computed(() => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE);
 const sizeClasses = computed(() => SIZE_CLASSES[size.value]);
+const heightClass = computed(
+  () => PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES[size.value],
+);
 
 // The state lives in the browser (its storage, its clock): the server and the
 // hydrating render draw nothing, the mounted block draws the real state.
@@ -179,7 +179,8 @@ useLiveToggleShortcut(() => live.toggle());
       v-if="variant === 'pill'"
       role="group"
       :aria-label="t('dms.live.aria_label')"
-      class="border-default bg-default inline-flex shrink-0 items-center gap-0.5 rounded-md border p-0.5"
+      class="border-default bg-default inline-flex shrink-0 items-stretch gap-0.5 rounded-md border p-0.5"
+      :class="heightClass"
     >
       <button
         type="button"
@@ -229,7 +230,8 @@ useLiveToggleShortcut(() => live.toggle());
     <UButton
       v-if="variant === 'pill' && canResume"
       data-action="resume"
-      :size="sizeClasses.resume"
+      :size="size"
+      :class="heightClass"
       color="neutral"
       variant="soft"
       icon="i-ph-play-fill"
