@@ -2,7 +2,6 @@
 import { MONO_CHIP_CLASS } from "#dms-ui/app/build/utils/monoChip";
 import UButton from "@nuxt/ui/components/Button.vue";
 import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
-import DmsSectionHeader from "#dms-ui/app/components/section-header/SectionHeader.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
@@ -162,25 +161,8 @@ const skeletonItems = Array.from(
 
 <template>
   <div class="pb-20">
-    <section aria-labelledby="module-store-title">
-      <DmsSectionHeader
-        class="mb-3"
-        :count="isStoreLoading ? undefined : storeModules.length"
-        :description="t('modules.store.description')"
-      >
-        <template #title>
-          <span id="module-store-title">{{ t("modules.store.title") }}</span>
-        </template>
-        <template #trailing>
-          <DmsSegmented
-            v-model="storeScope"
-            :items="storeScopeItems"
-            size="sm"
-            :aria-label="t('modules.store.scope.label')"
-          />
-        </template>
-      </DmsSectionHeader>
-
+    <!-- The page header names the store: no section title repeats it. -->
+    <section :aria-label="t('modules.store.title')">
       <ModuleStoreBanners
         :listing="storeListing"
         :frontend-notice="frontendNotice"
@@ -233,6 +215,12 @@ const skeletonItems = Array.from(
             :placeholder="t('modules.store.search_placeholder')"
             shortcut="nav"
             class="w-[300px] max-md:w-full"
+          />
+          <DmsSegmented
+            v-model="storeScope"
+            :items="storeScopeItems"
+            size="sm"
+            :aria-label="t('modules.store.scope.label')"
           />
           <DmsChipGroup
             :items="storeCategoryOptions"
