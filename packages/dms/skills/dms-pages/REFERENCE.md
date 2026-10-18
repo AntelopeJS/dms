@@ -146,7 +146,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Custom components
 
 - Name the record at the end of the breadcrumb with
-  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`.
+  `usePageRecordLabel().setLabel(useDmsRoute().path, label)`. A hidden detail page next to its
+  list (`project/:id` beside `projects`) declares `parent: ProjectsPage` in its menu options so
+  the breadcrumb shows the list before the record — `docs/02.building/04.navigation.md`.
 - Format through `useRegionalFormat()`; `useRegionalFormat({ locale: "format" })` writes in the
   locale of the DMS's texts (`en` → `en-GB`).
 - Bring a block into view with `scrollToBlock("tabs.statistics")` — never a DOM query.

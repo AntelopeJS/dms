@@ -248,33 +248,34 @@ export class PageMetadata {
     menuOptions: MenuOptions,
     pageLayout?: ComponentInfo,
   ) {
-    const resolvedCategory = resolveCategoryInfo(menuOptions.category);
+    const { parent, ...menu } = menuOptions;
+    const resolvedCategory = resolveCategoryInfo(menu.category);
     const parentFullId = resolvedCategory?.fullId ?? "";
     const fullId = parentFullId ? `${parentFullId}.${id}` : id;
 
     const location = pageRoutePath(fullSlug, "/pagelayout");
 
     const pageInfo: PageInfo = {
-      ...menuOptions,
+      ...menu,
       category: resolvedCategory,
       id,
       fullId,
       fullSlug,
       layoutUrl: location,
-      hidden: menuOptions.hidden || resolvedCategory?.hidden,
-      publicAccess: menuOptions.publicAccess || resolvedCategory?.publicAccess,
-      authOnly: menuOptions.authOnly || resolvedCategory?.authOnly,
+      parentSlug: parent ? resolveCategoryInfo(parent)?.fullSlug : undefined,
+      hidden: menu.hidden || resolvedCategory?.hidden,
+      publicAccess: menu.publicAccess || resolvedCategory?.publicAccess,
+      authOnly: menu.authOnly || resolvedCategory?.authOnly,
       memberAccess:
-        menuOptions.memberAccess ||
+        menu.memberAccess ||
         inheritedMemberAccess(resolvedCategory?.memberAccess),
       bypassTenantAccessGate:
-        menuOptions.bypassTenantAccessGate ||
-        resolvedCategory?.bypassTenantAccessGate,
+        menu.bypassTenantAccessGate || resolvedCategory?.bypassTenantAccessGate,
     };
 
     this.layout =
       pageLayout ??
-      menuOptions.layout ??
+      menu.layout ??
       resolveInheritedLayout(resolvedCategory) ??
       DefaultLayout();
     this.pageInfo = pageInfo;
