@@ -12,6 +12,7 @@ import { useModuleStore } from "../composables/page/useModuleStore";
 import { useModuleStoreActions } from "../composables/page/useModuleStoreActions";
 import {
   MODULE_CATEGORY_ALL,
+  MODULE_TILE_GRID_CLASS,
   MODULES_PAGE_PATH,
   filterModules,
   installedModuleLink,
@@ -31,11 +32,6 @@ import {
 // tile among the installed modules, the one place a module is managed.
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
-// Wider than the installed grid's tiles: a store tile is read, not scanned,
-// so three columns on a laptop give its description and footer room. The
-// min() keeps one column from overflowing a phone.
-const TILE_GRID_CLASS =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4";
 const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 
 const { t, locale } = useI18n();
@@ -173,7 +169,11 @@ const skeletonItems = Array.from(
         :frontend-notice="frontendNotice"
       />
 
-      <div v-if="isStoreLoading" :class="TILE_GRID_CLASS" aria-busy="true">
+      <div
+        v-if="isStoreLoading"
+        :class="MODULE_TILE_GRID_CLASS"
+        aria-busy="true"
+      >
         <DmsCard
           v-for="placeholder in skeletonItems"
           :key="placeholder"
@@ -279,7 +279,7 @@ const skeletonItems = Array.from(
           </DmsEmptyState>
         </DmsCard>
 
-        <div v-else :class="TILE_GRID_CLASS">
+        <div v-else :class="MODULE_TILE_GRID_CLASS">
           <ModuleStoreTile
             v-for="entry in visibleStoreModules"
             :key="entry.id"

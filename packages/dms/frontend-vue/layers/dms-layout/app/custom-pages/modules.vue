@@ -23,6 +23,7 @@ import type { ModuleCatalogEntry } from "../types/page";
 import {
   MODULE_CATEGORY_ALL,
   MODULE_STORE_PATH,
+  MODULE_TILE_GRID_CLASS,
   filterModules,
   parseModuleSortMode,
   findModulePageMatch,
@@ -169,9 +170,6 @@ const visitedAt = computed(
     ),
 );
 
-// The installed modules and their skeleton share one grid.
-const TILE_GRID_CLASS =
-  "grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4";
 const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 
 // ── Search, category, sort ─────────────────────────────────────────
@@ -413,7 +411,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
         <!-- Loading -->
         <div
           v-if="isInitiallyLoading"
-          :class="TILE_GRID_CLASS"
+          :class="MODULE_TILE_GRID_CLASS"
           aria-busy="true"
         >
           <DmsCard
@@ -522,7 +520,7 @@ const summaryCards = computed<StatGroupItem[]>(() =>
           </DmsEmptyState>
         </DmsCard>
 
-        <div v-else :class="TILE_GRID_CLASS">
+        <div v-else :class="MODULE_TILE_GRID_CLASS">
           <ModuleCatalogTile
             v-for="entry in visibleModules"
             :key="entry.id"

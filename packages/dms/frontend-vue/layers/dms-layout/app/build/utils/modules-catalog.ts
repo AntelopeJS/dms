@@ -13,6 +13,14 @@ export const MODULES_PAGE_PATH = "/modules";
 /** The module store, its own view under the Modules page. */
 export const MODULE_STORE_PATH = `${MODULES_PAGE_PATH}/store`;
 
+/**
+ * The grid of both module views, installed and store: three columns on a
+ * laptop, so a tile's description, readout and footer line have room. The
+ * min() keeps one column from overflowing a phone.
+ */
+export const MODULE_TILE_GRID_CLASS =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4";
+
 /** Where an installed module's tile is, the one that manages it. */
 export function installedModuleLink(moduleId: string): string {
   return `${MODULES_PAGE_PATH}#module-${moduleId}`;
