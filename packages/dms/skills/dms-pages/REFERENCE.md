@@ -77,7 +77,7 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (table views included) re-fetch after a form saves.
 - `periodScope` binds a card, chart, list block, `Meter` or `TableView.fromSource` to a
   `PeriodSelector`, which keeps its period in the page URL (`?<id>.period=`).
-- `realtimeTopic` re-fetches a chart, list block, `Meter`, `Tab` badges or `TableView` on each
+- `realtimeTopic` re-fetches a chart, a `KpiCard`, list block, `Meter`, `Tab` badges or `TableView` on each
   `PublishMessage`.
 
 ### Live pages
@@ -103,6 +103,16 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   `usePageLiveRefresh(refresh, { realtimeTopic, idleRefresh })` — never a throttle of its own.
   `refreshPageBlocks()` (user actions) always reads; `refreshLivePageBlocks()` (timers, feeds) is
   held while paused.
+- Making a block live: a built-in data block names a `realtimeTopic` (its builder registers the
+  topic on the page) and the backend calls `PublishMessage`; a table view follows its controller's
+  row events by itself. A block without a topic reads only on `refreshLivePageBlocks()`, the
+  polling while the stream is down and `refreshPageBlocks()` — no timer while the stream is up. A
+  custom component's own topic needs `RegisterPageTopic(pageId, topic)` in the backend.
+- Pause (user, hold, hidden tab) freezes every block of the page at once: realtime events, row
+  events, page-topic events behind `useApiData`, `refreshLivePageBlocks()`, `idleRefresh`, the
+  stream-down polling and a component's `useApiData` `refreshInterval`. Each block that missed
+  something reads once on resume. User actions and inputs (period, filter, search, sort, page)
+  still read; notifications, presence and the menu are not the page and keep updating.
 
 ### Texts
 
