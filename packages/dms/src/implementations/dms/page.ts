@@ -1032,6 +1032,29 @@ function matchesPagePattern(pattern: string, path: string): boolean {
   );
 }
 
+/**
+ * The route parameters `path` gives the page registered at `pattern`
+ * (`/projects/project/p1` is `{ id: "p1" }` for `/projects/project/:id`),
+ * empty when it does not match.
+ */
+export function pageParamsOf(
+  pattern: string,
+  path: string,
+): Record<string, string> {
+  if (!matchesPagePattern(pattern, path)) return {};
+  const pathSegments = path.split("/").filter(Boolean);
+  return Object.fromEntries(
+    pattern
+      .split("/")
+      .filter(Boolean)
+      .flatMap((segment, index) =>
+        segment.startsWith(":")
+          ? [[segment.slice(1), pathSegments[index]!]]
+          : [],
+      ),
+  );
+}
+
 function resolveRegisteredPageSlug(path: string): string | undefined {
   if (pagesBySlug[path]) return path;
   return Object.keys(pagesBySlug).find(
@@ -1113,6 +1136,7 @@ export async function buildPagePayload(
       roleModel,
       tenantId,
       requestContext && pageQueryOf(requestContext, PAGE_REQUEST_PARAMETERS),
+      pageParamsOf(registeredSlug, normalizedSlug),
     ),
     resolvePageNavBadges(user, context, requestContext),
   ]);
