@@ -33,6 +33,7 @@ import {
 } from "../build/utils/modules-catalog";
 import {
   sortStoreModules,
+  storeOnlyModules,
   storeOpenTarget,
   toModuleStoreEntry,
   withStoreDetails,
@@ -145,12 +146,15 @@ const storeEntries = computed(
   () => new Map(storeModules.value.map((entry) => [entry.id, entry])),
 );
 
-const modules = computed<ModuleCatalogEntry[]>(() =>
-  withStoreDetails(
+// The modules that run, and the installed ones that register nothing (paused,
+// not started, or without pages): antelope.config.ts declares them all.
+const modules = computed<ModuleCatalogEntry[]>(() => {
+  const registered = withStoreDetails(
     (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
     storeModules.value,
-  ),
-);
+  );
+  return [...registered, ...storeOnlyModules(storeModules.value, registered)];
+});
 const summary = computed(() => summarizeModules(modules.value));
 
 // The history only orders the grid by last use: a tile always opens the

@@ -739,7 +739,7 @@
     },
     "installed": {
       "title": "Installés",
-      "description": "L’état, un relevé en direct et les actions du store de chaque module. Ouvrez un module pour arriver sur sa page d’accueil."
+      "description": "L’état, un relevé en direct et les actions du store de chaque module, ceux en pause compris. Ouvrez un module pour arriver sur sa page d’accueil."
     },
     "store": {
       "title": "Store de modules",

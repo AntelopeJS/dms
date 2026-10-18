@@ -14,6 +14,7 @@ import {
   installedTileStatus,
   storeActions,
   storeBlockMessage,
+  storeOnlyModules,
   storeOpenTarget,
   toModuleStoreEntry,
   withStoreDetails,
@@ -227,6 +228,32 @@ describe("module store catalog", () => {
       installedTileStatus({ ...module, status: "attention" }, undefined)
         .labelKey,
     ).toBe("modules.status.attention");
+  });
+
+  it("lists the installed modules that register nothing among the installed", () => {
+    const paused = storeEntry("media", {
+      state: "disabled",
+      installedVersion: "0.5.0",
+      source: "npm",
+    });
+    const running = storeEntry("lang", {
+      state: "active",
+      installedVersion: "0.2.0",
+    });
+    const available = storeEntry("cms");
+    const listed = storeOnlyModules(
+      [paused, running, available],
+      [{ id: "lang" }],
+    );
+    expect(listed).toEqual([
+      expect.objectContaining({
+        id: "media",
+        version: "0.5.0",
+        source: "npm",
+        landingSlug: "",
+        catalogCategory: paused.catalogCategory,
+      }),
+    ]);
   });
 
   it("words why a store action waits", () => {

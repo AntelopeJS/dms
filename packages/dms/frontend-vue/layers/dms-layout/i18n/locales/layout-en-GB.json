@@ -735,7 +735,7 @@
     },
     "installed": {
       "title": "Installed",
-      "description": "Status, a live readout and the store actions of each module. Open a module to start from its home page."
+      "description": "Status, a live readout and the store actions of each module, paused ones included. Open a module to start from its home page."
     },
     "store": {
       "title": "Module store",

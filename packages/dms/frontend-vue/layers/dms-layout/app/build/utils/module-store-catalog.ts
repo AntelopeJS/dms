@@ -347,3 +347,33 @@ export function installedTileStatus(
   }
   return MODULE_STATUS_PILLS[moduleStatus(module)];
 }
+
+/**
+ * Installed store modules that register no module of their own, as the
+ * Installed grid lists them: a paused module, one that did not start, or one
+ * without pages. antelope.config.ts still declares them, so they stay listed
+ * and managed there, with what the store knows of them.
+ */
+export function storeOnlyModules(
+  store: readonly ModuleStoreEntry[],
+  registered: readonly Pick<ModuleCatalogEntry, "id">[],
+): ModuleCatalogEntry[] {
+  const registeredIds = new Set(registered.map((module) => module.id));
+  return store
+    .filter((entry) => isInstalled(entry) && !registeredIds.has(entry.id))
+    .map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      description: entry.description,
+      icon: entry.icon,
+      hasAccess: true,
+      // Nothing to open: the module serves no page.
+      landingSlug: "",
+      catalogCategory: entry.catalogCategory,
+      version:
+        entry.installedVersion && PLAIN_VERSION.test(entry.installedVersion)
+          ? entry.installedVersion
+          : undefined,
+      source: entry.source,
+    }));
+}
