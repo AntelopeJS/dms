@@ -38,6 +38,12 @@ import {
 } from "../../realtime/table-view";
 import { evaluateRowActionRule } from "../../utils/row-action-rule-evaluator";
 import {
+  joinedExportFields,
+  type ReadableColumn,
+  readableExportColumns,
+  readableRow,
+} from "./readable-export";
+import {
   applyArchiveFilter,
   buildFilteredQuery,
   countWithSearch as countWithSearchFunc,
@@ -64,6 +70,19 @@ interface ExportBatch {
   pendingRecordBatch: Stream<unknown>;
   writer: ExportWriter;
   headers: string[];
+  /** The readable wording of each field, absent for a raw export. */
+  columns?: ReadableColumn[];
+}
+
+function tableViewMetaOf(controller: DataControllerThis) {
+  return GetMetadata(
+    // The source and the target do not overlap, so this cannot be one
+    // assertion: the value reaches here through a decorator, a JWT
+    // payload or a filter tuple, none of which the type system sees.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+    (controller as unknown as { constructor: never }).constructor,
+    TableViewMeta,
+  );
 }
 
 async function processBatch({
@@ -73,6 +92,7 @@ async function processBatch({
   pendingRecordBatch,
   writer,
   headers,
+  columns,
 }: ExportBatch): Promise<void> {
   const dbResult = await pendingRecordBatch;
   const results = await Promise.all(
@@ -88,7 +108,10 @@ async function processBatch({
   Validation.ClearInternal(controllerMetadata, results);
 
   for (const recordData of results) {
-    writer.appendRow(headers, recordData);
+    writer.appendRow(
+      headers,
+      columns ? readableRow(columns, recordData) : recordData,
+    );
   }
 }
 
@@ -114,14 +137,7 @@ async function buildIdsExportQuery(
   user: User | undefined,
 ) {
   const model = Query.GetModel(controller, controllerMetadata);
-  const tableViewMetadata = GetMetadata(
-    // The source and the target do not overlap, so this cannot be one
-    // assertion: the value reaches here through a decorator, a JWT
-    // payload or a filter tuple, none of which the type system sees.
-    // oxlint-disable-next-line anti-slop/no-chained-type-assertions
-    (controller as unknown as { constructor: never }).constructor,
-    TableViewMeta,
-  );
+  const tableViewMetadata = tableViewMetaOf(controller);
   const idField = tableViewMetadata?.options?.rowIdKey || DEFAULT_ROW_ID_FIELD;
   const archiveField = tableViewMetadata?.archiveField;
 
@@ -152,7 +168,12 @@ async function buildIdsExportQuery(
     }
   }
 
-  return { query, queryTotal: query.count(), model };
+  return {
+    query,
+    queryTotal: query.count(),
+    model,
+    deferredJoined: undefined,
+  };
 }
 
 /** What the export reads from. */
@@ -182,6 +203,7 @@ async function buildExportQuery({
     query: built.query,
     queryTotal: built.queryTotal,
     model: built.model,
+    deferredJoined: built.deferredJoined,
   };
 }
 
@@ -218,7 +240,8 @@ export interface ExportRun {
 
 /**
  * Streams every row matched by an export request into `writer`, one page of
- * {@link EXPORT_BATCH_SIZE} rows at a time.
+ * {@link EXPORT_BATCH_SIZE} rows at a time: worded for a reader, unless the
+ * table view asks for the stored values (`TableViewOptions.exportValues`).
  */
 export async function generateTableViewExport({
   controller,
@@ -232,10 +255,18 @@ export async function generateTableViewExport({
   const controllerMetadata = GetDataControllerMeta(controller);
   const selectedFields = getPluckFields(controllerMetadata, listParams);
   const headers = Array.from(selectedFields ?? []);
+  const columns = readableExportColumns(
+    tableViewMetaOf(controller),
+    headers,
+    ctx,
+    user,
+  );
 
-  writer.writeHeaders(headers);
+  writer.writeHeaders(
+    columns ? columns.map((column) => column.header) : headers,
+  );
 
-  const { query, queryTotal, model } = await buildExportQuery({
+  const built = await buildExportQuery({
     controller,
     controllerMetadata,
     ctx,
@@ -243,6 +274,16 @@ export async function generateTableViewExport({
     ids,
     user,
   });
+  const { queryTotal, model } = built;
+  const pluck = listParams.noPluck ? undefined : selectedFields;
+  // A readable export names a related row as the grid does: through the list
+  // route's joins, one lookup per page rather than one per row.
+  const query = columns
+    ? Query.Foreign(model.database, controllerMetadata, built.query, pluck)
+    : built.query;
+  const joinedFields = columns
+    ? joinedExportFields(built.deferredJoined, pluck)
+    : undefined;
 
   const totalRecordsCount = await queryTotal;
 
@@ -250,6 +291,15 @@ export async function generateTableViewExport({
     // `Stream.slice` takes (offset, count), not (start, end): passing an end
     // index grows every page and re-reads rows the previous one wrote.
     let pendingRecordBatch = query.slice(i, EXPORT_BATCH_SIZE);
+
+    if (joinedFields && joinedFields.size > 0) {
+      pendingRecordBatch = Query.Joined(
+        model.database,
+        controllerMetadata,
+        pendingRecordBatch,
+        joinedFields,
+      );
+    }
 
     if (!listParams.noPluck && selectedFields) {
       pendingRecordBatch = pendingRecordBatch.pluck(
@@ -265,6 +315,7 @@ export async function generateTableViewExport({
       pendingRecordBatch,
       writer,
       headers,
+      columns,
     });
 
     if (totalRecordsCount > 0) {

@@ -101,6 +101,13 @@ real one first: `@antelopejs/interface-dms/data-controllers` (`members`); guide 
 `docs/04.components/11.data-controller.md` (+ `08.tables/`). Database rows carry **`_id`**
 as the primary key — return and type it as `_id`, never alias to `id`.
 
+The table's CSV export writes the `@Exported` fields **for a reader** by default: each
+column's translated `name` as its header, a relation's `keyMapping.label`, a select's option
+label, a localized date, Yes / No, a percentage with its sign; numbers and prices stay
+numeric. Give every exported field a `@Column` with a `$`-key `name`, and set
+`exportValues: "raw"` on the `TableView` only when another program reads the file back
+(stored values under the field keys).
+
 ## DataTypes
 
 A field's `type` is a **DataType instance**: `new DefaultDataTypes.StringType({ … })`; the same
