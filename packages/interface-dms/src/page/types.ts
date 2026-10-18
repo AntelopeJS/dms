@@ -458,6 +458,10 @@ export type PageLayoutHandler = (
   memberModel: TenantMemberModel,
   roleModel: RoleModel,
   tenantId: string,
-  /** The query of the page URL, handed to header-button availability. */
-  query?: Readonly<Record<string, string>>,
+  // `query`: the query of the page URL, handed to header-button availability;
+  // `params`: its route parameters (`:id`), handed along with it.
+  ...page: [
+    query?: Readonly<Record<string, string>>,
+    params?: Readonly<Record<string, string>>,
+  ]
 ) => Promise<PageLayout>;
