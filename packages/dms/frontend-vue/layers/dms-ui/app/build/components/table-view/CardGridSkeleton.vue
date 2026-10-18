@@ -19,6 +19,11 @@ interface CardGridSkeletonProps {
   labelClass?: string;
   /** The narrowest card, a CSS length: the table's `card.minWidth`. */
   minWidth?: string;
+  /**
+   * The height of a card, a CSS length: the table's `card.skeletonHeight`,
+   * for a custom card taller than the built-in one.
+   */
+  cardHeight?: string;
 }
 
 const props = withDefaults(defineProps<CardGridSkeletonProps>(), {
@@ -45,6 +50,7 @@ const { t } = useI18n();
       v-for="n in cardCount"
       :key="n"
       class="border-default @container rounded-[10px] border bg-(--ui-bg) p-3.5 text-[12.5px]"
+      :style="props.cardHeight ? { minHeight: props.cardHeight } : undefined"
     >
       <div class="flex items-center gap-2.5">
         <USkeleton

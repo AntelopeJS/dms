@@ -299,6 +299,23 @@ describe("[unit] interfaces/dms-base — table view reduced chrome & expandable 
     });
   });
 
+  it("hands the cards display the card's skeleton height", () => {
+    const options = optionsOf(
+      TableView(StatusOrderAPI, {
+        realtime: false,
+        card: { skeletonHeight: "260px" },
+        displays: [{ id: "cards" }],
+      }),
+    );
+    expect(options.displays?.[0]?.options).to.deep.equal({
+      card: {
+        fields: undefined,
+        component: undefined,
+        skeletonHeight: "260px",
+      },
+    });
+  });
+
   it("refuses a card field the controller lacks", () => {
     expect(() =>
       TableView(OrderAPI, { realtime: false, card: { fields: ["nope"] } }),

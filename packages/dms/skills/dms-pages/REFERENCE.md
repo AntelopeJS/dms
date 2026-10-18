@@ -166,6 +166,9 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 - A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
   default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A `cards` display whose `card.component` is taller than the built-in card sets
+  `card.skeletonHeight` to its height (a CSS length): the loading placeholder takes it, so the
+  pagination footer does not drop when the cards land.
 
 ### Forms
 

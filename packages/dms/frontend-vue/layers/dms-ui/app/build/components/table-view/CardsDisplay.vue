@@ -132,6 +132,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
       :min-width="card?.minWidth"
+      :card-height="card?.skeletonHeight"
     />
 
     <TableEmpty
@@ -172,6 +173,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
           :count="props.context.pagination.pageSize"
           :fields="fieldColumns.length"
           :min-width="card?.minWidth"
+          :card-height="card?.skeletonHeight"
         />
       </template>
     </Suspense>

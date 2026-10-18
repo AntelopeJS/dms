@@ -551,6 +551,14 @@ export interface TableViewCardOptions {
    * short to fill a row stretches its cards up to twice that width.
    */
   minWidth?: string;
+  /**
+   * `cards` display only: the height of a placeholder card while the page
+   * loads, as a CSS length (`"260px"`). Left out, a placeholder is as tall as
+   * the built-in card. A `component` taller than that sets it to its own
+   * height, so the pagination footer below the grid stands where the loaded
+   * cards put it. The cards themselves keep their own height.
+   */
+  skeletonHeight?: string;
 }
 
 /** The card of the `kanban` and `cards` displays as it reaches the client. */
@@ -558,6 +566,7 @@ export interface TableViewCardOptionsSerialized {
   fields?: string[];
   component?: ComponentInfoSerialized;
   minWidth?: string;
+  skeletonHeight?: string;
 }
 
 /** The kanban options as its display entry carries them. */
