@@ -25,6 +25,7 @@ import type { ModuleCatalogEntry } from "../types/page";
 import {
   MODULE_CATEGORY_ALL,
   filterModules,
+  parseModuleSortMode,
   findModulePageMatch,
   moduleCategoryOptions,
   sortModules,
@@ -61,7 +62,7 @@ import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { processI18n } = useTranslation();
 const { keyLabel } = useKeyboardPlatform();
 const isOwner = useIsOwner();
@@ -173,7 +174,14 @@ const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 // ── Search, category, sort ─────────────────────────────────────────
 const query = ref("");
 const category = ref<string>(MODULE_CATEGORY_ALL);
-const sortMode = ref<ModuleSortMode>("recent");
+// Remembered per browser in the preferences cookie, so the server renders the
+// grid in the order the browser hydrates it with.
+const SORT_MODE_PREFERENCE_KEY = "modulesPage.sort";
+const { getPreference, setPreference } = usePreferences();
+const sortMode = computed<ModuleSortMode>({
+  get: () => parseModuleSortMode(getPreference(SORT_MODE_PREFERENCE_KEY)),
+  set: (mode) => setPreference(SORT_MODE_PREFERENCE_KEY, mode),
+});
 
 const categoryOptions = computed(() => [
   {
@@ -192,8 +200,8 @@ watch(categoryOptions, (options) => {
 });
 
 const sortItems = computed(() => [
-  { value: "recent", label: t("modules.sort.recent") },
   { value: "name", label: t("modules.sort.name") },
+  { value: "recent", label: t("modules.sort.recent") },
 ]);
 
 const visibleModules = computed(() =>
@@ -206,6 +214,7 @@ const visibleModules = computed(() =>
     sortMode.value,
     visitedAt.value,
     processI18n,
+    locale.value,
   ),
 );
 
@@ -248,6 +257,7 @@ const storeModules = computed(() =>
       toModuleStoreEntry(entry, modulesListing.modules.value ?? []),
     ),
     processI18n,
+    locale.value,
   ),
 );
 const storeScope = ref<StoreScope>("all");

@@ -8,7 +8,9 @@ import {
   MODULE_CATEGORY_OTHER,
   filterModules,
   findModulePageMatch,
+  DEFAULT_MODULE_SORT_MODE,
   moduleCategoryOptions,
+  parseModuleSortMode,
   sortModules,
   summarizeModules,
 } from "../layers/dms-layout/app/build/utils/modules-catalog";
@@ -99,6 +101,40 @@ describe("sortModules", () => {
     expect(
       sortModules(modules, "name", visitedAt, resolve).map((m) => m.id),
     ).toEqual(["ai", "automation", "database", "legacy", "media"]);
+  });
+
+  it("orders shown names as the locale does, accents only breaking ties", () => {
+    const titled = [
+      entry("media", { title: "Médiathèque" }),
+      entry("mailing", { title: "Mailing" }),
+      entry("marketing", { title: "marketing" }),
+      entry("zones", { title: "Zones" }),
+    ];
+    expect(
+      sortModules(titled, "name", new Map(), resolve, "fr-FR").map((m) => m.id),
+    ).toEqual(["mailing", "marketing", "media", "zones"]);
+  });
+
+  it("falls back to the runtime's order for an unknown locale", () => {
+    expect(
+      sortModules(modules, "name", new Map(), resolve, "not a locale!").map(
+        (m) => m.id,
+      ),
+    ).toEqual(["ai", "automation", "database", "legacy", "media"]);
+  });
+});
+
+describe("parseModuleSortMode", () => {
+  it("opens alphabetical, keeping a remembered choice", () => {
+    expect(DEFAULT_MODULE_SORT_MODE).toBe("name");
+    expect(parseModuleSortMode(undefined)).toBe("name");
+    expect(parseModuleSortMode("recent")).toBe("recent");
+    expect(parseModuleSortMode("name")).toBe("name");
+  });
+
+  it("reads a tampered value as the default", () => {
+    expect(parseModuleSortMode("oldest")).toBe("name");
+    expect(parseModuleSortMode({ mode: "recent" })).toBe("name");
   });
 });
 

@@ -12,6 +12,18 @@ export const MODULE_CATEGORY_ALL = "";
 
 export type ModuleSortMode = "recent" | "name";
 
+/** The order the installed modules open in until the user picks another. */
+export const DEFAULT_MODULE_SORT_MODE: ModuleSortMode = "name";
+
+const MODULE_SORT_MODES: readonly ModuleSortMode[] = ["name", "recent"];
+
+/** A remembered sort mode, or the default when it is missing or unknown. */
+export function parseModuleSortMode(value: unknown): ModuleSortMode {
+  return (
+    MODULE_SORT_MODES.find((mode) => mode === value) ?? DEFAULT_MODULE_SORT_MODE
+  );
+}
+
 /** Turns a display string (possibly a `$i18n.key`) into the shown text. */
 export type DisplayResolver = (value: string) => string;
 
@@ -136,17 +148,35 @@ export function filterModules<T extends FilterableModule>(
 }
 
 /**
+ * Compares shown names as `locale` orders them: accents and case only break
+ * ties ("Mailing", "Marketing", "Médiathèque"), and digits read as numbers.
+ * An unknown locale falls back to the runtime's own.
+ */
+export function compareDisplayNames(
+  locale?: string,
+): (a: string, b: string) => number {
+  const options: Intl.CollatorOptions = { numeric: true };
+  try {
+    return new Intl.Collator(locale, options).compare;
+  } catch {
+    return new Intl.Collator(undefined, options).compare;
+  }
+}
+
+/**
  * `recent`: most recently opened first, never-opened modules after them by
- * name. `name`: alphabetical.
+ * name. `name`: alphabetical by shown name, in `locale`'s order.
  */
 export function sortModules(
   entries: readonly ModuleCatalogEntry[],
   mode: ModuleSortMode,
   visitedAt: ReadonlyMap<string, number>,
   resolve: DisplayResolver,
+  locale?: string,
 ): ModuleCatalogEntry[] {
+  const compare = compareDisplayNames(locale);
   const byName = (a: ModuleCatalogEntry, b: ModuleCatalogEntry) =>
-    resolve(a.title).localeCompare(resolve(b.title));
+    compare(resolve(a.title), resolve(b.title));
   return [...entries].sort((a, b) => {
     if (mode === "recent") {
       const delta = (visitedAt.get(b.id) ?? -1) - (visitedAt.get(a.id) ?? -1);

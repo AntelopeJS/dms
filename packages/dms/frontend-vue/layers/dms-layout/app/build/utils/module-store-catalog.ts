@@ -6,7 +6,7 @@ import type {
   StoreModuleState,
   StoreOperationKind,
 } from "../../types/module-store";
-import type { DisplayResolver } from "./modules-catalog";
+import { type DisplayResolver, compareDisplayNames } from "./modules-catalog";
 
 /** A store module as the Modules page filters and draws it. */
 export type ModuleStoreEntry = StoreListingEntry & {
@@ -143,13 +143,15 @@ export function filterByScope<T extends StoreListingEntry>(
   return entries.filter((entry) => isInstalled(entry) === wantsInstalled);
 }
 
-/** The store modules, alphabetical by their shown name. */
+/** The store modules, alphabetical by their shown name in `locale`'s order. */
 export function sortStoreModules<T extends StoreListingEntry>(
   entries: readonly T[],
   resolve: DisplayResolver,
+  locale?: string,
 ): T[] {
+  const compare = compareDisplayNames(locale);
   return [...entries].sort((a, b) =>
-    resolve(a.title).localeCompare(resolve(b.title)),
+    compare(resolve(a.title), resolve(b.title)),
   );
 }
 
