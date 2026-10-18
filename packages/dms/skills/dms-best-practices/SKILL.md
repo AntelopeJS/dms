@@ -74,4 +74,5 @@ The protocol is done when every visibly different component has an answer and ev
 - Every page field and child is a DMS block, except custom blocks the user chose through the path.
 - Every `CustomComponent` has `.meta({ name, description, icon })` with `$` keys present in every locale file.
 - Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
+- Publish tenant data with the tenant id: a `PublishMessage` about one workspace's data passes `{ tenantId }`, or it wakes the page of every workspace.
 - Verified live with **dms-project** (the build only typechecks `src/`).
