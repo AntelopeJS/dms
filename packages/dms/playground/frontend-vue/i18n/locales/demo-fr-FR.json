@@ -220,6 +220,12 @@
       "code": {
         "generated": "Configuration du préréglage, générée le {at}"
       },
+      "editorial": {
+        "eyebrow": "Blocs éditoriaux",
+        "title": "Racontez *votre tableau de bord*",
+        "lead": "Ouvrez une page d’accueil ou d’onboarding avec un titre, une introduction, des actions et quelques chiffres, puis écrivez le texte long en Markdown.",
+        "teams": "{count} équipes"
+      },
       "live": {
         "new_requests": "{count} nouvelle requête | {count} nouvelles requêtes",
         "in_5xx": "{count} en 5xx",

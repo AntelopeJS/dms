@@ -346,6 +346,17 @@ export class BlocksDemoApiController extends Controller("/api/blocks") {
     return later({ code: JSON.stringify(preset, null, 2), language: "json" });
   }
 
+  // The Prose demo reads `{ markdown }` in the language the request names.
+  @Get("prose")
+  getProse(@Parameter("x-content-language", "header") language?: string) {
+    const isFrench = language?.toLowerCase().startsWith("fr");
+    const time = new Date().toLocaleTimeString(isFrench ? "fr-FR" : "en-GB");
+    const markdown = isFrench
+      ? `## Lu depuis une route\n\nCe texte vient de \`/api/blocks/prose\`, demandé en **${language}** à ${time}.`
+      : `## Read from a route\n\nThis text comes from \`/api/blocks/prose\`, asked in **${language ?? "the default language"}** at ${time}.`;
+    return later({ markdown });
+  }
+
   @Get("provider-status")
   getProviderStatus() {
     return later(isProviderDown ? providerOutage() : null);

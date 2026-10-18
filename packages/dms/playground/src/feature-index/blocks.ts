@@ -10,6 +10,7 @@ const ACTIVITY = "/blocks/blocks-activity";
 const METERS = "/blocks/blocks-meters";
 const SETTINGS = "/blocks/blocks-settings";
 const CODE = "/blocks/blocks-code";
+const EDITORIAL = "/blocks/blocks-editorial";
 const GUARD = "/blocks/blocks-guard";
 const LIVE = "/blocks/blocks-live";
 const RECORD = "/blocks/blocks-record";
@@ -686,6 +687,45 @@ const EMPTY_AND_CODE_FEATURES: PlaygroundFeature[] = [
   feature("Placeholder box", "Placeholder({ label, height, width })", HSTACK),
 ];
 
+const EDITORIAL_FEATURES: PlaygroundFeature[] = [
+  feature(
+    "Hero headline with highlighted words",
+    'Hero({ eyebrow, title: "… *words* …", highlight, lead })',
+    EDITORIAL,
+  ),
+  feature(
+    "Hero actions and figures",
+    "Hero({ actions, proof: [{ value, label }] })",
+    EDITORIAL,
+  ),
+  feature(
+    "Hero image or icon composition, beside or below",
+    "Hero({ image, imageAlt, icons, mediaPosition })",
+    EDITORIAL,
+  ),
+  feature(
+    "Hero alignment, size and background",
+    'Hero({ align: "center", size: "md", background: "card" })',
+    EDITORIAL,
+  ),
+  feature(
+    "Markdown text with callouts, code, tables and task lists",
+    "Prose({ content })",
+    EDITORIAL,
+  ),
+  feature("Prose table of contents", "Prose({ toc: true })", EDITORIAL),
+  feature(
+    "Prose text per locale",
+    'Prose({ content: { "en-GB": …, "fr-FR": … } })',
+    EDITORIAL,
+  ),
+  feature(
+    "Prose read from a route in the reader's language",
+    "Prose({ fetchUrl })",
+    EDITORIAL,
+  ),
+];
+
 const GUARD_FEATURES: PlaygroundFeature[] = [
   feature(
     "Empty state in place of blocks while a value is empty",
@@ -1325,6 +1365,7 @@ export const BLOCKS_FEATURES: PlaygroundFeature[] = [
   ...BANNER_FEATURES,
   ...CONTAINER_FEATURES,
   ...EMPTY_AND_CODE_FEATURES,
+  ...EDITORIAL_FEATURES,
   ...GUARD_FEATURES,
   ...LAYOUT_FEATURES,
   ...TAB_FEATURES,

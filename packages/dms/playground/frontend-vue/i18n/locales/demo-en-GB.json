@@ -220,6 +220,12 @@
       "code": {
         "generated": "Preset configuration, generated {at}"
       },
+      "editorial": {
+        "eyebrow": "Editorial blocks",
+        "title": "Tell the story of *your dashboard*",
+        "lead": "Open a landing or onboarding page with a headline, a lead, actions and a few figures, then write the long text in Markdown.",
+        "teams": "{count} teams"
+      },
       "live": {
         "new_requests": "{count} new request | {count} new requests",
         "in_5xx": "{count} in 5xx",
