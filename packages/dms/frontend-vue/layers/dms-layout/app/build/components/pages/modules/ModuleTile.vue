@@ -36,7 +36,11 @@ interface ModuleTileSlots {
   readout?: () => unknown;
   /** Under the description (an install command). */
   default?: () => unknown;
-  /** The footer band's content. */
+  /**
+   * The footer band's content. The band wraps: a facts group (version,
+   * source, category) kept whole, then actions pushed to the end with
+   * `ms-auto`, which drop to a second line when both do not fit.
+   */
   footer: () => unknown;
 }
 
@@ -51,7 +55,7 @@ const theme = tv({
   slots: {
     root: "flex min-h-[228px] flex-col gap-3 overflow-hidden px-4 pt-4",
     footer:
-      "text-dimmed -mx-4 mt-auto flex items-center gap-2 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
+      "text-dimmed -mx-4 mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-(--ui-border-muted) ps-4 pe-3 font-mono text-[11px] font-medium",
   },
   variants: {
     isPlaceholder: {

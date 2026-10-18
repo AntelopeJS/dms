@@ -29,8 +29,11 @@ import {
 // tile among the installed modules, the one place a module is managed.
 
 const SKELETON_PLACEHOLDER_COUNT = 6;
+// Wider than the installed grid's tiles: a store tile is read, not scanned,
+// so three columns on a laptop give its description and footer room. The
+// min() keeps one column from overflowing a phone.
 const TILE_GRID_CLASS =
-  "grid grid-cols-[repeat(auto-fill,minmax(268px,1fr))] gap-4";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-4";
 const TOOLBAR_CLASS = "mb-[18px] flex flex-wrap items-center gap-2.5";
 
 const { t, locale } = useI18n();

@@ -40,6 +40,7 @@ const { processI18n } = useTranslation();
 
 const TOOLTIP_CONTENT = { side: "top", sideOffset: 6 } as const;
 const INSTALLED_STATUS = { tone: "primary", dot: "none" } as const;
+const FOOTER_FACTS_CLASS = "flex min-w-0 items-center gap-2";
 
 const isInstalledHere = computed(() => isInstalled(props.entry));
 const isOperating = computed(() => props.entry.operation !== undefined);
@@ -117,21 +118,24 @@ const versionLabel = computed(() => {
     </template>
 
     <template #footer>
-      <!-- v0.5.0 · npm · Content, as on an installed module's tile. -->
-      <span
-        v-if="versionLabel"
-        class="shrink-0"
-        :class="props.entry.updateAvailable ? 'text-(--ui-warning)' : ''"
-      >
-        {{ versionLabel }}
-      </span>
-      <template v-if="props.entry.source">
-        <span v-if="versionLabel" aria-hidden="true">·</span>
-        <ModuleSourceLabel :source="props.entry.source" />
-      </template>
-      <span class="min-w-0 truncate">
-        <template v-if="versionLabel || props.entry.source">·</template>
-        {{ processI18n(props.entry.catalogCategory) }}
+      <!-- v0.5.0 · npm · Content, as on an installed module's tile, and
+           kept whole the same way. -->
+      <span :class="FOOTER_FACTS_CLASS">
+        <span
+          v-if="versionLabel"
+          class="shrink-0"
+          :class="props.entry.updateAvailable ? 'text-(--ui-warning)' : ''"
+        >
+          {{ versionLabel }}
+        </span>
+        <template v-if="props.entry.source">
+          <span v-if="versionLabel" aria-hidden="true">·</span>
+          <ModuleSourceLabel :source="props.entry.source" />
+        </template>
+        <span class="min-w-0 truncate">
+          <template v-if="versionLabel || props.entry.source">·</template>
+          {{ processI18n(props.entry.catalogCategory) }}
+        </span>
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
         <!-- An update is made where the module is managed. -->
