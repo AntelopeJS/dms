@@ -73,6 +73,7 @@ The protocol is done when every visibly different component has an answer and ev
 
 - Every page field and child is a DMS block, except custom blocks the user chose through the path.
 - Every `CustomComponent` has `.meta({ name, description, icon })` with `$` keys present in every locale file.
+- Every automation node a module registers names itself, its description and each schema property's `title` and `description` with `$` keys present in every locale file (`docs/02.building/06.backend-services.md`, Texts in the builder).
 - Locale values escape vue-i18n's special characters as literals (`{'@'}`, `{'{'}`, `{'}'}`, `{'|'}`): a raw `@` or brace breaks the message's compilation (`docs/02.building/07.localization.md`, Special characters).
 - Data comes from routes (`fetchUrl`) rather than options computed at registration; a custom block reads its route with `useApiData` (server-rendered, refreshed with the page) and writes with `$authFetch`.
 - Verified live with **dms-project** (the build only typechecks `src/`).

@@ -12,9 +12,11 @@ import {
 } from "@antelopejs/interface-dms/invites";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
 import type { ActionType } from "@antelopejs/interface-dms-automation";
+import { fieldHint, nodeText, titledProperties } from "./i18n";
 import { sendNotificationAction } from "./send-notification";
 
 export const SEND_EMAIL_ACTION_ID = "dms.send-email";
+const SEND_EMAIL_TEXTS = "actions.sendEmail";
 
 interface SendEmailInput {
   to: string;
@@ -60,41 +62,38 @@ async function emailBody(input: SendEmailInput): Promise<string> {
 
 const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
   id: SEND_EMAIL_ACTION_ID,
-  name: "Send email",
-  description:
-    "Send an HTML email through the configured email provider, written out or rendered from a registered HTML template",
+  name: nodeText(SEND_EMAIL_TEXTS, "name"),
+  description: nodeText(SEND_EMAIL_TEXTS, "description"),
   icon: "i-ph-envelope-simple",
   inputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       to: { type: "string" },
       subject: { type: "string" },
       html: { type: "string" },
       template: {
         type: "string",
-        description:
-          "Name of a registered HTML template to render instead of html",
+        description: fieldHint(SEND_EMAIL_TEXTS, "template"),
       },
       props: {
         type: "object",
-        description: "Props the template is rendered with",
+        description: fieldHint(SEND_EMAIL_TEXTS, "props"),
       },
       language: {
         type: "string",
-        description:
-          "Language the template is rendered in; defaults to the recipient's when the address belongs to a user",
+        description: fieldHint(SEND_EMAIL_TEXTS, "language"),
       },
-    },
+    }),
     required: ["to", "subject"],
     anyOf: [{ required: ["html"] }, { required: ["template"] }],
   },
   outputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       success: { type: "boolean" },
       messageId: { type: "string" },
       error: { type: "string" },
-    },
+    }),
   },
   async execute(input, ctx) {
     const result = await Send({
@@ -114,6 +113,7 @@ const sendEmailAction: ActionType<SendEmailInput, SendEmailOutput> = {
 };
 
 export const INVITE_USER_ACTION_ID = "dms.invite-user";
+const INVITE_USER_TEXTS = "actions.inviteUser";
 
 interface InviteUserInput {
   email: string;
@@ -155,42 +155,40 @@ function invitationDetails(input: InviteUserInput): InvitationDetails {
 
 const inviteUserAction: ActionType<InviteUserInput, InviteUserOutput> = {
   id: INVITE_USER_ACTION_ID,
-  name: "Invite user",
-  description:
-    "Invite an email address to a tenant: existing users are added as members directly, otherwise an invite is created (and its signup email sent unless sendEmail is false)",
+  name: nodeText(INVITE_USER_TEXTS, "name"),
+  description: nodeText(INVITE_USER_TEXTS, "description"),
   icon: "i-ph-user-plus",
   inputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       email: { type: "string" },
       tenantId: {
         type: "string",
-        description: "Tenant to invite into; defaults to the default tenant",
+        description: fieldHint(INVITE_USER_TEXTS, "tenantId"),
       },
       roleIds: { type: "array", items: { type: "string" } },
       asTenantOwner: { type: "boolean", default: false },
       sendEmail: { type: "boolean", default: true },
       language: {
         type: "string",
-        description:
-          "Language of the invitation email and of the account it creates; defaults to en",
+        description: fieldHint(INVITE_USER_TEXTS, "language"),
       },
       firstname: { type: "string" },
       lastname: { type: "string" },
       inviterName: {
         type: "string",
-        description: "Who the invitation email says it comes from",
+        description: fieldHint(INVITE_USER_TEXTS, "inviterName"),
       },
-    },
+    }),
     required: ["email"],
   },
   outputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       kind: { type: "string", enum: ["added", "invited", "already-member"] },
       userId: { type: "string" },
       inviteId: { type: "string" },
-    },
+    }),
   },
   async execute(input, ctx) {
     const tenantId = input.tenantId?.trim() || DEFAULT_TENANT_ID;

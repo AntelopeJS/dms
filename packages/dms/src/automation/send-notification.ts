@@ -11,8 +11,10 @@ import type {
   ActionType,
   ExecutionCtx,
 } from "@antelopejs/interface-dms-automation";
+import { fieldHint, nodeText, titledProperties } from "./i18n";
 
 export const SEND_NOTIFICATION_ACTION_ID = "dms.send-notification";
+const SEND_NOTIFICATION_TEXTS = "actions.sendNotification";
 
 const DEFAULT_NOTIFICATION_ICON = "i-ph-bell";
 
@@ -164,46 +166,42 @@ export const sendNotificationAction: ActionType<
   SendNotificationOutput
 > = {
   id: SEND_NOTIFICATION_ACTION_ID,
-  name: "Send notification",
-  description:
-    "Send an in-app notification to specific users and/or every user holding one of the given roles",
+  name: nodeText(SEND_NOTIFICATION_TEXTS, "name"),
+  description: nodeText(SEND_NOTIFICATION_TEXTS, "description"),
   icon: DEFAULT_NOTIFICATION_ICON,
   inputSchema: {
     type: "object",
-    properties: {
+    properties: titledProperties({
       userId: {
         type: "string",
-        description: "One recipient, e.g. a trigger's userId",
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "userId"),
       },
       userIds: { type: "array", items: { type: "string" } },
       roleIds: { type: "array", items: { type: "string" } },
       tenantId: {
         type: "string",
-        description:
-          "Tenant whose members receive the roleIds notification; leave empty to match the roles in every tenant",
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "tenantId"),
       },
       title: {
         type: "string",
-        description: 'Literal text, or a "$" translation key',
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "title"),
       },
       description: {
         type: "string",
-        description: 'Literal text, or a "$" translation key',
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "description"),
       },
       params: {
         type: "object",
-        description:
-          "Interpolation params of the title and description translations",
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "params"),
       },
       tone: { type: "string", enum: [...NOTIFICATION_TONES] },
       icon: { type: "string" },
       linkTo: { type: "string" },
       idempotencyKey: {
         type: "string",
-        description:
-          "Stable event key, e.g. a trigger's deliveryId: a replayed event is delivered once",
+        description: fieldHint(SEND_NOTIFICATION_TEXTS, "idempotencyKey"),
       },
-    },
+    }),
     required: ["title"],
     anyOf: [
       { required: ["userId"] },
@@ -213,7 +211,7 @@ export const sendNotificationAction: ActionType<
   },
   outputSchema: {
     type: "object",
-    properties: { ok: { type: "boolean" } },
+    properties: titledProperties({ ok: { type: "boolean" } }),
   },
   async execute(input, ctx) {
     const { userIds, roleIds } = collectRecipients(input);
