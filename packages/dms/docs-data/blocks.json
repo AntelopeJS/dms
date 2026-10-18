@@ -10011,6 +10011,27 @@
             "group": "advanced"
           }
         },
+        "realtimeTopic": {
+          "type": "union",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ],
+          "optional": true,
+          "description": "Topics whose events make the block read its data again.",
+          "ui": {
+            "label": "Realtime topics",
+            "group": "data",
+            "advanced": true
+          }
+        },
         "valueFormat": {
           "type": "string",
           "enum": [
