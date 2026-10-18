@@ -4,7 +4,8 @@
  * interface gives it: every segment named in full whatever it shows (a short
  * code, the custom preset's calendar icon alone), and the comparison menu
  * drawn as soon as the period offers more than one choice, as tall as the
- * other controls.
+ * other controls, naming the compared window that the range label then leaves
+ * out.
  */
 import { createApp, h, nextTick, ref, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,6 +82,13 @@ const segments = () => [
   ...host.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
 ];
 const comparisonMenu = () => host.querySelector("[data-menu]");
+const menuTrigger = () => comparisonMenu()?.querySelector("button");
+const rangeLabel = () =>
+  host.querySelector(".dms-period-selector__range")?.textContent?.trim();
+
+// Local noon: the last 24 hours and the windows they are compared with stay
+// clear of midnight, whatever zone the suite runs in.
+const NOW = new Date(2026, 9, 18, 13, 57);
 
 beforeEach(() => {
   vi.stubGlobal("useI18n", () => ({ t, locale: ref("en-GB") }));
@@ -159,5 +167,75 @@ describe("its comparison", () => {
     expect(options.comparisonControl).toBe("hidden");
     expect(comparisonMenu()).toBeNull();
     expect(host.textContent).toContain("dms.period.popover.vs");
+  });
+});
+
+describe("its comparison menu", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("names the window of the previous period, its days alone", async () => {
+    await mountPeriod({
+      id: "sales",
+      comparisons: ["previous-period", "previous-year", "none"],
+    });
+    expect(menuTrigger()?.textContent?.trim()).toBe(
+      "dms.period.popover.vs 16 – 17 Oct",
+    );
+    expect(menuTrigger()?.getAttribute("title")).toBe(
+      "dms.period.comparisons.previous-period",
+    );
+    expect(menuTrigger()?.getAttribute("aria-label")).toBe(
+      "dms.period.comparison_aria: dms.period.comparisons.previous-period, 16 – 17 Oct",
+    );
+  });
+
+  it("names the window of the previous year, with its year", async () => {
+    await mountPeriod({
+      id: "sales",
+      comparisons: ["previous-period", "previous-year", "none"],
+      defaultComparison: "previous-year",
+    });
+    expect(menuTrigger()?.textContent?.trim()).toBe(
+      "dms.period.popover.vs 17 – 18 Oct 2025",
+    );
+    expect(menuTrigger()?.getAttribute("title")).toBe(
+      "dms.period.comparisons.previous-year",
+    );
+  });
+
+  it("reads the no-comparison option when nothing is compared", async () => {
+    await mountPeriod({
+      id: "sales",
+      comparisons: ["previous-period", "previous-year", "none"],
+      defaultComparison: "none",
+    });
+    expect(menuTrigger()?.textContent?.trim()).toBe(
+      "dms.period.comparisons.none",
+    );
+    expect(menuTrigger()?.getAttribute("aria-label")).toBe(
+      "dms.period.comparison_aria: dms.period.comparisons.none",
+    );
+  });
+
+  it("leaves the compared window out of the range label", async () => {
+    await mountPeriod({
+      id: "sales",
+      comparisons: ["previous-period", "previous-year", "none"],
+    });
+    expect(rangeLabel()).toBe("dms.period.since");
+  });
+
+  it("is not there to take it for a single comparison", async () => {
+    await mountPeriod({ id: "sales", comparisons: ["previous-period"] });
+    expect(rangeLabel()).toMatch(
+      /^dms\.period\.since\s+·\s+dms\.period\.popover\.vs\s+16 Oct, \d{2}:\d{2} – 17 Oct, \d{2}:\d{2}$/,
+    );
   });
 });

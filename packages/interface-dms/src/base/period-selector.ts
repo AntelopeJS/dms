@@ -120,8 +120,10 @@ export interface PeriodSelectorProps extends BaseComponentProps {
   /**
    * How the comparisons are offered (see {@link PeriodComparisonControl}).
    * Defaults to `toggle` when `comparisons` offers a single comparison
-   * besides `none`, `menu` otherwise. The toggle switches between that
-   * comparison and `none`; `hidden` keeps the comparison on
+   * besides `none`, `menu` otherwise. The menu's trigger names the compared
+   * window ("vs 16 – 17 Oct", the option's name in its tooltip), and the
+   * window beside it then leaves its "vs …" part out. The toggle switches
+   * between that comparison and `none`; `hidden` keeps the comparison on
    * (`defaultComparison`, else the first one offered besides `none`).
    */
   comparisonControl?: PeriodComparisonControl;

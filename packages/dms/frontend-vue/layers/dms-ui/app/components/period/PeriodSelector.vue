@@ -25,6 +25,7 @@ import {
   type CalendarRange,
   type CalendarRangeAnchor,
   calendarToRange,
+  formatPeriodDays,
   formatPeriodRange,
   formatRelativeInstant,
   limitCalendarRange,
@@ -431,16 +432,51 @@ function comparisonKeyClass(active: boolean): string {
   return active ? COMPARISON_KEY_ACTIVE : COMPARISON_KEY_NONE;
 }
 
-function compareRangeText(compare: PeriodRange, main: PeriodRange): string {
-  // In the reader's calendar, on the server as in the browser.
+// The year of a comparison range is noise when it is the main one's, in the
+// reader's calendar, on the server as in the browser.
+function isSameYear(compare: PeriodRange, main: PeriodRange): boolean {
   const clock = readerClock();
-  const sameYear = clock.wall(compare.to).year === clock.wall(main.to).year;
-  return formatPeriodRange(compare, locale.value, !sameYear);
+  return clock.wall(compare.to).year === clock.wall(main.to).year;
+}
+
+function compareRangeText(compare: PeriodRange, main: PeriodRange): string {
+  return formatPeriodRange(compare, locale.value, !isSameYear(compare, main));
 }
 
 const compareRangeLabel = computed(() => {
   const { compareRange, range } = period.state.value;
   return compareRange && range ? compareRangeText(compareRange, range) : null;
+});
+
+// A menu names the compared window itself ("vs 16 – 17 Oct"), so the range
+// label beside it keeps the current window only: said twice, the comparison
+// wrapped the toolbar. The option's name moves to its tooltip and its menu.
+const rangeLabelCompare = computed(() =>
+  isComparisonMenu.value ? null : compareRangeLabel.value,
+);
+
+const menuCompareDays = computed(() => {
+  const { compareRange, range } = period.state.value;
+  if (!compareRange || !range) return null;
+  return formatPeriodDays(
+    compareRange,
+    locale.value,
+    !isSameYear(compareRange, range),
+  );
+});
+
+const comparisonMenuLabel = computed(() => {
+  const days = menuCompareDays.value;
+  if (!hasComparison.value || !days) {
+    return comparisonLabel(period.comparison.value);
+  }
+  return `${t("dms.period.popover.vs", "vs")} ${days}`;
+});
+
+const comparisonMenuAria = computed(() => {
+  const name = `${t("dms.period.comparison_aria", "Comparison")}: ${comparisonLabel(period.comparison.value)}`;
+  const days = hasComparison.value ? menuCompareDays.value : null;
+  return days ? `${name}, ${days}` : name;
 });
 
 // ── Segmented variant ──────────────────────────────────────────────────
@@ -789,7 +825,8 @@ function onSegmentedClick(event: MouseEvent) {
         :size="size"
         :disabled="isComparisonDisabled"
         :trailing-icon="CARET_DOWN_ICON"
-        :aria-label="$t('dms.period.comparison_aria', 'Comparison')"
+        :aria-label="comparisonMenuAria"
+        :title="comparisonLabel(period.comparison.value)"
         class="text-muted order-2"
         :class="controlHeightClass"
         :ui="{ trailingIcon: 'text-dimmed' }"
@@ -801,7 +838,7 @@ function onSegmentedClick(event: MouseEvent) {
             aria-hidden="true"
           />
         </template>
-        {{ comparisonLabel(period.comparison.value) }}
+        {{ comparisonMenuLabel }}
       </UButton>
     </UDropdownMenu>
 
@@ -815,12 +852,12 @@ function onSegmentedClick(event: MouseEvent) {
       :class="[rangeLabelOrder, rangeLabelSizeClass]"
     >
       <b class="text-toned font-[550]">{{ rangeLabelText }}</b>
-      <template v-if="compareRangeLabel">
+      <template v-if="rangeLabelCompare">
         ·
         <span class="text-(--dms-chart-2)">
           {{ $t("dms.period.popover.vs", "vs") }}
         </span>
-        {{ compareRangeLabel }}
+        {{ rangeLabelCompare }}
       </template>
     </span>
   </div>

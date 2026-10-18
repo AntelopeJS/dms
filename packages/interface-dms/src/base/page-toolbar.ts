@@ -105,10 +105,10 @@ const TOOLBAR_PRESETS: PeriodPreset[] = [
  * The `PeriodSelector` of `pageToolbar()` unless its `period` says otherwise:
  * the start of the window from now ("since yesterday 11:29"), then the
  * 1H / 24H / 7D / 30D presets, on the last 24 hours by default. Its
- * comparison control depends on what the period offers: a menu
- * ("vs previous period ▾") for more than one choice, `none` included, on its
- * first comparison besides `none`; none for a single comparison, which then
- * stays on and reads "vs …" beside the window.
+ * comparison control depends on what the period offers: a menu naming the
+ * compared window ("vs 16 – 17 Oct ▾") for more than one choice, `none`
+ * included, on its first comparison besides `none`; none for a single
+ * comparison, which then stays on and reads "vs …" beside the window.
  */
 export const PAGE_TOOLBAR_PERIOD_DEFAULTS: PeriodSelectorProps = {
   variant: "segmented",
