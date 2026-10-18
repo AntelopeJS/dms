@@ -736,6 +736,19 @@
       "not_found": "Introuvable",
       "not_found_hint": "Ce qui est affiché ici n’existe pas, ou plus."
     },
+    "prose": {
+      "toc": "Sur cette page",
+      "anchor": "Lien vers cette section",
+      "task_done": "Fait",
+      "task_todo": "À faire",
+      "callout": {
+        "note": "Remarque",
+        "tip": "Astuce",
+        "important": "Important",
+        "warning": "Attention",
+        "caution": "Prudence"
+      }
+    },
     "action_error": {
       "forbidden": "Vous n’avez pas l’autorisation d’effectuer cette action.",
       "generic": "Une erreur est survenue et l’action n’a pas pu aboutir. Réessayez."

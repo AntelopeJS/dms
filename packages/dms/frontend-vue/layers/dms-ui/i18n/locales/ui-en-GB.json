@@ -735,6 +735,19 @@
       "not_found": "Not found",
       "not_found_hint": "What this shows doesn’t exist, or no longer does."
     },
+    "prose": {
+      "toc": "On this page",
+      "anchor": "Link to this section",
+      "task_done": "Done",
+      "task_todo": "To do",
+      "callout": {
+        "note": "Note",
+        "tip": "Tip",
+        "important": "Important",
+        "warning": "Warning",
+        "caution": "Caution"
+      }
+    },
     "action_error": {
       "forbidden": "You don’t have permission to do this.",
       "generic": "Something went wrong and the action couldn’t be completed. Try again."
