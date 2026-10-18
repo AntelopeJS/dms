@@ -89,6 +89,7 @@ export {
   type TableViewEmptyStates,
   type TableViewEmptyStateSerialized,
   type TableViewEmptyStatesSerialized,
+  type TableViewExportValues,
   type TableViewFooterOptions,
   type TableViewFooterSerialized,
   type TableViewFooterSummary,

@@ -137,6 +137,9 @@ export interface TableViewColumnsState {
   order?: string[];
 }
 
+/** How the export writes its cells: see `TableViewOptions.exportValues`. */
+export type TableViewExportValues = "readable" | "raw";
+
 /** The columns of the controller one table view shows: see `TableViewOptions.columns`. */
 export interface TableViewColumnsOptions {
   /**
@@ -677,6 +680,7 @@ export interface TableViewOptionsSerialized extends Omit<
   | "views"
   | "footer"
   | "emptyStates"
+  | "exportValues"
 > {
   enableTableExport: boolean;
   /** Whether the controller declares `@Searchable` fields to search in. */
@@ -982,6 +986,16 @@ export interface TableViewOptions<
    * @example { type: "drawer", pages: { new: { displayName: "$tasks.form.new_title" } } }
    */
   formContainer?: FormContainer;
+  /**
+   * How the export writes its cells. `readable` (the default) writes them for
+   * a reader, in the language of the user who asked: each column's name as
+   * its header, a related row's label, an option's label, a localized date,
+   * a percentage with its sign and a boolean as Yes or No. Numbers and prices
+   * stay numbers a spreadsheet can sum, a price column naming its currency in
+   * its header. `raw` writes the stored values under the field keys, as
+   * exports did before: for a file another program reads back.
+   */
+  exportValues?: TableViewExportValues;
   /**
    * Enable archive mode: replaces delete action with archive/restore
    */
