@@ -104,6 +104,11 @@ export interface PeriodSelectorProps extends BaseComponentProps {
   presetLabels?: Partial<Record<PeriodPreset, string>>;
   comparisonLabels?: Partial<Record<PeriodComparison, string>>;
   align?: PeriodAlign;
+  /**
+   * How large the controls are drawn. Defaults to the size of the
+   * `PageToolbar` holding the selector, where the window beside them scales
+   * with it too, else `sm`.
+   */
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   showRangeLabel?: boolean;
   /**
