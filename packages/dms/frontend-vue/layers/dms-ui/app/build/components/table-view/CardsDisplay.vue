@@ -25,6 +25,7 @@ import {
   REORDER_HANDLE_CLASS,
   useReorderHandles,
 } from "../../composables/table-view/useReorderHandles";
+import { useComponentLoaded } from "../../composables/blocks/useComponentLoaded";
 
 interface CardsDisplayProps {
   context: TableViewDisplayContext<T>;
@@ -76,6 +77,9 @@ const cardComponent = computed(() => {
   const name = card.value?.component?.componentName;
   return name ? resolveDmsComponent(name) || name : undefined;
 });
+// A custom card loads lazily: the skeleton stays until its code is there,
+// rather than an empty grid lifting the footer for a beat.
+const isCardComponentLoaded = useComponentLoaded(() => cardComponent.value);
 
 const fieldColumns = computed<TableViewColumn[]>(() =>
   cardFieldColumns(props.context.columns, card.value?.fields, {
@@ -128,7 +132,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
     <!-- v2 cards display: an auto-fit grid inside the table card, sharing
          its selection and its pagination footer. -->
     <CardGridSkeleton
-      v-if="props.context.firstPageLoading"
+      v-if="props.context.firstPageLoading || !isCardComponentLoaded"
       :count="props.context.pagination.pageSize"
       :fields="fieldColumns.length"
       :min-width="card?.minWidth"
