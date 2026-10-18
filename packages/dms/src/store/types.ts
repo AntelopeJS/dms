@@ -43,8 +43,12 @@ export interface PackageRelease {
 /** A module loaded in the runtime, reduced to what the store compares. */
 export interface RuntimeModule {
   id: string;
+  /** The npm package of its source, or the name its manifest gives. */
   packageName?: string;
+  /** The version its manifest gives. */
   version?: string;
+  /** Loaded from npm, rather than from a local folder or git. */
+  isPackageSource: boolean;
   status: string;
   localPath: string;
 }
@@ -153,6 +157,12 @@ export interface StoreListingEntry {
   state: StoreModuleState;
   /** The version the runtime loaded, or the declared range when not loaded. */
   installedVersion?: string;
+  /**
+   * The module runs from a local folder or git working copy that
+   * antelope.config.ts declares: it counts as active, but the store offers
+   * no action on it, the developer owns that entry.
+   */
+  isWorkingCopy?: boolean;
   /** The range antelope.config.ts declares. */
   declaredRange?: string;
   latestVersion?: string;

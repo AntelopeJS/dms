@@ -40,6 +40,7 @@ import {
   needsDependencyChoice,
   sortStoreModules,
   toModuleStoreEntry,
+  withStoreDetails,
 } from "../build/utils/module-store-catalog";
 import {
   type DependencyDraft,
@@ -135,8 +136,16 @@ const isInitiallyLoading = computed(
 );
 const isRetrying = ref(false);
 
+// Declared before the installed modules, which take the version and category
+// a registration leaves out from it.
+const moduleStore = useModuleStore();
+
 const modules = computed<ModuleCatalogEntry[]>(() =>
-  (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
+  withStoreDetails(
+    (modulesListing.modules.value ?? []).filter((entry) => entry.hasAccess),
+    // Read once the store answers, after the first render.
+    moduleStore.listing.value?.modules ?? [],
+  ),
 );
 const summary = computed(() => summarizeModules(modules.value));
 
@@ -221,7 +230,6 @@ function clearFilters(): void {
 }
 
 // ── Module store ───────────────────────────────────────────────────
-const moduleStore = useModuleStore();
 const toast = useToast();
 const { confirm } = useConfirm();
 

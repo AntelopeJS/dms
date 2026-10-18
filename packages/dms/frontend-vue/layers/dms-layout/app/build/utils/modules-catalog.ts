@@ -78,23 +78,28 @@ export function summarizeModules(
 /**
  * Category filter options: the categories present, alphabetical, with
  * "Other" last. The "All" option is the caller's to add.
+ *
+ * Categories are told apart by their shown name: two modules that each name
+ * "Content" through their own i18n key share one option, whose value is the
+ * first key met.
  */
 export function moduleCategoryOptions(
   entries: readonly FilterableModule[],
   resolve: DisplayResolver,
 ): ModuleCategoryOption[] {
-  const counts = new Map<string, number>();
+  const byLabel = new Map<string, ModuleCategoryOption>();
   for (const entry of entries) {
-    const category = moduleCategory(entry);
-    counts.set(category, (counts.get(category) ?? 0) + 1);
+    const value = moduleCategory(entry);
+    const label = resolve(value);
+    const option = byLabel.get(label);
+    if (option) option.count += 1;
+    else byLabel.set(label, { value, label, count: 1 });
   }
-  return [...counts.entries()]
-    .map(([value, count]) => ({ value, label: resolve(value), count }))
-    .sort((a, b) => {
-      if (a.value === MODULE_CATEGORY_OTHER) return 1;
-      if (b.value === MODULE_CATEGORY_OTHER) return -1;
-      return a.label.localeCompare(b.label);
-    });
+  return [...byLabel.values()].sort((a, b) => {
+    if (a.value === MODULE_CATEGORY_OTHER) return 1;
+    if (b.value === MODULE_CATEGORY_OTHER) return -1;
+    return a.label.localeCompare(b.label);
+  });
 }
 
 function normalizeQuery(query: string): string {
@@ -106,10 +111,14 @@ export function filterModules<T extends FilterableModule>(
   options: { query: string; category: string; resolve: DisplayResolver },
 ): T[] {
   const query = normalizeQuery(options.query);
+  const category =
+    options.category === MODULE_CATEGORY_ALL
+      ? undefined
+      : options.resolve(options.category);
   return entries.filter((entry) => {
     if (
-      options.category !== MODULE_CATEGORY_ALL &&
-      moduleCategory(entry) !== options.category
+      category !== undefined &&
+      options.resolve(moduleCategory(entry)) !== category
     ) {
       return false;
     }

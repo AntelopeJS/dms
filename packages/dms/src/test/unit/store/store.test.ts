@@ -4,7 +4,7 @@ import { loadStoreCatalog, readCatalogDocument } from "../../../store/catalog";
 import { isCompatible } from "../../../store/compatibility";
 import { packageDeclarationSource } from "../../../store/declarations";
 import { supportsFrontend } from "../../../store/frontend-compatibility";
-import { isLive } from "../../../store/runtime";
+import { findWorkingCopy, isLive } from "../../../store/runtime";
 import { readTarFile } from "../../../store/tarball";
 import { storeInstallSchema } from "../../../validation/store.schema";
 import type { RuntimeModule } from "../../../store/types";
@@ -13,6 +13,7 @@ function runtimeModule(status: string): RuntimeModule {
   return {
     id: "@antelopejs/dms-lang",
     packageName: "@antelopejs/dms-lang",
+    isPackageSource: true,
     status,
     localPath: "/modules/dms-lang",
   };
@@ -67,6 +68,21 @@ describe("[unit] store/runtime", () => {
     expect(isLive(runtimeModule("constructed"))).to.equal(true);
     expect(isLive(runtimeModule("loaded"))).to.equal(false);
     expect(isLive(undefined)).to.equal(false);
+  });
+
+  it("finds a running working copy of a catalog package, never an npm one", () => {
+    const local = { ...runtimeModule("active"), isPackageSource: false };
+    const stopped = { ...local, id: "stopped", status: "loaded" };
+    const npm = runtimeModule("active");
+    expect(findWorkingCopy("@antelopejs/dms-lang", [npm, stopped])).to.equal(
+      undefined,
+    );
+    expect(findWorkingCopy("@antelopejs/dms-lang", [npm, local])).to.equal(
+      local,
+    );
+    expect(findWorkingCopy("@antelopejs/dms-media", [local])).to.equal(
+      undefined,
+    );
   });
 });
 

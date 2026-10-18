@@ -14,6 +14,7 @@ import {
   storeActions,
   storeTileStatus,
   toModuleStoreEntry,
+  withStoreDetails,
 } from "../layers/dms-layout/app/build/utils/module-store-catalog";
 import {
   OTHER_PACKAGE_CHOICE,
@@ -238,6 +239,77 @@ describe("module store catalog", () => {
       { value: "Content", label: "Content", count: 2 },
       { value: "Data", label: "Data", count: 1 },
     ]);
+  });
+
+  it("merges two category keys that read the same into one option", () => {
+    const sameName = [
+      storeEntry("media", {
+        catalogCategory: "$modules.store.category.content",
+      }),
+      storeEntry("lang", { catalogCategory: "Content" }),
+      storeEntry("database"),
+    ];
+    const options = moduleCategoryOptions(sameName, resolve);
+    expect(options.map((option) => [option.label, option.count])).toEqual([
+      ["Content", 2],
+      ["Data", 1],
+    ]);
+    expect(
+      filterModules(sameName, {
+        query: "",
+        category: options[0].value,
+        resolve,
+      }).map((entry) => entry.id),
+    ).toEqual(["media", "lang"]);
+  });
+
+  it("shows a working copy as active and installed, with no action", () => {
+    const entry = listingEntry("media", {
+      state: "active",
+      installedVersion: "0.5.0",
+      isWorkingCopy: true,
+    });
+    expect(storeTileStatus(entry).labelKey).toBe("active");
+    expect(filterByScope([entry], "installed")).toEqual([entry]);
+    expect(storeActions(entry)).toEqual([]);
+  });
+
+  it("fills the version and category an installed module does not register", () => {
+    const installed = [
+      {
+        id: "media",
+        title: "Media",
+        description: "",
+        icon: "i-ph-image",
+        hasAccess: true,
+        landingSlug: "/modules/media",
+      },
+      {
+        id: "api",
+        title: "API",
+        description: "",
+        icon: "i-ph-plug",
+        hasAccess: true,
+        landingSlug: "/modules/api",
+        version: "0.4.1",
+        catalogCategory: "$api.category",
+      },
+    ];
+    const store = [
+      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
+      listingEntry("api", { installedVersion: "0.9.0" }),
+    ];
+    const [media, api] = withStoreDetails(installed, store);
+    expect(media.version).toBe("0.5.0");
+    expect(media.catalogCategory).toBe("$modules.store.category.content");
+    expect(api.version).toBe("0.4.1");
+    expect(api.catalogCategory).toBe("$api.category");
+    // A declared range is not a version a tile can print.
+    expect(
+      withStoreDetails(installed, [
+        listingEntry("media", { installedVersion: "^0.5.0" }),
+      ])[0].version,
+    ).toBeUndefined();
   });
 });
 

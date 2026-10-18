@@ -783,6 +783,7 @@
       "no_release": "The npm registry has no release of it this platform can read",
       "locked": "Another module is being changed",
       "pending_hint": "antelope.config.ts and the running platform disagree: Apply brings them in line.",
+      "working_copy_hint": "Runs from a local copy that antelope.config.ts declares: manage it there.",
       "uninstall_confirm": {
         "title": "Uninstall {module}?",
         "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."
@@ -793,6 +794,7 @@
         "store_module_unknown": "This module is not in the catalog.",
         "store_disabled": "The store is read-only on this platform.",
         "store_invalid_state": "The module changed in the meantime. The list is up to date again.",
+        "store_working_copy": "This module runs from a local copy that antelope.config.ts declares: change it there.",
         "unauthorized": "Only platform owners manage modules.",
         "store_module_required": "Other running modules need this one. Remove them first."
       },

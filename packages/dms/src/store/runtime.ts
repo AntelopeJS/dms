@@ -25,6 +25,7 @@ interface PackageSource {
 }
 
 interface PackageManifest {
+  name?: string;
   version?: string;
 }
 
@@ -39,15 +40,14 @@ export function isLive(module: RuntimeModule | undefined): boolean {
   return module !== undefined && LIVE_STATUSES.has(module.status);
 }
 
-/** The version of the package the module was loaded from, read from disk. */
-async function loadedVersion(localPath: string): Promise<string | undefined> {
+/** The manifest of the folder the module was loaded from, read from disk. */
+async function loadedManifest(localPath: string): Promise<PackageManifest> {
   try {
-    const manifest = JSON.parse(
+    return JSON.parse(
       await readFile(path.join(localPath, PACKAGE_JSON), "utf-8"),
     ) as PackageManifest;
-    return manifest.version;
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -58,16 +58,35 @@ async function describeModule(
     const info = await GetModuleInfo(moduleId);
     const source = info.source as PackageSource;
     const isPackage = source.type === PACKAGE_SOURCE_TYPE;
+    const manifest = await loadedManifest(info.localPath);
     return {
       id: moduleId,
-      packageName: isPackage ? source.package : undefined,
-      version: isPackage ? await loadedVersion(info.localPath) : undefined,
+      // A local or git working copy names its package in its manifest.
+      packageName: isPackage ? source.package : manifest.name,
+      version: manifest.version,
+      isPackageSource: isPackage,
       status: info.status,
       localPath: info.localPath,
     };
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The running module loaded from a local folder or git rather than npm whose
+ * manifest names `packageName`: a developer's working copy of a catalog
+ * module, which the store shows as running but leaves alone.
+ */
+export function findWorkingCopy(
+  packageName: string,
+  runtime: Iterable<RuntimeModule>,
+): RuntimeModule | undefined {
+  for (const module of runtime) {
+    if (module.isPackageSource || module.packageName !== packageName) continue;
+    if (isLive(module)) return module;
+  }
+  return undefined;
 }
 
 /** Every module the runtime holds, by runtime id. */

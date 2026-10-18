@@ -100,6 +100,34 @@ export function toModuleStoreEntry(
   };
 }
 
+/** A version as written, not a range: what an installed tile prints. */
+const PLAIN_VERSION = /^\d+\.\d+\.\d+/;
+
+/**
+ * Installed modules with the version and category their registration leaves
+ * out, read from the store listing of the same id. A module that registers
+ * neither still reads like the others on its tile and in the filters.
+ */
+export function withStoreDetails<T extends ModuleCatalogEntry>(
+  modules: readonly T[],
+  store: readonly StoreListingEntry[],
+): T[] {
+  const byId = new Map(store.map((entry) => [entry.id, entry]));
+  return modules.map((module) => {
+    const entry = byId.get(module.id);
+    if (!entry) return module;
+    const installed = entry.installedVersion;
+    return {
+      ...module,
+      version:
+        module.version ??
+        (installed && PLAIN_VERSION.test(installed) ? installed : undefined),
+      catalogCategory:
+        module.catalogCategory || `${CATEGORY_PREFIX}.${entry.category}`,
+    };
+  });
+}
+
 /** Whether the module is installed, from the store or by the config. */
 export function isInstalled(entry: StoreListingEntry): boolean {
   if (INSTALLED_STATES.has(entry.state)) return true;
@@ -138,6 +166,8 @@ export function storeTileStatus(entry: StoreListingEntry): StoreTileStatus {
  * applying the file otherwise.
  */
 export function storeActions(entry: StoreListingEntry): StoreAction[] {
+  // The developer's working copy is theirs to change in antelope.config.ts.
+  if (entry.isWorkingCopy) return [];
   const installed = entry.installedVersion !== undefined;
   const byState: Record<StoreModuleState, StoreOperationKind[]> = {
     available: ["install"],

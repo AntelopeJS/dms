@@ -86,6 +86,8 @@ export interface StoreListingEntry {
   description: string;
   state: StoreModuleState;
   installedVersion?: string;
+  /** Runs from a local or git working copy: active, but no store action. */
+  isWorkingCopy?: boolean;
   /** The version range antelope.config.ts declares. */
   declaredRange?: string;
   latestVersion?: string;

@@ -223,6 +223,10 @@ const versionLabel = computed(() => {
       {{ t("modules.store.pending_hint") }}
     </p>
 
+    <p v-else-if="props.entry.isWorkingCopy" class="text-dimmed text-xs">
+      {{ t("modules.store.working_copy_hint") }}
+    </p>
+
     <!-- The npm package the module comes from. -->
     <div
       v-else

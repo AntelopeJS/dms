@@ -787,6 +787,7 @@
       "no_release": "Le registre npm ne propose aucune version lisible depuis cette plateforme",
       "locked": "Un autre module est en cours de modification",
       "pending_hint": "antelope.config.ts et la plateforme ne concordent pas : Appliquer les remet d’accord.",
+      "working_copy_hint": "Tourne depuis une copie locale déclarée dans antelope.config.ts : gérez-le là.",
       "uninstall_confirm": {
         "title": "Désinstaller {module} ?",
         "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."
@@ -797,6 +798,7 @@
         "store_module_unknown": "Ce module n’est pas dans le catalogue.",
         "store_disabled": "Le store est en lecture seule sur cette plateforme.",
         "store_invalid_state": "Le module a changé entre-temps. La liste est de nouveau à jour.",
+        "store_working_copy": "Ce module tourne depuis une copie locale déclarée dans antelope.config.ts : modifiez-le là.",
         "unauthorized": "Seuls les propriétaires de la plateforme gèrent les modules.",
         "store_module_required": "D’autres modules en cours d’exécution ont besoin de celui-ci. Retirez-les d’abord."
       },
