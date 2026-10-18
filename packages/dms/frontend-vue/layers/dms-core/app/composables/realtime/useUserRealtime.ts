@@ -72,6 +72,26 @@ interface UserRealtimeState {
 
 let singletonApi: UserRealtimeApi | undefined;
 
+/** The session fields a stream is bound to on the server. */
+interface StreamIdentitySession {
+  accountId?: string;
+  activeTenantId?: string;
+}
+
+/**
+ * What the user stream is opened as, or null when there is none to open. The
+ * server binds a stream to the account and workspace of the request that
+ * opened it, so a switch of either needs a new stream: the old one would keep
+ * delivering the previous workspace's events.
+ */
+const streamIdentityOf = (
+  isLoggedIn: boolean,
+  session: StreamIdentitySession | null | undefined,
+): string | null =>
+  isLoggedIn
+    ? JSON.stringify([session?.accountId ?? "", session?.activeTenantId ?? ""])
+    : null;
+
 const dispatchToHandlers = (
   state: UserRealtimeState,
   topic: string,
@@ -340,19 +360,22 @@ const buildApi = (): UserRealtimeApi => {
   };
 
   const config = useDmsRuntimeConfig();
-  const { loggedIn } = useDmsUserSession();
+  const { loggedIn, session } = useDmsUserSession<
+    unknown,
+    StreamIdentitySession
+  >();
   const { refreshSession, redirectToAuth } = useSessionRecovery();
   const baseUrl = config.public.dms.baseURL as string;
 
   if (!import.meta.env.SSR) {
     watch(
-      () => loggedIn.value,
-      (isLoggedIn) => {
+      () => streamIdentityOf(loggedIn.value, session?.value),
+      (identity) => {
         state.cancelConnect?.();
         state.cancelConnect = undefined;
         resetSession(state);
         state.menuTopics.value = [];
-        if (!isLoggedIn) return;
+        if (identity === null) return;
         state.cancelConnect = connectWithBackoff(
           `${baseUrl}${REALTIME_USER_PATH}`,
           state,

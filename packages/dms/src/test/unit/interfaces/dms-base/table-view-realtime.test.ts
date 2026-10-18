@@ -1,6 +1,7 @@
-import { Controller } from "@antelopejs/interface-api";
+import { Controller, type RequestContext } from "@antelopejs/interface-api";
 import {
   type AsyncProxy,
+  GetMetadata,
   ImplementInterface,
 } from "@antelopejs/interface-core";
 import { internal as runtime } from "@antelopejs/interface-core/internal";
@@ -12,6 +13,7 @@ import {
   type RealtimeMutationContext,
   type RealtimePresenceContext,
   internal as tableView,
+  TableViewMeta,
 } from "@antelopejs/interface-dms/base/table-view";
 import {
   extractSingleParamId,
@@ -27,6 +29,19 @@ import {
 const LOCATION = "/api/table-view-realtime";
 const SESSION = "table-view-realtime-session";
 const PRESENCE_ACQUIRE = "1";
+const TENANT = "table-view-realtime-tenant";
+
+const encodeSegment = (value: Record<string, unknown>): string =>
+  Buffer.from(JSON.stringify(value)).toString("base64url");
+
+// Without a bound principal the tenant is decoded from the bearer token.
+const REQUEST_CONTEXT = {
+  rawRequest: {
+    headers: {
+      authorization: `Bearer ${encodeSegment({ alg: "none" })}.${encodeSegment({ tenantId: TENANT })}.`,
+    },
+  },
+} as unknown as RequestContext;
 const USER = { _id: "table-view-realtime-user", name: "Realtime" } as User;
 const REMOVED_SETTERS = [
   "setRealtimeMutationHook",
@@ -58,7 +73,14 @@ const getRoute = withPresenceAcquire({
 });
 
 function edit(id: string): Promise<unknown> {
-  return editRoute.func.call(controller, undefined, { id }, SESSION, USER);
+  return editRoute.func.call(
+    controller,
+    undefined,
+    { id },
+    REQUEST_CONTEXT,
+    SESSION,
+    USER,
+  );
 }
 
 function open(id: string): Promise<unknown> {
@@ -66,6 +88,7 @@ function open(id: string): Promise<unknown> {
     controller,
     undefined,
     { id },
+    REQUEST_CONTEXT,
     SESSION,
     PRESENCE_ACQUIRE,
     USER,
@@ -80,6 +103,20 @@ function generation(name: string): TableViewRealtime {
       },
       AcquirePresence: async ({ rowId }: RealtimePresenceContext) => {
         deliveries.push(`${name} presence ${rowId}`);
+      },
+    },
+  };
+}
+
+/** A generation recording the tenant each call names. */
+function tenantRecorder(tenants: Array<string | undefined>): TableViewRealtime {
+  return {
+    internal: {
+      PublishMutation: async ({ tenantId }: RealtimeMutationContext) => {
+        tenants.push(tenantId);
+      },
+      AcquirePresence: async ({ tenantId }: RealtimePresenceContext) => {
+        tenants.push(tenantId);
       },
     },
   };
@@ -149,6 +186,30 @@ describe("[unit] interfaces/dms-base — table-view realtime across DMS generati
       "second updated row-3",
       "second presence row-3",
     ]);
+  });
+
+  it("names the tenant the write and the open were made in", async () => {
+    const tenants: Array<string | undefined> = [];
+    attach(tenantRecorder(tenants));
+    await edit("row-4");
+    await open("row-4");
+
+    expect(tenants).to.deep.equal([TENANT, TENANT]);
+  });
+
+  it("names no tenant for a table whose realtime scope is global", async () => {
+    const tenants: Array<string | undefined> = [];
+    const meta = GetMetadata(RowsAPI, TableViewMeta);
+    attach(tenantRecorder(tenants));
+    meta.options.realtimeScope = "global";
+    try {
+      await edit("row-5");
+      await open("row-5");
+    } finally {
+      delete meta.options.realtimeScope;
+    }
+
+    expect(tenants).to.deep.equal([undefined, undefined]);
   });
 
   it("offers no setter to leave a DMS callback in the interface", () => {

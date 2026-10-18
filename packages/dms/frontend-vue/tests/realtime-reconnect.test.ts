@@ -95,6 +95,7 @@ const settle = async (): Promise<void> => {
 
 const realFetch = globalThis.fetch;
 let loggedIn = ref(false);
+let session = ref<{ accountId?: string; activeTenantId?: string } | null>(null);
 let server: FakeServer;
 
 const loadApi = async (): Promise<UserRealtimeApi> => {
@@ -118,7 +119,7 @@ beforeEach(() => {
   vi.stubGlobal("useDmsRuntimeConfig", () => ({
     public: { dms: { baseURL: BASE_URL } },
   }));
-  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn }));
+  vi.stubGlobal("useDmsUserSession", () => ({ loggedIn, session }));
   vi.stubGlobal("useSessionRecovery", () => ({
     refreshSession: async () => true,
     redirectToAuth: async () => {},
@@ -127,6 +128,7 @@ beforeEach(() => {
   installFetch(server);
   // Fresh per test: the singleton of a previous test keeps watching its own.
   loggedIn = ref(true);
+  session = ref({ accountId: "account-1", activeTenantId: "tenant-1" });
 });
 
 afterEach(async () => {
@@ -139,6 +141,47 @@ afterEach(async () => {
 });
 
 describe("useUserRealtime reconnection", () => {
+  it("opens a new stream in the workspace the session switched to, and resubscribes the page", async () => {
+    const api = await loadApi();
+    await settle();
+    await api.setPage(PAGE_ID);
+    const previous = lastStream();
+
+    session.value = { accountId: "account-1", activeTenantId: "tenant-2" };
+    await settle();
+
+    expect(previous.isOpen()).toBe(false);
+    expect(server.streams).toHaveLength(2);
+    expect(lastStream().isOpen()).toBe(true);
+    expect(api.sessionId.value).toBe("session-2");
+    expect(server.subscriptions).toEqual([
+      { pageId: PAGE_ID, sessionId: "session-1" },
+      { pageId: PAGE_ID, sessionId: "session-2" },
+    ]);
+  });
+
+  it("keeps its stream when the session is read again unchanged", async () => {
+    await loadApi();
+    await settle();
+
+    session.value = { accountId: "account-1", activeTenantId: "tenant-1" };
+    await settle();
+
+    expect(server.streams).toHaveLength(1);
+    expect(lastStream().isOpen()).toBe(true);
+  });
+
+  it("opens a new stream for the account the browser switched to", async () => {
+    await loadApi();
+    await settle();
+
+    session.value = { accountId: "account-2", activeTenantId: "tenant-1" };
+    await settle();
+
+    expect(server.streams).toHaveLength(2);
+    expect(server.maxOpenStreams).toBe(1);
+  });
+
   it("reconnects with backoff when the server ends the stream, then resubscribes the page", async () => {
     const api = await loadApi();
     await settle();

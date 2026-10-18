@@ -8,7 +8,20 @@ export interface RealtimeEvent {
   type: string;
   payload?: Record<string, unknown>;
   actorId?: string;
+  /** The tenant the event is about; absent on an event for every tenant. */
+  tenantId?: string;
   ts: number;
+}
+
+/**
+ * Whether a session of `tenantId` receives `event`: a global event reaches
+ * every session, a tenant's event only the sessions of that tenant.
+ */
+export function isEventForTenant(
+  event: RealtimeEvent,
+  tenantId: string | undefined,
+): boolean {
+  return event.tenantId === undefined || event.tenantId === tenantId;
 }
 
 export type RealtimeEventHandler = (event: RealtimeEvent) => void;
