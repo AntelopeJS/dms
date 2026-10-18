@@ -753,10 +753,10 @@
         "available": "Disponible",
         "busy": "En cours",
         "active": "Actif",
-        "disabled": "En pause",
-        "error": "Échec",
+        "disabled": "Inactif",
+        "error": "Erreur",
         "pending": "Non appliqué",
-        "update_available": "Mise à jour"
+        "update_available": "Mise à jour disponible"
       },
       "actions": {
         "install": "Installer",
@@ -937,10 +937,16 @@
     "status": {
       "live": "Actif",
       "beta": "Bêta",
-      "update": "Mise à jour",
+      "update": "Mise à jour disponible",
       "attention": "Attention"
     },
-    "update_available": "mise à jour disponible",
+    "source": {
+      "npm": "npm",
+      "github": "GitHub",
+      "gitlab": "GitLab",
+      "git": "Git",
+      "local": "Local"
+    },
     "no_result": {
       "title": "Aucun module installé ne correspond à « {query} »",
       "title_filtered": "Aucun module installé ne correspond à ces filtres",

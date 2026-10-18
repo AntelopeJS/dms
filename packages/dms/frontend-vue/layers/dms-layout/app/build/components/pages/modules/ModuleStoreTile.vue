@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
+import ModuleSourceLabel from "./ModuleSourceLabel.vue";
 import ModuleStoreRequirements from "./ModuleStoreRequirements.vue";
 import {
   type ModuleStoreEntry,
@@ -251,15 +252,21 @@ const versionLabel = computed(() => {
     <ModuleStoreRequirements v-if="steps.length === 0" :entry="props.entry" />
 
     <template #footer>
-      <span class="truncate">
-        {{ processI18n(props.entry.catalogCategory) }}
-      </span>
+      <!-- v0.5.0 · npm · Content, as on an installed module's tile. -->
       <span
         v-if="versionLabel"
         class="shrink-0"
         :class="props.entry.updateAvailable ? 'text-(--ui-warning)' : ''"
       >
         {{ versionLabel }}
+      </span>
+      <template v-if="props.entry.source">
+        <span v-if="versionLabel" aria-hidden="true">·</span>
+        <ModuleSourceLabel :source="props.entry.source" />
+      </template>
+      <span class="min-w-0 truncate">
+        <template v-if="versionLabel || props.entry.source">·</template>
+        {{ processI18n(props.entry.catalogCategory) }}
       </span>
       <span class="ms-auto flex shrink-0 items-center gap-1 font-sans">
         <UButton

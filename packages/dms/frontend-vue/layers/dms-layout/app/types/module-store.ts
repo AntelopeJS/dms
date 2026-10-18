@@ -10,6 +10,9 @@ export type StoreModuleState =
   | "error"
   | "pending";
 
+/** Where a module's code comes from (`ModuleSourceKind` on the backend). */
+export type ModuleSourceKind = "npm" | "github" | "gitlab" | "git" | "local";
+
 export type StoreFrontendState = "none" | "synced" | "pending" | "unknown";
 
 export type StoreOperationKind =
@@ -86,6 +89,8 @@ export interface StoreListingEntry {
   description: string;
   state: StoreModuleState;
   installedVersion?: string;
+  /** Where its code comes from; absent from a backend that predates it. */
+  source?: ModuleSourceKind;
   /** Runs from a local or git working copy: active, but no store action. */
   isWorkingCopy?: boolean;
   /** The version range antelope.config.ts declares. */

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ModuleTile from "./ModuleTile.vue";
+import ModuleSourceLabel from "./ModuleSourceLabel.vue";
 import type { Tone } from "#dms-ui/app/types/tone";
 import type {
   CheckListItem,
@@ -73,15 +74,16 @@ const title = computed(() => processI18n(props.entry.title));
     </template>
 
     <template #footer>
+      <!-- v0.5.0 · npm · Content: the state is the pill's to say. -->
       <span v-if="props.entry.version" class="whitespace-nowrap">
         v{{ props.entry.version }}
       </span>
-      <span v-if="status === 'update'" class="text-warning truncate">
-        <template v-if="props.entry.version">·</template>
-        {{ t("modules.update_available") }}
-      </span>
-      <span v-else class="truncate">
-        <template v-if="props.entry.version">·</template>
+      <template v-if="props.entry.source">
+        <span v-if="props.entry.version" aria-hidden="true">·</span>
+        <ModuleSourceLabel :source="props.entry.source" />
+      </template>
+      <span class="truncate">
+        <template v-if="props.entry.version || props.entry.source">·</template>
         {{ processI18n(moduleCategory(props.entry)) }}
       </span>
       <span

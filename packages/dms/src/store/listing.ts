@@ -213,6 +213,8 @@ function buildEntry(
     description: `${CATALOG_I18N_PREFIX}.${id}.description`,
     state: resolveState(sources),
     installedVersion: runtimeModule(sources)?.version ?? declaration?.range,
+    // A declaration is an npm one: the store reads no other.
+    source: sources.workingCopy?.sourceKind ?? "npm",
     isWorkingCopy: sources.workingCopy ? true : undefined,
     declaredRange: declaration?.range,
     latestVersion: release?.version,

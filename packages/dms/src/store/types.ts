@@ -40,6 +40,12 @@ export interface PackageRelease {
   implements?: string[];
 }
 
+/**
+ * Where a module's code comes from, as its tile names it: an npm package, a
+ * GitHub or GitLab repository, another git host, or a local folder.
+ */
+export type ModuleSourceKind = "npm" | "github" | "gitlab" | "git" | "local";
+
 /** A module loaded in the runtime, reduced to what the store compares. */
 export interface RuntimeModule {
   id: string;
@@ -49,6 +55,8 @@ export interface RuntimeModule {
   version?: string;
   /** Loaded from npm, rather than from a local folder or git. */
   isPackageSource: boolean;
+  /** Where its code comes from; absent when the runtime does not say. */
+  sourceKind?: ModuleSourceKind;
   status: string;
   localPath: string;
 }
@@ -165,6 +173,11 @@ export interface StoreListingEntry {
   state: StoreModuleState;
   /** The version the runtime loaded, or the declared range when not loaded. */
   installedVersion?: string;
+  /**
+   * Where the module's code comes from: npm for what the store installs or
+   * would, the working copy's own source otherwise.
+   */
+  source: ModuleSourceKind;
   /**
    * The module runs from a local folder or git working copy that
    * antelope.config.ts declares: it counts as active, but the store offers

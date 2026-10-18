@@ -206,6 +206,26 @@ describe("module store catalog", () => {
     );
   });
 
+  it("tells a running module from a paused one by its pill", () => {
+    expect(storeTileStatus(listingEntry("a", { state: "active" }))).toEqual({
+      tone: "success",
+      labelKey: "active",
+    });
+    expect(storeTileStatus(listingEntry("a", { state: "disabled" })).tone).toBe(
+      "warning",
+    );
+  });
+
+  it("names every source in both locales", () => {
+    for (const messages of [en, fr]) {
+      for (const source of ["npm", "github", "gitlab", "git", "local"]) {
+        expect(lookup(messages, `modules.source.${source}`)).toEqual(
+          expect.any(String),
+        );
+      }
+    }
+  });
+
   it("waits on the frontend only once the operation is over", () => {
     expect(isAwaitingFrontend(listingEntry("a", { frontend: "pending" }))).toBe(
       true,
@@ -297,11 +317,17 @@ describe("module store catalog", () => {
       },
     ];
     const store = [
-      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
-      listingEntry("api", { installedVersion: "0.9.0" }),
+      listingEntry("media", {
+        category: "content",
+        installedVersion: "0.5.0",
+        source: "npm",
+      }),
+      listingEntry("api", { installedVersion: "0.9.0", source: "github" }),
     ];
     const [media, api] = withStoreDetails(installed, store);
     expect(media.version).toBe("0.5.0");
+    expect(media.source).toBe("npm");
+    expect(api.source).toBe("github");
     expect(media.catalogCategory).toBe("$modules.store.category.content");
     expect(api.version).toBe("0.4.1");
     expect(api.catalogCategory).toBe("$api.category");

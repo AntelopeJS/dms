@@ -8,7 +8,7 @@ import { isCompatible } from "../../../store/compatibility";
 import { findDependents, isProjectModule } from "../../../store/interfaces";
 import { packageDeclarationSource } from "../../../store/declarations";
 import { supportsFrontend } from "../../../store/frontend-compatibility";
-import { findWorkingCopy, isLive } from "../../../store/runtime";
+import { findWorkingCopy, isLive, sourceKindOf } from "../../../store/runtime";
 import { readTarFile } from "../../../store/tarball";
 import { storeInstallSchema } from "../../../validation/store.schema";
 import type { RuntimeModule } from "../../../store/types";
@@ -87,6 +87,25 @@ describe("[unit] store/runtime", () => {
     expect(findWorkingCopy("@antelopejs/dms-media", [local])).to.equal(
       undefined,
     );
+  });
+});
+
+describe("[unit] store/runtime sources", () => {
+  it("names a module's source after where its code comes from", () => {
+    expect(sourceKindOf({ type: "package", package: "@acme/a" })).to.equal(
+      "npm",
+    );
+    expect(sourceKindOf({ type: "local" })).to.equal("local");
+    expect(sourceKindOf({ type: "local-folder" })).to.equal("local");
+    expect(
+      sourceKindOf({ type: "git", remote: "https://github.com/acme/a.git" }),
+    ).to.equal("github");
+    expect(
+      sourceKindOf({ type: "git", remote: "git@gitlab.acme.io:team/a.git" }),
+    ).to.equal("gitlab");
+    expect(
+      sourceKindOf({ type: "git", remote: "ssh://git@code.acme.io/a.git" }),
+    ).to.equal("git");
   });
 });
 

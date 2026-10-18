@@ -2,6 +2,7 @@ import type { Tone } from "#dms-ui/app/types/tone";
 import type { StatusPillDot } from "#dms-ui/app/components/status-pill/StatusPill.vue";
 import { type ModuleCatalogEntry, MODULE_URL_PREFIX } from "../../types/page";
 import type {
+  ModuleSourceKind,
   StoreListingEntry,
   StoreModuleState,
   StoreOperationKind,
@@ -42,6 +43,15 @@ export interface StoreAction {
 
 const CATEGORY_PREFIX = "$modules.store.category";
 
+/** The icon a tile's footer names a module's source with. */
+export const MODULE_SOURCE_ICONS: Record<ModuleSourceKind, string> = {
+  npm: "i-ph-package",
+  github: "i-ph-github-logo",
+  gitlab: "i-ph-gitlab-logo",
+  git: "i-ph-git-branch",
+  local: "i-ph-folder-simple",
+};
+
 /** The command that turns a production frontend into one serving new layers. */
 export const FRONTEND_BUILD_COMMAND = "ajs dms build";
 
@@ -49,7 +59,8 @@ const STATUSES: Record<StoreModuleState, StoreTileStatus> = {
   available: { tone: "neutral", labelKey: "available", dot: "none" },
   busy: { tone: "info", labelKey: "busy", dot: "live" },
   active: { tone: "success", labelKey: "active" },
-  disabled: { tone: "neutral", labelKey: "disabled" },
+  // Paused: declared and configured, but not running.
+  disabled: { tone: "warning", labelKey: "disabled" },
   error: { tone: "error", labelKey: "error" },
   pending: { tone: "warning", labelKey: "pending" },
 };
@@ -104,8 +115,8 @@ export function toModuleStoreEntry(
 const PLAIN_VERSION = /^\d+\.\d+\.\d+/;
 
 /**
- * Installed modules with the version and category their registration leaves
- * out, read from the store listing of the same id. A module that registers
+ * Installed modules with the version, category and source their registration
+ * leaves out, read from the store listing of the same id. A module that registers
  * neither still reads like the others on its tile and in the filters.
  */
 export function withStoreDetails<T extends ModuleCatalogEntry>(
@@ -124,6 +135,7 @@ export function withStoreDetails<T extends ModuleCatalogEntry>(
         (installed && PLAIN_VERSION.test(installed) ? installed : undefined),
       catalogCategory:
         module.catalogCategory || `${CATEGORY_PREFIX}.${entry.category}`,
+      source: entry.source,
     };
   });
 }
