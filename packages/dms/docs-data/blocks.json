@@ -10177,6 +10177,20 @@
             "widget": "segmented"
           }
         },
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
         "missedLabel": {
           "type": "string",
           "optional": true,
@@ -10194,6 +10208,7 @@
           "align",
           "showUpdatedAt",
           "variant",
+          "size",
           "missedLabel"
         ]
       }
@@ -11424,6 +11439,63 @@
           "columns",
           "empty.title",
           "empty.description"
+        ]
+      }
+    },
+    {
+      "type": "PageToolbar",
+      "componentName": "dms-page-toolbar-block",
+      "container": true,
+      "meta": {
+        "name": "Page toolbar",
+        "icon": "i-ph-sliders-horizontal",
+        "description": "Context bar of a page: its scope, the last update, live mode and period.",
+        "group": "data"
+      },
+      "config": {
+        "size": {
+          "type": "string",
+          "enum": [
+            "xs",
+            "sm",
+            "md"
+          ],
+          "optional": true,
+          "description": "The size of the controls the toolbar holds.",
+          "ui": {
+            "label": "Size",
+            "group": "appearance",
+            "widget": "segmented"
+          }
+        },
+        "showUpdatedAt": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, shows how long ago the page last read its data.",
+          "ui": {
+            "label": "Show the last update",
+            "group": "appearance",
+            "widget": "switch"
+          }
+        },
+        "refresh": {
+          "type": "boolean",
+          "optional": true,
+          "description": "Without live mode, offers a button reading the page again.",
+          "ui": {
+            "label": "Refresh button",
+            "group": "behavior",
+            "widget": "switch"
+          }
+        }
+      },
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "size",
+          "showUpdatedAt",
+          "refresh"
         ]
       }
     },

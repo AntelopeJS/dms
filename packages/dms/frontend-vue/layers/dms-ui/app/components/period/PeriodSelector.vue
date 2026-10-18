@@ -35,6 +35,8 @@ import PeriodRangeCalendar from "../../build/components/period/PeriodRangeCalend
 import { useUserRegionalPreferences } from "#dms-core/app/composables/user/useUserRegionalPreferences";
 import { usePageLive } from "../../composables/live/usePageLive";
 import { useLivePeriodSpan } from "../../build/composables/live/useLivePeriodSpan";
+import { usePageToolbar } from "../../build/composables/page-toolbar/pageToolbarContext";
+import { PRESET_SHORT_LABELS } from "../../build/composables/period/periodShortLabels";
 
 interface Props extends DefaultComponentProps {
   id: string;
@@ -64,9 +66,12 @@ const RELATIVE_RANGE_LABEL: NonNullable<Props["rangeLabel"]> = "relative";
 // Two months side by side from this width; one below (design @container 760px).
 const TWO_MONTHS_QUERY = "(min-width: 768px)";
 
+type PeriodSelectorSize = NonNullable<Props["size"]>;
+const DEFAULT_SIZE: PeriodSelectorSize = "sm";
+
 const props = withDefaults(defineProps<Props>(), {
   align: "right",
-  size: "sm",
+  size: undefined,
   showRangeLabel: true,
   rangeLabel: "absolute",
   variant: "default",
@@ -78,16 +83,14 @@ const ALIGN_CLASSES: Record<NonNullable<Props["align"]>, string> = {
   right: "justify-end",
 };
 
-/** Short mono codes, as trails in the preset list and segmented labels. */
-const PRESET_SHORT_LABELS: Partial<Record<PeriodPreset, string>> = {
-  "last-hour": "1H",
-  "last-24h": "24H",
-  today: "1D",
-  "last-7-days": "7D",
-  "last-30-days": "30D",
-  "last-90-days": "90D",
-  "this-quarter": "QTD",
-  ytd: "YTD",
+// The window beside the controls, at each size of a toolbar holding the
+// selector; outside one it keeps its size whatever the controls'.
+const RANGE_LABEL_SIZE_CLASSES: Record<PeriodSelectorSize, string> = {
+  xs: "text-[11px]",
+  sm: "text-[11.5px]",
+  md: "text-[12.5px]",
+  lg: "text-[13px]",
+  xl: "text-sm",
 };
 
 /** Rolling windows first, then calendar periods (design preset groups). */
@@ -112,6 +115,15 @@ useComponentEvent(props.componentId);
 useWatch(props.watchActions || [], props.componentId);
 
 const { t, locale } = useI18n();
+
+// In a toolbar, the selector takes its size, and its window scales with it.
+const toolbar = usePageToolbar();
+const size = computed<PeriodSelectorSize>(
+  () => props.size ?? toolbar?.size.value ?? DEFAULT_SIZE,
+);
+const rangeLabelSizeClass = computed(
+  () => RANGE_LABEL_SIZE_CLASSES[toolbar ? size.value : DEFAULT_SIZE],
+);
 
 // A paused live page keeps its period where it was: a relative preset
 // sliding every minute would refetch every block reading it.
@@ -775,8 +787,8 @@ function onSegmentedClick(event: MouseEvent) {
     <span
       v-if="showRangeLabel && rangeLabelText"
       data-allow-mismatch="text"
-      class="text-dimmed hidden font-mono text-[11.5px] font-medium whitespace-nowrap tabular-nums sm:inline"
-      :class="rangeLabelOrder"
+      class="dms-period-selector__range text-dimmed hidden font-mono font-medium whitespace-nowrap tabular-nums sm:inline"
+      :class="[rangeLabelOrder, rangeLabelSizeClass]"
     >
       <b class="text-toned font-[550]">{{ rangeLabelText }}</b>
       <template v-if="compareRangeLabel">

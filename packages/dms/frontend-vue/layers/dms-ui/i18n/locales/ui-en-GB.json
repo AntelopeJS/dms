@@ -750,6 +750,7 @@
       "show_new": "Show",
       "paused": "Paused",
       "resume": "Resume",
+      "refresh": "Refresh",
       "reason_hidden": "tab hidden",
       "polling": "no realtime, polling",
       "table_held": "Table on hold",
