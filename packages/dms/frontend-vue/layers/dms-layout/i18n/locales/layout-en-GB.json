@@ -763,7 +763,7 @@
         "install": "Install",
         "update": "Update",
         "enable": "Resume",
-        "disable": "Pause",
+        "disable": "Pause (keep the configuration)",
         "uninstall": "Uninstall",
         "apply": "Apply",
         "manage": "Manage"
@@ -791,7 +791,7 @@
       "working_copy_hint": "Local copy declared in antelope.config.ts.",
       "uninstall_confirm": {
         "title": "Uninstall {module}?",
-        "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again."
+        "description": "{module} stops and leaves the menu. Its data (collections, files, settings) stays in place and comes back if you install it again. Its configuration block is removed from antelope.config.ts."
       },
       "action_failed": "{module} could not be changed",
       "errors": {

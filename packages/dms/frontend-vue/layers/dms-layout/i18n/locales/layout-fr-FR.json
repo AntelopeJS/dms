@@ -767,7 +767,7 @@
         "install": "Installer",
         "update": "Mettre à jour",
         "enable": "Reprendre",
-        "disable": "Mettre en pause",
+        "disable": "Mettre en pause (garder la configuration)",
         "uninstall": "Désinstaller",
         "apply": "Appliquer",
         "manage": "Gérer"
@@ -795,7 +795,7 @@
       "working_copy_hint": "Copie locale déclarée dans antelope.config.ts.",
       "uninstall_confirm": {
         "title": "Désinstaller {module} ?",
-        "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez."
+        "description": "{module} s’arrête et quitte le menu. Ses données (collections, fichiers, réglages) restent en place et reviennent si vous le réinstallez. Son bloc de configuration est retiré d’antelope.config.ts."
       },
       "action_failed": "{module} n’a pas pu être modifié",
       "errors": {
