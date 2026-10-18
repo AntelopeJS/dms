@@ -11,6 +11,7 @@ import * as tenantAccessImpl from "../../../../implementations/dms/tenant-access
 import * as layoutBannersInterface from "@antelopejs/interface-dms/layout-banners";
 import {
   type LayoutBannerContext,
+  LayoutBannerScope,
   LayoutBannerVariant,
   RegisterLayoutBanner,
 } from "@antelopejs/interface-dms/layout-banners";
@@ -90,6 +91,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "always",
         variant: LayoutBannerVariant.INFO,
         order: 0,
+        scope: LayoutBannerScope.APP,
         dismissible: false,
         icon: undefined,
         text: "$banner.always",
@@ -120,6 +122,33 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
       icon: "i-ph-clock",
     });
     expect(banner?.props).to.deep.equal({ days: 3 });
+  });
+
+  // The site layout is shared by every page: the scope travels with the banner
+  // and the dashboard applies it against the route.
+  it("ships each banner's scope, the application's pages by default", async () => {
+    disposers.push(
+      RegisterLayoutBanner({ key: "default", variant: "info", text: "a" }),
+      RegisterLayoutBanner({
+        key: "workspace",
+        variant: "error",
+        text: "b",
+        scope: LayoutBannerScope.EVERYWHERE,
+      }),
+      RegisterLayoutBanner({
+        key: "module-area",
+        variant: "info",
+        text: "c",
+        scope: LayoutBannerScope.MODULES,
+      }),
+    );
+
+    const scopes = (await bannersFor()).map(({ key, scope }) => [key, scope]);
+    expect(scopes).to.deep.equal([
+      ["default", LayoutBannerScope.APP],
+      ["workspace", LayoutBannerScope.EVERYWHERE],
+      ["module-area", LayoutBannerScope.MODULES],
+    ]);
   });
 
   it("stacks banners by order, ties in registration order", async () => {
@@ -292,6 +321,7 @@ describe("[unit] implementations/dms/layout-banners — site layout resolution",
         key: "past-due",
         variant: "error",
         order: 0,
+        scope: LayoutBannerScope.APP,
         dismissible: false,
         icon: undefined,
         text: {

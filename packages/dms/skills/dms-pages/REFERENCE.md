@@ -103,6 +103,11 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   KeyValueList / Banner / NavCardGrid / ActivityFeed / Meter / TopListCard item texts, ActivityFeed
   `params` (typed `count` for plurals), tab badges and layout banners (`RegisterLayoutBanner({ resolve })`
   → `{ text, actions }`) take it. Never format text server-side.
+- A layout banner (`RegisterLayoutBanner`) shows on the application's pages only by default, never
+  inside `/modules` (modules page, module store, module pages). Give `scope:
+  LayoutBannerScope.EVERYWHERE` to a workspace-wide state (billing past due, suspended workspace,
+  maintenance) that must follow the user into modules; leave the default for anything about the
+  application's own data.
 - A status the backend computes (health, outage) is a `Banner({ fetchUrl })`: the route answers a
   `BannerContent` (its buttons may run `api` / modal / quick-action targets with `confirm`) or
   `null` for no banner.

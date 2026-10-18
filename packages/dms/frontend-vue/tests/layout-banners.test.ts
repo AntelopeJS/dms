@@ -6,6 +6,7 @@ import {
   defineComponent,
   h,
   nextTick,
+  reactive,
   ref,
   type App,
   type Ref,
@@ -14,20 +15,27 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardBanners from "../layers/dms-layout/app/build/components/layout/DashboardBanners.vue";
 import {
+  isLayoutBannerInScope,
+  isModuleAreaPath,
   resolveLayoutBannerPresentation,
   useLayoutBanners,
 } from "../layers/dms-layout/app/composables/layout/useLayoutBanners";
-import type {
-  LayoutBanner,
-  LayoutBannerVariant,
-  SiteLayout,
+import {
+  MODULE_URL_PREFIX,
+  type LayoutBanner,
+  type LayoutBannerScope,
+  type LayoutBannerVariant,
+  type SiteLayout,
 } from "../layers/dms-layout/app/types/page";
 
 const DISMISSED_BANNERS_COOKIE = "dms-dismissed-banners";
+const APP_PAGE = "/finance/invoices";
+const MODULE_PAGE = "/modules/marketing/pages";
 
 const siteLayout = ref<SiteLayout | undefined>();
 let dismissedCookie: Ref<string[]>;
 const cookieNames: string[] = [];
+const route = reactive({ path: APP_PAGE });
 
 const banner = (extra: Partial<LayoutBanner> = {}): LayoutBanner => ({
   key: "banner",
@@ -88,7 +96,10 @@ beforeEach(() => {
   siteLayout.value = undefined;
   cookieNames.length = 0;
   dismissedCookie = ref<string[]>([]);
+  route.path = APP_PAGE;
   vi.stubGlobal("computed", computed);
+  vi.stubGlobal("MODULE_URL_PREFIX", MODULE_URL_PREFIX);
+  vi.stubGlobal("useDmsRoute", () => route);
   vi.stubGlobal("useSiteLayout", () => ({ siteLayout }));
   vi.stubGlobal("useDmsCookie", (name: string) => {
     cookieNames.push(name);
@@ -142,6 +153,35 @@ describe("resolveLayoutBannerPresentation", () => {
   });
 });
 
+describe("isLayoutBannerInScope", () => {
+  it.each([
+    ["/modules", true],
+    ["/modules/marketing", true],
+    [MODULE_PAGE, true],
+    ["/", false],
+    [APP_PAGE, false],
+    ["/modules-report", false],
+  ])("reads %s as in the module area: %s", (path, isModuleArea) => {
+    expect(isModuleAreaPath(path)).toBe(isModuleArea);
+  });
+
+  it.each([
+    [undefined, true, false],
+    ["app", true, false],
+    ["modules", false, true],
+    ["everywhere", true, true],
+    // From a newer backend, or an untyped registration: the default applies.
+    ["somewhere" as LayoutBannerScope, true, false],
+  ] as const)(
+    "places a %s banner on an app page: %s, on a module page: %s",
+    (scope, onAppPage, onModulePage) => {
+      const scoped = banner({ scope });
+      expect(isLayoutBannerInScope(scoped, APP_PAGE)).toBe(onAppPage);
+      expect(isLayoutBannerInScope(scoped, MODULE_PAGE)).toBe(onModulePage);
+    },
+  );
+});
+
 describe("useLayoutBanners", () => {
   it("serves nothing for a backend that predates banners", () => {
     serveBanners(undefined);
@@ -161,6 +201,37 @@ describe("useLayoutBanners", () => {
     expect(cookieNames).toEqual([DISMISSED_BANNERS_COOKIE]);
     expect(dismissedCookie.value).toEqual(["a"]);
     expect(banners.value.map((entry) => entry.key)).toEqual(["b"]);
+  });
+
+  it("keeps a banner without a scope out of the module area", () => {
+    serveBanners([
+      banner({ key: "default" }),
+      banner({ key: "app", scope: "app" }),
+      banner({ key: "workspace", scope: "everywhere" }),
+    ]);
+    const { banners } = useLayoutBanners();
+    expect(banners.value.map((entry) => entry.key)).toEqual([
+      "default",
+      "app",
+      "workspace",
+    ]);
+
+    route.path = "/modules";
+    expect(banners.value.map((entry) => entry.key)).toEqual(["workspace"]);
+  });
+
+  it("still drops a dismissed banner scoped everywhere, in the module area too", () => {
+    route.path = MODULE_PAGE;
+    serveBanners([
+      banner({ key: "a", dismissible: true, scope: "everywhere" }),
+    ]);
+    const { banners, dismiss } = useLayoutBanners();
+
+    dismiss("a");
+    expect(banners.value).toEqual([]);
+
+    route.path = APP_PAGE;
+    expect(banners.value).toEqual([]);
   });
 
   // A banner that turned non-dismissible (an overdue invoice) must show again
@@ -253,6 +324,47 @@ describe("DashboardBanners", () => {
       mountable(createSSRApp(DashboardBanners)),
     );
     expect(html).not.toContain("data-dms-layout-banners");
+  });
+
+  // The site layout is fetched once: the scope is what changes between pages.
+  it("adds and removes scoped banners on client-side navigation", async () => {
+    serveBanners([
+      banner({ key: "overdue", scope: "app" }),
+      banner({ key: "past-due", variant: "error", scope: "everywhere" }),
+      banner({ key: "store", scope: "modules" }),
+    ]);
+    const host = document.createElement("div");
+    const app = mountable(createApp(DashboardBanners));
+    app.mount(host);
+    const renderedKeys = () =>
+      [...host.querySelectorAll("[data-dms-layout-banner]")].map((node) =>
+        node.getAttribute("data-dms-layout-banner"),
+      );
+
+    expect(renderedKeys()).toEqual(["overdue", "past-due"]);
+
+    route.path = MODULE_PAGE;
+    await nextTick();
+    expect(renderedKeys()).toEqual(["past-due", "store"]);
+
+    route.path = APP_PAGE;
+    await nextTick();
+    expect(renderedKeys()).toEqual(["overdue", "past-due"]);
+    app.unmount();
+  });
+
+  it("server-renders only the banners scoped to the requested page", async () => {
+    route.path = MODULE_PAGE;
+    serveBanners([
+      banner({ key: "overdue" }),
+      banner({ key: "past-due", scope: "everywhere" }),
+    ]);
+
+    const html = await renderToString(
+      mountable(createSSRApp(DashboardBanners)),
+    );
+    expect(html).toContain('data-dms-layout-banner="past-due"');
+    expect(html).not.toContain('data-dms-layout-banner="overdue"');
   });
 
   it("offers a close button only on a dismissible banner, and closes it", async () => {

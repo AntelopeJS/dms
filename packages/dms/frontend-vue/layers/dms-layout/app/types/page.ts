@@ -107,15 +107,21 @@ export type SiteLayoutTree = Omit<PageInfo, "layoutUrl"> & {
 // Mirror of LayoutBannerVariant from @antelopejs/interface-dms/layout-banners.
 export type LayoutBannerVariant = "info" | "warning" | "error";
 
+// Mirror of LayoutBannerScope from @antelopejs/interface-dms/layout-banners.
+export type LayoutBannerScope = "app" | "modules" | "everywhere";
+
 /**
  * Mirror of the backend's serialized layout banner. The payload only carries
  * the banners whose visibility resolver passed for this request, so there is
- * nothing left to decide here but the user's own dismissals.
+ * nothing left to decide here but the current route against `scope` and the
+ * user's own dismissals.
  */
 export interface LayoutBanner {
   key: string;
   variant: LayoutBannerVariant;
   order: number;
+  /** Absent from a backend that predates scopes: reads as `app`. */
+  scope?: LayoutBannerScope;
   dismissible: boolean;
   icon?: string;
   /** A string (`$` for an i18n key) or a composed text. */
