@@ -22,6 +22,7 @@ import {
   FormSection,
   FormSectionSerialized,
   isFieldGroup,
+  type SetFieldValueParams,
 } from "./form-types";
 import { serializeFormField } from "./internal/form-schema";
 
@@ -793,5 +794,6 @@ declare module "./types/watch" {
       targetField: string;
       setRequired: boolean;
     };
+    [FormFunctions.SET_FIELD_VALUE]: SetFieldValueParams;
   }
 }

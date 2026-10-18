@@ -13,9 +13,11 @@ export namespace FormEvents {
   export const SUBMIT_SUCCESS = "DmsComponent.Form.SubmitSuccess";
   export const SUBMIT_ERROR = "DmsComponent.Form.SubmitError";
   /**
-   * A field's value, as `{ fieldId, value }`: once for each field with the
-   * values the form starts from (defaults, loaded record), then on each
-   * change. A watch keyed on `fieldId` alone therefore runs at load.
+   * A field's value, as `{ fieldId, value, initial }`: once for each field
+   * with the values the form starts from (defaults, loaded record), then on
+   * each change. A watch keyed on `fieldId` alone therefore runs at load.
+   * `initial` is `true` while the field still holds the value it started
+   * from and never held another.
    */
   export const FIELD_CHANGE = "DmsComponent.Form.FieldChange";
   export const RESET = "DmsComponent.Form.Reset";
@@ -25,6 +27,29 @@ export namespace FormFunctions {
   export const SET_FIELD_DISABLED = "DmsComponent.Form.SetFieldDisabled";
   export const SET_FIELD_HIDDEN = "DmsComponent.Form.SetFieldHidden";
   export const SET_FIELD_REQUIRED = "DmsComponent.Form.SetFieldRequired";
+  /**
+   * Writes a field's value: `value`, or the entry of `valueMap` named by
+   * the value of the field that changed. Never on the values the form
+   * starts from (see {@link SetFieldValueParams}).
+   */
+  export const SET_FIELD_VALUE = "DmsComponent.Form.SetFieldValue";
+}
+
+/**
+ * What {@link FormFunctions.SET_FIELD_VALUE} writes, and where. Set `value`
+ * for a fixed value, or `valueMap` to pick one by the value of the field
+ * the event names (`{ won: 100, lost: 0 }` on a stage change); a value the
+ * map has no entry for writes nothing.
+ *
+ * It runs on a change only: a `FIELD_CHANGE` the form sends for a value it
+ * started from (a default, the loaded record) writes nothing, so a record
+ * keeps its stored values as it opens and a field nobody edited is never
+ * sent as changed.
+ */
+export interface SetFieldValueParams {
+  targetField: string;
+  value?: unknown;
+  valueMap?: Record<string, unknown>;
 }
 
 /** A pill shown beside a read-only field's value. */

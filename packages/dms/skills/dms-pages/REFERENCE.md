@@ -140,6 +140,11 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   lists only the picked customer's sites, searches again when it changes and clears a pick made for
   the previous one — no custom picker. `field` must be filterable on the related controller (it
   throws at registration otherwise) — `docs/04.components/10.data-types.md`.
+- A field whose value follows another one (stage → probability) takes a watch running
+  `FormFunctions.SET_FIELD_VALUE` with `{ targetField, valueMap: { won: 100, lost: 0 } }` (or a fixed
+  `value`) on `FIELD_CHANGE` keyed on the source `fieldId` — never a custom component. It writes on a
+  change only, never over the values a record opens with; a rule that must hold stays in the write
+  route — `docs/04.components/07.forms/0.index.md#setting-a-value-from-another-field`.
 - A long sectioned `Form` groups its navigation with `FormSection.navGroup`, in the side list and
   the `sectionNav: "jump"` chips alike.
 - A module's own `inputComponent` submits its form, adds a validator and focuses a field with

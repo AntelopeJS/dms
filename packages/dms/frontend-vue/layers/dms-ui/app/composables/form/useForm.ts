@@ -43,6 +43,7 @@ import {
   isPlainObject,
   sameFormValue,
 } from "../../build/composables/unsaved-changes/formValue";
+import { createStartingValueTracker } from "../../build/composables/form/fieldValueRule";
 
 /** A server error shown under its field, translated. */
 export interface FormServerFieldError {
@@ -459,10 +460,14 @@ function watchFieldChanges(
     componentId: string,
     payload?: unknown,
   ) => void,
+  isStartingValue: (fieldId: string, value: unknown) => boolean,
 ): void {
   if (!componentId) return;
   const id = componentId;
   const previousValuesJson: Record<string, string> = {};
+  // `initial` on each change: a watch writing values (SetFieldValue) leaves
+  // the values the form started from to the record it loaded.
+  const isInitial = createStartingValueTracker(isStartingValue);
 
   // From mount, once `useWatch` listens: the values the form starts from
   // (defaults, loaded row) reach the watch rules too, not only later edits.
@@ -485,6 +490,7 @@ function watchFieldChanges(
           fieldId,
           value: newState[fieldId],
           formValues: newState,
+          initial: isInitial(fieldId, newState[fieldId]),
         });
         previousValuesJson[fieldId] = newJson;
       }
@@ -544,7 +550,25 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   const initialValues = ref<FormData>({});
   const submitSucceeded = ref(false);
 
-  watchFieldChanges(state, props.componentId, sendComponentEvent);
+  const allFields = computed(() => flattenFields(props.fields));
+
+  // Whether a field holds the value the form started from: its default or
+  // the loaded record's, compared as its data type does (a joined row is
+  // the same as the id the picker holds).
+  const isStartingValue = (fieldId: string, value: unknown): boolean => {
+    const field = allFields.value.find((entry) => entry.id === fieldId);
+    const initial = initialValues.value[fieldId];
+    return field
+      ? isSameFieldValue(field, value, initial)
+      : sameFormValue(value, initial);
+  };
+
+  watchFieldChanges(
+    state,
+    props.componentId,
+    sendComponentEvent,
+    isStartingValue,
+  );
 
   // A successful submit leaves the form at its saved state; a later edit makes
   // it dirty again, so clear `submitSucceeded` to re-arm the unsaved-changes
@@ -559,8 +583,6 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
     },
     { deep: true },
   );
-
-  const allFields = computed(() => flattenFields(props.fields));
 
   const disabledFields = computed(
     () => state.value.disabledFields as Set<string> | undefined,
