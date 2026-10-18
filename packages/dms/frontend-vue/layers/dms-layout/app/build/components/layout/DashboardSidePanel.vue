@@ -5,12 +5,16 @@
  * right, so the page shrinks next to it, and a resize handle sits on its inner
  * edge. Below `lg` the same element is a sheet over the page, above a
  * backdrop: the switch is CSS only, so crossing the breakpoint never remounts
- * the panel's component.
+ * the panel's component. An `overlay` panel is that sheet at every width: the
+ * page behind keeps its width.
  */
 import { useMediaQuery } from "@vueuse/core";
 import type { SidePanel } from "../../../composables/useAppSidePanels";
 import { useSidePanel } from "../../../composables/useSidePanel";
-import { sidePanelWidthStyle } from "../../composables/layout/sidePanelState";
+import {
+  isFullSidePanel,
+  sidePanelWidthStyle,
+} from "../../composables/layout/sidePanelState";
 import { useSidePanelWidth } from "../../composables/layout/useSidePanelWidth";
 
 interface Props {
@@ -26,10 +30,21 @@ const HOST_CLASS =
 const DESKTOP_QUERY = "(min-width: 1024px)";
 const ESCAPE_KEY = "Escape";
 const PANEL_DOM_ID_PREFIX = "dms-side-panel-";
+const BACKDROP_CLASS = "bg-elevated/75 fixed inset-0 z-40";
+// Docked from `lg`, where the frame makes room for it; a sheet below.
+const DOCKED_BACKDROP_CLASS = "lg:hidden";
+const DOCKED_PANEL_CLASS = "max-lg:z-50 max-lg:shadow-xl lg:max-w-[60vw]";
+const OVERLAY_PANEL_CLASS = "z-50 shadow-xl";
+// A sized panel fills a phone's screen; an unsized one keeps its width there.
+const SIZED_PANEL_PHONE_CLASS = "max-sm:w-full";
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
-const isDocked = useMediaQuery(DESKTOP_QUERY);
+const isDesktop = useMediaQuery(DESKTOP_QUERY);
+const isOverlay = computed(() => props.panel.overlay === true);
+// Docked, the panel is part of the page; a sheet covers it.
+const isSheet = computed(() => isOverlay.value || !isDesktop.value);
+const isFull = computed(() => isFullSidePanel(props.panel));
 const { close } = useSidePanel(props.panel.id);
 const panelEl = ref<HTMLElement | null>(null);
 const {
@@ -47,7 +62,16 @@ const panelDomId = `${PANEL_DOM_ID_PREFIX}${props.panel.id}`;
 const ariaLabel = computed(() =>
   props.panel.ariaLabel ? processI18n(props.panel.ariaLabel) : undefined,
 );
-const panelStyle = computed(() => sidePanelWidthStyle(width.value));
+const panelStyle = computed(() =>
+  sidePanelWidthStyle(width.value, isFull.value),
+);
+const backdropClass = computed(() =>
+  isOverlay.value ? BACKDROP_CLASS : [BACKDROP_CLASS, DOCKED_BACKDROP_CLASS],
+);
+const panelClass = computed(() => [
+  isOverlay.value ? OVERLAY_PANEL_CLASS : DOCKED_PANEL_CLASS,
+  props.panel.size && SIZED_PANEL_PHONE_CLASS,
+]);
 const panelComponent = computed(
   () => resolveDmsComponent(props.panel.component) ?? props.panel.component,
 );
@@ -55,7 +79,7 @@ const panelComponent = computed(
 // Escape dismisses the sheet only: docked, the panel is part of the page and
 // its component may give the key a meaning of its own.
 function closeSheetOnEscape(event: KeyboardEvent): void {
-  if (event.key !== ESCAPE_KEY || isDocked.value) return;
+  if (event.key !== ESCAPE_KEY || !isSheet.value) return;
   close();
 }
 
@@ -76,7 +100,7 @@ function isFocusInside(): boolean {
 onMounted(() => {
   const active = document.activeElement;
   focusBeforeOpen = active instanceof HTMLElement ? active : null;
-  if (isDocked.value || isFocusInside()) return;
+  if (!isSheet.value || isFocusInside()) return;
   panelEl.value?.focus();
 });
 
@@ -92,7 +116,7 @@ onBeforeUnmount(() => {
       aria-hidden="true"
       tabindex="-1"
       data-dms-side-panel-backdrop
-      class="bg-elevated/75 fixed inset-0 z-40 lg:hidden"
+      :class="backdropClass"
       @click="close"
     />
 
@@ -101,13 +125,17 @@ onBeforeUnmount(() => {
       ref="panelEl"
       data-dms-side-panel
       :data-dragging="isDragging || undefined"
+      :data-overlay="isOverlay || undefined"
+      :data-size="panel.size"
       :aria-label="ariaLabel"
       tabindex="-1"
-      class="border-default fixed inset-y-0 end-0 flex w-(--dms-side-panel-width) max-w-full min-w-0 flex-col border-s bg-(--dms-bg-sidebar) outline-none max-lg:z-50 max-lg:shadow-xl lg:max-w-[60vw]"
+      class="border-default fixed inset-y-0 end-0 flex w-(--dms-side-panel-width) max-w-full min-w-0 flex-col border-s bg-(--dms-bg-sidebar) outline-none"
+      :class="panelClass"
       :style="panelStyle"
       @keydown="closeSheetOnEscape"
     >
       <div
+        v-if="!isFull"
         role="separator"
         aria-orientation="vertical"
         tabindex="0"

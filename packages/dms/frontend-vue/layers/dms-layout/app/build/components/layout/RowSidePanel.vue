@@ -18,6 +18,8 @@ import {
 } from "#dms-ui/app/build/composables/actions/rowNavigation";
 import {
   closeRowSidePanel,
+  closeRowSidePanelIn,
+  openRowSidePanelId,
   useRowSidePanelContent,
 } from "../../composables/layout/rowSidePanel";
 
@@ -26,6 +28,9 @@ const DEFAULT_POSITION_KEY = "side_panel.position";
 const { t } = useI18n();
 const { processI18n } = useTranslation();
 const content = useRowSidePanelContent();
+// The id the panel this instance renders in was registered under: a row of
+// another size is shown in a panel of its own, which replaces this one.
+const panelId = openRowSidePanelId();
 
 const navigation = computed(() => {
   const current = content.value;
@@ -73,10 +78,11 @@ onMounted(() => {
 });
 
 // Another side panel took its place, or the user signed out: the row is no
-// longer open.
+// longer open. A row of another size moved to its own panel stays open.
 onBeforeUnmount(() => {
   stopKeys.forEach((stop) => stop());
-  close();
+  if (panelId) closeRowSidePanelIn(panelId);
+  else close();
 });
 </script>
 

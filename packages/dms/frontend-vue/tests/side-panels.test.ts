@@ -475,3 +475,97 @@ describe("side panel host below lg", () => {
     expect(document.activeElement).toBe(launcher);
   });
 });
+
+describe("a sized side panel", () => {
+  it("opens at a modal's width for its size, the handle reaching further", () => {
+    expect(resolveSidePanelWidthBounds(panel("a", { size: "sm" }))).toEqual({
+      defaultWidth: 384,
+      minWidth: 320,
+      maxWidth: 720,
+    });
+    expect(resolveSidePanelWidthBounds(panel("a", { size: "3xl" }))).toEqual({
+      defaultWidth: 768,
+      minWidth: 320,
+      maxWidth: 1152,
+    });
+    expect(
+      resolveSidePanelWidthBounds(
+        panel("a", { size: "3xl", defaultWidth: 500 }),
+      ).defaultWidth,
+    ).toBe(500);
+  });
+
+  it("docks at its size's width and fills a phone's screen", async () => {
+    registerSidePanel(panel("a", { size: "2xl" }));
+    useSidePanel("a").open();
+    const host = mountApp();
+    expect(aside(host)?.style.getPropertyValue(WIDTH_VARIABLE)).toBe("672px");
+    expect(group(host)?.style.getPropertyValue(WIDTH_VARIABLE)).toBe("672px");
+    expect(aside(host)?.className).toContain("max-sm:w-full");
+    expect(aside(host)?.dataset.size).toBe("2xl");
+  });
+
+  it("keeps an unsized panel's width on a phone", async () => {
+    registerSidePanel(panel("a"));
+    useSidePanel("a").open();
+    const host = mountApp();
+    expect(aside(host)?.className).not.toContain("max-sm:w-full");
+  });
+
+  it("takes the whole room it may have at `full`, without a handle", async () => {
+    registerSidePanel(panel("a", { size: "full" }));
+    useSidePanel("a").open();
+    const host = mountApp();
+    expect(aside(host)?.style.getPropertyValue(WIDTH_VARIABLE)).toBe("100vw");
+    expect(aside(host)?.className).toContain("lg:max-w-[60vw]");
+    expect(group(host)?.className).toContain(
+      "lg:end-[min(var(--dms-side-panel-width),60vw)]",
+    );
+    expect(host.querySelector("[data-dms-side-panel-handle]")).toBeNull();
+  });
+});
+
+describe("an overlay side panel", () => {
+  it("slides over the page, which keeps its width", async () => {
+    registerSidePanel(panel("a", { overlay: true, size: "xl" }));
+    useSidePanel("a").open();
+    const host = mountApp();
+    expect(aside(host)?.dataset.overlay).toBe("true");
+    expect(aside(host)?.classList.contains("z-50")).toBe(true);
+    expect(aside(host)?.className).not.toContain("lg:max-w-[60vw]");
+    expect(aside(host)?.style.getPropertyValue(WIDTH_VARIABLE)).toBe("576px");
+    expect(group(host)?.getAttribute("style")).toBeNull();
+    expect(group(host)?.className ?? "").not.toContain("lg:end-");
+  });
+
+  it("draws its backdrop on a desktop too, and moves focus into the panel", async () => {
+    registerSidePanel(panel("a", { overlay: true }));
+    useSidePanel("a").open();
+    const host = mountApp();
+    const backdrop = host.querySelector("[data-dms-side-panel-backdrop]");
+    expect(backdrop?.className).not.toContain("lg:hidden");
+    expect(document.activeElement).toBe(aside(host));
+  });
+
+  it("closes on a backdrop click or Escape on a desktop", async () => {
+    registerSidePanel(panel("a", { overlay: true }));
+    const { open, isOpen } = useSidePanel("a");
+    open();
+    const host = mountApp();
+    host.querySelector<HTMLElement>("[data-dms-side-panel-backdrop]")?.click();
+    expect(isOpen.value).toBe(false);
+    open();
+    await nextTick();
+    press(aside(host), "Escape");
+    expect(isOpen.value).toBe(false);
+  });
+
+  it("renders over the page on the server, reserving no room", async () => {
+    registerSidePanel(panel("a", { overlay: true }));
+    storePreferences({ openId: "a", widths: { a: 500 } });
+    const markup = await renderApp();
+    expect(markup).toContain("data-dms-side-panel");
+    expect(markup).toContain('data-overlay="true"');
+    expect(markup).not.toContain("lg:end-[min(");
+  });
+});

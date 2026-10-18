@@ -321,7 +321,11 @@ export function useActionTargets(config: ActionTargetsConfig) {
     };
     return run.target.type === "modal"
       ? openModal({ ...options, size: run.target.size })
-      : openDrawer({ ...options, direction: run.target.direction });
+      : openDrawer({
+          ...options,
+          direction: run.target.direction,
+          size: run.target.size,
+        });
   };
 
   const resolveTargetComponent = (componentName: string): Component =>
@@ -413,6 +417,8 @@ export function useActionTargets(config: ActionTargetsConfig) {
       ownerKey,
       title: run.title,
       positionLabel: run.target.positionLabel,
+      size: run.target.size,
+      overlay: run.target.overlay,
       component: resolveTargetComponent(componentName),
       componentOptions: {
         ...run.target.component?.options,

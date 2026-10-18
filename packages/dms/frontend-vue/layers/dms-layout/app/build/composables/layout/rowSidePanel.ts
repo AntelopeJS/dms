@@ -1,5 +1,6 @@
 import { type Component, type ShallowRef, shallowRef } from "vue";
 import type { RowNavigationSource } from "#dms-ui/app/build/composables/actions/rowNavigation";
+import type { ModalSize } from "#dms-ui/app/types/modal";
 import {
   registerSidePanel,
   unregisterSidePanel,
@@ -51,6 +52,10 @@ export interface RowSidePanelContent {
   notFound?: RowSidePanelNotFound;
   /** i18n key (`$`-prefixed) of the position, receiving `{ index, total }`. */
   positionLabel?: string;
+  /** Width the panel opens at (the target's `size`). */
+  size?: ModalSize;
+  /** Slides over the page instead of docking next to it (the target's `overlay`). */
+  overlay?: boolean;
   component: Component;
   /** Props of the component besides `rowData` and `navigation`. */
   componentOptions: Record<string, unknown>;
@@ -69,6 +74,44 @@ export interface RowSidePanelContent {
 // while the server renders a request, so a module-level ref is safe here. It
 // holds a component and callbacks, which no shared state may serialize.
 const content = shallowRef<RowSidePanelContent | null>(null);
+// The id the panel is registered under while a row is open.
+let registeredId: string | null = null;
+
+/**
+ * Id of the row side panel at `size`. Widths are remembered per panel id, so
+ * each size keeps the width the user gives it apart from the others; a panel
+ * without one keeps the plain id, and the width already stored under it.
+ *
+ * @internal
+ */
+export function rowSidePanelId(size?: ModalSize): string {
+  return size ? `${ROW_SIDE_PANEL_ID}:${size}` : ROW_SIDE_PANEL_ID;
+}
+
+function isSameRegistration(
+  current: RowSidePanelContent | null,
+  next: RowSidePanelContent,
+): boolean {
+  return (
+    current?.title === next.title &&
+    current.size === next.size &&
+    current.overlay === next.overlay
+  );
+}
+
+function register(next: RowSidePanelContent): string {
+  const id = rowSidePanelId(next.size);
+  if (registeredId && registeredId !== id) unregisterSidePanel(registeredId);
+  registerSidePanel({
+    id,
+    component: ROW_SIDE_PANEL_COMPONENT,
+    ariaLabel: next.title,
+    size: next.size,
+    overlay: next.overlay,
+  });
+  registeredId = id;
+  return id;
+}
 
 /**
  * The key a table's open row is kept under, which the table compares to
@@ -101,21 +144,20 @@ export function openRowSidePanel(next: RowSidePanelContent): void {
   const current = content.value;
   if (current && current.session !== next.session) current.onClose?.();
   content.value = next;
-  if (current?.title !== next.title) {
-    registerSidePanel({
-      id: ROW_SIDE_PANEL_ID,
-      component: ROW_SIDE_PANEL_COMPONENT,
-      ariaLabel: next.title,
-    });
-  }
-  setOpenSidePanel(useSidePanelPreferences(), ROW_SIDE_PANEL_ID);
+  const id =
+    registeredId && isSameRegistration(current, next)
+      ? registeredId
+      : register(next);
+  setOpenSidePanel(useSidePanelPreferences(), id);
 }
 
 function closeContent(current: RowSidePanelContent): void {
   content.value = null;
-  unregisterSidePanel(ROW_SIDE_PANEL_ID);
+  const id = registeredId ?? rowSidePanelId(current.size);
+  registeredId = null;
+  unregisterSidePanel(id);
   const preferences = useSidePanelPreferences();
-  if (isSidePanelOpen(preferences, ROW_SIDE_PANEL_ID)) {
+  if (isSidePanelOpen(preferences, id)) {
     setOpenSidePanel(preferences, null);
   }
   current.onClose?.();
@@ -131,6 +173,27 @@ export function closeRowSidePanel(session?: symbol): void {
   const current = content.value;
   if (!current || (session && current.session !== session)) return;
   closeContent(current);
+}
+
+/**
+ * The id the row side panel is registered under, `null` while it is closed.
+ *
+ * @internal
+ */
+export function openRowSidePanelId(): string | null {
+  return registeredId;
+}
+
+/**
+ * Closes the row side panel while it is still registered under `id`: a panel
+ * rendered under another size's id gives way without closing the row it was
+ * replaced with.
+ *
+ * @internal
+ */
+export function closeRowSidePanelIn(id: string): void {
+  const current = content.value;
+  if (current && registeredId === id) closeContent(current);
 }
 
 /**

@@ -130,9 +130,32 @@ export function useSidePanelDragWidth(): Ref<number | null> {
   );
 }
 
-/** @internal */
-export function sidePanelWidthStyle(width: number): Record<string, string> {
-  return { [SIDE_PANEL_WIDTH_VARIABLE]: `${width}px` };
+// A `full` panel spans the window, so the 60vw cap alone sizes a docked one.
+const FULL_SIDE_PANEL_WIDTH = "100vw";
+
+/**
+ * Whether the panel takes the whole room it may have (`size: "full"`): its
+ * width is CSS, and it has no resize handle.
+ *
+ * @internal
+ */
+export function isFullSidePanel(panel: SidePanel | null): boolean {
+  return panel?.size === "full";
+}
+
+/**
+ * The width variable the panel and the frame read: `width` in px, the window
+ * for a `full` panel.
+ *
+ * @internal
+ */
+export function sidePanelWidthStyle(
+  width: number,
+  isFull = false,
+): Record<string, string> {
+  return {
+    [SIDE_PANEL_WIDTH_VARIABLE]: isFull ? FULL_SIDE_PANEL_WIDTH : `${width}px`,
+  };
 }
 
 /** @internal */

@@ -23,6 +23,10 @@ export interface SidePanelTargetOptions {
   deepLink?: boolean;
   /** The state drawn on a row that no longer exists (a 404). */
   notFound?: SidePanelNotFoundTexts;
+  /** Width the panel opens at: a modal's at that size; 440px without one. */
+  size?: ModalSize;
+  /** Slides over the page above a backdrop instead of docking next to it. */
+  overlay?: boolean;
 }
 
 /**
@@ -45,6 +49,8 @@ export type ActionTarget =
       description?: string;
       /** Edge the drawer slides in from (`bottom` by default). */
       direction?: DrawerDirection;
+      /** Width of a `left` / `right` drawer: a modal's at that size; 440px without one. */
+      size?: ModalSize;
     }
   | {
       type: "modal";

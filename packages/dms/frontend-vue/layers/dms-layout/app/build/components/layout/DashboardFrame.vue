@@ -8,6 +8,7 @@ import RolePreviewBar from "./RolePreviewBar.vue";
 import { useAppWidgets } from "../../../composables/useAppWidgets";
 import { useVisitNavBadges } from "../../composables/navigation/useVisitNavBadges";
 import {
+  isFullSidePanel,
   sidePanelWidthStyle,
   useActiveSidePanel,
 } from "../../composables/layout/sidePanelState";
@@ -30,7 +31,8 @@ const DOCK_CLEARANCE_CLASS =
 const DOCK_CHIP_REM = 3;
 const DOCK_EDGE_REM = 1.375;
 // The open side panel is rendered once for the app (`SidePanelHost`), fixed on
-// the right; from `lg` the frame keeps its width free so the page shrinks.
+// the right; from `lg` the frame keeps its width free so the page shrinks. An
+// overlay panel slides over the page instead, which keeps its width.
 const SIDE_PANEL_ROOM_CLASS = "lg:end-[min(var(--dms-side-panel-width),60vw)]";
 const dockHeight = (chips: number): string =>
   `${chips * DOCK_CHIP_REM + DOCK_EDGE_REM}rem`;
@@ -79,12 +81,16 @@ const regionAttrs = computed(() =>
 );
 
 const { panel: sidePanel, width: sidePanelWidth } = useActiveSidePanel();
-// Bound as attributes so a frame without a panel renders no empty `style`.
+// Bound as attributes so a frame without a docked panel renders no empty
+// `style`.
 const groupAttrs = computed(() =>
-  sidePanel.value
+  sidePanel.value && !sidePanel.value.overlay
     ? {
         class: SIDE_PANEL_ROOM_CLASS,
-        style: sidePanelWidthStyle(sidePanelWidth.value),
+        style: sidePanelWidthStyle(
+          sidePanelWidth.value,
+          isFullSidePanel(sidePanel.value),
+        ),
       }
     : {},
 );
