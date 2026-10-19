@@ -54,6 +54,12 @@ export interface ResolvedTableView extends TableViewViewConfig {
 
 export const VIEW_URL_KEY = "view";
 const NO_VIEW = "";
+
+/**
+ * The open view as the preferences keep it: no view open is kept too, so the
+ * next visit does not fall back to the default view.
+ */
+export const keptViewId = (id: string | undefined): string => id ?? NO_VIEW;
 const VIEW_NAME_FIELD = "label";
 
 /**
@@ -219,7 +225,11 @@ export function useTableViews(options: TableViewsOptions) {
   });
 
   watch(activeViewId, (id) => {
-    preferences.set<string | undefined>("activeView", id ?? NO_VIEW, undefined);
+    preferences.set<string | undefined>(
+      "activeView",
+      keptViewId(id),
+      undefined,
+    );
   });
 
   const isModified = computed(() => {

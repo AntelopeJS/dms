@@ -128,7 +128,10 @@ import {
   type WatchSource,
 } from "vue";
 import { useTableViewConfig } from "../../build/composables/table-view/useTableViewConfig";
-import { useTableViews } from "../../build/composables/table-view/useTableViews";
+import {
+  keptViewId,
+  useTableViews,
+} from "../../build/composables/table-view/useTableViews";
 import { useGroupedRows } from "../../build/composables/table-view/useGroupedRows";
 import { useTableFooter } from "../../build/composables/table-view/useTableFooter";
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
@@ -138,6 +141,7 @@ import {
   isLinkedArrival,
   linkedArrivalPreferences,
   linkFollowingPreferences,
+  urlFilterScope,
 } from "../../build/composables/table-view/utils/linkedArrival";
 import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
 import type { Ref } from "vue";
@@ -270,16 +274,37 @@ const ALL_TAB_ID = "all";
 const keptPreferences = useTablePreferences(componentId, pageId);
 // A link naming a view, a tab, a record or a URL filter opens on the table's
 // defaults plus what it names, never over the state kept from the last visit
-// (which stays kept for the next plain visit).
+// (which stays kept for the next plain visit), until the user makes the
+// state shown their own: a view, a tab, a filter or a sort they pick.
 const isLinked = isLinkedArrival({
   query: route.query,
   urlScope,
   queryParamFilters,
   rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
+  keptLinkScope: keptPreferences.get<string | undefined>(
+    "linkScope",
+    undefined,
+  ),
 });
 const tablePreferences = linkFollowingPreferences(
   isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,
+  {
+    isLinkedArrival: isLinked,
+    urlScope,
+    linkScope: () => urlFilterScope(route.query, queryParamFilters),
+    // Read once the table is mounted, past the declarations below. A page
+    // kept without its scope is restored as it is (`usePersistedPagination`).
+    listingState: () => [
+      ["activeView", keptViewId(activeViewId.value), undefined],
+      ["activeTab", activeTabId.value, ALL_TAB_ID],
+      ["columnFilters", columnFilters.value, []],
+      ["sorting", sorting.value, defaultSortState],
+      ["pagination", paginationState.value, DEFAULT_PAGINATION],
+      ["paginationScope", undefined, undefined],
+    ],
+  },
 );
+onMounted(() => void tablePreferences.settleArrival());
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
 

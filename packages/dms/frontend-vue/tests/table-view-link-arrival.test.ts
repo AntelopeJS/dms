@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,18 +8,25 @@ import {
   isLinkedVisit,
   linkedArrivalPreferences,
   linkFollowingPreferences,
+  type LinkFollowingOptions,
   type TableLinkVisit,
+  urlFilterScope,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
 
 const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
 const QUERY_PARAM_FILTERS = { customer: { field: "customerId" } };
 
-const arrival = (query: Record<string, unknown>, rememberedTab = "all") =>
+const arrival = (
+  query: Record<string, unknown>,
+  rememberedTab = "all",
+  keptLinkScope?: string,
+) =>
   isLinkedArrival({
     query,
     urlScope: SOLE_TABLE,
     queryParamFilters: QUERY_PARAM_FILTERS,
     rememberedTab,
+    keptLinkScope,
   });
 
 describe("isLinkedArrival", () => {
@@ -39,6 +47,15 @@ describe("isLinkedArrival", () => {
     expect(arrival({ tab: "overdue" }, "all")).toBe(true);
   });
 
+  it("takes the URL filters the kept state was chosen under for a reload", () => {
+    const scope = urlFilterScope({ customer: "c1" }, QUERY_PARAM_FILTERS);
+    expect(arrival({ customer: "c1", tab: "open" }, "open", scope)).toBe(false);
+    expect(arrival({ customer: "c2" }, "all", scope)).toBe(true);
+    expect(arrival({ customer: "c1", view: "outstanding" }, "all", scope)).toBe(
+      true,
+    );
+  });
+
   it("ignores a short key a page with several tables does not give it", () => {
     expect(
       isLinkedArrival({
@@ -46,8 +63,27 @@ describe("isLinkedArrival", () => {
         urlScope: { tableId: "content" },
         queryParamFilters: undefined,
         rememberedTab: "all",
+        keptLinkScope: undefined,
       }),
     ).toBe(false);
+  });
+});
+
+describe("urlFilterScope", () => {
+  const filters = { customer: { field: "customerId" }, ticket: { field: "n" } };
+
+  it("is undefined without a URL filter", () => {
+    expect(urlFilterScope({ period: "month" }, filters)).toBeUndefined();
+    expect(urlFilterScope({ customer: "c1" }, undefined)).toBeUndefined();
+  });
+
+  it("stands for the URL filters' values, whatever else the URL carries", () => {
+    expect(
+      urlFilterScope({ ticket: "T1", customer: "c1", tab: "open" }, filters),
+    ).toBe(urlFilterScope({ customer: "c1", ticket: "T1" }, filters));
+    expect(urlFilterScope({ customer: "c1" }, filters)).not.toBe(
+      urlFilterScope({ customer: "c2" }, filters),
+    );
   });
 });
 
@@ -145,22 +181,86 @@ describe("isLinkedVisit", () => {
 });
 
 describe("linkFollowingPreferences", () => {
-  it("keeps no listing state while a link is followed, then keeps it again", async () => {
-    const written: string[] = [];
-    const preferences = linkFollowingPreferences({
-      get: <V>(_field: string, fallback: V) => fallback,
-      set: (field) => {
-        written.push(field);
+  const LISTING_STATE: LinkFollowingOptions["listingState"] = () => [
+    ["activeView", "outstanding", undefined],
+    ["activeTab", "all", "all"],
+    ["columnFilters", [], []],
+  ];
+
+  const setUp = (isLinked: boolean) => {
+    window.history.replaceState(null, "", "/invoices?view=paid&tab=all");
+    const written: Array<[string, unknown]> = [];
+    const preferences = linkFollowingPreferences(
+      {
+        get: <V>(_field: string, fallback: V) => fallback,
+        set: (field, value) => {
+          written.push([field, value]);
+        },
+        restore: () => undefined,
       },
-      restore: () => undefined,
-    });
+      {
+        isLinkedArrival: isLinked,
+        urlScope: SOLE_TABLE,
+        linkScope: () => "scope",
+        listingState: LISTING_STATE,
+      },
+    );
+    return { preferences, written };
+  };
+
+  it("keeps the listing state of a plain visit, with its URL filters", () => {
+    const { preferences, written } = setUp(false);
+    preferences.set("sorting", [], []);
+    expect(written).toEqual([
+      ["sorting", []],
+      ["linkScope", "scope"],
+    ]);
+  });
+
+  it("keeps none of a link's listing state until the user picks their own", async () => {
+    const { preferences, written } = setUp(true);
+    preferences.set("activeView", "paid", undefined);
+    preferences.set("viewMode", "cards", "table");
+    await preferences.settleArrival();
+    preferences.set("pagination", { pageIndex: 1, pageSize: 10 }, undefined);
+    expect(written).toEqual([["viewMode", "cards"]]);
+    expect(window.location.search).toBe("?view=paid&tab=all");
+  });
+
+  it("keeps the whole state shown once the user picks a view, and drops the link's", async () => {
+    const { preferences, written } = setUp(true);
+    await preferences.settleArrival();
+    preferences.set("activeView", "outstanding", undefined);
+    expect(written).toEqual([
+      ["activeView", "outstanding"],
+      ["activeTab", "all"],
+      ["columnFilters", []],
+      ["linkScope", "scope"],
+    ]);
+    expect(window.location.search).toBe("?tab=all");
+    preferences.set("sorting", [], []);
+    expect(written.slice(-2)).toEqual([
+      ["sorting", []],
+      ["linkScope", "scope"],
+    ]);
+  });
+
+  it("keeps no listing state of a link followed in place, until the user's choice", async () => {
+    const { preferences, written } = setUp(false);
     await preferences.followLink(() => {
       preferences.set("activeTab", "all", "all");
       preferences.set("columnFilters", [], []);
       preferences.set("viewMode", "cards", "table");
     });
-    preferences.set("sorting", [], []);
-    expect(written).toEqual(["viewMode", "sorting"]);
+    expect(written).toEqual([["viewMode", "cards"]]);
+    preferences.set("activeTab", "open", "all");
+    expect(written.map(([field]) => field)).toEqual([
+      "viewMode",
+      "activeView",
+      "activeTab",
+      "columnFilters",
+      "linkScope",
+    ]);
   });
 });
 
@@ -175,9 +275,12 @@ describe("table view wiring", () => {
 
   it("reads its state through the link-arrival preferences", () => {
     expect(tableView).toMatch(
-      /const tablePreferences = linkFollowingPreferences\(\s*isLinked \? linkedArrivalPreferences\(keptPreferences\) : keptPreferences,\s*\);/,
+      /const tablePreferences = linkFollowingPreferences\(\s*isLinked \? linkedArrivalPreferences\(keptPreferences\) : keptPreferences,\s*\{\s*isLinkedArrival: isLinked,/,
     );
     expect(tableView).not.toMatch(/keptPreferences\.(set|restore)\(/);
+    expect(tableView).toMatch(
+      /onMounted\(\(\) => void tablePreferences\.settleArrival\(\)\);/,
+    );
   });
 
   it("follows a link to the page already shown without keeping its state", () => {

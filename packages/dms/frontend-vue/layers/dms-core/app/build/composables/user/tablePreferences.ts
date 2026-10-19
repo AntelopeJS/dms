@@ -13,7 +13,8 @@ export type ServerTableField =
   | "paginationScope"
   | "activeTab"
   | "viewMode"
-  | "activeView";
+  | "activeView"
+  | "linkScope";
 
 /**
  * @internal
@@ -224,6 +225,7 @@ export const SERVER_TABLE_FIELDS: Record<ServerTableField, ServerFieldCodec> = {
   activeTab: plainField("t"),
   viewMode: plainField("d"),
   activeView: plainField("w"),
+  linkScope: plainField("l"),
 };
 
 /** @internal Whether `field` is kept in the cookie. */
