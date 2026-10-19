@@ -1,6 +1,6 @@
 {
   "name": "@antelopejs/interface-dms",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Public AntelopeJS interfaces of the DMS: pages, components, permissions, tenancy, auth, notifications and HTML rendering.",
   "keywords": [
     "antelopejs",
@@ -33,6 +33,7 @@
   "scripts": {
     "build": "rimraf dist && tsc",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm run build && node --test tests/*.test.cjs",
     "lint": "oxlint && oxfmt --check .",
     "lint:fix": "oxlint --fix --max-warnings=1000000 && oxfmt .",
     "format": "oxfmt .",

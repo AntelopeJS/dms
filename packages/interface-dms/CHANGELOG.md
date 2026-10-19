@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.7.3
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.2...v0.7.3)
+
+### 🚀 Enhancements
+
+- **preview:** Share simple options and document real outcomes ([#339](https://github.com/AntelopeJS/dms/pull/339))
+
+### 🩹 Fixes
+
+- **docs:** Use a sandbox-compatible temporary build database ([#326](https://github.com/AntelopeJS/dms/pull/326))
+- Install DMS frontend with the root workspace ([#322](https://github.com/AntelopeJS/dms/pull/322))
+- **modules:** Top-align card content and place readouts below descriptions ([#328](https://github.com/AntelopeJS/dms/pull/328))
+- **modules:** Reuse registered names in the store ([#330](https://github.com/AntelopeJS/dms/pull/330))
+- **playground:** Use the workspace CLI and compatible core interface ([#331](https://github.com/AntelopeJS/dms/pull/331))
+
+### 📖 Documentation
+
+- Create the DMS demo through the CLI in quickstart ([#327](https://github.com/AntelopeJS/dms/pull/327))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/dms v0.9.3 ([1aaf5404](https://github.com/AntelopeJS/dms/commit/1aaf5404))
+- **docs:** Capture temporary MongoDB startup diagnostics ([#325](https://github.com/AntelopeJS/dms/pull/325))
+- **playground:** Refresh compatible dependencies ([#329](https://github.com/AntelopeJS/dms/pull/329))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.7.2
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/interface-v0.7.1...v0.7.2)
