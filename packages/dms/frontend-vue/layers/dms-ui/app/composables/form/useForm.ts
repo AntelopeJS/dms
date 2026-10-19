@@ -617,7 +617,12 @@ export const useForm = (props: FormProps, options: UseFormOptions = {}) => {
   );
   // A form that posts creates a row, empty or seeded by the one it
   // duplicates: what it holds is new as a whole, nothing "changed" in it.
-  const createsRecord = props.submitUrlMethod === HttpMethod.post;
+  // One that posts back to the address it reads (a settings record) saves
+  // that record instead.
+  const postsBackToFetchUrl =
+    !!props.fetchUrl && props.fetchUrl === props.submitUrl;
+  const createsRecord =
+    props.submitUrlMethod === HttpMethod.post && !postsBackToFetchUrl;
 
   /** Reads the record at `fetchUrl`: its values, mapped for the fields. */
   const loadRecord = async () => {
