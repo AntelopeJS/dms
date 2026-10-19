@@ -16,6 +16,7 @@ import TableViews from "../layers/dms-ui/app/build/components/table/Views.vue";
 import { mergeColumnOrder } from "../layers/dms-ui/app/build/composables/table/utils/columnOrder";
 import { useTableViews } from "../layers/dms-ui/app/build/composables/table-view/useTableViews";
 import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
+import { linkedArrivalPreferences } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
 import {
   isSameTableState,
   readTableUrlKey,
@@ -202,6 +203,8 @@ interface HarnessOptions {
   preferences?: Record<string, unknown>;
   userId?: string;
   viewName?: string;
+  /** Arrived through a link naming what the table lists. */
+  isLinked?: boolean;
 }
 
 describe("useTableViews", () => {
@@ -263,7 +266,9 @@ describe("useTableViews", () => {
             views: options.views,
             defaults: DEFAULTS,
             state,
-            preferences: tablePreferences,
+            preferences: options.isLinked
+              ? linkedArrivalPreferences(tablePreferences)
+              : tablePreferences,
             urlScope: { tableId: "content", isSoleTableView: true },
           });
           return () => h("div");
@@ -366,6 +371,44 @@ describe("useTableViews", () => {
       preferences: { density: "compact", activeView: "" },
     });
     expect(kept.state.density.value).toBe("compact");
+  });
+
+  it("brings the kept view's search back with it", async () => {
+    const { api, state } = await mountViews({
+      views: {
+        ...VIEWS,
+        items: [...VIEWS.items, { id: "printers", label: "P", search: "T-13" }],
+      },
+      preferences: { activeView: "printers" },
+    });
+    expect(api.activeViewId.value).toBe("printers");
+    expect(state.globalFilter.value).toBe("T-13");
+  });
+
+  it("brings a kept user view's search back once its views are restored", async () => {
+    const { api, state } = await mountViews({
+      views: VIEWS,
+      preferences: {
+        activeView: "user-mine",
+        userViews: [
+          { id: "user-mine", label: "Mine", ownerId: "u1", search: "T-13" },
+        ],
+      },
+    });
+    expect(api.activeViewId.value).toBe("user-mine");
+    expect(state.globalFilter.value).toBe("T-13");
+  });
+
+  it("opens on the defaults, not the kept view, when a link names the table's state", async () => {
+    const { api, preferences } = await mountViews({
+      views: VIEWS,
+      query: { tab: "closed" },
+      preferences: { activeView: "mine" },
+      isLinked: true,
+    });
+    expect(api.activeViewId.value).toBe("all");
+    // Kept for the next plain visit.
+    expect(preferences.get("activeView")).toBe("mine");
   });
 
   it("opens the default view on a first visit only", async () => {

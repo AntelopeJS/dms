@@ -128,6 +128,17 @@ export function useTableViews(options: TableViewsOptions) {
     applySnapshot(viewSnapshot(view, defaults));
   };
 
+  /**
+   * Back on the view kept from the last visit. The table's state is kept
+   * apart and restored as it was left, modified or not, but the search is
+   * not kept: the view's own comes back with it.
+   */
+  const restoreKeptView = (id: string) => {
+    const view = findView(id);
+    activeViewId.value = view?.id;
+    if (view) state.globalFilter.value = view.search || undefined;
+  };
+
   // Read once, on arrival: a view named by the URL wins over the state kept
   // from the last visit; a view the caller may not open falls back to the
   // default one, with a word (on the client, once mounted). The user's views
@@ -150,7 +161,7 @@ export function useTableViews(options: TableViewsOptions) {
     if (views?.defaultView) openView(views.defaultView);
     isOpenedOnArrival = !!views?.defaultView;
   } else {
-    activeViewId.value = findView(persistedViewId)?.id;
+    restoreKeptView(persistedViewId);
   }
 
   // The browser-only state (order, density) is restored over the view opened
@@ -168,7 +179,7 @@ export function useTableViews(options: TableViewsOptions) {
     } else if (isOpenedOnArrival) {
       reapplyBrowserState();
     } else if (persistedViewId && !activeViewId.value) {
-      activeViewId.value = findView(persistedViewId)?.id;
+      restoreKeptView(persistedViewId);
     }
   };
 
