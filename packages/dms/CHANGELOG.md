@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.9.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.6...v0.9.7)
+
+### 🩹 Fixes
+
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#368](https://github.com/AntelopeJS/dms/pull/368))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.9.6
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.5...v0.9.6)
