@@ -511,12 +511,16 @@ const defaultSortKind = tableDefaultSort
         ?.type?.id,
     )
   : undefined;
+// A hand-ordered table has no sort to pick: a sort saved before it was
+// ordered by hand is not read back.
 const sorting = ref<SortingState>(
-  sortingOrDefault(
-    tablePreferences.get<SortingState>("sorting", defaultSortState),
-    declaredSortableIds,
-    defaultSortState,
-  ),
+  reorderConfig
+    ? defaultSortState
+    : sortingOrDefault(
+        tablePreferences.get<SortingState>("sorting", defaultSortState),
+        declaredSortableIds,
+        defaultSortState,
+      ),
 );
 
 const savedFilters = tablePreferences.get<TableFilter[]>("columnFilters", []);
@@ -2001,8 +2005,11 @@ defineShortcuts(
 );
 
 // Each kept field with its default: a value back to it is forgotten.
+// A hand-ordered table keeps no sort.
 const tableStatePreferences: TableStatePreference[] = [
-  ["sorting", sorting, defaultSortState],
+  ...(reorderConfig
+    ? []
+    : [["sorting", sorting, defaultSortState] as TableStatePreference]),
   ["columnFilters", columnFilters, []],
   ["columnVisibility", columnVisibility, initialVisibility],
   ["filtersOpen", filtersRowOpen, hasEmptyDefaultFilter],
@@ -2151,7 +2158,10 @@ onMounted(() => {
     :load-error="listLoadError"
     :data="shownResults || []"
     :pagination-options="{ manualPagination: true, rowCount: data?.total }"
-    :sorting-options="{ manualSorting: true }"
+    :sorting-options="{
+      manualSorting: true,
+      enableSorting: activeCapabilities.sorting,
+    }"
     :default-sort="tableDefaultSort"
     :default-sort-label="defaultSortLabel"
     :default-sort-kind="defaultSortKind"
