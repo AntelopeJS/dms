@@ -18,7 +18,9 @@ import {
 import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/page-toolbar/toolbarControlHeight";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-interface LiveToggleBlockProps extends DefaultComponentProps {
+// Its ids are optional: it reads the page's live state, not its own, and a
+// component may draw it by hand inside its own `PageToolbar`.
+interface LiveToggleBlockProps extends Partial<DefaultComponentProps> {
   align?: "left" | "center" | "right";
   /** Shows "updated N s ago". */
   showUpdatedAt?: boolean;

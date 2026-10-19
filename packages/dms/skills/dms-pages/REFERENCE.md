@@ -95,6 +95,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (`comparisons: ["previous-period", "previous-year", "none"]`) draws a menu naming the compared window ("vs 16 – 17 Oct ▾", the range label then
   without its "vs …"); a single one
   stays on without a control. A `custom` preset shows as a calendar icon, named in full.
+  A component may draw `<DmsPageToolbarBlock>` and `<DmsLiveToggleBlock>` itself, around controls
+  of its own: neither needs a `componentId` or `pageId` there.
 - `liveHold: true` keeps a table's rows while paused; `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch

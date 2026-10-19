@@ -11,7 +11,9 @@ import { PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES } from "../../build/composables/pag
 import { refreshPageBlocks } from "../../utils/blockRefresh";
 import type { DefaultComponentProps } from "../../../../dms-core/app/types/component";
 
-interface PageToolbarBlockProps extends DefaultComponentProps {
+// Its ids are optional: a component may draw it by hand around controls of
+// its own, outside the page's block tree.
+interface PageToolbarBlockProps extends Partial<DefaultComponentProps> {
   /** The size of its controls, unless a child sets its own. */
   size?: PageToolbarSize;
   /** Without a live toggle on screen: "updated N s ago". */

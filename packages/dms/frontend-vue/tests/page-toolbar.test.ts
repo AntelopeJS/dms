@@ -47,6 +47,8 @@ const t = (key: string, params?: { count?: number }) =>
 interface ToolbarSetup {
   toolbar?: Record<string, unknown>;
   toggle?: Record<string, unknown> | false;
+  /** Drawn by hand in a component, without block ids. */
+  isBare?: boolean;
 }
 
 async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
@@ -60,24 +62,20 @@ async function mountToolbar(setup: ToolbarSetup = {}): Promise<void> {
     // A module's leading chip, sized by usePageToolbarSize().
     import("../../playground/frontend-vue/app/components/ToolbarScopeChip.vue"),
   ]);
-  const block = { pageId: "api.logs" };
+  const ids = (componentId: string) =>
+    setup.isBare ? {} : { componentId, pageId: "api.logs" };
   app = createApp({
     render: () =>
-      h(
-        PageToolbarBlock,
-        { componentId: "toolbar", ...block, ...setup.toolbar },
-        () => [
-          h(ScopeChip, { label: "scope", class: "scope" }),
-          setup.toggle === false
-            ? null
-            : h(LiveToggleBlock, {
-                componentId: "toolbar.live",
-                variant: "pill",
-                ...block,
-                ...setup.toggle,
-              }),
-        ],
-      ),
+      h(PageToolbarBlock, { ...ids("toolbar"), ...setup.toolbar }, () => [
+        h(ScopeChip, { label: "scope", class: "scope" }),
+        setup.toggle === false
+          ? null
+          : h(LiveToggleBlock, {
+              ...ids("toolbar.live"),
+              variant: "pill",
+              ...setup.toggle,
+            }),
+      ]),
   });
   app.component("UIcon", () => h("i"));
   app.component(
@@ -186,6 +184,18 @@ describe("on a page without live", () => {
 });
 
 describe("on a live page", () => {
+  it("takes no ids when a component draws it by hand", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    installLive();
+    await mountToolbar({ isBare: true });
+    expect(host.querySelector(".dms-live-toggle")).not.toBeNull();
+    const warnings = warn.mock.calls.map((call) => String(call[0]));
+    expect(warnings.filter((text) => text.includes("required prop"))).toEqual(
+      [],
+    );
+    warn.mockRestore();
+  });
+
   it("leaves the updated label to its live toggle", async () => {
     installLive();
     await mountToolbar();
