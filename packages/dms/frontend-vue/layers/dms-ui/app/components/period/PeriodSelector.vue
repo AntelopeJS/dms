@@ -189,6 +189,12 @@ function presetLabel(preset: PeriodPreset): string {
   );
 }
 
+/** The preset's short code in the user's language; custom has none. */
+function presetShortLabel(preset: PeriodPreset): string | undefined {
+  const fallback = PRESET_SHORT_LABELS[preset];
+  return fallback && t(`dms.period.short_presets.${preset}`, fallback);
+}
+
 function comparisonLabel(comparison: PeriodComparison): string {
   return (
     props.comparisonLabels?.[comparison] ??
@@ -219,7 +225,7 @@ interface PresetEntry {
 
 function presetEntry(preset: PeriodPreset): PresetEntry {
   const label = presetLabel(preset);
-  const short = PRESET_SHORT_LABELS[preset];
+  const short = presetShortLabel(preset);
   return { preset, label, short: short === label ? undefined : short };
 }
 
@@ -483,7 +489,7 @@ const comparisonMenuAria = computed(() => {
 function segmentLabel(preset: PeriodPreset): string {
   return (
     props.presetLabels?.[preset] ??
-    PRESET_SHORT_LABELS[preset] ??
+    presetShortLabel(preset) ??
     presetLabel(preset)
   );
 }

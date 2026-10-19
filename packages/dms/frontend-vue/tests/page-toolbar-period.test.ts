@@ -2,7 +2,8 @@
 /**
  * The PeriodSelector of a `pageToolbar()`, mounted from the options the
  * interface gives it: every segment named in full whatever it shows (a short
- * code, the custom preset's calendar icon alone), and the comparison menu
+ * code in the reader's language, the custom preset's calendar icon alone),
+ * and the comparison menu
  * drawn as soon as the period offers more than one choice, as tall as the
  * other controls, naming the compared window that the range label then leaves
  * out.
@@ -17,6 +18,8 @@ import type { PeriodSelectorProps } from "@antelopejs/interface-dms/base/period-
 import PageToolbarBlock from "../layers/dms-ui/app/components/blocks/PageToolbarBlock.vue";
 import PeriodSelector from "../layers/dms-ui/app/components/period/PeriodSelector.vue";
 import DmsSegmented from "../layers/dms-ui/app/components/segmented/Segmented.vue";
+import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
+import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 
 vi.mock("@inertiajs/vue3", () => ({ router: { replace: vi.fn() } }));
 vi.mock(
@@ -30,7 +33,20 @@ vi.mock(
 let app: App | undefined;
 let host: HTMLDivElement;
 
-const t = (key: string) => key;
+type ShortPresets = Record<string, string>;
+
+/** The locale's short codes, keyed as `t` reads them; any other key echoes. */
+function shortPresetMessages(codes: ShortPresets): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(codes).map(([preset, code]) => [
+      `dms.period.short_presets.${preset}`,
+      code,
+    ]),
+  );
+}
+
+let messages: Record<string, string> = {};
+const t = (key: string) => messages[key] ?? key;
 
 /** The period child's options, as `pageToolbar()` serializes them. */
 function toolbarPeriod(
@@ -99,6 +115,7 @@ beforeEach(() => {
     getPreference: <T>(_key: string, fallback?: T) => fallback,
     setPreference: () => undefined,
   }));
+  messages = shortPresetMessages(coreEnGB.dms.period.short_presets);
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -127,6 +144,20 @@ describe("its segments", () => {
       "dms.period.presets.last-24h",
       "dms.period.presets.last-7-days",
       "dms.period.presets.custom",
+    ]);
+  });
+
+  it("write their short codes in the reader's language", async () => {
+    messages = shortPresetMessages(coreFrFR.dms.period.short_presets);
+    await mountPeriod({
+      id: "sales",
+      presets: ["last-24h", "last-7-days", "ytd", "all"],
+    });
+    expect(segments().map((segment) => segment.textContent?.trim())).toEqual([
+      "24 h",
+      "7 j",
+      "A",
+      "Tout",
     ]);
   });
 });

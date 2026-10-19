@@ -27,6 +27,8 @@ import {
   waitForPageBlocksRefresh,
 } from "../layers/dms-ui/app/utils/blockRefresh";
 import { PRESET_SHORT_LABELS } from "../layers/dms-ui/app/build/composables/period/periodShortLabels";
+import coreEnGB from "../layers/dms-core/i18n/locales/core-en-GB.json";
+import coreFrFR from "../layers/dms-core/i18n/locales/core-fr-FR.json";
 import { PERIOD_PRESETS } from "@antelopejs/interface-dms/base/period-selector";
 import {
   PAGE_TOOLBAR_CONTROL_HEIGHT_CLASSES,
@@ -292,4 +294,13 @@ it("gives every preset but custom a short code", () => {
   );
   expect(missing).toEqual([]);
   expect(PRESET_SHORT_LABELS.all).toBe("ALL");
+});
+
+it("translates every short code in every locale", () => {
+  const presets = Object.keys(PRESET_SHORT_LABELS).sort();
+  for (const locale of [coreEnGB, coreFrFR]) {
+    expect(Object.keys(locale.dms.period.short_presets).sort()).toEqual(
+      presets,
+    );
+  }
 });
