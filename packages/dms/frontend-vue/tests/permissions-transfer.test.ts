@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * The permission set the `auth` middleware preloads while a server renders a
- * page reaches the browser with the page, through the runtime's real state
- * transfer: the browser's run of the middleware finds it and asks nothing.
+ * page reaches the browser with the page, through the runtime's real async
+ * data: the browser's run of the middleware finds it and asks nothing.
  * A caller that only needs a set joins a load in flight.
  */
 import {
@@ -18,16 +18,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsFrontendRuntime } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
-const { createTrailingDeduper } = await import(
-  "../layers/dms-core/app/utils/trailingDeduper"
-);
 vi.stubGlobal("useDmsState", engine.useDmsState);
+vi.stubGlobal("useDmsAsyncData", engine.useDmsAsyncData);
+vi.stubGlobal("useDmsFetch", engine.useDmsFetch);
+vi.stubGlobal("useDmsData", engine.useDmsData);
+vi.stubGlobal("refreshDmsData", engine.refreshDmsData);
 vi.stubGlobal("useDmsApp", engine.useDmsApp);
 vi.stubGlobal("defineDmsMiddleware", engine.defineDmsMiddleware);
 vi.stubGlobal("useDmsError", engine.useDmsError);
 vi.stubGlobal("abortDmsNavigation", engine.abortDmsNavigation);
 vi.stubGlobal("navigateDms", engine.navigateDms);
-vi.stubGlobal("createTrailingDeduper", createTrailingDeduper);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
 vi.stubGlobal("useSiteLayout", () => ({
   siteLayout: { value: {} },
@@ -38,10 +38,10 @@ vi.stubGlobal("useDmsUserSession", () => ({
   user: { value: { isValidated: true } },
 }));
 
-const { useTrailingDeduper } = await import(
-  "../layers/dms-core/app/composables/useTrailingDeduper"
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
 );
-vi.stubGlobal("useTrailingDeduper", useTrailingDeduper);
+vi.stubGlobal("useApiData", useApiData);
 const { usePermissions } = await import(
   "../layers/dms-core/app/composables/auth/usePermissions"
 );
@@ -128,9 +128,9 @@ describe("permissions handed to the browser", () => {
     expect($authFetch).toHaveBeenCalledTimes(1);
 
     const payload = structuredClone(engine.serializeDmsPayload(server));
-    expect(payload.state["dms-user-permissions"]).toEqual(
-      new Set([PERMISSION]),
-    );
+    expect(payload.data["dms-permissions"]).toMatchObject({
+      ids: [PERMISSION],
+    });
 
     $authFetch.mockClear();
     const browser = engine.createDmsFrontendRuntime(undefined, {});
