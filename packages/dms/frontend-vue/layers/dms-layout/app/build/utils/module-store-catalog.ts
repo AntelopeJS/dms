@@ -96,18 +96,34 @@ const INSTALLED_STATES = new Set<StoreModuleState>([
   "pending",
 ]);
 
+/**
+ * The category a module is filed under, the same on its installed tile and
+ * its store tile: the one its registration names, else the store catalog's.
+ */
+export function resolveCatalogCategory(
+  registered: Pick<ModuleCatalogEntry, "catalogCategory"> | undefined,
+  entry: Pick<StoreListingEntry, "category">,
+): string {
+  return (
+    registered?.catalogCategory?.trim() ||
+    `${CATEGORY_PREFIX}.${entry.category}`
+  );
+}
+
 export function toModuleStoreEntry(
   entry: StoreListingEntry,
-  registeredModules: readonly Pick<ModuleCatalogEntry, "id" | "title">[] = [],
+  registeredModules: readonly Pick<
+    ModuleCatalogEntry,
+    "id" | "title" | "catalogCategory"
+  >[] = [],
 ): ModuleStoreEntry {
+  const registered = registeredModules.find((module) => module.id === entry.id);
   return {
     ...entry,
     // The registration also names Installed and navigation. Keep the catalog
     // fallback for unloaded modules, whose translations may not be served.
-    title:
-      registeredModules.find((module) => module.id === entry.id)?.title ??
-      entry.title,
-    catalogCategory: `${CATEGORY_PREFIX}.${entry.category}`,
+    title: registered?.title ?? entry.title,
+    catalogCategory: resolveCatalogCategory(registered, entry),
   };
 }
 
@@ -133,8 +149,7 @@ export function withStoreDetails<T extends ModuleCatalogEntry>(
       version:
         module.version ??
         (installed && PLAIN_VERSION.test(installed) ? installed : undefined),
-      catalogCategory:
-        module.catalogCategory || `${CATEGORY_PREFIX}.${entry.category}`,
+      catalogCategory: resolveCatalogCategory(module, entry),
       source: entry.source,
     };
   });

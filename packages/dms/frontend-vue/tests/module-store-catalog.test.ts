@@ -404,6 +404,49 @@ describe("module store catalog", () => {
       ])[0].version,
     ).toBeUndefined();
   });
+
+  it("files a module under one category on its installed and store tiles", () => {
+    const installed = [
+      {
+        id: "mailing",
+        title: "Mailing",
+        description: "",
+        icon: "i-ph-envelope-simple",
+        hasAccess: true,
+        landingSlug: "/modules/mailing",
+        catalogCategory: "$dms_mailing.catalog_category",
+      },
+      {
+        id: "media",
+        title: "Media",
+        description: "",
+        icon: "i-ph-image",
+        hasAccess: true,
+        landingSlug: "/modules/media",
+      },
+    ];
+    const listing = [
+      listingEntry("mailing", {
+        category: "growth",
+        installedVersion: "1.0.0",
+      }),
+      listingEntry("media", { category: "content", installedVersion: "0.5.0" }),
+      listingEntry("ai", { category: "ai" }),
+    ];
+    const tiles = withStoreDetails(installed, listing);
+    const store = listing.map((entry) => toModuleStoreEntry(entry, installed));
+    for (const tile of tiles) {
+      expect(store.find((entry) => entry.id === tile.id)?.catalogCategory).toBe(
+        tile.catalogCategory,
+      );
+    }
+    expect(tiles.map((tile) => tile.catalogCategory)).toEqual([
+      "$dms_mailing.catalog_category",
+      "$modules.store.category.content",
+    ]);
+    // A module the deployment does not run keeps the catalog's category.
+    expect(store[2].catalogCategory).toBe("$modules.store.category.ai");
+  });
 });
 
 const REDIS: MissingInterface = {

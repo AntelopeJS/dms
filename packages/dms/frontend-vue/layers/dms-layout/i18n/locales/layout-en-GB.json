@@ -836,11 +836,12 @@
       },
       "category": {
         "ai": "AI",
+        "analytics": "Analytics",
         "business": "Business",
+        "communication": "Communication",
         "content": "Content",
         "data": "Data",
         "developer": "Developer",
-        "growth": "Growth",
         "operations": "Operations"
       },
       "catalog": {

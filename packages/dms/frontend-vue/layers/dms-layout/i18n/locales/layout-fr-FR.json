@@ -840,11 +840,12 @@
       },
       "category": {
         "ai": "IA",
+        "analytics": "Mesure d'audience",
         "business": "Business",
+        "communication": "Communication",
         "content": "Contenu",
         "data": "Données",
         "developer": "Développement",
-        "growth": "Croissance",
         "operations": "Opérations"
       },
       "catalog": {
