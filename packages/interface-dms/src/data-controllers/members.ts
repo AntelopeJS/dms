@@ -39,19 +39,28 @@ const SYSTEM_MANAGED_FIELD = {
   new: ReadonlyBehaviorType.hidden,
 };
 
-const admittedMemberCreation: DataControllerCallback = {
-  ...TableViewRoutes.New,
-  async func(...args: Parameters<DataControllerCallback["func"]>) {
-    const [ctx] = args;
-    return runTenantLifecycleOperation(getRequestTenantId(ctx), () =>
-      TableViewRoutes.New.func.apply(this, args),
-    );
-  },
-};
+function admittedMemberRoute(
+  route: DataControllerCallback,
+): DataControllerCallback {
+  return {
+    ...route,
+    async func(...args: Parameters<DataControllerCallback["func"]>) {
+      const [ctx] = args;
+      return runTenantLifecycleOperation(getRequestTenantId(ctx), () =>
+        route.func.apply(this, args),
+      );
+    },
+  };
+}
 
 export class memberSettingDataAPI extends DataController(
   TenantMember,
-  { ...TableViewRoutes.All, new: admittedMemberCreation },
+  {
+    ...TableViewRoutes.All,
+    new: admittedMemberRoute(TableViewRoutes.New),
+    edit: admittedMemberRoute(TableViewRoutes.Edit),
+    delete: admittedMemberRoute(TableViewRoutes.Delete),
+  },
   Controller("/api/tables/members"),
 ) {
   @ModelReference()

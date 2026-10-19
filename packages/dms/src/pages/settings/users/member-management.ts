@@ -7,6 +7,8 @@ import {
 } from "@antelopejs/interface-dms/db";
 import { syncPlatformOwnerOnTenantOwnerChange } from "@antelopejs/interface-dms/tenant-ownership";
 import { UserModel } from "@antelopejs/interface-dms/auth/db";
+import { ExecuteHooks, Hook } from "@antelopejs/interface-dms/hooks";
+import { runTenantLifecycleOperation } from "@antelopejs/interface-dms/tenant-lifecycle";
 import type { ConfirmDialogSerialized } from "@antelopejs/interface-dms/base/table-view";
 
 const HTTP_NOT_FOUND = 404;
@@ -52,6 +54,12 @@ export async function prepareOwnerChange(
   current: TenantMember,
   requested: boolean | undefined,
 ): Promise<void> {
+  await ExecuteHooks(Hook.MEMBER_BEING_CHANGED, {
+    tenantId,
+    userId: current.userId,
+    isTenantOwner: requested ?? current.isTenantOwner === true,
+    previousIsTenantOwner: current.isTenantOwner === true,
+  });
   const change = detectOwnerChange(current, requested);
   if (change === null) return;
   if (change === "demote") await assertNotLastTenantOwner(tenantId, current);
@@ -85,15 +93,17 @@ export async function setMemberOwnership(
   memberId: string,
   isTenantOwner: boolean,
 ): Promise<OwnershipChangeResult> {
-  const member = await requireMember(tenantId, memberId);
-  const change = detectOwnerChange(
-    { isTenantOwner: member.isTenantOwner === true },
-    isTenantOwner,
-  );
-  await prepareOwnerChange(tenantId, member, isTenantOwner);
-  member.isTenantOwner = isTenantOwner;
-  await GetModel(TenantMemberModel, tenantId).update(member);
-  return { member, change };
+  return runTenantLifecycleOperation(tenantId, async () => {
+    const member = await requireMember(tenantId, memberId);
+    const change = detectOwnerChange(
+      { isTenantOwner: member.isTenantOwner === true },
+      isTenantOwner,
+    );
+    await prepareOwnerChange(tenantId, member, isTenantOwner);
+    member.isTenantOwner = isTenantOwner;
+    await GetModel(TenantMemberModel, tenantId).update(member);
+    return { member, change };
+  });
 }
 
 /** What removing a member takes away, for the confirmation to spell out. */

@@ -17,6 +17,13 @@ async function beginMembership(resolution: InviteResolution): Promise<void> {
     await model.advanceMembership(resolution, "applied");
     return;
   }
+  await ExecuteHooks(Hook.MEMBER_BEING_CHANGED, {
+    tenantId,
+    userId,
+    isTenantOwner: invite.asTenantOwner,
+    previousIsTenantOwner: null,
+    deliveryId: resolution._id,
+  });
   await ExecuteHooks(Hook.MEMBER_BEING_ADDED, {
     tenantId,
     userId,

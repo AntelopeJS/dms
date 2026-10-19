@@ -55,6 +55,8 @@ export enum Hook {
   INVITE_CREATED = "invite:created",
   INVITE_DELETED = "invite:deleted",
   MEMBER_BEING_ADDED = "member:being-added",
+  /** Policy veto under lifecycle admission, before a membership write. */
+  MEMBER_BEING_CHANGED = "member:being-changed",
   MEMBER_ADDED = "member:added",
   MEMBER_REMOVED = "member:removed",
   USER_REGISTERED = "user:registered",
@@ -136,6 +138,12 @@ export interface InviteDeletedHookPayload {
   extensions?: InviteExtensionPayloads | null;
 }
 
+/** Seat classification belongs to the consumer, including support exemptions. */
+export interface MemberChangeHookPayload extends MemberHookPayload {
+  /** Null for a new membership; deliveryId does not exempt it from policy. */
+  previousIsTenantOwner: boolean | null;
+}
+
 export interface MemberHookPayload {
   tenantId: string;
   userId: string;
@@ -206,6 +214,10 @@ export interface HookSignatures {
   };
   [Hook.MEMBER_BEING_ADDED]: {
     args: [payload: MemberHookPayload];
+    result: undefined;
+  };
+  [Hook.MEMBER_BEING_CHANGED]: {
+    args: [payload: MemberChangeHookPayload];
     result: undefined;
   };
   [Hook.MEMBER_ADDED]: {
