@@ -71,6 +71,7 @@ function parseCsv(content: string): string[][] {
 
 describe("[integration] table view export — readable values", () => {
   let client: AxiosInstance;
+  let roofId: string;
   let shedId: string;
   let customerId: string;
 
@@ -102,6 +103,7 @@ describe("[integration] table view export — readable values", () => {
       isWon: true,
     });
     const deals = await list(DEALS);
+    roofId = deals.find((deal) => deal.title === "Roof")!._id;
     shedId = deals.find((deal) => deal.title === "Shed")!._id;
   });
 
@@ -133,7 +135,6 @@ describe("[integration] table view export — readable values", () => {
     location: string,
     language: string,
     query: Record<string, unknown> = {},
-    headers: Record<string, string> = {},
   ): Promise<string[][]> {
     const started = await client.get<ExportTicket>(`${location}/export/start`, {
       params: {
@@ -144,7 +145,7 @@ describe("[integration] table view export — readable values", () => {
       },
       // `ids=a&ids=b`, as the export button sends a selection.
       paramsSerializer: { indexes: null },
-      headers: { "x-content-language": language, ...headers },
+      headers: { "x-content-language": language },
     });
     expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
     await waitForJob(location, started.data.jobId);
@@ -198,21 +199,23 @@ describe("[integration] table view export — readable values", () => {
     ]);
   });
 
+  // As the export button's start reaches the backend through the frontend
+  // server, which relays `x-content-language` but no custom header: the zone
+  // travels in the URL, from the table menu and from the selection bar alike.
   it("writes times in the zone the browser names, UTC without one", async () => {
-    const [, brussels] = await exportRows(
-      DEALS,
-      "en",
-      {},
-      { "x-time-zone": "Europe/Brussels" },
-    );
-    const [, unknown] = await exportRows(
-      DEALS,
-      "en",
-      {},
-      { "x-time-zone": "Mars/Olympus" },
-    );
+    const [, brussels] = await exportRows(DEALS, "en", {
+      timeZone: "Europe/Brussels",
+    });
+    const [, selected] = await exportRows(DEALS, "en", {
+      ids: [roofId],
+      timeZone: "Europe/Brussels",
+    });
+    const [, unknown] = await exportRows(DEALS, "en", {
+      timeZone: "Mars/Olympus",
+    });
 
     expect(brussels[4]).to.equal("01/10/2026, 16:05");
+    expect(selected[4]).to.equal("01/10/2026, 16:05");
     expect(unknown[4]).to.equal("01/10/2026, 14:05");
   });
 

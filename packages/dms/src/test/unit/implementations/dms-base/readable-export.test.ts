@@ -103,15 +103,21 @@ describe("[unit] implementations/dms-base/readable-export — texts", () => {
 
   it("takes the user's saved time zone, then the browser's, UTC last", () => {
     const ctx = {
-      rawRequest: { headers: { "x-time-zone": "America/New_York" } },
+      url: new URL("http://api.local/export/start?timeZone=America/New_York"),
     } as unknown as RequestContext;
     const unknownZone = {
-      rawRequest: { headers: { "x-time-zone": "Mars/Olympus" } },
+      url: new URL("http://api.local/export/start?timeZone=Mars/Olympus"),
+    } as unknown as RequestContext;
+    // A header the frontend server never relays to the backend.
+    const headerOnly = {
+      url: new URL("http://api.local/export/start"),
+      rawRequest: { headers: { "x-time-zone": "America/New_York" } },
     } as unknown as RequestContext;
     const user = { timeZone: "Europe/Brussels" } as User;
     expect(exportTimeZone(ctx, user)).to.equal("Europe/Brussels");
     expect(exportTimeZone(ctx, {} as User)).to.equal("America/New_York");
     expect(exportTimeZone(unknownZone, undefined)).to.equal("UTC");
+    expect(exportTimeZone(headerOnly, undefined)).to.equal("UTC");
     expect(exportTimeZone(undefined, undefined)).to.equal("UTC");
   });
 });

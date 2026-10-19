@@ -363,8 +363,12 @@ const LANGUAGE_CODE_LENGTH = 2;
  * the frontend.
  */
 const TEXT_LOCALES: Record<string, string> = { en: "en-GB", fr: "fr-FR" };
-/** The header the frontend names the browser's time zone in on an export. */
-const TIME_ZONE_HEADER = "x-time-zone";
+/**
+ * The query parameter the frontend names the browser's time zone in on an
+ * export. Not a header: the frontend server relays a fixed set of request
+ * headers to the backend, and a custom one never reached it.
+ */
+const TIME_ZONE_PARAMETER = "timeZone";
 /** The zone of a reader who chose none and whose browser named none. */
 const DEFAULT_TIME_ZONE = "UTC";
 const HOUR_CYCLES = new Set(["h23", "h12"]);
@@ -399,7 +403,7 @@ function knownTimeZone(timeZone: unknown): string | undefined {
 
 /**
  * The zone an export writes dates in: the user's saved time zone, the
- * browser's the request names (`x-time-zone`) otherwise, UTC last.
+ * browser's the request names (`?timeZone=`) otherwise, UTC last.
  */
 export function exportTimeZone(
   ctx: RequestContext | undefined,
@@ -407,7 +411,7 @@ export function exportTimeZone(
 ): string {
   return (
     knownTimeZone(user?.timeZone) ??
-    knownTimeZone(headerValue(ctx, TIME_ZONE_HEADER)) ??
+    knownTimeZone(ctx?.url?.searchParams.get(TIME_ZONE_PARAMETER)) ??
     DEFAULT_TIME_ZONE
   );
 }
