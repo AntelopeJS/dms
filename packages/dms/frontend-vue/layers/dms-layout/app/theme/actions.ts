@@ -330,14 +330,15 @@ const tabsTheme = {
     trigger: "data-[state=active]:font-semibold",
     // Counts as mono chips, tinted with the accent on the active tab.
     trailingBadge:
-      "font-mono text-[10.5px] h-4 px-[5px] rounded-[4px] ring-0 bg-elevated text-dimmed group-data-[state=active]:bg-(--dms-accent-tint) group-data-[state=active]:text-primary",
+      "font-mono text-[10.5px] h-4 px-[5px] rounded-(--dms-radius-tab-badge) ring-0 bg-elevated text-dimmed group-data-[state=active]:bg-(--dms-accent-tint) group-data-[state=active]:text-primary",
   },
   variants: {
     variant: {
       pill: {
-        list: "bg-(--dms-bg-muted) ring ring-inset ring-default p-[3px] gap-0.5 rounded-[10px]",
-        indicator: "ring ring-accented shadow-(--shadow-sm) rounded-[7px]",
-        trigger: "rounded-[7px] before:rounded-[7px]",
+        list: "bg-(--dms-bg-muted) ring ring-inset ring-default p-[3px] gap-0.5 rounded-(--dms-radius-tab-list)",
+        indicator:
+          "ring ring-accented shadow-(--shadow-sm) rounded-(--dms-radius-tab)",
+        trigger: "rounded-(--dms-radius-tab) before:rounded-(--dms-radius-tab)",
       },
     },
     // A vertical list sits at the top of its panel, not centred beside it.

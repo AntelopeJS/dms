@@ -155,6 +155,11 @@
      items, ~10px menus and 16px modals. */
     --ui-radius: calc(0.5rem / 1.5);
     --dms-radius-card: 0.875rem;
+    /* Pill tabs keep their v2 10px track, 7px tab and 4px count at the
+     default radius, and follow a theme that changes it. */
+    --dms-radius-tab-list: calc(var(--ui-radius) * 1.875);
+    --dms-radius-tab: calc(var(--ui-radius) * 1.3125);
+    --dms-radius-tab-badge: calc(var(--ui-radius) * 0.75);
 
     /* v2 shell metrics: 48px navbar, 56px sidebar brand row. */
     --ui-header-height: 3rem;
