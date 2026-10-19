@@ -73,6 +73,7 @@ import { registerDocsPreviewPage } from "./pages/public/preview";
 import { listEnabledOAuthProviders } from "./routes/auth/oauth/config";
 import { deriveOAuthRelaySecret } from "./routes/auth/oauth/relay";
 import { SESSION_HANDOFF_ENDPOINT } from "./routes/auth/session-handoff";
+import { setSchemasRegistered } from "./routes/startup-gate";
 import {
   ensureDefaultTenantExists,
   registerExistingTenantInstances,
@@ -283,6 +284,7 @@ export async function start(): Promise<void> {
   await configureRealtime(globalRealtimeConfig);
   await RegisterSchema(CORE_SCHEMA_NAME);
   await RegisterSchema(TENANT_SCHEMA_NAME);
+  setSchemasRegistered(true);
   await SettleHook(Hook.DATABASE_INITIALIZED);
   await runSweepStaleExports();
   cronTasks = registerDmsCrons();
@@ -297,6 +299,7 @@ export async function start(): Promise<void> {
 }
 
 export async function stop(): Promise<void> {
+  setSchemasRegistered(false);
   UnsettleHook(Hook.DATABASE_INITIALIZED);
   stopPendingExtensionReport();
   await stopModuleUpdateWatcher();
