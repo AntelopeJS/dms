@@ -791,6 +791,25 @@ export namespace DefaultDataTypes {
     }
   }
 
+  // A multiple relation stores an array of ids: `is` would compare the
+  // whole array, so it offers whether the array includes the picked id.
+  function relationCompareModes(multiple?: boolean) {
+    return [
+      multiple ? DefaultDataCompareTypes.Include : DefaultDataCompareTypes.Is,
+      multiple
+        ? DefaultDataCompareTypes.Exclude
+        : DefaultDataCompareTypes.IsNot,
+      DefaultDataCompareTypes.IsEmpty,
+      DefaultDataCompareTypes.IsNotEmpty,
+    ];
+  }
+
+  function relationDefaultCompareMode(multiple?: boolean) {
+    return multiple
+      ? DefaultDataCompareTypes.Include
+      : DefaultDataCompareTypes.Is;
+  }
+
   @RegisterDataType("relation")
   export class RelationType<T extends ControllerClass> extends DataType {
     constructor(
@@ -841,18 +860,22 @@ export namespace DefaultDataTypes {
       },
     ) {
       super(
-        [
-          DefaultDataCompareTypes.Is,
-          DefaultDataCompareTypes.IsNot,
-          DefaultDataCompareTypes.IsEmpty,
-          DefaultDataCompareTypes.IsNotEmpty,
-        ],
-        DefaultDataCompareTypes.Is,
+        relationCompareModes(options.multiple),
+        relationDefaultCompareMode(options.multiple),
         options,
       );
     }
 
     protected defaultInputComponent() {
+      return this.relationInput(this.options.multiple);
+    }
+
+    // A multiple relation is filtered on one id at a time (`include`).
+    override filterComponents() {
+      return { default: this.relationInput(false) };
+    }
+
+    private relationInput(multiple: boolean | undefined) {
       const tableViewMeta = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -868,7 +891,7 @@ export namespace DefaultDataTypes {
 
       return FormComponents.InputRelation({
         placeholder: this.options.placeholder,
-        multiple: this.options.multiple,
+        multiple,
         deselectable: this.options.deselectable,
         searchUrl: location,
         keyMapping: this.options.keyMapping,
@@ -971,18 +994,22 @@ export namespace DefaultDataTypes {
       },
     ) {
       super(
-        [
-          DefaultDataCompareTypes.Is,
-          DefaultDataCompareTypes.IsNot,
-          DefaultDataCompareTypes.IsEmpty,
-          DefaultDataCompareTypes.IsNotEmpty,
-        ],
-        DefaultDataCompareTypes.Is,
+        relationCompareModes(options.multiple),
+        relationDefaultCompareMode(options.multiple),
         options,
       );
     }
 
     protected defaultInputComponent() {
+      return this.cascaderInput(this.options.multiple);
+    }
+
+    // A multiple relation is filtered on one id at a time (`include`).
+    override filterComponents() {
+      return { default: this.cascaderInput(false) };
+    }
+
+    private cascaderInput(multiple: boolean | undefined) {
       const { config } = GetMetadata(
         this.options.dataApiController,
         TableViewMeta,
@@ -994,7 +1021,7 @@ export namespace DefaultDataTypes {
 
       return FormComponents.InputCascader({
         placeholder: this.options.placeholder,
-        multiple: this.options.multiple,
+        multiple,
         deselectable: this.options.deselectable,
         searchUrl: `${config.location}/${endpoints.select.endpoint || "select"}`,
         keyMapping: this.options.keyMapping,
