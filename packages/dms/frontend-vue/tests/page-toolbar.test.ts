@@ -304,3 +304,12 @@ it("translates every short code in every locale", () => {
     );
   }
 });
+
+it("writes no short code as a bare letter, which reads as nothing", () => {
+  for (const locale of [coreEnGB, coreFrFR]) {
+    const bare = Object.values(locale.dms.period.short_presets).filter((code) =>
+      /^\p{L}$/u.test(code),
+    );
+    expect(bare).toEqual([]);
+  }
+});

@@ -156,7 +156,7 @@ describe("its segments", () => {
     expect(segments().map((segment) => segment.textContent?.trim())).toEqual([
       "24 h",
       "7 j",
-      "A",
+      "Année",
       "Tout",
     ]);
   });
