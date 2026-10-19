@@ -35,15 +35,19 @@ const USER_CHOICE_FIELDS: ReadonlySet<TableField> = new Set<TableField>([
 const VIEW_URL_KEY = "view";
 const TAB_URL_KEY = "tab";
 
-/** What the URL a table arrives on may name. */
+/** What the URL a table arrives on may name, and how it was reached. */
 export interface TableLinkArrival {
   query: Record<string, unknown>;
   urlScope: TableUrlScope;
   queryParamFilters: QueryParamFilters | undefined;
+  /** The page was reached through a visit, not loaded or gone back to. */
+  isVisit: boolean;
   /** The tab kept from the last visit. */
   rememberedTab: string;
   /** The URL filters the kept state was chosen under (`urlFilterScope`). */
   keptLinkScope: string | undefined;
+  /** The link the table last showed, unclaimed by the user (`linkKeyScope`). */
+  shownLink: string | undefined;
 }
 
 const namesUrlFilter = (
@@ -71,18 +75,46 @@ export function urlFilterScope(
 }
 
 /**
+ * What `query` names for the table (its view, tab and row, and the filters
+ * declared in `queryParamFilters`), as one key, or `undefined` when it names
+ * none of them: a URL spelling a key short or prefixed reads the same.
+ */
+export function linkKeyScope(
+  query: Record<string, unknown>,
+  urlScope: TableUrlScope,
+  queryParamFilters: QueryParamFilters | undefined,
+): string | undefined {
+  const named = [VIEW_URL_KEY, TAB_URL_KEY, RECORD_URL_KEY]
+    .map((key) => [key, readTableUrlKey(query, urlScope, key).value])
+    .filter(([, value]) => value !== undefined);
+  const filters = Object.keys(queryParamFilters ?? {})
+    .filter((param) => query[param] !== undefined)
+    .sort()
+    .map((param) => [`?${param}`, query[param]]);
+  const values = [...named, ...filters];
+  return values.length > 0 ? hashText(JSON.stringify(values)) : undefined;
+}
+
+/**
  * Whether the table was reached through a link that names what it lists: a
- * view, a record, a filter declared in `queryParamFilters`, or a tab. The
- * user's own choices are written in the URL or kept with it, so a reload is
- * not a link: one naming the kept tab, or the URL filters the kept state was
- * chosen under.
+ * view, a record, a filter declared in `queryParamFilters`, or a tab. Reached
+ * through a visit (a link clicked, a notification), it always is, even when
+ * what it names is what the user left. Loaded in full (a reload) or gone back
+ * to, the URL may be the one the table wrote for the user's own choices: it
+ * is a link again when it is the link the table last showed, and when it
+ * names a view or a record, or a tab or URL filters other than the kept
+ * ones. A server render cannot tell a reload from a URL typed or opened in a
+ * new browser tab, so a full load naming only the kept tab reads as one.
  */
 export function isLinkedArrival(arrival: TableLinkArrival): boolean {
   const { query, urlScope, queryParamFilters } = arrival;
+  const linkScope = linkKeyScope(query, urlScope, queryParamFilters);
+  if (linkScope === undefined) return false;
+  if (arrival.isVisit || linkScope === arrival.shownLink) return true;
   const names = (key: string) => !!readTableUrlKey(query, urlScope, key).value;
   if (names(VIEW_URL_KEY) || names(RECORD_URL_KEY)) return true;
-  const linkScope = urlFilterScope(query, queryParamFilters);
-  if (linkScope !== undefined && linkScope !== arrival.keptLinkScope) {
+  const filterScope = urlFilterScope(query, queryParamFilters);
+  if (filterScope !== undefined && filterScope !== arrival.keptLinkScope) {
     return true;
   }
   const tab = readTableUrlKey(query, urlScope, TAB_URL_KEY).value;
@@ -111,6 +143,11 @@ export function linkedArrivalPreferences(
 /** A visit to the page the table is already shown on. */
 export interface TableLinkVisit {
   query: Record<string, unknown>;
+  /**
+   * A link pushed on the page (one clicked, a notification): it is followed
+   * even when it names what the table shows.
+   */
+  isLinkClick: boolean;
   /** The query of the visit the table was last reached through. */
   previousQuery: Record<string, unknown>;
   urlScope: TableUrlScope;
@@ -124,28 +161,32 @@ export interface TableLinkVisit {
 
 /**
  * Whether a visit that keeps the table mounted (a link to the page already
- * shown, back and forward) is a link to follow as an arrival would. The view
- * and the tab are written or kept in place, so they count when they differ
- * from what the table shows; a row and a URL filter when they differ from
- * the last visit. A visit repeating what the table already reads (the one
- * that mounted it, a page control rebuilding the query) is not a link.
+ * shown, back and forward) is a link to follow as an arrival would. A link
+ * clicked on the page counts whenever it names a view or a tab the table can
+ * open, a row or a URL filter, even what the table already shows: the state
+ * around it may hide it. Otherwise (back and forward), the view and the tab
+ * are written or kept in place, so they count when they differ from what the
+ * table shows; a row and a URL filter when they differ from the last visit.
+ * A visit repeating what the table already reads (the one that mounted it)
+ * is not a link.
  */
 export function isLinkedVisit(visit: TableLinkVisit): boolean {
-  const { query, previousQuery, urlScope } = visit;
+  const { query, previousQuery, urlScope, isLinkClick } = visit;
   const read = (from: Record<string, unknown>, key: string) =>
     readTableUrlKey(from, urlScope, key).value;
+  // A link clicked counts even when it names what is already there.
+  const isNew = (value: unknown, current: unknown) =>
+    isLinkClick || value !== current;
   const view = read(query, VIEW_URL_KEY);
-  if (view && view !== visit.activeView && visit.canOpenView(view)) {
+  if (view && isNew(view, visit.activeView) && visit.canOpenView(view)) {
     return true;
   }
   const tab = read(query, TAB_URL_KEY);
-  if (tab && tab !== visit.activeTab && visit.canOpenTab(tab)) return true;
+  if (tab && isNew(tab, visit.activeTab) && visit.canOpenTab(tab)) return true;
   const record = read(query, RECORD_URL_KEY);
-  if (record && record !== read(previousQuery, RECORD_URL_KEY)) return true;
-  return namesUrlFilter(
-    query,
-    visit.queryParamFilters,
-    (param) => query[param] !== previousQuery[param],
+  if (record && isNew(record, read(previousQuery, RECORD_URL_KEY))) return true;
+  return namesUrlFilter(query, visit.queryParamFilters, (param) =>
+    isNew(query[param], previousQuery[param]),
   );
 }
 
@@ -163,6 +204,8 @@ export interface LinkFollowingOptions {
   urlScope: TableUrlScope;
   /** The URL filters the table lists under now (`urlFilterScope`). */
   linkScope: () => string | undefined;
+  /** What the URL shown names for the table now (`linkKeyScope`). */
+  linkKeys: () => string | undefined;
   /** The listing state shown, as it is kept (`LINKED_STATE_FIELDS`). */
   listingState: () => KeptListingField[];
 }
@@ -186,7 +229,8 @@ export interface LinkFollowingPreferences extends TablePreferences {
  * is settled a tick later. The user's first choice from there (a view, a
  * tab, a filter, a sort) makes the state shown theirs: it is kept whole,
  * with the URL filters it was chosen under, and the view the link named
- * leaves the URL, which then reads as a plain visit on reload.
+ * leaves the URL, which then reads as a plain visit on reload. Until then,
+ * the link shown is kept too (`shownLink`), so a reload shows it again.
  */
 export function linkFollowingPreferences(
   preferences: TablePreferences,
@@ -195,8 +239,12 @@ export function linkFollowingPreferences(
   let isShowingLink = options.isLinkedArrival;
   let isSettled = false;
 
-  const keepLinkScope = () =>
+  const keepLinkScope = () => {
     preferences.set("linkScope", options.linkScope(), undefined);
+    preferences.set("shownLink", undefined, undefined);
+  };
+  const keepShownLink = () =>
+    preferences.set("shownLink", options.linkKeys(), undefined);
 
   const takeOver = () => {
     isShowingLink = false;
@@ -225,12 +273,14 @@ export function linkFollowingPreferences(
       try {
         change();
         await nextTick();
+        keepShownLink();
       } finally {
         isSettled = true;
       }
     },
     settleArrival: async () => {
       await nextTick();
+      if (isShowingLink) keepShownLink();
       isSettled = true;
     },
   };

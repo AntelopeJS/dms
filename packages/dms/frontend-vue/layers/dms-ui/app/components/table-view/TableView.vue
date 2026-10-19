@@ -141,8 +141,10 @@ import {
   isLinkedArrival,
   linkedArrivalPreferences,
   linkFollowingPreferences,
+  linkKeyScope,
   urlFilterScope,
 } from "../../build/composables/table-view/utils/linkedArrival";
+import { pageArrivalKind } from "../../build/composables/table-view/utils/pageArrival";
 import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
@@ -275,16 +277,19 @@ const keptPreferences = useTablePreferences(componentId, pageId);
 // A link naming a view, a tab, a record or a URL filter opens on the table's
 // defaults plus what it names, never over the state kept from the last visit
 // (which stays kept for the next plain visit), until the user makes the
-// state shown their own: a view, a tab, a filter or a sort they pick.
+// state shown their own: a view, a tab, a filter or a sort they pick. Only a
+// reload (or Back) of the URL the table wrote for that state restores it.
 const isLinked = isLinkedArrival({
   query: route.query,
   urlScope,
   queryParamFilters,
+  isVisit: pageArrivalKind() === "visit",
   rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
   keptLinkScope: keptPreferences.get<string | undefined>(
     "linkScope",
     undefined,
   ),
+  shownLink: keptPreferences.get<string | undefined>("shownLink", undefined),
 });
 const tablePreferences = linkFollowingPreferences(
   isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,
@@ -292,6 +297,7 @@ const tablePreferences = linkFollowingPreferences(
     isLinkedArrival: isLinked,
     urlScope,
     linkScope: () => urlFilterScope(route.query, queryParamFilters),
+    linkKeys: () => linkKeyScope(route.query, urlScope, queryParamFilters),
     // Read once the table is mounted, past the declarations below. A page
     // kept without its scope is restored as it is (`usePersistedPagination`).
     listingState: () => [

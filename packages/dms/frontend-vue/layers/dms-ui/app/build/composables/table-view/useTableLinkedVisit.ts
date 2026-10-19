@@ -24,33 +24,55 @@ export interface TableLinkedVisitOptions {
  * Follows a link to the page the table is already shown on (a notification,
  * a menu entry, back and forward): Inertia keeps the page mounted, so the
  * table reads the visit's query as an arrival would (`isLinkedVisit`). A
- * visit to another page is left alone: the table is about to unmount.
+ * link clicked is announced as a client visit pushed, even to the URL shown,
+ * which Inertia turns into a replace without a `navigate` event; a page
+ * control rebuilding the query replaces it, and is no link. A visit to
+ * another page is left alone: the table is about to unmount.
  */
 export function useTableLinkedVisit(options: TableLinkedVisitOptions): void {
   // The page the table is shown on, as the visit that mounted it reached it.
   const pathname = options.route.path;
   let previousQuery: Record<string, unknown> = { ...options.route.query };
-  let stopFollowingVisits: (() => void) | undefined;
+  // A pushed visit announces itself twice when it changes the URL.
+  let followedVisitId: string | undefined;
+  const stops: Array<() => void> = [];
+
+  const read = (
+    url: string,
+    visitId: string | undefined,
+    isLinkClick: boolean,
+  ) => {
+    const query = queryOfUrl(url);
+    const lastQuery = previousQuery;
+    previousQuery = query;
+    if (new URL(url, URL_BASE).pathname !== pathname) return;
+    if (visitId !== undefined && visitId === followedVisitId) return;
+    const isLink = isLinkedVisit({
+      query,
+      isLinkClick,
+      previousQuery: lastQuery,
+      urlScope: options.urlScope,
+      queryParamFilters: options.queryParamFilters,
+      activeView: options.activeView(),
+      activeTab: options.activeTab(),
+      canOpenView: options.canOpenView,
+      canOpenTab: options.canOpenTab,
+    });
+    if (!isLink) return;
+    followedVisitId = visitId;
+    options.follow(query);
+  };
 
   onMounted(() => {
-    stopFollowingVisits = inertiaRouter.on("navigate", (event) => {
-      const url = event.detail.page.url;
-      const query = queryOfUrl(url);
-      const lastQuery = previousQuery;
-      previousQuery = query;
-      if (new URL(url, URL_BASE).pathname !== pathname) return;
-      const isLink = isLinkedVisit({
-        query,
-        previousQuery: lastQuery,
-        urlScope: options.urlScope,
-        queryParamFilters: options.queryParamFilters,
-        activeView: options.activeView(),
-        activeTab: options.activeTab(),
-        canOpenView: options.canOpenView,
-        canOpenTab: options.canOpenTab,
-      });
-      if (isLink) options.follow(query);
-    });
+    stops.push(
+      inertiaRouter.on("navigate", (event) =>
+        read(event.detail.page.url, event.detail.visitId, false),
+      ),
+      inertiaRouter.on("clientVisit", (event) => {
+        if (event.detail.replace) return;
+        read(event.detail.page.url, event.detail.visitId, true);
+      }),
+    );
   });
-  onBeforeUnmount(() => stopFollowingVisits?.());
+  onBeforeUnmount(() => stops.forEach((stop) => stop()));
 }

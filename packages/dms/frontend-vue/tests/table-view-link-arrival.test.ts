@@ -8,10 +8,16 @@ import {
   isLinkedVisit,
   linkedArrivalPreferences,
   linkFollowingPreferences,
+  linkKeyScope,
   type LinkFollowingOptions,
+  type TableLinkArrival,
   type TableLinkVisit,
   urlFilterScope,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
+import {
+  pageArrivalKind,
+  trackPageArrivals,
+} from "../layers/dms-ui/app/build/composables/table-view/utils/pageArrival";
 
 const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
 const QUERY_PARAM_FILTERS = { customer: { field: "customerId" } };
@@ -20,13 +26,17 @@ const arrival = (
   query: Record<string, unknown>,
   rememberedTab = "all",
   keptLinkScope?: string,
+  overrides: Partial<TableLinkArrival> = {},
 ) =>
   isLinkedArrival({
     query,
     urlScope: SOLE_TABLE,
     queryParamFilters: QUERY_PARAM_FILTERS,
+    isVisit: false,
     rememberedTab,
     keptLinkScope,
+    shownLink: undefined,
+    ...overrides,
   });
 
 describe("isLinkedArrival", () => {
@@ -47,6 +57,34 @@ describe("isLinkedArrival", () => {
     expect(arrival({ tab: "overdue" }, "all")).toBe(true);
   });
 
+  it("follows a link clicked to the kept tab, over the kept view", () => {
+    expect(
+      arrival({ tab: "overdue" }, "overdue", undefined, { isVisit: true }),
+    ).toBe(true);
+    expect(
+      arrival({ "content.tab": "overdue" }, "overdue", undefined, {
+        isVisit: true,
+      }),
+    ).toBe(true);
+    expect(arrival({}, "overdue", undefined, { isVisit: true })).toBe(false);
+  });
+
+  it("shows again on reload the link the user has not made their own", () => {
+    const shownLink = linkKeyScope(
+      { "content.tab": "overdue" },
+      SOLE_TABLE,
+      QUERY_PARAM_FILTERS,
+    );
+    expect(
+      arrival({ tab: "overdue" }, "overdue", undefined, { shownLink }),
+    ).toBe(true);
+    expect(
+      arrival({ tab: "overdue", customer: "c1" }, "overdue", undefined, {
+        shownLink,
+      }),
+    ).toBe(true);
+  });
+
   it("takes the URL filters the kept state was chosen under for a reload", () => {
     const scope = urlFilterScope({ customer: "c1" }, QUERY_PARAM_FILTERS);
     expect(arrival({ customer: "c1", tab: "open" }, "open", scope)).toBe(false);
@@ -62,8 +100,10 @@ describe("isLinkedArrival", () => {
         query: { view: "outstanding" },
         urlScope: { tableId: "content" },
         queryParamFilters: undefined,
+        isVisit: true,
         rememberedTab: "all",
         keptLinkScope: undefined,
+        shownLink: undefined,
       }),
     ).toBe(false);
   });
@@ -134,6 +174,7 @@ describe("isLinkedVisit", () => {
   const visit = (overrides: Partial<TableLinkVisit>) =>
     isLinkedVisit({
       query: {},
+      isLinkClick: false,
       previousQuery: {},
       urlScope: SOLE_TABLE,
       queryParamFilters: QUERY_PARAM_FILTERS,
@@ -172,6 +213,26 @@ describe("isLinkedVisit", () => {
     expect(visit({ query: { tab: "billing" } })).toBe(false);
   });
 
+  it("follows a link clicked on the page even to what the table shows", () => {
+    expect(
+      visit({ query: { "content.tab": "closed" }, isLinkClick: true }),
+    ).toBe(true);
+    expect(visit({ query: { view: "unassigned" }, isLinkClick: true })).toBe(
+      true,
+    );
+    expect(
+      visit({
+        query: { customer: "c1" },
+        previousQuery: { customer: "c1" },
+        isLinkClick: true,
+      }),
+    ).toBe(true);
+    expect(visit({ query: { tab: "billing" }, isLinkClick: true })).toBe(false);
+    expect(visit({ query: { period: "month" }, isLinkClick: true })).toBe(
+      false,
+    );
+  });
+
   it("follows a row the last visit did not name", () => {
     expect(visit({ query: { record: "r2" } })).toBe(true);
     expect(
@@ -202,6 +263,7 @@ describe("linkFollowingPreferences", () => {
         isLinkedArrival: isLinked,
         urlScope: SOLE_TABLE,
         linkScope: () => "scope",
+        linkKeys: () => "keys",
         listingState: LISTING_STATE,
       },
     );
@@ -214,6 +276,7 @@ describe("linkFollowingPreferences", () => {
     expect(written).toEqual([
       ["sorting", []],
       ["linkScope", "scope"],
+      ["shownLink", undefined],
     ]);
   });
 
@@ -223,7 +286,10 @@ describe("linkFollowingPreferences", () => {
     preferences.set("viewMode", "cards", "table");
     await preferences.settleArrival();
     preferences.set("pagination", { pageIndex: 1, pageSize: 10 }, undefined);
-    expect(written).toEqual([["viewMode", "cards"]]);
+    expect(written).toEqual([
+      ["viewMode", "cards"],
+      ["shownLink", "keys"],
+    ]);
     expect(window.location.search).toBe("?view=paid&tab=all");
   });
 
@@ -232,16 +298,19 @@ describe("linkFollowingPreferences", () => {
     await preferences.settleArrival();
     preferences.set("activeView", "outstanding", undefined);
     expect(written).toEqual([
+      ["shownLink", "keys"],
       ["activeView", "outstanding"],
       ["activeTab", "all"],
       ["columnFilters", []],
       ["linkScope", "scope"],
+      ["shownLink", undefined],
     ]);
     expect(window.location.search).toBe("?tab=all");
     preferences.set("sorting", [], []);
-    expect(written.slice(-2)).toEqual([
+    expect(written.slice(-3)).toEqual([
       ["sorting", []],
       ["linkScope", "scope"],
+      ["shownLink", undefined],
     ]);
   });
 
@@ -252,15 +321,172 @@ describe("linkFollowingPreferences", () => {
       preferences.set("columnFilters", [], []);
       preferences.set("viewMode", "cards", "table");
     });
-    expect(written).toEqual([["viewMode", "cards"]]);
+    expect(written).toEqual([
+      ["viewMode", "cards"],
+      ["shownLink", "keys"],
+    ]);
     preferences.set("activeTab", "open", "all");
     expect(written.map(([field]) => field)).toEqual([
       "viewMode",
+      "shownLink",
       "activeView",
       "activeTab",
       "columnFilters",
       "linkScope",
+      "shownLink",
     ]);
+  });
+});
+
+describe("a link to the kept tab, reloads and the user's pick", () => {
+  // The cookie the preferences live in, across visits and reloads.
+  const keptStore = (): TablePreferences & {
+    kept: Record<string, unknown>;
+  } => {
+    const kept: Record<string, unknown> = {};
+    return {
+      kept,
+      get: <V>(field: string, fallback: V) =>
+        (field in kept ? kept[field] : fallback) as V,
+      set: (field, value) => {
+        if (value === undefined) Reflect.deleteProperty(kept, field);
+        else kept[field] = value;
+      },
+      restore: () => undefined,
+    };
+  };
+
+  // The table arriving on the URL shown, as TableView reads it.
+  const arriveOn = (
+    store: TablePreferences,
+    url: string,
+    isVisit: boolean,
+    shown: { view: string | undefined; tab: string },
+  ) => {
+    window.history.replaceState(null, "", url);
+    const query = Object.fromEntries(new URL(url, "http://x").searchParams);
+    const isLinked = isLinkedArrival({
+      query,
+      urlScope: SOLE_TABLE,
+      queryParamFilters: QUERY_PARAM_FILTERS,
+      isVisit,
+      rememberedTab: store.get("activeTab", "all"),
+      keptLinkScope: store.get<string | undefined>("linkScope", undefined),
+      shownLink: store.get<string | undefined>("shownLink", undefined),
+    });
+    const read = isLinked ? linkedArrivalPreferences(store) : store;
+    const preferences = linkFollowingPreferences(read, {
+      isLinkedArrival: isLinked,
+      urlScope: SOLE_TABLE,
+      linkScope: () => urlFilterScope(query, QUERY_PARAM_FILTERS),
+      linkKeys: () => linkKeyScope(query, SOLE_TABLE, QUERY_PARAM_FILTERS),
+      listingState: () => [
+        ["activeView", shown.view, undefined],
+        ["activeTab", shown.tab, "all"],
+      ],
+    });
+    return {
+      isLinked,
+      view: read.get<string | undefined>("activeView", undefined),
+      preferences,
+    };
+  };
+
+  // The user picked the view "due-week" and the tab "overdue" on a plain
+  // visit: the table kept both and wrote `?tab=overdue`.
+  const userState = () => {
+    const store = keptStore();
+    store.set("activeView", "due-week", undefined);
+    store.set("activeTab", "overdue", "all");
+    return store;
+  };
+
+  it("opens a link clicked to the kept tab on the defaults plus that tab", async () => {
+    const store = userState();
+    const reload = arriveOn(store, "/invoices?tab=overdue", false, {
+      view: "due-week",
+      tab: "overdue",
+    });
+    expect(reload.isLinked).toBe(false);
+    expect(reload.view).toBe("due-week");
+
+    const link = arriveOn(store, "/invoices?content.tab=overdue", true, {
+      view: undefined,
+      tab: "overdue",
+    });
+    expect(link.isLinked).toBe(true);
+    expect(link.view).toBeUndefined();
+    await link.preferences.settleArrival();
+    expect(store.kept.activeView).toBe("due-week");
+  });
+
+  it("restores the kept state on a full reload of the URL the table wrote", () => {
+    const store = userState();
+    const reload = arriveOn(store, "/invoices?tab=overdue", false, {
+      view: "due-week",
+      tab: "overdue",
+    });
+    expect(reload.isLinked).toBe(false);
+    expect(reload.view).toBe("due-week");
+  });
+
+  it("shows the link again on reload until the user picks their own state", async () => {
+    const store = userState();
+    const link = arriveOn(store, "/invoices?content.tab=overdue", true, {
+      view: undefined,
+      tab: "overdue",
+    });
+    await link.preferences.settleArrival();
+
+    const reload = arriveOn(store, "/invoices?content.tab=overdue", false, {
+      view: undefined,
+      tab: "overdue",
+    });
+    expect(reload.isLinked).toBe(true);
+    expect(reload.view).toBeUndefined();
+  });
+
+  it("restores the user's pick on reload after a link", async () => {
+    const store = userState();
+    const link = arriveOn(store, "/invoices?content.tab=overdue", true, {
+      view: "paid",
+      tab: "overdue",
+    });
+    await link.preferences.settleArrival();
+    link.preferences.set("activeView", "paid", undefined);
+    expect(store.kept).toMatchObject({
+      activeView: "paid",
+      activeTab: "overdue",
+    });
+    expect(store.kept.shownLink).toBeUndefined();
+
+    const reload = arriveOn(store, "/invoices?content.tab=overdue", false, {
+      view: "paid",
+      tab: "overdue",
+    });
+    expect(reload.isLinked).toBe(false);
+    expect(reload.view).toBe("paid");
+  });
+});
+
+describe("pageArrivalKind", () => {
+  const announce = (prefetch: boolean) =>
+    document.dispatchEvent(
+      new CustomEvent("inertia:before", { detail: { visit: { prefetch } } }),
+    );
+
+  it("tells a full load, a visit and Back apart", () => {
+    expect(pageArrivalKind()).toBe("load");
+    trackPageArrivals();
+    trackPageArrivals();
+    announce(true);
+    expect(pageArrivalKind()).toBe("load");
+    announce(false);
+    expect(pageArrivalKind()).toBe("visit");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(pageArrivalKind()).toBe("history");
+    announce(false);
+    expect(pageArrivalKind()).toBe("visit");
   });
 });
 
@@ -281,6 +507,15 @@ describe("table view wiring", () => {
     expect(tableView).toMatch(
       /onMounted\(\(\) => void tablePreferences\.settleArrival\(\)\);/,
     );
+  });
+
+  it("reads how the page was reached, tracked from the app's start", () => {
+    expect(tableView).toMatch(/isVisit: pageArrivalKind\(\) === "visit",/);
+    const register = readFileSync(
+      resolve(__dirname, "../layers/dms-ui/app/plugins/register.ts"),
+      "utf8",
+    );
+    expect(register).toMatch(/trackPageArrivals\(\);/);
   });
 
   it("follows a link to the page already shown without keeping its state", () => {
