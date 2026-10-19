@@ -268,6 +268,48 @@ describe("action targets on a selection and on a listed row", () => {
     );
   });
 
+  it("counts the rows a bulk route says it changed, not the selection", async () => {
+    // The dialog runs the request it confirms.
+    vi.stubGlobal("useConfirm", () => ({
+      confirm: vi.fn(
+        async (options: { onConfirm?: (values: object) => unknown }) => {
+          await options.onConfirm?.({});
+          return true;
+        },
+      ),
+    }));
+    const targets = mountTargets();
+    const action: CustomRowAction = {
+      label: "Resolve",
+      bulk: true,
+      target: {
+        type: "api",
+        url: "/api/tickets/resolve",
+        successMessage: "$tickets.resolved",
+      },
+    };
+    const selection = { ids: ["a", "b", "c"], count: 3 };
+    api.mockResolvedValueOnce({ count: 2 } as never);
+    targets.handleBulkCustomAction(action, selection);
+    await vi.waitFor(() => expect(toasts).toHaveLength(1));
+    expect(toasts[0]?.title).toBe("tickets.resolved(2|2)");
+
+    // Nothing changed: the route says so.
+    api.mockResolvedValueOnce({ count: 0 } as never);
+    targets.handleBulkCustomAction(action, selection);
+    await vi.waitFor(() => expect(toasts).toHaveLength(2));
+    expect(toasts[1]?.title).toBe("tickets.resolved(0|0)");
+
+    // A confirmed action runs inside its dialog, and counts the same way.
+    api.mockResolvedValueOnce(1 as never);
+    targets.handleBulkCustomAction(
+      { ...action, confirm: { title: "Resolve?" } },
+      selection,
+    );
+    await vi.waitFor(() => expect(toasts).toHaveLength(3));
+    expect(toasts[2]?.title).toBe("tickets.resolved(1|1)");
+  });
+
   it("steps a row's drawer through the rows shown and keeps it in the URL", async () => {
     window.history.replaceState(null, "", "/runs");
     const rows = [{ _id: "r1" }, { _id: "r2" }];

@@ -57,6 +57,7 @@ import {
   resolveTextVariables,
 } from "../../utils/urlVariables";
 import { currentPageUrlValues } from "../page/pageUrlValues";
+import { readBulkCount } from "../table-view/utils/bulkActions";
 import { type DownloadFetch, saveDownload } from "../../utils/fileDownload";
 import { interpolateRowText } from "#dms-core/app/utils/url-interpolation";
 
@@ -184,12 +185,17 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const { handleApiError } = config;
   const fetchRaw = useAuthFetch().$authFetch.raw as unknown as DownloadFetch;
 
-  /** Calls an `api` target and tells how it went (rejects on a failure). */
+  /**
+   * Calls an `api` target and tells how it went (rejects on a failure). On a
+   * selection, the toast counts the rows the route says it changed, or every
+   * selected row when it does not say.
+   */
   const requestApiTarget = async (
     target: ActionTarget & { type: "api" },
     url: string,
     rowData?: Data,
     values: ConfirmValues = {},
+    selection?: BulkSelection,
   ) => {
     // The confirmation's values join the declared body, the input winning.
     const body = { ...target.body, ...values };
@@ -203,6 +209,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
     if (target.copy) {
       await copyToClipboard(String(response?.[target.copy] ?? ""));
     }
+    const toastParams = selection
+      ? { ...rowData, count: readBulkCount(response) ?? selection.count }
+      : (rowData ?? {});
     toast.add(
       resolveResponseToast(
         response,
@@ -211,7 +220,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
           // Pluralized on a bulk action's `{ count }`, like its dialog.
           title: resolveConfirmText(
             target.successMessage,
-            rowData ?? {},
+            toastParams,
             t as ConfirmTranslate,
           ),
         },
@@ -229,9 +238,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
     url: string,
     label: string,
     rowData?: Data,
+    selection?: BulkSelection,
   ) => {
     try {
-      await requestApiTarget(target, url, rowData);
+      await requestApiTarget(target, url, rowData, {}, selection);
     } catch (error: unknown) {
       handleApiError(error, label ? processI18n(label, rowData) : undefined);
     }
@@ -548,10 +558,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
       }
       window.location.href = url;
     },
-    api: async (target, label, rowData) => {
+    api: async (target, label, rowData, extras) => {
       const apiTarget = target as ActionTarget & { type: "api" };
       const url = targetUrl(apiTarget.url, rowData);
-      await handleApiTarget(apiTarget, url, label, rowData);
+      await handleApiTarget(apiTarget, url, label, rowData, extras?.selection);
     },
     exportJob: async (target, _label, rowData) => {
       const jobTarget = target as ActionTarget & { type: "exportJob" };
@@ -581,16 +591,21 @@ export function useActionTargets(config: ActionTargetsConfig) {
   const confirmedRuns: Partial<
     Record<
       ActionTarget["type"],
-      (target: ActionTarget, rowData?: Data) => ConfirmedRun
+      (
+        target: ActionTarget,
+        rowData?: Data,
+        extras?: TargetRunExtras,
+      ) => ConfirmedRun
     >
   > = {
-    api: (target, rowData) => (values) => {
+    api: (target, rowData, extras) => (values) => {
       const apiTarget = target as ActionTarget & { type: "api" };
       return requestApiTarget(
         apiTarget,
         targetUrl(apiTarget.url, rowData),
         rowData,
         values,
+        extras?.selection,
       );
     },
   };
@@ -621,7 +636,7 @@ export function useActionTargets(config: ActionTargetsConfig) {
       await handler(target, label, rowData, extras);
       return;
     }
-    const runInside = confirmedRuns[target.type]?.(target, rowData);
+    const runInside = confirmedRuns[target.type]?.(target, rowData, extras);
     const isConfirmed = await confirmAction(declared, {
       row: rowData,
       urlParams: rowUrlParams(rowData),
