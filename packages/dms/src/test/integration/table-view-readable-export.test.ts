@@ -133,6 +133,7 @@ describe("[integration] table view export — readable values", () => {
     location: string,
     language: string,
     query: Record<string, unknown> = {},
+    headers: Record<string, string> = {},
   ): Promise<string[][]> {
     const started = await client.get<ExportTicket>(`${location}/export/start`, {
       params: {
@@ -143,7 +144,7 @@ describe("[integration] table view export — readable values", () => {
       },
       // `ids=a&ids=b`, as the export button sends a selection.
       paramsSerializer: { indexes: null },
-      headers: { "x-content-language": language },
+      headers: { "x-content-language": language, ...headers },
     });
     expect(started.status, JSON.stringify(started.data)).to.equal(HTTP_OK);
     await waitForJob(location, started.data.jobId);
@@ -195,6 +196,24 @@ describe("[integration] table view export — readable values", () => {
       "1250.5",
       "No",
     ]);
+  });
+
+  it("writes times in the zone the browser names, UTC without one", async () => {
+    const [, brussels] = await exportRows(
+      DEALS,
+      "en",
+      {},
+      { "x-time-zone": "Europe/Brussels" },
+    );
+    const [, unknown] = await exportRows(
+      DEALS,
+      "en",
+      {},
+      { "x-time-zone": "Mars/Olympus" },
+    );
+
+    expect(brussels[4]).to.equal("01/10/2026, 16:05");
+    expect(unknown[4]).to.equal("01/10/2026, 14:05");
   });
 
   it("keeps the selection: only the rows the caller ticked", async () => {

@@ -363,7 +363,9 @@ const LANGUAGE_CODE_LENGTH = 2;
  * the frontend.
  */
 const TEXT_LOCALES: Record<string, string> = { en: "en-GB", fr: "fr-FR" };
-/** The zone of a reader who chose none: the server cannot see the browser's. */
+/** The header the frontend names the browser's time zone in on an export. */
+const TIME_ZONE_HEADER = "x-time-zone";
+/** The zone of a reader who chose none and whose browser named none. */
 const DEFAULT_TIME_ZONE = "UTC";
 const HOUR_CYCLES = new Set(["h23", "h12"]);
 
@@ -395,6 +397,21 @@ function knownTimeZone(timeZone: unknown): string | undefined {
   }
 }
 
+/**
+ * The zone an export writes dates in: the user's saved time zone, the
+ * browser's the request names (`x-time-zone`) otherwise, UTC last.
+ */
+export function exportTimeZone(
+  ctx: RequestContext | undefined,
+  user: User | undefined,
+): string {
+  return (
+    knownTimeZone(user?.timeZone) ??
+    knownTimeZone(headerValue(ctx, TIME_ZONE_HEADER)) ??
+    DEFAULT_TIME_ZONE
+  );
+}
+
 /** The locale of the user who asked for an export, its catalogs read once. */
 export function resolveExportLocale(
   ctx: RequestContext | undefined,
@@ -410,7 +427,7 @@ export function resolveExportLocale(
         : readLocaleMessages(language),
     fallbackMessages,
     formatLocale: TEXT_LOCALES[language] ?? language,
-    timeZone: knownTimeZone(user?.timeZone) ?? DEFAULT_TIME_ZONE,
+    timeZone: exportTimeZone(ctx, user),
     hourCycle:
       hourCycle && HOUR_CYCLES.has(hourCycle)
         ? (hourCycle as ExportLocale["hourCycle"])

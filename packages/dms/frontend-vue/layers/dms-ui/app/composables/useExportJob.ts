@@ -6,6 +6,11 @@ const EXPORT_TOAST_DURATION = 5000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const TOAST_DURATION_UNTIL_REPLACED = ONE_HOUR_MS;
 const FILENAME_HEADER_PATTERN = /filename="([^"]+)"/i;
+/**
+ * The browser's time zone, which a readable export writes dates in when the
+ * user saved none: the server cannot see it otherwise.
+ */
+const TIME_ZONE_HEADER = "x-time-zone";
 
 function parseFilenameFromContentDisposition(
   header: string | null,
@@ -197,7 +202,10 @@ export const useExportJob = () => {
 
   async function startJob(opts: RunExportJobOptions): Promise<ExportJobTicket> {
     const method = opts.startMethod ?? "POST";
-    const init: Record<string, unknown> = { method };
+    const init: Record<string, unknown> = {
+      method,
+      headers: { [TIME_ZONE_HEADER]: browserTimeZone() },
+    };
     if (opts.startQuery) init.query = opts.startQuery;
     if (opts.startBody && method !== "GET") init.body = opts.startBody;
     const ticket = await $authFetch<ExportJobTicket>(opts.startUrl, init);

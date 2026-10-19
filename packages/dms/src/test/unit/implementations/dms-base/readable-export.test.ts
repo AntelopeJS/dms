@@ -13,6 +13,7 @@ import { expect } from "chai";
 import {
   type ExportLocale,
   exportLanguage,
+  exportTimeZone,
   formatExportCell,
   readableColumns,
   translateText,
@@ -98,6 +99,20 @@ describe("[unit] implementations/dms-base/readable-export — texts", () => {
     expect(exportLanguage(ctx, user)).to.equal("fr");
     expect(exportLanguage(undefined, user)).to.equal("nl");
     expect(exportLanguage(undefined, undefined)).to.equal("en");
+  });
+
+  it("takes the user's saved time zone, then the browser's, UTC last", () => {
+    const ctx = {
+      rawRequest: { headers: { "x-time-zone": "America/New_York" } },
+    } as unknown as RequestContext;
+    const unknownZone = {
+      rawRequest: { headers: { "x-time-zone": "Mars/Olympus" } },
+    } as unknown as RequestContext;
+    const user = { timeZone: "Europe/Brussels" } as User;
+    expect(exportTimeZone(ctx, user)).to.equal("Europe/Brussels");
+    expect(exportTimeZone(ctx, {} as User)).to.equal("America/New_York");
+    expect(exportTimeZone(unknownZone, undefined)).to.equal("UTC");
+    expect(exportTimeZone(undefined, undefined)).to.equal("UTC");
   });
 });
 
