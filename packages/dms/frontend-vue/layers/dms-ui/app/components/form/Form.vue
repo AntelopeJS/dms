@@ -58,6 +58,12 @@ import {
   sectionState,
 } from "../../build/composables/form/formSections";
 import { FORM_CONTROL_ERRORS_KEY } from "../../build/composables/form/formControlErrors";
+import {
+  changedServerErrorFields,
+  droppedServerErrors,
+  serverErrorValue,
+  type KeptServerError,
+} from "../../build/composables/form/serverFieldErrors";
 import { useInstantForm } from "../../build/composables/form/useInstantForm";
 import { useInstantSaveHeader } from "#dms-layout/app/composables/layout/useInstantSaveHeader";
 import DmsFormEntries from "../../build/components/form/FormEntries.vue";
@@ -97,10 +103,11 @@ const FormWrapper =
 
 const { processI18n, processApiMessage } = useTranslation();
 
-// Server errors stay on their field until its value changes (UForm only
-// re-validates a field once it was left, and its schema knows nothing of
-// them): the value each field's were raised against, by field id.
-const serverErrorValues = new Map<string, string>();
+// Server errors stay on their field until its value changes or the form is
+// saved, whatever re-validates the field from its schema in between, which
+// knows nothing of them: each one shown, with the value it was raised
+// against, by field id.
+const serverErrors = new Map<string, KeptServerError>();
 
 /** The control of a field, by its id, inside this form only. */
 function fieldControl(name: string | undefined): HTMLElement | null {
@@ -193,14 +200,17 @@ function showFieldErrors(errors: FormServerFieldError[]): boolean {
   // instant form) replaces its own only.
   if (!isInstant) {
     target.setErrors([]);
-    serverErrorValues.clear();
+    serverErrors.clear();
   }
   for (const error of errors) placeServerError(target, error);
   const shown = errors.filter(
     (error) => target.getErrors(fieldErrorPattern(error.name)).length,
   );
   for (const error of shown) {
-    serverErrorValues.set(error.name, JSON.stringify(state.value[error.name]));
+    serverErrors.set(error.name, {
+      value: serverErrorValue(state.value[error.name]),
+      error,
+    });
   }
   showsErrorSummary.value = shown.length > 0;
   void focusField(target.errors[0]?.name);
@@ -256,14 +266,38 @@ const {
 watch(
   state,
   (current) => {
-    for (const [name, value] of serverErrorValues) {
-      if (JSON.stringify(current[name]) === value) continue;
-      serverErrorValues.delete(name);
+    for (const name of changedServerErrorFields(serverErrors, current)) {
+      serverErrors.delete(name);
       form.value?.clear(fieldErrorPattern(name));
     }
   },
   { deep: true },
 );
+
+// A field re-validated while its value is still the refused one (see
+// `droppedServerErrors`) gets the server's error back. One its field no
+// longer takes (its control left the form) is let go, or each attempt would
+// set the errors again and run this once more.
+watch(
+  () => form.value?.errors,
+  () => {
+    const target = form.value;
+    if (!target) return;
+    for (const error of droppedServerErrors(serverErrors, target)) {
+      placeServerError(target, error);
+      if (target.getErrors(fieldErrorPattern(error.name)).length) continue;
+      serverErrors.delete(error.name);
+    }
+  },
+);
+
+/** A saved form: what the server refused before no longer stands. */
+function clearServerErrors(): void {
+  for (const name of serverErrors.keys()) {
+    form.value?.clear(fieldErrorPattern(name));
+  }
+  serverErrors.clear();
+}
 
 const allFieldIds = computed(() => toValue(allFields).map((field) => field.id));
 
@@ -335,7 +369,7 @@ watch(
       const previous = fieldValueSnapshots.get(field.id);
       fieldValueSnapshots.set(field.id, snapshot);
       if (previous === undefined || previous === snapshot) continue;
-      if (!form.value || serverErrorValues.has(field.id)) continue;
+      if (!form.value || serverErrors.has(field.id)) continue;
       const pattern = fieldErrorPattern(field.id);
       if (!form.value.getErrors(pattern).length) continue;
       void form.value.validate({ name: errorNames(field), silent: true });
@@ -413,6 +447,7 @@ onMounted(() => {
 function markFormClean(): void {
   isTouched = false;
   showsErrorSummary.value = false;
+  clearServerErrors();
   formDirty.markClean();
   instantSave?.start();
 }
