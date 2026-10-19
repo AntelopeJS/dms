@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.9.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.7...v0.9.8)
+
+### 🩹 Fixes
+
+- **startup:** Answer 503 with Retry-After until the DMS schemas are bound ([#369](https://github.com/AntelopeJS/dms/pull/369))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.9.7
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.6...v0.9.7)
