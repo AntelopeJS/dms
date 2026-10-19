@@ -106,6 +106,8 @@ const theme = tv({
 
 interface TableActionsProps {
   canAddRow?: boolean;
+  /** The add action's configured label (`$`: i18n key); "New entry" without. */
+  addLabel?: string;
   /** Shows the archive mode toggle, bound to the `showArchived` model. */
   archiveToggle?: boolean;
   customButtons?: CustomButton[];
@@ -162,6 +164,9 @@ const appConfig = useDmsAppConfig() as DmsAppConfig & {
 
 const { t } = useI18n();
 const { processI18n } = useTranslation();
+const addRowLabel = computed(() =>
+  props.addLabel ? processI18n(props.addLabel) : t("dms.table.new_row"),
+);
 
 const searchActive = ref(false);
 const searchInputRef = ref<HTMLInputElement>();
@@ -625,7 +630,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
 
     <UButton
       v-if="canAddRow"
-      :label="t('dms.table.new_row')"
+      :label="addRowLabel"
       :icon="appConfig.ui.icons.plus"
       :class="uiTableActions.add()"
       size="sm"
@@ -633,7 +638,7 @@ const uiTableActions = computed(() => uiTableActionsVariant());
     />
     <UButton
       v-if="canAddRow"
-      :aria-label="t('dms.table.new_row')"
+      :aria-label="addRowLabel"
       :icon="appConfig.ui.icons.plus"
       :class="uiTableActions.addMobile()"
       size="sm"
