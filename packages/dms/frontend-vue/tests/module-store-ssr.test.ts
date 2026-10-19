@@ -26,6 +26,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { useModuleStore } from "../layers/dms-layout/app/composables/page/useModuleStore";
+import { isHydratingSetup } from "../layers/dms-core/app/composables/page/isHydratingSetup";
 import ModuleTileSkeleton from "../layers/dms-layout/app/build/components/pages/modules/ModuleTileSkeleton.vue";
 
 const idleListing = {
@@ -38,12 +39,19 @@ const authFetch = vi.fn();
 const isOwner = ref(true);
 const mounted: App[] = [];
 
+/** Whether each setup of the store awaited its listing. */
+const awaitedListing: boolean[] = [];
+
 const Store = defineComponent({
   async setup() {
     const store = useModuleStore();
+    const isHydrating = isHydratingSetup();
     // Before the await, as a compiled <script setup> keeps it.
     onMounted(() => store.start());
-    await store.ready();
+    // As the Modules pages: a hydration awaits nothing, the server's answer
+    // is adopted before the first render.
+    awaitedListing.push(!isHydrating);
+    if (!isHydrating) await store.ready();
     return () =>
       h(
         "p",
@@ -65,6 +73,7 @@ async function settle(): Promise<void> {
 
 beforeEach(() => {
   isOwner.value = true;
+  awaitedListing.length = 0;
   vi.stubGlobal("computed", computed);
   vi.stubGlobal("ref", ref);
   vi.stubGlobal("useIsOwner", () => computed(() => isOwner.value));
@@ -87,11 +96,16 @@ it("renders the store listing on the server, and the browser does not read it ag
   expect(authFetch).toHaveBeenCalledTimes(1);
 
   authFetch.mockClear();
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   const { app, container } = hydrate(Page, html, payload);
   mounted.push(app);
   await settle();
   expect(authFetch).not.toHaveBeenCalled();
   expect(container.innerHTML).toBe(html);
+  // An await on hydration would resume the setup with the page as Vue's
+  // current instance while the app's first flush renders the layout's slots.
+  expect(awaitedListing).toEqual([true, false]);
+  expect(warn).not.toHaveBeenCalled();
 });
 
 it("reads nothing for a member", async () => {

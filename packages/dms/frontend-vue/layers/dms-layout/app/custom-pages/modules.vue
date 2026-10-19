@@ -10,6 +10,7 @@ import DmsStatGroup, {
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
 import type { Tone } from "#dms-ui/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
+import { isHydratingSetup } from "#dms-core/app/composables/page/isHydratingSetup";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
@@ -54,6 +55,7 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const modulesListing = useModulesListing();
 const moduleHistory = useModuleHistory();
+const isHydrating = isHydratingSetup();
 
 // Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
@@ -118,7 +120,15 @@ const moduleStore = useModuleStore();
 // store listing comes with it: the tiles' source, version and state, and the
 // installed modules that register nothing, would otherwise move the grid and
 // its category counts once it answers.
-await Promise.all([modulesListing.loadModulesListing(), moduleStore.ready()]);
+//
+// A hydration awaits nothing: both reads adopt the server's answer before the
+// first render. An await there would resume this setup a few microtasks
+// later, and Vue keeps the page as its current instance until the setup
+// settles: the app's first flush ran in that gap, and every layout slot it
+// rendered warned that it was "invoked outside of the render function".
+if (!isHydrating) {
+  await Promise.all([modulesListing.loadModulesListing(), moduleStore.ready()]);
+}
 
 const isForbidden = computed(
   () =>
