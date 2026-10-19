@@ -22,6 +22,20 @@ const { state, initialValues, loading } = context;
 const { processI18n } = useTranslation();
 
 const isDisabled = computed(() => context.isFieldDisabled(props.field));
+// A list of rows reads best as its rows, its own control disabled: the
+// display of a cell only counts them. An empty one still reads "empty".
+const READS_AS_CONTROL = new Set(["array", "key_value"]);
+const hasRows = (value: unknown): boolean =>
+  !!value && typeof value === "object" && Object.keys(value).length > 0;
+const showsDisplay = computed(
+  () =>
+    isDisabled.value &&
+    !!props.field.type &&
+    !(
+      READS_AS_CONTROL.has(props.field.type) &&
+      hasRows(state.value[props.field.id])
+    ),
+);
 const component = computed(() => {
   const name = props.field.component.componentName;
   return name ? resolveDmsComponent(name) || name : null;
@@ -63,7 +77,7 @@ const readonly = computed<FormFieldReadonly>(() =>
       :help="hint"
     >
       <div
-        v-if="isDisabled && !!field.type"
+        v-if="showsDisplay"
         class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
       >
         <DmsDisplay
