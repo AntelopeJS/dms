@@ -49,40 +49,107 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
 
 const VALUE_MODE = "is";
 const NOT_VALUE_MODE = "is_not";
+const EMPTY_MODE = "is_empty";
 const NOT_EMPTY_MODE = "is_not_empty";
+const INCLUDE_MODE = "include";
+const EXCLUDE_MODE = "exclude";
 
 /**
- * Whether a column's `<mode>:<value>` filter keeps only rows its hidden
- * filter keeps too: an equal filter, or `is:a` under `is_not:b` (a ≠ b) or
- * `is_not_empty`.
+ * Set on a list query whose filters cannot all hold (a tab and a view each
+ * pinning a column to another value): it lists no rows, so nothing is
+ * requested — the rows, the counters, the footer and the exports all read
+ * empty. A display fetching its own rows from `context.query` checks it.
  */
-const isNarrowerFilter = (column: string, hidden: string): boolean => {
-  if (column === hidden) return true;
-  if (!column.startsWith(`${VALUE_MODE}:`)) return false;
-  if (hidden.startsWith(`${NOT_EMPTY_MODE}:`)) return true;
-  return (
-    hidden.startsWith(`${NOT_VALUE_MODE}:`) &&
-    hidden.slice(NOT_VALUE_MODE.length) !== column.slice(VALUE_MODE.length)
-  );
+export const NO_ROWS_QUERY_KEY = "noRows";
+
+/** Whether `query` was built from filters that keep no row. */
+export const isNoRowsQuery = (query: object): boolean =>
+  (query as Record<string, unknown>)[NO_ROWS_QUERY_KEY] === true;
+
+/** A sent filter, `<mode>:<value>`, read back. */
+interface SentFilter {
+  mode: string;
+  value: string;
+}
+
+const readFilter = (sent: string): SentFilter => {
+  const separator = sent.indexOf(":");
+  return { mode: sent.slice(0, separator), value: sent.slice(separator + 1) };
+};
+
+/** The values of an `include` or `exclude` filter, sent comma-joined. */
+const listValues = (filter: SentFilter): string[] => filter.value.split(",");
+
+/** The value modes a single `is:<value>` filter holds under, by their mode. */
+const VALUE_HOLDS: Record<
+  string,
+  (value: string, other: SentFilter) => boolean
+> = {
+  [VALUE_MODE]: (value, other) => other.value === value,
+  [NOT_VALUE_MODE]: (value, other) => other.value !== value,
+  [NOT_EMPTY_MODE]: () => true,
+  [EMPTY_MODE]: () => false,
+  [INCLUDE_MODE]: (value, other) => listValues(other).includes(value),
+  [EXCLUDE_MODE]: (value, other) => !listValues(other).includes(value),
+};
+
+/**
+ * Whether the `column` filter keeps only rows the `hidden` filter keeps too:
+ * an equal filter, or one value the hidden filter accepts.
+ */
+const isNarrowerFilter = (column: SentFilter, hidden: SentFilter): boolean => {
+  if (column.mode === hidden.mode && column.value === hidden.value) return true;
+  if (column.mode !== VALUE_MODE) return false;
+  return VALUE_HOLDS[hidden.mode]?.(column.value, hidden) ?? false;
+};
+
+/**
+ * Whether no row can pass both filters of one column: one value the other
+ * rejects, an empty value and a required one, or two value lists with none
+ * in common. Combinations it cannot tell are not disjoint.
+ */
+const areDisjointFilters = (a: SentFilter, b: SentFilter): boolean => {
+  const [one, other] = a.mode === VALUE_MODE ? [a, b] : [b, a];
+  if (one.mode === VALUE_MODE) {
+    const holds = VALUE_HOLDS[other.mode];
+    return !!holds && !holds(one.value, other);
+  }
+  const modes = new Set([a.mode, b.mode]);
+  if (modes.has(EMPTY_MODE)) {
+    return modes.has(NOT_EMPTY_MODE) || modes.has(INCLUDE_MODE);
+  }
+  if (a.mode === INCLUDE_MODE && b.mode === INCLUDE_MODE) {
+    const values = new Set(listValues(a));
+    return !listValues(b).some((value) => values.has(value));
+  }
+  return false;
 };
 
 /**
  * The column filters (the filters row, a saved view) laid over the hidden
- * ones (a tab, a route or query parameter). The list query carries one
- * filter per column, so two filters on one column cannot both be sent: the
- * column filter is sent only when it implies the hidden one, and the hidden
- * filter otherwise. A scope the page sets is never widened by a filter the
- * user picks — a tab stays what it says, combined (AND) with the filters of
- * the other columns.
+ * ones (a tab, a route or query parameter), combined (AND). The list query
+ * carries one filter per column, so on a column both filter, the column
+ * filter is sent when it implies the hidden one, the query lists no rows
+ * when they cannot both hold ({@link NO_ROWS_QUERY_KEY}), and the hidden
+ * filter is sent otherwise: a scope the page sets is never widened by a
+ * filter the user picks — a tab stays what it says.
  */
 const combineFilters = (
   hidden: Record<string, string>,
   column: Record<string, string>,
-): Record<string, string> => {
-  const combined = { ...hidden };
+): Record<string, string | boolean> => {
+  const combined: Record<string, string | boolean> = { ...hidden };
   for (const [key, value] of Object.entries(column)) {
-    if (!(key in hidden) || isNarrowerFilter(value, hidden[key]!)) {
+    if (!(key in hidden)) {
       combined[key] = value;
+      continue;
+    }
+    const columnFilter = readFilter(value);
+    const hiddenFilter = readFilter(hidden[key]!);
+    if (isNarrowerFilter(columnFilter, hiddenFilter)) {
+      combined[key] = value;
+    } else if (areDisjointFilters(columnFilter, hiddenFilter)) {
+      combined[NO_ROWS_QUERY_KEY] = true;
     }
   }
   return combined;

@@ -9,6 +9,7 @@ import type {
   TableFooterTexts,
 } from "../../components/table/Table.vue";
 import { useColumnValueRenderer } from "../data-types/useColumnValueRenderer";
+import { isNoRowsQuery } from "./utils/tableQuery";
 
 export interface TableFooterOptions {
   footer: TableViewFooter | undefined;
@@ -53,7 +54,7 @@ export function useTableFooter(options: TableFooterOptions) {
   const { data: values, refresh } = useApiData<Record<string, number>>(
     `${options.dataKey}-summary`,
     ({ $authFetch, signal }) =>
-      summaries.length === 0
+      summaries.length === 0 || isNoRowsQuery(options.query.value)
         ? Promise.resolve({})
         : $authFetch<Record<string, number>>(`${location}/summary`, {
             query: summaryQuery.value,

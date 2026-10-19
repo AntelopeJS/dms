@@ -1,11 +1,15 @@
 /**
  * The list query carries one filter per column. A tab (a hidden filter) and
  * a column filter (the filters row, a saved view) on the same column are
- * combined: the column filter is sent only when it keeps a subset of the
- * tab's rows, else the tab's filter is — a tab never shows rows it excludes.
+ * combined (AND): the column filter is sent when it keeps a subset of the
+ * tab's rows, the query lists no rows when they cannot both hold, and the
+ * tab's filter is sent otherwise — a tab never shows rows it excludes.
  */
 import { describe, expect, it } from "vitest";
-import { buildTableQuery } from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
+import {
+  buildTableQuery,
+  isNoRowsQuery,
+} from "../layers/dms-ui/app/build/composables/table-view/utils/tableQuery";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
 
 const filter = (accessorKey: string, mode: string, value?: unknown) =>
@@ -20,18 +24,37 @@ const query = (hiddenFilters: TableFilter[], columnFilters: TableFilter[]) =>
   });
 
 describe("a tab combined with a view's filters", () => {
-  it("keeps the tab's filter over a view's filter on the same column", () => {
+  it("lists no rows when the view pins the tab's column to another value", () => {
+    // A view "Expiring this week" (status sent) under a tab "Accepted".
     const result = query(
-      [filter("status", "is", "overdue")],
+      [filter("status", "is", "accepted")],
       [
-        filter("status", "is", "paid"),
-        filter("paidAt", "greater_than", "{{now-30d}}"),
+        filter("status", "is", "sent"),
+        filter("validUntil", "less_than", "{{now+7d}}"),
       ],
     );
+    expect(isNoRowsQuery(result)).toBe(true);
     expect(result).toMatchObject({
-      filter_status: "is:overdue",
-      filter_paidAt: "greater_than:{{now-30d}}",
+      filter_status: "is:accepted",
+      filter_validUntil: "less_than:{{now+7d}}",
     });
+  });
+
+  it("lists no rows for any pair of filters no row passes", () => {
+    const disjoint: Array<[TableFilter, TableFilter]> = [
+      [filter("status", "is", "paid"), filter("status", "is", "draft")],
+      [filter("status", "is_not", "paid"), filter("status", "is", "paid")],
+      [filter("status", "is", "paid"), filter("status", "is_not", "paid")],
+      [filter("ownerId", "is_empty"), filter("ownerId", "is", "u1")],
+      [filter("ownerId", "is_not_empty"), filter("ownerId", "is_empty")],
+      [filter("tags", "include", ["a", "b"]), filter("tags", "is", "c")],
+      [filter("tags", "exclude", ["a"]), filter("tags", "is", "a")],
+      [filter("tags", "include", ["a"]), filter("tags", "include", ["b"])],
+      [filter("tags", "include", ["a"]), filter("tags", "is_empty")],
+    ];
+    for (const [hidden, column] of disjoint) {
+      expect(isNoRowsQuery(query([hidden], [column]))).toBe(true);
+    }
   });
 
   it("sends a column filter that narrows the tab's", () => {
@@ -47,26 +70,52 @@ describe("a tab combined with a view's filters", () => {
         [filter("ownerId", "is", "u1")],
       ).filter_ownerId,
     ).toBe("is:u1");
-  });
-
-  it("keeps the tab's filter when the column filter would widen it", () => {
     expect(
       query(
-        [filter("status", "is_not", "paid")],
-        [filter("status", "is", "paid")],
-      ).filter_status,
-    ).toBe("is_not:paid");
+        [filter("tags", "include", ["a", "b"])],
+        [filter("tags", "is", "b")],
+      ).filter_tags,
+    ).toBe("is:b");
+    expect(
+      isNoRowsQuery(
+        query(
+          [filter("status", "is_not", "archived")],
+          [filter("status", "is", "paid")],
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the tab's filter when it narrows the column filter", () => {
     expect(
       query(
         [filter("status", "is", "paid")],
         [filter("status", "is_not", "draft")],
       ).filter_status,
     ).toBe("is:paid");
+    expect(
+      query(
+        [filter("status", "is", "paid")],
+        [filter("status", "is_not", "draft")],
+      ),
+    ).not.toHaveProperty("noRows");
+  });
+
+  it("keeps the tab's filter when it cannot tell how the two combine", () => {
+    const result = query(
+      [filter("title", "contains", "roof")],
+      [filter("title", "is", "Solar")],
+    );
+    expect(result.filter_title).toBe("contains:roof");
+    expect(isNoRowsQuery(result)).toBe(false);
   });
 
   it("sends each filter as is on distinct columns", () => {
-    expect(
-      query([filter("status", "is", "open")], [filter("team", "is", "a")]),
-    ).toMatchObject({ filter_status: "is:open", filter_team: "is:a" });
+    const result = query(
+      [filter("status", "is", "open")],
+      [filter("team", "is", "a")],
+    );
+    expect(result).toMatchObject({ filter_status: "is:open", filter_team: "is:a" });
+    expect(isNoRowsQuery(result)).toBe(false);
   });
 });

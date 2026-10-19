@@ -232,7 +232,11 @@ export interface TableViewDisplayContext<T = Record<string, unknown>> {
   labelKey?: string;
   /** Data API location (`{location}/list`, `/get`, ...). Needed by self-managed displays. */
   location: string;
-  /** Active filters/search/sort query (no limit/offset) — for self-managed fetching. */
+  /**
+   * Active filters/search/sort query (no limit/offset) — for self-managed
+   * fetching. `noRows: true` when the filters keep no row (a tab and a view
+   * pinning one column to different values): list nothing, request nothing.
+   */
   query: Record<string, unknown>;
   /** Stable component/page identifiers, e.g. for per-instance fetch keys. */
   componentId?: string;

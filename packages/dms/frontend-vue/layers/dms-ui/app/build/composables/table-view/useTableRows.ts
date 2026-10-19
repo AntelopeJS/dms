@@ -12,6 +12,7 @@ import {
 } from "../../utils/urlVariables";
 import type { RowActionRule } from "#dms-core/app/types/row-action";
 import { pinRows } from "./utils/pinnedRows";
+import { isNoRowsQuery } from "./utils/tableQuery";
 import {
   appendPeriodToUrl,
   usePeriodScope,
@@ -179,7 +180,10 @@ function awaitUnlessAborted<R>(
   });
 }
 
-/** A page with no rows: what a source shows while its URL is unresolved. */
+/**
+ * A page with no rows: what a source shows while its URL is unresolved, and
+ * any list whose filters keep no row.
+ */
 function emptySourcePage<T>(query: Query): TableViewListResponse<T> {
   return {
     results: [],
@@ -294,25 +298,28 @@ export function useTableRows<T extends Record<string, unknown>>(
   ): TableViewListResponse<T> | null =>
     page && { ...page, results: pinRows(page.results, options.pinnedRows?.()) };
 
-  // `signal` aborts the request once its answer is no longer wanted.
+  // `signal` aborts the request once its answer is no longer wanted. A query
+  // whose filters keep no row lists none without asking.
   const list = async (
     query: Query,
     signal?: AbortSignal,
   ): Promise<TableViewListResponse<T> | null> =>
-    withPinnedRows(
-      source
-        ? await listFromSource(source, query, signal)
-        : await api<TableViewListResponse<T>>(`${location}/list`, {
-            query,
-            signal,
-          }),
-    );
+    isNoRowsQuery(query)
+      ? emptySourcePage(query)
+      : withPinnedRows(
+          source
+            ? await listFromSource(source, query, signal)
+            : await api<TableViewListResponse<T>>(`${location}/list`, {
+                query,
+                signal,
+              }),
+        );
 
-  // A source answers its totals one list at a time.
-  const countBatch = async (
+  const countQueries = async (
     queries: TableCountQuery[],
     signal?: AbortSignal,
   ): Promise<Record<string, number>> => {
+    if (queries.length === 0) return {};
     if (!source) {
       return api<Record<string, number>>(`${location}/count/batch`, {
         method: "POST",
@@ -320,6 +327,7 @@ export function useTableRows<T extends Record<string, unknown>>(
         signal,
       });
     }
+    // A source answers its totals one list at a time.
     const totals = await Promise.all(
       queries.map(async ({ id, query }) => {
         const page = await listFromSource(
@@ -331,6 +339,22 @@ export function useTableRows<T extends Record<string, unknown>>(
       }),
     );
     return Object.fromEntries(totals.flat());
+  };
+
+  // A count whose filters keep no row is 0 without asking.
+  const countBatch = async (
+    queries: TableCountQuery[],
+    signal?: AbortSignal,
+  ): Promise<Record<string, number>> => {
+    const noRows = queries.filter(({ query }) => isNoRowsQuery(query));
+    const counted = await countQueries(
+      queries.filter(({ query }) => !isNoRowsQuery(query)),
+      signal,
+    );
+    return {
+      ...Object.fromEntries(noRows.map(({ id }) => [id, 0])),
+      ...counted,
+    };
   };
 
   // A source reads one row through its `fetchRowUrl`, if it declares one. It
