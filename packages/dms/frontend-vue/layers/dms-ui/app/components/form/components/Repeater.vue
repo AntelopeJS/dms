@@ -67,18 +67,20 @@ const canRemove = computed(
   () => !props.disabled && rows.value.length > (props.min ?? 0),
 );
 // A box to tick takes its own width; any other field shares the row. The
-// drag handle and the remove button have their own narrow columns.
+// drag handle and the remove button have their own narrow columns; a
+// disabled list (read-only) shows neither, only its rows.
+const movable = computed(() => props.sortable && !props.disabled);
 const FLUID_COLUMN = "minmax(0,1fr)";
 const COLUMN_WIDTHS: Record<string, string> = { boolean: "20px" };
 const HANDLE_COLUMN = "20px";
 const REMOVE_COLUMN = "28px";
 const gridTemplate = computed(() => ({
   gridTemplateColumns: [
-    props.sortable ? HANDLE_COLUMN : "",
+    movable.value ? HANDLE_COLUMN : "",
     ...props.columns.map(
       (column) => COLUMN_WIDTHS[column.type ?? ""] ?? FLUID_COLUMN,
     ),
-    REMOVE_COLUMN,
+    props.disabled ? "" : REMOVE_COLUMN,
   ]
     .filter(Boolean)
     .join(" "),
@@ -188,11 +190,11 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
       :style="gridTemplate"
       aria-hidden="true"
     >
-      <span v-if="props.sortable" />
+      <span v-if="movable" />
       <span v-for="column in props.columns" :key="column.id" class="truncate">
         {{ column.label }}
       </span>
-      <span />
+      <span v-if="!props.disabled" />
     </div>
 
     <div
@@ -205,11 +207,10 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
       @drop.prevent="onDrop(index)"
     >
       <button
-        v-if="props.sortable"
+        v-if="movable"
         type="button"
         class="text-dimmed hover:text-default grid h-8 cursor-grab place-items-center rounded-md"
-        :draggable="!props.disabled"
-        :disabled="props.disabled"
+        draggable="true"
         :aria-label="t('dms.form.repeater.move', { row: index + 1 })"
         @dragstart="draggedIndex = index"
         @dragend="draggedIndex = null"
@@ -234,6 +235,7 @@ const hasHeaders = computed(() => props.columns.some((column) => column.label));
         @update:model-value="setCell(index, column.id, $event)"
       />
       <UButton
+        v-if="!props.disabled"
         icon="i-ph-x"
         color="neutral"
         variant="ghost"

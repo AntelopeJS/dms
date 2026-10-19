@@ -35,7 +35,10 @@ const Button = defineComponent({
       h("button", { onClick: () => emit("click") }, props.label),
 });
 
-async function mount(rows: Record<string, unknown>[]) {
+async function mount(
+  rows: Record<string, unknown>[],
+  options: { sortable?: boolean; disabled?: boolean } = {},
+) {
   // Auto-imports of the layer.
   for (const name of [
     "inject",
@@ -62,6 +65,7 @@ async function mount(rows: Record<string, unknown>[]) {
           },
         ],
         modelValue: model.value,
+        ...options,
         "onUpdate:modelValue": (next: Record<string, unknown>[]) =>
           (model.value = next),
       }),
@@ -91,5 +95,16 @@ describe("an array field's rows", () => {
     host.querySelector<HTMLButtonElement>("button")!.click();
     await nextTick();
     expect(events).toEqual(["change"]);
+  });
+
+  // A read-only list (a record's details) shows its rows and nothing to
+  // change them with.
+  it("shows only the rows when disabled", async () => {
+    const { host } = await mount([{ name: "a" }, { name: "b" }], {
+      sortable: true,
+      disabled: true,
+    });
+    expect(host.querySelectorAll("input")).toHaveLength(2);
+    expect(host.querySelectorAll("button")).toHaveLength(0);
   });
 });
