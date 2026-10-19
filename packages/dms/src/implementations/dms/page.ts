@@ -51,6 +51,10 @@ import {
   UnmarkModuleScopedPermission,
 } from "@antelopejs/interface-dms/permissions";
 import { ApplyPermissionsResolvers } from "@antelopejs/interface-dms/permissions-resolver";
+import {
+  PERMISSION_PREVIEW_MEMBER_ID,
+  permissionsResolverContextFor,
+} from "@antelopejs/interface-dms/internal/permission-preview";
 import type { LayoutBannerContext } from "@antelopejs/interface-dms/layout-banners";
 import type { QuickActionTarget } from "@antelopejs/interface-dms/quick-actions";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
@@ -1328,26 +1332,23 @@ const PREVIEW_LOSS_MAX_SCOPES = 16;
 const PREVIEW_PAGE_CONCURRENCY = 4;
 
 const PREVIEW_ROLE_ID = "dms-permission-preview";
-// Whom the resolvers of a preview run for: a member of no tenant, so neither
-// the viewer nor a tenant owner. A resolver keyed on the user — a plan that
-// hands an owner all it grants, a screen kept for owners — then shapes the
-// set as it does for a member really holding the role, whoever previews it.
-const PREVIEW_MEMBER_ID = "dms-permission-preview-member";
 
 /**
  * The effective permissions of a member holding only `rolePermissions`: the
- * registered resolvers run over the set on behalf of a synthetic member, never
- * the viewer, whose own standing would otherwise widen the previewed set.
- * Without any resolver, the set as given.
+ * registered resolvers run over the set told it is a preview, on behalf of a
+ * synthetic member of no workspace — never the viewer, whose own standing
+ * would otherwise widen the previewed set, even for a resolver ignoring the
+ * preview flag. Without any resolver, the set as given.
  */
 export function resolvePreviewPermissions(
   tenantId: string,
   rolePermissions: Set<string>,
 ): Promise<Set<string>> {
   return ApplyPermissionsResolvers(
-    PREVIEW_MEMBER_ID,
+    PERMISSION_PREVIEW_MEMBER_ID,
     tenantId,
     rolePermissions,
+    permissionsResolverContextFor(PERMISSION_PREVIEW_MEMBER_ID, rolePermissions),
   );
 }
 
@@ -1364,10 +1365,11 @@ async function findPreviewHeaderActions(
   );
   // Never an owner: the previewed set is the role's, without the wildcard.
   // Nor the viewer: the layout runs the resolvers again for its user, and the
-  // viewer's id would hand them the viewer's standing. The viewer stays the
-  // prototype, so everything else reads through.
+  // preview member's id tells them it is a preview, where the viewer's would
+  // hand them the viewer's standing. The viewer stays the prototype, so
+  // everything else reads through.
   const previewUser: User = Object.assign(Object.create(request.user), {
-    _id: PREVIEW_MEMBER_ID,
+    _id: PERMISSION_PREVIEW_MEMBER_ID,
     owner: false,
   });
   const previewLayout = await handler(
