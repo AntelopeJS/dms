@@ -54,14 +54,15 @@ const PERMISSION = "orders.read";
 
 interface PendingRequest {
   resolve: (ids: string[]) => void;
+  reject: (reason: Error) => void;
 }
 
 const requests: PendingRequest[] = [];
 // Answers each request once the test releases it, in order.
 const $authFetch = vi.fn(
   () =>
-    new Promise<string[]>((resolve) => {
-      requests.push({ resolve });
+    new Promise<string[]>((resolve, reject) => {
+      requests.push({ resolve, reject });
     }),
 );
 vi.stubGlobal("useAuthFetch", () => ({ $authFetch }));
@@ -178,6 +179,25 @@ describe("loading the permission set", () => {
     await runs;
 
     expect($authFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a refresh that fails, and keeps the last set", async () => {
+    const permissions = browserPermissions();
+    const load = permissions.loadPermissions();
+    await answerRequests();
+    await load;
+
+    const refresh = permissions.fetchPermissions();
+    const outcome = refresh.then(
+      () => "resolved",
+      (reason: Error) => reason.message,
+    );
+    await settle();
+    for (const request of requests.splice(0))
+      request.reject(new Error("backend down"));
+
+    expect(await outcome).toBe("backend down");
+    expect(permissions.hasPermission(PERMISSION)).toBe(true);
   });
 
   it("loads again when the load it joined was cleared meanwhile", async () => {

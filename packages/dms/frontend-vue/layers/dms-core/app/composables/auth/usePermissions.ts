@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, effectScope } from "vue";
 
 const PERMISSIONS_REFRESH_MS = 300_000;
 const PERMISSIONS_ENDPOINT = "/dms/permissions";
@@ -53,10 +53,28 @@ export function usePermissions() {
 
   // A refresh (the set changed on the backend) asked while a read is in
   // flight replaces it rather than taking its older answer, so an
-  // invalidation is never swallowed. A failed one keeps the last set.
+  // invalidation is never swallowed. A failed one keeps the last set, and
+  // rejects so the caller knows it is stale.
   async function fetchPermissions(): Promise<void> {
-    await refreshDmsData(PERMISSIONS_KEY);
+    if (loaded.value) await refreshLoadedSet();
+    else await refreshDmsData(PERMISSIONS_KEY);
     await loadPermissions();
+  }
+
+  // `refreshDmsData` does not say whether the read failed: the set's own
+  // async data does. Its binding lives in a scope stopped once the read
+  // settled, so refreshes do not pile bindings up; the load that brought
+  // the set keeps the key bound, so stopping it never aborts nor evicts.
+  async function refreshLoadedSet(): Promise<void> {
+    const scope = effectScope(true);
+    const data = scope.run(() => permissionsData(false))!;
+    try {
+      await data.refresh();
+    } finally {
+      scope.stop();
+    }
+    // A later refresh that replaced this one reports its own failure.
+    if (data.status.value === "error") throw data.error.value;
   }
 
   async function refreshIfStale() {
