@@ -290,6 +290,7 @@ const label = computed(() => {
     <UButton
       :id="props.id"
       :label="label ?? t('dms.form.select_date')"
+      :title="label"
       :ui="{
         ...FIELD_TRIGGER_UI,
         label: label ? 'truncate text-highlighted' : 'truncate text-dimmed',
