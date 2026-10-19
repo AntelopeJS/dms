@@ -9,9 +9,6 @@ import { mapPermissionTree, permissionLabel } from "./permission-tree-nodes";
 /** Members listed by name on a role before the rest collapse into a count. */
 export const ROLE_MEMBER_PREVIEW_LIMIT = 3;
 
-/** Permission set entry of the holders who may do anything (platform owners). */
-export const ALL_PERMISSIONS = "*";
-
 /** A permission of the roles editor tree, with what the editor explains about it. */
 export interface RoleEditorPermissionNode {
   id: string;
