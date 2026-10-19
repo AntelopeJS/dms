@@ -5,6 +5,7 @@ import {
 import type { Role, RoleModel } from "./db";
 import { permissionIdAncestors } from "./internal/permission-ids";
 import { ApplyPermissionsResolvers } from "./permissions-resolver";
+import { permissionsResolverContextFor } from "./internal/permission-preview";
 
 export interface Permission {
   id: string;
@@ -112,7 +113,12 @@ export async function GetEffectiveUserPermissions(
   roleModel: RoleModel,
 ): Promise<Set<string>> {
   const basePermissions = await GetUserPermissions(user, roleIds, roleModel);
-  return ApplyPermissionsResolvers(user._id, tenantId, basePermissions);
+  return ApplyPermissionsResolvers(
+    user._id,
+    tenantId,
+    basePermissions,
+    permissionsResolverContextFor(user._id, basePermissions),
+  );
 }
 
 /**
