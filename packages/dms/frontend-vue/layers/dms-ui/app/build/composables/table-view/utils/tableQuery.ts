@@ -47,16 +47,58 @@ const buildFiltersQuery = (filters: TableFilter[]): Record<string, string> => {
   );
 };
 
+const VALUE_MODE = "is";
+const NOT_VALUE_MODE = "is_not";
+const NOT_EMPTY_MODE = "is_not_empty";
+
+/**
+ * Whether a column's `<mode>:<value>` filter keeps only rows its hidden
+ * filter keeps too: an equal filter, or `is:a` under `is_not:b` (a ≠ b) or
+ * `is_not_empty`.
+ */
+const isNarrowerFilter = (column: string, hidden: string): boolean => {
+  if (column === hidden) return true;
+  if (!column.startsWith(`${VALUE_MODE}:`)) return false;
+  if (hidden.startsWith(`${NOT_EMPTY_MODE}:`)) return true;
+  return (
+    hidden.startsWith(`${NOT_VALUE_MODE}:`) &&
+    hidden.slice(NOT_VALUE_MODE.length) !== column.slice(VALUE_MODE.length)
+  );
+};
+
+/**
+ * The column filters (the filters row, a saved view) laid over the hidden
+ * ones (a tab, a route or query parameter). The list query carries one
+ * filter per column, so two filters on one column cannot both be sent: the
+ * column filter is sent only when it implies the hidden one, and the hidden
+ * filter otherwise. A scope the page sets is never widened by a filter the
+ * user picks — a tab stays what it says, combined (AND) with the filters of
+ * the other columns.
+ */
+const combineFilters = (
+  hidden: Record<string, string>,
+  column: Record<string, string>,
+): Record<string, string> => {
+  const combined = { ...hidden };
+  for (const [key, value] of Object.entries(column)) {
+    if (!(key in hidden) || isNarrowerFilter(value, hidden[key]!)) {
+      combined[key] = value;
+    }
+  }
+  return combined;
+};
+
 export const buildTableQuery = (config: QueryConfig): TableQueryParams => {
   const pageSize = config.pagination.pageSize;
   const activeSort = config.sorting[0];
 
-  const columnFilters = buildFiltersQuery(config.columnFilters);
-  const hiddenFilters = buildFiltersQuery(config.hiddenFilters || []);
+  const filters = combineFilters(
+    buildFiltersQuery(config.hiddenFilters || []),
+    buildFiltersQuery(config.columnFilters),
+  );
 
   return {
-    ...hiddenFilters,
-    ...columnFilters,
+    ...filters,
     search: config.globalFilter ?? undefined,
     offset: config.pagination.pageIndex * pageSize,
     limit: pageSize,
