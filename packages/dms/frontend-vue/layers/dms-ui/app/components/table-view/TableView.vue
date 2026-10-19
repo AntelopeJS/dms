@@ -878,6 +878,7 @@ const openRowId = computed(() =>
 
 // The gate is set up with the other refresh triggers below; the hold only
 // reads it once the table is on screen.
+const NEW_ROWS_COUNT_ID = "liveHold:new";
 const tableRoot = useTemplateRef<ComponentPublicInstance>("tableRoot");
 const liveHold = useTableLiveHold({
   liveHold: props.liveHold,
@@ -888,6 +889,32 @@ const liveHold = useTableLiveHold({
     isSearching: () => !!effectiveGlobalFilter.value,
     isSorted: () => !isSameSorting(effectiveSorting.value, defaultSortState),
     tableElement: () => tableRoot.value?.$el ?? null,
+  },
+  // The pill counts the rows the table would list, on its own count route:
+  // the rows its tab, search and filters match now, less those it holds.
+  newRows: {
+    heldList: () => data.value,
+    countNow: async (signal) => {
+      const counts = await tableRows.countBatch(
+        [
+          {
+            id: NEW_ROWS_COUNT_ID,
+            query: {
+              ...buildTableQuery({
+                pagination: { pageIndex: 0, pageSize: 0 },
+                sorting: [],
+                columnFilters: effectiveColumnFilters.value,
+                hiddenFilters: hiddenFilters.value,
+                globalFilter: effectiveGlobalFilter.value,
+              }),
+              ...archiveQuery.value,
+            },
+          },
+        ],
+        signal,
+      );
+      return counts[NEW_ROWS_COUNT_ID];
+    },
   },
 });
 

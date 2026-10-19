@@ -22,6 +22,7 @@ import {
 import type {
   TableLiveHold,
   TableLiveHoldSignals,
+  TableNewRowsCounter,
 } from "../layers/dms-ui/app/build/composables/table-view/useTableLiveHold";
 import type { TableViewLiveHoldOptions } from "../layers/dms-ui/app/types/live";
 
@@ -52,6 +53,7 @@ interface MountedTableOptions {
   liveHold: boolean | TableViewLiveHoldOptions;
   isSource?: boolean;
   signals?: TableLiveHoldSignals;
+  newRows?: TableNewRowsCounter;
 }
 
 function mountTable(options: MountedTableOptions) {
@@ -66,6 +68,7 @@ function mountTable(options: MountedTableOptions) {
           isSource: options.isSource ?? true,
           gate: () => gate,
           signals: options.signals,
+          newRows: options.newRows,
         });
         return () => h("div");
       },
@@ -368,4 +371,72 @@ it("hands the strip the paused page's breakdown and the table's missedLabel", as
   live.resume();
   await nextTick();
   expect(hold.missedDetail.value).toBe(null);
+});
+
+// A table whose list holds `held` rows, its route matching `now()` rows now.
+function countedRows(held: number, now: () => number | Promise<number>) {
+  const heldList = ref<{ total: number } | null>({ total: held });
+  const countNow = vi.fn(async () => now());
+  return { heldList, newRows: { heldList: () => heldList.value, countNow } };
+}
+
+it("counts the new rows the table would list, not every event", async () => {
+  // A "4xx" tab: of three requests, one is a 4xx.
+  const { newRows } = countedRows(10, () => 11);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  publish();
+  publish();
+  await nextTick();
+  expect(hold.newCount.value).toBe(0);
+
+  // One count for the burst, once it has settled.
+  await vi.advanceTimersByTimeAsync(500);
+  expect(newRows.countNow).toHaveBeenCalledTimes(1);
+  expect(hold.newCount.value).toBe(1);
+});
+
+it("shows no pill when no new event matches the table's query", async () => {
+  const { newRows } = countedRows(10, () => 10);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(0);
+});
+
+it("counts again when the held list changes, and forgets on Show", async () => {
+  let now = 12;
+  const { heldList, newRows } = countedRows(10, () => now);
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(2);
+
+  // The user's search lists other rows, bounded: fewer of them are new.
+  heldList.value = { total: 3 };
+  now = 4;
+  await nextTick();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(1);
+
+  hold.showNew();
+  await nextTick();
+  expect(hold.newCount.value).toBe(0);
+});
+
+it("falls back to the events when the count fails", async () => {
+  const { newRows } = countedRows(10, () => Promise.reject(new Error("503")));
+  const { hold } = mountTable({ liveHold: true, newRows });
+  live.pause();
+  await nextTick();
+  publish();
+  publish();
+  await vi.advanceTimersByTimeAsync(500);
+  expect(hold.newCount.value).toBe(2);
 });

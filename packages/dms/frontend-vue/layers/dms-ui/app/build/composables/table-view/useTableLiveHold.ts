@@ -1,4 +1,12 @@
-import { computed, ref, watch, type ComputedRef } from "vue";
+import {
+  computed,
+  getCurrentScope,
+  onMounted,
+  onScopeDispose,
+  ref,
+  watch,
+  type ComputedRef,
+} from "vue";
 import { usePageLive } from "../../../composables/live/usePageLive";
 import type {
   PageLiveNote,
@@ -39,6 +47,22 @@ export type TableLiveHoldReason =
  */
 type LocalHoldReason = TableLiveHoldReason | "reading";
 
+/**
+ * How a held table counts the new rows it would show: the rows its current
+ * query (tab, search, filters) matches now, less the rows it holds. Without
+ * it the pill counts every event of the table's topic, whatever row each
+ * one is about.
+ */
+export interface TableNewRowsCounter {
+  /**
+   * The list on screen, `null` before it arrives; read again whenever it
+   * changes (a new read, another query), which counts again.
+   */
+  heldList: () => { total: number } | null | undefined;
+  /** How many rows the table's current query matches now, unbounded. */
+  countNow: (signal: AbortSignal) => Promise<number | undefined>;
+}
+
 export interface TableLiveHoldOptions {
   /** The table's `liveHold`: `true` or an object enables it. */
   liveHold: boolean | TableViewLiveHoldOptions | undefined;
@@ -50,12 +74,16 @@ export interface TableLiveHoldOptions {
    */
   gate: () => LiveGate;
   signals?: TableLiveHoldSignals;
+  newRows?: TableNewRowsCounter;
 }
 
 export interface TableLiveHold {
   /** The rows are held: the page is paused, or the table holds by itself. */
   isHolding: ComputedRef<boolean>;
-  /** Events the table received since its rows were held or last shown. */
+  /**
+   * The rows the table would add since its rows were held or last shown
+   * (`newRows`), or else the events it received meanwhile.
+   */
   newCount: ComputedRef<number>;
   /**
    * Why the table holds by itself while its page is live, `null` otherwise:
@@ -147,9 +175,10 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
     },
     { flush: "sync" },
   );
-  const newCount = computed(() =>
-    isHolding.value ? options.gate().missed.value : 0,
-  );
+  const missed = () => (isHolding.value ? options.gate().missed.value : 0);
+  const newCount = options.newRows
+    ? useCountedNewRows(missed, options.newRows)
+    : computed(missed);
 
   return {
     isHolding,
@@ -166,6 +195,73 @@ export function useTableLiveHold(options: TableLiveHoldOptions): TableLiveHold {
     showNew: () => options.gate().catchUp(),
     heldQuery: useHeldQuery(isHolding, options),
   };
+}
+
+/** Lets a burst of events through before counting the new rows once. */
+const NEW_ROWS_COUNT_DELAY_MS = 500;
+
+// The new rows the table would show, counted on its source while it holds
+// some events: a topic publishes on every row, so a "4xx" tab, a search or a
+// filter would otherwise announce rows it never lists. Counted again on each
+// new event or held list, a burst at a time. Rows removed meanwhile lower
+// the count: the table answers what it lists, not what came in. A count that
+// fails falls back to the events. Only in the browser, once mounted: the
+// table sets up its gate and its list after its hold.
+function useCountedNewRows(
+  missed: () => number,
+  counter: TableNewRowsCounter,
+): ComputedRef<number> {
+  const counted = ref(0);
+  const hasFailed = ref(false);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let inFlight: AbortController | undefined;
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = undefined;
+    inFlight?.abort();
+    inFlight = undefined;
+  };
+  const count = async () => {
+    timer = undefined;
+    const held = counter.heldList()?.total;
+    if (held === undefined) return;
+    inFlight?.abort();
+    const controller = new AbortController();
+    inFlight = controller;
+    try {
+      const now = await counter.countNow(controller.signal);
+      if (controller.signal.aborted) return;
+      hasFailed.value = now === undefined;
+      counted.value = Math.max(0, (now ?? held) - held);
+    } catch {
+      if (!controller.signal.aborted) hasFailed.value = true;
+    }
+  };
+
+  const scope = getCurrentScope();
+  const follow = () =>
+    watch(
+      [missed, counter.heldList],
+      ([events]) => {
+        if (events === 0) {
+          cancel();
+          counted.value = 0;
+          hasFailed.value = false;
+          return;
+        }
+        timer ??= setTimeout(count, NEW_ROWS_COUNT_DELAY_MS);
+      },
+      { immediate: true },
+    );
+  onMounted(() => scope?.run(follow));
+  onScopeDispose(cancel);
+
+  return computed(() => {
+    const events = missed();
+    if (events === 0) return 0;
+    return hasFailed.value ? events : counted.value;
+  });
 }
 
 // The bound a source route receives while the rows are held: they are as

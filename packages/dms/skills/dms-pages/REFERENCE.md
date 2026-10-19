@@ -101,7 +101,7 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   (`comparisons: ["previous-period", "previous-year", "none"]`) draws a "vs … ▾" menu; a single one
   stays on without a control. A `custom` preset shows as a calendar icon, named in full.
 - `liveHold: true` keeps a table's rows while paused, and in Direct while they are on screen (new
-  rows wait behind a "N new · Show" pill over the rows); `liveHold: { whileRowOpen, whileScrolled,
+  rows wait behind a "N new · Show" pill over the rows, counting the rows the table's query matches now beyond those held, through its count route); `liveHold: { whileRowOpen, whileScrolled,
   whileSearching, whileSorted }` also holds the table alone; `liveHold.missedLabel` words its "N new".
   Paused, an event counts as its `payload.ids` rows or its `payload.count`, so a module may batch
   publishes with `{ count }`. A hidden tab and `?live=0` pause the page too.

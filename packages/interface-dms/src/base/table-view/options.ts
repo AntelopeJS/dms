@@ -1071,7 +1071,9 @@ export interface TableViewOptions<
   /**
    * On a page declared with `live`, keeps the rows on screen while the page is
    * paused, through the user's own search, sort and pagination too, and shows
-   * a "N new · Show" banner counting the events the table received since.
+   * a "N new · Show" banner counting the rows the table would add since:
+   * how many more rows its tab, search and filters match now than it holds,
+   * asked of its count route (the events received, if that count fails).
    * Show reads the rows once without leaving the pause. The page in Direct,
    * the table also keeps its rows while they are on screen or scrolled past:
    * a new row at the top would push down the rows the user reads, so new ones
