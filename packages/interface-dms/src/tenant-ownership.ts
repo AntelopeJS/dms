@@ -1,4 +1,7 @@
 import type { UserModel } from "./auth/db";
+import { GetModel } from "@antelopejs/interface-database-decorators";
+import { TenantMemberModel } from "./db/models/tenantMembers.model";
+import { ExecuteHooks, Hook } from "./hooks";
 import { runTenantLifecycleOperation } from "./tenant-lifecycle";
 import {
   applyAdmittedTenantOwnership,
@@ -20,9 +23,23 @@ export async function applyTenantOwnership(
   tenantId: string,
   patch: TenantMembershipPatch,
 ): Promise<void> {
-  await runTenantLifecycleOperation(tenantId, () =>
-    applyAdmittedTenantOwnership(userModel, userId, tenantId, patch),
-  );
+  await runTenantLifecycleOperation(tenantId, async () => {
+    // Public callers supplying a delivery identity still need the policy veto.
+    // Internal resolution checks it before persisting its applying phase.
+    if (
+      patch.deliveryId &&
+      !(await GetModel(TenantMemberModel, tenantId).getByUser(userId))
+    ) {
+      await ExecuteHooks(Hook.MEMBER_BEING_CHANGED, {
+        tenantId,
+        userId,
+        isTenantOwner: patch.isTenantOwner,
+        previousIsTenantOwner: null,
+        deliveryId: patch.deliveryId,
+      });
+    }
+    await applyAdmittedTenantOwnership(userModel, userId, tenantId, patch);
+  });
 }
 
 export async function syncPlatformOwnerOnTenantOwnerChange(

@@ -18,6 +18,7 @@ import {
 } from "@antelopejs/interface-dms/invite-extensions/internal/edit";
 import { getRequestTenantId } from "@antelopejs/interface-dms/request-tenant";
 import { TableViewRoutes } from "@antelopejs/interface-dms/base";
+import { runTenantLifecycleOperation } from "@antelopejs/interface-dms/tenant-lifecycle";
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
@@ -73,6 +74,17 @@ export async function editPendingInvite(
   body: unknown,
   writeRow: () => Promise<unknown>,
 ): Promise<void> {
+  return runTenantLifecycleOperation(tenantId, () =>
+    editAdmittedPendingInvite(tenantId, inviteId, body, writeRow),
+  );
+}
+
+async function editAdmittedPendingInvite(
+  tenantId: string,
+  inviteId: string,
+  body: unknown,
+  writeRow: () => Promise<unknown>,
+): Promise<void> {
   const edits = CollectInviteExtensionEdits(body);
   const invite = await loadPendingInvite(tenantId, inviteId);
 
@@ -97,7 +109,7 @@ const editInviteWithExtensions: DataControllerCallback = {
     params: Parameters.EditParameters,
     body: Buffer,
   ) {
-    return editPendingInvite(
+    return editAdmittedPendingInvite(
       getRequestTenantId(ctx),
       String(params.id),
       Validation.ParseBody(body),
@@ -106,6 +118,15 @@ const editInviteWithExtensions: DataControllerCallback = {
   },
 };
 
-export const inviteEditRoute = TableViewRoutes.EditWith(
+const guardedInviteEditRoute = TableViewRoutes.EditWith(
   editInviteWithExtensions,
 );
+
+export const inviteEditRoute: DataControllerCallback = {
+  ...guardedInviteEditRoute,
+  func(...args: Parameters<DataControllerCallback["func"]>) {
+    return runTenantLifecycleOperation(getRequestTenantId(args[0]), () =>
+      guardedInviteEditRoute.func.apply(this, args),
+    );
+  },
+};
