@@ -15,7 +15,7 @@ function recordingProxy(): { proxy: ValueProxy<unknown>; calls: Comparison[] } {
     calls.push({ op, operand });
     return true;
   };
-  const proxy = { gt: record("gt"), lt: record("lt") };
+  const proxy = { gt: record("gt"), ge: record("ge"), lt: record("lt") };
   return { proxy: proxy as unknown as ValueProxy<unknown>, calls };
 }
 
@@ -25,7 +25,7 @@ const row = {} as ValueProxy<Record<string, unknown>>;
 describe("[unit] interfaces/dms-base — date filters", () => {
   const dateType = new DefaultDataTypes.DateType();
 
-  it("compares a stored date with the instant itself, after or before it", () => {
+  it("compares a stored date with an instant itself, and before a picked day", () => {
     const after = recordingProxy();
     dateType.filter(
       context,
@@ -50,6 +50,21 @@ describe("[unit] interfaces/dms-base — date filters", () => {
     );
     expect(before.calls).to.deep.equal([
       { op: "lt", operand: new Date("2026-09-28") },
+    ]);
+  });
+
+  it("reads a picked day as the whole day: greater than starts the next day", () => {
+    const after = recordingProxy();
+    dateType.filter(
+      context,
+      after.proxy,
+      "issuedAt",
+      "2026-10-15",
+      "greater_than",
+      row,
+    );
+    expect(after.calls).to.deep.equal([
+      { op: "ge", operand: new Date("2026-10-16T00:00:00.000Z") },
     ]);
   });
 
