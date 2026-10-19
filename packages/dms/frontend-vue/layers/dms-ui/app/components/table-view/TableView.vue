@@ -137,7 +137,9 @@ import { useTablePreferences } from "../../build/composables/table-view/useTable
 import {
   isLinkedArrival,
   linkedArrivalPreferences,
+  linkFollowingPreferences,
 } from "../../build/composables/table-view/utils/linkedArrival";
+import { useTableLinkedVisit } from "../../build/composables/table-view/useTableLinkedVisit";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
@@ -275,9 +277,9 @@ const isLinked = isLinkedArrival({
   queryParamFilters,
   rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
 });
-const tablePreferences = isLinked
-  ? linkedArrivalPreferences(keptPreferences)
-  : keptPreferences;
+const tablePreferences = linkFollowingPreferences(
+  isLinked ? linkedArrivalPreferences(keptPreferences) : keptPreferences,
+);
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
 
@@ -587,6 +589,7 @@ const {
   isModified: isViewModified,
   canSaveViews,
   openView,
+  openLinkedView,
   resetView,
   saveView,
   saveAsNewView,
@@ -682,12 +685,33 @@ const activeTabFilters = computed<TableFilter[]>(() => {
   return tab?.filters || [];
 });
 
+const isOpenableTab = (tabId: string) =>
+  resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId);
+
 useTableUrlTab({
   route,
   urlScope,
   activeTabId,
-  isOpenable: (tabId) =>
-    resolvedTabs.value.some((tab) => !tab.to && tab.id === tabId),
+  isOpenable: isOpenableTab,
+});
+
+// A link to this page while it is shown opens like a linked arrival: on the
+// table's defaults plus what it names, leaving the kept state as it was.
+useTableLinkedVisit({
+  route,
+  urlScope,
+  queryParamFilters,
+  activeView: () => activeViewId.value,
+  activeTab: () => activeTabId.value,
+  canOpenView: (id) => tableViewItems.value.some((view) => view.id === id),
+  canOpenTab: isOpenableTab,
+  follow: (query) => {
+    void tablePreferences.followLink(() => {
+      openLinkedView(query);
+      const tab = readTableUrlTab(query, urlScope);
+      activeTabId.value = tab && isOpenableTab(tab) ? tab : ALL_TAB_ID;
+    });
+  },
 });
 
 watch(resolvedTabs, (next) => {

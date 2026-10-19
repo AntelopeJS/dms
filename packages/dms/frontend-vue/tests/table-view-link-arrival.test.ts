@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 import type { TablePreferences } from "../layers/dms-ui/app/build/composables/table-view/useTablePreferences";
 import {
   isLinkedArrival,
+  isLinkedVisit,
   linkedArrivalPreferences,
+  linkFollowingPreferences,
+  type TableLinkVisit,
 } from "../layers/dms-ui/app/build/composables/table-view/utils/linkedArrival";
 
 const SOLE_TABLE = { tableId: "content", isSoleTableView: true };
@@ -91,6 +94,76 @@ describe("linkedArrivalPreferences", () => {
   });
 });
 
+describe("isLinkedVisit", () => {
+  const visit = (overrides: Partial<TableLinkVisit>) =>
+    isLinkedVisit({
+      query: {},
+      previousQuery: {},
+      urlScope: SOLE_TABLE,
+      queryParamFilters: QUERY_PARAM_FILTERS,
+      activeView: "unassigned",
+      activeTab: "closed",
+      canOpenView: (id) => id !== "gone",
+      canOpenTab: (id) => id !== "billing",
+      ...overrides,
+    });
+
+  it("follows a URL filter the last visit did not carry", () => {
+    expect(visit({ query: { customer: "c1" } })).toBe(true);
+    expect(
+      visit({ query: { customer: "c2" }, previousQuery: { customer: "c1" } }),
+    ).toBe(true);
+  });
+
+  it("leaves a visit repeating the URL filter it was reached with", () => {
+    expect(
+      visit({
+        query: { customer: "c1", period: "month" },
+        previousQuery: { customer: "c1" },
+      }),
+    ).toBe(false);
+    expect(visit({ query: { period: "month" } })).toBe(false);
+  });
+
+  it("follows a view or a tab other than the one shown", () => {
+    expect(visit({ query: { view: "outstanding" } })).toBe(true);
+    expect(visit({ query: { tab: "open" } })).toBe(true);
+    expect(visit({ query: { view: "unassigned", tab: "closed" } })).toBe(false);
+  });
+
+  it("leaves a view or a tab the table cannot open", () => {
+    expect(visit({ query: { view: "gone" } })).toBe(false);
+    expect(visit({ query: { tab: "billing" } })).toBe(false);
+  });
+
+  it("follows a row the last visit did not name", () => {
+    expect(visit({ query: { record: "r2" } })).toBe(true);
+    expect(
+      visit({ query: { record: "r2" }, previousQuery: { record: "r2" } }),
+    ).toBe(false);
+  });
+});
+
+describe("linkFollowingPreferences", () => {
+  it("keeps no listing state while a link is followed, then keeps it again", async () => {
+    const written: string[] = [];
+    const preferences = linkFollowingPreferences({
+      get: <V>(_field: string, fallback: V) => fallback,
+      set: (field) => {
+        written.push(field);
+      },
+      restore: () => undefined,
+    });
+    await preferences.followLink(() => {
+      preferences.set("activeTab", "all", "all");
+      preferences.set("columnFilters", [], []);
+      preferences.set("viewMode", "cards", "table");
+    });
+    preferences.set("sorting", [], []);
+    expect(written).toEqual(["viewMode", "sorting"]);
+  });
+});
+
 describe("table view wiring", () => {
   const tableView = readFileSync(
     resolve(
@@ -102,9 +175,16 @@ describe("table view wiring", () => {
 
   it("reads its state through the link-arrival preferences", () => {
     expect(tableView).toMatch(
-      /const tablePreferences = isLinked\s*\?\s*linkedArrivalPreferences\(keptPreferences\)\s*:\s*keptPreferences;/,
+      /const tablePreferences = linkFollowingPreferences\(\s*isLinked \? linkedArrivalPreferences\(keptPreferences\) : keptPreferences,\s*\);/,
     );
     expect(tableView).not.toMatch(/keptPreferences\.(set|restore)\(/);
+  });
+
+  it("follows a link to the page already shown without keeping its state", () => {
+    expect(tableView).toMatch(/useTableLinkedVisit\(\{/);
+    expect(tableView).toMatch(
+      /tablePreferences\.followLink\(\(\) => \{\s*openLinkedView\(query\);/,
+    );
   });
 
   it("publishes a tab's navigation badge without the page's URL filters", () => {

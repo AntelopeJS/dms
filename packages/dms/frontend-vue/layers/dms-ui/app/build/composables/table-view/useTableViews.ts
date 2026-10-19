@@ -139,6 +139,25 @@ export function useTableViews(options: TableViewsOptions) {
     if (view) state.globalFilter.value = view.search || undefined;
   };
 
+  /**
+   * Opens a link followed on the table already shown as a linked arrival
+   * reads it: the view it names, else the default view, else the table's
+   * default listing state under the reader's own presentation.
+   */
+  const openLinkedView = (query: Record<string, unknown>) => {
+    const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY).value;
+    const view = findView(named) ?? findView(views?.defaultView);
+    if (view) return openView(view.id);
+    const snapshot = viewSnapshot(undefined, defaults);
+    activeViewId.value = undefined;
+    state.columnFilters.value = snapshot.filters.map((filter) => ({
+      ...filter,
+    }));
+    state.globalFilter.value = undefined;
+    state.sorting.value = snapshot.sorting;
+    state.pagination.value = { ...state.pagination.value, pageIndex: 0 };
+  };
+
   // Read once, on arrival: a view named by the URL wins over the state kept
   // from the last visit; a view the caller may not open falls back to the
   // default one, with a word (on the client, once mounted). The user's views
@@ -290,6 +309,7 @@ export function useTableViews(options: TableViewsOptions) {
     isModified,
     canSaveViews: !!views?.userViews,
     openView,
+    openLinkedView,
     resetView,
     saveView,
     saveAsNewView,
