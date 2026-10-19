@@ -117,11 +117,24 @@ function pushOptionsWithoutGroupBroadcast(
     .catch(() => undefined);
 }
 
+function axisTypeOf(options: Record<string, unknown>): unknown {
+  return (options.xaxis as Record<string, unknown> | undefined)?.type;
+}
+
+/**
+ * Apex merges an update into the options it holds: an option the update no
+ * longer sets stays. A category axis drawing calendar buckets carries its own
+ * label and tooltip formatters, which a datetime axis would keep writing raw
+ * timestamps with (and the reverse leaves Apex's datetime state behind), so a
+ * chart whose X axis changes type is drawn anew rather than updated.
+ */
+const axisType = computed(() => String(axisTypeOf(props.options) ?? ""));
+
 watch(
   () => props.options,
-  (next) => {
+  (next, previous) => {
     const instance = chartRef.value;
-    if (!instance) {
+    if (!instance || axisTypeOf(next) !== axisTypeOf(previous)) {
       pinnedOptions.value = rawApexInput(next);
       return;
     }
@@ -158,6 +171,7 @@ function redrawIfResizedWhileAnimating() {
 <template>
   <div ref="hostRef" class="dms-apex">
     <ApexChart
+      :key="axisType"
       ref="chartRef"
       :type="apexType"
       :height="height"
