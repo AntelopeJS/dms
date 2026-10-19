@@ -134,6 +134,10 @@ import { useTableFooter } from "../../build/composables/table-view/useTableFoote
 import { useAccumulatedPages } from "../../build/composables/table-view/useAccumulatedPages";
 import { usePersistedPagination } from "../../build/composables/table-view/usePersistedPagination";
 import { useTablePreferences } from "../../build/composables/table-view/useTablePreferences";
+import {
+  isLinkedArrival,
+  linkedArrivalPreferences,
+} from "../../build/composables/table-view/utils/linkedArrival";
 import type { Ref } from "vue";
 import type { TableField } from "#dms-core/app/build/composables/user/tablePreferences";
 import { useTableRows } from "../../build/composables/table-view/useTableRows";
@@ -254,7 +258,26 @@ const {
   defaultDisplay,
 } = useTableViewConfig<T>(props);
 
-const tablePreferences = useTablePreferences(componentId, pageId);
+const route = useDmsRoute();
+const urlScope = {
+  tableId: props.tableId,
+  isSoleTableView: props.isSoleTableView,
+};
+const ALL_TAB_ID = "all";
+
+const keptPreferences = useTablePreferences(componentId, pageId);
+// A link naming a view, a tab, a record or a URL filter opens on the table's
+// defaults plus what it names, never over the state kept from the last visit
+// (which stays kept for the next plain visit).
+const isLinked = isLinkedArrival({
+  query: route.query,
+  urlScope,
+  queryParamFilters,
+  rememberedTab: keptPreferences.get<string>("activeTab", ALL_TAB_ID),
+});
+const tablePreferences = isLinked
+  ? linkedArrivalPreferences(keptPreferences)
+  : keptPreferences;
 const { sendComponentEvent } = useComponentEvent(componentId);
 const { processI18n } = useTranslation();
 
@@ -393,8 +416,6 @@ const resolvedChrome = resolveTableChrome(props.layout, {
   isFilterable: allColumns.some((column) => column.enableColumnFilter),
 });
 const GLOBAL_FILTER_DEBOUNCE_MS = 400;
-
-const route = useDmsRoute();
 
 const DEFAULT_FILTER_MODE = "is";
 
@@ -559,11 +580,6 @@ const globalFilterDebounced = refDebounced(
 );
 const showArchived = ref(false);
 
-const urlScope = {
-  tableId: props.tableId,
-  isSoleTableView: props.isSoleTableView,
-};
-
 // Views: named states of the whole table, the module's and the user's own.
 const {
   items: tableViewItems,
@@ -609,8 +625,6 @@ const {
   preferences: tablePreferences,
   urlScope,
 });
-
-const ALL_TAB_ID = "all";
 
 const { t, te } = useI18n();
 
@@ -1005,12 +1019,19 @@ watch(
 
 // A view's counter shares the tab counters' request, under its own id.
 const VIEW_COUNT_ID_PREFIX = "view:";
-const countQuery = (filters: TableFilter[], search?: string) =>
+// So does the navigation badge of a tab while the page's URL filters narrow
+// its counter: the badge stands for the whole page, the counter does not.
+const NAV_BADGE_COUNT_ID_PREFIX = "nav:";
+const countQuery = (
+  filters: TableFilter[],
+  search?: string,
+  hiddenFilters: TableFilter[] = queryParamHiddenFilters.value,
+) =>
   buildTableQuery({
     pagination: { pageIndex: 0, pageSize: 0 },
     sorting: [],
     columnFilters: filters,
-    hiddenFilters: queryParamHiddenFilters.value,
+    hiddenFilters,
     globalFilter: search,
   });
 
@@ -1018,6 +1039,12 @@ const tabCountsQuery = computed(() => [
   ...resolvedTabs.value
     .filter((tab) => !tab.to)
     .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
+  ...(queryParamHiddenFilters.value.length > 0 ? resolvedTabs.value : [])
+    .filter((tab) => !tab.to && tab.navBadge)
+    .map((tab) => ({
+      id: `${NAV_BADGE_COUNT_ID_PREFIX}${tab.id}`,
+      query: countQuery(tab.filters, undefined, []),
+    })),
   ...tableViewItems.value
     .filter((view) => view.count)
     .map((view) => ({
@@ -1259,19 +1286,26 @@ const tabsWithCount = computed(() =>
 
 // A tab declared with `navBadge` keeps the navigation badge the server
 // counted for the page it stands for (the linked page, or this one) up to
-// date with its own counter; an empty badge stands for zero.
+// date with its own counter, counted without the page's URL filters; an
+// empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
+const navBadgeCount = (tab: ResolvedTab, count: number | undefined) =>
+  tab.to || queryParamHiddenFilters.value.length === 0
+    ? count
+    : tabCountsData.value?.[`${NAV_BADGE_COUNT_ID_PREFIX}${tab.id}`];
 watch(
   tabsWithCount,
   (next) => {
     for (const tab of next) {
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
-      if (!source?.navBadge || tab.count === undefined) continue;
+      if (!source?.navBadge) continue;
+      const count = navBadgeCount(source, tab.count);
+      if (count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
       const tone =
         typeof source.navBadge === "object" ? source.navBadge.tone : undefined;
       if (fullId) {
-        setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "", tone);
+        setNavBadge(fullId, count > 0 ? String(count) : "", tone);
       }
     }
   },
