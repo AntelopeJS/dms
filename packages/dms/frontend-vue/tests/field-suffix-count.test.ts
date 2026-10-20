@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /**
- * A number field writes its unit after the box ("30 days"), and a text field
+ * A number field writes its unit inside the box, before the stepper ("30
+ * days"), so it is as wide as the fields around it; a text field
  * or a text area asked for it counts the characters typed, out of its
  * `maxLength` ("4 / 60"). Without either option, the control is unchanged.
  */
@@ -18,16 +19,22 @@ import { characterCountText } from "../layers/dms-ui/app/build/utils/characterCo
 let app: App | undefined;
 let host: HTMLDivElement;
 
+// The `ui` each control was handed, last render last.
+let ui: Array<{ base?: unknown } | undefined> = [];
+
 const Control = (tag: string) =>
   defineComponent({
     inheritAttrs: false,
+    props: { ui: { type: Object, default: undefined } },
     setup:
-      (_, { slots, attrs }) =>
-      () =>
-        h("div", { "data-control": tag }, [
+      (props, { slots, attrs }) =>
+      () => {
+        ui.push(props.ui as { base?: unknown } | undefined);
+        return h("div", { "data-control": tag }, [
           h(tag, { ...attrs }),
           slots.trailing?.(),
-        ]),
+        ]);
+      },
   });
 
 async function mount(component: Component, props: Record<string, unknown>) {
@@ -48,6 +55,7 @@ beforeEach(() => {
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) => (text.startsWith("$") ? `t(${text})` : text),
   }));
+  ui = [];
   host = document.createElement("div");
   document.body.append(host);
 });
@@ -104,14 +112,27 @@ describe("a text field's counter", () => {
 });
 
 describe("a number field's unit", () => {
-  it("writes the unit after the field, translated", async () => {
+  it("writes the unit in the field, translated", async () => {
     await mount(await load("InputNumber"), {
       modelValue: 30,
       suffix: "$billing.days",
     });
-    const suffix = host.querySelector("[data-field-suffix]");
-    expect(suffix?.textContent?.trim()).toBe("t($billing.days)");
+    const suffix = host.querySelector<HTMLElement>("[data-field-suffix]")!;
+    expect(suffix.textContent?.trim()).toBe("t($billing.days)");
+    expect(suffix.className).toContain("absolute");
     expect(host.querySelector("input")!.hasAttribute("suffix")).toBe(false);
+  });
+
+  it("makes room for the unit at the end of the value", async () => {
+    await mount(await load("InputNumber"), { modelValue: 30, suffix: "h" });
+    const wrapper = host.firstElementChild as HTMLElement;
+    expect(wrapper.style.getPropertyValue("--dms-field-suffix-width")).toBe(
+      "1ch",
+    );
+    expect(host.querySelector("input")!.getAttribute("ui")).toBeNull();
+    expect(ui.at(-1)?.base).toContain(
+      "pe-[calc(var(--dms-field-suffix-width)+2.375rem)]",
+    );
   });
 
   it("draws no unit by default", async () => {
