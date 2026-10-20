@@ -214,3 +214,30 @@ describe.each(CONTAINERS)("a %s's backdrop", (_name, load, props) => {
     expect(pointerEvents()).toBe("none");
   });
 });
+
+// The app config's themes, which reach every UModal, USlideover and UDrawer:
+// the confirm dialogs, the "Save as a new view" dialog, a module's own ones.
+describe.each(["modal", "slideover", "drawer"] as const)(
+  "every %s's theme",
+  (component) => {
+    async function theme(): Promise<string> {
+      const { surfacesTheme } = await import(
+        "../layers/dms-layout/app/theme/surfaces"
+      );
+      return JSON.stringify(surfacesTheme[component]);
+    }
+
+    it("gives its backdrop the closing overlay's classes", async () => {
+      const classes = await theme();
+      for (const token of CLOSING_OVERLAY_CLASS.split(" ")) {
+        expect(classes).toContain(token);
+      }
+    });
+
+    it("lets a click through its panel while it animates out", async () => {
+      expect(await theme()).toContain(
+        "data-[state=closed]:pointer-events-none!",
+      );
+    });
+  },
+);
