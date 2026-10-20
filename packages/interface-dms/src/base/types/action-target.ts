@@ -66,6 +66,40 @@ export interface SidePanelTargetOptions {
 }
 
 /**
+ * What a `drawer` action target sets besides its component and texts, shared
+ * by the declared and the serialized target. A drawer opened on a row takes
+ * the row options of a side panel, so a detail panel moves from `sidePanel`
+ * to `drawer` without losing any of them.
+ */
+export interface DrawerTargetOptions extends Omit<
+  SidePanelTargetOptions,
+  "title" | "deepLink"
+> {
+  /**
+   * Width a `left` or `right` drawer opens at from `lg`, before the user
+   * resizes it: a modal's width at that size (`sm` 384px … `5xl` 1024px).
+   * Without one it opens at 600px. Capped to the window; below `lg` a sized
+   * drawer fills a phone's screen and an unsized one is 440px wide. A `top`
+   * or `bottom` drawer ignores it.
+   */
+  size?: ModalSize;
+  /**
+   * The DMS draws the row header, as a side panel's: the title naming the
+   * open row (`rowTitle`), its position (`positionLabel`), previous and next
+   * buttons next to the close button. On when `rowTitle` or `positionLabel`
+   * is set; `false` leaves the header to the drawer's title, `true` draws it
+   * with the defaults. A drawer opened on no row, or on a selection, never
+   * draws it.
+   */
+  rowHeader?: boolean;
+  /**
+   * The open row is kept in the URL (`?record=<id>`), as the action's own
+   * `deepLink` does (which wins when set). Off by default for a drawer.
+   */
+  deepLink?: boolean;
+}
+
+/**
  * A `download` action target: the file is fetched with the user's session and
  * saved, the page left as it is.
  */
@@ -88,18 +122,25 @@ export interface DownloadActionTarget {
 }
 
 export type ActionTarget =
-  | {
+  | ({
+      /**
+       * A drawer: a modal sheet sliding in from an edge of the window. The
+       * container for a detail or record panel: from `lg` the user resizes it
+       * by its inner edge, and it opens again at that size. Opened on a row,
+       * it steps through the rows (J and K) and takes the row options of a
+       * side panel (see {@link DrawerTargetOptions}).
+       */
       type: "drawer";
       component: Component;
       title?: string;
       description?: string;
       /**
        * Edge the drawer slides in from (`bottom` by default). A `left` or
-       * `right` drawer is a side sheet as wide as a side panel, and spans the
-       * window's height.
+       * `right` drawer is a side sheet spanning the window's height, 600px
+       * wide from `lg` unless `size` says otherwise.
        */
       direction?: DrawerDirection;
-    }
+    } & DrawerTargetOptions)
   | {
       type: "modal";
       size?: ModalSize;
@@ -110,7 +151,9 @@ export type ActionTarget =
   | ({
       /**
        * A non-modal panel docked on the right of the page, next to the table,
-       * which stays usable. The DMS draws its header: the title, the row's
+       * which stays usable. Meant for global, page-independent panels (an
+       * assistant dock): a detail or record panel opens in a `drawer`, which
+       * takes the same row options. The DMS draws its header: the title, the row's
        * position among the rows shown ("3 of 20"), previous and next buttons
        * (J and K too) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
@@ -184,18 +227,25 @@ export type ActionTarget =
     };
 
 export type ActionTargetSerialized =
-  | {
+  | ({
+      /**
+       * A drawer: a modal sheet sliding in from an edge of the window. The
+       * container for a detail or record panel: from `lg` the user resizes it
+       * by its inner edge, and it opens again at that size. Opened on a row,
+       * it steps through the rows (J and K) and takes the row options of a
+       * side panel (see {@link DrawerTargetOptions}).
+       */
       type: "drawer";
       component: ComponentInfoSerialized;
       title?: string;
       description?: string;
       /**
        * Edge the drawer slides in from (`bottom` by default). A `left` or
-       * `right` drawer is a side sheet as wide as a side panel, and spans the
-       * window's height.
+       * `right` drawer is a side sheet spanning the window's height, 600px
+       * wide from `lg` unless `size` says otherwise.
        */
       direction?: DrawerDirection;
-    }
+    } & DrawerTargetOptions)
   | {
       type: "modal";
       size?: ModalSize;
@@ -206,7 +256,9 @@ export type ActionTargetSerialized =
   | ({
       /**
        * A non-modal panel docked on the right of the page, next to the table,
-       * which stays usable. The DMS draws its header: the title, the row's
+       * which stays usable. Meant for global, page-independent panels (an
+       * assistant dock): a detail or record panel opens in a `drawer`, which
+       * takes the same row options. The DMS draws its header: the title, the row's
        * position among the rows shown ("3 of 20"), previous and next buttons
        * (J and K too) and a close button (Esc too). Its component receives the
        * same props as a drawer's (`rowData`, `navigation`…), and is mounted
