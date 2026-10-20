@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { isFloatingSaveBarShown } from "#dms-ui/app/build/composables/form/floatingSaveBars";
 import { useGithubStarPrompt } from "../../composables/general/useGithubStarPrompt";
+import { useSidebarState } from "./sidebarState";
 
 const TITLE_ID = "dms-github-star-prompt-title";
 const DESCRIPTION_ID = "dms-github-star-prompt-description";
@@ -9,6 +10,7 @@ const DESCRIPTION_ID = "dms-github-star-prompt-description";
 const { t } = useI18n();
 const { user } = useCurrentUser();
 const toast = useToast();
+const { open: isSidebarOpen } = useSidebarState();
 
 // Developers only: a production build, a client's dashboard included, never
 // counts, stores or shows anything. The same flag gates the dev reload.
@@ -16,15 +18,17 @@ const { isDue, snooze, star, dismiss } = useGithubStarPrompt(
   import.meta.env.DEV,
 );
 
-// The toaster stacks in the same corner, and a floating save bar sticks to
-// the bottom of the panel: the prompt steps aside while either is up rather
-// than cover it.
+// The toaster stacks in the same corner, a floating save bar sticks to the
+// bottom of the panel, and the phone sidebar keeps its account menu trigger
+// at the bottom of the screen: the prompt steps aside while any is up rather
+// than cover it. The sidebar only opens as a drawer, below `lg`.
 const isShown = computed(
   () =>
     isDue.value &&
     !!user.value &&
     toast.toasts.value.length === 0 &&
-    !isFloatingSaveBarShown.value,
+    !isFloatingSaveBarShown.value &&
+    !isSidebarOpen.value,
 );
 </script>
 

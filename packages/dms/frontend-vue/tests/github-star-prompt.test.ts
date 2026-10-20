@@ -26,12 +26,20 @@ vi.mock("../layers/dms-layout/app/build/components/layout/Footer.vue", () => ({
   default: { render: () => null },
 }));
 
+vi.mock(
+  "../layers/dms-layout/app/build/components/layout/sidebarState",
+  () => ({
+    useSidebarState: () => ({ open: isSidebarOpen, collapsed: ref(false) }),
+  }),
+);
+
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 let storage: Map<string, string>;
 let user: Ref<object | null>;
 let toasts: Ref<object[]>;
+let isSidebarOpen: Ref<boolean>;
 let visibility: DocumentVisibilityState;
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -112,6 +120,7 @@ beforeEach(() => {
   storage = new Map();
   user = ref({ email: "user@example.com" });
   toasts = ref([]);
+  isSidebarOpen = ref(false);
   visibility = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(
     () => visibility,
@@ -296,6 +305,22 @@ describe("GithubStarPrompt", () => {
     dirty.value = false;
     await nextTick();
     expect(prompt()).not.toBeNull();
+  });
+
+  // The phone drawer's account menu trigger sits at the bottom of the screen.
+  it("steps aside while the phone sidebar is open", async () => {
+    seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
+    isSidebarOpen.value = true;
+    await mount();
+    expect(prompt()).toBeNull();
+
+    isSidebarOpen.value = false;
+    await nextTick();
+    expect(prompt()).not.toBeNull();
+
+    isSidebarOpen.value = true;
+    await nextTick();
+    expect(prompt()).toBeNull();
   });
 
   it("renders nothing without a signed-in user", async () => {
