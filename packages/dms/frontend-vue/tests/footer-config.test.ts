@@ -170,4 +170,26 @@ describe("footer", () => {
     expect(changeLanguage).toHaveBeenCalledWith("fr");
     expect(setLocale).not.toHaveBeenCalled();
   });
+
+  // The count is the only monospaced text of the public and auth pages: in
+  // Geist Mono it made every one of them download that font (~70 kB).
+  it("draws the star count in the page's font, with tabular figures", async () => {
+    sessionStorage.clear();
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ stargazers_count: 1234 }),
+    } as Response);
+    const { formatNumber } = await import(
+      "../layers/dms-core/app/utils/formatter"
+    );
+    vi.stubGlobal("formatNumber", formatNumber);
+    await mountFooter();
+    await vi.waitFor(() => expect(host.textContent).toContain("1.2K"));
+    const count = [...host.querySelectorAll("span")].find(
+      (span) => span.textContent?.trim() === "1.2K",
+    );
+    expect(count?.classList.contains("tabular-nums")).toBe(true);
+    expect(count?.classList.contains("font-mono")).toBe(false);
+    sessionStorage.clear();
+  });
 });

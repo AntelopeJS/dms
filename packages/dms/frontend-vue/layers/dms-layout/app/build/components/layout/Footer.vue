@@ -161,7 +161,7 @@ async function onLocaleChange(code: unknown) {
       </span>
       <span
         v-if="githubStars !== null || !githubStarsSettled"
-        class="border-default flex items-center border-s px-2 font-mono tabular-nums"
+        class="border-default flex items-center border-s px-2 tabular-nums"
       >
         <USkeleton
           :aria-label="t('dms.a11y.loading')"
