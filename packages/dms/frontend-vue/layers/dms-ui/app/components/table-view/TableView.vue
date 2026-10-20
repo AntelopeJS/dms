@@ -152,6 +152,14 @@ import {
   readTableUrlTab,
   useTableUrlTab,
 } from "../../build/composables/table-view/useTableUrlTab";
+import {
+  buildTableCountQueries,
+  isCountNarrowed,
+  navBadgeCount,
+  VIEW_COUNT_ID_PREFIX,
+  type TableCountState,
+} from "../../build/composables/table-view/utils/tableCounts";
+import { viewFilters } from "../../build/composables/table-view/utils/views";
 import { useTableRecordLink } from "../../build/composables/table-view/useTableRecordLink";
 import TableViews, {
   type TableViewItem,
@@ -538,6 +546,16 @@ const manualFilters = savedFilters
   .filter((f) => !pinnedKeys.has(f.accessorKey))
   .map((f) => ({ ...f, pinned: false }));
 const initialFilters = [...buildPinnedFilters(), ...manualFilters];
+// The pinned filters at their declared value: what a view leaves out of them.
+const pinnedDefaultFilters: TableFilter[] = (defaultFilters || []).map(
+  (filter) => ({
+    accessorKey: filter.accessorKey,
+    mode: filter.mode,
+    value: filter.value,
+    pinned: true,
+    initialValue: filter.value,
+  }),
+);
 
 const columnFilters = ref<TableFilter[]>(initialFilters);
 const columnVisibility = ref<VisibilityState>(
@@ -578,13 +596,7 @@ const {
 } = useTableViews({
   views: props.views,
   defaults: {
-    pinnedFilters: (defaultFilters || []).map((filter) => ({
-      accessorKey: filter.accessorKey,
-      mode: filter.mode,
-      value: filter.value,
-      pinned: true,
-      initialValue: filter.value,
-    })),
+    pinnedFilters: pinnedDefaultFilters,
     sorting: defaultSortState,
     visibility: initialVisibility,
     columnOrder: listableColumns.map(
@@ -1003,28 +1015,46 @@ watch(
   },
 );
 
-// A view's counter shares the tab counters' request, under its own id.
-const VIEW_COUNT_ID_PREFIX = "view:";
-const countQuery = (filters: TableFilter[], search?: string) =>
-  buildTableQuery({
-    pagination: { pageIndex: 0, pageSize: 0 },
-    sorting: [],
-    columnFilters: filters,
-    hiddenFilters: queryParamHiddenFilters.value,
-    globalFilter: search,
-  });
-
-const tabCountsQuery = computed(() => [
-  ...resolvedTabs.value
-    .filter((tab) => !tab.to)
-    .map((tab) => ({ id: tab.id, query: countQuery(tab.filters) })),
-  ...tableViewItems.value
-    .filter((view) => view.count)
-    .map((view) => ({
-      id: `${VIEW_COUNT_ID_PREFIX}${view.id}`,
-      query: countQuery(view.filters ?? [], view.search),
-    })),
+const scopeFilters = computed<TableFilter[]>(() => [
+  ...queryParamHiddenFilters.value,
+  ...routeParamHiddenFilters.value,
 ]);
+const countState = computed<TableCountState>(() => ({
+  scopeFilters: scopeFilters.value,
+  tabFilters: activeTabFilters.value,
+  columnFilters: effectiveColumnFilters.value,
+  search: effectiveGlobalFilter.value,
+}));
+const isCountStateNarrowed = computed(() => isCountNarrowed(countState.value));
+
+// Each counter counts what a click on it would list, so the counters follow
+// the filters, the search, the view and the tab: picks made in a row (quick
+// filters toggled one after the other) are counted once, when they settle.
+const COUNTS_DEBOUNCE_MS = 200;
+const debouncedCountsQuery = refDebounced(
+  computed(() =>
+    buildTableCountQueries({
+      ...countState.value,
+      tabs: resolvedTabs.value
+        .filter((tab) => !tab.to)
+        .map((tab) => ({
+          id: tab.id,
+          filters: tab.filters,
+          hasNavBadge: !!tab.navBadge,
+        })),
+      views: tableViewItems.value
+        .filter((view) => view.count)
+        .map((view) => ({
+          id: view.id,
+          filters: viewFilters(view, pinnedDefaultFilters),
+          search: view.search,
+        })),
+      activeViewId: activeViewId.value,
+    }),
+  ),
+  COUNTS_DEBOUNCE_MS,
+);
+const tabCountsQuery = computed(() => debouncedCountsQuery.value);
 
 // No default: `null` until the counts arrive, so the tabs draw placeholders
 // instead of a count of nothing.
@@ -1259,19 +1289,27 @@ const tabsWithCount = computed(() =>
 
 // A tab declared with `navBadge` keeps the navigation badge the server
 // counted for the page it stands for (the linked page, or this one) up to
-// date with its own counter; an empty badge stands for zero.
+// date: with the tab's own counter while nothing narrows it, else with a
+// count of the tab alone, since the badge stands for the whole page. An
+// empty badge stands for zero.
 const { setNavBadge } = useNavBadges();
+const tabNavBadgeCount = (tab: ResolvedTab, count: number | undefined) =>
+  tab.to
+    ? count
+    : navBadgeCount(tabCountsData.value, tab.id, isCountStateNarrowed.value);
 watch(
   tabsWithCount,
   (next) => {
     for (const tab of next) {
       const source = resolvedTabs.value.find((entry) => entry.id === tab.id);
-      if (!source?.navBadge || tab.count === undefined) continue;
+      if (!source?.navBadge) continue;
+      const count = tabNavBadgeCount(source, tab.count);
+      if (count === undefined) continue;
       const fullId = source.to ? source.toPage : pageId;
       const tone =
         typeof source.navBadge === "object" ? source.navBadge.tone : undefined;
       if (fullId) {
-        setNavBadge(fullId, tab.count > 0 ? String(tab.count) : "", tone);
+        setNavBadge(fullId, count > 0 ? String(count) : "", tone);
       }
     }
   },
