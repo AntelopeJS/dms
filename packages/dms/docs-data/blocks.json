@@ -8377,6 +8377,15 @@
                             "advanced": true
                           }
                         },
+                        "showEmptyOnCreate": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Shown empty on create",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "required": {
                           "type": "boolean",
                           "optional": true,
@@ -8498,6 +8507,15 @@
                     "ui": {
                       "label": "Read-only",
                       "widget": "json",
+                      "advanced": true
+                    }
+                  },
+                  "showEmptyOnCreate": {
+                    "type": "boolean",
+                    "optional": true,
+                    "ui": {
+                      "label": "Shown empty on create",
+                      "widget": "switch",
                       "advanced": true
                     }
                   },
@@ -8714,6 +8732,15 @@
                           "ui": {
                             "label": "Read-only",
                             "widget": "json",
+                            "advanced": true
+                          }
+                        },
+                        "showEmptyOnCreate": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Shown empty on create",
+                            "widget": "switch",
                             "advanced": true
                           }
                         },
@@ -13664,6 +13691,15 @@
             "widget": "switch"
           }
         },
+        "archivedCountLabel": {
+          "type": "string",
+          "optional": true,
+          "description": "Count shown while the archive is listed, with {count} (\"13 archived invoices\").",
+          "ui": {
+            "label": "Archived count",
+            "group": "content"
+          }
+        },
         "defaultFilters": {
           "type": "array",
           "items": {
@@ -14169,7 +14205,8 @@
           "footer.countLabel",
           "footer.hint",
           "rowActions.hasSelection",
-          "archiveMode"
+          "archiveMode",
+          "archivedCountLabel"
         ]
       }
     },
