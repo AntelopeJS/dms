@@ -10,6 +10,7 @@ import {
   expandOneLevel,
   grantPermission,
   highlightSegments,
+  keepGrantedAutoAdded,
   nextCollapseDepth,
   nextExpandDepth,
   openDepth,
@@ -547,6 +548,32 @@ describe("table actions depending on the list", () => {
     expect(revoked.has(`${INVOICES}.select`)).toBe(true);
     // The table only requires its list: the preview shows it hidden.
     expect(revoked.has(INVOICES)).toBe(true);
+  });
+
+  it("clears the hints of what a revoked list took with it", () => {
+    const edit = grantPermission(
+      listIndex,
+      new Set([INVOICES]),
+      `${INVOICES}.edit`,
+      anyone,
+    );
+    const hints = new Map([[`${INVOICES}.edit`, edit.autoAdded]]);
+    const revoked = revokePermission(
+      listIndex,
+      edit.selection,
+      `${INVOICES}.list`,
+    );
+    expect(keepGrantedAutoAdded(hints, revoked).size).toBe(0);
+  });
+
+  it("keeps a granted node's hint, naming only what is still granted", () => {
+    const hints = new Map([
+      ["a", ["b", "c"]],
+      ["d", ["c"]],
+      ["e", ["f"]],
+    ]);
+    const kept = keepGrantedAutoAdded(hints, new Set(["a", "b", "d", "f"]));
+    expect([...kept]).toEqual([["a", ["b"]]]);
   });
 });
 
