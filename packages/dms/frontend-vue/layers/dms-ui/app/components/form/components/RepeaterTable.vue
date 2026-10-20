@@ -18,8 +18,10 @@ import {
  * The rows of a read-only list (an array or key-value field shown, not
  * edited) as a table: each value drawn as a grid cell draws it (amounts
  * right-aligned in the form's tabular figures, a select's label, a
- * relation's name), text wrapping between words, the table scrolling
- * sideways when its columns cannot fit.
+ * relation's name), text wrapping between words. In a narrow container
+ * (a phone's drawer) a list of more than two fields reads each row as a
+ * block of `label value` lines instead, so no amount is ever cut; a wider
+ * table still too narrow for its words scrolls sideways.
  */
 interface RepeaterTableProps {
   columns: RepeaterTableColumn[];
@@ -71,6 +73,13 @@ const relationRows = new Map(
   }),
 );
 
+// Two fields (a key and its value) fit any width as a table; more stack
+// below the container's `@md` width.
+const TABLE_FITS_COLUMNS = 2;
+const stacksWhenNarrow = computed(
+  () => props.columns.length > TABLE_FITS_COLUMNS,
+);
+
 const renderables = computed(() => props.columns.map(renderableColumn));
 
 function isNumeric(column: RepeaterTableColumn): boolean {
@@ -109,44 +118,77 @@ Cell.props = ["index", "rowIndex"];
 </script>
 
 <template>
-  <div class="min-w-0 overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr :class="[EYEBROW_CLASS, 'text-dimmed']">
-          <th
-            v-for="column in props.columns"
-            :key="column.id"
-            scope="col"
-            class="pe-4 pb-1.5 text-start align-bottom font-semibold whitespace-nowrap last:pe-0"
-            :class="isNumeric(column) && 'text-end'"
+  <div class="@container min-w-0">
+    <div
+      class="min-w-0 overflow-x-auto"
+      :class="stacksWhenNarrow && 'hidden @md:block'"
+    >
+      <table class="w-full text-sm">
+        <thead>
+          <tr :class="[EYEBROW_CLASS, 'text-dimmed']">
+            <th
+              v-for="column in props.columns"
+              :key="column.id"
+              scope="col"
+              class="pe-4 pb-1.5 text-start align-bottom font-semibold whitespace-nowrap last:pe-0"
+              :class="isNumeric(column) && 'text-end'"
+            >
+              {{ column.label }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(row, rowIndex) in props.rows"
+            :key="rowIndex"
+            class="border-default border-t"
           >
-            {{ column.label }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(row, rowIndex) in props.rows"
-          :key="rowIndex"
-          class="border-default border-t"
-        >
-          <!-- A text cell wraps between words: `break-word`, unlike
-               `anywhere`, keeps a column at least as wide as its longest
-               word, so a narrow table scrolls instead of splitting one. -->
-          <td
-            v-for="(column, index) in props.columns"
-            :key="column.id"
-            class="text-default py-2 pe-4 align-top last:pe-0"
-            :class="
-              isNumeric(column)
-                ? 'text-end whitespace-nowrap'
-                : 'min-w-24 [overflow-wrap:break-word]'
-            "
-          >
-            <Cell :index :row-index="rowIndex" />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <!-- A text cell wraps between words: `break-word`, unlike
+                 `anywhere`, keeps a column at least as wide as its longest
+                 word, so a narrow table scrolls instead of splitting one. -->
+            <td
+              v-for="(column, index) in props.columns"
+              :key="column.id"
+              class="text-default py-2 pe-4 align-top last:pe-0"
+              :class="
+                isNumeric(column)
+                  ? 'text-end whitespace-nowrap'
+                  : 'min-w-24 [overflow-wrap:break-word]'
+              "
+            >
+              <Cell :index :row-index="rowIndex" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- The narrow reading: a row per block, a field per line, its label
+         beside its value. A value has the line's remaining width, an amount
+         never wraps. -->
+    <ul v-if="stacksWhenNarrow" class="text-sm @md:hidden">
+      <li
+        v-for="(row, rowIndex) in props.rows"
+        :key="rowIndex"
+        class="border-default border-t py-2 first:border-t-0 first:pt-0"
+      >
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
+          <template v-for="(column, index) in props.columns" :key="column.id">
+            <dt class="text-dimmed pt-0.5 font-semibold" :class="EYEBROW_CLASS">
+              {{ column.label }}
+            </dt>
+            <dd
+              class="text-default min-w-0"
+              :class="
+                isNumeric(column)
+                  ? 'text-end whitespace-nowrap'
+                  : '[overflow-wrap:break-word]'
+              "
+            >
+              <Cell :index :row-index="rowIndex" />
+            </dd>
+          </template>
+        </dl>
+      </li>
+    </ul>
   </div>
 </template>

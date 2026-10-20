@@ -3,7 +3,8 @@
  * A read-only list (an array or key-value field shown, not edited) reads as
  * a table of values: each cell drawn as the grid draws it (amounts
  * right-aligned, a relation by its name), scrolling sideways when its
- * columns cannot fit.
+ * columns cannot fit, each row stacked as `label value` lines in a narrow
+ * container.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as vue from "vue";
@@ -54,6 +55,13 @@ describe("a relation column of a read-only list", () => {
   });
 });
 
+const QUANTITY = {
+  id: "quantity",
+  label: "Qty",
+  type: "number",
+  component: { componentName: "dms-input-number" },
+};
+
 let app: App | undefined;
 
 afterEach(() => {
@@ -63,7 +71,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function mountTable(rows: Record<string, unknown>[]) {
+async function mountTable(
+  rows: Record<string, unknown>[],
+  columns: Record<string, unknown>[] = [PRODUCT, UNIT_PRICE],
+) {
   for (const name of ["computed", "ref"]) {
     vi.stubGlobal(name, vue[name as keyof typeof vue]);
   }
@@ -73,6 +84,7 @@ async function mountTable(rows: Record<string, unknown>[]) {
         ? String((value as { name: string }).name)
         : String(value),
     price: (value) => `€${value}`,
+    number: (value) => String(value),
   };
   vi.stubGlobal("useDataTypes", () => ({
     getDataType: (id: string) =>
@@ -91,7 +103,7 @@ async function mountTable(rows: Record<string, unknown>[]) {
   const host = document.createElement("div");
   document.body.append(host);
   app = createApp({
-    render: () => h(RepeaterTable, { columns: [PRODUCT, UNIT_PRICE], rows }),
+    render: () => h(RepeaterTable, { columns, rows }),
   });
   app.mount(host);
   await nextTick();
@@ -125,7 +137,8 @@ describe("a read-only list's rows", () => {
     expect(priceHead!.className).toContain("text-end");
     expect(priceCell!.className).toContain("text-end");
     expect(productCell!.className).not.toContain("text-end");
-    expect(host.firstElementChild!.className).toContain("overflow-x-auto");
+    const scroller = host.querySelector("table")!.parentElement!;
+    expect(scroller.className).toContain("overflow-x-auto");
   });
 
   it("draw amounts in the form's tabular figures, not the grid's mono", async () => {
@@ -140,5 +153,53 @@ describe("a read-only list's rows", () => {
     const [productCell] = host.querySelectorAll("tbody td");
     expect(productCell!.className).toContain("[overflow-wrap:break-word]");
     expect(productCell!.className).not.toContain("anywhere");
+  });
+});
+
+describe("a read-only list in a narrow container", () => {
+  const COLUMNS = [PRODUCT, QUANTITY, UNIT_PRICE];
+
+  it("stacks each row as its fields' labels beside their values", async () => {
+    const { host } = await mountTable(
+      [
+        { product: "p1", quantity: 269, unitPrice: 319 },
+        { product: "p1", quantity: 6, unitPrice: 3990 },
+      ],
+      COLUMNS,
+    );
+    const blocks = [...host.querySelectorAll("li")];
+    expect(blocks).toHaveLength(2);
+    const lines = [...blocks[1]!.querySelectorAll("dt")].map((term) => [
+      term.textContent?.trim(),
+      term.nextElementSibling?.textContent?.trim(),
+    ]);
+    expect(lines).toEqual([
+      ["Product", "Panel"],
+      ["Qty", "6"],
+      ["Unit price", "€3990"],
+    ]);
+  });
+
+  it("swaps the table for the blocks below the container's `@md` width", async () => {
+    const { host } = await mountTable([{ product: "p1" }], COLUMNS);
+    expect(host.firstElementChild!.className).toContain("@container");
+    const scroller = host.querySelector("table")!.parentElement!;
+    expect(scroller.className).toContain("hidden @md:block");
+    expect(host.querySelector("ul")!.className).toContain("@md:hidden");
+  });
+
+  it("never wraps an amount, which keeps its whole value", async () => {
+    const { host } = await mountTable([{ product: "p1" }], COLUMNS);
+    const [productValue, , priceValue] = host.querySelectorAll("dd");
+    expect(priceValue!.className).toContain("whitespace-nowrap");
+    expect(priceValue!.className).toContain("text-end");
+    expect(productValue!.className).toContain("[overflow-wrap:break-word]");
+  });
+
+  it("keeps a two-field list a table at any width", async () => {
+    const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
+    expect(host.querySelector("ul")).toBeNull();
+    const scroller = host.querySelector("table")!.parentElement!;
+    expect(scroller.className).not.toContain("hidden");
   });
 });
