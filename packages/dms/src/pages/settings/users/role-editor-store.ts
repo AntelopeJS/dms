@@ -10,7 +10,11 @@ import {
   UserInviteModel,
 } from "@antelopejs/interface-dms/db";
 import { withRequiredPermissions } from "@antelopejs/interface-dms/internal/permission-requirements";
-import { GetPermissions } from "@antelopejs/interface-dms/permissions";
+import { withBackfilledDependencies } from "@antelopejs/interface-dms/internal/backfilled-grants";
+import {
+  GetPermission,
+  GetPermissions,
+} from "@antelopejs/interface-dms/permissions";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
 import {
   type ConfirmDialogSerialized,
@@ -87,6 +91,22 @@ async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
   return new Map(users.map((user) => [user._id, user.name]));
 }
 
+/**
+ * The roles as members are granted them: one stored before the table view
+ * actions depended on their `list` shows the `list` it is granted, and is
+ * stored with it when saved again. Completed on the instances just read,
+ * which nothing saves.
+ */
+async function withBackfilledRoles(roles: Role[]): Promise<Role[]> {
+  for (const role of roles) {
+    role.permissions = await withBackfilledDependencies(
+      role.permissions ?? [],
+      GetPermission,
+    );
+  }
+  return roles;
+}
+
 /** The roles, the owners and what `actor` may change, for the roles page. */
 export async function loadRolesOverview(
   actor: RoleEditorActor,
@@ -102,7 +122,7 @@ export async function loadRolesOverview(
   const userNames = await loadUserNames(members.map((member) => member.userId));
   return {
     roles: summarizeRoles({
-      roles,
+      roles: await withBackfilledRoles(roles),
       members,
       invites,
       userNames,

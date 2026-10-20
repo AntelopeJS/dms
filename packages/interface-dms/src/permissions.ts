@@ -3,6 +3,7 @@ import {
   RegisteringProxy,
 } from "@antelopejs/interface-core";
 import type { Role, RoleModel } from "./db";
+import { withBackfilledDependencies } from "./internal/backfilled-grants";
 import { permissionIdAncestors } from "./internal/permission-ids";
 import { ApplyPermissionsResolvers } from "./permissions-resolver";
 
@@ -16,6 +17,12 @@ export interface Permission {
    * them with it, and a role is saved with them and the ids they sit under.
    */
   dependencies?: string[];
+  /**
+   * Permission ids this one grants nothing without, enforced like
+   * `dependencies` but never granted along with it: a table block is withheld
+   * from a role lacking its `list`, yet ticking the block grants no `list`.
+   */
+  requires?: string[];
   defaultGranted?: boolean;
 }
 
@@ -90,7 +97,14 @@ export async function GetUserPermissions(
     return new Set();
   }
   const roles = await roleModel.getBy("_id", ...roleIds);
-  return new Set(roles.flatMap((role: Role) => role.permissions));
+  // A role stored before the table view actions depended on their `list`
+  // keeps the rights it had (see `withBackfilledDependencies`).
+  const granted = await Promise.all(
+    roles.map((role: Role) =>
+      withBackfilledDependencies(role.permissions ?? [], GetPermission),
+    ),
+  );
+  return new Set(granted.flat());
 }
 
 /**
@@ -118,9 +132,10 @@ export async function GetEffectiveUserPermissions(
 /**
  * Whether `permissions` grants `permissionId`: on the `*` wildcard, on a
  * `defaultGranted` permission, or on a direct grant whose ancestors (the ids
- * it sits under) and `dependencies` are held too — a table's delete action
- * grants nothing without its table and its page, its edit nothing without
- * the view that loads the row.
+ * it sits under), `dependencies` and `requires` are held too — a table's
+ * delete action grants nothing without its table, its page and its list, its
+ * edit nothing without the view that loads the row, and the table itself
+ * nothing without its list.
  */
 export async function HasPermission(
   permissions: Set<string>,
@@ -169,14 +184,19 @@ async function holdsAncestors(
   return true;
 }
 
-// A dependency counts like an ancestor: granted with its own ancestors and
-// dependencies, `defaultGranted`, or not a registered permission at all.
+// A dependency, or a requirement, counts like an ancestor: granted with its
+// own ancestors and dependencies, `defaultGranted`, or not a registered
+// permission at all.
 async function holdsDependencies(
   permissions: Set<string>,
   permission: Permission | undefined,
   checked: Set<string>,
 ): Promise<boolean> {
-  for (const dependencyId of permission?.dependencies ?? []) {
+  const needed = [
+    ...(permission?.dependencies ?? []),
+    ...(permission?.requires ?? []),
+  ];
+  for (const dependencyId of needed) {
     if (checked.has(dependencyId)) continue;
     if (!(await GetPermission(dependencyId))) continue;
     if (!(await grantsPermission(permissions, dependencyId, checked))) {
