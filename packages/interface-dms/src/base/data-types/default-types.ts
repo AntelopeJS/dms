@@ -37,7 +37,10 @@ import type { FormContainerPageTexts } from "../table-view/options";
 import { HttpMethod } from "../types";
 import { DataType, RegisterDataType } from "./core";
 import * as FieldTypes from "./field-types";
-import { absolutizeJoinedSchemas } from "./internal/compare-types";
+import {
+  absolutizeJoinedSchemas,
+  whenValueSet,
+} from "./internal/compare-types";
 import { DefaultDataCompareTypes } from "./compare-types";
 /** How a `SelectType` shows its options. */
 export const SELECT_DISPLAYS = [
@@ -398,10 +401,13 @@ export namespace DefaultDataTypes {
         return this.sameDayFilter(proxy, value, mode === "is_not");
       }
       if (mode === "is_between") {
-        return this.dayRangeFilter(proxy, value);
+        return whenValueSet(proxy, this.dayRangeFilter(proxy, value));
       }
       if (Object.hasOwn(INSTANT_COMPARISONS, mode)) {
-        return this.orderFilter(proxy as ValueProxy<Date>, value, mode);
+        return whenValueSet(
+          proxy,
+          this.orderFilter(proxy as ValueProxy<Date>, value, mode),
+        );
       }
       return super.filter(context, proxy, key, value, mode, row);
     }
