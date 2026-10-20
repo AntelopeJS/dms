@@ -31,8 +31,16 @@ vi.mock("reka-ui", () => {
       () =>
         h("div", slots.default?.()),
   });
+  // A heading unless told otherwise, as reka's.
+  const title = defineComponent({
+    props: { as: { type: String, default: "h2" } },
+    setup:
+      (props, { slots }) =>
+      () =>
+        h(props.as, slots.default?.()),
+  });
   return {
-    DialogTitle: passThrough,
+    DialogTitle: title,
     DialogDescription: passThrough,
     VisuallyHidden: passThrough,
   };
@@ -327,5 +335,28 @@ describe("a drawer opened through useDrawer", () => {
     expect(componentSizeKey({ name: "JsonCellEditor" })).toBe(
       "component:JsonCellEditor",
     );
+  });
+});
+
+describe("a drawer's heading", () => {
+  const headings = () =>
+    [...host.querySelectorAll("h2")].map((heading) => heading.textContent);
+
+  it("is its title", async () => {
+    await mountDrawer({ direction: "right" });
+    expect(headings()).toEqual(["Order"]);
+  });
+
+  it("is the header component's alone when it draws one", async () => {
+    const RowHeader = defineComponent({
+      props: { heading: String },
+      setup: (props) => () => h("h2", props.heading),
+    });
+    await mountDrawer({
+      direction: "right",
+      headerComponent: RowHeader,
+      headerComponentOptions: { heading: "Order" },
+    });
+    expect(headings()).toEqual(["Order"]);
   });
 });

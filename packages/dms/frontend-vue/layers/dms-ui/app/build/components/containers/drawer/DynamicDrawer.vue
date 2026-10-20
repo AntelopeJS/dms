@@ -295,8 +295,11 @@ const { t } = useI18n();
       >
         <DmsIconWell v-if="icon" :icon="icon" :tone="color" />
         <div v-if="headerComponent" class="min-w-0 flex-1">
+          <!-- The header component draws the visible heading (the row
+            header's names the row): the dialog's own title only labels it,
+            without a second heading of the same text. -->
           <VisuallyHidden>
-            <DialogTitle>{{ title }}</DialogTitle>
+            <DialogTitle as="span">{{ title }}</DialogTitle>
             <DialogDescription>{{ description }}</DialogDescription>
           </VisuallyHidden>
           <Suspense>
