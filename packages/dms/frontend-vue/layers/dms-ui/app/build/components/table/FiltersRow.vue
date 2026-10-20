@@ -13,6 +13,7 @@ import type {
 } from "./Table.vue";
 import TableMenuFilter from "./MenuFilter.vue";
 import { formatFilterValue } from "../../composables/table/utils/formatFilterValue";
+import { filterEditorValue } from "../../composables/table/utils/filterEditorValue";
 import { clearTableFiltersLabelKey } from "../../composables/table/utils/clearTableFilters";
 
 // v2 filters band: a muted strip of segmented chips (field │ mode │ value │ ×);
@@ -251,7 +252,12 @@ const chipTitle = (filter: TableFilter, label?: string): string =>
                     )
                   "
                   v-if="resolveFilterComponent(filter)"
-                  :model-value="filter.value"
+                  :model-value="
+                    filterEditorValue(
+                      resolveFilterComponent(filter)?.componentName,
+                      filter.value,
+                    )
+                  "
                   :class="ui.inputWrapper()"
                   v-bind="
                     JSON.parse(
