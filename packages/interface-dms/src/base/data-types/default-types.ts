@@ -110,6 +110,12 @@ export namespace DefaultDataTypes {
      * `$`, or a literal. The value stays a bare number.
      */
     suffix?: string;
+    /**
+     * How wide the form field sits in its row (`"compact"` / `"full"`); left
+     * out, it is compact when `min` / `max` fit in 6 digits. See
+     * {@link FormComponents.InputWidth}.
+     */
+    width?: FormComponents.InputWidth;
     fallback?: string;
   };
 
@@ -129,6 +135,12 @@ export namespace DefaultDataTypes {
      * with a copy button.
      */
     copyable?: boolean;
+    /**
+     * How wide a single-line form field sits in its row (`"compact"` /
+     * `"full"`); left out, it is compact when `maxLength` is 16 or less. See
+     * {@link FormComponents.InputWidth}.
+     */
+    width?: FormComponents.InputWidth;
     fallback?: string;
   };
 
@@ -248,6 +260,7 @@ export namespace DefaultDataTypes {
         step: this.options.step,
         placeholder: this.options.placeholder,
         suffix: this.options.suffix,
+        width: this.options.width,
       });
     }
 
@@ -311,6 +324,7 @@ export namespace DefaultDataTypes {
         maxLength: this.options.maxLength,
         minLength: this.options.minLength,
         showCount: this.options.showCount,
+        width: this.options.width,
       });
     }
 
@@ -648,6 +662,7 @@ export namespace DefaultDataTypes {
         max: (this.options.max ?? 1) * 100,
         step: this.options.step,
         placeholder: this.options.placeholder,
+        width: this.options.width,
       });
     }
   }

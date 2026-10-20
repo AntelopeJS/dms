@@ -16,6 +16,10 @@ import {
   numberAdjustment,
   parseTypedNumber,
 } from "../../../build/utils/numberAdjustment";
+import {
+  type InputWidth,
+  isCompactNumberInput,
+} from "../../../build/utils/inputWidth";
 import type { InputNumberAdjustment } from "../../../types/input-number";
 
 defineOptions({ inheritAttrs: false });
@@ -28,6 +32,11 @@ interface InputNumberFieldProps extends InputNumberProps {
    * it as the field's error, instead of clamping it into range on blur.
    */
   clamp?: boolean;
+  /**
+   * `"compact"` sizes the field for a short number from `sm` up, `"full"`
+   * fills the row; left out, a `max` of a few digits makes it compact.
+   */
+  width?: InputWidth;
 }
 
 interface InputNumberAdjustEmits {
@@ -54,6 +63,7 @@ const inputProps = computed(() => {
   const {
     suffix: _suffix,
     clamp: _clamp,
+    width: _width,
     onAdjust: _onAdjust,
     ...rest
   } = forwarded.value;
@@ -64,6 +74,7 @@ const inputProps = computed(() => {
     ...numberStepperState(props.modelValue, bounds.value),
   };
 });
+const isCompact = computed(() => isCompactNumberInput(props));
 const { processI18n } = useTranslation();
 const { locale } = useI18n();
 
@@ -146,7 +157,7 @@ async function settle(event: Event): Promise<void> {
       v-bind="{ ...inputProps, ...$attrs }"
       @blur="settle"
       @update:model-value="onSettledValue"
-      :class="props.suffix && 'min-w-0 flex-1'"
+      :class="[props.suffix && 'min-w-0 flex-1', isCompact && 'sm:max-w-44']"
       :orientation="props.orientation ?? DEFAULT_ORIENTATION"
       :increment="{ color: 'neutral' }"
       :decrement="{ color: 'neutral' }"
