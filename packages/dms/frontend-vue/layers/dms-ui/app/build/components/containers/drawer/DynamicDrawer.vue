@@ -38,7 +38,7 @@ interface DynamicDrawerProps {
   direction?: DrawerDirection;
   /**
    * Width a side drawer opens at, from `lg`: a modal's width at that size;
-   * 600px without one. Below `lg`, a sized side drawer fills a phone's screen.
+   * 600px without one. Below `lg`, only `full` fills a phone's screen.
    */
   size?: ModalSize;
   /** The key the size the user gives the drawer is remembered under. */
@@ -66,7 +66,9 @@ const emit = defineEmits<DynamicDrawerEmits>();
 
 // Below `lg` a side drawer is a sheet as wide as a side panel (see
 // `useAppSidePanels`), or a modal's width at its size, never wider than the
-// window less the drawer's gutter; a sized one fills a phone's screen. From
+// window less the drawer's gutter (Nuxt UI's `max-w-[calc(100%-2rem)]`): on
+// a phone every side drawer leaves the same strip of backdrop, sized or not,
+// and only `full` fills the screen. From
 // `lg` it takes the width the user resizes it to (600px at first), kept per
 // drawer. Its own padding is the gutter: the containers drop theirs.
 const SIDE_DRAWER_CONTENT = "w-[440px]";
@@ -81,8 +83,6 @@ const SIDE_DRAWER_SIZE_CONTENT: Record<ModalSize, string> = {
   "5xl": "w-5xl",
   full: "w-full max-w-full rounded-none",
 };
-const SIDE_DRAWER_PHONE_CONTENT =
-  "max-sm:w-full max-sm:max-w-full max-sm:rounded-none";
 const SIZE_VARIABLE = "--dms-drawer-size";
 const SIDE_DRAWER_DESKTOP_CONTENT = "lg:w-(--dms-drawer-size)";
 const EDGE_DRAWER_DESKTOP_CONTENT = "lg:h-(--dms-drawer-size)";
@@ -131,7 +131,7 @@ const {
 
 const sideContentClass = computed(() => {
   const narrow = props.size
-    ? `${SIDE_DRAWER_SIZE_CONTENT[props.size]} ${SIDE_DRAWER_PHONE_CONTENT}`
+    ? SIDE_DRAWER_SIZE_CONTENT[props.size]
     : SIDE_DRAWER_CONTENT;
   return `${narrow} ${SIDE_DRAWER_DESKTOP_CONTENT}`;
 });

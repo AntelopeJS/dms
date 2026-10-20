@@ -194,7 +194,20 @@ describe("a side drawer's width", () => {
     await mountDrawer({ direction: "left", size: "3xl" });
     expect(drawerSize()).toBe("768px");
     expect(rendered.ui?.content).toContain("w-3xl");
-    expect(rendered.ui?.content).toContain("max-sm:w-full");
+  });
+
+  // Nuxt UI caps a side drawer at the window less 2rem: a sized one keeps
+  // that strip of backdrop on a phone, as an unsized one does.
+  it("leaves the same backdrop strip on a phone, sized or not", async () => {
+    await mountDrawer({ direction: "right", size: "3xl" });
+    expect(rendered.ui?.content).not.toMatch(/max-sm:|max-w-full/);
+    await mountDrawer({ direction: "right" });
+    expect(rendered.ui?.content).not.toMatch(/max-sm:|max-w-full/);
+  });
+
+  it("fills a phone's screen at size full only", async () => {
+    await mountDrawer({ direction: "right", size: "full" });
+    expect(rendered.ui?.content).toContain("w-full max-w-full rounded-none");
   });
 
   it("follows a drag of its handle and remembers the width under its key", async () => {

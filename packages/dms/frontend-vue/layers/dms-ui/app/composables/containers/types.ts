@@ -47,8 +47,9 @@ export interface DrawerOptions extends ContainerOptions {
   /**
    * Width a `left` / `right` drawer opens at from `lg`: a modal's width at
    * that size (`sm` 384px ... `5xl` 1024px), `full` the whole window; 600px
-   * without one, capped to the window. Below `lg` a sized side drawer fills a
-   * phone's screen and an unsized one is 440px wide. A `top` / `bottom`
+   * without one, capped to the window. Below `lg` an unsized side drawer is
+   * 440px wide, and on a phone every side drawer, sized or not, leaves a 2rem
+   * strip of backdrop (only `full` fills the screen). A `top` / `bottom`
    * drawer ignores it.
    */
   size?: ModalSize;
