@@ -17,8 +17,9 @@ import {
 /**
  * The rows of a read-only list (an array or key-value field shown, not
  * edited) as a table: each value drawn as a grid cell draws it (amounts
- * right-aligned, a select's label, a relation's name), text wrapping, the
- * table scrolling sideways when its columns cannot fit.
+ * right-aligned in the form's tabular figures, a select's label, a
+ * relation's name), text wrapping between words, the table scrolling
+ * sideways when its columns cannot fit.
  */
 interface RepeaterTableProps {
   columns: RepeaterTableColumn[];
@@ -129,6 +130,9 @@ Cell.props = ["index", "rowIndex"];
           :key="rowIndex"
           class="border-default border-t"
         >
+          <!-- A text cell wraps between words: `break-word`, unlike
+               `anywhere`, keeps a column at least as wide as its longest
+               word, so a narrow table scrolls instead of splitting one. -->
           <td
             v-for="(column, index) in props.columns"
             :key="column.id"
@@ -136,7 +140,7 @@ Cell.props = ["index", "rowIndex"];
             :class="
               isNumeric(column)
                 ? 'text-end whitespace-nowrap'
-                : 'min-w-24 [overflow-wrap:anywhere]'
+                : 'min-w-24 [overflow-wrap:break-word]'
             "
           >
             <Cell :index :row-index="rowIndex" />

@@ -127,4 +127,18 @@ describe("a read-only list's rows", () => {
     expect(productCell!.className).not.toContain("text-end");
     expect(host.firstElementChild!.className).toContain("overflow-x-auto");
   });
+
+  it("draw amounts in the form's tabular figures, not the grid's mono", async () => {
+    const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
+    const amount = host.querySelector("tbody td:last-child span")!;
+    expect(amount.className).toContain("tabular-nums");
+    expect(amount.className).not.toContain("font-mono");
+  });
+
+  it("wrap text between words, never inside one", async () => {
+    const { host } = await mountTable([{ product: "p1", unitPrice: 319 }]);
+    const [productCell] = host.querySelectorAll("tbody td");
+    expect(productCell!.className).toContain("[overflow-wrap:break-word]");
+    expect(productCell!.className).not.toContain("anywhere");
+  });
 });
