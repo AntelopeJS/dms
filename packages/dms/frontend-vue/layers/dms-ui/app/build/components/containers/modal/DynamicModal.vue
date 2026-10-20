@@ -4,7 +4,7 @@ import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
 import type { ModalSize } from "../../../../types/modal";
 import type { ContainerColor } from "../../../../composables/containers/types";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
-import { CONTAINER_SKELETON_FIELDS } from "../constants";
+import { CLOSING_OVERLAY_CLASS, CONTAINER_SKELETON_FIELDS } from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
 
 interface DynamicModalProps {
@@ -78,6 +78,7 @@ const resolvedSize = computed(() => {
 // A divided head: the body below is a form, not a continuation of the title.
 const modalUi = computed(() => ({
   content: SIZE_CONTENT[resolvedSize.value],
+  overlay: CLOSING_OVERLAY_CLASS,
   header: "border-b border-default pb-4 shrink-0",
   // The body's bottom and side padding: a form's sticky footer sits flush
   // with the modal's edges (see Form.vue).
