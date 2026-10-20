@@ -95,6 +95,12 @@ type ConfirmedRun = NonNullable<ConfirmOptions["onConfirm"]>;
 /** Options of a delete: from the archive, it is a permanent one. */
 interface DeleteRowsOptions {
   permanently?: boolean;
+  /**
+   * The rows deleted, when the caller holds them: a dialog naming the row
+   * (`{name}`) reads its fields here first. A kanban card is not among the
+   * rows the table shows.
+   */
+  rows?: Data[];
 }
 
 export const useTableRowActions = <T extends Data>(
@@ -654,38 +660,65 @@ export const useTableRowActions = <T extends Data>(
     };
   };
 
-  const findShownRow = (id: string | undefined): Data | undefined =>
-    config.rowNavigation
-      ?.rows()
-      .find(
-        (row) =>
-          String(getItemId(row, config.rowIdKey ?? DEFAULT_ROW_ID_KEY)) === id,
-      );
+  const rowIdOf = (row: Data): string =>
+    String(getItemId(row, config.rowIdKey ?? DEFAULT_ROW_ID_KEY));
+
+  const findRowIn = (rows: Data[] | undefined, id: string) =>
+    rows?.find((row) => rowIdOf(row) === id);
+
+  // A row the table does not show (a kanban card, a row deleted from a
+  // custom card) is read by id: a `from` dialog asks the server instead.
+  const readRow = async (
+    id: string,
+    declared: ActionConfirm,
+  ): Promise<Data | undefined> => {
+    const getRow = config.rowNavigation?.getRow;
+    if (!getRow || isConfirmFrom(declared)) return undefined;
+    return getRow(id).catch(() => undefined);
+  };
+
+  /** The one row a dialog words: the caller's, the table's, else read. */
+  const findConfirmRow = async (
+    id: string,
+    declared: ActionConfirm,
+    rows?: Data[],
+  ): Promise<Data | undefined> =>
+    findRowIn(rows, id) ??
+    findRowIn(config.rowNavigation?.rows(), id) ??
+    (await readRow(id, declared));
 
   /**
-   * What a fixed dialog words: the rows' count, and for one row shown in the
-   * table its own fields too (`{name}`). The count wins a clash, it is what
-   * every bulk dialog may name.
+   * What a fixed dialog words: the rows' count, and for one row its own
+   * fields too (`{name}`). The count wins a clash, it is what every bulk
+   * dialog may name.
    */
-  const confirmRowFields = (ids: string[]): Data => {
+  const confirmRowFields = async (
+    ids: string[],
+    declared: ActionConfirm,
+    rows?: Data[],
+  ): Promise<Data> => {
     const count = { count: ids.length };
-    const row = ids.length === 1 ? findShownRow(ids[0]) : undefined;
+    const row =
+      ids.length === 1
+        ? await findConfirmRow(ids[0]!, declared, rows)
+        : undefined;
     return row ? { ...row, ...count } : count;
   };
 
   /** Asks the declared confirmation of a bulk action, running it inside. */
-  const askDeclaredBulkConfirm = (
+  const askDeclaredBulkConfirm = async (
     declared: ActionConfirm,
     ids: string[],
     fallback: Partial<ConfirmOptions>,
     run: ConfirmedRun,
+    rows?: Data[],
   ): Promise<boolean> =>
     confirmAction(declared, {
       urlParams: {
         id: ids[0],
         [config.rowIdKey ?? DEFAULT_ROW_ID_KEY]: ids[0],
       },
-      row: confirmRowFields(ids),
+      row: await confirmRowFields(ids, declared, rows),
       fallback,
       run,
     });
@@ -703,11 +736,14 @@ export const useTableRowActions = <T extends Data>(
     actionConfig: boolean | RowActionConfig | undefined,
     action: ConfirmedBulkAction,
     bulkConfig: BulkActionConfig,
+    rows?: Data[],
   ): Promise<boolean> => {
     const fallback = bulkActionConfirm(action, ids.length, t);
     const run = bulkActionRun(ids, actionConfig, bulkConfig);
     const declared = declaredBulkConfirm(actionConfig, ids);
-    if (declared) return askDeclaredBulkConfirm(declared, ids, fallback, run);
+    if (declared) {
+      return askDeclaredBulkConfirm(declared, ids, fallback, run, rows);
+    }
     return confirm({ ...fallback, onConfirm: run });
   };
 
@@ -746,7 +782,13 @@ export const useTableRowActions = <T extends Data>(
   ): Promise<boolean> => {
     if (!normalizeActionConfig(deleteConfig).isEnabled) return false;
     const action = options.permanently ? "deletePermanently" : "delete";
-    return confirmBulkAction(ids, deleteConfig, action, DELETE_CONFIG);
+    return confirmBulkAction(
+      ids,
+      deleteConfig,
+      action,
+      DELETE_CONFIG,
+      options.rows,
+    );
   };
 
   const archiveRows = async (

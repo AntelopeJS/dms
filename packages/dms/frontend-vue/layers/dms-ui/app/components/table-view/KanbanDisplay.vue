@@ -35,7 +35,8 @@ const onCardClick = (item: T) => props.context.actions.open(item);
 
 const onCardDelete = (item: T) => {
   const id = rowId(item);
-  if (id) props.context.actions.delete([id]);
+  // The card is not among the grid's rows: hand it, its dialog names it.
+  if (id) props.context.actions.delete([id], [item]);
 };
 
 const kanbanBoardRef = ref<{ refresh: () => Promise<void> } | null>(null);

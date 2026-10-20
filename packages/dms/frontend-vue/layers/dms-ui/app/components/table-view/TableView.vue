@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="T extends Data">
+import { get } from "@nuxt/ui/runtime/utils/index.js";
 import type {
   ColumnSizingState,
   ExpandedState,
@@ -1392,12 +1393,14 @@ const deselectRows = (ids: string[]) => {
 };
 
 // From the archive, a delete is a permanent one: its confirmation says so.
-const deleteRows = async (ids: string[]) => {
+// A display holding the rows (a kanban card) hands them for its wording.
+const deleteRows = async (ids: string[], rows?: T[]) => {
   const done = await deleteRowsAction(
     ids,
     tableProps.value.rowActions?.delete,
     {
       permanently: !!archiveMode && showArchived.value,
+      rows,
     },
   );
   if (done) deselectRows(ids);
@@ -1424,12 +1427,18 @@ const rowActionConfig = (key: "details" | "duplicate" | "add" | "edit") =>
   tableProps.value.rowActions?.[key];
 const handleRowClick = (item: T) =>
   runConfirmedBuiltIn(rowActionConfig("details"), item, () => openRow(item));
-const handleRowDuplicate = (itemId: string) =>
-  runConfirmedBuiltIn(
+// Its dialog words the row shown (`{name}`), else only its id.
+const handleRowDuplicate = (itemId: string) => {
+  const idKey = props.rowIdKey ?? ROW_ID_DEFAULT_KEY;
+  const shown = shownResults.value?.find(
+    (row) => String(get(row, idKey)) === itemId,
+  );
+  return runConfirmedBuiltIn(
     rowActionConfig("duplicate"),
-    { [props.rowIdKey ?? ROW_ID_DEFAULT_KEY]: itemId },
+    shown ?? { [idKey]: itemId },
     () => duplicateRow(itemId),
   );
+};
 const handleRowAdd = () =>
   runConfirmedBuiltIn(rowActionConfig("add"), undefined, () =>
     newRow(queryParamDefaults.value),
