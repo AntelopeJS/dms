@@ -19,6 +19,7 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  componentSizeKey,
   DRAWER_SIZE_COOKIE,
   readDrawerSizePreferences,
 } from "../layers/dms-ui/app/build/composables/containers/drawerSize";
@@ -217,6 +218,12 @@ describe("a side drawer's width", () => {
     expect(drawerSize()).toBe("592px");
   });
 
+  it("hides the drawer's own grip from lg, where the handle is", async () => {
+    await mountDrawer({ direction: "right" });
+    expect(rendered.ui?.handle).toBe("lg:hidden!");
+    expect(handle().className).toContain("lg:block");
+  });
+
   it("keeps the drawer's own drag off its handle", async () => {
     await mountDrawer({ direction: "right" });
     const onContentPointerDown = vi.fn();
@@ -258,5 +265,67 @@ describe("a bottom drawer's height", () => {
     await nextTick();
     expect(drawerSize()).toBe("");
     expect(storedSizes().heights).toEqual({});
+  });
+});
+
+describe("a drawer opened through useDrawer", () => {
+  const SetupEditor = defineComponent({
+    name: undefined,
+    __name: "KeyEditor",
+    render: () => null,
+  } as never);
+
+  async function openThroughUseDrawer(
+    options: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const create = vi.fn(() => ({
+      open: () => new Promise(() => {}),
+      close: vi.fn(),
+      patch: vi.fn(),
+    }));
+    vi.stubGlobal("useOverlay", () => ({ create }));
+    vi.stubGlobal("markRaw", <T>(value: T) => value);
+    const { useDrawer } = await import(
+      "../layers/dms-ui/app/composables/containers/useDrawer"
+    );
+    useDrawer().open({ title: "Key", component: SetupEditor, ...options });
+    const [, createOptions] = create.mock.calls[0] as unknown as [
+      unknown,
+      { props: Record<string, unknown> },
+    ];
+    return createOptions.props;
+  }
+
+  it("keeps its size under its component's name without a key", async () => {
+    const props = await openThroughUseDrawer({});
+    expect(props.sizeKey).toBe("component:KeyEditor");
+  });
+
+  it("prefers the size key, then the container id", async () => {
+    expect((await openThroughUseDrawer({ sizeKey: "keys" })).sizeKey).toBe(
+      "keys",
+    );
+    expect(
+      (await openThroughUseDrawer({ containerId: "key-editor" })).sizeKey,
+    ).toBe("key-editor");
+  });
+
+  it("reopens at the size given to the same component", async () => {
+    const sizeKey = componentSizeKey(SetupEditor)!;
+    await mountDrawer({ direction: "right", sizeKey });
+    await press("ArrowLeft");
+    await mountDrawer({ direction: "right", sizeKey });
+    expect(drawerSize()).toBe("616px");
+    expect(storedSizes().widths).toEqual({ [sizeKey]: 616 });
+  });
+
+  it("names no key for an anonymous or async-wrapped component", () => {
+    expect(componentSizeKey({ render: () => null })).toBeUndefined();
+    expect(
+      componentSizeKey({ name: "AsyncComponentWrapper" } as never),
+    ).toBeUndefined();
+    expect(componentSizeKey({ name: "JsonCellEditor" })).toBe(
+      "component:JsonCellEditor",
+    );
   });
 });

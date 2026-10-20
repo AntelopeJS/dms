@@ -1,4 +1,4 @@
-import { ref, type Ref } from "vue";
+import { ref, type Component, type Ref } from "vue";
 import type { DrawerDirection } from "../../../composables/containers/types";
 import type { ModalSize } from "../../../types/modal";
 import type { ResizeBounds, ResizeStorage } from "./useResizableSize";
@@ -149,6 +149,33 @@ export function drawerSizeStorage(
       };
     },
   };
+}
+
+const COMPONENT_SIZE_KEY_PREFIX = "component:";
+// The name `defineAsyncComponent` gives every wrapper: it names no drawer.
+const ASYNC_WRAPPER_NAME = "AsyncComponentWrapper";
+
+interface NamedComponent {
+  name?: string;
+  /** The file name a `<script setup>` component is compiled with. */
+  __name?: string;
+}
+
+/**
+ * The key a drawer opened without `sizeKey` or `containerId` keeps its size
+ * under: its component's name, the same at every opening. Undefined for an
+ * anonymous component, which forgets.
+ *
+ * @internal
+ */
+export function componentSizeKey(component: Component): string | undefined {
+  const { name, __name } = component as NamedComponent;
+  const componentName = [name, __name].find(
+    (candidate) => candidate && candidate !== ASYNC_WRAPPER_NAME,
+  );
+  return componentName
+    ? `${COMPONENT_SIZE_KEY_PREFIX}${componentName}`
+    : undefined;
 }
 
 function sideDrawerWidthBounds(

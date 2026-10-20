@@ -1,4 +1,5 @@
 import DynamicDrawer from "../../build/components/containers/drawer/DynamicDrawer.vue";
+import { componentSizeKey } from "../../build/composables/containers/drawerSize";
 import { openDynamicContainer } from "./openDynamicContainer";
 import type { ContainerInstance, DrawerOptions } from "./types";
 
@@ -19,7 +20,13 @@ export function useDrawer() {
       overlay,
       DynamicDrawer,
       DRAWER_ID_PREFIX,
-      { ...options, sizeKey: options.sizeKey ?? options.containerId },
+      {
+        ...options,
+        sizeKey:
+          options.sizeKey ??
+          options.containerId ??
+          componentSizeKey(options.component),
+      },
     );
   }
 

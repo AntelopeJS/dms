@@ -55,11 +55,17 @@ points at an `ActionTarget`. A detail or record panel (an inspector, a request, 
 resizes by its inner edge and which opens again at that size. On a row it takes the side
 panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
 fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
-with previous / next next to close; J / K step in place; `deepLink: true` on the target keeps
+with previous / next next to close; J / K step in place, through every row the table lists
+(the position counts them all, and a step past the page loaded turns the page); `deepLink:
+true` on the target keeps
 `?record=`; `notFound: { title, description }` draws the 404 state — with the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
 page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
 `docs/04.components/08.tables/8.row-drawers.md#detail-drawers`.
+A drawer a module opens itself through `useDrawer()` keeps the size the user gives it under
+its `sizeKey`, by default its `containerId`, else its component's name — pass `sizeKey` only
+when one component opens drawers that must not share a size, or when the component is
+anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`.
 A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
 page-independent panels such as an assistant dock —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.

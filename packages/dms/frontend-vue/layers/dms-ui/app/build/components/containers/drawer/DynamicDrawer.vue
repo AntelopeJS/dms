@@ -171,8 +171,14 @@ function resizeHandleFromKey(event: KeyboardEvent): void {
   resizeFromKey(event, renderedSize(event.currentTarget as HTMLElement));
 }
 
+// From lg the resize handle takes the inner edge: the drawer's own grip,
+// drawn in its middle, would sit next to it. Below lg the grip stays.
+// Important: vaul's unlayered `[data-vaul-handle]` rule outranks a utility.
+const DESKTOP_HIDDEN_GRIP = "lg:hidden!";
+
 const drawerUi = computed(() => ({
   ...(contentClass.value && { content: contentClass.value }),
+  handle: DESKTOP_HIDDEN_GRIP,
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
   // The scroll area's bottom padding: a form's sticky footer sits flush
   // with the drawer's edge (see Form.vue).

@@ -53,8 +53,13 @@ export interface DrawerOptions extends ContainerOptions {
   size?: ModalSize;
   /**
    * The key the size the user drags the drawer to is remembered under, on
-   * this device: the same drawer opens again at that size. Defaults to
-   * `containerId`; a drawer with neither is resizable but forgets.
+   * this device (a cookie): the same drawer opens again at that size. Sizes
+   * are kept per axis, so a side and a bottom drawer may share a key.
+   * Defaults to `containerId`, else to the body component's name (its
+   * `name`, or the file name of a `<script setup>` component): a drawer keeps
+   * its size without one. Set it when one component opens drawers that
+   * should not share a size, or when an anonymous component (a render
+   * function, an async wrapper) or a per-opening `containerId` would forget.
    */
   sizeKey?: string;
 }
