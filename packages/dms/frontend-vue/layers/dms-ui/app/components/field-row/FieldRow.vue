@@ -8,9 +8,10 @@ export type FieldRowLayout = "inline" | "form" | "stack";
 
 /**
  * `row`: the row pads itself and draws a hairline above the next one (rows
- * of a card). `list`: the list around it spaces the rows (a stacked form).
+ * of a card). `dense`: the same, tighter, for a form in a drawer or a modal.
+ * `list`: the list around it spaces the rows (a stacked form).
  */
-export type FieldRowSpacing = "row" | "list";
+export type FieldRowSpacing = "row" | "dense" | "list";
 
 // The renderer's props are optional: DmsFieldRow is both the backend
 // `FieldRow` block (`dms-field-row-block`) and a template component.
@@ -102,6 +103,11 @@ const theme = tv({
     },
     spacing: {
       row: { root: "border-t border-muted first:border-t-0", body: "py-4" },
+      // 12px above and below a 32px control, 6px from a label set above it.
+      dense: {
+        root: "border-t border-muted first:border-t-0",
+        body: "py-3 gap-y-1.5",
+      },
       list: { body: "gap-y-1.5" },
     },
     disabled: {
