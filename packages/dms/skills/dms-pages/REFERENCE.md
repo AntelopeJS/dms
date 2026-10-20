@@ -68,7 +68,11 @@ page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DO
 A drawer a module opens itself through `useDrawer()` keeps the size the user gives it under
 its `sizeKey`, by default its `containerId`, else its component's name — pass `sizeKey` only
 when one component opens drawers that must not share a size, or when the component is
-anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`.
+anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`. On a row of a list the module draws
+itself, `rowHeader: { title, positionLabel, navigation }` draws the DMS's row header (position,
+previous / next, J and K); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
+import the layer's `RowHeader` component —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
 page-independent panels such as an assistant dock —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.

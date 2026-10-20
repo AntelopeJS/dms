@@ -18,6 +18,7 @@ import type {
   DrawerOptions,
 } from "../../../composables/containers/types";
 import DmsRowHeader from "../../components/containers/row/RowHeader.vue";
+import { drawerRowHeaderProps } from "../../components/containers/row/drawerRowHeader";
 import DmsRowNotFound from "../../components/containers/row/RowNotFound.vue";
 import {
   type BulkSelection,
@@ -177,11 +178,6 @@ interface ComponentTargetRun extends TargetRunExtras {
   /** Id of a row the link names but the route answered 404 for (a drawer). */
   missingId?: string;
 }
-
-// The drawer's header title, as `DynamicDrawer` draws its own.
-const DRAWER_ROW_HEADING_CLASS =
-  "text-[17px] leading-[1.3] font-[650] tracking-[-0.02em]";
-const DRAWER_ROW_HEADER_PART = "dms-row-drawer";
 
 /**
  * Whether a drawer draws the DMS's row header (the title naming the row, its
@@ -557,13 +553,10 @@ export function useActionTargets(config: ActionTargetsConfig) {
       (drawerTarget && rowTitleOf(drawerTarget, row)) || run.title;
     const headerFor = (row?: Data) =>
       withRowHeader
-        ? {
-            part: DRAWER_ROW_HEADER_PART,
-            heading: titleFor(row),
-            positionLabel: drawerTarget?.positionLabel,
-            navigation,
-            headingClass: DRAWER_ROW_HEADING_CLASS,
-          }
+        ? drawerRowHeaderProps(
+            { positionLabel: drawerTarget?.positionLabel, navigation },
+            titleFor(row),
+          )
         : undefined;
     const recordRow = rowRecorder(run.deepLink);
     function showRow(row: Data) {
