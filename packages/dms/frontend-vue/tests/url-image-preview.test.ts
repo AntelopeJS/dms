@@ -12,9 +12,13 @@ import { isObject, isString } from "../layers/dms-core/app/utils/type-check";
 const named = (name: string) => ({
   default: defineComponent({
     inheritAttrs: false,
-    props: { src: String, to: String },
+    props: { src: String, to: String, alt: String },
     setup: (props) => () =>
-      h("span", { "data-stub": name, "data-src": props.src ?? props.to }),
+      h("span", {
+        "data-stub": name,
+        "data-src": props.src ?? props.to,
+        "data-alt": props.alt,
+      }),
   }),
 });
 vi.mock("@nuxt/ui/components/Avatar.vue", () => named("avatar"));
@@ -29,6 +33,7 @@ type Formatter = (
   value: unknown,
   locale: string,
   options?: unknown,
+  row?: Record<string, unknown>,
 ) => VNodeChild;
 
 const registered = new Map<string, DataType["formatter"]>();
@@ -36,11 +41,16 @@ const PHOTO = "https://i.pravatar.cc/150?img=47";
 
 let app: App | undefined;
 
-function renderUrl(value: unknown, options: unknown = {}): HTMLElement {
+function renderUrl(
+  value: unknown,
+  options: unknown = {},
+  row?: Record<string, unknown>,
+): HTMLElement {
   const content = (registered.get("url")!.default as Formatter)(
     value,
     "en",
     options,
+    row,
   );
   const container = document.createElement("div");
   app = createApp(defineComponent({ setup: () => () => content }));
@@ -98,7 +108,30 @@ describe("a URL shown read-only", () => {
   it("is a framed image with `preview: image`", () => {
     const image = renderUrl(PHOTO, { preview: "image" }).querySelector("img");
     expect(image?.getAttribute("src")).toBe(PHOTO);
-    expect(image?.getAttribute("alt")).toBe("");
+  });
+
+  it("is named after its row, a team member's photo by the member", () => {
+    const avatar = renderUrl(
+      PHOTO,
+      { preview: "avatar", fieldLabel: "Photo" },
+      { name: "Jane Doe" },
+    ).querySelector("[data-stub=avatar]");
+    expect(avatar?.getAttribute("data-alt")).toBe("Jane Doe");
+    const image = renderUrl(
+      PHOTO,
+      { preview: "image" },
+      { title: { en: "Roof", fr: "Toiture" } },
+    ).querySelector("img");
+    expect(image?.getAttribute("alt")).toBe("Roof");
+  });
+
+  it("is named after its field when its row has no name", () => {
+    const image = renderUrl(
+      PHOTO,
+      { preview: "image", fieldLabel: "Photo" },
+      { email: "jane@example.com" },
+    ).querySelector("img");
+    expect(image?.getAttribute("alt")).toBe("Photo");
   });
 
   it("stays empty with no URL to draw", () => {

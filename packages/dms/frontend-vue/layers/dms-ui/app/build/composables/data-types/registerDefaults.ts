@@ -18,6 +18,7 @@ import {
 } from "./cellHelpers";
 import { formatDuration, registerMetricCellTypes } from "./metricCells";
 import { registerTwoLineCellType } from "./twoLineCell";
+import { formatRecordLabel } from "../table-view/utils/formTexts";
 import { useComposedText } from "../../../../../dms-core/app/composables/translation/useComposedText";
 import StatusPill, {
   type StatusPillVariant,
@@ -144,22 +145,44 @@ function createLinkRenderer(options: LinkRendererOptions) {
 /** A `UrlType`'s options its read-only value reads. */
 interface UrlOptions {
   preview?: "avatar" | "image";
+  /**
+   * The label of the field shown, handed by the form's read-only display:
+   * the image's name when its row has none.
+   */
+  fieldLabel?: string;
 }
 
 const URL_IMAGE_CLASS =
   "border-default h-16 w-auto max-w-full rounded-md border object-cover";
 
+// The fields that name a row, read in order for its image's text.
+const ROW_NAME_FIELDS = ["name", "label", "title"];
+
+/**
+ * What an image stands for to a reader who cannot see it: the name of the
+ * row it belongs to (a team member's photo is that member), or else the
+ * field's label.
+ */
+function imageAlt(row: Row, locale: string, options: UrlOptions): string {
+  for (const field of ROW_NAME_FIELDS) {
+    const name = formatRecordLabel(row?.[field], locale);
+    if (name) return name;
+  }
+  return options.fieldLabel ?? "";
+}
+
 /**
  * A URL drawn as the image it points to, when its type asks for it
  * (`preview`): a remote photo reads as a picture, not as its address.
  */
-function renderUrl(value: unknown, options: unknown) {
-  const preview = (options as UrlOptions | undefined)?.preview;
-  if (!preview || !isString(value) || !value) return undefined;
-  if (preview === "avatar") return h(UAvatar, { src: value, alt: "" });
+function renderUrl(value: unknown, locale: string, options: unknown, row: Row) {
+  const opts = (options ?? {}) as UrlOptions;
+  if (!opts.preview || !isString(value) || !value) return undefined;
+  const alt = imageAlt(row, locale, opts);
+  if (opts.preview === "avatar") return h(UAvatar, { src: value, alt });
   return h("img", {
     src: value,
-    alt: "",
+    alt,
     loading: "lazy",
     class: URL_IMAGE_CLASS,
   });
@@ -909,8 +932,8 @@ const registerLinkTypes = (registerDataType: (dataType: DataType) => void) => {
   registerDataType({
     id: "url",
     formatter: {
-      default: (value: unknown, locale: string, options: unknown) =>
-        renderUrl(value, options) ?? renderLink(value, locale),
+      default: (value: unknown, locale: string, options: unknown, row?: Row) =>
+        renderUrl(value, locale, options, row) ?? renderLink(value, locale),
     },
   });
 };

@@ -87,6 +87,8 @@ const readonly = computed<FormFieldReadonly>(() =>
           :model-value="state[field.id]"
           :type="field.type"
           :loading
+          :label="field.label ? processI18n(field.label) : undefined"
+          :row="state"
           class="min-w-0"
           v-bind="field.component.options || {}"
         />
