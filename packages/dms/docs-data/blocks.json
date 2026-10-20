@@ -3443,6 +3443,7 @@
           "valueFormat",
           "currencyCode",
           "showDelta",
+          "invert",
           "showLegend",
           "showSeriesLegend",
           "primaryLabel",
