@@ -40,9 +40,12 @@ const component = computed(() => {
   const name = props.field.component.componentName;
   return name ? resolveDmsComponent(name) || name : null;
 });
-// The hint under the control, which describes it (`aria-describedby`).
+// The hint under the control, which describes it (`aria-describedby`): a
+// read-only field has no control to fill, and no hint telling how.
 const hint = computed(() =>
-  props.field.hint ? processI18n(props.field.hint) : undefined,
+  props.field.hint && !isDisabled.value
+    ? processI18n(props.field.hint)
+    : undefined,
 );
 // UFormField shows its error slot whenever one is given, in the hint's
 // place: it gets one only while the field holds an error.
