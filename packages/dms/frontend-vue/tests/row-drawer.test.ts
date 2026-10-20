@@ -17,7 +17,10 @@ import {
 } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTargets } from "../layers/dms-ui/app/build/composables/actions/useActionTargets";
-import type { RowNavigation } from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
+import type {
+  RowNavigation,
+  RowNavigationSource,
+} from "../layers/dms-ui/app/build/composables/actions/rowNavigation";
 import RowHeader from "../layers/dms-ui/app/build/components/containers/row/RowHeader.vue";
 import RowNotFound from "../layers/dms-ui/app/build/components/containers/row/RowNotFound.vue";
 import {
@@ -117,6 +120,7 @@ const drawerAction = (
 
 function mountTargets(
   shownRows: Ref<Row[]> = ref(rows),
+  paging: Partial<RowNavigationSource> = {},
 ): ReturnType<typeof useActionTargets> {
   let targets: ReturnType<typeof useActionTargets> | undefined;
   app = createApp(
@@ -127,7 +131,11 @@ function mountTargets(
           pageId: "orders-page",
           componentId: "orders",
           handleApiError: vi.fn(),
-          rowNavigation: { rows: () => shownRows.value, rowIdKey: "_id" },
+          rowNavigation: {
+            rows: () => shownRows.value,
+            rowIdKey: "_id",
+            ...paging,
+          },
           recordScope: { tableId: "orders", isSoleTableView: true },
         });
         return () => h("table");
@@ -227,6 +235,136 @@ describe("a row drawer's header", () => {
     expect(drawer.options.sizeKey).toBe(
       `orders-page-orders-${PANEL_COMPONENT}`,
     );
+  });
+});
+
+describe("a row drawer's steps across the table's pages", () => {
+  const PAGE_SIZE = 2;
+  const allRows: Row[] = Array.from({ length: 5 }, (_, index) => ({
+    _id: `p${index}`,
+    name: `Row ${index}`,
+  }));
+
+  // A table listing 5 rows 2 per page: turning the page loads its rows.
+  function pagedTable() {
+    const pageIndex = ref(0);
+    const shown = ref<Row[]>(allRows.slice(0, PAGE_SIZE));
+    const loadAdjacent = vi.fn(async (step: 1 | -1) => {
+      const next = pageIndex.value + step;
+      if (next < 0 || next * PAGE_SIZE >= allRows.length) return false;
+      await new Promise((resolve) => setTimeout(resolve));
+      pageIndex.value = next;
+      shown.value = allRows.slice(next * PAGE_SIZE, (next + 1) * PAGE_SIZE);
+      return true;
+    });
+    const targets = mountTargets(shown, {
+      total: () => allRows.length,
+      offset: () => pageIndex.value * PAGE_SIZE,
+      loadAdjacent,
+    });
+    return { targets, loadAdjacent };
+  }
+
+  const navigationOf = (drawer: OpenedDrawer) => headerOf(drawer)!.navigation!;
+
+  it("counts every row the table lists, not the page loaded", async () => {
+    const { targets } = pagedTable();
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[1] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    expect(navigationOf(opened[0]!)).toMatchObject({
+      index: 1,
+      total: 5,
+      hasNext: true,
+    });
+  });
+
+  it("loads the next page past the last row loaded, and steps back", async () => {
+    const { targets, loadAdjacent } = pagedTable();
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[1] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    const drawer = opened[0]!;
+    press("j");
+    await vi.waitFor(() => expect(latest(drawer).componentKey).toBe("p2"));
+    expect(loadAdjacent).toHaveBeenCalledWith(1);
+    expect(navigationOf(drawer)).toMatchObject({ index: 2, total: 5 });
+    press("k");
+    await vi.waitFor(() => expect(latest(drawer).componentKey).toBe("p1"));
+    expect(loadAdjacent).toHaveBeenLastCalledWith(-1);
+    expect(navigationOf(drawer)).toMatchObject({ index: 1 });
+  });
+
+  it("stops at the table's last row", async () => {
+    const { targets, loadAdjacent } = pagedTable();
+    await loadAdjacent(1);
+    await loadAdjacent(1);
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[4] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    expect(navigationOf(opened[0]!)).toMatchObject({
+      index: 4,
+      total: 5,
+      hasNext: false,
+      hasPrev: true,
+    });
+  });
+
+  it("grows a feed in place: the next row follows the open one", async () => {
+    const shown = ref<Row[]>(allRows.slice(0, PAGE_SIZE));
+    const targets = mountTargets(shown, {
+      total: () => allRows.length,
+      loadAdjacent: async (step) => {
+        if (step < 0) return false;
+        shown.value = allRows.slice(0, shown.value.length + PAGE_SIZE);
+        return true;
+      },
+    });
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[1] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    navigationOf(opened[0]!).next();
+    await vi.waitFor(() => expect(latest(opened[0]!).componentKey).toBe("p2"));
+    expect(navigationOf(opened[0]!)).toMatchObject({ index: 2, total: 5 });
+  });
+
+  it("keeps to the rows loaded without a loader", async () => {
+    const targets = mountTargets(ref(allRows.slice(0, PAGE_SIZE)), {
+      total: () => allRows.length,
+    });
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[1] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    expect(navigationOf(opened[0]!)).toMatchObject({
+      index: 1,
+      total: 5,
+      hasNext: false,
+    });
+  });
+
+  it("lands on no closed drawer", async () => {
+    const { targets, loadAdjacent } = pagedTable();
+    targets.handleCustomRowAction(
+      drawerAction({ positionLabel: "$p" }),
+      allRows[1] as unknown as Data,
+    );
+    await vi.waitFor(() => expect(opened).toHaveLength(1));
+    const drawer = opened[0]!;
+    press("j");
+    drawer.close();
+    await vi.waitFor(() => expect(loadAdjacent).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(latest(drawer).componentKey).not.toBe("p2");
   });
 });
 

@@ -474,7 +474,9 @@ export function useActionTargets(config: ActionTargetsConfig) {
         row,
         rowKey: rowIdOf(row),
         source: row ? config.rowNavigation : undefined,
-        showRow,
+        // A step that loads a page first lands after it: not on a panel
+        // closed or replaced meanwhile.
+        showRow: whileShown(session, showRow),
       });
       recordId(rowIdOf(row));
     }
@@ -502,12 +504,14 @@ export function useActionTargets(config: ActionTargetsConfig) {
     // Set once the container closes: a row read that resolves later neither
     // writes `?record=` back nor patches the closed container.
     let closed = false;
-    const showRowById = rowShower((row) => {
+    const showRowOpen = (row: Data) => {
       if (!closed) showRow(row);
-    });
+    };
+    const showRowById = rowShower(showRowOpen);
     const optionsFor = (row?: Data) => {
+      // A step that loads a page first lands after it, maybe closed by then.
       navigation =
-        row && source ? rowNavigation(source, row, showRow) : undefined;
+        row && source ? rowNavigation(source, row, showRowOpen) : undefined;
       return {
         ...run.target.component?.options,
         pageId: config.pageId,
