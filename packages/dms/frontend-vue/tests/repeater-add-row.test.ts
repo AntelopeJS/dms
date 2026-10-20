@@ -50,6 +50,9 @@ async function mount(
     vi.stubGlobal(name, vue[name as keyof typeof vue]);
   }
   vi.stubGlobal("useI18n", () => ({ t: (key: string) => key }));
+  // What the read-only table of a disabled list reads its cells through.
+  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  vi.stubGlobal("useAuthFetch", () => ({ $authFetch: vi.fn() }));
   const events: string[] = [];
   const model = ref(rows);
   const host = document.createElement("div");
@@ -97,14 +100,16 @@ describe("an array field's rows", () => {
     expect(events).toEqual(["change"]);
   });
 
-  // A read-only list (a record's details) shows its rows and nothing to
-  // change them with.
-  it("shows only the rows when disabled", async () => {
+  // A read-only list (a record's details) shows its rows as a table of
+  // values, and nothing to change them with.
+  it("shows only the rows' values when disabled", async () => {
     const { host } = await mount([{ name: "a" }, { name: "b" }], {
       sortable: true,
       disabled: true,
     });
-    expect(host.querySelectorAll("input")).toHaveLength(2);
+    expect(host.querySelectorAll("input")).toHaveLength(0);
     expect(host.querySelectorAll("button")).toHaveLength(0);
+    const cells = [...host.querySelectorAll("tbody td")];
+    expect(cells.map((cell) => cell.textContent?.trim())).toEqual(["a", "b"]);
   });
 });
