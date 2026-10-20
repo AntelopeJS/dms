@@ -3,7 +3,8 @@
  * The header the DMS draws over a row opened in a side panel or a drawer:
  * the title (naming the row when the target words it), the row's position
  * among the rows the table shows, and previous / next (J and K too). The
- * container adds its close button in the default slot.
+ * container adds its close button in the default slot. A long title wraps
+ * onto two lines before it is cut (a ticket subject, a site name on a phone).
  */
 import { computed } from "vue";
 import type { RowNavigation } from "../../../composables/actions/rowNavigation";
@@ -52,7 +53,11 @@ const partAttribute = (name: string) => ({
 <template>
   <div class="flex min-w-0 flex-1 items-start gap-2">
     <div class="min-w-0 flex-1 self-center">
-      <h2 class="text-highlighted truncate" :class="headingClass">
+      <h2
+        class="text-highlighted line-clamp-2 [overflow-wrap:anywhere]"
+        :class="headingClass"
+        :title="heading"
+      >
         {{ heading }}
       </h2>
       <p

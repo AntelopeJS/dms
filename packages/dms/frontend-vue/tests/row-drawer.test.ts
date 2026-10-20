@@ -641,6 +641,15 @@ describe("the row header", () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it("wraps a long title onto two lines before cutting it", () => {
+    const heading = "Inverter offline since the storm, site 26 (north roof)";
+    const host = mountHeader({ part: "dms-row-drawer", heading });
+    const title = host.querySelector("h2")!;
+    expect(title.className).toContain("line-clamp-2");
+    expect(title.className).not.toContain("truncate");
+    expect(title.title).toBe(heading);
+  });
+
   it("draws no position nor buttons without navigation", () => {
     const host = mountHeader({ part: "dms-row-drawer", heading: "Request" });
     expect(host.querySelector("[data-dms-row-drawer-position]")).toBeNull();
