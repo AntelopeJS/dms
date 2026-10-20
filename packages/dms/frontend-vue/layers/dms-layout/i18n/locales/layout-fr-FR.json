@@ -17,6 +17,7 @@
     "modules": "Modules",
     "back": "Retour",
     "switch_account": "Changer de compte",
+    "account_settings": "Paramètres du compte",
     "help": "Aide",
     "build_mode": "Mode construction",
     "user_settings": "Paramètres utilisateur",
