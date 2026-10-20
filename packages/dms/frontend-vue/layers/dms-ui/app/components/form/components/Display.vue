@@ -6,6 +6,10 @@ interface DisplayProps {
   modelValue?: unknown;
   type?: string;
   loading?: boolean;
+  /** The field's label, which names the value where it is not text (an image). */
+  label?: string;
+  /** The record the value belongs to, read as a grid cell reads its row. */
+  row?: Record<string, unknown>;
 }
 
 const props = defineProps<DisplayProps>();
@@ -34,7 +38,10 @@ const formattedValue = computed(() => {
   if (isEmptyValue(props.modelValue)) return EMPTY_FALLBACK;
   const formatter = dataType.value?.formatter?.default;
   if (!formatter) return String(props.modelValue);
-  return formatter(props.modelValue, locale.value, options);
+  const formatterOptions = props.label
+    ? { ...options, fieldLabel: props.label }
+    : options;
+  return formatter(props.modelValue, locale.value, formatterOptions, props.row);
 });
 
 const isVNodeValue = computed(() => isVNode(formattedValue.value));
