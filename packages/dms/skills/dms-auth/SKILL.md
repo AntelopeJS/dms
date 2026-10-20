@@ -78,7 +78,7 @@ RegisterPermission("cookbook.edit", {
   title: "$dms_cookbook.perm.edit",   // i18n key — add to every locale file
   icon: "i-ph-pencil",
   defaultGranted: false,
-  // dependencies: ["cookbook.view"],  // declarative metadata only — not enforced or auto-granted
+  // dependencies: ["cookbook.view"],  // enforced by HasPermission; granted with it by the roles editor and on save
 });
 ```
 
