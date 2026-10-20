@@ -48,13 +48,20 @@ component's client-side ones (default `0`, served first on a tie: `order: -1` pu
 "Export" before a served "Add key") — `packages/interface-dms/docs/3.base/6.layout.md#ordering-the-header`.
 
 A button or row action (`customButtons`, `rowActions.custom`, a page's `headerActions`)
-points at an `ActionTarget`. A `drawer` target opens from the bottom; give it
-`direction: "right"` for a side sheet (an inspector, a detail panel) instead of hosting your
-own drawer in a `CustomComponent`.
-To read rows one after the other next to the table (a request log), use a `sidePanel`
-target instead: a non-modal panel docked on the right whose header the DMS draws (title,
-`rowTitle` naming the row from its fields, `positionLabel` "x of y", previous / next, J / K, close), `?record=` kept by default (`deepLink: false` opts out), a "not found" state on a 404 (`notFound: { title, description }`) and the table's
-`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+points at an `ActionTarget`. A detail or record panel (an inspector, a request, a run) is a
+`drawer` target — never a `sidePanel`, and never your own drawer hosted in a
+`CustomComponent`. It opens from the bottom; `direction: "right"` makes it a side sheet,
+600px wide from `lg` (`size: "3xl"` opens it at a modal's width instead), which the user
+resizes by its inner edge and which opens again at that size. On a row it takes the side
+panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
+fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
+with previous / next next to close; J / K step in place; `deepLink: true` on the target keeps
+`?record=`; `notFound: { title, description }` draws the 404 state — with the table's
+`rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
+page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
+`docs/04.components/08.tables/8.row-drawers.md#detail-drawers`.
+A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,
+page-independent panels such as an assistant dock —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
 target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
