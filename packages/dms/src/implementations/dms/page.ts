@@ -1348,7 +1348,10 @@ export function resolvePreviewPermissions(
     PERMISSION_PREVIEW_MEMBER_ID,
     tenantId,
     rolePermissions,
-    permissionsResolverContextFor(PERMISSION_PREVIEW_MEMBER_ID, rolePermissions),
+    permissionsResolverContextFor(
+      PERMISSION_PREVIEW_MEMBER_ID,
+      rolePermissions,
+    ),
   );
 }
 

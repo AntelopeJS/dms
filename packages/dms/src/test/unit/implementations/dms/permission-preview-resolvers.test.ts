@@ -319,20 +319,14 @@ describe("[unit] implementations/dms/page — role preview through permission re
         describe(`previewed by ${viewer.name}`, () => {
           it("hides what the role lacks in a workspace without a plan", async () => {
             const outcome = await preview(viewer, FREE_TENANT, [HOME]);
-            expect(outcome.hiddenEntries).to.include.members([
-              INVOICES,
-              ROLES,
-            ]);
+            expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
             expect(outcome.pageHidden).to.equal(true);
           });
 
           it("keeps the role's share of a plan granting more", async () => {
             setPlan(...EVERY_GRANT);
             const outcome = await preview(viewer, PLAN_TENANT, [HOME]);
-            expect(outcome.hiddenEntries).to.include.members([
-              INVOICES,
-              ROLES,
-            ]);
+            expect(outcome.hiddenEntries).to.include.members([INVOICES, ROLES]);
             expect(outcome.hiddenEntries).to.not.include(HOME);
             expect(outcome.pageHidden).to.equal(true);
           });
