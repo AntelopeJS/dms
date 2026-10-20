@@ -141,6 +141,30 @@ function createLinkRenderer(options: LinkRendererOptions) {
   };
 }
 
+/** A `UrlType`'s options its read-only value reads. */
+interface UrlOptions {
+  preview?: "avatar" | "image";
+}
+
+const URL_IMAGE_CLASS =
+  "border-default h-16 w-auto max-w-full rounded-md border object-cover";
+
+/**
+ * A URL drawn as the image it points to, when its type asks for it
+ * (`preview`): a remote photo reads as a picture, not as its address.
+ */
+function renderUrl(value: unknown, options: unknown) {
+  const preview = (options as UrlOptions | undefined)?.preview;
+  if (!preview || !isString(value) || !value) return undefined;
+  if (preview === "avatar") return h(UAvatar, { src: value, alt: "" });
+  return h("img", {
+    src: value,
+    alt: "",
+    loading: "lazy",
+    class: URL_IMAGE_CLASS,
+  });
+}
+
 const convertToBoolean = (value: unknown): boolean =>
   parse(String(value)) === true;
 
@@ -881,9 +905,13 @@ const registerLinkTypes = (registerDataType: (dataType: DataType) => void) => {
     id: "email",
     formatter: { default: createLinkRenderer({ hrefPrefix: "mailto:" }) },
   });
+  const renderLink = createLinkRenderer({ target: "_blank" });
   registerDataType({
     id: "url",
-    formatter: { default: createLinkRenderer({ target: "_blank" }) },
+    formatter: {
+      default: (value: unknown, locale: string, options: unknown) =>
+        renderUrl(value, options) ?? renderLink(value, locale),
+    },
   });
 };
 

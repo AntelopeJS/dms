@@ -361,6 +361,11 @@ export namespace FormComponents {
     minLength?: number;
     /** Shows the characters typed, out of `maxLength` when set ("4 / 60"). */
     showCount?: boolean;
+    /**
+     * How the value reads where it is shown, not edited: a URL as the image
+     * it points to (`UrlType`'s `preview`). The input itself ignores it.
+     */
+    preview?: "avatar" | "image";
   }
 
   export interface RadioGroupOptions {
