@@ -13,7 +13,15 @@ import {
 } from "vue";
 import SidebarUserMenu from "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue";
 import type { User } from "../layers/dms-core/app/types/user";
-import { SETTINGS_ROUTE } from "../layers/dms-layout/app/utils/account-menu";
+import {
+  ACCOUNT_MENU_ENTRIES,
+  SETTINGS_ROUTE,
+} from "../layers/dms-layout/app/utils/account-menu";
+
+interface MenuItemStub {
+  to?: string;
+  onSelect?: () => void;
+}
 
 const FIRST_KEY = "avatars/first";
 const SECOND_KEY = "avatars/second";
@@ -25,6 +33,8 @@ const READ_URLS: Record<string, string> = {
 const user = ref<Partial<User> | null>(null);
 const route = reactive({ path: "/", query: {} });
 const resolved = ref<Record<string, string>>({});
+const states = new Map<string, ReturnType<typeof ref>>();
+let menuItems: MenuItemStub[][] = [];
 let app: App;
 let host: HTMLDivElement;
 
@@ -43,7 +53,12 @@ function installRuntime(): void {
   vi.stubGlobal("useColorModePreference", () => ref("system"));
   vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
   vi.stubGlobal("useUserLanguage", () => ({ changeLanguage: vi.fn() }));
-  vi.stubGlobal("ACCOUNT_MENU_ENTRIES", []);
+  vi.stubGlobal("ACCOUNT_MENU_ENTRIES", ACCOUNT_MENU_ENTRIES);
+  vi.stubGlobal("useDmsCookie", () => ref(false));
+  vi.stubGlobal("useDmsState", (key: string, init: () => unknown) => {
+    if (!states.has(key)) states.set(key, ref(init()));
+    return states.get(key);
+  });
   vi.stubGlobal("useFileReadUrls", () => ({
     getUrl: (key: string) => resolved.value[key],
     resolve: async (key: string) => {
@@ -57,10 +72,13 @@ function mount(): void {
   app.component(
     "UDropdownMenu",
     defineComponent({
+      props: { items: Array },
       setup:
-        (_, { slots }) =>
-        () =>
-          h("div", [slots.default?.(), slots["content-top"]?.()]),
+        (props, { slots }) =>
+        () => {
+          menuItems = props.items as MenuItemStub[][];
+          return h("div", [slots.default?.(), slots["content-top"]?.()]);
+        },
     }),
   );
   app.component(
@@ -84,6 +102,8 @@ beforeEach(() => {
   installRuntime();
   resolved.value = {};
   route.path = "/";
+  states.clear();
+  menuItems = [];
   host = document.createElement("div");
 });
 afterEach(() => {
@@ -139,3 +159,20 @@ it.each([
   expect(trigger.hasAttribute("data-active")).toBe(isActive);
   expect(trigger.classList.contains("bg-elevated")).toBe(isActive);
 });
+
+// The menu content renders in a portal, outside the sidebar whose link clicks
+// close the phone drawer.
+it.each(ACCOUNT_MENU_ENTRIES.map((entry) => [entry.to]))(
+  "closes the phone drawer when %s is chosen",
+  async (to) => {
+    user.value = { name: "Ada", email: "ada@example.test", avatar: null };
+    mount();
+    await nextTick();
+    const drawerOpen = states.get("dms-sidebar-open")!;
+    drawerOpen.value = true;
+
+    menuItems.flat().find((item) => item.to === to)!.onSelect!();
+
+    expect(drawerOpen.value).toBe(false);
+  },
+);

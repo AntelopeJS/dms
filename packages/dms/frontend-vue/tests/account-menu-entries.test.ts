@@ -6,6 +6,7 @@ import {
   PROFILE_ROUTE,
   SETTINGS_ROUTE,
   SWITCH_ACCOUNT_ROUTE,
+  isAccountMenuRoute,
 } from "../layers/dms-layout/app/utils/account-menu";
 
 function lookup(messages: unknown, key: string): unknown {
@@ -38,5 +39,15 @@ describe("account menu entries", () => {
     ACCOUNT_MENU_ENTRIES.forEach((item) =>
       expect(typeof lookup(messages, item.labelKey)).toBe("string"),
     );
+  });
+
+  it.each([
+    [PROFILE_ROUTE, true],
+    [SETTINGS_ROUTE, true],
+    [SWITCH_ACCOUNT_ROUTE, true],
+    ["/settings/workspace/roles", false],
+    ["/settings?tab=general", false],
+  ])("recognises %s as an account destination: %s", (to, expected) => {
+    expect(isAccountMenuRoute(to)).toBe(expected);
   });
 });

@@ -22,7 +22,8 @@ function collectNavigationItems(
 
     const label = resolveI18nKey(translate, child.displayName);
     const to = buildMenuItemTarget(child);
-    if (to && child.fullSlug) {
+    // The account entries (Settings, Profile) are the session group's.
+    if (to && child.fullSlug && !isAccountMenuRoute(to)) {
       items.push({
         label,
         suffix:

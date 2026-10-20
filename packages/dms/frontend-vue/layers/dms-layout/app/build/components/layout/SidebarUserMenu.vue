@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import UserIdentity from "./UserIdentity.vue";
+import { useSidebarState } from "./sidebarState";
 import type { DropdownMenuItem } from "@nuxt/ui";
 
 interface Props {
@@ -33,6 +34,7 @@ const { logout } = useLogout();
 const colorModePreference = useColorModePreference();
 const { uniqueLocales } = useUniqueLocales();
 const { changeLanguage } = useUserLanguage();
+const { open: sidebarOpen } = useSidebarState();
 
 // The picture the profile saved, read from the session user: a profile save
 // refreshes that user, so a new picture shows here at once.
@@ -87,6 +89,11 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     label: t(entry.labelKey),
     icon: entry.icon,
     to: entry.to,
+    // The menu renders in a portal, outside the sidebar whose link clicks
+    // close the phone drawer: its own entries close it themselves.
+    onSelect: () => {
+      sidebarOpen.value = false;
+    },
   })),
   preferenceItems.value,
   [

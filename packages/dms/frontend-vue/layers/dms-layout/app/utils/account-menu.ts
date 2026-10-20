@@ -28,3 +28,12 @@ export const ACCOUNT_MENU_ENTRIES: AccountMenuEntry[] = [
     to: SWITCH_ACCOUNT_ROUTE,
   },
 ];
+
+/**
+ * Whether `to` is the destination of an account menu entry. The command
+ * palette lists those entries in its session group, so its navigation group
+ * skips their pages instead of offering the same destination twice.
+ */
+export function isAccountMenuRoute(to: string): boolean {
+  return ACCOUNT_MENU_ENTRIES.some((entry) => entry.to === to);
+}
