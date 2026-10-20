@@ -22,7 +22,12 @@ import type {
   RowActionConfigSerialized,
   RowActionRule,
 } from "../../types/row-action";
-import { LIST_ACTION, SELECT_ACTION, VIEW_ACTION } from "./auth";
+import {
+  LIST_ACTION,
+  SELECT_ACTION,
+  VIEW_ACTION,
+  VIEW_ARCHIVED_ACTION,
+} from "./auth";
 import { TableViewMeta } from "../meta";
 import { assertKnownColumns, offeredDisplays } from "./validation";
 import {
@@ -169,6 +174,55 @@ export interface TableViewCapabilities {
   hasDeleteEndpoint: boolean;
   archiveMode: boolean;
   isExportEnabled: boolean;
+  /**
+   * Whether the add, edit and view forms open as pages of their own, reached
+   * by URL, rather than over the table (a drawer, a modal, a side panel).
+   */
+  formsArePages: boolean;
+  /**
+   * Whether the actions reached from the table's rows need its `list`, and
+   * the table itself is withheld without it (`permissions.listRequired`).
+   */
+  isListRequired: boolean;
+}
+
+/**
+ * The dependencies of each action of a table view, by action id. An action
+ * depends on the permission guarding what it reads. The edit form loads its
+ * row through the view route: without the view it opens empty, and a value
+ * saved from it replaces one it never showed. An export writes its own
+ * `@Exported` fields, which may go past the columns the list shows. A delete
+ * reads nothing of the row.
+ *
+ * An action only reached from the table's rows also depends on the `list`
+ * that shows them: delete, the archive trio, export, and a form opening over
+ * the table. A form opening as its own page is reached by URL — a link in a
+ * notification leads a member to the one record they may edit — and does not.
+ * `select` serves the relation pickers of other pages and depends on nothing;
+ * `restore` is pressed from the archived rows, so it depends on
+ * `viewArchived`, and through it on `list`. A table view opting out with
+ * `permissions.listRequired: false` keeps only the read dependencies.
+ */
+function tableViewActionDependencies(
+  capabilities: TableViewCapabilities,
+): Record<string, string[] | undefined> {
+  const listed = capabilities.isListRequired ? [LIST_ACTION] : [];
+  const archiveListed = capabilities.isListRequired
+    ? [VIEW_ARCHIVED_ACTION]
+    : [];
+  const formListed = capabilities.formsArePages ? [] : listed;
+  const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : [];
+  const orUndefined = (ids: string[]) => (ids.length > 0 ? ids : undefined);
+  return {
+    add: orUndefined(formListed),
+    edit: orUndefined([...readsRow, ...formListed]),
+    [VIEW_ACTION]: orUndefined(formListed),
+    delete: orUndefined(listed),
+    archive: orUndefined(listed),
+    restore: orUndefined(archiveListed),
+    [VIEW_ARCHIVED_ACTION]: orUndefined(listed),
+    export: orUndefined([...readsRow, ...listed]),
+  };
 }
 
 /**
@@ -184,6 +238,12 @@ export function registerTableViewActions<T>(
   builder: ComponentBuilder<T>,
   capabilities: TableViewCapabilities,
 ): void {
+  const dependencies = tableViewActionDependencies(capabilities);
+  // A table without its list shows an error panel where its rows would be:
+  // it is withheld instead, like a table the caller was never granted.
+  if (capabilities.isListRequired) {
+    builder.meta({ requiredActions: [LIST_ACTION] });
+  }
   builder.action(LIST_ACTION, {
     title: "$dms.table.action_list",
     icon: "i-ph-list",
@@ -198,52 +258,52 @@ export function registerTableViewActions<T>(
     builder.action("add", {
       title: "$dms.table.action_add",
       icon: "i-ph-plus",
+      dependencies: dependencies.add,
     });
   }
-  // An action depends on the permission guarding what it reads. The edit
-  // form loads its row through the view route: without the view it opens
-  // empty, and a value saved from it replaces one it never showed. An export
-  // writes its own `@Exported` fields, which may go past the columns the list
-  // shows. A delete reads nothing and depends on nothing.
-  const readsRow = capabilities.hasViewForm ? [VIEW_ACTION] : undefined;
   if (capabilities.hasEditForm) {
     builder.action("edit", {
       title: "$dms.table.action_edit",
       icon: "i-ph-pencil",
-      dependencies: readsRow,
+      dependencies: dependencies.edit,
     });
   }
   if (capabilities.hasViewForm) {
     builder.action(VIEW_ACTION, {
       title: "$dms.table.action_view",
       icon: "i-ph-eye",
+      dependencies: dependencies[VIEW_ACTION],
     });
   }
   if (capabilities.hasDeleteEndpoint) {
     builder.action("delete", {
       title: "$dms.table.action_delete",
       icon: "i-ph-trash",
+      dependencies: dependencies.delete,
     });
   }
   if (capabilities.archiveMode) {
     builder.action("archive", {
       title: "$dms.table.action_archive",
       icon: "i-ph-archive",
+      dependencies: dependencies.archive,
     });
     builder.action("restore", {
       title: "$dms.table.action_restore",
       icon: "i-ph-arrow-counter-clockwise",
+      dependencies: dependencies.restore,
     });
-    builder.action("viewArchived", {
+    builder.action(VIEW_ARCHIVED_ACTION, {
       title: "$dms.table.action_view_archived",
       icon: "i-ph-eye-closed",
+      dependencies: dependencies[VIEW_ARCHIVED_ACTION],
     });
   }
   if (capabilities.isExportEnabled) {
     builder.action("export", {
       title: "$dms.table.action_export",
       icon: "i-ph-download-simple",
-      dependencies: readsRow,
+      dependencies: dependencies.export,
     });
   }
 }

@@ -312,6 +312,8 @@ export function tableViewFromSource(
   const builder = new ComponentBuilder<TableViewOptionsSerialized>(
     TABLE_VIEW_COMPONENT_NAME,
   );
+  // Withheld without its list, like a TableView: it has nothing else to show.
+  builder.meta({ requiredActions: [LIST_ACTION] });
   builder.action(LIST_ACTION, {
     title: "$dms.table.action_list",
     icon: "i-ph-list",

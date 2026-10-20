@@ -486,6 +486,70 @@ describe("role permissions", () => {
   });
 });
 
+const INVOICES = "pages.billing.invoices.table";
+const LIST_TREE: RolePermissionNode[] = [
+  {
+    id: "pages.billing.invoices",
+    label: "Invoices",
+    children: [
+      {
+        id: INVOICES,
+        label: "Table",
+        children: [
+          { id: `${INVOICES}.list`, label: "List" },
+          { id: `${INVOICES}.select`, label: "Select" },
+          {
+            id: `${INVOICES}.view`,
+            label: "View",
+            dependencies: [`${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.edit`,
+            label: "Edit",
+            dependencies: [`${INVOICES}.view`, `${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.delete`,
+            label: "Delete",
+            dependencies: [`${INVOICES}.list`],
+          },
+          {
+            id: `${INVOICES}.export`,
+            label: "Export",
+            dependencies: [`${INVOICES}.view`, `${INVOICES}.list`],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+describe("table actions depending on the list", () => {
+  const listIndex = buildPermissionIndex(LIST_TREE, identity);
+
+  it("ticks the list with an edit", () => {
+    const grant = grantPermission(
+      listIndex,
+      new Set(),
+      `${INVOICES}.edit`,
+      anyone,
+    );
+    expect(grant.selection.has(`${INVOICES}.list`)).toBe(true);
+    expect(grant.autoAdded).toContain(`${INVOICES}.list`);
+  });
+
+  it("unticks the actions reached from the rows with the list, and keeps the table", () => {
+    const all = new Set(listIndex.allIds);
+    const revoked = revokePermission(listIndex, all, `${INVOICES}.list`);
+    for (const action of ["view", "edit", "delete", "export"]) {
+      expect(revoked.has(`${INVOICES}.${action}`), action).toBe(false);
+    }
+    expect(revoked.has(`${INVOICES}.select`)).toBe(true);
+    // The table only requires its list: the preview shows it hidden.
+    expect(revoked.has(INVOICES)).toBe(true);
+  });
+});
+
 describe("permission tree levels", () => {
   const levels = buildPermissionLevels(buildPermissionAreas(TREE, identity));
   const open = (...ids: string[]) => new Set(ids);
