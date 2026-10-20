@@ -18,7 +18,11 @@ import {
   useResizableSize,
 } from "../../../composables/containers/useResizableSize";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
-import { CLOSING_OVERLAY_CLASS, CONTAINER_SKELETON_FIELDS } from "../constants";
+import {
+  CLOSING_OVERLAY_CLASS,
+  CONTAINER_SKELETON_CLASS,
+  CONTAINER_SKELETON_FIELDS,
+} from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
 
 interface DynamicDrawerProps {
@@ -337,7 +341,9 @@ const { t } = useI18n();
       </UContainer>
     </template>
     <template #body>
-      <UContainer :class="containerClass">
+      <!-- A size container: what the body lays out by width (a form's
+        columns, a list's) follows the drawer as it is resized. -->
+      <UContainer class="@container" :class="containerClass">
         <Suspense @pending="onContentPending" @resolve="onContentResolve">
           <component
             :is="component"
@@ -347,7 +353,7 @@ const { t } = useI18n();
             @success="handleSuccess"
           />
           <template #fallback>
-            <div class="grid gap-4 sm:grid-cols-2" aria-busy="true">
+            <div :class="CONTAINER_SKELETON_CLASS" aria-busy="true">
               <div
                 v-for="field in CONTAINER_SKELETON_FIELDS"
                 :key="field"
