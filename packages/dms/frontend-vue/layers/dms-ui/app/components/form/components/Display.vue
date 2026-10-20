@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { isVNode } from "vue";
+import { NUMERIC_TYPE_IDS } from "../../../build/composables/data-types/useColumnValueRenderer";
 
 interface DisplayProps {
   modelValue?: unknown;
@@ -37,6 +38,9 @@ const formattedValue = computed(() => {
 });
 
 const isVNodeValue = computed(() => isVNode(formattedValue.value));
+// Amounts read in tabular figures, so a read-only list's amounts and the
+// totals under it line up in one font.
+const isNumeric = computed(() => NUMERIC_TYPE_IDS.has(props.type ?? ""));
 </script>
 
 <template>
@@ -56,6 +60,7 @@ const isVNodeValue = computed(() => isVNode(formattedValue.value));
   <div
     v-else
     class="text-default flex min-h-9 items-center py-1.5 text-sm"
+    :class="isNumeric && 'tabular-nums'"
     :title="typeof formattedValue === 'string' ? formattedValue : undefined"
   >
     <component :is="formattedValue" v-if="isVNodeValue" />
