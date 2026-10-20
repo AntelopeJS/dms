@@ -33,6 +33,15 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  "../layers/dms-layout/app/build/composables/layout/sidePanelState",
+  () => ({
+    useActiveSidePanel: () => ({
+      panel: computed(() => (isSidePanelOpen.value ? { id: "panel" } : null)),
+    }),
+  }),
+);
+
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 
@@ -40,6 +49,7 @@ let storage: Map<string, string>;
 let user: Ref<object | null>;
 let toasts: Ref<object[]>;
 let isSidebarOpen: Ref<boolean>;
+let isSidePanelOpen: Ref<boolean>;
 let visibility: DocumentVisibilityState;
 let app: App | undefined;
 let host: HTMLDivElement;
@@ -110,6 +120,12 @@ async function setVisibility(state: DocumentVisibilityState): Promise<void> {
   await nextTick();
 }
 
+// MutationObserver callbacks run as microtasks, before the re-render.
+async function flushObserver(): Promise<void> {
+  await Promise.resolve();
+  await nextTick();
+}
+
 function seedActiveTime(ms: number): void {
   storage.set(GITHUB_STAR_PROMPT_KEYS.activeMs, String(ms));
 }
@@ -121,6 +137,7 @@ beforeEach(() => {
   user = ref({ email: "user@example.com" });
   toasts = ref([]);
   isSidebarOpen = ref(false);
+  isSidePanelOpen = ref(false);
   visibility = "visible";
   vi.spyOn(document, "visibilityState", "get").mockImplementation(
     () => visibility,
@@ -139,6 +156,7 @@ afterEach(() => {
   app?.unmount();
   app = undefined;
   host?.remove();
+  document.body.replaceChildren();
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -321,6 +339,54 @@ describe("GithubStarPrompt", () => {
     isSidebarOpen.value = true;
     await nextTick();
     expect(prompt()).toBeNull();
+  });
+
+  it("steps aside while a side panel is open", async () => {
+    seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
+    isSidePanelOpen.value = true;
+    await mount();
+    expect(prompt()).toBeNull();
+
+    isSidePanelOpen.value = false;
+    await nextTick();
+    expect(prompt()).not.toBeNull();
+  });
+
+  // Drawers and modals are teleported to the body, opened by any module.
+  it("steps aside while a drawer or a modal is open", async () => {
+    seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
+    const drawer = document.createElement("div");
+    drawer.setAttribute("role", "dialog");
+    drawer.dataset.state = "open";
+    document.body.append(drawer);
+    await mount();
+    expect(prompt()).toBeNull();
+
+    drawer.dataset.state = "closed";
+    await flushObserver();
+    expect(prompt()).not.toBeNull();
+
+    drawer.dataset.state = "open";
+    await flushObserver();
+    expect(prompt()).toBeNull();
+
+    drawer.remove();
+    await flushObserver();
+    expect(prompt()).not.toBeNull();
+  });
+
+  it("stays up while a popover is open", async () => {
+    seedActiveTime(GITHUB_STAR_PROMPT_DELAY_MS);
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-reka-popper-content-wrapper", "");
+    const popover = document.createElement("div");
+    popover.setAttribute("role", "dialog");
+    popover.dataset.state = "open";
+    wrapper.append(popover);
+    document.body.append(wrapper);
+    await mount();
+
+    expect(prompt()).not.toBeNull();
   });
 
   it("renders nothing without a signed-in user", async () => {
