@@ -181,20 +181,24 @@ export interface TableLinkVisit {
  * Whether a visit that keeps the table mounted (a link to the page already
  * shown, back and forward) is a link to follow as an arrival would. A link
  * clicked on the page counts whenever it names a view or a tab the table can
- * open, a row or a URL filter, even what the table already shows: the state
- * around it may hide it. Otherwise (back and forward), the view and the tab
- * are written or kept in place, so they count when they differ from what the
- * table shows; a row and a URL filter when they differ from the last visit.
- * A visit repeating what the table already reads (the one that mounted it)
- * is not a link.
+ * open, or a URL filter, even what the table already shows: the state around
+ * it may hide it. Otherwise (back and forward), the view and the tab are
+ * written or kept in place, so they count when they differ from what the
+ * table shows; a URL filter when it differs from the last visit. A row named
+ * (`?record=`) is opened on the table as it stands, its page included: it is
+ * no listing link, and a link naming one counts only for a view, a tab or a
+ * URL filter that changes what the table lists. A visit repeating what the
+ * table already reads (the one that mounted it) is not a link.
  */
 export function isLinkedVisit(visit: TableLinkVisit): boolean {
   const { query, previousQuery, urlScope, isLinkClick } = visit;
   const read = (from: Record<string, unknown>, key: string) =>
     readTableUrlKey(from, urlScope, key).value;
-  // A link clicked counts even when it names what is already there.
+  // A link clicked counts even when it names what is already there, unless
+  // it opens a row: the table it is opened on stays as it stands.
+  const isRowLink = read(query, RECORD_URL_KEY) !== undefined;
   const isNew = (value: unknown, current: unknown) =>
-    isLinkClick || value !== current;
+    (isLinkClick && !isRowLink) || value !== current;
   const view = namedView(query, urlScope);
   if (view === "" && isNew(undefined, visit.activeView)) return true;
   if (view && isNew(view, visit.activeView) && visit.canOpenView(view)) {
@@ -202,8 +206,6 @@ export function isLinkedVisit(visit: TableLinkVisit): boolean {
   }
   const tab = read(query, TAB_URL_KEY);
   if (tab && isNew(tab, visit.activeTab) && visit.canOpenTab(tab)) return true;
-  const record = read(query, RECORD_URL_KEY);
-  if (record && isNew(record, read(previousQuery, RECORD_URL_KEY))) return true;
   return namesUrlFilter(query, visit.queryParamFilters, (param) =>
     isNew(query[param], previousQuery[param]),
   );

@@ -246,11 +246,34 @@ describe("isLinkedVisit", () => {
     );
   });
 
-  it("follows a row the last visit did not name", () => {
-    expect(visit({ query: { record: "r2" } })).toBe(true);
+  it("opens a row named on the table as it stands, its page included", () => {
+    expect(visit({ query: { record: "r2" } })).toBe(false);
+    expect(visit({ query: { record: "r2" }, isLinkClick: true })).toBe(false);
     expect(
-      visit({ query: { record: "r2" }, previousQuery: { record: "r2" } }),
+      visit({
+        query: { record: "r2", "content.record": "r2" },
+        previousQuery: { record: "r1" },
+        isLinkClick: true,
+      }),
     ).toBe(false);
+  });
+
+  it("follows a row's link only for what changes the listing", () => {
+    const rowLink = (query: Record<string, unknown>) =>
+      visit({
+        query: { record: "r2", ...query },
+        previousQuery: { customer: "c1" },
+        isLinkClick: true,
+      });
+    // What the table already lists: the row opens on it.
+    expect(rowLink({ customer: "c1" })).toBe(false);
+    expect(rowLink({ customer: "c1", view: "unassigned", tab: "closed" })).toBe(
+      false,
+    );
+    // Another URL filter, view or tab: followed as an arrival.
+    expect(rowLink({ customer: "c2" })).toBe(true);
+    expect(rowLink({ view: "outstanding" })).toBe(true);
+    expect(rowLink({ tab: "open" })).toBe(true);
   });
 });
 
