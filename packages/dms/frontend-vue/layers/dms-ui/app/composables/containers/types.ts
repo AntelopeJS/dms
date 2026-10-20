@@ -43,6 +43,20 @@ export interface ContainerOptions {
 /** Options accepted by {@link useDrawer}'s `open`. */
 export interface DrawerOptions extends ContainerOptions {
   direction?: DrawerDirection;
+  /**
+   * Width a `left` / `right` drawer opens at from `lg`: a modal's width at
+   * that size (`sm` 384px ... `5xl` 1024px), `full` the whole window; 600px
+   * without one, capped to the window. Below `lg` a sized side drawer fills a
+   * phone's screen and an unsized one is 440px wide. A `top` / `bottom`
+   * drawer ignores it.
+   */
+  size?: ModalSize;
+  /**
+   * The key the size the user drags the drawer to is remembered under, on
+   * this device: the same drawer opens again at that size. Defaults to
+   * `containerId`; a drawer with neither is resizable but forgets.
+   */
+  sizeKey?: string;
 }
 
 /** Options accepted by {@link useModal}'s `open`. */
@@ -67,6 +81,10 @@ export interface ContainerInstance<Result = unknown> {
 export type ContainerPatch = Partial<
   Pick<
     ContainerOptions,
-    "title" | "description" | "componentOptions" | "componentKey"
+    | "title"
+    | "description"
+    | "componentOptions"
+    | "componentKey"
+    | "headerComponentOptions"
   >
 >;

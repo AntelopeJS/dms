@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import type { Component } from "vue";
 import { DialogDescription, DialogTitle, VisuallyHidden } from "reka-ui";
+import { useWindowSize } from "@vueuse/core";
 import type {
   ContainerColor,
   DrawerDirection,
 } from "../../../../composables/containers/types";
+import type { ModalSize } from "../../../../types/modal";
+import {
+  drawerSizeStorage,
+  isSideDrawer,
+  resolveDrawerSizeBounds,
+  useDrawerSizePreferences,
+} from "../../../composables/containers/drawerSize";
+import {
+  type ResizeSide,
+  useResizableSize,
+} from "../../../composables/containers/useResizableSize";
 import DmsIconWell from "../../../../components/icon-well/IconWell.vue";
 import { CONTAINER_SKELETON_FIELDS } from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
@@ -20,6 +32,13 @@ interface DynamicDrawerProps {
   headerComponent?: Component;
   headerComponentOptions?: Record<string, unknown>;
   direction?: DrawerDirection;
+  /**
+   * Width a side drawer opens at, from `lg`: a modal's width at that size;
+   * 600px without one. Below `lg`, a sized side drawer fills a phone's screen.
+   */
+  size?: ModalSize;
+  /** The key the size the user gives the drawer is remembered under. */
+  sizeKey?: string;
   icon?: string;
   color?: ContainerColor;
 }
@@ -34,25 +53,126 @@ const props = withDefaults(defineProps<DynamicDrawerProps>(), {
   headerComponent: undefined,
   headerComponentOptions: undefined,
   direction: "bottom",
+  size: undefined,
+  sizeKey: undefined,
   icon: undefined,
   color: "primary",
 });
 const emit = defineEmits<DynamicDrawerEmits>();
 
-// A side drawer is a sheet as wide as a side panel by default (see
-// `useAppSidePanels`), never wider than the window less the drawer's gutter.
-// Its own padding is the gutter: the containers drop theirs.
-const SIDE_DIRECTIONS: readonly DrawerDirection[] = ["left", "right"];
+// Below `lg` a side drawer is a sheet as wide as a side panel (see
+// `useAppSidePanels`), or a modal's width at its size, never wider than the
+// window less the drawer's gutter; a sized one fills a phone's screen. From
+// `lg` it takes the width the user resizes it to (600px at first), kept per
+// drawer. Its own padding is the gutter: the containers drop theirs.
 const SIDE_DRAWER_CONTENT = "w-[440px]";
+const SIDE_DRAWER_SIZE_CONTENT: Record<ModalSize, string> = {
+  sm: "w-sm",
+  md: "w-md",
+  lg: "w-lg",
+  xl: "w-xl",
+  "2xl": "w-2xl",
+  "3xl": "w-3xl",
+  "4xl": "w-4xl",
+  "5xl": "w-5xl",
+  full: "w-full max-w-full rounded-none",
+};
+const SIDE_DRAWER_PHONE_CONTENT =
+  "max-sm:w-full max-sm:max-w-full max-sm:rounded-none";
+const SIZE_VARIABLE = "--dms-drawer-size";
+const SIDE_DRAWER_DESKTOP_CONTENT = "lg:w-(--dms-drawer-size)";
+const EDGE_DRAWER_DESKTOP_CONTENT = "lg:h-(--dms-drawer-size)";
 const SIDE_CONTAINER_CLASS = "px-0 sm:px-0 lg:px-0";
 const EDGE_CONTAINER_CLASS = "max-sm:px-0";
 
-const isSide = computed(() => SIDE_DIRECTIONS.includes(props.direction));
+// The handle sits on the drawer's inner edge, over its border.
+const HANDLE_CLASSES: Record<ResizeSide, string> = {
+  right: "inset-y-0 left-0 w-2 -translate-x-1/2 cursor-ew-resize",
+  left: "inset-y-0 right-0 w-2 translate-x-1/2 cursor-ew-resize",
+  bottom: "inset-x-0 top-0 h-2 -translate-y-1/2 cursor-ns-resize",
+  top: "inset-x-0 bottom-0 h-2 translate-y-1/2 cursor-ns-resize",
+};
+const SIDE_HANDLE_LINE = "inset-y-0 start-1/2 w-0.5 -translate-x-1/2";
+const EDGE_HANDLE_LINE = "inset-x-0 top-1/2 h-0.5 -translate-y-1/2";
+
+const isSide = computed(() => isSideDrawer(props.direction));
 const containerClass = computed(() =>
   isSide.value ? SIDE_CONTAINER_CLASS : EDGE_CONTAINER_CLASS,
 );
+
+const viewport = useWindowSize();
+const {
+  size: resizedSize,
+  bounds: sizeBounds,
+  isDragging,
+  startDrag,
+  drag,
+  endDrag,
+  resizeFromKey,
+  reset: resetSize,
+} = useResizableSize({
+  side: props.direction,
+  bounds: () =>
+    resolveDrawerSizeBounds(
+      props.direction,
+      { width: viewport.width.value, height: viewport.height.value },
+      props.size,
+    ),
+  storage: drawerSizeStorage(
+    useDrawerSizePreferences(),
+    props.sizeKey,
+    props.direction,
+  ),
+});
+
+const sideContentClass = computed(() => {
+  const narrow = props.size
+    ? `${SIDE_DRAWER_SIZE_CONTENT[props.size]} ${SIDE_DRAWER_PHONE_CONTENT}`
+    : SIDE_DRAWER_CONTENT;
+  return `${narrow} ${SIDE_DRAWER_DESKTOP_CONTENT}`;
+});
+// A top or bottom drawer keeps its natural height until resized.
+const contentClass = computed(() => {
+  if (isSide.value) return sideContentClass.value;
+  return resizedSize.value === undefined
+    ? undefined
+    : EDGE_DRAWER_DESKTOP_CONTENT;
+});
+const contentProps = computed(() =>
+  resizedSize.value === undefined
+    ? undefined
+    : { style: { [SIZE_VARIABLE]: `${resizedSize.value}px` } },
+);
+const handleClass = computed(() => HANDLE_CLASSES[props.direction]);
+const handleLineClass = computed(() =>
+  isSide.value ? SIDE_HANDLE_LINE : EDGE_HANDLE_LINE,
+);
+const handleOrientation = computed(() =>
+  isSide.value ? "vertical" : "horizontal",
+);
+
+function renderedSize(handle: Element): number | undefined {
+  const content = handle.closest("[data-slot='content']");
+  if (!content) return undefined;
+  const rect = content.getBoundingClientRect();
+  return isSide.value ? rect.width : rect.height;
+}
+
+// The drawer's own drag (to dismiss it) must not start from the handle.
+function startHandleDrag(event: PointerEvent): void {
+  event.stopPropagation();
+  const handle = event.currentTarget as HTMLElement;
+  handle.setPointerCapture?.(event.pointerId);
+  const rendered = renderedSize(handle) || resizedSize.value;
+  if (rendered) startDrag(event, rendered);
+}
+
+function resizeHandleFromKey(event: KeyboardEvent): void {
+  resizeFromKey(event, renderedSize(event.currentTarget as HTMLElement));
+}
+
 const drawerUi = computed(() => ({
-  ...(isSide.value && { content: SIDE_DRAWER_CONTENT }),
+  ...(contentClass.value && { content: contentClass.value }),
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
   // The scroll area's bottom padding: a form's sticky footer sits flush
   // with the drawer's edge (see Form.vue).
@@ -127,9 +247,39 @@ const { t } = useI18n();
     :title="title"
     :dismissible="false"
     :ui="drawerUi"
+    :content="contentProps"
     @close:prevent="tryClose"
   >
     <template #header>
+      <!-- Positioned against the drawer's content, which is fixed. From lg,
+        a drag or the arrow keys resize the drawer, a double-click gives it
+        its default size back. -->
+      <div
+        role="separator"
+        tabindex="0"
+        data-dms-drawer-handle
+        :aria-orientation="handleOrientation"
+        :aria-label="t('dms.drawer.resize')"
+        :aria-valuenow="resizedSize"
+        :aria-valuemin="sizeBounds.minSize"
+        :aria-valuemax="sizeBounds.maxSize"
+        :data-dragging="isDragging || undefined"
+        class="group/handle absolute z-10 hidden touch-none outline-none select-none lg:block"
+        :class="handleClass"
+        @pointerdown="startHandleDrag"
+        @pointermove="drag"
+        @pointerup="endDrag"
+        @pointercancel="endDrag"
+        @lostpointercapture="endDrag"
+        @keydown="resizeHandleFromKey"
+        @dblclick="resetSize"
+      >
+        <span
+          aria-hidden="true"
+          class="group-hover/handle:bg-primary group-focus-visible/handle:bg-primary absolute transition-colors motion-reduce:transition-none"
+          :class="[handleLineClass, { 'bg-primary': isDragging }]"
+        />
+      </div>
       <!-- Same container as the body so the title aligns with the form. On
         phones the drawer's own padding is the 16px gutter: the container
         drops its own. -->

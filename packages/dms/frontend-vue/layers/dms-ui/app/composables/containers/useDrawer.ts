@@ -19,7 +19,7 @@ export function useDrawer() {
       overlay,
       DynamicDrawer,
       DRAWER_ID_PREFIX,
-      options,
+      { ...options, sizeKey: options.sizeKey ?? options.containerId },
     );
   }
 
