@@ -1,5 +1,5 @@
 import type { TableFilter } from "../../../components/table/Table.vue";
-import type { TableCountQuery } from "../useTableRows";
+import type { TableCountRequest } from "../useTableListData";
 import { buildTableQuery, isFilterEffective } from "./tableQuery";
 
 /** A view's counter shares the tab counters' request, under its own id. */
@@ -70,7 +70,7 @@ export const isCountNarrowed = (state: TableCountState): boolean =>
  */
 export function buildTableCountQueries(
   input: TableCountQueriesInput,
-): TableCountQuery[] {
+): TableCountRequest[] {
   const { scopeFilters, tabFilters, columnFilters, search } = input;
   const viewScope = [...scopeFilters, ...tabFilters];
   const isNarrowed = isCountNarrowed(input);
