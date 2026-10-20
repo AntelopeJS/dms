@@ -1,16 +1,16 @@
+// @vitest-environment jsdom
 /**
  * The renderer's error handler only keeps an error for the error page: in
  * development, the original error is logged first, with its stack, and the
  * renderer's handler still runs.
  */
-import { createApp, type App } from "vue";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { createApp, defineComponent, type App } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsAppContext } from "#dms/frontend-module";
 
-vi.mock("#dms/frontend-module", () => ({
-  defineDmsPlugin: (setup: unknown) => setup,
-}));
-
+const engine = await import("#dms/frontend-module");
 const { default: devErrorLogPlugin } = await import(
   "../layers/dms-core/app/plugins/dev-error-log"
 );
@@ -49,5 +49,63 @@ describe("dev error log", () => {
     vi.stubEnv("DEV", false);
     install();
     expect(app.config.errorHandler).toBe(showErrorPage);
+  });
+
+  it("is registered for the browser, in development only", () => {
+    // The frontend only runs the plugins a module registers (dms.frontend.ts
+    // imports every layer, too much to set up here).
+    const entry = readFileSync(
+      resolve(__dirname, "../dms.frontend.ts"),
+      "utf8",
+    );
+    const devOnly = entry.slice(
+      entry.indexOf("if (import.meta.env.DEV) {"),
+      entry.indexOf("// Before any data is read"),
+    );
+    expect(devOnly).toMatch(
+      /import\(\s*"\.\/layers\/dms-core\/app\/plugins\/dev-error-log"\s*\)/,
+    );
+    expect(devOnly).toMatch(/\{ \.\.\.clientOnly, enforce: "pre" \}/);
+  });
+
+  it("logs an error a page throws once the runtime installed it", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await engine.setupFrontendModules([
+      {
+        options: { public: {} },
+        module: {
+          setup(sdk) {
+            sdk.registerPlugin(devErrorLogPlugin, {
+              clientOnly: true,
+              enforce: "pre",
+            });
+          },
+        },
+      },
+    ]);
+    const error = new Error("render failed");
+    const Page = defineComponent({
+      setup: () => () => {
+        throw error;
+      },
+    });
+    const runtime = engine.createDmsFrontendRuntime(undefined, {});
+    const page = createApp(Page);
+    engine.provideDmsFrontendRuntime(page, runtime);
+    await engine.installDmsPlugins(
+      page,
+      { locale: { value: "en" }, setLocaleMessage() {} } as never,
+      runtime,
+      async () => ({}),
+      ["en"],
+    );
+    page.mount(document.createElement("div"));
+
+    expect(log).toHaveBeenCalledWith(
+      "[dms] Uncaught error (render function)",
+      error,
+    );
+    expect(runtime.currentError.value).toBe(error);
+    page.unmount();
   });
 });
