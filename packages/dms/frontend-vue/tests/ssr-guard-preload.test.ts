@@ -12,12 +12,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DmsAppContext, DmsFrontendRuntime } from "#dms/frontend-module";
 
 const engine = await import("#dms/frontend-module");
-const { createTrailingDeduper } = await import(
-  "../layers/dms-core/app/utils/trailingDeduper"
-);
 for (const name of [
   "useDmsState",
   "useDmsApp",
+  "useDmsAsyncData",
+  "useDmsFetch",
+  "useDmsData",
   "useDmsRoute",
   "defineDmsMiddleware",
   "defineDmsPlugin",
@@ -27,7 +27,6 @@ for (const name of [
 ] as const) {
   vi.stubGlobal(name, engine[name]);
 }
-vi.stubGlobal("createTrailingDeduper", createTrailingDeduper);
 vi.stubGlobal("useDmsRuntimeConfig", () => ({ public: { dms: {} } }));
 vi.stubGlobal("useHomepage", () => "/home");
 
@@ -43,10 +42,10 @@ vi.stubGlobal("useSiteLayout", () => ({
     path === "/orders" ? { metadata: { publicAccess: pagePublic } } : null,
 }));
 
-const { useTrailingDeduper } = await import(
-  "../layers/dms-core/app/composables/useTrailingDeduper"
+const { useApiData } = await import(
+  "../layers/dms-core/app/composables/auth/useApiData"
 );
-vi.stubGlobal("useTrailingDeduper", useTrailingDeduper);
+vi.stubGlobal("useApiData", useApiData);
 const { usePermissions } = await import(
   "../layers/dms-core/app/composables/auth/usePermissions"
 );

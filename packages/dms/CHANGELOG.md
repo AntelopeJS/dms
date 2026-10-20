@@ -1,5 +1,82 @@
 # Changelog
 
+## v0.9.8
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.7...v0.9.8)
+
+### 🩹 Fixes
+
+- **startup:** Answer 503 with Retry-After until the DMS schemas are bound ([#369](https://github.com/AntelopeJS/dms/pull/369))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
+## v0.9.7
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.6...v0.9.7)
+
+### 🩹 Fixes
+
+- **frontend:** Run on @antelopejs/dms-frontend 0.7 ([#368](https://github.com/AntelopeJS/dms/pull/368))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
+## v0.9.6
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.5...v0.9.6)
+
+### 🚀 Enhancements
+
+- **tenant-lifecycle:** Pause producer admission and evaluate every tenant access gate ([#366](https://github.com/AntelopeJS/dms/pull/366))
+
+### 🩹 Fixes
+
+- **frontend:** Read the onboarding status and permissions through the data layer ([#357](https://github.com/AntelopeJS/dms/pull/357))
+- **deps:** Require the tenant admission barrier and access evaluation contract ([#367](https://github.com/AntelopeJS/dms/pull/367))
+
+### 🏡 Chore
+
+- **release:** @antelopejs/interface-dms v0.7.4 ([9577327b](https://github.com/AntelopeJS/dms/commit/9577327b))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+- Alessandro Aloisio ([@alessaloisio](http://github.com/alessaloisio))
+
+## v0.9.5
+
+[compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.3...v0.9.5)
+
+### 🚀 Enhancements
+
+- **preview:** Share simple options and document real outcomes ([#339](https://github.com/AntelopeJS/dms/pull/339))
+
+### 🩹 Fixes
+
+- **docs:** Use a sandbox-compatible temporary build database ([#326](https://github.com/AntelopeJS/dms/pull/326))
+- Install DMS frontend with the root workspace ([#322](https://github.com/AntelopeJS/dms/pull/322))
+- **modules:** Top-align card content and place readouts below descriptions ([#328](https://github.com/AntelopeJS/dms/pull/328))
+- **modules:** Reuse registered names in the store ([#330](https://github.com/AntelopeJS/dms/pull/330))
+- **playground:** Use the workspace CLI and compatible core interface ([#331](https://github.com/AntelopeJS/dms/pull/331))
+- **deps:** Require the shared preview presentation contract ([#340](https://github.com/AntelopeJS/dms/pull/340))
+
+### 📖 Documentation
+
+- Create the DMS demo through the CLI in quickstart ([#327](https://github.com/AntelopeJS/dms/pull/327))
+
+### 🏡 Chore
+
+- **docs:** Capture temporary MongoDB startup diagnostics ([#325](https://github.com/AntelopeJS/dms/pull/325))
+- **playground:** Refresh compatible dependencies ([#329](https://github.com/AntelopeJS/dms/pull/329))
+- **release:** @antelopejs/interface-dms v0.7.3 ([bfaa1905](https://github.com/AntelopeJS/dms/commit/bfaa1905))
+
+### ❤️ Contributors
+
+- Antony Rizzitelli <rizzitelli.antony@pm.me>
+
 ## v0.9.3
 
 [compare changes](https://github.com/AntelopeJS/dms/compare/v0.9.2...v0.9.3)

@@ -39,7 +39,7 @@ export const PlaceholderSchema = z.object({
       .describe(
         "How tall the box is, such as 200px; left empty, it fills its place.",
       ),
-    { label: "Height", group: "appearance" },
+    { label: "Height", group: "appearance", advanced: true },
   ),
   width: ui(
     z
@@ -48,7 +48,7 @@ export const PlaceholderSchema = z.object({
       .describe(
         "How wide the box is, such as 300px; left empty, it fills its column.",
       ),
-    { label: "Width", group: "appearance" },
+    { label: "Width", group: "appearance", advanced: true },
   ),
 }) satisfies BlockOptionsFor<PlaceholderOptions>;
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dmsVersion": "0.9.3",
+  "dmsVersion": "0.9.8",
   "blocks": [
     {
       "type": "ActivityFeed",
@@ -893,6 +893,23 @@
       },
       "defaults": {
         "card": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "count",
+          "badge",
+          "groupByDay",
+          "maxItems",
+          "visibleItems",
+          "wrap",
+          "fillHeight",
+          "empty.title",
+          "empty.description",
+          "mono",
+          "card"
+        ]
       }
     },
     {
@@ -1487,6 +1504,17 @@
       "defaults": {
         "tone": "info",
         "size": "md"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "tone",
+          "icon",
+          "size",
+          "dismissible"
+        ]
       }
     },
     {
@@ -1652,6 +1680,17 @@
       "defaults": {
         "padded": true,
         "variant": "default"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "count",
+          "description",
+          "footer",
+          "padded",
+          "variant"
+        ]
       }
     },
     {
@@ -2141,6 +2180,28 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "fillOpacity",
+          "stacked"
+        ]
       }
     },
     {
@@ -2650,6 +2711,30 @@
         "showGrid": true,
         "smooth": true,
         "roundedCorners": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "stacked",
+          "barWidth",
+          "roundedCorners",
+          "orientation"
+        ]
       }
     },
     {
@@ -3118,6 +3203,26 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType"
+        ]
       }
     },
     {
@@ -3328,6 +3433,21 @@
       "defaults": {
         "showDelta": true,
         "showLegend": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "icon",
+          "valueFormat",
+          "currencyCode",
+          "showDelta",
+          "showLegend",
+          "showSeriesLegend",
+          "primaryLabel",
+          "comparisonLabel"
+        ]
       }
     },
     {
@@ -3824,6 +3944,29 @@
         "showGrid": true,
         "smooth": true,
         "roundedCorners": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "stacked",
+          "columnWidth",
+          "roundedCorners"
+        ]
       }
     },
     {
@@ -4071,6 +4214,22 @@
       "defaults": {
         "showTooltip": true,
         "showLegend": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "centralLabel",
+          "centralSubLabel",
+          "arcWidth"
+        ]
       }
     },
     {
@@ -4438,6 +4597,21 @@
       "defaults": {
         "showTooltip": true,
         "showLegend": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "shadeIntensity",
+          "distributed"
+        ]
       }
     },
     {
@@ -4916,6 +5090,27 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "strokeWidth"
+        ]
       }
     },
     {
@@ -5414,6 +5609,26 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType"
+        ]
       }
     },
     {
@@ -5636,6 +5851,19 @@
       "defaults": {
         "showTooltip": true,
         "showLegend": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition"
+        ]
       }
     },
     {
@@ -6116,6 +6344,27 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "fillOpacity"
+        ]
       }
     },
     {
@@ -6355,6 +6604,21 @@
       "defaults": {
         "showTooltip": true,
         "showLegend": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "hollowSize",
+          "showTotal"
+        ]
       }
     },
     {
@@ -6835,6 +7099,27 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "fillOpacity"
+        ]
       }
     },
     {
@@ -7322,6 +7607,28 @@
         "showLegend": true,
         "showGrid": true,
         "smooth": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "color",
+          "height",
+          "width",
+          "showTooltip",
+          "showLegend",
+          "legendPosition",
+          "showGrid",
+          "yRange.min",
+          "yRange.max",
+          "comparisonStyle",
+          "smooth",
+          "curve",
+          "xaxisType",
+          "pointSize",
+          "showLabels"
+        ]
       }
     },
     {
@@ -7620,6 +7927,17 @@
       "defaults": {
         "language": "text",
         "copy": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "code",
+          "language",
+          "copy",
+          "wrap",
+          "maxLines"
+        ]
       }
     },
     {
@@ -7852,6 +8170,22 @@
         "variant": "no-data",
         "size": "md",
         "card": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "code.content",
+          "code.language",
+          "code.copy",
+          "variant",
+          "icon",
+          "tone",
+          "size",
+          "hatched",
+          "card"
+        ]
       }
     },
     {
@@ -7915,7 +8249,17 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "label",
+          "description",
+          "layout",
+          "required",
+          "disabled"
+        ]
+      }
     },
     {
       "type": "Form",
@@ -8646,7 +8990,22 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "sectionNav",
+          "successMessage",
+          "errorMessage",
+          "submitLabel",
+          "saveMode",
+          "kind",
+          "fieldsOrientation",
+          "redirectOnSuccess"
+        ]
+      }
     },
     {
       "type": "Grid",
@@ -8684,6 +9043,13 @@
       "defaults": {
         "gap": "1rem",
         "minColumnWidth": "240px"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "gap",
+          "minColumnWidth"
+        ]
       }
     },
     {
@@ -8710,6 +9076,10 @@
             "min": 1
           }
         }
+      },
+      "presentation": {
+        "version": 1,
+        "paths": []
       }
     },
     {
@@ -9041,6 +9411,22 @@
       },
       "defaults": {
         "when": "empty"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "fallback.title",
+          "fallback.description",
+          "fallback.code.content",
+          "fallback.code.language",
+          "fallback.code.copy",
+          "fallback.variant",
+          "fallback.icon",
+          "fallback.tone",
+          "fallback.size",
+          "fallback.hatched",
+          "fallback.card"
+        ]
       }
     },
     {
@@ -9124,6 +9510,16 @@
         "distribution": "start",
         "spacing": "8px",
         "wrap": false
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "alignment",
+          "distribution",
+          "spacing",
+          "wrap",
+          "grow"
+        ]
       }
     },
     {
@@ -9520,6 +9916,18 @@
       "defaults": {
         "card": true,
         "columns": 1
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "card",
+          "dense",
+          "columns",
+          "currency",
+          "empty.title",
+          "empty.description"
+        ]
       }
     },
     {
@@ -9714,7 +10122,23 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "icon",
+          "variant",
+          "valueFormat",
+          "currencyCode",
+          "showDelta",
+          "showSparkline",
+          "sparklineAccent",
+          "invert",
+          "compareLabel"
+        ]
+      }
     },
     {
       "type": "LiveToggle",
@@ -9773,7 +10197,16 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "align",
+          "showUpdatedAt",
+          "variant",
+          "missedLabel"
+        ]
+      }
     },
     {
       "type": "Meter",
@@ -10512,6 +10945,21 @@
       },
       "defaults": {
         "card": false
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "label",
+          "hint",
+          "legend",
+          "format",
+          "valueLabel",
+          "tone",
+          "warnAt",
+          "errorAt",
+          "size",
+          "card"
+        ]
       }
     },
     {
@@ -10977,6 +11425,16 @@
       },
       "defaults": {
         "columns": 3
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "columns",
+          "empty.title",
+          "empty.description"
+        ]
       }
     },
     {
@@ -11316,6 +11774,24 @@
       },
       "defaults": {
         "id": "page"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "defaultPreset",
+          "defaultComparison",
+          "presets",
+          "comparisons",
+          "presetLabels",
+          "comparisonLabels",
+          "align",
+          "size",
+          "showRangeLabel",
+          "rangeLabel",
+          "comparisonControl",
+          "variant",
+          "maxDays"
+        ]
       }
     },
     {
@@ -11343,7 +11819,8 @@
           "description": "How tall the box is, such as 200px; left empty, it fills its place.",
           "ui": {
             "label": "Height",
-            "group": "appearance"
+            "group": "appearance",
+            "advanced": true
           }
         },
         "width": {
@@ -11352,11 +11829,18 @@
           "description": "How wide the box is, such as 300px; left empty, it fills its column.",
           "ui": {
             "label": "Width",
-            "group": "appearance"
+            "group": "appearance",
+            "advanced": true
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "label"
+        ]
+      }
     },
     {
       "type": "ResourceForm",
@@ -11479,7 +11963,20 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "mode",
+          "title",
+          "description",
+          "submitLabel",
+          "successMessage",
+          "errorMessage",
+          "fieldsOrientation",
+          "redirectOnSuccess"
+        ]
+      }
     },
     {
       "type": "Section",
@@ -11533,6 +12030,15 @@
       },
       "defaults": {
         "card": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "danger",
+          "card"
+        ]
       }
     },
     {
@@ -11577,6 +12083,14 @@
       },
       "defaults": {
         "grow": 1
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "minSize",
+          "maxSize",
+          "grow"
+        ]
       }
     },
     {
@@ -11948,6 +12462,15 @@
       },
       "defaults": {
         "layout": "joined"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "layout",
+          "columns",
+          "empty.title",
+          "empty.description"
+        ]
       }
     },
     {
@@ -12251,7 +12774,20 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "color",
+          "size",
+          "variant",
+          "orientation",
+          "fit",
+          "unmountOnHide",
+          "persistState",
+          "stateKey"
+        ]
+      }
     },
     {
       "type": "TableView",
@@ -13630,6 +14166,21 @@
       "defaults": {
         "rowIdKey": "_id",
         "realtime": true
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "caption",
+          "density",
+          "rowClick",
+          "layout",
+          "searchPlaceholder",
+          "pageSize",
+          "footer.countLabel",
+          "footer.hint",
+          "rowActions.hasSelection",
+          "archiveMode"
+        ]
       }
     },
     {
@@ -14139,7 +14690,28 @@
           }
         }
       },
-      "defaults": {}
+      "defaults": {},
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "title",
+          "description",
+          "valueFormat",
+          "currencyCode",
+          "valueSuffix",
+          "showRank",
+          "highlightTopN",
+          "rankColor",
+          "showDelta",
+          "showBar",
+          "showSparkline",
+          "sparklineAccent",
+          "invert",
+          "badgeColor",
+          "maxHeight",
+          "emptyLabel"
+        ]
+      }
     },
     {
       "type": "VStack",
@@ -14211,6 +14783,15 @@
         "alignment": "center",
         "distribution": "start",
         "spacing": "8px"
+      },
+      "presentation": {
+        "version": 1,
+        "paths": [
+          "alignment",
+          "distribution",
+          "spacing",
+          "grow"
+        ]
       }
     }
   ]

@@ -187,8 +187,9 @@ export interface Config {
   store?: StoreConfig;
   /**
    * Serves `/dms-preview`, a public hidden page rendering any tree of
-   * registered blocks it is handed, for documentation sites to embed. Off by
-   * default; the `DMS_DOCS_PREVIEW=1` environment variable turns it on too.
+   * registered blocks it is handed, for documentation sites to embed. On in
+   * development; elsewhere, requires `true` or `DMS_DOCS_PREVIEW=1`.
+   * `false` does not override development mode or the environment opt-in.
    */
   docsPreview?: boolean;
 }
@@ -263,9 +264,10 @@ export function getApiBaseUrl(): string | undefined {
 const DOCS_PREVIEW_ENV = "DMS_DOCS_PREVIEW";
 const DOCS_PREVIEW_ENV_ENABLED = "1";
 
-/** Whether `/dms-preview` is served: by configuration or by environment. */
-export function isDocsPreviewEnabled(): boolean {
+/** Whether `/dms-preview` is served, `dev` being the runtime's mode. */
+export function isDocsPreviewEnabled(dev = false): boolean {
   return (
+    dev ||
     globalConfig.docsPreview === true ||
     process.env[DOCS_PREVIEW_ENV] === DOCS_PREVIEW_ENV_ENABLED
   );
