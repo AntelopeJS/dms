@@ -6,12 +6,14 @@ import {
   defineComponent,
   h,
   nextTick,
+  reactive,
   ref,
   watch,
   type App,
 } from "vue";
 import SidebarUserMenu from "../layers/dms-layout/app/build/components/layout/SidebarUserMenu.vue";
 import type { User } from "../layers/dms-core/app/types/user";
+import { SETTINGS_ROUTE } from "../layers/dms-layout/app/utils/account-menu";
 
 const FIRST_KEY = "avatars/first";
 const SECOND_KEY = "avatars/second";
@@ -21,6 +23,7 @@ const READ_URLS: Record<string, string> = {
 };
 
 const user = ref<Partial<User> | null>(null);
+const route = reactive({ path: "/", query: {} });
 const resolved = ref<Record<string, string>>({});
 let app: App;
 let host: HTMLDivElement;
@@ -33,6 +36,8 @@ function installRuntime(): void {
     t: (key: string) => key,
     locale: ref("en-GB"),
   }));
+  vi.stubGlobal("useDmsRoute", () => route);
+  vi.stubGlobal("SETTINGS_ROUTE", SETTINGS_ROUTE);
   vi.stubGlobal("useCurrentUser", () => ({ user, refresh: vi.fn() }));
   vi.stubGlobal("useLogout", () => ({ logout: vi.fn() }));
   vi.stubGlobal("useColorModePreference", () => ref("system"));
@@ -78,6 +83,7 @@ const avatarSources = (): string[] =>
 beforeEach(() => {
   installRuntime();
   resolved.value = {};
+  route.path = "/";
   host = document.createElement("div");
 });
 afterEach(() => {
@@ -115,4 +121,21 @@ it("falls back to initials without a picture", async () => {
   mount();
   await nextTick();
   expect(avatarSources()).toEqual(["", ""]);
+});
+
+// The settings have no sidebar entry: the menu that opens them shows the user
+// where they are.
+it.each([
+  ["/settings", true],
+  ["/settings/workspace/roles", true],
+  ["/settings-archive", false],
+  ["/", false],
+])("draws the trigger active on %s: %s", async (path, isActive) => {
+  user.value = { name: "Ada", email: "ada@example.test", avatar: null };
+  route.path = path;
+  mount();
+  await nextTick();
+  const trigger = host.querySelector("button")!;
+  expect(trigger.hasAttribute("data-active")).toBe(isActive);
+  expect(trigger.classList.contains("bg-elevated")).toBe(isActive);
 });

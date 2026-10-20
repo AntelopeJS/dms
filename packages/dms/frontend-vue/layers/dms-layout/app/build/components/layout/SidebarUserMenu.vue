@@ -27,6 +27,7 @@ const COLOR_MODE_ENTRIES: ColorModeEntry[] = [
 ];
 
 const { t, locale } = useI18n();
+const route = useDmsRoute();
 const { user } = useCurrentUser();
 const { logout } = useLogout();
 const colorModePreference = useColorModePreference();
@@ -43,6 +44,14 @@ const avatarSrc = computed(() =>
 watch(avatarKey, (key) => key && void avatarUrls.resolve(key), {
   immediate: true,
 });
+
+// The settings have no sidebar entry: their only way in is this menu, so its
+// trigger is drawn active while a settings page is open.
+const isOnSettings = computed(
+  () =>
+    route.path === SETTINGS_ROUTE ||
+    route.path.startsWith(`${SETTINGS_ROUTE}/`),
+);
 
 // v2 user menu: account links, then the per-user preferences as submenus,
 // then logging out.
@@ -102,8 +111,12 @@ const menuItems = computed<DropdownMenuItem[][]>(() => [
     <button
       type="button"
       class="hover:bg-elevated data-[state=open]:bg-elevated flex w-full items-center gap-2.5 rounded-md p-1.5 text-start transition-colors"
-      :class="{ 'justify-center': props.collapsed }"
+      :class="{
+        'justify-center': props.collapsed,
+        'bg-elevated': isOnSettings,
+      }"
       :aria-label="user?.name"
+      :data-active="isOnSettings || undefined"
     >
       <UAvatar
         v-if="props.collapsed"
