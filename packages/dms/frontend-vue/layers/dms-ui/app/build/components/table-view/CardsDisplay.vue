@@ -1,9 +1,12 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
+import { defineComponent, markRaw, type Component } from "vue";
 import { get } from "@nuxt/ui/runtime/utils/index.js";
+import type { Table } from "@tanstack/vue-table";
 import TablePagination from "../table/Pagination.vue";
 import TableEmpty from "../table/Empty.vue";
 import CardGridSkeleton from "./CardGridSkeleton.vue";
 import CardAvatar from "./CardAvatar.vue";
+import CardRowActions from "./CardRowActions.vue";
 import type { TableViewColumn } from "../../../composables/table-view/types/column";
 import type {
   TableViewCardConfig,
@@ -106,6 +109,28 @@ const FieldValue = (fieldProps: { column: TableViewColumn; item: T }) => {
 
 const openItem = (item: T) => props.context.actions.open(item);
 
+// A custom card draws its row's actions where it likes, as a component: one
+// per row, kept across renders so an open menu is not remounted shut.
+const rowActionsComponents = new Map<string, Component>();
+const rowActionsFor = (id: string): Component => {
+  let component = rowActionsComponents.get(id);
+  if (!component) {
+    component = markRaw(
+      defineComponent({
+        name: "CardRowActionsOf",
+        render: () =>
+          h(CardRowActions, {
+            // `h` cannot carry the display's row type to a generic component.
+            table: props.context.table as Table<Record<string, unknown>>,
+            rowId: id,
+          }),
+      }),
+    );
+    rowActionsComponents.set(id, component);
+  }
+  return component;
+};
+
 // A hand-ordered table (backend `reorder`): each card carries a move handle,
 // and is where another card dragged by its handle drops.
 const { draggedIndex, handleFor, drop, allowDrop } = useReorderHandles({
@@ -160,6 +185,7 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
               ...(card?.component?.options ?? {}),
               ...buildCardProps(item, props.context),
               reorder: cardReorder(index),
+              rowActions: rowActionsFor(rowId(item)),
             }"
           />
         </div>
@@ -215,6 +241,11 @@ const cardReorder = (index: number): TableViewCardReorder | undefined =>
               @update:model-value="
                 props.context.selection.toggle(rowId(item), !!$event)
               "
+            />
+            <CardRowActions
+              :table="props.context.table"
+              :row-id="rowId(item)"
+              class="-me-1.5"
             />
           </header>
 

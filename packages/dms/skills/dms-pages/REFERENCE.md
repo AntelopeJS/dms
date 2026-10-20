@@ -140,6 +140,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
   display alike; a `card.component` receives a `reorder` prop and `v-bind`s `reorder.handle`.
 - A `cards` display whose cards need more room sets `card.minWidth` (a CSS length, `230px` by
   default, the skeleton follows): cards stretch to fill the row, a short list's up to twice that.
+- A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
+  rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
 ### Forms
 

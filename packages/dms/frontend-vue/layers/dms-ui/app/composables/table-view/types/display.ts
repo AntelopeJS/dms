@@ -182,6 +182,13 @@ export interface TableViewCardProps<T = Record<string, unknown>> {
    * caller who may edit: the card's move handle, to draw somewhere on it.
    */
   reorder?: TableViewCardReorder;
+  /**
+   * `cards` only: the row's actions as the grid row offers them (its inline
+   * buttons and its … menu, with their rules and confirmations), to draw
+   * with `<component :is="rowActions" />`. It draws nothing for a table with
+   * no row action, and stops its clicks from reaching the card.
+   */
+  rowActions?: Component;
 }
 
 /**
