@@ -54,7 +54,9 @@ let cookies: Map<string, Ref<unknown>>;
 // What the stubbed drawer renders at: its rendered width and height.
 let renderedRect: { width: number; height: number };
 
-const rendered = reactive<{ ui?: Record<string, string> }>({});
+const rendered = reactive<{ ui?: Record<string, string>; handle?: boolean }>(
+  {},
+);
 
 function useDmsCookie<T>(
   name: string,
@@ -68,10 +70,16 @@ const storedSizes = () =>
   readDrawerSizePreferences(cookies.get(DRAWER_SIZE_COOKIE)?.value);
 
 const DrawerStub = defineComponent({
-  props: { direction: String, ui: Object, content: Object },
+  props: {
+    direction: String,
+    ui: Object,
+    content: Object,
+    handle: { type: Boolean, default: true },
+  },
   setup(props, { slots }) {
     return () => {
       rendered.ui = props.ui as Record<string, string> | undefined;
+      rendered.handle = props.handle;
       const style = (props.content as { style?: Record<string, string> })
         ?.style;
       return h("div", { "data-slot": "content", style }, [
@@ -226,10 +234,17 @@ describe("a side drawer's width", () => {
     expect(drawerSize()).toBe("592px");
   });
 
-  it("hides the drawer's own grip from lg, where the handle is", async () => {
+  it("draws no grip of its own: a side drawer is not dragged away", async () => {
     await mountDrawer({ direction: "right" });
-    expect(rendered.ui?.handle).toBe("lg:hidden!");
+    expect(rendered.handle).toBe(false);
     expect(handle().className).toContain("lg:block");
+  });
+
+  it("scrolls its body under a header that stays in view", async () => {
+    await mountDrawer({ direction: "right" });
+    expect(rendered.ui?.container).toContain("overflow-y-hidden");
+    expect(rendered.ui?.body).toContain("overflow-y-auto");
+    expect(rendered.ui?.body).toContain("min-h-0");
   });
 
   it("keeps the drawer's own drag off its handle", async () => {
@@ -242,6 +257,12 @@ describe("a side drawer's width", () => {
 });
 
 describe("a bottom drawer's height", () => {
+  it("keeps the drawer's own grip below lg, where there is no handle", async () => {
+    await mountDrawer({ sizeKey: "new-order" });
+    expect(rendered.handle).toBe(true);
+    expect(rendered.ui?.handle).toBe("lg:hidden!");
+  });
+
   it("keeps its natural height until resized", async () => {
     await mountDrawer({ sizeKey: "new-order" });
     expect(drawerSize()).toBe("");

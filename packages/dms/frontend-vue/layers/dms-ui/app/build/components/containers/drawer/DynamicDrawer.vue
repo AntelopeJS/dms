@@ -176,18 +176,27 @@ function resizeHandleFromKey(event: KeyboardEvent): void {
 }
 
 // From lg the resize handle takes the inner edge: the drawer's own grip,
-// drawn in its middle, would sit next to it. Below lg the grip stays.
+// drawn in its middle, would sit next to it. Below lg a top or bottom
+// drawer keeps it. A side drawer never draws one: it is not dragged away
+// (`dismissible` is off), and the grip took 22px of a phone's gutter.
 // Important: vaul's unlayered `[data-vaul-handle]` rule outranks a utility.
 const DESKTOP_HIDDEN_GRIP = "lg:hidden!";
+
+// The body scrolls, not the whole drawer: the header (title, row steps,
+// close) stays in view. The body reaches over the container's side padding
+// so its scrollbar sits on the drawer's edge, and carries the bottom padding
+// a form's sticky footer reaches over to sit flush with it (see Form.vue).
+const DRAWER_CONTAINER_CLASS =
+  "[--dms-form-foot-pb:1rem] min-h-0 overflow-y-hidden pb-0";
+const DRAWER_BODY_CLASS = "min-h-0 overflow-y-auto -mx-4 px-4 pb-4";
 
 const drawerUi = computed(() => ({
   ...(contentClass.value && { content: contentClass.value }),
   overlay: CLOSING_OVERLAY_CLASS,
   handle: DESKTOP_HIDDEN_GRIP,
   header: "border-b border-default flex shrink-0 items-center gap-4 pb-4",
-  // The scroll area's bottom padding: a form's sticky footer sits flush
-  // with the drawer's edge (see Form.vue).
-  container: "[--dms-form-foot-pb:1rem]",
+  container: DRAWER_CONTAINER_CLASS,
+  body: DRAWER_BODY_CLASS,
 }));
 
 // Let a DmsForm rendered in the body drop its DmsCard (the drawer is the surface).
@@ -257,6 +266,7 @@ const { t } = useI18n();
     :description="description"
     :title="title"
     :dismissible="false"
+    :handle="!isSide"
     :ui="drawerUi"
     :content="contentProps"
     @close:prevent="tryClose"
