@@ -8050,6 +8050,15 @@
                             "typedBy": "type"
                           }
                         },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
+                          }
+                        },
                         "localized": {
                           "type": "boolean",
                           "optional": true,
@@ -8172,6 +8181,15 @@
                       "label": "Default value",
                       "widget": "json",
                       "typedBy": "type"
+                    }
+                  },
+                  "offersDefault": {
+                    "type": "boolean",
+                    "optional": true,
+                    "ui": {
+                      "label": "Offer the default",
+                      "widget": "switch",
+                      "advanced": true
                     }
                   },
                   "localized": {
@@ -8388,6 +8406,15 @@
                             "label": "Default value",
                             "widget": "json",
                             "typedBy": "type"
+                          }
+                        },
+                        "offersDefault": {
+                          "type": "boolean",
+                          "optional": true,
+                          "ui": {
+                            "label": "Offer the default",
+                            "widget": "switch",
+                            "advanced": true
                           }
                         },
                         "localized": {
