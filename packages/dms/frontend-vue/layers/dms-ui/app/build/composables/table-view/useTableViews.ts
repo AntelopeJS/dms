@@ -135,6 +135,13 @@ export function useTableViews(options: TableViewsOptions) {
   };
 
   /**
+   * Opens a view, or, for the one already open, closes it: back to the
+   * table's own default state without a view.
+   */
+  const selectView = (id: string) =>
+    openView(id === activeViewId.value ? undefined : id);
+
+  /**
    * Back on the view kept from the last visit. The table's state is kept
    * apart and restored as it was left, modified or not, but the search is
    * not kept: the view's own comes back with it.
@@ -151,9 +158,19 @@ export function useTableViews(options: TableViewsOptions) {
    * default listing state under the reader's own presentation.
    */
   const openLinkedView = (query: Record<string, unknown>) => {
-    const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY).value;
-    const view = findView(named) ?? findView(views?.defaultView);
+    const named = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
+    const view = named.isCleared
+      ? undefined
+      : (findView(named.value) ?? findView(views?.defaultView));
     if (view) return openView(view.id);
+    openDefaultListing();
+  };
+
+  /**
+   * No view open, the table's default listing state (filters, search, sort)
+   * under the reader's own presentation: what a link to no view opens.
+   */
+  const openDefaultListing = () => {
     const snapshot = viewSnapshot(undefined, defaults);
     activeViewId.value = undefined;
     state.columnFilters.value = snapshot.filters.map((filter) => ({
@@ -168,7 +185,7 @@ export function useTableViews(options: TableViewsOptions) {
   // from the last visit; a view the caller may not open falls back to the
   // default one, with a word (on the client, once mounted). The user's views
   // are kept in the browser, so a view that is not the module's is resolved
-  // once mounted.
+  // once mounted. An empty one (`?view=`) names no view.
   const urlView = readTableUrlKey(route.query, urlScope, VIEW_URL_KEY);
   const persistedViewId = preferences.get<string | undefined>(
     "activeView",
@@ -177,7 +194,9 @@ export function useTableViews(options: TableViewsOptions) {
   let isUrlViewUnavailable = false;
   let isUrlViewPending = false;
   let isOpenedOnArrival = false;
-  if (urlView.value && findView(urlView.value)) {
+  if (urlView.isCleared) {
+    openDefaultListing();
+  } else if (urlView.value && findView(urlView.value)) {
     openView(urlView.value);
     isOpenedOnArrival = true;
   } else if (urlView.value) {
@@ -305,11 +324,26 @@ export function useTableViews(options: TableViewsOptions) {
     activeViewId.value = view.id;
   };
 
-  /** Deletes one of the user's views; the table keeps its state. */
-  const deleteView = (id: string) => {
-    if (!findView(id)?.isUserView) return;
-    writeUserViews(storedUserViews.value.filter((view) => view.id !== id));
-    if (activeViewId.value === id) activeViewId.value = undefined;
+  /**
+   * Deletes one of the user's views, once confirmed. Deleting the open one
+   * goes back to the table's own default state: what it set (its search
+   * above all) would otherwise stay applied with no view to show it.
+   */
+  const deleteView = async (id: string) => {
+    const view = findView(id);
+    if (!view?.isUserView) return;
+    const isConfirmed = await confirm({
+      title: t("dms.table.views.delete_title"),
+      description: t("dms.table.views.delete_description", {
+        view: view.label,
+      }),
+      icon: "i-ph-trash",
+      color: "error",
+      confirmLabel: t("dms.table.views.delete"),
+    });
+    if (!isConfirmed) return;
+    writeUserViews(storedUserViews.value.filter((stored) => stored.id !== id));
+    if (activeViewId.value === id) openView(undefined);
   };
 
   return {
@@ -319,6 +353,7 @@ export function useTableViews(options: TableViewsOptions) {
     isModified,
     canSaveViews: !!views?.userViews,
     openView,
+    selectView,
     openLinkedView,
     resetView,
     saveView,

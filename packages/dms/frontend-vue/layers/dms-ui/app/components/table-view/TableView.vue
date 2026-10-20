@@ -619,7 +619,7 @@ const {
   activeViewId,
   isModified: isViewModified,
   canSaveViews,
-  openView,
+  selectView,
   openLinkedView,
   resetView,
   saveView,
@@ -2280,7 +2280,7 @@ onMounted(() => {
         :modified="isViewModified"
         :can-save-as="canSaveViews"
         :divided="tabsWithCount.length === 0"
-        @open="openView"
+        @open="selectView"
         @reset="resetView"
         @save="saveView"
         @save-as="saveAsNewView"

@@ -52,6 +52,11 @@ describe("isLinkedArrival", () => {
     expect(arrival({ customer: "c1" })).toBe(true);
   });
 
+  it("is a link when the URL names no view, with an empty key", () => {
+    expect(arrival({ view: "" })).toBe(true);
+    expect(arrival({ "content.view": "" })).toBe(true);
+  });
+
   it("takes the tab the user left open, written in the URL, for a reload", () => {
     expect(arrival({ tab: "overdue" }, "overdue")).toBe(false);
     expect(arrival({ tab: "overdue" }, "all")).toBe(true);
@@ -206,6 +211,14 @@ describe("isLinkedVisit", () => {
     expect(visit({ query: { view: "outstanding" } })).toBe(true);
     expect(visit({ query: { tab: "open" } })).toBe(true);
     expect(visit({ query: { view: "unassigned", tab: "closed" } })).toBe(false);
+  });
+
+  it("follows an empty view key to no view, unless no view is open", () => {
+    expect(visit({ query: { view: "" } })).toBe(true);
+    expect(visit({ query: { view: "" }, activeView: undefined })).toBe(false);
+    expect(
+      visit({ query: { view: "" }, activeView: undefined, isLinkClick: true }),
+    ).toBe(true);
   });
 
   it("leaves a view or a tab the table cannot open", () => {

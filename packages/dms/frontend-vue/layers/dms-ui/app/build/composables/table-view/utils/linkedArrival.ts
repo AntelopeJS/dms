@@ -35,6 +35,18 @@ const USER_CHOICE_FIELDS: ReadonlySet<TableField> = new Set<TableField>([
 const VIEW_URL_KEY = "view";
 const TAB_URL_KEY = "tab";
 
+/**
+ * What `query` names as the table's view: an id, `""` for no view at all
+ * (`?view=`), or `undefined` when it names none.
+ */
+const namedView = (
+  query: Record<string, unknown>,
+  urlScope: TableUrlScope,
+): string | undefined => {
+  const reading = readTableUrlKey(query, urlScope, VIEW_URL_KEY);
+  return reading.isCleared ? "" : reading.value;
+};
+
 /** What the URL a table arrives on may name, and how it was reached. */
 export interface TableLinkArrival {
   query: Record<string, unknown>;
@@ -84,9 +96,13 @@ export function linkKeyScope(
   urlScope: TableUrlScope,
   queryParamFilters: QueryParamFilters | undefined,
 ): string | undefined {
-  const named = [VIEW_URL_KEY, TAB_URL_KEY, RECORD_URL_KEY]
-    .map((key) => [key, readTableUrlKey(query, urlScope, key).value])
-    .filter(([, value]) => value !== undefined);
+  const named = [
+    [VIEW_URL_KEY, namedView(query, urlScope)],
+    ...[TAB_URL_KEY, RECORD_URL_KEY].map((key) => [
+      key,
+      readTableUrlKey(query, urlScope, key).value,
+    ]),
+  ].filter(([, value]) => value !== undefined);
   const filters = Object.keys(queryParamFilters ?? {})
     .filter((param) => query[param] !== undefined)
     .sort()
@@ -112,7 +128,9 @@ export function isLinkedArrival(arrival: TableLinkArrival): boolean {
   if (linkScope === undefined) return false;
   if (arrival.isVisit || linkScope === arrival.shownLink) return true;
   const names = (key: string) => !!readTableUrlKey(query, urlScope, key).value;
-  if (names(VIEW_URL_KEY) || names(RECORD_URL_KEY)) return true;
+  if (namedView(query, urlScope) !== undefined || names(RECORD_URL_KEY)) {
+    return true;
+  }
   const filterScope = urlFilterScope(query, queryParamFilters);
   if (filterScope !== undefined && filterScope !== arrival.keptLinkScope) {
     return true;
@@ -177,7 +195,8 @@ export function isLinkedVisit(visit: TableLinkVisit): boolean {
   // A link clicked counts even when it names what is already there.
   const isNew = (value: unknown, current: unknown) =>
     isLinkClick || value !== current;
-  const view = read(query, VIEW_URL_KEY);
+  const view = namedView(query, urlScope);
+  if (view === "" && isNew(undefined, visit.activeView)) return true;
   if (view && isNew(view, visit.activeView) && visit.canOpenView(view)) {
     return true;
   }
