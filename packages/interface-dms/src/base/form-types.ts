@@ -62,6 +62,12 @@ export interface FormField {
    * link to where it is changed (`link`).
    */
   readonly?: boolean | FormFieldReadonly;
+  /**
+   * A form creating a record leaves out a read-only field (`disabled` or
+   * `readonly`) that holds nothing yet, a value the server sets once the
+   * record exists: `true` shows it empty all the same.
+   */
+  showEmptyOnCreate?: boolean;
   required?: boolean;
   /**
    * The value of a new record. On a loaded one, a field holding something

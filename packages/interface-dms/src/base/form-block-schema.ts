@@ -59,6 +59,11 @@ const FormFieldSchema = ui(
       widget: "json",
       advanced: true,
     }),
+    showEmptyOnCreate: ui(z.boolean().optional(), {
+      label: "Shown empty on create",
+      widget: "switch",
+      advanced: true,
+    }),
     required: ui(z.boolean().optional(), {
       label: "Required",
       widget: "switch",

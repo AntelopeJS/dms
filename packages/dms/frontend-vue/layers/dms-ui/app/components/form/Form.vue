@@ -71,6 +71,7 @@ import {
 import DmsFormRequiredLegend from "./FormRequiredLegend.vue";
 import DmsFormSections from "../../build/components/form/FormSections.vue";
 import { scrollWithin } from "../../build/utils/scrollWithin";
+import { isHiddenOnCreate } from "../../build/composables/form/createFormFields";
 
 const REALTIME_PRESENCE_FLAG = "_presence=1";
 const REALTIME_ACQUIRE_PATH = "/api/realtime/acquire";
@@ -684,7 +685,8 @@ function isFieldDisabled(field: FormField): boolean {
 }
 
 function isFieldHidden(field: FormField): boolean {
-  return hiddenFields.value?.has(field.id) ?? false;
+  if (hiddenFields.value?.has(field.id)) return true;
+  return createsRecord && isHiddenOnCreate(field, state.value[field.id]);
 }
 
 function isFieldRequired(field: FormField): boolean {
