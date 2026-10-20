@@ -56,7 +56,9 @@ resizes by its inner edge and which opens again at that size. On a row it takes 
 panel's row options: the DMS draws the row header once `rowTitle` (naming the row from its
 fields) or `positionLabel` ("Request 4 of 50") is set (`rowHeader: true` with the defaults),
 with previous / next next to close; J / K step in place, through every row the table lists
-(the position counts them all, and a step past the page loaded turns the page); `deepLink:
+(the position counts them all, a step past the page loaded turns the page, a step goes to
+the open row's neighbour by id so live rows never make it skip or revisit one, and a
+deep-linked row past the page loaded is located in the table's result); `deepLink:
 true` on the target keeps
 `?record=`; `notFound: { title, description }` draws the 404 state — with the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first
