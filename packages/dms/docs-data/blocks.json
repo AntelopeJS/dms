@@ -12343,6 +12343,23 @@
             "max": 6
           }
         },
+        "columnsFrom": {
+          "type": "string",
+          "enum": [
+            "sm",
+            "md",
+            "lg",
+            "xl"
+          ],
+          "optional": true,
+          "description": "The group's width from which all columns sit side by side (sm 24rem, md 28rem, lg 32rem, xl 36rem).",
+          "ui": {
+            "label": "All columns from",
+            "group": "layout",
+            "widget": "segmented",
+            "advanced": true
+          }
+        },
         "label": {
           "type": "string",
           "optional": true,

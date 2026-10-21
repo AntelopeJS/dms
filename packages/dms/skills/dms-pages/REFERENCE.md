@@ -134,6 +134,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 ### Blocks
 
 - `StatGroup` details and `NavCardGrid` card titles take up to two lines before their ellipsis.
+- `StatGroup({ columnsFrom: "md" })` (`DmsStatGroup columns-from`) sets all `columns` side by side from
+  that group width — never a class forcing the group's grid (`[&>div]:grid-cols-*`).
 - `ActivityFeed`: `wrap: true` for entries read whole (leave `fillHeight` off), `visibleItems: N`
   for a "Show N more" fold.
 - `KeyValueList` rows take `copy: true` or `copyValue` (the text to copy instead).
