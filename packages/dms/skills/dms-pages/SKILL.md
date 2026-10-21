@@ -63,7 +63,7 @@ export class SubmitRecipePage extends PageController("submit-recipe", { displayN
     ],
     submitUrl: "/api/recipes",   // a route — often declared on this same class
     submitUrlMethod: HttpMethod.post,
-    kind: "action",              // sends something new each time; omit for a record form (save bar)
+    kind: "action",              // sends something new each time; "create" for a form making a row; omit for a record form (save bar)
   });
 }
 ```
