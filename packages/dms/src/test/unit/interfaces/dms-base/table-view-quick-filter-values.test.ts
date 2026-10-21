@@ -25,10 +25,8 @@ import {
   TableViewRoutes,
   Column,
 } from "@antelopejs/interface-dms/base/table-view";
-import { captureWarnings } from "../../../helpers/logging";
 
 const TABLE = "quick-filter-values-shops";
-const NO_VALUES = "has no values to pick";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 class Shop extends Table {
@@ -89,16 +87,6 @@ class ShopAPI extends DataController(
   declare open: boolean;
 }
 
-function quickFilterWarnings(register: () => void): string[] {
-  const captured = captureWarnings();
-  try {
-    register();
-  } finally {
-    captured.restore();
-  }
-  return captured.messages.filter((message) => message.includes(NO_VALUES));
-}
-
 const registerOn = (fields: string[]) => () =>
   TableView(ShopAPI, {
     realtime: false,
@@ -106,39 +94,30 @@ const registerOn = (fields: string[]) => () =>
   });
 
 describe("[unit] interfaces/dms-base/table-view — quick filters need values to pick", () => {
-  it("warns about a quick filter on a free-text column, once per table and field", () => {
-    const warnings = quickFilterWarnings(() => {
-      registerOn(["city"])();
-      registerOn(["city"])();
-    });
-    expect(warnings).to.have.length(1);
-    expect(warnings[0]).to.include('column "city" (string)');
-    expect(warnings[0]).to.include("ShopAPI");
+  it("refuses a quick filter on a free-text column, naming the table", () => {
+    expect(registerOn(["city"])).to.throw(
+      /ShopAPI: column "city" \(string\) has no values to pick/,
+    );
   });
 
-  it("warns about a select without items", () => {
-    const warnings = quickFilterWarnings(registerOn(["tier"]));
-    expect(warnings).to.have.length(1);
-    expect(warnings[0]).to.include('column "tier" (select)');
+  it("refuses a select without items", () => {
+    expect(registerOn(["tier"])).to.throw(
+      /column "tier" \(select\) has no values to pick/,
+    );
   });
 
-  it("keeps quiet about a select with items and a boolean", () => {
-    expect(quickFilterWarnings(registerOn(["kind", "open"]))).to.deep.equal([]);
-  });
-
-  it("still serves the quick filter it warns about", () => {
-    let table: ReturnType<typeof TableView> | undefined;
-    quickFilterWarnings(() => {
-      table = registerOn(["city"])();
-    });
-    const options = table!.serializeSync().options as {
+  it("accepts a select with items and a boolean, and serves them", () => {
+    const options = registerOn(["kind", "open"])().serializeSync().options as {
       quickFilters?: TableViewQuickFilter[];
     };
-    expect(options.quickFilters).to.deep.equal([{ field: "city" }]);
+    expect(options.quickFilters).to.deep.equal([
+      { field: "kind" },
+      { field: "open" },
+    ]);
   });
 
-  it("warns about a source table's free-text quick filter too", () => {
-    const warnings = quickFilterWarnings(() =>
+  it("refuses a source table's free-text quick filter too", () => {
+    expect(() =>
       TableView.fromSource({
         fetchUrl: "/api/quick-filter-values-log",
         capabilities: { filter: true },
@@ -158,8 +137,6 @@ describe("[unit] interfaces/dms-base/table-view — quick filters need values to
         },
         quickFilters: [{ field: "path" }, { field: "method" }],
       }),
-    );
-    expect(warnings).to.have.length(1);
-    expect(warnings[0]).to.include('column "path" (string)');
+    ).to.throw(/column "path" \(string\) has no values to pick/);
   });
 });
