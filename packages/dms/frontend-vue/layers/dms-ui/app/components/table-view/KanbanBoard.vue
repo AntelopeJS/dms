@@ -69,8 +69,6 @@ const props = defineProps<KanbanBoardProps>();
 const emit = defineEmits<{
   "card-click": [item: T];
   "card-delete": [item: T];
-  /** The cards shown, column by column: what a row's drawer steps through. */
-  "rows-shown": [items: T[]];
 }>();
 
 const groupByField = defineModel<string>("groupByField", { required: true });
@@ -172,14 +170,6 @@ watch(
   },
   { immediate: true },
 );
-
-// The cards in the order the board reads, column by column and top to
-// bottom in each: a card's drawer steps through them (J / K), and through the
-// cards a "load more" or a drag adds or moves.
-const shownRows = computed(() =>
-  boardColumns.value.flatMap((col) => cells.value[col.value]?.items ?? []),
-);
-watch(shownRows, (rows) => emit("rows-shown", rows), { immediate: true });
 
 const loadMore = async (col: KanbanColumnDef) => {
   const cell = cells.value[col.value];

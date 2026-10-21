@@ -1102,19 +1102,6 @@ const loadMoreRows = () => {
 // onto the rows that arrive. A display reading its own rows keeps to them.
 const ADJACENT_ROWS_TIMEOUT_MS = 15_000;
 const listsServerPages = computed(() => !isActiveDisplaySelfManaged.value);
-// What a display reading its own rows shows (`setShownRows`), in its order:
-// the rows its row's container steps through. Another display, another set.
-const selfManagedRows = shallowRef<Data[]>([]);
-const setSelfManagedRows = (rows: T[]) => {
-  selfManagedRows.value = rows as Data[];
-};
-watch(activeDisplayId, () => {
-  selfManagedRows.value = [];
-});
-const navigableRows = (): Data[] =>
-  listsServerPages.value
-    ? ((shownResults.value ?? []) as Data[])
-    : selfManagedRows.value;
 const loadedRowsOffset = () => {
   if (isAccumulating || !listsServerPages.value) return 0;
   const { pageIndex, pageSize } = paginationState.value;
@@ -1387,7 +1374,7 @@ const {
   pageId: pageId!,
   queryParamFilters,
   rowNavigation: {
-    rows: navigableRows,
+    rows: () => (shownResults.value ?? []) as Data[],
     rowIdKey: props.rowIdKey ?? ROW_ID_DEFAULT_KEY,
     getRow: (id) => tableRows.getRow(id) as Promise<Data | undefined>,
     total: () =>
@@ -1982,7 +1969,6 @@ const displayContext = computed(
     pageId,
     options: optionsForDisplay(activeDisplayId.value),
     refresh: refreshByUser,
-    setShownRows: setSelfManagedRows,
     reorder: reorderState.value,
     table: displayTable.value,
   }),
