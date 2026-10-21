@@ -67,7 +67,9 @@ its `sizeKey`, by default its `containerId`, else its component's name — pass 
 when one component opens drawers that must not share a size, or when the component is
 anonymous — `docs/06.frontend-composables/05.ui-toolkit.md`. On a row of a list the module draws
 itself, `rowHeader: { title, positionLabel, navigation }` draws the DMS's row header (position,
-previous / next, J and K); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
+previous / next, J and K; `titleClass`, `titleBreakAfter`, `subtitle`, `subtitleClass` and
+`component` / `componentOptions` under the position line shape it — never a header component of
+the module's own); `patch({ componentOptions, componentKey, rowHeader })` steps it — never
 import the layer's `RowHeader` component —
 `docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
