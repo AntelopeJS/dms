@@ -73,7 +73,8 @@ export interface HeroProps extends BaseComponentProps {
   proof?: HeroProof[];
   /**
    * An image beside or under the texts: a public URL or the URL of a file
-   * from the media library. Takes precedence over `icons`.
+   * from the media library, `http(s)` or a path (any other address draws no
+   * image). Takes precedence over `icons`.
    */
   image?: string;
   /**
