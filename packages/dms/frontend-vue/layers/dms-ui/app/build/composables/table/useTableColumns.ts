@@ -471,9 +471,8 @@ export const useTableColumns = <T extends Data>(config: ColumnConfig<T>) => {
 
   const isShowingArchived = () => config.showArchived?.value === true;
 
-  // The backend serializes `isVisible`; `visible` is the former spelling.
   const isCustomActionInline = (action: CustomRowAction): boolean =>
-    action.isVisible === true || action.visible === true;
+    action.isVisible === true;
 
   const { confirmAction } = useActionConfirm();
 
