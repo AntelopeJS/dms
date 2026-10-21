@@ -70,9 +70,7 @@ class OrderAPI extends DataController(
   @Listable()
   @Column({
     name: "Status",
-    type: new DefaultDataTypes.SelectType({
-      items: [{ value: "open", label: "Open" }],
-    }),
+    type: new DefaultDataTypes.SelectType({ items: [] }),
     filterable: true,
   })
   @Access(AccessMode.ReadOnly)
