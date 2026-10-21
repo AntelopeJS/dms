@@ -7,6 +7,7 @@ import UIcon from "@nuxt/ui/runtime/vue/components/Icon.vue";
 import ULink from "@nuxt/ui/components/Link.vue";
 import { buildRelationBadges } from "./relationBadges";
 import { mapRelationBeforeState, sameRelationValue } from "./relationValue";
+import { relationSelectSource } from "./relationRows";
 import {
   isSet,
   readRowField,
@@ -892,6 +893,7 @@ const registerRelationType = (
     },
     beforeStateMapper: mapRelationBeforeState,
     isSameValue: sameRelationValue,
+    selectSource: relationSelectSource,
   });
 };
 

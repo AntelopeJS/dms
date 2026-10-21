@@ -51,7 +51,6 @@ const theme = tv({
 });
 
 const EMPTY_FILTER_VALUE = "—";
-const RELATION_COMPONENT = "dms-relation";
 
 const tableSharedData =
   injectLocal<ShallowRef<TableSharedData<T>>>("tableSharedData");
@@ -175,24 +174,16 @@ const itemLabels = (filter: TableFilter): string | undefined => {
   return labels.length ? labels.join(", ") : undefined;
 };
 
-type RelationFilterOptions = Partial<
-  Pick<RelationFilterSource, "searchUrl" | "keyMapping">
->;
-
 // A relation filter holds the related rows' ids: its chip names the rows,
-// read from the relation's `select` route as its picker does.
+// read from where the column's data type says they live (its `select` route).
 const relationSource = (
   filter: TableFilter,
 ): RelationFilterSource | undefined => {
+  const column = getColumn(filter.accessorKey);
   const component = resolveFilterComponent(filter);
-  if (component?.componentName !== RELATION_COMPONENT) return undefined;
-  const options = component.options as RelationFilterOptions | undefined;
-  if (!isString(options?.searchUrl)) return undefined;
-  return {
-    searchUrl: options.searchUrl,
-    keyMapping: options.keyMapping,
-    value: filter.value,
-  };
+  if (!column?.type || !component) return undefined;
+  const source = getDataType(column.type.id)?.selectSource?.(component.options);
+  return source ? { ...source, value: filter.value } : undefined;
 };
 
 const { labelsOf: relationLabels } = useRelationFilterLabels(() =>

@@ -20,6 +20,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TableFiltersRow from "../layers/dms-ui/app/build/components/table/FiltersRow.vue";
 import type { TableFilter } from "../layers/dms-ui/app/build/components/table/Table.vue";
+import { relationSelectSource } from "../layers/dms-ui/app/build/composables/data-types/relationRows";
 
 const SEARCH_URL = "/api/customers/select";
 
@@ -111,7 +112,13 @@ beforeEach(() => {
   vi.stubGlobal("useDmsAppConfig", () => ({
     ui: { icons: { close: "i-close", plus: "i-plus" } },
   }));
-  vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+  // The relation data type says where its rows live; no component name.
+  vi.stubGlobal("useDataTypes", () => ({
+    getDataType: (id: string) =>
+      id === "relation"
+        ? { id, selectSource: relationSelectSource }
+        : undefined,
+  }));
   vi.stubGlobal("useAuthFetch", () => ({ $authFetch: authFetch }));
   vi.stubGlobal("isString", (value: unknown) => typeof value === "string");
   vi.stubGlobal("resolveDmsComponent", () => undefined);
@@ -124,6 +131,15 @@ afterEach(() => {
 });
 
 describe("a relation filter chip", () => {
+  it("leaves the id of a type that names no select source", async () => {
+    vi.stubGlobal("useDataTypes", () => ({ getDataType: () => undefined }));
+    const container = await mount([
+      { accessorKey: "customer", mode: "is", value: "cust-060" },
+    ]);
+    expect(authFetch).not.toHaveBeenCalled();
+    expect(chipValues(container)).toEqual(["cust-060"]);
+  });
+
   it("names the related row instead of its id", async () => {
     const container = await mount([
       { accessorKey: "customer", mode: "is", value: "cust-060" },

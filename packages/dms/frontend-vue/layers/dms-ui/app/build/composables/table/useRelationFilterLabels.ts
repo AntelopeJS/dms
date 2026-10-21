@@ -1,27 +1,15 @@
 import { onMounted, shallowRef, watch } from "vue";
-import { pageRequestUrl } from "../page/pageUrlValues";
+import type { DataTypeSelectSource } from "#dms-core/app/composables/data-types/useDataType";
+import { unlabeledRelationIds } from "../data-types/relationValue";
 import {
-  relationIdsQuery,
-  unlabeledRelationIds,
-} from "../data-types/relationValue";
+  relationRowLabel,
+  relationRowValue,
+  useRelationRows,
+} from "../data-types/relationRows";
 
-const DEFAULT_LABEL_KEY = "label";
-const DEFAULT_VALUE_KEY = "value";
-
-interface RelationFilterKeyMapping {
-  label?: string;
-  value?: string;
-}
-
-/** A relation filter of a table: the route its picker reads, and its value. */
-export interface RelationFilterSource {
-  searchUrl: string;
-  keyMapping?: RelationFilterKeyMapping;
+/** A relation filter of a table: where its rows are read, and its value. */
+export interface RelationFilterSource extends DataTypeSelectSource {
   value: unknown;
-}
-
-interface RelationSelectResponse {
-  results?: Record<string, unknown>[];
 }
 
 const labelKey = (searchUrl: string, id: string) => `${searchUrl}\n${id}`;
@@ -37,23 +25,17 @@ const idsOf = (value: unknown) => unlabeledRelationIds(value, NO_LABELS);
  * route does not answer (deleted, out of reach) keeps showing as is.
  */
 export function useRelationFilterLabels(sources: () => RelationFilterSource[]) {
-  const { $authFetch } = useAuthFetch();
+  const { readRelationRows } = useRelationRows();
   const labels = shallowRef<Record<string, string>>({});
   const requested = new Set<string>();
 
   async function loadLabels(source: RelationFilterSource, ids: string[]) {
-    const url = pageRequestUrl(source.searchUrl);
-    if (!url) return;
     for (const id of ids) requested.add(labelKey(source.searchUrl, id));
-    const response = await $authFetch<RelationSelectResponse>(url, {
-      params: relationIdsQuery(ids, source.keyMapping),
-    }).catch(() => undefined);
-    const valueKey = source.keyMapping?.value || DEFAULT_VALUE_KEY;
-    const labelOf = source.keyMapping?.label || DEFAULT_LABEL_KEY;
+    const rows = await readRelationRows(source, ids);
     const found: Record<string, string> = {};
-    for (const row of response?.results ?? []) {
-      const id = row[valueKey];
-      const label = row[labelOf];
+    for (const row of rows) {
+      const id = relationRowValue(source, row);
+      const label = relationRowLabel(source, row);
       if (id === undefined || label === undefined) continue;
       found[labelKey(source.searchUrl, String(id))] = String(label);
     }

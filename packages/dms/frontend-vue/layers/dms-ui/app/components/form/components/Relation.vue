@@ -17,10 +17,8 @@ import type { ArrayOrNested } from "@nuxt/ui/runtime/types/utils.js";
 import { refDebounced } from "@vueuse/core";
 import DmsForm from "../Form.vue";
 import { FIELD_TRIGGER_ICON } from "../../../build/utils/fieldTrigger";
-import {
-  relationIdsQuery,
-  unlabeledRelationIds,
-} from "../../../build/composables/data-types/relationValue";
+import { unlabeledRelationIds } from "../../../build/composables/data-types/relationValue";
+import { useRelationRows } from "../../../build/composables/data-types/relationRows";
 import type { FormProps } from "../../../composables/form/types";
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -108,6 +106,7 @@ const searchTerm = ref("");
 const searchTermDebounced = refDebounced(searchTerm, SEARCH_DEBOUNCE_MS);
 
 const { $authFetch } = useAuthFetch();
+const { readRelationRows } = useRelationRows();
 const toast = useToast();
 const { t } = useI18n();
 const { processI18n } = useTranslation();
@@ -338,16 +337,15 @@ const labeledIds = computed(
 const requestedIds = new Set<string>();
 
 async function loadValueItems(ids: string[]) {
-  const url = pageRequestUrl(props.searchUrl);
-  if (!url) return;
   for (const id of ids) requestedIds.add(id);
-  const response = await $authFetch<RelationResponse>(url, {
-    params: relationIdsQuery(ids, props.keyMapping),
-  }).catch(() => undefined);
-  if (!response?.results?.length) return;
+  const rows = await readRelationRows(
+    { searchUrl: props.searchUrl, keyMapping: props.keyMapping },
+    ids,
+  );
+  if (!rows.length) return;
   valueItems.value = [
     ...valueItems.value,
-    ...response.results.map((item) => mapData(item)),
+    ...rows.map((item) => mapData(item as Record<string, string>)),
   ];
 }
 
