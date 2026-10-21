@@ -40,16 +40,14 @@ const DEFAULT_LABEL_KEY = "name";
 const DEFAULT_VALUE_KEY = "_id";
 const ARRAY_MODE: TableViewQuickFilterMode = "array_contains_string";
 const SCALAR_MODE: TableViewQuickFilterMode = "is";
-// Types whose value is always a list, whatever their options.
-const LIST_TYPE_IDS = new Set(["tags"]);
 
 const inputOptions = (column: TableViewColumn | undefined) =>
   (column?.type?.inputComponent?.options ?? {}) as ColumnInputOptions;
 
 /**
  * The compare mode a quick filter applies: the declared one, else "contains"
- * for a multiple select or relation and for tags (the row holds a list) and
- * equality otherwise.
+ * when the row holds a list -- a multiple select or relation, or a type that
+ * filters on "contains" by default (tags) -- and equality otherwise.
  */
 export function quickFilterMode(
   column: TableViewColumn | undefined,
@@ -57,7 +55,8 @@ export function quickFilterMode(
 ): TableViewQuickFilterMode {
   if (declared) return declared;
   const holdsList =
-    inputOptions(column).multiple || LIST_TYPE_IDS.has(column?.type?.id ?? "");
+    inputOptions(column).multiple ||
+    column?.type?.defaultCompareMode === ARRAY_MODE;
   return holdsList ? ARRAY_MODE : SCALAR_MODE;
 }
 

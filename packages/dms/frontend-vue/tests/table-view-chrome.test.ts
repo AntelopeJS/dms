@@ -17,13 +17,18 @@ import type { TableViewColumn } from "../layers/dms-ui/app/composables/table-vie
 const column = (
   id: string,
   options: Record<string, unknown> = {},
+  defaultCompareMode?: string,
 ): TableViewColumn =>
   ({
     id,
     accessorKey: id,
     header: id,
     listable: true,
-    type: { id, inputComponent: { componentName: "x", options } },
+    type: {
+      id,
+      defaultCompareMode,
+      inputComponent: { componentName: "x", options },
+    },
   }) as unknown as TableViewColumn;
 
 describe("TableView layout", () => {
@@ -115,8 +120,17 @@ describe("TableView quick filters", () => {
   });
 
   it("matches inside a tags column's list and offers its suggested tags", () => {
-    const tags = column("tags", { suggestions: ["battery", "solar"] });
+    // A list is told by the type's own default mode, not by its id.
+    const tags = column(
+      "tags",
+      { suggestions: ["battery", "solar"] },
+      "array_contains_string",
+    );
     expect(quickFilterMode(tags)).toBe("array_contains_string");
+    expect(quickFilterMode(column("tags"))).toBe("is");
+    expect(quickFilterMode(column("labels", {}, "array_contains_string"))).toBe(
+      "array_contains_string",
+    );
     expect(staticQuickFilterItems(tags, translate)).toEqual([
       { value: "battery", label: "battery" },
       { value: "solar", label: "solar" },
