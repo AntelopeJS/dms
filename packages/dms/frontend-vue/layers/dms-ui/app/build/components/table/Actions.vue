@@ -360,17 +360,6 @@ const groupByItems = computed(() =>
   })),
 );
 
-// The add button reads as `rowActions.add` words it, else "New entry".
-const addAction = computed(() => sharedDataRef?.value?.addAction);
-const addLabel = computed(() =>
-  addAction.value?.label
-    ? processI18n(addAction.value.label)
-    : t("dms.table.new_row"),
-);
-const addIcon = computed(
-  () => addAction.value?.icon ?? appConfig.ui.icons.plus,
-);
-
 const hasTrailingButtons = computed(
   () =>
     props.canAddRow ||
@@ -636,16 +625,16 @@ const uiTableActions = computed(() => uiTableActionsVariant());
 
     <UButton
       v-if="canAddRow"
-      :label="addLabel"
-      :icon="addIcon"
+      :label="t('dms.table.new_row')"
+      :icon="appConfig.ui.icons.plus"
       :class="uiTableActions.add()"
       size="sm"
       @click="tableSharedData!.emits('add')"
     />
     <UButton
       v-if="canAddRow"
-      :aria-label="addLabel"
-      :icon="addIcon"
+      :aria-label="t('dms.table.new_row')"
+      :icon="appConfig.ui.icons.plus"
       :class="uiTableActions.addMobile()"
       size="sm"
       @click="tableSharedData!.emits('add')"

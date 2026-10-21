@@ -406,15 +406,6 @@ export interface TableSharedData<T> {
    * too.
    */
   emptyStates?: TableViewEmptyStatesConfig;
-  /** The words of the add button (`rowActions.add`), when the table sets them. */
-  addAction?: TableAddActionTexts;
-}
-
-/** The label and icon `rowActions.add` gives the add button. */
-export interface TableAddActionTexts {
-  /** `$`-prefixed: an i18n key. */
-  label?: string;
-  icon?: string;
 }
 </script>
 
@@ -1094,10 +1085,6 @@ const toolbarButtons = computed(() =>
     (button) => button.placement !== HEADER_PLACEMENT,
   ),
 );
-const addActionTexts = computed<TableAddActionTexts>(() => {
-  const { label, icon } = normalizeActionConfig(props.rowActions?.add);
-  return { label, icon };
-});
 const canAddFromToolbar = computed(() => {
   const add = normalizeActionConfig(props.rowActions?.add);
   return !!add.isEnabled && add.placement !== HEADER_PLACEMENT;
@@ -1247,7 +1234,6 @@ watchEffect(() => {
     defaultPageSize: props.defaultPageSize,
     accumulation: props.accumulation,
     emptyStates: props.emptyStates,
-    addAction: addActionTexts.value,
   };
 });
 
