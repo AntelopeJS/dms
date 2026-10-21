@@ -1,3 +1,4 @@
+import { strict as assert } from "node:assert";
 import { ImplementInterface } from "@antelopejs/interface-core";
 import { expect } from "chai";
 import {
@@ -119,5 +120,95 @@ describe("[unit] interfaces/dms/tenant-access — gateAllowsSurface", () => {
 
   it("shuts an ordinary product surface out", () => {
     expect(gateAllowsSurface({}, true)).to.equal(false);
+  });
+});
+
+describe("[unit] tenant access — complete server evaluation", () => {
+  const registered: tenantAccessInterface.TenantAccessGateInfo[] = [];
+  const tenantId = "evaluation-tenant";
+  const sharedCode = "workspace.access_blocked";
+
+  before(() => {
+    ImplementInterface(tenantAccessInterface, tenantAccessImpl);
+  });
+
+  afterEach(() => {
+    for (const gate of registered.splice(0)) {
+      tenantAccessInterface.internal.RegisterTenantAccessGate.unregister(gate);
+    }
+  });
+
+  function register(info: tenantAccessInterface.TenantAccessGateInfo): void {
+    registered.push(info);
+    tenantAccessInterface.RegisterTenantAccessGate(info);
+  }
+
+  it("reports a gate after order 100 even with the same code, preserving the first-denial user API", async () => {
+    const deny: tenantAccessInterface.TenantAccessGateFn = (
+      userId,
+      requestedTenant,
+    ) =>
+      userId === undefined && requestedTenant === tenantId
+        ? { allowed: false, code: sharedCode }
+        : { allowed: true };
+    register({ id: "evaluation.later-ban", order: 101, gate: deny });
+    register({ id: "evaluation.subscription", order: 100, gate: deny });
+    register({
+      id: "evaluation.allowed",
+      order: 99,
+      gate: () => ({ allowed: true }),
+    });
+
+    assert.deepEqual(
+      await tenantAccessInterface.CheckTenantAccess(undefined, tenantId),
+      {
+        allowed: false,
+        code: sharedCode,
+      },
+    );
+    assert.deepEqual(
+      await tenantAccessInterface.EvaluateTenantAccess(undefined, tenantId),
+      [
+        { gateId: "evaluation.subscription", code: sharedCode },
+        { gateId: "evaluation.later-ban", code: sharedCode },
+      ],
+    );
+    assert.deepEqual(
+      await tenantAccessInterface.EvaluateTenantAccess("member", tenantId),
+      [],
+    );
+    assert.deepEqual(
+      await tenantAccessInterface.EvaluateTenantAccess(
+        undefined,
+        "other-tenant",
+      ),
+      [],
+    );
+  });
+
+  it("fails closed on an exception after a denial without returning partial authorization", async () => {
+    register({
+      id: "evaluation.subscription",
+      order: 100,
+      gate: () => ({ allowed: false, code: sharedCode }),
+    });
+    register({
+      id: "evaluation.unavailable",
+      order: 101,
+      gate: async () => {
+        throw new Error("gate unavailable");
+      },
+    });
+    assert.deepEqual(
+      await tenantAccessInterface.CheckTenantAccess(undefined, tenantId),
+      {
+        allowed: false,
+        code: sharedCode,
+      },
+    );
+    await assert.rejects(
+      tenantAccessInterface.EvaluateTenantAccess(undefined, tenantId),
+      /gate unavailable/,
+    );
   });
 });

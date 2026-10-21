@@ -1,5 +1,5 @@
 import { getCurrentInstance } from "vue";
-import { isHydratingSetup } from "../page/isHydratingSetup";
+import { isHydratingComponent } from "../hydration/isHydratingComponent";
 
 /**
  * The instant a server render resolves its periods from, handed to the
@@ -25,7 +25,7 @@ export function periodRenderNow(): Date | null {
     });
     return new Date(now.value);
   }
-  if (!isHydratingSetup()) return null;
+  if (!isHydratingComponent()) return null;
   const transferred = useDmsState<number | null>(
     RENDER_NOW_STATE_KEY,
     () => null,

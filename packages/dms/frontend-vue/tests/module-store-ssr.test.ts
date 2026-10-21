@@ -26,7 +26,7 @@ import {
   stubApiData,
 } from "./helpers/api-data-runtime";
 import { useModuleStore } from "../layers/dms-layout/app/composables/page/useModuleStore";
-import { isHydratingSetup } from "../layers/dms-core/app/composables/page/isHydratingSetup";
+import { isHydratingComponent } from "../layers/dms-core/app/composables/hydration/isHydratingComponent";
 import ModuleTileSkeleton from "../layers/dms-layout/app/build/components/pages/modules/ModuleTileSkeleton.vue";
 
 const idleListing = {
@@ -45,7 +45,7 @@ const awaitedListing: boolean[] = [];
 const Store = defineComponent({
   async setup() {
     const store = useModuleStore();
-    const isHydrating = isHydratingSetup();
+    const isHydrating = isHydratingComponent();
     // Before the await, as a compiled <script setup> keeps it.
     onMounted(() => store.start());
     // As the Modules pages: a hydration awaits nothing, the server's answer

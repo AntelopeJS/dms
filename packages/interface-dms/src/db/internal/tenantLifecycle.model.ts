@@ -63,12 +63,40 @@ export class TenantLifecycleModel extends BasicDataModel(
     while (true) {
       const state = await this.state(tenantId);
       if (state.closed) throw new Error("Tenant lifecycle admission is closed");
+      if (state.barrierId)
+        throw new Error("Tenant lifecycle admission is paused");
       if (
         await this.transition(state, {
           activeAttemptIds: [...state.activeAttemptIds, attemptId],
         })
       )
         return;
+    }
+  }
+
+  /** One CAS only: a delayed caller must not acquire against a newer revision. */
+  async pause(
+    tenantId: string,
+    barrierId: string,
+    expectedRevision: string,
+  ): Promise<boolean> {
+    if (!barrierId)
+      throw new Error("Tenant lifecycle barrier requires an identity");
+    const state = await this.state(tenantId);
+    if (state.closed || state.barrierId || state.revision !== expectedRevision)
+      return false;
+    return this.transition(state, { barrierId });
+  }
+
+  /** Also revokes an in-flight acquisition when no barrier has landed yet. */
+  async resume(tenantId: string, barrierId: string): Promise<boolean> {
+    if (!barrierId)
+      throw new Error("Tenant lifecycle barrier requires an identity");
+    while (true) {
+      const state = await this.state(tenantId);
+      if (state.closed || (state.barrierId && state.barrierId !== barrierId))
+        return false;
+      if (await this.transition(state, { barrierId: null })) return true;
     }
   }
 

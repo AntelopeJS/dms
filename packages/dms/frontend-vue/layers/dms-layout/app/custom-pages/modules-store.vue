@@ -5,7 +5,7 @@ import DmsEmptyState from "#dms-ui/app/components/empty-state/EmptyState.vue";
 import DmsSegmented from "#dms-ui/app/components/segmented/Segmented.vue";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import DmsSearchInput from "#dms-ui/app/build/components/form/SearchInput.vue";
-import { isHydratingSetup } from "#dms-core/app/composables/page/isHydratingSetup";
+import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import ModuleStoreTile from "../build/components/pages/modules/ModuleStoreTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
 import ModuleTileSkeleton from "../build/components/pages/modules/ModuleTileSkeleton.vue";
@@ -41,7 +41,7 @@ const { processI18n } = useTranslation();
 const isOwner = useIsOwner();
 const siteLayout = useSiteLayout();
 const moduleStore = useModuleStore();
-const isHydrating = isHydratingSetup();
+const isHydrating = isHydratingComponent();
 
 // Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {

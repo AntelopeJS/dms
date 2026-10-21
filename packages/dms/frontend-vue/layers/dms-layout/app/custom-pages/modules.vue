@@ -10,7 +10,7 @@ import DmsStatGroup, {
 } from "#dms-ui/app/components/stat-group/StatGroup.vue";
 import type { Tone } from "#dms-ui/app/types/tone";
 import { useKeyboardPlatform } from "#dms-ui/app/composables/global/keyboardPlatform";
-import { isHydratingSetup } from "#dms-core/app/composables/page/isHydratingSetup";
+import { isHydratingComponent } from "#dms-core/app/composables/hydration/isHydratingComponent";
 import DmsChipGroup from "#dms-ui/app/build/components/form/ChipGroup.vue";
 import ModuleCatalogTile from "../build/components/pages/modules/ModuleCatalogTile.vue";
 import ModuleStoreBanners from "../build/components/pages/modules/ModuleStoreBanners.vue";
@@ -55,7 +55,7 @@ const homepage = useHomepage();
 const siteLayout = useSiteLayout();
 const modulesListing = useModulesListing();
 const moduleHistory = useModuleHistory();
-const isHydrating = isHydratingSetup();
+const isHydrating = isHydratingComponent();
 
 // Before the first await: the header renders these in the server pass.
 usePageHeaderActions(() => {
