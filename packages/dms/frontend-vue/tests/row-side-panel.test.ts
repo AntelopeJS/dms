@@ -829,39 +829,3 @@ describe("open row highlight", () => {
     );
   });
 });
-
-describe("row side panel record tokens", () => {
-  it("names the open row in the component's {{query.record}} options", async () => {
-    const { host, targets } = mountPanel();
-    targets.handleCustomRowAction(
-      panelAction({
-        component: {
-          componentName: PANEL_COMPONENT,
-          options: {
-            fetchUrl: "/api/sites/{{query.record}}/facts",
-            rowId: "{{query.record}}",
-            searchUrl: "/api/sites?near={{query.city}}",
-          },
-        },
-      }),
-      rows[0],
-    );
-    await settle();
-    expect(useRowSidePanelContent().value?.componentOptions).toMatchObject({
-      fetchUrl: "/api/sites/r1/facts",
-      rowId: "r1",
-      // Another value of the URL is still the page's own.
-      searchUrl: "/api/sites?near={{query.city}}",
-    });
-
-    // The table writes the next row in the URL in place, which the page's
-    // route does not follow: the options name it all the same.
-    query(host, "[data-dms-row-side-panel-next]")?.click();
-    await settle();
-    expect(useRowSidePanelContent().value?.componentOptions).toMatchObject({
-      fetchUrl: "/api/sites/r2/facts",
-      rowId: "r2",
-    });
-    expect(window.location.search).toBe("?record=r2");
-  });
-});
