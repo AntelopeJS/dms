@@ -56,9 +56,6 @@ target instead: a non-modal panel docked on the right whose header the DMS draws
 `rowTitle` naming the row from its fields, `positionLabel` "x of y", previous / next, J / K, close), `?record=` kept by default (`deepLink: false` opts out), a "not found" state on a 404 (`notFound: { title, description }`) and the table's
 `rowClick: "single"` (a `TableView.fromSource` table reads a deep-linked row beyond its first page through `fetchRowUrl: "/api/x/{{row.id}}"`) — never bridge the table's DOM to build one —
 `docs/04.components/08.tables/8.row-drawers.md#side-panel`.
-A drawer, modal or side panel component reading its row by id names it `{{query.record}}`
-(`ResourceForm(controller, { mode: "view", rowId: "{{query.record}}" })`, a block's
-`fetchUrl`): the DMS fills it with the id of each row it opens, J / K included.
 A button downloading a file the user's session may read (`/api/...`) takes a `download`
 target, `{ url, filename? }`, with the same `{{row.field}}` / `{{query.X}}` tokens — never a Vue
 header button or an `api` target for it — `packages/interface-dms/docs/3.base/2.types.md`.
@@ -169,6 +166,8 @@ row's ⋯ button — `docs/04.components/08.tables/0.index.md#pinned-rows`.
 - A `cards` display whose `card.component` is taller than the built-in card sets
   `card.skeletonHeight` to its height (a CSS length): the loading placeholder takes it, so the
   pagination footer does not drop when the cards land.
+- A built-in card carries its row's actions top right (the grid row's buttons and … menu, same
+  rules and confirmations); a `card.component` opts in with `<component :is="rowActions" />`.
 
 ### Forms
 
