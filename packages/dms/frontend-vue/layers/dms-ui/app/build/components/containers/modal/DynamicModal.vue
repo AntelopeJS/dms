@@ -10,6 +10,7 @@ import {
   CONTAINER_SKELETON_FIELDS,
 } from "../constants";
 import { DMS_CONTAINER_KEY } from "../../../composables/containers/context";
+import { useReleasePagePointerEvents } from "../../../composables/containers/releasePagePointerEvents";
 
 interface DynamicModalProps {
   title: string;
@@ -92,6 +93,7 @@ const modalUi = computed(() => ({
 const { executeGuards, clearGuards } = useLeaveGuard();
 
 const isOpen = defineModel<boolean>("open", { default: true });
+useReleasePagePointerEvents(isOpen);
 // Reka keeps the page's `pointer-events: none` on the body until the modal
 // has scaled out: released as soon as the close starts, a click lands.
 const contentProps = computed(() => ({
