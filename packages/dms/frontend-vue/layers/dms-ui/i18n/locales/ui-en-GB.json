@@ -85,8 +85,7 @@
         "include": "Includes",
         "exclude": "Excludes",
         "contains": "Contains",
-        "not_contains": "Does not contain",
-        "array_contains_string": "Contains"
+        "not_contains": "Does not contain"
       },
       "filter": {
         "boolean": {

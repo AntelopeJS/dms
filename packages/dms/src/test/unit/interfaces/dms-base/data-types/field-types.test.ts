@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { DefaultDataTypes } from "@antelopejs/interface-dms/base/data-types/default-types";
-import { serializeType } from "@antelopejs/interface-dms/base/data-types";
 
 const ITEMS = [
   { label: "Low", value: "low", description: "When there is time" },
@@ -204,23 +203,6 @@ describe("[unit] interfaces/dms-base — TagsType", () => {
     expect(validation.safeParse(["nope"]).success).to.be.false;
     expect(validation.safeParse(["a@b.co", "c@d.co", "e@f.co"]).success).to.be
       .false;
-  });
-});
-
-describe("[unit] interfaces/dms-base — TagsType filter", () => {
-  it("filters the rows holding a tag, typed as a text", () => {
-    const tags = serializeType(new DefaultDataTypes.TagsType())!;
-    expect(tags.compareModes).to.deep.equal([
-      "array_contains_string",
-      "is_empty",
-      "is_not_empty",
-    ]);
-    expect(tags.defaultCompareMode).to.equal("array_contains_string");
-    expect(tags.filterComponents.default).to.include({
-      componentName: "dms-input-text",
-    });
-    expect(tags.filterComponents.is_empty).to.equal("noInput");
-    expect(tags.inputComponent.componentName).to.equal("dms-input-tags");
   });
 });
 

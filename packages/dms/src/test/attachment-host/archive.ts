@@ -32,14 +32,12 @@ import {
 // Notes in archive mode. A note is created without its archive field, which
 // only archive and restore write: the active list keeps it through the `ne`
 // filter, the database adapter matching a missing field as "not archived".
-// Its labels serve a tags filter (table-view-tags-filter).
 
 const TABLE = "archive-notes";
 
 @RegisterTable(TABLE, CORE_SCHEMA_NAME)
 export class ArchiveNote extends Table {
   @Field("string") declare title: string;
-  @Field(["string"]) declare labels?: string[];
   @Field("boolean") declare isArchived?: boolean;
 }
 
@@ -63,15 +61,6 @@ export class ArchiveNoteController extends DataController(
   @Column({ name: "Title", type: new DefaultDataTypes.StringType() })
   @Access(AccessMode.ReadWrite)
   declare title: string;
-
-  @Listable()
-  @Column({
-    name: "Labels",
-    type: new DefaultDataTypes.TagsType(),
-    filterable: true,
-  })
-  @Access(AccessMode.ReadWrite)
-  declare labels: string[];
 
   @ArchiveField()
   @Access(AccessMode.ReadOnly)

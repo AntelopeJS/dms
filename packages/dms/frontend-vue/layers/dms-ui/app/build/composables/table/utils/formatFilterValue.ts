@@ -23,14 +23,9 @@ export function formatFilterValue(
   const formatter =
     dataType.formatter[filter.mode] || dataType.formatter.default;
 
-  // A filter's value need not have the column's shape (a tag typed against
-  // a tags column, whose formatter draws a list): a formatter that writes
-  // nothing for it leaves the value as typed.
   try {
     const result = formatter(filter.value, locale);
-    return typeof result === "string" && result !== ""
-      ? result
-      : String(filter.value);
+    return typeof result === "string" ? result : String(filter.value);
   } catch {
     return String(filter.value);
   }
