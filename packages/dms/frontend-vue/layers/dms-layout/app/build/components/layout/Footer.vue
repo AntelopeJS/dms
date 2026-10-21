@@ -14,8 +14,6 @@ const GITHUB_STARS_CACHE_KEY = "dms-github-stars";
 const GITHUB_STARS_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const { locale, setLocale, t } = useI18n();
-const { loggedIn: isLoggedIn } = useDmsUserSession();
-const { changeLanguage } = useUserLanguage();
 const { uniqueLocales } = useUniqueLocales();
 const { links } = useFooterLinks();
 const { processI18n } = useTranslation();
@@ -106,15 +104,7 @@ onMounted(async () => {
   githubStarsSettled.value = true;
 });
 
-// A signed-in user on a page of this layout (the account switcher) switches
-// their profile's language too: the session applies that one on every load,
-// and the server writes in it, so switching the screen alone would leave the
-// two apart. A visitor's choice lives in the locale cookie.
 async function onLocaleChange(code: unknown) {
-  if (isLoggedIn.value) {
-    await changeLanguage(code as string);
-    return;
-  }
   await setLocale(code as typeof locale.value);
 }
 </script>

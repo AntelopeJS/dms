@@ -15,19 +15,9 @@ import type { DmsFooterConfig } from "../layers/dms-core/shared/types/app-config
 let app: App | undefined;
 let host: HTMLDivElement;
 let footerConfig: DmsFooterConfig | undefined;
-let isLoggedIn = false;
-const setLocale = vi.fn(async () => {});
-const changeLanguage = vi.fn(async () => {});
 
 const SelectStub = defineComponent({
-  emits: ["update:modelValue"],
-  setup:
-    (_, { emit }) =>
-    () =>
-      h("select", {
-        "data-locale-switcher": "",
-        onChange: () => emit("update:modelValue", "fr"),
-      }),
+  setup: () => () => h("select", { "data-locale-switcher": "" }),
 });
 
 async function mountFooter(): Promise<void> {
@@ -67,18 +57,11 @@ beforeEach(async () => {
     "fetch",
     vi.fn(async () => ({ ok: false })),
   );
-  isLoggedIn = false;
-  setLocale.mockClear();
-  changeLanguage.mockClear();
   vi.stubGlobal("useI18n", () => ({
     locale: ref("en"),
-    setLocale,
+    setLocale: vi.fn(),
     t: (key: string) => key,
   }));
-  vi.stubGlobal("useDmsUserSession", () => ({
-    loggedIn: computed(() => isLoggedIn),
-  }));
-  vi.stubGlobal("useUserLanguage", () => ({ changeLanguage }));
   vi.stubGlobal("useUniqueLocales", () => ({ uniqueLocales: ref([]) }));
   vi.stubGlobal("useTranslation", () => ({
     processI18n: (text: string) =>
@@ -148,26 +131,5 @@ describe("footer", () => {
     expect(linkTexts()).not.toContain("empty_layout.footer.github_star");
     expect(host.querySelector("[data-locale-switcher]")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("switches only the screen's language for a visitor", async () => {
-    await mountFooter();
-    host
-      .querySelector("[data-locale-switcher]")!
-      .dispatchEvent(new Event("change"));
-    await nextTick();
-    expect(setLocale).toHaveBeenCalledWith("fr");
-    expect(changeLanguage).not.toHaveBeenCalled();
-  });
-
-  it("stores a signed-in user's switch on their profile", async () => {
-    isLoggedIn = true;
-    await mountFooter();
-    host
-      .querySelector("[data-locale-switcher]")!
-      .dispatchEvent(new Event("change"));
-    await nextTick();
-    expect(changeLanguage).toHaveBeenCalledWith("fr");
-    expect(setLocale).not.toHaveBeenCalled();
   });
 });
