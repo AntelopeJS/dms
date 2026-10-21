@@ -21,6 +21,12 @@ interface InputCodeProps {
   completions?: CodeEditorCompletion[];
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Fills the height its flex parent leaves it (a drawer's body, a stacked
+   * `DmsFieldRow fill`) and scrolls inside it: `minLines` stays its floor
+   * (the parent scrolls below it), `maxLines` is ignored.
+   */
+  fill?: boolean;
 }
 
 interface CompletionsResponse {
@@ -35,6 +41,7 @@ const props = withDefaults(defineProps<InputCodeProps>(), {
   completions: undefined,
   placeholder: undefined,
   id: undefined,
+  fill: false,
 });
 const model = defineModel<string | null | undefined>();
 const { t } = useI18n();
@@ -152,13 +159,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- Filling, the root clips without scrolling (`overflow-clip`): its
+    minimum stays its content's, the editor's floor, and the parent scrolls
+    below it. The editor's area holds no size of its own (`contain-size`): a
+    long text scrolls in it instead of growing the root. -->
   <div
-    class="border-accented overflow-hidden rounded-md border focus-within:ring-2"
-    :class="
+    class="border-accented rounded-md border focus-within:ring-2"
+    :class="[
       isInvalid
         ? 'border-error focus-within:ring-error/25'
-        : 'focus-within:border-primary focus-within:ring-primary/25'
-    "
+        : 'focus-within:border-primary focus-within:ring-primary/25',
+      fill ? 'flex flex-1 flex-col overflow-clip' : 'overflow-hidden',
+    ]"
     :style="sizeStyle"
     @focusout="emitFormBlur"
   >
@@ -167,6 +179,7 @@ onBeforeUnmount(() => {
     <pre
       v-if="!isReady"
       class="text-highlighted min-h-(--dms-code-min-height) overflow-auto px-3 py-2 font-mono text-[12.5px] whitespace-pre-wrap"
+      :class="fill && 'flex-1 contain-size'"
       >{{ model }}</pre
     >
     <!-- Important: CodeMirror's unlayered `.cm-content { min-height: 100% }`
@@ -174,7 +187,15 @@ onBeforeUnmount(() => {
     <div
       ref="host"
       data-dms-code-host
-      class="[&_.cm-content]:min-h-(--dms-code-min-height)! [&_.cm-scroller]:max-h-(--dms-code-max-height) [&_.cm-scroller]:overflow-auto"
+      class="[&_.cm-content]:min-h-(--dms-code-min-height)! [&_.cm-scroller]:overflow-auto"
+      :class="
+        fill
+          ? [
+              'flex flex-col contain-size [&_.cm-editor]:min-h-0 [&_.cm-editor]:flex-1 [&_.cm-scroller]:min-h-0 [&_.cm-scroller]:flex-1',
+              isReady && 'min-h-(--dms-code-min-height) flex-1',
+            ]
+          : '[&_.cm-scroller]:max-h-(--dms-code-max-height)'
+      "
     />
     <div
       class="border-default text-dimmed flex items-center gap-3 border-t bg-(--dms-bg-muted) px-3 py-1 font-mono text-[11px]"

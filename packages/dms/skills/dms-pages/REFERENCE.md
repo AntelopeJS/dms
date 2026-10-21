@@ -72,7 +72,9 @@ import the layer's `RowHeader` component —
 `docs/06.frontend-composables/05.ui-toolkit.md#a-drawer-on-a-row-of-your-own`.
 A drawer's body is a flex column: a body component with a growing root (`flex flex-1 flex-col`)
 fills it and ends with `<DmsContainerFooter>` for its buttons — never measure the drawer nor use
-`--dms-form-foot-*` — `docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
+`--dms-form-foot-*`; a code editor taking the height left (`DmsInputCode fill`, in a stacked
+`DmsFieldRow fill`) — never count its lines from the drawer's size —
+`docs/06.frontend-composables/05.ui-toolkit.md#a-body-that-fills-the-drawer-and-its-footer`.
 A `useDrawer()` body injects what the component calling `useDrawer()` (in its setup) provides —
 never pass a context as a prop to provide it again in the body.
 A `sidePanel` target (non-modal, docked on the right) still works, but is meant for global,

@@ -92,3 +92,31 @@ it("sizes the editor from minLines with a rule CodeMirror cannot outrank", async
   expect(classes).toContain("[&_.cm-content]:min-h-(--dms-code-min-height)!");
   expect(classes).toContain("[&_.cm-scroller]:max-h-(--dms-code-max-height)");
 });
+
+it("fills its flex parent's height when asked, minLines its floor and no maxLines", async () => {
+  const root = await mountCode({ minLines: 12, maxLines: 30, fill: true });
+  const frame = root.firstElementChild as HTMLElement;
+  const frameClasses = frame.className.split(/\s+/);
+  expect(frameClasses).toEqual(
+    expect.arrayContaining(["flex", "flex-1", "flex-col", "overflow-clip"]),
+  );
+  // Clipping without scrolling keeps the floor as the frame's minimum.
+  expect(frameClasses).not.toContain("overflow-hidden");
+  // Once the editor takes over from the code shown as is.
+  await vi.waitFor(() => expect(root.querySelector("pre")).toBeNull());
+  const host = root.querySelector<HTMLElement>("[data-dms-code-host]")!;
+  const classes = host.className.split(/\s+/);
+  expect(classes).toEqual(
+    expect.arrayContaining([
+      "flex-1",
+      "contain-size",
+      "min-h-(--dms-code-min-height)",
+      "[&_.cm-scroller]:flex-1",
+      "[&_.cm-scroller]:min-h-0",
+      "[&_.cm-content]:min-h-(--dms-code-min-height)!",
+    ]),
+  );
+  expect(classes).not.toContain(
+    "[&_.cm-scroller]:max-h-(--dms-code-max-height)",
+  );
+});

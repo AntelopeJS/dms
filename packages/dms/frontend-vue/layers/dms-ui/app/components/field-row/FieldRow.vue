@@ -35,6 +35,12 @@ interface FieldRowProps extends Partial<DefaultComponentProps> {
   required?: boolean;
   /** Dims the whole row. */
   disabled?: boolean;
+  /**
+   * `stack` only: the row and its control fill the height their flex parent
+   * leaves them (a drawer's body), handing it to a control that fills it
+   * (`DmsInputCode fill`).
+   */
+  fill?: boolean;
 }
 
 interface FieldRowSlots {
@@ -57,6 +63,7 @@ const props = withDefaults(defineProps<FieldRowProps>(), {
   spacing: "row",
   required: false,
   disabled: false,
+  fill: false,
 });
 const slots = defineSlots<FieldRowSlots>();
 
@@ -113,6 +120,15 @@ const theme = tv({
     disabled: {
       true: { root: "opacity-55" },
     },
+    // Flex columns down to the control, which grows: their minimum stays
+    // their content's (the control's floor), the parent scrolling below it.
+    fill: {
+      true: {
+        root: "flex flex-1 flex-col",
+        body: "flex flex-1 flex-col",
+        control: "flex flex-1 flex-col",
+      },
+    },
     // Without a label cell, the control is the grid's only child: it spans
     // both columns instead of falling into the form's 240px label column.
     labeled: {
@@ -130,6 +146,7 @@ const ui = computed(() =>
     inset: props.inset,
     spacing: props.spacing,
     disabled: props.disabled,
+    fill: props.fill && props.layout === "stack",
     labeled: hasText.value,
   }),
 );
